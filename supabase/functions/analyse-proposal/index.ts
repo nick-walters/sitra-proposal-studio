@@ -69,9 +69,9 @@ serve(async (req) => {
       supabase.from("proposals").select("*").eq("id", proposalId).single(),
       supabase.from("section_content").select("section_id, content").eq("proposal_id", proposalId),
       supabase.from("wp_drafts").select("id, number, short_name, title, objectives, methodology, duration_months, lead_participant_id").eq("proposal_id", proposalId).order("number"),
-      supabase.from("b31_deliverables").select("number, name, wp_number, task_id, lead_participant_id, due_month, type, dissemination_level").eq("proposal_id", proposalId),
-      supabase.from("b31_milestones").select("number, name, due_month, task_id, wps, means_of_verification").eq("proposal_id", proposalId),
-      supabase.from("b31_risks").select("number, description, wps, mitigation, likelihood, severity").eq("proposal_id", proposalId),
+      supabase.from("b31_deliverables").select("number, name, wp_number, task_id, lead_participant_id, due_month, type, dissemination_level, description").eq("proposal_id", proposalId).order("number"),
+      supabase.from("b31_milestones").select("number, name, due_month, task_id, wps, means_of_verification").eq("proposal_id", proposalId).order("number"),
+      supabase.from("b31_risks").select("number, description, wps, mitigation, likelihood, severity").eq("proposal_id", proposalId).order("number"),
       supabase.from("participants").select("id, organisation_short_name, participant_number, country, organisation_type").eq("proposal_id", proposalId),
       supabase.from("budget_rows").select("participant_id, personnel_costs, purchase_equipment, purchase_travel, purchase_other_goods, subcontracting_costs").eq("proposal_id", proposalId),
     ]);
@@ -84,17 +84,33 @@ serve(async (req) => {
       });
     }
 
-    // Fetch tasks for WPs
+    // Fetch tasks, B3.1 tasks, and effort data for WPs
     const wpIds = (wpDraftsRes.data || []).map((w: any) => w.id);
-    const { data: tasks } = await supabase
-      .from("wp_draft_tasks")
-      .select("id, number, title, description, start_month, end_month, wp_draft_id, lead_participant_id")
-      .in("wp_draft_id", wpIds.length > 0 ? wpIds : ["__none__"]);
+    const safeWpIds = wpIds.length > 0 ? wpIds : ["__none__"];
 
-    const { data: wpDeliverables } = await supabase
-      .from("wp_draft_deliverables")
-      .select("id, number, title, type, dissemination_level, due_month, wp_draft_id")
-      .in("wp_draft_id", wpIds.length > 0 ? wpIds : ["__none__"]);
+    const [
+      { data: tasks },
+      { data: wpDeliverables },
+      { data: b31Tasks },
+      { data: wpEffortData },
+    ] = await Promise.all([
+      supabase
+        .from("wp_draft_tasks")
+        .select("id, number, title, description, start_month, end_month, wp_draft_id, lead_participant_id")
+        .in("wp_draft_id", safeWpIds),
+      supabase
+        .from("wp_draft_deliverables")
+        .select("id, number, title, type, dissemination_level, due_month, wp_draft_id")
+        .in("wp_draft_id", safeWpIds),
+      supabase
+        .from("b31_tasks")
+        .select("id, number, title, description, start_month, end_month, wp_draft_id, lead_participant_id, participants:b31_task_participants(participant_id)")
+        .in("wp_draft_id", safeWpIds),
+      supabase
+        .from("wp_draft_effort")
+        .select("wp_draft_id, participant_id, person_months")
+        .in("wp_draft_id", safeWpIds),
+    ]);
 
     // Build section content map
     const sectionMap: Record<string, string> = {};
@@ -102,22 +118,40 @@ serve(async (req) => {
       sectionMap[s.section_id] = stripHtml(s.content || "");
     });
 
-    // Build WP summary
+    const participants = participantsRes.data || [];
+    const participantMap = new Map(participants.map((p: any) => [p.id, p]));
+
+    // Build WP summary (from drafts)
     const wpSummaries = (wpDraftsRes.data || []).map((wp: any) => {
       const wpTasks = (tasks || []).filter((t: any) => t.wp_draft_id === wp.id);
       const wpDelivs = (wpDeliverables || []).filter((d: any) => d.wp_draft_id === wp.id);
+      const wpB31Tasks = (b31Tasks || []).filter((t: any) => t.wp_draft_id === wp.id);
+      const wpEffort = (wpEffortData || []).filter((e: any) => e.wp_draft_id === wp.id);
+      const wpLeader = participantMap.get(wp.lead_participant_id);
       return {
         number: wp.number,
         shortName: wp.short_name || "",
         title: wp.title || "",
         objectives: stripHtml(wp.objectives || ""),
         methodology: stripHtml(wp.methodology || ""),
+        durationMonths: wp.duration_months,
+        leader: wpLeader?.organisation_short_name || "",
         tasks: wpTasks.map((t: any) => ({
           number: `T${wp.number}.${t.number}`,
           title: t.title || "",
+          description: stripHtml(t.description || "").substring(0, 300),
           startMonth: t.start_month,
           endMonth: t.end_month,
-          leader: (participantsRes.data || []).find((p: any) => p.id === t.lead_participant_id)?.organisation_short_name || "",
+          leader: participantMap.get(t.lead_participant_id)?.organisation_short_name || "",
+        })),
+        b31Tasks: wpB31Tasks.map((t: any) => ({
+          number: `T${wp.number}.${t.number}`,
+          title: t.title || "",
+          description: stripHtml(t.description || "").substring(0, 300),
+          startMonth: t.start_month,
+          endMonth: t.end_month,
+          leader: participantMap.get(t.lead_participant_id)?.organisation_short_name || "",
+          participants: (t.participants || []).map((p: any) => participantMap.get(p.participant_id)?.organisation_short_name || "").filter(Boolean),
         })),
         deliverables: wpDelivs.map((d: any) => ({
           number: `D${wp.number}.${d.number}`,
@@ -125,6 +159,11 @@ serve(async (req) => {
           dueMonth: d.due_month,
           type: d.type || "",
         })),
+        effort: wpEffort.map((e: any) => ({
+          participant: participantMap.get(e.participant_id)?.organisation_short_name || "",
+          personMonths: e.person_months,
+        })).filter((e: any) => e.personMonths > 0),
+        totalEffort: wpEffort.reduce((sum: number, e: any) => sum + (e.person_months || 0), 0),
       };
     });
 
@@ -132,10 +171,13 @@ serve(async (req) => {
     const b31Deliverables = (deliverablesRes.data || []).map((d: any) => ({
       number: d.number,
       name: d.name,
+      description: stripHtml(d.description || "").substring(0, 200),
       wpNumber: d.wp_number,
       dueMonth: d.due_month,
       taskId: d.task_id,
-      leadParticipantId: d.lead_participant_id,
+      type: d.type || "",
+      disseminationLevel: d.dissemination_level || "",
+      leadParticipant: participantMap.get(d.lead_participant_id)?.organisation_short_name || "",
     }));
 
     const b31Milestones = (milestonesRes.data || []).map((m: any) => ({
@@ -144,6 +186,7 @@ serve(async (req) => {
       dueMonth: m.due_month,
       wps: m.wps,
       taskId: m.task_id,
+      meansOfVerification: m.means_of_verification || "",
     }));
 
     // Topic information
@@ -250,26 +293,37 @@ Destination: ${topicInfo.destination || "Not provided"}
 === PART B SECTION CONTENT ===
 ${Object.entries(sectionMap).map(([id, content]) => `--- ${id} ---\n${content.substring(0, 3000)}`).join("\n\n")}
 
-=== WORK PACKAGES ===
+=== WORK PACKAGES (with B3.1 table data) ===
 ${wpSummaries.map(wp => `WP${wp.number} (${wp.shortName}): ${wp.title}
+Leader: ${wp.leader || 'unassigned'}
+Duration: ${wp.durationMonths || '?'} months
 Objectives: ${wp.objectives.substring(0, 500)}
 Methodology: ${wp.methodology.substring(0, 500)}
-Tasks: ${wp.tasks.map(t => `${t.number} "${t.title}" M${t.startMonth || '?'}-M${t.endMonth || '?'} (Lead: ${t.leader || 'unassigned'})`).join("; ")}
-Deliverables: ${wp.deliverables.map(d => `${d.number} "${d.title}" M${d.dueMonth || '?'} (${d.type})`).join("; ")}`).join("\n\n")}
+Draft Tasks: ${wp.tasks.map(t => `${t.number} "${t.title}" M${t.startMonth || '?'}-M${t.endMonth || '?'} (Lead: ${t.leader || 'unassigned'})`).join("; ")}
+B3.1 Tasks: ${wp.b31Tasks.map(t => `${t.number} "${t.title}" M${t.startMonth || '?'}-M${t.endMonth || '?'} (Lead: ${t.leader || 'unassigned'}, Participants: ${t.participants.join(', ') || 'none'})`).join("; ") || "Not populated"}
+Draft Deliverables: ${wp.deliverables.map(d => `${d.number} "${d.title}" M${d.dueMonth || '?'} (${d.type})`).join("; ")}
+Staff Effort: ${wp.effort.map(e => `${e.participant}: ${e.personMonths}PM`).join(", ") || "Not allocated"} (Total: ${wp.totalEffort}PM)`).join("\n\n")}
 
-=== TABLE 3.1 DELIVERABLES ===
-${b31Deliverables.map(d => `D${d.wpNumber || '?'}.${d.number} "${d.name}" WP${d.wpNumber || '?'} due:M${d.dueMonth || '?'}`).join("\n")}
+=== TABLE 3.1.c DELIVERABLES ===
+${b31Deliverables.map(d => `D${d.wpNumber || '?'}.${d.number} "${d.name}" WP${d.wpNumber || '?'} due:M${d.dueMonth || '?'} type:${d.type} level:${d.disseminationLevel} lead:${d.leadParticipant || 'unassigned'} desc:"${d.description}"`).join("\n") || "No deliverables in B3.1 tables"}
 
-=== TABLE 3.1 MILESTONES ===
-${b31Milestones.map(m => `MS${m.number} "${m.name}" WPs:${m.wps || '?'} due:M${m.dueMonth || '?'}`).join("\n")}
+=== TABLE 3.1.d MILESTONES ===
+${b31Milestones.map(m => `MS${m.number} "${m.name}" WPs:${m.wps || '?'} due:M${m.dueMonth || '?'} verification:"${m.meansOfVerification}"`).join("\n") || "No milestones in B3.1 tables"}
 
 === PARTICIPANTS (${(participantsRes.data || []).length}) ===
 ${(participantsRes.data || []).map((p: any) => `P${p.participant_number}: ${p.organisation_short_name} (${p.country}, ${p.organisation_type})`).join("\n")}
 
-=== RISKS ===
-${(risksRes.data || []).map((r: any) => `Risk ${r.number}: "${stripHtml(r.description || "")}" WPs:${r.wps || '?'} Severity:${r.severity || '?'} Likelihood:${r.likelihood || '?'}`).join("\n")}
+=== TABLE 3.1.e RISKS ===
+${(risksRes.data || []).map((r: any) => `Risk ${r.number}: "${stripHtml(r.description || "")}" WPs:${r.wps || '?'} Severity:${r.severity || '?'} Likelihood:${r.likelihood || '?'} Mitigation:"${stripHtml(r.mitigation || "")}"`).join("\n") || "No risks in B3.1 tables"}
 
-Provide a thorough, detailed analysis. Be specific in your recommendations - reference specific sections, WP numbers, and deliverables. For cross-reference issues, check EVERY numbering and timing detail carefully.`;
+=== TABLE 3.1.f STAFF EFFORT SUMMARY ===
+Total effort: ${wpSummaries.reduce((s: number, wp: any) => s + wp.totalEffort, 0)}PM across ${wpSummaries.length} WPs
+${participants.map((p: any) => {
+  const pEffort = wpSummaries.reduce((s: number, wp: any) => s + (wp.effort.find((e: any) => e.participant === p.organisation_short_name)?.personMonths || 0), 0);
+  return pEffort > 0 ? "P" + p.participant_number + " " + p.organisation_short_name + ": " + pEffort + "PM" : null;
+}).filter(Boolean).join("\n")}
+
+Provide a thorough, detailed analysis. Be specific in your recommendations - reference specific sections, WP numbers, and deliverables. For cross-reference issues, check EVERY numbering and timing detail carefully. Pay special attention to the B3.1 compulsory tables (tasks, deliverables, milestones, risks, effort) as these are critical for the Implementation score.`;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
