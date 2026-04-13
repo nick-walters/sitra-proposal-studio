@@ -1437,6 +1437,7 @@ td.b12-case-cell {
 .print-export-container .b31-tables-container td {
   font-family: 'Times New Roman', Times, serif !important;
   font-size: 11pt !important;
+  padding: 0.03pt 1pt !important;
   -webkit-print-color-adjust: exact !important;
   print-color-adjust: exact !important;
 }
