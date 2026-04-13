@@ -295,9 +295,17 @@ export function DocumentEditor({
     updating: assignmentUpdating,
   } = sectionAssignmentHook;
 
+  // Track whether coordinator+ has dismissed the lock warning for this section
+  const [lockWarningDismissed, setLockWarningDismissed] = useState(false);
+
+  // Reset dismissal when lock state changes
+  useEffect(() => {
+    setLockWarningDismissed(false);
+  }, [isLocked]);
+
   // Determine if section is effectively read-only (prop or locked)
-  // Admins/owners can always edit locked sections
-  const isEffectivelyReadOnly = readOnly || (isLocked && !canEditWhenLocked);
+  // Admins/owners can edit locked sections only after dismissing the warning
+  const isEffectivelyReadOnly = readOnly || (isLocked && (!canEditWhenLocked || !lockWarningDismissed));
 
   // Helper to get due date display info
   const getDueDateInfo = () => {
