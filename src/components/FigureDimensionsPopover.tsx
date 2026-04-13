@@ -133,7 +133,9 @@ export function FigureDimensionsPanel({
             step="0.1"
             min="0.1"
             value={cmWidth}
-            onChange={(e) => handleCmWidthChange(e.target.value)}
+            onFocus={() => setCmFocused('w')}
+            onChange={(e) => setCmWidth(e.target.value)}
+            onBlur={commitCmWidth}
             className="w-[74px] h-7 text-xs"
             title="Width (cm)"
           />
@@ -143,7 +145,9 @@ export function FigureDimensionsPanel({
             step="0.1"
             min="0.1"
             value={cmHeight}
-            onChange={(e) => handleCmHeightChange(e.target.value)}
+            onFocus={() => setCmFocused('h')}
+            onChange={(e) => setCmHeight(e.target.value)}
+            onBlur={commitCmHeight}
             className="w-[74px] h-7 text-xs"
             title="Height (cm)"
           />
@@ -156,8 +160,10 @@ export function FigureDimensionsPanel({
           <Input
             type="number"
             min="50"
-            value={pxW > 0 ? pxW.toString() : ''}
-            onChange={(e) => onWidthChange(e.target.value)}
+            value={pxWLocal}
+            onFocus={() => setPxFocused('w')}
+            onChange={(e) => setPxWLocal(e.target.value)}
+            onBlur={commitPxW}
             className="w-[74px] h-7 text-xs"
             title="Width (px)"
           />
@@ -165,8 +171,10 @@ export function FigureDimensionsPanel({
           <Input
             type="number"
             min="50"
-            value={pxH > 0 ? pxH.toString() : ''}
-            onChange={(e) => onHeightChange(e.target.value)}
+            value={pxHLocal}
+            onFocus={() => setPxFocused('h')}
+            onChange={(e) => setPxHLocal(e.target.value)}
+            onBlur={commitPxH}
             className="w-[74px] h-7 text-xs"
             title="Height (px)"
           />
@@ -180,8 +188,10 @@ export function FigureDimensionsPanel({
             type="number"
             min="1"
             max="100"
-            value={widthPercent > 0 ? widthPercent.toString() : '100'}
-            onChange={(e) => onWidthPercentChange(e.target.value)}
+            value={percentLocal}
+            onFocus={() => setPercentFocused(true)}
+            onChange={(e) => setPercentLocal(e.target.value)}
+            onBlur={commitPercent}
             className="w-[74px] h-7 text-xs"
             title="Width (%)"
           />
