@@ -160,6 +160,9 @@ const PART_B_ALIGNMENT_EXEMPT_PARAGRAPH_CLASSES = new Set(['figure-caption', 'ta
 function normalizePartBPastedAlignment(html: string) {
   if (!html || typeof document === 'undefined') return html;
 
+  // Strip mso-* properties from raw HTML
+  html = html.replace(/mso-[^;:"']+:[^;:"']+;?/gi, '');
+
   const div = document.createElement('div');
   div.innerHTML = html;
 
@@ -182,6 +185,16 @@ function normalizePartBPastedAlignment(html: string) {
       h.style.margin = '';
       h.style.padding = '';
       h.style.width = '';
+      h.style.border = '';
+      h.style.borderTop = '';
+      h.style.borderBottom = '';
+      h.style.borderLeft = '';
+      h.style.borderRight = '';
+      h.style.borderColor = '';
+      h.style.borderStyle = '';
+      h.style.borderWidth = '';
+      h.style.background = '';
+      h.style.backgroundColor = '';
     }
 
     if (el.tagName === 'FONT') {
@@ -212,6 +225,9 @@ function normalizePartBPastedAlignment(html: string) {
 function normalizePartBLoadedContent(html: string) {
   if (!html || typeof document === 'undefined') return html;
 
+  // Strip mso-* properties from raw HTML before DOM parsing
+  html = html.replace(/mso-[^;:"']+:[^;:"']+;?/gi, '');
+
   const div = document.createElement('div');
   div.innerHTML = html;
 
@@ -230,6 +246,16 @@ function normalizePartBLoadedContent(html: string) {
       h.style.fontVariant = '';
       h.style.fontFeatureSettings = '';
       h.style.webkitTextStrokeWidth = '';
+      h.style.border = '';
+      h.style.borderTop = '';
+      h.style.borderBottom = '';
+      h.style.borderLeft = '';
+      h.style.borderRight = '';
+      h.style.borderColor = '';
+      h.style.borderStyle = '';
+      h.style.borderWidth = '';
+      h.style.background = '';
+      h.style.backgroundColor = '';
     }
     if (el.tagName === 'FONT') {
       const span = document.createElement('span');

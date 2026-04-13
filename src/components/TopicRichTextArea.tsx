@@ -2,6 +2,22 @@ import { useRef, useEffect, useCallback, useState } from 'react';
 import DOMPurify from 'dompurify';
 import { cn } from '@/lib/utils';
 
+const SANITIZE_CONFIG = {
+  ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'ul', 'ol', 'li', 'span', 'a', 'h1', 'h2', 'h3', 'h4', 'sub', 'sup', 'table', 'thead', 'tbody', 'tr', 'th', 'td'],
+  ALLOWED_ATTR: ['class', 'style', 'href', 'target', 'rel', 'colspan', 'rowspan'],
+};
+
+/** Strip Word/XML artifacts (mso-*, borders, backgrounds) from HTML */
+function stripXmlArtifacts(html: string): string {
+  if (!html) return '';
+  // Remove mso-* CSS properties
+  let cleaned = html.replace(/mso-[^;:"']+:[^;:"']+;?/gi, '');
+  // Remove border/background inline styles
+  cleaned = cleaned.replace(/border(?:-(?:top|bottom|left|right|color|style|width))?:\s*[^;]+;?/gi, '');
+  cleaned = cleaned.replace(/background(?:-color)?:\s*[^;]+;?/gi, '');
+  return DOMPurify.sanitize(cleaned, SANITIZE_CONFIG);
+}
+
 interface TopicRichTextAreaProps {
   value: string;
   onChange: (value: string) => void;
@@ -33,7 +49,7 @@ export function TopicRichTextArea({
   // Set initial content
   useEffect(() => {
     if (editorRef.current && isInitialMount.current) {
-      editorRef.current.innerHTML = DOMPurify.sanitize(value || '', { ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'ul', 'ol', 'li', 'span', 'a', 'h1', 'h2', 'h3', 'h4', 'sub', 'sup', 'table', 'thead', 'tbody', 'tr', 'th', 'td'], ALLOWED_ATTR: ['class', 'style', 'href', 'target', 'rel', 'colspan', 'rowspan'] });
+      editorRef.current.innerHTML = stripXmlArtifacts(value);
       isInitialMount.current = false;
     }
   }, []);
@@ -43,7 +59,7 @@ export function TopicRichTextArea({
     if (editorRef.current && !isFocused) {
       const currentContent = editorRef.current.innerHTML;
       if (currentContent !== value) {
-        editorRef.current.innerHTML = DOMPurify.sanitize(value || '', { ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'ul', 'ol', 'li', 'span', 'a', 'h1', 'h2', 'h3', 'h4', 'sub', 'sup', 'table', 'thead', 'tbody', 'tr', 'th', 'td'], ALLOWED_ATTR: ['class', 'style', 'href', 'target', 'rel', 'colspan', 'rowspan'] });
+        editorRef.current.innerHTML = stripXmlArtifacts(value);
       }
     }
   }, [value, isFocused]);
@@ -65,6 +81,16 @@ export function TopicRichTextArea({
           htmlEl.style.fontSize = '';
           htmlEl.style.fontFamily = '';
           htmlEl.style.lineHeight = '';
+          htmlEl.style.border = '';
+          htmlEl.style.borderTop = '';
+          htmlEl.style.borderBottom = '';
+          htmlEl.style.borderLeft = '';
+          htmlEl.style.borderRight = '';
+          htmlEl.style.borderColor = '';
+          htmlEl.style.borderStyle = '';
+          htmlEl.style.borderWidth = '';
+          htmlEl.style.background = '';
+          htmlEl.style.backgroundColor = '';
         }
         // Remove font tags
         if (el.tagName === 'FONT') {
@@ -73,7 +99,7 @@ export function TopicRichTextArea({
           el.replaceWith(span);
         }
       });
-      document.execCommand('insertHTML', false, DOMPurify.sanitize(temp.innerHTML, { ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'ul', 'ol', 'li', 'span', 'a', 'h1', 'h2', 'h3', 'h4', 'sub', 'sup', 'table', 'thead', 'tbody', 'tr', 'th', 'td'], ALLOWED_ATTR: ['class', 'style', 'href', 'target', 'rel', 'colspan', 'rowspan'] }));
+      document.execCommand('insertHTML', false, DOMPurify.sanitize(temp.innerHTML, SANITIZE_CONFIG));
     } else {
       // Plain text: convert line breaks to paragraphs
       const paragraphs = text.split(/\n\n|\r\n\r\n/).map(p => {
