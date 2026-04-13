@@ -59,11 +59,11 @@ function ResizableImageComponent({ node, updateAttributes, selected }: NodeViewP
         newWidth = newHeight * aspectRatio;
       }
       
-      // When resizing with handles, switch to pixel mode
+      // When resizing with handles, always switch to pixel mode
       updateAttributes({ 
         width: Math.round(newWidth), 
         height: Math.round(newHeight),
-        widthPercent: null // Clear percentage when manually resizing
+        widthPercent: 0 // Use 0 (not null) to explicitly clear percentage mode
       });
     };
 
@@ -86,8 +86,8 @@ function ResizableImageComponent({ node, updateAttributes, selected }: NodeViewP
     return undefined;
   };
 
-  // Use percentage width if set, otherwise use pixel dimensions
-  const usePercentage = widthPercent && widthPercent > 0;
+  // Use percentage width if set and positive, otherwise use pixel dimensions
+  const usePercentage = typeof widthPercent === 'number' && widthPercent > 0;
   const imgWidth = parseDimension(width);
   const imgHeight = parseDimension(height);
 
@@ -129,8 +129,8 @@ function ResizableImageComponent({ node, updateAttributes, selected }: NodeViewP
           draggable={false}
         />
         
-        {/* Resize handles - only show when selected and not using percentage */}
-        {selected && !usePercentage && (
+        {/* Resize handles - always show when selected */}
+        {selected && (
           <>
             {/* Corner handles */}
             <div
@@ -187,11 +187,11 @@ export const ResizableImage = Node.create({
         renderHTML: () => ({}),
       },
       widthPercent: {
-        default: null,
+        default: 0,
         parseHTML: (element) => {
           const style = element.getAttribute('style') || '';
           const match = style.match(/width:\s*(\d+)%/);
-          return match ? parseInt(match[1], 10) : null;
+          return match ? parseInt(match[1], 10) : 0;
         },
         renderHTML: () => ({}),
       },
@@ -229,8 +229,8 @@ export const ResizableImage = Node.create({
       styles.push('display: block', 'margin-left: 0', 'margin-right: auto');
     }
     
-    // Add width/height
-    if (widthPercent) {
+    // Add width/height — only use percentage if explicitly > 0
+    if (typeof widthPercent === 'number' && widthPercent > 0) {
       styles.push(`width: ${widthPercent}%`, 'height: auto');
     } else {
       if (width) styles.push(`width: ${width}px`);

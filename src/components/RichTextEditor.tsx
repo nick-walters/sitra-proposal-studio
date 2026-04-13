@@ -35,6 +35,7 @@ import { updateCaptionForTableAtCursor } from '@/lib/renumberCaptionsInEditor';
 import { OrderedListDropdown } from './OrderedListDropdown';
 import { autoFitEditorTableAtPos } from '@/lib/editorTableAutoFit';
 import { ParagraphSpacingPopover } from './ParagraphSpacingPopover';
+import { FigureDimensionsPopover } from './FigureDimensionsPopover';
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
@@ -510,9 +511,9 @@ export function FormattingToolbar({
       if (aspectRatioLocked) {
         const newHeight = Math.round(numValue / aspectRatio);
         setImageHeight(newHeight.toString());
-        editor.commands.updateAttributes('image', { width: numValue, height: newHeight, widthPercent: null });
+        editor.commands.updateAttributes('image', { width: numValue, height: newHeight, widthPercent: 0 });
       } else {
-        editor.commands.updateAttributes('image', { width: numValue, widthPercent: null });
+        editor.commands.updateAttributes('image', { width: numValue, widthPercent: 0 });
       }
     }
   }, [editor, aspectRatio, aspectRatioLocked]);
@@ -524,9 +525,9 @@ export function FormattingToolbar({
       if (aspectRatioLocked) {
         const newWidth = Math.round(numValue * aspectRatio);
         setImageWidth(newWidth.toString());
-        editor.commands.updateAttributes('image', { width: newWidth, height: numValue, widthPercent: null });
+        editor.commands.updateAttributes('image', { width: newWidth, height: numValue, widthPercent: 0 });
       } else {
-        editor.commands.updateAttributes('image', { height: numValue, widthPercent: null });
+        editor.commands.updateAttributes('image', { height: numValue, widthPercent: 0 });
       }
     }
   }, [editor, aspectRatio, aspectRatioLocked]);
@@ -551,7 +552,7 @@ export function FormattingToolbar({
       editor.commands.updateAttributes('image', { widthPercent: parseInt(defaultPercent) });
     } else {
       // Switch to pixel mode - clear percentage
-      editor.commands.updateAttributes('image', { widthPercent: null });
+      editor.commands.updateAttributes('image', { widthPercent: 0 });
     }
   }, [editor, widthMode, imageWidthPercent]);
 
@@ -1175,6 +1176,18 @@ export function FormattingToolbar({
                 icon={<Crop className="w-4 h-4" />}
                 tooltip="Crop image"
                 onClick={handleCropClick}
+              />
+
+              {/* Figure dimensions popover */}
+              <FigureDimensionsPopover
+                width={imageWidth}
+                height={imageHeight}
+                widthPercent={Number(imageWidthPercent) || 0}
+                aspectRatioLocked={aspectRatioLocked}
+                onWidthChange={handleWidthChange}
+                onHeightChange={handleHeightChange}
+                onWidthPercentChange={handleWidthPercentChange}
+                onAspectRatioToggle={() => setAspectRatioLocked(!aspectRatioLocked)}
               />
               
               <Separator orientation="vertical" className="h-5 mx-1" />
