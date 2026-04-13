@@ -1242,6 +1242,7 @@ td.b12-case-cell {
   font-size: 11pt !important;
   line-height: 1 !important;
   vertical-align: top !important;
+  padding: 0.03pt 4px !important;
 }
 
 /* Captions */
