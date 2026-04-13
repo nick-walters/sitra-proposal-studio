@@ -255,20 +255,12 @@ function EditableText({
   }, [value]);
   
   // Auto-resize on mount and when value changes
-  const resizeTextarea = useCallback(() => {
+  useEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = '0';
-    // scrollHeight may include an extra line; clamp to content
-    const lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 14;
-    const lines = (el.value || '').split('\n').length;
-    const contentHeight = Math.max(lines * lineHeight, lineHeight);
-    el.style.height = Math.min(el.scrollHeight, contentHeight + 2) + 'px';
-  }, []);
-
-  useEffect(() => {
-    resizeTextarea();
-  }, [localValue, resizeTextarea]);
+    el.style.height = el.scrollHeight + 'px';
+  }, [localValue]);
   
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
