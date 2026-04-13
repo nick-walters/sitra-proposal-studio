@@ -150,6 +150,9 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
       queryClient.invalidateQueries({ queryKey: ['a3-effort-data', proposalId] }),
       queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] }),
     ]);
+
+    // Notify budget tables that effort data changed
+    window.dispatchEvent(new CustomEvent('effort-data-changed', { detail: { proposalId } }));
   }, [proposalId, queryClient]);
 
   if (!wps?.length || !participants?.length) return null;
