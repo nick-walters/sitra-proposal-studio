@@ -69,9 +69,9 @@ serve(async (req) => {
       supabase.from("proposals").select("*").eq("id", proposalId).single(),
       supabase.from("section_content").select("section_id, content").eq("proposal_id", proposalId),
       supabase.from("wp_drafts").select("id, number, short_name, title, objectives, methodology, duration_months, lead_participant_id").eq("proposal_id", proposalId).order("number"),
-      supabase.from("b31_deliverables").select("number, name, wp_number, task_id, lead_participant_id, due_month, type, dissemination_level").eq("proposal_id", proposalId),
-      supabase.from("b31_milestones").select("number, name, due_month, task_id, wps, means_of_verification").eq("proposal_id", proposalId),
-      supabase.from("b31_risks").select("number, description, wps, mitigation, likelihood, severity").eq("proposal_id", proposalId),
+      supabase.from("b31_deliverables").select("number, name, wp_number, task_id, lead_participant_id, due_month, type, dissemination_level, description").eq("proposal_id", proposalId).order("number"),
+      supabase.from("b31_milestones").select("number, name, due_month, task_id, wps, means_of_verification").eq("proposal_id", proposalId).order("number"),
+      supabase.from("b31_risks").select("number, description, wps, mitigation, likelihood, severity").eq("proposal_id", proposalId).order("number"),
       supabase.from("participants").select("id, organisation_short_name, participant_number, country, organisation_type").eq("proposal_id", proposalId),
       supabase.from("budget_rows").select("participant_id, personnel_costs, purchase_equipment, purchase_travel, purchase_other_goods, subcontracting_costs").eq("proposal_id", proposalId),
     ]);
