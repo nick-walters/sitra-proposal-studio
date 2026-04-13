@@ -5,7 +5,7 @@ import DOMPurify from "dompurify";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, BookOpen, Route, History, Info, Image, Lock, Unlock, MessageSquare, PanelRightClose, PanelRight, UserPlus, CalendarClock, User, FileText, X, Search, GitCompare, Keyboard, Wand2, FileCode, SplitSquareHorizontal, Layers, Building2, FlaskConical, Check, Link2, Table2 } from "lucide-react";
+import { Sparkles, BookOpen, Route, History, Info, Image, Lock, Unlock, MessageSquare, PanelRightClose, PanelRight, UserPlus, CalendarClock, User, FileText, X, Search, GitCompare, Keyboard, Wand2, FileCode, SplitSquareHorizontal, Layers, Building2, FlaskConical, Check, Link2, Table2, AlertTriangle } from "lucide-react";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { FormattingToolbar, useRichTextEditor } from "./RichTextEditor";
 import {
@@ -295,9 +295,17 @@ export function DocumentEditor({
     updating: assignmentUpdating,
   } = sectionAssignmentHook;
 
+  // Track whether coordinator+ has dismissed the lock warning for this section
+  const [lockWarningDismissed, setLockWarningDismissed] = useState(false);
+
+  // Reset dismissal when lock state changes
+  useEffect(() => {
+    setLockWarningDismissed(false);
+  }, [isLocked]);
+
   // Determine if section is effectively read-only (prop or locked)
-  // Admins/owners can always edit locked sections
-  const isEffectivelyReadOnly = readOnly || (isLocked && !canEditWhenLocked);
+  // Admins/owners can edit locked sections only after dismissing the warning
+  const isEffectivelyReadOnly = readOnly || (isLocked && (!canEditWhenLocked || !lockWarningDismissed));
 
   // Helper to get due date display info
   const getDueDateInfo = () => {
@@ -1357,10 +1365,26 @@ export function DocumentEditor({
           </Alert>
         )}
 
-        {/* Locked section banner - show to non-admin users */}
-
-
-
+        {/* Locked section banner - show warning to coordinators+ */}
+        {isLocked && canEditWhenLocked && !lockWarningDismissed && !readOnly && (
+          <Alert className="mx-0 rounded-none border-x-0 bg-amber-50 border-amber-300 dark:bg-amber-950/20 dark:border-amber-800">
+            <AlertTriangle className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="flex-1 flex items-center justify-between text-amber-800 dark:text-amber-200">
+              <span>
+                <span className="font-medium">This section is locked</span> and hidden from editors and viewers.
+                {lockedByName && <span className="text-xs ml-1 opacity-75">Locked by {lockedByName}.</span>}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                className="ml-3 h-6 text-xs border-amber-400 text-amber-700 hover:bg-amber-100 dark:border-amber-700 dark:text-amber-300 dark:hover:bg-amber-900"
+                onClick={() => setLockWarningDismissed(true)}
+              >
+                Edit anyway
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
         {/* Placeholder content banner - show when section has template placeholder text */}
         {isPlaceholder && !isEffectivelyReadOnly && (
           <Alert className="mx-0 rounded-none border-x-0 bg-blue-50 border-blue-200 dark:bg-blue-950/20 dark:border-blue-800">
