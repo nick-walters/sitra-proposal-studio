@@ -160,6 +160,9 @@ const PART_B_ALIGNMENT_EXEMPT_PARAGRAPH_CLASSES = new Set(['figure-caption', 'ta
 function normalizePartBPastedAlignment(html: string) {
   if (!html || typeof document === 'undefined') return html;
 
+  // Strip mso-* properties from raw HTML
+  html = html.replace(/mso-[^;:"']+:[^;:"']+;?/gi, '');
+
   const div = document.createElement('div');
   div.innerHTML = html;
 
