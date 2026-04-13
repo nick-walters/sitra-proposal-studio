@@ -12,10 +12,17 @@ import { resolveStorageUrl } from '@/hooks/useStorageUrl';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
-interface SectionContent {
+export interface SectionContent {
   id: string;
   sectionId: string;
   content: string;
+}
+
+export interface ExportData {
+  proposal: import('@/types/proposal').Proposal;
+  sectionContents: SectionContent[];
+  sections: import('@/types/proposal').Section[];
+  participants?: import('@/types/proposal').Participant[];
 }
 
 export interface PrintRenderOptions {
@@ -299,7 +306,6 @@ export async function mountB31Components(
   const mount = container.querySelector('#print-b31-mount');
   if (!mount) return;
 
-  // Dynamically import the B31SectionContent component
   const { B31SectionContent } = await import('@/components/B31SectionContent');
 
   const queryClient = new QueryClient({
@@ -316,7 +322,6 @@ export async function mountB31Components(
     ),
   );
 
-  // Wait for data to load — poll until B3.1 content has rendered
   await new Promise<void>((resolve) => {
     let elapsed = 0;
     const interval = setInterval(() => {
@@ -325,13 +330,11 @@ export async function mountB31Components(
       const isFetching = queryClient.isFetching() > 0;
       if ((hasTables && !isFetching) || elapsed > 15000) {
         clearInterval(interval);
-        // Allow a bit more time for images/charts to render
         setTimeout(resolve, 1000);
       }
     }, 200);
   });
 
-  // After rendering, strip interactive elements (buttons, drag handles, popovers, etc.)
   const interactiveSelectors = [
     'button', '[role="button"]', '.drag-handle', '[data-radix-popper-content-wrapper]',
     '.popover-content', '[data-state]', 'input', 'select', 'textarea',
@@ -339,7 +342,6 @@ export async function mountB31Components(
   ];
   for (const sel of interactiveSelectors) {
     mount.querySelectorAll(sel).forEach(el => {
-      // Only remove if it's an interactive UI element, not content
       if (el.tagName === 'BUTTON' || el.getAttribute('role') === 'button' ||
           el.classList.contains('drag-handle') || el.classList.contains('resize-handle') ||
           el.classList.contains('column-resizer') || el.tagName === 'INPUT' ||
@@ -348,4 +350,55 @@ export async function mountB31Components(
       }
     });
   }
+}
+
+// ── Shared export container preparation ──────────────────────────────────────
+
+/**
+ * Build the print container, attach it to the DOM for layout,
+ * mount B3.1 React components, and wait for images to load.
+ * Returns the container and a cleanup function.
+ */
+export async function prepareExportContainer(
+  options: PrintRenderOptions,
+  statusMessage?: string,
+): Promise<{ container: HTMLDivElement; cleanup: () => void }> {
+  const container = await buildPrintContainer(options);
+
+  // Attach to DOM — must be visible for html2canvas / layout capture
+  container.style.position = 'absolute';
+  container.style.left = '0';
+  container.style.top = '0';
+  container.style.zIndex = '99999';
+  container.style.pointerEvents = 'none';
+  container.style.background = '#fff';
+  container.style.overflow = 'visible';
+  document.body.appendChild(container);
+
+  // Mount B3.1 React components (tables, charts)
+  await mountB31Components(container, options.proposal.id);
+
+  // Wait for all images to load
+  const images = container.querySelectorAll('img');
+  await Promise.all(
+    Array.from(images).map(
+      img =>
+        new Promise<void>(resolve => {
+          if (img.complete) return resolve();
+          img.onload = () => resolve();
+          img.onerror = () => resolve();
+        }),
+    ),
+  );
+
+  // Allow a small delay for reflows
+  await new Promise(r => setTimeout(r, 500));
+
+  const cleanup = () => {
+    if (container.parentNode) {
+      document.body.removeChild(container);
+    }
+  };
+
+  return { container, cleanup };
 }
