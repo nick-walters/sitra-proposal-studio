@@ -190,7 +190,7 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
                           className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap cursor-default"
                           style={{
                             backgroundColor: wp.color || '#3b82f6',
-                            color: getContrastingTextColor(wp.color || '#3b82f6'),
+                            color: '#ffffff',
                           }}
                         >
                           WP{wp.number}
