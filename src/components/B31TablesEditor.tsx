@@ -478,7 +478,7 @@ function MultiWPSelector({
   onChange: (val: string) => void;
   workPackages: WorkPackage[];
 }) {
-  const selectedNumbers = value ? value.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n)) : [];
+  const selectedNumbers = value ? value.split(',').map(n => parseInt(n.trim().replace(/^WP/i, ''))).filter(n => !isNaN(n)) : [];
   const selectedWPs = workPackages.filter(wp => selectedNumbers.includes(wp.number));
   const [open, setOpen] = useState(false);
   
