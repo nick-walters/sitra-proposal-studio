@@ -313,10 +313,17 @@ ${b31Milestones.map(m => `MS${m.number} "${m.name}" WPs:${m.wps || '?'} due:M${m
 === PARTICIPANTS (${(participantsRes.data || []).length}) ===
 ${(participantsRes.data || []).map((p: any) => `P${p.participant_number}: ${p.organisation_short_name} (${p.country}, ${p.organisation_type})`).join("\n")}
 
-=== RISKS ===
-${(risksRes.data || []).map((r: any) => `Risk ${r.number}: "${stripHtml(r.description || "")}" WPs:${r.wps || '?'} Severity:${r.severity || '?'} Likelihood:${r.likelihood || '?'}`).join("\n")}
+=== TABLE 3.1.e RISKS ===
+${(risksRes.data || []).map((r: any) => `Risk ${r.number}: "${stripHtml(r.description || "")}" WPs:${r.wps || '?'} Severity:${r.severity || '?'} Likelihood:${r.likelihood || '?'} Mitigation:"${stripHtml(r.mitigation || "")}"`).join("\n") || "No risks in B3.1 tables"}
 
-Provide a thorough, detailed analysis. Be specific in your recommendations - reference specific sections, WP numbers, and deliverables. For cross-reference issues, check EVERY numbering and timing detail carefully.`;
+=== TABLE 3.1.f STAFF EFFORT SUMMARY ===
+Total effort: ${wpSummaries.reduce((s: number, wp: any) => s + wp.totalEffort, 0)}PM across ${wpSummaries.length} WPs
+${participants.map((p: any) => {
+  const pEffort = wpSummaries.reduce((s: number, wp: any) => s + (wp.effort.find((e: any) => e.participant === p.organisation_short_name)?.personMonths || 0), 0);
+  return pEffort > 0 ? \`P\${p.participant_number} \${p.organisation_short_name}: \${pEffort}PM\` : null;
+}).filter(Boolean).join("\n")}
+
+Provide a thorough, detailed analysis. Be specific in your recommendations - reference specific sections, WP numbers, and deliverables. For cross-reference issues, check EVERY numbering and timing detail carefully. Pay special attention to the B3.1 compulsory tables (tasks, deliverables, milestones, risks, effort) as these are critical for the Implementation score.`;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
