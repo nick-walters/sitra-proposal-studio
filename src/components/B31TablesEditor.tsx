@@ -258,9 +258,10 @@ function EditableText({
   useEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
-    // Reset height, measure scrollHeight, then apply exact fit
+    // Reset height to 0 to get true content height, then set exact fit
     el.style.height = '0';
-    el.style.height = el.scrollHeight + 'px';
+    const h = el.scrollHeight;
+    el.style.height = h + 'px';
   }, [localValue]);
   
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
