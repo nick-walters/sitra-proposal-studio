@@ -53,42 +53,16 @@ function buildPrintDocument(
   <style>
     @page {
       size: A4 portrait;
-      margin: 15mm;
+      margin: 0;
     }
 
-    /* Running header and footer via fixed-position elements */
-    .print-header, .print-footer {
-      position: fixed;
-      left: 0;
-      right: 0;
-      text-align: center;
-      font-family: 'Times New Roman', Times, serif;
-      font-size: 8pt;
-      color: #808080;
-      z-index: 10000;
-    }
-    .print-header {
-      top: 0;
-      padding-top: 2mm;
-    }
-    .print-footer {
-      bottom: 0;
-      padding-bottom: 2mm;
-    }
-    .print-footer .acronym-bold {
-      font-weight: bold;
-    }
-
-    /* Reserve space for header and footer so content doesn't overlap */
     body {
       margin: 0;
-      padding: 0;
+      padding: 15mm;
       background: #fff;
-    }
-
-    .print-body-content {
-      /* No extra padding needed — @page margin handles it.
-         The fixed header/footer sit in the margin area. */
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      color-adjust: exact !important;
     }
 
     /* Page break helpers */
@@ -99,13 +73,16 @@ function buildPrintDocument(
     .print-export-container h2.print-h2 {
       page-break-after: avoid;
     }
-    .print-export-container table {
-      page-break-inside: avoid;
+    .print-export-container h3 {
+      page-break-after: avoid;
     }
     .print-export-container tr {
       page-break-inside: avoid;
     }
     .print-export-container img {
+      page-break-inside: avoid;
+    }
+    .print-export-container figure {
       page-break-inside: avoid;
     }
 
@@ -120,20 +97,14 @@ function buildPrintDocument(
       pointer-events: auto !important;
     }
 
-    /* Counter for page numbers — CSS counters for running footer */
     @media print {
-      /* Hide anything not meant for print */
-      body > *:not(.print-body-content):not(.print-header):not(.print-footer) {
+      body > *:not(.print-body-content) {
         display: none !important;
       }
     }
   </style>
 </head>
 <body>
-  <div class="print-header">${escapeHtml(headerText)}</div>
-  <div class="print-footer">
-    <span class="acronym-bold">${escapeHtml(acronym)}</span>${escapeHtml(stageText)}
-  </div>
   <div class="print-body-content">
     ${container.outerHTML}
   </div>
