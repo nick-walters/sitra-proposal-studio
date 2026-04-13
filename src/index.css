@@ -1150,7 +1150,7 @@ td.b12-case-cell {
 
 /* Body text */
 .print-export-container p {
-  margin-top: 3pt !important;
+  margin-top: 0 !important;
   margin-bottom: 3pt !important;
   font-family: 'Times New Roman', Times, serif !important;
   font-size: 11pt !important;
@@ -1202,12 +1202,12 @@ td.b12-case-cell {
   font-weight: bold !important;
   font-size: 11pt !important;
   font-family: 'Times New Roman', Times, serif !important;
-  padding: 1px 4px !important;
+  padding: 0.03pt 4px !important;
   border: none !important;
-  border-top: 1.5px solid #000 !important;
   border-bottom: 1.5px solid #000 !important;
   vertical-align: middle !important;
   line-height: 1 !important;
+  text-align: left !important;
 }
 
 .print-export-container .print-td {
@@ -1215,11 +1215,16 @@ td.b12-case-cell {
   color: #000 !important;
   font-size: 11pt !important;
   font-family: 'Times New Roman', Times, serif !important;
-  padding: 1px 4px !important;
+  padding: 0.03pt 4px !important;
   border: none !important;
   border-bottom: 0.5px solid #e5e7eb !important;
   vertical-align: middle !important;
   line-height: 1 !important;
+}
+
+/* Last row of print-table should have no bottom border */
+.print-export-container .print-table tbody tr:last-child .print-td {
+  border-bottom: none !important;
 }
 
 /* Editor TipTap tables: preserve their own borders/coloring, just enforce font */
@@ -1237,6 +1242,7 @@ td.b12-case-cell {
   font-size: 11pt !important;
   line-height: 1 !important;
   vertical-align: top !important;
+  padding: 0.03pt 4px !important;
 }
 
 /* Captions */
@@ -1303,7 +1309,7 @@ td.b12-case-cell {
   align-items: center !important;
   justify-content: center !important;
   height: 17px !important;
-  padding: 0 5px !important;
+  padding: 0 8px !important;
   position: relative !important;
   z-index: 0 !important;
   -webkit-print-color-adjust: exact !important;
@@ -1431,6 +1437,7 @@ td.b12-case-cell {
 .print-export-container .b31-tables-container td {
   font-family: 'Times New Roman', Times, serif !important;
   font-size: 11pt !important;
+  padding: 0.03pt 1pt !important;
   -webkit-print-color-adjust: exact !important;
   print-color-adjust: exact !important;
 }
@@ -1443,7 +1450,7 @@ td.b12-case-cell {
 }
 
 .print-export-container .ProseMirror p {
-  margin-top: 3pt !important;
+  margin-top: 0 !important;
   margin-bottom: 3pt !important;
 }
 

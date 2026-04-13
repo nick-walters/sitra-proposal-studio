@@ -200,10 +200,9 @@ export async function buildPrintContainer(
 
   const container = document.createElement('div');
   container.className = 'print-export-container';
-  // Use fixed pixel width: 680px ≈ 180mm at 96dpi.
-  // This avoids DPI-dependent mm→px conversion that breaks html2canvas scaling.
-  container.style.width = '680px';
-  container.style.maxWidth = '680px';
+  // Width is 100% — the @page margin handles the 1.5cm on each side
+  container.style.width = '100%';
+  container.style.maxWidth = '100%';
   container.style.overflow = 'hidden';
   container.style.fontFamily = "'Times New Roman', Times, serif";
   container.style.fontSize = '11pt';
@@ -355,7 +354,75 @@ export async function mountB31Components(
   }
 }
 
-// postProcessBubbles removed — native browser print handles CSS variables and clip-path correctly
+// ── Post-process: replace interactive elements with static text ──────────────
+
+function freezeInteractiveElements(container: HTMLElement): void {
+  // 1. Replace <input> elements with their displayed value as static <span>
+  container.querySelectorAll('input').forEach(input => {
+    const span = document.createElement('span');
+    // Copy computed styles for color, font, alignment
+    const cs = window.getComputedStyle(input);
+    span.style.color = cs.color;
+    span.style.fontFamily = cs.fontFamily;
+    span.style.fontSize = cs.fontSize;
+    span.style.fontWeight = cs.fontWeight;
+    span.style.textAlign = cs.textAlign;
+    span.style.display = 'inline-block';
+    span.style.width = '100%';
+    span.textContent = input.value || input.placeholder || '';
+    input.replaceWith(span);
+  });
+
+  // 2. Replace <select> elements with their selected option text
+  container.querySelectorAll('select').forEach(select => {
+    const span = document.createElement('span');
+    const selected = select.options[select.selectedIndex];
+    span.textContent = selected ? selected.textContent || '' : '';
+    select.replaceWith(span);
+  });
+
+  // 3. Replace Radix Select triggers: find elements with role="combobox" or SelectTrigger
+  //    These render the current value but are wrapped in a <button>
+  //    The print CSS hides <button>, so extract their visible content first
+  container.querySelectorAll('button[role="combobox"], [data-radix-select-trigger]').forEach(trigger => {
+    const span = document.createElement('span');
+    span.innerHTML = trigger.innerHTML;
+    // Remove any chevron/icon SVGs from the cloned content
+    span.querySelectorAll('svg').forEach(svg => svg.remove());
+    // Copy inline styles
+    const cs = window.getComputedStyle(trigger);
+    span.style.display = 'inline-flex';
+    span.style.alignItems = 'center';
+    trigger.replaceWith(span);
+  });
+
+  // 4. Replace all remaining buttons that contain visible text/bubbles
+  //    but NOT structural buttons (drag handles etc. which should just be removed)
+  container.querySelectorAll('button').forEach(btn => {
+    // Check if this button contains meaningful bubble content (not just icons)
+    const hasBubble = btn.querySelector('[style*="background"]') || 
+                      btn.querySelector('.print-bubble') ||
+                      btn.querySelector('[class*="rounded-full"]');
+    if (hasBubble) {
+      const span = document.createElement('span');
+      span.innerHTML = btn.innerHTML;
+      span.querySelectorAll('svg').forEach(svg => svg.remove());
+      span.style.display = 'inline-flex';
+      span.style.alignItems = 'center';
+      span.style.flexWrap = 'wrap';
+      span.style.gap = '2px';
+      btn.replaceWith(span);
+    }
+    // Others will be hidden by CSS display:none
+  });
+
+  // 5. Replace textarea elements
+  container.querySelectorAll('textarea').forEach(ta => {
+    const div = document.createElement('div');
+    div.textContent = ta.value;
+    ta.replaceWith(div);
+  });
+}
 
 // ── Shared export container preparation ──────────────────────────────────────
 
@@ -370,10 +437,12 @@ export async function prepareExportContainer(
 ): Promise<{ container: HTMLDivElement; cleanup: () => void }> {
   const container = await buildPrintContainer(options);
 
-  // Attach to DOM — must be visible for html2canvas / layout capture
+  // Attach to DOM — must be visible for layout capture
+  // Use fixed pixel width (680px ≈ 18cm at 96dpi) for React rendering
   container.style.position = 'absolute';
   container.style.left = '0';
   container.style.top = '0';
+  container.style.width = '680px';
   container.style.zIndex = '99999';
   container.style.pointerEvents = 'none';
   container.style.background = '#fff';
@@ -396,7 +465,13 @@ export async function prepareExportContainer(
     ),
   );
 
-  // Native browser print handles CSS variables and clip-path correctly — no post-processing needed
+  // Freeze interactive elements (inputs, selects, buttons) into static text
+  // Must happen AFTER React mount but BEFORE detaching from DOM
+  freezeInteractiveElements(container);
+
+  // Reset to 100% width so it fills the print page properly
+  container.style.width = '100%';
+  container.style.maxWidth = '100%';
 
   // Allow a small delay for reflows
   await new Promise(r => setTimeout(r, 500));

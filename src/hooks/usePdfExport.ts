@@ -44,16 +44,19 @@ function buildPrintDocument(
   <style>
     @page {
       size: A4 portrait;
-      margin: 0;
+      margin: 1.5cm;
     }
 
     body {
       margin: 0;
-      padding: 15mm;
+      padding: 0;
       background: #fff;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
       color-adjust: exact !important;
+      font-family: 'Times New Roman', Times, serif;
+      font-size: 11pt;
+      line-height: 1.0;
     }
 
     /* Page break helpers */
@@ -86,6 +89,18 @@ function buildPrintDocument(
       top: auto !important;
       z-index: auto !important;
       pointer-events: auto !important;
+    }
+
+    /* Fix figures/images */
+    .print-export-container img {
+      max-width: 100% !important;
+      height: auto !important;
+    }
+
+    /* Ensure frozen inputs display correctly */
+    .print-export-container span[style] {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
     }
 
     @media print {
