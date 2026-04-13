@@ -114,19 +114,19 @@ export function usePdfExport() {
         });
 
         await new Promise<void>((resolve, reject) => {
-          // Fixed pixel width must match the container (680px = 180mm at 96dpi)
+          // Container is 680px wide; map that to 180mm content width on A4
           const CONTAINER_WIDTH_PX = 680;
 
           pdf.html(container, {
             callback: () => resolve(),
             x: 15,
             y: 15,
-            width: 180, // target width in mm on the PDF
+            width: 180, // target content width in mm
             windowWidth: CONTAINER_WIDTH_PX,
             margin: [15, 15, 15, 15],
             autoPaging: 'text',
             html2canvas: {
-              scale: 0.264583, // mm per px (1mm = 3.7795px, so 1px = 0.2646mm) — maps px → mm
+              scale: 2, // 2x resolution for crisp text
               useCORS: true,
               allowTaint: true,
               backgroundColor: '#ffffff',
