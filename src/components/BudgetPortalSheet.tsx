@@ -835,7 +835,37 @@ export function BudgetPortalSheet({
                       <thead>
                         {/* Major category header row */}
                         <tr className="border-b">
-                          <th rowSpan={2} className="sticky left-0 bg-background z-10 px-2 py-1.5 text-left border-r font-bold whitespace-nowrap align-middle">Participant</th>
+                          <th rowSpan={2} className="sticky left-0 bg-background z-10 px-2 py-1.5 text-left border-r font-bold whitespace-nowrap align-middle">
+                            <div className="flex items-center justify-between gap-1">
+                              <span>Participant</span>
+                              {isAdmin && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6"
+                                      onClick={() => {
+                                        const allLocked = rows.every(r => r.isLocked);
+                                        if (allLocked) {
+                                          unlockAllRows();
+                                        } else {
+                                          lockAllRows();
+                                        }
+                                      }}
+                                    >
+                                      {rows.every(r => r.isLocked)
+                                        ? <Lock className="w-3.5 h-3.5 text-destructive" />
+                                        : <Unlock className="w-3.5 h-3.5 text-green-600" />}
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    {rows.every(r => r.isLocked) ? 'Unlock all participant budgets' : 'Lock all participant budgets'}
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
+                            </div>
+                          </th>
                           <th rowSpan={2} className="px-2 py-1.5 text-left border-r font-bold align-middle" style={{ minWidth: '50px' }}>PM rate<br/>(€)</th>
                           <th rowSpan={2} className="px-2 py-1.5 text-left border-r font-bold align-middle" style={{ minWidth: '50px' }}>Total<br/>PMs</th>
                           <th rowSpan={2} className="px-2 py-1.5 text-left border-r font-bold align-middle" style={{ minWidth: '60px' }}><div className="leading-tight">A.</div><div className="leading-tight">Personnel costs (€)</div></th>
