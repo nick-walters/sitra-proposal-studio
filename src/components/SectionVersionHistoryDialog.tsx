@@ -8,6 +8,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Document, Packer, Paragraph, TextRun, AlignmentType, convertMillimetersToTwip } from 'docx';
+import { saveAs } from 'file-saver';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
