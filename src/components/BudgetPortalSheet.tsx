@@ -1042,6 +1042,29 @@ export function BudgetPortalSheet({
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Coordinator warning when editing a locked row */}
+      <AlertDialog open={!!lockedEditWarning} onOpenChange={(open) => { if (!open) setLockedEditWarning(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>This budget is locked</AlertDialogTitle>
+            <AlertDialogDescription>
+              This participant's budget has been locked. Editing may cause discrepancies with the agreed figures. Do you want to proceed?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              if (lockedEditWarning) {
+                setEditingParticipantId(lockedEditWarning.participantId);
+              }
+              setLockedEditWarning(null);
+            }}>
+              Proceed
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
