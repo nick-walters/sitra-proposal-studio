@@ -1222,7 +1222,7 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
                       />
                     </TableCell>
                     <TableCell className={cellStyles}>
-                      <EditableText
+                      <EditableHtml
                         value={ms.means_of_verification}
                         onChange={(val) => updateMilestone.mutate({ id: ms.id, means_of_verification: val })}
                         placeholder="How will this be verified?"
