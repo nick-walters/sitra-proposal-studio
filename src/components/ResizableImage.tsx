@@ -229,8 +229,8 @@ export const ResizableImage = Node.create({
       styles.push('display: block', 'margin-left: 0', 'margin-right: auto');
     }
     
-    // Add width/height
-    if (widthPercent) {
+    // Add width/height — only use percentage if explicitly > 0
+    if (typeof widthPercent === 'number' && widthPercent > 0) {
       styles.push(`width: ${widthPercent}%`, 'height: auto');
     } else {
       if (width) styles.push(`width: ${width}px`);
