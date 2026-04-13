@@ -2,7 +2,7 @@ import { Extension } from '@tiptap/core';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet, EditorView } from '@tiptap/pm/view';
 import { Node as ProseMirrorNode } from '@tiptap/pm/model';
-import { TextSelection } from '@tiptap/pm/state';
+import { TextSelection, NodeSelection } from '@tiptap/pm/state';
 import { findBlockRange, isReorderableBlock } from './BlockReordering';
 import { autoFitEditorTableAtPos } from '@/lib/editorTableAutoFit';
 
