@@ -702,8 +702,8 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, f
       const SP_BEFORE = 60;
       const SP_AFTER = 60;
 
-      const segsToRuns = (segs: TextSegment[]): TextRun[] =>
-        segs.map(s => new TextRun({
+      const segsToRunOpts = (segs: TextSegment[]): Record<string, unknown>[] =>
+        segs.map(s => ({
           text: s.text,
           font: FONT,
           size: s.superscript ? 16 : SZ,
@@ -712,6 +712,9 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, f
           underline: s.underline ? {} : undefined,
           superScript: s.superscript,
         }));
+
+      const segsToRuns = (segs: TextSegment[]): TextRun[] =>
+        segsToRunOpts(segs).map(opts => new TextRun(opts as any));
 
       const alignMap: Record<string, typeof AlignmentType[keyof typeof AlignmentType]> = {
         left: AlignmentType.LEFT,
@@ -797,10 +800,9 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, f
                 width: { size: colWidthTwip, type: WidthType.DXA },
                 margins: { top: 40, bottom: 40, left: 80, right: 80 },
                 children: [new Paragraph({
-                  children: segsToRuns(cellSegs).map(r => {
-                    if (isHdr) return new TextRun({ ...r, bold: true, font: FONT, size: SZ });
-                    return r;
-                  }),
+                  children: isHdr
+                    ? segsToRunOpts(cellSegs).map(opts => new TextRun({ ...opts, bold: true, font: FONT, size: SZ } as any))
+                    : segsToRuns(cellSegs),
                   spacing: { before: 0, after: 0, line: LINE },
                 })],
               })),
