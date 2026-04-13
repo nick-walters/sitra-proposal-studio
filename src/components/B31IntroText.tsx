@@ -101,10 +101,12 @@ export function B31IntroText({ proposalId, acronymSegments, proposalAcronym }: P
 
   const duration = proposalMeta?.duration || 36;
   const rps = (proposalMeta?.reporting_periods as any[]);
-  const rpCount = (rps && rps.length > 0) ? rps.length : computeDefaultReportingPeriods(duration).length;
+  const effectiveRps = (rps && rps.length > 0) ? rps : computeDefaultReportingPeriods(duration);
+  const rpCount = effectiveRps.length;
+  const rpLengthStr = formatRpLengths(effectiveRps);
   const wps = wpCount || 0;
 
-  const defaultSuffix = ` consists of ${formatCount(wps)} WPs organised into ${formatCount(rpCount)} reporting period${rpCount !== 1 ? 's' : ''} over ${formatCount(duration)} months.`;
+  const defaultSuffix = ` consists of ${formatCount(wps)} WPs organised into ${formatCount(rpCount)} ${rpLengthStr}reporting period${rpCount !== 1 ? 's' : ''} over ${formatCount(duration)} months.`;
 
   // Render acronym as cross-reference style
   const acronymEl = acronymSegments && acronymSegments.length > 0 ? (
