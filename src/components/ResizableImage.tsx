@@ -187,11 +187,11 @@ export const ResizableImage = Node.create({
         renderHTML: () => ({}),
       },
       widthPercent: {
-        default: null,
+        default: 0,
         parseHTML: (element) => {
           const style = element.getAttribute('style') || '';
           const match = style.match(/width:\s*(\d+)%/);
-          return match ? parseInt(match[1], 10) : null;
+          return match ? parseInt(match[1], 10) : 0;
         },
         renderHTML: () => ({}),
       },
