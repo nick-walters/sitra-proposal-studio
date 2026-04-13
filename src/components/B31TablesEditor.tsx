@@ -291,13 +291,15 @@ function EditableText({
       onBlur={() => { isFocused.current = false; }}
       placeholder={placeholder}
       rows={1}
-      className={`bg-transparent border-0 p-0 m-0 resize-none focus:outline-none focus:ring-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle ${inline ? '' : 'w-full'} ${className}`}
+      className={`bg-transparent border-0 p-0 m-0 resize-none focus:outline-none focus:ring-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle box-border ${inline ? '' : 'w-full'} ${className}`}
       style={{ 
         minHeight: '1em',
         lineHeight: '1.2',
         overflow: 'hidden',
         display: inline ? 'inline' : 'block',
         verticalAlign: 'middle',
+        padding: 0,
+        margin: 0,
       }}
     />
   );
