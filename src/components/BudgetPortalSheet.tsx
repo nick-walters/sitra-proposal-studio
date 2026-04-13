@@ -93,6 +93,8 @@ export function BudgetPortalSheet({
     saving,
     lockRow,
     unlockRow,
+    lockAllRows,
+    unlockAllRows,
     refetch: refetchBudgetRows,
   } = useBudgetRows(proposalId, proposalType);
 
@@ -102,6 +104,7 @@ export function BudgetPortalSheet({
   const [activeTab, setActiveTab] = useState('budget');
   const [validationOpen, setValidationOpen] = useState(false);
   const [editingParticipantId, setEditingParticipantId] = useState<string | null>(null);
+  const [lockedEditWarning, setLockedEditWarning] = useState<{ participantId: string } | null>(null);
 
   const editingRow = useMemo(
     () => editingParticipantId ? rows.find(r => r.participantId === editingParticipantId) : null,
