@@ -1335,10 +1335,13 @@ td.b12-case-cell {
   line-height: 1 !important;
   white-space: nowrap !important;
   vertical-align: baseline !important;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
 }
 
 /* Participant reference badges */
-.print-export-container .participant-reference-badge {
+.print-export-container .participant-reference-badge,
+.print-export-container [data-participant-reference] {
   display: inline-flex !important;
   align-items: center !important;
   background-color: #000000 !important;
@@ -1353,10 +1356,13 @@ td.b12-case-cell {
   line-height: 1 !important;
   white-space: nowrap !important;
   vertical-align: baseline !important;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
 }
 
 /* Case reference badges */
-.print-export-container .case-reference-badge {
+.print-export-container .case-reference-badge,
+.print-export-container [data-case-reference] {
   display: inline-flex !important;
   align-items: center !important;
   background-color: #ffffff !important;
@@ -1371,6 +1377,8 @@ td.b12-case-cell {
   line-height: 1 !important;
   white-space: nowrap !important;
   vertical-align: baseline !important;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
 }
 
 /* Cross-reference marks in editor content */
@@ -1379,6 +1387,14 @@ td.b12-case-cell {
 .print-export-container [data-type="inlineReferenceMark"],
 .print-export-container [data-type="caseReferenceMark"] {
   font-size: 11pt !important;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+}
+
+/* WP reference marks – ensure color prints */
+.print-export-container [data-wp-reference] {
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
 }
 
 /* Hide interactive/editor-only elements */
@@ -1401,6 +1417,24 @@ td.b12-case-cell {
   font-size: 11pt !important;
 }
 
+/* B3.1 tables – preserve their styling */
+.print-export-container .b31-tables-container table {
+  border-collapse: collapse !important;
+  width: 100% !important;
+  font-family: 'Times New Roman', Times, serif !important;
+  font-size: 11pt !important;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+}
+
+.print-export-container .b31-tables-container th,
+.print-export-container .b31-tables-container td {
+  font-family: 'Times New Roman', Times, serif !important;
+  font-size: 11pt !important;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+}
+
 /* Ensure ProseMirror content in print container uses correct styles */
 .print-export-container .ProseMirror {
   font-family: 'Times New Roman', Times, serif !important;
@@ -1413,3 +1447,15 @@ td.b12-case-cell {
   margin-bottom: 3pt !important;
 }
 
+/* Print bubbles (in participant table etc.) need exact color rendering */
+.print-export-container .print-bubble {
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+}
+
+/* Global print color accuracy */
+.print-export-container,
+.print-export-container * {
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+}
