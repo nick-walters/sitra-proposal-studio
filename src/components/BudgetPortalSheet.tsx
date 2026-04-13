@@ -923,14 +923,20 @@ export function BudgetPortalSheet({
                                         className="h-6 w-6"
                                         onClick={() => row.isLocked ? unlockRow(row.id) : lockRow(row.id)}
                                       >
-                                        {row.isLocked ? <Lock className="w-3 h-3 text-destructive" /> : <Unlock className="w-3 h-3 text-muted-foreground" />}
+                                        {row.isLocked ? <Lock className="w-3 h-3 text-destructive" /> : <Unlock className="w-3 h-3 text-green-600" />}
                                       </Button>
                                     )}
-                                    {canEdit && (
+                                    {canEdit && (!row.isLocked || isAdmin) && (
                                       <Button
                                         size="sm"
                                         className="h-5 px-2 text-[10px] font-semibold whitespace-nowrap"
-                                        onClick={() => setEditingParticipantId(row.participantId)}
+                                        onClick={() => {
+                                          if (row.isLocked && isAdmin) {
+                                            setLockedEditWarning({ participantId: row.participantId });
+                                          } else {
+                                            setEditingParticipantId(row.participantId);
+                                          }
+                                        }}
                                       >
                                         Edit
                                       </Button>
