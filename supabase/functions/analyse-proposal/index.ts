@@ -293,18 +293,22 @@ Destination: ${topicInfo.destination || "Not provided"}
 === PART B SECTION CONTENT ===
 ${Object.entries(sectionMap).map(([id, content]) => `--- ${id} ---\n${content.substring(0, 3000)}`).join("\n\n")}
 
-=== WORK PACKAGES ===
+=== WORK PACKAGES (with B3.1 table data) ===
 ${wpSummaries.map(wp => `WP${wp.number} (${wp.shortName}): ${wp.title}
+Leader: ${wp.leader || 'unassigned'}
+Duration: ${wp.durationMonths || '?'} months
 Objectives: ${wp.objectives.substring(0, 500)}
 Methodology: ${wp.methodology.substring(0, 500)}
-Tasks: ${wp.tasks.map(t => `${t.number} "${t.title}" M${t.startMonth || '?'}-M${t.endMonth || '?'} (Lead: ${t.leader || 'unassigned'})`).join("; ")}
-Deliverables: ${wp.deliverables.map(d => `${d.number} "${d.title}" M${d.dueMonth || '?'} (${d.type})`).join("; ")}`).join("\n\n")}
+Draft Tasks: ${wp.tasks.map(t => `${t.number} "${t.title}" M${t.startMonth || '?'}-M${t.endMonth || '?'} (Lead: ${t.leader || 'unassigned'})`).join("; ")}
+B3.1 Tasks: ${wp.b31Tasks.map(t => `${t.number} "${t.title}" M${t.startMonth || '?'}-M${t.endMonth || '?'} (Lead: ${t.leader || 'unassigned'}, Participants: ${t.participants.join(', ') || 'none'})`).join("; ") || "Not populated"}
+Draft Deliverables: ${wp.deliverables.map(d => `${d.number} "${d.title}" M${d.dueMonth || '?'} (${d.type})`).join("; ")}
+Staff Effort: ${wp.effort.map(e => `${e.participant}: ${e.personMonths}PM`).join(", ") || "Not allocated"} (Total: ${wp.totalEffort}PM)`).join("\n\n")}
 
-=== TABLE 3.1 DELIVERABLES ===
-${b31Deliverables.map(d => `D${d.wpNumber || '?'}.${d.number} "${d.name}" WP${d.wpNumber || '?'} due:M${d.dueMonth || '?'}`).join("\n")}
+=== TABLE 3.1.c DELIVERABLES ===
+${b31Deliverables.map(d => `D${d.wpNumber || '?'}.${d.number} "${d.name}" WP${d.wpNumber || '?'} due:M${d.dueMonth || '?'} type:${d.type} level:${d.disseminationLevel} lead:${d.leadParticipant || 'unassigned'} desc:"${d.description}"`).join("\n") || "No deliverables in B3.1 tables"}
 
-=== TABLE 3.1 MILESTONES ===
-${b31Milestones.map(m => `MS${m.number} "${m.name}" WPs:${m.wps || '?'} due:M${m.dueMonth || '?'}`).join("\n")}
+=== TABLE 3.1.d MILESTONES ===
+${b31Milestones.map(m => `MS${m.number} "${m.name}" WPs:${m.wps || '?'} due:M${m.dueMonth || '?'} verification:"${m.meansOfVerification}"`).join("\n") || "No milestones in B3.1 tables"}
 
 === PARTICIPANTS (${(participantsRes.data || []).length}) ===
 ${(participantsRes.data || []).map((p: any) => `P${p.participant_number}: ${p.organisation_short_name} (${p.country}, ${p.organisation_type})`).join("\n")}
