@@ -1,4 +1,5 @@
 import { Mark, mergeAttributes } from '@tiptap/core';
+import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { handleRefMarkDeletion } from './deleteRefMarkHelper';
 
 export interface WPReferenceOptions {
@@ -154,6 +155,43 @@ export const WPReferenceMark = Mark.create<WPReferenceOptions>({
       Backspace: () => handleRefMarkDeletion(this.editor, this.name, 'backspace'),
       Delete: () => handleRefMarkDeletion(this.editor, this.name, 'delete'),
     };
+  },
+
+  addProseMirrorPlugins() {
+    const markName = this.name;
+    return [
+      new Plugin({
+        key: new PluginKey('wpReferenceGuard'),
+        appendTransaction(transactions, _oldState, newState) {
+          if (!transactions.some(tr => tr.docChanged)) return null;
+
+          const { tr, doc, schema } = newState;
+          const markType = schema.marks[markName];
+          if (!markType) return null;
+
+          let modified = false;
+
+          doc.descendants((node, pos) => {
+            if (!node.isText) return;
+            const mark = node.marks.find(m => m.type === markType);
+            if (!mark) return;
+
+            const wpNum = mark.attrs.wpNumber;
+            const wpSN = mark.attrs.wpShortName;
+            const expected = wpSN ? `WP${wpNum}: ${wpSN}` : `WP${wpNum}`;
+            const actual = node.text || '';
+
+            if (actual !== expected) {
+              const newNode = schema.text(expected, node.marks);
+              tr.replaceWith(pos, pos + node.nodeSize, newNode);
+              modified = true;
+            }
+          });
+
+          return modified ? tr : null;
+        },
+      }),
+    ];
   },
 
   addCommands() {
