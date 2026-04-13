@@ -609,6 +609,39 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
     setRows(prev => prev.map(r => r.id === rowId ? { ...r, isLocked: false, lockedBy: null, lockedAt: null } : r));
   }, []);
 
+  const lockAllRows = useCallback(async () => {
+    if (!user) return;
+    const ids = rows.filter(r => !r.isLocked).map(r => r.id);
+    if (ids.length === 0) return;
+    const { error } = await supabase
+      .from('budget_rows')
+      .update({ is_locked: true, locked_by: user.id, locked_at: new Date().toISOString() })
+      .eq('proposal_id', proposalId)
+      .in('id', ids);
+    if (error) {
+      toast.error('Failed to lock all rows');
+      return;
+    }
+    setRows(prev => prev.map(r => ids.includes(r.id) ? { ...r, isLocked: true, lockedBy: user.id, lockedAt: new Date().toISOString() } : r));
+    toast.success('All participant budgets locked');
+  }, [user, rows, proposalId]);
+
+  const unlockAllRows = useCallback(async () => {
+    const ids = rows.filter(r => r.isLocked).map(r => r.id);
+    if (ids.length === 0) return;
+    const { error } = await supabase
+      .from('budget_rows')
+      .update({ is_locked: false, locked_by: null, locked_at: null })
+      .eq('proposal_id', proposalId)
+      .in('id', ids);
+    if (error) {
+      toast.error('Failed to unlock all rows');
+      return;
+    }
+    setRows(prev => prev.map(r => ids.includes(r.id) ? { ...r, isLocked: false, lockedBy: null, lockedAt: null } : r));
+    toast.success('All participant budgets unlocked');
+  }, [rows, proposalId]);
+
   const saveJustification = useCallback(async (budgetRowId: string, category: string, text: string) => {
     if (!user) return;
     const { error } = await supabase
