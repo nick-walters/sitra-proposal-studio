@@ -181,7 +181,7 @@ export function usePdfExport() {
         // Clean up the container from the main page
         cleanup();
 
-        const printWindow = window.open('', '_blank', 'noopener,noreferrer');
+        const printWindow = window.open('', '_blank');
         if (printWindow?.document) {
           printWindow.document.open();
           printWindow.document.write(htmlDoc);
