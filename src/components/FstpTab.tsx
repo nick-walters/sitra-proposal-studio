@@ -60,6 +60,11 @@ import {
   Footer,
   PageNumber,
   convertMillimetersToTwip,
+  Table as DocxTable,
+  TableRow as DocxTableRow,
+  TableCell as DocxTableCell,
+  WidthType,
+  BorderStyle,
 } from 'docx';
 import { saveAs } from 'file-saver';
 import {
@@ -632,38 +637,46 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, f
         } else if (block.type === 'table') {
           const colCount = Math.max(...block.rows.map(r => r.cells.length));
           const colWidth = contentWidth / colCount;
-          const cellPadding = 1;
+          const cellPadTop = 1.5;
+          const cellPadBottom = 2;
+          const cellPadX = 1.5;
           for (let ri = 0; ri < block.rows.length; ri++) {
             const row = block.rows[ri];
             const isHeader = ri === 0 && block.hasHeader;
-            // Pre-calculate wrapped lines for each cell to find max row height
             const cellWrapped: string[][] = [];
             doc.setFontSize(11);
             setFont(isHeader, false);
             let maxLines = 1;
             for (let ci = 0; ci < row.cells.length; ci++) {
               const cellText = row.cells[ci].map(s => s.text).join('');
-              const lines: string[] = doc.splitTextToSize(cellText, colWidth - 2 * cellPadding);
+              const lines: string[] = doc.splitTextToSize(cellText, colWidth - 2 * cellPadX);
               cellWrapped.push(lines);
               if (lines.length > maxLines) maxLines = lines.length;
             }
-            const rowHeight = maxLines * lineHeight + 2 * cellPadding;
-            if (!isTopOfPage) y += 0.5;
-            checkPage(rowHeight);
-            // Render each cell
+            const textBlockHeight = maxLines * lineHeight;
+            const rowHeight = cellPadTop + textBlockHeight + cellPadBottom;
+            checkPage(rowHeight + 1);
+            // Draw top border for header row
+            if (ri === 0 && block.hasHeader) {
+              doc.setDrawColor(0);
+              doc.setLineWidth(0.5);
+              doc.line(margin, y, margin + contentWidth, y);
+            }
+            // Render each cell's text
             for (let ci = 0; ci < row.cells.length; ci++) {
               const cx = margin + ci * colWidth;
               const lines = cellWrapped[ci] || [];
               doc.setFontSize(11);
               setFont(isHeader, false);
               for (let cli = 0; cli < lines.length; cli++) {
-                doc.text(lines[cli], cx + cellPadding, y + cellPadding + cli * lineHeight);
+                doc.text(lines[cli], cx + cellPadX, y + cellPadTop + lineHeight * 0.8 + cli * lineHeight);
               }
             }
+            // Draw bottom border after content
+            y += rowHeight;
             doc.setDrawColor(isHeader ? 0 : 200);
             doc.setLineWidth(isHeader ? 0.5 : 0.15);
-            doc.line(margin, y + rowHeight, margin + contentWidth, y + rowHeight);
-            y += rowHeight;
+            doc.line(margin, y, margin + contentWidth, y);
             isTopOfPage = false;
           }
           y += paraSpacingAfter;
@@ -762,6 +775,43 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, f
               indent: { left: convertMillimetersToTwip(10) },
             }));
           }
+        } else if (block.type === 'table') {
+          const colCount = Math.max(...block.rows.map(r => r.cells.length));
+          const pageContentWidthTwip = convertMillimetersToTwip(180);
+          const colWidthTwip = Math.floor(pageContentWidthTwip / colCount);
+          const thinBorder = { style: BorderStyle.SINGLE, size: 1, color: 'CCCCCC' };
+          const thickBorder = { style: BorderStyle.SINGLE, size: 4, color: '000000' };
+          const noBorder = { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' };
+
+          const docxRows = block.rows.map((row, ri) => {
+            const isHdr = ri === 0 && block.hasHeader;
+            const borders = {
+              top: isHdr || ri === 1 ? thickBorder : thinBorder,
+              bottom: ri === block.rows.length - 1 ? thickBorder : isHdr ? thickBorder : thinBorder,
+              left: noBorder,
+              right: noBorder,
+            };
+            return new DocxTableRow({
+              children: row.cells.map(cellSegs => new DocxTableCell({
+                borders,
+                width: { size: colWidthTwip, type: WidthType.DXA },
+                margins: { top: 40, bottom: 40, left: 80, right: 80 },
+                children: [new Paragraph({
+                  children: segsToRuns(cellSegs).map(r => {
+                    if (isHdr) return new TextRun({ ...r, bold: true, font: FONT, size: SZ });
+                    return r;
+                  }),
+                  spacing: { before: 0, after: 0, line: LINE },
+                })],
+              })),
+            });
+          });
+
+          children.push(new DocxTable({
+            width: { size: pageContentWidthTwip, type: WidthType.DXA },
+            columnWidths: Array(colCount).fill(colWidthTwip),
+            rows: docxRows,
+          }));
         }
       }
 
