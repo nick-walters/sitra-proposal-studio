@@ -1202,12 +1202,12 @@ td.b12-case-cell {
   font-weight: bold !important;
   font-size: 11pt !important;
   font-family: 'Times New Roman', Times, serif !important;
-  padding: 1px 4px !important;
+  padding: 0.03pt 4px !important;
   border: none !important;
-  border-top: 1.5px solid #000 !important;
   border-bottom: 1.5px solid #000 !important;
   vertical-align: middle !important;
   line-height: 1 !important;
+  text-align: left !important;
 }
 
 .print-export-container .print-td {
@@ -1215,11 +1215,16 @@ td.b12-case-cell {
   color: #000 !important;
   font-size: 11pt !important;
   font-family: 'Times New Roman', Times, serif !important;
-  padding: 1px 4px !important;
+  padding: 0.03pt 4px !important;
   border: none !important;
   border-bottom: 0.5px solid #e5e7eb !important;
   vertical-align: middle !important;
   line-height: 1 !important;
+}
+
+/* Last row of print-table should have no bottom border */
+.print-export-container .print-table tbody tr:last-child .print-td {
+  border-bottom: none !important;
 }
 
 /* Editor TipTap tables: preserve their own borders/coloring, just enforce font */
