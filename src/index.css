@@ -1187,8 +1187,7 @@ td.b12-case-cell {
   height: auto !important;
 }
 
-/* Print tables - matching editor HE table styles */
-.print-export-container table,
+/* Print tables - only for manually constructed .print-table elements (participant list etc.) */
 .print-export-container .print-table {
   width: 100% !important;
   border-collapse: collapse !important;
@@ -1197,7 +1196,6 @@ td.b12-case-cell {
   table-layout: auto !important;
 }
 
-.print-export-container th,
 .print-export-container .print-th {
   background: transparent !important;
   color: #000 !important;
@@ -1212,7 +1210,6 @@ td.b12-case-cell {
   line-height: 1 !important;
 }
 
-.print-export-container td,
 .print-export-container .print-td {
   background: #fff !important;
   color: #000 !important;
@@ -1223,6 +1220,23 @@ td.b12-case-cell {
   border-bottom: 0.5px solid #e5e7eb !important;
   vertical-align: middle !important;
   line-height: 1 !important;
+}
+
+/* Editor TipTap tables: preserve their own borders/coloring, just enforce font */
+.print-export-container .ProseMirror table {
+  border-collapse: collapse !important;
+  font-family: 'Times New Roman', Times, serif !important;
+  font-size: 11pt !important;
+  width: 100% !important;
+  table-layout: fixed !important;
+}
+
+.print-export-container .ProseMirror th,
+.print-export-container .ProseMirror td {
+  font-family: 'Times New Roman', Times, serif !important;
+  font-size: 11pt !important;
+  line-height: 1 !important;
+  vertical-align: top !important;
 }
 
 /* Captions */
@@ -1258,10 +1272,7 @@ td.b12-case-cell {
   white-space: nowrap !important;
 }
 
-/* ── Inline reference bubbles (T, D, MS) – html2canvas-safe overrides ──
-   html2canvas does NOT support clip-path, CSS custom properties, or
-   ::before/::after pseudo-elements, so we flatten everything to simple
-   inline styles that it can capture. */
+/* ── Inline reference bubbles (T, D, MS) – ensure colors print correctly ── */
 
 .print-export-container .inline-ref {
   user-select: all !important;
@@ -1271,44 +1282,35 @@ td.b12-case-cell {
   font-size: 11pt !important;
   font-weight: 700 !important;
   line-height: 1 !important;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
 }
 
-/* Task bubble – blue outline pill (wp-color resolved via JS post-processing) */
+/* Task bubble – colored outline pill using WP color (var(--wp-color)) */
 .print-export-container .inline-ref-task {
   display: inline-flex !important;
   align-items: center !important;
   height: 17px !important;
   padding: 0 4px !important;
   border-radius: 9999px !important;
-  border: 1.5px solid #2563EB !important;
-  background: #ffffff !important;
-  color: #2563EB !important;
-  clip-path: none !important;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
 }
 
-/* Deliverable bubble – simplified to colored pill (no clip-path pennant) */
+/* Deliverable bubble – pennant shape */
 .print-export-container .inline-ref-deliverable {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
   height: 17px !important;
   padding: 0 5px !important;
-  border-radius: 4px 12px 12px 4px !important;
-  border: 1.5px solid #2563EB !important;
-  background: #ffffff !important;
-  color: #2563EB !important;
-  clip-path: none !important;
   position: relative !important;
   z-index: 0 !important;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
 }
 
-/* Kill the ::before pseudo-element that html2canvas can't render */
-.print-export-container .inline-ref-deliverable::before {
-  display: none !important;
-  content: none !important;
-}
-
-/* Milestone bubble – simplified to dark circle (no clip-path triangle) */
+/* Milestone bubble – dark shape */
 .print-export-container .inline-ref-milestone {
   display: inline-flex !important;
   align-items: center !important;
@@ -1316,12 +1318,8 @@ td.b12-case-cell {
   width: auto !important;
   min-width: 17px !important;
   height: 17px !important;
-  background: #000 !important;
-  color: #fff !important;
-  clip-path: none !important;
-  border-radius: 3px !important;
-  padding: 0 3px !important;
-  letter-spacing: normal !important;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
 }
 
 /* WP reference badges */
@@ -1337,10 +1335,13 @@ td.b12-case-cell {
   line-height: 1 !important;
   white-space: nowrap !important;
   vertical-align: baseline !important;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
 }
 
 /* Participant reference badges */
-.print-export-container .participant-reference-badge {
+.print-export-container .participant-reference-badge,
+.print-export-container [data-participant-reference] {
   display: inline-flex !important;
   align-items: center !important;
   background-color: #000000 !important;
@@ -1355,10 +1356,13 @@ td.b12-case-cell {
   line-height: 1 !important;
   white-space: nowrap !important;
   vertical-align: baseline !important;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
 }
 
 /* Case reference badges */
-.print-export-container .case-reference-badge {
+.print-export-container .case-reference-badge,
+.print-export-container [data-case-reference] {
   display: inline-flex !important;
   align-items: center !important;
   background-color: #ffffff !important;
@@ -1373,6 +1377,8 @@ td.b12-case-cell {
   line-height: 1 !important;
   white-space: nowrap !important;
   vertical-align: baseline !important;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
 }
 
 /* Cross-reference marks in editor content */
@@ -1381,6 +1387,14 @@ td.b12-case-cell {
 .print-export-container [data-type="inlineReferenceMark"],
 .print-export-container [data-type="caseReferenceMark"] {
   font-size: 11pt !important;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+}
+
+/* WP reference marks – ensure color prints */
+.print-export-container [data-wp-reference] {
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
 }
 
 /* Hide interactive/editor-only elements */
@@ -1403,6 +1417,24 @@ td.b12-case-cell {
   font-size: 11pt !important;
 }
 
+/* B3.1 tables – preserve their styling */
+.print-export-container .b31-tables-container table {
+  border-collapse: collapse !important;
+  width: 100% !important;
+  font-family: 'Times New Roman', Times, serif !important;
+  font-size: 11pt !important;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+}
+
+.print-export-container .b31-tables-container th,
+.print-export-container .b31-tables-container td {
+  font-family: 'Times New Roman', Times, serif !important;
+  font-size: 11pt !important;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+}
+
 /* Ensure ProseMirror content in print container uses correct styles */
 .print-export-container .ProseMirror {
   font-family: 'Times New Roman', Times, serif !important;
@@ -1415,3 +1447,15 @@ td.b12-case-cell {
   margin-bottom: 3pt !important;
 }
 
+/* Print bubbles (in participant table etc.) need exact color rendering */
+.print-export-container .print-bubble {
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+}
+
+/* Global print color accuracy */
+.print-export-container,
+.print-export-container * {
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+}

@@ -355,56 +355,7 @@ export async function mountB31Components(
   }
 }
 
-// ── Post-process bubble elements for html2canvas compatibility ───────────────
-
-/**
- * html2canvas cannot resolve CSS custom properties (var(--wp-color)) or
- * clip-path. This function walks all inline-ref elements and bakes the
- * computed color into explicit inline styles so they render in the PDF.
- */
-function postProcessBubbles(container: HTMLElement): void {
-  // Resolve --wp-color on task refs → border-color and color
-  container.querySelectorAll('.inline-ref-task').forEach((el) => {
-    const span = el as HTMLElement;
-    const wpColor = span.style.getPropertyValue('--wp-color') ||
-                    span.getAttribute('style')?.match(/--wp-color:\s*([^;]+)/)?.[1]?.trim() ||
-                    span.getAttribute('data-wp-color') || '#2563EB';
-    // Find the color from the data attribute on the element or its parent mark
-    const actualColor = span.closest('[data-wp-color]')?.getAttribute('data-wp-color') || wpColor;
-    span.style.borderColor = actualColor;
-    span.style.color = actualColor;
-    span.style.background = '#ffffff';
-    span.style.clipPath = 'none';
-    span.style.borderRadius = '9999px';
-    span.style.border = `1.5px solid ${actualColor}`;
-  });
-
-  // Resolve --wp-color on deliverable refs
-  container.querySelectorAll('.inline-ref-deliverable').forEach((el) => {
-    const span = el as HTMLElement;
-    const wpColor = span.style.getPropertyValue('--wp-color') ||
-                    span.getAttribute('style')?.match(/--wp-color:\s*([^;]+)/)?.[1]?.trim() ||
-                    span.closest('[data-wp-color]')?.getAttribute('data-wp-color') || '#2563EB';
-    span.style.borderColor = wpColor;
-    span.style.color = wpColor;
-    span.style.background = '#ffffff';
-    span.style.clipPath = 'none';
-    span.style.borderRadius = '4px 12px 12px 4px';
-    span.style.border = `1.5px solid ${wpColor}`;
-    span.style.padding = '0 5px';
-  });
-
-  // Milestone refs – ensure no clip-path
-  container.querySelectorAll('.inline-ref-milestone').forEach((el) => {
-    const span = el as HTMLElement;
-    span.style.clipPath = 'none';
-    span.style.borderRadius = '3px';
-    span.style.width = 'auto';
-    span.style.minWidth = '17px';
-    span.style.padding = '0 3px';
-    span.style.letterSpacing = 'normal';
-  });
-}
+// postProcessBubbles removed — native browser print handles CSS variables and clip-path correctly
 
 // ── Shared export container preparation ──────────────────────────────────────
 
@@ -445,9 +396,7 @@ export async function prepareExportContainer(
     ),
   );
 
-  // Post-process bubbles: resolve CSS variables and remove unsupported
-  // CSS features (clip-path, ::before) so html2canvas can render them
-  postProcessBubbles(container);
+  // Native browser print handles CSS variables and clip-path correctly — no post-processing needed
 
   // Allow a small delay for reflows
   await new Promise(r => setTimeout(r, 500));
