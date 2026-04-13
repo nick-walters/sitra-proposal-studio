@@ -935,7 +935,7 @@ export function usePdfExport() {
           
           // Handle paragraphs - check for captions by class or content
           if (tagName === 'p') {
-            const text = element.textContent?.trim();
+            const text = (element.textContent || '').replace(/\u00a0/g, ' ').trim();
             if (!text) return;
             
             // Check for caption class first
@@ -952,6 +952,23 @@ export function usePdfExport() {
             const captionCheck = isCaptionText(text);
             if (captionCheck.isCaption) {
               result.push({ type: 'caption', text, captionType: captionCheck.type });
+              return;
+            }
+            
+            // Split paragraph on <br><br> (double line breaks) into separate paragraphs
+            const innerHTML = element.innerHTML || '';
+            if (/<br\s*\/?>\s*<br\s*\/?>/i.test(innerHTML)) {
+              // Split the HTML on double <br> and process each chunk as a separate paragraph
+              const chunks = innerHTML.split(/<br\s*\/?>\s*<br\s*\/?>/i);
+              for (const chunk of chunks) {
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = chunk.replace(/<br\s*\/?>/g, ' '); // Single <br> → space
+                const chunkText = (tempDiv.textContent || '').replace(/\u00a0/g, ' ').trim();
+                if (chunkText) {
+                  const segments = extractSegments(tempDiv);
+                  result.push({ type: 'paragraph', text: chunkText, segments });
+                }
+              }
               return;
             }
             
