@@ -714,6 +714,15 @@ export function SectionVersionHistoryDialog({
                     </Button>
                   )}
                   <Button
+                    onClick={() => handleDownloadDocx(selectedVersion)}
+                    className="w-full gap-2 text-xs"
+                    variant="outline"
+                    size="sm"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    Download as DOCX
+                  </Button>
+                  <Button
                     onClick={() => handleRestore(selectedVersion)}
                     className="w-full gap-2"
                     variant="outline"
