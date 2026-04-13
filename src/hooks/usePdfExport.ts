@@ -334,7 +334,7 @@ export function usePdfExport() {
       };
 
       // Maximum gap multiplier for justified text - prevents excessive stretching
-      const MAX_GAP_MULTIPLIER = 2.5; // Gap can be at most 2.5x normal space width
+      const MAX_GAP_MULTIPLIER = 2.0; // Gap can be at most 2x normal space width
 
       // Helper: Render plain text with justified alignment
       const renderPlainTextJustified = (text: string, x: number, maxWidth: number) => {
