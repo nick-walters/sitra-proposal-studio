@@ -691,6 +691,8 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
     updateRoleLabel,
     lockRow,
     unlockRow,
+    lockAllRows,
+    unlockAllRows,
     saveJustification,
     addSubcontractingItem,
     updateSubcontractingItem,
