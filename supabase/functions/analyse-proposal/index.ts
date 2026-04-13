@@ -320,7 +320,7 @@ ${(risksRes.data || []).map((r: any) => `Risk ${r.number}: "${stripHtml(r.descri
 Total effort: ${wpSummaries.reduce((s: number, wp: any) => s + wp.totalEffort, 0)}PM across ${wpSummaries.length} WPs
 ${participants.map((p: any) => {
   const pEffort = wpSummaries.reduce((s: number, wp: any) => s + (wp.effort.find((e: any) => e.participant === p.organisation_short_name)?.personMonths || 0), 0);
-  return pEffort > 0 ? \`P\${p.participant_number} \${p.organisation_short_name}: \${pEffort}PM\` : null;
+  return pEffort > 0 ? "P" + p.participant_number + " " + p.organisation_short_name + ": " + pEffort + "PM" : null;
 }).filter(Boolean).join("\n")}
 
 Provide a thorough, detailed analysis. Be specific in your recommendations - reference specific sections, WP numbers, and deliverables. For cross-reference issues, check EVERY numbering and timing detail carefully. Pay special attention to the B3.1 compulsory tables (tasks, deliverables, milestones, risks, effort) as these are critical for the Implementation score.`;
