@@ -83,60 +83,23 @@ export function useProposalData(proposalId: string) {
       .single();
 
     if (error) {
-      console.error('Error fetching proposal:', error);
+      logError('fetchProposal', error);
       return;
     }
 
     if (data) {
+      const mapped = proposalFromDb(data as Record<string, any>);
       setProposal({
+        ...mapped,
         id: data.id,
         acronym: data.acronym,
         title: data.title,
         type: data.type as 'RIA' | 'IA' | 'CSA',
         budgetType: data.budget_type as BudgetType,
         status: data.status as ProposalData['status'],
-        submissionStage: ((data as any).submission_stage as 'full' | 'stage_1') || undefined,
-        isTwoStageSecondStage: (data as any).is_two_stage_second_stage || false,
-        totalBudget: data.total_budget || undefined,
-        totalBudgetText: (data as any).total_budget_text || undefined,
-        deadline: data.deadline ? new Date(data.deadline) : undefined,
-        openingDate: (data as any).opening_date ? new Date((data as any).opening_date) : undefined,
-        description: data.description || undefined,
-        duration: data.duration || undefined,
-        topicId: data.topic_id || undefined,
-        topicUrl: data.topic_url || undefined,
-        topicTitle: data.topic_title || undefined,
-        topicDescription: (data as any).topic_description || undefined,
-        topicExpectedOutcome: (data as any).topic_expected_outcome || undefined,
-        topicScope: (data as any).topic_scope || undefined,
-        topicDestinationDescription: (data as any).topic_destination_description || undefined,
-        topicFootnotes: (data as any).topic_footnotes || [],
-        outcomeFootnotes: (data as any).outcome_footnotes || [],
-        scopeFootnotes: (data as any).scope_footnotes || [],
-        destinationFootnotes: (data as any).destination_footnotes || [],
-        topicContentImportedAt: (data as any).topic_content_imported_at ? new Date((data as any).topic_content_imported_at) : undefined,
-        workProgramme: data.work_programme || undefined,
-        destination: data.destination || undefined,
-        logoUrl: data.logo_url || undefined,
-        submittedAt: data.submitted_at ? new Date(data.submitted_at) : undefined,
-        decisionDate: data.decision_date ? new Date(data.decision_date) : undefined,
-        decisionDateIsEstimated: (data as any).decision_date_is_estimated || false,
-        templateTypeId: data.template_type_id || undefined,
-        expectedProjects: (data as any).expected_projects || undefined,
-        usesFstp: data.uses_fstp || false,
-        fstpType: ((data as any).fstp_type as 'grant' | 'prize') || 'grant',
-        indicativeBudgetPerProject: (data as any).indicative_budget_per_project || undefined,
-        fstpBudget: (data as any).fstp_budget || undefined,
-        fstpBudgetPerThirdParty: (data as any).fstp_budget_per_third_party || undefined,
-        casesEnabled: (data as any).cases_enabled || false,
-        casesType: (data as any).cases_type || undefined,
-        wpDraftsVisible: (data as any).wp_drafts_visible !== false,
-        caseDraftsVisible: (data as any).case_drafts_visible !== false,
-        reportingPeriods: (data as any).reporting_periods || undefined,
-        acronymSegments: (data as any).acronym_segments || undefined,
         createdAt: new Date(data.created_at),
         updatedAt: new Date(data.updated_at),
-      });
+      } as ProposalData);
     }
   }, [proposalId]);
 
