@@ -49,7 +49,7 @@ export function TopicRichTextArea({
   // Set initial content
   useEffect(() => {
     if (editorRef.current && isInitialMount.current) {
-      editorRef.current.innerHTML = DOMPurify.sanitize(value || '', { ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'ul', 'ol', 'li', 'span', 'a', 'h1', 'h2', 'h3', 'h4', 'sub', 'sup', 'table', 'thead', 'tbody', 'tr', 'th', 'td'], ALLOWED_ATTR: ['class', 'style', 'href', 'target', 'rel', 'colspan', 'rowspan'] });
+      editorRef.current.innerHTML = stripXmlArtifacts(value);
       isInitialMount.current = false;
     }
   }, []);
@@ -59,7 +59,7 @@ export function TopicRichTextArea({
     if (editorRef.current && !isFocused) {
       const currentContent = editorRef.current.innerHTML;
       if (currentContent !== value) {
-        editorRef.current.innerHTML = DOMPurify.sanitize(value || '', { ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'ul', 'ol', 'li', 'span', 'a', 'h1', 'h2', 'h3', 'h4', 'sub', 'sup', 'table', 'thead', 'tbody', 'tr', 'th', 'td'], ALLOWED_ATTR: ['class', 'style', 'href', 'target', 'rel', 'colspan', 'rowspan'] });
+        editorRef.current.innerHTML = stripXmlArtifacts(value);
       }
     }
   }, [value, isFocused]);
