@@ -1072,7 +1072,7 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
         .eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['b31-milestones', proposalId] }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['b31-milestones', proposalId] }); queryClient.invalidateQueries({ queryKey: ['wp-drafts-gantt', proposalId] }); },
   });
 
   const addMilestone = useMutation({
@@ -1090,7 +1090,7 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
         });
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['b31-milestones', proposalId] }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['b31-milestones', proposalId] }); queryClient.invalidateQueries({ queryKey: ['wp-drafts-gantt', proposalId] }); },
   });
 
   const deleteMilestone = useMutation({
@@ -1101,7 +1101,7 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
         .eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['b31-milestones', proposalId] }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['b31-milestones', proposalId] }); queryClient.invalidateQueries({ queryKey: ['wp-drafts-gantt', proposalId] }); },
   });
 
   const reorderMilestones = useMutation({
@@ -1122,6 +1122,7 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['b31-milestones', proposalId] });
+      queryClient.invalidateQueries({ queryKey: ['wp-drafts-gantt', proposalId] });
       toast.success('Milestones reordered');
     },
   });
