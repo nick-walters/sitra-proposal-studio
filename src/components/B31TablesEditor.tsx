@@ -163,6 +163,54 @@ const cellStyles = "!px-[1pt] !py-0 px-[1pt] h-auto align-middle font-['Times_Ne
 const bubbleCellStyles = "!px-[1pt] !py-[1px] px-[1pt] h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-none overflow-visible";
 const headerCellStyles = "!px-[1pt] !py-0 px-[1pt] h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight font-bold";
 
+// Editable div that renders HTML content (e.g. WP reference spans) and saves as HTML
+function EditableHtml({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  placeholder?: string;
+}) {
+  const divRef = useRef<HTMLDivElement>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isFocused = useRef(false);
+
+  // Sync HTML when prop changes and not focused
+  useEffect(() => {
+    if (!isFocused.current && divRef.current) {
+      divRef.current.innerHTML = value || '';
+    }
+  }, [value]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); };
+  }, []);
+
+  const handleInput = () => {
+    const html = divRef.current?.innerHTML || '';
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => { onChange(html); }, 500);
+  };
+
+  return (
+    <div
+      ref={divRef}
+      contentEditable
+      suppressContentEditableWarning
+      onInput={handleInput}
+      onFocus={() => { isFocused.current = true; }}
+      onBlur={() => { isFocused.current = false; }}
+      data-placeholder={placeholder}
+      dangerouslySetInnerHTML={{ __html: value || '' }}
+      className="bg-transparent border-0 p-0 m-0 resize-none focus:outline-none focus:ring-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight w-full empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground"
+      style={{ minHeight: '1em', lineHeight: '1.2' }}
+    />
+  );
+}
+
 // Inline editable text that expands to multiple lines - with debounced save
 function EditableText({ 
   value, 
