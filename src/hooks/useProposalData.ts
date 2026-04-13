@@ -289,41 +289,13 @@ export function useProposalData(proposalId: string) {
   const updateProposal = async (updates: Partial<ProposalData>) => {
     if (!proposalId) return;
 
-    const dbUpdates: any = {};
+    // Use mapper for fields it knows about; handle direct-name fields separately
+    const dbUpdates: any = proposalToDb(updates);
+    // Direct-name fields not in the mapper (same name in camelCase and snake_case, or special)
     if (updates.title !== undefined) dbUpdates.title = updates.title;
     if (updates.acronym !== undefined) dbUpdates.acronym = updates.acronym;
-    if (updates.description !== undefined) dbUpdates.description = updates.description;
-    if (updates.duration !== undefined) dbUpdates.duration = updates.duration;
-    if (updates.topicId !== undefined) dbUpdates.topic_id = updates.topicId;
-    if (updates.topicUrl !== undefined) dbUpdates.topic_url = updates.topicUrl;
-    if (updates.topicTitle !== undefined) dbUpdates.topic_title = updates.topicTitle;
-    if (updates.totalBudget !== undefined) dbUpdates.total_budget = updates.totalBudget;
-    if (updates.totalBudgetText !== undefined) dbUpdates.total_budget_text = updates.totalBudgetText;
-    if (updates.deadline !== undefined) dbUpdates.deadline = updates.deadline?.toISOString();
-    if (updates.openingDate !== undefined) dbUpdates.opening_date = updates.openingDate?.toISOString() || null;
-    if (updates.decisionDate !== undefined) dbUpdates.decision_date = updates.decisionDate?.toISOString();
-    if (updates.decisionDateIsEstimated !== undefined) dbUpdates.decision_date_is_estimated = updates.decisionDateIsEstimated;
-    if (updates.workProgramme !== undefined) dbUpdates.work_programme = updates.workProgramme;
-    if (updates.destination !== undefined) dbUpdates.destination = updates.destination;
-    if (updates.logoUrl !== undefined) dbUpdates.logo_url = updates.logoUrl;
     if (updates.budgetType !== undefined) dbUpdates.budget_type = updates.budgetType;
     if (updates.status !== undefined) dbUpdates.status = updates.status;
-    if (updates.expectedProjects !== undefined) dbUpdates.expected_projects = updates.expectedProjects;
-    if (updates.usesFstp !== undefined) dbUpdates.uses_fstp = updates.usesFstp;
-    if (updates.fstpType !== undefined) dbUpdates.fstp_type = updates.fstpType;
-    if (updates.indicativeBudgetPerProject !== undefined) dbUpdates.indicative_budget_per_project = updates.indicativeBudgetPerProject;
-    if (updates.fstpBudget !== undefined) dbUpdates.fstp_budget = updates.fstpBudget;
-    if (updates.fstpBudgetPerThirdParty !== undefined) dbUpdates.fstp_budget_per_third_party = updates.fstpBudgetPerThirdParty;
-    if (updates.reportingPeriods !== undefined) dbUpdates.reporting_periods = updates.reportingPeriods;
-    if (updates.acronymSegments !== undefined) dbUpdates.acronym_segments = updates.acronymSegments;
-    if (updates.topicDescription !== undefined) dbUpdates.topic_description = updates.topicDescription;
-    if (updates.topicExpectedOutcome !== undefined) dbUpdates.topic_expected_outcome = updates.topicExpectedOutcome;
-    if (updates.topicScope !== undefined) dbUpdates.topic_scope = updates.topicScope;
-    if (updates.topicDestinationDescription !== undefined) dbUpdates.topic_destination_description = updates.topicDestinationDescription;
-    if (updates.topicFootnotes !== undefined) dbUpdates.topic_footnotes = updates.topicFootnotes;
-    if (updates.outcomeFootnotes !== undefined) dbUpdates.outcome_footnotes = updates.outcomeFootnotes;
-    if (updates.scopeFootnotes !== undefined) dbUpdates.scope_footnotes = updates.scopeFootnotes;
-    if (updates.destinationFootnotes !== undefined) dbUpdates.destination_footnotes = updates.destinationFootnotes;
 
     const { error } = await supabase
       .from('proposals')
