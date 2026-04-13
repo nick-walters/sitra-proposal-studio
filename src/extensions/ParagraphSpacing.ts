@@ -61,15 +61,34 @@ export const ParagraphSpacing = Extension.create({
         ({ tr, state, dispatch }) => {
           const { from, to } = state.selection;
           let changed = false;
-          state.doc.nodesBetween(from, to, (node, pos) => {
-            if (node.type.name === 'paragraph') {
-              const newAttrs: Record<string, any> = { ...node.attrs };
-              if (attrs.before !== undefined) newAttrs.spacingBefore = attrs.before;
-              if (attrs.after !== undefined) newAttrs.spacingAfter = attrs.after;
-              tr.setNodeMarkup(pos, undefined, newAttrs);
-              changed = true;
+
+          // For collapsed cursor, resolve the parent paragraph directly
+          if (from === to) {
+            const $pos = state.selection.$from;
+            for (let d = $pos.depth; d >= 0; d--) {
+              const node = $pos.node(d);
+              if (node.type.name === 'paragraph') {
+                const pos = $pos.before(d);
+                const newAttrs: Record<string, any> = { ...node.attrs };
+                if (attrs.before !== undefined) newAttrs.spacingBefore = attrs.before;
+                if (attrs.after !== undefined) newAttrs.spacingAfter = attrs.after;
+                tr.setNodeMarkup(pos, undefined, newAttrs);
+                changed = true;
+                break;
+              }
             }
-          });
+          } else {
+            state.doc.nodesBetween(from, to, (node, pos) => {
+              if (node.type.name === 'paragraph') {
+                const newAttrs: Record<string, any> = { ...node.attrs };
+                if (attrs.before !== undefined) newAttrs.spacingBefore = attrs.before;
+                if (attrs.after !== undefined) newAttrs.spacingAfter = attrs.after;
+                tr.setNodeMarkup(pos, undefined, newAttrs);
+                changed = true;
+              }
+            });
+          }
+
           if (changed && dispatch) dispatch(tr);
           return changed;
         },
