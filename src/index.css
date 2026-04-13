@@ -1450,7 +1450,7 @@ td.b12-case-cell {
 }
 
 .print-export-container .ProseMirror p {
-  margin-top: 3pt !important;
+  margin-top: 0 !important;
   margin-bottom: 3pt !important;
 }
 
