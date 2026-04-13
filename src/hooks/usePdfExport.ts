@@ -33,16 +33,7 @@ function buildPrintDocument(
     }
   }
 
-  // Header text
-  const topicId = proposal.topicId || '';
-  const topicTitle = proposal.topicTitle || proposal.title || '';
-  const topicType = proposal.type || '';
-  let headerText = `${topicId}${topicId && topicTitle ? ': ' : ''}${topicTitle}${topicType ? ` (${topicType})` : ''}`;
-  if (headerText.length > 120) headerText = headerText.substring(0, 117) + '...';
-
-  // Footer text
-  const acronym = proposal.acronym;
-  const stageText = proposal.submissionStage === 'stage_1' ? ' (Stage 1 of 2) | ' : ' | ';
+  // No custom header/footer — user should disable browser headers/footers in the print dialog
 
   return `<!DOCTYPE html>
 <html>
