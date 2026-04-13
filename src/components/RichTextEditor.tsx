@@ -182,6 +182,16 @@ function normalizePartBPastedAlignment(html: string) {
       h.style.margin = '';
       h.style.padding = '';
       h.style.width = '';
+      h.style.border = '';
+      h.style.borderTop = '';
+      h.style.borderBottom = '';
+      h.style.borderLeft = '';
+      h.style.borderRight = '';
+      h.style.borderColor = '';
+      h.style.borderStyle = '';
+      h.style.borderWidth = '';
+      h.style.background = '';
+      h.style.backgroundColor = '';
     }
 
     if (el.tagName === 'FONT') {

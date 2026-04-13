@@ -65,6 +65,16 @@ export function TopicRichTextArea({
           htmlEl.style.fontSize = '';
           htmlEl.style.fontFamily = '';
           htmlEl.style.lineHeight = '';
+          htmlEl.style.border = '';
+          htmlEl.style.borderTop = '';
+          htmlEl.style.borderBottom = '';
+          htmlEl.style.borderLeft = '';
+          htmlEl.style.borderRight = '';
+          htmlEl.style.borderColor = '';
+          htmlEl.style.borderStyle = '';
+          htmlEl.style.borderWidth = '';
+          htmlEl.style.background = '';
+          htmlEl.style.backgroundColor = '';
         }
         // Remove font tags
         if (el.tagName === 'FONT') {
