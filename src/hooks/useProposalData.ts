@@ -3,16 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 import type { Participant, ParticipantMember, BudgetType } from '@/types/proposal';
-
-// Helper to convert camelCase to snake_case
-function camelToSnake(str: string): string {
-  return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
-}
-
-// Helper to convert snake_case to camelCase
-function snakeToCamel(str: string): string {
-  return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
-}
+import { camelToSnake, snakeToCamel, proposalFromDb, proposalToDb } from '@/lib/proposalMapper';
+import { logError } from '@/lib/logger';
 
 // Dynamic ethics assessment interface - supports all fields from EthicsForm
 interface EthicsAssessment {
@@ -91,60 +83,23 @@ export function useProposalData(proposalId: string) {
       .single();
 
     if (error) {
-      console.error('Error fetching proposal:', error);
+      logError('fetchProposal', error);
       return;
     }
 
     if (data) {
+      const mapped = proposalFromDb(data as Record<string, any>);
       setProposal({
+        ...mapped,
         id: data.id,
         acronym: data.acronym,
         title: data.title,
         type: data.type as 'RIA' | 'IA' | 'CSA',
         budgetType: data.budget_type as BudgetType,
         status: data.status as ProposalData['status'],
-        submissionStage: ((data as any).submission_stage as 'full' | 'stage_1') || undefined,
-        isTwoStageSecondStage: (data as any).is_two_stage_second_stage || false,
-        totalBudget: data.total_budget || undefined,
-        totalBudgetText: (data as any).total_budget_text || undefined,
-        deadline: data.deadline ? new Date(data.deadline) : undefined,
-        openingDate: (data as any).opening_date ? new Date((data as any).opening_date) : undefined,
-        description: data.description || undefined,
-        duration: data.duration || undefined,
-        topicId: data.topic_id || undefined,
-        topicUrl: data.topic_url || undefined,
-        topicTitle: data.topic_title || undefined,
-        topicDescription: (data as any).topic_description || undefined,
-        topicExpectedOutcome: (data as any).topic_expected_outcome || undefined,
-        topicScope: (data as any).topic_scope || undefined,
-        topicDestinationDescription: (data as any).topic_destination_description || undefined,
-        topicFootnotes: (data as any).topic_footnotes || [],
-        outcomeFootnotes: (data as any).outcome_footnotes || [],
-        scopeFootnotes: (data as any).scope_footnotes || [],
-        destinationFootnotes: (data as any).destination_footnotes || [],
-        topicContentImportedAt: (data as any).topic_content_imported_at ? new Date((data as any).topic_content_imported_at) : undefined,
-        workProgramme: data.work_programme || undefined,
-        destination: data.destination || undefined,
-        logoUrl: data.logo_url || undefined,
-        submittedAt: data.submitted_at ? new Date(data.submitted_at) : undefined,
-        decisionDate: data.decision_date ? new Date(data.decision_date) : undefined,
-        decisionDateIsEstimated: (data as any).decision_date_is_estimated || false,
-        templateTypeId: data.template_type_id || undefined,
-        expectedProjects: (data as any).expected_projects || undefined,
-        usesFstp: data.uses_fstp || false,
-        fstpType: ((data as any).fstp_type as 'grant' | 'prize') || 'grant',
-        indicativeBudgetPerProject: (data as any).indicative_budget_per_project || undefined,
-        fstpBudget: (data as any).fstp_budget || undefined,
-        fstpBudgetPerThirdParty: (data as any).fstp_budget_per_third_party || undefined,
-        casesEnabled: (data as any).cases_enabled || false,
-        casesType: (data as any).cases_type || undefined,
-        wpDraftsVisible: (data as any).wp_drafts_visible !== false,
-        caseDraftsVisible: (data as any).case_drafts_visible !== false,
-        reportingPeriods: (data as any).reporting_periods || undefined,
-        acronymSegments: (data as any).acronym_segments || undefined,
         createdAt: new Date(data.created_at),
         updatedAt: new Date(data.updated_at),
-      });
+      } as ProposalData);
     }
   }, [proposalId]);
 
@@ -195,7 +150,7 @@ export function useProposalData(proposalId: string) {
       .order('participant_number', { ascending: true });
 
     if (error) {
-      console.error('Error fetching participants:', error);
+      logError('fetchParticipants', error);
       return;
     }
 
@@ -257,7 +212,7 @@ export function useProposalData(proposalId: string) {
       .eq('participants.proposal_id', proposalId);
 
     if (error) {
-      console.error('Error fetching participant members:', error);
+      logError('fetchParticipantMembers', error);
       return;
     }
 
@@ -293,7 +248,7 @@ export function useProposalData(proposalId: string) {
       .single();
 
     if (error && error.code !== 'PGRST116') {
-      console.error('Error fetching ethics:', error);
+      logError('fetchEthics', error);
       return;
     }
 
@@ -334,41 +289,13 @@ export function useProposalData(proposalId: string) {
   const updateProposal = async (updates: Partial<ProposalData>) => {
     if (!proposalId) return;
 
-    const dbUpdates: any = {};
+    // Use mapper for fields it knows about; handle direct-name fields separately
+    const dbUpdates: any = proposalToDb(updates);
+    // Direct-name fields not in the mapper (same name in camelCase and snake_case, or special)
     if (updates.title !== undefined) dbUpdates.title = updates.title;
     if (updates.acronym !== undefined) dbUpdates.acronym = updates.acronym;
-    if (updates.description !== undefined) dbUpdates.description = updates.description;
-    if (updates.duration !== undefined) dbUpdates.duration = updates.duration;
-    if (updates.topicId !== undefined) dbUpdates.topic_id = updates.topicId;
-    if (updates.topicUrl !== undefined) dbUpdates.topic_url = updates.topicUrl;
-    if (updates.topicTitle !== undefined) dbUpdates.topic_title = updates.topicTitle;
-    if (updates.totalBudget !== undefined) dbUpdates.total_budget = updates.totalBudget;
-    if (updates.totalBudgetText !== undefined) dbUpdates.total_budget_text = updates.totalBudgetText;
-    if (updates.deadline !== undefined) dbUpdates.deadline = updates.deadline?.toISOString();
-    if (updates.openingDate !== undefined) dbUpdates.opening_date = updates.openingDate?.toISOString() || null;
-    if (updates.decisionDate !== undefined) dbUpdates.decision_date = updates.decisionDate?.toISOString();
-    if (updates.decisionDateIsEstimated !== undefined) dbUpdates.decision_date_is_estimated = updates.decisionDateIsEstimated;
-    if (updates.workProgramme !== undefined) dbUpdates.work_programme = updates.workProgramme;
-    if (updates.destination !== undefined) dbUpdates.destination = updates.destination;
-    if (updates.logoUrl !== undefined) dbUpdates.logo_url = updates.logoUrl;
     if (updates.budgetType !== undefined) dbUpdates.budget_type = updates.budgetType;
     if (updates.status !== undefined) dbUpdates.status = updates.status;
-    if (updates.expectedProjects !== undefined) dbUpdates.expected_projects = updates.expectedProjects;
-    if (updates.usesFstp !== undefined) dbUpdates.uses_fstp = updates.usesFstp;
-    if (updates.fstpType !== undefined) dbUpdates.fstp_type = updates.fstpType;
-    if (updates.indicativeBudgetPerProject !== undefined) dbUpdates.indicative_budget_per_project = updates.indicativeBudgetPerProject;
-    if (updates.fstpBudget !== undefined) dbUpdates.fstp_budget = updates.fstpBudget;
-    if (updates.fstpBudgetPerThirdParty !== undefined) dbUpdates.fstp_budget_per_third_party = updates.fstpBudgetPerThirdParty;
-    if (updates.reportingPeriods !== undefined) dbUpdates.reporting_periods = updates.reportingPeriods;
-    if (updates.acronymSegments !== undefined) dbUpdates.acronym_segments = updates.acronymSegments;
-    if (updates.topicDescription !== undefined) dbUpdates.topic_description = updates.topicDescription;
-    if (updates.topicExpectedOutcome !== undefined) dbUpdates.topic_expected_outcome = updates.topicExpectedOutcome;
-    if (updates.topicScope !== undefined) dbUpdates.topic_scope = updates.topicScope;
-    if (updates.topicDestinationDescription !== undefined) dbUpdates.topic_destination_description = updates.topicDestinationDescription;
-    if (updates.topicFootnotes !== undefined) dbUpdates.topic_footnotes = updates.topicFootnotes;
-    if (updates.outcomeFootnotes !== undefined) dbUpdates.outcome_footnotes = updates.outcomeFootnotes;
-    if (updates.scopeFootnotes !== undefined) dbUpdates.scope_footnotes = updates.scopeFootnotes;
-    if (updates.destinationFootnotes !== undefined) dbUpdates.destination_footnotes = updates.destinationFootnotes;
 
     const { error } = await supabase
       .from('proposals')
@@ -377,7 +304,7 @@ export function useProposalData(proposalId: string) {
 
     if (error) {
       toast.error('Failed to update proposal');
-      console.error(error);
+      logError('useProposalData', error);
     } else {
       setProposal((prev) => (prev ? { ...prev, ...updates } : null));
     }
@@ -445,7 +372,7 @@ export function useProposalData(proposalId: string) {
 
     if (error) {
       toast.error('Failed to add participant');
-      console.error(error);
+      logError('useProposalData', error);
       throw error;
     } else if (data) {
       await fetchParticipants();
@@ -500,7 +427,7 @@ export function useProposalData(proposalId: string) {
 
     if (error) {
       toast.error('Failed to update participant');
-      console.error(error);
+      logError('useProposalData', error);
     } else {
       // Update local state
       setParticipants((prev) =>
@@ -583,7 +510,7 @@ export function useProposalData(proposalId: string) {
 
     if (errors.length > 0) {
       toast.error('Failed to save participant order');
-      console.error('Reorder errors:', errors);
+      logError('reorderParticipants', errors);
       // Refresh to get correct state from database
       await fetchParticipants();
     } else {
@@ -597,7 +524,7 @@ export function useProposalData(proposalId: string) {
 
     if (error) {
       toast.error('Failed to delete participant');
-      console.error(error);
+      logError('useProposalData', error);
     } else {
       setParticipants((prev) => prev.filter((p) => p.id !== id));
       toast.success('Participant deleted');
@@ -624,7 +551,7 @@ export function useProposalData(proposalId: string) {
 
     if (error) {
       toast.error('Failed to add team member');
-      console.error(error);
+      logError('useProposalData', error);
     } else if (data) {
       await fetchParticipantMembers();
       toast.success('Team member added');
@@ -651,7 +578,7 @@ export function useProposalData(proposalId: string) {
 
     if (error) {
       toast.error('Failed to update team member');
-      console.error(error);
+      logError('useProposalData', error);
     } else {
       setParticipantMembers((prev) =>
         prev.map((m) => (m.id === id ? { ...m, ...updates } : m))
@@ -665,7 +592,7 @@ export function useProposalData(proposalId: string) {
 
     if (error) {
       toast.error('Failed to delete team member');
-      console.error(error);
+      logError('useProposalData', error);
     } else {
       setParticipantMembers((prev) => prev.filter((m) => m.id !== id));
       toast.success('Team member deleted');
@@ -686,7 +613,7 @@ export function useProposalData(proposalId: string) {
       const { error } = await supabase.from('ethics_assessment').update(dbUpdates).eq('id', ethics.id);
       if (error) {
         toast.error('Failed to update ethics assessment');
-        console.error(error);
+        logError('useProposalData', error);
       } else {
         setEthics((prev) => (prev ? { ...prev, ...updates } : null));
       }
@@ -700,7 +627,7 @@ export function useProposalData(proposalId: string) {
 
       if (error) {
         toast.error('Failed to create ethics assessment');
-        console.error(error);
+        logError('useProposalData', error);
       } else if (data) {
         await fetchEthics();
       }
