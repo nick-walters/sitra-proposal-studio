@@ -1,121 +1,58 @@
 
 
-# Plan: Dynamic Case Study Tables and Default "Ongoing Projects" Table in B1.2
+# Plan: Rewrite PDF Export Using jsPDF.html() + Add HTML-to-DOCX Export
 
-## Overview
+## Phase 1: PDF Export Rewrite (Priority — 48h deadline)
 
-When section B1.2 is rendered in the DocumentEditor, append two React component blocks **below** the TipTap editor content (following the B3.1 pattern). These are read-only, auto-synced from the database, and rendered as styled HTML tables matching HE formatting conventions.
+### Approach
+Replace the 2,645-line manual rendering engine in `src/hooks/usePdfExport.ts` with a browser-based pipeline:
 
-## Architecture
+1. **Create a hidden print container** — a `<div>` styled at 180mm content width (A4 minus 2×15mm margins), with the same CSS as the editor (11pt Times New Roman, all editor classes loaded)
+2. **Inject each section's HTML** into the container, including B3.1 tables, participant lists, figures, and charts rendered as actual React components
+3. **Call `jsPDF.html()`** which uses the browser's native layout engine to render vector text onto paginated A4 pages
+4. **Overlay headers, footers, and watermark** using existing jsPDF drawing code (this part already works)
 
-Follow the existing B3.1 pattern: a new `B12SectionContent` component rendered conditionally in `DocumentEditor.tsx` after the `EditorContent`, just like `B31SectionContent` is rendered for B3.1.
+### What changes
+- **`src/hooks/usePdfExport.ts`** — complete rewrite (~400-500 lines replacing ~2,645)
+- **`src/index.css`** — add a `@media print` / `.print-container` style block that mirrors editor styling but hides interactive elements (toolbars, drag handles, buttons)
+- **New helper: `src/lib/printRenderer.tsx`** — a React component that renders B3.1 tables, participant lists, PERT/Gantt charts into the hidden container using the same components as the editor
 
-```text
-DocumentEditor
-  └─ EditorContent (user's free text for B1.2)
-  └─ B12SectionContent (new, rendered only for B1.2)
-       ├─ B12CaseStudyTables (dynamic, from case_drafts)
-       └─ B12OngoingProjectsTable (static structure, editable cells)
-```
+### What stays the same
+- Export dialog UI (`ExportDialog.tsx`)
+- Section ordering and data fetching logic
+- Header/footer/watermark overlay code
 
-## Component 1: Case Study Tables (`B12CaseStudyTables`)
+### What gets deleted
+- All manual text rendering functions (renderRichTextJustified, drawJustifiedLine, etc.)
+- All manual table rendering (addTable, addB31TableAdvanced, etc.)
+- All manual bubble drawing (drawBubble, drawWPBubble, etc.)
+- All HTML parsing (parseHtmlContent, extractSegments, etc.)
 
-**Condition**: Only rendered when the proposal has case drafts.
+### Why this fixes everything
+Every issue stems from the same root cause: a second rendering engine that differs from the browser. By using `jsPDF.html()`, the PDF output IS the browser's rendering — kerning, table widths, bubble styles, figure aspect ratios, vertical alignment, and borders all match automatically because the same CSS rules apply.
 
-**Data source**: Fetched via `useQuery` from `case_drafts` (+ `participants` for leader bubble). Subscribes to realtime changes via the existing `case-drafts` channel.
+---
 
-**Layout**:
-- Single caption at top: `EditableCaption` with label `"Table 1.2.x."` and default caption `"{Case type plural}"` (e.g. "Case studies", "Living Labs") — derived from the proposal's case type.
-- One HTML table per case, separated by an empty body-text row (`<p>&nbsp;</p>`).
-- Each table:
-  - **Header row**: Left-aligned "`{short_name} – {title}`", right-aligned participant bubble for the case leader (matching the existing bubble styling from B3.1 WP description tables).
-  - **5 body rows**, one per subsection: each cell contains a **bold italic** inline heading (e.g. "Background context") followed by the content from the corresponding `case_drafts` field (`background_context`, `key_stakeholders`, `proposed_solutions`, `expected_outcomes`, `replicability`). The heading text comes from the case draft's `heading_*` fields (falling back to defaults). No guideline/instruction text is included.
-- Tables reorder according to `order_index` from the case manager.
-- Hidden cases (`is_hidden = true`) are excluded.
-- Read-only — content auto-syncs from case manager data.
+## Phase 2: DOCX Export via HTML-to-DOCX (after PDF is stable)
 
-**Styling**: 11pt Times New Roman, 1.0 line spacing, max-width 18cm, `table-layout: fixed`, bold black header row with 1.5px bottom border (matching B3.1 style).
+### Approach
+Use `html-docx-js` (or the similar `html-to-docx` package) to convert the same print container HTML into a `.docx` file.
 
-## Component 2: Ongoing Projects Table (`B12OngoingProjectsTable`)
+- Bubbles render as colored rectangles (no border-radius in Word) — acceptable
+- Tables, text formatting, figures, and layout carry over via HTML/CSS
+- Same hidden container approach as PDF, so visual consistency is maintained
 
-**Position**: Always rendered **below** the case study tables (or directly after the editor if no cases exist).
+### Tradeoffs
+- Bubble pills become rectangles — visually close but not identical
+- Complex CSS (flexbox, grid) may degrade — mitigated by using simple table-based layout in the print container
+- Can be enhanced later with native `docx-js` bubble rendering if needed
 
-**Layout**:
-- `EditableCaption` with auto-numbered label (e.g. `"Table 1.2.y."`) and default caption `"Ongoing & recently completed projects & initiatives with which the project will collaborate"`.
-- A table with a header row containing columns: **Project acronym/name**, **Funding programme**, **Period**, **Coordinator**, **Relation to this project**.
-- 8 empty body rows by default.
+---
 
-**Data storage**: New DB table `b12_ongoing_projects` with columns: `id`, `proposal_id`, `acronym_name`, `funding_programme`, `period`, `coordinator`, `relation`, `order_index`. Rows are editable inline (like B3.1 deliverables/milestones).
-
-**Behavior**: Users can add/delete rows. Inline editing with debounced saves. Drag-and-drop reordering.
-
-## Component 3: Ensure Leading Paragraph
-
-In the `useSectionContent` hook or in the `B12SectionContent` component, if the editor content for B1.2 is empty or starts with a table, prepend an empty `<p></p>` paragraph. This ensures no table ever appears as the first element in the section.
-
-## Database Migration
-
-Create one new table:
-
-```sql
-CREATE TABLE public.b12_ongoing_projects (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  proposal_id uuid REFERENCES public.proposals(id) ON DELETE CASCADE NOT NULL,
-  acronym_name text DEFAULT '',
-  funding_programme text DEFAULT '',
-  period text DEFAULT '',
-  coordinator text DEFAULT '',
-  relation text DEFAULT '',
-  order_index integer DEFAULT 0,
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
-);
-
-ALTER TABLE public.b12_ongoing_projects ENABLE ROW LEVEL SECURITY;
-
--- RLS: users with any proposal role can read/write
-CREATE POLICY "Users with proposal role can select"
-  ON public.b12_ongoing_projects FOR SELECT TO authenticated
-  USING (public.has_any_proposal_role(auth.uid(), proposal_id));
-
-CREATE POLICY "Users who can edit can insert"
-  ON public.b12_ongoing_projects FOR INSERT TO authenticated
-  WITH CHECK (public.can_edit_proposal(auth.uid(), proposal_id));
-
-CREATE POLICY "Users who can edit can update"
-  ON public.b12_ongoing_projects FOR UPDATE TO authenticated
-  USING (public.can_edit_proposal(auth.uid(), proposal_id));
-
-CREATE POLICY "Users who can edit can delete"
-  ON public.b12_ongoing_projects FOR DELETE TO authenticated
-  USING (public.can_edit_proposal(auth.uid(), proposal_id));
-
--- Initialize 8 empty rows when a proposal is created
--- (handled in the component on first load, not via trigger, to avoid complexity)
-```
-
-Also enable realtime for this table:
-```sql
-ALTER PUBLICATION supabase_realtime ADD TABLE public.b12_ongoing_projects;
-```
-
-## Files to Create/Edit
-
-1. **Create** `src/components/B12SectionContent.tsx` — wrapper that renders case tables + ongoing projects table
-2. **Create** `src/components/B12CaseStudyTables.tsx` — dynamic case study tables from `case_drafts`
-3. **Create** `src/components/B12OngoingProjectsTable.tsx` — editable ongoing projects table with inline editing, add/delete rows, drag-and-drop
-4. **Edit** `src/components/DocumentEditor.tsx` — add conditional rendering of `B12SectionContent` for B1.2 sections (same pattern as B3.1)
-5. **DB migration** — create `b12_ongoing_projects` table
-
-## Caption Numbering
-
-The case study tables caption uses the next available letter in the 1.2 sequence (e.g., if user has tables a, b in the editor, case tables get "Table 1.2.c."). The ongoing projects table gets the next letter after that. The `EditableCaption` component handles this via its `label` prop — the parent component computes the correct letter by counting existing captions in the editor content.
-
-For simplicity in the initial implementation, use fixed letters: case tables = "Table 1.2.x." and ongoing projects = the next letter. These can be refined later with the auto-numbering system.
-
-## Realtime Sync
-
-- Case tables: subscribe to `case_drafts` changes for the proposal (reuse existing channel pattern).
-- Ongoing projects: subscribe to `b12_ongoing_projects` changes.
-- Both invalidate their respective react-query caches on changes.
+## Implementation order
+1. Rewrite `usePdfExport.ts` with jsPDF.html() approach
+2. Create `printRenderer.tsx` helper for rendering sections
+3. Add print-specific CSS
+4. Test with ADDGenAI proposal
+5. (Phase 2) Add HTML-to-DOCX export option
 
