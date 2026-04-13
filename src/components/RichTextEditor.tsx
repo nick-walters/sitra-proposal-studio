@@ -35,6 +35,7 @@ import { updateCaptionForTableAtCursor } from '@/lib/renumberCaptionsInEditor';
 import { OrderedListDropdown } from './OrderedListDropdown';
 import { autoFitEditorTableAtPos } from '@/lib/editorTableAutoFit';
 import { ParagraphSpacingPopover } from './ParagraphSpacingPopover';
+import { FigureDimensionsPopover } from './FigureDimensionsPopover';
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
