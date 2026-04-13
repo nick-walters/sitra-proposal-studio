@@ -245,7 +245,7 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
                             className="h-6 w-6 shrink-0"
                             onClick={() => isLocked ? unlockRow(p.id) : lockRow(p.id)}
                           >
-                            {isLocked ? <Lock className="w-3 h-3 text-destructive" /> : <Unlock className="w-3 h-3 text-muted-foreground" />}
+                            {isLocked ? <Lock className="w-3 h-3 text-destructive" /> : <Unlock className="w-3 h-3 text-green-600" />}
                           </Button>
                         )}
                       </div>
