@@ -330,13 +330,15 @@ export function BudgetPortalSheet({
       const maxEuFormula = { f: `=ROUND(L${r}*M${r}/100,2)` };
 
       // O: Requested funding rate
-      const requestedRate = computedRow.requestedEuContributionOverride != null
+      const hasCustomRequested = computedRow.requestedEuContributionOverride != null || computedRow.hasInKind;
+      const requestedRate = hasCustomRequested
         ? { f: `=IF(L${r}>0,P${r}/L${r}*100,0)` }
         : fundingRate;
 
       // P: Requested budget
-      const requestedBudget = computedRow.requestedEuContributionOverride != null
-        ? Math.min(computedRow.requestedEuContributionOverride, computedRow.maxEuContribution)
+      // Use the same value the UI computes (handles both override and in-kind cases)
+      const requestedBudget = hasCustomRequested
+        ? computedRow.requestedEuContribution
         : { f: `=N${r}` };
 
       // Q: Share of total budget = L / L$total * 100
