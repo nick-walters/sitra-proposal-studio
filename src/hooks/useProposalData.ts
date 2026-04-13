@@ -150,7 +150,7 @@ export function useProposalData(proposalId: string) {
       .order('participant_number', { ascending: true });
 
     if (error) {
-      console.error('Error fetching participants:', error);
+      logError('fetchParticipants', error);
       return;
     }
 
@@ -212,7 +212,7 @@ export function useProposalData(proposalId: string) {
       .eq('participants.proposal_id', proposalId);
 
     if (error) {
-      console.error('Error fetching participant members:', error);
+      logError('fetchParticipantMembers', error);
       return;
     }
 
@@ -248,7 +248,7 @@ export function useProposalData(proposalId: string) {
       .single();
 
     if (error && error.code !== 'PGRST116') {
-      console.error('Error fetching ethics:', error);
+      logError('fetchEthics', error);
       return;
     }
 
@@ -304,7 +304,7 @@ export function useProposalData(proposalId: string) {
 
     if (error) {
       toast.error('Failed to update proposal');
-      console.error(error);
+      logError('useProposalData', error);
     } else {
       setProposal((prev) => (prev ? { ...prev, ...updates } : null));
     }
@@ -372,7 +372,7 @@ export function useProposalData(proposalId: string) {
 
     if (error) {
       toast.error('Failed to add participant');
-      console.error(error);
+      logError('useProposalData', error);
       throw error;
     } else if (data) {
       await fetchParticipants();
@@ -427,7 +427,7 @@ export function useProposalData(proposalId: string) {
 
     if (error) {
       toast.error('Failed to update participant');
-      console.error(error);
+      logError('useProposalData', error);
     } else {
       // Update local state
       setParticipants((prev) =>
@@ -510,7 +510,7 @@ export function useProposalData(proposalId: string) {
 
     if (errors.length > 0) {
       toast.error('Failed to save participant order');
-      console.error('Reorder errors:', errors);
+      logError('reorderParticipants', errors);
       // Refresh to get correct state from database
       await fetchParticipants();
     } else {
@@ -524,7 +524,7 @@ export function useProposalData(proposalId: string) {
 
     if (error) {
       toast.error('Failed to delete participant');
-      console.error(error);
+      logError('useProposalData', error);
     } else {
       setParticipants((prev) => prev.filter((p) => p.id !== id));
       toast.success('Participant deleted');
@@ -551,7 +551,7 @@ export function useProposalData(proposalId: string) {
 
     if (error) {
       toast.error('Failed to add team member');
-      console.error(error);
+      logError('useProposalData', error);
     } else if (data) {
       await fetchParticipantMembers();
       toast.success('Team member added');
@@ -578,7 +578,7 @@ export function useProposalData(proposalId: string) {
 
     if (error) {
       toast.error('Failed to update team member');
-      console.error(error);
+      logError('useProposalData', error);
     } else {
       setParticipantMembers((prev) =>
         prev.map((m) => (m.id === id ? { ...m, ...updates } : m))
@@ -592,7 +592,7 @@ export function useProposalData(proposalId: string) {
 
     if (error) {
       toast.error('Failed to delete team member');
-      console.error(error);
+      logError('useProposalData', error);
     } else {
       setParticipantMembers((prev) => prev.filter((m) => m.id !== id));
       toast.success('Team member deleted');
@@ -613,7 +613,7 @@ export function useProposalData(proposalId: string) {
       const { error } = await supabase.from('ethics_assessment').update(dbUpdates).eq('id', ethics.id);
       if (error) {
         toast.error('Failed to update ethics assessment');
-        console.error(error);
+        logError('useProposalData', error);
       } else {
         setEthics((prev) => (prev ? { ...prev, ...updates } : null));
       }
@@ -627,7 +627,7 @@ export function useProposalData(proposalId: string) {
 
       if (error) {
         toast.error('Failed to create ethics assessment');
-        console.error(error);
+        logError('useProposalData', error);
       } else if (data) {
         await fetchEthics();
       }
