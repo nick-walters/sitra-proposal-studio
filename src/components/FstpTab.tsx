@@ -713,6 +713,9 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, f
           superScript: s.superscript,
         }));
 
+      const segsToRuns = (segs: TextSegment[]): TextRun[] =>
+        segsToRunOpts(segs).map(opts => new TextRun(opts as any));
+
       const alignMap: Record<string, typeof AlignmentType[keyof typeof AlignmentType]> = {
         left: AlignmentType.LEFT,
         center: AlignmentType.CENTER,
