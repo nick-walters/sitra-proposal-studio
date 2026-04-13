@@ -308,9 +308,12 @@ interface EffortInputCellProps {
 function EffortInputCell({ value, canEdit, onSave }: EffortInputCellProps) {
   const [localValue, setLocalValue] = useState(() => formatPM(value));
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isFocused = useRef(false);
 
   useEffect(() => {
-    setLocalValue(formatPM(value));
+    if (!isFocused.current) {
+      setLocalValue(formatPM(value));
+    }
   }, [value]);
 
   useEffect(() => {
@@ -358,7 +361,9 @@ function EffortInputCell({ value, canEdit, onSave }: EffortInputCellProps) {
       min="0"
       value={localValue}
       onChange={handleChange}
+      onFocus={() => { isFocused.current = true; }}
       onBlur={() => {
+        isFocused.current = false;
         if (!canEdit) return;
         void commitValue(localValue);
       }}
