@@ -464,7 +464,9 @@ export async function prepareExportContainer(
     ),
   );
 
-  // Native browser print handles CSS variables and clip-path correctly — no post-processing needed
+  // Freeze interactive elements (inputs, selects, buttons) into static text
+  // Must happen AFTER React mount but BEFORE detaching from DOM
+  freezeInteractiveElements(container);
 
   // Allow a small delay for reflows
   await new Promise(r => setTimeout(r, 500));
