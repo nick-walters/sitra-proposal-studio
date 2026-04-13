@@ -12,10 +12,17 @@ import { resolveStorageUrl } from '@/hooks/useStorageUrl';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
-interface SectionContent {
+export interface SectionContent {
   id: string;
   sectionId: string;
   content: string;
+}
+
+export interface ExportData {
+  proposal: import('@/types/proposal').Proposal;
+  sectionContents: SectionContent[];
+  sections: import('@/types/proposal').Section[];
+  participants?: import('@/types/proposal').Participant[];
 }
 
 export interface PrintRenderOptions {
