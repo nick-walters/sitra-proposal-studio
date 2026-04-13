@@ -118,22 +118,40 @@ serve(async (req) => {
       sectionMap[s.section_id] = stripHtml(s.content || "");
     });
 
-    // Build WP summary
+    const participants = participantsRes.data || [];
+    const participantMap = new Map(participants.map((p: any) => [p.id, p]));
+
+    // Build WP summary (from drafts)
     const wpSummaries = (wpDraftsRes.data || []).map((wp: any) => {
       const wpTasks = (tasks || []).filter((t: any) => t.wp_draft_id === wp.id);
       const wpDelivs = (wpDeliverables || []).filter((d: any) => d.wp_draft_id === wp.id);
+      const wpB31Tasks = (b31Tasks || []).filter((t: any) => t.wp_draft_id === wp.id);
+      const wpEffort = (wpEffortData || []).filter((e: any) => e.wp_draft_id === wp.id);
+      const wpLeader = participantMap.get(wp.lead_participant_id);
       return {
         number: wp.number,
         shortName: wp.short_name || "",
         title: wp.title || "",
         objectives: stripHtml(wp.objectives || ""),
         methodology: stripHtml(wp.methodology || ""),
+        durationMonths: wp.duration_months,
+        leader: wpLeader?.organisation_short_name || "",
         tasks: wpTasks.map((t: any) => ({
           number: `T${wp.number}.${t.number}`,
           title: t.title || "",
+          description: stripHtml(t.description || "").substring(0, 300),
           startMonth: t.start_month,
           endMonth: t.end_month,
-          leader: (participantsRes.data || []).find((p: any) => p.id === t.lead_participant_id)?.organisation_short_name || "",
+          leader: participantMap.get(t.lead_participant_id)?.organisation_short_name || "",
+        })),
+        b31Tasks: wpB31Tasks.map((t: any) => ({
+          number: `T${wp.number}.${t.number}`,
+          title: t.title || "",
+          description: stripHtml(t.description || "").substring(0, 300),
+          startMonth: t.start_month,
+          endMonth: t.end_month,
+          leader: participantMap.get(t.lead_participant_id)?.organisation_short_name || "",
+          participants: (t.participants || []).map((p: any) => participantMap.get(p.participant_id)?.organisation_short_name || "").filter(Boolean),
         })),
         deliverables: wpDelivs.map((d: any) => ({
           number: `D${wp.number}.${d.number}`,
@@ -141,6 +159,11 @@ serve(async (req) => {
           dueMonth: d.due_month,
           type: d.type || "",
         })),
+        effort: wpEffort.map((e: any) => ({
+          participant: participantMap.get(e.participant_id)?.organisation_short_name || "",
+          personMonths: e.person_months,
+        })).filter((e: any) => e.personMonths > 0),
+        totalEffort: wpEffort.reduce((sum: number, e: any) => sum + (e.person_months || 0), 0),
       };
     });
 
@@ -148,10 +171,13 @@ serve(async (req) => {
     const b31Deliverables = (deliverablesRes.data || []).map((d: any) => ({
       number: d.number,
       name: d.name,
+      description: stripHtml(d.description || "").substring(0, 200),
       wpNumber: d.wp_number,
       dueMonth: d.due_month,
       taskId: d.task_id,
-      leadParticipantId: d.lead_participant_id,
+      type: d.type || "",
+      disseminationLevel: d.dissemination_level || "",
+      leadParticipant: participantMap.get(d.lead_participant_id)?.organisation_short_name || "",
     }));
 
     const b31Milestones = (milestonesRes.data || []).map((m: any) => ({
@@ -160,6 +186,7 @@ serve(async (req) => {
       dueMonth: m.due_month,
       wps: m.wps,
       taskId: m.task_id,
+      meansOfVerification: m.means_of_verification || "",
     }));
 
     // Topic information
