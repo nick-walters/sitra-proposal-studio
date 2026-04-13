@@ -1258,6 +1258,123 @@ td.b12-case-cell {
   white-space: nowrap !important;
 }
 
+/* ── Inline reference bubbles (T, D, MS) – html2canvas-safe overrides ──
+   html2canvas does NOT support clip-path, CSS custom properties, or
+   ::before/::after pseudo-elements, so we flatten everything to simple
+   inline styles that it can capture. */
+
+.print-export-container .inline-ref {
+  user-select: all !important;
+  vertical-align: baseline !important;
+  white-space: nowrap !important;
+  font-family: 'Times New Roman', Times, serif !important;
+  font-size: 11pt !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+}
+
+/* Task bubble – blue outline pill (wp-color resolved via JS post-processing) */
+.print-export-container .inline-ref-task {
+  display: inline-flex !important;
+  align-items: center !important;
+  height: 17px !important;
+  padding: 0 4px !important;
+  border-radius: 9999px !important;
+  border: 1.5px solid #2563EB !important;
+  background: #ffffff !important;
+  color: #2563EB !important;
+  clip-path: none !important;
+}
+
+/* Deliverable bubble – simplified to colored pill (no clip-path pennant) */
+.print-export-container .inline-ref-deliverable {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 17px !important;
+  padding: 0 5px !important;
+  border-radius: 4px 12px 12px 4px !important;
+  border: 1.5px solid #2563EB !important;
+  background: #ffffff !important;
+  color: #2563EB !important;
+  clip-path: none !important;
+  position: relative !important;
+  z-index: 0 !important;
+}
+
+/* Kill the ::before pseudo-element that html2canvas can't render */
+.print-export-container .inline-ref-deliverable::before {
+  display: none !important;
+  content: none !important;
+}
+
+/* Milestone bubble – simplified to dark circle (no clip-path triangle) */
+.print-export-container .inline-ref-milestone {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: auto !important;
+  min-width: 17px !important;
+  height: 17px !important;
+  background: #000 !important;
+  color: #fff !important;
+  clip-path: none !important;
+  border-radius: 3px !important;
+  padding: 0 3px !important;
+  letter-spacing: normal !important;
+}
+
+/* WP reference badges */
+.print-export-container .wp-reference-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  border-radius: 9999px !important;
+  padding: 0 5px !important;
+  font-family: 'Times New Roman', Times, serif !important;
+  font-size: 11pt !important;
+  font-weight: 700 !important;
+  font-style: normal !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  vertical-align: baseline !important;
+}
+
+/* Participant reference badges */
+.print-export-container .participant-reference-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  border: 1.5px solid #000000 !important;
+  border-radius: 9999px !important;
+  padding: 0 5px !important;
+  font-family: 'Times New Roman', Times, serif !important;
+  font-size: 11pt !important;
+  font-weight: 700 !important;
+  font-style: normal !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  vertical-align: baseline !important;
+}
+
+/* Case reference badges */
+.print-export-container .case-reference-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  border: 1.5px solid #000000 !important;
+  border-radius: 9999px !important;
+  padding: 0 5px !important;
+  font-family: 'Times New Roman', Times, serif !important;
+  font-size: 11pt !important;
+  font-weight: 700 !important;
+  font-style: normal !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  vertical-align: baseline !important;
+}
+
 /* Cross-reference marks in editor content */
 .print-export-container [data-type="wpReferenceMark"],
 .print-export-container [data-type="participantReferenceMark"],
