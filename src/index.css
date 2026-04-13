@@ -1187,8 +1187,7 @@ td.b12-case-cell {
   height: auto !important;
 }
 
-/* Print tables - matching editor HE table styles */
-.print-export-container table,
+/* Print tables - only for manually constructed .print-table elements (participant list etc.) */
 .print-export-container .print-table {
   width: 100% !important;
   border-collapse: collapse !important;
@@ -1197,7 +1196,6 @@ td.b12-case-cell {
   table-layout: auto !important;
 }
 
-.print-export-container th,
 .print-export-container .print-th {
   background: transparent !important;
   color: #000 !important;
@@ -1212,7 +1210,6 @@ td.b12-case-cell {
   line-height: 1 !important;
 }
 
-.print-export-container td,
 .print-export-container .print-td {
   background: #fff !important;
   color: #000 !important;
@@ -1223,6 +1220,23 @@ td.b12-case-cell {
   border-bottom: 0.5px solid #e5e7eb !important;
   vertical-align: middle !important;
   line-height: 1 !important;
+}
+
+/* Editor TipTap tables: preserve their own borders/coloring, just enforce font */
+.print-export-container .ProseMirror table {
+  border-collapse: collapse !important;
+  font-family: 'Times New Roman', Times, serif !important;
+  font-size: 11pt !important;
+  width: 100% !important;
+  table-layout: fixed !important;
+}
+
+.print-export-container .ProseMirror th,
+.print-export-container .ProseMirror td {
+  font-family: 'Times New Roman', Times, serif !important;
+  font-size: 11pt !important;
+  line-height: 1 !important;
+  vertical-align: top !important;
 }
 
 /* Captions */

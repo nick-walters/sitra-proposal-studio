@@ -396,9 +396,7 @@ export async function prepareExportContainer(
     ),
   );
 
-  // Post-process bubbles: resolve CSS variables and remove unsupported
-  // CSS features (clip-path, ::before) so html2canvas can render them
-  postProcessBubbles(container);
+  // Native browser print handles CSS variables and clip-path correctly — no post-processing needed
 
   // Allow a small delay for reflows
   await new Promise(r => setTimeout(r, 500));
