@@ -132,6 +132,8 @@ export function usePdfExport() {
               logging: false,
               scrollX: 0,
               scrollY: 0,
+              windowWidth: CONTAINER_WIDTH_PX,
+              windowHeight: container.scrollHeight || 900,
             },
           });
         });
