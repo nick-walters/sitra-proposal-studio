@@ -388,36 +388,28 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
               event.preventDefault();
               if (dropIndicator) dropIndicator.style.display = 'none';
 
-              const { clientX, clientY } = event;
-              const pos = view.posAtCoords({ left: clientX, top: clientY });
-              if (!pos) { draggedBlockRange = null; return true; }
+              // Use the last valid drop target computed during dragover
+              // Native drop event coordinates are unreliable (especially for large blocks like tables)
+              if (!lastDropTarget) { draggedBlockRange = null; return true; }
 
               try {
                 const { state } = view;
-                const $pos = state.doc.resolve(pos.pos);
-                let targetBlockPos = $pos.depth >= 1 ? $pos.before(1) : $pos.before($pos.depth === 0 ? 1 : $pos.depth);
-                const targetBlock = findBlockRange(state.doc, targetBlockPos);
-                if (!targetBlock || !isReorderableBlock(targetBlock.node)) { draggedBlockRange = null; return true; }
+                const targetStartPos = lastDropTarget.startPos;
+                const targetEndPos = lastDropTarget.endPos;
+                const insertBefore = lastDropTarget.insertBefore;
 
-                const targetBlockId = getBlockIdFromPos(state.doc, targetBlock.startPos);
+                const targetBlockId = getBlockIdFromPos(state.doc, targetStartPos);
                 const lockedBlocks = getLockedBlocks();
                 const userId = getCurrentUserId();
                 const isTargetLocked = lockedBlocks.some(lock => lock.blockId === targetBlockId && lock.userId !== userId);
-                if (isTargetLocked) { draggedBlockRange = null; return true; }
-                if (draggedBlockRange.startPos === targetBlock.startPos) { draggedBlockRange = null; return true; }
-
-                const blockDom = view.nodeDOM(targetBlock.startPos);
-                let insertBefore = true;
-                if (blockDom && blockDom instanceof HTMLElement) {
-                  const rect = blockDom.getBoundingClientRect();
-                  insertBefore = clientY < rect.top + rect.height / 2;
-                }
+                if (isTargetLocked) { draggedBlockRange = null; lastDropTarget = null; return true; }
+                if (draggedBlockRange.startPos === targetStartPos) { draggedBlockRange = null; lastDropTarget = null; return true; }
 
                 const slice = state.doc.slice(draggedBlockRange.startPos, draggedBlockRange.endPos);
                 const sourceStart = draggedBlockRange.startPos;
                 const sourceEnd = draggedBlockRange.endPos;
                 const sourceSize = sourceEnd - sourceStart;
-                let insertPos = insertBefore ? targetBlock.startPos : targetBlock.endPos;
+                let insertPos = insertBefore ? targetStartPos : targetEndPos;
 
                 const tr = state.tr;
                 tr.setMeta('blockReorder', true);
@@ -436,6 +428,7 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
               }
 
               draggedBlockRange = null;
+              lastDropTarget = null;
               document.querySelectorAll('.dragging-block').forEach(el => el.classList.remove('dragging-block'));
               return true;
             },
