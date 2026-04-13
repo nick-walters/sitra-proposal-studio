@@ -136,6 +136,21 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
   });
 
   const saveEffortValue = useCallback(async (participantId: string, wpId: string, personMonths: number) => {
+    // Optimistically update the local cache so the table doesn't refetch & re-render
+    queryClient.setQueryData(
+      ['a3-effort-data', proposalId],
+      (old: { wp_draft_id: string; participant_id: string; person_months: number }[] | undefined) => {
+        if (!old) return old;
+        const idx = old.findIndex(e => e.wp_draft_id === wpId && e.participant_id === participantId);
+        if (idx >= 0) {
+          const updated = [...old];
+          updated[idx] = { ...updated[idx], person_months: personMonths };
+          return updated;
+        }
+        return [...old, { wp_draft_id: wpId, participant_id: participantId, person_months: personMonths }];
+      }
+    );
+
     await supabase
       .from('wp_draft_effort')
       .upsert({
@@ -146,10 +161,8 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
         onConflict: 'wp_draft_id,participant_id',
       });
 
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['a3-effort-data', proposalId] }),
-      queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] }),
-    ]);
+    // Refresh dependent tables (not this one — already updated optimistically)
+    queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
 
     // Notify budget tables that effort data changed
     window.dispatchEvent(new CustomEvent('effort-data-changed', { detail: { proposalId } }));
@@ -295,9 +308,12 @@ interface EffortInputCellProps {
 function EffortInputCell({ value, canEdit, onSave }: EffortInputCellProps) {
   const [localValue, setLocalValue] = useState(() => formatPM(value));
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isFocused = useRef(false);
 
   useEffect(() => {
-    setLocalValue(formatPM(value));
+    if (!isFocused.current) {
+      setLocalValue(formatPM(value));
+    }
   }, [value]);
 
   useEffect(() => {
@@ -345,7 +361,9 @@ function EffortInputCell({ value, canEdit, onSave }: EffortInputCellProps) {
       min="0"
       value={localValue}
       onChange={handleChange}
+      onFocus={() => { isFocused.current = true; }}
       onBlur={() => {
+        isFocused.current = false;
         if (!canEdit) return;
         void commitValue(localValue);
       }}
