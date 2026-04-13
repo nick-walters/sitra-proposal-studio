@@ -332,7 +332,7 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
 
               const { clientX, clientY } = event;
               const pos = view.posAtCoords({ left: clientX, top: clientY });
-              if (!pos) { dropIndicator.style.display = 'none'; return true; }
+              if (!pos) { dropIndicator.style.display = 'none'; lastDropTarget = null; return true; }
 
               try {
                 const $pos = view.state.doc.resolve(pos.pos);
@@ -340,25 +340,36 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
                 const targetBlock = findBlockRange(view.state.doc, blockPos);
                 if (!targetBlock || !isReorderableBlock(targetBlock.node)) {
                   dropIndicator.style.display = 'none';
+                  lastDropTarget = null;
                   return true;
                 }
 
                 const blockDom = view.nodeDOM(targetBlock.startPos);
+                let insertBefore = true;
                 if (blockDom && blockDom instanceof HTMLElement) {
                   const rect = blockDom.getBoundingClientRect();
                   const editorRect = view.dom.parentElement?.getBoundingClientRect();
                   const midY = rect.top + rect.height / 2;
+                  insertBefore = clientY < midY;
                   if (editorRect) {
                     dropIndicator.style.display = 'block';
-                    dropIndicator.style.top = clientY < midY
+                    dropIndicator.style.top = insertBefore
                       ? `${rect.top - editorRect.top - 1}px`
                       : `${rect.bottom - editorRect.top - 1}px`;
                     dropIndicator.style.left = '0';
                     dropIndicator.style.right = '0';
                   }
                 }
+
+                // Store last valid drop target for use in drop handler
+                lastDropTarget = {
+                  startPos: targetBlock.startPos,
+                  endPos: targetBlock.endPos,
+                  insertBefore,
+                };
               } catch {
                 dropIndicator.style.display = 'none';
+                lastDropTarget = null;
               }
 
               return true;
