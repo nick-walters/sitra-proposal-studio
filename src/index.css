@@ -803,7 +803,7 @@ td.b12-case-cell {
 .ProseMirror ul,
 .ProseMirror ol {
   margin-left: 0 !important;
-  padding-left: 1.5em !important; /* Standard list indent from text edge */
+  padding-left: 2px !important;
 }
 
 .ProseMirror ul {
