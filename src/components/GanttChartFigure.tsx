@@ -139,11 +139,73 @@ export function GanttChartFigure({
     const workPackages: WorkPackage[] = wps.map((wp) => {
       const wpTasks = tasks.filter(t => t.wp_draft_id === wp.id);
       const wpDeliverables = deliverables.filter(d => d.wp_number === wp.number);
+      const wpMilestones = msRows.filter(m => {
+        // Milestones linked to tasks in this WP
+        if (m.task_id && wpTasks.some(t => t.id === m.task_id)) return true;
+        // Milestones with WPs field containing this WP number
+        if (!m.task_id && m.wps) {
+          const wpNums = String(m.wps).split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
+          return wpNums.includes(wp.number);
+        }
+        return false;
+      });
 
       const taskStartMonths = wpTasks.filter(t => t.start_month != null).map(t => t.start_month!);
       const taskEndMonths = wpTasks.filter(t => t.end_month != null).map(t => t.end_month!);
       const startMonth = taskStartMonths.length > 0 ? Math.min(...taskStartMonths) : null;
       const endMonth = taskEndMonths.length > 0 ? Math.max(...taskEndMonths) : null;
+
+      const mappedTasks = wpTasks
+        .filter(t => t.start_month != null && t.end_month != null)
+        .map(t => ({
+          id: t.id,
+          wpNumber: wp.number,
+          taskNumber: t.number,
+          name: t.title || '',
+          startMonth: t.start_month!,
+          endMonth: t.end_month!,
+          deliverables: wpDeliverables
+            .filter(d => d.task_id === t.id && d.due_month != null)
+            .map(d => ({ number: d.number, name: d.name, month: d.due_month!, type: d.type || undefined, disseminationLevel: d.dissemination_level || undefined, leadShortName: d.lead_participant_id ? partMap.get(d.lead_participant_id) : undefined })),
+          milestones: wpMilestones
+            .filter(m => m.task_id === t.id && m.due_month != null)
+            .map(m => {
+              const taskDel = wpDeliverables.find(d => d.task_id === t.id && d.lead_participant_id);
+              const leadName = taskDel?.lead_participant_id ? partMap.get(taskDel.lead_participant_id) : undefined;
+              return { number: m.number, name: m.name, month: m.due_month!, leadShortName: leadName };
+            }),
+        }));
+
+      // Attach unassigned deliverables/milestones (no task_id) to the last task, or create a virtual task
+      const unassignedDels = wpDeliverables
+        .filter(d => !d.task_id && d.due_month != null)
+        .map(d => ({ number: d.number, name: d.name, month: d.due_month!, type: d.type || undefined, disseminationLevel: d.dissemination_level || undefined, leadShortName: d.lead_participant_id ? partMap.get(d.lead_participant_id) : undefined }));
+      const unassignedMs = wpMilestones
+        .filter(m => !m.task_id && m.due_month != null)
+        .map(m => ({ number: m.number, name: m.name, month: m.due_month!, leadShortName: undefined as string | undefined }));
+
+      if (unassignedDels.length > 0 || unassignedMs.length > 0) {
+        if (mappedTasks.length > 0) {
+          // Attach to last task
+          const lastTask = mappedTasks[mappedTasks.length - 1];
+          lastTask.deliverables = [...(lastTask.deliverables || []), ...unassignedDels];
+          lastTask.milestones = [...(lastTask.milestones || []), ...unassignedMs];
+        } else {
+          // Create a virtual task spanning the WP to hold the bubbles
+          const wpStart = startMonth ?? 1;
+          const wpEnd = endMonth ?? (startMonth ?? 1);
+          mappedTasks.push({
+            id: `virtual-${wp.id}`,
+            wpNumber: wp.number,
+            taskNumber: 0,
+            name: '',
+            startMonth: wpStart,
+            endMonth: wpEnd,
+            deliverables: unassignedDels,
+            milestones: unassignedMs,
+          });
+        }
+      }
 
       return {
         number: wp.number,
@@ -152,27 +214,7 @@ export function GanttChartFigure({
         startMonth: startMonth ?? 1,
         endMonth: endMonth ?? 1,
         color: wp.color,
-        tasks: wpTasks
-          .filter(t => t.start_month != null && t.end_month != null)
-          .map(t => ({
-            id: t.id,
-            wpNumber: wp.number,
-            taskNumber: t.number,
-            name: t.title || '',
-            startMonth: t.start_month!,
-            endMonth: t.end_month!,
-            deliverables: wpDeliverables
-              .filter(d => d.task_id === t.id && d.due_month != null)
-              .map(d => ({ number: d.number, name: d.name, month: d.due_month!, type: d.type || undefined, disseminationLevel: d.dissemination_level || undefined, leadShortName: d.lead_participant_id ? partMap.get(d.lead_participant_id) : undefined })),
-            milestones: msRows
-              .filter(m => m.task_id === t.id && m.due_month != null)
-              .map(m => {
-                // For MS, find the lead from a deliverable on the same task
-                const taskDel = wpDeliverables.find(d => d.task_id === t.id && d.lead_participant_id);
-                const leadName = taskDel?.lead_participant_id ? partMap.get(taskDel.lead_participant_id) : undefined;
-                return { number: m.number, name: m.name, month: m.due_month!, leadShortName: leadName };
-              }),
-          })),
+        tasks: mappedTasks,
       };
     });
 
