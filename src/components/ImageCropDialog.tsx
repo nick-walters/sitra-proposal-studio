@@ -180,6 +180,7 @@ export function ImageCropDialog({ isOpen, onClose, imageSrc, onCrop }: ImageCrop
             ref={imageRef}
             src={imageSrc}
             alt="Crop preview"
+            crossOrigin="anonymous"
             className="max-w-full max-h-[400px]"
             style={{ 
               width: imageDimensions.width * displayScale || 'auto',
