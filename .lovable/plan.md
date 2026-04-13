@@ -1,58 +1,71 @@
 
 
-# Plan: Rewrite PDF Export Using jsPDF.html() + Add HTML-to-DOCX Export
+# Plan: Clean Up Redundant Export Code
 
-## Phase 1: PDF Export Rewrite (Priority — 48h deadline)
+## Findings
 
-### Approach
-Replace the 2,645-line manual rendering engine in `src/hooks/usePdfExport.ts` with a browser-based pipeline:
+After analyzing the export-related code across `usePdfExport.ts`, `useDocxExport.ts`, and `printRenderer.tsx`, here are the redundancies and dead code:
 
-1. **Create a hidden print container** — a `<div>` styled at 180mm content width (A4 minus 2×15mm margins), with the same CSS as the editor (11pt Times New Roman, all editor classes loaded)
-2. **Inject each section's HTML** into the container, including B3.1 tables, participant lists, figures, and charts rendered as actual React components
-3. **Call `jsPDF.html()`** which uses the browser's native layout engine to render vector text onto paginated A4 pages
-4. **Overlay headers, footers, and watermark** using existing jsPDF drawing code (this part already works)
+### 1. Duplicate `SectionContent` interface (3 copies)
+The same interface is defined identically in:
+- `src/hooks/usePdfExport.ts` (lines 7-11)
+- `src/hooks/useDocxExport.ts` (lines 7-11)
+- `src/lib/printRenderer.tsx` (lines 15-19)
 
-### What changes
-- **`src/hooks/usePdfExport.ts`** — complete rewrite (~400-500 lines replacing ~2,645)
-- **`src/index.css`** — add a `@media print` / `.print-container` style block that mirrors editor styling but hides interactive elements (toolbars, drag handles, buttons)
-- **New helper: `src/lib/printRenderer.tsx`** — a React component that renders B3.1 tables, participant lists, PERT/Gantt charts into the hidden container using the same components as the editor
+**Fix**: Export it from `printRenderer.tsx`, import in both hooks.
 
-### What stays the same
-- Export dialog UI (`ExportDialog.tsx`)
-- Section ordering and data fetching logic
-- Header/footer/watermark overlay code
+### 2. Duplicate `ExportData` interface (2 copies)
+Nearly identical in both hooks. The DOCX version has an extra unused `trackedChanges` field.
 
-### What gets deleted
-- All manual text rendering functions (renderRichTextJustified, drawJustifiedLine, etc.)
-- All manual table rendering (addTable, addB31TableAdvanced, etc.)
-- All manual bubble drawing (drawBubble, drawWPBubble, etc.)
-- All HTML parsing (parseHtmlContent, extractSegments, etc.)
+**Fix**: Define a shared `ExportData` in `printRenderer.tsx`, export it.
 
-### Why this fixes everything
-Every issue stems from the same root cause: a second rendering engine that differs from the browser. By using `jsPDF.html()`, the PDF output IS the browser's rendering — kerning, table widths, bubble styles, figure aspect ratios, vertical alignment, and borders all match automatically because the same CSS rules apply.
+### 3. Dead `TrackedChange` interface in DOCX hook
+Defined at lines 13-18 of `useDocxExport.ts` but never used — the `trackedChanges` field on `ExportData` is optional and never passed by the caller in `ProposalEditor.tsx`.
 
----
+**Fix**: Remove both `TrackedChange` and the `trackedChanges` field.
 
-## Phase 2: DOCX Export via HTML-to-DOCX (after PDF is stable)
+### 4. Legacy `exportToPdf` function (dead code)
+Lines 218-269 of `usePdfExport.ts` define a "legacy simple export" that manually draws text. It's destructured in `ProposalEditor.tsx` but never actually called — only `exportProposalToPdf` is used in `handleExport`.
 
-### Approach
-Use `html-docx-js` (or the similar `html-to-docx` package) to convert the same print container HTML into a `.docx` file.
+**Fix**: Delete the legacy function and remove it from the return value and the destructuring in `ProposalEditor.tsx`.
 
-- Bubbles render as colored rectangles (no border-radius in Word) — acceptable
-- Tables, text formatting, figures, and layout carry over via HTML/CSS
-- Same hidden container approach as PDF, so visual consistency is maintained
+### 5. Duplicate container-mounting boilerplate
+Both `usePdfExport.ts` (lines 123-150) and `useDocxExport.ts` (lines 206-232) have identical code for:
+- Setting container styles (position, zIndex, pointerEvents, etc.)
+- Appending to `document.body`
+- Waiting for images to load
+- Calling `mountB31Components`
+- 500ms delay
 
-### Tradeoffs
-- Bubble pills become rectangles — visually close but not identical
-- Complex CSS (flexbox, grid) may degrade — mitigated by using simple table-based layout in the print container
-- Can be enhanced later with native `docx-js` bubble rendering if needed
+**Fix**: Extract into a shared `prepareExportContainer()` function in `printRenderer.tsx` that handles DOM attachment, B3.1 mounting, image loading, and cleanup.
+
+### 6. Duplicate Word CSS vs index.css print styles
+The `wrapInWordHtml()` function in `useDocxExport.ts` contains ~120 lines of CSS that largely duplicates what's in `index.css` under `.print-export-container`. The Word CSS is necessary for the standalone `.doc` file, so this isn't removable — but a comment should clarify this intentional duplication.
 
 ---
 
-## Implementation order
-1. Rewrite `usePdfExport.ts` with jsPDF.html() approach
-2. Create `printRenderer.tsx` helper for rendering sections
-3. Add print-specific CSS
-4. Test with ADDGenAI proposal
-5. (Phase 2) Add HTML-to-DOCX export option
+## Implementation
+
+### File: `src/lib/printRenderer.tsx`
+- Export `SectionContent` and a new shared `ExportData` interface
+- Add `prepareExportContainer(options): Promise<{ container, cleanup }>` that handles DOM attachment, B3.1 mounting, image waiting, and returns a cleanup function
+
+### File: `src/hooks/usePdfExport.ts`
+- Remove local `SectionContent` and `ExportData` — import from `printRenderer`
+- Delete `exportToPdf` legacy function (lines 218-269)
+- Replace container-mounting boilerplate with `prepareExportContainer()`
+- Return only `{ exportProposalToPdf }`
+
+### File: `src/hooks/useDocxExport.ts`
+- Remove local `SectionContent`, `ExportData`, `TrackedChange`
+- Import shared types from `printRenderer`
+- Replace container-mounting boilerplate with `prepareExportContainer()`
+
+### File: `src/pages/ProposalEditor.tsx`
+- Change `const { exportToPdf, exportProposalToPdf } = usePdfExport()` to `const { exportProposalToPdf } = usePdfExport()`
+
+### Net effect
+- ~120 lines of dead/duplicate code removed
+- Single source of truth for types and container preparation
+- No behavioral changes
 
