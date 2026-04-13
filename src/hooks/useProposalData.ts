@@ -3,16 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 import type { Participant, ParticipantMember, BudgetType } from '@/types/proposal';
-
-// Helper to convert camelCase to snake_case
-function camelToSnake(str: string): string {
-  return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
-}
-
-// Helper to convert snake_case to camelCase
-function snakeToCamel(str: string): string {
-  return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
-}
+import { camelToSnake, snakeToCamel, proposalFromDb, proposalToDb } from '@/lib/proposalMapper';
+import { logError } from '@/lib/logger';
 
 // Dynamic ethics assessment interface - supports all fields from EthicsForm
 interface EthicsAssessment {
