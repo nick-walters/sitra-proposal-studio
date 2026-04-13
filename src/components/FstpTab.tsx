@@ -470,25 +470,109 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, f
   }, [extractSegments]);
 
   const handleExportPdf = useCallback(async () => {
+    if (!editor) return;
     setExporting(true);
     try {
       const doc = new jsPDF({ unit: 'mm', format: 'a4' });
       const margin = 15;
-      const pageWidth = 210 - 2 * margin;
-      const lineHeight = 11 * 0.3528 * 1.0; // 11pt × mm/pt × 1.0 line spacing ≈ 3.88mm
-      const paraSpacingBefore = 6 * 0.3528; // 6pt before
-      const paraSpacingAfter = 6 * 0.3528;  // 6pt after
+      const contentWidth = 210 - 2 * margin;
+      const lineHeight = 11 * 0.3528 * 1.0;
+      const paraSpacingBefore = 3 * 0.3528;
+      const paraSpacingAfter = 3 * 0.3528;
       let y = margin;
+      let isTopOfPage = true;
 
-      doc.setFont('Times', 'Roman');
+      const checkPage = (needed = lineHeight) => {
+        if (y + needed > 297 - margin) {
+          doc.addPage();
+          y = margin;
+          isTopOfPage = true;
+        }
+      };
 
-      // Title — 14pt bold, 12pt after
+      const setFont = (bold: boolean, italic: boolean) => {
+        if (bold && italic) doc.setFont('Times', 'BoldItalic');
+        else if (bold) doc.setFont('Times', 'Bold');
+        else if (italic) doc.setFont('Times', 'Italic');
+        else doc.setFont('Times', 'Roman');
+      };
+
+      const renderSegments = (segments: TextSegment[], x: number, maxWidth: number, justified = false) => {
+        type FWord = { word: string; bold: boolean; italic: boolean; underline: boolean; superscript: boolean };
+        const words: FWord[] = [];
+        for (const seg of segments) {
+          const ws = seg.text.split(/\s+/).filter(w => w.length > 0);
+          for (const w of ws) words.push({ word: w, bold: seg.bold, italic: seg.italic, underline: seg.underline, superscript: seg.superscript });
+        }
+        if (words.length === 0) return;
+
+        doc.setFontSize(11);
+        setFont(false, false);
+        const spaceWidth = doc.getTextWidth(' ');
+        const lines: FWord[][] = [];
+        let currentLine: FWord[] = [];
+        let lineWidth = 0;
+
+        for (const fw of words) {
+          setFont(fw.bold, fw.italic);
+          doc.setFontSize(fw.superscript ? 8 : 11);
+          const ww = doc.getTextWidth(fw.word);
+          const gap = currentLine.length > 0 ? spaceWidth : 0;
+          if (currentLine.length > 0 && lineWidth + gap + ww > maxWidth) {
+            lines.push(currentLine);
+            currentLine = [fw];
+            lineWidth = ww;
+          } else {
+            lineWidth += gap + ww;
+            currentLine.push(fw);
+          }
+        }
+        if (currentLine.length > 0) lines.push(currentLine);
+
+        for (let li = 0; li < lines.length; li++) {
+          checkPage();
+          const line = lines[li];
+          const isLastLine = li === lines.length - 1;
+
+          let totalWordWidth = 0;
+          for (const fw of line) {
+            setFont(fw.bold, fw.italic);
+            doc.setFontSize(fw.superscript ? 8 : 11);
+            totalWordWidth += doc.getTextWidth(fw.word);
+          }
+
+          const naturalGap = spaceWidth;
+          const justifiedGap = line.length > 1 ? (maxWidth - totalWordWidth) / (line.length - 1) : naturalGap;
+          const useJustified = justified && !isLastLine && line.length > 1 && justifiedGap <= naturalGap * 2.5;
+          const gap = useJustified ? justifiedGap : naturalGap;
+
+          let cx = x;
+          for (let wi = 0; wi < line.length; wi++) {
+            const fw = line[wi];
+            setFont(fw.bold, fw.italic);
+            doc.setFontSize(fw.superscript ? 8 : 11);
+            const yOff = fw.superscript ? -1.2 : 0;
+            doc.text(fw.word, cx, y + yOff);
+            if (fw.underline) {
+              const ww = doc.getTextWidth(fw.word);
+              doc.setDrawColor(0);
+              doc.setLineWidth(0.15);
+              doc.line(cx, y + 0.5, cx + ww, y + 0.5);
+            }
+            cx += doc.getTextWidth(fw.word) + gap;
+          }
+          y += lineHeight;
+        }
+      };
+
+      // Title
       doc.setFontSize(14);
       doc.setFont('Times', 'Bold');
       doc.text('Information on financial support to third parties', margin, y);
-      y += 14 * 0.3528 + 12 * 0.3528; // line + 12pt spacing
+      y += 14 * 0.3528 + 12 * 0.3528;
+      isTopOfPage = false;
 
-      // Subheading — 11pt bold, 6pt after
+      // Subheading
       doc.setFontSize(11);
       doc.setFont('Times', 'Bold');
       const subheading = fstpType === 'prize'
@@ -497,24 +581,80 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, f
       doc.text(subheading, margin, y);
       y += lineHeight + paraSpacingAfter;
 
-      // Response content — 11pt Roman, 6pt before/after paragraphs
-      doc.setFont('Times', 'Roman');
-      doc.setFontSize(11);
-      const responseText = getPlainText();
-      const respParas = responseText.split('\n');
-      for (const para of respParas) {
-        if (!para.trim()) {
+      // Parse and render content blocks
+      const blocks = parseHtmlToBlocks(editor.getHTML());
+
+      for (const block of blocks) {
+        if (block.type === 'heading') {
+          if (!isTopOfPage) y += 6 * 0.3528;
+          checkPage();
+          doc.setFontSize(block.level === 1 ? 13 : block.level === 2 ? 12 : 11);
+          doc.setFont('Times', 'Bold');
+          const headingLines = doc.splitTextToSize(block.text, contentWidth);
+          for (const hl of headingLines) {
+            checkPage();
+            doc.text(hl, margin, y);
+            y += lineHeight;
+          }
+          if (block.level === 3) {
+            const hw = Math.min(doc.getTextWidth(block.text), contentWidth);
+            doc.setDrawColor(0);
+            doc.setLineWidth(0.15);
+            doc.line(margin, y - lineHeight + 0.5, margin + hw, y - lineHeight + 0.5);
+          }
           y += paraSpacingAfter;
-          continue;
+          isTopOfPage = false;
+        } else if (block.type === 'paragraph') {
+          if (block.segments.every(s => !s.text.trim())) {
+            y += paraSpacingAfter;
+            continue;
+          }
+          if (!isTopOfPage) y += paraSpacingBefore;
+          checkPage();
+          const isJustified = block.align === 'justify' || !block.align;
+          renderSegments(block.segments, margin, contentWidth, isJustified);
+          y += paraSpacingAfter;
+          isTopOfPage = false;
+        } else if (block.type === 'list') {
+          const listIndent = 5;
+          const bulletWidth = block.ordered ? 6 : 3;
+          for (let i = 0; i < block.items.length; i++) {
+            if (!isTopOfPage) y += paraSpacingBefore;
+            checkPage();
+            const bullet = block.ordered ? `${i + 1}. ` : '• ';
+            doc.setFontSize(11);
+            setFont(false, false);
+            doc.text(bullet, margin + listIndent, y);
+            renderSegments(block.items[i].segments, margin + listIndent + bulletWidth, contentWidth - listIndent - bulletWidth, false);
+            y += paraSpacingAfter;
+            isTopOfPage = false;
+          }
+        } else if (block.type === 'table') {
+          const colCount = Math.max(...block.rows.map(r => r.cells.length));
+          const colWidth = contentWidth / colCount;
+          for (let ri = 0; ri < block.rows.length; ri++) {
+            if (!isTopOfPage) y += 0.5;
+            checkPage(lineHeight + 2);
+            const row = block.rows[ri];
+            const isHeader = ri === 0 && block.hasHeader;
+            for (let ci = 0; ci < row.cells.length; ci++) {
+              const cx = margin + ci * colWidth;
+              const cellText = row.cells[ci].map(s => s.text).join('');
+              doc.setFontSize(11);
+              setFont(isHeader, false);
+              const cellLines = doc.splitTextToSize(cellText, colWidth - 2);
+              for (let cli = 0; cli < cellLines.length; cli++) {
+                doc.text(cellLines[cli], cx + 1, y + cli * lineHeight);
+              }
+            }
+            doc.setDrawColor(isHeader ? 0 : 200);
+            doc.setLineWidth(isHeader ? 0.5 : 0.15);
+            doc.line(margin, y + lineHeight + 0.5, margin + contentWidth, y + lineHeight + 0.5);
+            y += lineHeight + 1;
+            isTopOfPage = false;
+          }
+          y += paraSpacingAfter;
         }
-        y += paraSpacingBefore;
-        const lines = doc.splitTextToSize(para, pageWidth);
-        for (const line of lines) {
-          if (y > 297 - margin) { doc.addPage(); y = margin; }
-          doc.text(line, margin, y);
-          y += lineHeight;
-        }
-        y += paraSpacingAfter;
       }
 
       doc.save(`${proposalAcronym} FSTP Annex.pdf`);
@@ -524,43 +664,95 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, f
       toast.error('Failed to export PDF');
     }
     setExporting(false);
-  }, [data, getPlainText, proposalAcronym]);
+  }, [editor, proposalAcronym, fstpType, parseHtmlToBlocks]);
 
   const handleExportDocx = useCallback(async () => {
+    if (!editor) return;
     setExporting(true);
     try {
-      const responseText = getPlainText();
-      const children: Paragraph[] = [];
+      const FONT = 'Times New Roman';
+      const SZ = 22;
+      const LINE = 240;
+      const SP_BEFORE = 60;
+      const SP_AFTER = 60;
 
-      // Title — 14pt bold, 12pt (240 twips) after
+      const segsToRuns = (segs: TextSegment[]): TextRun[] =>
+        segs.map(s => new TextRun({
+          text: s.text,
+          font: FONT,
+          size: s.superscript ? 16 : SZ,
+          bold: s.bold,
+          italics: s.italic,
+          underline: s.underline ? {} : undefined,
+          superScript: s.superscript,
+        }));
+
+      const alignMap: Record<string, typeof AlignmentType[keyof typeof AlignmentType]> = {
+        left: AlignmentType.LEFT,
+        center: AlignmentType.CENTER,
+        right: AlignmentType.RIGHT,
+        justify: AlignmentType.JUSTIFIED,
+      };
+
+      const children: (Paragraph | any)[] = [];
+
+      // Title
       children.push(new Paragraph({
-        children: [new TextRun({ text: 'Information on financial support to third parties', bold: true, font: 'Times New Roman', size: 28 })],
+        children: [new TextRun({ text: 'Information on financial support to third parties', bold: true, font: FONT, size: 28 })],
         spacing: { after: 240 },
       }));
 
-      // Subheading — 11pt bold, 6pt (120 twips) after
+      // Subheading
       children.push(new Paragraph({
         children: [new TextRun({
           text: fstpType === 'prize'
             ? 'Financial support in the form of a prize'
             : 'Financial support in the form of a grant awarded after a call for proposals',
-          bold: true,
-          font: 'Times New Roman',
-          size: 22,
+          bold: true, font: FONT, size: SZ,
         })],
-        spacing: { after: 120 },
+        spacing: { after: 120, line: LINE },
       }));
 
-      // Response — 11pt Roman, 6pt before/after (120 twips), 1.0 line spacing (240 twips)
-      const respParas = responseText.split('\n');
-      for (const para of respParas) {
-        children.push(new Paragraph({
-          children: para.trim() ? [new TextRun({ text: para, font: 'Times New Roman', size: 22 })] : [],
-          spacing: { before: 120, after: 120, line: 240 },
-        }));
+      // Parse and render blocks
+      const blocks = parseHtmlToBlocks(editor.getHTML());
+
+      for (const block of blocks) {
+        if (block.type === 'heading') {
+          children.push(new Paragraph({
+            children: [new TextRun({
+              text: block.text,
+              bold: true,
+              underline: block.level === 3 ? {} : undefined,
+              font: FONT,
+              size: block.level === 1 ? 26 : block.level === 2 ? 24 : SZ,
+            })],
+            spacing: {
+              before: block.level <= 2 ? 180 : SP_BEFORE,
+              after: block.level <= 2 ? 120 : SP_AFTER,
+              line: LINE,
+            },
+          }));
+        } else if (block.type === 'paragraph') {
+          const runs = segsToRuns(block.segments);
+          children.push(new Paragraph({
+            children: runs,
+            spacing: { before: SP_BEFORE, after: SP_AFTER, line: LINE },
+            alignment: block.align ? alignMap[block.align] || AlignmentType.JUSTIFIED : AlignmentType.JUSTIFIED,
+          }));
+        } else if (block.type === 'list') {
+          for (let i = 0; i < block.items.length; i++) {
+            const bullet = block.ordered ? `${i + 1}. ` : '• ';
+            const runs = segsToRuns(block.items[i].segments);
+            children.push(new Paragraph({
+              children: [new TextRun({ text: bullet, font: FONT, size: SZ }), ...runs],
+              spacing: { before: 40, after: 40, line: LINE },
+              indent: { left: convertMillimetersToTwip(10) },
+            }));
+          }
+        }
       }
 
-      const doc = new Document({
+      const docxDoc = new Document({
         sections: [{
           properties: {
             page: {
@@ -575,8 +767,19 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, f
           headers: {
             default: new Header({
               children: [new Paragraph({
-                children: [new TextRun({ text: `${proposalAcronym} — FSTP Annex`, font: 'Times New Roman', size: 16, color: '888888' })],
+                children: [new TextRun({ text: `${proposalAcronym} — FSTP Annex`, font: FONT, size: 16, color: '888888' })],
                 alignment: AlignmentType.RIGHT,
+              })],
+            }),
+          },
+          footers: {
+            default: new Footer({
+              children: [new Paragraph({
+                children: [
+                  new TextRun({ text: 'Page ', font: FONT, size: 16, color: '888888' }),
+                  new TextRun({ children: [PageNumber.CURRENT], font: FONT, size: 16, color: '888888' }),
+                ],
+                alignment: AlignmentType.CENTER,
               })],
             }),
           },
@@ -584,7 +787,7 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, f
         }],
       });
 
-      const blob = await Packer.toBlob(doc);
+      const blob = await Packer.toBlob(docxDoc);
       saveAs(blob, `${proposalAcronym} FSTP Annex.docx`);
       toast.success('FSTP annex exported to Word');
     } catch (err) {
@@ -592,7 +795,7 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, f
       toast.error('Failed to export DOCX');
     }
     setExporting(false);
-  }, [data, getPlainText, proposalAcronym]);
+  }, [editor, proposalAcronym, fstpType, parseHtmlToBlocks]);
 
   if (loading) {
     return (
