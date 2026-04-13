@@ -859,7 +859,7 @@ export function usePdfExport() {
         // Process nodes recursively
         const processNode = (node: Node) => {
           if (node.nodeType === Node.TEXT_NODE) {
-            const text = node.textContent?.trim();
+            const text = (node.textContent || '').replace(/\u00a0/g, ' ').trim();
             if (text) {
               result.push({ type: 'paragraph', text, segments: [{ text, bold: false, italic: false, underline: false, superscript: false }] });
             }
