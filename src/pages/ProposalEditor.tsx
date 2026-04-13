@@ -400,7 +400,7 @@ export function ProposalEditor() {
     }
   };
 
-  const handleExport = async (format: ExportFormat, includeWatermark: boolean) => {
+  const handleExport = async (format: ExportFormat) => {
     if (!proposal) return;
     
     // Fetch section contents
@@ -422,9 +422,9 @@ export function ProposalEditor() {
     };
 
     if (format === 'docx') {
-      exportProposalToDocx(exportData, { includeWatermark });
+      exportProposalToDocx(exportData);
     } else {
-      exportProposalToPdf(exportData, { includeWatermark });
+      exportProposalToPdf(exportData);
     }
   };
 
@@ -541,7 +541,7 @@ export function ProposalEditor() {
                   if (isCoordinator) {
                     setIsExportOpen(true);
                   } else {
-                    handleExport('pdf', true);
+                    handleExport('pdf');
                   }
                 }}
               >

@@ -10,7 +10,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Download, FileText, FileType } from 'lucide-react';
 import { usePageEstimate } from '@/hooks/usePageEstimate';
@@ -20,17 +19,16 @@ export type ExportFormat = 'pdf' | 'docx';
 interface ExportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onExport: (format: ExportFormat, includeWatermark: boolean) => void;
+  onExport: (format: ExportFormat) => void;
   proposalId?: string;
 }
 
 export function ExportDialog({ open, onOpenChange, onExport, proposalId }: ExportDialogProps) {
   const [format, setFormat] = useState<ExportFormat>('pdf');
-  const [includeWatermark, setIncludeWatermark] = useState(true);
   const { estimatedPages, totalWords } = usePageEstimate(proposalId || '');
 
   const handleExport = () => {
-    onExport(format, includeWatermark);
+    onExport(format);
     onOpenChange(false);
   };
 
@@ -40,7 +38,7 @@ export function ExportDialog({ open, onOpenChange, onExport, proposalId }: Expor
         <DialogHeader>
           <DialogTitle>Export part B</DialogTitle>
           <DialogDescription>
-            Choose the format and watermark preference for your export.
+            Choose the export format for your proposal.
           </DialogDescription>
         </DialogHeader>
 
@@ -98,22 +96,11 @@ export function ExportDialog({ open, onOpenChange, onExport, proposalId }: Expor
             </RadioGroup>
           </div>
 
-          {/* Watermark toggle */}
-          <div className="flex items-center justify-between rounded-lg border p-4">
-            <div className="space-y-0.5">
-              <Label htmlFor="watermark-toggle" className="text-sm font-medium">
-                Confidential draft watermark
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                Adds a diagonal "Confidential draft" overlay
-              </p>
-            </div>
-            <Switch
-              id="watermark-toggle"
-              checked={includeWatermark}
-              onCheckedChange={setIncludeWatermark}
-            />
-          </div>
+          {format === 'pdf' && (
+            <p className="text-xs text-muted-foreground">
+              PDF export opens the browser print dialog. Select "Save as PDF" as the destination.
+            </p>
+          )}
         </div>
 
         <DialogFooter>

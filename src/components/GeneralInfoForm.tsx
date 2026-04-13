@@ -40,7 +40,7 @@ interface GeneralInfoFormProps {
   // Additional props for overview content
   participants?: Participant[];
   budgetItems?: { amount: number; participantId: string }[];
-  onExport?: (format: ExportFormat, includeWatermark: boolean) => void;
+  onExport?: (format: ExportFormat) => void;
   // Status change props
   onStatusChange?: (status: ProposalStatus) => void;
   updatingStatus?: boolean;

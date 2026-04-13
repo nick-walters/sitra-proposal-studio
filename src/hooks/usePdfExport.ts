@@ -1,94 +1,159 @@
 import { useCallback } from 'react';
-import jsPDF from 'jspdf';
 import { toast } from 'sonner';
 import { Proposal, Section, Participant } from '@/types/proposal';
 import { prepareExportContainer, ExportData } from '@/lib/printRenderer';
 
 /**
- * Add "Confidential draft" watermark to all pages of a jsPDF document.
+ * Build a self-contained HTML document string for printing via an iframe.
+ * Copies all stylesheets from the host page so the print container
+ * renders identically to the editor.
  */
-function addWatermarkToAllPages(pdf: jsPDF) {
-  const totalPages = pdf.internal.pages.length - 1;
-  const pageWidth = pdf.internal.pageSize.getWidth();
-  const pageHeight = pdf.internal.pageSize.getHeight();
-
-  for (let i = 1; i <= totalPages; i++) {
-    pdf.setPage(i);
-    pdf.saveGraphicsState();
-    pdf.setTextColor(220, 38, 38);
-    pdf.setFontSize(60);
-    pdf.setFont('times', 'bold');
-    const gState = pdf.GState({ opacity: 0.15 });
-    pdf.setGState(gState);
-    pdf.text('Confidential draft', pageWidth / 2, pageHeight / 2, {
-      align: 'center',
-      angle: 45,
-    });
-    pdf.restoreGraphicsState();
+function buildPrintDocument(
+  container: HTMLDivElement,
+  proposal: {
+    acronym: string;
+    title: string;
+    topicId?: string | null;
+    topicTitle?: string | null;
+    type?: string | null;
+    submissionStage?: string | null;
+  },
+): string {
+  // Collect all stylesheets from the host page
+  const styleSheets: string[] = [];
+  for (const sheet of Array.from(document.styleSheets)) {
+    try {
+      if (sheet.href) {
+        styleSheets.push(`<link rel="stylesheet" href="${sheet.href}" />`);
+      } else if (sheet.ownerNode && sheet.ownerNode instanceof HTMLStyleElement) {
+        styleSheets.push(`<style>${sheet.ownerNode.innerHTML}</style>`);
+      }
+    } catch {
+      // Skip cross-origin sheets
+    }
   }
+
+  // Header text
+  const topicId = proposal.topicId || '';
+  const topicTitle = proposal.topicTitle || proposal.title || '';
+  const topicType = proposal.type || '';
+  let headerText = `${topicId}${topicId && topicTitle ? ': ' : ''}${topicTitle}${topicType ? ` (${topicType})` : ''}`;
+  if (headerText.length > 120) headerText = headerText.substring(0, 117) + '...';
+
+  // Footer text
+  const acronym = proposal.acronym;
+  const stageText = proposal.submissionStage === 'stage_1' ? ' (Stage 1 of 2) | ' : ' | ';
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>${proposal.acronym} – Part B</title>
+  ${styleSheets.join('\n  ')}
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 15mm;
+    }
+
+    /* Running header and footer via fixed-position elements */
+    .print-header, .print-footer {
+      position: fixed;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-family: 'Times New Roman', Times, serif;
+      font-size: 8pt;
+      color: #808080;
+      z-index: 10000;
+    }
+    .print-header {
+      top: 0;
+      padding-top: 2mm;
+    }
+    .print-footer {
+      bottom: 0;
+      padding-bottom: 2mm;
+    }
+    .print-footer .acronym-bold {
+      font-weight: bold;
+    }
+
+    /* Reserve space for header and footer so content doesn't overlap */
+    body {
+      margin: 0;
+      padding: 0;
+      background: #fff;
+    }
+
+    .print-body-content {
+      /* No extra padding needed — @page margin handles it.
+         The fixed header/footer sit in the margin area. */
+    }
+
+    /* Page break helpers */
+    .print-export-container h1.print-h1 {
+      page-break-before: auto;
+      page-break-after: avoid;
+    }
+    .print-export-container h2.print-h2 {
+      page-break-after: avoid;
+    }
+    .print-export-container table {
+      page-break-inside: avoid;
+    }
+    .print-export-container tr {
+      page-break-inside: avoid;
+    }
+    .print-export-container img {
+      page-break-inside: avoid;
+    }
+
+    /* Ensure the container fills available width */
+    .print-export-container {
+      width: 100% !important;
+      max-width: 100% !important;
+      position: relative !important;
+      left: auto !important;
+      top: auto !important;
+      z-index: auto !important;
+      pointer-events: auto !important;
+    }
+
+    /* Counter for page numbers — CSS counters for running footer */
+    @media print {
+      /* Hide anything not meant for print */
+      body > *:not(.print-body-content):not(.print-header):not(.print-footer) {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="print-header">${escapeHtml(headerText)}</div>
+  <div class="print-footer">
+    <span class="acronym-bold">${escapeHtml(acronym)}</span>${escapeHtml(stageText)}
+  </div>
+  <div class="print-body-content">
+    ${container.outerHTML}
+  </div>
+</body>
+</html>`;
 }
 
-/**
- * Add header and footer overlays to all pages.
- */
-function addHeadersFooters(
-  pdf: jsPDF,
-  proposal: { acronym: string; title: string; topicId?: string | null; topicTitle?: string | null; type?: string | null; submissionStage?: string | null },
-) {
-  const totalPages = pdf.internal.pages.length - 1;
-  const pageWidth = pdf.internal.pageSize.getWidth();
-  const pageHeight = pdf.internal.pageSize.getHeight();
-  const margin = 15;
-  const gray: [number, number, number] = [128, 128, 128];
-  const fontSize = 8;
-
-  for (let i = 1; i <= totalPages; i++) {
-    pdf.setPage(i);
-
-    // ── Header ──
-    pdf.setFontSize(fontSize);
-    pdf.setFont('times', 'normal');
-    pdf.setTextColor(...gray);
-    const topicId = proposal.topicId || '';
-    const topicTitle = proposal.topicTitle || proposal.title || '';
-    const topicType = proposal.type || '';
-    let headerText = `${topicId}${topicId && topicTitle ? ': ' : ''}${topicTitle}${topicType ? ` (${topicType})` : ''}`;
-    if (headerText.length > 120) headerText = headerText.substring(0, 117) + '...';
-    pdf.text(headerText, pageWidth / 2, margin / 2, { align: 'center' });
-
-    // ── Footer ──
-    const footerY = pageHeight - margin / 2;
-    const centerX = pageWidth / 2;
-    const acronymText = proposal.acronym;
-    const stageText = proposal.submissionStage === 'stage_1' ? ' (Stage 1 of 2) | ' : ' | ';
-    const pageText = ` | Page ${i} of ${totalPages}`;
-
-    pdf.setFont('times', 'bold');
-    const acronymWidth = pdf.getTextWidth(acronymText);
-    pdf.setFont('times', 'normal');
-    const stageWidth = pdf.getTextWidth(stageText);
-    const pageTextWidth = pdf.getTextWidth(pageText);
-    const totalWidth = acronymWidth + stageWidth + pageTextWidth;
-
-    let xPos = centerX - totalWidth / 2;
-    pdf.setFont('times', 'bold');
-    pdf.text(acronymText, xPos, footerY);
-    xPos += acronymWidth;
-    pdf.setFont('times', 'normal');
-    pdf.text(stageText, xPos, footerY);
-    xPos += stageWidth;
-    pdf.text(pageText, xPos, footerY);
-  }
+function escapeHtml(text: string): string {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
 }
 
 export function usePdfExport() {
   const exportProposalToPdf = useCallback(
-    async (data: ExportData, options?: { includeWatermark?: boolean }) => {
+    async (data: ExportData) => {
       const { proposal, sectionContents, sections, participants = [] } = data;
-      const includeWatermark = options?.includeWatermark ?? true;
 
       try {
-        toast.info('Generating PDF – rendering content…');
+        toast.info('Preparing PDF – rendering content…');
 
         const { container, cleanup } = await prepareExportContainer({
           proposal: {
@@ -105,55 +170,62 @@ export function usePdfExport() {
           participants,
         });
 
-        // Create jsPDF and render
-        toast.info('Generating PDF – creating pages…');
-        const pdf = new jsPDF({
-          orientation: 'portrait',
-          unit: 'mm',
-          format: 'a4',
-        });
+        // Build the self-contained HTML document
+        const htmlDoc = buildPrintDocument(container, proposal);
 
-        await new Promise<void>((resolve, reject) => {
-          // Container is 680px wide; map that to 180mm content width on A4
-          const CONTAINER_WIDTH_PX = 680;
-
-          pdf.html(container, {
-            callback: () => resolve(),
-            x: 15,
-            y: 15,
-            width: 180, // target content width in mm
-            windowWidth: CONTAINER_WIDTH_PX,
-            margin: [15, 15, 15, 15],
-            autoPaging: 'text',
-            html2canvas: {
-              useCORS: true,
-              allowTaint: true,
-              backgroundColor: '#ffffff',
-              logging: false,
-              scrollX: 0,
-              scrollY: 0,
-              windowWidth: CONTAINER_WIDTH_PX,
-              windowHeight: container.scrollHeight || 900,
-            },
-          });
-        });
-
+        // Clean up the container from the main page
         cleanup();
 
-        // Add headers and footers
-        addHeadersFooters(pdf, proposal);
+        // Create a hidden iframe for printing
+        const iframe = document.createElement('iframe');
+        iframe.style.position = 'fixed';
+        iframe.style.top = '-10000px';
+        iframe.style.left = '-10000px';
+        iframe.style.width = '210mm';
+        iframe.style.height = '297mm';
+        iframe.style.border = 'none';
+        document.body.appendChild(iframe);
 
-        // Add watermark
-        if (includeWatermark) {
-          addWatermarkToAllPages(pdf);
+        const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+        if (!iframeDoc) {
+          toast.error('Failed to create print frame.');
+          document.body.removeChild(iframe);
+          return;
         }
 
-        // Save
-        const watermarkSuffix = includeWatermark ? '' : '_final';
-        const filename = `${proposal.acronym}_Part_B_${new Date().toISOString().split('T')[0]}${watermarkSuffix}.pdf`;
-        pdf.save(filename);
+        iframeDoc.open();
+        iframeDoc.write(htmlDoc);
+        iframeDoc.close();
 
-        toast.success('PDF exported successfully!');
+        // Wait for stylesheets and images to load inside the iframe
+        await new Promise<void>((resolve) => {
+          const checkReady = () => {
+            const images = iframeDoc.querySelectorAll('img');
+            const allLoaded = Array.from(images).every(img => img.complete);
+            if (allLoaded) {
+              resolve();
+            } else {
+              setTimeout(checkReady, 200);
+            }
+          };
+          // Give stylesheets a moment to apply, then check images
+          setTimeout(checkReady, 1000);
+        });
+
+        toast.info('Opening print dialog…');
+
+        // Print the iframe
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+
+        // Clean up iframe after a delay (user may still be in print dialog)
+        setTimeout(() => {
+          if (iframe.parentNode) {
+            document.body.removeChild(iframe);
+          }
+        }, 5000);
+
+        toast.success('Print dialog opened. Save as PDF to export.');
       } catch (error) {
         console.error('PDF export error:', error);
         toast.error('Failed to export PDF. Please try again.');
