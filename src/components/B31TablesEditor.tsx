@@ -176,11 +176,21 @@ function EditableHtml({
   const divRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isFocused = useRef(false);
+  const lastValueRef = useRef(value);
 
-  // Sync HTML when prop changes and not focused
+  // Set initial HTML via ref on mount
   useEffect(() => {
-    if (!isFocused.current && divRef.current) {
+    if (divRef.current) {
       divRef.current.innerHTML = value || '';
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Sync HTML when prop changes externally (not while focused)
+  useEffect(() => {
+    if (!isFocused.current && divRef.current && value !== lastValueRef.current) {
+      divRef.current.innerHTML = value || '';
+      lastValueRef.current = value;
     }
   }, [value]);
 
@@ -191,6 +201,7 @@ function EditableHtml({
 
   const handleInput = () => {
     const html = divRef.current?.innerHTML || '';
+    lastValueRef.current = html;
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     timeoutRef.current = setTimeout(() => { onChange(html); }, 500);
   };
@@ -202,9 +213,17 @@ function EditableHtml({
       suppressContentEditableWarning
       onInput={handleInput}
       onFocus={() => { isFocused.current = true; }}
-      onBlur={() => { isFocused.current = false; }}
+      onBlur={() => {
+        isFocused.current = false;
+        // Flush any pending save on blur
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
+          const html = divRef.current?.innerHTML || '';
+          if (html !== lastValueRef.current) onChange(html);
+        }
+      }}
       data-placeholder={placeholder}
-      dangerouslySetInnerHTML={{ __html: value || '' }}
       className="bg-transparent border-0 p-0 m-0 resize-none focus:outline-none focus:ring-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight w-full empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground"
       style={{ minHeight: '1em', lineHeight: '1.2' }}
     />
