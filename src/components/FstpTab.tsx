@@ -800,10 +800,9 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, f
                 width: { size: colWidthTwip, type: WidthType.DXA },
                 margins: { top: 40, bottom: 40, left: 80, right: 80 },
                 children: [new Paragraph({
-                  children: segsToRuns(cellSegs).map(r => {
-                    if (isHdr) return new TextRun({ ...r, bold: true, font: FONT, size: SZ });
-                    return r;
-                  }),
+                  children: isHdr
+                    ? segsToRunOpts(cellSegs).map(opts => new TextRun({ ...opts, bold: true, font: FONT, size: SZ } as any))
+                    : segsToRuns(cellSegs),
                   spacing: { before: 0, after: 0, line: LINE },
                 })],
               })),
