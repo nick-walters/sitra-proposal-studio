@@ -632,25 +632,38 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, f
         } else if (block.type === 'table') {
           const colCount = Math.max(...block.rows.map(r => r.cells.length));
           const colWidth = contentWidth / colCount;
+          const cellPadding = 1;
           for (let ri = 0; ri < block.rows.length; ri++) {
-            if (!isTopOfPage) y += 0.5;
-            checkPage(lineHeight + 2);
             const row = block.rows[ri];
             const isHeader = ri === 0 && block.hasHeader;
+            // Pre-calculate wrapped lines for each cell to find max row height
+            const cellWrapped: string[][] = [];
+            doc.setFontSize(11);
+            setFont(isHeader, false);
+            let maxLines = 1;
+            for (let ci = 0; ci < row.cells.length; ci++) {
+              const cellText = row.cells[ci].map(s => s.text).join('');
+              const lines: string[] = doc.splitTextToSize(cellText, colWidth - 2 * cellPadding);
+              cellWrapped.push(lines);
+              if (lines.length > maxLines) maxLines = lines.length;
+            }
+            const rowHeight = maxLines * lineHeight + 2 * cellPadding;
+            if (!isTopOfPage) y += 0.5;
+            checkPage(rowHeight);
+            // Render each cell
             for (let ci = 0; ci < row.cells.length; ci++) {
               const cx = margin + ci * colWidth;
-              const cellText = row.cells[ci].map(s => s.text).join('');
+              const lines = cellWrapped[ci] || [];
               doc.setFontSize(11);
               setFont(isHeader, false);
-              const cellLines = doc.splitTextToSize(cellText, colWidth - 2);
-              for (let cli = 0; cli < cellLines.length; cli++) {
-                doc.text(cellLines[cli], cx + 1, y + cli * lineHeight);
+              for (let cli = 0; cli < lines.length; cli++) {
+                doc.text(lines[cli], cx + cellPadding, y + cellPadding + cli * lineHeight);
               }
             }
             doc.setDrawColor(isHeader ? 0 : 200);
             doc.setLineWidth(isHeader ? 0.5 : 0.15);
-            doc.line(margin, y + lineHeight + 0.5, margin + contentWidth, y + lineHeight + 0.5);
-            y += lineHeight + 1;
+            doc.line(margin, y + rowHeight, margin + contentWidth, y + rowHeight);
+            y += rowHeight;
             isTopOfPage = false;
           }
           y += paraSpacingAfter;
