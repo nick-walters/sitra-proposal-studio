@@ -240,6 +240,16 @@ function normalizePartBLoadedContent(html: string) {
       h.style.fontVariant = '';
       h.style.fontFeatureSettings = '';
       h.style.webkitTextStrokeWidth = '';
+      h.style.border = '';
+      h.style.borderTop = '';
+      h.style.borderBottom = '';
+      h.style.borderLeft = '';
+      h.style.borderRight = '';
+      h.style.borderColor = '';
+      h.style.borderStyle = '';
+      h.style.borderWidth = '';
+      h.style.background = '';
+      h.style.backgroundColor = '';
     }
     if (el.tagName === 'FONT') {
       const span = document.createElement('span');
