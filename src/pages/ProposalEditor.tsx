@@ -119,7 +119,7 @@ export function ProposalEditor() {
   const [openPanel, setOpenPanel] = useState<'comments' | 'changes' | null>(null);
   const [managerLastSaved, setManagerLastSaved] = useState<Date | null>(null);
   const handleManagerSaveEvent = useCallback(() => setManagerLastSaved(new Date()), []);
-  const { exportToPdf, exportProposalToPdf } = usePdfExport();
+  const { exportProposalToPdf } = usePdfExport();
   const { exportProposalToDocx } = useDocxExport();
 
   // Fetch proposal data from database

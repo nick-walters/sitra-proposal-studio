@@ -2,33 +2,16 @@ import { useCallback } from 'react';
 import { saveAs } from 'file-saver';
 import { toast } from 'sonner';
 import { Proposal, Section, Participant } from '@/types/proposal';
-import { buildPrintContainer, mountB31Components } from '@/lib/printRenderer';
-
-interface SectionContent {
-  id: string;
-  sectionId: string;
-  content: string;
-}
-
-interface TrackedChange {
-  type: 'insertion' | 'deletion';
-  content: string;
-  authorName: string;
-  date: Date;
-}
-
-interface ExportData {
-  proposal: Proposal;
-  sectionContents: SectionContent[];
-  sections: Section[];
-  participants?: Participant[];
-  trackedChanges?: Record<string, TrackedChange[]>;
-}
+import { prepareExportContainer, ExportData } from '@/lib/printRenderer';
 
 /**
  * Wrap HTML content in a Word-compatible HTML document.
  * Word opens HTML files with proper namespace declarations natively,
  * preserving CSS styling including tables, colors, borders, and bubbles.
+ *
+ * NOTE: The CSS below intentionally duplicates parts of index.css's
+ * `.print-export-container` styles because the .doc file is standalone
+ * and cannot reference external stylesheets.
  */
 function wrapInWordHtml(bodyHtml: string, title: string): string {
   return `<!DOCTYPE html>
@@ -179,6 +162,8 @@ ${bodyHtml}
 </html>`;
 }
 
+export { type ExportData };
+
 export function useDocxExport() {
   const exportProposalToDocx = useCallback(
     async (data: ExportData, options?: { includeWatermark?: boolean }) => {
@@ -187,8 +172,7 @@ export function useDocxExport() {
       try {
         toast.info('Generating Word document – rendering content…');
 
-        // 1. Build the same print container used by PDF export
-        const container = await buildPrintContainer({
+        const { container, cleanup } = await prepareExportContainer({
           proposal: {
             id: proposal.id,
             title: proposal.title,
@@ -203,35 +187,7 @@ export function useDocxExport() {
           participants,
         });
 
-        // 2. Attach to DOM for layout and React component rendering
-        container.style.position = 'absolute';
-        container.style.left = '0';
-        container.style.top = '0';
-        container.style.zIndex = '99999';
-        container.style.pointerEvents = 'none';
-        container.style.background = '#fff';
-        container.style.overflow = 'visible';
-        document.body.appendChild(container);
-
-        // 3. Mount B3.1 React components (tables, charts)
-        toast.info('Generating Word document – rendering tables…');
-        await mountB31Components(container, proposal.id);
-
-        // 4. Wait for images to load
-        const images = container.querySelectorAll('img');
-        await Promise.all(
-          Array.from(images).map(
-            img =>
-              new Promise<void>(resolve => {
-                if (img.complete) return resolve();
-                img.onload = () => resolve();
-                img.onerror = () => resolve();
-              }),
-          ),
-        );
-        await new Promise(r => setTimeout(r, 500));
-
-        // 5. Convert images to base64 data URIs for embedding in the document
+        // Convert images to base64 data URIs for embedding
         toast.info('Generating Word document – embedding images…');
         for (const img of Array.from(container.querySelectorAll('img'))) {
           try {
@@ -250,17 +206,15 @@ export function useDocxExport() {
           }
         }
 
-        // 6. Get the rendered HTML
+        // Get the rendered HTML
         const bodyHtml = container.innerHTML;
+        cleanup();
 
-        // 7. Remove the container from DOM
-        document.body.removeChild(container);
-
-        // 8. Wrap in Word-compatible HTML
+        // Wrap in Word-compatible HTML
         const docTitle = `${proposal.acronym}: ${proposal.title}`;
         const wordHtml = wrapInWordHtml(bodyHtml, docTitle);
 
-        // 9. Create blob and save
+        // Create blob and save
         const blob = new Blob(['\ufeff' + wordHtml], {
           type: 'application/msword',
         });
