@@ -194,7 +194,37 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
             </colgroup>
             <thead>
               <tr className="border-b">
-                <th className="px-2 py-1.5 text-left border-r font-bold whitespace-nowrap">Participant</th>
+                <th className="px-2 py-1.5 text-left border-r font-bold whitespace-nowrap">
+                  <div className="flex items-center justify-between gap-1">
+                    <span>Participant</span>
+                    {isCoordinator && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={() => {
+                              const allLocked = (participants || []).every(p => lockedParticipants.has(p.id));
+                              if (allLocked) {
+                                (participants || []).forEach(p => unlockRow(p.id));
+                              } else {
+                                (participants || []).filter(p => !lockedParticipants.has(p.id)).forEach(p => lockRow(p.id));
+                              }
+                            }}
+                          >
+                            {(participants || []).length > 0 && (participants || []).every(p => lockedParticipants.has(p.id))
+                              ? <Lock className="w-3.5 h-3.5 text-destructive" />
+                              : <Unlock className="w-3.5 h-3.5 text-green-600" />}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {(participants || []).every(p => lockedParticipants.has(p.id)) ? 'Unlock all rows' : 'Lock all rows'}
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                  </div>
+                </th>
                 {wps.map(wp => (
                   <th key={wp.id} className="px-1 py-1.5 text-center border-r">
                     <Tooltip>
