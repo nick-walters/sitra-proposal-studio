@@ -326,8 +326,8 @@ export function BudgetPortalSheet({
       // M: Max funding rate as percentage value (e.g., 100 for 100%)
       const fundingRate = computedRow.fundingRate;
 
-      // N: Max EU contribution = ROUND(L*M/100, 0)
-      const maxEuFormula = { f: `=ROUND(L${r}*M${r}/100,0)` };
+      // N: Max EU contribution = ROUND(L*M/100, 2)
+      const maxEuFormula = { f: `=ROUND(L${r}*M${r}/100,2)` };
 
       // O: Requested funding rate
       const requestedRate = computedRow.requestedEuContributionOverride != null
