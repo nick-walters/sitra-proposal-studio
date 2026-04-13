@@ -200,10 +200,9 @@ export async function buildPrintContainer(
 
   const container = document.createElement('div');
   container.className = 'print-export-container';
-  // Use fixed pixel width: 680px ≈ 180mm at 96dpi.
-  // This avoids DPI-dependent mm→px conversion that breaks html2canvas scaling.
-  container.style.width = '680px';
-  container.style.maxWidth = '680px';
+  // Width is 100% — the @page margin handles the 1.5cm on each side
+  container.style.width = '100%';
+  container.style.maxWidth = '100%';
   container.style.overflow = 'hidden';
   container.style.fontFamily = "'Times New Roman', Times, serif";
   container.style.fontSize = '11pt';
