@@ -732,7 +732,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
         });
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['b31-deliverables', proposalId] }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['b31-deliverables', proposalId] }); queryClient.invalidateQueries({ queryKey: ['wp-drafts-gantt', proposalId] }); },
   });
 
   const deleteDeliverable = useMutation({
@@ -743,7 +743,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
         .eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['b31-deliverables', proposalId] }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['b31-deliverables', proposalId] }); queryClient.invalidateQueries({ queryKey: ['wp-drafts-gantt', proposalId] }); },
   });
 
   // Recalculate deliverable sub-numbers within each WP based on due_month order
