@@ -510,9 +510,9 @@ export function FormattingToolbar({
       if (aspectRatioLocked) {
         const newHeight = Math.round(numValue / aspectRatio);
         setImageHeight(newHeight.toString());
-        editor.commands.updateAttributes('image', { width: numValue, height: newHeight, widthPercent: null });
+        editor.commands.updateAttributes('image', { width: numValue, height: newHeight, widthPercent: 0 });
       } else {
-        editor.commands.updateAttributes('image', { width: numValue, widthPercent: null });
+        editor.commands.updateAttributes('image', { width: numValue, widthPercent: 0 });
       }
     }
   }, [editor, aspectRatio, aspectRatioLocked]);
@@ -524,9 +524,9 @@ export function FormattingToolbar({
       if (aspectRatioLocked) {
         const newWidth = Math.round(numValue * aspectRatio);
         setImageWidth(newWidth.toString());
-        editor.commands.updateAttributes('image', { width: newWidth, height: numValue, widthPercent: null });
+        editor.commands.updateAttributes('image', { width: newWidth, height: numValue, widthPercent: 0 });
       } else {
-        editor.commands.updateAttributes('image', { height: numValue, widthPercent: null });
+        editor.commands.updateAttributes('image', { height: numValue, widthPercent: 0 });
       }
     }
   }, [editor, aspectRatio, aspectRatioLocked]);
@@ -551,7 +551,7 @@ export function FormattingToolbar({
       editor.commands.updateAttributes('image', { widthPercent: parseInt(defaultPercent) });
     } else {
       // Switch to pixel mode - clear percentage
-      editor.commands.updateAttributes('image', { widthPercent: null });
+      editor.commands.updateAttributes('image', { widthPercent: 0 });
     }
   }, [editor, widthMode, imageWidthPercent]);
 
