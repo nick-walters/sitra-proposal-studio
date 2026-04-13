@@ -13,11 +13,27 @@ function computeDefaultReportingPeriods(duration: number) {
   let start = 1;
   let num = 1;
   while (start <= duration) {
-    periods.push({ number: num, startMonth: start, endMonth: Math.min(start + 17, duration) });
-    start += 18;
+    const remaining = duration - start + 1;
+    // Use 18-month periods; if remainder after this would be ≤12, use the remainder directly
+    const len = remaining > 18 ? 18 : remaining;
+    periods.push({ number: num, startMonth: start, endMonth: start + len - 1 });
+    start += len;
     num++;
   }
   return periods;
+}
+
+function formatRpLengths(periods: { startMonth: number; endMonth: number }[]): string {
+  const lengths = periods.map(p => p.endMonth - p.startMonth + 1);
+  if (lengths.length === 0) return '';
+  // If all the same, just say "18-month"
+  if (lengths.every(l => l === lengths[0])) {
+    return `${lengths[0]}-month `;
+  }
+  // Otherwise list them: "18-month and 12-month" or "18-month, 18-month, and 12-month"
+  const parts = lengths.map(l => `${l}-month`);
+  if (parts.length === 2) return `${parts[0]} and ${parts[1]} `;
+  return parts.slice(0, -1).join(', ') + ', and ' + parts[parts.length - 1] + ' ';
 }
 
 interface Props {
