@@ -199,8 +199,13 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
         .eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['figures', proposalId] });
+      // Sync selectedFigure with the updates so the editor reflects changes immediately
+      setSelectedFigure(prev => prev && prev.id === variables.id
+        ? { ...prev, ...variables.updates, content: variables.updates.content ?? prev.content }
+        : prev
+      );
       toast.success('Figure updated');
     },
     onError: () => {
