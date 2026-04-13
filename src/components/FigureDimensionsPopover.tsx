@@ -38,22 +38,35 @@ export function FigureDimensionsPanel({
   const [cmHeight, setCmHeight] = useState('');
   const [localAspectLocked, setLocalAspectLocked] = useState(aspectRatioLocked);
   const [cmAspectRatio, setCmAspectRatio] = useState(1);
+  const [pxWLocal, setPxWLocal] = useState('');
+  const [pxHLocal, setPxHLocal] = useState('');
+  const [percentLocal, setPercentLocal] = useState('');
+  const [cmFocused, setCmFocused] = useState<'w' | 'h' | null>(null);
+  const [pxFocused, setPxFocused] = useState<'w' | 'h' | null>(null);
+  const [percentFocused, setPercentFocused] = useState(false);
 
-  // Sync from props
+  // Sync from props only when not focused
   useEffect(() => {
-    const w = pxW > 0 ? (pxW / PX_PER_CM).toFixed(1) : '';
-    const h = pxH > 0 ? (pxH / PX_PER_CM).toFixed(1) : '';
-    setCmWidth(w);
-    setCmHeight(h);
+    if (!cmFocused) {
+      setCmWidth(pxW > 0 ? (pxW / PX_PER_CM).toFixed(1) : '');
+      setCmHeight(pxH > 0 ? (pxH / PX_PER_CM).toFixed(1) : '');
+    }
+    if (!pxFocused) {
+      setPxWLocal(pxW > 0 ? pxW.toString() : '');
+      setPxHLocal(pxH > 0 ? pxH.toString() : '');
+    }
+    if (!percentFocused) {
+      setPercentLocal(widthPercent > 0 ? widthPercent.toString() : '100');
+    }
     setLocalAspectLocked(aspectRatioLocked);
     if (pxW > 0 && pxH > 0) {
       setCmAspectRatio(pxW / pxH);
     }
-  }, [pxW, pxH, aspectRatioLocked]);
+  }, [pxW, pxH, aspectRatioLocked, widthPercent]);
 
-  const handleCmWidthChange = useCallback((value: string) => {
-    setCmWidth(value);
-    const num = parseFloat(value);
+  const commitCmWidth = useCallback(() => {
+    setCmFocused(null);
+    const num = parseFloat(cmWidth);
     if (!isNaN(num) && num > 0) {
       const newPxW = Math.round(num * PX_PER_CM);
       if (localAspectLocked && cmAspectRatio > 0) {
@@ -65,11 +78,11 @@ export function FigureDimensionsPanel({
         onWidthChange(newPxW.toString());
       }
     }
-  }, [localAspectLocked, cmAspectRatio, onWidthChange, onHeightChange]);
+  }, [cmWidth, localAspectLocked, cmAspectRatio, onWidthChange, onHeightChange]);
 
-  const handleCmHeightChange = useCallback((value: string) => {
-    setCmHeight(value);
-    const num = parseFloat(value);
+  const commitCmHeight = useCallback(() => {
+    setCmFocused(null);
+    const num = parseFloat(cmHeight);
     if (!isNaN(num) && num > 0) {
       const newPxH = Math.round(num * PX_PER_CM);
       if (localAspectLocked && cmAspectRatio > 0) {
@@ -81,7 +94,22 @@ export function FigureDimensionsPanel({
         onHeightChange(newPxH.toString());
       }
     }
-  }, [localAspectLocked, cmAspectRatio, onWidthChange, onHeightChange]);
+  }, [cmHeight, localAspectLocked, cmAspectRatio, onWidthChange, onHeightChange]);
+
+  const commitPxW = useCallback(() => {
+    setPxFocused(null);
+    if (pxWLocal) onWidthChange(pxWLocal);
+  }, [pxWLocal, onWidthChange]);
+
+  const commitPxH = useCallback(() => {
+    setPxFocused(null);
+    if (pxHLocal) onHeightChange(pxHLocal);
+  }, [pxHLocal, onHeightChange]);
+
+  const commitPercent = useCallback(() => {
+    setPercentFocused(false);
+    if (percentLocal) onWidthPercentChange(percentLocal);
+  }, [percentLocal, onWidthPercentChange]);
 
   const handleAspectToggle = useCallback(() => {
     setLocalAspectLocked(!localAspectLocked);
