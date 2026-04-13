@@ -314,26 +314,32 @@ function EditableTextInline({
   placeholder?: string;
   inheritFont?: boolean;
 }) {
-  const [localValue, setLocalValue] = useState(value);
   const spanRef = useRef<HTMLSpanElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isFocused = useRef(false);
+  const lastValueRef = useRef(value);
   
-  // Sync local value when prop changes - but not while focused
+  // Set initial text via ref on mount
   useEffect(() => {
-    if (!isFocused.current) {
-      setLocalValue(value);
-      if (spanRef.current && spanRef.current.textContent !== value) {
-        spanRef.current.textContent = value;
-      }
+    if (spanRef.current) {
+      spanRef.current.textContent = value || '';
+    }
+    lastValueRef.current = value;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Sync text when prop changes externally (not while focused)
+  useEffect(() => {
+    if (!isFocused.current && spanRef.current && value !== lastValueRef.current) {
+      spanRef.current.textContent = value || '';
+      lastValueRef.current = value;
     }
   }, [value]);
   
   const handleInput = () => {
     const newValue = spanRef.current?.textContent || '';
-    setLocalValue(newValue);
+    lastValueRef.current = newValue;
     
-    // Debounce the save
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     timeoutRef.current = setTimeout(() => {
       onChange(newValue);
@@ -354,14 +360,19 @@ function EditableTextInline({
       suppressContentEditableWarning
       onInput={handleInput}
       onFocus={() => { isFocused.current = true; }}
-      onBlur={() => { isFocused.current = false; }}
+      onBlur={() => {
+        isFocused.current = false;
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
+          const text = spanRef.current?.textContent || '';
+          if (text !== lastValueRef.current) onChange(text);
+        }
+      }}
       data-placeholder={placeholder}
       className={`outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground ${inheritFont ? '' : "font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight"}`}
       style={{ display: 'inline', lineHeight: 1, ...(inheritFont ? { fontFamily: 'inherit', fontSize: 'inherit' } : {}) }}
-      
-    >
-      {value}
-    </span>
+    />
   );
 }
 
