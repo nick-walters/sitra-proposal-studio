@@ -34,6 +34,9 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
   const { colWidths, setColWidths, tableRef, handleColResizeStart, saveWidths } = useColumnResize({ proposalId, tableKey: 'effort-matrix', canResize: isAdminOrOwner });
   const [editingCell, setEditingCell] = useState<{ participantId: string; wpId: string } | null>(null);
   const [editValue, setEditValue] = useState('');
+  const defaultParticipantWidth = '22%';
+  const defaultTotalWidth = '8%';
+  const defaultWpWidth = `${(70 / Math.max(wpData.length, 1)).toFixed(2)}%`;
 
   // Build effort matrix from WP-level effort data
   const matrix = new Map<string, Map<string, number>>();
@@ -98,7 +101,7 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
 
   const totalColCount = wpData.length + 2; // participant col + wp cols + total col
   const hasCustomWidths = colWidths.length === totalColCount;
-  const tableWidth = hasCustomWidths ? `${colWidths.reduce((sum, width) => sum + width, 0)}px` : 'auto';
+  const tableWidth = hasCustomWidths ? `${colWidths.reduce((sum, width) => sum + width, 0)}px` : '100%';
 
   return (
     <div>
@@ -118,7 +121,7 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
       />
       <div className="relative">
          <table
-           className={`${tableStyles}`}
+            className={`${tableStyles} b31-effort-matrix`}
             style={{
              tableLayout: 'fixed',
               width: tableWidth,
@@ -128,11 +131,11 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
            ref={tableRef}
          >
            <colgroup>
-              <col style={{ width: hasCustomWidths ? `${colWidths[0]}px` : 'auto' }} />
+               <col style={{ width: hasCustomWidths ? `${colWidths[0]}px` : defaultParticipantWidth }} />
               {wpData.map((wp, i) => (
-                <col key={wp.id} style={{ width: hasCustomWidths ? `${colWidths[i + 1]}px` : '35pt' }} />
+                 <col key={wp.id} style={{ width: hasCustomWidths ? `${colWidths[i + 1]}px` : defaultWpWidth }} />
              ))}
-              <col style={{ width: hasCustomWidths ? `${colWidths[totalColCount - 1]}px` : '35pt' }} />
+               <col style={{ width: hasCustomWidths ? `${colWidths[totalColCount - 1]}px` : defaultTotalWidth }} />
            </colgroup>
            <thead>
              <tr>

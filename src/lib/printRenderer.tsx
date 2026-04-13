@@ -71,11 +71,11 @@ function flattenSections(sections: Section[]): Section[] {
 async function resolveImagesInHtml(html: string): Promise<string> {
   if (!html) return html;
   // Find all img src that are storage paths (not starting with http/data)
-  const imgRegex = /<img([^>]*?)src="([^"]+)"([^>]*?)>/gi;
+  const imgRegex = /<img([^>]*?)src=(["'])([^"']+)\2([^>]*?)>/gi;
   const matches = [...html.matchAll(imgRegex)];
   let result = html;
   for (const m of matches) {
-    const src = m[2];
+    const src = m[3];
     if (src.startsWith('http') || src.startsWith('data:')) continue;
     try {
       const resolved = await resolveStorageUrl(src);
@@ -291,6 +291,7 @@ export async function buildPrintContainer(
         const b31Marker = document.createElement('div');
         b31Marker.id = 'print-b31-mount';
         b31Marker.setAttribute('data-proposal-id', proposal.id);
+        b31Marker.setAttribute('data-proposal-acronym', proposal.acronym);
         container.appendChild(b31Marker);
       }
     }
@@ -304,11 +305,15 @@ export async function buildPrintContainer(
 export async function mountB31Components(
   container: HTMLElement,
   proposalId: string,
+  proposalAcronym: string,
 ): Promise<void> {
   const mount = container.querySelector('#print-b31-mount');
   if (!mount) return;
 
-  const { B31SectionContent } = await import('@/components/B31SectionContent');
+  const [{ B31IntroText }, { B31SectionContent }] = await Promise.all([
+    import('@/components/B31IntroText'),
+    import('@/components/B31SectionContent'),
+  ]);
 
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 } },
@@ -320,7 +325,12 @@ export async function mountB31Components(
     createElement(
       QueryClientProvider,
       { client: queryClient },
-      createElement(B31SectionContent, { proposalId }),
+      createElement(
+        'div',
+        { className: 'print-b31-content' },
+        createElement(B31IntroText, { proposalId, proposalAcronym }),
+        createElement(B31SectionContent, { proposalId }),
+      ),
     ),
   );
 
@@ -338,18 +348,16 @@ export async function mountB31Components(
   });
 
   const interactiveSelectors = [
-    'button', '[role="button"]', '.drag-handle', '[data-radix-popper-content-wrapper]',
-    '.popover-content', '[data-state]', 'input', 'select', 'textarea',
-    '.resize-handle', '.column-resizer', '[class*="hover"]',
+    '.drag-handle',
+    '[data-radix-popper-content-wrapper]',
+    '.popover-content',
+    '.resize-handle',
+    '.column-resizer',
+    '.tooltip-content',
   ];
   for (const sel of interactiveSelectors) {
     mount.querySelectorAll(sel).forEach(el => {
-      if (el.tagName === 'BUTTON' || el.getAttribute('role') === 'button' ||
-          el.classList.contains('drag-handle') || el.classList.contains('resize-handle') ||
-          el.classList.contains('column-resizer') || el.tagName === 'INPUT' ||
-          el.tagName === 'SELECT' || el.tagName === 'TEXTAREA') {
-        el.remove();
-      }
+      el.remove();
     });
   }
 }
@@ -393,17 +401,23 @@ function freezeInteractiveElements(container: HTMLElement): void {
     const cs = window.getComputedStyle(trigger);
     span.style.display = 'inline-flex';
     span.style.alignItems = 'center';
+    span.style.color = cs.color;
+    span.style.fontFamily = cs.fontFamily;
+    span.style.fontSize = cs.fontSize;
+    span.style.fontWeight = cs.fontWeight;
+    span.style.lineHeight = cs.lineHeight;
     trigger.replaceWith(span);
   });
 
   // 4. Replace all remaining buttons that contain visible text/bubbles
   //    but NOT structural buttons (drag handles etc. which should just be removed)
   container.querySelectorAll('button').forEach(btn => {
+    const textContent = btn.textContent?.replace(/\s+/g, ' ').trim() || '';
     // Check if this button contains meaningful bubble content (not just icons)
     const hasBubble = btn.querySelector('[style*="background"]') || 
                       btn.querySelector('.print-bubble') ||
                       btn.querySelector('[class*="rounded-full"]');
-    if (hasBubble) {
+    if (hasBubble || textContent.length > 0) {
       const span = document.createElement('span');
       span.innerHTML = btn.innerHTML;
       span.querySelectorAll('svg').forEach(svg => svg.remove());
@@ -411,6 +425,7 @@ function freezeInteractiveElements(container: HTMLElement): void {
       span.style.alignItems = 'center';
       span.style.flexWrap = 'wrap';
       span.style.gap = '2px';
+      span.style.verticalAlign = 'middle';
       btn.replaceWith(span);
     }
     // Others will be hidden by CSS display:none
@@ -450,7 +465,7 @@ export async function prepareExportContainer(
   document.body.appendChild(container);
 
   // Mount B3.1 React components (tables, charts)
-  await mountB31Components(container, options.proposal.id);
+  await mountB31Components(container, options.proposal.id, options.proposal.acronym);
 
   // Wait for all images to load
   const images = container.querySelectorAll('img');
@@ -472,6 +487,11 @@ export async function prepareExportContainer(
   // Reset to 100% width so it fills the print page properly
   container.style.width = '100%';
   container.style.maxWidth = '100%';
+  container.style.position = 'static';
+  container.style.left = 'auto';
+  container.style.top = 'auto';
+  container.style.zIndex = 'auto';
+  container.style.pointerEvents = 'auto';
 
   // Allow a small delay for reflows
   await new Promise(r => setTimeout(r, 500));
