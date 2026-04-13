@@ -1094,3 +1094,207 @@ td.b12-case-cell {
 .ProseMirror ol[style*="list-style-type: lower-roman"] > li::before {
   content: counter(list-counter, lower-roman) ".";
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Print Export Container Styles
+   Mirrors the editor styling for pixel-perfect PDF export via jsPDF.html()
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.print-export-container {
+  font-family: 'Times New Roman', Times, serif !important;
+  font-size: 11pt !important;
+  line-height: 1.0 !important;
+  color: #000 !important;
+  background: #fff !important;
+}
+
+.print-export-container * {
+  box-sizing: border-box;
+}
+
+/* Headings */
+.print-export-container .print-title {
+  font-size: 14pt !important;
+  font-weight: bold !important;
+  text-align: center !important;
+  margin-top: 0 !important;
+  margin-bottom: 12pt !important;
+}
+
+.print-export-container .print-h1,
+.print-export-container h1:not(.print-title) {
+  font-size: 13pt !important;
+  font-weight: bold !important;
+  margin-top: 9pt !important;
+  margin-bottom: 6pt !important;
+  font-family: 'Times New Roman', Times, serif !important;
+}
+
+.print-export-container .print-h2,
+.print-export-container h2 {
+  font-size: 12pt !important;
+  font-weight: bold !important;
+  margin-top: 6pt !important;
+  margin-bottom: 0 !important;
+  font-family: 'Times New Roman', Times, serif !important;
+}
+
+.print-export-container h3 {
+  font-size: 11pt !important;
+  font-weight: bold !important;
+  text-decoration: underline !important;
+  margin-top: 3pt !important;
+  margin-bottom: 3pt !important;
+  font-family: 'Times New Roman', Times, serif !important;
+}
+
+/* Body text */
+.print-export-container p {
+  margin-top: 3pt !important;
+  margin-bottom: 3pt !important;
+  font-family: 'Times New Roman', Times, serif !important;
+  font-size: 11pt !important;
+  line-height: 1.0 !important;
+  text-align: justify !important;
+}
+
+.print-export-container p:first-child {
+  margin-top: 0 !important;
+}
+
+/* Lists */
+.print-export-container ul,
+.print-export-container ol {
+  margin-top: 3pt !important;
+  margin-bottom: 3pt !important;
+  padding-left: 20px !important;
+  font-family: 'Times New Roman', Times, serif !important;
+  font-size: 11pt !important;
+}
+
+.print-export-container li {
+  margin-top: 1pt !important;
+  margin-bottom: 1pt !important;
+  font-family: 'Times New Roman', Times, serif !important;
+  font-size: 11pt !important;
+  line-height: 1.0 !important;
+  text-align: justify !important;
+}
+
+/* Images */
+.print-export-container img {
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+/* Print tables - matching editor HE table styles */
+.print-export-container table,
+.print-export-container .print-table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  font-family: 'Times New Roman', Times, serif !important;
+  font-size: 11pt !important;
+  table-layout: auto !important;
+}
+
+.print-export-container th,
+.print-export-container .print-th {
+  background: transparent !important;
+  color: #000 !important;
+  font-weight: bold !important;
+  font-size: 11pt !important;
+  font-family: 'Times New Roman', Times, serif !important;
+  padding: 1px 4px !important;
+  border: none !important;
+  border-top: 1.5px solid #000 !important;
+  border-bottom: 1.5px solid #000 !important;
+  vertical-align: middle !important;
+  line-height: 1 !important;
+}
+
+.print-export-container td,
+.print-export-container .print-td {
+  background: #fff !important;
+  color: #000 !important;
+  font-size: 11pt !important;
+  font-family: 'Times New Roman', Times, serif !important;
+  padding: 1px 4px !important;
+  border: none !important;
+  border-bottom: 0.5px solid #e5e7eb !important;
+  vertical-align: middle !important;
+  line-height: 1 !important;
+}
+
+/* Captions */
+.print-export-container .figure-caption,
+.print-export-container .table-caption {
+  font-style: italic !important;
+  font-family: 'Times New Roman', Times, serif !important;
+  font-size: 11pt !important;
+  line-height: 1.0 !important;
+}
+
+.print-export-container .figure-caption {
+  text-align: center !important;
+  margin-top: 0 !important;
+  margin-bottom: 6pt !important;
+}
+
+.print-export-container .table-caption {
+  text-align: left !important;
+  margin-top: 6pt !important;
+  margin-bottom: 1pt !important;
+}
+
+.print-export-container .caption-label {
+  font-weight: bold !important;
+  font-style: italic !important;
+}
+
+/* Inline reference bubbles – match editor exactly */
+.print-export-container .print-bubble {
+  display: inline-flex !important;
+  align-items: center !important;
+  white-space: nowrap !important;
+}
+
+/* Cross-reference marks in editor content */
+.print-export-container [data-type="wpReferenceMark"],
+.print-export-container [data-type="participantReferenceMark"],
+.print-export-container [data-type="inlineReferenceMark"],
+.print-export-container [data-type="caseReferenceMark"] {
+  font-size: 11pt !important;
+}
+
+/* Hide interactive/editor-only elements */
+.print-export-container button,
+.print-export-container [role="button"],
+.print-export-container input,
+.print-export-container select,
+.print-export-container textarea,
+.print-export-container .drag-handle,
+.print-export-container .resize-handle,
+.print-export-container .column-resizer,
+.print-export-container [data-radix-popper-content-wrapper],
+.print-export-container .tooltip-content {
+  display: none !important;
+}
+
+/* B3.1 tables inside print container – match editor */
+.print-export-container .b31-tables-container {
+  font-family: 'Times New Roman', Times, serif !important;
+  font-size: 11pt !important;
+}
+
+/* Ensure ProseMirror content in print container uses correct styles */
+.print-export-container .ProseMirror {
+  font-family: 'Times New Roman', Times, serif !important;
+  font-size: 11pt !important;
+  line-height: 1.0 !important;
+}
+
+.print-export-container .ProseMirror p {
+  margin-top: 3pt !important;
+  margin-bottom: 3pt !important;
+}
+
