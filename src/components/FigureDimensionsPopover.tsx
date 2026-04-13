@@ -1,20 +1,14 @@
-import { useState, useEffect, useCallback } from 'react';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { Button } from '@/components/ui/button';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Ruler, Lock, Unlock, Percent } from 'lucide-react';
+import { Lock, Unlock } from 'lucide-react';
 
 // 1 cm = 37.7953 px at 96 DPI
 const PX_PER_CM = 37.7953;
 
-interface FigureDimensionsPopoverProps {
+interface FigureDimensionsPanelProps {
   width: number | string;
   height: number | string;
   widthPercent: number;
@@ -25,7 +19,7 @@ interface FigureDimensionsPopoverProps {
   onAspectRatioToggle: () => void;
 }
 
-export function FigureDimensionsPopover({
+export function FigureDimensionsPanel({
   width,
   height,
   widthPercent,
@@ -34,8 +28,7 @@ export function FigureDimensionsPopover({
   onHeightChange,
   onWidthPercentChange,
   onAspectRatioToggle,
-}: FigureDimensionsPopoverProps) {
-  const [open, setOpen] = useState(false);
+}: FigureDimensionsPanelProps) {
   const [tab, setTab] = useState<'cm' | 'px' | 'percent'>('cm');
 
   const pxW = typeof width === 'string' ? parseInt(width, 10) : (width || 0);
@@ -46,27 +39,17 @@ export function FigureDimensionsPopover({
   const [localAspectLocked, setLocalAspectLocked] = useState(aspectRatioLocked);
   const [cmAspectRatio, setCmAspectRatio] = useState(1);
 
-  // Sync from props when popover opens
+  // Sync from props
   useEffect(() => {
-    if (open) {
-      const w = pxW > 0 ? (pxW / PX_PER_CM).toFixed(1) : '';
-      const h = pxH > 0 ? (pxH / PX_PER_CM).toFixed(1) : '';
-      setCmWidth(w);
-      setCmHeight(h);
-      setLocalAspectLocked(aspectRatioLocked);
-      if (pxW > 0 && pxH > 0) {
-        setCmAspectRatio(pxW / pxH);
-      }
-      // Determine initial tab
-      if (widthPercent > 0) {
-        setTab('percent');
-      } else if (pxW > 0) {
-        setTab('cm');
-      } else {
-        setTab('cm');
-      }
+    const w = pxW > 0 ? (pxW / PX_PER_CM).toFixed(1) : '';
+    const h = pxH > 0 ? (pxH / PX_PER_CM).toFixed(1) : '';
+    setCmWidth(w);
+    setCmHeight(h);
+    setLocalAspectLocked(aspectRatioLocked);
+    if (pxW > 0 && pxH > 0) {
+      setCmAspectRatio(pxW / pxH);
     }
-  }, [open, pxW, pxH, widthPercent, aspectRatioLocked]);
+  }, [pxW, pxH, aspectRatioLocked]);
 
   const handleCmWidthChange = useCallback((value: string) => {
     setCmWidth(value);
@@ -106,142 +89,93 @@ export function FigureDimensionsPopover({
   }, [localAspectLocked, onAspectRatioToggle]);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button variant="ghost" size="sm" className="h-7 px-2 gap-1" title="Figure dimensions">
-          <Ruler className="w-4 h-4" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-72" align="start">
-        <div className="space-y-3">
-          <h4 className="text-sm font-medium">Figure Dimensions</h4>
+    <div className="flex items-center gap-1.5">
+      <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="flex items-center gap-1">
+        <TabsList className="h-7 p-0.5 gap-0">
+          <TabsTrigger value="cm" className="text-[10px] h-6 px-1.5">cm</TabsTrigger>
+          <TabsTrigger value="px" className="text-[10px] h-6 px-1.5">px</TabsTrigger>
+          <TabsTrigger value="percent" className="text-[10px] h-6 px-1.5">%</TabsTrigger>
+        </TabsList>
+      </Tabs>
 
-          <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
-            <TabsList className="grid w-full grid-cols-3 h-8">
-              <TabsTrigger value="cm" className="text-xs h-7">cm</TabsTrigger>
-              <TabsTrigger value="px" className="text-xs h-7">px</TabsTrigger>
-              <TabsTrigger value="percent" className="text-xs h-7">%</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="cm" className="mt-3 space-y-3">
-              <div className="flex items-center gap-2">
-                <div className="flex-1 space-y-1">
-                  <Label className="text-xs">Width (cm)</Label>
-                  <Input
-                    type="number"
-                    step="0.1"
-                    min="0.1"
-                    value={cmWidth}
-                    onChange={(e) => handleCmWidthChange(e.target.value)}
-                    className="h-8 text-xs"
-                  />
-                </div>
-                <button
-                  type="button"
-                  className="mt-5 p-1 rounded hover:bg-muted"
-                  onClick={handleAspectToggle}
-                  title={localAspectLocked ? 'Aspect ratio locked' : 'Aspect ratio unlocked'}
-                >
-                  {localAspectLocked ? (
-                    <Lock className="w-3.5 h-3.5 text-primary" />
-                  ) : (
-                    <Unlock className="w-3.5 h-3.5 text-muted-foreground" />
-                  )}
-                </button>
-                <div className="flex-1 space-y-1">
-                  <Label className="text-xs">Height (cm)</Label>
-                  <Input
-                    type="number"
-                    step="0.1"
-                    min="0.1"
-                    value={cmHeight}
-                    onChange={(e) => handleCmHeightChange(e.target.value)}
-                    className="h-8 text-xs"
-                  />
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="aspect-cm"
-                  checked={localAspectLocked}
-                  onCheckedChange={handleAspectToggle}
-                />
-                <Label htmlFor="aspect-cm" className="text-xs text-muted-foreground cursor-pointer">
-                  Lock aspect ratio
-                </Label>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="px" className="mt-3 space-y-3">
-              <div className="flex items-center gap-2">
-                <div className="flex-1 space-y-1">
-                  <Label className="text-xs">Width (px)</Label>
-                  <Input
-                    type="number"
-                    min="50"
-                    value={pxW > 0 ? pxW.toString() : ''}
-                    onChange={(e) => onWidthChange(e.target.value)}
-                    className="h-8 text-xs"
-                  />
-                </div>
-                <button
-                  type="button"
-                  className="mt-5 p-1 rounded hover:bg-muted"
-                  onClick={handleAspectToggle}
-                  title={localAspectLocked ? 'Aspect ratio locked' : 'Aspect ratio unlocked'}
-                >
-                  {localAspectLocked ? (
-                    <Lock className="w-3.5 h-3.5 text-primary" />
-                  ) : (
-                    <Unlock className="w-3.5 h-3.5 text-muted-foreground" />
-                  )}
-                </button>
-                <div className="flex-1 space-y-1">
-                  <Label className="text-xs">Height (px)</Label>
-                  <Input
-                    type="number"
-                    min="50"
-                    value={pxH > 0 ? pxH.toString() : ''}
-                    onChange={(e) => onHeightChange(e.target.value)}
-                    className="h-8 text-xs"
-                  />
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="aspect-px"
-                  checked={localAspectLocked}
-                  onCheckedChange={handleAspectToggle}
-                />
-                <Label htmlFor="aspect-px" className="text-xs text-muted-foreground cursor-pointer">
-                  Lock aspect ratio
-                </Label>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="percent" className="mt-3 space-y-3">
-              <div className="space-y-1">
-                <Label className="text-xs">Width (%)</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  max="100"
-                  value={widthPercent > 0 ? widthPercent.toString() : '100'}
-                  onChange={(e) => onWidthPercentChange(e.target.value)}
-                  className="h-8 text-xs"
-                />
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Height adjusts automatically to maintain aspect ratio.
-              </p>
-            </TabsContent>
-          </Tabs>
-
-          <p className="text-[10px] text-muted-foreground">
-            Page width ≈ 17.0 cm ({Math.round(17.0 * PX_PER_CM)} px)
-          </p>
+      {tab === 'cm' && (
+        <div className="flex items-center gap-1">
+          <Input
+            type="number"
+            step="0.1"
+            min="0.1"
+            value={cmWidth}
+            onChange={(e) => handleCmWidthChange(e.target.value)}
+            className="w-16 h-7 text-xs"
+            title="Width (cm)"
+          />
+          <span className="text-[10px] text-muted-foreground">×</span>
+          <Input
+            type="number"
+            step="0.1"
+            min="0.1"
+            value={cmHeight}
+            onChange={(e) => handleCmHeightChange(e.target.value)}
+            className="w-16 h-7 text-xs"
+            title="Height (cm)"
+          />
+          <span className="text-[10px] text-muted-foreground">cm</span>
         </div>
-      </PopoverContent>
-    </Popover>
+      )}
+
+      {tab === 'px' && (
+        <div className="flex items-center gap-1">
+          <Input
+            type="number"
+            min="50"
+            value={pxW > 0 ? pxW.toString() : ''}
+            onChange={(e) => onWidthChange(e.target.value)}
+            className="w-16 h-7 text-xs"
+            title="Width (px)"
+          />
+          <span className="text-[10px] text-muted-foreground">×</span>
+          <Input
+            type="number"
+            min="50"
+            value={pxH > 0 ? pxH.toString() : ''}
+            onChange={(e) => onHeightChange(e.target.value)}
+            className="w-16 h-7 text-xs"
+            title="Height (px)"
+          />
+          <span className="text-[10px] text-muted-foreground">px</span>
+        </div>
+      )}
+
+      {tab === 'percent' && (
+        <div className="flex items-center gap-1">
+          <Input
+            type="number"
+            min="1"
+            max="100"
+            value={widthPercent > 0 ? widthPercent.toString() : '100'}
+            onChange={(e) => onWidthPercentChange(e.target.value)}
+            className="w-16 h-7 text-xs"
+            title="Width (%)"
+          />
+          <span className="text-[10px] text-muted-foreground">%</span>
+        </div>
+      )}
+
+      <button
+        type="button"
+        className="p-1 rounded hover:bg-muted"
+        onClick={handleAspectToggle}
+        title={localAspectLocked ? 'Aspect ratio locked' : 'Aspect ratio unlocked'}
+      >
+        {localAspectLocked ? (
+          <Lock className="w-3.5 h-3.5 text-primary" />
+        ) : (
+          <Unlock className="w-3.5 h-3.5 text-muted-foreground" />
+        )}
+      </button>
+    </div>
   );
 }
+
+// Keep backward-compatible export name
+export const FigureDimensionsPopover = FigureDimensionsPanel;

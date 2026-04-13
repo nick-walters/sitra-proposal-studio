@@ -1123,62 +1123,7 @@ export function FormattingToolbar({
             <div className="flex items-center gap-1">
               <ImageIcon className="w-4 h-4 text-muted-foreground" />
               
-              {/* Mode toggle button */}
-              <ToolbarButton
-                icon={<Percent className="w-3 h-3" />}
-                tooltip={widthMode === 'px' ? "Switch to percentage width" : "Switch to pixel width"}
-                onClick={toggleWidthMode}
-                active={widthMode === '%'}
-              />
-              
-              {widthMode === '%' ? (
-                <>
-                  <Input
-                    type="number"
-                    value={imageWidthPercent}
-                    onChange={(e) => handleWidthPercentChange(e.target.value)}
-                    className="w-16 h-7 text-xs"
-                    placeholder="%"
-                    title="Width (%)"
-                    min={1}
-                    max={100}
-                  />
-                  <span className="text-xs text-muted-foreground">%</span>
-                </>
-              ) : (
-                <>
-                  <Input
-                    type="number"
-                    value={imageWidth}
-                    onChange={(e) => handleWidthChange(e.target.value)}
-                    className="w-16 h-7 text-xs"
-                    placeholder="W"
-                    title="Width (px)"
-                  />
-                  <ToolbarButton
-                    icon={aspectRatioLocked ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
-                    tooltip={aspectRatioLocked ? "Aspect ratio locked" : "Aspect ratio unlocked"}
-                    onClick={() => setAspectRatioLocked(!aspectRatioLocked)}
-                    active={aspectRatioLocked}
-                  />
-                  <Input
-                    type="number"
-                    value={imageHeight}
-                    onChange={(e) => handleHeightChange(e.target.value)}
-                    className="w-16 h-7 text-xs"
-                    placeholder="H"
-                    title="Height (px)"
-                  />
-                </>
-              )}
-              
-              <ToolbarButton
-                icon={<Crop className="w-4 h-4" />}
-                tooltip="Crop image"
-                onClick={handleCropClick}
-              />
-
-              {/* Figure dimensions popover */}
+              {/* Inline figure dimensions panel */}
               <FigureDimensionsPopover
                 width={imageWidth}
                 height={imageHeight}
@@ -1188,6 +1133,12 @@ export function FormattingToolbar({
                 onHeightChange={handleHeightChange}
                 onWidthPercentChange={handleWidthPercentChange}
                 onAspectRatioToggle={() => setAspectRatioLocked(!aspectRatioLocked)}
+              />
+
+              <ToolbarButton
+                icon={<Crop className="w-4 h-4" />}
+                tooltip="Crop image"
+                onClick={handleCropClick}
               />
               
               <Separator orientation="vertical" className="h-5 mx-1" />
