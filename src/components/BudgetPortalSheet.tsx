@@ -32,7 +32,8 @@ import { toast } from 'sonner';
 import { FstpTab } from './FstpTab';
 import { BudgetParticipantForm } from './BudgetParticipantForm';
 import { A3EffortMatrix } from './A3EffortMatrix';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 interface BudgetPortalSheetProps {
   proposalId: string;
@@ -93,6 +94,8 @@ export function BudgetPortalSheet({
     saving,
     lockRow,
     unlockRow,
+    lockAllRows,
+    unlockAllRows,
     refetch: refetchBudgetRows,
   } = useBudgetRows(proposalId, proposalType);
 
@@ -102,6 +105,7 @@ export function BudgetPortalSheet({
   const [activeTab, setActiveTab] = useState('budget');
   const [validationOpen, setValidationOpen] = useState(false);
   const [editingParticipantId, setEditingParticipantId] = useState<string | null>(null);
+  const [lockedEditWarning, setLockedEditWarning] = useState<{ participantId: string } | null>(null);
 
   const editingRow = useMemo(
     () => editingParticipantId ? rows.find(r => r.participantId === editingParticipantId) : null,
@@ -831,7 +835,37 @@ export function BudgetPortalSheet({
                       <thead>
                         {/* Major category header row */}
                         <tr className="border-b">
-                          <th rowSpan={2} className="sticky left-0 bg-background z-10 px-2 py-1.5 text-left border-r font-bold whitespace-nowrap align-middle">Participant</th>
+                          <th rowSpan={2} className="sticky left-0 bg-background z-10 px-2 py-1.5 text-left border-r font-bold whitespace-nowrap align-middle">
+                            <div className="flex items-center justify-between gap-1">
+                              <span>Participant</span>
+                              {isAdmin && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6"
+                                      onClick={() => {
+                                        const allLocked = rows.every(r => r.isLocked);
+                                        if (allLocked) {
+                                          unlockAllRows();
+                                        } else {
+                                          lockAllRows();
+                                        }
+                                      }}
+                                    >
+                                      {rows.every(r => r.isLocked)
+                                        ? <Lock className="w-3.5 h-3.5 text-destructive" />
+                                        : <Unlock className="w-3.5 h-3.5 text-green-600" />}
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    {rows.every(r => r.isLocked) ? 'Unlock all participant budgets' : 'Lock all participant budgets'}
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
+                            </div>
+                          </th>
                           <th rowSpan={2} className="px-2 py-1.5 text-left border-r font-bold align-middle" style={{ minWidth: '50px' }}>PM rate<br/>(€)</th>
                           <th rowSpan={2} className="px-2 py-1.5 text-left border-r font-bold align-middle" style={{ minWidth: '50px' }}>Total<br/>PMs</th>
                           <th rowSpan={2} className="px-2 py-1.5 text-left border-r font-bold align-middle" style={{ minWidth: '60px' }}><div className="leading-tight">A.</div><div className="leading-tight">Personnel costs (€)</div></th>
@@ -889,14 +923,20 @@ export function BudgetPortalSheet({
                                         className="h-6 w-6"
                                         onClick={() => row.isLocked ? unlockRow(row.id) : lockRow(row.id)}
                                       >
-                                        {row.isLocked ? <Lock className="w-3 h-3 text-destructive" /> : <Unlock className="w-3 h-3 text-muted-foreground" />}
+                                        {row.isLocked ? <Lock className="w-3 h-3 text-destructive" /> : <Unlock className="w-3 h-3 text-green-600" />}
                                       </Button>
                                     )}
-                                    {canEdit && (
+                                    {canEdit && (!row.isLocked || isAdmin) && (
                                       <Button
                                         size="sm"
                                         className="h-5 px-2 text-[10px] font-semibold whitespace-nowrap"
-                                        onClick={() => setEditingParticipantId(row.participantId)}
+                                        onClick={() => {
+                                          if (row.isLocked && isAdmin) {
+                                            setLockedEditWarning({ participantId: row.participantId });
+                                          } else {
+                                            setEditingParticipantId(row.participantId);
+                                          }
+                                        }}
                                       >
                                         Edit
                                       </Button>
@@ -1002,6 +1042,29 @@ export function BudgetPortalSheet({
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Coordinator warning when editing a locked row */}
+      <AlertDialog open={!!lockedEditWarning} onOpenChange={(open) => { if (!open) setLockedEditWarning(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>This budget is locked</AlertDialogTitle>
+            <AlertDialogDescription>
+              This participant's budget has been locked. Editing may cause discrepancies with the agreed figures. Do you want to proceed?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              if (lockedEditWarning) {
+                setEditingParticipantId(lockedEditWarning.participantId);
+              }
+              setLockedEditWarning(null);
+            }}>
+              Proceed
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
