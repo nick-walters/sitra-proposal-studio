@@ -126,15 +126,12 @@ export function usePdfExport() {
             margin: [15, 15, 15, 15],
             autoPaging: 'text',
             html2canvas: {
-              scale: 2, // 2x resolution for crisp text
               useCORS: true,
               allowTaint: true,
               backgroundColor: '#ffffff',
               logging: false,
               scrollX: 0,
               scrollY: 0,
-              windowWidth: CONTAINER_WIDTH_PX,
-              windowHeight: container.scrollHeight || 900,
             },
           });
         });
