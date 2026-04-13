@@ -1272,10 +1272,7 @@ td.b12-case-cell {
   white-space: nowrap !important;
 }
 
-/* ── Inline reference bubbles (T, D, MS) – html2canvas-safe overrides ──
-   html2canvas does NOT support clip-path, CSS custom properties, or
-   ::before/::after pseudo-elements, so we flatten everything to simple
-   inline styles that it can capture. */
+/* ── Inline reference bubbles (T, D, MS) – ensure colors print correctly ── */
 
 .print-export-container .inline-ref {
   user-select: all !important;
@@ -1285,44 +1282,35 @@ td.b12-case-cell {
   font-size: 11pt !important;
   font-weight: 700 !important;
   line-height: 1 !important;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
 }
 
-/* Task bubble – blue outline pill (wp-color resolved via JS post-processing) */
+/* Task bubble – colored outline pill using WP color (var(--wp-color)) */
 .print-export-container .inline-ref-task {
   display: inline-flex !important;
   align-items: center !important;
   height: 17px !important;
   padding: 0 4px !important;
   border-radius: 9999px !important;
-  border: 1.5px solid #2563EB !important;
-  background: #ffffff !important;
-  color: #2563EB !important;
-  clip-path: none !important;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
 }
 
-/* Deliverable bubble – simplified to colored pill (no clip-path pennant) */
+/* Deliverable bubble – pennant shape */
 .print-export-container .inline-ref-deliverable {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
   height: 17px !important;
   padding: 0 5px !important;
-  border-radius: 4px 12px 12px 4px !important;
-  border: 1.5px solid #2563EB !important;
-  background: #ffffff !important;
-  color: #2563EB !important;
-  clip-path: none !important;
   position: relative !important;
   z-index: 0 !important;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
 }
 
-/* Kill the ::before pseudo-element that html2canvas can't render */
-.print-export-container .inline-ref-deliverable::before {
-  display: none !important;
-  content: none !important;
-}
-
-/* Milestone bubble – simplified to dark circle (no clip-path triangle) */
+/* Milestone bubble – dark shape */
 .print-export-container .inline-ref-milestone {
   display: inline-flex !important;
   align-items: center !important;
@@ -1330,12 +1318,8 @@ td.b12-case-cell {
   width: auto !important;
   min-width: 17px !important;
   height: 17px !important;
-  background: #000 !important;
-  color: #fff !important;
-  clip-path: none !important;
-  border-radius: 3px !important;
-  padding: 0 3px !important;
-  letter-spacing: normal !important;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
 }
 
 /* WP reference badges */
