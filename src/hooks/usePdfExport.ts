@@ -812,12 +812,14 @@ export function usePdfExport() {
         };
 
         // Helper: Extract inline formatting segments from an element
+        // Normalizes &nbsp; to regular spaces and inserts space segments for <br> tags
         const extractSegments = (el: HTMLElement): TextSegment[] => {
           const segments: TextSegment[] = [];
           
           const walk = (node: Node, bold: boolean, italic: boolean, underline: boolean, superscript: boolean) => {
             if (node.nodeType === Node.TEXT_NODE) {
-              const text = node.textContent || '';
+              // Normalize non-breaking spaces (\u00a0) to regular spaces
+              const text = (node.textContent || '').replace(/\u00a0/g, ' ');
               if (text) {
                 segments.push({ text, bold, italic, underline, superscript });
               }
@@ -827,6 +829,12 @@ export function usePdfExport() {
             
             const elem = node as HTMLElement;
             const tag = elem.tagName.toLowerCase();
+            
+            // <br> should act as a line/paragraph break - insert a space to prevent word merging
+            if (tag === 'br') {
+              segments.push({ text: ' ', bold: false, italic: false, underline: false, superscript: false });
+              return;
+            }
             
             let b = bold, it = italic, u = underline, sup = superscript;
             if (tag === 'strong' || tag === 'b') b = true;
