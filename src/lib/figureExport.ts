@@ -93,7 +93,7 @@ export async function exportPERTAsPptx(data: PERTExportData, filename: string) {
 
     slide.addText(
       [
-        { text: `WP${node.number}\n${node.shortName.length > 12 ? node.shortName.substring(0, 11) + '…' : node.shortName}`, options: { fontSize: 10, bold: false, color: fontColor } },
+        { text: `WP${node.number}\n${node.shortName}`, options: { fontSize: 10, bold: false, color: fontColor } },
       ],
       {
         shape: pptx.ShapeType.roundRect,
