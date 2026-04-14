@@ -664,8 +664,8 @@ export function GanttChartFigure({
                             shapeW = msDiamondSize;
                             shapeH = msDiamondSize;
                             svgPath = isRight
-                              ? `M ${shapeW},0 L 0,${shapeH / 2} L ${shapeW},${shapeH} Z`
-                              : `M ${shapeW},${shapeH / 2} L 0,0 L 0,${shapeH} Z`;
+                              ? `M ${shapeW},${shapeH / 2} L 0,0 L 0,${shapeH} Z`
+                              : `M ${shapeW},0 L 0,${shapeH / 2} L ${shapeW},${shapeH} Z`;
                           } else {
                             shapeW = b.width;
                             shapeH = bH;
@@ -707,7 +707,7 @@ export function GanttChartFigure({
                                     style={{
                                       position: 'absolute',
                                       top: isMs ? -1 : -0.5,
-                                      left: isMs ? (isRight ? Math.round(shapeW * 0.3) : -1) : (isRight ? (isDel ? 1 : 0) : pointDepth),
+                                      left: isMs ? (isRight ? -1 : Math.round(shapeW * 0.3)) : (isRight ? (isDel ? 1 : 0) : pointDepth),
                                       width: isMs ? (isRight ? Math.round(shapeW * 0.7) : Math.round(shapeW * 0.7)) : b.bodyW,
                                       height: shapeH,
                                       display: 'flex',
