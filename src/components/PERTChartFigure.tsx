@@ -369,7 +369,7 @@ export function PERTChartFigure({
                       </text>
                       {node.shortName && (
                         <text x={42} y={27} textAnchor="middle" fill="#FFFFFF" fontSize="10" opacity={0.9}>
-                          {node.shortName.length > 10 ? node.shortName.substring(0, 9) + '…' : node.shortName}
+                          {node.shortName}
                         </text>
                       )}
                     </g>
