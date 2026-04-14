@@ -1,19 +1,11 @@
-import html2canvas from 'html2canvas';
 import PptxGenJS from 'pptxgenjs';
+import { exportElementAsPng } from './domExport';
 
 /**
  * Export a DOM element as a PNG image download.
  */
 export async function exportAsPng(element: HTMLElement, filename: string) {
-  const canvas = await html2canvas(element, {
-    backgroundColor: '#ffffff',
-    scale: 2,
-    useCORS: true,
-  });
-  const link = document.createElement('a');
-  link.download = `${filename}.png`;
-  link.href = canvas.toDataURL('image/png');
-  link.click();
+  await exportElementAsPng(element, filename);
 }
 
 // ========== PERT Chart Native Export ==========
