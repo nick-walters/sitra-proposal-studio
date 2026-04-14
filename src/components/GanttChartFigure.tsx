@@ -451,7 +451,7 @@ export function GanttChartFigure({
                       left: 0,
                       right: 0,
                       borderRadius: `${ROW_HEIGHT / 2}px 0 0 ${ROW_HEIGHT / 2}px`,
-                      clipPath: `polygon(0% 0%, calc(100% - ${ROW_HEIGHT * 0.375}px) 0%, 100% 50%, calc(100% - ${ROW_HEIGHT * 0.375}px) 100%, 0% 100%)`,
+                      clipPath: `polygon(0% 0%, calc(100% - 12.5px) 0%, 100% 50%, calc(100% - 12.5px) 100%, 0% 100%)`,
                     }}
                   >
                     WP{wp.number}: {wp.shortName || ''}{wp.shortName && wp.title ? ' – ' : ''}{wp.title || ''}
