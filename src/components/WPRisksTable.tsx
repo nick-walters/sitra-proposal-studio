@@ -5,7 +5,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
-import { AlertTriangle, Plus, Trash2, GripVertical, ChevronsUpDown } from 'lucide-react';
+import { AlertTriangle, Plus, GripVertical, ChevronsUpDown } from 'lucide-react';
+import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { getDefaultWPColor } from '@/lib/wpColors';
 import type { WPDraftRisk } from '@/hooks/useWPDrafts';
 import {
@@ -287,14 +288,10 @@ function SortableRiskCard({
           disabled={readOnly}
         />
         {!readOnly && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6 text-destructive hover:text-destructive/80 flex-shrink-0 mt-0.5"
-            onClick={() => onDelete(risk.id)}
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
+          <DeleteConfirmDialog
+            itemLabel="this risk"
+            onConfirm={() => onDelete(risk.id)}
+          />
         )}
       </div>
 

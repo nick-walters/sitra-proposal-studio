@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Package, Plus, Trash2, GripVertical, ArrowRight } from 'lucide-react';
+import { Package, Plus, GripVertical, ArrowRight } from 'lucide-react';
+import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { SingleMonthPicker } from '@/components/SingleMonthPicker';
 import {
   DropdownMenu,
@@ -260,14 +261,10 @@ function SortableDeliverableCard({
           disabled={readOnly}
         />
         {!readOnly && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6 text-destructive hover:text-destructive flex-shrink-0"
-            onClick={() => onDelete(deliverable.id)}
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
+          <DeleteConfirmDialog
+            itemLabel="this deliverable"
+            onConfirm={() => onDelete(deliverable.id)}
+          />
         )}
       </div>
 

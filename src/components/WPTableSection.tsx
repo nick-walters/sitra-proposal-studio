@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { Target, Plus, Trash2, GripVertical, ArrowRight, Crown } from 'lucide-react';
+import { Target, Plus, GripVertical, ArrowRight, Crown } from 'lucide-react';
+import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -315,14 +316,10 @@ function SortableTaskCard({
           disabled={readOnly}
         />
         {!readOnly && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6 text-destructive hover:text-destructive flex-shrink-0"
-            onClick={() => onDelete(task.id)}
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
+          <DeleteConfirmDialog
+            itemLabel="this task"
+            onConfirm={() => onDelete(task.id)}
+          />
         )}
       </div>
 

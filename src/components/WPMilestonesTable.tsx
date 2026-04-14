@@ -2,7 +2,8 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Flag, Plus, Trash2, GripVertical, ChevronsUpDown } from 'lucide-react';
+import { Flag, Plus, GripVertical, ChevronsUpDown } from 'lucide-react';
+import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SingleMonthPicker } from '@/components/SingleMonthPicker';
 import { getDefaultWPColor } from '@/lib/wpColors';
@@ -252,14 +253,10 @@ function SortableMilestoneCard({
           disabled={readOnly}
         />
         {!readOnly && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6 text-destructive hover:text-destructive flex-shrink-0"
-            onClick={() => onDelete(milestone.id)}
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
+          <DeleteConfirmDialog
+            itemLabel="this milestone"
+            onConfirm={() => onDelete(milestone.id)}
+          />
         )}
       </div>
 
