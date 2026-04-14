@@ -1,6 +1,6 @@
 import html2canvas from 'html2canvas';
 
-const PNG_EXPORT_SCALE = 2;
+const PNG_EXPORT_SCALE = 4;
 
 function waitForNextPaint() {
   return new Promise<void>((resolve) => {

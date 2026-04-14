@@ -330,7 +330,7 @@ export function PERTChartFigure({
       )}
 
       <TooltipProvider>
-        <div ref={chartRef} className={canEdit ? "border rounded-lg bg-background overflow-auto" : "overflow-auto"}>
+        <div ref={chartRef} className={canEdit ? "border rounded-lg bg-white overflow-auto" : "bg-white overflow-auto"}>
           <svg
             ref={svgRef}
             width={canEdit ? svgWidth : '18cm'}
