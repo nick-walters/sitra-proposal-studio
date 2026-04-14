@@ -26,7 +26,8 @@ import {
 } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, ChevronDown, GripVertical, ArrowUpDown, Columns3 } from 'lucide-react';
+import { Plus, ChevronDown, GripVertical, ArrowUpDown, Columns3 } from 'lucide-react';
+import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
