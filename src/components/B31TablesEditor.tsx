@@ -646,14 +646,12 @@ function SortableTableRow({
               className="absolute top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-10"
               style={{ right: '-24px' }}
             >
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-5 w-5 text-destructive hover:text-destructive hover:bg-destructive/10"
-                onClick={onDelete}
-              >
-                <Trash2 className="h-3 w-3" />
-              </Button>
+              <DeleteConfirmDialog
+                itemLabel="this row"
+                onConfirm={() => onDelete?.()}
+                buttonClassName="h-5 w-5 text-destructive hover:text-destructive hover:bg-destructive/10"
+                iconSize="h-3 w-3"
+              />
             </div>
           </>
         ),
