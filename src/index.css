@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Prevent Mac two-finger swipe browser back/forward navigation */
+html, body {
+  overscroll-behavior-x: none;
+}
+
 /* Horizon Europe Table Styles - Auto-fit columns */
 /* These must come AFTER Tailwind directives to ensure they take precedence */
 .he-table {
