@@ -664,8 +664,8 @@ export function GanttChartFigure({
                             shapeW = msDiamondSize;
                             shapeH = msDiamondSize;
                             svgPath = isRight
-                              ? `M ${shapeW},0 L 0,${shapeH / 2} L ${shapeW},${shapeH} Z`
-                              : `M ${shapeW},${shapeH / 2} L 0,0 L 0,${shapeH} Z`;
+                              ? `M ${shapeW},${shapeH / 2} L 0,0 L 0,${shapeH} Z`
+                              : `M ${shapeW},0 L 0,${shapeH / 2} L ${shapeW},${shapeH} Z`;
                           } else {
                             shapeW = b.width;
                             shapeH = bH;
