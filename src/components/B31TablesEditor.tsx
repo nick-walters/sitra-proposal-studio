@@ -690,7 +690,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
   const { colWidths, setColWidths, tableRef, handleColResizeStart, saveWidths } = useColumnResize({ proposalId, tableKey: 'deliverables', canResize: isAdminOrOwner });
   
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
