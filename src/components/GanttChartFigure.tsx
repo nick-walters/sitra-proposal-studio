@@ -435,11 +435,24 @@ export function GanttChartFigure({
                   <div style={{ height: 2 }} aria-hidden="true" />
                 )}
 
-                {/* WP Header Row - full width bubble extending to margin */}
+                {/* WP Header Row - full width bubble with left rounded, right triangle */}
                 <div className="flex relative" style={{ height: ROW_HEIGHT }}>
                   <div 
-                    className="absolute flex items-center font-bold text-white truncate rounded-full"
-                    style={{ backgroundColor: wpColor, border: `1.5px solid ${wpColor}`, fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, padding: '0 6px', pointerEvents: 'none', top: 0, bottom: 0, left: 0, right: 0 }}
+                    className="absolute flex items-center font-bold text-white truncate"
+                    style={{
+                      backgroundColor: wpColor,
+                      fontFamily: "'Times New Roman', Times, serif",
+                      fontSize: '11pt',
+                      fontWeight: 700,
+                      padding: '0 12px 0 6px',
+                      pointerEvents: 'none',
+                      top: 0,
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      borderRadius: `${ROW_HEIGHT / 2}px 0 0 ${ROW_HEIGHT / 2}px`,
+                      clipPath: `polygon(0% 0%, calc(100% - ${ROW_HEIGHT / 2}px) 0%, 100% 50%, calc(100% - ${ROW_HEIGHT / 2}px) 100%, 0% 100%)`,
+                    }}
                   >
                     WP{wp.number}: {wp.shortName || ''}{wp.shortName && wp.title ? ' – ' : ''}{wp.title || ''}
                   </div>
