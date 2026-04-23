@@ -10,7 +10,8 @@ import {
   Shield,
   ChevronRight,
   Lock,
-  MessageSquare
+  MessageSquare,
+  Brain
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -108,6 +109,37 @@ export function BackendAdmin() {
                   <span className="text-primary">
                     {isOwner ? 'Owner' : 'Admin'} access granted
                   </span>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
+          {/* Evaluation Configuration - Owners only */}
+          <Link to="/admin/evaluation-config" className={!isOwner ? 'pointer-events-none' : ''}>
+            <Card className={`h-full transition-all hover:shadow-md ${!isOwner ? 'opacity-50' : 'hover:border-primary cursor-pointer'}`}>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="p-3 bg-purple-500/10 rounded-lg">
+                    <Brain className="w-6 h-6 text-purple-600" />
+                  </div>
+                  {isOwner ? (
+                    <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                  ) : (
+                    <Lock className="w-5 h-5 text-muted-foreground" />
+                  )}
+                </div>
+                <CardTitle className="mt-4">Evaluation Configuration</CardTitle>
+                <CardDescription>
+                  Manage instrument types, evaluation criteria, evaluator personas, and AI model settings
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm text-muted-foreground">
+                  {isOwner ? (
+                    <span className="text-primary">Owner access granted</span>
+                  ) : (
+                    <span>Requires Owner role</span>
+                  )}
                 </div>
               </CardContent>
             </Card>
