@@ -242,8 +242,18 @@ Return JSON array only.`;
       callAnthropic(ANTHROPIC_API_KEY, assemblyModel, assemblySystem, assemblyUser, 1500),
     ]);
 
-    const eligibilityFlags = extractJson(eligibilityRes.text);
+    const eligibilityFlagsRaw = extractJson(eligibilityRes.text);
     const proposedPanel = extractJson(assemblyRes.text);
+
+    // Server-side filter: drop inapplicable checks defensively
+    const eligibilityFlags = (Array.isArray(eligibilityFlagsRaw) ? eligibilityFlagsRaw : []).filter(
+      (f: any) => {
+        const name = String(f?.check || "").toUpperCase();
+        if (!isStage1 && name.includes("BLIND")) return false;
+        if (!isLumpSum && (name.includes("LUMP") || (name.includes("BUDGET") && name.includes("COMPLETE")))) return false;
+        return true;
+      },
+    );
 
     return new Response(
       JSON.stringify({
