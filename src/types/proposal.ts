@@ -228,6 +228,7 @@ export interface Proposal {
   fstpBudgetPerThirdParty?: string;
   reportingPeriods?: { number: number; startMonth: number; endMonth: number }[];
   acronymSegments?: { text: string; color: string }[];
+  evaluationCriteriaNotes?: string;
 }
 
 export interface Participant {
