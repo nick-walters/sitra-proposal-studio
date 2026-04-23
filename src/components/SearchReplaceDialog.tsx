@@ -22,8 +22,8 @@ import {
   X,
   GripHorizontal,
 } from 'lucide-react';
-import { Decoration, DecorationSet } from 'prosemirror-view';
-import { Plugin, PluginKey } from 'prosemirror-state';
+import { Decoration, DecorationSet } from '@tiptap/pm/view';
+import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { createPortal } from 'react-dom';
 
 const searchPluginKey = new PluginKey('searchHighlight');
