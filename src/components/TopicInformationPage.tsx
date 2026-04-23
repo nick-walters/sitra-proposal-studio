@@ -21,7 +21,7 @@ import { TopicFormattingToolbar } from "./TopicFormattingToolbar";
 import { StickyToolbarWrapper } from "./StickyToolbarWrapper";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Target, Euro, Calendar as CalendarIcon, ExternalLink, FileText, FileDown, CheckCircle2, RefreshCw, Pencil, Save, X } from "lucide-react";
+import { Loader2, Target, Euro, Calendar as CalendarIcon, ExternalLink, FileText, FileDown, CheckCircle2, RefreshCw, Pencil, Save, X, ClipboardList } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -788,6 +788,50 @@ export function TopicInformationPage({
             {renderRichTextField('destination', null, 'topicDestinationDescription', 'No destination description available', true)}
           </CardContent>
         </Card>
+
+        {/* Evaluation Notes Card — coordinators only */}
+        {isCoordinator && (
+          <Card>
+            <CardHeader className="pb-2 pt-4">
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <ClipboardList className="w-4 h-4" />
+                Evaluation notes
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {userCanEdit && editedProposal ? (
+                <>
+                  <Label htmlFor="eval-notes" className="text-xs text-muted-foreground">
+                    Topic-specific evaluation criteria or additional context for evaluators
+                  </Label>
+                  <textarea
+                    id="eval-notes"
+                    value={(editedProposal as any).evaluationCriteriaNotes || ''}
+                    onChange={(e) =>
+                      setEditedProposal({
+                        ...editedProposal,
+                        evaluationCriteriaNotes: e.target.value,
+                      } as any)
+                    }
+                    rows={5}
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    placeholder="e.g. The topic emphasises citizen co-creation; evaluators should pay particular attention to participatory methodology in WP2..."
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Use this field to note any specific aspects of this topic that evaluators
+                    should consider — for example, unusual scope requirements, topic-specific
+                    evaluation priorities, or context that is not obvious from the proposal text.
+                    This is injected into every evaluator's prompt when running a panel evaluation.
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                  {(proposal as any)?.evaluationCriteriaNotes || 'No evaluation notes added'}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
