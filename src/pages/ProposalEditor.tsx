@@ -27,6 +27,7 @@ import { ProposalMessagingBoard } from "@/components/ProposalMessagingBoard";
 import { ProposalTaskAllocator } from "@/components/ProposalTaskAllocator";
 import { ProposalProgressTracker } from "@/components/ProposalProgressTracker";
 import { WorkloadDashboard } from "@/components/WorkloadDashboard";
+import { PanelEvaluator } from "@/components/PanelEvaluator";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -549,7 +550,7 @@ export function ProposalEditor() {
                 Export part B
               </Button>
             </div>
-            {/* PanelEvaluator component will be added here in Part 2 */}
+            {isCoordinator && <PanelEvaluator proposalId={id || ''} />}
           </div>
         </div>
       );
