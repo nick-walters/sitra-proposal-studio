@@ -321,8 +321,16 @@ ${c.scoring_descriptors}`;
         ? "\n\nFOR LUMP SUM: This is a lump sum proposal. The entire project budget has been agreed as a fixed amount rather than actual costs. Assess whether the proposed lump sum is realistic and well-justified by the budget breakdown provided. Include specific commentary on this under Implementation."
         : "";
 
+    const budgetTypeLabel =
+      budgetType === "lump_sum" ? "Lump sum" : budgetType === "traditional" ? "Actual cost" : "n/a";
+
     const specialExceptions = instrumentMeta.special_exceptions?.trim()
       ? `\n\nSPECIAL EVALUATION RULES FOR THIS INSTRUMENT:\n${instrumentMeta.special_exceptions}`
+      : "";
+
+    const evaluationCriteriaNotes = (proposal.evaluation_criteria_notes || "").trim();
+    const topicSpecificContext = evaluationCriteriaNotes
+      ? `\n\nTOPIC-SPECIFIC CONTEXT FROM THE PROPOSAL TEAM:\n${evaluationCriteriaNotes}`
       : "";
 
     // ---- Evaluator agents (parallel) ----
@@ -374,7 +382,7 @@ PROPOSAL STAGE: ${stageKey === "stage1" ? "Stage 1 of 2" : "Full proposal"}
 
 ${stageContext}
 
-BUDGET TYPE: ${budgetType || "n/a"}${budgetContext}
+BUDGET TYPE: ${budgetTypeLabel}${budgetContext}
 
 ---
 
@@ -404,7 +412,7 @@ NON-SYCOPHANCY RULES — MANDATORY:
 - Do not soften weaknesses with hedging language. State weaknesses directly.
 - Do not repeat the same weakness across criteria.
 - A well-written proposal is not the same as a strong proposal.
-- Generic praise without specific reference to the proposal content is not acceptable.${specialExceptions}
+- Generic praise without specific reference to the proposal content is not acceptable.${specialExceptions}${topicSpecificContext}
 
 ---
 
@@ -430,7 +438,7 @@ ${fullProposalOutputBlock}`;
           evaluationModel,
           systemBlocks,
           "Evaluate the proposal above according to your instructions. Respond with the JSON object only.",
-          8000,
+          16000,
           true,
         ).then((r) => ({ persona: ev, raw: r.text, usage: r.usage }));
       },
