@@ -27,7 +27,7 @@ import { ProposalMessagingBoard } from "@/components/ProposalMessagingBoard";
 import { ProposalTaskAllocator } from "@/components/ProposalTaskAllocator";
 import { ProposalProgressTracker } from "@/components/ProposalProgressTracker";
 import { WorkloadDashboard } from "@/components/WorkloadDashboard";
-import { ProposalAnalyser } from "@/components/ProposalAnalyser";
+
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -549,7 +549,7 @@ export function ProposalEditor() {
                 Export part B
               </Button>
             </div>
-            <ProposalAnalyser proposalId={id || ''} />
+            {/* PanelEvaluator component will be added here in Part 2 */}
           </div>
         </div>
       );
