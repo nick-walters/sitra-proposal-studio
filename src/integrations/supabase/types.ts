@@ -14,36 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      ai_platform_config: {
-        Row: {
-          display_name: string | null
-          id: string
-          key: string
-          notes: string | null
-          updated_at: string | null
-          updated_by: string | null
-          value: string
-        }
-        Insert: {
-          display_name?: string | null
-          id?: string
-          key: string
-          notes?: string | null
-          updated_at?: string | null
-          updated_by?: string | null
-          value: string
-        }
-        Update: {
-          display_name?: string | null
-          id?: string
-          key?: string
-          notes?: string | null
-          updated_at?: string | null
-          updated_by?: string | null
-          value?: string
-        }
-        Relationships: []
-      }
       b12_ongoing_project_participants: {
         Row: {
           id: string
@@ -1543,136 +1513,6 @@ export type Database = {
           },
         ]
       }
-      evaluation_cost_log: {
-        Row: {
-          budget_type: string | null
-          cost_eur: number | null
-          cost_usd: number | null
-          created_at: string | null
-          evaluation_id: string | null
-          id: string
-          instrument_code: string | null
-          proposal_stage: string | null
-        }
-        Insert: {
-          budget_type?: string | null
-          cost_eur?: number | null
-          cost_usd?: number | null
-          created_at?: string | null
-          evaluation_id?: string | null
-          id?: string
-          instrument_code?: string | null
-          proposal_stage?: string | null
-        }
-        Update: {
-          budget_type?: string | null
-          cost_eur?: number | null
-          cost_usd?: number | null
-          created_at?: string | null
-          evaluation_id?: string | null
-          id?: string
-          instrument_code?: string | null
-          proposal_stage?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "evaluation_cost_log_evaluation_id_fkey"
-            columns: ["evaluation_id"]
-            isOneToOne: false
-            referencedRelation: "proposal_analyses"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      evaluation_criteria: {
-        Row: {
-          applicable_stages: string[]
-          criterion_name: string
-          criterion_order: number
-          id: string
-          instrument_id: string | null
-          notes: string | null
-          scoring_descriptors: string
-          sub_criteria: string
-          threshold_full: number | null
-          threshold_stage1: number | null
-          updated_at: string | null
-          updated_by: string | null
-          weighting: number | null
-        }
-        Insert: {
-          applicable_stages: string[]
-          criterion_name: string
-          criterion_order: number
-          id?: string
-          instrument_id?: string | null
-          notes?: string | null
-          scoring_descriptors: string
-          sub_criteria: string
-          threshold_full?: number | null
-          threshold_stage1?: number | null
-          updated_at?: string | null
-          updated_by?: string | null
-          weighting?: number | null
-        }
-        Update: {
-          applicable_stages?: string[]
-          criterion_name?: string
-          criterion_order?: number
-          id?: string
-          instrument_id?: string | null
-          notes?: string | null
-          scoring_descriptors?: string
-          sub_criteria?: string
-          threshold_full?: number | null
-          threshold_stage1?: number | null
-          updated_at?: string | null
-          updated_by?: string | null
-          weighting?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "evaluation_criteria_instrument_id_fkey"
-            columns: ["instrument_id"]
-            isOneToOne: false
-            referencedRelation: "instrument_types"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      evaluator_personas: {
-        Row: {
-          active: boolean | null
-          brief: string
-          created_at: string | null
-          created_by: string | null
-          id: string
-          name: string
-          persona_number: number
-          thematic_area: string | null
-        }
-        Insert: {
-          active?: boolean | null
-          brief: string
-          created_at?: string | null
-          created_by?: string | null
-          id?: string
-          name: string
-          persona_number?: number
-          thematic_area?: string | null
-        }
-        Update: {
-          active?: boolean | null
-          brief?: string
-          created_at?: string | null
-          created_by?: string | null
-          id?: string
-          name?: string
-          persona_number?: number
-          thematic_area?: string | null
-        }
-        Relationships: []
-      }
       feedback: {
         Row: {
           ai_analysis: string | null
@@ -1934,60 +1774,6 @@ export type Database = {
           name?: string
           priority?: number
           updated_at?: string
-        }
-        Relationships: []
-      }
-      instrument_types: {
-        Row: {
-          active: boolean | null
-          code: string
-          created_at: string | null
-          has_lump_sum: boolean | null
-          has_stage1: boolean | null
-          id: string
-          impact_weighting: number | null
-          name: string
-          notes: string | null
-          page_limit_lump_sum: number | null
-          page_limit_traditional: number | null
-          special_exceptions: string | null
-          stage1_page_limit: number | null
-          updated_at: string | null
-          updated_by: string | null
-        }
-        Insert: {
-          active?: boolean | null
-          code: string
-          created_at?: string | null
-          has_lump_sum?: boolean | null
-          has_stage1?: boolean | null
-          id?: string
-          impact_weighting?: number | null
-          name: string
-          notes?: string | null
-          page_limit_lump_sum?: number | null
-          page_limit_traditional?: number | null
-          special_exceptions?: string | null
-          stage1_page_limit?: number | null
-          updated_at?: string | null
-          updated_by?: string | null
-        }
-        Update: {
-          active?: boolean | null
-          code?: string
-          created_at?: string | null
-          has_lump_sum?: boolean | null
-          has_stage1?: boolean | null
-          id?: string
-          impact_weighting?: number | null
-          name?: string
-          notes?: string | null
-          page_limit_lump_sum?: number | null
-          page_limit_traditional?: number | null
-          special_exceptions?: string | null
-          stage1_page_limit?: number | null
-          updated_at?: string | null
-          updated_by?: string | null
         }
         Relationships: []
       }
@@ -2935,87 +2721,29 @@ export type Database = {
       proposal_analyses: {
         Row: {
           analysis_data: Json
-          budget_type_used: string | null
-          cost_eur: number | null
-          cost_usd: number | null
           created_at: string
           created_by: string
-          eligibility_flags: Json | null
-          evaluators_selected: Json | null
-          excellence_score: number | null
           id: string
-          impact_score_raw: number | null
-          impact_score_weighted: number | null
-          implementation_score: number | null
-          instrument_id: string | null
-          model_used: string | null
           overall_score: number | null
           proposal_id: string
-          proposal_stage: string | null
-          tokens_cached: number | null
-          tokens_input: number | null
-          tokens_output: number | null
-          total_score_unweighted: number | null
-          total_score_weighted: number | null
         }
         Insert: {
           analysis_data: Json
-          budget_type_used?: string | null
-          cost_eur?: number | null
-          cost_usd?: number | null
           created_at?: string
           created_by: string
-          eligibility_flags?: Json | null
-          evaluators_selected?: Json | null
-          excellence_score?: number | null
           id?: string
-          impact_score_raw?: number | null
-          impact_score_weighted?: number | null
-          implementation_score?: number | null
-          instrument_id?: string | null
-          model_used?: string | null
           overall_score?: number | null
           proposal_id: string
-          proposal_stage?: string | null
-          tokens_cached?: number | null
-          tokens_input?: number | null
-          tokens_output?: number | null
-          total_score_unweighted?: number | null
-          total_score_weighted?: number | null
         }
         Update: {
           analysis_data?: Json
-          budget_type_used?: string | null
-          cost_eur?: number | null
-          cost_usd?: number | null
           created_at?: string
           created_by?: string
-          eligibility_flags?: Json | null
-          evaluators_selected?: Json | null
-          excellence_score?: number | null
           id?: string
-          impact_score_raw?: number | null
-          impact_score_weighted?: number | null
-          implementation_score?: number | null
-          instrument_id?: string | null
-          model_used?: string | null
           overall_score?: number | null
           proposal_id?: string
-          proposal_stage?: string | null
-          tokens_cached?: number | null
-          tokens_input?: number | null
-          tokens_output?: number | null
-          total_score_unweighted?: number | null
-          total_score_weighted?: number | null
         }
         Relationships: [
-          {
-            foreignKeyName: "proposal_analyses_instrument_id_fkey"
-            columns: ["instrument_id"]
-            isOneToOne: false
-            referencedRelation: "instrument_types"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "proposal_analyses_proposal_id_fkey"
             columns: ["proposal_id"]

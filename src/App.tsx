@@ -14,7 +14,6 @@ import { TemplateAdmin } from "./pages/admin/TemplateAdmin";
 import { UserRightsAdmin } from "./pages/admin/UserRightsAdmin";
 import { InitialSetup } from "./pages/admin/InitialSetup";
 import { FeedbackAdmin } from "./pages/admin/FeedbackAdmin";
-import { EvaluationConfigAdmin } from "./pages/admin/EvaluationConfigAdmin";
 import { Feedback } from "./pages/Feedback";
 import NotFound from "./pages/NotFound";
 
@@ -60,7 +59,6 @@ const App = () => {
             <Route path="/admin/user-rights" element={<ProtectedRoute><UserRightsAdmin /></ProtectedRoute>} />
             <Route path="/admin/setup" element={<ProtectedRoute><InitialSetup /></ProtectedRoute>} />
             <Route path="/admin/feedback" element={<ProtectedRoute><FeedbackAdmin /></ProtectedRoute>} />
-            <Route path="/admin/evaluation-config" element={<ProtectedRoute><EvaluationConfigAdmin /></ProtectedRoute>} />
             <Route path="/feedback" element={<ProtectedRoute><Feedback /></ProtectedRoute>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

@@ -1,7 +1,7 @@
 import { Extension, Mark, mergeAttributes } from '@tiptap/core';
-import { Plugin, PluginKey, TextSelection } from '@tiptap/pm/state';
-import { Decoration, DecorationSet } from '@tiptap/pm/view';
-import { Mark as PMMark, Fragment } from '@tiptap/pm/model';
+import { Plugin, PluginKey, TextSelection } from 'prosemirror-state';
+import { Decoration, DecorationSet } from 'prosemirror-view';
+import { Mark as PMMark, Fragment } from 'prosemirror-model';
 
 export interface TrackChange {
   id: string;
