@@ -156,63 +156,51 @@ export const TableFormula = Extension.create<TableFormulaOptions>({
     return [
       new Plugin({
         key: tableFormulaPluginKey,
-        
-        state: {
-          init: () => DecorationSet.empty,
-          apply: (tr, decorationSet, oldState, newState) => {
-            const decorations: Decoration[] = [];
-            
-            // Find all tables and evaluate formulas
-            newState.doc.descendants((node, pos) => {
-              if (node.type.name === 'table') {
-                const tableData = getTableData(node);
-                
-                // Find cells with formulas
-                let cellIndex = 0;
-                node.content.forEach((row, rowOffset, rowIndex) => {
-                  row.content.forEach((cell, cellOffset, colIndex) => {
-                    let cellText = '';
-                    cell.content.forEach((p) => {
-                      if (p.isText) {
-                        cellText += p.text;
-                      } else if (p.content) {
-                        p.content.forEach((child) => {
-                          if (child.isText) {
-                            cellText += child.text;
-                          }
-                        });
-                      }
-                    });
-                    
-                    const trimmedText = cellText.trim();
-                    if (trimmedText.startsWith('=')) {
-                      const result = evaluateFormula(trimmedText, tableData);
-                      const cellPos = pos + rowOffset + cellOffset + 1;
-                      
-                      // Add a widget decoration to show the result
-                      decorations.push(
-                        Decoration.widget(cellPos + cell.nodeSize - 1, () => {
-                          const span = document.createElement('span');
-                          span.className = 'formula-result';
-                          span.style.cssText = 'color: hsl(var(--muted-foreground)); font-size: 10px; margin-left: 4px;';
-                          span.textContent = `= ${result}`;
-                          return span;
-                        })
-                      );
-                    }
-                    cellIndex++;
-                  });
-                });
-              }
-            });
-            
-            return DecorationSet.create(newState.doc, decorations);
-          },
-        },
-        
+
         props: {
           decorations(state) {
-            return this.getState(state);
+            const decorations: Decoration[] = [];
+            const docSize = state.doc.content.size;
+
+            state.doc.descendants((node, pos) => {
+              if (node.type.name !== 'table') return;
+              const tableData = getTableData(node);
+
+              node.content.forEach((row, rowOffset) => {
+                row.content.forEach((cell, cellOffset) => {
+                  let cellText = '';
+                  cell.content.forEach((p) => {
+                    if (p.isText) {
+                      cellText += p.text;
+                    } else if (p.content) {
+                      p.content.forEach((child) => {
+                        if (child.isText) cellText += child.text;
+                      });
+                    }
+                  });
+
+                  const trimmedText = cellText.trim();
+                  if (!trimmedText.startsWith('=')) return;
+
+                  const result = evaluateFormula(trimmedText, tableData);
+                  // pos = position before table; +1 enters table; +rowOffset to row; +1 enters row; +cellOffset to cell; +cell.nodeSize-1 = inside end of cell
+                  const widgetPos = pos + 1 + rowOffset + 1 + cellOffset + cell.nodeSize - 1;
+                  if (widgetPos < 0 || widgetPos > docSize) return;
+
+                  decorations.push(
+                    Decoration.widget(widgetPos, () => {
+                      const span = document.createElement('span');
+                      span.className = 'formula-result';
+                      span.style.cssText = 'color: hsl(var(--muted-foreground)); font-size: 10px; margin-left: 4px;';
+                      span.textContent = `= ${result}`;
+                      return span;
+                    }, { side: 1 })
+                  );
+                });
+              });
+            });
+
+            return decorations.length ? DecorationSet.create(state.doc, decorations) : DecorationSet.empty;
           },
         },
       }),
