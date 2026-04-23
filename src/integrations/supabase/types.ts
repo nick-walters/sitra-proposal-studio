@@ -3509,6 +3509,7 @@ export type Database = {
           destination: string | null
           destination_footnotes: Json | null
           duration: number | null
+          evaluation_criteria_notes: string | null
           expected_projects: string | null
           fstp_budget: string | null
           fstp_budget_per_third_party: string | null
@@ -3565,6 +3566,7 @@ export type Database = {
           destination?: string | null
           destination_footnotes?: Json | null
           duration?: number | null
+          evaluation_criteria_notes?: string | null
           expected_projects?: string | null
           fstp_budget?: string | null
           fstp_budget_per_third_party?: string | null
@@ -3621,6 +3623,7 @@ export type Database = {
           destination?: string | null
           destination_footnotes?: Json | null
           duration?: number | null
+          evaluation_criteria_notes?: string | null
           expected_projects?: string | null
           fstp_budget?: string | null
           fstp_budget_per_third_party?: string | null
