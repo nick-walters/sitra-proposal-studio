@@ -516,7 +516,7 @@ SYNTHESIS RULES:
 - Do not inflate scores or soften criticism to appear balanced. The ESR must reflect the honest consensus of the panel.
 
 SCORING CALIBRATION:
-Most competitive proposals score 3.0–4.0 per criterion. A score of 5 is rare. Ensure the consensus scores accurately reflect the evaluator reports — do not round up generously.${specialExceptions}
+Most competitive proposals score 3.0–4.0 per criterion. A score of 5 is rare. Ensure the consensus scores accurately reflect the evaluator reports — do not round up generously.${specialExceptions}${topicSpecificContext}
 
 CONSENSUS SCORES YOU MUST USE (already computed):
 - Excellence: ${excellenceMean}/5
@@ -533,7 +533,7 @@ OUTPUT: Structured markdown ESR following the exact template provided. Use the c
 **Proposal:** ${proposal.acronym} — ${proposal.title}
 **Call:** ${proposal.work_programme || "n/a"} | **Topic:** ${proposal.topic_id || "n/a"}
 **Instrument:** ${instrument.name} | **Stage:** ${stageKey === "stage1" ? "Stage 1 of 2" : "Full proposal"}
-**Budget type:** ${budgetType === "lump_sum" ? "Lump sum" : "Traditional (actual cost)"}
+**Budget type:** ${budgetTypeLabel}
 **Date:** ${dateStr} | **Model:** ${evaluationModel}
 
 ### PANEL COMPOSITION
