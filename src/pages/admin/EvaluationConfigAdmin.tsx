@@ -309,7 +309,7 @@ function InstrumentTypesTab() {
                       </TableCell>
                     </TableRow>
                     {expandedId === row.id && (
-                      <TableRow key={`${row.id}-detail`}>
+                      <TableRow>
                         <TableCell colSpan={8} className="bg-muted/30">
                           <div className="space-y-4 py-2">
                             <div>
@@ -341,7 +341,7 @@ function InstrumentTypesTab() {
                         </TableCell>
                       </TableRow>
                     )}
-                  </>
+                  </FragmentRow>
                 ))}
               </TableBody>
             </Table>
