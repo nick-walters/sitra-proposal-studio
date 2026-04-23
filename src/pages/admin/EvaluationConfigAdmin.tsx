@@ -277,7 +277,7 @@ function InstrumentTypesTab() {
               </TableHeader>
               <TableBody>
                 {rows.map((row) => (
-                  <>
+                  <FragmentRow key={row.id}>
                     <TableRow key={row.id}>
                       <TableCell>
                         <Button
