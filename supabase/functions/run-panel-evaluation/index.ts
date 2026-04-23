@@ -46,7 +46,11 @@ async function callAnthropicWithCache(
     messages: [{ role: "user", content: userPrompt }],
   };
   if (enableThinking) {
-    body.thinking = { type: "enabled", budget_tokens: 4000 };
+    // Newer Anthropic models (e.g. opus-4-7) require adaptive thinking.
+    // Use adaptive + output_config.effort, with a generous max_tokens (>= 16000)
+    // and budget_tokens that is strictly less than max_tokens.
+    body.thinking = { type: "adaptive", budget_tokens: 10000 };
+    body.output_config = { effort: "medium" };
   }
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -59,8 +63,38 @@ async function callAnthropicWithCache(
     body: JSON.stringify(body),
   });
   if (!res.ok) {
-    const t = await res.text();
-    throw new Error(`Anthropic ${res.status}: ${t}`);
+    const errorBody = await res.text();
+    console.error(`Anthropic API error ${res.status} (model=${model}, thinking=${enableThinking}, max_tokens=${maxTokens}):`, errorBody);
+    // Fallback: if adaptive thinking is rejected, retry once without thinking
+    if (enableThinking && res.status === 400 && /thinking/i.test(errorBody)) {
+      console.warn("Retrying Anthropic call without extended thinking...");
+      const fallbackBody = { ...body };
+      delete fallbackBody.thinking;
+      delete fallbackBody.output_config;
+      const retry = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+          "anthropic-beta": "prompt-caching-2024-07-31",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify(fallbackBody),
+      });
+      if (!retry.ok) {
+        const retryErr = await retry.text();
+        console.error(`Anthropic retry failed ${retry.status}:`, retryErr);
+        throw new Error(`Anthropic ${retry.status}: ${retryErr}`);
+      }
+      const retryData = await retry.json();
+      const retryText =
+        (retryData?.content || [])
+          .filter((b: any) => b.type === "text")
+          .map((b: any) => b.text)
+          .join("\n") || "";
+      return { text: retryText, usage: retryData?.usage || {} };
+    }
+    throw new Error(`Anthropic ${res.status}: ${errorBody}`);
   }
   const data = await res.json();
   // Extract text from non-thinking blocks
@@ -287,8 +321,16 @@ ${c.scoring_descriptors}`;
         ? "\n\nFOR LUMP SUM: This is a lump sum proposal. The entire project budget has been agreed as a fixed amount rather than actual costs. Assess whether the proposed lump sum is realistic and well-justified by the budget breakdown provided. Include specific commentary on this under Implementation."
         : "";
 
+    const budgetTypeLabel =
+      budgetType === "lump_sum" ? "Lump sum" : budgetType === "traditional" ? "Actual cost" : "n/a";
+
     const specialExceptions = instrumentMeta.special_exceptions?.trim()
       ? `\n\nSPECIAL EVALUATION RULES FOR THIS INSTRUMENT:\n${instrumentMeta.special_exceptions}`
+      : "";
+
+    const evaluationCriteriaNotes = (proposal.evaluation_criteria_notes || "").trim();
+    const topicSpecificContext = evaluationCriteriaNotes
+      ? `\n\nTOPIC-SPECIFIC CONTEXT FROM THE PROPOSAL TEAM:\n${evaluationCriteriaNotes}`
       : "";
 
     // ---- Evaluator agents (parallel) ----
@@ -340,7 +382,7 @@ PROPOSAL STAGE: ${stageKey === "stage1" ? "Stage 1 of 2" : "Full proposal"}
 
 ${stageContext}
 
-BUDGET TYPE: ${budgetType || "n/a"}${budgetContext}
+BUDGET TYPE: ${budgetTypeLabel}${budgetContext}
 
 ---
 
@@ -370,7 +412,7 @@ NON-SYCOPHANCY RULES — MANDATORY:
 - Do not soften weaknesses with hedging language. State weaknesses directly.
 - Do not repeat the same weakness across criteria.
 - A well-written proposal is not the same as a strong proposal.
-- Generic praise without specific reference to the proposal content is not acceptable.${specialExceptions}
+- Generic praise without specific reference to the proposal content is not acceptable.${specialExceptions}${topicSpecificContext}
 
 ---
 
@@ -396,7 +438,7 @@ ${fullProposalOutputBlock}`;
           evaluationModel,
           systemBlocks,
           "Evaluate the proposal above according to your instructions. Respond with the JSON object only.",
-          8000,
+          16000,
           true,
         ).then((r) => ({ persona: ev, raw: r.text, usage: r.usage }));
       },
@@ -474,7 +516,7 @@ SYNTHESIS RULES:
 - Do not inflate scores or soften criticism to appear balanced. The ESR must reflect the honest consensus of the panel.
 
 SCORING CALIBRATION:
-Most competitive proposals score 3.0–4.0 per criterion. A score of 5 is rare. Ensure the consensus scores accurately reflect the evaluator reports — do not round up generously.${specialExceptions}
+Most competitive proposals score 3.0–4.0 per criterion. A score of 5 is rare. Ensure the consensus scores accurately reflect the evaluator reports — do not round up generously.${specialExceptions}${topicSpecificContext}
 
 CONSENSUS SCORES YOU MUST USE (already computed):
 - Excellence: ${excellenceMean}/5
@@ -491,7 +533,7 @@ OUTPUT: Structured markdown ESR following the exact template provided. Use the c
 **Proposal:** ${proposal.acronym} — ${proposal.title}
 **Call:** ${proposal.work_programme || "n/a"} | **Topic:** ${proposal.topic_id || "n/a"}
 **Instrument:** ${instrument.name} | **Stage:** ${stageKey === "stage1" ? "Stage 1 of 2" : "Full proposal"}
-**Budget type:** ${budgetType === "lump_sum" ? "Lump sum" : "Traditional (actual cost)"}
+**Budget type:** ${budgetTypeLabel}
 **Date:** ${dateStr} | **Model:** ${evaluationModel}
 
 ### PANEL COMPOSITION

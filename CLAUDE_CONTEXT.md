@@ -30,6 +30,7 @@ https://raw.githubusercontent.com/nick-walters/sitra-proposal-studio/main/src/pa
 https://raw.githubusercontent.com/nick-walters/sitra-proposal-studio/main/src/pages/admin/UserRightsAdmin.tsx
 https://raw.githubusercontent.com/nick-walters/sitra-proposal-studio/main/src/pages/admin/FeedbackAdmin.tsx
 https://raw.githubusercontent.com/nick-walters/sitra-proposal-studio/main/src/pages/admin/InitialSetup.tsx
+https://raw.githubusercontent.com/nick-walters/sitra-proposal-studio/main/src/pages/admin/EvaluationConfigAdmin.tsx
 
 ## HOOKS
 
@@ -79,6 +80,7 @@ https://raw.githubusercontent.com/nick-walters/sitra-proposal-studio/main/src/ho
 ## KEY COMPONENTS
 
 https://raw.githubusercontent.com/nick-walters/sitra-proposal-studio/main/src/components/ProposalAnalyser.tsx
+https://raw.githubusercontent.com/nick-walters/sitra-proposal-studio/main/src/components/PanelEvaluator.tsx
 https://raw.githubusercontent.com/nick-walters/sitra-proposal-studio/main/src/components/DocumentEditor.tsx
 https://raw.githubusercontent.com/nick-walters/sitra-proposal-studio/main/src/components/GeneralInfoForm.tsx
 https://raw.githubusercontent.com/nick-walters/sitra-proposal-studio/main/src/components/BudgetPortalSheet.tsx
@@ -139,6 +141,9 @@ https://raw.githubusercontent.com/nick-walters/sitra-proposal-studio/main/src/li
 ## EDGE FUNCTIONS
 
 https://raw.githubusercontent.com/nick-walters/sitra-proposal-studio/main/supabase/functions/analyse-proposal/index.ts
+https://raw.githubusercontent.com/nick-walters/sitra-proposal-studio/main/supabase/functions/propose-evaluation-panel/index.ts
+https://raw.githubusercontent.com/nick-walters/sitra-proposal-studio/main/supabase/functions/run-panel-evaluation/index.ts
+https://raw.githubusercontent.com/nick-walters/sitra-proposal-studio/main/supabase/functions/generate-persona/index.ts
 https://raw.githubusercontent.com/nick-walters/sitra-proposal-studio/main/supabase/functions/writing-assistant/index.ts
 https://raw.githubusercontent.com/nick-walters/sitra-proposal-studio/main/supabase/functions/analyse-consortium/index.ts
 https://raw.githubusercontent.com/nick-walters/sitra-proposal-studio/main/supabase/functions/analyse-feedback/index.ts

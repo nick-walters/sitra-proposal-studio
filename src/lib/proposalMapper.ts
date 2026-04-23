@@ -80,6 +80,7 @@ const PROPOSAL_FIELD_MAP: Record<string, FieldMapping> = {
   caseDraftsVisible:            { dbKey: 'case_drafts_visible', fromDb: defaultTrue },
   reportingPeriods:             { dbKey: 'reporting_periods', fromDb: orUndefined },
   acronymSegments:              { dbKey: 'acronym_segments', fromDb: orUndefined },
+  evaluationCriteriaNotes:      { dbKey: 'evaluation_criteria_notes', fromDb: orUndefined },
 };
 
 /**

@@ -105,8 +105,10 @@ export function PanelEvaluator({ proposalId }: Props) {
   const [proposal, setProposal] = useState<any>(null);
   const [instruments, setInstruments] = useState<InstrumentType[]>([]);
   const [instrumentCode, setInstrumentCode] = useState<string>("");
+  const [instrumentOverride, setInstrumentOverride] = useState(false);
   const [proposalStage, setProposalStage] = useState<"full" | "stage1">("full");
   const [budgetType, setBudgetType] = useState<"traditional" | "lump_sum">("traditional");
+  const [budgetOverride, setBudgetOverride] = useState(false);
 
   const [history, setHistory] = useState<AnalysisRow[]>([]);
   const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
@@ -424,17 +426,80 @@ export function PanelEvaluator({ proposalId }: Props) {
       <Card>
         <CardContent className="pt-6 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Instrument: auto-detected with Override toggle */}
             <div className="space-y-2">
               <Label>Instrument type</Label>
-              <Select value={instrumentCode} onValueChange={setInstrumentCode} disabled={stage !== "idle"}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {instruments.map((i) => (
-                    <SelectItem key={i.id} value={i.code}>{i.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {!instrumentOverride ? (
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="font-medium">
+                    {selectedInstrument?.name || instrumentCode?.toUpperCase() || "—"}
+                  </span>
+                  {stage === "idle" && (
+                    <button
+                      type="button"
+                      onClick={() => setInstrumentOverride(true)}
+                      className="text-xs text-primary hover:underline"
+                    >
+                      Override ▾
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <Select
+                  value={instrumentCode}
+                  onValueChange={setInstrumentCode}
+                  disabled={stage !== "idle"}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {instruments.map((i) => (
+                      <SelectItem key={i.id} value={i.code}>{i.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
+
+            {/* Budget type: auto-detected with Override toggle */}
+            {proposalStage !== "stage1" && (
+              <div className="space-y-2">
+                <Label>Budget type</Label>
+                {!budgetOverride ? (
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="font-medium">
+                      {budgetType === "lump_sum" ? "Lump sum" : "Actual cost"}
+                    </span>
+                    {stage === "idle" && (
+                      <button
+                        type="button"
+                        onClick={() => setBudgetOverride(true)}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        Override ▾
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <RadioGroup
+                    value={budgetType}
+                    onValueChange={(v) => setBudgetType(v as "traditional" | "lump_sum")}
+                    disabled={stage !== "idle"}
+                    className="flex gap-4"
+                  >
+                    <div className="flex items-center gap-2">
+                      <RadioGroupItem value="traditional" id="bt-trad" />
+                      <Label htmlFor="bt-trad" className="font-normal cursor-pointer">Actual cost</Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <RadioGroupItem value="lump_sum" id="bt-ls" />
+                      <Label htmlFor="bt-ls" className="font-normal cursor-pointer">Lump sum</Label>
+                    </div>
+                  </RadioGroup>
+                )}
+              </div>
+            )}
+
+            {/* Stage selector remains visible (distinct choice) */}
             {showStage && (
               <div className="space-y-2">
                 <Label>Stage</Label>
@@ -451,26 +516,6 @@ export function PanelEvaluator({ proposalId }: Props) {
                   <div className="flex items-center gap-2">
                     <RadioGroupItem value="stage1" id="stage-1" />
                     <Label htmlFor="stage-1" className="font-normal cursor-pointer">Stage 1</Label>
-                  </div>
-                </RadioGroup>
-              </div>
-            )}
-            {proposalStage !== "stage1" && (
-              <div className="space-y-2">
-                <Label>Budget type</Label>
-                <RadioGroup
-                  value={budgetType}
-                  onValueChange={(v) => setBudgetType(v as "traditional" | "lump_sum")}
-                  disabled={stage !== "idle"}
-                  className="flex gap-4"
-                >
-                  <div className="flex items-center gap-2">
-                    <RadioGroupItem value="traditional" id="bt-trad" />
-                    <Label htmlFor="bt-trad" className="font-normal cursor-pointer">Traditional</Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <RadioGroupItem value="lump_sum" id="bt-ls" />
-                    <Label htmlFor="bt-ls" className="font-normal cursor-pointer">Lump sum</Label>
                   </div>
                 </RadioGroup>
               </div>

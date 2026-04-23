@@ -159,6 +159,12 @@ serve(async (req) => {
     const countries = new Set(participants.map((p: any) => p.country).filter(Boolean));
     const sectionList = sections.map((s: any) => `- ${s.section_id}: ${stripHtml(s.content).slice(0, 200)}`).join("\n");
 
+    // Map budgetType code → display label
+    const budgetTypeLabel =
+      budgetType === "lump_sum" ? "Lump sum" : budgetType === "traditional" ? "Actual cost" : "n/a";
+    const isStage1 = proposalStage === "stage1";
+    const isLumpSum = budgetType === "lump_sum";
+
     // ---- 0a Eligibility ----
     const eligibilitySystem = `You are a European Commission Programme Officer conducting an admissibility pre-check. Flag compliance issues as advisory warnings only — they do not prevent the proposal from proceeding to evaluation.
 
@@ -169,9 +175,13 @@ CHECKS:
 2. PAGE LENGTH: Compare estimated page count (word count ÷ 250) against the page limit for this instrument and budget type.
 3. BLIND EVALUATION (Stage 1 only): Check Part B for identifying references to the consortium.
 4. MANDATORY SECTIONS: Check that Part B has content in all required sections for this stage.
-5. BUDGET COMPLETENESS: For lump sum full proposals, flag if no budget breakdown present.
+5. BUDGET COMPLETENESS (Lump sum only): For lump sum full proposals, flag if no budget breakdown present.
 6. DURATION: Flag if missing, under 12 months, or over 72 months.
 7. SCOPE: Brief opinion on whether proposal appears broadly in scope based on topic description.
+
+IMPORTANT: Only include checks that are applicable to this proposal configuration.
+- Check 3 (BLIND EVALUATION): Only include if proposalStage = 'stage1'. Omit entirely for full proposals.
+- Check 5 (BUDGET COMPLETENESS / LUMP SUM): Only include if budgetType = 'lump_sum'. Omit entirely for actual cost proposals.
 
 Output ONLY valid JSON. No preamble.`;
 
@@ -179,8 +189,8 @@ Output ONLY valid JSON. No preamble.`;
 - Acronym: ${proposal.acronym}
 - Title: ${proposal.title}
 - Instrument: ${instrument.name} (${instrument.code})
-- Stage: ${proposalStage}
-- Budget type: ${budgetType || "n/a"}
+- Stage: ${proposalStage} ${isStage1 ? "(Stage 1 — INCLUDE blind evaluation check)" : "(Full proposal — OMIT blind evaluation check)"}
+- Budget type: ${budgetTypeLabel} ${isLumpSum ? "(Lump sum — INCLUDE budget completeness check)" : "(Actual cost — OMIT lump sum budget completeness check)"}
 - Duration (months): ${proposal.duration ?? "missing"}
 - Topic: ${proposal.topic_id || proposal.work_programme || "missing"}
 - Topic URL: ${proposal.topic_url || "missing"}
@@ -232,8 +242,18 @@ Return JSON array only.`;
       callAnthropic(ANTHROPIC_API_KEY, assemblyModel, assemblySystem, assemblyUser, 1500),
     ]);
 
-    const eligibilityFlags = extractJson(eligibilityRes.text);
+    const eligibilityFlagsRaw = extractJson(eligibilityRes.text);
     const proposedPanel = extractJson(assemblyRes.text);
+
+    // Server-side filter: drop inapplicable checks defensively
+    const eligibilityFlags = (Array.isArray(eligibilityFlagsRaw) ? eligibilityFlagsRaw : []).filter(
+      (f: any) => {
+        const name = String(f?.check || "").toUpperCase();
+        if (!isStage1 && name.includes("BLIND")) return false;
+        if (!isLumpSum && (name.includes("LUMP") || (name.includes("BUDGET") && name.includes("COMPLETE")))) return false;
+        return true;
+      },
+    );
 
     return new Response(
       JSON.stringify({
