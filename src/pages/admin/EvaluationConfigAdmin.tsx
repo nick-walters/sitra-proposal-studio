@@ -81,11 +81,10 @@ type AiConfig = {
 };
 
 const THEMATIC_AREAS = [
-  "Democracy and Trust",
-  "Data and AI",
-  "Health and Wellbeing",
   "Circular Economy",
-  "Cross-cutting",
+  "Data & AI",
+  "Democracy & Trust",
+  "Health & Wellbeing",
 ];
 
 const DEFAULT_SCORING_DESCRIPTORS = `0 = Fails to address criterion or cannot be assessed due to missing/incomplete information

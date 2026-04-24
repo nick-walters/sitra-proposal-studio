@@ -144,10 +144,12 @@ serve(async (req) => {
     const eligibilityModel = configMap.eligibility_model || "claude-haiku-4-5-20251001";
     const assemblyModel = configMap.assembly_model || "claude-haiku-4-5-20251001";
 
-    // Estimate page count
+    // Estimate page count using platform formula (500 words/page + 1 front-matter page)
+    const WORDS_PER_PAGE = 500;
+    const FRONT_MATTER_PAGES = 1;
     const allText = sections.map((s: any) => stripHtml(s.content)).join(" ");
     const wordCount = allText.split(/\s+/).filter(Boolean).length;
-    const estimatedPages = Math.round(wordCount / 250);
+    const estimatedPages = Math.ceil(wordCount / WORDS_PER_PAGE) + FRONT_MATTER_PAGES;
 
     const pageLimit =
       proposalStage === "stage1"
