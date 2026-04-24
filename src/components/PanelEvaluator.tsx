@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Sparkles, Plus, AlertTriangle, CheckCircle2, XCircle, Info } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useProposalRole } from "@/hooks/useProposalRole";
 import {
   LineChart,
   Line,
