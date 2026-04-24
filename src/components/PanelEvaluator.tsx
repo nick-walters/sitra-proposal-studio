@@ -757,9 +757,22 @@ export function PanelEvaluator({ proposalId }: Props) {
                         </span>
                       </button>
                       <div className="flex items-center gap-2 shrink-0">
-                        <Badge variant="outline">
-                          Total: {h.total_score_unweighted ?? h.overall_score ?? "—"}
-                        </Badge>
+                        {(() => {
+                          const inst = instruments.find((i) => i.id === h.instrument_id);
+                          const weighting = inst?.impact_weighting ?? 1;
+                          const isStage1 = h.proposal_stage === "stage1";
+                          const max = isStage1 ? 10 : 5 + 5 * weighting + 5;
+                          const score = weighting !== 1
+                            ? (h.total_score_weighted ?? h.overall_score)
+                            : (h.total_score_unweighted ?? h.overall_score);
+                          const scoreLabel = score == null ? "—" : Number(score).toFixed(1).replace(/\.0$/, "");
+                          const maxLabel = Number(max).toFixed(1).replace(/\.0$/, "");
+                          return (
+                            <Badge variant="outline">
+                              {scoreLabel}/{maxLabel}
+                            </Badge>
+                          );
+                        })()}
                         <Button
                           variant="ghost"
                           size="icon"
