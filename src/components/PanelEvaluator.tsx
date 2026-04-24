@@ -790,7 +790,11 @@ export function PanelEvaluator({ proposalId }: Props) {
                     </div>
                     {isOpen && (
                       <div className="p-3 border-t">
-                        <EsrRenderer markdown={h.analysis_data?.esr_markdown || "(no ESR available)"} />
+                        <EsrRenderer
+                          markdown={h.analysis_data?.esr_markdown || "(no ESR available)"}
+                          acronym={proposal?.acronym}
+                          createdAt={h.created_at}
+                        />
                       </div>
                     )}
                   </div>
