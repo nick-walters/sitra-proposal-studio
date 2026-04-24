@@ -180,12 +180,12 @@ export function PanelEvaluator({ proposalId }: Props) {
       setRunningStatus(status);
       setRunningMessage(progressMessage);
 
-      if (status === "queued" || status === "running") {
+      if (status === "queued" || status === "running" || status === "processing") {
         const { error } = await supabase.functions.invoke("run-panel-evaluation", {
           body: { action: "evaluate", evaluationId },
         });
         if (error) {
-          toast.error(`Evaluation failed to start: ${error.message || error}`);
+          toast.error(`Evaluation failed to resume: ${error.message || error}`);
         }
         return;
       }
