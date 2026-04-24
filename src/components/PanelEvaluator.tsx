@@ -764,7 +764,7 @@ export function PanelEvaluator({ proposalId }: Props) {
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7"
-                          title="Download ESR (Markdown)"
+                          title="Download ESR (PDF)"
                           onClick={(e) => {
                             e.stopPropagation();
                             downloadEsr(h);
