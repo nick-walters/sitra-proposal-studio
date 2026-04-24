@@ -861,61 +861,6 @@ export function PanelEvaluator({ proposalId }: Props) {
         </>
       )}
 
-      {/* ESR display */}
-      {activeAnalysis && stage !== "panelReview" && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-start justify-between flex-wrap gap-2">
-              <div>
-                <CardTitle className="text-base">Evaluation Summary Report</CardTitle>
-                <div className="text-xs text-muted-foreground mt-1">
-                  {new Date(activeAnalysis.created_at).toLocaleString()} ·{" "}
-                  Model: {activeAnalysis.model_used || "—"} ·{" "}
-                  {Array.isArray(activeAnalysis.evaluators_selected)
-                    ? `${activeAnalysis.evaluators_selected.length} evaluators`
-                    : ""}
-                </div>
-              </div>
-              <Badge variant="outline">
-                Total: {activeAnalysis.total_score_unweighted ?? activeAnalysis.overall_score ?? "—"}
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <pre className="whitespace-pre-wrap text-sm font-sans bg-muted/30 p-4 rounded border max-h-[700px] overflow-y-auto">
-              {activeAnalysis.analysis_data?.esr_markdown || "(no ESR available)"}
-            </pre>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Version history */}
-      {history.length > 0 && (
-        <Card>
-          <CardHeader><CardTitle className="text-base">Version history</CardTitle></CardHeader>
-          <CardContent>
-            <div className="space-y-1">
-              {[...history].reverse().map((h) => (
-                <button
-                  key={h.id}
-                  onClick={() => setSelectedHistoryId(h.id)}
-                  className={`w-full text-left flex items-center justify-between p-2 rounded text-sm hover:bg-muted/50 ${selectedHistoryId === h.id ? "bg-muted" : ""}`}
-                >
-                  <span>{new Date(h.created_at).toLocaleString()}</span>
-                  <span className="flex items-center gap-3">
-                    <Badge variant="outline" className="text-[10px]">
-                      {instruments.find((i) => i.id === h.instrument_id)?.name || "?"}
-                    </Badge>
-                    <span className="text-muted-foreground">
-                      Score: {h.total_score_unweighted ?? h.overall_score ?? "—"}
-                    </span>
-                  </span>
-                </button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Create persona dialog */}
       <Dialog open={createPersonaOpen} onOpenChange={(o) => { setCreatePersonaOpen(o); if (!o) { setGeneratedPersona(null); setPersonaDescription(""); } }}>
