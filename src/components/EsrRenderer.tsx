@@ -29,7 +29,7 @@ export function EsrRenderer({ markdown, acronym, createdAt }: Props) {
     >
       {acronym && (
         <div style={{ textAlign: "center", marginBottom: "16pt" }}>
-          <div style={{ fontSize: "14pt", fontWeight: 700 }}>{acronym} ESR</div>
+          <div style={{ fontSize: "14pt", fontWeight: 700 }}>{acronym} Evaluation Summary Report</div>
           {created && (
             <div style={{ fontSize: "11pt", fontWeight: 400, marginTop: "2pt" }}>
               {formatBritishDateTime(created)}
