@@ -1948,6 +1948,8 @@ export type Database = {
           impact_weighting: number | null
           name: string
           notes: string | null
+          overall_threshold_full: number | null
+          overall_threshold_stage1: number | null
           page_limit_lump_sum: number | null
           page_limit_traditional: number | null
           special_exceptions: string | null
@@ -1965,6 +1967,8 @@ export type Database = {
           impact_weighting?: number | null
           name: string
           notes?: string | null
+          overall_threshold_full?: number | null
+          overall_threshold_stage1?: number | null
           page_limit_lump_sum?: number | null
           page_limit_traditional?: number | null
           special_exceptions?: string | null
@@ -1982,6 +1986,8 @@ export type Database = {
           impact_weighting?: number | null
           name?: string
           notes?: string | null
+          overall_threshold_full?: number | null
+          overall_threshold_stage1?: number | null
           page_limit_lump_sum?: number | null
           page_limit_traditional?: number | null
           special_exceptions?: string | null
