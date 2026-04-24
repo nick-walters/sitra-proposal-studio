@@ -596,6 +596,7 @@ export function PanelEvaluator({ proposalId }: Props) {
           )}
         </CardContent>
       </Card>
+      )}
 
       {/* Evaluation Summary Reports — chart + most recent + previous in one card */}
       {history.length > 0 && stage !== "panelReview" && (
