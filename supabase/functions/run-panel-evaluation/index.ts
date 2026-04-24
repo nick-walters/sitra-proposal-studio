@@ -150,6 +150,7 @@ const EVALUATOR_MAX_TOKENS = 3200;
 const SYNTHESIS_MAX_TOKENS = 4200;
 const MAX_SECTION_CHARS = 2200;
 const MAX_TOTAL_SECTION_CHARS = 32000;
+const ACTIVE_STEP_STALE_MS = 180_000;
 
 function formatRetryDelay(retryAfterSeconds?: number) {
   const seconds = Math.max(30, Math.min(retryAfterSeconds ?? 60, 300));
@@ -176,6 +177,12 @@ function buildSectionDigest(sections: any[]) {
       return `### ${section.section_id}\n${excerpt}${truncated}`;
     })
     .join("\n\n");
+}
+
+function isRecentStepStart(value: unknown) {
+  if (typeof value !== "string") return false;
+  const started = Date.parse(value);
+  return Number.isFinite(started) && Date.now() - started < ACTIVE_STEP_STALE_MS;
 }
 
 interface EvaluatorSelection {
