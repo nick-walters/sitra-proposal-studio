@@ -725,7 +725,7 @@ export function GeneralInfoForm({
                 </div>
               </div>
 
-              <div className="flex-shrink-0 flex flex-col gap-3">
+              <div className="flex-shrink-0 flex flex-col self-stretch">
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Project logo</label>
                   <div className="flex gap-2 items-start">
@@ -748,8 +748,8 @@ export function GeneralInfoForm({
                     )}
                   </div>
                 </div>
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Duration in months</label>
+                <div className="mt-auto w-24">
+                  <label className="text-xs text-muted-foreground mb-0.5 block">Duration (months)</label>
                   {isEditing && editedProposal ? (
                     <Input
                       type="number"
@@ -760,12 +760,12 @@ export function GeneralInfoForm({
                         const val = e.target.value === '' ? undefined : Math.max(1, parseInt(e.target.value, 10) || 1);
                         setEditedProposal({ ...editedProposal, duration: val } as any);
                       }}
-                      className="h-8 text-sm w-32"
+                      className="h-8 text-sm w-full"
                       placeholder="e.g. 36"
                     />
                   ) : (
                     <p className="text-sm font-medium">
-                      {proposal?.duration ? `${proposal.duration} months` : 'Not set'}
+                      {proposal?.duration ? `${proposal.duration}` : 'Not set'}
                     </p>
                   )}
                 </div>
