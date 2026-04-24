@@ -106,12 +106,12 @@ export function exportEsrToPdf(opts: {
   const dateLine = formatBritishDateTime(created);
   let y = MARGIN;
 
-  // Title — Times Bold 14pt, centred.
-  setFont(pdf, true, false, 14);
+  // Title — Times Bold 16pt, centred.
+  setFont(pdf, true, false, 16);
   const titleLines = pdf.splitTextToSize(titleMain, CONTENT_W);
   for (const line of titleLines) {
-    pdf.text(line, PAGE_W / 2, y + 14 * PT_TO_MM, { align: "center" });
-    y += 14 * PT_TO_MM * 1.2;
+    pdf.text(line, PAGE_W / 2, y + 16 * PT_TO_MM, { align: "center" });
+    y += 16 * PT_TO_MM * 1.2;
   }
 
   // Date — Times Regular 11pt, centred, on its own line below the title.
