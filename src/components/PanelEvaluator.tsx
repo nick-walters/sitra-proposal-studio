@@ -644,105 +644,96 @@ export function PanelEvaluator({ proposalId }: Props) {
         </CardContent>
       </Card>
 
-      {/* Evaluation Summary Reports — most recent + previous in one list */}
+      {/* Evaluation Summary Reports — chart + most recent + previous in one card */}
       {history.length > 0 && stage !== "panelReview" && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Evaluation Summary Reports</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
-            {[...history].reverse().map((h) => {
-              const isOpen = selectedHistoryId === h.id;
-              return (
-                <div key={h.id} className="border rounded">
-                  <button
-                    onClick={() => setSelectedHistoryId(isOpen ? null : h.id)}
-                    className={cn(
-                      "w-full text-left flex items-center justify-between p-3 text-sm hover:bg-muted/50",
-                      isOpen && "bg-muted/40",
-                    )}
-                  >
-                    <span className="flex items-center gap-3">
-                      <span className="font-medium">
-                        {new Date(h.created_at).toLocaleString()}
+          <CardContent className="space-y-4">
+            {chartData.length >= 2 && (
+              <div className="h-32">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                    <YAxis domain={[0, yMax]} tick={{ fontSize: 10 }} width={28} />
+                    <RTooltip />
+                    <ReferenceLine
+                      y={overallThreshold}
+                      stroke="hsl(var(--destructive))"
+                      strokeDasharray="4 4"
+                      label={{ value: `Threshold ${overallThreshold}`, fontSize: 10 }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="score"
+                      stroke="hsl(var(--primary))"
+                      activeDot={{
+                        r: 6,
+                        onClick: (_e: any, payload: any) => {
+                          if (payload?.payload?.id) setSelectedHistoryId(payload.payload.id);
+                        },
+                      }}
+                      dot={(props: any) => {
+                        const v = props.payload.score;
+                        const color =
+                          v < overallThreshold
+                            ? "hsl(var(--destructive))"
+                            : v < overallThreshold + 1
+                            ? "hsl(38 92% 50%)"
+                            : "hsl(142 71% 45%)";
+                        return <Dot {...props} r={4} fill={color} stroke={color} />;
+                      }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+            <div className="space-y-2">
+              {[...history].reverse().map((h) => {
+                const isOpen = selectedHistoryId === h.id;
+                return (
+                  <div key={h.id} className="border rounded">
+                    <button
+                      onClick={() => setSelectedHistoryId(isOpen ? null : h.id)}
+                      className={cn(
+                        "w-full text-left flex items-center justify-between p-3 text-sm hover:bg-muted/50",
+                        isOpen && "bg-muted/40",
+                      )}
+                    >
+                      <span className="flex items-center gap-3">
+                        <span className="font-medium">
+                          {new Date(h.created_at).toLocaleString()}
+                        </span>
+                        <Badge variant="outline" className="text-[10px]">
+                          {instruments.find((i) => i.id === h.instrument_id)?.name || "?"}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">
+                          Model: {h.model_used || "—"} ·{" "}
+                          {Array.isArray(h.evaluators_selected)
+                            ? `${h.evaluators_selected.length} evaluators`
+                            : ""}
+                        </span>
                       </span>
-                      <Badge variant="outline" className="text-[10px]">
-                        {instruments.find((i) => i.id === h.instrument_id)?.name || "?"}
+                      <Badge variant="outline">
+                        Total: {h.total_score_unweighted ?? h.overall_score ?? "—"}
                       </Badge>
-                      <span className="text-xs text-muted-foreground">
-                        Model: {h.model_used || "—"} ·{" "}
-                        {Array.isArray(h.evaluators_selected)
-                          ? `${h.evaluators_selected.length} evaluators`
-                          : ""}
-                      </span>
-                    </span>
-                    <Badge variant="outline">
-                      Total: {h.total_score_unweighted ?? h.overall_score ?? "—"}
-                    </Badge>
-                  </button>
-                  {isOpen && (
-                    <div className="p-3 border-t">
-                      <pre className="whitespace-pre-wrap text-sm font-sans bg-muted/30 p-4 rounded border max-h-[700px] overflow-y-auto">
-                        {h.analysis_data?.esr_markdown || "(no ESR available)"}
-                      </pre>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+                    </button>
+                    {isOpen && (
+                      <div className="p-3 border-t">
+                        <pre className="whitespace-pre-wrap text-sm font-sans bg-muted/30 p-4 rounded border max-h-[700px] overflow-y-auto">
+                          {h.analysis_data?.esr_markdown || "(no ESR available)"}
+                        </pre>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </CardContent>
         </Card>
       )}
-
-      {/* Progress chart */}
-      <Card>
-        <CardHeader><CardTitle className="text-base">Score progression</CardTitle></CardHeader>
-        <CardContent>
-          {chartData.length < 2 ? (
-            <div className="text-sm text-muted-foreground py-8 text-center">
-              Run your first evaluation to track progress.
-            </div>
-          ) : (
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis domain={[0, yMax]} />
-                  <RTooltip />
-                  <ReferenceLine
-                    y={overallThreshold}
-                    stroke="hsl(var(--destructive))"
-                    strokeDasharray="4 4"
-                    label={{ value: `Threshold ${overallThreshold}`, fontSize: 11 }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="score"
-                    stroke="hsl(var(--primary))"
-                    activeDot={{
-                      r: 6,
-                      onClick: (_e: any, payload: any) => {
-                        if (payload?.payload?.id) setSelectedHistoryId(payload.payload.id);
-                      },
-                    }}
-                    dot={(props: any) => {
-                      const v = props.payload.score;
-                      const color =
-                        v < overallThreshold
-                          ? "hsl(var(--destructive))"
-                          : v < overallThreshold + 1
-                          ? "hsl(38 92% 50%)"
-                          : "hsl(142 71% 45%)";
-                      return <Dot {...props} r={5} fill={color} stroke={color} />;
-                    }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
       {/* Stage A results: panel review */}
       {stage === "panelReview" && (
