@@ -149,6 +149,209 @@ async function runWithConcurrency<T, R>(
   return results;
 }
 
+function normaliseSnippet(text: string | null | undefined): string {
+  return String(text || "")
+    .replace(/\s+/g, " ")
+    .replace(/^[\-•\d.)\s]+/, "")
+    .trim();
+}
+
+function toSentenceCandidates(text: string | null | undefined): string[] {
+  return normaliseSnippet(text)
+    .split(/(?<=[.!?])\s+|\n+/)
+    .map((sentence) => normaliseSnippet(sentence))
+    .filter((sentence) => sentence.length >= 24);
+}
+
+function dedupeSnippets(items: Array<string | null | undefined>, limit = 3): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+
+  for (const raw of items) {
+    const sentence = normaliseSnippet(raw);
+    if (!sentence) continue;
+    const key = sentence.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    result.push(/[.!?]$/.test(sentence) ? sentence : `${sentence}.`);
+    if (result.length >= limit) break;
+  }
+
+  return result;
+}
+
+function buildMinorityOpinion(
+  evaluations: Array<{ persona: { name: string }; data: Record<string, any> }>,
+  scoreKey: string,
+  meanScore: number | null,
+): string {
+  if (meanScore === null) return "No minority opinion recorded.";
+
+  const outliers = evaluations
+    .map((evaluation) => ({
+      name: evaluation.persona.name,
+      score: Number(evaluation.data?.[scoreKey]),
+      concern: normaliseSnippet(evaluation.data?.key_concern),
+    }))
+    .filter((item) => !Number.isNaN(item.score) && Math.abs(item.score - meanScore) > 1.0)
+    .sort((a, b) => Math.abs(b.score - meanScore) - Math.abs(a.score - meanScore));
+
+  if (outliers.length === 0) return "No minority opinion recorded.";
+
+  const lead = outliers[0];
+  const direction = lead.score > meanScore ? "more positive" : "more critical";
+  const concern = lead.concern ? ` ${lead.concern}` : "";
+  return `${lead.name} was notably ${direction} than the panel consensus (${lead.score.toFixed(1)} vs ${meanScore.toFixed(1)}) and placed particular emphasis on:${concern}`.trim();
+}
+
+function buildCriterionSection(
+  title: string,
+  score: number | null,
+  threshold: number | null,
+  commentsKey: string,
+  scoreKey: string,
+  evaluations: Array<{ persona: { name: string }; data: Record<string, any> }>,
+): string {
+  if (score === null) return "";
+
+  const commentSentences = dedupeSnippets(
+    evaluations.flatMap((evaluation) => toSentenceCandidates(evaluation.data?.[commentsKey])),
+    6,
+  );
+  const strengths = dedupeSnippets(
+    [
+      ...evaluations.map((evaluation) => evaluation.data?.key_strength),
+      ...commentSentences.filter((sentence) => !/(weak|lack|missing|unclear|underdeveloped|insufficient|incomplete|risk|concern|limited)/i.test(sentence)),
+    ],
+    3,
+  );
+  const weaknesses = dedupeSnippets(
+    [
+      ...evaluations.map((evaluation) => evaluation.data?.key_concern),
+      ...commentSentences.filter((sentence) => /(weak|lack|missing|unclear|underdeveloped|insufficient|incomplete|risk|concern|limited)/i.test(sentence)),
+    ],
+    4,
+  );
+
+  const consensusParts: string[] = [];
+  if (strengths[0]) consensusParts.push(`The panel considered the main strength to be ${strengths[0].charAt(0).toLowerCase()}${strengths[0].slice(1)}`);
+  if (weaknesses[0]) consensusParts.push(`The main weakness concerned ${weaknesses[0].charAt(0).toLowerCase()}${weaknesses[0].slice(1)}`);
+  const consensusParagraph = consensusParts.length > 0
+    ? consensusParts.join(" ")
+    : "The panel reached a stable consensus based on the evaluator reports received.";
+
+  return `### ${title} — ${score.toFixed(1)}/5${threshold !== null ? ` (threshold ${threshold}/5)` : ""}
+
+${consensusParagraph}
+
+**Strengths**
+${(strengths.length > 0 ? strengths : ["No specific strengths were captured in the evaluator output."]).map((item) => `- ${item}`).join("\n")}
+
+**Weaknesses**
+${(weaknesses.length > 0 ? weaknesses : ["No specific weaknesses were captured in the evaluator output."]).map((item) => `- ${item}`).join("\n")}
+
+**Minority opinion**
+- ${buildMinorityOpinion(evaluations, scoreKey, score)}`;
+}
+
+function buildEsrMarkdown(params: {
+  proposal: Record<string, any>;
+  instrument: Record<string, any>;
+  stageKey: string;
+  budgetTypeLabel: string;
+  evaluationModel: string;
+  parsedEvaluations: Array<{ persona: { name: string; brief: string }; data: Record<string, any> }>;
+  excellenceMean: number;
+  impactMean: number;
+  implMean: number | null;
+  impactWeighted: number;
+  impactWeighting: number;
+  totalUnweighted: number;
+  totalWeighted: number;
+  criteriaForRun: any[];
+}) {
+  const {
+    proposal,
+    instrument,
+    stageKey,
+    budgetTypeLabel,
+    evaluationModel,
+    parsedEvaluations,
+    excellenceMean,
+    impactMean,
+    implMean,
+    impactWeighted,
+    impactWeighting,
+    totalUnweighted,
+    totalWeighted,
+    criteriaForRun,
+  } = params;
+
+  const dateStr = new Date().toISOString().slice(0, 10);
+  const panelTable = parsedEvaluations
+    .map((evaluation, index) => `| ${index + 1} | ${evaluation.persona.name} | ${evaluation.persona.brief} |`)
+    .join("\n");
+  const overallStrengths = dedupeSnippets(parsedEvaluations.map((evaluation) => evaluation.data?.key_strength), 3);
+  const overallConcerns = dedupeSnippets(parsedEvaluations.map((evaluation) => evaluation.data?.key_concern), 3);
+  const overallComments = dedupeSnippets(parsedEvaluations.flatMap((evaluation) => toSentenceCandidates(evaluation.data?.overall_comments)), 3);
+  const resultLabel = stageKey === "stage1"
+    ? totalWeighted >= 8 ? "Above threshold" : "Below threshold"
+    : (excellenceMean >= 4 && impactMean >= 4 && (implMean || 0) >= 3) ? "Above threshold" : "Below threshold";
+
+  const findThreshold = (criterionName: string) => {
+    const criterion = criteriaForRun.find((item: any) =>
+      String(item.criterion_name || "").toLowerCase().includes(criterionName.toLowerCase())
+    );
+    if (!criterion) return null;
+    return stageKey === "stage1" ? Number(criterion.threshold_stage1 ?? null) : Number(criterion.threshold_full ?? null);
+  };
+
+  const sections = [
+    buildCriterionSection("Excellence", excellenceMean, findThreshold("excellence"), "excellence_comments", "excellence_score", parsedEvaluations),
+    buildCriterionSection("Impact", impactMean, findThreshold("impact"), "impact_comments", "impact_score", parsedEvaluations),
+    stageKey === "full"
+      ? buildCriterionSection("Implementation", implMean, findThreshold("implementation"), "implementation_comments", "implementation_score", parsedEvaluations)
+      : "",
+  ].filter(Boolean).join("\n\n---\n\n");
+
+  return `## Evaluation Summary Report
+*(Simulated — AI-generated for internal development purposes only)*
+
+**Proposal:** ${proposal.acronym} — ${proposal.title}
+**Call:** ${proposal.work_programme || "n/a"} | **Topic:** ${proposal.topic_id || "n/a"}
+**Instrument:** ${instrument.name} | **Stage:** ${stageKey === "stage1" ? "Stage 1 of 2" : "Full proposal"}
+**Budget type:** ${budgetTypeLabel}
+**Date:** ${dateStr} | **Panel model:** ${evaluationModel}
+
+### Panel composition
+| # | Evaluator | Specialism |
+|---|-----------|------------|
+${panelTable}
+
+### Consensus scores
+| Criterion | Consensus |
+|---|---:|
+| Excellence | ${excellenceMean.toFixed(1)} |
+| Impact | ${impactMean.toFixed(1)} |
+${stageKey === "full" ? `| Implementation | ${(implMean || 0).toFixed(1)} |\n` : ""}| Total unweighted | ${totalUnweighted.toFixed(1)} |
+${impactWeighting !== 1 ? `| Total weighted | ${totalWeighted.toFixed(1)} |\n| Impact weighting | ×${impactWeighting.toFixed(1)} |\n| Weighted impact | ${impactWeighted.toFixed(1)} |` : `| Total weighted | ${totalWeighted.toFixed(1)} |`}
+
+### Overall assessment
+${overallComments[0] || "The panel considered the proposal credible in parts but identified material weaknesses that affected the consensus outcome."}
+
+**Result:** ${resultLabel}
+
+**Key strengths**
+${(overallStrengths.length > 0 ? overallStrengths : ["No shared panel strength was extracted from the evaluator reports."]).map((item) => `- ${item}`).join("\n")}
+
+**Key concerns**
+${(overallConcerns.length > 0 ? overallConcerns : ["No shared panel concern was extracted from the evaluator reports."]).map((item) => `- ${item}`).join("\n")}
+
+---
+
+${sections}`;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
