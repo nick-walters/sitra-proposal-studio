@@ -391,6 +391,7 @@ async function runEvaluatorPhase(serviceClient: any, evaluationId: string) {
     evaluator_input_tokens: Number(savedUsage.evaluator_input_tokens || 0),
     evaluator_output_tokens: Number(savedUsage.evaluator_output_tokens || 0),
     evaluator_cached_tokens: Number(savedUsage.evaluator_cached_tokens || 0),
+    evaluator_cache_write_tokens: Number(savedUsage.evaluator_cache_write_tokens || 0),
   };
 
   const evaluationModel = configMap.evaluation_model || "claude-opus-4-5-20250929";
@@ -698,6 +699,8 @@ ${fullProposalOutputBlock}`;
     evaluator_input_tokens: usageTotals.evaluator_input_tokens + Number(result.usage?.input_tokens || 0),
     evaluator_output_tokens: usageTotals.evaluator_output_tokens + Number(result.usage?.output_tokens || 0),
     evaluator_cached_tokens: usageTotals.evaluator_cached_tokens + Number(result.usage?.cache_read_input_tokens || 0),
+    evaluator_cache_write_tokens:
+      usageTotals.evaluator_cache_write_tokens + Number(result.usage?.cache_creation_input_tokens || 0),
   };
 
   if (nextEvaluations.length < selectedEvaluators.length) {
@@ -781,9 +784,10 @@ async function runSynthesisPhase(serviceClient: any, evaluationId: string) {
     : "";
 
   const evaluationModel = synthesisContext.evaluation_model || configMap.evaluation_model || "claude-opus-4-5-20250929";
-  const opusInPrice = parseFloat(configMap.opus_price_input_per_mtok || "5.00");
-  const opusOutPrice = parseFloat(configMap.opus_price_output_per_mtok || "25.00");
+  const opusInPrice = parseFloat(configMap.opus_price_input_per_mtok || "15.00");
+  const opusOutPrice = parseFloat(configMap.opus_price_output_per_mtok || "75.00");
   const cacheReadMul = parseFloat(configMap.cache_read_multiplier || "0.10");
+  const cacheWriteMul = parseFloat(configMap.cache_write_multiplier || "1.25");
   const usdEurRate = parseFloat(configMap.usd_eur_rate || "0.92");
 
   const topicSpecificContext = (proposal.evaluation_criteria_notes || "").trim()
@@ -918,14 +922,37 @@ Produce the full ESR markdown using the four-section structure defined in your s
     ].join("\n");
   }
 
-  const evaluatorUsage = synthesisContext.token_usage || {};
-  const totalInputTokens = Number(evaluatorUsage.evaluator_input_tokens || 0) + Number(synthesisUsage?.input_tokens || 0);
-  const totalOutputTokens = Number(evaluatorUsage.evaluator_output_tokens || 0) + Number(synthesisUsage?.output_tokens || 0);
-  const totalCachedTokens = Number(evaluatorUsage.evaluator_cached_tokens || 0) + Number(synthesisUsage?.cache_read_input_tokens || 0);
-  const effectiveInput = totalInputTokens + totalCachedTokens * cacheReadMul;
+  const evaluatorUsage = analysisData.token_usage || synthesisContext.token_usage || {};
+  const totalInputTokens =
+    Number(evaluatorUsage.evaluator_input_tokens || 0) + Number(synthesisUsage?.input_tokens || 0);
+  const totalOutputTokens =
+    Number(evaluatorUsage.evaluator_output_tokens || 0) + Number(synthesisUsage?.output_tokens || 0);
+  const totalCachedTokens =
+    Number(evaluatorUsage.evaluator_cached_tokens || 0) + Number(synthesisUsage?.cache_read_input_tokens || 0);
+  const totalCacheWriteTokens =
+    Number(evaluatorUsage.evaluator_cache_write_tokens || 0) +
+    Number(synthesisUsage?.cache_creation_input_tokens || 0);
+
+  const effectiveInput =
+    totalInputTokens + totalCachedTokens * cacheReadMul + totalCacheWriteTokens * cacheWriteMul;
   const costUsd =
     (effectiveInput * opusInPrice) / 1_000_000 + (totalOutputTokens * opusOutPrice) / 1_000_000;
   const costEur = costUsd * usdEurRate;
+
+  const costBreakdown = {
+    model: evaluationModel,
+    input_tokens: totalInputTokens,
+    output_tokens: totalOutputTokens,
+    cache_read_tokens: totalCachedTokens,
+    cache_write_tokens: totalCacheWriteTokens,
+    price_in_per_mtok_usd: opusInPrice,
+    price_out_per_mtok_usd: opusOutPrice,
+    cache_read_multiplier: cacheReadMul,
+    cache_write_multiplier: cacheWriteMul,
+    usd_eur_rate: usdEurRate,
+    cost_usd: costUsd,
+    cost_eur: costEur,
+  };
 
   await serviceClient
     .from("proposal_analyses")
@@ -941,6 +968,7 @@ Produce the full ESR markdown using the four-section structure defined in your s
       analysis_data: {
         ...analysisData,
         esr_markdown: esrMarkdown,
+        cost_breakdown: costBreakdown,
         active_step_started_at: null,
         progress_message: "Complete",
       },
