@@ -300,12 +300,23 @@ Return JSON array only.`;
     const eligibilityFlagsRaw = extractJson(eligibilityRes.text);
     const proposedPanel = extractJson(assemblyRes.text);
 
-    // Server-side filter: drop inapplicable checks defensively
+    // Server-side filter: drop inapplicable / out-of-scope checks defensively
     const eligibilityFlags = (Array.isArray(eligibilityFlagsRaw) ? eligibilityFlagsRaw : []).filter(
       (f: any) => {
         const name = String(f?.check || "").toUpperCase();
+        const note = String(f?.note || "").toUpperCase();
         if (!isStage1 && name.includes("BLIND")) return false;
-        if (!isLumpSum && (name.includes("LUMP") || (name.includes("BUDGET") && name.includes("COMPLETE")))) return false;
+        // Drop any submission-timing checks — this tool runs pre-submission.
+        if (
+          name.includes("SUBMISSION") ||
+          name.includes("SUBMITTED") ||
+          name.includes("DEADLINE") ||
+          name.includes("ON TIME") ||
+          note.includes("SUBMITTED ON TIME") ||
+          note.includes("SUBMISSION DEADLINE")
+        ) {
+          return false;
+        }
         return true;
       },
     );
