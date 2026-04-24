@@ -769,10 +769,15 @@ export function PanelEvaluator({ proposalId }: Props) {
                           const maxLabel = Number(max).toFixed(1).replace(/\.0$/, "");
                           return (
                             <Badge variant="outline">
-                              {scoreLabel}/{maxLabel}
+                              Score: {scoreLabel}/{maxLabel}
                             </Badge>
                           );
                         })()}
+                        {h.cost_eur != null && (
+                          <Badge variant="outline">
+                            €{Number(h.cost_eur).toFixed(2)}
+                          </Badge>
+                        )}
                         <Button
                           variant="ghost"
                           size="icon"
