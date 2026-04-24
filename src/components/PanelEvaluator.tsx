@@ -725,31 +725,62 @@ export function PanelEvaluator({ proposalId }: Props) {
                 const isOpen = selectedHistoryId === h.id;
                 return (
                   <div key={h.id} className="border rounded">
-                    <button
-                      onClick={() => setSelectedHistoryId(isOpen ? null : h.id)}
+                    <div
                       className={cn(
-                        "w-full text-left flex items-center justify-between p-3 text-sm hover:bg-muted/50",
+                        "w-full flex items-center justify-between gap-2 p-3 text-sm hover:bg-muted/50",
                         isOpen && "bg-muted/40",
                       )}
                     >
-                      <span className="flex items-center gap-3">
-                        <span className="font-medium">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedHistoryId(isOpen ? null : h.id)}
+                        className="flex-1 min-w-0 flex items-center gap-3 text-left"
+                      >
+                        <span className="font-medium truncate">
                           {new Date(h.created_at).toLocaleString()}
                         </span>
                         <Badge variant="outline" className="text-[10px]">
                           {instruments.find((i) => i.id === h.instrument_id)?.name || "?"}
                         </Badge>
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs text-muted-foreground truncate">
                           Model: {h.model_used || "—"} ·{" "}
                           {Array.isArray(h.evaluators_selected)
                             ? `${h.evaluators_selected.length} evaluators`
                             : ""}
                         </span>
-                      </span>
-                      <Badge variant="outline">
-                        Total: {h.total_score_unweighted ?? h.overall_score ?? "—"}
-                      </Badge>
-                    </button>
+                      </button>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Badge variant="outline">
+                          Total: {h.total_score_unweighted ?? h.overall_score ?? "—"}
+                        </Badge>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          title="Download ESR (Markdown)"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            downloadEsr(h);
+                          }}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                        {isCoordinator && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-destructive hover:text-destructive"
+                            title="Delete ESR"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void deleteEsr(h);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
                     {isOpen && (
                       <div className="p-3 border-t">
                         <pre className="whitespace-pre-wrap text-sm font-sans bg-muted/30 p-4 rounded border max-h-[700px] overflow-y-auto">
