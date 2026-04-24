@@ -748,7 +748,7 @@ export function GeneralInfoForm({
                     )}
                   </div>
                 </div>
-                <div className="mt-auto">
+                <div className="mt-auto pb-5">
                   <label className="text-xs text-muted-foreground mb-0.5 block whitespace-nowrap">Duration (months)</label>
                   {isEditing && editedProposal ? (
                     <Input
