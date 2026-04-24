@@ -774,7 +774,7 @@ async function runSynthesisPhase(serviceClient: any, evaluationId: string) {
   const impactWeighted = Number(synthesisContext.impact_weighted || 0);
   const totalUnweighted = Number(synthesisContext.total_unweighted || 0);
   const totalWeighted = Number(synthesisContext.total_weighted || 0);
-  const impactWeighting = Number(synthesisContext.impact_weighting || instrument.impact_weighting || 1.0);
+  const thresholds = synthesisContext.thresholds || {};
   const maxPoints = stageKey === "stage1" ? 10 : 5 + 5 * impactWeighting + 5;
   const overallThreshold =
     stageKey === "stage1"
