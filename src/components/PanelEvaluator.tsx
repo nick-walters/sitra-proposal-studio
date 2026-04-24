@@ -161,6 +161,39 @@ export function PanelEvaluator({ proposalId }: Props) {
     if (hist && hist.length > 0) setSelectedHistoryId(hist[hist.length - 1].id);
   };
 
+  const downloadEsr = (h: AnalysisRow) => {
+    const analysisData = (h.analysis_data ?? {}) as Record<string, any>;
+    const markdown = analysisData.esr_markdown || "(no ESR available)";
+    const acronym = proposal?.acronym || "proposal";
+    const stamp = new Date(h.created_at).toISOString().replace(/[:T]/g, "-").slice(0, 16);
+    const filename = `${acronym}-ESR-${stamp}.md`;
+    const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const deleteEsr = async (h: AnalysisRow) => {
+    if (!isCoordinator) return;
+    const ok = window.confirm(
+      `Delete this Evaluation Summary Report from ${new Date(h.created_at).toLocaleString()}? This cannot be undone.`,
+    );
+    if (!ok) return;
+    const { error } = await supabase.from("proposal_analyses").delete().eq("id", h.id);
+    if (error) {
+      toast.error(`Failed to delete ESR: ${error.message}`);
+      return;
+    }
+    if (selectedHistoryId === h.id) setSelectedHistoryId(null);
+    toast.success("ESR deleted");
+    await refreshHistory();
+  };
+
   const startPolling = (evaluationId: string) => {
     stopPolling();
     setRunningEvaluationId(evaluationId);
