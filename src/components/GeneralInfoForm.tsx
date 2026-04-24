@@ -748,8 +748,8 @@ export function GeneralInfoForm({
                     )}
                   </div>
                 </div>
-                <div className="mt-auto w-24">
-                  <label className="text-xs text-muted-foreground mb-0.5 block">Duration (months)</label>
+                <div className="mt-auto">
+                  <label className="text-xs text-muted-foreground mb-0.5 block whitespace-nowrap">Duration (months)</label>
                   {isEditing && editedProposal ? (
                     <Input
                       type="number"
@@ -760,7 +760,7 @@ export function GeneralInfoForm({
                         const val = e.target.value === '' ? undefined : Math.max(1, parseInt(e.target.value, 10) || 1);
                         setEditedProposal({ ...editedProposal, duration: val } as any);
                       }}
-                      className="h-8 text-sm w-full"
+                      className="h-8 text-sm w-24"
                       placeholder="e.g. 36"
                     />
                   ) : (
