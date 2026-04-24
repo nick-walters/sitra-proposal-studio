@@ -106,10 +106,8 @@ export function PanelEvaluator({ proposalId }: Props) {
   const [proposal, setProposal] = useState<any>(null);
   const [instruments, setInstruments] = useState<InstrumentType[]>([]);
   const [instrumentCode, setInstrumentCode] = useState<string>("");
-  const [instrumentOverride, setInstrumentOverride] = useState(false);
   const [proposalStage, setProposalStage] = useState<"full" | "stage1">("full");
   const [budgetType, setBudgetType] = useState<"traditional" | "lump_sum">("traditional");
-  const [budgetOverride, setBudgetOverride] = useState(false);
 
   const [history, setHistory] = useState<AnalysisRow[]>([]);
   const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
