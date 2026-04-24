@@ -31,6 +31,17 @@ interface AnthropicCallResult {
   };
 }
 
+class RateLimitError extends Error {
+  retryAfter?: number;
+  constructor(message: string, retryAfter?: number) {
+    super(message);
+    this.name = "RateLimitError";
+    this.retryAfter = retryAfter;
+  }
+}
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 async function callAnthropicWithCache(
   apiKey: string,
   model: string,
@@ -38,6 +49,7 @@ async function callAnthropicWithCache(
   userPrompt: string,
   maxTokens: number,
   enableThinking = false,
+  maxRetries = 3,
 ): Promise<AnthropicCallResult> {
   const body: any = {
     model,
@@ -47,63 +59,93 @@ async function callAnthropicWithCache(
   };
   if (enableThinking) {
     // Newer Anthropic models (e.g. opus-4-7) require adaptive thinking.
-    // Use adaptive + output_config.effort, with a generous max_tokens (>= 16000)
-    // and budget_tokens that is strictly less than max_tokens.
     body.thinking = { type: "adaptive", budget_tokens: 10000 };
     body.output_config = { effort: "medium" };
   }
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-      "anthropic-beta": "prompt-caching-2024-07-31",
-      "content-type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const errorBody = await res.text();
-    console.error(`Anthropic API error ${res.status} (model=${model}, thinking=${enableThinking}, max_tokens=${maxTokens}):`, errorBody);
-    // Fallback: if adaptive thinking is rejected, retry once without thinking
-    if (enableThinking && res.status === 400 && /thinking/i.test(errorBody)) {
-      console.warn("Retrying Anthropic call without extended thinking...");
-      const fallbackBody = { ...body };
-      delete fallbackBody.thinking;
-      delete fallbackBody.output_config;
-      const retry = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "x-api-key": apiKey,
-          "anthropic-version": "2023-06-01",
-          "anthropic-beta": "prompt-caching-2024-07-31",
-          "content-type": "application/json",
-        },
-        body: JSON.stringify(fallbackBody),
-      });
-      if (!retry.ok) {
-        const retryErr = await retry.text();
-        console.error(`Anthropic retry failed ${retry.status}:`, retryErr);
-        throw new Error(`Anthropic ${retry.status}: ${retryErr}`);
-      }
-      const retryData = await retry.json();
-      const retryText =
-        (retryData?.content || [])
+
+  let attempt = 0;
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-beta": "prompt-caching-2024-07-31",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      const text =
+        (data?.content || [])
           .filter((b: any) => b.type === "text")
           .map((b: any) => b.text)
           .join("\n") || "";
-      return { text: retryText, usage: retryData?.usage || {} };
+      return { text, usage: data?.usage || {} };
     }
+
+    const errorBody = await res.text();
+    console.error(
+      `Anthropic API error ${res.status} (model=${model}, thinking=${enableThinking}, max_tokens=${maxTokens}, attempt=${attempt + 1}):`,
+      errorBody.slice(0, 500),
+    );
+
+    // 429 → retry with backoff (respect retry-after if provided)
+    if (res.status === 429 && attempt < maxRetries) {
+      const retryAfterHeader = res.headers.get("retry-after");
+      const retryAfterSec = retryAfterHeader ? parseInt(retryAfterHeader, 10) : NaN;
+      const backoffMs = Number.isFinite(retryAfterSec)
+        ? retryAfterSec * 1000
+        : Math.min(60_000, 2 ** attempt * 1000) + Math.floor(Math.random() * 500);
+      console.warn(`Rate limited. Backing off ${backoffMs}ms before retry ${attempt + 2}/${maxRetries + 1}.`);
+      await sleep(backoffMs);
+      attempt++;
+      continue;
+    }
+
+    // 429 after exhausting retries → bubble up specially
+    if (res.status === 429) {
+      const retryAfterHeader = res.headers.get("retry-after");
+      const retryAfterSec = retryAfterHeader ? parseInt(retryAfterHeader, 10) : undefined;
+      throw new RateLimitError(
+        `Anthropic rate limit exceeded after ${maxRetries + 1} attempts. ${errorBody.slice(0, 300)}`,
+        retryAfterSec,
+      );
+    }
+
+    // 400 with adaptive-thinking complaint → retry once without thinking
+    if (enableThinking && res.status === 400 && /thinking/i.test(errorBody)) {
+      console.warn("Retrying Anthropic call without extended thinking...");
+      delete body.thinking;
+      delete body.output_config;
+      enableThinking = false;
+      continue;
+    }
+
     throw new Error(`Anthropic ${res.status}: ${errorBody}`);
   }
-  const data = await res.json();
-  // Extract text from non-thinking blocks
-  const text =
-    (data?.content || [])
-      .filter((b: any) => b.type === "text")
-      .map((b: any) => b.text)
-      .join("\n") || "";
-  return { text, usage: data?.usage || {} };
+}
+
+/** Run async tasks with a hard concurrency cap, preserving input order in the result. */
+async function runWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  worker: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let cursor = 0;
+  const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (true) {
+      const i = cursor++;
+      if (i >= items.length) return;
+      results[i] = await worker(items[i], i);
+    }
+  });
+  await Promise.all(runners);
+  return results;
 }
 
 serve(async (req) => {
