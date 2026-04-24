@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Sparkles, Plus, AlertTriangle, CheckCircle2, XCircle, Info } from "lucide-react";
+import { Loader2, Sparkles, Plus, AlertTriangle, CheckCircle2, XCircle, Info, Download, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useProposalRole } from "@/hooks/useProposalRole";
@@ -161,6 +161,39 @@ export function PanelEvaluator({ proposalId }: Props) {
     if (hist && hist.length > 0) setSelectedHistoryId(hist[hist.length - 1].id);
   };
 
+  const downloadEsr = (h: AnalysisRow) => {
+    const analysisData = (h.analysis_data ?? {}) as Record<string, any>;
+    const markdown = analysisData.esr_markdown || "(no ESR available)";
+    const acronym = proposal?.acronym || "proposal";
+    const stamp = new Date(h.created_at).toISOString().replace(/[:T]/g, "-").slice(0, 16);
+    const filename = `${acronym}-ESR-${stamp}.md`;
+    const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const deleteEsr = async (h: AnalysisRow) => {
+    if (!isCoordinator) return;
+    const ok = window.confirm(
+      `Delete this Evaluation Summary Report from ${new Date(h.created_at).toLocaleString()}? This cannot be undone.`,
+    );
+    if (!ok) return;
+    const { error } = await supabase.from("proposal_analyses").delete().eq("id", h.id);
+    if (error) {
+      toast.error(`Failed to delete ESR: ${error.message}`);
+      return;
+    }
+    if (selectedHistoryId === h.id) setSelectedHistoryId(null);
+    toast.success("ESR deleted");
+    await refreshHistory();
+  };
+
   const startPolling = (evaluationId: string) => {
     stopPolling();
     setRunningEvaluationId(evaluationId);
@@ -176,7 +209,8 @@ export function PanelEvaluator({ proposalId }: Props) {
       if (!data) return;
 
       const status = data.status || "queued";
-      const progressMessage = data.analysis_data?.progress_message || "";
+      const analysisData = (data.analysis_data ?? {}) as Record<string, any>;
+      const progressMessage = analysisData.progress_message || "";
       setRunningStatus(status);
       setRunningMessage(progressMessage);
 
@@ -190,7 +224,7 @@ export function PanelEvaluator({ proposalId }: Props) {
         return;
       }
 
-      if (status === "synthesizing" && !data.analysis_data?.esr_markdown) {
+      if (status === "synthesizing" && !analysisData.esr_markdown) {
         const { error } = await supabase.functions.invoke("run-panel-evaluation", {
           body: { action: "synthesis", evaluationId },
         });
@@ -266,7 +300,9 @@ export function PanelEvaluator({ proposalId }: Props) {
 
       if (runningEval?.id) {
         setRunningStatus(runningEval.status || "queued");
-        setRunningMessage(runningEval.analysis_data?.progress_message || "");
+        setRunningMessage(
+          ((runningEval.analysis_data ?? {}) as Record<string, any>).progress_message || "",
+        );
         startPolling(runningEval.id);
       }
     })();
@@ -689,31 +725,62 @@ export function PanelEvaluator({ proposalId }: Props) {
                 const isOpen = selectedHistoryId === h.id;
                 return (
                   <div key={h.id} className="border rounded">
-                    <button
-                      onClick={() => setSelectedHistoryId(isOpen ? null : h.id)}
+                    <div
                       className={cn(
-                        "w-full text-left flex items-center justify-between p-3 text-sm hover:bg-muted/50",
+                        "w-full flex items-center justify-between gap-2 p-3 text-sm hover:bg-muted/50",
                         isOpen && "bg-muted/40",
                       )}
                     >
-                      <span className="flex items-center gap-3">
-                        <span className="font-medium">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedHistoryId(isOpen ? null : h.id)}
+                        className="flex-1 min-w-0 flex items-center gap-3 text-left"
+                      >
+                        <span className="font-medium truncate">
                           {new Date(h.created_at).toLocaleString()}
                         </span>
                         <Badge variant="outline" className="text-[10px]">
                           {instruments.find((i) => i.id === h.instrument_id)?.name || "?"}
                         </Badge>
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs text-muted-foreground truncate">
                           Model: {h.model_used || "—"} ·{" "}
                           {Array.isArray(h.evaluators_selected)
                             ? `${h.evaluators_selected.length} evaluators`
                             : ""}
                         </span>
-                      </span>
-                      <Badge variant="outline">
-                        Total: {h.total_score_unweighted ?? h.overall_score ?? "—"}
-                      </Badge>
-                    </button>
+                      </button>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Badge variant="outline">
+                          Total: {h.total_score_unweighted ?? h.overall_score ?? "—"}
+                        </Badge>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          title="Download ESR (Markdown)"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            downloadEsr(h);
+                          }}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                        {isCoordinator && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-destructive hover:text-destructive"
+                            title="Delete ESR"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void deleteEsr(h);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
                     {isOpen && (
                       <div className="p-3 border-t">
                         <pre className="whitespace-pre-wrap text-sm font-sans bg-muted/30 p-4 rounded border max-h-[700px] overflow-y-auto">
