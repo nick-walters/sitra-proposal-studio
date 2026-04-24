@@ -374,7 +374,7 @@ export function AcronymColorEditor({ acronym, segments, onChange, onAcronymChang
     <div className="space-y-1.5">
       <div
         ref={containerRef}
-        className={`flex items-center border rounded-md px-2 py-1.5 bg-background min-h-[32px] cursor-text ${isFocused ? 'ring-2 ring-ring ring-offset-1' : ''}`}
+        className={`flex h-8 items-center border rounded-md px-2 py-1.5 bg-background cursor-text ${isFocused ? 'ring-2 ring-ring ring-offset-1' : ''}`}
         style={{ fontFamily: '"Arial Black", Arial, sans-serif' }}
         onClick={handleContainerClick}
       >
