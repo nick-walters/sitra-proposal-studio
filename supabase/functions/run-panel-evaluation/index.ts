@@ -706,6 +706,24 @@ Now produce the full ESR markdown document following the prescribed template, us
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "Unknown error";
     console.error("run-panel-evaluation error:", msg);
+    if (e instanceof RateLimitError) {
+      return new Response(
+        JSON.stringify({
+          error:
+            "The AI provider is currently rate-limited. Please wait a minute and try again, or run the evaluation with a smaller panel.",
+          retry_after: e.retryAfter,
+          details: e.message,
+        }),
+        {
+          status: 429,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+            ...(e.retryAfter ? { "Retry-After": String(e.retryAfter) } : {}),
+          },
+        },
+      );
+    }
     return new Response(JSON.stringify({ error: msg }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
