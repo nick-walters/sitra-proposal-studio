@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Sparkles, Plus, AlertTriangle, CheckCircle2, XCircle, Info, Download, Trash2 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useProposalRole } from "@/hooks/useProposalRole";
@@ -773,11 +774,77 @@ export function PanelEvaluator({ proposalId }: Props) {
                             </Badge>
                           );
                         })()}
-                        {h.cost_eur != null && (
-                          <Badge variant="outline">
-                            €{Number(h.cost_eur).toFixed(2)}
-                          </Badge>
-                        )}
+                        {h.cost_eur != null && (() => {
+                          const cb = h.analysis_data?.cost_breakdown as
+                            | {
+                                model?: string;
+                                input_tokens?: number;
+                                output_tokens?: number;
+                                cache_read_tokens?: number;
+                                cache_write_tokens?: number;
+                                price_in_per_mtok_usd?: number;
+                                price_out_per_mtok_usd?: number;
+                                cache_read_multiplier?: number;
+                                cache_write_multiplier?: number;
+                                usd_eur_rate?: number;
+                                cost_usd?: number;
+                              }
+                            | undefined;
+                          const fmt = (n: number | undefined) =>
+                            n == null ? "—" : Number(n).toLocaleString();
+                          return (
+                            <TooltipProvider delayDuration={150}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Badge variant="outline" className="cursor-help">
+                                    €{Number(h.cost_eur).toFixed(2)}
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="max-w-xs">
+                                  {cb ? (
+                                    <div className="space-y-1 text-xs">
+                                      <div className="font-medium">{cb.model || h.model_used || "—"}</div>
+                                      <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
+                                        <span className="text-muted-foreground">Input tokens</span>
+                                        <span className="text-right">{fmt(cb.input_tokens)}</span>
+                                        <span className="text-muted-foreground">Output tokens</span>
+                                        <span className="text-right">{fmt(cb.output_tokens)}</span>
+                                        <span className="text-muted-foreground">Cache reads</span>
+                                        <span className="text-right">{fmt(cb.cache_read_tokens)}</span>
+                                        <span className="text-muted-foreground">Cache writes</span>
+                                        <span className="text-right">{fmt(cb.cache_write_tokens)}</span>
+                                      </div>
+                                      <div className="border-t pt-1 mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5">
+                                        <span className="text-muted-foreground">Rate (in / out)</span>
+                                        <span className="text-right">
+                                          ${cb.price_in_per_mtok_usd?.toFixed(2) ?? "—"} / ${cb.price_out_per_mtok_usd?.toFixed(2) ?? "—"} per Mtok
+                                        </span>
+                                        <span className="text-muted-foreground">Cache (read / write)</span>
+                                        <span className="text-right">
+                                          {cb.cache_read_multiplier ?? "—"}× / {cb.cache_write_multiplier ?? "—"}×
+                                        </span>
+                                        <span className="text-muted-foreground">USD → EUR</span>
+                                        <span className="text-right">{cb.usd_eur_rate ?? "—"}</span>
+                                      </div>
+                                      <div className="border-t pt-1 mt-1 flex justify-between font-medium">
+                                        <span>Total</span>
+                                        <span>
+                                          ${cb.cost_usd?.toFixed(4) ?? "—"} ≈ €{Number(h.cost_eur).toFixed(4)}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div className="text-xs">
+                                      Model: {h.model_used || "—"}
+                                      <br />
+                                      Detailed breakdown unavailable for this run.
+                                    </div>
+                                  )}
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          );
+                        })()}
                         <Button
                           variant="ghost"
                           size="icon"
