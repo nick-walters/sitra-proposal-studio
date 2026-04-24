@@ -13,6 +13,8 @@ import { Loader2, Sparkles, Plus, AlertTriangle, CheckCircle2, XCircle, Info, Do
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useProposalRole } from "@/hooks/useProposalRole";
+import { EsrRenderer } from "@/components/EsrRenderer";
+import { exportEsrToPdf } from "@/lib/esrPdfExport";
 import {
   LineChart,
   Line,
