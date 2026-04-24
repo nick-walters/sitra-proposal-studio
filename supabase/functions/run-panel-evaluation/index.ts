@@ -47,9 +47,10 @@ async function callAnthropicWithCache(
   };
   if (enableThinking) {
     // Newer Anthropic models (e.g. opus-4-7) require adaptive thinking.
-    // Use adaptive + output_config.effort, with a generous max_tokens (>= 16000)
-    // and budget_tokens that is strictly less than max_tokens.
-    body.thinking = { type: "adaptive", budget_tokens: 10000 };
+    // Adaptive thinking does NOT accept budget_tokens — that field is only
+    // valid for { type: "enabled" } on older models. Effort level is set via
+    // output_config.effort.
+    body.thinking = { type: "adaptive" };
     body.output_config = { effort: "medium" };
   }
   const res = await fetch("https://api.anthropic.com/v1/messages", {
