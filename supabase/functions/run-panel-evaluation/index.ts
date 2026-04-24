@@ -555,6 +555,7 @@ ${criterion.scoring_descriptors}`;
           synthesis_context: synthesisContext,
           token_usage: nextUsageTotals,
           instrument_code: instrument.code,
+          active_step_started_at: null,
           progress_message: "Synthesizing evaluation summary report",
         },
       })
