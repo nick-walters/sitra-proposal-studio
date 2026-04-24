@@ -102,7 +102,7 @@ export function exportEsrToPdf(opts: {
   const created = typeof opts.createdAt === "string" ? new Date(opts.createdAt) : opts.createdAt;
   const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
 
-  const titleMain = `${opts.acronym} ESR`;
+  const titleMain = `${opts.acronym} Evaluation Summary Report`;
   const dateLine = formatBritishDateTime(created);
   let y = MARGIN;
 
