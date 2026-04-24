@@ -1,7 +1,9 @@
-import { parseEsrMarkdown, type Block, type Run } from "@/lib/esrMarkdown";
+import { parseEsrMarkdown, formatBritishDateTime, type Block, type Run } from "@/lib/esrMarkdown";
 
 interface Props {
   markdown: string;
+  acronym?: string;
+  createdAt?: string | Date;
 }
 
 function renderRuns(runs: Run[], keyPrefix: string) {
@@ -13,13 +15,28 @@ function renderRuns(runs: Run[], keyPrefix: string) {
   });
 }
 
-export function EsrRenderer({ markdown }: Props) {
+export function EsrRenderer({ markdown, acronym, createdAt }: Props) {
   const blocks = parseEsrMarkdown(markdown);
+  const created = createdAt
+    ? typeof createdAt === "string"
+      ? new Date(createdAt)
+      : createdAt
+    : null;
   return (
     <div
       className="bg-muted/30 p-6 rounded border max-h-[700px] overflow-y-auto"
       style={{ fontFamily: '"Times New Roman", Times, serif', fontSize: "11pt", lineHeight: 1.4 }}
     >
+      {acronym && (
+        <div style={{ textAlign: "center", marginBottom: "16pt" }}>
+          <div style={{ fontSize: "14pt", fontWeight: 700 }}>{acronym} ESR</div>
+          {created && (
+            <div style={{ fontSize: "11pt", fontWeight: 400, marginTop: "2pt" }}>
+              {formatBritishDateTime(created)}
+            </div>
+          )}
+        </div>
+      )}
       {blocks.map((b: Block, idx) => {
         const k = `b-${idx}`;
         if (b.type === "spacer") return <div key={k} style={{ height: "8pt" }} />;
