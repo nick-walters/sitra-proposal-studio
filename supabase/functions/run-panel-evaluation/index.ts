@@ -869,7 +869,40 @@ Produce the full ESR markdown using the four-section structure defined in your s
     synthesisUsage = synthesisResult.usage;
   } catch (error) {
     console.error("Synthesis failed; falling back to deterministic ESR:", error);
-    esrMarkdown = `## Evaluation Summary Report (deterministic fallback)\n\n**Proposal:** ${proposal.acronym} — ${proposal.title}\n**Date:** ${new Date().toISOString().slice(0, 10)}\n\n### Consensus scores\n- Excellence: ${excellenceMean}/5\n- Impact: ${impactMean}/5${stageKey === "full" ? `\n- Implementation: ${implementationMean}/5` : ""}\n- Total: ${totalUnweighted}/${stageKey === "full" ? 15 : 10}\n\n### Evaluator reports\n${parsedEvaluations.map((item: any, index: number) => `**${index + 1}. ${item.persona.name}** — Excellence ${item.data.excellence_score}, Impact ${item.data.impact_score}${item.data.implementation_score !== undefined ? `, Implementation ${item.data.implementation_score}` : ""}\n${item.data.overall_comments || ""}`).join("\n\n")}`;
+    const fallbackEligibility = eligibilityFlags.length
+      ? eligibilityFlags.map((f: any) => `- ${f.check}: ${f.note}`).join("\n")
+      : "No eligibility issues recorded.";
+    esrMarkdown = [
+      `# European Commission initial check`,
+      ``,
+      fallbackEligibility,
+      ``,
+      `# 1. Excellence`,
+      ``,
+      `**Score:** ${excellenceMean} / 5`,
+      ``,
+      `Synthesis unavailable — see individual evaluator comments below.`,
+      ``,
+      `# 2. Impact`,
+      ``,
+      `**Score:** ${impactMean} / 5${impactWeighting !== 1 ? ` — weighted ${impactWeighted} / ${(5 * impactWeighting).toFixed(1)}` : ""}`,
+      ``,
+      `Synthesis unavailable — see individual evaluator comments below.`,
+      ``,
+      ...(stageKey === "full"
+        ? [
+            `# 3. Implementation`,
+            ``,
+            `**Score:** ${implementationMean} / 5`,
+            ``,
+            `Synthesis unavailable — see individual evaluator comments below.`,
+            ``,
+          ]
+        : []),
+      `## Overall panel assessment`,
+      ``,
+      `Automatic synthesis failed for this evaluation. Total unweighted score: ${totalUnweighted} / ${stageKey === "full" ? 15 : 10}.`,
+    ].join("\n");
   }
 
   const evaluatorUsage = synthesisContext.token_usage || {};
