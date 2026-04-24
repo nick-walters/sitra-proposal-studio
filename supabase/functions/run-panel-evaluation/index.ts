@@ -58,8 +58,9 @@ async function callAnthropicWithCache(
     messages: [{ role: "user", content: userPrompt }],
   };
   if (enableThinking) {
-    // Newer Anthropic models (e.g. opus-4-7) require adaptive thinking.
-    body.thinking = { type: "adaptive", budget_tokens: 10000 };
+    // Newer Anthropic models (e.g. opus-4-7) use adaptive thinking with effort
+    // levels — `budget_tokens` is NOT permitted with `type: "adaptive"`.
+    body.thinking = { type: "adaptive" };
     body.output_config = { effort: "medium" };
   }
 
