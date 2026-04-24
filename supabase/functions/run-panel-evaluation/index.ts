@@ -774,14 +774,16 @@ async function runSynthesisPhase(serviceClient: any, evaluationId: string) {
   const impactWeighted = Number(synthesisContext.impact_weighted || 0);
   const totalUnweighted = Number(synthesisContext.total_unweighted || 0);
   const totalWeighted = Number(synthesisContext.total_weighted || 0);
-  const thresholds = synthesisContext.thresholds || {};
-  const thresholdParts = [thresholds.excellence, thresholds.impact, ...(stageKey === "full" ? [thresholds.implementation] : [])];
-  const totalThreshold = thresholdParts.every((t: any) => t !== null && t !== undefined)
-    ? thresholdParts.reduce((sum: number, t: any) => sum + Number(t), 0)
-    : null;
-  const totalThresholdSuffix = totalThreshold !== null
-    ? ` (threshold: ${totalThreshold} / ${stageKey === "full" ? 15 : 10})`
-    : "";
+  const impactWeighting = Number(synthesisContext.impact_weighting || instrument.impact_weighting || 1.0);
+  const maxPoints = stageKey === "stage1" ? 10 : 5 + 5 * impactWeighting + 5;
+  const overallThreshold =
+    stageKey === "stage1"
+      ? instrument.overall_threshold_stage1
+      : instrument.overall_threshold_full;
+  const totalThreshold =
+    overallThreshold !== null && overallThreshold !== undefined ? Number(overallThreshold) : null;
+  const totalThresholdSuffix =
+    totalThreshold !== null ? ` (threshold: ${totalThreshold} / ${maxPoints})` : "";
 
   const evaluationModel = synthesisContext.evaluation_model || configMap.evaluation_model || "claude-opus-4-5-20250929";
   const opusInPrice = parseFloat(configMap.opus_price_input_per_mtok || "15.00");
