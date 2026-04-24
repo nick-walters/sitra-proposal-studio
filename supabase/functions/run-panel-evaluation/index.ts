@@ -375,8 +375,12 @@ ${c.scoring_descriptors}`;
       ? `\n\nTOPIC-SPECIFIC CONTEXT FROM THE PROPOSAL TEAM:\n${evaluationCriteriaNotes}`
       : "";
 
-    // ---- Evaluator agents (parallel) ----
-    const evaluatorPromises = (selectedEvaluators as Array<{ name: string; brief: string }>).map(
+    // ---- Evaluator agents ----
+    // To stay within Anthropic's per-minute input-token rate limit (e.g. 30k TPM on opus),
+    // we (1) prime the prompt cache by running the FIRST evaluator alone,
+    // (2) run the remaining evaluators with a small concurrency cap,
+    // (3) retry-with-backoff on 429 inside callAnthropicWithCache.
+    const evaluatorTaskFactories = (selectedEvaluators as Array<{ name: string; brief: string }>).map(
       (ev) => {
         const personaName = ev.name;
         const personaBrief = ev.brief;
@@ -475,18 +479,33 @@ ${fullProposalOutputBlock}`;
           },
         ];
 
-        return callAnthropicWithCache(
-          ANTHROPIC_API_KEY,
-          evaluationModel,
-          systemBlocks,
-          "Evaluate the proposal above according to your instructions. Respond with the JSON object only.",
-          16000,
-          true,
-        ).then((r) => ({ persona: ev, raw: r.text, usage: r.usage }));
+        return () =>
+          callAnthropicWithCache(
+            ANTHROPIC_API_KEY,
+            evaluationModel,
+            systemBlocks,
+            "Evaluate the proposal above according to your instructions. Respond with the JSON object only.",
+            16000,
+            true,
+          ).then((r) => ({ persona: ev, raw: r.text, usage: r.usage }));
       },
     );
 
-    const evaluatorResults = await Promise.all(evaluatorPromises);
+    // (1) Prime the cache: run the first evaluator alone so the proposal-content block
+    //     is written to Anthropic's prompt cache before any siblings run.
+    // (2) Run the rest with bounded concurrency (2 at a time) — once cached, each call
+    //     consumes ~10% of its input tokens against the rate limit.
+    const evaluatorResults: Array<{ persona: { name: string; brief: string }; raw: string; usage: any }> = [];
+    if (evaluatorTaskFactories.length > 0) {
+      console.log(`Priming Anthropic prompt cache with first evaluator (1/${evaluatorTaskFactories.length})...`);
+      evaluatorResults.push(await evaluatorTaskFactories[0]());
+    }
+    if (evaluatorTaskFactories.length > 1) {
+      console.log(`Running remaining ${evaluatorTaskFactories.length - 1} evaluators with concurrency=2...`);
+      const rest = await runWithConcurrency(evaluatorTaskFactories.slice(1), 2, (task) => task());
+      evaluatorResults.push(...rest);
+    }
+
 
     const parsedEvaluations = evaluatorResults.map((er) => ({
       persona: er.persona,
