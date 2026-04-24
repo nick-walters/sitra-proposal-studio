@@ -799,11 +799,6 @@ export function PanelEvaluator({ proposalId }: Props) {
                 ))}
               </div>
 
-              <p className="text-xs text-muted-foreground italic">
-                The "evaluators" are agentic AI avatars with different personas, each of which
-                conducts the evaluation from a different perspective based on their profession
-                and expertise.
-              </p>
 
               <div className="flex gap-2">
                 <Button onClick={runEvaluation} disabled={!validPanelSize} className="gap-2">
