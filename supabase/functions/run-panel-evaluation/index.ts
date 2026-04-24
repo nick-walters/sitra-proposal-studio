@@ -836,9 +836,9 @@ overall panel assessment, and individual evaluator scores table.`;
       evaluationModel,
       [{ type: "text", text: synthesisSystem }],
       synthesisUser,
-      8000,
+      SYNTHESIS_MAX_TOKENS,
       false,
-      4,
+      2,
     );
     esrMarkdown = synthesisResult.text;
     synthesisUsage = synthesisResult.usage;
@@ -995,7 +995,7 @@ serve(async (req) => {
       });
     }
 
-    if (action === "evaluate") {
+  if (action === "evaluate") {
       const evaluationId = body?.evaluationId;
       if (!evaluationId) {
         return new Response(JSON.stringify({ error: "evaluationId is required" }), {
@@ -1009,7 +1009,7 @@ serve(async (req) => {
       const result = await runEvaluatorPhase(serviceClient, evaluationId);
 
       return new Response(JSON.stringify(result), {
-        status: 202,
+        status: result.status === "failed" ? 429 : 202,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
