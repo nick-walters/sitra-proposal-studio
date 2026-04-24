@@ -717,6 +717,7 @@ export function GeneralInfoForm({
                           onUpdateProposal({ acronymSegments: segments });
                         }}
                         placeholder="Type acronym…"
+                        showHelperText={false}
                       />
                     </>
                   ) : (
@@ -748,7 +749,7 @@ export function GeneralInfoForm({
                     )}
                   </div>
                 </div>
-                <div className="mt-auto pb-5">
+                <div className="mt-auto">
                   <label className="text-xs text-muted-foreground mb-0.5 block whitespace-nowrap">Duration (months)</label>
                   {isEditing && editedProposal ? (
                     <Input

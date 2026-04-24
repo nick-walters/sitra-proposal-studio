@@ -21,6 +21,7 @@ interface AcronymColorEditorProps {
   onAcronymChange?: (acronym: string) => void;
   disabled?: boolean;
   placeholder?: string;
+  showHelperText?: boolean;
 }
 
 function mergeSegments(segments: AcronymSegment[]): AcronymSegment[] {
@@ -143,7 +144,7 @@ function CustomColorPalette({ onApply, paletteRef }: { onApply: (color: string) 
   );
 }
 
-export function AcronymColorEditor({ acronym, segments, onChange, onAcronymChange, disabled, placeholder = 'Type acronym…' }: AcronymColorEditorProps) {
+export function AcronymColorEditor({ acronym, segments, onChange, onAcronymChange, disabled, placeholder = 'Type acronym…', showHelperText = true }: AcronymColorEditorProps) {
   // Use fully internal char state to avoid re-render lag from parent
   const [internalChars, setInternalChars] = useState<{ char: string; color: string }[]>(() => {
     const currentText = segments.map(s => s.text).join('');
@@ -429,7 +430,7 @@ export function AcronymColorEditor({ acronym, segments, onChange, onAcronymChang
         />
       )}
 
-      {!range && chars.length > 0 && !disabled && (
+      {showHelperText && !range && chars.length > 0 && !disabled && (
         <p className="text-[10px] text-muted-foreground">Select characters above to apply colors</p>
       )}
     </div>
