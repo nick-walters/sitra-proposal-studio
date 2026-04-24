@@ -417,7 +417,7 @@ ${risks.map((risk: any) => `- R${risk.number} ${stripHtml(risk.description)} | M
 BUDGET (sum requested EU contribution): €${budget.reduce((sum: number, row: any) => sum + Number(row.requested_eu_contribution || 0), 0).toLocaleString()}
 `;
 
-  const partB = sections.map((section: any) => `### ${section.section_id}\n${stripHtml(section.content)}`).join("\n\n");
+  const partB = buildSectionDigest(sections);
   const proposalContentBlock = `=== PART A: ADMINISTRATIVE ===\n${partA}\n\n=== PART B: TECHNICAL ===\n${partB}`;
 
   const criteriaText = criteriaForRun
@@ -458,7 +458,7 @@ ${criterion.scoring_descriptors}`;
     ? `\n\nTOPIC-SPECIFIC CONTEXT FROM THE PROPOSAL TEAM:\n${evaluationCriteriaNotes}`
     : "";
 
-  const evaluatorTaskFactories = selectedEvaluators.map((evaluator) => {
+  const evaluatorTaskFactories = selectedEvaluators.map((evaluator, index) => {
     const fullProposalOutputBlock =
       stageKey === "stage1"
         ? `{
@@ -548,26 +548,40 @@ ${fullProposalOutputBlock}`;
       },
     ];
 
-    return () =>
-      callAnthropicWithCache(
+    return async () => {
+      await serviceClient
+        .from("proposal_analyses")
+        .update({
+          analysis_data: {
+            ...(evaluation.analysis_data || {}),
+            eligibility_flags: eligibilityFlags,
+            instrument_code: instrument.code,
+            progress_message: `Running evaluator ${index + 1} of ${selectedEvaluators.length}`,
+          },
+        })
+        .eq("id", evaluationId);
+
+      const result = await callAnthropicWithCache(
         ANTHROPIC_API_KEY,
         evaluationModel,
         systemBlocks,
         "Evaluate the proposal above according to your instructions. Respond with the JSON object only.",
-        16000,
-        true,
-      ).then((result) => ({ persona: evaluator, raw: result.text, usage: result.usage }));
+        EVALUATOR_MAX_TOKENS,
+        false,
+        2,
+      );
+
+      return { persona: evaluator, raw: result.text, usage: result.usage };
+    };
   });
 
   const evaluatorResults: Array<{ persona: EvaluatorSelection; raw: string; usage: any }> = [];
-  if (evaluatorTaskFactories.length > 0) {
-    console.log(`Priming Anthropic prompt cache with first evaluator (1/${evaluatorTaskFactories.length})...`);
-    evaluatorResults.push(await evaluatorTaskFactories[0]());
-  }
-  if (evaluatorTaskFactories.length > 1) {
-    console.log(`Running remaining ${evaluatorTaskFactories.length - 1} evaluators with concurrency=2...`);
-    const remaining = await runWithConcurrency(evaluatorTaskFactories.slice(1), 2, (task) => task());
-    evaluatorResults.push(...remaining);
+  for (let index = 0; index < evaluatorTaskFactories.length; index += 1) {
+    console.log(`Running evaluator ${index + 1}/${evaluatorTaskFactories.length} sequentially to stay within model limits...`);
+    evaluatorResults.push(await evaluatorTaskFactories[index]());
+    if (index < evaluatorTaskFactories.length - 1) {
+      await sleep(1500);
+    }
   }
 
   const parsedEvaluations = evaluatorResults.map((result) => ({
