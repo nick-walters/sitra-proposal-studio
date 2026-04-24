@@ -814,7 +814,7 @@ OUTPUT STRUCTURE — produce EXACTLY these top-level sections, in this order, an
 3. "# 2. Impact" — start with a line "**Score:** ${impactMean} / 5${thresholds.impact !== null && thresholds.impact !== undefined ? ` (threshold: ${thresholds.impact} / 5)` : ""}${impactWeighting !== 1 ? ` — weighted ${impactWeighted} / ${(5 * impactWeighting).toFixed(1)}` : ""}", blank line, then narrative feedback (strengths followed by at least two specific weaknesses).${impactWeighting !== 1 ? ` For this IA proposal, note that Impact is weighted ×${impactWeighting}.` : ""}
 ${stageKey === "full" ? `4. "# 3. Implementation" — start with a line "**Score:** ${implementationMean} / 5${thresholds.implementation !== null && thresholds.implementation !== undefined ? ` (threshold: ${thresholds.implementation} / 5)` : ""}", blank line, then narrative feedback (strengths followed by at least two specific weaknesses).${budgetType === "lump_sum" ? " Include specific lump-sum budget commentary." : ""}` : ""}
 
-After the LAST major criterion section above (and before "Overall panel assessment"), include a new top-level section with the heading "# Total score" followed by a blank line and then a single line: "**Total score:** ${totalUnweighted} / ${stageKey === "full" ? 15 : 10}${totalThresholdSuffix}${impactWeighting !== 1 ? ` (weighted: ${totalWeighted} / ${(stageKey === "full" ? 5 + 5 * impactWeighting + 5 : 5 + 5 * impactWeighting).toFixed(1)})` : ""}".
+After the LAST major criterion section above (and before "Overall panel assessment"), include a new top-level section with the heading "# Total score" followed by a blank line and then a single line: "**Total score:** ${totalUnweighted} / ${maxPoints}${totalThresholdSuffix}${impactWeighting !== 1 ? ` (weighted: ${totalWeighted} / ${maxPoints.toFixed(1)})` : ""}".
 
 End with a single "## Overall panel assessment" subsection (placed under the LAST major section above, after the Total score line) — a coherent 3–4 sentence paragraph capturing the panel's collective view, the most critical issue, and an honest assessment of competitiveness for this call.
 
@@ -916,7 +916,7 @@ Produce the full ESR markdown using the four-section structure defined in your s
         : []),
       `# Total score`,
       ``,
-      `**Total score:** ${totalUnweighted} / ${stageKey === "full" ? 15 : 10}${totalThresholdSuffix}${impactWeighting !== 1 ? ` (weighted: ${totalWeighted} / ${(stageKey === "full" ? 5 + 5 * impactWeighting + 5 : 5 + 5 * impactWeighting).toFixed(1)})` : ""}`,
+      `**Total score:** ${totalUnweighted} / ${maxPoints}${totalThresholdSuffix}${impactWeighting !== 1 ? ` (weighted: ${totalWeighted} / ${maxPoints.toFixed(1)})` : ""}`,
       ``,
       `## Overall panel assessment`,
       ``,
