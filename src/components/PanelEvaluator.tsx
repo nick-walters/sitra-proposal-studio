@@ -790,9 +790,7 @@ export function PanelEvaluator({ proposalId }: Props) {
                     </div>
                     {isOpen && (
                       <div className="p-3 border-t">
-                        <pre className="whitespace-pre-wrap text-sm font-sans bg-muted/30 p-4 rounded border max-h-[700px] overflow-y-auto">
-                          {h.analysis_data?.esr_markdown || "(no ESR available)"}
-                        </pre>
+                        <EsrRenderer markdown={h.analysis_data?.esr_markdown || "(no ESR available)"} />
                       </div>
                     )}
                   </div>
