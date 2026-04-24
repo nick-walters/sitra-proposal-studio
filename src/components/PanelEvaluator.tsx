@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Sparkles, Plus, AlertTriangle, CheckCircle2, XCircle, Info } from "lucide-react";
+import { Loader2, Sparkles, Plus, AlertTriangle, CheckCircle2, XCircle, Info, Download, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useProposalRole } from "@/hooks/useProposalRole";
@@ -176,7 +176,8 @@ export function PanelEvaluator({ proposalId }: Props) {
       if (!data) return;
 
       const status = data.status || "queued";
-      const progressMessage = data.analysis_data?.progress_message || "";
+      const analysisData = (data.analysis_data ?? {}) as Record<string, any>;
+      const progressMessage = analysisData.progress_message || "";
       setRunningStatus(status);
       setRunningMessage(progressMessage);
 
@@ -190,7 +191,7 @@ export function PanelEvaluator({ proposalId }: Props) {
         return;
       }
 
-      if (status === "synthesizing" && !data.analysis_data?.esr_markdown) {
+      if (status === "synthesizing" && !analysisData.esr_markdown) {
         const { error } = await supabase.functions.invoke("run-panel-evaluation", {
           body: { action: "synthesis", evaluationId },
         });
@@ -266,7 +267,9 @@ export function PanelEvaluator({ proposalId }: Props) {
 
       if (runningEval?.id) {
         setRunningStatus(runningEval.status || "queued");
-        setRunningMessage(runningEval.analysis_data?.progress_message || "");
+        setRunningMessage(
+          ((runningEval.analysis_data ?? {}) as Record<string, any>).progress_message || "",
+        );
         startPolling(runningEval.id);
       }
     })();
