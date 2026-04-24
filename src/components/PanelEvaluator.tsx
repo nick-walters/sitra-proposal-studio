@@ -180,7 +180,7 @@ export function PanelEvaluator({ proposalId }: Props) {
       setRunningStatus(status);
       setRunningMessage(progressMessage);
 
-      if (status === "queued") {
+      if (status === "queued" || status === "running") {
         const { error } = await supabase.functions.invoke("run-panel-evaluation", {
           body: { action: "evaluate", evaluationId },
         });
