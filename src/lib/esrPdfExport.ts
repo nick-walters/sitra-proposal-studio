@@ -24,7 +24,7 @@ interface Style {
 function styleFor(block: Block): Style {
   switch (block.type) {
     case "h1":
-      return { size: 16, bold: true, italic: false, spaceBefore: 6, spaceAfter: 3, lineHeight: 1.2 };
+      return { size: 13, bold: true, italic: false, spaceBefore: 6, spaceAfter: 3, lineHeight: 1.2 };
     case "h2":
       return { size: 13, bold: true, italic: false, spaceBefore: 4, spaceAfter: 2, lineHeight: 1.2 };
     case "h3":

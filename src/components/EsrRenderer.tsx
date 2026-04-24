@@ -43,7 +43,7 @@ export function EsrRenderer({ markdown, acronym, createdAt }: Props) {
         switch (b.type) {
           case "h1":
             return (
-              <h1 key={k} style={{ fontSize: "16pt", fontWeight: 700, margin: "16pt 0 8pt" }}>
+              <h1 key={k} style={{ fontSize: "13pt", fontWeight: 700, margin: "16pt 0 8pt" }}>
                 {renderRuns(b.runs, k)}
               </h1>
             );
