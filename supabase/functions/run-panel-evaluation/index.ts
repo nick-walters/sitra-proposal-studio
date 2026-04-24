@@ -783,36 +783,44 @@ async function runSynthesisPhase(serviceClient: any, evaluationId: string) {
     ? `\n\nTOPIC-SPECIFIC CONTEXT FROM THE PROPOSAL TEAM:\n${proposal.evaluation_criteria_notes}`
     : "";
 
+  const eligibilityFlags = Array.isArray(analysisData.eligibility_flags) ? analysisData.eligibility_flags : [];
+  const eligibilityBlock = eligibilityFlags.length
+    ? eligibilityFlags
+        .map((f: any) => `- [${String(f.status || "").toUpperCase()}] ${f.check}: ${f.note}`)
+        .join("\n")
+    : "(no eligibility flags recorded)";
+
   const synthesisSystem = `You are the Panel Rapporteur for a Horizon Europe expert evaluation panel.
 Synthesise ${parsedEvaluations.length} independent evaluator reports into a single Evaluation Summary Report (ESR)
 in the style of the official EC evaluation form.
 
+OUTPUT STRUCTURE — produce EXACTLY these top-level sections, in this order, and NOTHING else:
+
+1. "# European Commission initial check" — narrative summary of the eligibility flags provided below, in 2–4 sentences. ${stageKey === "stage1" ? "Note Stage 1 blind evaluation status and explicitly flag any identifying information found in the eligibility flags." : ""} Do NOT list scores here.
+2. "# 1. Excellence" — start with a line "**Score:** ${excellenceMean} / 5${thresholds.excellence !== null && thresholds.excellence !== undefined ? ` (threshold: ${thresholds.excellence} / 5)` : ""}", blank line, then narrative feedback (strengths followed by at least two specific weaknesses).
+3. "# 2. Impact" — start with a line "**Score:** ${impactMean} / 5${thresholds.impact !== null && thresholds.impact !== undefined ? ` (threshold: ${thresholds.impact} / 5)` : ""}${impactWeighting !== 1 ? ` — weighted ${impactWeighted} / ${(5 * impactWeighting).toFixed(1)}` : ""}", blank line, then narrative feedback (strengths followed by at least two specific weaknesses).${impactWeighting !== 1 ? ` For this IA proposal, note that Impact is weighted ×${impactWeighting}.` : ""}
+${stageKey === "full" ? `4. "# 3. Implementation" — start with a line "**Score:** ${implementationMean} / 5${thresholds.implementation !== null && thresholds.implementation !== undefined ? ` (threshold: ${thresholds.implementation} / 5)` : ""}", blank line, then narrative feedback (strengths followed by at least two specific weaknesses).${budgetType === "lump_sum" ? " Include specific lump-sum budget commentary." : ""}` : ""}
+
+End with a single "## Overall panel assessment" subsection (placed under the LAST major section above) — a coherent 3–4 sentence paragraph capturing the panel's collective view, the most critical issue, and an honest assessment of competitiveness for this call.
+
+DO NOT include any of the following: panel composition section, scores summary table, individual evaluator scores table, "Section 1" preamble, or any other top-level headings.
+
 SYNTHESIS RULES:
-- Consensus scores are already computed and provided below. Use them verbatim — do not recalculate.
+- Consensus scores are already computed and provided above. Use them verbatim — do not recalculate.
 - Synthesise evaluator comments into coherent, substantive feedback. Do not list or average text.
 - Strengths and weaknesses must be specific. Generic statements are not acceptable.
-- Identify at least two specific weaknesses per criterion, even for high-scoring proposals.
 - Tone: direct, professional — matching official EC ESR style. Avoid hedging language.
-- Flag minority opinion for any criterion where any evaluator scored more than 1.0 away from the mean.
-- For IA proposals, note that Impact is weighted ×${impactWeighting}.
-- For lump sum proposals, include specific budget commentary under Implementation.
-- For Stage 1, note blind evaluation status and flag any identifying information found.
-- The overall assessment must be a coherent 3–4 sentence paragraph capturing the panel's collective view,
-  the most critical issue, and an honest assessment of competitiveness for this call.
-- Do not inflate scores or soften criticism. The ESR must reflect the honest consensus of the panel.${topicSpecificContext}
-
-CONSENSUS SCORES (use verbatim):
-Excellence: ${excellenceMean}/5${thresholds.excellence !== null && thresholds.excellence !== undefined ? ` (threshold: ${thresholds.excellence}/5)` : ""}
-Impact (raw): ${impactMean}/5${thresholds.impact !== null && thresholds.impact !== undefined ? ` (threshold: ${thresholds.impact}/5)` : ""}${impactWeighting !== 1 ? ` | weighted: ${impactWeighted}/${(5 * impactWeighting).toFixed(1)}` : ""}
-${stageKey === "full" ? `Implementation: ${implementationMean}/5${thresholds.implementation !== null && thresholds.implementation !== undefined ? ` (threshold: ${thresholds.implementation}/5)` : ""}` : ""}
-Total unweighted: ${totalUnweighted}/${stageKey === "full" ? 15 : 10}
-${impactWeighting !== 1 ? `Total weighted: ${totalWeighted}/${stageKey === "full" ? (5 + 5 * impactWeighting + 5).toFixed(1) : (5 + 5 * impactWeighting).toFixed(1)}` : ""}`;
+- Flag minority opinion inline for any criterion where any evaluator scored more than 1.0 away from the mean.
+- Do not inflate scores or soften criticism. The ESR must reflect the honest consensus of the panel.${topicSpecificContext}`;
 
   const synthesisUser = `PROPOSAL: ${proposal.title} (${proposal.acronym})
 CALL: ${proposal.work_programme || "n/a"} | TOPIC: ${proposal.topic_id || "n/a"}
 INSTRUMENT: ${instrument.name} | STAGE: ${stageKey === "stage1" ? "Stage 1 of 2" : "Full proposal"}
 BUDGET TYPE: ${budgetTypeLabel}
 DATE: ${new Date().toISOString().slice(0, 10)}
+
+ELIGIBILITY FLAGS (for the European Commission initial check section):
+${eligibilityBlock}
 
 EVALUATOR REPORTS:
 ${parsedEvaluations
@@ -829,10 +837,7 @@ Overall: ${evaluationItem.data.overall_comments}
   )
   .join("\n")}
 
-Produce the full ESR markdown document using the consensus scores from your system message verbatim.
-Follow the official EC ESR format with sections for: panel composition, criterion-by-criterion
-evaluation (Excellence, Impact${stageKey === "full" ? ", Implementation" : ""}), scores summary,
-overall panel assessment, and individual evaluator scores table.`;
+Produce the full ESR markdown using the four-section structure defined in your system message. No other top-level headings.`;
 
   await serviceClient
     .from("proposal_analyses")
@@ -864,7 +869,40 @@ overall panel assessment, and individual evaluator scores table.`;
     synthesisUsage = synthesisResult.usage;
   } catch (error) {
     console.error("Synthesis failed; falling back to deterministic ESR:", error);
-    esrMarkdown = `## Evaluation Summary Report (deterministic fallback)\n\n**Proposal:** ${proposal.acronym} — ${proposal.title}\n**Date:** ${new Date().toISOString().slice(0, 10)}\n\n### Consensus scores\n- Excellence: ${excellenceMean}/5\n- Impact: ${impactMean}/5${stageKey === "full" ? `\n- Implementation: ${implementationMean}/5` : ""}\n- Total: ${totalUnweighted}/${stageKey === "full" ? 15 : 10}\n\n### Evaluator reports\n${parsedEvaluations.map((item: any, index: number) => `**${index + 1}. ${item.persona.name}** — Excellence ${item.data.excellence_score}, Impact ${item.data.impact_score}${item.data.implementation_score !== undefined ? `, Implementation ${item.data.implementation_score}` : ""}\n${item.data.overall_comments || ""}`).join("\n\n")}`;
+    const fallbackEligibility = eligibilityFlags.length
+      ? eligibilityFlags.map((f: any) => `- ${f.check}: ${f.note}`).join("\n")
+      : "No eligibility issues recorded.";
+    esrMarkdown = [
+      `# European Commission initial check`,
+      ``,
+      fallbackEligibility,
+      ``,
+      `# 1. Excellence`,
+      ``,
+      `**Score:** ${excellenceMean} / 5`,
+      ``,
+      `Synthesis unavailable — see individual evaluator comments below.`,
+      ``,
+      `# 2. Impact`,
+      ``,
+      `**Score:** ${impactMean} / 5${impactWeighting !== 1 ? ` — weighted ${impactWeighted} / ${(5 * impactWeighting).toFixed(1)}` : ""}`,
+      ``,
+      `Synthesis unavailable — see individual evaluator comments below.`,
+      ``,
+      ...(stageKey === "full"
+        ? [
+            `# 3. Implementation`,
+            ``,
+            `**Score:** ${implementationMean} / 5`,
+            ``,
+            `Synthesis unavailable — see individual evaluator comments below.`,
+            ``,
+          ]
+        : []),
+      `## Overall panel assessment`,
+      ``,
+      `Automatic synthesis failed for this evaluation. Total unweighted score: ${totalUnweighted} / ${stageKey === "full" ? 15 : 10}.`,
+    ].join("\n");
   }
 
   const evaluatorUsage = synthesisContext.token_usage || {};

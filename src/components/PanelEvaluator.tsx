@@ -13,6 +13,8 @@ import { Loader2, Sparkles, Plus, AlertTriangle, CheckCircle2, XCircle, Info, Do
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useProposalRole } from "@/hooks/useProposalRole";
+import { EsrRenderer } from "@/components/EsrRenderer";
+import { exportEsrToPdf } from "@/lib/esrPdfExport";
 import {
   LineChart,
   Line,
@@ -165,17 +167,12 @@ export function PanelEvaluator({ proposalId }: Props) {
     const analysisData = (h.analysis_data ?? {}) as Record<string, any>;
     const markdown = analysisData.esr_markdown || "(no ESR available)";
     const acronym = proposal?.acronym || "proposal";
-    const stamp = new Date(h.created_at).toISOString().replace(/[:T]/g, "-").slice(0, 16);
-    const filename = `${acronym}-ESR-${stamp}.md`;
-    const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    try {
+      exportEsrToPdf({ acronym, createdAt: h.created_at, markdown });
+    } catch (err) {
+      console.error("ESR PDF export failed:", err);
+      toast.error("Failed to generate PDF.");
+    }
   };
 
   const deleteEsr = async (h: AnalysisRow) => {
@@ -767,7 +764,7 @@ export function PanelEvaluator({ proposalId }: Props) {
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7"
-                          title="Download ESR (Markdown)"
+                          title="Download ESR (PDF)"
                           onClick={(e) => {
                             e.stopPropagation();
                             downloadEsr(h);
@@ -793,9 +790,7 @@ export function PanelEvaluator({ proposalId }: Props) {
                     </div>
                     {isOpen && (
                       <div className="p-3 border-t">
-                        <pre className="whitespace-pre-wrap text-sm font-sans bg-muted/30 p-4 rounded border max-h-[700px] overflow-y-auto">
-                          {h.analysis_data?.esr_markdown || "(no ESR available)"}
-                        </pre>
+                        <EsrRenderer markdown={h.analysis_data?.esr_markdown || "(no ESR available)"} />
                       </div>
                     )}
                   </div>
