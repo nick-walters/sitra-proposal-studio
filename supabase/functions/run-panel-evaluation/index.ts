@@ -58,8 +58,9 @@ async function callAnthropicWithCache(
     messages: [{ role: "user", content: userPrompt }],
   };
   if (enableThinking) {
-    // Newer Anthropic models (e.g. opus-4-7) require adaptive thinking.
-    body.thinking = { type: "adaptive", budget_tokens: 10000 };
+    // Newer Anthropic models (e.g. opus-4-7) use adaptive thinking with effort
+    // levels — `budget_tokens` is NOT permitted with `type: "adaptive"`.
+    body.thinking = { type: "adaptive" };
     body.output_config = { effort: "medium" };
   }
 
@@ -607,8 +608,17 @@ ${panelTable}
 ### EVALUATOR REPORTS (synthesise these into the ESR)
 ${evaluatorReportsForSynthesis}
 
-Now produce the full ESR markdown document following the prescribed template, using the consensus scores already computed in your system message.`;
+Now produce the full ESR markdown document following the prescribed template, using the consensus scores already computed in your system message. Base the ESR ONLY on the evaluator reports above — do not introduce content the evaluators did not raise.`;
 
+    // Cool-down before synthesis so the TPM bucket refills after the evaluator burst.
+    // Anthropic enforces ~30k input tokens/minute on opus; the evaluator phase typically
+    // consumes most of that, so a synthesis call fired immediately afterwards will 429.
+    console.log("Cooling down 65s before synthesis to let TPM budget refill...");
+    await sleep(65_000);
+
+    // The synthesis call deliberately omits the full proposal content — the evaluator
+    // reports already contain the substantive observations. Keeping this prompt small
+    // also keeps us comfortably under the per-minute input-token rate limit.
     const synthesisRes = await callAnthropicWithCache(
       ANTHROPIC_API_KEY,
       evaluationModel,
@@ -616,6 +626,7 @@ Now produce the full ESR markdown document following the prescribed template, us
       synthesisUser,
       8000,
       false,
+      4, // extra retries for synthesis specifically
     );
 
     const esrMarkdown = synthesisRes.text;
