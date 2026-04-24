@@ -379,6 +379,14 @@ async function runEvaluatorPhase(serviceClient: any, evaluationId: string) {
   const baseAnalysisData = evaluation.analysis_data || {};
   const savedEvaluations = Array.isArray(baseAnalysisData.evaluations) ? baseAnalysisData.evaluations : [];
   const savedUsage = baseAnalysisData.token_usage || {};
+  const activeStepStartedAt = baseAnalysisData.active_step_started_at;
+  if (isRecentStepStart(activeStepStartedAt) && ["running", "processing"].includes(evaluation.status || "")) {
+    return {
+      evaluationId,
+      status: evaluation.status || "processing",
+      active: true,
+    };
+  }
   const usageTotals = {
     evaluator_input_tokens: Number(savedUsage.evaluator_input_tokens || 0),
     evaluator_output_tokens: Number(savedUsage.evaluator_output_tokens || 0),
@@ -629,6 +637,7 @@ ${fullProposalOutputBlock}`;
         evaluations: savedEvaluations,
         token_usage: usageTotals,
         instrument_code: instrument.code,
+        active_step_started_at: new Date().toISOString(),
         progress_message: `Running evaluator ${savedEvaluations.length + 1} of ${selectedEvaluators.length}`,
       },
     })
@@ -662,6 +671,7 @@ ${fullProposalOutputBlock}`;
             instrument_code: instrument.code,
             retry_after_seconds: retry.seconds,
             retry_after_at: retry.retryAt,
+            active_step_started_at: null,
             progress_message: message,
           },
         })
@@ -701,6 +711,7 @@ ${fullProposalOutputBlock}`;
           evaluations: nextEvaluations,
           token_usage: nextUsageTotals,
           instrument_code: instrument.code,
+          active_step_started_at: null,
           progress_message: `Completed evaluator ${nextEvaluations.length} of ${selectedEvaluators.length}`,
         },
       })
