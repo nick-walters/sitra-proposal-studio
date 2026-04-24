@@ -165,17 +165,12 @@ export function PanelEvaluator({ proposalId }: Props) {
     const analysisData = (h.analysis_data ?? {}) as Record<string, any>;
     const markdown = analysisData.esr_markdown || "(no ESR available)";
     const acronym = proposal?.acronym || "proposal";
-    const stamp = new Date(h.created_at).toISOString().replace(/[:T]/g, "-").slice(0, 16);
-    const filename = `${acronym}-ESR-${stamp}.md`;
-    const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    try {
+      exportEsrToPdf({ acronym, createdAt: h.created_at, markdown });
+    } catch (err) {
+      console.error("ESR PDF export failed:", err);
+      toast.error("Failed to generate PDF.");
+    }
   };
 
   const deleteEsr = async (h: AnalysisRow) => {
