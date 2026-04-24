@@ -138,6 +138,8 @@ export function PanelEvaluator({ proposalId }: Props) {
 
   // Polling state
   const [runningEvaluationId, setRunningEvaluationId] = useState<string | null>(null);
+  const [runningStatus, setRunningStatus] = useState<string | null>(null);
+  const [runningMessage, setRunningMessage] = useState<string>("");
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const stopPolling = () => {
@@ -154,7 +156,7 @@ export function PanelEvaluator({ proposalId }: Props) {
         "id, created_at, status, error_message, overall_score, total_score_unweighted, total_score_weighted, excellence_score, impact_score_raw, impact_score_weighted, implementation_score, proposal_stage, budget_type_used, instrument_id, model_used, evaluators_selected, cost_eur, analysis_data",
       )
       .eq("proposal_id", proposalId)
-      .neq("status", "running")
+      .in("status", ["complete", "failed"])
       .order("created_at", { ascending: true });
     setHistory((hist || []) as AnalysisRow[]);
     if (hist && hist.length > 0) setSelectedHistoryId(hist[hist.length - 1].id);
@@ -163,23 +165,55 @@ export function PanelEvaluator({ proposalId }: Props) {
   const startPolling = (evaluationId: string) => {
     stopPolling();
     setRunningEvaluationId(evaluationId);
+    setRunningStatus("queued");
+    setRunningMessage("Queued for evaluator run");
     setStage("stageB");
     pollIntervalRef.current = setInterval(async () => {
       const { data } = await supabase
         .from("proposal_analyses")
-        .select("status, error_message")
+        .select("status, error_message, analysis_data")
         .eq("id", evaluationId)
         .single();
       if (!data) return;
-      if (data.status === "complete") {
+
+      const status = data.status || "queued";
+      const progressMessage = data.analysis_data?.progress_message || "";
+      setRunningStatus(status);
+      setRunningMessage(progressMessage);
+
+      if (status === "queued") {
+        const { error } = await supabase.functions.invoke("run-panel-evaluation", {
+          body: { action: "evaluate", evaluationId },
+        });
+        if (error) {
+          toast.error(`Evaluation failed to start: ${error.message || error}`);
+        }
+        return;
+      }
+
+      if (status === "synthesizing" && !data.analysis_data?.esr_markdown) {
+        const { error } = await supabase.functions.invoke("run-panel-evaluation", {
+          body: { action: "synthesis", evaluationId },
+        });
+        if (error) {
+          toast.error(`ESR synthesis failed to start: ${error.message || error}`);
+        }
+        return;
+      }
+
+      if (status === "complete") {
         stopPolling();
         setRunningEvaluationId(null);
+        setRunningStatus(null);
+        setRunningMessage("");
         toast.success("Evaluation complete");
         await refreshHistory();
         setStage("complete");
-      } else if (data.status === "failed") {
+      } else if (status === "failed") {
         stopPolling();
         setRunningEvaluationId(null);
+        setRunningStatus(null);
+        setRunningMessage("");
         toast.error(`Evaluation failed: ${data.error_message || "unknown error"}`);
         setStage("idle");
       }
@@ -203,13 +237,13 @@ export function PanelEvaluator({ proposalId }: Props) {
             "id, created_at, status, error_message, overall_score, total_score_unweighted, total_score_weighted, excellence_score, impact_score_raw, impact_score_weighted, implementation_score, proposal_stage, budget_type_used, instrument_id, model_used, evaluators_selected, cost_eur, analysis_data",
           )
           .eq("proposal_id", proposalId)
-          .neq("status", "running")
+          .in("status", ["complete", "failed"])
           .order("created_at", { ascending: true }),
         supabase
           .from("proposal_analyses")
-          .select("id")
+          .select("id, status, analysis_data")
           .eq("proposal_id", proposalId)
-          .eq("status", "running")
+          .in("status", ["queued", "running", "processing", "synthesizing"])
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle(),
@@ -232,6 +266,8 @@ export function PanelEvaluator({ proposalId }: Props) {
       }
 
       if (runningEval?.id) {
+        setRunningStatus(runningEval.status || "queued");
+        setRunningMessage(runningEval.analysis_data?.progress_message || "");
         startPolling(runningEval.id);
       }
     })();
@@ -323,6 +359,7 @@ export function PanelEvaluator({ proposalId }: Props) {
     try {
       const { data, error } = await supabase.functions.invoke("run-panel-evaluation", {
         body: {
+          action: "start",
           proposalId,
           selectedEvaluators,
           instrumentCode,
@@ -587,9 +624,13 @@ export function PanelEvaluator({ proposalId }: Props) {
             <Alert>
               <Loader2 className="h-4 w-4 animate-spin" />
               <AlertDescription>
-                Evaluation running in the background. This typically takes 4–8 minutes.
+                {runningStatus === "synthesizing"
+                  ? "Synthesizing the ESR from evaluator reports. This typically takes a few minutes."
+                  : runningStatus === "processing"
+                  ? "Evaluator agents are reviewing the proposal. This typically takes 4–8 minutes."
+                  : "Evaluation running in the background. This typically takes 4–8 minutes."}
                 <div className="text-xs mt-1 text-muted-foreground">
-                  You can leave this page and return — the result will be saved automatically.
+                  {runningMessage || "You can leave this page and return — the result will be saved automatically."}
                 </div>
               </AlertDescription>
             </Alert>
