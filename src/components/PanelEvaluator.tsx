@@ -219,7 +219,12 @@ export function PanelEvaluator({ proposalId }: Props) {
           body: { action: "evaluate", evaluationId },
         });
         if (error) {
-          toast.error(`Evaluation failed to resume: ${error.message || error}`);
+          stopPolling();
+          setRunningEvaluationId(null);
+          setRunningStatus("failed");
+          setRunningMessage(progressMessage || error.message || String(error));
+          setStage("panelReview");
+          toast.error(progressMessage || `Evaluation paused: ${error.message || error}`);
         }
         return;
       }
@@ -229,7 +234,12 @@ export function PanelEvaluator({ proposalId }: Props) {
           body: { action: "synthesis", evaluationId },
         });
         if (error) {
-          toast.error(`ESR synthesis failed to start: ${error.message || error}`);
+          stopPolling();
+          setRunningEvaluationId(null);
+          setRunningStatus("failed");
+          setRunningMessage(progressMessage || error.message || String(error));
+          setStage("panelReview");
+          toast.error(progressMessage || `ESR synthesis paused: ${error.message || error}`);
         }
         return;
       }
