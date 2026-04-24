@@ -841,6 +841,7 @@ overall panel assessment, and individual evaluator scores table.`;
       error_message: null,
       analysis_data: {
         ...analysisData,
+        active_step_started_at: new Date().toISOString(),
         progress_message: "Synthesizing evaluation summary report",
       },
     })
@@ -889,6 +890,7 @@ overall panel assessment, and individual evaluator scores table.`;
       analysis_data: {
         ...analysisData,
         esr_markdown: esrMarkdown,
+        active_step_started_at: null,
         progress_message: "Complete",
       },
     })
