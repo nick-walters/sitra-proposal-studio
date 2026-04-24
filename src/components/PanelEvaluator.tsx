@@ -644,6 +644,56 @@ export function PanelEvaluator({ proposalId }: Props) {
         </CardContent>
       </Card>
 
+      {/* Evaluation Summary Reports — most recent + previous in one list */}
+      {history.length > 0 && stage !== "panelReview" && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Evaluation Summary Reports</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {[...history].reverse().map((h) => {
+              const isOpen = selectedHistoryId === h.id;
+              return (
+                <div key={h.id} className="border rounded">
+                  <button
+                    onClick={() => setSelectedHistoryId(isOpen ? null : h.id)}
+                    className={cn(
+                      "w-full text-left flex items-center justify-between p-3 text-sm hover:bg-muted/50",
+                      isOpen && "bg-muted/40",
+                    )}
+                  >
+                    <span className="flex items-center gap-3">
+                      <span className="font-medium">
+                        {new Date(h.created_at).toLocaleString()}
+                      </span>
+                      <Badge variant="outline" className="text-[10px]">
+                        {instruments.find((i) => i.id === h.instrument_id)?.name || "?"}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        Model: {h.model_used || "—"} ·{" "}
+                        {Array.isArray(h.evaluators_selected)
+                          ? `${h.evaluators_selected.length} evaluators`
+                          : ""}
+                      </span>
+                    </span>
+                    <Badge variant="outline">
+                      Total: {h.total_score_unweighted ?? h.overall_score ?? "—"}
+                    </Badge>
+                  </button>
+                  {isOpen && (
+                    <div className="p-3 border-t">
+                      <pre className="whitespace-pre-wrap text-sm font-sans bg-muted/30 p-4 rounded border max-h-[700px] overflow-y-auto">
+                        {h.analysis_data?.esr_markdown || "(no ESR available)"}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Progress chart */}
       <Card>
         <CardHeader><CardTitle className="text-base">Score progression</CardTitle></CardHeader>
@@ -729,6 +779,11 @@ export function PanelEvaluator({ proposalId }: Props) {
               >
                 Selected Evaluation Panel ({selectedCount} selected — min 3, max 10)
               </CardTitle>
+              <p className="text-xs text-muted-foreground italic mt-1">
+                The "evaluators" are agentic AI avatars with different personas, each of which
+                conducts the evaluation from a different perspective based on their profession
+                and expertise.
+              </p>
             </CardHeader>
             <CardContent>
               {sortedSelectedPersonas.length === 0 ? (
@@ -794,11 +849,6 @@ export function PanelEvaluator({ proposalId }: Props) {
                 ))}
               </div>
 
-              <p className="text-xs text-muted-foreground italic">
-                The "evaluators" are agentic AI avatars with different personas, each of which
-                conducts the evaluation from a different perspective based on their profession
-                and expertise.
-              </p>
 
               <div className="flex gap-2">
                 <Button onClick={runEvaluation} disabled={!validPanelSize} className="gap-2">
@@ -811,61 +861,6 @@ export function PanelEvaluator({ proposalId }: Props) {
         </>
       )}
 
-      {/* ESR display */}
-      {activeAnalysis && stage !== "panelReview" && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-start justify-between flex-wrap gap-2">
-              <div>
-                <CardTitle className="text-base">Evaluation Summary Report</CardTitle>
-                <div className="text-xs text-muted-foreground mt-1">
-                  {new Date(activeAnalysis.created_at).toLocaleString()} ·{" "}
-                  Model: {activeAnalysis.model_used || "—"} ·{" "}
-                  {Array.isArray(activeAnalysis.evaluators_selected)
-                    ? `${activeAnalysis.evaluators_selected.length} evaluators`
-                    : ""}
-                </div>
-              </div>
-              <Badge variant="outline">
-                Total: {activeAnalysis.total_score_unweighted ?? activeAnalysis.overall_score ?? "—"}
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <pre className="whitespace-pre-wrap text-sm font-sans bg-muted/30 p-4 rounded border max-h-[700px] overflow-y-auto">
-              {activeAnalysis.analysis_data?.esr_markdown || "(no ESR available)"}
-            </pre>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Version history */}
-      {history.length > 0 && (
-        <Card>
-          <CardHeader><CardTitle className="text-base">Version history</CardTitle></CardHeader>
-          <CardContent>
-            <div className="space-y-1">
-              {[...history].reverse().map((h) => (
-                <button
-                  key={h.id}
-                  onClick={() => setSelectedHistoryId(h.id)}
-                  className={`w-full text-left flex items-center justify-between p-2 rounded text-sm hover:bg-muted/50 ${selectedHistoryId === h.id ? "bg-muted" : ""}`}
-                >
-                  <span>{new Date(h.created_at).toLocaleString()}</span>
-                  <span className="flex items-center gap-3">
-                    <Badge variant="outline" className="text-[10px]">
-                      {instruments.find((i) => i.id === h.instrument_id)?.name || "?"}
-                    </Badge>
-                    <span className="text-muted-foreground">
-                      Score: {h.total_score_unweighted ?? h.overall_score ?? "—"}
-                    </span>
-                  </span>
-                </button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Create persona dialog */}
       <Dialog open={createPersonaOpen} onOpenChange={(o) => { setCreatePersonaOpen(o); if (!o) { setGeneratedPersona(null); setPersonaDescription(""); } }}>
