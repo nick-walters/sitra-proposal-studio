@@ -901,9 +901,11 @@ Produce the full ESR markdown using the four-section structure defined in your s
             ``,
           ]
         : []),
+      `**Total score:** ${totalUnweighted} / ${stageKey === "full" ? 15 : 10}${impactWeighting !== 1 ? ` (weighted: ${totalWeighted} / ${(stageKey === "full" ? 5 + 5 * impactWeighting + 5 : 5 + 5 * impactWeighting).toFixed(1)})` : ""}`,
+      ``,
       `## Overall panel assessment`,
       ``,
-      `Automatic synthesis failed for this evaluation. Total unweighted score: ${totalUnweighted} / ${stageKey === "full" ? 15 : 10}.`,
+      `Automatic synthesis failed for this evaluation.`,
     ].join("\n");
   }
 
