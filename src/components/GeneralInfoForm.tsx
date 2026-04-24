@@ -646,7 +646,7 @@ export function GeneralInfoForm({
       <div className="max-w-7xl mx-auto space-y-4">
         <div className="flex items-center justify-between">
           <div className="space-y-2">
-            <h1 className="text-xl font-bold text-foreground">A1. General information (including proposal status)</h1>
+            <h1 className="text-xl font-bold text-foreground">A1. General information</h1>
             <div className="flex items-center gap-3">
               <PartAGuidelinesDialog
                 sectionTitle="Part A1: General information"
