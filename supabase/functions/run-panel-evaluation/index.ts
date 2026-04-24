@@ -750,95 +750,28 @@ ${fullProposalOutputBlock}`;
         : excellenceMean + impactWeighted;
 
     // ---- Synthesis ----
-    const evaluatorReportsForSynthesis = parsedEvaluations
-      .map(
-        (e, i) =>
-          `### Evaluator ${i + 1}: ${e.persona.name}\n${JSON.stringify(e.data, null, 2)}`,
-      )
-      .join("\n\n");
-
-    const panelTable = parsedEvaluations
-      .map((e, i) => `| ${i + 1} | ${e.persona.name} | ${e.persona.brief} |`)
-      .join("\n");
-
-    const dateStr = new Date().toISOString().slice(0, 10);
-
-    const synthesisSystem = `You are the Panel Rapporteur for a Horizon Europe expert evaluation panel. You have received ${parsedEvaluations.length} independent evaluation reports. Your task is to synthesise these into a single Evaluation Summary Report (ESR) in the style of the official EC evaluation form.
-
-PROGRAMME CONTEXT
-Horizon Europe is the EU's primary research and innovation funding programme. Pillar II funds collaborative transnational projects addressing major societal challenges. Proposals are evaluated against three criteria — Excellence, Impact, and Implementation — on a 0–5 scale. The ESR is the formal feedback document provided to applicants and must meet the European Commission's standards for specificity, rigour, and professionalism.
-
-SYNTHESIS RULES:
-- Consensus score = mean of all evaluator scores per criterion, rounded to nearest 0.5.
-- Flag a minority opinion for any criterion where any evaluator's score differs from the mean by more than 1.0 points.
-- For IA proposals, apply ${impactWeighting}× weighting to the consensus Impact score.
-- Synthesise comments into coherent, substantive feedback — do not simply average or concatenate evaluator text.
-- Strengths and weaknesses must be specific to the proposal content. Generic statements are not acceptable.
-- Tone: direct, professional — matching official EC ESR style. Avoid hedging language.
-- For lump sum proposals, include specific budget commentary under Implementation.
-- For Stage 1, note the blind evaluation status and flag any identifying information found by evaluators.
-- The ESR must identify specific weaknesses for every criterion. A criterion with no identified weaknesses will be returned for revision — this is EC policy.
-- Do not inflate scores or soften criticism to appear balanced. The ESR must reflect the honest consensus of the panel.
-
-SCORING CALIBRATION:
-Most competitive proposals score 3.0–4.0 per criterion. A score of 5 is rare. Ensure the consensus scores accurately reflect the evaluator reports — do not round up generously.${specialExceptions}${topicSpecificContext}
-
-CONSENSUS SCORES YOU MUST USE (already computed):
-- Excellence: ${excellenceMean}/5
-- Impact (raw): ${impactMean}/5${impactWeighting !== 1 ? ` | weighted: ${impactWeighted}/${5 * impactWeighting}` : ""}
-${stageKey === "full" ? `- Implementation: ${implMean}/5` : ""}
-- Total unweighted: ${totalUnweighted}
-- Total weighted: ${totalWeighted}
-
-OUTPUT: Structured markdown ESR following the exact template provided. Use the consensus scores above verbatim.`;
-
-    const synthesisUser = `## EVALUATION SUMMARY REPORT
-*(Simulated — AI-generated for internal development purposes only)*
-
-**Proposal:** ${proposal.acronym} — ${proposal.title}
-**Call:** ${proposal.work_programme || "n/a"} | **Topic:** ${proposal.topic_id || "n/a"}
-**Instrument:** ${instrument.name} | **Stage:** ${stageKey === "stage1" ? "Stage 1 of 2" : "Full proposal"}
-**Budget type:** ${budgetTypeLabel}
-**Date:** ${dateStr} | **Model:** ${evaluationModel}
-
-### PANEL COMPOSITION
-| # | Evaluator | Specialism |
-|---|-----------|------------|
-${panelTable}
-
----
-
-### EVALUATOR REPORTS (synthesise these into the ESR)
-${evaluatorReportsForSynthesis}
-
-Now produce the full ESR markdown document following the prescribed template, using the consensus scores already computed in your system message. Base the ESR ONLY on the evaluator reports above — do not introduce content the evaluators did not raise.`;
-
-    // Cool-down before synthesis so the TPM bucket refills after the evaluator burst.
-    // Anthropic enforces ~30k input tokens/minute on opus; the evaluator phase typically
-    // consumes most of that, so a synthesis call fired immediately afterwards will 429.
-    console.log("Cooling down 65s before synthesis to let TPM budget refill...");
-    await sleep(65_000);
-
-    // The synthesis call deliberately omits the full proposal content — the evaluator
-    // reports already contain the substantive observations. Keeping this prompt small
-    // also keeps us comfortably under the per-minute input-token rate limit.
-    const synthesisRes = await callAnthropicWithCache(
-      ANTHROPIC_API_KEY,
+    const esrMarkdown = buildEsrMarkdown({
+      proposal,
+      instrument,
+      stageKey,
+      budgetTypeLabel,
       evaluationModel,
-      [{ type: "text", text: synthesisSystem }],
-      synthesisUser,
-      8000,
-      false,
-      4, // extra retries for synthesis specifically
-    );
-
-    const esrMarkdown = synthesisRes.text;
+      parsedEvaluations,
+      excellenceMean,
+      impactMean,
+      implMean,
+      impactWeighted,
+      impactWeighting,
+      totalUnweighted,
+      totalWeighted,
+      criteriaForRun,
+    });
 
     // ---- Cost calculation ----
     let totalInputTokens = 0;
     let totalOutputTokens = 0;
     let totalCachedTokens = 0;
-    [...evaluatorResults, { usage: synthesisRes.usage }].forEach((r: any) => {
+    evaluatorResults.forEach((r: any) => {
       const u = r.usage || {};
       totalInputTokens += Number(u.input_tokens || 0);
       totalOutputTokens += Number(u.output_tokens || 0);
