@@ -729,6 +729,11 @@ export function PanelEvaluator({ proposalId }: Props) {
               >
                 Selected Evaluation Panel ({selectedCount} selected — min 3, max 10)
               </CardTitle>
+              <p className="text-xs text-muted-foreground italic mt-1">
+                The "evaluators" are agentic AI avatars with different personas, each of which
+                conducts the evaluation from a different perspective based on their profession
+                and expertise.
+              </p>
             </CardHeader>
             <CardContent>
               {sortedSelectedPersonas.length === 0 ? (
