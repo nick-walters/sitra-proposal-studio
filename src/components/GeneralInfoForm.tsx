@@ -725,25 +725,48 @@ export function GeneralInfoForm({
                 </div>
               </div>
 
-              <div className="flex-shrink-0">
-                <label className="text-xs text-muted-foreground mb-1 block">Project logo</label>
-                <div className="flex gap-2 items-start">
+              <div className="flex-shrink-0 flex flex-col gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Project logo</label>
+                  <div className="flex gap-2 items-start">
+                    {isEditing && editedProposal ? (
+                      <LogoUpload
+                        currentUrl={editedProposal.logoUrl || null}
+                        proposalId={proposalId}
+                        proposalAcronym={editedProposal.acronym}
+                        proposalTitle={editedProposal.title}
+                        topicContext={[
+                          (proposal as any)?.topicExpectedOutcome,
+                          (proposal as any)?.topicScope,
+                          (proposal as any)?.topicDestinationDescription,
+                        ].filter(Boolean).join(' ') || undefined}
+                        acronymSegments={(editedProposal as any).acronymSegments}
+                        onUpload={handleLogoChange}
+                      />
+                    ) : (
+                      <AcronymLogo logoUrl={proposal?.logoUrl} acronym={proposal?.acronym || 'P'} />
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Duration in months</label>
                   {isEditing && editedProposal ? (
-                    <LogoUpload
-                      currentUrl={editedProposal.logoUrl || null}
-                      proposalId={proposalId}
-                      proposalAcronym={editedProposal.acronym}
-                      proposalTitle={editedProposal.title}
-                      topicContext={[
-                        (proposal as any)?.topicExpectedOutcome,
-                        (proposal as any)?.topicScope,
-                        (proposal as any)?.topicDestinationDescription,
-                      ].filter(Boolean).join(' ') || undefined}
-                      acronymSegments={(editedProposal as any).acronymSegments}
-                      onUpload={handleLogoChange}
+                    <Input
+                      type="number"
+                      min={1}
+                      max={120}
+                      value={editedProposal.duration ?? ''}
+                      onChange={(e) => {
+                        const val = e.target.value === '' ? undefined : Math.max(1, parseInt(e.target.value, 10) || 1);
+                        setEditedProposal({ ...editedProposal, duration: val } as any);
+                      }}
+                      className="h-8 text-sm w-32"
+                      placeholder="e.g. 36"
                     />
                   ) : (
-                    <AcronymLogo logoUrl={proposal?.logoUrl} acronym={proposal?.acronym || 'P'} />
+                    <p className="text-sm font-medium">
+                      {proposal?.duration ? `${proposal.duration} months` : 'Not set'}
+                    </p>
                   )}
                 </div>
               </div>
