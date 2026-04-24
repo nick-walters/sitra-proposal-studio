@@ -22,6 +22,7 @@ export function EsrRenderer({ markdown }: Props) {
     >
       {blocks.map((b: Block, idx) => {
         const k = `b-${idx}`;
+        if (b.type === "spacer") return <div key={k} style={{ height: "8pt" }} />;
         switch (b.type) {
           case "h1":
             return (
