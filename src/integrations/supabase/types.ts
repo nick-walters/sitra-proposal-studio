@@ -2941,6 +2941,7 @@ export type Database = {
           created_at: string
           created_by: string
           eligibility_flags: Json | null
+          error_message: string | null
           evaluators_selected: Json | null
           excellence_score: number | null
           id: string
@@ -2952,6 +2953,7 @@ export type Database = {
           overall_score: number | null
           proposal_id: string
           proposal_stage: string | null
+          status: string | null
           tokens_cached: number | null
           tokens_input: number | null
           tokens_output: number | null
@@ -2966,6 +2968,7 @@ export type Database = {
           created_at?: string
           created_by: string
           eligibility_flags?: Json | null
+          error_message?: string | null
           evaluators_selected?: Json | null
           excellence_score?: number | null
           id?: string
@@ -2977,6 +2980,7 @@ export type Database = {
           overall_score?: number | null
           proposal_id: string
           proposal_stage?: string | null
+          status?: string | null
           tokens_cached?: number | null
           tokens_input?: number | null
           tokens_output?: number | null
@@ -2991,6 +2995,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           eligibility_flags?: Json | null
+          error_message?: string | null
           evaluators_selected?: Json | null
           excellence_score?: number | null
           id?: string
@@ -3002,6 +3007,7 @@ export type Database = {
           overall_score?: number | null
           proposal_id?: string
           proposal_stage?: string | null
+          status?: string | null
           tokens_cached?: number | null
           tokens_input?: number | null
           tokens_output?: number | null

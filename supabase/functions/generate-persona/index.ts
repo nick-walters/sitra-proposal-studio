@@ -8,11 +8,10 @@ const corsHeaders = {
 };
 
 const VALID_AREAS = [
-  "Democracy and Trust",
-  "Data and AI",
-  "Health and Wellbeing",
   "Circular Economy",
-  "Cross-cutting",
+  "Data & AI",
+  "Democracy & Trust",
+  "Health & Wellbeing",
 ];
 
 serve(async (req) => {
@@ -78,7 +77,7 @@ serve(async (req) => {
     const model = cfg?.value || "claude-haiku-4-5-20251001";
 
     const systemPrompt = `You are building an evaluator persona library. Generate a structured persona from the user's description.
-OUTPUT: JSON only: {"name": "Title, field — max 10 words", "brief": "One sentence, max 25 words", "thematic_area": "Democracy and Trust|Data and AI|Health and Wellbeing|Circular Economy|Cross-cutting"}
+OUTPUT: JSON only: {"name": "Title, field — max 10 words", "brief": "One sentence, max 25 words", "thematic_area": "Circular Economy|Data & AI|Democracy & Trust|Health & Wellbeing"}
 Name style examples: "Machine learning researcher, applied AI" / "Health equity researcher". Brief should convey expertise AND critical lens.`;
 
     const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -114,8 +113,8 @@ Name style examples: "Machine learning researcher, applied AI" / "Health equity 
 
     const name = String(parsed.name || "").trim();
     const brief = String(parsed.brief || "").trim();
-    let area = String(parsed.thematic_area || "Cross-cutting").trim();
-    if (!VALID_AREAS.includes(area)) area = "Cross-cutting";
+    let area = String(parsed.thematic_area || "Democracy & Trust").trim();
+    if (!VALID_AREAS.includes(area)) area = "Democracy & Trust";
 
     if (!name || !brief) {
       return new Response(JSON.stringify({ error: "Generated persona is incomplete" }), {
