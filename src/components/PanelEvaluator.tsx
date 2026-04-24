@@ -496,32 +496,26 @@ export function PanelEvaluator({ proposalId }: Props) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-purple-600" />
-            AI Panel Evaluation
+            Mock AI evaluation
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm text-muted-foreground">
           <p>
-            This tool simulates a Horizon Europe expert evaluation panel. It reads the current
-            state of your proposal and produces an Evaluation Summary Report (ESR) with scores
-            and detailed feedback for each criterion — in the style of the official EC evaluation form.
+            This tool simulates a Horizon Europe expert evaluation panel. After an eligibility
+            check by an agentic AI European Commission evaluator, it assembles a panel of agentic
+            AI "evaluators" with different expert roles and personas, which evaluate the proposal
+            in its current state from different perspectives. Finally, another agent assembles
+            scores and detailed feedback into an Evaluation Summary Report (ESR).
           </p>
           <p>
-            <strong>Access:</strong> Proposal coordinators, platform admins, and owners only.
-          </p>
-          <p>
-            <strong>Use sparingly</strong> — only when significant changes have been made. Each run
-            incurs a small AI cost.
-          </p>
-          <p>
-            <strong>Estimated cost:</strong> ~€{costAvg.eur.toFixed(2)} per evaluation{" "}
-            {costAvg.isFallback
-              ? "(indicative)"
-              : `(based on last ${costAvg.samples} evaluation${costAvg.samples === 1 ? "" : "s"})`}
+            The cost per evaluation is ~€2.50. Only proposal coordinators can run an evaluation,
+            but all users can view the ESRs associated with a proposal.
           </p>
         </CardContent>
       </Card>
 
-      {/* Configuration row */}
+      {/* Configuration row — coordinators only */}
+      {isCoordinator && (
       <Card>
         <CardContent className="pt-6 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
