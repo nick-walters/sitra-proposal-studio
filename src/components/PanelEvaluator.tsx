@@ -106,10 +106,8 @@ export function PanelEvaluator({ proposalId }: Props) {
   const [proposal, setProposal] = useState<any>(null);
   const [instruments, setInstruments] = useState<InstrumentType[]>([]);
   const [instrumentCode, setInstrumentCode] = useState<string>("");
-  const [instrumentOverride, setInstrumentOverride] = useState(false);
   const [proposalStage, setProposalStage] = useState<"full" | "stage1">("full");
   const [budgetType, setBudgetType] = useState<"traditional" | "lump_sum">("traditional");
-  const [budgetOverride, setBudgetOverride] = useState(false);
 
   const [history, setHistory] = useState<AnalysisRow[]>([]);
   const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
@@ -526,93 +524,51 @@ export function PanelEvaluator({ proposalId }: Props) {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label>Instrument type</Label>
-              {!instrumentOverride ? (
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="font-medium">
-                    {selectedInstrument?.name || instrumentCode?.toUpperCase() || "—"}
-                  </span>
-                  {stage === "idle" && (
-                    <button
-                      type="button"
-                      onClick={() => setInstrumentOverride(true)}
-                      className="text-xs text-primary hover:underline"
-                    >
-                      Override ▾
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <Select
-                  value={instrumentCode}
-                  onValueChange={setInstrumentCode}
-                  disabled={stage !== "idle"}
-                >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {instruments.map((i) => (
-                      <SelectItem key={i.id} value={i.code}>{i.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
+              <Select
+                value={instrumentCode}
+                onValueChange={setInstrumentCode}
+                disabled={stage !== "idle"}
+              >
+                <SelectTrigger><SelectValue placeholder="Select instrument" /></SelectTrigger>
+                <SelectContent>
+                  {instruments.map((i) => (
+                    <SelectItem key={i.id} value={i.code}>{i.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {proposalStage !== "stage1" && (
               <div className="space-y-2">
                 <Label>Budget type</Label>
-                {!budgetOverride ? (
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="font-medium">
-                      {budgetType === "lump_sum" ? "Lump sum" : "Actual cost"}
-                    </span>
-                    {stage === "idle" && (
-                      <button
-                        type="button"
-                        onClick={() => setBudgetOverride(true)}
-                        className="text-xs text-primary hover:underline"
-                      >
-                        Override ▾
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  <RadioGroup
-                    value={budgetType}
-                    onValueChange={(v) => setBudgetType(v as "traditional" | "lump_sum")}
-                    disabled={stage !== "idle"}
-                    className="flex gap-4"
-                  >
-                    <div className="flex items-center gap-2">
-                      <RadioGroupItem value="traditional" id="bt-trad" />
-                      <Label htmlFor="bt-trad" className="font-normal cursor-pointer">Actual cost</Label>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <RadioGroupItem value="lump_sum" id="bt-ls" />
-                      <Label htmlFor="bt-ls" className="font-normal cursor-pointer">Lump sum</Label>
-                    </div>
-                  </RadioGroup>
-                )}
+                <Select
+                  value={budgetType}
+                  onValueChange={(v) => setBudgetType(v as "traditional" | "lump_sum")}
+                  disabled={stage !== "idle"}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="traditional">Actual cost</SelectItem>
+                    <SelectItem value="lump_sum">Lump sum</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             )}
 
             {showStage && (
               <div className="space-y-2">
                 <Label>Stage</Label>
-                <RadioGroup
+                <Select
                   value={proposalStage}
                   onValueChange={(v) => setProposalStage(v as "full" | "stage1")}
                   disabled={stage !== "idle"}
-                  className="flex gap-4"
                 >
-                  <div className="flex items-center gap-2">
-                    <RadioGroupItem value="full" id="stage-full" />
-                    <Label htmlFor="stage-full" className="font-normal cursor-pointer">Full proposal</Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <RadioGroupItem value="stage1" id="stage-1" />
-                    <Label htmlFor="stage-1" className="font-normal cursor-pointer">Stage 1</Label>
-                  </div>
-                </RadioGroup>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="full">Full proposal</SelectItem>
+                    <SelectItem value="stage1">Stage 1 of 2</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             )}
           </div>
@@ -644,105 +600,96 @@ export function PanelEvaluator({ proposalId }: Props) {
         </CardContent>
       </Card>
 
-      {/* Evaluation Summary Reports — most recent + previous in one list */}
+      {/* Evaluation Summary Reports — chart + most recent + previous in one card */}
       {history.length > 0 && stage !== "panelReview" && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Evaluation Summary Reports</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
-            {[...history].reverse().map((h) => {
-              const isOpen = selectedHistoryId === h.id;
-              return (
-                <div key={h.id} className="border rounded">
-                  <button
-                    onClick={() => setSelectedHistoryId(isOpen ? null : h.id)}
-                    className={cn(
-                      "w-full text-left flex items-center justify-between p-3 text-sm hover:bg-muted/50",
-                      isOpen && "bg-muted/40",
-                    )}
-                  >
-                    <span className="flex items-center gap-3">
-                      <span className="font-medium">
-                        {new Date(h.created_at).toLocaleString()}
+          <CardContent className="space-y-4">
+            {chartData.length >= 2 && (
+              <div className="h-32">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                    <YAxis domain={[0, yMax]} tick={{ fontSize: 10 }} width={28} />
+                    <RTooltip />
+                    <ReferenceLine
+                      y={overallThreshold}
+                      stroke="hsl(var(--destructive))"
+                      strokeDasharray="4 4"
+                      label={{ value: `Threshold ${overallThreshold}`, fontSize: 10 }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="score"
+                      stroke="hsl(var(--primary))"
+                      activeDot={{
+                        r: 6,
+                        onClick: (_e: any, payload: any) => {
+                          if (payload?.payload?.id) setSelectedHistoryId(payload.payload.id);
+                        },
+                      }}
+                      dot={(props: any) => {
+                        const v = props.payload.score;
+                        const color =
+                          v < overallThreshold
+                            ? "hsl(var(--destructive))"
+                            : v < overallThreshold + 1
+                            ? "hsl(38 92% 50%)"
+                            : "hsl(142 71% 45%)";
+                        return <Dot {...props} r={4} fill={color} stroke={color} />;
+                      }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+            <div className="space-y-2">
+              {[...history].reverse().map((h) => {
+                const isOpen = selectedHistoryId === h.id;
+                return (
+                  <div key={h.id} className="border rounded">
+                    <button
+                      onClick={() => setSelectedHistoryId(isOpen ? null : h.id)}
+                      className={cn(
+                        "w-full text-left flex items-center justify-between p-3 text-sm hover:bg-muted/50",
+                        isOpen && "bg-muted/40",
+                      )}
+                    >
+                      <span className="flex items-center gap-3">
+                        <span className="font-medium">
+                          {new Date(h.created_at).toLocaleString()}
+                        </span>
+                        <Badge variant="outline" className="text-[10px]">
+                          {instruments.find((i) => i.id === h.instrument_id)?.name || "?"}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">
+                          Model: {h.model_used || "—"} ·{" "}
+                          {Array.isArray(h.evaluators_selected)
+                            ? `${h.evaluators_selected.length} evaluators`
+                            : ""}
+                        </span>
                       </span>
-                      <Badge variant="outline" className="text-[10px]">
-                        {instruments.find((i) => i.id === h.instrument_id)?.name || "?"}
+                      <Badge variant="outline">
+                        Total: {h.total_score_unweighted ?? h.overall_score ?? "—"}
                       </Badge>
-                      <span className="text-xs text-muted-foreground">
-                        Model: {h.model_used || "—"} ·{" "}
-                        {Array.isArray(h.evaluators_selected)
-                          ? `${h.evaluators_selected.length} evaluators`
-                          : ""}
-                      </span>
-                    </span>
-                    <Badge variant="outline">
-                      Total: {h.total_score_unweighted ?? h.overall_score ?? "—"}
-                    </Badge>
-                  </button>
-                  {isOpen && (
-                    <div className="p-3 border-t">
-                      <pre className="whitespace-pre-wrap text-sm font-sans bg-muted/30 p-4 rounded border max-h-[700px] overflow-y-auto">
-                        {h.analysis_data?.esr_markdown || "(no ESR available)"}
-                      </pre>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+                    </button>
+                    {isOpen && (
+                      <div className="p-3 border-t">
+                        <pre className="whitespace-pre-wrap text-sm font-sans bg-muted/30 p-4 rounded border max-h-[700px] overflow-y-auto">
+                          {h.analysis_data?.esr_markdown || "(no ESR available)"}
+                        </pre>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </CardContent>
         </Card>
       )}
-
-      {/* Progress chart */}
-      <Card>
-        <CardHeader><CardTitle className="text-base">Score progression</CardTitle></CardHeader>
-        <CardContent>
-          {chartData.length < 2 ? (
-            <div className="text-sm text-muted-foreground py-8 text-center">
-              Run your first evaluation to track progress.
-            </div>
-          ) : (
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis domain={[0, yMax]} />
-                  <RTooltip />
-                  <ReferenceLine
-                    y={overallThreshold}
-                    stroke="hsl(var(--destructive))"
-                    strokeDasharray="4 4"
-                    label={{ value: `Threshold ${overallThreshold}`, fontSize: 11 }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="score"
-                    stroke="hsl(var(--primary))"
-                    activeDot={{
-                      r: 6,
-                      onClick: (_e: any, payload: any) => {
-                        if (payload?.payload?.id) setSelectedHistoryId(payload.payload.id);
-                      },
-                    }}
-                    dot={(props: any) => {
-                      const v = props.payload.score;
-                      const color =
-                        v < overallThreshold
-                          ? "hsl(var(--destructive))"
-                          : v < overallThreshold + 1
-                          ? "hsl(38 92% 50%)"
-                          : "hsl(142 71% 45%)";
-                      return <Dot {...props} r={5} fill={color} stroke={color} />;
-                    }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
       {/* Stage A results: panel review */}
       {stage === "panelReview" && (
