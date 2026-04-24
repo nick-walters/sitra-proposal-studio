@@ -146,6 +146,44 @@ async function runWithConcurrency<T, R>(
 
 const round05 = (n: number) => Math.round(n * 2) / 2;
 const mean = (values: number[]) => values.reduce((sum, value) => sum + value, 0) / Math.max(values.length, 1);
+const EVALUATOR_MAX_TOKENS = 3200;
+const SYNTHESIS_MAX_TOKENS = 4200;
+const MAX_SECTION_CHARS = 2200;
+const MAX_TOTAL_SECTION_CHARS = 32000;
+const ACTIVE_STEP_STALE_MS = 180_000;
+
+function formatRetryDelay(retryAfterSeconds?: number) {
+  const seconds = Math.max(30, Math.min(retryAfterSeconds ?? 60, 300));
+  const retryAt = new Date(Date.now() + seconds * 1000).toISOString();
+  const minutes = seconds >= 60 ? `${Math.ceil(seconds / 60)} min` : `${seconds}s`;
+  return { seconds, retryAt, label: minutes };
+}
+
+function buildSectionDigest(sections: any[]) {
+  let consumed = 0;
+
+  return sections
+    .map((section: any) => {
+      const text = stripHtml(section.content);
+      if (!text) return `### ${section.section_id}\n[No content provided]`;
+
+      const remaining = MAX_TOTAL_SECTION_CHARS - consumed;
+      if (remaining <= 0) return `### ${section.section_id}\n[Additional content omitted to stay within model limits]`;
+
+      const excerptLength = Math.min(MAX_SECTION_CHARS, remaining);
+      const excerpt = text.slice(0, excerptLength);
+      consumed += excerpt.length;
+      const truncated = text.length > excerpt.length ? "\n[Section excerpt truncated for model budget]" : "";
+      return `### ${section.section_id}\n${excerpt}${truncated}`;
+    })
+    .join("\n\n");
+}
+
+function isRecentStepStart(value: unknown) {
+  if (typeof value !== "string") return false;
+  const started = Date.parse(value);
+  return Number.isFinite(started) && Date.now() - started < ACTIVE_STEP_STALE_MS;
+}
 
 interface EvaluatorSelection {
   name: string;
@@ -338,19 +376,22 @@ async function runEvaluatorPhase(serviceClient: any, evaluationId: string) {
     return { evaluationId, status: evaluation.status || "unknown" };
   }
 
-  await serviceClient
-    .from("proposal_analyses")
-    .update({
-      status: "processing",
-      error_message: null,
-      analysis_data: {
-        ...(evaluation.analysis_data || {}),
-        eligibility_flags: eligibilityFlags,
-        instrument_code: instrument.code,
-        progress_message: "Running evaluator agents",
-      },
-    })
-    .eq("id", evaluationId);
+  const baseAnalysisData = evaluation.analysis_data || {};
+  const savedEvaluations = Array.isArray(baseAnalysisData.evaluations) ? baseAnalysisData.evaluations : [];
+  const savedUsage = baseAnalysisData.token_usage || {};
+  const activeStepStartedAt = baseAnalysisData.active_step_started_at;
+  if (isRecentStepStart(activeStepStartedAt) && ["running", "processing"].includes(evaluation.status || "")) {
+    return {
+      evaluationId,
+      status: evaluation.status || "processing",
+      active: true,
+    };
+  }
+  const usageTotals = {
+    evaluator_input_tokens: Number(savedUsage.evaluator_input_tokens || 0),
+    evaluator_output_tokens: Number(savedUsage.evaluator_output_tokens || 0),
+    evaluator_cached_tokens: Number(savedUsage.evaluator_cached_tokens || 0),
+  };
 
   const evaluationModel = configMap.evaluation_model || "claude-opus-4-5-20250929";
 
@@ -386,7 +427,7 @@ ${risks.map((risk: any) => `- R${risk.number} ${stripHtml(risk.description)} | M
 BUDGET (sum requested EU contribution): €${budget.reduce((sum: number, row: any) => sum + Number(row.requested_eu_contribution || 0), 0).toLocaleString()}
 `;
 
-  const partB = sections.map((section: any) => `### ${section.section_id}\n${stripHtml(section.content)}`).join("\n\n");
+  const partB = buildSectionDigest(sections);
   const proposalContentBlock = `=== PART A: ADMINISTRATIVE ===\n${partA}\n\n=== PART B: TECHNICAL ===\n${partB}`;
 
   const criteriaText = criteriaForRun
@@ -427,230 +468,265 @@ ${criterion.scoring_descriptors}`;
     ? `\n\nTOPIC-SPECIFIC CONTEXT FROM THE PROPOSAL TEAM:\n${evaluationCriteriaNotes}`
     : "";
 
-  const evaluatorTaskFactories = selectedEvaluators.map((evaluator) => {
-    const fullProposalOutputBlock =
-      stageKey === "stage1"
-        ? `{
-  "excellence_comments": "150–300 words — specific, referenced, with at least two distinct weaknesses identified",
+  const finalizeEvaluatorPhase = async (parsedEvaluations: any[], nextUsageTotals: Record<string, number>) => {
+    const validEvaluations = parsedEvaluations.filter((item) => !item?.data?.error);
+    if (validEvaluations.length === 0) {
+      throw new Error("All evaluator outputs failed to parse");
+    }
+
+    const excellenceScores = validEvaluations
+      .map((item) => Number(item.data.excellence_score))
+      .filter((value) => !Number.isNaN(value));
+    const impactScores = validEvaluations
+      .map((item) => Number(item.data.impact_score))
+      .filter((value) => !Number.isNaN(value));
+    const implementationScores =
+      stageKey === "full"
+        ? validEvaluations
+            .map((item) => Number(item.data.implementation_score))
+            .filter((value) => !Number.isNaN(value))
+        : [];
+
+    const excellenceMean = round05(mean(excellenceScores));
+    const impactMean = round05(mean(impactScores));
+    const implementationMean = stageKey === "full" ? round05(mean(implementationScores)) : null;
+    const impactWeighting = Number(instrument.impact_weighting || 1.0);
+    const impactWeighted = round05(impactMean * impactWeighting * 2) / 2;
+    const totalUnweighted =
+      stageKey === "full"
+        ? excellenceMean + impactMean + (implementationMean || 0)
+        : excellenceMean + impactMean;
+    const totalWeighted =
+      stageKey === "full"
+        ? excellenceMean + impactWeighted + (implementationMean || 0)
+        : excellenceMean + impactWeighted;
+
+    const findThreshold = (criterionName: string) => {
+      const criterion = criteriaForRun.find((item: any) =>
+        String(item.criterion_name || "").toLowerCase().includes(criterionName.toLowerCase()),
+      );
+      if (!criterion) return null;
+      return stageKey === "stage1" ? criterion.threshold_stage1 : criterion.threshold_full;
+    };
+
+    const synthesisContext = {
+      stage_key: stageKey,
+      budget_type: budgetType,
+      budget_type_label: budgetTypeLabel,
+      impact_weighting: impactWeighting,
+      excellence_mean: excellenceMean,
+      impact_mean: impactMean,
+      implementation_mean: implementationMean,
+      impact_weighted: impactWeighted,
+      total_unweighted: totalUnweighted,
+      total_weighted: totalWeighted,
+      thresholds: {
+        excellence: findThreshold("excellence"),
+        impact: findThreshold("impact"),
+        implementation: findThreshold("implementation"),
+      },
+      proposal_title: proposal.title,
+      proposal_acronym: proposal.acronym,
+      work_programme: proposal.work_programme || "n/a",
+      topic_id: proposal.topic_id || "n/a",
+      instrument_name: instrument.name,
+      instrument_code: instrument.code,
+      evaluation_model: evaluationModel,
+      token_usage: nextUsageTotals,
+    };
+
+    await serviceClient
+      .from("proposal_analyses")
+      .update({
+        status: "synthesizing",
+        error_message: null,
+        model_used: evaluationModel,
+        excellence_score: excellenceMean,
+        impact_score_raw: impactMean,
+        impact_score_weighted: impactWeighted,
+        implementation_score: implementationMean,
+        total_score_unweighted: totalUnweighted,
+        total_score_weighted: totalWeighted,
+        overall_score: totalUnweighted,
+        analysis_data: {
+          ...baseAnalysisData,
+          eligibility_flags: eligibilityFlags,
+          evaluations: parsedEvaluations.map((item) => ({ persona: item.persona, data: item.data })),
+          synthesis_context: synthesisContext,
+          token_usage: nextUsageTotals,
+          instrument_code: instrument.code,
+          active_step_started_at: null,
+          progress_message: "Synthesizing evaluation summary report",
+        },
+      })
+      .eq("id", evaluationId);
+
+    return { evaluationId, status: "synthesizing" };
+  };
+
+  if (savedEvaluations.length >= selectedEvaluators.length) {
+    return finalizeEvaluatorPhase(savedEvaluations, usageTotals);
+  }
+
+  const evaluator = selectedEvaluators[savedEvaluations.length];
+  const fullProposalOutputBlock =
+    stageKey === "stage1"
+      ? `{
+  "excellence_comments": "120–220 words",
   "excellence_score": number (0–5 in 0.5 steps),
-  "impact_comments": "150–300 words — specific, referenced, with at least two distinct weaknesses identified",
+  "impact_comments": "120–220 words",
   "impact_score": number (0–5 in 0.5 steps),
-  "overall_comments": "50–100 words",
+  "overall_comments": "40–70 words",
   "key_strength": "one sentence",
   "key_concern": "one sentence"
 }`
-        : `{
-  "excellence_comments": "150–300 words",
+      : `{
+  "excellence_comments": "120–220 words",
   "excellence_score": number,
-  "impact_comments": "150–300 words",
+  "impact_comments": "120–220 words",
   "impact_score": number,
-  "implementation_comments": "150–300 words",
+  "implementation_comments": "120–220 words",
   "implementation_score": number,
-  "overall_comments": "50–100 words",
+  "overall_comments": "40–70 words",
   "key_strength": "one sentence",
   "key_concern": "one sentence"
 }`;
 
-    const evaluatorSystem = `You are ${evaluator.name}. ${evaluator.brief}.
+  const evaluatorSystem = `You are ${evaluator.name}. ${evaluator.brief}.
 
-You have been invited by the European Commission to serve as an independent expert evaluator on a Horizon Europe proposal evaluation panel. Evaluate this proposal strictly and honestly from your professional perspective.
-
----
+You are serving as an independent Horizon Europe evaluator. Evaluate strictly from your professional perspective.
 
 PROGRAMME CONTEXT
-
-Horizon Europe is the European Union's primary research and innovation funding programme (2021–2027, ~€95.5 billion total budget). Pillar II — Global Challenges and European Industrial Competitiveness — funds collaborative, transnational research and innovation projects addressing major societal challenges.
-
 INSTRUMENT TYPE: ${instrument.name}
-
 ${instrumentContext}
 
 PROPOSAL STAGE: ${stageKey === "stage1" ? "Stage 1 of 2" : "Full proposal"}
-
 ${stageContext}
 
 BUDGET TYPE: ${budgetTypeLabel}${budgetContext}
 
----
-
 EVALUATION RULES
-
-- Evaluate the proposal as submitted. Do not consider its potential if changes were made.
-- Do not recommend changes. Shortcomings must be reflected in lower scores, not suggestions.
-- Evaluate based solely on the content of the submitted document.
-- Be specific. Reference actual content, section headings, specific claims, or gaps.
-- Apply your genuine professional critical lens.
-
-SCORING SCALE (0–5 in 0.5 increments):
-0 = Fails to address criterion or cannot be assessed
-1 = Poor — inadequately addressed or serious weaknesses
-2 = Fair — broadly addresses criterion but significant weaknesses
-3 = Good — addresses criterion well but a number of shortcomings present
-4 = Very Good — small number of shortcomings present
-5 = Excellent — any shortcomings are minor
-
-SCORING CALIBRATION — READ CAREFULLY:
-Most competitive Horizon Europe proposals score 3.0–4.0. A score of 5 is rare. Do not award 4.5 or 5 unless you can clearly articulate why the proposal has no more than very minor shortcomings.
-
-NON-SYCOPHANCY RULES — MANDATORY:
-- Identify at least two specific weaknesses per criterion, even for high-scoring proposals.
-- State weaknesses directly without hedging.
-- Do not repeat the same weakness across criteria.
-- Generic praise without specific reference is not acceptable.${specialExceptions}${topicSpecificContext}
-
----
+- Evaluate the proposal as submitted.
+- Do not recommend changes.
+- Be specific and reference actual content or omissions.
+- Identify at least two distinct weaknesses per criterion.
+- Use the full scoring scale realistically; scores above 4 are rare.${specialExceptions}${topicSpecificContext}
 
 EVALUATION CRITERIA:
 ${criteriaText}
 
----
-
-OUTPUT — respond with a JSON object only, no preamble:
+OUTPUT — respond with a JSON object only:
 ${fullProposalOutputBlock}`;
 
-    const systemBlocks: any = [
-      { type: "text", text: evaluatorSystem },
-      {
-        type: "text",
-        text: `--- PROPOSAL CONTENT ---\n${proposalContentBlock}`,
-        cache_control: { type: "ephemeral" },
-      },
-    ];
-
-    return () =>
-      callAnthropicWithCache(
-        ANTHROPIC_API_KEY,
-        evaluationModel,
-        systemBlocks,
-        "Evaluate the proposal above according to your instructions. Respond with the JSON object only.",
-        16000,
-        true,
-      ).then((result) => ({ persona: evaluator, raw: result.text, usage: result.usage }));
-  });
-
-  const evaluatorResults: Array<{ persona: EvaluatorSelection; raw: string; usage: any }> = [];
-  if (evaluatorTaskFactories.length > 0) {
-    console.log(`Priming Anthropic prompt cache with first evaluator (1/${evaluatorTaskFactories.length})...`);
-    evaluatorResults.push(await evaluatorTaskFactories[0]());
-  }
-  if (evaluatorTaskFactories.length > 1) {
-    console.log(`Running remaining ${evaluatorTaskFactories.length - 1} evaluators with concurrency=2...`);
-    const remaining = await runWithConcurrency(evaluatorTaskFactories.slice(1), 2, (task) => task());
-    evaluatorResults.push(...remaining);
-  }
-
-  const parsedEvaluations = evaluatorResults.map((result) => ({
-    persona: result.persona,
-    usage: result.usage,
-    data: (() => {
-      try {
-        return extractJson(result.raw);
-      } catch (error) {
-        return { error: error instanceof Error ? error.message : "parse error", raw: result.raw };
-      }
-    })(),
-  }));
-
-  const validEvaluations = parsedEvaluations.filter((item) => !item.data.error);
-  if (validEvaluations.length === 0) {
-    throw new Error("All evaluator outputs failed to parse");
-  }
-
-  const excellenceScores = validEvaluations
-    .map((item) => Number(item.data.excellence_score))
-    .filter((value) => !Number.isNaN(value));
-  const impactScores = validEvaluations
-    .map((item) => Number(item.data.impact_score))
-    .filter((value) => !Number.isNaN(value));
-  const implementationScores =
-    stageKey === "full"
-      ? validEvaluations
-          .map((item) => Number(item.data.implementation_score))
-          .filter((value) => !Number.isNaN(value))
-      : [];
-
-  const excellenceMean = round05(mean(excellenceScores));
-  const impactMean = round05(mean(impactScores));
-  const implementationMean = stageKey === "full" ? round05(mean(implementationScores)) : null;
-  const impactWeighting = Number(instrument.impact_weighting || 1.0);
-  const impactWeighted = round05(impactMean * impactWeighting * 2) / 2;
-  const totalUnweighted =
-    stageKey === "full" ? excellenceMean + impactMean + (implementationMean || 0) : excellenceMean + impactMean;
-  const totalWeighted =
-    stageKey === "full"
-      ? excellenceMean + impactWeighted + (implementationMean || 0)
-      : excellenceMean + impactWeighted;
-
-  const findThreshold = (criterionName: string) => {
-    const criterion = criteriaForRun.find((item: any) =>
-      String(item.criterion_name || "").toLowerCase().includes(criterionName.toLowerCase()),
-    );
-    if (!criterion) return null;
-    return stageKey === "stage1" ? criterion.threshold_stage1 : criterion.threshold_full;
-  };
-
-  let evaluatorInputTokens = 0;
-  let evaluatorOutputTokens = 0;
-  let evaluatorCachedTokens = 0;
-  evaluatorResults.forEach((result: any) => {
-    evaluatorInputTokens += Number(result.usage?.input_tokens || 0);
-    evaluatorOutputTokens += Number(result.usage?.output_tokens || 0);
-    evaluatorCachedTokens += Number(result.usage?.cache_read_input_tokens || 0);
-  });
-
-  const synthesisContext = {
-    stage_key: stageKey,
-    budget_type: budgetType,
-    budget_type_label: budgetTypeLabel,
-    impact_weighting: impactWeighting,
-    excellence_mean: excellenceMean,
-    impact_mean: impactMean,
-    implementation_mean: implementationMean,
-    impact_weighted: impactWeighted,
-    total_unweighted: totalUnweighted,
-    total_weighted: totalWeighted,
-    thresholds: {
-      excellence: findThreshold("excellence"),
-      impact: findThreshold("impact"),
-      implementation: findThreshold("implementation"),
+  const systemBlocks: any = [
+    { type: "text", text: evaluatorSystem },
+    {
+      type: "text",
+      text: `--- PROPOSAL CONTENT ---\n${proposalContentBlock}`,
+      cache_control: { type: "ephemeral" },
     },
-    proposal_title: proposal.title,
-    proposal_acronym: proposal.acronym,
-    work_programme: proposal.work_programme || "n/a",
-    topic_id: proposal.topic_id || "n/a",
-    instrument_name: instrument.name,
-    instrument_code: instrument.code,
-    evaluation_model: evaluationModel,
-    token_usage: {
-      evaluator_input_tokens: evaluatorInputTokens,
-      evaluator_output_tokens: evaluatorOutputTokens,
-      evaluator_cached_tokens: evaluatorCachedTokens,
-    },
-  };
+  ];
 
   await serviceClient
     .from("proposal_analyses")
     .update({
-      status: "synthesizing",
-      model_used: evaluationModel,
-      excellence_score: excellenceMean,
-      impact_score_raw: impactMean,
-      impact_score_weighted: impactWeighted,
-      implementation_score: implementationMean,
-      total_score_unweighted: totalUnweighted,
-      total_score_weighted: totalWeighted,
-      overall_score: totalUnweighted,
+      status: "processing",
+      error_message: null,
       analysis_data: {
-        ...(evaluation.analysis_data || {}),
+        ...baseAnalysisData,
         eligibility_flags: eligibilityFlags,
-        evaluations: parsedEvaluations.map((item) => ({ persona: item.persona, data: item.data })),
-        synthesis_context: synthesisContext,
-        progress_message: "Synthesizing evaluation summary report",
+        evaluations: savedEvaluations,
+        token_usage: usageTotals,
+        instrument_code: instrument.code,
+        active_step_started_at: new Date().toISOString(),
+        progress_message: `Running evaluator ${savedEvaluations.length + 1} of ${selectedEvaluators.length}`,
       },
     })
     .eq("id", evaluationId);
 
-  return { evaluationId, status: "synthesizing" };
+  let result: AnthropicCallResult;
+  try {
+    result = await callAnthropicWithCache(
+      ANTHROPIC_API_KEY,
+      evaluationModel,
+      systemBlocks,
+      "Evaluate the proposal above according to your instructions. Respond with the JSON object only.",
+      EVALUATOR_MAX_TOKENS,
+      false,
+      2,
+    );
+  } catch (error) {
+    if (error instanceof RateLimitError) {
+      const retry = formatRetryDelay(error.retryAfter);
+      const message = `The evaluator model is rate limited right now. Please retry after ${retry.label}.`;
+      await serviceClient
+        .from("proposal_analyses")
+        .update({
+          status: "failed",
+          error_message: message,
+          analysis_data: {
+            ...baseAnalysisData,
+            eligibility_flags: eligibilityFlags,
+            evaluations: savedEvaluations,
+            token_usage: usageTotals,
+            instrument_code: instrument.code,
+            retry_after_seconds: retry.seconds,
+            retry_after_at: retry.retryAt,
+            active_step_started_at: null,
+            progress_message: message,
+          },
+        })
+        .eq("id", evaluationId);
+      return { evaluationId, status: "failed", error: message };
+    }
+    throw error;
+  }
+
+  const parsedEvaluation = {
+    persona: evaluator,
+    data: (() => {
+      try {
+        return extractJson(result.text);
+      } catch (error) {
+        return { error: error instanceof Error ? error.message : "parse error", raw: result.text };
+      }
+    })(),
+  };
+
+  const nextEvaluations = [...savedEvaluations, parsedEvaluation];
+  const nextUsageTotals = {
+    evaluator_input_tokens: usageTotals.evaluator_input_tokens + Number(result.usage?.input_tokens || 0),
+    evaluator_output_tokens: usageTotals.evaluator_output_tokens + Number(result.usage?.output_tokens || 0),
+    evaluator_cached_tokens: usageTotals.evaluator_cached_tokens + Number(result.usage?.cache_read_input_tokens || 0),
+  };
+
+  if (nextEvaluations.length < selectedEvaluators.length) {
+    await serviceClient
+      .from("proposal_analyses")
+      .update({
+        status: "running",
+        error_message: null,
+        analysis_data: {
+          ...baseAnalysisData,
+          eligibility_flags: eligibilityFlags,
+          evaluations: nextEvaluations,
+          token_usage: nextUsageTotals,
+          instrument_code: instrument.code,
+          active_step_started_at: null,
+          progress_message: `Completed evaluator ${nextEvaluations.length} of ${selectedEvaluators.length}`,
+        },
+      })
+      .eq("id", evaluationId);
+
+    return {
+      evaluationId,
+      status: "running",
+      completedEvaluators: nextEvaluations.length,
+      totalEvaluators: selectedEvaluators.length,
+    };
+  }
+
+  return finalizeEvaluatorPhase(nextEvaluations, nextUsageTotals);
 }
 
 async function runSynthesisPhase(serviceClient: any, evaluationId: string) {
@@ -765,6 +841,7 @@ overall panel assessment, and individual evaluator scores table.`;
       error_message: null,
       analysis_data: {
         ...analysisData,
+        active_step_started_at: new Date().toISOString(),
         progress_message: "Synthesizing evaluation summary report",
       },
     })
@@ -779,9 +856,9 @@ overall panel assessment, and individual evaluator scores table.`;
       evaluationModel,
       [{ type: "text", text: synthesisSystem }],
       synthesisUser,
-      8000,
+      SYNTHESIS_MAX_TOKENS,
       false,
-      4,
+      2,
     );
     esrMarkdown = synthesisResult.text;
     synthesisUsage = synthesisResult.usage;
@@ -813,6 +890,7 @@ overall panel assessment, and individual evaluator scores table.`;
       analysis_data: {
         ...analysisData,
         esr_markdown: esrMarkdown,
+        active_step_started_at: null,
         progress_message: "Complete",
       },
     })
@@ -938,7 +1016,7 @@ serve(async (req) => {
       });
     }
 
-    if (action === "evaluate") {
+  if (action === "evaluate") {
       const evaluationId = body?.evaluationId;
       if (!evaluationId) {
         return new Response(JSON.stringify({ error: "evaluationId is required" }), {
@@ -952,7 +1030,7 @@ serve(async (req) => {
       const result = await runEvaluatorPhase(serviceClient, evaluationId);
 
       return new Response(JSON.stringify(result), {
-        status: 202,
+        status: result.status === "failed" ? 429 : 202,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
