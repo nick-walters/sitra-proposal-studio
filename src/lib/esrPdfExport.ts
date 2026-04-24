@@ -102,17 +102,24 @@ export function exportEsrToPdf(opts: {
   const created = typeof opts.createdAt === "string" ? new Date(opts.createdAt) : opts.createdAt;
   const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
 
-  const title = `${opts.acronym} ESR, ${formatBritishDateTime(created)}`;
+  const titleMain = `${opts.acronym} ESR`;
+  const dateLine = formatBritishDateTime(created);
   let y = MARGIN;
 
   // Title — Times Bold 14pt, centred.
   setFont(pdf, true, false, 14);
-  const titleLines = pdf.splitTextToSize(title, CONTENT_W);
+  const titleLines = pdf.splitTextToSize(titleMain, CONTENT_W);
   for (const line of titleLines) {
     pdf.text(line, PAGE_W / 2, y + 14 * PT_TO_MM, { align: "center" });
     y += 14 * PT_TO_MM * 1.2;
   }
-  y += 4; // gap below title
+
+  // Date — Times Regular 11pt, centred, on its own line below the title.
+  setFont(pdf, false, false, 11);
+  pdf.text(dateLine, PAGE_W / 2, y + 11 * PT_TO_MM, { align: "center" });
+  y += 11 * PT_TO_MM * 1.2;
+
+  y += 4; // gap below title block
 
   const blocks = parseEsrMarkdown(opts.markdown);
 
