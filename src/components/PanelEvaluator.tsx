@@ -526,93 +526,51 @@ export function PanelEvaluator({ proposalId }: Props) {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label>Instrument type</Label>
-              {!instrumentOverride ? (
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="font-medium">
-                    {selectedInstrument?.name || instrumentCode?.toUpperCase() || "—"}
-                  </span>
-                  {stage === "idle" && (
-                    <button
-                      type="button"
-                      onClick={() => setInstrumentOverride(true)}
-                      className="text-xs text-primary hover:underline"
-                    >
-                      Override ▾
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <Select
-                  value={instrumentCode}
-                  onValueChange={setInstrumentCode}
-                  disabled={stage !== "idle"}
-                >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {instruments.map((i) => (
-                      <SelectItem key={i.id} value={i.code}>{i.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
+              <Select
+                value={instrumentCode}
+                onValueChange={setInstrumentCode}
+                disabled={stage !== "idle"}
+              >
+                <SelectTrigger><SelectValue placeholder="Select instrument" /></SelectTrigger>
+                <SelectContent>
+                  {instruments.map((i) => (
+                    <SelectItem key={i.id} value={i.code}>{i.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {proposalStage !== "stage1" && (
               <div className="space-y-2">
                 <Label>Budget type</Label>
-                {!budgetOverride ? (
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="font-medium">
-                      {budgetType === "lump_sum" ? "Lump sum" : "Actual cost"}
-                    </span>
-                    {stage === "idle" && (
-                      <button
-                        type="button"
-                        onClick={() => setBudgetOverride(true)}
-                        className="text-xs text-primary hover:underline"
-                      >
-                        Override ▾
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  <RadioGroup
-                    value={budgetType}
-                    onValueChange={(v) => setBudgetType(v as "traditional" | "lump_sum")}
-                    disabled={stage !== "idle"}
-                    className="flex gap-4"
-                  >
-                    <div className="flex items-center gap-2">
-                      <RadioGroupItem value="traditional" id="bt-trad" />
-                      <Label htmlFor="bt-trad" className="font-normal cursor-pointer">Actual cost</Label>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <RadioGroupItem value="lump_sum" id="bt-ls" />
-                      <Label htmlFor="bt-ls" className="font-normal cursor-pointer">Lump sum</Label>
-                    </div>
-                  </RadioGroup>
-                )}
+                <Select
+                  value={budgetType}
+                  onValueChange={(v) => setBudgetType(v as "traditional" | "lump_sum")}
+                  disabled={stage !== "idle"}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="traditional">Actual cost</SelectItem>
+                    <SelectItem value="lump_sum">Lump sum</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             )}
 
             {showStage && (
               <div className="space-y-2">
                 <Label>Stage</Label>
-                <RadioGroup
+                <Select
                   value={proposalStage}
                   onValueChange={(v) => setProposalStage(v as "full" | "stage1")}
                   disabled={stage !== "idle"}
-                  className="flex gap-4"
                 >
-                  <div className="flex items-center gap-2">
-                    <RadioGroupItem value="full" id="stage-full" />
-                    <Label htmlFor="stage-full" className="font-normal cursor-pointer">Full proposal</Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <RadioGroupItem value="stage1" id="stage-1" />
-                    <Label htmlFor="stage-1" className="font-normal cursor-pointer">Stage 1</Label>
-                  </div>
-                </RadioGroup>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="full">Full proposal</SelectItem>
+                    <SelectItem value="stage1">Stage 1 of 2</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             )}
           </div>
