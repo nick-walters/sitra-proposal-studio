@@ -669,8 +669,8 @@ export function GeneralInfoForm({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex gap-6 items-start">
-              <div className="flex-1 min-w-0 space-y-3">
+            <div className="flex gap-6 items-stretch">
+              <div className="flex-1 min-w-0 flex flex-col">
                 <div>
                   <label className="text-xs text-muted-foreground mb-0.5 block">Title</label>
                   {isEditing && editedProposal ? (
@@ -701,7 +701,7 @@ export function GeneralInfoForm({
                   </InlineGuideline>
                 </div>
 
-                <div>
+                <div className="mt-auto pt-3">
                   <label className="text-xs text-muted-foreground mb-0.5 block">Acronym</label>
                   {isEditing && editedProposal ? (
                     <>
