@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { Plus, ChevronDown, GripVertical, ArrowUpDown } from 'lucide-react';
+import { Plus, ChevronDown, GripVertical, ArrowUpDown, Settings2 } from 'lucide-react';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
@@ -679,6 +679,30 @@ function B31TableWrapper({ children }: { children: React.ReactNode }) {
 
 // ColumnResizer now imported from shared component
 
+/** Small icon-only button used in the caption-left hover cluster. */
+const CaptionIconButton = React.forwardRef<HTMLButtonElement, {
+  tooltip: string;
+  onClick?: () => void;
+  children: React.ReactNode;
+} & Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'title'>>(
+  ({ tooltip, onClick, children, ...rest }, ref) => (
+    <button
+      ref={ref}
+      type="button"
+      title={tooltip}
+      aria-label={tooltip}
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={onClick}
+      className="inline-flex items-center justify-center h-5 w-5 rounded text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+      {...rest}
+    >
+      {children}
+    </button>
+  )
+);
+CaptionIconButton.displayName = 'CaptionIconButton';
+
+
 // ========== DELIVERABLES TABLE (3.1c) ==========
 export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
   const queryClient = useQueryClient();
@@ -859,24 +883,34 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
 
   return (
     <div onFocusCapture={dispatchToolbarFocus} onMouseDownCapture={dispatchToolbarFocus}>
-      <div className="print:hidden flex justify-end gap-1 mb-1">
-        <Button variant="outline" size="sm" onClick={() => addDeliverable.mutate()} className="text-xs h-6 px-2 py-0">
-          <Plus className="h-3 w-3 mr-1" /> Add deliverable
-        </Button>
-        <DeliverableTaskMappingDialog proposalId={proposalId} />
-        {isAdminOrOwner && (
-          <>
-            <Button variant="outline" size="sm" onClick={isSortedByMonth ? orderByNumber : orderByMonth} className="text-xs h-6 px-2 py-0">
-              <ArrowUpDown className="h-3 w-3 mr-1" /> {isSortedByMonth ? 'Order by number' : 'Order by month due'}
-            </Button>
-          </>
-        )}
-      </div>
       <EditableCaption
         proposalId={proposalId}
         tableKey="table-3.1.c"
         label="Table 3.1.c."
         defaultCaption="Deliverables, including the partner responsible, type, dissemination level & month due"
+        leftButtons={
+          <>
+            <CaptionIconButton tooltip="Add deliverable" onClick={() => addDeliverable.mutate()}>
+              <Plus className="h-3 w-3" />
+            </CaptionIconButton>
+            <DeliverableTaskMappingDialog
+              proposalId={proposalId}
+              trigger={
+                <CaptionIconButton tooltip="Assign deliverables to tasks">
+                  <Settings2 className="h-3 w-3" />
+                </CaptionIconButton>
+              }
+            />
+            {isAdminOrOwner && (
+              <CaptionIconButton
+                tooltip={isSortedByMonth ? 'Order by number' : 'Order by month due'}
+                onClick={isSortedByMonth ? orderByNumber : orderByMonth}
+              >
+                <ArrowUpDown className="h-3 w-3" />
+              </CaptionIconButton>
+            )}
+          </>
+        }
       />
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <B31TableWrapper>
@@ -1194,24 +1228,31 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
 
   return (
     <div onFocusCapture={dispatchToolbarFocus} onMouseDownCapture={dispatchToolbarFocus}>
-      <div className="print:hidden flex justify-end gap-1 mb-1">
-        <Button variant="outline" size="sm" onClick={() => addMilestone.mutate()} className="text-xs h-6 px-2 py-0">
-          <Plus className="h-3 w-3 mr-1" /> Add milestone
-        </Button>
-        <MilestoneTaskMappingDialog proposalId={proposalId} />
-        {isAdminOrOwner && (
-          <>
-            <Button variant="outline" size="sm" onClick={autoReorder} className="text-xs h-6 px-2 py-0">
-              <ArrowUpDown className="h-3 w-3 mr-1" /> Auto-reorder
-            </Button>
-          </>
-        )}
-      </div>
       <EditableCaption
         proposalId={proposalId}
         tableKey="table-3.1.d"
         label="Table 3.1.d."
         defaultCaption="Milestones"
+        leftButtons={
+          <>
+            <CaptionIconButton tooltip="Add milestone" onClick={() => addMilestone.mutate()}>
+              <Plus className="h-3 w-3" />
+            </CaptionIconButton>
+            <MilestoneTaskMappingDialog
+              proposalId={proposalId}
+              trigger={
+                <CaptionIconButton tooltip="Assign milestones to tasks">
+                  <Settings2 className="h-3 w-3" />
+                </CaptionIconButton>
+              }
+            />
+            {isAdminOrOwner && (
+              <CaptionIconButton tooltip="Auto-reorder" onClick={autoReorder}>
+                <ArrowUpDown className="h-3 w-3" />
+              </CaptionIconButton>
+            )}
+          </>
+        }
       />
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <B31TableWrapper>
@@ -1438,18 +1479,6 @@ export function B31RisksTable({ proposalId }: { proposalId: string }) {
 
   return (
     <div onFocusCapture={dispatchToolbarFocus} onMouseDownCapture={dispatchToolbarFocus}>
-      <div className="print:hidden flex justify-end gap-1 mb-1">
-        <Button variant="outline" size="sm" onClick={() => addRisk.mutate()} className="text-xs h-6 px-2 py-0">
-          <Plus className="h-3 w-3 mr-1" /> Add risk
-        </Button>
-        {isAdminOrOwner && (
-          <>
-            <Button variant="outline" size="sm" onClick={autoReorder} className="text-xs h-6 px-2 py-0">
-              <ArrowUpDown className="h-3 w-3 mr-1" /> Auto-reorder
-            </Button>
-          </>
-        )}
-      </div>
       <EditableCaption
         proposalId={proposalId}
         tableKey="table-3.1.e"
@@ -1457,6 +1486,18 @@ export function B31RisksTable({ proposalId }: { proposalId: string }) {
         defaultCaption="Critical risks"
         suffix={<>(<span className="font-bold">i.</span> likelihood; <span className="font-bold">ii.</span> severity; <RiskBadge level="L" /> = low, <RiskBadge level="M" /> = medium, <RiskBadge level="H" /> = high)</>}
         className="flex items-center gap-1 flex-wrap"
+        leftButtons={
+          <>
+            <CaptionIconButton tooltip="Add risk" onClick={() => addRisk.mutate()}>
+              <Plus className="h-3 w-3" />
+            </CaptionIconButton>
+            {isAdminOrOwner && (
+              <CaptionIconButton tooltip="Auto-reorder" onClick={autoReorder}>
+                <ArrowUpDown className="h-3 w-3" />
+              </CaptionIconButton>
+            )}
+          </>
+        }
       />
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <B31TableWrapper>
