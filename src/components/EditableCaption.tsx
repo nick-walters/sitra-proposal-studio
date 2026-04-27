@@ -15,6 +15,8 @@ interface EditableCaptionProps {
   className?: string;
   /** If provided, a refresh icon appears when the caption row is hovered */
   onRefresh?: () => void;
+  /** Buttons rendered to the left of the caption, revealed on hover. */
+  leftButtons?: React.ReactNode;
 }
 
 export function EditableCaption({
@@ -25,6 +27,7 @@ export function EditableCaption({
   suffix,
   className = '',
   onRefresh,
+  leftButtons,
 }: EditableCaptionProps) {
   const { isAdminOrOwner, hasAnyCoordinatorRole } = useUserRole();
   const canEdit = isAdminOrOwner || hasAnyCoordinatorRole;
