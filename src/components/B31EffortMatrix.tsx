@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { computeAutoFitSmart } from '@/lib/autoFitColumns';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,8 +7,6 @@ import type { B31WPData, B31Participant } from '@/hooks/useB31SectionData';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useColumnResize } from '@/hooks/useColumnResize';
 import { ColumnResizer } from '@/components/ColumnResizer';
-import { Columns3 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { EditableCaption } from '@/components/EditableCaption';
 
@@ -97,6 +95,22 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
     }
   }, [tableRef, setColWidths, saveWidths]);
 
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<{ tableId?: string }>).detail;
+      if (detail?.tableId !== 'b31-effort') return;
+      autoFitColumns();
+    };
+    window.addEventListener('b31-table-autoresize', handler as EventListener);
+    return () => window.removeEventListener('b31-table-autoresize', handler as EventListener);
+  }, [autoFitColumns]);
+
+  const dispatchToolbarFocus = useCallback(() => {
+    window.dispatchEvent(new CustomEvent('b31-table-focus', {
+      detail: { tableId: 'b31-effort' },
+    }));
+  }, []);
+
   if (wpData.length === 0 || participants.length === 0 || !hasData) return null;
 
   const totalColCount = wpData.length + 2; // participant col + wp cols + total col
@@ -104,14 +118,7 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
   const tableWidth = hasCustomWidths ? `${colWidths.reduce((sum, width) => sum + width, 0)}px` : '100%';
 
   return (
-    <div>
-      {isAdminOrOwner && (
-        <div className="print:hidden flex justify-end gap-1 mb-1">
-          <Button variant="outline" size="sm" onClick={autoFitColumns} className="text-xs h-6 px-2 py-0">
-            <Columns3 className="h-3 w-3 mr-1" /> Auto-resize columns
-          </Button>
-        </div>
-      )}
+    <div onFocusCapture={dispatchToolbarFocus} onMouseDownCapture={dispatchToolbarFocus}>
       <EditableCaption
         proposalId={proposalId}
         tableKey="table-3.1.f"

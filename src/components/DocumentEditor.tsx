@@ -225,6 +225,7 @@ export function DocumentEditor({
   const [b12TableFocus, setB12TableFocus] = useState<B12ToolbarFocus>(null);
   const [b12FocusedCaseId, setB12FocusedCaseId] = useState<string | null>(null);
   const [b12FocusedRowId, setB12FocusedRowId] = useState<string | null>(null);
+  const [b31TableFocus, setB31TableFocus] = useState<string | null>(null);
   
   // Editor container ref for cursor overlays
   const editorContainerRef = useRef<HTMLDivElement>(null);
@@ -495,6 +496,15 @@ export function DocumentEditor({
       setB12TableFocus(detail.tableId);
       setB12FocusedCaseId(detail.caseId ?? null);
       setB12FocusedRowId(detail.rowId ?? null);
+      setB31TableFocus(null);
+    };
+    const handleB31TableFocus = (e: Event) => {
+      const detail = (e as CustomEvent<{ tableId?: string | null }>).detail;
+      if (!detail?.tableId) return;
+      setB31TableFocus(detail.tableId);
+      setB12TableFocus(null);
+      setB12FocusedCaseId(null);
+      setB12FocusedRowId(null);
     };
     const handleCaptionRefreshAll = () => {
       if (editor && section?.number) {
@@ -505,12 +515,14 @@ export function DocumentEditor({
     window.addEventListener('block-reordered', handleBlockReordered);
     window.addEventListener('b12-table-offset', handleB12Offset);
     window.addEventListener('b12-table-focus', handleB12TableFocus as EventListener);
+    window.addEventListener('b31-table-focus', handleB31TableFocus as EventListener);
     window.addEventListener('caption-refresh-all', handleCaptionRefreshAll);
     return () => {
       window.removeEventListener('cross-ref-data-changed', handleCrossRefDataChanged);
       window.removeEventListener('block-reordered', handleBlockReordered);
       window.removeEventListener('b12-table-offset', handleB12Offset);
       window.removeEventListener('b12-table-focus', handleB12TableFocus as EventListener);
+      window.removeEventListener('b31-table-focus', handleB31TableFocus as EventListener);
       window.removeEventListener('caption-refresh-all', handleCaptionRefreshAll);
     };
   }, [editor, section?.number, b12TableOffset]);
@@ -519,6 +531,7 @@ export function DocumentEditor({
     setB12TableFocus(null);
     setB12FocusedCaseId(null);
     setB12FocusedRowId(null);
+    setB31TableFocus(null);
   }, [section?.id]);
 
   useEffect(() => {
@@ -564,6 +577,7 @@ export function DocumentEditor({
       setB12TableFocus(null);
       setB12FocusedCaseId(null);
       setB12FocusedRowId(null);
+      setB31TableFocus(null);
       // Update collaborative cursor position
       updateCursorPosition(
         { line: 0, ch: to }, // Use 'to' as cursor position
@@ -930,6 +944,13 @@ export function DocumentEditor({
       detail: { tableId: b12TableFocus },
     }));
   }, [b12TableFocus, isEffectivelyReadOnly]);
+
+  const handleB31AutoResize = useCallback(() => {
+    if (!b31TableFocus || isEffectivelyReadOnly) return;
+    window.dispatchEvent(new CustomEvent('b31-table-autoresize', {
+      detail: { tableId: b31TableFocus },
+    }));
+  }, [b31TableFocus, isEffectivelyReadOnly]);
 
   const handleB12UpdateCaption = useCallback(() => {
     if (b12TableFocus === 'case-studies') {
@@ -1427,6 +1448,8 @@ export function DocumentEditor({
           onB12DeleteTable={b12TableFocus ? handleB12DeleteTable : undefined}
           onB12AutoResize={b12TableFocus ? handleB12AutoResize : undefined}
           onB12UpdateCaption={b12TableFocus ? handleB12UpdateCaption : undefined}
+          b31TableFocus={b31TableFocus}
+          onB31AutoResize={b31TableFocus ? handleB31AutoResize : undefined}
           crossRefDropdown={section && !section.isPartA ? (
             <>
               <DropdownMenu>
