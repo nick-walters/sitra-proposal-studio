@@ -438,6 +438,8 @@ export function FormattingToolbar({
   onB12DeleteTable,
   onB12AutoResize,
   onB12UpdateCaption,
+  b31TableFocus,
+  onB31AutoResize,
   crossRefDropdown,
 }: { 
   editor: Editor | null;
@@ -460,6 +462,9 @@ export function FormattingToolbar({
    onB12DeleteTable?: () => void;
    onB12AutoResize?: () => void;
    onB12UpdateCaption?: () => void;
+   /** Which B3.1 React table is focused (e.g. 'b31-wp-list', 'b31-deliverables', ...). Null when none. */
+   b31TableFocus?: string | null;
+   onB31AutoResize?: () => void;
   crossRefDropdown?: React.ReactNode;
 }) {
   const [tablePopoverOpen, setTablePopoverOpen] = useState(false);
@@ -740,7 +745,8 @@ export function FormattingToolbar({
 
   const isInTable = editor.isActive('table');
   const isB12TableActive = Boolean(b12TableFocus);
-  const showTableOptions = isInTable || isB12TableActive;
+  const isB31TableActive = Boolean(b31TableFocus);
+  const showTableOptions = isInTable || isB12TableActive || isB31TableActive;
   const isAlignDisabled = editor.isActive('heading') || isInTable;
 
   return (
