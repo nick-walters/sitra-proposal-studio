@@ -235,7 +235,7 @@ export function B12SectionContent({ proposalId, editorNode, editor, sectionNumbe
                   top: isTable ? '12px' : '0px',
                 }}
               >
-                {/* Row 1: grip + delete */}
+                {/* Row 1: grip only — delete & auto-resize live in the formatting toolbar's Table dropdown */}
                 <div
                   className="block-ctrl-btn block-drag-handle"
                   draggable
@@ -245,28 +245,6 @@ export function B12SectionContent({ proposalId, editorNode, editor, sectionNumbe
                 >
                   <GripVertical className="h-3.5 w-3.5" />
                 </div>
-                {isTable ? (
-                  <button
-                    className="block-ctrl-btn block-delete-btn"
-                    onClick={() => setDeleteConfirm({ blockId })}
-                    tabIndex={-1}
-                    title="Delete table"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                ) : (
-                  <div className="block-ctrl-btn" style={{ visibility: 'hidden' }} />
-                )}
-                {isTable && (
-                  <button
-                    className="block-ctrl-btn block-autoresize-btn"
-                    onClick={() => requestAutoResize(blockId as TableBlockId)}
-                    tabIndex={-1}
-                    title="Auto-resize columns"
-                  >
-                    <Columns3 className="h-3.5 w-3.5" />
-                  </button>
-                )}
               </div>
             )}
             {renderBlock(blockId)}
