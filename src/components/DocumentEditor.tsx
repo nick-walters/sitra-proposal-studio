@@ -945,6 +945,13 @@ export function DocumentEditor({
     }));
   }, [b12TableFocus, isEffectivelyReadOnly]);
 
+  const handleB31AutoResize = useCallback(() => {
+    if (!b31TableFocus || isEffectivelyReadOnly) return;
+    window.dispatchEvent(new CustomEvent('b31-table-autoresize', {
+      detail: { tableId: b31TableFocus },
+    }));
+  }, [b31TableFocus, isEffectivelyReadOnly]);
+
   const handleB12UpdateCaption = useCallback(() => {
     if (b12TableFocus === 'case-studies') {
       focusB12Caption('b12-case-studies');
