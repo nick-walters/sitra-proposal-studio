@@ -1,10 +1,9 @@
 import { Extension } from '@tiptap/core';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
-import { Decoration, DecorationSet, EditorView } from '@tiptap/pm/view';
+import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import { TextSelection, NodeSelection } from '@tiptap/pm/state';
 import { findBlockRange, isReorderableBlock } from './BlockReordering';
-import { autoFitEditorTableAtPos } from '@/lib/editorTableAutoFit';
 
 export interface BlockLockForDrag {
   userId: string;
@@ -22,8 +21,6 @@ const dragHandlePluginKey = new PluginKey('blockDragHandle');
 const GRIP_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg>`;
 
 const DELETE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>`;
-
-const AUTORESIZE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="M15 3v18"/></svg>`;
 
 function createDragHandleContainer(): HTMLElement {
   const container = document.createElement('div');
@@ -44,17 +41,12 @@ function createDragHandleContainer(): HTMLElement {
   deleteBtn.setAttribute('contenteditable', 'false');
   deleteBtn.setAttribute('title', 'Delete block');
   deleteBtn.innerHTML = DELETE_SVG;
-
-  const autoresizeBtn = document.createElement('div');
-  autoresizeBtn.className = 'block-ctrl-btn block-autoresize-btn';
-  autoresizeBtn.setAttribute('contenteditable', 'false');
-  autoresizeBtn.setAttribute('title', 'Auto-resize columns');
-  autoresizeBtn.innerHTML = AUTORESIZE_SVG;
-  autoresizeBtn.style.display = 'none';
+  // Hidden when the hovered block contains a table — table deletion is
+  // handled via the formatting toolbar's Table dropdown.
+  deleteBtn.style.display = 'flex';
 
   grid.appendChild(dragHandle);
   grid.appendChild(deleteBtn);
-  grid.appendChild(autoresizeBtn);
 
   container.appendChild(grid);
   return container;
@@ -89,29 +81,6 @@ function blockContainsTable(doc: ProseMirrorNode, startPos: number, endPos: numb
   return found;
 }
 
-function findTableInBlock(
-  view: EditorView,
-  startPos: number,
-  endPos: number,
-): { tableEl: HTMLTableElement; tablePos: number } | null {
-  const doc = view.state.doc;
-  let match: { tableEl: HTMLTableElement; tablePos: number } | null = null;
-  doc.nodesBetween(startPos, endPos, (node, pos) => {
-    if (match) return false;
-    if (node.type.name === 'table') {
-      const dom = view.nodeDOM(pos);
-      if (dom instanceof HTMLTableElement) {
-        match = { tableEl: dom, tablePos: pos };
-      } else if (dom instanceof HTMLElement) {
-        const inner = dom.querySelector('table');
-        if (inner) match = { tableEl: inner, tablePos: pos };
-      }
-      return false;
-    }
-  });
-  return match;
-}
-
 export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
   name: 'blockDragHandle',
 
@@ -143,7 +112,6 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
 
           const dragHandle = dragContainer.querySelector('.block-drag-handle') as HTMLElement;
           const deleteBtn = dragContainer.querySelector('.block-delete-btn') as HTMLElement;
-          const autoresizeBtn = dragContainer.querySelector('.block-autoresize-btn') as HTMLElement;
 
           dropIndicator = createDropIndicator();
           dropIndicator.style.display = 'none';
@@ -202,17 +170,6 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
               onDeleteRequest(executeDelete);
             } else {
               executeDelete();
-            }
-          });
-
-          // Autoresize button
-          autoresizeBtn?.addEventListener('click', (e: MouseEvent) => {
-            e.preventDefault();
-            e.stopPropagation();
-            if (!currentHoveredBlockRange) return;
-            const tableMatch = findTableInBlock(editorView, currentHoveredBlockRange.startPos, currentHoveredBlockRange.endPos);
-            if (tableMatch) {
-              autoFitEditorTableAtPos(editorView, tableMatch.tablePos, tableMatch.tableEl);
             }
           });
 
@@ -299,11 +256,12 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
                 currentHoveredBlockPos = blockRange.startPos;
                 currentHoveredBlockRange = { startPos: blockRange.startPos, endPos: blockRange.endPos };
 
-                // Show/hide autoresize button
+                // Hide delete button when the block contains a table —
+                // table deletion belongs to the formatting toolbar's Table dropdown.
                 const hasTable = blockContainsTable(view.state.doc, blockRange.startPos, blockRange.endPos);
-                const autoresizeBtn = dragContainer!.querySelector('.block-autoresize-btn') as HTMLElement;
-                if (autoresizeBtn) {
-                  autoresizeBtn.style.display = hasTable ? 'flex' : 'none';
+                const deleteBtn = dragContainer!.querySelector('.block-delete-btn') as HTMLElement;
+                if (deleteBtn) {
+                  deleteBtn.style.visibility = hasTable ? 'hidden' : 'visible';
                 }
 
                 // Position

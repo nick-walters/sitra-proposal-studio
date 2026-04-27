@@ -3,23 +3,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { B12CaseStudyTables } from './B12CaseStudyTables';
 import { B12OngoingProjectsTable } from './B12OngoingProjectsTable';
 import { useCallback, useEffect, useState, useMemo, ReactNode } from 'react';
-import { Columns3, GripVertical, Trash2 } from 'lucide-react';
+import { GripVertical } from 'lucide-react';
 import { useUserRole } from '@/hooks/useUserRole';
-import { toast } from 'sonner';
 import type { Editor } from '@tiptap/react';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 
 type BlockId = 'editor' | 'case-studies' | 'ongoing-projects';
-type TableBlockId = Exclude<BlockId, 'editor'>;
 
 const DEFAULT_ORDER: BlockId[] = ['editor', 'case-studies', 'ongoing-projects'];
 
@@ -64,7 +52,6 @@ export function B12SectionContent({ proposalId, editorNode, editor, sectionNumbe
 
   const [blockOrder, setBlockOrder] = useState<BlockId[]>(DEFAULT_ORDER);
   const [orderLoaded, setOrderLoaded] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState<{ blockId: BlockId } | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -164,36 +151,6 @@ export function B12SectionContent({ proposalId, editorNode, editor, sectionNumbe
     window.dispatchEvent(new CustomEvent('b12-table-offset', { detail: { offset: b12TablesBeforeEditor } }));
   }, [b12TablesBeforeEditor]);
 
-  const requestAutoResize = useCallback((blockId: TableBlockId) => {
-    window.dispatchEvent(new CustomEvent('b12-table-autoresize', { detail: { tableId: blockId } }));
-  }, []);
-
-  const executeDeleteBlock = useCallback(async (blockId: BlockId) => {
-    if (blockId === 'ongoing-projects') {
-      const { error } = await supabase
-        .from('b12_ongoing_projects')
-        .delete()
-        .eq('proposal_id', proposalId);
-      if (error) {
-        toast.error('Could not delete the relevant projects table.');
-      } else {
-        queryClient.invalidateQueries({ queryKey: ['b12-ongoing-projects'] });
-      }
-    } else if (blockId === 'case-studies') {
-      const { error } = await supabase
-        .from('case_drafts')
-        .update({ is_hidden: true })
-        .eq('proposal_id', proposalId)
-        .eq('is_hidden', false);
-      if (error) {
-        toast.error('Could not delete the case studies.');
-      } else {
-        queryClient.invalidateQueries({ queryKey: ['b12-has-cases'] });
-        queryClient.invalidateQueries({ queryKey: ['case-drafts'] });
-      }
-    }
-  }, [proposalId, queryClient]);
-
   const renderBlock = (blockId: BlockId) => {
     switch (blockId) {
       case 'editor': return editorNode;
@@ -235,7 +192,7 @@ export function B12SectionContent({ proposalId, editorNode, editor, sectionNumbe
                   top: isTable ? '12px' : '0px',
                 }}
               >
-                {/* Row 1: grip + delete */}
+                {/* Row 1: grip only — delete & auto-resize live in the formatting toolbar's Table dropdown */}
                 <div
                   className="block-ctrl-btn block-drag-handle"
                   draggable
@@ -245,61 +202,12 @@ export function B12SectionContent({ proposalId, editorNode, editor, sectionNumbe
                 >
                   <GripVertical className="h-3.5 w-3.5" />
                 </div>
-                {isTable ? (
-                  <button
-                    className="block-ctrl-btn block-delete-btn"
-                    onClick={() => setDeleteConfirm({ blockId })}
-                    tabIndex={-1}
-                    title="Delete table"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                ) : (
-                  <div className="block-ctrl-btn" style={{ visibility: 'hidden' }} />
-                )}
-                {isTable && (
-                  <button
-                    className="block-ctrl-btn block-autoresize-btn"
-                    onClick={() => requestAutoResize(blockId as TableBlockId)}
-                    tabIndex={-1}
-                    title="Auto-resize columns"
-                  >
-                    <Columns3 className="h-3.5 w-3.5" />
-                  </button>
-                )}
               </div>
             )}
             {renderBlock(blockId)}
           </div>
         );
       })}
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog
-        open={!!deleteConfirm}
-        onOpenChange={(open) => !open && setDeleteConfirm(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete this block?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. The content will be permanently removed.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setDeleteConfirm(null)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                if (deleteConfirm) executeDeleteBlock(deleteConfirm.blockId);
-                setDeleteConfirm(null);
-              }}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
