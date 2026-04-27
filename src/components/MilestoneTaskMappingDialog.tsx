@@ -8,9 +8,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface MilestoneTaskMappingDialogProps {
   proposalId: string;
+  trigger?: React.ReactNode;
 }
 
-export function MilestoneTaskMappingDialog({ proposalId }: MilestoneTaskMappingDialogProps) {
+export function MilestoneTaskMappingDialog({ proposalId, trigger }: MilestoneTaskMappingDialogProps) {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
 
@@ -70,10 +71,12 @@ export function MilestoneTaskMappingDialog({ proposalId }: MilestoneTaskMappingD
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="text-xs h-6 px-2 py-0 gap-1">
-          <Settings2 className="w-3 h-3" />
-          Assign milestones to tasks
-        </Button>
+        {trigger ?? (
+          <Button variant="outline" size="sm" className="text-xs h-6 px-2 py-0 gap-1">
+            <Settings2 className="w-3 h-3" />
+            Assign milestones to tasks
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[70vh] overflow-y-auto">
         <DialogHeader>

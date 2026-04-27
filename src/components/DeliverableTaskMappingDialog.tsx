@@ -8,9 +8,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface DeliverableTaskMappingDialogProps {
   proposalId: string;
+  trigger?: React.ReactNode;
 }
 
-export function DeliverableTaskMappingDialog({ proposalId }: DeliverableTaskMappingDialogProps) {
+export function DeliverableTaskMappingDialog({ proposalId, trigger }: DeliverableTaskMappingDialogProps) {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
 
@@ -68,10 +69,12 @@ export function DeliverableTaskMappingDialog({ proposalId }: DeliverableTaskMapp
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="text-xs h-6 px-2 py-0 gap-1">
-          <Settings2 className="w-3 h-3" />
-          Assign deliverables to tasks
-        </Button>
+        {trigger ?? (
+          <Button variant="outline" size="sm" className="text-xs h-6 px-2 py-0 gap-1">
+            <Settings2 className="w-3 h-3" />
+            Assign deliverables to tasks
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[70vh] overflow-y-auto">
         <DialogHeader>
