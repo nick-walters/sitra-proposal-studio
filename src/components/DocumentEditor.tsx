@@ -531,6 +531,7 @@ export function DocumentEditor({
     setB12TableFocus(null);
     setB12FocusedCaseId(null);
     setB12FocusedRowId(null);
+    setB31TableFocus(null);
   }, [section?.id]);
 
   useEffect(() => {
@@ -576,6 +577,7 @@ export function DocumentEditor({
       setB12TableFocus(null);
       setB12FocusedCaseId(null);
       setB12FocusedRowId(null);
+      setB31TableFocus(null);
       // Update collaborative cursor position
       updateCursorPosition(
         { line: 0, ch: to }, // Use 'to' as cursor position
