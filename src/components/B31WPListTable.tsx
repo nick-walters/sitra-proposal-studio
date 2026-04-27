@@ -4,13 +4,13 @@ import { supabase } from '@/integrations/supabase/client';
 import type { B31WPData, B31Participant } from '@/hooks/useB31SectionData';
 import { useQueryClient } from '@tanstack/react-query';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Check, ChevronsUpDown, Columns3 } from 'lucide-react';
+import { Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useColumnResize } from '@/hooks/useColumnResize';
 import { ColumnResizer } from '@/components/ColumnResizer';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
+
 import { EditableCaption } from '@/components/EditableCaption';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
