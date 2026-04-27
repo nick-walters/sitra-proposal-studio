@@ -52,7 +52,6 @@ export function B12SectionContent({ proposalId, editorNode, editor, sectionNumbe
 
   const [blockOrder, setBlockOrder] = useState<BlockId[]>(DEFAULT_ORDER);
   const [orderLoaded, setOrderLoaded] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState<{ blockId: BlockId } | null>(null);
 
   useEffect(() => {
     (async () => {
