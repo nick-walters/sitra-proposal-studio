@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { Plus, ChevronDown, GripVertical, ArrowUpDown } from 'lucide-react';
+import { Plus, ChevronDown, GripVertical, ArrowUpDown, Settings2 } from 'lucide-react';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
