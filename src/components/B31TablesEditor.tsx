@@ -841,8 +841,24 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
     }
   }, [tableRef, setColWidths, saveWidths]);
 
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<{ tableId?: string }>).detail;
+      if (detail?.tableId !== 'b31-deliverables') return;
+      autoFitColumns();
+    };
+    window.addEventListener('b31-table-autoresize', handler as EventListener);
+    return () => window.removeEventListener('b31-table-autoresize', handler as EventListener);
+  }, [autoFitColumns]);
+
+  const dispatchToolbarFocus = useCallback(() => {
+    window.dispatchEvent(new CustomEvent('b31-table-focus', {
+      detail: { tableId: 'b31-deliverables' },
+    }));
+  }, []);
+
   return (
-    <div>
+    <div onFocusCapture={dispatchToolbarFocus} onMouseDownCapture={dispatchToolbarFocus}>
       <div className="print:hidden flex justify-end gap-1 mb-1">
         <Button variant="outline" size="sm" onClick={() => addDeliverable.mutate()} className="text-xs h-6 px-2 py-0">
           <Plus className="h-3 w-3 mr-1" /> Add deliverable
@@ -852,9 +868,6 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
           <>
             <Button variant="outline" size="sm" onClick={isSortedByMonth ? orderByNumber : orderByMonth} className="text-xs h-6 px-2 py-0">
               <ArrowUpDown className="h-3 w-3 mr-1" /> {isSortedByMonth ? 'Order by number' : 'Order by month due'}
-            </Button>
-            <Button variant="outline" size="sm" onClick={autoFitColumns} className="text-xs h-6 px-2 py-0">
-              <Columns3 className="h-3 w-3 mr-1" /> Auto-resize columns
             </Button>
           </>
         )}
