@@ -3,23 +3,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { B12CaseStudyTables } from './B12CaseStudyTables';
 import { B12OngoingProjectsTable } from './B12OngoingProjectsTable';
 import { useCallback, useEffect, useState, useMemo, ReactNode } from 'react';
-import { Columns3, GripVertical, Trash2 } from 'lucide-react';
+import { GripVertical } from 'lucide-react';
 import { useUserRole } from '@/hooks/useUserRole';
-import { toast } from 'sonner';
 import type { Editor } from '@tiptap/react';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 
 type BlockId = 'editor' | 'case-studies' | 'ongoing-projects';
-type TableBlockId = Exclude<BlockId, 'editor'>;
 
 const DEFAULT_ORDER: BlockId[] = ['editor', 'case-studies', 'ongoing-projects'];
 
