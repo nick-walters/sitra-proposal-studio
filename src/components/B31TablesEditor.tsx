@@ -1231,24 +1231,31 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
 
   return (
     <div onFocusCapture={dispatchToolbarFocus} onMouseDownCapture={dispatchToolbarFocus}>
-      <div className="print:hidden flex justify-end gap-1 mb-1">
-        <Button variant="outline" size="sm" onClick={() => addMilestone.mutate()} className="text-xs h-6 px-2 py-0">
-          <Plus className="h-3 w-3 mr-1" /> Add milestone
-        </Button>
-        <MilestoneTaskMappingDialog proposalId={proposalId} />
-        {isAdminOrOwner && (
-          <>
-            <Button variant="outline" size="sm" onClick={autoReorder} className="text-xs h-6 px-2 py-0">
-              <ArrowUpDown className="h-3 w-3 mr-1" /> Auto-reorder
-            </Button>
-          </>
-        )}
-      </div>
       <EditableCaption
         proposalId={proposalId}
         tableKey="table-3.1.d"
         label="Table 3.1.d."
         defaultCaption="Milestones"
+        leftButtons={
+          <>
+            <CaptionIconButton tooltip="Add milestone" onClick={() => addMilestone.mutate()}>
+              <Plus className="h-3 w-3" />
+            </CaptionIconButton>
+            <MilestoneTaskMappingDialog
+              proposalId={proposalId}
+              trigger={
+                <CaptionIconButton tooltip="Assign milestones to tasks">
+                  <Settings2 className="h-3 w-3" />
+                </CaptionIconButton>
+              }
+            />
+            {isAdminOrOwner && (
+              <CaptionIconButton tooltip="Auto-reorder" onClick={autoReorder}>
+                <ArrowUpDown className="h-3 w-3" />
+              </CaptionIconButton>
+            )}
+          </>
+        }
       />
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <B31TableWrapper>
