@@ -91,6 +91,19 @@ export function EditableCaption({
       }}
       onClick={() => setFocused(true)}
     >
+      {/* Hover-revealed action buttons in the left margin */}
+      {leftButtons && (
+        <span
+          contentEditable={false}
+          suppressContentEditableWarning
+          className="print:hidden absolute z-10 flex items-center gap-0.5 opacity-0 group-hover/caption:opacity-100 focus-within:opacity-100 transition-opacity"
+          style={{ right: 'calc(100% + 6px)', top: '50%', transform: 'translateY(-50%)' }}
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {leftButtons}
+        </span>
+      )}
       {/* Label is uneditable, bold+italic */}
       <span className="font-bold italic select-none" contentEditable={false} suppressContentEditableWarning style={{ flexShrink: 0 }}>
         {label}
