@@ -279,11 +279,12 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
                 currentHoveredBlockPos = blockRange.startPos;
                 currentHoveredBlockRange = { startPos: blockRange.startPos, endPos: blockRange.endPos };
 
-                // Show/hide autoresize button
+                // Hide delete button when the block contains a table —
+                // table deletion belongs to the formatting toolbar's Table dropdown.
                 const hasTable = blockContainsTable(view.state.doc, blockRange.startPos, blockRange.endPos);
-                const autoresizeBtn = dragContainer!.querySelector('.block-autoresize-btn') as HTMLElement;
-                if (autoresizeBtn) {
-                  autoresizeBtn.style.display = hasTable ? 'flex' : 'none';
+                const deleteBtn = dragContainer!.querySelector('.block-delete-btn') as HTMLElement;
+                if (deleteBtn) {
+                  deleteBtn.style.visibility = hasTable ? 'hidden' : 'visible';
                 }
 
                 // Position
