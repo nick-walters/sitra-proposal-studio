@@ -496,6 +496,15 @@ export function DocumentEditor({
       setB12TableFocus(detail.tableId);
       setB12FocusedCaseId(detail.caseId ?? null);
       setB12FocusedRowId(detail.rowId ?? null);
+      setB31TableFocus(null);
+    };
+    const handleB31TableFocus = (e: Event) => {
+      const detail = (e as CustomEvent<{ tableId?: string | null }>).detail;
+      if (!detail?.tableId) return;
+      setB31TableFocus(detail.tableId);
+      setB12TableFocus(null);
+      setB12FocusedCaseId(null);
+      setB12FocusedRowId(null);
     };
     const handleCaptionRefreshAll = () => {
       if (editor && section?.number) {
@@ -506,12 +515,14 @@ export function DocumentEditor({
     window.addEventListener('block-reordered', handleBlockReordered);
     window.addEventListener('b12-table-offset', handleB12Offset);
     window.addEventListener('b12-table-focus', handleB12TableFocus as EventListener);
+    window.addEventListener('b31-table-focus', handleB31TableFocus as EventListener);
     window.addEventListener('caption-refresh-all', handleCaptionRefreshAll);
     return () => {
       window.removeEventListener('cross-ref-data-changed', handleCrossRefDataChanged);
       window.removeEventListener('block-reordered', handleBlockReordered);
       window.removeEventListener('b12-table-offset', handleB12Offset);
       window.removeEventListener('b12-table-focus', handleB12TableFocus as EventListener);
+      window.removeEventListener('b31-table-focus', handleB31TableFocus as EventListener);
       window.removeEventListener('caption-refresh-all', handleCaptionRefreshAll);
     };
   }, [editor, section?.number, b12TableOffset]);
