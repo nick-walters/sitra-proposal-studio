@@ -1448,6 +1448,8 @@ export function DocumentEditor({
           onB12DeleteTable={b12TableFocus ? handleB12DeleteTable : undefined}
           onB12AutoResize={b12TableFocus ? handleB12AutoResize : undefined}
           onB12UpdateCaption={b12TableFocus ? handleB12UpdateCaption : undefined}
+          b31TableFocus={b31TableFocus}
+          onB31AutoResize={b31TableFocus ? handleB31AutoResize : undefined}
           crossRefDropdown={section && !section.isPartA ? (
             <>
               <DropdownMenu>
