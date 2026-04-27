@@ -135,7 +135,6 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
 
           const dragHandle = dragContainer.querySelector('.block-drag-handle') as HTMLElement;
           const deleteBtn = dragContainer.querySelector('.block-delete-btn') as HTMLElement;
-          const autoresizeBtn = dragContainer.querySelector('.block-autoresize-btn') as HTMLElement;
 
           dropIndicator = createDropIndicator();
           dropIndicator.style.display = 'none';
@@ -194,17 +193,6 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
               onDeleteRequest(executeDelete);
             } else {
               executeDelete();
-            }
-          });
-
-          // Autoresize button
-          autoresizeBtn?.addEventListener('click', (e: MouseEvent) => {
-            e.preventDefault();
-            e.stopPropagation();
-            if (!currentHoveredBlockRange) return;
-            const tableMatch = findTableInBlock(editorView, currentHoveredBlockRange.startPos, currentHoveredBlockRange.endPos);
-            if (tableMatch) {
-              autoFitEditorTableAtPos(editorView, tableMatch.tablePos, tableMatch.tableEl);
             }
           });
 
