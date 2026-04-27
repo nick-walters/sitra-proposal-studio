@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { computeAutoFitSmart } from '@/lib/autoFitColumns';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,8 +7,6 @@ import type { B31WPData, B31Participant } from '@/hooks/useB31SectionData';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useColumnResize } from '@/hooks/useColumnResize';
 import { ColumnResizer } from '@/components/ColumnResizer';
-import { Columns3 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { EditableCaption } from '@/components/EditableCaption';
 
