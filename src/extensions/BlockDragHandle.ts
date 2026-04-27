@@ -4,7 +4,6 @@ import { Decoration, DecorationSet, EditorView } from '@tiptap/pm/view';
 import { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import { TextSelection, NodeSelection } from '@tiptap/pm/state';
 import { findBlockRange, isReorderableBlock } from './BlockReordering';
-import { autoFitEditorTableAtPos } from '@/lib/editorTableAutoFit';
 
 export interface BlockLockForDrag {
   userId: string;
@@ -22,8 +21,6 @@ const dragHandlePluginKey = new PluginKey('blockDragHandle');
 const GRIP_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg>`;
 
 const DELETE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>`;
-
-const AUTORESIZE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="M15 3v18"/></svg>`;
 
 function createDragHandleContainer(): HTMLElement {
   const container = document.createElement('div');
@@ -44,17 +41,12 @@ function createDragHandleContainer(): HTMLElement {
   deleteBtn.setAttribute('contenteditable', 'false');
   deleteBtn.setAttribute('title', 'Delete block');
   deleteBtn.innerHTML = DELETE_SVG;
-
-  const autoresizeBtn = document.createElement('div');
-  autoresizeBtn.className = 'block-ctrl-btn block-autoresize-btn';
-  autoresizeBtn.setAttribute('contenteditable', 'false');
-  autoresizeBtn.setAttribute('title', 'Auto-resize columns');
-  autoresizeBtn.innerHTML = AUTORESIZE_SVG;
-  autoresizeBtn.style.display = 'none';
+  // Hidden when the hovered block contains a table — table deletion is
+  // handled via the formatting toolbar's Table dropdown.
+  deleteBtn.style.display = 'flex';
 
   grid.appendChild(dragHandle);
   grid.appendChild(deleteBtn);
-  grid.appendChild(autoresizeBtn);
 
   container.appendChild(grid);
   return container;
