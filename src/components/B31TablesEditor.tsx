@@ -679,6 +679,33 @@ function B31TableWrapper({ children }: { children: React.ReactNode }) {
 
 // ColumnResizer now imported from shared component
 
+/** Small icon-only button used in the caption-left hover cluster. */
+const CaptionIconButton = React.forwardRef<HTMLButtonElement, {
+  tooltip: string;
+  onClick?: () => void;
+  children: React.ReactNode;
+} & React.ButtonHTMLAttributes<HTMLButtonElement>>(
+  ({ tooltip, onClick, children, ...rest }, ref) => (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          ref={ref}
+          type="button"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={onClick}
+          className="inline-flex items-center justify-center h-5 w-5 rounded text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+          {...rest}
+        >
+          {children}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="text-xs">{tooltip}</TooltipContent>
+    </Tooltip>
+  )
+);
+CaptionIconButton.displayName = 'CaptionIconButton';
+
+
 // ========== DELIVERABLES TABLE (3.1c) ==========
 export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
   const queryClient = useQueryClient();
