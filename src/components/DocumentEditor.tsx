@@ -225,6 +225,7 @@ export function DocumentEditor({
   const [b12TableFocus, setB12TableFocus] = useState<B12ToolbarFocus>(null);
   const [b12FocusedCaseId, setB12FocusedCaseId] = useState<string | null>(null);
   const [b12FocusedRowId, setB12FocusedRowId] = useState<string | null>(null);
+  const [b31TableFocus, setB31TableFocus] = useState<string | null>(null);
   
   // Editor container ref for cursor overlays
   const editorContainerRef = useRef<HTMLDivElement>(null);
