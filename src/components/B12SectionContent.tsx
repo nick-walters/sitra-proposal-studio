@@ -151,36 +151,6 @@ export function B12SectionContent({ proposalId, editorNode, editor, sectionNumbe
     window.dispatchEvent(new CustomEvent('b12-table-offset', { detail: { offset: b12TablesBeforeEditor } }));
   }, [b12TablesBeforeEditor]);
 
-  const requestAutoResize = useCallback((blockId: TableBlockId) => {
-    window.dispatchEvent(new CustomEvent('b12-table-autoresize', { detail: { tableId: blockId } }));
-  }, []);
-
-  const executeDeleteBlock = useCallback(async (blockId: BlockId) => {
-    if (blockId === 'ongoing-projects') {
-      const { error } = await supabase
-        .from('b12_ongoing_projects')
-        .delete()
-        .eq('proposal_id', proposalId);
-      if (error) {
-        toast.error('Could not delete the relevant projects table.');
-      } else {
-        queryClient.invalidateQueries({ queryKey: ['b12-ongoing-projects'] });
-      }
-    } else if (blockId === 'case-studies') {
-      const { error } = await supabase
-        .from('case_drafts')
-        .update({ is_hidden: true })
-        .eq('proposal_id', proposalId)
-        .eq('is_hidden', false);
-      if (error) {
-        toast.error('Could not delete the case studies.');
-      } else {
-        queryClient.invalidateQueries({ queryKey: ['b12-has-cases'] });
-        queryClient.invalidateQueries({ queryKey: ['case-drafts'] });
-      }
-    }
-  }, [proposalId, queryClient]);
-
   const renderBlock = (blockId: BlockId) => {
     switch (blockId) {
       case 'editor': return editorNode;
