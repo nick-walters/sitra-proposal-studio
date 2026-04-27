@@ -684,23 +684,20 @@ const CaptionIconButton = React.forwardRef<HTMLButtonElement, {
   tooltip: string;
   onClick?: () => void;
   children: React.ReactNode;
-} & React.ButtonHTMLAttributes<HTMLButtonElement>>(
+} & Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'title'>>(
   ({ tooltip, onClick, children, ...rest }, ref) => (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <button
-          ref={ref}
-          type="button"
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={onClick}
-          className="inline-flex items-center justify-center h-5 w-5 rounded text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-          {...rest}
-        >
-          {children}
-        </button>
-      </TooltipTrigger>
-      <TooltipContent side="top" className="text-xs">{tooltip}</TooltipContent>
-    </Tooltip>
+    <button
+      ref={ref}
+      type="button"
+      title={tooltip}
+      aria-label={tooltip}
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={onClick}
+      className="inline-flex items-center justify-center h-5 w-5 rounded text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+      {...rest}
+    >
+      {children}
+    </button>
   )
 );
 CaptionIconButton.displayName = 'CaptionIconButton';
