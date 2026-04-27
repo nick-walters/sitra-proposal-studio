@@ -966,7 +966,16 @@ export function FormattingToolbar({
               </TooltipContent>
             </Tooltip>
             <DropdownMenuContent align="start" className="w-48">
-              {isB12TableActive ? (
+              {isB31TableActive ? (
+                <>
+                  {onB31AutoResize && (
+                    <DropdownMenuItem onClick={onB31AutoResize}>
+                      <Columns className="w-4 h-4 mr-2" />
+                      Auto-resize columns
+                    </DropdownMenuItem>
+                  )}
+                </>
+              ) : isB12TableActive ? (
                 <>
                   {onB12AddRow && (
                     <DropdownMenuItem onClick={onB12AddRow}>
