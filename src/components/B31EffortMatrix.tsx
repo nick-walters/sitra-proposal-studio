@@ -118,7 +118,7 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
   const tableWidth = hasCustomWidths ? `${colWidths.reduce((sum, width) => sum + width, 0)}px` : '100%';
 
   return (
-    <div onFocusCapture={dispatchToolbarFocus} onMouseDownCapture={dispatchToolbarFocus}>
+    <div onFocusCapture={dispatchToolbarFocus}>
       <EditableCaption
         proposalId={proposalId}
         tableKey="table-3.1.f"

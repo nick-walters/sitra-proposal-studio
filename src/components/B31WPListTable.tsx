@@ -225,7 +225,7 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
   if (wpData.length === 0) return null;
 
   return (
-    <div onFocusCapture={dispatchToolbarFocus} onMouseDownCapture={dispatchToolbarFocus}>
+    <div onFocusCapture={dispatchToolbarFocus}>
       <EditableCaption
         proposalId={proposalId}
         tableKey="table-3.1.a"
