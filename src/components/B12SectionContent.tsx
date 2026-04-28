@@ -38,7 +38,7 @@ export function B12SectionContent({ proposalId, editorNode, editor, sectionNumbe
   const { isAdminOrOwner, hasAnyCoordinatorRole } = useUserRole();
   const canEdit = isAdminOrOwner || hasAnyCoordinatorRole;
 
-  const { data: hasCases } = useQuery({
+  const { data: hasCases, isLoading: hasCasesLoading } = useQuery({
     queryKey: ['b12-has-cases', proposalId],
     queryFn: async () => {
       const { count } = await supabase
@@ -121,6 +121,8 @@ export function B12SectionContent({ proposalId, editorNode, editor, sectionNumbe
     setDraggedBlock(null); setDragOverBlock(null);
   }, []);
 
+  const isReadyToMountBlocks = orderLoaded && !hasCasesLoading;
+
   const visibleBlocks = useMemo(() => blockOrder.filter(id => {
     if (id === 'case-studies' && !hasCases) return false;
     return true;
@@ -162,6 +164,10 @@ export function B12SectionContent({ proposalId, editorNode, editor, sectionNumbe
       default: return null;
     }
   };
+
+  if (!isReadyToMountBlocks) {
+    return <div className="b12-section-blocks min-h-[400px]" aria-busy="true" />;
+  }
 
   return (
     <div className="b12-section-blocks">
