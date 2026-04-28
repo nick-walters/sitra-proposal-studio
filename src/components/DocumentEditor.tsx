@@ -493,18 +493,20 @@ export function DocumentEditor({
 
       if (detail?.tableId !== 'case-studies' && detail?.tableId !== 'ongoing-projects') return;
 
-      setB12TableFocus(detail.tableId);
-      setB12FocusedCaseId(detail.caseId ?? null);
-      setB12FocusedRowId(detail.rowId ?? null);
-      setB31TableFocus(null);
+      const nextCaseId = detail.caseId ?? null;
+      const nextRowId = detail.rowId ?? null;
+      setB12TableFocus(prev => (prev === detail.tableId ? prev : detail.tableId));
+      setB12FocusedCaseId(prev => (prev === nextCaseId ? prev : nextCaseId));
+      setB12FocusedRowId(prev => (prev === nextRowId ? prev : nextRowId));
+      setB31TableFocus(prev => (prev === null ? prev : null));
     };
     const handleB31TableFocus = (e: Event) => {
       const detail = (e as CustomEvent<{ tableId?: string | null }>).detail;
       if (!detail?.tableId) return;
-      setB31TableFocus(detail.tableId);
-      setB12TableFocus(null);
-      setB12FocusedCaseId(null);
-      setB12FocusedRowId(null);
+      setB31TableFocus(prev => (prev === detail.tableId ? prev : detail.tableId));
+      setB12TableFocus(prev => (prev === null ? prev : null));
+      setB12FocusedCaseId(prev => (prev === null ? prev : null));
+      setB12FocusedRowId(prev => (prev === null ? prev : null));
     };
     const handleCaptionRefreshAll = () => {
       if (editor && section?.number) {
