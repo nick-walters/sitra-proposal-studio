@@ -576,10 +576,11 @@ export function DocumentEditor({
     
     const handleSelectionUpdate = () => {
       const { from, to } = editor.state.selection;
-      setB12TableFocus(null);
-      setB12FocusedCaseId(null);
-      setB12FocusedRowId(null);
-      setB31TableFocus(null);
+      // Only clear B12/B31 focus state when actually set, to avoid render storms on every keystroke
+      setB12TableFocus(prev => (prev === null ? prev : null));
+      setB12FocusedCaseId(prev => (prev === null ? prev : null));
+      setB12FocusedRowId(prev => (prev === null ? prev : null));
+      setB31TableFocus(prev => (prev === null ? prev : null));
       // Update collaborative cursor position
       updateCursorPosition(
         { line: 0, ch: to }, // Use 'to' as cursor position
