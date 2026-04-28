@@ -513,7 +513,6 @@ export function B12OngoingProjectsTable({ proposalId, tableIndex = 0, sectionNum
       className="mt-4"
       data-b12-table="ongoing-projects"
       onFocusCapture={(e) => dispatchToolbarFocus(e.target)}
-      onMouseDownCapture={(e) => dispatchToolbarFocus(e.target)}
       style={{ overflow: 'visible', maxWidth: '18cm', width: '18cm' }}
     >
       <EditableCaption

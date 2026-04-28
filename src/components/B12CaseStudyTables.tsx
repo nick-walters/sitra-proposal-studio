@@ -312,7 +312,6 @@ export function B12CaseStudyTables({ proposalId, tableIndex = 0, sectionNumber =
       className="space-y-0 mt-4"
       data-b12-table="case-studies"
       onFocusCapture={(e) => dispatchToolbarFocus(e.target)}
-      onMouseDownCapture={(e) => dispatchToolbarFocus(e.target)}
     >
       <EditableCaption
         proposalId={proposalId}
