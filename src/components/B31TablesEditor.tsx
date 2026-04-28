@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { Plus, ChevronDown, GripVertical, ArrowUpDown, Settings2 } from 'lucide-react';
+import { Plus, ChevronDown, GripVertical, ArrowUpDown, Settings2, Hash, CalendarDays } from 'lucide-react';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
@@ -820,15 +820,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
     reorderDeliverables.mutate(reordered);
   };
 
-  // Detect current sort to toggle button text
-  const isSortedByMonth = (() => {
-    for (let i = 1; i < deliverables.length; i++) {
-      const prevMonth = deliverables[i - 1].due_month ?? 999;
-      const currMonth = deliverables[i].due_month ?? 999;
-      if (prevMonth > currMonth) return false;
-    }
-    return true;
-  })();
+  const [deliverableOrderMode, setDeliverableOrderMode] = useState<'number' | 'month'>('number');
 
   const orderByNumber = () => {
     const sorted = [...deliverables].sort((a, b) => {
@@ -840,6 +832,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
       const subB = parseInt(b.number.replace(/^D?\d+\./, '')) || 0;
       return subA - subB;
     });
+    setDeliverableOrderMode('number');
     reorderDeliverables.mutate(sorted);
   };
 
@@ -852,7 +845,16 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
       const wpB = b.wp_number ?? 999;
       return wpA - wpB;
     });
+    setDeliverableOrderMode('month');
     reorderDeliverables.mutate(sorted);
+  };
+
+  const toggleDeliverableOrder = () => {
+    if (deliverableOrderMode === 'month') {
+      orderByNumber();
+    } else {
+      orderByMonth();
+    }
   };
 
   const autoFitColumns = useCallback(() => {
@@ -903,10 +905,10 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
             />
             {isAdminOrOwner && (
               <CaptionIconButton
-                tooltip={isSortedByMonth ? 'Order by number' : 'Order by month due'}
-                onClick={isSortedByMonth ? orderByNumber : orderByMonth}
+                tooltip={deliverableOrderMode === 'month' ? 'Order by deliverable number' : 'Order by month due'}
+                onClick={toggleDeliverableOrder}
               >
-                <ArrowUpDown className="h-3 w-3" />
+                {deliverableOrderMode === 'month' ? <Hash className="h-3 w-3" /> : <CalendarDays className="h-3 w-3" />}
               </CaptionIconButton>
             )}
           </>
