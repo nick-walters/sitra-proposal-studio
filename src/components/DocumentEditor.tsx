@@ -70,7 +70,8 @@ import { SplitViewPanel } from "./SplitViewPanel";
 // SectionReviewDialog moved to Part B Evaluate tab
 import { B31DeliverablesTable, B31MilestonesTable, B31RisksTable } from "./B31TablesEditor";
 import { B31SectionContent } from "./B31SectionContent";
-import { B12SectionContent } from "./B12SectionContent";
+import { B12OngoingProjectsTable } from "./B12OngoingProjectsTable";
+import { B12CaseStudyTables } from "./B12CaseStudyTables";
 import { B31IntroText } from "./B31IntroText";
 import { TrackChange } from "@/extensions/TrackChanges";
 // usePageEstimate moved to ExportDialog
@@ -469,20 +470,15 @@ export function DocumentEditor({
 
   // Sync cross-references when editor content loads, section changes, or external data changes
   const [syncTrigger, setSyncTrigger] = useState(0);
-  const [b12TableOffset, setB12TableOffset] = useState(0);
-  
+
   useEffect(() => {
     const handleCrossRefDataChanged = () => setSyncTrigger(prev => prev + 1);
     const handleBlockReordered = () => {
       // Renumber captions first, then sync cross-references
       if (editor && section?.number) {
-        renumberCaptionsInEditor(editor, section.number, b12TableOffset);
+        renumberCaptionsInEditor(editor, section.number, 0);
       }
       setSyncTrigger(prev => prev + 1);
-    };
-    const handleB12Offset = (e: Event) => {
-      const offset = (e as CustomEvent).detail?.offset ?? 0;
-      setB12TableOffset(offset);
     };
     const handleB12TableFocus = (e: Event) => {
       const detail = (e as CustomEvent<{
@@ -510,24 +506,22 @@ export function DocumentEditor({
     };
     const handleCaptionRefreshAll = () => {
       if (editor && section?.number) {
-        renumberCaptionsInEditor(editor, section.number, b12TableOffset);
+        renumberCaptionsInEditor(editor, section.number, 0);
       }
     };
     window.addEventListener('cross-ref-data-changed', handleCrossRefDataChanged);
     window.addEventListener('block-reordered', handleBlockReordered);
-    window.addEventListener('b12-table-offset', handleB12Offset);
     window.addEventListener('b12-table-focus', handleB12TableFocus as EventListener);
     window.addEventListener('b31-table-focus', handleB31TableFocus as EventListener);
     window.addEventListener('caption-refresh-all', handleCaptionRefreshAll);
     return () => {
       window.removeEventListener('cross-ref-data-changed', handleCrossRefDataChanged);
       window.removeEventListener('block-reordered', handleBlockReordered);
-      window.removeEventListener('b12-table-offset', handleB12Offset);
       window.removeEventListener('b12-table-focus', handleB12TableFocus as EventListener);
       window.removeEventListener('b31-table-focus', handleB31TableFocus as EventListener);
       window.removeEventListener('caption-refresh-all', handleCaptionRefreshAll);
     };
-  }, [editor, section?.number, b12TableOffset]);
+  }, [editor, section?.number]);
 
   useEffect(() => {
     setB12TableFocus(null);
@@ -1444,7 +1438,7 @@ export function DocumentEditor({
           isPartB={section && !section.isPartA}
           isReadOnly={isEffectivelyReadOnly}
           hideTableInsert={section?.number === 'B3.1'}
-          tableOffset={b12TableOffset}
+          tableOffset={0}
           b12TableFocus={b12TableFocus}
           onB12AddRow={b12TableFocus ? handleB12AddRow : undefined}
           onB12DeleteRow={b12TableFocus ? handleB12DeleteRow : undefined}
@@ -1574,7 +1568,7 @@ export function DocumentEditor({
             )}
 
             {/* Document Page with Rich text editor */}
-            <div ref={documentPageRef} className={`document-page animate-fade-in ${(section.id === 'b3-1' || section.number === 'B3.1' || section.number === '3.1') ? 'b31-document-page' : ''}`}>
+            <div ref={documentPageRef} className="document-page animate-fade-in">
               {/* Page Header - centered, shows Topic ID: Topic title (type of action) */}
               <div className="document-page-header">
                 <span className="w-full text-center">
@@ -1582,7 +1576,7 @@ export function DocumentEditor({
                 </span>
               </div>
 
-              <h1 className={`document-h1 text-foreground ${(section.id === 'b3-1' || section.number === 'B3.1' || section.number === '3.1') ? 'mb-2' : 'mb-6'}`}>{formatSectionHeading(section.number)} {section.title}</h1>
+              <h1 className="document-h1 text-foreground mb-6">{formatSectionHeading(section.number)} {section.title}</h1>
               
               {loading ? (
                 <div className="space-y-4">
@@ -1592,47 +1586,42 @@ export function DocumentEditor({
                   <Skeleton className="h-4 w-2/3" />
                 </div>
               ) : (
-                (() => {
-                  const isB12 = section.id === 'b1-2' || section.number === 'B1.2' || section.number === '1.2';
-                  const isB31 = section.id === 'b3-1' || section.number === 'B3.1' || section.number === '3.1';
+                <div ref={editorContainerRef} className="relative tiptap-editor-container overflow-visible">
+                  <EditorContent
+                    editor={editor}
+                    className={`document-content outline-none prose prose-sm max-w-none ${isEffectivelyReadOnly ? 'pointer-events-none opacity-75' : ''} min-h-[400px]`}
+                    style={{ fontFamily: '"Times New Roman", Times, serif' }}
+                  />
+                  {/* Track change bubble menu */}
+                  {editor && <TrackChangeBubbleMenu editor={editor} proposalId={proposalId} />}
+                  {/* Block lock indicators */}
+                  <BlockLockIndicator
+                    editor={editor}
+                    blockLocks={blockLocks}
+                    containerRef={editorContainerRef}
+                  />
+                  {/* Collaborative cursors overlay */}
+                  <CollaborativeCursors
+                    editor={editor}
+                    collaborators={collaboratorsInSection}
+                    containerRef={editorContainerRef}
+                  />
+                  {/* Caption refresh icon */}
+                  <CaptionRefreshButton
+                    editor={editor}
+                    containerRef={editorContainerRef}
+                    sectionNumber={section?.number}
+                    tableOffset={0}
+                  />
+                </div>
+              )}
 
-                  const editorBlock = (
-                    <div ref={editorContainerRef} className={`relative tiptap-editor-container overflow-visible ${isB31 ? 'b31-editor-container' : ''}`}>
-                      <EditorContent 
-                        editor={editor} 
-                        className={`document-content outline-none prose prose-sm max-w-none ${isEffectivelyReadOnly ? 'pointer-events-none opacity-75' : ''} ${isB31 ? '' : 'min-h-[400px]'}`}
-                        style={{ fontFamily: '"Times New Roman", Times, serif' }}
-                      />
-                      {/* Track change bubble menu */}
-                      {editor && <TrackChangeBubbleMenu editor={editor} proposalId={proposalId} />}
-                      {/* Block lock indicators */}
-                      <BlockLockIndicator
-                        editor={editor}
-                        blockLocks={blockLocks}
-                        containerRef={editorContainerRef}
-                      />
-                      {/* Collaborative cursors overlay */}
-                      <CollaborativeCursors
-                        editor={editor}
-                        collaborators={collaboratorsInSection}
-                        containerRef={editorContainerRef}
-                      />
-                      {/* Caption refresh icon */}
-                      <CaptionRefreshButton
-                        editor={editor}
-                        containerRef={editorContainerRef}
-                        sectionNumber={section?.number}
-                        tableOffset={b12TableOffset}
-                      />
-                    </div>
-                  );
-
-                  return isB12 ? (
-                    <B12SectionContent proposalId={proposalId} editorNode={editorBlock} editor={editor} sectionNumber={section.number} />
-                  ) : (
-                    editorBlock
-                  );
-                })()
+              {/* B1.2 sibling tables — rendered after the body editor, identical pattern to B3.1 */}
+              {(section.id === 'b1-2' || section.number === 'B1.2' || section.number === '1.2') && (
+                <>
+                  <B12OngoingProjectsTable proposalId={proposalId} sectionNumber={section.number} />
+                  <B12CaseStudyTables proposalId={proposalId} sectionNumber={section.number} />
+                </>
               )}
 
               {/* B3.1 Intro text - dynamic sentence before compulsory tables */}

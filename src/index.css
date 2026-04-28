@@ -972,19 +972,6 @@ td.b12-case-cell {
   position: relative;
 }
 
-/* B3.1 section: remove min-height and bottom margin to minimize gap before tables */
-.b31-editor-container .ProseMirror {
-  min-height: 0 !important;
-}
-
-.b31-editor-container .ProseMirror > *:last-child {
-  margin-bottom: 0 !important;
-}
-
-/* B3.1 page: no minimum height since content is auto-generated and variable */
-.b31-document-page {
-  min-height: auto !important;
-}
 
 @layer utilities {
   .text-balance {
