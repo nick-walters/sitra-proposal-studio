@@ -70,7 +70,8 @@ import { SplitViewPanel } from "./SplitViewPanel";
 // SectionReviewDialog moved to Part B Evaluate tab
 import { B31DeliverablesTable, B31MilestonesTable, B31RisksTable } from "./B31TablesEditor";
 import { B31SectionContent } from "./B31SectionContent";
-import { B12SectionContent } from "./B12SectionContent";
+import { B12OngoingProjectsTable } from "./B12OngoingProjectsTable";
+import { B12CaseStudyTables } from "./B12CaseStudyTables";
 import { B31IntroText } from "./B31IntroText";
 import { TrackChange } from "@/extensions/TrackChanges";
 // usePageEstimate moved to ExportDialog
