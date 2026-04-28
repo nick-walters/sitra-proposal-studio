@@ -469,20 +469,15 @@ export function DocumentEditor({
 
   // Sync cross-references when editor content loads, section changes, or external data changes
   const [syncTrigger, setSyncTrigger] = useState(0);
-  const [b12TableOffset, setB12TableOffset] = useState(0);
-  
+
   useEffect(() => {
     const handleCrossRefDataChanged = () => setSyncTrigger(prev => prev + 1);
     const handleBlockReordered = () => {
       // Renumber captions first, then sync cross-references
       if (editor && section?.number) {
-        renumberCaptionsInEditor(editor, section.number, b12TableOffset);
+        renumberCaptionsInEditor(editor, section.number, 0);
       }
       setSyncTrigger(prev => prev + 1);
-    };
-    const handleB12Offset = (e: Event) => {
-      const offset = (e as CustomEvent).detail?.offset ?? 0;
-      setB12TableOffset(offset);
     };
     const handleB12TableFocus = (e: Event) => {
       const detail = (e as CustomEvent<{
@@ -510,24 +505,22 @@ export function DocumentEditor({
     };
     const handleCaptionRefreshAll = () => {
       if (editor && section?.number) {
-        renumberCaptionsInEditor(editor, section.number, b12TableOffset);
+        renumberCaptionsInEditor(editor, section.number, 0);
       }
     };
     window.addEventListener('cross-ref-data-changed', handleCrossRefDataChanged);
     window.addEventListener('block-reordered', handleBlockReordered);
-    window.addEventListener('b12-table-offset', handleB12Offset);
     window.addEventListener('b12-table-focus', handleB12TableFocus as EventListener);
     window.addEventListener('b31-table-focus', handleB31TableFocus as EventListener);
     window.addEventListener('caption-refresh-all', handleCaptionRefreshAll);
     return () => {
       window.removeEventListener('cross-ref-data-changed', handleCrossRefDataChanged);
       window.removeEventListener('block-reordered', handleBlockReordered);
-      window.removeEventListener('b12-table-offset', handleB12Offset);
       window.removeEventListener('b12-table-focus', handleB12TableFocus as EventListener);
       window.removeEventListener('b31-table-focus', handleB31TableFocus as EventListener);
       window.removeEventListener('caption-refresh-all', handleCaptionRefreshAll);
     };
-  }, [editor, section?.number, b12TableOffset]);
+  }, [editor, section?.number]);
 
   useEffect(() => {
     setB12TableFocus(null);
