@@ -1,102 +1,95 @@
-## What appears to be broken
+# Make all Part B sections structurally equal
 
-The freeze is most likely caused by the interaction between the recent table-control edits and the editor lifecycle after navigating from Part A to Part B/B3.1.
+## Premise
 
-The strongest suspects are:
+Every Part B body editor (B1.1, B1.2, B2.1, B2.2, B3.1, B3.2) supports inserting tables via the toolbar, so they all carry the same editor complexity. The other sections are stable because the editor mounts directly inside `DocumentEditor` with nothing gating it.
 
-1. **B3.1 React tables now dispatch toolbar-focus events on every `mousedown` capture**
-   - `B31WPListTable`, `B31DeliverablesTable`, `B31MilestonesTable`, `B31RisksTable`, and `B31EffortMatrix` all call `window.dispatchEvent(new CustomEvent('b31-table-focus', ...))` from `onMouseDownCapture`.
-   - Clicking inside a table cell, selector, or contenteditable field can therefore trigger a React state update in `DocumentEditor` before the actual cell interaction finishes.
-   - This is exactly in the interaction path the user describes: text cursor works briefly, then table clicks do not work and the browser asks to wait/exit.
+Two sections currently get bespoke treatment:
 
-2. **The B3.1 toolbar-focus state can cause avoidable re-renders of the full editor shell**
-   - `DocumentEditor` stores `b31TableFocus` in React state and passes it into `FormattingToolbar`.
-   - Repeated focus events can re-render the editor shell and table tree while selection/click handling is in progress.
-   - The current handler sets state even when the focused B3.1 table is already focused, so repeated clicks inside the same table still schedule state updates.
+- **B1.2** is wrapped in `B12SectionContent`, which defers mounting the editor behind two async queries and recomputes table indices on every editor update. This wrapper is what causes the cursor freezes and the iPhone‑app crash.
+- **B3.1** has compulsory auto‑populated tables and figures (`B31IntroText`, `B31SectionContent`) appended after the editor. That part is fine and is the model to follow. What is *not* fine is the visual treatment that makes B3.1 look like a separate kind of page: `b31-document-page` and `b31-editor-container` classes, removal of the editor's `min-h-[400px]`, and a tighter top margin. These create the "divider" feel the user has consistently rejected.
 
-3. **B3.1 table event wiring is global and not section-scoped enough**
-   - The `b31-table-focus` / `b31-table-autoresize` events are global `window` events.
-   - After navigating between sections, any leaked or stale listener would be bad. The current code removes listeners correctly in most places, but the global-event approach makes it easy to leave state stale or dispatch into a section that is no longer relevant.
+The fix: B1.2 stops being wrapped, B3.1 stops looking different. All Part B sections render the editor identically, with any section‑specific siblings simply appended after it — no wrapper, no gating, no special page styling.
 
-4. **The earlier loading issue was real but separate**
-   - The dev-server log still shows the prior CSS `@import` ordering warning, although the code was already corrected and the production build passed afterwards. This warning is not the main freeze, but I will re-check it after the stability fix to ensure the current server state is clean.
+## What changes
 
-## Fix plan
+### 1. B1.2: remove the wrapper entirely
 
-### 1. Make B3.1 table focus updates idempotent and lightweight
+In `DocumentEditor.tsx` (around line 1630), drop the `isB12 ? <B12SectionContent …> : editorBlock` branch. The editor renders directly, identical to B1.1/B2.1/B2.2/B3.2.
+
+Right after the editor block, when `section.id === 'b1-2'`, render two sibling components:
+
+- `<B12OngoingProjectsTable />`
+- `<B12CaseStudyTables />` (rendered conditionally on `hasCases`, queried inside the component itself)
+
+Both already self‑load their data and need no wrapper.
+
+Drop the drag‑to‑reorder feature for B1.2 blocks (no other Part B section offers it; user's stated requirement is parity). Order becomes fixed: editor → ongoing projects → case studies. This removes:
+
+- The `b12-block-order` row read/write in `table_captions`
+- The `blockOrder` / `draggedBlock` / `dragOverBlock` state
+- The drag handle column
+- The `b12-table-offset` event and `b12TableOffset` plumbing in `DocumentEditor`
+- The `countEditorTableCaptions(editor)` call that ran on every render
+
+Caption renumbering keeps working because `renumberCaptionsInEditor` already accepts an offset (now a constant 0, since companion tables come after the editor).
+
+Delete `src/components/B12SectionContent.tsx`.
+
+Keep the `b12-table-focus` event as is — it's how `DocumentEditor` knows which contextual toolbar to show, symmetric with `b31-table-focus`, and not part of the bug.
+
+### 2. B3.1: remove the visual "divider" treatment
 
 In `DocumentEditor.tsx`:
 
-- Change `handleB31TableFocus` so it only calls `setB31TableFocus` when the table id actually changes.
-- Similarly avoid resetting B1.2 focus state if it is already clear.
-- Keep the toolbar dropdown functionality, but stop repeated identical clicks from re-rendering the editor shell.
+- Remove the `b31-document-page` conditional class on the document page wrapper (line ~1577).
+- Remove the `b31-editor-container` conditional class on the editor container (line ~1600).
+- Remove the `mb-2` vs `mb-6` H1 branch (line ~1585) — use `mb-6` like every other section.
+- Remove the `isB31 ? '' : 'min-h-[400px]'` branch (line ~1603) — keep `min-h-[400px]` for B3.1 as well so the body editor has the same generous click target as everywhere else.
+- Drop the `isB31` local variable.
 
-This should reduce unnecessary re-render pressure immediately.
+In `src/index.css` (or wherever they live), the `.b31-document-page` and `.b31-editor-container` rules become unused; remove them so they cannot be reapplied accidentally. Anything inside `B31SectionContent` itself (the auto‑populated tables/figures) keeps its own styling — only the *page* and *editor container* get normalised.
 
-### 2. Replace broad `onMouseDownCapture` dispatching with targeted focus/click handling
+`B31IntroText` and `B31SectionContent` continue to render as siblings after the editor, exactly as today. They are not behind a divider; they sit immediately after the body content with the same vertical rhythm as any other sibling block.
 
-In B3.1 table components:
+### 3. Result: one Part B layout
 
-- Remove or narrow `onMouseDownCapture={dispatchToolbarFocus}` from table wrapper divs.
-- Prefer `onFocusCapture` for keyboard/contenteditable focus and a targeted `onPointerDownCapture`/`onMouseDownCapture` that only dispatches when the event target is actually inside the table/caption, not when interacting with nested Radix dropdown portals or toolbar-adjacent controls.
-- Use an idempotent helper such as:
-
-```ts
-const focusB31Table = (tableId: string) => {
-  window.dispatchEvent(new CustomEvent('b31-table-focus', { detail: { tableId } }));
-};
+```text
+┌───────────────────── document-page ─────────────────────┐
+│  H1 (section number + title) — mb-6                     │
+│                                                         │
+│  ┌─── tiptap-editor-container (min-h-[400px]) ────┐    │
+│  │  body editor (tables, figures, captions, etc.) │    │
+│  └────────────────────────────────────────────────┘    │
+│                                                         │
+│  Section‑specific siblings (only if any):               │
+│   • B1.2 → ongoing projects, case studies               │
+│   • B3.1 → intro text, auto‑populated tables/figures    │
+│   (others have none)                                    │
+│                                                         │
+│  Footnotes                                              │
+└─────────────────────────────────────────────────────────┘
 ```
 
-but call it only when needed.
+## Why this is safe
 
-Affected files:
-- `src/components/B31WPListTable.tsx`
-- `src/components/B31TablesEditor.tsx`
-- `src/components/B31EffortMatrix.tsx`
+- The editor mounts the same way for every Part B section, so the cursor‑freeze / iPhone‑crash root cause is removed.
+- B3.1's compulsory content still renders — only its *visual* differentiation goes away. No data, queries, or population logic change.
+- No database schema changes. Orphaned `b12-block-order` rows in `table_captions` are harmless.
+- "User can add a table to any Part B editor" is preserved everywhere.
 
-### 3. Guard B3.1 auto-resize event listeners
+## Files touched
 
-In all B3.1 structured tables:
+- `src/components/DocumentEditor.tsx` — remove `isB12` branch, remove `isB31` page/editor styling branches, mount B1.2 sibling components after the editor, remove `b12-table-offset` listener and `b12TableOffset` state.
+- `src/components/B12SectionContent.tsx` — deleted.
+- `src/index.css` (and any related stylesheet) — remove now‑unused `.b31-document-page` and `.b31-editor-container` rules.
+- `src/components/B12OngoingProjectsTable.tsx`, `src/components/B12CaseStudyTables.tsx` — verify they work with a fixed table offset (no behavioural change expected).
 
-- Ensure `b31-table-autoresize` handlers return immediately unless the table is mounted and the target `tableId` matches.
-- Ensure `computeAutoFitSmart` is only called from explicit toolbar/dropdown action, never from focus/click.
-- Keep auto-resize behaviour intact, but separate it strictly from focusing/selecting cells.
+## Verification
 
-### 4. Reduce table-click conflicts with dnd-kit
-
-In `B31TablesEditor.tsx`:
-
-- Keep drag activation at 8px, but ensure sortable drag listeners remain attached only to the visible grip handle, never the row/cell.
-- Add `onMouseDown={(e) => e.stopPropagation()}` / pointer guards only on the hover-left caption buttons and drag/delete controls if needed, so table cell editing/select dropdowns do not compete with ordering controls.
-- This is especially important for contenteditable fields and Radix `Select` triggers inside deliverable/milestone/risk tables.
-
-### 5. Re-check editor lifecycle after A→B navigation
-
-Review and, if needed, adjust:
-
-- `useRichTextEditor` content sync (`editor.commands.setContent`) so it does not run unnecessarily after section changes.
-- `DocumentEditor` selection update handler so it does not repeatedly clear B3.1 focus while another B3.1 focus event is being handled.
-- `BlockDragHandle` mousemove handling. It runs on every editor mousemove and uses `posAtCoords`; it should not affect B3.1 React tables directly, but if it remains a performance hotspot after the table-focus fix, throttle it with `requestAnimationFrame`.
-
-### 6. Verify the loading/freeze path
-
-After implementing the code changes:
-
-- Run `bun run build`.
-- Check `/tmp/dev-server-logs/dev-server.log` for fresh errors/warnings after the latest HMR/build.
-- If browser testing is available with an authenticated session, profile the exact path:
-  1. refresh proposal page
-  2. navigate to an A section
-  3. navigate to B3.1 or another B section
-  4. click into text
-  5. click into B3.1 tables
-  6. confirm no long task/freeze and that table cells/selects still respond
-- If the browser session is unauthenticated, use build/log verification plus code-level checks, and state that preview reproduction requires logging in.
-
-## Expected result
-
-- Navigating A section → B section should no longer degrade into a browser “wait or exit” freeze.
-- Clicking B3.1 React tables should focus the table for the formatting-bar dropdown without re-render storms.
-- Text cursor placement in Part B should remain stable.
-- Auto-resize from the formatting-bar dropdown should continue to work for B3.1 tables.
-- The deliverables order toggle and caption-left hover buttons should remain intact.
+- Open B1.1 → place cursor in body → works (regression check).
+- Open B1.2 → place cursor in body → works, no remount, no freeze.
+- Insert a table into B1.2 body → caption numbering correct relative to ongoing‑projects / case‑study tables.
+- Navigate B1.1 → B1.2 → B2.1 repeatedly on the iPhone app → no crash.
+- B1.2 companion tables (ongoing projects, case studies) still render and edit correctly.
+- Open B3.1 → page header spacing and editor container look identical to B1.1/B2.1/B3.2; auto‑populated tables and figures still render after the body, no visual divider.
