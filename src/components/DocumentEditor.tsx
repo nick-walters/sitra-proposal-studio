@@ -1437,7 +1437,7 @@ export function DocumentEditor({
           isPartB={section && !section.isPartA}
           isReadOnly={isEffectivelyReadOnly}
           hideTableInsert={section?.number === 'B3.1'}
-          tableOffset={b12TableOffset}
+          tableOffset={0}
           b12TableFocus={b12TableFocus}
           onB12AddRow={b12TableFocus ? handleB12AddRow : undefined}
           onB12DeleteRow={b12TableFocus ? handleB12DeleteRow : undefined}
@@ -1567,7 +1567,7 @@ export function DocumentEditor({
             )}
 
             {/* Document Page with Rich text editor */}
-            <div ref={documentPageRef} className={`document-page animate-fade-in ${(section.id === 'b3-1' || section.number === 'B3.1' || section.number === '3.1') ? 'b31-document-page' : ''}`}>
+            <div ref={documentPageRef} className="document-page animate-fade-in">
               {/* Page Header - centered, shows Topic ID: Topic title (type of action) */}
               <div className="document-page-header">
                 <span className="w-full text-center">
@@ -1575,7 +1575,7 @@ export function DocumentEditor({
                 </span>
               </div>
 
-              <h1 className={`document-h1 text-foreground ${(section.id === 'b3-1' || section.number === 'B3.1' || section.number === '3.1') ? 'mb-2' : 'mb-6'}`}>{formatSectionHeading(section.number)} {section.title}</h1>
+              <h1 className="document-h1 text-foreground mb-6">{formatSectionHeading(section.number)} {section.title}</h1>
               
               {loading ? (
                 <div className="space-y-4">
@@ -1585,47 +1585,42 @@ export function DocumentEditor({
                   <Skeleton className="h-4 w-2/3" />
                 </div>
               ) : (
-                (() => {
-                  const isB12 = section.id === 'b1-2' || section.number === 'B1.2' || section.number === '1.2';
-                  const isB31 = section.id === 'b3-1' || section.number === 'B3.1' || section.number === '3.1';
+                <div ref={editorContainerRef} className="relative tiptap-editor-container overflow-visible">
+                  <EditorContent
+                    editor={editor}
+                    className={`document-content outline-none prose prose-sm max-w-none ${isEffectivelyReadOnly ? 'pointer-events-none opacity-75' : ''} min-h-[400px]`}
+                    style={{ fontFamily: '"Times New Roman", Times, serif' }}
+                  />
+                  {/* Track change bubble menu */}
+                  {editor && <TrackChangeBubbleMenu editor={editor} proposalId={proposalId} />}
+                  {/* Block lock indicators */}
+                  <BlockLockIndicator
+                    editor={editor}
+                    blockLocks={blockLocks}
+                    containerRef={editorContainerRef}
+                  />
+                  {/* Collaborative cursors overlay */}
+                  <CollaborativeCursors
+                    editor={editor}
+                    collaborators={collaboratorsInSection}
+                    containerRef={editorContainerRef}
+                  />
+                  {/* Caption refresh icon */}
+                  <CaptionRefreshButton
+                    editor={editor}
+                    containerRef={editorContainerRef}
+                    sectionNumber={section?.number}
+                    tableOffset={0}
+                  />
+                </div>
+              )}
 
-                  const editorBlock = (
-                    <div ref={editorContainerRef} className={`relative tiptap-editor-container overflow-visible ${isB31 ? 'b31-editor-container' : ''}`}>
-                      <EditorContent 
-                        editor={editor} 
-                        className={`document-content outline-none prose prose-sm max-w-none ${isEffectivelyReadOnly ? 'pointer-events-none opacity-75' : ''} ${isB31 ? '' : 'min-h-[400px]'}`}
-                        style={{ fontFamily: '"Times New Roman", Times, serif' }}
-                      />
-                      {/* Track change bubble menu */}
-                      {editor && <TrackChangeBubbleMenu editor={editor} proposalId={proposalId} />}
-                      {/* Block lock indicators */}
-                      <BlockLockIndicator
-                        editor={editor}
-                        blockLocks={blockLocks}
-                        containerRef={editorContainerRef}
-                      />
-                      {/* Collaborative cursors overlay */}
-                      <CollaborativeCursors
-                        editor={editor}
-                        collaborators={collaboratorsInSection}
-                        containerRef={editorContainerRef}
-                      />
-                      {/* Caption refresh icon */}
-                      <CaptionRefreshButton
-                        editor={editor}
-                        containerRef={editorContainerRef}
-                        sectionNumber={section?.number}
-                        tableOffset={b12TableOffset}
-                      />
-                    </div>
-                  );
-
-                  return isB12 ? (
-                    <B12SectionContent proposalId={proposalId} editorNode={editorBlock} editor={editor} sectionNumber={section.number} />
-                  ) : (
-                    editorBlock
-                  );
-                })()
+              {/* B1.2 sibling tables — rendered after the body editor, identical pattern to B3.1 */}
+              {(section.id === 'b1-2' || section.number === 'B1.2' || section.number === '1.2') && (
+                <>
+                  <B12OngoingProjectsTable proposalId={proposalId} sectionNumber={section.number} />
+                  <B12CaseStudyTables proposalId={proposalId} sectionNumber={section.number} />
+                </>
               )}
 
               {/* B3.1 Intro text - dynamic sentence before compulsory tables */}
