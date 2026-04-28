@@ -884,7 +884,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
   }, []);
 
   return (
-    <div onFocusCapture={dispatchToolbarFocus} onMouseDownCapture={dispatchToolbarFocus}>
+    <div onFocusCapture={dispatchToolbarFocus}>
       <EditableCaption
         proposalId={proposalId}
         tableKey="table-3.1.c"
@@ -1229,7 +1229,7 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
   }, []);
 
   return (
-    <div onFocusCapture={dispatchToolbarFocus} onMouseDownCapture={dispatchToolbarFocus}>
+    <div onFocusCapture={dispatchToolbarFocus}>
       <EditableCaption
         proposalId={proposalId}
         tableKey="table-3.1.d"
@@ -1480,7 +1480,7 @@ export function B31RisksTable({ proposalId }: { proposalId: string }) {
   }, []);
 
   return (
-    <div onFocusCapture={dispatchToolbarFocus} onMouseDownCapture={dispatchToolbarFocus}>
+    <div onFocusCapture={dispatchToolbarFocus}>
       <EditableCaption
         proposalId={proposalId}
         tableKey="table-3.1.e"
