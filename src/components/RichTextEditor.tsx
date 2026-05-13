@@ -961,40 +961,6 @@ export function FormattingToolbar({
                     </DropdownMenuItem>
                   )}
                 </>
-              ) : isB12TableActive ? (
-                <>
-                  {onB12AddRow && (
-                    <DropdownMenuItem onClick={onB12AddRow}>
-                      <Plus className="w-4 h-4 mr-2" />
-                      {b12TableFocus === 'case-studies' ? 'Add case' : 'Add row'}
-                    </DropdownMenuItem>
-                  )}
-                  {onB12DeleteRow && (
-                    <DropdownMenuItem onClick={onB12DeleteRow}>
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      {b12TableFocus === 'case-studies' ? 'Delete case' : 'Delete row'}
-                    </DropdownMenuItem>
-                  )}
-                  {onB12DeleteTable && (
-                    <DropdownMenuItem onClick={onB12DeleteTable} className="text-destructive">
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Delete table
-                    </DropdownMenuItem>
-                  )}
-                  {onB12AutoResize && (
-                    <DropdownMenuItem onClick={onB12AutoResize}>
-                      <Columns className="w-4 h-4 mr-2" />
-                      Auto-resize columns
-                    </DropdownMenuItem>
-                  )}
-                  {(onB12UpdateCaption && (onB12AddRow || onB12DeleteRow || onB12DeleteTable || onB12AutoResize)) && <DropdownMenuSeparator />}
-                  {onB12UpdateCaption && (
-                    <DropdownMenuItem onClick={onB12UpdateCaption}>
-                      <FileText className="w-4 h-4 mr-2" />
-                      Update caption
-                    </DropdownMenuItem>
-                  )}
-                </>
               ) : (
                 <>
                   <DropdownMenuItem onClick={() => editor.chain().focus().addColumnBefore().run()}>
