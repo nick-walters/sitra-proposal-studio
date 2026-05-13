@@ -70,8 +70,6 @@ import { SplitViewPanel } from "./SplitViewPanel";
 // SectionReviewDialog moved to Part B Evaluate tab
 import { B31DeliverablesTable, B31MilestonesTable, B31RisksTable } from "./B31TablesEditor";
 import { B31SectionContent } from "./B31SectionContent";
-import { B12OngoingProjectsTable } from "./B12OngoingProjectsTable";
-import { B12CaseStudyTables } from "./B12CaseStudyTables";
 import { B31IntroText } from "./B31IntroText";
 import { TrackChange } from "@/extensions/TrackChanges";
 // usePageEstimate moved to ExportDialog
@@ -112,8 +110,6 @@ interface DocumentEditorProps {
   acronymSegments?: { text: string; color: string }[];
   openPanel?: 'comments' | 'changes' | null;
 }
-
-type B12ToolbarFocus = 'case-studies' | 'ongoing-projects' | null;
 
 export function DocumentEditor({ 
   section, 
@@ -223,9 +219,6 @@ export function DocumentEditor({
   const [isDeliverableRefOpen, setIsDeliverableRefOpen] = useState(false);
   const [isMilestoneRefOpen, setIsMilestoneRefOpen] = useState(false);
   const [hasCases, setHasCases] = useState(false);
-  const [b12TableFocus, setB12TableFocus] = useState<B12ToolbarFocus>(null);
-  const [b12FocusedCaseId, setB12FocusedCaseId] = useState<string | null>(null);
-  const [b12FocusedRowId, setB12FocusedRowId] = useState<string | null>(null);
   const [b31TableFocus, setB31TableFocus] = useState<string | null>(null);
   
   // Editor container ref for cursor overlays
@@ -480,29 +473,10 @@ export function DocumentEditor({
       }
       setSyncTrigger(prev => prev + 1);
     };
-    const handleB12TableFocus = (e: Event) => {
-      const detail = (e as CustomEvent<{
-        tableId?: Exclude<B12ToolbarFocus, null>;
-        caseId?: string | null;
-        rowId?: string | null;
-      }>).detail;
-
-      if (detail?.tableId !== 'case-studies' && detail?.tableId !== 'ongoing-projects') return;
-
-      const nextCaseId = detail.caseId ?? null;
-      const nextRowId = detail.rowId ?? null;
-      setB12TableFocus(prev => (prev === detail.tableId ? prev : detail.tableId));
-      setB12FocusedCaseId(prev => (prev === nextCaseId ? prev : nextCaseId));
-      setB12FocusedRowId(prev => (prev === nextRowId ? prev : nextRowId));
-      setB31TableFocus(prev => (prev === null ? prev : null));
-    };
     const handleB31TableFocus = (e: Event) => {
       const detail = (e as CustomEvent<{ tableId?: string | null }>).detail;
       if (!detail?.tableId) return;
       setB31TableFocus(prev => (prev === detail.tableId ? prev : detail.tableId));
-      setB12TableFocus(prev => (prev === null ? prev : null));
-      setB12FocusedCaseId(prev => (prev === null ? prev : null));
-      setB12FocusedRowId(prev => (prev === null ? prev : null));
     };
     const handleCaptionRefreshAll = () => {
       if (editor && section?.number) {
@@ -511,28 +485,22 @@ export function DocumentEditor({
     };
     window.addEventListener('cross-ref-data-changed', handleCrossRefDataChanged);
     window.addEventListener('block-reordered', handleBlockReordered);
-    window.addEventListener('b12-table-focus', handleB12TableFocus as EventListener);
     window.addEventListener('b31-table-focus', handleB31TableFocus as EventListener);
     window.addEventListener('caption-refresh-all', handleCaptionRefreshAll);
     return () => {
       window.removeEventListener('cross-ref-data-changed', handleCrossRefDataChanged);
       window.removeEventListener('block-reordered', handleBlockReordered);
-      window.removeEventListener('b12-table-focus', handleB12TableFocus as EventListener);
       window.removeEventListener('b31-table-focus', handleB31TableFocus as EventListener);
       window.removeEventListener('caption-refresh-all', handleCaptionRefreshAll);
     };
   }, [editor, section?.number]);
 
   useEffect(() => {
-    setB12TableFocus(null);
-    setB12FocusedCaseId(null);
-    setB12FocusedRowId(null);
     setB31TableFocus(null);
   }, [section?.id]);
 
   useEffect(() => {
     if (!editor || !proposalId || loading) return;
-    if (section?.id === 'b1-2' || section?.number === 'B1.2' || section?.number === '1.2') return;
 
     const timer = setTimeout(() => {
       syncCrossReferences(editor, proposalId);
@@ -572,10 +540,7 @@ export function DocumentEditor({
     
     const handleSelectionUpdate = () => {
       const { from, to } = editor.state.selection;
-      // Only clear B12/B31 focus state when actually set, to avoid render storms on every keystroke
-      setB12TableFocus(prev => (prev === null ? prev : null));
-      setB12FocusedCaseId(prev => (prev === null ? prev : null));
-      setB12FocusedRowId(prev => (prev === null ? prev : null));
+      // Only clear B3.1 focus state when actually set, to avoid render storms on every keystroke
       setB31TableFocus(prev => (prev === null ? prev : null));
       // Update collaborative cursor position
       updateCursorPosition(
@@ -804,163 +769,12 @@ export function DocumentEditor({
     }, 150);
   }, [editor]);
 
-  const focusB12Caption = useCallback((tableKey: 'b12-case-studies' | 'b12-ongoing-projects') => {
-    const activeInput = document.querySelector<HTMLInputElement>(`input[data-commentable="caption-${tableKey}"]`);
-    if (activeInput) {
-      activeInput.focus();
-      activeInput.select();
-      return;
-    }
-
-    const trigger = document.querySelector<HTMLElement>(`span[data-commentable="caption-${tableKey}"]`);
-    trigger?.click();
-
-    requestAnimationFrame(() => {
-      const input = document.querySelector<HTMLInputElement>(`input[data-commentable="caption-${tableKey}"]`);
-      input?.focus();
-      input?.select();
-    });
-  }, []);
-
-  const handleB12AddRow = useCallback(async () => {
-    if (!proposalId || !b12TableFocus || isEffectivelyReadOnly) return;
-
-    if (b12TableFocus === 'ongoing-projects') {
-      const { data, error } = await supabase
-        .from('b12_ongoing_projects')
-        .select('order_index')
-        .eq('proposal_id', proposalId)
-        .order('order_index', { ascending: false })
-        .limit(1);
-
-      if (error) {
-        toast.error('Could not add a relevant-project row.');
-        return;
-      }
-
-      const nextOrder = (data?.[0]?.order_index ?? -1) + 1;
-      const { error: insertError } = await supabase
-        .from('b12_ongoing_projects')
-        .insert({ proposal_id: proposalId, order_index: nextOrder });
-
-      if (insertError) {
-        toast.error('Could not add a relevant-project row.');
-      }
-      return;
-    }
-
-    const { data, error } = await supabase
-      .from('case_drafts')
-      .select('number, order_index, case_type, custom_type_name')
-      .eq('proposal_id', proposalId)
-      .order('order_index', { ascending: false })
-      .limit(1);
-
-    if (error) {
-      toast.error('Could not add a case.');
-      return;
-    }
-
-    const lastCase = data?.[0];
-    const { error: insertError } = await supabase.from('case_drafts').insert({
-      proposal_id: proposalId,
-      number: (lastCase?.number ?? 0) + 1,
-      order_index: (lastCase?.order_index ?? -1) + 1,
-      case_type: lastCase?.case_type ?? 'case_study',
-      custom_type_name: lastCase?.custom_type_name ?? null,
-    });
-
-    if (insertError) {
-      toast.error('Could not add a case.');
-    }
-  }, [b12TableFocus, isEffectivelyReadOnly, proposalId]);
-
-  const handleB12DeleteRow = useCallback(async () => {
-    if (!proposalId || !b12TableFocus || isEffectivelyReadOnly) return;
-
-    if (b12TableFocus === 'ongoing-projects') {
-      if (!b12FocusedRowId) {
-        toast.error('Select a relevant-project row first.');
-        return;
-      }
-
-      const { error } = await supabase
-        .from('b12_ongoing_projects')
-        .delete()
-        .eq('id', b12FocusedRowId);
-
-      if (error) {
-        toast.error('Could not delete the relevant-project row.');
-      }
-      return;
-    }
-
-    if (!b12FocusedCaseId) {
-      toast.error('Select a case table first.');
-      return;
-    }
-
-    const { error } = await supabase
-      .from('case_drafts')
-      .delete()
-      .eq('id', b12FocusedCaseId);
-
-    if (error) {
-      toast.error('Could not delete the case.');
-    }
-  }, [b12FocusedCaseId, b12FocusedRowId, b12TableFocus, isEffectivelyReadOnly, proposalId]);
-
-  const handleB12DeleteTable = useCallback(async () => {
-    if (!proposalId || !b12TableFocus || isEffectivelyReadOnly) return;
-
-    if (b12TableFocus === 'ongoing-projects') {
-      const { error } = await supabase
-        .from('b12_ongoing_projects')
-        .delete()
-        .eq('proposal_id', proposalId);
-      if (error) {
-        toast.error('Could not delete the relevant projects table.');
-      }
-      return;
-    }
-
-    // case-studies: delete the focused case
-    if (b12FocusedCaseId) {
-      const { error } = await supabase
-        .from('case_drafts')
-        .delete()
-        .eq('id', b12FocusedCaseId);
-      if (error) {
-        toast.error('Could not delete the case table.');
-      }
-    }
-  }, [b12FocusedCaseId, b12TableFocus, isEffectivelyReadOnly, proposalId]);
-
-  const handleB12AutoResize = useCallback(() => {
-    if (!b12TableFocus || isEffectivelyReadOnly) return;
-
-    window.dispatchEvent(new CustomEvent('b12-table-autoresize', {
-      detail: { tableId: b12TableFocus },
-    }));
-  }, [b12TableFocus, isEffectivelyReadOnly]);
-
   const handleB31AutoResize = useCallback(() => {
     if (!b31TableFocus || isEffectivelyReadOnly) return;
     window.dispatchEvent(new CustomEvent('b31-table-autoresize', {
       detail: { tableId: b31TableFocus },
     }));
   }, [b31TableFocus, isEffectivelyReadOnly]);
-
-  const handleB12UpdateCaption = useCallback(() => {
-    if (b12TableFocus === 'case-studies') {
-      focusB12Caption('b12-case-studies');
-      return;
-    }
-
-    if (b12TableFocus === 'ongoing-projects') {
-      focusB12Caption('b12-ongoing-projects');
-    }
-  }, [b12TableFocus, focusB12Caption]);
 
   // Handle Acronym reference insertion
   const handleInsertAcronymRef = useCallback(() => {
@@ -1441,12 +1255,6 @@ export function DocumentEditor({
           isReadOnly={isEffectivelyReadOnly}
           hideTableInsert={section?.number === 'B3.1'}
           tableOffset={0}
-          b12TableFocus={b12TableFocus}
-          onB12AddRow={b12TableFocus ? handleB12AddRow : undefined}
-          onB12DeleteRow={b12TableFocus ? handleB12DeleteRow : undefined}
-          onB12DeleteTable={b12TableFocus ? handleB12DeleteTable : undefined}
-          onB12AutoResize={b12TableFocus ? handleB12AutoResize : undefined}
-          onB12UpdateCaption={b12TableFocus ? handleB12UpdateCaption : undefined}
           b31TableFocus={b31TableFocus}
           onB31AutoResize={b31TableFocus ? handleB31AutoResize : undefined}
           crossRefDropdown={section && !section.isPartA ? (
@@ -1618,13 +1426,7 @@ export function DocumentEditor({
                 </div>
               )}
 
-              {/* B1.2 sibling tables — rendered after the body editor, identical pattern to B3.1 */}
-              {(section.id === 'b1-2' || section.number === 'B1.2' || section.number === '1.2') && (
-                <>
-                  <B12OngoingProjectsTable proposalId={proposalId} sectionNumber={section.number} />
-                  <B12CaseStudyTables proposalId={proposalId} sectionNumber={section.number} />
-                </>
-              )}
+
 
               {/* B3.1 Intro text - dynamic sentence before compulsory tables */}
               {(section.id === 'b3-1' || section.number === 'B3.1' || section.number === '3.1') && (

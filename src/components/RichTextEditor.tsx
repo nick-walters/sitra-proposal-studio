@@ -432,12 +432,6 @@ export function FormattingToolbar({
   isReadOnly = false,
   hideTableInsert = false,
   tableOffset = 0,
-  b12TableFocus,
-  onB12AddRow,
-  onB12DeleteRow,
-  onB12DeleteTable,
-  onB12AutoResize,
-  onB12UpdateCaption,
   b31TableFocus,
   onB31AutoResize,
   crossRefDropdown,
@@ -455,13 +449,6 @@ export function FormattingToolbar({
   isReadOnly?: boolean;
   hideTableInsert?: boolean;
   tableOffset?: number;
-  /** Which B12 table is focused: null, 'case-studies', or 'ongoing-projects' */
-  b12TableFocus?: string | null;
-  onB12AddRow?: () => void;
-   onB12DeleteRow?: () => void;
-   onB12DeleteTable?: () => void;
-   onB12AutoResize?: () => void;
-   onB12UpdateCaption?: () => void;
    /** Which B3.1 React table is focused (e.g. 'b31-wp-list', 'b31-deliverables', ...). Null when none. */
    b31TableFocus?: string | null;
    onB31AutoResize?: () => void;
@@ -744,9 +731,8 @@ export function FormattingToolbar({
   }
 
   const isInTable = editor.isActive('table');
-  const isB12TableActive = Boolean(b12TableFocus);
   const isB31TableActive = Boolean(b31TableFocus);
-  const showTableOptions = isInTable || isB12TableActive || isB31TableActive;
+  const showTableOptions = isInTable || isB31TableActive;
   const isAlignDisabled = editor.isActive('heading') || isInTable;
 
   return (
@@ -972,40 +958,6 @@ export function FormattingToolbar({
                     <DropdownMenuItem onClick={onB31AutoResize}>
                       <Columns className="w-4 h-4 mr-2" />
                       Auto-resize columns
-                    </DropdownMenuItem>
-                  )}
-                </>
-              ) : isB12TableActive ? (
-                <>
-                  {onB12AddRow && (
-                    <DropdownMenuItem onClick={onB12AddRow}>
-                      <Plus className="w-4 h-4 mr-2" />
-                      {b12TableFocus === 'case-studies' ? 'Add case' : 'Add row'}
-                    </DropdownMenuItem>
-                  )}
-                  {onB12DeleteRow && (
-                    <DropdownMenuItem onClick={onB12DeleteRow}>
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      {b12TableFocus === 'case-studies' ? 'Delete case' : 'Delete row'}
-                    </DropdownMenuItem>
-                  )}
-                  {onB12DeleteTable && (
-                    <DropdownMenuItem onClick={onB12DeleteTable} className="text-destructive">
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Delete table
-                    </DropdownMenuItem>
-                  )}
-                  {onB12AutoResize && (
-                    <DropdownMenuItem onClick={onB12AutoResize}>
-                      <Columns className="w-4 h-4 mr-2" />
-                      Auto-resize columns
-                    </DropdownMenuItem>
-                  )}
-                  {(onB12UpdateCaption && (onB12AddRow || onB12DeleteRow || onB12DeleteTable || onB12AutoResize)) && <DropdownMenuSeparator />}
-                  {onB12UpdateCaption && (
-                    <DropdownMenuItem onClick={onB12UpdateCaption}>
-                      <FileText className="w-4 h-4 mr-2" />
-                      Update caption
                     </DropdownMenuItem>
                   )}
                 </>
