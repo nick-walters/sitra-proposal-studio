@@ -496,15 +496,11 @@ export function DocumentEditor({
   }, [editor, section?.number]);
 
   useEffect(() => {
-    setB12TableFocus(null);
-    setB12FocusedCaseId(null);
-    setB12FocusedRowId(null);
     setB31TableFocus(null);
   }, [section?.id]);
 
   useEffect(() => {
     if (!editor || !proposalId || loading) return;
-    if (section?.id === 'b1-2' || section?.number === 'B1.2' || section?.number === '1.2') return;
 
     const timer = setTimeout(() => {
       syncCrossReferences(editor, proposalId);
@@ -544,10 +540,7 @@ export function DocumentEditor({
     
     const handleSelectionUpdate = () => {
       const { from, to } = editor.state.selection;
-      // Only clear B12/B31 focus state when actually set, to avoid render storms on every keystroke
-      setB12TableFocus(prev => (prev === null ? prev : null));
-      setB12FocusedCaseId(prev => (prev === null ? prev : null));
-      setB12FocusedRowId(prev => (prev === null ? prev : null));
+      // Only clear B3.1 focus state when actually set, to avoid render storms on every keystroke
       setB31TableFocus(prev => (prev === null ? prev : null));
       // Update collaborative cursor position
       updateCursorPosition(
