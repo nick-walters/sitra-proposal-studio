@@ -1703,17 +1703,18 @@ StarterKit.configure({
 
   // Sync editor content when content prop changes externally (e.g., from DB load)
   // Only update if content changed from external source (not from our own typing)
-  // NOTE: Do NOT normalize alignment here — that would strip user-applied text-align
-  // changes that just round-tripped through onChange → parent state → this effect.
+  // Normalise only when replacing content from an external source (DB load/version restore)
+  // so parent re-renders do not repeatedly parse and rebuild large B1.2 HTML on mobile.
   useEffect(() => {
     if (editor && content !== lastSetContentRef.current) {
-      lastSetContentRef.current = content;
+      const nextContent = normalizePartBLoadedContent(content);
+      lastSetContentRef.current = nextContent;
       // Temporarily disable track changes during setContent to prevent
       // the entire document being marked as insertions
       const storage = (editor.storage as any)?.trackChanges;
       const wasEnabled = storage?.enabled;
       if (storage) storage.enabled = false;
-      editor.commands.setContent(content, { emitUpdate: false });
+      editor.commands.setContent(nextContent, { emitUpdate: false });
       if (storage) storage.enabled = wasEnabled;
     }
   }, [editor, content]);
