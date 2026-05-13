@@ -532,6 +532,8 @@ export function DocumentEditor({
 
   useEffect(() => {
     if (!editor || !proposalId || loading) return;
+    if (section?.id === 'b1-2' || section?.number === 'B1.2' || section?.number === '1.2') return;
+
     const timer = setTimeout(() => {
       syncCrossReferences(editor, proposalId);
     }, 500);
