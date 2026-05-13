@@ -432,12 +432,6 @@ export function FormattingToolbar({
   isReadOnly = false,
   hideTableInsert = false,
   tableOffset = 0,
-  b12TableFocus,
-  onB12AddRow,
-  onB12DeleteRow,
-  onB12DeleteTable,
-  onB12AutoResize,
-  onB12UpdateCaption,
   b31TableFocus,
   onB31AutoResize,
   crossRefDropdown,
@@ -455,13 +449,6 @@ export function FormattingToolbar({
   isReadOnly?: boolean;
   hideTableInsert?: boolean;
   tableOffset?: number;
-  /** Which B12 table is focused: null, 'case-studies', or 'ongoing-projects' */
-  b12TableFocus?: string | null;
-  onB12AddRow?: () => void;
-   onB12DeleteRow?: () => void;
-   onB12DeleteTable?: () => void;
-   onB12AutoResize?: () => void;
-   onB12UpdateCaption?: () => void;
    /** Which B3.1 React table is focused (e.g. 'b31-wp-list', 'b31-deliverables', ...). Null when none. */
    b31TableFocus?: string | null;
    onB31AutoResize?: () => void;
@@ -744,9 +731,8 @@ export function FormattingToolbar({
   }
 
   const isInTable = editor.isActive('table');
-  const isB12TableActive = Boolean(b12TableFocus);
   const isB31TableActive = Boolean(b31TableFocus);
-  const showTableOptions = isInTable || isB12TableActive || isB31TableActive;
+  const showTableOptions = isInTable || isB31TableActive;
   const isAlignDisabled = editor.isActive('heading') || isInTable;
 
   return (
