@@ -134,65 +134,70 @@ function cleanStyle(style: string): string {
  *  - Removing TipTap/AI residue (contenteditable, font-claude, etc.)
  *  - Preserving the proposal-specific allowlist (inline refs, he-table, captions, SVG icons)
  *
- * Safe to call in browser, Node and Deno.
+ * Safe to call in browser, Node and Deno (uses isomorphic-dompurify hooks
+ * so no separate DOM-traversal pass is required).
  */
 export function sanitizeEditorHtml(html: string): string {
   if (!html) return '';
 
-  // First pass: DOMPurify with combined html+svg profile.
-  const sanitized = DOMPurify.sanitize(html, {
-    USE_PROFILES: { html: true, svg: true },
-    ALLOWED_TAGS,
-    ALLOWED_ATTR,
-  }) as string;
+  // Per-call hooks (added then removed) so other DOMPurify usages aren't affected.
+  const attrHook = (node: any, data: any) => {
+    const name = String(data.attrName || '').toLowerCase();
+    const value = String(data.attrValue ?? '');
 
-  // Second pass: post-process via a parsed DOM (works in browser + jsdom).
-  // We access the DOM via `globalThis` so this file type-checks under the
-  // Deno runtime (which has no DOM lib by default) without losing browser
-  // behaviour at runtime.
-  const g = globalThis as any;
-  const doc = typeof g.document !== 'undefined'
-    ? g.document.implementation.createHTMLDocument('')
-    : null;
+    // Strip event handlers and editor-state attrs.
+    if (name.startsWith('on') ||
+        ['contenteditable', 'draggable', 'spellcheck', 'tabindex', 'role'].includes(name)) {
+      data.keepAttr = false;
+      return;
+    }
 
-  if (!doc) {
-    // No DOM available at all — return DOMPurify output as-is.
-    return sanitized;
+    // Strip unknown data-* attributes.
+    if (name.startsWith('data-') && !ALLOWED_DATA_ATTRS.has(name)) {
+      data.keepAttr = false;
+      return;
+    }
+
+    // Filter class list against allowlist (+ inline-ref* prefix).
+    if (name === 'class') {
+      const kept = value.split(/\s+/).filter(
+        (c) => c && (ALLOWED_CLASSES.has(c) || c.startsWith('inline-ref')),
+      );
+      if (kept.length === 0) {
+        data.keepAttr = false;
+      } else {
+        data.attrValue = kept.join(' ');
+      }
+      return;
+    }
+
+    // Filter style declarations against allowlist + strip JS payloads.
+    if (name === 'style') {
+      const cleaned = cleanStyle(value);
+      if (!cleaned) {
+        data.keepAttr = false;
+      } else {
+        data.attrValue = cleaned;
+      }
+      return;
+    }
+
+    // Rewrite img src for proposal-files storage paths.
+    if (name === 'src' && node && String(node.tagName || '').toLowerCase() === 'img') {
+      if (value.includes('/proposal-files/')) {
+        data.attrValue = cleanStorageSrc(value);
+      }
+    }
+  };
+
+  DOMPurify.addHook('uponSanitizeAttribute', attrHook);
+  try {
+    return DOMPurify.sanitize(html, {
+      USE_PROFILES: { html: true, svg: true },
+      ALLOWED_TAGS,
+      ALLOWED_ATTR,
+    }) as string;
+  } finally {
+    DOMPurify.removeHook('uponSanitizeAttribute');
   }
-
-  const container = doc.createElement('div');
-  container.innerHTML = sanitized;
-
-  const elements = Array.from(container.querySelectorAll('*')) as any[];
-  elements.forEach((element: any) => {
-    for (const attr of Array.from(element.attributes) as any[]) {
-      const name = String(attr.name).toLowerCase();
-      if (
-        name.startsWith('on') ||
-        ['contenteditable', 'draggable', 'spellcheck', 'tabindex', 'role'].includes(name)
-      ) {
-        element.removeAttribute(attr.name);
-      }
-      if (name.startsWith('data-') && !ALLOWED_DATA_ATTRS.has(name)) {
-        element.removeAttribute(attr.name);
-      }
-    }
-
-    const classList = (Array.from(element.classList) as string[]).filter(
-      (className) => ALLOWED_CLASSES.has(className) || className.startsWith('inline-ref'),
-    );
-    if (classList.length) element.setAttribute('class', classList.join(' '));
-    else element.removeAttribute('class');
-
-    const cleanedStyle = cleanStyle(element.getAttribute('style') || '');
-    if (cleanedStyle) element.setAttribute('style', cleanedStyle);
-    else element.removeAttribute('style');
-
-    if (element.tagName === 'IMG') {
-      const src = element.getAttribute('src') || '';
-      if (src.includes('/proposal-files/')) element.setAttribute('src', cleanStorageSrc(src));
-    }
-  });
-
-  return container.innerHTML;
 }
