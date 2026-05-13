@@ -33,6 +33,7 @@ import { HeadingNumberLabel } from '@/extensions/HeadingNumberLabel';
 import { OrderedListStyled } from '@/extensions/OrderedListStyled';
 import { renumberH3Headings } from '@/lib/renumberH3Headings';
 import { updateCaptionForTableAtCursor } from '@/lib/renumberCaptionsInEditor';
+import { sanitizeEditorHtml } from '@/lib/editorContentSanitizer';
 import { OrderedListDropdown } from './OrderedListDropdown';
 import { autoFitEditorTableAtPos } from '@/lib/editorTableAutoFit';
 import { ParagraphSpacingPopover } from './ParagraphSpacingPopover';
@@ -179,6 +180,7 @@ const ParagraphClass = Extension.create({
  */
 function normalizePartBPastedAlignment(html: string) {
   if (!html || typeof document === 'undefined') return html;
+  html = sanitizeEditorHtml(html);
 
   // Strip mso-* properties from raw HTML
   html = html.replace(/mso-[^;:"']+:[^;:"']+;?/gi, '');
@@ -244,6 +246,7 @@ function normalizePartBPastedAlignment(html: string) {
  */
 function normalizePartBLoadedContent(html: string) {
   if (!html || typeof document === 'undefined') return html;
+  html = sanitizeEditorHtml(html);
 
   // Strip mso-* properties from raw HTML before DOM parsing
   html = html.replace(/mso-[^;:"']+:[^;:"']+;?/gi, '');
