@@ -1206,6 +1206,12 @@ export function FormattingToolbar({
 }
 
 export function RichTextEditor({ content, onChange, onInsertImage, onInsertFootnote, className, renderToolbar }: RichTextEditorProps) {
+  const initialEditorContentRef = useRef<string | null>(null);
+  if (initialEditorContentRef.current === null) {
+    initialEditorContentRef.current = normalizePartBLoadedContent(content);
+  }
+  const editorContentState = content.trim() ? 'loaded' : 'empty';
+
   const editor = useEditor({
     extensions: [
 StarterKit.configure({
@@ -1325,7 +1331,7 @@ StarterKit.configure({
         },
       }),
     ],
-    content: normalizePartBLoadedContent(content),
+    content: initialEditorContentRef.current,
     enableExtensionDispatchTransaction: true,
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
@@ -1339,7 +1345,7 @@ StarterKit.configure({
         return normalizePartBPastedAlignment(html);
       },
     },
-  });
+  }, [editorContentState]);
 
   if (!editor) {
     return null;
@@ -1383,8 +1389,14 @@ export function useRichTextEditor({
   };
   onBlockDeleteRequest?: (deleteCallback: () => void) => void;
 }) {
+  const initialContentRef = useRef<string | null>(null);
+  if (initialContentRef.current === null) {
+    initialContentRef.current = normalizePartBLoadedContent(content);
+  }
+  const editorContentState = content.trim() ? 'loaded' : 'empty';
+
   // Track the last content we set to the editor to avoid infinite loops
-  const lastSetContentRef = useRef<string>(normalizePartBLoadedContent(content));
+  const lastSetContentRef = useRef<string>(initialContentRef.current);
   // Store getReference in a ref to avoid recreating the extension
   const getReferenceRef = useRef(getReference);
   getReferenceRef.current = getReference;
@@ -1672,7 +1684,7 @@ StarterKit.configure({
         },
       }),
     ],
-    content: normalizePartBLoadedContent(content),
+    content: initialContentRef.current,
     enableExtensionDispatchTransaction: true,
     
     onUpdate: ({ editor }) => {
@@ -1689,21 +1701,22 @@ StarterKit.configure({
         return normalizePartBPastedAlignment(html);
       },
     },
-  });
+  }, [editorContentState]);
 
   // Sync editor content when content prop changes externally (e.g., from DB load)
   // Only update if content changed from external source (not from our own typing)
-  // NOTE: Do NOT normalize alignment here — that would strip user-applied text-align
-  // changes that just round-tripped through onChange → parent state → this effect.
+  // Normalise only when replacing content from an external source (DB load/version restore)
+  // so parent re-renders do not repeatedly parse and rebuild large B1.2 HTML on mobile.
   useEffect(() => {
     if (editor && content !== lastSetContentRef.current) {
-      lastSetContentRef.current = content;
+      const nextContent = normalizePartBLoadedContent(content);
+      lastSetContentRef.current = nextContent;
       // Temporarily disable track changes during setContent to prevent
       // the entire document being marked as insertions
       const storage = (editor.storage as any)?.trackChanges;
       const wasEnabled = storage?.enabled;
       if (storage) storage.enabled = false;
-      editor.commands.setContent(content, { emitUpdate: false });
+      editor.commands.setContent(nextContent, { emitUpdate: false });
       if (storage) storage.enabled = wasEnabled;
     }
   }, [editor, content]);
