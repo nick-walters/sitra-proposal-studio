@@ -536,10 +536,6 @@ export function DocumentEditor({
     return () => clearTimeout(timer);
   }, [editor, proposalId, section?.id, loading, syncTrigger]);
 
-  useEffect(() => {
-    restoreB12OngoingProjectsAsPlainTable();
-  }, [restoreB12OngoingProjectsAsPlainTable]);
-
   // Check if proposal has cases
   useEffect(() => {
     if (!proposalId) return;
@@ -699,6 +695,10 @@ export function DocumentEditor({
 
     editor.chain().focus('end').insertContent(`<p></p>${tableHtml}`).run();
   }, [editor, proposalId, section, loading]);
+
+  useEffect(() => {
+    restoreB12OngoingProjectsAsPlainTable();
+  }, [restoreB12OngoingProjectsAsPlainTable]);
 
   // Handle inserting a figure image into the document
   const handleInsertFigureImage = useCallback(async (figure: { figureNumber: string; title: string; content: any }) => {
