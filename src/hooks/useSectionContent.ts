@@ -202,11 +202,48 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
   const saveQueuedRef = useRef(false); // NEW: queue flag for follow-up save
   const contentRef = useRef<string>(''); // always-current content mirror
   const lastSavedContentRef = useRef<string>(''); // content actually written to DB
+  const previousSectionRef = useRef<{
+    proposalId: string;
+    sectionId: string;
+    sectionNumber?: string;
+    contentId: string | null;
+    pendingContent: string | null;
+    userId: string | null;
+  } | null>(null);
 
   // Keep contentRef in sync
   useEffect(() => {
     contentRef.current = content;
   }, [content]);
+
+  useEffect(() => {
+    const previous = previousSectionRef.current;
+    if (
+      previous?.pendingContent !== null &&
+      previous?.userId &&
+      previous.proposalId &&
+      previous.sectionId &&
+      (previous.proposalId !== proposalId || previous.sectionId !== sectionId)
+    ) {
+      savePreviousSectionInBackground(
+        previous.contentId,
+        previous.pendingContent,
+        previous.userId,
+        previous.proposalId,
+        previous.sectionId,
+        previous.sectionNumber,
+      );
+    }
+
+    previousSectionRef.current = {
+      proposalId,
+      sectionId,
+      sectionNumber,
+      contentId: contentIdRef.current,
+      pendingContent: pendingContentRef.current,
+      userId: user?.id || null,
+    };
+  }, [proposalId, sectionId, sectionNumber, user?.id]);
 
   // ── Save a version snapshot (async, optionally forced) ──────────────
   const saveVersion = useCallback(async (contentToSave: string, force = false) => {
