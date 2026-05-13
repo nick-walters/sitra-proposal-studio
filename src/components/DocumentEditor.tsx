@@ -1255,12 +1255,6 @@ export function DocumentEditor({
           isReadOnly={isEffectivelyReadOnly}
           hideTableInsert={section?.number === 'B3.1'}
           tableOffset={0}
-          b12TableFocus={b12TableFocus}
-          onB12AddRow={b12TableFocus ? handleB12AddRow : undefined}
-          onB12DeleteRow={b12TableFocus ? handleB12DeleteRow : undefined}
-          onB12DeleteTable={b12TableFocus ? handleB12DeleteTable : undefined}
-          onB12AutoResize={b12TableFocus ? handleB12AutoResize : undefined}
-          onB12UpdateCaption={b12TableFocus ? handleB12UpdateCaption : undefined}
           b31TableFocus={b31TableFocus}
           onB31AutoResize={b31TableFocus ? handleB31AutoResize : undefined}
           crossRefDropdown={section && !section.isPartA ? (
@@ -1432,13 +1426,7 @@ export function DocumentEditor({
                 </div>
               )}
 
-              {/* B1.2 sibling tables — rendered after the body editor, identical pattern to B3.1 */}
-              {(section.id === 'b1-2' || section.number === 'B1.2' || section.number === '1.2') && (
-                <>
-                  <B12OngoingProjectsTable proposalId={proposalId} sectionNumber={section.number} />
-                  <B12CaseStudyTables proposalId={proposalId} sectionNumber={section.number} />
-                </>
-              )}
+
 
               {/* B3.1 Intro text - dynamic sentence before compulsory tables */}
               {(section.id === 'b3-1' || section.number === 'B3.1' || section.number === '3.1') && (
