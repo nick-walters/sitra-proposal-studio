@@ -155,6 +155,29 @@ export async function syncCrossReferences(
 ): Promise<boolean> {
   if (!editor || !proposalId) return false;
 
+  // Cheap preflight: if the document has no cross-reference marks at all,
+  // skip the proposal-wide SQL fetch and the full-document scan entirely.
+  // This keeps section open/click cheap on documents with no references.
+  const REF_MARK_NAMES = new Set([
+    'wpReference',
+    'inlineReference',
+    'caseReference',
+    'participantReference',
+    'figureTableReference',
+  ]);
+  let hasAnyRefMark = false;
+  editor.state.doc.descendants((node) => {
+    if (hasAnyRefMark) return false;
+    if (!node.isText) return;
+    for (const m of node.marks) {
+      if (REF_MARK_NAMES.has(m.type.name)) {
+        hasAnyRefMark = true;
+        return false;
+      }
+    }
+  });
+  if (!hasAnyRefMark) return false;
+
   const data = await fetchReferenceData(proposalId);
   const { state } = editor;
   const { doc, tr } = state;
