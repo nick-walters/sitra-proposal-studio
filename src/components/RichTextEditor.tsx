@@ -1206,7 +1206,10 @@ export function FormattingToolbar({
 }
 
 export function RichTextEditor({ content, onChange, onInsertImage, onInsertFootnote, className, renderToolbar }: RichTextEditorProps) {
-  const initialContentRef = useRef(content);
+  const initialContentRef = useRef<string | null>(null);
+  if (initialContentRef.current === null) {
+    initialContentRef.current = normalizePartBLoadedContent(content);
+  }
 
   const editor = useEditor({
     extensions: [
@@ -1327,7 +1330,7 @@ StarterKit.configure({
         },
       }),
     ],
-    content: normalizePartBLoadedContent(initialContentRef.current),
+    content: initialContentRef.current,
     enableExtensionDispatchTransaction: true,
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
@@ -1385,10 +1388,13 @@ export function useRichTextEditor({
   };
   onBlockDeleteRequest?: (deleteCallback: () => void) => void;
 }) {
-  const initialContentRef = useRef(content);
+  const initialContentRef = useRef<string | null>(null);
+  if (initialContentRef.current === null) {
+    initialContentRef.current = normalizePartBLoadedContent(content);
+  }
 
   // Track the last content we set to the editor to avoid infinite loops
-  const lastSetContentRef = useRef<string>(normalizePartBLoadedContent(initialContentRef.current));
+  const lastSetContentRef = useRef<string>(initialContentRef.current);
   // Store getReference in a ref to avoid recreating the extension
   const getReferenceRef = useRef(getReference);
   getReferenceRef.current = getReference;
@@ -1676,7 +1682,7 @@ StarterKit.configure({
         },
       }),
     ],
-    content: normalizePartBLoadedContent(initialContentRef.current),
+    content: initialContentRef.current,
     enableExtensionDispatchTransaction: true,
     
     onUpdate: ({ editor }) => {
