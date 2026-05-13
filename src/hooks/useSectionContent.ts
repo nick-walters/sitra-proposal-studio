@@ -184,6 +184,7 @@ async function savePreviousSectionInBackground(
 export function useSectionContent({ proposalId, sectionId, sectionNumber, placeholderContent }: UseSectionContentProps) {
   const [content, setContentState] = useState('');
   const [loading, setLoading] = useState(true);
+  const [loadedSectionId, setLoadedSectionId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [lastCitationMapping, setLastCitationMapping] = useState<Map<number, number>>(new Map());
@@ -452,6 +453,7 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
         contentIdRef.current = null;
         lastVersionContentRef.current = '';
       }
+      setLoadedSectionId(sectionId);
       setLoading(false);
     };
 
@@ -611,9 +613,9 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
   }, [proposalId, sectionId, sectionNumber, user?.id]);
 
   return {
-    content,
+    content: loadedSectionId === sectionId ? content : '',
     setContent: handleContentChange,
-    loading,
+    loading: loading || loadedSectionId !== sectionId,
     saving,
     lastSaved,
     lastCitationMapping,

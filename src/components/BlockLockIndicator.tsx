@@ -114,7 +114,7 @@ export function BlockLockIndicator({ editor, blockLocks, containerRef }: BlockLo
       {lockPositions.map(({ lock, top, height }) => (
         <div
           key={lock.blockId}
-          className="absolute left-0 right-0 pointer-events-auto"
+          className="absolute left-0 right-0 pointer-events-none"
           style={{
             top: `${top}px`,
             height: `${height}px`,
@@ -130,7 +130,7 @@ export function BlockLockIndicator({ editor, blockLocks, containerRef }: BlockLo
           <Tooltip>
             <TooltipTrigger asChild>
               <div
-                className="absolute -left-6 top-0 w-5 h-5 rounded-full flex items-center justify-center cursor-default shadow-sm"
+                className="absolute -left-6 top-0 w-5 h-5 rounded-full flex items-center justify-center cursor-default shadow-sm pointer-events-auto"
                 style={{ backgroundColor: lock.userColor }}
               >
                 <Lock className="w-3 h-3 text-white" />

@@ -111,7 +111,9 @@ export function CollaborativeCursors({ editor, collaborators, containerRef }: Co
       setCursors(newCursors);
     };
 
-    // Update on transaction (content/selection changes)
+    // Update only when remote collaborator data changes or the viewport moves.
+    // Local editor transactions do not change remote cursor positions; measuring
+    // coordsAtPos on every local keystroke/selection move is expensive.
     const handleUpdate = () => {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
@@ -119,16 +121,14 @@ export function CollaborativeCursors({ editor, collaborators, containerRef }: Co
       animationFrameRef.current = requestAnimationFrame(updateCursorPositions);
     };
 
-    // Initial update and subscribe to changes
+    // Initial update
     updateCursorPositions();
-    editor.on('transaction', handleUpdate);
 
     // Also update when window scrolls or resizes
     window.addEventListener('scroll', handleUpdate, true);
     window.addEventListener('resize', handleUpdate);
 
     return () => {
-      editor.off('transaction', handleUpdate);
       window.removeEventListener('scroll', handleUpdate, true);
       window.removeEventListener('resize', handleUpdate);
       if (animationFrameRef.current) {

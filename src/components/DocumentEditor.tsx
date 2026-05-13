@@ -361,6 +361,8 @@ export function DocumentEditor({
   // Use the editor hook for external toolbar control with citation tooltips
   const editor = useRichTextEditor({
     content,
+    isReady: !loading,
+    instanceKey: section?.id,
     onChange: isEffectivelyReadOnly ? () => {} : (newContent) => setContent(newContent),
     getReference,
     trackChanges: {
@@ -391,7 +393,7 @@ export function DocumentEditor({
   // Fixes: authorName for ALL users, authorId & timestamp for current user
   // Dispatches WITHOUT preventUpdate so corrections are persisted to DB via onUpdate→onChange
   useEffect(() => {
-    if (!editor || !user?.id) return;
+    if (!editor || loading || !user?.id) return;
     const timer = setTimeout(() => {
       const doc = editor.state.doc;
       const schema = editor.state.schema;
@@ -454,7 +456,7 @@ export function DocumentEditor({
       }
     }, 1000);
     return () => clearTimeout(timer);
-  }, [editor, profileFullName, user?.id]);
+  }, [editor, loading, profileFullName, user?.id]);
 
   // Scroll to top when section changes
   useEffect(() => {
@@ -537,9 +539,17 @@ export function DocumentEditor({
   // Track cursor position for collaboration AND block locking
   useEffect(() => {
     if (!editor) return;
+    let rafId = 0;
+    let lastFrom = -1;
+    let lastTo = -1;
     
     const handleSelectionUpdate = () => {
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
       const { from, to } = editor.state.selection;
+      if (from === lastFrom && to === lastTo) return;
+      lastFrom = from;
+      lastTo = to;
       // Only clear B3.1 focus state when actually set, to avoid render storms on every keystroke
       setB31TableFocus(prev => (prev === null ? prev : null));
       // Update collaborative cursor position
@@ -549,12 +559,14 @@ export function DocumentEditor({
       );
       // Update block lock position
       updateCurrentBlock(from);
+      });
     };
     
     editor.on('selectionUpdate', handleSelectionUpdate);
     editor.on('focus', handleSelectionUpdate);
     
     return () => {
+      cancelAnimationFrame(rafId);
       editor.off('selectionUpdate', handleSelectionUpdate);
       editor.off('focus', handleSelectionUpdate);
     };
@@ -1398,6 +1410,7 @@ export function DocumentEditor({
               ) : (
                 <div ref={editorContainerRef} className="relative tiptap-editor-container overflow-visible">
                   <EditorContent
+                    key={section?.id}
                     editor={editor}
                     className={`document-content outline-none prose prose-sm max-w-none ${isEffectivelyReadOnly ? 'pointer-events-none opacity-75' : ''} min-h-[400px]`}
                     style={{ fontFamily: '"Times New Roman", Times, serif' }}
