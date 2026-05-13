@@ -8,8 +8,10 @@
  * Uses isomorphic-dompurify which transparently uses the native browser
  * DOM in the client and a bundled jsdom in Deno/Node.
  */
-// @ts-ignore — npm: prefix is for Deno; Vite resolves the bare specifier from node_modules.
-import DOMPurify from 'npm:isomorphic-dompurify@3.12.0';
+// Bare specifier is resolved by Vite (node_modules) in the browser and by
+// the per-function `deno.json` import map in the Supabase edge runtime.
+// @ts-ignore — types resolved at runtime
+import DOMPurify from 'isomorphic-dompurify';
 
 export const ALLOWED_CLASSES = new Set<string>([
   'figure-caption',
