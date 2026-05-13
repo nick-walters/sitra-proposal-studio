@@ -629,6 +629,12 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
         clearTimeout(saveTimeoutRef.current);
       }
 
+      const hasSectionChanged = previousSectionRef.current
+        ? previousSectionRef.current.proposalId !== proposalId || previousSectionRef.current.sectionId !== sectionId
+        : false;
+
+      if (hasSectionChanged) return;
+
       // Save pending content via sync XHR
       if (pendingContentRef.current !== null && contentIdRef.current && user?.id) {
         syncSaveContent(contentIdRef.current, pendingContentRef.current, user.id, proposalId, sectionId);
