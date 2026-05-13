@@ -89,7 +89,7 @@ serve(async (req) => {
       .insert({
         acronym: newAcronym,
         title: newTitle,
-        description: originalProposal.description,
+        description: originalProposal.description ? sanitizeEditorHtml(originalProposal.description) : originalProposal.description,
         type: originalProposal.type,
         status: 'draft',
         budget_type: originalProposal.budget_type,
