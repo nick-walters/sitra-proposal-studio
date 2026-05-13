@@ -1701,22 +1701,26 @@ StarterKit.configure({
     },
   }, []);
 
-  // Sync editor content when content prop changes externally (e.g., from DB load)
-  // Only update if content changed from external source (not from our own typing)
-  // Normalise only when replacing content from an external source (DB load/version restore)
-  // so parent re-renders do not repeatedly parse and rebuild large Part B HTML on mobile.
+  // Sync editor content when content prop changes externally (e.g., from DB load
+  // or version restore). Skip when:
+  //  - the new content matches what we last set/emitted (avoids reload loops)
+  //  - the new content is empty but the editor already has content (avoids
+  //    transient parent re-renders wiping the document during section switch)
+  // Normalisation only runs when we actually replace content.
   useEffect(() => {
-    if (editor && content !== lastSetContentRef.current) {
-      const nextContent = normalizePartBLoadedContent(content);
-      lastSetContentRef.current = nextContent;
-      // Temporarily disable track changes during setContent to prevent
-      // the entire document being marked as insertions
-      const storage = (editor.storage as any)?.trackChanges;
-      const wasEnabled = storage?.enabled;
-      if (storage) storage.enabled = false;
-      editor.commands.setContent(nextContent, { emitUpdate: false });
-      if (storage) storage.enabled = wasEnabled;
-    }
+    if (!editor) return;
+    if (content === lastSetContentRef.current) return;
+    if (!content && editor.state.doc.content.size > 2) return;
+    const nextContent = normalizePartBLoadedContent(content);
+    if (nextContent === lastSetContentRef.current) return;
+    lastSetContentRef.current = nextContent;
+    // Temporarily disable track changes during setContent to prevent
+    // the entire document being marked as insertions
+    const storage = (editor.storage as any)?.trackChanges;
+    const wasEnabled = storage?.enabled;
+    if (storage) storage.enabled = false;
+    editor.commands.setContent(nextContent, { emitUpdate: false });
+    if (storage) storage.enabled = wasEnabled;
   }, [editor, content]);
 
   // Sync track changes enabled state — use direct storage assignment to avoid
