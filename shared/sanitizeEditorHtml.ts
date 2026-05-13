@@ -147,10 +147,13 @@ export function sanitizeEditorHtml(html: string): string {
   }) as string;
 
   // Second pass: post-process via a parsed DOM (works in browser + jsdom).
-  const doc =
-    typeof document !== 'undefined'
-      ? document.implementation.createHTMLDocument('')
-      : null;
+  // We access the DOM via `globalThis` so this file type-checks under the
+  // Deno runtime (which has no DOM lib by default) without losing browser
+  // behaviour at runtime.
+  const g = globalThis as any;
+  const doc = typeof g.document !== 'undefined'
+    ? g.document.implementation.createHTMLDocument('')
+    : null;
 
   if (!doc) {
     // No DOM available at all — return DOMPurify output as-is.
@@ -160,9 +163,10 @@ export function sanitizeEditorHtml(html: string): string {
   const container = doc.createElement('div');
   container.innerHTML = sanitized;
 
-  container.querySelectorAll<HTMLElement>('*').forEach((element) => {
-    for (const attr of Array.from(element.attributes)) {
-      const name = attr.name.toLowerCase();
+  const elements = Array.from(container.querySelectorAll('*')) as any[];
+  elements.forEach((element: any) => {
+    for (const attr of Array.from(element.attributes) as any[]) {
+      const name = String(attr.name).toLowerCase();
       if (
         name.startsWith('on') ||
         ['contenteditable', 'draggable', 'spellcheck', 'tabindex', 'role'].includes(name)
@@ -174,7 +178,7 @@ export function sanitizeEditorHtml(html: string): string {
       }
     }
 
-    const classList = Array.from(element.classList).filter(
+    const classList = (Array.from(element.classList) as string[]).filter(
       (className) => ALLOWED_CLASSES.has(className) || className.startsWith('inline-ref'),
     );
     if (classList.length) element.setAttribute('class', classList.join(' '));
