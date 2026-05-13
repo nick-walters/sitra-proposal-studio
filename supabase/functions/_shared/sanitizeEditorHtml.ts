@@ -8,7 +8,8 @@
  * Uses isomorphic-dompurify which transparently uses the native browser
  * DOM in the client and a bundled jsdom in Deno/Node.
  */
-import DOMPurify from 'isomorphic-dompurify';
+// @ts-ignore — npm: prefix is for Deno; Vite resolves the bare specifier from node_modules.
+import DOMPurify from 'npm:isomorphic-dompurify@3.12.0';
 
 export const ALLOWED_CLASSES = new Set<string>([
   'figure-caption',
