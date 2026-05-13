@@ -1367,6 +1367,8 @@ StarterKit.configure({
 export function useRichTextEditor({ 
   content, 
   onChange,
+  isReady = true,
+  instanceKey,
   getReference,
   trackChanges,
   blockLocking,
@@ -1374,6 +1376,8 @@ export function useRichTextEditor({
 }: { 
   content: string; 
   onChange: (content: string) => void;
+  isReady?: boolean;
+  instanceKey?: string;
   getReference?: (citationNumber: number) => { citation: string } | undefined;
   trackChanges?: {
     enabled: boolean;
@@ -1388,13 +1392,12 @@ export function useRichTextEditor({
   };
   onBlockDeleteRequest?: (deleteCallback: () => void) => void;
 }) {
-  const initialContentRef = useRef<string | null>(null);
-  if (initialContentRef.current === null) {
-    initialContentRef.current = normalizePartBLoadedContent(content);
-  }
+  const initialContentRef = useRef<string>(normalizePartBLoadedContent(content));
 
   // Track the last content we set to the editor to avoid infinite loops
   const lastSetContentRef = useRef<string>(initialContentRef.current);
+  const readyRef = useRef(isReady);
+  readyRef.current = isReady;
   // Store getReference in a ref to avoid recreating the extension
   const getReferenceRef = useRef(getReference);
   getReferenceRef.current = getReference;
@@ -1406,6 +1409,10 @@ export function useRichTextEditor({
   // Store delete request handler in ref
   const onBlockDeleteRequestRef = useRef(onBlockDeleteRequest);
   onBlockDeleteRequestRef.current = onBlockDeleteRequest;
+  if (!isReady) {
+    initialContentRef.current = normalizePartBLoadedContent(content);
+    lastSetContentRef.current = initialContentRef.current;
+  }
   
   // Update refs when props change
   useEffect(() => {
@@ -1682,10 +1689,13 @@ StarterKit.configure({
         },
       }),
     ],
-    content: initialContentRef.current,
+    content: isReady ? normalizePartBLoadedContent(content) : '<p></p>',
     enableExtensionDispatchTransaction: true,
+    immediatelyRender: false,
+    shouldRerenderOnTransaction: false,
     
     onUpdate: ({ editor }) => {
+      if (!readyRef.current) return;
       const html = editor.getHTML();
       lastSetContentRef.current = html;
       onChange(html);
@@ -1699,7 +1709,7 @@ StarterKit.configure({
         return normalizePartBPastedAlignment(html);
       },
     },
-  }, []);
+  }, [instanceKey, isReady]);
 
   // Sync editor content when content prop changes externally (e.g., from DB load
   // or version restore). Skip when:
@@ -1708,7 +1718,7 @@ StarterKit.configure({
   //    transient parent re-renders wiping the document during section switch)
   // Normalisation only runs when we actually replace content.
   useEffect(() => {
-    if (!editor) return;
+    if (!editor || !isReady) return;
     if (content === lastSetContentRef.current) return;
     if (!content && editor.state.doc.content.size > 2) return;
     const nextContent = normalizePartBLoadedContent(content);
@@ -1721,7 +1731,7 @@ StarterKit.configure({
     if (storage) storage.enabled = false;
     editor.commands.setContent(nextContent, { emitUpdate: false });
     if (storage) storage.enabled = wasEnabled;
-  }, [editor, content]);
+  }, [editor, content, isReady]);
 
   // Sync track changes enabled state — use direct storage assignment to avoid
   // toggle race conditions and double-toggles
