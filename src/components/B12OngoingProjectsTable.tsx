@@ -328,11 +328,6 @@ export function B12OngoingProjectsTable({ proposalId, tableIndex = 0, sectionNum
     }, { onConflict: 'proposal_id,table_key' });
   }, [headerLabels, proposalId]);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
-  );
-
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ['b12-ongoing-projects', proposalId],
     queryFn: async () => {
@@ -433,19 +428,6 @@ export function B12OngoingProjectsTable({ proposalId, tableIndex = 0, sectionNum
     queryClient.invalidateQueries({ queryKey: ['b12-ongoing-projects', proposalId] });
   }, [rows, proposalId, queryClient]);
 
-  const handleDragEnd = useCallback(async (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    const oldIndex = rows.findIndex(r => r.id === active.id);
-    const newIndex = rows.findIndex(r => r.id === over.id);
-    if (oldIndex === -1 || newIndex === -1) return;
-    const reordered = arrayMove(rows, oldIndex, newIndex);
-    queryClient.setQueryData(['b12-ongoing-projects', proposalId], reordered);
-    await Promise.all(reordered.map((r, i) =>
-      supabase.from('b12_ongoing_projects').update({ order_index: i }).eq('id', r.id)
-    ));
-  }, [rows, proposalId, queryClient]);
-
   const handleToggleParticipant = useCallback(async (rowId: string, participantId: string, selected: boolean) => {
     if (selected) {
       await supabase.from('b12_ongoing_project_participants').insert({
@@ -506,18 +488,17 @@ export function B12OngoingProjectsTable({ proposalId, tableIndex = 0, sectionNum
         onRefresh={() => window.dispatchEvent(new CustomEvent('caption-refresh-all'))}
       />
 
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <table
-          ref={tableRef}
-          className={`${tableStyles} w-full border-collapse`}
-          style={{
-            maxWidth: '18cm',
-            tableLayout: 'fixed',
-            lineHeight: 1.0,
-            overflow: 'visible',
-            width: hasCustomWidths ? `${colWidths.reduce((sum, width) => sum + width, 0)}px` : '100%',
-          }}
-        >
+      <table
+        ref={tableRef}
+        className={`${tableStyles} w-full border-collapse`}
+        style={{
+          maxWidth: '18cm',
+          tableLayout: 'fixed',
+          lineHeight: 1.0,
+          overflow: 'visible',
+          width: hasCustomWidths ? `${colWidths.reduce((sum, width) => sum + width, 0)}px` : '100%',
+        }}
+      >
           {hasCustomWidths && (
             <colgroup>
               {colWidths.map((w, i) => (
@@ -553,25 +534,22 @@ export function B12OngoingProjectsTable({ proposalId, tableIndex = 0, sectionNum
               ))}
             </tr>
           </thead>
-          <SortableContext items={rows.map(r => r.id)} strategy={verticalListSortingStrategy}>
-            <tbody>
-              {rows.map(row => (
-                <SortableRow
-                  key={row.id}
-                  row={row}
-                  canEdit={canEdit}
-                  participants={participants}
-                  participantIds={getParticipantIdsForRow(row.id)}
-                  onUpdate={handleUpdate}
-                  onDelete={handleDelete}
-                  onToggleParticipant={handleToggleParticipant}
-                  defaultWidths={defaultWidths}
-                />
-              ))}
-            </tbody>
-          </SortableContext>
-        </table>
-      </DndContext>
+        <tbody>
+          {rows.map(row => (
+            <ProjectRow
+              key={row.id}
+              row={row}
+              canEdit={canEdit}
+              participants={participants}
+              participantIds={getParticipantIdsForRow(row.id)}
+              onUpdate={handleUpdate}
+              onDelete={handleDelete}
+              onToggleParticipant={handleToggleParticipant}
+              defaultWidths={defaultWidths}
+            />
+          ))}
+        </tbody>
+      </table>
 
       {canEdit && (
         <div className="mt-1">
