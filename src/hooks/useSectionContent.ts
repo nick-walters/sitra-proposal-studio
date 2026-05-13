@@ -629,32 +629,23 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
         clearTimeout(saveTimeoutRef.current);
       }
 
-      const hasSectionChanged = previousSectionRef.current
-        ? previousSectionRef.current.proposalId !== proposalId || previousSectionRef.current.sectionId !== sectionId
-        : false;
-
-      if (hasSectionChanged) return;
-
-      // Save pending content via sync XHR
-      if (pendingContentRef.current !== null && contentIdRef.current && user?.id) {
-        syncSaveContent(contentIdRef.current, pendingContentRef.current, user.id, proposalId, sectionId);
-      }
-
-      // Save a version if content changed since last version (atomic RPC)
-      const currentContent = pendingContentRef.current ?? contentRef.current;
-      if (
-        currentContent &&
-        currentContent !== lastVersionContentRef.current &&
-        currentContent.trim() &&
-        user?.id
-      ) {
-        syncSaveVersion(proposalId, sectionId, currentContent, user.id);
+      // Section-to-section navigation must not block the browser main thread.
+      // beforeunload still performs the synchronous emergency save for tab/app close.
+      if (pendingContentRef.current !== null && user?.id) {
+        savePreviousSectionInBackground(
+          contentIdRef.current,
+          pendingContentRef.current,
+          user.id,
+          proposalId,
+          sectionId,
+          sectionNumber,
+        );
       }
 
       // Clear pending ref after saving to prevent stale data leaking to next section
       pendingContentRef.current = null;
     };
-  }, [proposalId, sectionId, user?.id]);
+  }, [proposalId, sectionId, sectionNumber, user?.id]);
 
   return {
     content,
