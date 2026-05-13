@@ -361,6 +361,8 @@ export function DocumentEditor({
   // Use the editor hook for external toolbar control with citation tooltips
   const editor = useRichTextEditor({
     content,
+    isReady: !loading,
+    instanceKey: section?.id,
     onChange: isEffectivelyReadOnly ? () => {} : (newContent) => setContent(newContent),
     getReference,
     trackChanges: {
@@ -391,7 +393,7 @@ export function DocumentEditor({
   // Fixes: authorName for ALL users, authorId & timestamp for current user
   // Dispatches WITHOUT preventUpdate so corrections are persisted to DB via onUpdate→onChange
   useEffect(() => {
-    if (!editor || !user?.id) return;
+    if (!editor || loading || !user?.id) return;
     const timer = setTimeout(() => {
       const doc = editor.state.doc;
       const schema = editor.state.schema;
@@ -454,7 +456,7 @@ export function DocumentEditor({
       }
     }, 1000);
     return () => clearTimeout(timer);
-  }, [editor, profileFullName, user?.id]);
+  }, [editor, loading, profileFullName, user?.id]);
 
   // Scroll to top when section changes
   useEffect(() => {
@@ -1398,6 +1400,7 @@ export function DocumentEditor({
               ) : (
                 <div ref={editorContainerRef} className="relative tiptap-editor-container overflow-visible">
                   <EditorContent
+                    key={section?.id}
                     editor={editor}
                     className={`document-content outline-none prose prose-sm max-w-none ${isEffectivelyReadOnly ? 'pointer-events-none opacity-75' : ''} min-h-[400px]`}
                     style={{ fontFamily: '"Times New Roman", Times, serif' }}
