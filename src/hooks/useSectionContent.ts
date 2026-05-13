@@ -140,6 +140,47 @@ function syncSaveVersion(proposalId: string, sectionId: string, content: string,
   }
 }
 
+async function savePreviousSectionInBackground(
+  contentId: string | null,
+  content: string,
+  userId: string,
+  proposalId: string,
+  sectionId: string,
+  sectionNumber?: string,
+) {
+  let finalContent = content;
+  if (sectionNumber) {
+    finalContent = renumberAllCaptionsWithMapping(content, sectionNumber).content;
+  }
+
+  try {
+    if (contentId) {
+      const { error } = await supabase
+        .from('section_content')
+        .update({
+          content: finalContent,
+          last_edited_by: userId,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', contentId);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase.from('section_content').insert({
+        proposal_id: proposalId,
+        section_id: sectionId,
+        content: finalContent,
+        last_edited_by: userId,
+      });
+      if (error) throw error;
+    }
+
+    localStorage.removeItem(recoveryKey(proposalId, sectionId));
+  } catch (error) {
+    console.error(`[AutoSave] Background section-switch save failed for section=${sectionId}:`, error);
+    localStorage.setItem(recoveryKey(proposalId, sectionId), content);
+  }
+}
+
 export function useSectionContent({ proposalId, sectionId, sectionNumber, placeholderContent }: UseSectionContentProps) {
   const [content, setContentState] = useState('');
   const [loading, setLoading] = useState(true);
@@ -551,26 +592,23 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
         clearTimeout(saveTimeoutRef.current);
       }
 
-      // Save pending content via sync XHR
-      if (pendingContentRef.current !== null && contentIdRef.current && user?.id) {
-        syncSaveContent(contentIdRef.current, pendingContentRef.current, user.id, proposalId, sectionId);
-      }
-
-      // Save a version if content changed since last version (atomic RPC)
-      const currentContent = pendingContentRef.current ?? contentRef.current;
-      if (
-        currentContent &&
-        currentContent !== lastVersionContentRef.current &&
-        currentContent.trim() &&
-        user?.id
-      ) {
-        syncSaveVersion(proposalId, sectionId, currentContent, user.id);
+      // Section-to-section navigation must not block the browser main thread.
+      // beforeunload still performs the synchronous emergency save for tab/app close.
+      if (pendingContentRef.current !== null && user?.id) {
+        savePreviousSectionInBackground(
+          contentIdRef.current,
+          pendingContentRef.current,
+          user.id,
+          proposalId,
+          sectionId,
+          sectionNumber,
+        );
       }
 
       // Clear pending ref after saving to prevent stale data leaking to next section
       pendingContentRef.current = null;
     };
-  }, [proposalId, sectionId, user?.id]);
+  }, [proposalId, sectionId, sectionNumber, user?.id]);
 
   return {
     content,

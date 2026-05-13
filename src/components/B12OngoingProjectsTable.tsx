@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { EditableCaption } from '@/components/EditableCaption';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, GripVertical, Check, ChevronsUpDown } from 'lucide-react';
+import { Plus, Trash2, Check, ChevronsUpDown } from 'lucide-react';
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useColumnResize } from '@/hooks/useColumnResize';
@@ -10,13 +10,6 @@ import { ColumnResizer } from '@/components/ColumnResizer';
 import { applyColumnWidthsToTable, computeAutoFitSmart } from '@/lib/autoFitColumns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import {
-  DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent,
-} from '@dnd-kit/core';
-import {
-  arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 
@@ -218,8 +211,8 @@ function DebouncedHeaderInput({ value, onChange }: { value: string; onChange: (v
   );
 }
 
-/* ── Sortable row ───────────────────────────────────────────── */
-function SortableRow({
+/* ── Project row ────────────────────────────────────────────── */
+function ProjectRow({
   row, canEdit, participants, participantIds, onUpdate, onDelete, onToggleParticipant, defaultWidths,
 }: {
   row: OngoingProject;
@@ -231,9 +224,6 @@ function SortableRow({
   onToggleParticipant: (rowId: string, participantId: string, selected: boolean) => void;
   defaultWidths?: readonly string[];
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: row.id });
-  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
-
   const cellStyle = (width?: string): React.CSSProperties => ({
     fontFamily: "'Times New Roman', Times, serif",
     fontSize: '11pt',
@@ -243,15 +233,8 @@ function SortableRow({
   });
 
   return (
-    <tr ref={setNodeRef} data-b12-row-id={row.id} style={{ ...style, borderBottom: '0.5px solid #d1d5db' }} {...attributes}>
+    <tr data-b12-row-id={row.id} style={{ borderBottom: '0.5px solid #d1d5db' }}>
       <td style={{ ...cellStyle(defaultWidths?.[0]), position: 'relative' }}>
-        {canEdit && (
-          <div style={{ position: 'absolute', left: '-24px', top: '50%', transform: 'translateY(-50%)' }}>
-            <button {...listeners} className="cursor-grab text-muted-foreground hover:text-foreground p-0.5" tabIndex={-1}>
-              <GripVertical className="h-3.5 w-3.5" style={{ color: '#2563EB' }} />
-            </button>
-          </div>
-        )}
         {canEdit ? (
           <DebouncedInput value={row.project_info || ''} onChange={(v) => onUpdate(row.id, 'project_info', v)} />
         ) : (
@@ -344,11 +327,6 @@ export function B12OngoingProjectsTable({ proposalId, tableIndex = 0, sectionNum
       updated_by: user?.id || null,
     }, { onConflict: 'proposal_id,table_key' });
   }, [headerLabels, proposalId]);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
-  );
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ['b12-ongoing-projects', proposalId],
@@ -450,19 +428,6 @@ export function B12OngoingProjectsTable({ proposalId, tableIndex = 0, sectionNum
     queryClient.invalidateQueries({ queryKey: ['b12-ongoing-projects', proposalId] });
   }, [rows, proposalId, queryClient]);
 
-  const handleDragEnd = useCallback(async (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    const oldIndex = rows.findIndex(r => r.id === active.id);
-    const newIndex = rows.findIndex(r => r.id === over.id);
-    if (oldIndex === -1 || newIndex === -1) return;
-    const reordered = arrayMove(rows, oldIndex, newIndex);
-    queryClient.setQueryData(['b12-ongoing-projects', proposalId], reordered);
-    await Promise.all(reordered.map((r, i) =>
-      supabase.from('b12_ongoing_projects').update({ order_index: i }).eq('id', r.id)
-    ));
-  }, [rows, proposalId, queryClient]);
-
   const handleToggleParticipant = useCallback(async (rowId: string, participantId: string, selected: boolean) => {
     if (selected) {
       await supabase.from('b12_ongoing_project_participants').insert({
@@ -523,18 +488,17 @@ export function B12OngoingProjectsTable({ proposalId, tableIndex = 0, sectionNum
         onRefresh={() => window.dispatchEvent(new CustomEvent('caption-refresh-all'))}
       />
 
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <table
-          ref={tableRef}
-          className={`${tableStyles} w-full border-collapse`}
-          style={{
-            maxWidth: '18cm',
-            tableLayout: 'fixed',
-            lineHeight: 1.0,
-            overflow: 'visible',
-            width: hasCustomWidths ? `${colWidths.reduce((sum, width) => sum + width, 0)}px` : '100%',
-          }}
-        >
+      <table
+        ref={tableRef}
+        className={`${tableStyles} w-full border-collapse`}
+        style={{
+          maxWidth: '18cm',
+          tableLayout: 'fixed',
+          lineHeight: 1.0,
+          overflow: 'visible',
+          width: hasCustomWidths ? `${colWidths.reduce((sum, width) => sum + width, 0)}px` : '100%',
+        }}
+      >
           {hasCustomWidths && (
             <colgroup>
               {colWidths.map((w, i) => (
@@ -570,25 +534,22 @@ export function B12OngoingProjectsTable({ proposalId, tableIndex = 0, sectionNum
               ))}
             </tr>
           </thead>
-          <SortableContext items={rows.map(r => r.id)} strategy={verticalListSortingStrategy}>
-            <tbody>
-              {rows.map(row => (
-                <SortableRow
-                  key={row.id}
-                  row={row}
-                  canEdit={canEdit}
-                  participants={participants}
-                  participantIds={getParticipantIdsForRow(row.id)}
-                  onUpdate={handleUpdate}
-                  onDelete={handleDelete}
-                  onToggleParticipant={handleToggleParticipant}
-                  defaultWidths={defaultWidths}
-                />
-              ))}
-            </tbody>
-          </SortableContext>
-        </table>
-      </DndContext>
+        <tbody>
+          {rows.map(row => (
+            <ProjectRow
+              key={row.id}
+              row={row}
+              canEdit={canEdit}
+              participants={participants}
+              participantIds={getParticipantIdsForRow(row.id)}
+              onUpdate={handleUpdate}
+              onDelete={handleDelete}
+              onToggleParticipant={handleToggleParticipant}
+              defaultWidths={defaultWidths}
+            />
+          ))}
+        </tbody>
+      </table>
 
       {canEdit && (
         <div className="mt-1">
