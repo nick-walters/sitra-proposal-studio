@@ -1719,10 +1719,13 @@ StarterKit.configure({
   // Normalisation only runs when we actually replace content.
   useEffect(() => {
     if (!editor || !isReady) return;
-    if (content === lastSetContentRef.current) return;
     if (!content && editor.state.doc.content.size > 2) return;
     const nextContent = normalizePartBLoadedContent(content);
     if (nextContent === lastSetContentRef.current) return;
+    if (nextContent === editor.getHTML()) {
+      lastSetContentRef.current = nextContent;
+      return;
+    }
     lastSetContentRef.current = nextContent;
     // Temporarily disable track changes during setContent to prevent
     // the entire document being marked as insertions
