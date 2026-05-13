@@ -93,6 +93,33 @@ interface Reference {
   doi: string | null;
 }
 
+const B12_ONGOING_TABLE_CAPTION = 'Ongoing & recently completed projects & initiatives with which the project will collaborate';
+const B12_ONGOING_DEFAULT_HEADERS = [
+  'Project acronym, funder & duration',
+  'Data, expertise & tools to be shared',
+  'Participant(s) to establish link',
+];
+
+function escapeHtml(value: string | null | undefined) {
+  return (value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function getNextTableLabel(content: string, sectionNumber: string) {
+  const cleanSection = sectionNumber.replace(/^[A-Za-z]+/, '');
+  const pattern = new RegExp(`Table\\s+${cleanSection.replace('.', '\\.') }\\.([a-z])`, 'gi');
+  let maxCode = 'a'.charCodeAt(0) - 1;
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(content)) !== null) {
+    maxCode = Math.max(maxCode, match[1].toLowerCase().charCodeAt(0));
+  }
+  return `Table ${cleanSection}.${String.fromCharCode(maxCode + 1)}.`;
+}
+
 interface DocumentEditorProps {
   section: Section | null;
   proposalId: string;
@@ -220,6 +247,7 @@ export function DocumentEditor({
   const [isMilestoneRefOpen, setIsMilestoneRefOpen] = useState(false);
   const [hasCases, setHasCases] = useState(false);
   const [b31TableFocus, setB31TableFocus] = useState<string | null>(null);
+  const restoredB12PlainTablesRef = useRef<Set<string>>(new Set());
   
   // Editor container ref for cursor overlays
   const editorContainerRef = useRef<HTMLDivElement>(null);
@@ -618,6 +646,59 @@ export function DocumentEditor({
     const nextLetterCode = 'a'.charCodeAt(0) + matches.length;
     return String.fromCharCode(nextLetterCode);
   }, [content, getSectionNumberWithoutPrefix]);
+
+  const restoreB12OngoingProjectsAsPlainTable = useCallback(async () => {
+    if (!editor || !proposalId || !section || loading) return;
+    const isB12 = section.id === 'b1-2' || section.number === 'B1.2' || section.number === '1.2';
+    const restoreKey = `${proposalId}:${section.id}`;
+    if (!isB12 || restoredB12PlainTablesRef.current.has(restoreKey)) return;
+    restoredB12PlainTablesRef.current.add(restoreKey);
+
+    const currentHtml = editor.getHTML();
+    if (currentHtml.includes(B12_ONGOING_TABLE_CAPTION)) return;
+
+    const [{ data: rows }, { data: links }, { data: savedHeaders }] = await Promise.all([
+      supabase.from('b12_ongoing_projects').select('id, project_info, shared_data, order_index').eq('proposal_id', proposalId).order('order_index'),
+      supabase.from('b12_ongoing_project_participants').select('ongoing_project_id, participants(organisation_short_name, organisation_name, participant_number)').order('participant_id'),
+      supabase.from('table_captions').select('caption').eq('proposal_id', proposalId).eq('table_key', 'b12-ongoing-headers').maybeSingle(),
+    ]);
+
+    const nonEmptyRows = (rows || []).filter((row) =>
+      (row.project_info || '').trim() || (row.shared_data || '').trim()
+    );
+    if (nonEmptyRows.length === 0) return;
+
+    let headers = B12_ONGOING_DEFAULT_HEADERS;
+    try {
+      const parsed = savedHeaders?.caption ? JSON.parse(savedHeaders.caption) : null;
+      if (Array.isArray(parsed) && parsed.length === 3) headers = parsed;
+    } catch { /* keep defaults */ }
+
+    const participantMap = new Map<string, string[]>();
+    (links || []).forEach((link: any) => {
+      const participant = Array.isArray(link.participants) ? link.participants[0] : link.participants;
+      const name = participant?.organisation_short_name || participant?.organisation_name;
+      if (!name) return;
+      const list = participantMap.get(link.ongoing_project_id) || [];
+      list.push(name);
+      participantMap.set(link.ongoing_project_id, list);
+    });
+
+    const label = getNextTableLabel(currentHtml, section.number);
+    const tableHtml = [
+      `<p class="table-caption" style="text-align: left;"><strong><em>${label} </em></strong><em>${B12_ONGOING_TABLE_CAPTION}</em></p>`,
+      '<table class="he-table"><tbody>',
+      `<tr>${headers.map((header) => `<th class="he-table-header"><p style="text-align: justify;"><strong>${escapeHtml(header)}</strong></p></th>`).join('')}</tr>`,
+      ...nonEmptyRows.map((row) => `<tr><td class="he-table-cell"><p style="text-align: justify;">${escapeHtml(row.project_info)}</p></td><td class="he-table-cell"><p style="text-align: justify;">${escapeHtml(row.shared_data)}</p></td><td class="he-table-cell"><p style="text-align: justify;">${escapeHtml((participantMap.get(row.id) || []).join(', '))}</p></td></tr>`),
+      '</tbody></table>',
+    ].join('');
+
+    editor.chain().focus('end').insertContent(`<p></p>${tableHtml}`).run();
+  }, [editor, proposalId, section, loading]);
+
+  useEffect(() => {
+    restoreB12OngoingProjectsAsPlainTable();
+  }, [restoreB12OngoingProjectsAsPlainTable]);
 
   // Handle inserting a figure image into the document
   const handleInsertFigureImage = useCallback(async (figure: { figureNumber: string; title: string; content: any }) => {

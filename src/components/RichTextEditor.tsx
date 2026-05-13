@@ -17,7 +17,6 @@ import { ImageCropDialog } from './ImageCropDialog';
 import { resolveStorageUrl } from '@/hooks/useStorageUrl';
 import { createCitationTooltipPlugin } from './CitationMark';
 import { BlockReordering } from '@/extensions/BlockReordering';
-import { ParagraphClass } from '@/extensions/ParagraphClass';
 import { ParagraphSpacing } from '@/extensions/ParagraphSpacing';
 
 import { InlineReferenceMark } from '@/extensions/InlineReferenceMark';
@@ -154,6 +153,24 @@ function ToolbarButton({ icon, tooltip, onClick, active, disabled }: ToolbarButt
 }
 
 const PART_B_ALIGNMENT_EXEMPT_PARAGRAPH_CLASSES = new Set(['figure-caption', 'table-caption']);
+
+const ParagraphClass = Extension.create({
+  name: 'paragraphClass',
+  addGlobalAttributes() {
+    return [
+      {
+        types: ['paragraph'],
+        attributes: {
+          class: {
+            default: null,
+            parseHTML: (element) => element.getAttribute('class') || null,
+            renderHTML: (attributes) => attributes.class ? { class: attributes.class } : {},
+          },
+        },
+      },
+    ];
+  },
+});
 
 /**
  * Strips text-align from pasted paragraphs so they adopt the default (justified).
