@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { EditableCaption } from '@/components/EditableCaption';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, GripVertical, Check, ChevronsUpDown } from 'lucide-react';
+import { Plus, Trash2, Check, ChevronsUpDown } from 'lucide-react';
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useColumnResize } from '@/hooks/useColumnResize';
@@ -10,13 +10,6 @@ import { ColumnResizer } from '@/components/ColumnResizer';
 import { applyColumnWidthsToTable, computeAutoFitSmart } from '@/lib/autoFitColumns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import {
-  DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent,
-} from '@dnd-kit/core';
-import {
-  arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 
@@ -218,8 +211,8 @@ function DebouncedHeaderInput({ value, onChange }: { value: string; onChange: (v
   );
 }
 
-/* ── Sortable row ───────────────────────────────────────────── */
-function SortableRow({
+/* ── Project row ────────────────────────────────────────────── */
+function ProjectRow({
   row, canEdit, participants, participantIds, onUpdate, onDelete, onToggleParticipant, defaultWidths,
 }: {
   row: OngoingProject;
@@ -231,9 +224,6 @@ function SortableRow({
   onToggleParticipant: (rowId: string, participantId: string, selected: boolean) => void;
   defaultWidths?: readonly string[];
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: row.id });
-  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
-
   const cellStyle = (width?: string): React.CSSProperties => ({
     fontFamily: "'Times New Roman', Times, serif",
     fontSize: '11pt',
@@ -243,15 +233,8 @@ function SortableRow({
   });
 
   return (
-    <tr ref={setNodeRef} data-b12-row-id={row.id} style={{ ...style, borderBottom: '0.5px solid #d1d5db' }} {...attributes}>
+    <tr data-b12-row-id={row.id} style={{ borderBottom: '0.5px solid #d1d5db' }}>
       <td style={{ ...cellStyle(defaultWidths?.[0]), position: 'relative' }}>
-        {canEdit && (
-          <div style={{ position: 'absolute', left: '-24px', top: '50%', transform: 'translateY(-50%)' }}>
-            <button {...listeners} className="cursor-grab text-muted-foreground hover:text-foreground p-0.5" tabIndex={-1}>
-              <GripVertical className="h-3.5 w-3.5" style={{ color: '#2563EB' }} />
-            </button>
-          </div>
-        )}
         {canEdit ? (
           <DebouncedInput value={row.project_info || ''} onChange={(v) => onUpdate(row.id, 'project_info', v)} />
         ) : (
