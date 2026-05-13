@@ -536,6 +536,10 @@ export function DocumentEditor({
     return () => clearTimeout(timer);
   }, [editor, proposalId, section?.id, loading, syncTrigger]);
 
+  useEffect(() => {
+    restoreB12OngoingProjectsAsPlainTable();
+  }, [restoreB12OngoingProjectsAsPlainTable]);
+
   // Check if proposal has cases
   useEffect(() => {
     if (!proposalId) return;
