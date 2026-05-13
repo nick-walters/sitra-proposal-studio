@@ -93,33 +93,6 @@ interface Reference {
   doi: string | null;
 }
 
-const B12_ONGOING_TABLE_CAPTION = 'Ongoing & recently completed projects & initiatives with which the project will collaborate';
-const B12_ONGOING_DEFAULT_HEADERS = [
-  'Project acronym, funder & duration',
-  'Data, expertise & tools to be shared',
-  'Participant(s) to establish link',
-];
-
-function escapeHtml(value: string | null | undefined) {
-  return (value || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-function getNextTableLabel(content: string, sectionNumber: string) {
-  const cleanSection = sectionNumber.replace(/^[A-Za-z]+/, '');
-  const pattern = new RegExp(`Table\\s+${cleanSection.replace('.', '\\.') }\\.([a-z])`, 'gi');
-  let maxCode = 'a'.charCodeAt(0) - 1;
-  let match: RegExpExecArray | null;
-  while ((match = pattern.exec(content)) !== null) {
-    maxCode = Math.max(maxCode, match[1].toLowerCase().charCodeAt(0));
-  }
-  return `Table ${cleanSection}.${String.fromCharCode(maxCode + 1)}.`;
-}
-
 interface DocumentEditorProps {
   section: Section | null;
   proposalId: string;
