@@ -1,49 +1,86 @@
-# Make all tables (except B3.1) plain editor tables
+The issue is not that 82.5 KB is “large”. It is small. The problem is that the editor currently treats that small document as expensive by repeatedly rebuilding, scanning, measuring, and broadcasting around it. A section with several tables simply exposes the weakness sooner. The fix should strengthen the shared editor path for B1.1, B1.2, B2.1, B2.2 and other normal Part B editors; B3.1 keeps its separate structured-table behaviour.
 
-## Goal
+## What I will change
 
-Every Part B section except B3.1 behaves identically: one TipTap editor, plain editor tables inserted from the toolbar, no bespoke row controls or dropdowns inside cells. Cross-references continue to work inside any table cell (they already do — the cross-reference marks are part of the editor schema and aren't tied to section type).
+1. **Create the editor only after the section content has loaded**
+   - Right now the editor can be created with empty content, then later have the real saved content pushed into it.
+   - I will make the normal editor mount only once the saved content is ready, with that content already inside it.
+   - Layman’s version: stop opening a blank document and then pasting the real document into it a moment later.
 
-## What changes for the user
+2. **Stop using broad `setContent` for ordinary loading**
+   - `setContent` is heavy because it asks the editor to replace the whole document.
+   - It should be reserved for deliberate whole-document actions, such as restoring a version or applying an assistant rewrite.
+   - Ordinary section loading should be “initial content only”.
 
-- Section B1.2 becomes a single editor — exactly like B1.1, B2.1, B2.2, B3.2.
-- The two specialised tables (1.2.a "Ongoing & recently completed projects…" and the 1.2.b case-study tables) disappear from the section. The user can recreate them as ordinary editor tables by clicking the toolbar's "Insert table" button, just like in any other section.
-- The participant-bubble dropdown in 1.2.a and the case-study selector are removed.
-- The toolbar's table dropdown (Add row, Delete row, Add column, Auto-resize columns, Delete table, Insert formula, Update caption) works in B1.2 exactly as it does in B1.1, B2.1, etc.
-- Cross-references (to participants, WPs, tables, figures, etc.) continue to work inside any table cell, in any section.
+3. **Normalise loaded HTML once, not repeatedly**
+   - The style-cleaning pass should run once when content comes from storage.
+   - It should not run again because the cursor moved, a save status changed, a collaborator presence update arrived, or the toolbar re-rendered.
 
-## Data handling
+4. **Reduce full-document scans on startup and typing**
+   - The shared editor currently has several helpers that can walk the whole document: track changes, cross-reference syncing, formula display, caption/table helpers and reference protection.
+   - I will keep the features, but change when they run:
+     - run after the editor is interactive, not during first tap/open;
+     - skip entirely when the document does not contain the relevant markers;
+     - for formula decorations, do not inspect every table unless a formula marker is present;
+     - avoid re-scanning on selection-only cursor movement.
 
-The existing `b12_ongoing_projects` and `b12_ongoing_project_participants` rows store structured data that has no equivalent in plain editor tables. Two safe options:
+5. **Make tapping/cursor movement cheap**
+   - Selection changes currently trigger several side jobs: collaborator cursor updates, block locking, selected-text tracking, caption refresh positioning and overlay positioning.
+   - I will debounce/throttle those jobs and avoid duplicate state updates when nothing meaningful changed.
+   - Layman’s version: the cursor should appear immediately; background collaboration bookkeeping can catch up milliseconds later.
 
-1. **Leave the database tables in place** (recommended). The data stays untouched — no destructive migration. The frontend simply stops reading from them. If a user previously filled in 1.2.a, that data isn't lost, just no longer rendered. Storage cost is negligible.
-2. Drop the tables in a follow-up migration once you've confirmed nothing important is stored there.
+6. **Ensure overlays cannot block editing**
+   - I will make lock/cursor/caption overlays pass normal editor clicks through except for their actual small buttons/icons.
+   - This addresses the “not clickable” symptom separately from the crash/performance symptom.
 
-This plan does **option 1** — no DB migration in this pass.
+7. **Keep B3.1 special; keep all other Part B editors the same**
+   - No B1.2-only fix.
+   - No different B1.2 editor.
+   - Normal Part B sections use one shared editor path.
+   - B3.1 remains special only because it has its generated/structured tables outside the standard rich-text content.
 
-## Files removed
+## Technical implementation targets
 
-- `src/components/B12OngoingProjectsTable.tsx`
-- `src/components/B12CaseStudyTables.tsx`
+- `src/components/DocumentEditor.tsx`
+  - Gate standard editor rendering until `loading === false`.
+  - Key the standard editor by `section.id` so section switches create a clean editor instance.
+  - Move heavy startup jobs behind idle scheduling.
+  - Throttle selection side effects and avoid duplicate state writes.
+  - Ensure overlays use non-blocking pointer behaviour.
 
-## Files edited
+- `src/components/RichTextEditor.tsx`
+  - Remove broad prop-driven `setContent` for normal editor loading.
+  - Add an explicit version/replace path for true whole-document replacements only.
+  - Add TipTap React performance options where supported, especially to avoid unnecessary React re-rendering on selection transactions.
+  - Memoise/centralise loaded-content normalisation.
 
-- **`src/components/DocumentEditor.tsx`** — remove the B1.2 sibling render block (lines ~1624–1625), remove all `b12TableFocus` / `b12FocusedRowId` / `b12FocusedCaseId` state, remove the `b12-table-focus` and `b12-table-autoresize` event listeners, remove the `handleB12*` handlers (Add/Delete row, Delete table, Auto-resize, Update caption), remove the `b12*` props passed into `RichTextEditor`. B1.2 mounts the same plain `EditorContent` it does today (parity already in place from earlier work).
-- **`src/components/RichTextEditor.tsx`** — remove the `b12TableFocus`, `onB12AddRow`, `onB12DeleteRow`, `onB12DeleteTable`, `onB12AutoResize`, `onB12UpdateCaption` props from the interface, the `isB12TableActive` branch, and the entire "B12-active" half of the table dropdown menu. Only the standard table dropdown remains, used for every section.
-- **`src/index.css`** — remove any leftover `[data-b12-table]`, `b12-…` selectors no longer referenced.
-- Remove the now-orphaned `b12-table-autoresize` and `b12-table-focus` custom event names from any other listeners.
+- `src/extensions/TableFormula.ts`
+  - Add a fast text/marker check before table traversal.
+  - Cache formula decorations in plugin state instead of rebuilding by scanning every table on every decoration request.
 
-## Verification
+- `src/extensions/TrackChanges.ts`
+  - Keep track changes functionality, but avoid whole-document collection/re-decoration on selection-only transactions.
+  - Defer initial collection so it does not compete with first render/tap.
 
-- Open B1.2 in the preview: section is a plain editor, no inline tables rendered below.
-- Toolbar "Insert table" works in B1.2; the resulting table behaves identically to one in B1.1.
-- Toolbar table dropdown shows the same items in B1.2 as in B1.1 (no "Add case", no "Delete case").
-- Cross-reference dropdown opens inside a cell of a table in B1.2 and inserts a working reference mark.
-- Navigating away from B1.2 no longer freezes (was already fixed; stays fixed).
-- Build passes; no remaining imports of `B12OngoingProjectsTable` or `B12CaseStudyTables`.
+- `src/lib/syncCrossReferences.ts`
+  - Add a cheap preflight: if the document has no relevant reference marks, do not fetch proposal-wide reference data and do not scan/update.
+  - Run sync on idle after load and explicit reference-changing events, not as part of making the editor clickable.
 
-## Out of scope (for this pass)
+- `src/components/BlockLockIndicator.tsx`, `src/components/CollaborativeCursors.tsx`, `src/components/CaptionRefreshButton.tsx`
+  - Reduce layout measurement pressure (`coordsAtPos`, `getBoundingClientRect`, `nodeDOM`) on every cursor/transaction.
+  - Keep visual indicators, but ensure they do not intercept editor clicks.
 
-- Dropping `b12_ongoing_projects` / `b12_ongoing_project_participants` tables from the database.
-- Any change to B3.1 — its compulsory tables and bespoke components stay exactly as they are.
-- Any change to A3 portal, budget tables, Gantt, PERT, or other non-Part-B structured tables.
+## Validation
+
+After implementation I will verify the actual shared behaviour, not just the code:
+
+1. Open a normal Part B section with content and tables.
+2. Confirm the editor mounts after content load and is immediately clickable.
+3. Click into table cells and ordinary paragraphs.
+4. Check console errors/warnings.
+5. Run a browser performance profile to confirm first interaction is not blocked by repeated whole-document work.
+6. Confirm B3.1 still keeps its structured content and B3.2 is not inserted into B3.1 or B2.2.
+
+## Expected result in plain English
+
+All ordinary Part B editors will behave like the same robust document editor. They should handle documents far larger than 82.5 KB because they will no longer rebuild or sweep the whole document just to load, tap, move the cursor, or show collaboration indicators.
