@@ -1789,7 +1789,7 @@ StarterKit.configure({
   // Also triggers a one-time re-save if marks had missing attributes (to flush corrected HTML to DB)
   const hasReserializedRef = useRef(false);
   useEffect(() => {
-    if (!editor || !trackChanges?.onChangesUpdate) return;
+    if (!editor || !isReady || !trackChanges?.onChangesUpdate) return;
     // Wait a tick for content to be fully set
     const timer = setTimeout(() => {
       const doc = editor.state.doc;
@@ -1855,7 +1855,7 @@ StarterKit.configure({
       }
     }, 100);
     return () => clearTimeout(timer);
-  }, [editor, content, trackChanges?.onChangesUpdate]);
+  }, [editor, content, isReady, trackChanges?.onChangesUpdate]);
 
   return editor;
 }
