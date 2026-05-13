@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sanitizeEditorHtml } from "../_shared/sanitizeEditorHtml.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -88,7 +89,7 @@ serve(async (req) => {
       .insert({
         acronym: newAcronym,
         title: newTitle,
-        description: originalProposal.description,
+        description: originalProposal.description ? sanitizeEditorHtml(originalProposal.description) : originalProposal.description,
         type: originalProposal.type,
         status: 'draft',
         budget_type: originalProposal.budget_type,
@@ -366,7 +367,7 @@ serve(async (req) => {
       const contentToInsert = originalContent.map(content => ({
         proposal_id: newProposalId,
         section_id: content.section_id,
-        content: content.content,
+        content: typeof content.content === 'string' ? sanitizeEditorHtml(content.content) : content.content,
         last_edited_by: user.id,
       }));
 
