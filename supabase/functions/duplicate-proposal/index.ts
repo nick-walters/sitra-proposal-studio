@@ -367,7 +367,7 @@ serve(async (req) => {
       const contentToInsert = originalContent.map(content => ({
         proposal_id: newProposalId,
         section_id: content.section_id,
-        content: content.content,
+        content: typeof content.content === 'string' ? sanitizeEditorHtml(content.content) : content.content,
         last_edited_by: user.id,
       }));
 
