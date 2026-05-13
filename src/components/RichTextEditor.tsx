@@ -1206,10 +1206,8 @@ export function FormattingToolbar({
 }
 
 export function RichTextEditor({ content, onChange, onInsertImage, onInsertFootnote, className, renderToolbar }: RichTextEditorProps) {
-  const initialContentRef = useRef<string | null>(null);
-  if (initialContentRef.current === null) {
-    initialContentRef.current = normalizePartBLoadedContent(content);
-  }
+  const initialEditorContent = normalizePartBLoadedContent(content);
+  const editorContentState = content.trim() ? 'loaded' : 'empty';
 
   const editor = useEditor({
     extensions: [
@@ -1330,7 +1328,7 @@ StarterKit.configure({
         },
       }),
     ],
-    content: initialContentRef.current,
+    content: initialEditorContent,
     enableExtensionDispatchTransaction: true,
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
@@ -1344,7 +1342,7 @@ StarterKit.configure({
         return normalizePartBPastedAlignment(html);
       },
     },
-  });
+  }, [editorContentState]);
 
   if (!editor) {
     return null;
