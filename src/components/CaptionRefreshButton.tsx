@@ -73,11 +73,13 @@ export function CaptionRefreshButton({ editor, containerRef, sectionNumber, tabl
       cancelAnimationFrame(rafRef.current);
       rafRef.current = requestAnimationFrame(update);
     };
+    // Only react to selection changes — the visibility/position of the refresh
+    // icon depends on cursor position, not on every keystroke transaction.
+    // Listening to 'transaction' would re-measure the DOM on every input,
+    // which is what previously made larger documents unresponsive.
     editor.on('selectionUpdate', handler);
-    editor.on('transaction', handler);
     return () => {
       editor.off('selectionUpdate', handler);
-      editor.off('transaction', handler);
       cancelAnimationFrame(rafRef.current);
     };
   }, [editor, update]);

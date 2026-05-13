@@ -157,53 +157,82 @@ export const TableFormula = Extension.create<TableFormulaOptions>({
       new Plugin({
         key: tableFormulaPluginKey,
 
+        // Cache decorations in plugin state so we don't re-scan every table
+        // on every selection change. Only recompute when the document changes,
+        // and skip the expensive scan entirely when there are no formula
+        // markers ('=') anywhere in the document.
+        state: {
+          init(_, { doc }) {
+            return computeFormulaDecorations(doc);
+          },
+          apply(tr, old) {
+            if (!tr.docChanged) return old.map(tr.mapping, tr.doc);
+            return computeFormulaDecorations(tr.doc);
+          },
+        },
+
         props: {
           decorations(state) {
-            const decorations: Decoration[] = [];
-            const docSize = state.doc.content.size;
-
-            state.doc.descendants((node, pos) => {
-              if (node.type.name !== 'table') return;
-              const tableData = getTableData(node);
-
-              node.content.forEach((row, rowOffset) => {
-                row.content.forEach((cell, cellOffset) => {
-                  let cellText = '';
-                  cell.content.forEach((p) => {
-                    if (p.isText) {
-                      cellText += p.text;
-                    } else if (p.content) {
-                      p.content.forEach((child) => {
-                        if (child.isText) cellText += child.text;
-                      });
-                    }
-                  });
-
-                  const trimmedText = cellText.trim();
-                  if (!trimmedText.startsWith('=')) return;
-
-                  const result = evaluateFormula(trimmedText, tableData);
-                  // pos = position before table; +1 enters table; +rowOffset to row; +1 enters row; +cellOffset to cell; +cell.nodeSize-1 = inside end of cell
-                  const widgetPos = pos + 1 + rowOffset + 1 + cellOffset + cell.nodeSize - 1;
-                  if (widgetPos < 0 || widgetPos > docSize) return;
-
-                  decorations.push(
-                    Decoration.widget(widgetPos, () => {
-                      const span = document.createElement('span');
-                      span.className = 'formula-result';
-                      span.style.cssText = 'color: hsl(var(--muted-foreground)); font-size: 10px; margin-left: 4px;';
-                      span.textContent = `= ${result}`;
-                      return span;
-                    }, { side: 1 })
-                  );
-                });
-              });
-            });
-
-            return decorations.length ? DecorationSet.create(state.doc, decorations) : DecorationSet.empty;
+            return tableFormulaPluginKey.getState(state) || DecorationSet.empty;
           },
         },
       }),
     ];
   },
 });
+
+function computeFormulaDecorations(doc: any): DecorationSet {
+  // Cheap preflight: if the document text has no '=' anywhere, skip entirely.
+  // textContent on a ProseMirror doc is O(n) but far cheaper than walking
+  // every table cell with descendants() and evaluating formulas.
+  if (!doc.textContent.includes('=')) return DecorationSet.empty;
+
+  const decorations: Decoration[] = [];
+  const docSize = doc.content.size;
+
+  doc.descendants((node: any, pos: number) => {
+    if (node.type.name !== 'table') return;
+
+    // Cheap per-table preflight before extracting table data.
+    if (!node.textContent.includes('=')) return false;
+
+    const tableData = getTableData(node);
+
+    node.content.forEach((row: any, rowOffset: number) => {
+      row.content.forEach((cell: any, cellOffset: number) => {
+        let cellText = '';
+        cell.content.forEach((p: any) => {
+          if (p.isText) {
+            cellText += p.text;
+          } else if (p.content) {
+            p.content.forEach((child: any) => {
+              if (child.isText) cellText += child.text;
+            });
+          }
+        });
+
+        const trimmedText = cellText.trim();
+        if (!trimmedText.startsWith('=')) return;
+
+        const result = evaluateFormula(trimmedText, tableData);
+        const widgetPos = pos + 1 + rowOffset + 1 + cellOffset + cell.nodeSize - 1;
+        if (widgetPos < 0 || widgetPos > docSize) return;
+
+        decorations.push(
+          Decoration.widget(widgetPos, () => {
+            const span = document.createElement('span');
+            span.className = 'formula-result';
+            span.style.cssText = 'color: hsl(var(--muted-foreground)); font-size: 10px; margin-left: 4px;';
+            span.textContent = `= ${result}`;
+            return span;
+          }, { side: 1 })
+        );
+      });
+    });
+
+    // Don't descend into the table — we've already processed its cells.
+    return false;
+  });
+
+  return decorations.length ? DecorationSet.create(doc, decorations) : DecorationSet.empty;
+}
