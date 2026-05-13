@@ -1393,6 +1393,7 @@ export function useRichTextEditor({
   if (initialContentRef.current === null) {
     initialContentRef.current = normalizePartBLoadedContent(content);
   }
+  const editorContentState = content.trim() ? 'loaded' : 'empty';
 
   // Track the last content we set to the editor to avoid infinite loops
   const lastSetContentRef = useRef<string>(initialContentRef.current);
@@ -1700,7 +1701,7 @@ StarterKit.configure({
         return normalizePartBPastedAlignment(html);
       },
     },
-  });
+  }, [editorContentState]);
 
   // Sync editor content when content prop changes externally (e.g., from DB load)
   // Only update if content changed from external source (not from our own typing)
