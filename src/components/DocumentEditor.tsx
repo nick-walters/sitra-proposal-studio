@@ -539,9 +539,17 @@ export function DocumentEditor({
   // Track cursor position for collaboration AND block locking
   useEffect(() => {
     if (!editor) return;
+    let rafId = 0;
+    let lastFrom = -1;
+    let lastTo = -1;
     
     const handleSelectionUpdate = () => {
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
       const { from, to } = editor.state.selection;
+      if (from === lastFrom && to === lastTo) return;
+      lastFrom = from;
+      lastTo = to;
       // Only clear B3.1 focus state when actually set, to avoid render storms on every keystroke
       setB31TableFocus(prev => (prev === null ? prev : null));
       // Update collaborative cursor position
@@ -551,12 +559,14 @@ export function DocumentEditor({
       );
       // Update block lock position
       updateCurrentBlock(from);
+      });
     };
     
     editor.on('selectionUpdate', handleSelectionUpdate);
     editor.on('focus', handleSelectionUpdate);
     
     return () => {
+      cancelAnimationFrame(rafId);
       editor.off('selectionUpdate', handleSelectionUpdate);
       editor.off('focus', handleSelectionUpdate);
     };
