@@ -70,8 +70,6 @@ import { SplitViewPanel } from "./SplitViewPanel";
 // SectionReviewDialog moved to Part B Evaluate tab
 import { B31DeliverablesTable, B31MilestonesTable, B31RisksTable } from "./B31TablesEditor";
 import { B31SectionContent } from "./B31SectionContent";
-import { B12OngoingProjectsTable } from "./B12OngoingProjectsTable";
-import { B12CaseStudyTables } from "./B12CaseStudyTables";
 import { B31IntroText } from "./B31IntroText";
 import { TrackChange } from "@/extensions/TrackChanges";
 // usePageEstimate moved to ExportDialog
@@ -112,8 +110,6 @@ interface DocumentEditorProps {
   acronymSegments?: { text: string; color: string }[];
   openPanel?: 'comments' | 'changes' | null;
 }
-
-type B12ToolbarFocus = 'case-studies' | 'ongoing-projects' | null;
 
 export function DocumentEditor({ 
   section, 
@@ -223,9 +219,6 @@ export function DocumentEditor({
   const [isDeliverableRefOpen, setIsDeliverableRefOpen] = useState(false);
   const [isMilestoneRefOpen, setIsMilestoneRefOpen] = useState(false);
   const [hasCases, setHasCases] = useState(false);
-  const [b12TableFocus, setB12TableFocus] = useState<B12ToolbarFocus>(null);
-  const [b12FocusedCaseId, setB12FocusedCaseId] = useState<string | null>(null);
-  const [b12FocusedRowId, setB12FocusedRowId] = useState<string | null>(null);
   const [b31TableFocus, setB31TableFocus] = useState<string | null>(null);
   
   // Editor container ref for cursor overlays
@@ -480,29 +473,10 @@ export function DocumentEditor({
       }
       setSyncTrigger(prev => prev + 1);
     };
-    const handleB12TableFocus = (e: Event) => {
-      const detail = (e as CustomEvent<{
-        tableId?: Exclude<B12ToolbarFocus, null>;
-        caseId?: string | null;
-        rowId?: string | null;
-      }>).detail;
-
-      if (detail?.tableId !== 'case-studies' && detail?.tableId !== 'ongoing-projects') return;
-
-      const nextCaseId = detail.caseId ?? null;
-      const nextRowId = detail.rowId ?? null;
-      setB12TableFocus(prev => (prev === detail.tableId ? prev : detail.tableId));
-      setB12FocusedCaseId(prev => (prev === nextCaseId ? prev : nextCaseId));
-      setB12FocusedRowId(prev => (prev === nextRowId ? prev : nextRowId));
-      setB31TableFocus(prev => (prev === null ? prev : null));
-    };
     const handleB31TableFocus = (e: Event) => {
       const detail = (e as CustomEvent<{ tableId?: string | null }>).detail;
       if (!detail?.tableId) return;
       setB31TableFocus(prev => (prev === detail.tableId ? prev : detail.tableId));
-      setB12TableFocus(prev => (prev === null ? prev : null));
-      setB12FocusedCaseId(prev => (prev === null ? prev : null));
-      setB12FocusedRowId(prev => (prev === null ? prev : null));
     };
     const handleCaptionRefreshAll = () => {
       if (editor && section?.number) {
@@ -511,13 +485,11 @@ export function DocumentEditor({
     };
     window.addEventListener('cross-ref-data-changed', handleCrossRefDataChanged);
     window.addEventListener('block-reordered', handleBlockReordered);
-    window.addEventListener('b12-table-focus', handleB12TableFocus as EventListener);
     window.addEventListener('b31-table-focus', handleB31TableFocus as EventListener);
     window.addEventListener('caption-refresh-all', handleCaptionRefreshAll);
     return () => {
       window.removeEventListener('cross-ref-data-changed', handleCrossRefDataChanged);
       window.removeEventListener('block-reordered', handleBlockReordered);
-      window.removeEventListener('b12-table-focus', handleB12TableFocus as EventListener);
       window.removeEventListener('b31-table-focus', handleB31TableFocus as EventListener);
       window.removeEventListener('caption-refresh-all', handleCaptionRefreshAll);
     };
