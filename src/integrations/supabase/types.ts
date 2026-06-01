@@ -584,6 +584,47 @@ export type Database = {
           },
         ]
       }
+      budget_personnel_breakdown: {
+        Row: {
+          budget_row_id: string
+          category: string
+          created_at: string
+          id: string
+          order_index: number
+          pm_count: number
+          pm_rate: number
+          updated_at: string
+        }
+        Insert: {
+          budget_row_id: string
+          category?: string
+          created_at?: string
+          id?: string
+          order_index?: number
+          pm_count?: number
+          pm_rate?: number
+          updated_at?: string
+        }
+        Update: {
+          budget_row_id?: string
+          category?: string
+          created_at?: string
+          id?: string
+          order_index?: number
+          pm_count?: number
+          pm_rate?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_personnel_breakdown_budget_row_id_fkey"
+            columns: ["budget_row_id"]
+            isOneToOne: false
+            referencedRelation: "budget_rows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       budget_rows: {
         Row: {
           created_at: string
