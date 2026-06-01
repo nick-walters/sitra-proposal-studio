@@ -311,6 +311,7 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
     })));
   }, [proposalId, rows.map(r => r.id).join(',')]);
 
+  const fetchJustifications = useCallback(async () => {
     if (!proposalId) return;
     const { data, error } = await supabase
       .from('budget_cost_justifications')
