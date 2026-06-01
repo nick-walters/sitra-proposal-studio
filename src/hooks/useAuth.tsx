@@ -65,9 +65,13 @@ export function useAuth() {
         const { error } = await supabase.auth.getUser();
         if (error) {
           // Only sign out on real auth errors, not network failures
-          const isNetworkError = error.message?.includes('Failed to fetch') || 
-                                 error.message?.includes('NetworkError') ||
-                                 error.message?.includes('AbortError');
+          const msg = error.message || '';
+          const isNetworkError = msg.includes('Failed to fetch') ||
+                                 msg.includes('NetworkError') ||
+                                 msg.includes('AbortError') ||
+                                 msg.includes('Load failed') ||  // Safari
+                                 msg.includes('network') ||
+                                 msg.toLowerCase().includes('timeout');
           if (isNetworkError) {
             console.warn('Network error during session validation, keeping session:', error.message);
           } else {
