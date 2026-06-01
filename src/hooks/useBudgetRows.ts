@@ -391,8 +391,9 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
       fetchJustifications();
       fetchSubcontractingItems();
       fetchEquipmentItems();
+      fetchPersonnelBreakdown();
     }
-  }, [rows.length > 0, fetchJustifications, fetchSubcontractingItems]);
+  }, [rows.length > 0, fetchJustifications, fetchSubcontractingItems, fetchPersonnelBreakdown]);
 
   // Sync subcontracting_costs on budget_rows from line items
   const syncSubcontractingTotal = useCallback(async (budgetRowId: string) => {
