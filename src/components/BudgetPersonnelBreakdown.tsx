@@ -85,7 +85,7 @@ export function BudgetPersonnelBreakdown({
       </div>
 
       {rows.length === 0 ? (
-        <p className="text-xs text-muted-foreground italic">No personnel rows yet — the avg. weighted PM rate above is used as-is.</p>
+        <p className="text-xs text-muted-foreground italic">No personnel rows yet — add at least one row to set the PM rate for this organisation.</p>
       ) : (
         <div className="rounded-md border overflow-hidden">
           <table className="w-full text-sm">
