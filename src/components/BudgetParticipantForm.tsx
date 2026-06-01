@@ -274,24 +274,6 @@ export function BudgetParticipantForm({
           <CardTitle className="text-sm font-semibold">A. Personnel Costs</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-muted-foreground w-[220px] shrink-0">
-              Avg. weighted person month rate
-              {personnelBreakdown.some(i => i.budgetRowId === row.id) && (
-                <span className="block text-[10px] italic">auto from breakdown below</span>
-              )}
-            </label>
-            <FormattedNumberInput
-              value={row.pmRate ?? 0}
-              onChange={(v) => updateRow(row.id, 'pmRate', v)}
-              disabled={!editable || personnelBreakdown.some(i => i.budgetRowId === row.id)}
-              decimals={2}
-              className="h-8 text-sm text-right flex-1"
-            />
-            <span className="text-xs text-muted-foreground w-4">€</span>
-            <CopyButton value={row.pmRate ?? 0} />
-            {showReq && <><div className="flex-1" /><div className="w-4" /></>}
-          </div>
           <div className="flex items-center gap-2 py-1 text-sm">
             <span className="text-muted-foreground w-[220px] shrink-0">Total person months (from WP effort)</span>
             <div className="flex items-center gap-1 flex-1 justify-end">
@@ -300,8 +282,17 @@ export function BudgetParticipantForm({
             </div>
             {showReq && <><div className="flex-1" /><div className="w-8" /></>}
           </div>
+          <div className="flex items-center gap-2 py-1 text-sm">
+            <span className="text-muted-foreground w-[220px] shrink-0">Avg. weighted PM rate (from breakdown)</span>
+            <div className="flex items-center gap-1 flex-1 justify-end">
+              <span className="font-medium tabular-nums">{(row.pmRate ?? 0).toFixed(2)}</span>
+              <span className="text-xs text-muted-foreground w-4">€</span>
+              <CopyButton value={row.pmRate ?? 0} />
+            </div>
+            {showReq && <><div className="flex-1" /><div className="w-8" /></>}
+          </div>
           <div className="flex items-center gap-2 py-1 border-t text-sm">
-            <span className="font-medium w-[220px] shrink-0">Personnel costs {row.pmRate ? '(auto-calculated)' : ''}</span>
+            <span className="font-medium w-[220px] shrink-0">Personnel costs (auto-calculated)</span>
             <div className="flex items-center gap-1 flex-1 justify-end">
               <span className="font-semibold tabular-nums">{formatCurrency(row.personnelCosts)}</span>
               <CopyButton value={row.personnelCosts} />
@@ -321,21 +312,6 @@ export function BudgetParticipantForm({
               </>
             )}
           </div>
-          {!row.pmRate && (
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-muted-foreground w-[220px] shrink-0">Personnel costs (manual)</label>
-              <FormattedNumberInput
-                value={row.personnelCosts}
-                onChange={(v) => updateRow(row.id, 'personnelCosts', v)}
-                disabled={!editable}
-                decimals={2}
-                className="h-8 text-sm text-right flex-1"
-              />
-              <span className="text-xs text-muted-foreground w-4">€</span>
-              <CopyButton value={row.personnelCosts} />
-              {showReq && <><div className="flex-1" /><div className="w-4" /></>}
-            </div>
-          )}
 
           <BudgetPersonnelBreakdown
             budgetRowId={row.id}
