@@ -275,11 +275,16 @@ export function BudgetParticipantForm({
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-center gap-2">
-            <label className="text-sm text-muted-foreground w-[220px] shrink-0">Avg. weighted person month rate</label>
+            <label className="text-sm text-muted-foreground w-[220px] shrink-0">
+              Avg. weighted person month rate
+              {personnelBreakdown.some(i => i.budgetRowId === row.id) && (
+                <span className="block text-[10px] italic">auto from breakdown below</span>
+              )}
+            </label>
             <FormattedNumberInput
               value={row.pmRate ?? 0}
               onChange={(v) => updateRow(row.id, 'pmRate', v)}
-              disabled={!editable}
+              disabled={!editable || personnelBreakdown.some(i => i.budgetRowId === row.id)}
               decimals={2}
               className="h-8 text-sm text-right flex-1"
             />
