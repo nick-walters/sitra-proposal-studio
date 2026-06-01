@@ -336,6 +336,16 @@ export function BudgetParticipantForm({
               {showReq && <><div className="flex-1" /><div className="w-4" /></>}
             </div>
           )}
+
+          <BudgetPersonnelBreakdown
+            budgetRowId={row.id}
+            totalPersonMonths={row.totalPersonMonths}
+            items={personnelBreakdown}
+            editable={editable}
+            onAdd={() => addPersonnelBreakdownItem(row.id)}
+            onUpdate={updatePersonnelBreakdownItem}
+            onDelete={deletePersonnelBreakdownItem}
+          />
         </CardContent>
       </Card>
 
