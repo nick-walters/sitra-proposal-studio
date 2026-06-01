@@ -580,6 +580,79 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
     await supabase.from('budget_rows').update({ purchase_equipment: total }).eq('id', budgetRowId);
   }, [equipmentItems]);
 
+  // Personnel breakdown CRUD with weighted PM rate sync
+  const syncWeightedPmRate = useCallback(async (budgetRowId: string, items: PersonnelBreakdownItem[]) => {
+    const rowItems = items.filter(i => i.budgetRowId === budgetRowId);
+    let newRate: number | null = null;
+    if (rowItems.length > 0) {
+      const totalPm = rowItems.reduce((s, i) => s + (i.pmCount || 0), 0);
+      const totalCost = rowItems.reduce((s, i) => s + (i.pmCount || 0) * (i.pmRate || 0), 0);
+      newRate = totalPm > 0 ? Math.round((totalCost / totalPm) * 100) / 100 : 0;
+    }
+    setRows(prev => prev.map(r => r.id === budgetRowId ? { ...r, pmRate: newRate } : r));
+    await supabase.from('budget_rows').update({ pm_rate: newRate }).eq('id', budgetRowId);
+  }, []);
+
+  const addPersonnelBreakdownItem = useCallback(async (budgetRowId: string) => {
+    const existing = personnelBreakdown.filter(i => i.budgetRowId === budgetRowId);
+    const nextIndex = existing.length;
+    const { data, error } = await supabase
+      .from('budget_personnel_breakdown')
+      .insert({ budget_row_id: budgetRowId, category: '', pm_count: 0, pm_rate: 0, order_index: nextIndex })
+      .select()
+      .single();
+    if (error) {
+      toast.error('Failed to add personnel row');
+      return;
+    }
+    const newItems = [...personnelBreakdown, {
+      id: data.id,
+      budgetRowId: data.budget_row_id,
+      category: data.category || '',
+      pmCount: Number(data.pm_count) || 0,
+      pmRate: Number(data.pm_rate) || 0,
+      orderIndex: data.order_index,
+    }];
+    setPersonnelBreakdown(newItems);
+    await syncWeightedPmRate(budgetRowId, newItems);
+  }, [personnelBreakdown, syncWeightedPmRate]);
+
+  const updatePersonnelBreakdownItem = useCallback((itemId: string, field: 'category' | 'pmCount' | 'pmRate', value: string | number) => {
+    setPersonnelBreakdown(prev => prev.map(i => i.id === itemId ? { ...i, [field]: value } : i));
+    if (debounceTimers.current[`pb-${itemId}`]) clearTimeout(debounceTimers.current[`pb-${itemId}`]);
+    debounceTimers.current[`pb-${itemId}`] = setTimeout(async () => {
+      setSaving(true);
+      const dbField = field === 'pmCount' ? 'pm_count' : field === 'pmRate' ? 'pm_rate' : 'category';
+      const { error } = await supabase
+        .from('budget_personnel_breakdown')
+        .update({ [dbField]: value })
+        .eq('id', itemId);
+      if (error) toast.error('Failed to save personnel row');
+      if (field === 'pmCount' || field === 'pmRate') {
+        const item = personnelBreakdown.find(i => i.id === itemId);
+        if (item) {
+          const updated = personnelBreakdown.map(i => i.id === itemId ? { ...i, [field]: Number(value) } : i);
+          await syncWeightedPmRate(item.budgetRowId, updated);
+        }
+      }
+      setSaving(false);
+    }, 300);
+  }, [personnelBreakdown, syncWeightedPmRate]);
+
+  const deletePersonnelBreakdownItem = useCallback(async (itemId: string) => {
+    const item = personnelBreakdown.find(i => i.id === itemId);
+    if (!item) return;
+    const { error } = await supabase.from('budget_personnel_breakdown').delete().eq('id', itemId);
+    if (error) {
+      toast.error('Failed to delete personnel row');
+      return;
+    }
+    const remaining = personnelBreakdown.filter(i => i.id !== itemId);
+    setPersonnelBreakdown(remaining);
+    await syncWeightedPmRate(item.budgetRowId, remaining);
+  }, [personnelBreakdown, syncWeightedPmRate]);
+
+
   const updateRow = useCallback((rowId: string, field: string, value: number | string | boolean) => {
     // For hasInKind, ensure local state gets a boolean
     const localValue = field === 'hasInKind' ? Boolean(value) : value;
