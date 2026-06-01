@@ -842,6 +842,9 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
     addEquipmentItem,
     updateEquipmentItem,
     deleteEquipmentItem,
+    addPersonnelBreakdownItem,
+    updatePersonnelBreakdownItem,
+    deletePersonnelBreakdownItem,
     refetch: fetchRows,
   };
 }
