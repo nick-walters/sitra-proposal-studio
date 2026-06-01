@@ -82,6 +82,15 @@ export interface EquipmentItem {
   orderIndex: number;
 }
 
+export interface PersonnelBreakdownItem {
+  id: string;
+  budgetRowId: string;
+  category: string;
+  pmCount: number;
+  pmRate: number;
+  orderIndex: number;
+}
+
 function computeRow(row: BudgetRowData, proposalType: string | null): ComputedBudgetRow {
   const personnelCosts = row.pmRate != null && row.pmRate > 0
     ? Math.round(row.pmRate * row.totalPersonMonths)
