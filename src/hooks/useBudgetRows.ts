@@ -287,7 +287,30 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
     })));
   }, [proposalId, rows.map(r => r.id).join(',')]);
 
-  const fetchJustifications = useCallback(async () => {
+  const fetchPersonnelBreakdown = useCallback(async () => {
+    if (!proposalId || rows.length === 0) return;
+    const rowIds = rows.map(r => r.id);
+    const { data, error } = await supabase
+      .from('budget_personnel_breakdown')
+      .select('*')
+      .in('budget_row_id', rowIds)
+      .order('order_index');
+
+    if (error) {
+      console.error('Error fetching personnel breakdown:', error);
+      return;
+    }
+
+    setPersonnelBreakdown((data || []).map((item: any) => ({
+      id: item.id,
+      budgetRowId: item.budget_row_id,
+      category: item.category || '',
+      pmCount: Number(item.pm_count) || 0,
+      pmRate: Number(item.pm_rate) || 0,
+      orderIndex: item.order_index,
+    })));
+  }, [proposalId, rows.map(r => r.id).join(',')]);
+
     if (!proposalId) return;
     const { data, error } = await supabase
       .from('budget_cost_justifications')
