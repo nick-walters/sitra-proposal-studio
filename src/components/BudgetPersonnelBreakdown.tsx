@@ -161,9 +161,9 @@ export function BudgetPersonnelBreakdown({
               </tr>
             )}
             <tr className="border-t bg-muted/30">
-              <td className="px-2 py-1 font-semibold">Total / avg. weighted PM rate</td>
-              <td className="px-2 py-1 text-right tabular-nums font-semibold">{formatPM(totalPm)}</td>
-              <td className="px-2 py-1 text-right tabular-nums font-semibold">{weightedRate.toFixed(2)}</td>
+              <td className="px-2 py-1 font-semibold">Total PMs &amp; average weighted PM rate</td>
+              <td className="px-2 py-1 text-right tabular-nums font-semibold">{formatNumber(totalPm, 1)}</td>
+              <td className="px-2 py-1 text-right tabular-nums font-semibold">{formatNumber(weightedRate, 2)}</td>
               <td className="px-2 py-1 text-right tabular-nums font-semibold">{formatCurrency(totalCost)}</td>
               <td />
             </tr>
