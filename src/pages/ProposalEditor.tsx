@@ -834,8 +834,9 @@ export function ProposalEditor() {
           topicId={proposal?.topicId}
           workProgramme={proposal?.workProgramme}
           destination={proposal?.destination}
-           acronymSegments={(proposal as any)?.acronymSegments}
-           openPanel={openPanel}
+          allSections={allSections}
+          acronymSegments={(proposal as any)?.acronymSegments}
+          openPanel={openPanel}
         />
       );
     }
@@ -988,6 +989,7 @@ export function ProposalEditor() {
         topicUrl={proposal?.topicUrl}
         workProgramme={proposal?.workProgramme}
         destination={proposal?.destination}
+        allSections={allSections}
         acronymSegments={(proposal as any)?.acronymSegments}
         openPanel={openPanel}
       />

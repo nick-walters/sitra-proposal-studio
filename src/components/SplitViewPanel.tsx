@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Section } from '@/types/proposal';
 import { useSectionContent } from '@/hooks/useSectionContent';
 import { Button } from '@/components/ui/button';
@@ -29,23 +29,25 @@ export function SplitViewPanel({
   const [selectedSectionId, setSelectedSectionId] = useState<string>('');
 
   // Recursively flatten to collect all leaf Part B sections
-  const flattenLeaves = (list: Section[]): Section[] => {
-    const out: Section[] = [];
-    for (const s of list) {
-      if (s.subsections && s.subsections.length > 0) {
-        out.push(...flattenLeaves(s.subsections));
-      } else {
-        out.push(s);
+  const availableSections = useMemo(() => {
+    const flattenLeaves = (list: Section[]): Section[] => {
+      const out: Section[] = [];
+      for (const s of list) {
+        if (s.subsections && s.subsections.length > 0) {
+          out.push(...flattenLeaves(s.subsections));
+        } else {
+          out.push(s);
+        }
       }
-    }
-    return out;
-  };
+      return out;
+    };
 
-  const availableSections = flattenLeaves(sections).filter(
-    s => s.id !== currentSectionId &&
-         !s.isPartA &&
-         (s.id.startsWith('b') || (s.number && /^B/i.test(s.number)))
-  );
+    return flattenLeaves(sections).filter(
+      s => s.id !== currentSectionId &&
+           !s.isPartA &&
+           (s.id.startsWith('b') || (s.number && /^B/i.test(s.number)))
+    );
+  }, [sections, currentSectionId]);
 
   // Set initial section
   useEffect(() => {
@@ -54,7 +56,7 @@ export function SplitViewPanel({
     }
   }, [availableSections, selectedSectionId]);
 
-  const selectedSection = sections.find(s => s.id === selectedSectionId);
+  const selectedSection = availableSections.find(s => s.id === selectedSectionId);
 
   const { content, loading } = useSectionContent({
     proposalId,
