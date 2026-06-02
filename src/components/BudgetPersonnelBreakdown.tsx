@@ -98,10 +98,10 @@ export function BudgetPersonnelBreakdown({
         <table className="w-full text-sm">
           <thead className="bg-muted/40">
             <tr className="text-xs text-muted-foreground">
-              <th className="text-left font-medium px-2 py-1.5">Personnel category (optional staff name in brackets)</th>
-              <th className="text-right font-medium px-2 py-1.5 w-[90px]">PMs</th>
-              <th className="text-right font-medium px-2 py-1.5 w-[130px]">PM rate (€)</th>
-              <th className="text-right font-medium px-2 py-1.5 w-[130px]">Cost</th>
+              <th className="text-left font-bold px-2 py-1.5">Personnel category (optional staff name in brackets)</th>
+              <th className="text-right font-bold px-2 py-1.5 w-[130px]">PM rate (&euro;)</th>
+              <th className="text-right font-bold px-2 py-1.5 w-[90px]">PMs</th>
+              <th className="text-right font-bold px-2 py-1.5 w-[130px]">Cost</th>
               <th className="w-[36px]" />
             </tr>
           </thead>
@@ -119,19 +119,19 @@ export function BudgetPersonnelBreakdown({
                 </td>
                 <td className="px-2 py-1">
                   <FormattedNumberInput
-                    value={item.pmCount}
-                    onChange={(v) => onUpdate(item.id, 'pmCount', v)}
+                    value={item.pmRate}
+                    onChange={(v) => onUpdate(item.id, 'pmRate', v)}
                     disabled={!editable}
-                    decimals={1}
+                    decimals={2}
                     className="h-7 text-sm text-right"
                   />
                 </td>
                 <td className="px-2 py-1">
                   <FormattedNumberInput
-                    value={item.pmRate}
-                    onChange={(v) => onUpdate(item.id, 'pmRate', v)}
+                    value={item.pmCount}
+                    onChange={(v) => onUpdate(item.id, 'pmCount', v)}
                     disabled={!editable}
-                    decimals={2}
+                    decimals={1}
                     className="h-7 text-sm text-right"
                   />
                 </td>
@@ -154,16 +154,16 @@ export function BudgetPersonnelBreakdown({
             {hasMismatch && (
               <tr className="border-t bg-destructive/5">
                 <td className="px-2 py-1 font-semibold text-destructive">Undefined!</td>
-                <td className="px-2 py-1 text-right tabular-nums font-semibold text-destructive">{formatPM(undefinedPm)}</td>
                 <td className="px-2 py-1" />
+                <td className="pl-2 pr-3 py-1 text-right tabular-nums font-semibold text-destructive">{formatPM(undefinedPm)}</td>
                 <td className="px-2 py-1" />
                 <td />
               </tr>
             )}
             <tr className="border-t bg-muted/30">
               <td className="px-2 py-1 font-semibold">Total PMs &amp; average weighted PM rate</td>
-              <td className="px-2 py-1 text-right tabular-nums font-semibold">{formatNumber(totalPm, 1)}</td>
-              <td className="px-2 py-1 text-right tabular-nums font-semibold">{formatNumber(weightedRate, 2)}</td>
+              <td className="pl-2 pr-3 py-1 text-right tabular-nums font-semibold">{formatNumber(weightedRate, 2)}</td>
+              <td className="pl-2 pr-3 py-1 text-right tabular-nums font-semibold">{formatNumber(totalPm, 1)}</td>
               <td className="px-2 py-1 text-right tabular-nums font-semibold">{formatCurrency(totalCost)}</td>
               <td />
             </tr>
