@@ -28,12 +28,23 @@ export function SplitViewPanel({
 }: SplitViewPanelProps) {
   const [selectedSectionId, setSelectedSectionId] = useState<string>('');
 
-  // Get all sections except current one - filter to Part B content sections
-  const availableSections = sections.filter(
-    s => s.id !== currentSectionId && 
-         !s.isPartA && 
-         !s.subsections && // Only leaf sections
-         s.id.startsWith('b') // Part B sections
+  // Recursively flatten to collect all leaf Part B sections
+  const flattenLeaves = (list: Section[]): Section[] => {
+    const out: Section[] = [];
+    for (const s of list) {
+      if (s.subsections && s.subsections.length > 0) {
+        out.push(...flattenLeaves(s.subsections));
+      } else {
+        out.push(s);
+      }
+    }
+    return out;
+  };
+
+  const availableSections = flattenLeaves(sections).filter(
+    s => s.id !== currentSectionId &&
+         !s.isPartA &&
+         (s.id.startsWith('b') || (s.number && /^B/i.test(s.number)))
   );
 
   // Set initial section
