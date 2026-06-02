@@ -44,6 +44,18 @@ Deno.serve(async (req) => {
 
     const admin = createClient(supabaseUrl, serviceKey);
 
+    // Authorization: confirm caller has a role on this proposal
+    const { data: hasAccess, error: accessError } = await admin.rpc(
+      "has_any_proposal_role",
+      { _user_id: user.id, _proposal_id: proposalId }
+    );
+    if (accessError || !hasAccess) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Check if already onboarded
     const { data: existing } = await admin
       .from("proposal_user_onboarding")
