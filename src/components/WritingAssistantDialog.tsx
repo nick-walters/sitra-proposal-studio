@@ -433,6 +433,14 @@ export function WritingAssistantDialog({
     onClose();
   };
 
+  // Reset checkbox selections whenever the dialog closes so it reopens clean.
+  useEffect(() => {
+    if (!isOpen) {
+      setSelectedCategories(new Set());
+      setIncludeConsortium(false);
+    }
+  }, [isOpen]);
+
   const grammarAcceptedCount = useMemo(
     () => grammarSuggestions.filter(s => s.decision === 'accept').length,
     [grammarSuggestions],
