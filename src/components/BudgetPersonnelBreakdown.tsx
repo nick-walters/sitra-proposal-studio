@@ -119,19 +119,19 @@ export function BudgetPersonnelBreakdown({
                 </td>
                 <td className="px-2 py-1">
                   <FormattedNumberInput
-                    value={item.pmCount}
-                    onChange={(v) => onUpdate(item.id, 'pmCount', v)}
+                    value={item.pmRate}
+                    onChange={(v) => onUpdate(item.id, 'pmRate', v)}
                     disabled={!editable}
-                    decimals={1}
+                    decimals={2}
                     className="h-7 text-sm text-right"
                   />
                 </td>
                 <td className="px-2 py-1">
                   <FormattedNumberInput
-                    value={item.pmRate}
-                    onChange={(v) => onUpdate(item.id, 'pmRate', v)}
+                    value={item.pmCount}
+                    onChange={(v) => onUpdate(item.id, 'pmCount', v)}
                     disabled={!editable}
-                    decimals={2}
+                    decimals={1}
                     className="h-7 text-sm text-right"
                   />
                 </td>
@@ -154,7 +154,7 @@ export function BudgetPersonnelBreakdown({
             {hasMismatch && (
               <tr className="border-t bg-destructive/5">
                 <td className="px-2 py-1 font-semibold text-destructive">Undefined!</td>
-                <td className="px-2 py-1 text-right tabular-nums font-semibold text-destructive">{formatPM(undefinedPm)}</td>
+                <td className="pl-2 pr-3 py-1 text-right tabular-nums font-semibold text-destructive">{formatPM(undefinedPm)}</td>
                 <td className="px-2 py-1" />
                 <td className="px-2 py-1" />
                 <td />
@@ -162,8 +162,8 @@ export function BudgetPersonnelBreakdown({
             )}
             <tr className="border-t bg-muted/30">
               <td className="px-2 py-1 font-semibold">Total PMs &amp; average weighted PM rate</td>
-              <td className="px-2 py-1 text-right tabular-nums font-semibold">{formatNumber(totalPm, 1)}</td>
-              <td className="px-2 py-1 text-right tabular-nums font-semibold">{formatNumber(weightedRate, 2)}</td>
+              <td className="pl-2 pr-3 py-1 text-right tabular-nums font-semibold">{formatNumber(weightedRate, 2)}</td>
+              <td className="pl-2 pr-3 py-1 text-right tabular-nums font-semibold">{formatNumber(totalPm, 1)}</td>
               <td className="px-2 py-1 text-right tabular-nums font-semibold">{formatCurrency(totalCost)}</td>
               <td />
             </tr>
