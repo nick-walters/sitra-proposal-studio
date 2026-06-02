@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
-import { Plus, Trash2, AlertTriangle } from 'lucide-react';
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { Plus, Trash2, AlertTriangle, Copy, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,29 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { FormattedNumberInput } from '@/components/FormattedNumberInput';
 import { formatCurrency, formatNumber } from '@/lib/formatNumber';
 import type { PersonnelBreakdownItem } from '@/hooks/useBudgetRows';
+
+function CopyCellButton({ value }: { value: number }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(value.toString());
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }, [value]);
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      className="p-1 rounded hover:bg-muted transition-colors"
+      title="Copy value"
+    >
+      {copied ? (
+        <Check className="w-3.5 h-3.5 text-green-600" />
+      ) : (
+        <Copy className="w-3.5 h-3.5 text-muted-foreground" />
+      )}
+    </button>
+  );
+}
 
 interface Props {
   budgetRowId: string;
@@ -155,18 +178,21 @@ export function BudgetPersonnelBreakdown({
               <tr className="border-t bg-destructive/5">
                 <td className="px-2 py-1 font-semibold text-destructive">Undefined!</td>
                 <td className="px-2 py-1" />
-                <td className="pl-2 pr-3 py-1 text-right tabular-nums font-semibold text-destructive">{formatPM(undefinedPm)}</td>
+                <td className="py-1 pr-5 text-right tabular-nums font-semibold text-destructive">{formatPM(undefinedPm)}</td>
                 <td className="px-2 py-1" />
                 <td />
               </tr>
             )}
             <tr className="border-t bg-muted/30">
               <td className="px-2 py-1 font-semibold">Total PMs &amp; average weighted PM rate</td>
-              <td className="pl-2 pr-3 py-1 text-right tabular-nums font-semibold">{formatNumber(weightedRate, 2)}</td>
-              <td className="pl-2 pr-3 py-1 text-right tabular-nums font-semibold">{formatNumber(totalPm, 1)}</td>
+              <td className="py-1 pr-5 text-right tabular-nums font-semibold">{formatNumber(weightedRate, 2)}</td>
+              <td className="py-1 pr-5 text-right tabular-nums font-semibold">{formatNumber(totalPm, 1)}</td>
               <td className="px-2 py-1 text-right tabular-nums font-semibold">{formatCurrency(totalCost)}</td>
-              <td />
+              <td className="px-2 py-1 text-center">
+                <CopyCellButton value={totalCost} />
+              </td>
             </tr>
+
           </tbody>
         </table>
       </div>
