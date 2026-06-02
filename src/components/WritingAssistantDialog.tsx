@@ -600,19 +600,19 @@ export function WritingAssistantDialog({
             <div className="flex-1 min-h-0 overflow-y-auto px-6 py-3">
               {expandLoading && expandSuggestions.length === 0 && (
                 <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
-                  <Loader2 className="w-4 h-4 animate-spin" /> Generating expansions…
+                  <Loader2 className="w-4 h-4 animate-spin" /> Enhancing content…
                 </div>
               )}
               {!expandLoading && expandSuggestions.length === 0 && (
                 <div className="p-4 text-center text-sm text-muted-foreground">
-                  Select text in the editor and click Expand to generate longer, stronger versions you can edit before applying.
+                  Select text in the editor and click Enhance content to generate stronger versions you can edit before applying.
                 </div>
               )}
               <div className="space-y-3">
                 {expandSuggestions.map((s, idx) => (
                   <div key={idx} className="p-3 rounded-md border bg-card space-y-2">
                     <div className="text-xs text-muted-foreground italic">{s.rationale}</div>
-                    <label className="text-xs font-medium text-primary">Expanded text (editable)</label>
+                    <label className="text-xs font-medium text-primary">Enhanced text (editable)</label>
                     <Textarea
                       value={s.edited}
                       onChange={(e) => setExpandEdited(idx, e.target.value)}
