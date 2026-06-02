@@ -178,18 +178,21 @@ export function BudgetPersonnelBreakdown({
               <tr className="border-t bg-destructive/5">
                 <td className="px-2 py-1 font-semibold text-destructive">Undefined!</td>
                 <td className="px-2 py-1" />
-                <td className="pl-2 pr-3 py-1 text-right tabular-nums font-semibold text-destructive">{formatPM(undefinedPm)}</td>
+                <td className="py-1 pr-5 text-right tabular-nums font-semibold text-destructive">{formatPM(undefinedPm)}</td>
                 <td className="px-2 py-1" />
                 <td />
               </tr>
             )}
             <tr className="border-t bg-muted/30">
               <td className="px-2 py-1 font-semibold">Total PMs &amp; average weighted PM rate</td>
-              <td className="pl-2 pr-3 py-1 text-right tabular-nums font-semibold">{formatNumber(weightedRate, 2)}</td>
-              <td className="pl-2 pr-3 py-1 text-right tabular-nums font-semibold">{formatNumber(totalPm, 1)}</td>
+              <td className="py-1 pr-5 text-right tabular-nums font-semibold">{formatNumber(weightedRate, 2)}</td>
+              <td className="py-1 pr-5 text-right tabular-nums font-semibold">{formatNumber(totalPm, 1)}</td>
               <td className="px-2 py-1 text-right tabular-nums font-semibold">{formatCurrency(totalCost)}</td>
-              <td />
+              <td className="px-2 py-1 text-center">
+                <CopyCellButton value={totalCost} />
+              </td>
             </tr>
+
           </tbody>
         </table>
       </div>
