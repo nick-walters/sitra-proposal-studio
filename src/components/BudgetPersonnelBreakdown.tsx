@@ -98,10 +98,10 @@ export function BudgetPersonnelBreakdown({
         <table className="w-full text-sm">
           <thead className="bg-muted/40">
             <tr className="text-xs text-muted-foreground">
-              <th className="text-left font-medium px-2 py-1.5">Personnel category (optional staff name in brackets)</th>
-              <th className="text-right font-medium px-2 py-1.5 w-[90px]">PMs</th>
-              <th className="text-right font-medium px-2 py-1.5 w-[130px]">PM rate (€)</th>
-              <th className="text-right font-medium px-2 py-1.5 w-[130px]">Cost</th>
+              <th className="text-left font-bold px-2 py-1.5">Personnel category (optional staff name in brackets)</th>
+              <th className="text-right font-bold px-2 py-1.5 w-[130px]">PM rate (&euro;)</th>
+              <th className="text-right font-bold px-2 py-1.5 w-[90px]">PMs</th>
+              <th className="text-right font-bold px-2 py-1.5 w-[130px]">Cost</th>
               <th className="w-[36px]" />
             </tr>
           </thead>
