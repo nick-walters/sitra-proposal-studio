@@ -78,9 +78,18 @@ serve(async (req) => {
 The user has asked you to review ONLY the following categories — do NOT flag anything outside them:
 ${instructionsBlock}
 
+ABSOLUTE STYLE RULE — avoid AI-style vocabulary:
+Replacements MUST NOT introduce clichéd LLM/AI-style language. Specifically, never use (or only flag against, never propose) words and phrases such as:
+"delve", "deep dive", "pivot", "leverage" (as verb), "unleash", "unlock", "harness", "navigate the landscape",
+"in today's fast-paced world", "game-changer", "synergy", "tapestry", "realm", "robust", "seamless",
+"cutting-edge", "revolutionary", "transformative" (as filler), "moreover"/"furthermore" used as filler,
+"it is worth noting that", "embark on a journey", "at the forefront", "paradigm shift", "holistic",
+"in the realm of", "a testament to", "ever-evolving", "dive into", "elevate", "supercharge", "empower" (as filler).
+Prefer concrete, plain, specific verbs and nouns. If the original text contains any of these terms, you SHOULD flag them under the "tone" or "clarity" category and propose plain replacements.
+
 For each issue found, return:
 1. original: the exact substring from the input text (must match character-for-character)
-2. replacement: the suggested replacement text
+2. replacement: the suggested replacement text (free of the banned vocabulary above)
 3. type: one of ${selected.map(c => `"${c}"`).join(', ')}
 4. explanation: a brief, concrete reason (1 sentence)
 
