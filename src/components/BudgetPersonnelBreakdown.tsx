@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { FormattedNumberInput } from '@/components/FormattedNumberInput';
-import { formatCurrency } from '@/lib/formatNumber';
+import { formatCurrency, formatNumber } from '@/lib/formatNumber';
 import type { PersonnelBreakdownItem } from '@/hooks/useBudgetRows';
 
 interface Props {
