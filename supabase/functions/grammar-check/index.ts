@@ -6,13 +6,29 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+type Category = 'grammar' | 'conciseness' | 'clarity' | 'tone' | 'terminology';
+
+const CATEGORY_INSTRUCTIONS: Record<Category, string> = {
+  grammar: `- GRAMMAR & SPELLING: Flag incorrect grammar, punctuation, agreement, tense, and spelling errors (Grammarly-style). Use type "grammar".`,
+  conciseness: `- CONCISENESS: Flag redundant words, filler phrases, and sentences that can be restructured to be more direct without losing meaning. Use type "conciseness".`,
+  clarity: `- CLARITY: Flag confusing, ambiguous, or convoluted phrasing. Suggest clearer alternatives. Use type "clarity".`,
+  tone: `- TONE (Sitra tone model): Reshape phrasing to match Sitra's tone — inspiring, curious, hopeful, understandable (clear, plain language), and expert (credible, evidence-based, confident but not arrogant). Prefer:
+    * Solution-oriented framing (what can be done, not just problems)
+    * Collaboration & partnership language (Sitra as strategic partner, bridge-builder, networker)
+    * Future tense and formal language ("X will be done" rather than "We do X")
+    * Active voice; no jargon; no hype, speculation, or unsupported claims
+    * Professional, neutral, non-political; not promotional or marketing-style
+    * Accessible to international audiences
+    Preserve original meaning and commitments — invent no new facts. Use type "tone".`,
+  terminology: `- TERMINOLOGY: Flag wording that should use proper EU policy and Horizon Europe terminology (Excellence / Impact / Implementation, work package, deliverable, milestone, beneficiary, affiliated entity, lump sum, etc.) and suggest the correct EU/HE term. Use type "terminology".`,
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Authenticate the user
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(
@@ -36,9 +52,9 @@ serve(async (req) => {
       );
     }
 
-    const { text } = await req.json();
+    const { text, categories } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    
+
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
@@ -50,6 +66,26 @@ serve(async (req) => {
       );
     }
 
+    const allCategories: Category[] = ['grammar', 'conciseness', 'clarity', 'tone', 'terminology'];
+    const selected: Category[] = Array.isArray(categories) && categories.length > 0
+      ? (categories as string[]).filter((c): c is Category => (allCategories as string[]).includes(c))
+      : allCategories;
+
+    const instructionsBlock = selected.map(c => CATEGORY_INSTRUCTIONS[c]).join('\n');
+
+    const systemPrompt = `You are an advanced writing reviewer for Horizon Europe grant proposals, applying Sitra's editorial standards.
+
+The user has asked you to review ONLY the following categories — do NOT flag anything outside them:
+${instructionsBlock}
+
+For each issue found, return:
+1. original: the exact substring from the input text (must match character-for-character)
+2. replacement: the suggested replacement text
+3. type: one of ${selected.map(c => `"${c}"`).join(', ')}
+4. explanation: a brief, concrete reason (1 sentence)
+
+Be thorough but practical. If the text is already strong in the selected categories, return an empty array.`;
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -59,36 +95,15 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         messages: [
-          {
-            role: "system",
-            content: `You are an advanced grammar and style checker for academic/grant proposals. Analyze the text and provide suggestions for improvement.
-
-For each issue found, provide:
-1. The problematic text (exact match from original)
-2. The suggested replacement
-3. The type of issue: "grammar", "spelling", "style", "clarity", "wordiness", or "punctuation"
-4. A brief explanation
-
-Return a JSON array of suggestions. Be thorough but practical. Focus on:
-- Grammar and spelling errors
-- Awkward phrasing
-- Wordiness that can be trimmed
-- Academic writing improvements
-- Clarity issues
-
-If the text is perfect, return an empty array.`
-          },
-          {
-            role: "user",
-            content: `Please analyze this text and provide improvement suggestions:\n\n${text}`
-          }
+          { role: "system", content: systemPrompt },
+          { role: "user", content: `Review this text for the selected categories only:\n\n${text}` }
         ],
         tools: [
           {
             type: "function",
             function: {
               name: "provide_suggestions",
-              description: "Provide grammar and style suggestions",
+              description: "Provide writing improvement suggestions for the selected categories",
               parameters: {
                 type: "object",
                 properties: {
@@ -99,10 +114,7 @@ If the text is perfect, return an empty array.`
                       properties: {
                         original: { type: "string", description: "The exact text that needs improvement" },
                         replacement: { type: "string", description: "The suggested replacement text" },
-                        type: { 
-                          type: "string", 
-                          enum: ["grammar", "spelling", "style", "clarity", "wordiness", "punctuation"]
-                        },
+                        type: { type: "string", enum: selected },
                         explanation: { type: "string", description: "Brief explanation of the issue" }
                       },
                       required: ["original", "replacement", "type", "explanation"]
@@ -136,7 +148,7 @@ If the text is perfect, return an empty array.`
 
     const data = await response.json();
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
-    
+
     if (toolCall?.function?.arguments) {
       const parsed = JSON.parse(toolCall.function.arguments);
       return new Response(
