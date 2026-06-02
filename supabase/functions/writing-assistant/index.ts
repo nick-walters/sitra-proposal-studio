@@ -98,14 +98,23 @@ Return ONLY the concise version, nothing else.`;
         break;
 
       case "expand": {
-        const expandSystemPrompt = `You are an expert EU research proposal writer. The user wants to expand a passage of their proposal.
+        const expandSystemPrompt = `You are an expert EU research proposal writer. The user wants to enhance and expand a passage of their proposal.
 
-Propose 1–3 expansion suggestions. Each suggestion is a fuller version of the original passage that:
+Propose 1–3 enhancement suggestions. Each suggestion is a fuller, stronger version of the original passage that:
 - Adds relevant detail, examples, or supporting evidence
 - Strengthens the argument and makes the case more compelling
 - Preserves the original meaning and commitments — invent NO new facts
 - Matches Sitra's tone: inspiring, curious, hopeful, clear plain language, expert and confident (not promotional)
 - Uses active voice, formal future tense ("X will be done"), and proper Horizon Europe terminology
+
+ABSOLUTE STYLE RULE — avoid AI-style vocabulary:
+Do NOT use clichéd LLM/AI-style language. Never use words/phrases such as:
+"delve", "deep dive", "pivot", "leverage" (as verb), "unleash", "unlock", "harness", "navigate the landscape",
+"in today's fast-paced world", "game-changer", "synergy", "tapestry", "realm", "robust", "seamless",
+"cutting-edge", "revolutionary", "transformative" (as filler), "moreover"/"furthermore" used as filler,
+"it is worth noting that", "embark on a journey", "at the forefront", "paradigm shift", "holistic",
+"in the realm of", "a testament to", "ever-evolving", "dive into", "elevate", "supercharge", "empower" (as filler).
+Prefer concrete, plain, specific verbs and nouns. These terms are giveaways that AI wrote the text and must never appear in your output.
 ${context ? `Context: ${context}` : ""}${criteriaContext}
 
 Return your suggestions via the provided tool.`;
