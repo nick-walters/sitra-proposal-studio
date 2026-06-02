@@ -604,14 +604,23 @@ export function WritingAssistantDialog({
           <TabsContent value="content" className="flex-1 flex flex-col min-h-0 mt-3 data-[state=inactive]:hidden">
             <div className="px-6 pb-3 shrink-0 space-y-3 border-b">
               <div>
-                <label className="text-sm font-medium">Selected text</label>
+                <label className="text-sm font-medium">
+                  {selectedText.trim() ? 'Selected text' : 'Whole section'}
+                </label>
                 <div className="mt-1 p-3 bg-muted rounded-md max-h-24 overflow-y-auto">
                   <p className="text-sm whitespace-pre-wrap">
-                    {selectedText || <span className="text-muted-foreground italic">Select text in the editor first</span>}
+                    {selectedText.trim()
+                      ? selectedText
+                      : (plainText && plainText.trim()
+                          ? plainText
+                          : <span className="text-muted-foreground italic">No text available</span>)}
                   </p>
                 </div>
-                {selectedText && (
-                  <Badge variant="secondary" className="text-xs mt-1">{selectedText.split(/\s+/).length} words</Badge>
+                {(selectedText.trim() || (plainText && plainText.trim())) && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    One suggestion will be generated per paragraph.
+                    {!selectedText.trim() && ' Whole section will be analysed because nothing is selected.'}
+                  </p>
                 )}
               </div>
               {expandLoading ? (
@@ -621,7 +630,7 @@ export function WritingAssistantDialog({
               ) : (
                 <Button
                   onClick={handleExpand}
-                  disabled={!selectedText.trim()}
+                  disabled={!selectedText.trim() && !(plainText && plainText.trim())}
                   className="w-full gap-2"
                   size="sm"
                 >
