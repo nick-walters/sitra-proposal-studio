@@ -97,16 +97,95 @@ Return ONLY the concise version, nothing else.`;
         userPrompt = `Make this text more concise:\n\n${text}`;
         break;
 
-      case "expand":
-        systemPrompt = `You are an expert EU research proposal writer. Expand the text by:
-- Adding relevant details and examples
-- Strengthening arguments
-- Adding supporting evidence where appropriate
-- Making the case more compelling
+      case "expand": {
+        const expandSystemPrompt = `You are an expert EU research proposal writer. The user wants to expand a passage of their proposal.
+
+Propose 1–3 expansion suggestions. Each suggestion is a fuller version of the original passage that:
+- Adds relevant detail, examples, or supporting evidence
+- Strengthens the argument and makes the case more compelling
+- Preserves the original meaning and commitments — invent NO new facts
+- Matches Sitra's tone: inspiring, curious, hopeful, clear plain language, expert and confident (not promotional)
+- Uses active voice, formal future tense ("X will be done"), and proper Horizon Europe terminology
 ${context ? `Context: ${context}` : ""}${criteriaContext}
-Return ONLY the expanded text, nothing else.`;
-        userPrompt = `Expand and strengthen this text:\n\n${text}`;
-        break;
+
+Return your suggestions via the provided tool.`;
+
+        const expandResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-3-flash-preview",
+            messages: [
+              { role: "system", content: expandSystemPrompt },
+              { role: "user", content: `Expand and strengthen this text:\n\n${text}` }
+            ],
+            tools: [
+              {
+                type: "function",
+                function: {
+                  name: "provide_expansions",
+                  description: "Provide expansion suggestions for the passage",
+                  parameters: {
+                    type: "object",
+                    properties: {
+                      suggestions: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          properties: {
+                            original: { type: "string", description: "The original passage being expanded (echo the input)" },
+                            expanded: { type: "string", description: "The expanded version of the passage" },
+                            rationale: { type: "string", description: "One short sentence explaining what was added" },
+                          },
+                          required: ["original", "expanded", "rationale"],
+                        },
+                      },
+                    },
+                    required: ["suggestions"],
+                  },
+                },
+              },
+            ],
+            tool_choice: { type: "function", function: { name: "provide_expansions" } },
+          }),
+        });
+
+        if (!expandResponse.ok) {
+          if (expandResponse.status === 429) {
+            return new Response(
+              JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
+              { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+          if (expandResponse.status === 402) {
+            return new Response(
+              JSON.stringify({ error: "AI credits exhausted. Please add funds." }),
+              { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+          throw new Error(`AI gateway error: ${expandResponse.status}`);
+        }
+
+        const expandData = await expandResponse.json();
+        const toolCall = expandData.choices?.[0]?.message?.tool_calls?.[0];
+        let suggestions: Array<{ original: string; expanded: string; rationale: string }> = [];
+        if (toolCall?.function?.arguments) {
+          try {
+            const parsed = JSON.parse(toolCall.function.arguments);
+            suggestions = parsed.suggestions || [];
+          } catch (_) {
+            suggestions = [];
+          }
+        }
+
+        return new Response(
+          JSON.stringify({ suggestions }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
 
       case "eu_language":
         systemPrompt = `You are an expert EU research proposal writer. Adapt the text to use proper EU proposal language by:

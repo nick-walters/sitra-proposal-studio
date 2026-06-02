@@ -1,86 +1,87 @@
-The issue is not that 82.5 KB is “large”. It is small. The problem is that the editor currently treats that small document as expensive by repeatedly rebuilding, scanning, measuring, and broadcasting around it. A section with several tables simply exposes the weakness sooner. The fix should strengthen the shared editor path for B1.1, B1.2, B2.1, B2.2 and other normal Part B editors; B3.1 keeps its separate structured-table behaviour.
 
-## What I will change
+## AI Tools dialog — full restructure
 
-1. **Create the editor only after the section content has loaded**
-   - Right now the editor can be created with empty content, then later have the real saved content pushed into it.
-   - I will make the normal editor mount only once the saved content is ready, with that content already inside it.
-   - Layman’s version: stop opening a blank document and then pasting the real document into it a moment later.
+Scope: `src/components/WritingAssistantDialog.tsx` (major rewrite), `supabase/functions/grammar-check/index.ts` (categories), `supabase/functions/writing-assistant/index.ts` (expand returns array). No DB changes. Caller props in `DocumentEditor.tsx` are preserved.
 
-2. **Stop using broad `setContent` for ordinary loading**
-   - `setContent` is heavy because it asks the editor to replace the whole document.
-   - It should be reserved for deliberate whole-document actions, such as restoring a version or applying an assistant rewrite.
-   - Ordinary section loading should be “initial content only”.
+### 1. Cancellable analyses
 
-3. **Normalise loaded HTML once, not repeatedly**
-   - The style-cleaning pass should run once when content comes from storage.
-   - It should not run again because the cursor moved, a save status changed, a collaborator presence update arrived, or the toolbar re-rendered.
+- Each AI call uses an `AbortController` stored in a ref (`grammarAbortRef`, `expandAbortRef`, `evalAbortRef`).
+- Calls switch from `supabase.functions.invoke` to a direct `fetch` against `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/<fn>` with the session access token, so `signal` can be passed.
+- While loading, the trigger button becomes a red **Stop** button. Clicking aborts the request and resets state silently.
 
-4. **Reduce full-document scans on startup and typing**
-   - The shared editor currently has several helpers that can walk the whole document: track changes, cross-reference syncing, formula display, caption/table helpers and reference protection.
-   - I will keep the features, but change when they run:
-     - run after the editor is interactive, not during first tap/open;
-     - skip entirely when the document does not contain the relevant markers;
-     - for formula decorations, do not inspect every table unless a formula marker is present;
-     - avoid re-scanning on selection-only cursor movement.
+### 2. Scrollable popup, fixed tabs, fixed action footers
 
-5. **Make tapping/cursor movement cheap**
-   - Selection changes currently trigger several side jobs: collaborator cursor updates, block locking, selected-text tracking, caption refresh positioning and overlay positioning.
-   - I will debounce/throttle those jobs and avoid duplicate state updates when nothing meaningful changed.
-   - Layman’s version: the cursor should appear immediately; background collaboration bookkeeping can catch up milliseconds later.
+- `DialogContent` keeps `max-h-[85vh] flex flex-col`.
+- Each tab uses a 3-row flex layout:
+  ```text
+  [ controls (non-scrolling) ]
+  [ results body (flex-1, overflow-y-auto) ]
+  [ primary action button (fixed footer) ]
+  ```
+- Per-tab `ScrollArea` becomes a single scroll container so **Process selections** / **Evaluate** / **Stop** never scroll out of view.
 
-6. **Ensure overlays cannot block editing**
-   - I will make lock/cursor/caption overlays pass normal editor clicks through except for their actual small buttons/icons.
-   - This addresses the “not clickable” symptom separately from the crash/performance symptom.
+### 3. Final tab set
 
-7. **Keep B3.1 special; keep all other Part B editors the same**
-   - No B1.2-only fix.
-   - No different B1.2 editor.
-   - Normal Part B sections use one shared editor path.
-   - B3.1 remains special only because it has its generated/structured tables outside the standard rich-text content.
+1. **Grammar & writing style**
+2. **Content enhancement**
+3. **Evaluation**
 
-## Technical implementation targets
+Removed: Result, Consortium (folded into Evaluation), original Grammar / Writing labels.
 
-- `src/components/DocumentEditor.tsx`
-  - Gate standard editor rendering until `loading === false`.
-  - Key the standard editor by `section.id` so section switches create a clean editor instance.
-  - Move heavy startup jobs behind idle scheduling.
-  - Throttle selection side effects and avoid duplicate state writes.
-  - Ensure overlays use non-blocking pointer behaviour.
+### 4. Grammar & writing style tab
 
-- `src/components/RichTextEditor.tsx`
-  - Remove broad prop-driven `setContent` for normal editor loading.
-  - Add an explicit version/replace path for true whole-document replacements only.
-  - Add TipTap React performance options where supported, especially to avoid unnecessary React re-rendering on selection transactions.
-  - Memoise/centralise loaded-content normalisation.
+Top (non-scrolling) — five checkboxes (all off by default):
 
-- `src/extensions/TableFormula.ts`
-  - Add a fast text/marker check before table traversal.
-  - Cache formula decorations in plugin state instead of rebuilding by scanning every table on every decoration request.
+- **Grammar** — correct grammar (Grammarly-style)
+- **Conciseness** — remove redundant words, restructure where needed
+- **Clarity** — improve clarity of content
+- **Tone** — Sitra tone (see prompt below)
+- **Terminology** — EU policy & Horizon Europe terminology
 
-- `src/extensions/TrackChanges.ts`
-  - Keep track changes functionality, but avoid whole-document collection/re-decoration on selection-only transactions.
-  - Defer initial collection so it does not compete with first render/tap.
+Primary trigger: **Suggest grammatical and writing style improvements** (disabled when no boxes ticked; becomes **Stop** while running).
 
-- `src/lib/syncCrossReferences.ts`
-  - Add a cheap preflight: if the document has no relevant reference marks, do not fetch proposal-wide reference data and do not scan/update.
-  - Run sync on idle after load and explicit reference-changing events, not as part of making the editor clickable.
+Body (scrolling): each suggestion card shows original → replacement, category badge, explanation, plus a `RadioGroup` with **Accept** / **Reject** (default unselected).
 
-- `src/components/BlockLockIndicator.tsx`, `src/components/CollaborativeCursors.tsx`, `src/components/CaptionRefreshButton.tsx`
-  - Reduce layout measurement pressure (`coordsAtPos`, `getBoundingClientRect`, `nodeDOM`) on every cursor/transaction.
-  - Keep visual indicators, but ensure they do not intercept editor clicks.
+Footer (fixed): **Process selections** — applies each Accept via `onApplyGrammarSuggestion`, drops Rejects, removes processed items.
 
-## Validation
+Edge function (`grammar-check`): accepts `categories: string[]` and only flags those categories. The Tone category injects the Sitra tone model:
 
-After implementation I will verify the actual shared behaviour, not just the code:
+> **Sitra tone:** inspiring, curious, hopeful, understandable (clear, plain language), expert (credible, evidence-based, confident but not arrogant). Solution-oriented framing (what can be done, not just problems); collaboration & partnership language (Sitra as strategic partner, bridge-builder, networker); future tense and formal language ("X will be done" rather than "We do X"); active voice; no jargon; no hype, speculation, or unsupported claims; professional, neutral, non-political; not promotional or marketing-style; accessible to international audiences. Preserve original meaning and commitments — invent no new facts.
 
-1. Open a normal Part B section with content and tables.
-2. Confirm the editor mounts after content load and is immediately clickable.
-3. Click into table cells and ordinary paragraphs.
-4. Check console errors/warnings.
-5. Run a browser performance profile to confirm first interaction is not blocked by repeated whole-document work.
-6. Confirm B3.1 still keeps its structured content and B3.2 is not inserted into B3.1 or B2.2.
+### 5. Content enhancement tab (was "Writing")
 
-## Expected result in plain English
+- Single function: **Expand**. Improve Clarity / Improve Tone / Make Concise / EU Language / Evaluate Section are removed from this tab.
+- Top (non-scrolling): selected-text preview + word count, **Expand** button (→ **Stop** while loading).
+- Body (scrolling): one or more expansion suggestion cards, each with:
+  - The original snippet
+  - An editable `Textarea` pre-filled with the AI's expanded text — user can refine before accepting
+  - `RadioGroup`: **Accept** / **Reject**
+- Footer (fixed): **Process selections** — for each Accept, calls `onApply` with the current textarea value; Rejects are dropped.
+- Backend: `writing-assistant` `expand` returns `{ suggestions: [{ original, expanded, rationale }] }` via tool calling. Prompt enforces Sitra tone (same model as above) and "no new facts".
 
-All ordinary Part B editors will behave like the same robust document editor. They should handle documents far larger than 82.5 KB because they will no longer rebuild or sweep the whole document just to load, tap, move the cursor, or show collaboration indicators.
+### 6. Evaluation tab
+
+- Top (non-scrolling):
+  - **Evaluate** button — evaluates the whole section text (no selection required).
+  - Checkbox: **Also evaluate the consortium for this proposal** (default off; hidden when `!canUseConsortiumBuilder` or `!proposalId`).
+  - Button becomes **Stop** while loading.
+- Body (scrolling), stacked:
+  - Section evaluation: overall score + per-criterion `ScoreBar` + strengths / weaknesses / suggestions (current Evaluation UI).
+  - If checkbox was on: consortium summary + strengths + recommended partners (current Consortium UI).
+- Logic: clicking **Evaluate** runs `writing-assistant` `evaluate_section` (and `analyse-consortium` in parallel when the checkbox is ticked); shared Stop button aborts both. Results render progressively.
+- The standalone Consortium tab is removed.
+
+### 7. Result tab removal
+
+- Delete the Result `TabsTrigger` and `TabsContent`.
+- Remove the `result`/`copied`/`handleCopy`/`handleApply` single-text-replace flow (no longer needed). `onApply` prop is kept and used by Content enhancement's per-suggestion apply.
+
+### 8. What the Evaluation tab does (user-facing copy in the tab)
+
+Runs a Horizon Europe-style reviewer simulation on the current section: scores 1–5 against the relevant EC criterion (Excellence for B1.1, Implementation for B1.2, Impact for B2.1, or all three otherwise), with specific strengths, weaknesses, and improvement suggestions per criterion plus an overall summary. With the optional consortium checkbox on, it also analyses the whole proposal's consortium against HE best practices and flags geographic / expertise / role-coverage gaps with suggested partner profiles.
+
+### Files touched
+
+- `src/components/WritingAssistantDialog.tsx` — rewrite
+- `supabase/functions/grammar-check/index.ts` — categories + Sitra tone prompt
+- `supabase/functions/writing-assistant/index.ts` — expand returns suggestions array via tool calling
