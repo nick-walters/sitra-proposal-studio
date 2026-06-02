@@ -98,9 +98,9 @@ Return ONLY the concise version, nothing else.`;
         break;
 
       case "expand": {
-        const expandSystemPrompt = `You are an expert EU research proposal writer. The user wants to enhance and expand a passage of their proposal.
+        const expandSystemPrompt = `You are an expert EU research proposal writer. The user wants to enhance and expand a single passage of their proposal.
 
-Propose 1–3 enhancement suggestions. Each suggestion is a fuller, stronger version of the original passage that:
+Return EXACTLY ONE enhancement suggestion for the passage — never more than one. The suggestion is a fuller, stronger version of the original passage that:
 - Adds relevant detail, examples, or supporting evidence
 - Strengthens the argument and makes the case more compelling
 - Preserves the original meaning and commitments — invent NO new facts
@@ -117,7 +117,7 @@ Do NOT use clichéd LLM/AI-style language. Never use words/phrases such as:
 Prefer concrete, plain, specific verbs and nouns. These terms are giveaways that AI wrote the text and must never appear in your output.
 ${context ? `Context: ${context}` : ""}${criteriaContext}
 
-Return your suggestions via the provided tool.`;
+Return your single suggestion via the provided tool (suggestions array of length exactly 1).`;
 
         const expandResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",

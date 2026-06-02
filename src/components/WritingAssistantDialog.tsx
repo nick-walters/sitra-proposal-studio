@@ -278,43 +278,70 @@ export function WritingAssistantDialog({
     toast.success(`Applied ${accepted.length} suggestion(s)`);
   };
 
-  // --- Content enhancement: Expand ---
+  // --- Content enhancement: Enhance content (paragraph-by-paragraph) ---
+  const splitIntoParagraphs = (raw: string): string[] => {
+    return raw
+      .split(/\n\s*\n+/)
+      .map(p => p.trim())
+      .filter(p => p.length > 0);
+  };
+
   const handleExpand = useCallback(async () => {
-    if (!selectedText.trim()) {
-      toast.error('Select text in the editor first');
+    const source = (selectedText && selectedText.trim()) ? selectedText : (plainText || '');
+    if (!source.trim()) {
+      toast.error('No text available to enhance');
       return;
     }
+    const paragraphs = splitIntoParagraphs(source);
+    if (paragraphs.length === 0) {
+      toast.error('No text available to enhance');
+      return;
+    }
+
     const controller = new AbortController();
     expandAbortRef.current = controller;
     setExpandLoading(true);
     setExpandSuggestions([]);
 
     try {
-      const data = await callFunction<{ suggestions?: { original: string; expanded: string; rationale: string }[]; error?: string }>(
-        'writing-assistant',
-        { text: selectedText, action: 'expand', sectionType },
-        controller.signal,
+      // One enhancement per paragraph, in parallel.
+      const results = await Promise.all(
+        paragraphs.map(async (para) => {
+          try {
+            const data = await callFunction<{ suggestions?: { original: string; expanded: string; rationale: string }[]; error?: string }>(
+              'writing-assistant',
+              { text: para, action: 'expand', sectionType },
+              controller.signal,
+            );
+            if (data.error) return null;
+            const first = (data.suggestions || [])[0];
+            if (!first) return null;
+            // Force original to the actual paragraph so apply-by-text-replace works.
+            return { ...first, original: para } as { original: string; expanded: string; rationale: string };
+          } catch (err: any) {
+            if (err?.name === 'AbortError') throw err;
+            console.error('Enhance paragraph error:', err);
+            return null;
+          }
+        })
       );
-      if (data.error) {
-        toast.error(data.error);
-        return;
-      }
-      const list: ExpandSuggestion[] = (data.suggestions || []).map(s => ({
-        ...s,
-        edited: s.expanded,
-        decision: null,
-      }));
+
+      const list: ExpandSuggestion[] = results
+        .filter((r): r is { original: string; expanded: string; rationale: string } => !!r)
+        .map(s => ({ ...s, edited: s.expanded, decision: null }));
+
       setExpandSuggestions(list);
-      if (list.length === 0) toast.info('No expansion suggestions returned.');
+      if (list.length === 0) toast.info('No enhancement suggestions returned.');
+      else toast.info(`Generated ${list.length} suggestion${list.length === 1 ? '' : 's'}`);
     } catch (err: any) {
       if (err?.name === 'AbortError') return;
-      console.error('Expand error:', err);
-      toast.error(err?.message || 'Failed to generate expansions.');
+      console.error('Enhance error:', err);
+      toast.error(err?.message || 'Failed to generate enhancements.');
     } finally {
       setExpandLoading(false);
       expandAbortRef.current = null;
     }
-  }, [selectedText, sectionType]);
+  }, [selectedText, plainText, sectionType]);
 
   const stopExpand = () => expandAbortRef.current?.abort();
 
@@ -332,15 +359,21 @@ export function WritingAssistantDialog({
       toast.info('Mark suggestions as Accept or Reject first');
       return;
     }
-    // For expand, apply each accept in turn. onApply replaces the current selection;
-    // typically only one expansion is accepted at a time. Multiple accepts will each
-    // replace the current selection (latest wins).
-    for (const s of accepted) {
-      onApply(s.edited);
+    // Apply each accepted enhancement by replacing the original paragraph in the
+    // editor. Falls back to onApply (replace selection) only when no text-replace
+    // handler is available and there is exactly one accepted suggestion.
+    if (accepted.length > 0) {
+      if (onApplyGrammarSuggestion) {
+        for (const s of accepted) {
+          onApplyGrammarSuggestion(s.original, s.edited);
+        }
+      } else if (accepted.length === 1) {
+        onApply(accepted[0].edited);
+      }
     }
     setExpandSuggestions(prev => prev.filter(s => s.decision === null));
     if (accepted.length > 0) {
-      toast.success('Expansion applied');
+      toast.success(`Applied ${accepted.length} enhancement${accepted.length === 1 ? '' : 's'}`);
       onClose();
     } else {
       toast.success('Suggestions discarded');
@@ -571,14 +604,23 @@ export function WritingAssistantDialog({
           <TabsContent value="content" className="flex-1 flex flex-col min-h-0 mt-3 data-[state=inactive]:hidden">
             <div className="px-6 pb-3 shrink-0 space-y-3 border-b">
               <div>
-                <label className="text-sm font-medium">Selected text</label>
+                <label className="text-sm font-medium">
+                  {selectedText.trim() ? 'Selected text' : 'Whole section'}
+                </label>
                 <div className="mt-1 p-3 bg-muted rounded-md max-h-24 overflow-y-auto">
                   <p className="text-sm whitespace-pre-wrap">
-                    {selectedText || <span className="text-muted-foreground italic">Select text in the editor first</span>}
+                    {selectedText.trim()
+                      ? selectedText
+                      : (plainText && plainText.trim()
+                          ? plainText
+                          : <span className="text-muted-foreground italic">No text available</span>)}
                   </p>
                 </div>
-                {selectedText && (
-                  <Badge variant="secondary" className="text-xs mt-1">{selectedText.split(/\s+/).length} words</Badge>
+                {(selectedText.trim() || (plainText && plainText.trim())) && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    One suggestion will be generated per paragraph.
+                    {!selectedText.trim() && ' Whole section will be analysed because nothing is selected.'}
+                  </p>
                 )}
               </div>
               {expandLoading ? (
@@ -588,7 +630,7 @@ export function WritingAssistantDialog({
               ) : (
                 <Button
                   onClick={handleExpand}
-                  disabled={!selectedText.trim()}
+                  disabled={!selectedText.trim() && !(plainText && plainText.trim())}
                   className="w-full gap-2"
                   size="sm"
                 >
@@ -605,7 +647,7 @@ export function WritingAssistantDialog({
               )}
               {!expandLoading && expandSuggestions.length === 0 && (
                 <div className="p-4 text-center text-sm text-muted-foreground">
-                  Select text in the editor and click Enhance content to generate stronger versions you can edit before applying.
+                  Click Enhance content to generate one stronger version per paragraph. With no selection, the whole section is enhanced; with a selection, only the selected paragraphs.
                 </div>
               )}
               <div className="space-y-3">
