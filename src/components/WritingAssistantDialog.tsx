@@ -137,7 +137,7 @@ function ScoreBar({ score, label }: { score: number; label: string }) {
     <div className="space-y-1">
       <div className="flex justify-between text-xs">
         <span className="font-medium">{label}</span>
-        <span className={cn('font-bold', color)}>{score}/5</span>
+        <span className={cn('font-bold', color)}>{score.toFixed(1)}/5</span>
       </div>
       <Progress value={percentage} className="h-2" />
     </div>
