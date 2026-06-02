@@ -284,27 +284,23 @@ export function BudgetParticipantForm({
             onDelete={deletePersonnelBreakdownItem}
           />
 
-          <div className="flex items-center gap-2 py-1 border-t text-sm">
-            <span className="font-medium w-[220px] shrink-0">Personnel costs (auto-calculated)</span>
-            <div className="flex items-center gap-1 flex-1 justify-end">
-              <span className="font-semibold tabular-nums">{formatCurrency(row.personnelCosts)}</span>
-              <CopyButton value={row.personnelCosts} />
+          {showReq && (
+            <div className="flex items-center gap-2 py-1 border-t text-sm">
+              <span className="font-medium w-[220px] shrink-0">Requested personnel costs</span>
+              <div className="flex-1" />
+              <FormattedNumberInput
+                value={row.requestedPersonnelCosts ?? row.personnelCosts}
+                onChange={(v) => updateRow(row.id, 'requestedPersonnelCosts', v)}
+                disabled={!editable}
+                allowZero
+                decimals={2}
+                className="h-8 text-sm text-right flex-1"
+              />
+              <span className="text-xs text-muted-foreground w-4">€</span>
+              <CopyButton value={row.requestedPersonnelCosts ?? row.personnelCosts} />
             </div>
-            {showReq && (
-              <>
-                <FormattedNumberInput
-                  value={row.requestedPersonnelCosts ?? row.personnelCosts}
-                  onChange={(v) => updateRow(row.id, 'requestedPersonnelCosts', v)}
-                  disabled={!editable}
-                  allowZero
-                  decimals={2}
-                  className="h-8 text-sm text-right flex-1"
-                />
-                <span className="text-xs text-muted-foreground w-4">€</span>
-                <CopyButton value={row.requestedPersonnelCosts ?? row.personnelCosts} />
-              </>
-            )}
-          </div>
+          )}
+
         </CardContent>
       </Card>
 
