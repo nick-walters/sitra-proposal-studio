@@ -103,7 +103,7 @@ const CATEGORIES: { id: Category; label: string; description: string }[] = [
   { id: 'grammar', label: 'Grammar', description: 'Correct grammar (Grammarly-style)' },
   { id: 'conciseness', label: 'Conciseness', description: 'Remove redundant words; restructure where needed' },
   { id: 'clarity', label: 'Clarity', description: 'Improve clarity of content' },
-  { id: 'tone', label: 'Tone', description: "Sitra tone; formal future tense ("X will be done")" },
+  { id: 'tone', label: 'Tone', description: 'Sitra tone; formal future tense (e.g. “X will be done”)' },
   { id: 'terminology', label: 'Terminology', description: 'EU policy & Horizon Europe terminology' },
 ];
 
