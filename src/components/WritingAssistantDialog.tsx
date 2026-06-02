@@ -707,7 +707,7 @@ export function WritingAssistantDialog({
                           : evaluation.overallScore >= 3 ? 'text-amber-600 dark:text-amber-400'
                           : 'text-destructive',
                       )}>
-                        {evaluation.overallScore}/5
+                        {evaluation.overallScore.toFixed(1)}/5
                       </span>
                     </div>
                     <p className="text-sm text-muted-foreground">{evaluation.summary}</p>
