@@ -592,7 +592,7 @@ export function WritingAssistantDialog({
                   className="w-full gap-2"
                   size="sm"
                 >
-                  <Expand className="w-4 h-4" /> Expand
+                  <Sparkles className="w-4 h-4" /> Enhance content
                 </Button>
               )}
             </div>
