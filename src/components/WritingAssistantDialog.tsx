@@ -103,7 +103,7 @@ const CATEGORIES: { id: Category; label: string; description: string }[] = [
   { id: 'grammar', label: 'Grammar', description: 'Correct grammar (Grammarly-style)' },
   { id: 'conciseness', label: 'Conciseness', description: 'Remove redundant words; restructure where needed' },
   { id: 'clarity', label: 'Clarity', description: 'Improve clarity of content' },
-  { id: 'tone', label: 'Tone', description: "Sitra tone; formal future tense (\u201CX will be done\u201D)" },
+  { id: 'tone', label: 'Tone', description: "Sitra tone; formal future tense ("X will be done")" },
   { id: 'terminology', label: 'Terminology', description: 'EU policy & Horizon Europe terminology' },
 ];
 
@@ -506,7 +506,7 @@ export function WritingAssistantDialog({
             <div className="flex-1 min-h-0 overflow-y-auto px-6 py-3">
               {grammarLoading && grammarSuggestions.length === 0 && (
                 <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
-                  <Loader2 className="w-4 h-4 animate-spin" /> Analysing\u2026
+                  <Loader2 className="w-4 h-4 animate-spin" /> Analysing…
                 </div>
               )}
               {!grammarLoading && grammarSuggestions.length === 0 && (
@@ -592,7 +592,7 @@ export function WritingAssistantDialog({
             <div className="flex-1 min-h-0 overflow-y-auto px-6 py-3">
               {expandLoading && expandSuggestions.length === 0 && (
                 <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
-                  <Loader2 className="w-4 h-4 animate-spin" /> Generating expansions\u2026
+                  <Loader2 className="w-4 h-4 animate-spin" /> Generating expansions…
                 </div>
               )}
               {!expandLoading && expandSuggestions.length === 0 && (
@@ -645,7 +645,7 @@ export function WritingAssistantDialog({
           <TabsContent value="evaluation" className="flex-1 flex flex-col min-h-0 mt-3 data-[state=inactive]:hidden">
             <div className="px-6 pb-3 shrink-0 space-y-2 border-b">
               <p className="text-xs text-muted-foreground">
-                Runs a Horizon Europe reviewer-style scoring (1\u20135) of the whole section against the relevant EC criterion, with strengths, weaknesses, and improvement suggestions.
+                Runs a Horizon Europe reviewer-style scoring (1–5) of the whole section against the relevant EC criterion, with strengths, weaknesses, and improvement suggestions.
               </p>
               {canUseConsortiumBuilder && proposalId && (
                 <label className="flex items-start gap-2 text-sm cursor-pointer">
@@ -676,7 +676,7 @@ export function WritingAssistantDialog({
             <div className="flex-1 min-h-0 overflow-y-auto px-6 py-3 space-y-4">
               {evalLoading && !evaluation && !consortiumResult && (
                 <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
-                  <Loader2 className="w-4 h-4 animate-spin" /> Evaluating\u2026
+                  <Loader2 className="w-4 h-4 animate-spin" /> Evaluating…
                 </div>
               )}
               {!evalLoading && !evaluation && !consortiumResult && (
