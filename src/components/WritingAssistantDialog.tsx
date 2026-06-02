@@ -663,9 +663,9 @@ export function WritingAssistantDialog({
                     className="mt-0.5"
                   />
                   <span>
-                    <span className="font-medium">Also evaluate the consortium for this proposal</span>
+                    <span className="font-medium">Consortium makeup</span>
                     <span className="block text-xs text-muted-foreground">
-                      Analyse the whole consortium against HE best practices and flag gaps.
+                      Give feedback on how sufficiently the consortium addresses the topic.
                     </span>
                   </span>
                 </label>
