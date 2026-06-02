@@ -647,7 +647,7 @@ export function WritingAssistantDialog({
               )}
               {!expandLoading && expandSuggestions.length === 0 && (
                 <div className="p-4 text-center text-sm text-muted-foreground">
-                  Select text in the editor and click Enhance content to generate stronger versions you can edit before applying.
+                  Click Enhance content to generate one stronger version per paragraph. With no selection, the whole section is enhanced; with a selection, only the selected paragraphs.
                 </div>
               )}
               <div className="space-y-3">
