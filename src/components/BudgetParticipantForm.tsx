@@ -274,23 +274,16 @@ export function BudgetParticipantForm({
           <CardTitle className="text-sm font-semibold">A. Personnel Costs</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="flex items-center gap-2 py-1 text-sm">
-            <span className="text-muted-foreground w-[220px] shrink-0">Total person months (from WP effort)</span>
-            <div className="flex items-center gap-1 flex-1 justify-end">
-              <span className="font-medium tabular-nums">{Number.isInteger(row.totalPersonMonths) ? row.totalPersonMonths.toFixed(0) : row.totalPersonMonths.toFixed(1)}</span>
-              <CopyButton value={row.totalPersonMonths} />
-            </div>
-            {showReq && <><div className="flex-1" /><div className="w-8" /></>}
-          </div>
-          <div className="flex items-center gap-2 py-1 text-sm">
-            <span className="text-muted-foreground w-[220px] shrink-0">Avg. weighted PM rate (from breakdown)</span>
-            <div className="flex items-center gap-1 flex-1 justify-end">
-              <span className="font-medium tabular-nums">{(row.pmRate ?? 0).toFixed(2)}</span>
-              <span className="text-xs text-muted-foreground w-4">€</span>
-              <CopyButton value={row.pmRate ?? 0} />
-            </div>
-            {showReq && <><div className="flex-1" /><div className="w-8" /></>}
-          </div>
+          <BudgetPersonnelBreakdown
+            budgetRowId={row.id}
+            totalPersonMonths={row.totalPersonMonths}
+            items={personnelBreakdown}
+            editable={editable}
+            onAdd={() => addPersonnelBreakdownItem(row.id)}
+            onUpdate={updatePersonnelBreakdownItem}
+            onDelete={deletePersonnelBreakdownItem}
+          />
+
           <div className="flex items-center gap-2 py-1 border-t text-sm">
             <span className="font-medium w-[220px] shrink-0">Personnel costs (auto-calculated)</span>
             <div className="flex items-center gap-1 flex-1 justify-end">
@@ -312,16 +305,6 @@ export function BudgetParticipantForm({
               </>
             )}
           </div>
-
-          <BudgetPersonnelBreakdown
-            budgetRowId={row.id}
-            totalPersonMonths={row.totalPersonMonths}
-            items={personnelBreakdown}
-            editable={editable}
-            onAdd={() => addPersonnelBreakdownItem(row.id)}
-            onUpdate={updatePersonnelBreakdownItem}
-            onDelete={deletePersonnelBreakdownItem}
-          />
         </CardContent>
       </Card>
 
