@@ -14,6 +14,15 @@ import { Badge } from '@/components/ui/badge';
 import { Download, FileText, FileType } from 'lucide-react';
 import { usePageEstimate } from '@/hooks/usePageEstimate';
 
+function detectBrowser(): 'chromium' | 'firefox' | 'safari' | 'unknown' {
+  if (typeof navigator === 'undefined') return 'unknown';
+  const ua = navigator.userAgent.toLowerCase();
+  if (ua.includes('edg/') || ua.includes('chrome/') || ua.includes('chromium/')) return 'chromium';
+  if (ua.includes('firefox/')) return 'firefox';
+  if (ua.includes('safari/') && !ua.includes('chrome/')) return 'safari';
+  return 'unknown';
+}
+
 export type ExportFormat = 'pdf' | 'docx';
 
 interface ExportDialogProps {
