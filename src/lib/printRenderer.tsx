@@ -9,6 +9,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Participant, Section } from '@/types/proposal';
 import { supabase } from '@/integrations/supabase/client';
 import { resolveStorageUrl } from '@/hooks/useStorageUrl';
+import { extractFilePathFromUrl, getProposalFileSignedUrl } from '@/lib/proposalStorage';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -85,6 +86,40 @@ async function resolveImagesInHtml(html: string): Promise<string> {
     } catch { /* keep original */ }
   }
   return result;
+}
+
+/**
+ * Refreshes all signed storage URLs in the rendered DOM container.
+ * Handles images that already have signed URLs (starting with https://)
+ * which may have expired since the editor loaded.
+ * The existing resolveImagesInHtml handles raw storage paths;
+ * this function handles the complementary case of stale signed URLs.
+ */
+async function refreshSignedUrls(container: HTMLElement): Promise<void> {
+  const images = container.querySelectorAll('img');
+
+  await Promise.all(
+    Array.from(images).map(async (img) => {
+      const src = img.getAttribute('src');
+      if (!src) return;
+
+      // Only process URLs that point to our storage bucket
+      const storagePath = extractFilePathFromUrl(src);
+      if (!storagePath) return;
+
+      try {
+        const { url, error } = await getProposalFileSignedUrl(storagePath);
+        if (url && !error) {
+          img.setAttribute('src', url);
+        } else {
+          console.warn('Failed to refresh signed URL for:', storagePath, error);
+        }
+      } catch (err) {
+        console.warn('Error refreshing signed URL for:', storagePath, err);
+        // Leave original src unchanged — don't break the export for one bad image
+      }
+    })
+  );
 }
 
 // ── Build participant list HTML ──────────────────────────────────────────────
@@ -466,6 +501,9 @@ export async function prepareExportContainer(
 
   // Mount B3.1 React components (tables, charts)
   await mountB31Components(container, options.proposal.id, options.proposal.acronym);
+
+  // Refresh any expired signed URLs before waiting for images to load
+  await refreshSignedUrls(container);
 
   // Wait for all images to load
   const images = container.querySelectorAll('img');
