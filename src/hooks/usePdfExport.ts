@@ -35,11 +35,16 @@ function buildPrintDocument(
 
   // No custom header/footer — user should disable browser headers/footers in the print dialog
 
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const timestamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+  const docTitle = `${timestamp} ${proposal.acronym || 'proposal'} Part B`;
+
   return `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8" />
-  <title> </title>
+  <title>${escapeHtml(docTitle)}</title>
   ${styleSheets.join('\n  ')}
   <style>
     @page {
