@@ -218,7 +218,10 @@ export function useDocxExport() {
         const blob = new Blob(['\ufeff' + wordHtml], {
           type: 'application/msword',
         });
-        const filename = `${proposal.acronym || 'proposal'}_Part_B.doc`;
+        const now = new Date();
+        const pad = (n: number) => String(n).padStart(2, '0');
+        const timestamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+        const filename = `${timestamp} ${proposal.acronym || 'proposal'} Part B.doc`;
         saveAs(blob, filename);
 
         toast.success('Word document exported successfully!');
