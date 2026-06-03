@@ -1221,6 +1221,8 @@ StarterKit.configure({
     levels: [1, 2, 3],
   },
   orderedList: false,
+  link: false,
+  underline: false,
   undoRedo: {
     depth: 100,
     newGroupDelay: 1200,
