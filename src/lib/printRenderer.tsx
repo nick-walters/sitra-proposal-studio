@@ -82,6 +82,10 @@ async function resolveImagesInHtml(html: string): Promise<string> {
       const resolved = await resolveStorageUrl(src);
       if (resolved) {
         result = result.replace(src, resolved);
+      }
+    } catch { /* keep original */ }
+  }
+  return result;
 }
 
 /**
@@ -116,10 +120,6 @@ async function refreshSignedUrls(container: HTMLElement): Promise<void> {
       }
     })
   );
-}
-    } catch { /* keep original */ }
-  }
-  return result;
 }
 
 // ── Build participant list HTML ──────────────────────────────────────────────
