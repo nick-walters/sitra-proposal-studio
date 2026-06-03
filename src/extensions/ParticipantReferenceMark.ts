@@ -149,34 +149,8 @@ export const ParticipantReferenceMark = Mark.create<ParticipantReferenceOptions>
     return [
       new Plugin({
         key: new PluginKey('participantReferenceGuard'),
-        appendTransaction(transactions, _oldState, newState) {
-          // Only check if something changed
-          if (!transactions.some(tr => tr.docChanged)) return null;
-
-          const { tr, doc, schema } = newState;
-          const markType = schema.marks[markName];
-          if (!markType) return null;
-
-          let modified = false;
-
-          doc.descendants((node, pos) => {
-            if (!node.isText) return;
-            const mark = node.marks.find(m => m.type === markType);
-            if (!mark) return;
-
-            const expected = mark.attrs.shortName || 'Partner';
-            const actual = node.text || '';
-
-            if (actual !== expected) {
-              // Replace the corrupted text with the expected label
-              const newNode = schema.text(expected, node.marks);
-              tr.replaceWith(pos, pos + node.nodeSize, newNode);
-              modified = true;
-            }
-          });
-
-          if (modified) console.log('[DIAG-APPEND]', 'guard:', 'ParticipantReferenceMark', 'replacements:', tr.steps.length);
-          return modified ? tr : null;
+        appendTransaction(_transactions, _oldState, _newState) {
+          return null;
         },
       }),
     ];
