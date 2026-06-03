@@ -1208,260 +1208,6 @@ export function FormattingToolbar({
   );
 }
 
-interface EditorExtensionOptions {
-  /** Include BlockDragHandle with these callbacks. Omit to exclude. */
-  blockDragHandle?: {
-    getLockedBlocks: () => { userId: string; blockId: string; blockType: string }[];
-    getCurrentUserId: () => string | null;
-    onDeleteRequest: (callback: () => void) => void;
-  };
-  /** Include citation tooltip with this lookup function. Omit to exclude. */
-  citationTooltip?: (citationNumber: number) => { citation: string } | undefined;
-  /** Include track changes with these options. Omit to exclude. */
-  trackChanges?: Omit<TrackChangesOptions, 'changes'> & { onChangesUpdate?: (changes: any[]) => void };
-  /** Include block locking with these callbacks. Omit to exclude. */
-  blockLocking?: {
-    getLockedBlocks: () => { userId: string; blockId: string; blockType: string }[];
-    getCurrentUserId: () => string | null;
-  };
-}
-
-function createEditorExtensions(options: EditorExtensionOptions = {}) {
-  const extensions: any[] = [
-    // === CORE (always included) ===
-    StarterKit.configure({
-      heading: { levels: [1, 2, 3] },
-      orderedList: false,
-      undoRedo: { depth: 100, newGroupDelay: 1200 },
-    }),
-    OrderedListStyled,
-    Typography,
-    Underline,
-    TextStyle,
-    Color,
-    ParagraphClass,
-    ParagraphSpacing,
-    TextAlign.configure({
-      types: ['heading', 'paragraph'],
-      defaultAlignment: 'justify',
-    }),
-    ResizableImage,
-    Link.configure({
-      openOnClick: false,
-      HTMLAttributes: { class: 'text-primary underline' },
-    }),
-    Table.configure({
-      resizable: true,
-      HTMLAttributes: { class: 'he-table' },
-    }),
-    TableRow,
-    TableHeader.configure({
-      HTMLAttributes: { class: 'he-table-header' },
-    }),
-    TableCell.configure({
-      HTMLAttributes: { class: 'he-table-cell' },
-    }),
-    HeadingExitOnEnter,
-    BlockReordering,
-
-    // All reference mark types (always included)
-    InlineReferenceMark,
-    WPReferenceMark,
-    CaseReferenceMark,
-    ParticipantReferenceMark,
-    AcronymReference,
-    FigureTableReferenceMark,
-    CaptionLabel,
-    HeadingNumberLabel,
-
-    // Table formula (always included — harmless when not used)
-    TableFormula,
-
-    // Prevent heading input rules inside table cells
-    Extension.create({
-      name: 'preventHeadingInTable',
-      addProseMirrorPlugins() {
-        return [
-          new Plugin({
-            key: new PluginKey('preventHeadingInTable'),
-            appendTransaction(_transactions, oldState, newState) {
-              const { doc, schema } = newState;
-              const headingType = schema.nodes.heading;
-              const paragraphType = schema.nodes.paragraph;
-              if (!headingType || !paragraphType) return null;
-              let tr: any = null;
-              doc.descendants((node, pos) => {
-                if (node.type !== headingType) return;
-                const $pos = doc.resolve(pos);
-                for (let d = $pos.depth; d > 0; d--) {
-                  const parentName = $pos.node(d).type.name;
-                  if (parentName === 'tableCell' || parentName === 'tableHeader') {
-                    if (!tr) tr = newState.tr;
-                    tr.setNodeMarkup(pos, paragraphType, null, node.marks);
-                    return false;
-                  }
-                }
-              });
-              return tr;
-            },
-          }),
-        ];
-      },
-    }),
-
-    // Prevent tables from being first element
-    Extension.create({
-      name: 'preventTableAtStart',
-      addProseMirrorPlugins() {
-        return [
-          new Plugin({
-            key: new PluginKey('preventTableAtStart'),
-            appendTransaction(transactions, oldState, newState) {
-              const docChanged = transactions.some(tr => tr.docChanged);
-              if (!docChanged) return null;
-              const doc = newState.doc;
-              if (doc.childCount === 0) return null;
-              const firstChild = doc.child(0);
-              if (firstChild.type.name !== 'table') return null;
-              const paragraphNode = newState.schema.nodes.paragraph.create();
-              const tr = newState.tr.insert(0, paragraphNode);
-              return tr;
-            },
-          }),
-        ];
-      },
-    }),
-  ];
-
-  // === ALWAYS-INCLUDED EXTENSIONS (options control configuration, not presence) ===
-
-  const bdh = options.blockDragHandle;
-  extensions.push(
-    BlockDragHandle.configure({
-      getLockedBlocks: bdh ? bdh.getLockedBlocks : () => [],
-      getCurrentUserId: bdh ? bdh.getCurrentUserId : () => null,
-      onDeleteRequest: bdh ? bdh.onDeleteRequest : undefined,
-    })
-  );
-
-  const getRef = options.citationTooltip;
-  extensions.push(
-    Extension.create({
-      name: 'citationTooltip',
-      addProseMirrorPlugins() {
-        return [createCitationTooltipPlugin((num) => (getRef ? getRef(num) : undefined))];
-      },
-    })
-  );
-
-  // Click-to-select reference marks
-  extensions.push(
-    Extension.create({
-      name: 'referenceClickSelect',
-      addProseMirrorPlugins() {
-        return [
-          new Plugin({
-            key: new PluginKey('referenceClickSelect'),
-            props: {
-              handleClick(view, pos, event) {
-                const target = event.target as HTMLElement;
-                const refEl = target.closest('[data-inline-reference], [data-wp-reference], [data-case-reference], [data-participant-reference], [data-acronym-reference], [data-fig-table-ref]');
-                if (!refEl) return false;
-                const { doc } = view.state;
-                const $pos = doc.resolve(pos);
-                const markTypes = ['inlineReference', 'wpReference', 'caseReference', 'participantReference', 'acronymReference', 'figureTableReference'];
-                for (const markName of markTypes) {
-                  const markType = view.state.schema.marks[markName];
-                  if (!markType) continue;
-                  const mark = markType.isInSet($pos.marks());
-                  if (!mark) continue;
-                  let from = pos;
-                  let to = pos;
-                  while (from > 0) {
-                    const $before = doc.resolve(from - 1);
-                    if (!markType.isInSet($before.marks())) break;
-                    from--;
-                  }
-                  while (to < doc.content.size) {
-                    const $after = doc.resolve(to + 1);
-                    if (!markType.isInSet($after.marks())) break;
-                    to++;
-                  }
-                  const tr = view.state.tr.setSelection(TextSelection.create(doc, from, to));
-                  view.dispatch(tr);
-                  return true;
-                }
-                return false;
-              },
-            },
-          }),
-        ];
-      },
-    })
-  );
-
-  const bl = options.blockLocking;
-  extensions.push(
-    Extension.create({
-      name: 'blockLocking',
-      addProseMirrorPlugins() {
-        return [
-          new Plugin({
-            key: new PluginKey('blockLocking'),
-            filterTransaction(tr, state) {
-              if (!bl) return true;
-              if (!tr.docChanged) return true;
-              const lockedBlocks = bl.getLockedBlocks();
-              if (lockedBlocks.length === 0) return true;
-              const userId = bl.getCurrentUserId();
-              const lockedBlockIds = new Set(
-                lockedBlocks.filter(lock => lock.userId !== userId).map(lock => lock.blockId)
-              );
-              if (lockedBlockIds.size === 0) return true;
-              let affectsLocked = false;
-              tr.steps.forEach((step) => {
-                const stepMap = step.getMap();
-                stepMap.forEach((oldStart, oldEnd) => {
-                  for (let pos = oldStart; pos <= Math.min(oldEnd, state.doc.content.size); pos++) {
-                    try {
-                      const $pos = state.doc.resolve(pos);
-                      let depth = $pos.depth;
-                      while (depth > 1) depth--;
-                      if (depth >= 1) {
-                        const node = $pos.node(depth);
-                        const start = $pos.start(depth);
-                        const blockId = `${start}-${node.type.name}`;
-                        if (lockedBlockIds.has(blockId)) {
-                          affectsLocked = true;
-                        }
-                      }
-                    } catch { /* Ignore invalid positions */ }
-                  }
-                });
-              });
-              return !affectsLocked;
-            },
-          }),
-        ];
-      },
-    })
-  );
-
-  const tc = options.trackChanges;
-  extensions.push(
-    TrackChanges.configure({
-      enabled: tc?.enabled || false,
-      authorId: tc?.authorId || '',
-      authorName: tc?.authorName || 'Anonymous',
-      authorColor: tc?.authorColor || '#3B82F6',
-      changes: [],
-      onChangesUpdate: tc?.onChangesUpdate,
-    })
-  );
-
-  return extensions;
-}
-
 export function RichTextEditor({ content, onChange, onInsertImage, onInsertFootnote, className, renderToolbar }: RichTextEditorProps) {
   const initialEditorContentRef = useRef<string | null>(null);
   if (initialEditorContentRef.current === null) {
@@ -1469,7 +1215,124 @@ export function RichTextEditor({ content, onChange, onInsertImage, onInsertFootn
   }
 
   const editor = useEditor({
-    extensions: createEditorExtensions(),
+    extensions: [
+StarterKit.configure({
+  heading: {
+    levels: [1, 2, 3],
+  },
+  orderedList: false,
+  undoRedo: {
+    depth: 100,
+    newGroupDelay: 1200,
+  },
+}),
+      OrderedListStyled,
+      Typography,
+      Underline,
+      TextStyle,
+      Color,
+      ParagraphClass,
+      ParagraphSpacing,
+      TextAlign.configure({
+        types: ['heading', 'paragraph'],
+        defaultAlignment: 'justify',
+      }),
+      ResizableImage,
+      Link.configure({
+        openOnClick: false,
+        HTMLAttributes: {
+          class: 'text-primary underline',
+        },
+      }),
+      Table.configure({
+        resizable: true,
+        HTMLAttributes: {
+          class: 'he-table',
+        },
+      }),
+      TableRow,
+      TableHeader.configure({
+        HTMLAttributes: {
+          class: 'he-table-header',
+        },
+      }),
+      TableCell.configure({
+        HTMLAttributes: {
+          class: 'he-table-cell',
+        },
+      }),
+      HeadingExitOnEnter,
+      BlockReordering,
+      InlineReferenceMark,
+      WPReferenceMark,
+      CaseReferenceMark,
+      AcronymReference,
+      FigureTableReferenceMark,
+      CaptionLabel,
+      HeadingNumberLabel,
+      // Suppress heading input rules inside table cells: revert heading nodes back to paragraphs
+      Extension.create({
+        name: 'preventHeadingInTable',
+        addProseMirrorPlugins() {
+          return [
+            new Plugin({
+              key: new PluginKey('preventHeadingInTable'),
+              appendTransaction(_transactions, oldState, newState) {
+                const { doc, schema } = newState;
+                const headingType = schema.nodes.heading;
+                const paragraphType = schema.nodes.paragraph;
+                if (!headingType || !paragraphType) return null;
+
+                let tr: any = null;
+                doc.descendants((node, pos) => {
+                  if (node.type !== headingType) return;
+                  // Check if this heading is inside a table cell
+                  const $pos = doc.resolve(pos);
+                  for (let d = $pos.depth; d > 0; d--) {
+                    const parentName = $pos.node(d).type.name;
+                    if (parentName === 'tableCell' || parentName === 'tableHeader') {
+                      // Convert heading back to paragraph, preserving content
+                      if (!tr) tr = newState.tr;
+                      tr.setNodeMarkup(pos, paragraphType, null, node.marks);
+                      return false; // Don't descend
+                    }
+                  }
+                });
+                return tr;
+              },
+            }),
+          ];
+        },
+      }),
+      // Prevent tables from being first element in the document content
+      Extension.create({
+        name: 'preventTableAtStart',
+        addProseMirrorPlugins() {
+          return [
+            new Plugin({
+              key: new PluginKey('preventTableAtStart'),
+              appendTransaction(transactions, oldState, newState) {
+                // Only process if document changed
+                const docChanged = transactions.some(tr => tr.docChanged);
+                if (!docChanged) return null;
+
+                const doc = newState.doc;
+                if (doc.childCount === 0) return null;
+
+                // Check if first child is a table
+                const firstChild = doc.child(0);
+                if (firstChild.type.name !== 'table') return null;
+
+                // Insert empty paragraph at position 0 (before the table)
+                const paragraphNode = newState.schema.nodes.paragraph.create();
+                const tr = newState.tr.insert(0, paragraphNode);
+                return tr;
+              },
+            }),
+          ];
+        },
+      }),
+    ],
     content: initialEditorContentRef.current,
     enableExtensionDispatchTransaction: true,
     onUpdate: ({ editor }) => {
@@ -1563,31 +1426,272 @@ export function useRichTextEditor({
   }, [blockLocking]);
   
   const editor = useEditor({
-    extensions: createEditorExtensions({
-      blockDragHandle: {
+    extensions: [
+StarterKit.configure({
+  heading: {
+    levels: [1, 2, 3],
+  },
+  orderedList: false,
+  undoRedo: {
+    depth: 100,
+    newGroupDelay: 1200,
+  },
+}),
+      OrderedListStyled,
+      Typography,
+      Underline,
+      TextStyle,
+      Color,
+      ParagraphClass,
+      ParagraphSpacing,
+      TextAlign.configure({
+        types: ['heading', 'paragraph'],
+        defaultAlignment: 'justify',
+      }),
+      ResizableImage,
+      Link.configure({
+        openOnClick: false,
+        HTMLAttributes: {
+          class: 'text-primary underline',
+        },
+      }),
+      Table.configure({
+        resizable: true,
+        HTMLAttributes: {
+          class: 'he-table',
+        },
+      }),
+      TableRow,
+      TableHeader.configure({
+        HTMLAttributes: {
+          class: 'he-table-header',
+        },
+      }),
+      TableCell.configure({
+        HTMLAttributes: {
+          class: 'he-table-cell',
+        },
+      }),
+      // Block reordering via keyboard shortcuts (Ctrl+Shift+↑/↓)
+      HeadingExitOnEnter,
+      BlockReordering,
+      
+      InlineReferenceMark,
+      // WP reference marks for inline WP badges
+      WPReferenceMark,
+      // Case reference marks for inline case badges
+      CaseReferenceMark,
+      // Participant reference marks for inline partner badges
+      ParticipantReferenceMark,
+      // Acronym reference for colored acronym insertion
+      AcronymReference,
+      CaptionLabel,
+      HeadingNumberLabel,
+      // Figure/table reference marks for atomic deletion
+      FigureTableReferenceMark,
+      // Block drag-and-drop via drag handle
+      BlockDragHandle.configure({
         getLockedBlocks: () => getLockedBlocksRef.current(),
         getCurrentUserId: () => getCurrentUserIdRef.current(),
         onDeleteRequest: (callback) => {
           if (onBlockDeleteRequestRef.current) {
             onBlockDeleteRequestRef.current(callback);
           } else {
+            // No confirmation handler, just execute
             callback();
           }
         },
-      },
-      citationTooltip: (num) => getReferenceRef.current?.(num),
-      trackChanges: trackChanges ? {
-        enabled: trackChanges.enabled || false,
-        authorId: trackChanges.authorId || '',
-        authorName: trackChanges.authorName || 'Anonymous',
-        authorColor: trackChanges.authorColor || '#3B82F6',
-        onChangesUpdate: trackChanges.onChangesUpdate,
-      } : undefined,
-      blockLocking: blockLocking ? {
-        getLockedBlocks: () => getLockedBlocksRef.current(),
-        getCurrentUserId: () => getCurrentUserIdRef.current(),
-      } : undefined,
-    }),
+      }),
+      Extension.create({
+        name: 'citationTooltip',
+        addProseMirrorPlugins() {
+          return [
+            createCitationTooltipPlugin((num) => getReferenceRef.current?.(num)),
+          ];
+        },
+      }),
+      // Click-to-select reference marks for easy deletion
+      Extension.create({
+        name: 'referenceClickSelect',
+        addProseMirrorPlugins() {
+          return [
+            new Plugin({
+              key: new PluginKey('referenceClickSelect'),
+              props: {
+                handleClick(view, pos, event) {
+                  const target = event.target as HTMLElement;
+                  const refEl = target.closest('[data-inline-reference], [data-wp-reference], [data-case-reference], [data-participant-reference], [data-acronym-reference], [data-fig-table-ref]');
+                  if (!refEl) return false;
+                  
+                  // Find the mark range at this position
+                  const { doc } = view.state;
+                  const $pos = doc.resolve(pos);
+                  const markTypes = ['inlineReference', 'wpReference', 'caseReference', 'participantReference', 'acronymReference', 'figureTableReference'];
+                  
+                  for (const markName of markTypes) {
+                    const markType = view.state.schema.marks[markName];
+                    if (!markType) continue;
+                    
+                    const mark = markType.isInSet($pos.marks());
+                    if (!mark) continue;
+                    
+                    // Find the extent of this mark
+                    let from = pos;
+                    let to = pos;
+                    
+                    // Scan backwards
+                    while (from > 0) {
+                      const $before = doc.resolve(from - 1);
+                      if (!markType.isInSet($before.marks())) break;
+                      from--;
+                    }
+                    
+                    // Scan forwards
+                    while (to < doc.content.size) {
+                      const $after = doc.resolve(to + 1);
+                      if (!markType.isInSet($after.marks())) break;
+                      to++;
+                    }
+                    
+                    // Select the entire mark range
+                    const tr = view.state.tr.setSelection(TextSelection.create(doc, from, to));
+                    view.dispatch(tr);
+                    return true;
+                  }
+                  
+                  return false;
+                },
+              },
+            }),
+          ];
+        },
+      }),
+      // Add block locking extension
+      Extension.create({
+        name: 'blockLocking',
+        addProseMirrorPlugins() {
+          return [
+            new Plugin({
+              key: new PluginKey('blockLocking'),
+              filterTransaction(tr, state) {
+                // Allow non-content changes
+                if (!tr.docChanged) return true;
+
+                const lockedBlocks = getLockedBlocksRef.current();
+                if (lockedBlocks.length === 0) return true;
+
+                const userId = getCurrentUserIdRef.current();
+                const lockedBlockIds = new Set(
+                  lockedBlocks
+                    .filter(lock => lock.userId !== userId)
+                    .map(lock => lock.blockId)
+                );
+
+                if (lockedBlockIds.size === 0) return true;
+
+                // Check if transaction affects locked block
+                let affectsLocked = false;
+                tr.steps.forEach((step) => {
+                  const stepMap = step.getMap();
+                  stepMap.forEach((oldStart, oldEnd) => {
+                    for (let pos = oldStart; pos <= Math.min(oldEnd, state.doc.content.size); pos++) {
+                      try {
+                        const $pos = state.doc.resolve(pos);
+                        let depth = $pos.depth;
+                        while (depth > 1) depth--;
+                        if (depth >= 1) {
+                          const node = $pos.node(depth);
+                          const start = $pos.start(depth);
+                          const blockId = `${start}-${node.type.name}`;
+                          if (lockedBlockIds.has(blockId)) {
+                            affectsLocked = true;
+                          }
+                        }
+                      } catch {
+                        // Ignore invalid positions
+                      }
+                    }
+                  });
+                });
+
+                return !affectsLocked;
+              },
+            }),
+          ];
+        },
+      }),
+      // Track changes extension
+      TrackChanges.configure({
+        enabled: trackChanges?.enabled || false,
+        authorId: trackChanges?.authorId || '',
+        authorName: trackChanges?.authorName || 'Anonymous',
+        authorColor: trackChanges?.authorColor || '#3B82F6',
+        changes: [],
+        onChangesUpdate: trackChanges?.onChangesUpdate,
+      }),
+      // Table formula extension
+      TableFormula,
+      // Suppress heading input rules inside table cells
+      Extension.create({
+        name: 'preventHeadingInTable',
+        addProseMirrorPlugins() {
+          return [
+            new Plugin({
+              key: new PluginKey('preventHeadingInTableMain'),
+              appendTransaction(_transactions, oldState, newState) {
+                const { doc, schema } = newState;
+                const headingType = schema.nodes.heading;
+                const paragraphType = schema.nodes.paragraph;
+                if (!headingType || !paragraphType) return null;
+
+                let tr: any = null;
+                doc.descendants((node, pos) => {
+                  if (node.type !== headingType) return;
+                  const $pos = doc.resolve(pos);
+                  for (let d = $pos.depth; d > 0; d--) {
+                    const parentName = $pos.node(d).type.name;
+                    if (parentName === 'tableCell' || parentName === 'tableHeader') {
+                      if (!tr) tr = newState.tr;
+                      tr.setNodeMarkup(pos, paragraphType, null, node.marks);
+                      return false;
+                    }
+                  }
+                });
+                return tr;
+              },
+            }),
+          ];
+        },
+      }),
+      // Prevent tables from being first element in the document content
+      Extension.create({
+        name: 'preventTableAtStart',
+        addProseMirrorPlugins() {
+          return [
+            new Plugin({
+              key: new PluginKey('preventTableAtStart'),
+              appendTransaction(transactions, oldState, newState) {
+                // Only process if document changed
+                const docChanged = transactions.some(tr => tr.docChanged);
+                if (!docChanged) return null;
+
+                const doc = newState.doc;
+                if (doc.childCount === 0) return null;
+
+                // Check if first child is a table
+                const firstChild = doc.child(0);
+                if (firstChild.type.name !== 'table') return null;
+
+                // Insert empty paragraph at position 0 (before the table)
+                const paragraphNode = newState.schema.nodes.paragraph.create();
+                const tr = newState.tr.insert(0, paragraphNode);
+                return tr;
+              },
+            }),
+          ];
+        },
+      }),
+    ],
     content: isReady ? normalizePartBLoadedContent(content) : '<p></p>',
     enableExtensionDispatchTransaction: true,
     immediatelyRender: false,
