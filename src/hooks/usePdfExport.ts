@@ -310,7 +310,10 @@ export function usePdfExport() {
 
         // Print the iframe
         iframe.contentWindow?.focus();
+        try { if (iframeDoc) iframeDoc.title = _docTitle; } catch {}
+        try { document.title = _docTitle; } catch {}
         iframe.contentWindow?.print();
+
 
         // Clean up iframe after a delay (user may still be in print dialog)
         setTimeout(() => {
