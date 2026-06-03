@@ -49,7 +49,7 @@ function buildPrintDocument(
   <style>
     @page {
       size: A4 portrait;
-      margin: 0;
+      margin: 1.5cm 1.5cm 1.5cm 1.5cm;
     }
 
     html,
@@ -70,9 +70,13 @@ function buildPrintDocument(
 
     .print-body-content {
       width: 100%;
-      padding: 1.5cm;
+      padding: 0;
       box-sizing: border-box;
       background: #fff;
+    }
+
+    .document-h1, .print-export-container h1:first-of-type {
+      font-family: 'Arial Black', Arial, sans-serif !important;
     }
 
     /* Page break helpers */
