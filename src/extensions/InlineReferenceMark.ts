@@ -165,6 +165,7 @@ export const InlineReferenceMark = Mark.create<InlineReferenceOptions>({
             }
           });
 
+          if (modified) console.log('[DIAG-APPEND]', 'guard:', 'InlineReferenceMark', 'replacements:', tr.steps.length);
           return modified ? tr : null;
         },
       }),

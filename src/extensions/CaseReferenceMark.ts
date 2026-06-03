@@ -208,6 +208,7 @@ export const CaseReferenceMark = Mark.create<CaseReferenceOptions>({
             }
           });
 
+          if (modified) console.log('[DIAG-APPEND]', 'guard:', 'CaseReferenceMark', 'replacements:', tr.steps.length);
           return modified ? tr : null;
         },
       }),
