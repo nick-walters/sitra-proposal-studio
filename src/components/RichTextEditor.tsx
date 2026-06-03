@@ -1734,7 +1734,8 @@ StarterKit.configure({
     if (!content && editor.state.doc.content.size > 2) return;
     const nextContent = normalizePartBLoadedContent(content);
     if (nextContent === lastSetContentRef.current) return;
-    if (nextContent === editor.getHTML()) {
+    const currentEditorNormalized = normalizePartBLoadedContent(editor.getHTML());
+    if (nextContent === currentEditorNormalized) {
       lastSetContentRef.current = nextContent;
       return;
     }
