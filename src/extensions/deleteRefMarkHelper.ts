@@ -23,6 +23,7 @@ export function handleRefMarkDeletion(
     const { tr } = editor.state;
     tr.delete(from, to);
     tr.setMeta('refMarkDeletion', true);
+    tr.setMeta('addToHistory', true);
     editor.view.dispatch(tr);
   };
 
