@@ -40,6 +40,19 @@ function buildPrintDocument(
   const timestamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
   const docTitle = `${timestamp} ${proposal.acronym || 'proposal'} Part B`;
 
+  // Escape a string for safe inclusion inside a CSS content: "..." value
+  const escapeForCSS = (s: string) =>
+    s
+      .replace(/\\/g, '\\\\')
+      .replace(/"/g, '\\"')
+      .replace(/\r?\n/g, ' ');
+
+  const topicId = proposal.topicId || '';
+  const topicTitle = proposal.topicTitle || '';
+  const acronym = proposal.acronym || '';
+  const headerText = escapeForCSS(`${topicId ? topicId + ': ' : ''}${topicTitle}`);
+  const footerAcronym = escapeForCSS(acronym);
+
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -47,10 +60,35 @@ function buildPrintDocument(
   <title>${escapeHtml(docTitle)}</title>
   ${styleSheets.join('\n  ')}
   <style>
+    :root {
+      --header-text: "${headerText}";
+      --footer-text: "${footerAcronym} | Part B | Page " counter(page) " of " counter(pages);
+    }
+
     @page {
       size: A4 portrait;
-      margin: 1.5cm 1.5cm 1.5cm 1.5cm;
+      margin: 2cm 1.5cm 2cm 1.5cm;
+
+      @top-center {
+        content: var(--header-text);
+        font-family: 'Times New Roman', Times, serif;
+        font-size: 9pt;
+        font-style: italic;
+        color: #666;
+      }
+
+      @bottom-center {
+        content: var(--footer-text);
+        font-family: 'Times New Roman', Times, serif;
+        font-size: 9pt;
+        color: #666;
+      }
     }
+
+    @page :first {
+      @top-center { content: none; }
+    }
+
 
     html,
     body {
