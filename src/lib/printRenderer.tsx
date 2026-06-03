@@ -9,6 +9,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Participant, Section } from '@/types/proposal';
 import { supabase } from '@/integrations/supabase/client';
 import { resolveStorageUrl } from '@/hooks/useStorageUrl';
+import { extractFilePathFromUrl, getProposalFileSignedUrl } from '@/lib/proposalStorage';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
