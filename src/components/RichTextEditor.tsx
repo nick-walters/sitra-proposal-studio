@@ -1693,6 +1693,7 @@ StarterKit.configure({
                 // Insert empty paragraph at position 0 (before the table)
                 const paragraphNode = newState.schema.nodes.paragraph.create();
                 const tr = newState.tr.insert(0, paragraphNode);
+                if (tr) console.log('[DIAG-APPEND]', 'pluginName:', 'preventTableAtStartMain', 'changes:', tr.steps.length);
                 return tr;
               },
             }),
