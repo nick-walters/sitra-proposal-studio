@@ -19,6 +19,13 @@ export function handleRefMarkDeletion(
 
   const pos = $from.pos;
 
+  const dispatchDelete = (from: number, to: number) => {
+    const { tr } = editor.state;
+    tr.delete(from, to);
+    tr.setMeta('refMarkDeletion', true);
+    editor.view.dispatch(tr);
+  };
+
   if (direction === 'backspace' && pos > 0) {
     // Check the character(s) before cursor for the mark
     const resolvedBefore = state.doc.resolve(pos - 1);
@@ -28,7 +35,7 @@ export function handleRefMarkDeletion(
     if (hasMark) {
       // Find the full range of text with this mark
       const { from, to } = findMarkRange(state.doc, pos - 1, markName);
-      editor.chain().deleteRange({ from, to }).run();
+      dispatchDelete(from, to);
       return true;
     }
   }
@@ -42,7 +49,7 @@ export function handleRefMarkDeletion(
       const hasMark = marksAfter.some(m => m.type.name === markName);
       if (hasMark) {
         const { from, to } = findMarkRange(state.doc, pos, markName);
-        editor.chain().deleteRange({ from, to }).run();
+        dispatchDelete(from, to);
         return true;
       }
     }
