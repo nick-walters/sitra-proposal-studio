@@ -129,6 +129,59 @@ function buildPrintDocument(
         display: none !important;
       }
     }
+
+    /* === Page-break controls (Prompt 5) === */
+    /* Section headings: never orphaned at bottom of page */
+    .print-export-container h1,
+    .print-export-container h2,
+    .print-export-container h3 {
+      break-after: avoid;
+      page-break-after: avoid;
+    }
+    /* Keep heading together with next element */
+    .print-export-container h1 + p,
+    .print-export-container h2 + p,
+    .print-export-container h3 + p,
+    .print-export-container h1 + ul,
+    .print-export-container h2 + ul,
+    .print-export-container h1 + ol,
+    .print-export-container h2 + ol,
+    .print-export-container h1 + table,
+    .print-export-container h2 + table {
+      break-before: avoid;
+      page-break-before: avoid;
+    }
+    /* Tables: do not split across pages */
+    .print-export-container table {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+    /* Figures stay with their captions */
+    .print-export-container figure,
+    .print-export-container img {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+    .print-export-container .caption-label,
+    .print-export-container .figure-caption,
+    .print-export-container .table-caption,
+    .print-export-container figcaption {
+      break-before: avoid;
+      page-break-before: avoid;
+      break-after: avoid;
+      page-break-after: avoid;
+    }
+    /* Body paragraphs: prevent single-line orphans/widows */
+    .print-export-container p {
+      orphans: 3;
+      widows: 3;
+    }
+    /* WP banner blocks stay with their content */
+    .print-export-container [data-wp-banner],
+    .print-export-container .wp-banner {
+      break-after: avoid;
+      page-break-after: avoid;
+    }
   </style>
 </head>
 <body>
