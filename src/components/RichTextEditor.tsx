@@ -1300,6 +1300,7 @@ StarterKit.configure({
                     }
                   }
                 });
+                if (tr) console.log('[DIAG-APPEND]', 'pluginName:', 'preventHeadingInTable', 'changes:', tr.steps.length);
                 return tr;
               },
             }),
