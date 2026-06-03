@@ -51,7 +51,41 @@ export const BlockLocking = Extension.create<BlockLockingOptions>({
         key: new PluginKey('blockLocking'),
 
         filterTransaction(tr, state) {
-          return true;
+          // Allow internal ref-mark badge deletions through unconditionally
+          if (tr.getMeta('refMarkDeletion')) return true;
+
+          // Allow non-content changes (selection, meta)
+          if (!tr.docChanged) return true;
+
+          const lockedBlocks = getLockedBlocks();
+          if (lockedBlocks.length === 0) return true;
+
+          const userId = getCurrentUserId();
+          const lockedBlockIds = new Set(
+            lockedBlocks
+              .filter(lock => lock.userId !== userId)
+              .map(lock => lock.blockId)
+          );
+
+          if (lockedBlockIds.size === 0) return true;
+
+          // Check if the transaction affects any locked block
+          let affectsLockedBlock = false;
+
+          tr.steps.forEach((step) => {
+            const stepMap = step.getMap();
+
+            stepMap.forEach((oldStart, oldEnd) => {
+              for (let pos = oldStart; pos <= oldEnd; pos++) {
+                const blockId = getBlockIdFromPosition(state.doc, pos);
+                if (blockId && lockedBlockIds.has(blockId)) {
+                  affectsLockedBlock = true;
+                }
+              }
+            });
+          });
+
+          return !affectsLockedBlock;
         },
       }),
     ];
