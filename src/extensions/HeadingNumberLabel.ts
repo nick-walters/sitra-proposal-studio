@@ -82,6 +82,7 @@ export const HeadingNumberLabel = Mark.create({
           });
 
           if (endOfMark > $pos.pos) {
+            console.log('[DIAG-APPEND]', 'pluginName:', 'HeadingNumberLabel', 'setSelection to:', endOfMark, 'from:', $pos.pos);
             const tr = newState.tr.setSelection(
               TextSelection.create(newState.doc, endOfMark)
             );
