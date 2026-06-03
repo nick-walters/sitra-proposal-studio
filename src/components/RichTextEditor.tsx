@@ -1401,6 +1401,7 @@ export function useRichTextEditor({
   const lastSetContentRef = useRef<string>(initialContentRef.current);
   const readyRef = useRef(isReady);
   readyRef.current = isReady;
+  console.log('[DIAG-READY]', { isReady, instanceKey });
   // Store getReference in a ref to avoid recreating the extension
   const getReferenceRef = useRef(getReference);
   getReferenceRef.current = getReference;
@@ -1722,7 +1723,13 @@ StarterKit.configure({
   // Normalisation only runs when we actually replace content.
   useEffect(() => {
     if (!editor || !isReady) return;
-    console.log('SYNC CHECK', content === lastSetContentRef.current, content?.length, lastSetContentRef.current?.length);
+    console.log('[DIAG-SYNC]', {
+      match: content === lastSetContentRef.current,
+      contentLen: content?.length,
+      refLen: lastSetContentRef.current?.length,
+      contentFirst50: content?.substring(0, 50),
+      refFirst50: lastSetContentRef.current?.substring(0, 50),
+    });
     if (!content && editor.state.doc.content.size > 2) return;
     const nextContent = normalizePartBLoadedContent(content);
     if (nextContent === lastSetContentRef.current) return;

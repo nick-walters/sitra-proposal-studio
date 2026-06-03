@@ -318,6 +318,11 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
       if (citationMapping.size > 0) {
         setLastCitationMapping(citationMapping);
       }
+      console.log('[DIAG-SAVE]', {
+        renumbered: finalContent !== contentToSave,
+        finalLen: finalContent?.length,
+        originalLen: contentToSave?.length,
+      });
       if (finalContent !== contentToSave) {
         setContentState(finalContent);
       }
