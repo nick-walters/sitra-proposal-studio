@@ -35,6 +35,8 @@ interface ExportDialogProps {
 export function ExportDialog({ open, onOpenChange, onExport, proposalId }: ExportDialogProps) {
   const [format, setFormat] = useState<ExportFormat>('pdf');
   const { estimatedPages, totalWords } = usePageEstimate(proposalId || '');
+  const browser = detectBrowser();
+  const isOptimalBrowser = browser === 'chromium';
 
   const handleExport = () => {
     onExport(format);
