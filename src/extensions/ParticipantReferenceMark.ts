@@ -175,6 +175,7 @@ export const ParticipantReferenceMark = Mark.create<ParticipantReferenceOptions>
             }
           });
 
+          if (modified) console.log('[DIAG-APPEND]', 'guard:', 'ParticipantReferenceMark', 'replacements:', tr.steps.length);
           return modified ? tr : null;
         },
       }),
