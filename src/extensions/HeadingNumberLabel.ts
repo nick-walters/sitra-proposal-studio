@@ -60,8 +60,7 @@ export const HeadingNumberLabel = Mark.create({
           return true;
         },
 
-        appendTransaction(transactions, oldState, newState) {
-          console.log('[DIAG-APPEND]', 'pluginName:', 'HeadingNumberLabel', 'DISABLED FOR TESTING');
+        appendTransaction(_transactions, _oldState, _newState) {
           return null;
         },
       }),

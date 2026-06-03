@@ -183,33 +183,8 @@ export const CaseReferenceMark = Mark.create<CaseReferenceOptions>({
     return [
       new Plugin({
         key: new PluginKey('caseReferenceGuard'),
-        appendTransaction(transactions, _oldState, newState) {
-          if (!transactions.some(tr => tr.docChanged)) return null;
-
-          const { tr, doc, schema } = newState;
-          const markType = schema.marks[markName];
-          if (!markType) return null;
-
-          let modified = false;
-
-          doc.descendants((node, pos) => {
-            if (!node.isText) return;
-            const mark = node.marks.find(m => m.type === markType);
-            if (!mark) return;
-
-            const prefix = getCasePrefix(mark.attrs.caseType);
-            const expected = prefix ? `${prefix}${mark.attrs.caseNumber}` : (mark.attrs.caseShortName || `${mark.attrs.caseNumber}`);
-            const actual = node.text || '';
-
-            if (actual !== expected) {
-              const newNode = schema.text(expected, node.marks);
-              tr.replaceWith(pos, pos + node.nodeSize, newNode);
-              modified = true;
-            }
-          });
-
-          if (modified) console.log('[DIAG-APPEND]', 'guard:', 'CaseReferenceMark', 'replacements:', tr.steps.length);
-          return modified ? tr : null;
+        appendTransaction(_transactions, _oldState, _newState) {
+          return null;
         },
       }),
     ];
