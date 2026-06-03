@@ -1403,7 +1403,7 @@ export function useRichTextEditor({
   const lastSetContentRef = useRef<string>(initialContentRef.current);
   const readyRef = useRef(isReady);
   readyRef.current = isReady;
-  console.log('[DIAG-READY]', { isReady, instanceKey });
+  
   // Store getReference in a ref to avoid recreating the extension
   const getReferenceRef = useRef(getReference);
   getReferenceRef.current = getReference;
