@@ -1709,7 +1709,7 @@ StarterKit.configure({
     onUpdate: ({ editor }) => {
       if (!readyRef.current) return;
       const html = editor.getHTML();
-      lastSetContentRef.current = html;
+      lastSetContentRef.current = normalizePartBLoadedContent(html);
       onChange(html);
     },
     editorProps: {
