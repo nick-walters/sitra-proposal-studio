@@ -3,6 +3,8 @@ import { saveAs } from 'file-saver';
 import { toast } from 'sonner';
 import { Proposal, Section, Participant } from '@/types/proposal';
 import { prepareExportContainer, ExportData } from '@/lib/printRenderer';
+import { scrubDomForExport } from '@/lib/exportDomScrubber';
+import { convertBadgesForWord } from '@/lib/exportWordBadgeConverter';
 
 /**
  * Wrap HTML content in a Word-compatible HTML document.
