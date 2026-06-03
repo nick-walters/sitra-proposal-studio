@@ -87,50 +87,7 @@ export const CaptionLabel = Mark.create({
         },
 
         appendTransaction(transactions, oldState, newState) {
-          // Clamp cursor: if the selection is inside a captionLabel mark, push it after
-          const { selection } = newState;
-          if (!(selection instanceof TextSelection)) return null;
-          if (!selection.empty) return null;
-
-          const $pos = selection.$from;
-          const marks = $pos.marks();
-          const inside = marks.some(m => m.type === markType);
-
-          if (!inside) {
-            // Also check: if cursor is between chars that both have captionLabel
-            if ($pos.pos > 0) {
-              const before = newState.doc.resolve($pos.pos - 1);
-              const beforeMarks = before.marks ? before.marks() : [];
-              // Not inside — do nothing
-              if (!beforeMarks.some(m => m.type === markType)) return null;
-              // Cursor is right after the mark — that's fine
-              return null;
-            }
-            return null;
-          }
-
-          // Find the end of the captionLabel mark region in this text block
-          const parent = $pos.parent;
-          const parentStart = $pos.start();
-          let endOfMark = parentStart;
-
-          parent.forEach((child, offset) => {
-            const childStart = parentStart + offset;
-            const childEnd = childStart + child.nodeSize;
-            if (child.marks.some((m: any) => m.type === markType)) {
-              if (childEnd > endOfMark) endOfMark = childEnd;
-            }
-          });
-
-          if (endOfMark > $pos.pos) {
-            console.log('[DIAG-APPEND]', 'pluginName:', 'CaptionLabel', 'setSelection to:', endOfMark, 'from:', $pos.pos);
-            const tr = newState.tr.setSelection(
-              TextSelection.create(newState.doc, endOfMark)
-            );
-            tr.setMeta('addToHistory', false);
-            return tr;
-          }
-
+          console.log('[DIAG-APPEND]', 'pluginName:', 'CaptionLabel', 'DISABLED FOR TESTING');
           return null;
         },
       }),

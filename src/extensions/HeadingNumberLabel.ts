@@ -61,35 +61,7 @@ export const HeadingNumberLabel = Mark.create({
         },
 
         appendTransaction(transactions, oldState, newState) {
-          const { selection } = newState;
-          if (!(selection instanceof TextSelection) || !selection.empty) return null;
-
-          const $pos = selection.$from;
-          const marks = $pos.marks();
-          if (!marks.some(m => m.type === markType)) return null;
-
-          // Find end of mark region
-          const parent = $pos.parent;
-          const parentStart = $pos.start();
-          let endOfMark = parentStart;
-
-          parent.forEach((child, offset) => {
-            const childStart = parentStart + offset;
-            const childEnd = childStart + child.nodeSize;
-            if (child.marks.some((m: any) => m.type === markType)) {
-              if (childEnd > endOfMark) endOfMark = childEnd;
-            }
-          });
-
-          if (endOfMark > $pos.pos) {
-            console.log('[DIAG-APPEND]', 'pluginName:', 'HeadingNumberLabel', 'setSelection to:', endOfMark, 'from:', $pos.pos);
-            const tr = newState.tr.setSelection(
-              TextSelection.create(newState.doc, endOfMark)
-            );
-            tr.setMeta('addToHistory', false);
-            return tr;
-          }
-
+          console.log('[DIAG-APPEND]', 'pluginName:', 'HeadingNumberLabel', 'DISABLED FOR TESTING');
           return null;
         },
       }),
