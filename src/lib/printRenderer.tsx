@@ -502,6 +502,9 @@ export async function prepareExportContainer(
   // Mount B3.1 React components (tables, charts)
   await mountB31Components(container, options.proposal.id, options.proposal.acronym);
 
+  // Refresh any expired signed URLs before waiting for images to load
+  await refreshSignedUrls(container);
+
   // Wait for all images to load
   const images = container.querySelectorAll('img');
   await Promise.all(
