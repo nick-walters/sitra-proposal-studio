@@ -1727,13 +1727,6 @@ StarterKit.configure({
   // Normalisation only runs when we actually replace content.
   useEffect(() => {
     if (!editor || !isReady) return;
-    console.log('[DIAG-SYNC]', {
-      match: content === lastSetContentRef.current,
-      contentLen: content?.length,
-      refLen: lastSetContentRef.current?.length,
-      contentFirst50: content?.substring(0, 50),
-      refFirst50: lastSetContentRef.current?.substring(0, 50),
-    });
     if (!content && editor.state.doc.content.size > 2) return;
     const nextContent = normalizePartBLoadedContent(content);
     if (nextContent === lastSetContentRef.current) return;
