@@ -251,6 +251,12 @@ export function usePdfExport() {
         // Build the self-contained HTML document
         const htmlDoc = buildPrintDocument(container, proposal);
 
+        // Compute desired filename title for print dialog
+        const _now = new Date();
+        const _pad = (n: number) => String(n).padStart(2, '0');
+        const _timestamp = `${_now.getFullYear()}-${_pad(_now.getMonth() + 1)}-${_pad(_now.getDate())} ${_pad(_now.getHours())}:${_pad(_now.getMinutes())}:${_pad(_now.getSeconds())}`;
+        const _docTitle = `${_timestamp} ${proposal.acronym || 'proposal'} Part B`;
+
         // Clean up the container from the main page
         cleanup();
 
@@ -264,7 +270,9 @@ export function usePdfExport() {
 
           toast.info('Opening print dialog…');
           printWindow.focus();
+          try { printWindow.document.title = _docTitle; } catch {}
           printWindow.print();
+
 
           setTimeout(() => {
             printWindow.close();
@@ -302,7 +310,10 @@ export function usePdfExport() {
 
         // Print the iframe
         iframe.contentWindow?.focus();
+        try { if (iframeDoc) iframeDoc.title = _docTitle; } catch {}
+        try { document.title = _docTitle; } catch {}
         iframe.contentWindow?.print();
+
 
         // Clean up iframe after a delay (user may still be in print dialog)
         setTimeout(() => {
