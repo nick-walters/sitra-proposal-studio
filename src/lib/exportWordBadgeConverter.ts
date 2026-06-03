@@ -134,4 +134,25 @@ export function convertBadgesForWord(container: HTMLElement): void {
       `font-weight: bold; color: ${textColor}; font-family: 'Times New Roman', Times, serif; font-size: 11pt;`
     );
   });
+
+  // 7. Citations — convert superscript citation numbers to proper Word superscript
+  // Citations in the editor are <span style="vertical-align: super; font-size: 0.75em; ...">N</span>
+  container.querySelectorAll('span[style*="vertical-align: super"]').forEach((el) => {
+    const span = el as HTMLElement;
+    const text = span.textContent?.trim() || '';
+    if (!text) return;
+
+    // Replace with a <sup> tag which Word understands natively
+    const sup = document.createElement('sup');
+    sup.setAttribute('style', 'font-family: "Times New Roman", Times, serif; font-size: 9pt;');
+    sup.textContent = text;
+    span.replaceWith(sup);
+  });
+
+  // 8. Footnotes at bottom of section — ensure 8pt font
+  // Footnotes are rendered in .document-page-footer or in a div with text-[8pt] class
+  container.querySelectorAll('p[class*="text-[8pt]"], .footnote-text').forEach((el) => {
+    const p = el as HTMLElement;
+    p.setAttribute('style', (p.getAttribute('style') || '') + '; font-size: 8pt; font-family: "Times New Roman", Times, serif;');
+  });
 }
