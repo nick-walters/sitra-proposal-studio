@@ -196,6 +196,12 @@ export function InsertTDMSReferenceDropdowns({
 
   useEffect(() => {
     if (!proposalId) return;
+    // Refetch whenever a dialog opens so newly created deliverables/milestones appear
+    if (!taskDialogOpen && !deliverableDialogOpen && !milestoneDialogOpen) return;
+
+
+
+
 
     const fetchData = async () => {
       setLoading(true);
@@ -300,7 +306,7 @@ export function InsertTDMSReferenceDropdowns({
     };
 
     fetchData();
-  }, [proposalId]);
+  }, [proposalId, taskDialogOpen, deliverableDialogOpen, milestoneDialogOpen]);
 
   const buttonClass = variant === 'outline'
     ? "h-6 px-1.5 text-xs gap-0.5"
