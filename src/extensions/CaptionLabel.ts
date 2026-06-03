@@ -123,6 +123,7 @@ export const CaptionLabel = Mark.create({
           });
 
           if (endOfMark > $pos.pos) {
+            console.log('[DIAG-APPEND]', 'pluginName:', 'CaptionLabel', 'setSelection to:', endOfMark, 'from:', $pos.pos);
             const tr = newState.tr.setSelection(
               TextSelection.create(newState.doc, endOfMark)
             );
