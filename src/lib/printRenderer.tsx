@@ -82,7 +82,41 @@ async function resolveImagesInHtml(html: string): Promise<string> {
       const resolved = await resolveStorageUrl(src);
       if (resolved) {
         result = result.replace(src, resolved);
+}
+
+/**
+ * Refreshes all signed storage URLs in the rendered DOM container.
+ * Handles images that already have signed URLs (starting with https://)
+ * which may have expired since the editor loaded.
+ * The existing resolveImagesInHtml handles raw storage paths;
+ * this function handles the complementary case of stale signed URLs.
+ */
+async function refreshSignedUrls(container: HTMLElement): Promise<void> {
+  const images = container.querySelectorAll('img');
+
+  await Promise.all(
+    Array.from(images).map(async (img) => {
+      const src = img.getAttribute('src');
+      if (!src) return;
+
+      // Only process URLs that point to our storage bucket
+      const storagePath = extractFilePathFromUrl(src);
+      if (!storagePath) return;
+
+      try {
+        const { url, error } = await getProposalFileSignedUrl(storagePath);
+        if (url && !error) {
+          img.setAttribute('src', url);
+        } else {
+          console.warn('Failed to refresh signed URL for:', storagePath, error);
+        }
+      } catch (err) {
+        console.warn('Error refreshing signed URL for:', storagePath, err);
+        // Leave original src unchanged — don't break the export for one bad image
       }
+    })
+  );
+}
     } catch { /* keep original */ }
   }
   return result;
