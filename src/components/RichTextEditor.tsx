@@ -1535,29 +1535,22 @@ StarterKit.configure({
                     const mark = markType.isInSet($pos.marks());
                     if (!mark) continue;
                     
-                    // Find the extent of this mark by walking whole text nodes.
-                    // (Walking by character via resolve(pos).marks() loses the trailing
-                    // edge because marks() returns marks of the node AFTER the boundary,
-                    // which is unmarked at the right edge of the run. That left a single
-                    // marked character behind after deletion, which the mark guard
-                    // plugins then restored — making badges undeletable.)
+                    // Find the extent of this mark
                     let from = pos;
                     let to = pos;
-
-                    // Scan backwards through contiguous text nodes carrying the mark
+                    
+                    // Scan backwards
                     while (from > 0) {
-                      const nodeBefore = doc.resolve(from).nodeBefore;
-                      if (!nodeBefore || !nodeBefore.isText) break;
-                      if (!nodeBefore.marks.some(m => m.type === markType)) break;
-                      from -= nodeBefore.nodeSize;
+                      const $before = doc.resolve(from - 1);
+                      if (!markType.isInSet($before.marks())) break;
+                      from--;
                     }
-
-                    // Scan forwards through contiguous text nodes carrying the mark
+                    
+                    // Scan forwards
                     while (to < doc.content.size) {
-                      const nodeAfter = doc.resolve(to).nodeAfter;
-                      if (!nodeAfter || !nodeAfter.isText) break;
-                      if (!nodeAfter.marks.some(m => m.type === markType)) break;
-                      to += nodeAfter.nodeSize;
+                      const $after = doc.resolve(to + 1);
+                      if (!markType.isInSet($after.marks())) break;
+                      to++;
                     }
                     
                     // Select the entire mark range
