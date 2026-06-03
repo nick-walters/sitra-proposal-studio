@@ -107,10 +107,26 @@ export function ExportDialog({ open, onOpenChange, onExport, proposalId }: Expor
             </RadioGroup>
           </div>
 
-          {format === 'pdf' && (
+          {format === 'pdf' && !isOptimalBrowser && (
+            <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">
+              <strong>For best results, export from Microsoft Edge or Google Chrome.</strong>
+              {' '}You can still export from this browser, but page layout, headers, footers,
+              and page numbers may render differently.
+            </div>
+          )}
+
+          {format === 'pdf' && isOptimalBrowser && (
             <p className="text-xs text-muted-foreground">
               PDF export opens the browser print dialog. Select "Save as PDF" as the destination.
             </p>
+          )}
+
+          {format === 'docx' && (
+            <div className="rounded-lg border border-blue-300 bg-blue-50 p-3 text-xs text-blue-900">
+              <strong>Word export is provided as a fallback for offline editing.</strong>
+              {' '}For best visual fidelity, use the PDF export. Some advanced formatting
+              (cross-reference badges, tables) may differ slightly from the platform.
+            </div>
           )}
         </div>
 
