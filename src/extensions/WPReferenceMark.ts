@@ -188,6 +188,7 @@ export const WPReferenceMark = Mark.create<WPReferenceOptions>({
             }
           });
 
+          if (modified) console.log('[DIAG-APPEND]', 'guard:', 'WPReferenceMark', 'replacements:', tr.steps.length);
           return modified ? tr : null;
         },
       }),
