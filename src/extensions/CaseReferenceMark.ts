@@ -183,8 +183,51 @@ export const CaseReferenceMark = Mark.create<CaseReferenceOptions>({
     return [
       new Plugin({
         key: new PluginKey('caseReferenceGuard'),
-        appendTransaction(_transactions, _oldState, _newState) {
-          return null;
+        appendTransaction(transactions, _oldState, newState) {
+          if (!transactions.some(tr => tr.docChanged)) return null;
+
+          const changedRanges: { from: number; to: number }[] = [];
+          transactions.forEach(t => {
+            t.steps.forEach(step => {
+              step.getMap().forEach((_oldStart, _oldEnd, newStart, newEnd) => {
+                changedRanges.push({ from: newStart, to: newEnd });
+              });
+            });
+          });
+          if (changedRanges.length === 0) return null;
+
+          const { tr, doc, schema } = newState;
+          const markType = schema.marks[markName];
+          if (!markType) return null;
+
+          let modified = false;
+          const seen = new Set<number>();
+
+          for (const range of changedRanges) {
+            const from = Math.max(0, range.from - 10);
+            const to = Math.min(doc.content.size, range.to + 10);
+            if (from >= to) continue;
+
+            doc.nodesBetween(from, to, (node, pos) => {
+              if (!node.isText) return;
+              if (seen.has(pos)) return;
+              const mark = node.marks.find(m => m.type === markType);
+              if (!mark) return;
+              seen.add(pos);
+
+              const prefix = getCasePrefix(mark.attrs.caseType);
+              const expected = prefix ? `${prefix}${mark.attrs.caseNumber}` : (mark.attrs.caseShortName || `${mark.attrs.caseNumber}`);
+              const actual = node.text || '';
+
+              if (actual !== expected) {
+                const newNode = schema.text(expected, node.marks);
+                tr.replaceWith(pos, pos + node.nodeSize, newNode);
+                modified = true;
+              }
+            });
+          }
+
+          return modified ? tr : null;
         },
       }),
     ];
