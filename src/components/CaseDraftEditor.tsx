@@ -1,26 +1,17 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { SaveIndicator } from '@/components/SaveIndicator';
+import { DraftFormattingToolbar } from '@/components/DraftFormattingToolbar';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DebouncedInput } from '@/components/ui/debounced-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { WPSimpleEditor } from '@/components/WPSimpleEditor';
 import { SitraTipsBox } from '@/components/SitraTipsBox';
-import { BookOpen, Bold, Italic, Underline, List, ListOrdered, AlignLeft, AlignCenter, AlignRight, AlignJustify, Table2, ChevronDown, Lock } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { BookOpen, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { ParticipantSummary } from '@/types/proposal';
@@ -321,196 +312,26 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
             </div>
           </DialogContent>
         </Dialog>
-        {/* Top Toolbar Row - Guidelines + Formatting (matches WP editor, sticky) */}
-        <div className="flex items-center gap-2 p-2 border rounded-md bg-card flex-wrap sticky top-0 z-10">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setGuidelinesOpen(true)}
-            className="h-7 px-2 text-xs gap-1 text-destructive border-destructive/50 hover:bg-destructive/10 hover:text-destructive"
-          >
-            <BookOpen className="h-3.5 w-3.5" />
-            Guidelines
-          </Button>
-          <SaveIndicator
-            saving={updateMutation.isPending}
-            lastSaved={lastSaved}
-            saveError={saveError}
-            onSaveNow={() => {}}
-          />
+        {/* Top Toolbar Row - Guidelines + Formatting (shared component) */}
+        <DraftFormattingToolbar
+          onOpenGuidelines={() => setGuidelinesOpen(true)}
+          save={{
+            saving: updateMutation.isPending,
+            lastSaved,
+            saveError,
+            onSaveNow: () => {},
+          }}
+          isReadOnly={readOnly}
+          onCommand={execCommand}
+          table={{
+            open: tablePopoverOpen,
+            onOpenChange: setTablePopoverOpen,
+            hoveredCell,
+            onHoverCell: setHoveredCell,
+            onInsert: insertTable,
+          }}
+        />
 
-          <Separator orientation="vertical" className="h-5" />
-
-          {!readOnly && (
-            <>
-              {/* Subheading dropdown */}
-              <DropdownMenu>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <DropdownMenuTrigger asChild>
-                      <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1">
-                        <span className="text-xs font-black underline">Subheading</span>
-                        <ChevronDown className="w-3 h-3" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs">Insert subheading</TooltipContent>
-                </Tooltip>
-                <DropdownMenuContent align="start" className="w-64">
-                  <DropdownMenuItem onClick={() => {
-                    const editorEl = document.activeElement?.closest('[contenteditable]') as HTMLElement | null;
-                    const h3s = editorEl?.querySelectorAll('h3') || [];
-                    const nextNum = h3s.length + 1;
-                    document.execCommand('formatBlock', false, 'h3');
-                    document.execCommand('insertText', false, `1.1.${nextNum}. `);
-                  }}>
-                    <span className="text-sm font-semibold">Numbered subheading</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => {
-                    execCommand('bold');
-                    execCommand('underline');
-                  }}>
-                    <span className="text-sm font-bold underline">Unnumbered subheading</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              <Separator orientation="vertical" className="h-5" />
-
-              {/* Bold, Italic, Underline */}
-              <div className="flex items-center gap-0.5">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => execCommand('bold')}>
-                      <span className="font-black text-sm">B</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs">Bold (Ctrl+B)</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => execCommand('italic')}>
-                      <Italic className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs">Italic (Ctrl+I)</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => execCommand('underline')}>
-                      <Underline className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs">Underline (Ctrl+U)</TooltipContent>
-                </Tooltip>
-              </div>
-
-              <Separator orientation="vertical" className="h-5" />
-
-              {/* Lists */}
-              <div className="flex items-center gap-0.5">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => execCommand('insertUnorderedList')}>
-                      <List className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs">Bullet list</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => execCommand('insertOrderedList')}>
-                      <ListOrdered className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs">Numbered list</TooltipContent>
-                </Tooltip>
-              </div>
-
-              <Separator orientation="vertical" className="h-5" />
-
-              {/* Alignment */}
-              <div className="flex items-center gap-0.5">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => execCommand('justifyLeft')}>
-                      <AlignLeft className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs">Align left</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => execCommand('justifyCenter')}>
-                      <AlignCenter className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs">Align center</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => execCommand('justifyRight')}>
-                      <AlignRight className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs">Align right</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => execCommand('justifyFull')}>
-                      <AlignJustify className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs">Justify</TooltipContent>
-                </Tooltip>
-              </div>
-
-              <Separator orientation="vertical" className="h-5" />
-
-              {/* Table insert */}
-              <Popover open={tablePopoverOpen} onOpenChange={setTablePopoverOpen}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <PopoverTrigger asChild>
-                      <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1">
-                        <Table2 className="h-3.5 w-3.5" />
-                        <span className="text-xs">Table</span>
-                      </Button>
-                    </PopoverTrigger>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs">Insert table</TooltipContent>
-                </Tooltip>
-                <PopoverContent className="w-auto p-2" align="start">
-                  <div className="text-xs text-muted-foreground mb-2">
-                    {hoveredCell ? `${hoveredCell.row} × ${hoveredCell.col}` : 'Select size'}
-                  </div>
-                  <div className="grid gap-0.5" style={{ gridTemplateColumns: 'repeat(8, 1fr)' }}>
-                    {Array.from({ length: 8 }, (_, row) =>
-                      Array.from({ length: 8 }, (_, col) => {
-                        const isHighlighted = hoveredCell && row < hoveredCell.row && col < hoveredCell.col;
-                        const isFirstRow = row === 0;
-                        return (
-                          <button
-                            key={`${row}-${col}`}
-                            className={cn(
-                              "w-4 h-4 border border-border rounded-sm transition-colors",
-                              isHighlighted
-                                ? isFirstRow ? "bg-foreground" : "bg-primary/40"
-                                : "bg-background hover:bg-muted"
-                            )}
-                            onMouseEnter={() => setHoveredCell({ row: row + 1, col: col + 1 })}
-                            onMouseLeave={() => setHoveredCell(null)}
-                            onClick={() => insertTable(row + 1, col + 1)}
-                          />
-                        );
-                      })
-                    )}
-                  </div>
-                </PopoverContent>
-              </Popover>
-            </>
-          )}
-        </div>
 
         {/* Header with white bg + black outline (case bubble style) */}
         <div

@@ -1359,10 +1359,9 @@ StarterKit.configure({
 
   return (
     <div className={className}>
-      {/* Allow external toolbar rendering or use default */}
-      {renderToolbar ? renderToolbar(editor) : (
-        <FormattingToolbar editor={editor} />
-      )}
+      {/* External toolbar rendering only; default fallback removed (no caller used it). */}
+      {renderToolbar?.(editor)}
+
 
       {/* Editor Content */}
       <EditorContent editor={editor} />
