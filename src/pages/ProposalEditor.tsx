@@ -550,7 +550,7 @@ export function ProposalEditor() {
                 Export part B
               </Button>
             </div>
-            {isCoordinator && <PanelEvaluator proposalId={id || ''} />}
+            {/* {isCoordinator && <PanelEvaluator proposalId={id || ''} />} */}
           </div>
         </div>
       );
