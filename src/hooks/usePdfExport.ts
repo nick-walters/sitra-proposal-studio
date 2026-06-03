@@ -146,6 +146,15 @@ function escapeHtml(text: string): string {
 }
 
 async function waitForPrintAssets(printDocument: Document): Promise<void> {
+  // Wait for fonts
+  if (printDocument.fonts && printDocument.fonts.ready) {
+    try {
+      await printDocument.fonts.ready;
+    } catch {
+      // Font loading API not available; fall through
+    }
+  }
+
   await new Promise<void>((resolve) => {
     const checkReady = () => {
       const images = printDocument.querySelectorAll('img');
@@ -159,6 +168,8 @@ async function waitForPrintAssets(printDocument: Document): Promise<void> {
 
     setTimeout(checkReady, 1000);
   });
+
+  await new Promise(resolve => setTimeout(resolve, 500));
 }
 
 export function usePdfExport() {
