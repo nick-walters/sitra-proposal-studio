@@ -959,11 +959,33 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                           ? workPackages.find(wp => wp.number === del.wp_number)?.color || '#000'
                           : '#000';
                         return (
-                          <span style={{ display: 'inline-block', verticalAlign: 'baseline', position: 'relative', width: 44, height: 17 }}>
-                            <svg width={44} height={17} viewBox="0 0 44 17" style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}>
-                              <path d="M 0,0 L 36,0 L 44,8.5 L 36,17 L 0,17 Z" fill="#ffffff" stroke={wpColor} strokeWidth={1.5} strokeLinejoin="round" />
-                            </svg>
-                            <span style={{ position: 'absolute', top: 0, left: 0, width: 36, height: 17, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, color: wpColor, whiteSpace: 'nowrap' }}>
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              position: 'relative',
+                              height: '17px',
+                              padding: '0 10px 0 5px',
+                              fontFamily: "'Times New Roman', Times, serif",
+                              fontSize: '11pt',
+                              fontWeight: 700,
+                              lineHeight: 1,
+                              color: wpColor,
+                              whiteSpace: 'nowrap',
+                              verticalAlign: 'baseline',
+                            }}
+                          >
+                            <span
+                              style={{
+                                position: 'absolute',
+                                inset: 0,
+                                backgroundColor: '#ffffff',
+                                border: `1.5px solid ${wpColor}`,
+                                clipPath: 'polygon(0% 0%, calc(100% - 8px) 0%, 100% 50%, calc(100% - 8px) 100%, 0% 100%)',
+                              }}
+                            />
+                            <span style={{ position: 'relative', zIndex: 1 }}>
                               <EditableTextInline
                                 value={del.number}
                                 onChange={(val) => updateDeliverable.mutate({ id: del.id, number: val })}
