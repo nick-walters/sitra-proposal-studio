@@ -208,7 +208,6 @@ export function useDocxExport() {
           }
         }
 
-        // Get the rendered HTML
         // Clean up editor-only UI and convert badges for Word
         scrubDomForExport(container);
         convertBadgesForWord(container);
