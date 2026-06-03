@@ -1426,272 +1426,31 @@ export function useRichTextEditor({
   }, [blockLocking]);
   
   const editor = useEditor({
-    extensions: [
-StarterKit.configure({
-  heading: {
-    levels: [1, 2, 3],
-  },
-  orderedList: false,
-  undoRedo: {
-    depth: 100,
-    newGroupDelay: 1200,
-  },
-}),
-      OrderedListStyled,
-      Typography,
-      Underline,
-      TextStyle,
-      Color,
-      ParagraphClass,
-      ParagraphSpacing,
-      TextAlign.configure({
-        types: ['heading', 'paragraph'],
-        defaultAlignment: 'justify',
-      }),
-      ResizableImage,
-      Link.configure({
-        openOnClick: false,
-        HTMLAttributes: {
-          class: 'text-primary underline',
-        },
-      }),
-      Table.configure({
-        resizable: true,
-        HTMLAttributes: {
-          class: 'he-table',
-        },
-      }),
-      TableRow,
-      TableHeader.configure({
-        HTMLAttributes: {
-          class: 'he-table-header',
-        },
-      }),
-      TableCell.configure({
-        HTMLAttributes: {
-          class: 'he-table-cell',
-        },
-      }),
-      // Block reordering via keyboard shortcuts (Ctrl+Shift+↑/↓)
-      HeadingExitOnEnter,
-      BlockReordering,
-      
-      InlineReferenceMark,
-      // WP reference marks for inline WP badges
-      WPReferenceMark,
-      // Case reference marks for inline case badges
-      CaseReferenceMark,
-      // Participant reference marks for inline partner badges
-      ParticipantReferenceMark,
-      // Acronym reference for colored acronym insertion
-      AcronymReference,
-      CaptionLabel,
-      HeadingNumberLabel,
-      // Figure/table reference marks for atomic deletion
-      FigureTableReferenceMark,
-      // Block drag-and-drop via drag handle
-      BlockDragHandle.configure({
+    extensions: createEditorExtensions({
+      blockDragHandle: {
         getLockedBlocks: () => getLockedBlocksRef.current(),
         getCurrentUserId: () => getCurrentUserIdRef.current(),
         onDeleteRequest: (callback) => {
           if (onBlockDeleteRequestRef.current) {
             onBlockDeleteRequestRef.current(callback);
           } else {
-            // No confirmation handler, just execute
             callback();
           }
         },
-      }),
-      Extension.create({
-        name: 'citationTooltip',
-        addProseMirrorPlugins() {
-          return [
-            createCitationTooltipPlugin((num) => getReferenceRef.current?.(num)),
-          ];
-        },
-      }),
-      // Click-to-select reference marks for easy deletion
-      Extension.create({
-        name: 'referenceClickSelect',
-        addProseMirrorPlugins() {
-          return [
-            new Plugin({
-              key: new PluginKey('referenceClickSelect'),
-              props: {
-                handleClick(view, pos, event) {
-                  const target = event.target as HTMLElement;
-                  const refEl = target.closest('[data-inline-reference], [data-wp-reference], [data-case-reference], [data-participant-reference], [data-acronym-reference], [data-fig-table-ref]');
-                  if (!refEl) return false;
-                  
-                  // Find the mark range at this position
-                  const { doc } = view.state;
-                  const $pos = doc.resolve(pos);
-                  const markTypes = ['inlineReference', 'wpReference', 'caseReference', 'participantReference', 'acronymReference', 'figureTableReference'];
-                  
-                  for (const markName of markTypes) {
-                    const markType = view.state.schema.marks[markName];
-                    if (!markType) continue;
-                    
-                    const mark = markType.isInSet($pos.marks());
-                    if (!mark) continue;
-                    
-                    // Find the extent of this mark
-                    let from = pos;
-                    let to = pos;
-                    
-                    // Scan backwards
-                    while (from > 0) {
-                      const $before = doc.resolve(from - 1);
-                      if (!markType.isInSet($before.marks())) break;
-                      from--;
-                    }
-                    
-                    // Scan forwards
-                    while (to < doc.content.size) {
-                      const $after = doc.resolve(to + 1);
-                      if (!markType.isInSet($after.marks())) break;
-                      to++;
-                    }
-                    
-                    // Select the entire mark range
-                    const tr = view.state.tr.setSelection(TextSelection.create(doc, from, to));
-                    view.dispatch(tr);
-                    return true;
-                  }
-                  
-                  return false;
-                },
-              },
-            }),
-          ];
-        },
-      }),
-      // Add block locking extension
-      Extension.create({
-        name: 'blockLocking',
-        addProseMirrorPlugins() {
-          return [
-            new Plugin({
-              key: new PluginKey('blockLocking'),
-              filterTransaction(tr, state) {
-                // Allow non-content changes
-                if (!tr.docChanged) return true;
-
-                const lockedBlocks = getLockedBlocksRef.current();
-                if (lockedBlocks.length === 0) return true;
-
-                const userId = getCurrentUserIdRef.current();
-                const lockedBlockIds = new Set(
-                  lockedBlocks
-                    .filter(lock => lock.userId !== userId)
-                    .map(lock => lock.blockId)
-                );
-
-                if (lockedBlockIds.size === 0) return true;
-
-                // Check if transaction affects locked block
-                let affectsLocked = false;
-                tr.steps.forEach((step) => {
-                  const stepMap = step.getMap();
-                  stepMap.forEach((oldStart, oldEnd) => {
-                    for (let pos = oldStart; pos <= Math.min(oldEnd, state.doc.content.size); pos++) {
-                      try {
-                        const $pos = state.doc.resolve(pos);
-                        let depth = $pos.depth;
-                        while (depth > 1) depth--;
-                        if (depth >= 1) {
-                          const node = $pos.node(depth);
-                          const start = $pos.start(depth);
-                          const blockId = `${start}-${node.type.name}`;
-                          if (lockedBlockIds.has(blockId)) {
-                            affectsLocked = true;
-                          }
-                        }
-                      } catch {
-                        // Ignore invalid positions
-                      }
-                    }
-                  });
-                });
-
-                return !affectsLocked;
-              },
-            }),
-          ];
-        },
-      }),
-      // Track changes extension
-      TrackChanges.configure({
-        enabled: trackChanges?.enabled || false,
-        authorId: trackChanges?.authorId || '',
-        authorName: trackChanges?.authorName || 'Anonymous',
-        authorColor: trackChanges?.authorColor || '#3B82F6',
-        changes: [],
-        onChangesUpdate: trackChanges?.onChangesUpdate,
-      }),
-      // Table formula extension
-      TableFormula,
-      // Suppress heading input rules inside table cells
-      Extension.create({
-        name: 'preventHeadingInTable',
-        addProseMirrorPlugins() {
-          return [
-            new Plugin({
-              key: new PluginKey('preventHeadingInTableMain'),
-              appendTransaction(_transactions, oldState, newState) {
-                const { doc, schema } = newState;
-                const headingType = schema.nodes.heading;
-                const paragraphType = schema.nodes.paragraph;
-                if (!headingType || !paragraphType) return null;
-
-                let tr: any = null;
-                doc.descendants((node, pos) => {
-                  if (node.type !== headingType) return;
-                  const $pos = doc.resolve(pos);
-                  for (let d = $pos.depth; d > 0; d--) {
-                    const parentName = $pos.node(d).type.name;
-                    if (parentName === 'tableCell' || parentName === 'tableHeader') {
-                      if (!tr) tr = newState.tr;
-                      tr.setNodeMarkup(pos, paragraphType, null, node.marks);
-                      return false;
-                    }
-                  }
-                });
-                return tr;
-              },
-            }),
-          ];
-        },
-      }),
-      // Prevent tables from being first element in the document content
-      Extension.create({
-        name: 'preventTableAtStart',
-        addProseMirrorPlugins() {
-          return [
-            new Plugin({
-              key: new PluginKey('preventTableAtStart'),
-              appendTransaction(transactions, oldState, newState) {
-                // Only process if document changed
-                const docChanged = transactions.some(tr => tr.docChanged);
-                if (!docChanged) return null;
-
-                const doc = newState.doc;
-                if (doc.childCount === 0) return null;
-
-                // Check if first child is a table
-                const firstChild = doc.child(0);
-                if (firstChild.type.name !== 'table') return null;
-
-                // Insert empty paragraph at position 0 (before the table)
-                const paragraphNode = newState.schema.nodes.paragraph.create();
-                const tr = newState.tr.insert(0, paragraphNode);
-                return tr;
-              },
-            }),
-          ];
-        },
-      }),
-    ],
+      },
+      citationTooltip: (num) => getReferenceRef.current?.(num),
+      trackChanges: trackChanges ? {
+        enabled: trackChanges.enabled || false,
+        authorId: trackChanges.authorId || '',
+        authorName: trackChanges.authorName || 'Anonymous',
+        authorColor: trackChanges.authorColor || '#3B82F6',
+        onChangesUpdate: trackChanges.onChangesUpdate,
+      } : undefined,
+      blockLocking: blockLocking ? {
+        getLockedBlocks: () => getLockedBlocksRef.current(),
+        getCurrentUserId: () => getCurrentUserIdRef.current(),
+      } : undefined,
+    }),
     content: isReady ? normalizePartBLoadedContent(content) : '<p></p>',
     enableExtensionDispatchTransaction: true,
     immediatelyRender: false,
