@@ -306,7 +306,7 @@ export function InsertTDMSReferenceDropdowns({
     };
 
     fetchData();
-  }, [proposalId]);
+  }, [proposalId, taskDialogOpen, deliverableDialogOpen, milestoneDialogOpen]);
 
   const buttonClass = variant === 'outline'
     ? "h-6 px-1.5 text-xs gap-0.5"
