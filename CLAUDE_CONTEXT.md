@@ -182,6 +182,19 @@ For Claude: fetch any raw URL below with WebFetch to read that file's current so
 - https://raw.githubusercontent.com/nick-walters/sitra-proposal-studio/main/src/components/WorkloadDashboard.tsx
 - https://raw.githubusercontent.com/nick-walters/sitra-proposal-studio/main/src/components/WritingAssistantDialog.tsx
 
+## REFERENCE DIALOGS
+
+- https://raw.githubusercontent.com/nick-walters/sitra-proposal-studio/main/src/components/InsertCrossReferenceDialog.tsx
+- https://raw.githubusercontent.com/nick-walters/sitra-proposal-studio/main/src/components/InsertTDMSReferenceDropdowns.tsx
+- https://raw.githubusercontent.com/nick-walters/sitra-proposal-studio/main/src/components/InsertWPReferenceDialog.tsx
+- https://raw.githubusercontent.com/nick-walters/sitra-proposal-studio/main/src/components/InsertCaseReferenceDialog.tsx
+- https://raw.githubusercontent.com/nick-walters/sitra-proposal-studio/main/src/components/InsertParticipantReferenceDialog.tsx
+- https://raw.githubusercontent.com/nick-walters/sitra-proposal-studio/main/src/components/InsertFigureDialog.tsx
+- https://raw.githubusercontent.com/nick-walters/sitra-proposal-studio/main/src/components/CitationDialog.tsx
+- https://raw.githubusercontent.com/nick-walters/sitra-proposal-studio/main/src/components/EditableCaption.tsx
+- https://raw.githubusercontent.com/nick-walters/sitra-proposal-studio/main/src/components/ColumnResizer.tsx
+- https://raw.githubusercontent.com/nick-walters/sitra-proposal-studio/main/src/components/DeleteConfirmDialog.tsx
+
 ## Admin Components
 
 - https://raw.githubusercontent.com/nick-walters/sitra-proposal-studio/main/src/components/admin/AdminAvatarUpload.tsx
