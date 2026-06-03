@@ -1664,6 +1664,7 @@ StarterKit.configure({
                     }
                   }
                 });
+                if (tr) console.log('[DIAG-APPEND]', 'pluginName:', 'preventHeadingInTableMain', 'changes:', tr.steps.length);
                 return tr;
               },
             }),
