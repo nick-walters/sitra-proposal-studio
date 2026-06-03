@@ -1218,7 +1218,7 @@ interface EditorExtensionOptions {
   /** Include citation tooltip with this lookup function. Omit to exclude. */
   citationTooltip?: (citationNumber: number) => { citation: string } | undefined;
   /** Include track changes with these options. Omit to exclude. */
-  trackChanges?: TrackChangesOptions & { onChangesUpdate?: (changes: any[]) => void };
+  trackChanges?: Omit<TrackChangesOptions, 'changes'> & { onChangesUpdate?: (changes: any[]) => void };
   /** Include block locking with these callbacks. Omit to exclude. */
   blockLocking?: {
     getLockedBlocks: () => { userId: string; blockId: string; blockType: string }[];
