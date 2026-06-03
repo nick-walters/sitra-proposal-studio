@@ -196,6 +196,12 @@ export function InsertTDMSReferenceDropdowns({
 
   useEffect(() => {
     if (!proposalId) return;
+    // Only fetch when a dialog is open (or on mount) so newly created items appear
+    if (!taskDialogOpen && !deliverableDialogOpen && !milestoneDialogOpen) {
+      // still do initial fetch on mount
+    }
+
+
 
     const fetchData = async () => {
       setLoading(true);
