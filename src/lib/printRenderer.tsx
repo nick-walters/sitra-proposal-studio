@@ -455,7 +455,7 @@ function freezeInteractiveElements(container: HTMLElement): void {
     if (hasBubble || textContent.length > 0) {
       const span = document.createElement('span');
       span.innerHTML = btn.innerHTML;
-      span.querySelectorAll('svg').forEach(svg => svg.remove());
+      span.querySelectorAll('svg.lucide-chevron-down, svg.lucide-chevrons-up-down, svg.lucide-chevron-up, svg.lucide-x, [data-radix-select-icon]').forEach(svg => svg.remove());
       span.style.display = 'inline-flex';
       span.style.alignItems = 'center';
       span.style.flexWrap = 'wrap';
