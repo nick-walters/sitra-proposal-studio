@@ -1394,11 +1394,20 @@ export function DocumentEditor({
             <div ref={documentPageRef} className="document-page animate-fade-in">
               {/* Non-editable proposal banner — only on B1.1 */}
               {section.number === 'B1.1' && (
-                <ProposalBanner
-                  acronym={proposalAcronym}
-                  title={proposalTitle || ''}
-                  className="mb-6"
-                />
+                <div
+                  style={{
+                    marginLeft: '-1.5cm',
+                    marginRight: '-1.5cm',
+                    marginTop: '-1.5cm',
+                    width: 'calc(100% + 3cm)',
+                    marginBottom: '1.5rem',
+                  }}
+                >
+                  <ProposalBanner
+                    acronym={proposalAcronym}
+                    title={proposalTitle || ''}
+                  />
+                </div>
               )}
 
               {/* Page Header - centered, shows Topic ID: Topic title (type of action) */}
