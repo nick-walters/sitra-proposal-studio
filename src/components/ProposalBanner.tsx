@@ -3,9 +3,9 @@ import { SITRA_LOGO_BASE64 } from '@/lib/sitraLogo';
 interface ProposalBannerProps {
   acronym: string;
   title: string;
-  topicId?: string;
-  topicTitle?: string;
-  proposalType?: string;
+  topicId?: string | null;
+  topicTitle?: string | null;
+  proposalType?: string | null;
   className?: string;
 }
 
@@ -16,8 +16,7 @@ interface ProposalBannerProps {
  * pipelines may add bleed-to-edge styling via CSS).
  */
 export function ProposalBanner({ acronym, title, topicId, topicTitle, proposalType, className }: ProposalBannerProps) {
-  const hasTopicLine = topicId || topicTitle || proposalType;
-  const topicLine = hasTopicLine
+  const topicLine = topicId || topicTitle || proposalType
     ? `${topicId || ''}${topicId && topicTitle ? ': ' : ''}${topicTitle || ''}${proposalType ? ` (${proposalType})` : ''}`
     : '';
 
@@ -30,72 +29,66 @@ export function ProposalBanner({ acronym, title, topicId, topicTitle, proposalTy
       style={{
         background: '#000',
         color: '#fff',
-        display: 'flex',
-        alignItems: 'flex-start',
-        justifyContent: 'space-between',
-        gap: '1cm',
         padding: '1.5cm 1.5cm 12pt 1.5cm',
         width: '100%',
         boxSizing: 'border-box',
         userSelect: 'none',
         WebkitUserSelect: 'none',
+        overflow: 'hidden',
       }}
     >
-      <div
-        style={{
-          flex: 1,
-          minWidth: 0,
-          textAlign: 'left',
-          color: '#fff',
-        }}
-      >
-        {hasTopicLine && (
-          <div
-            style={{
-              fontFamily: "'Times New Roman', Times, serif",
-              fontSize: '8pt',
-              lineHeight: 1,
-              color: '#fff',
-              textAlign: 'left',
-              marginTop: '0pt',
-              marginBottom: '6pt',
-            }}
-          >
-            {topicLine}
-          </div>
-        )}
-        <div
-          style={{
-            fontFamily: "'Arial Black', Arial, sans-serif",
-            fontWeight: 900,
-            fontSize: '16pt',
-            lineHeight: 1.2,
-            color: '#fff',
-            textAlign: 'left',
-          }}
-        >
-          {acronym}
-        </div>
-        {title && (
-          <div
-            style={{
-              fontFamily: "'Arial Black', Arial, sans-serif",
-              fontWeight: 900,
-              fontSize: '14pt',
-              lineHeight: 1.2,
-              color: '#fff',
-              textAlign: 'left',
-            }}
-          >
-            {title}
-          </div>
-        )}
-      </div>
       <img
         src={SITRA_LOGO_BASE64}
         alt="Sitra"
-        style={{ height: '1cm', width: 'auto', display: 'block', flexShrink: 0 }}
+        style={{
+          float: 'right',
+          height: '1cm',
+          width: 'auto',
+          display: 'block',
+          marginLeft: '1cm',
+          marginBottom: '0.5cm',
+        }}
       />
+      {topicLine && (
+        <div
+          style={{
+            fontFamily: "'Times New Roman', Times, serif",
+            fontSize: '8pt',
+            lineHeight: 1,
+            color: '#fff',
+            textAlign: 'left',
+            marginTop: '0pt',
+            marginBottom: '6pt',
+          }}
+        >
+          {topicLine}
+        </div>
+      )}
+      <div
+        style={{
+          fontFamily: "'Arial Black', Arial, sans-serif",
+          fontWeight: 900,
+          fontSize: '16pt',
+          lineHeight: 1.2,
+          color: '#fff',
+          textAlign: 'left',
+        }}
+      >
+        {acronym}
+      </div>
+      <div
+        style={{
+          fontFamily: "'Arial Black', Arial, sans-serif",
+          fontWeight: 900,
+          fontSize: '14pt',
+          lineHeight: 1.2,
+          color: '#fff',
+          textAlign: 'left',
+        }}
+      >
+        {title}
+      </div>
     </div>
   );
 }
+
