@@ -308,6 +308,9 @@ html, body {
   /* Body text defaults – text-align: justify is the default but must NOT use !important
      so that Tiptap inline styles (style="text-align: left") can override it */
   .document-content p:not(.figure-caption) {
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 11pt;
+    line-height: 1;
     text-align: justify;
     text-indent: 0 !important;
     margin-left: 0 !important;
