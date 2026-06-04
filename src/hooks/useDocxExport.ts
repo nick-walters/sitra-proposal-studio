@@ -229,6 +229,17 @@ export function useDocxExport() {
         scrubDomForExport(container);
         convertBadgesForWord(container);
 
+        // Replace the proposal banner div (flexbox) with a Word-compatible
+        // table-based equivalent. Flex layout is not supported in Word's
+        // HTML renderer; a 2-column table reproduces the layout reliably.
+        const bannerEl = container.querySelector('[data-proposal-banner]');
+        if (bannerEl) {
+          const wrapper = document.createElement('div');
+          wrapper.innerHTML = buildBannerHtml(proposal.acronym || '', proposal.title || '');
+          const replacement = wrapper.firstElementChild;
+          if (replacement) bannerEl.replaceWith(replacement);
+        }
+
         // Get the rendered HTML
         const bodyHtml = container.innerHTML;
         cleanup();
