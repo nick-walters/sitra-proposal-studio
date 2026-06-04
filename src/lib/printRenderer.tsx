@@ -249,23 +249,22 @@ export async function buildPrintContainer(
   const sectionMap = new Map(sectionContents.map(sc => [sc.sectionId, sc.content]));
   const partBSections = flattenSections(sections);
 
-  // ── Title ──
-  const isPreProposal = proposal.submissionStage === 'stage_1';
-  const titleEl = document.createElement('h1');
-  titleEl.className = 'print-title';
-  if (isPreProposal) {
-    titleEl.textContent = `${proposal.title} (${proposal.acronym})`;
-    titleEl.style.fontFamily = "'Times New Roman', Times, serif";
-  } else {
-    titleEl.textContent = `${proposal.acronym}: ${proposal.title}`;
-    titleEl.style.fontFamily = "'Arial Black', 'Helvetica Neue', sans-serif";
-  }
-  titleEl.style.fontSize = '14pt';
-  titleEl.style.fontWeight = 'bold';
-  titleEl.style.textAlign = 'center';
-  titleEl.style.marginBottom = '12pt';
-  titleEl.style.marginTop = '0';
-  container.appendChild(titleEl);
+  // ── Proposal banner (replaces document title) ──
+  const escapeHtml = (s: string) =>
+    s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const banner = document.createElement('div');
+  banner.setAttribute('data-proposal-banner', 'true');
+  banner.style.cssText =
+    "background:#000;color:#fff;display:flex;align-items:center;justify-content:space-between;" +
+    "padding:1.5cm 1.5cm calc(1.5cm + 12pt) 1.5cm;width:100%;box-sizing:border-box;margin-bottom:12pt;";
+  banner.innerHTML = `
+    <div style="font-family:'Arial Black',Arial,sans-serif;font-weight:900;font-size:16pt;line-height:1.2;color:#fff;text-align:left;">
+      <div>${escapeHtml(proposal.acronym || '')}</div>
+      <div>${escapeHtml(proposal.title || '')}</div>
+    </div>
+    <img src="${SITRA_LOGO_BASE64}" alt="Sitra" style="height:1.5cm;width:auto;display:block;" />
+  `;
+  container.appendChild(banner);
 
   // ── Participant list ──
   const partListHeading = document.createElement('h2');
