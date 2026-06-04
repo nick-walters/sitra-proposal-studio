@@ -50,7 +50,7 @@ export function ProposalBanner({ acronym, title, className }: ProposalBannerProp
       <img
         src={SITRA_LOGO_BASE64}
         alt="Sitra"
-        style={{ height: '1.4cm', width: 'auto', display: 'block', flexShrink: 0 }}
+        style={{ height: '1.4cm', width: 'auto', display: 'block', flexShrink: 0, transform: 'translateY(-0.5cm)' }}
       />
     </div>
   );
