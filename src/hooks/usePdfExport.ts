@@ -70,15 +70,14 @@ function buildPrintDocument(
       margin: 2cm 1.5cm 2cm 1.5cm;
 
       @top-center {
-        content: var(--header-text);
+        content: "TEST HEADER";
         font-family: 'Times New Roman', Times, serif;
         font-size: 9pt;
-        font-style: italic;
         color: #666;
       }
 
       @bottom-center {
-        content: var(--footer-text);
+        content: "TEST FOOTER";
         font-family: 'Times New Roman', Times, serif;
         font-size: 9pt;
         color: #666;
