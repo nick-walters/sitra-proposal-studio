@@ -85,7 +85,16 @@ function buildPrintDocument(
     }
 
     @page :first {
+      margin-top: 0;
       @top-center { content: none; }
+    }
+
+    /* Proposal banner — bleed to page edges on page 1 */
+    [data-proposal-banner] {
+      margin: 0 -1.5cm;
+      width: calc(100% + 3cm);
+      break-after: avoid;
+      page-break-after: avoid;
     }
 
 
