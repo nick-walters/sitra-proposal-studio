@@ -252,17 +252,21 @@ export async function buildPrintContainer(
   // ── Proposal banner (replaces document title) ──
   const escapeHtml = (s: string) =>
     s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+  const topicLine = proposal.topicId || proposal.topicTitle || proposal.type
+    ? `${proposal.topicId || ''}${proposal.topicId && proposal.topicTitle ? ': ' : ''}${proposal.topicTitle || ''}${proposal.type ? ` (${proposal.type})` : ''}`
+    : '';
+
   const banner = document.createElement('div');
   banner.setAttribute('data-proposal-banner', 'true');
   banner.style.cssText =
-    "background:#000;color:#fff;display:flex;align-items:center;justify-content:space-between;" +
-    "padding:1.5cm 1.5cm calc(1.5cm + 12pt) 1.5cm;width:100%;box-sizing:border-box;margin-bottom:12pt;";
+    "background:#000;color:#fff;padding:1.5cm 1.5cm calc(1.5cm + 12pt) 1.5cm;" +
+    "width:100%;box-sizing:border-box;margin-bottom:12pt;overflow:hidden;";
   banner.innerHTML = `
-    <div style="font-family:'Arial Black',Arial,sans-serif;font-weight:900;font-size:16pt;line-height:1.2;color:#fff;text-align:left;">
-      <div>${escapeHtml(proposal.acronym || '')}</div>
-      <div>${escapeHtml(proposal.title || '')}</div>
-    </div>
-    <img src="${SITRA_LOGO_BASE64}" alt="Sitra" style="height:1.5cm;width:auto;display:block;" />
+    <img src="${SITRA_LOGO_BASE64}" alt="Sitra" style="float:right;height:1cm;width:auto;display:block;margin-left:1cm;margin-bottom:0.5cm;" />
+    ${topicLine ? `<div style="font-family:'Times New Roman',Times,serif;font-size:8pt;line-height:1;color:#fff;text-align:left;margin-top:0pt;margin-bottom:6pt;">${escapeHtml(topicLine)}</div>` : ''}
+    <div style="font-family:'Arial Black',Arial,sans-serif;font-weight:900;font-size:16pt;line-height:1.2;color:#fff;text-align:left;">${escapeHtml(proposal.acronym || '')}</div>
+    <div style="font-family:'Arial Black',Arial,sans-serif;font-weight:900;font-size:14pt;line-height:1.2;color:#fff;text-align:left;">${escapeHtml(proposal.title || '')}</div>
   `;
   container.appendChild(banner);
 
