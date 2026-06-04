@@ -1406,6 +1406,9 @@ export function DocumentEditor({
                   <ProposalBanner
                     acronym={proposalAcronym}
                     title={proposalTitle || ''}
+                    topicId={topicId}
+                    topicTitle={topicTitle}
+                    proposalType={proposalType}
                   />
                 </div>
               )}
