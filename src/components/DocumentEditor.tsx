@@ -1397,7 +1397,7 @@ export function DocumentEditor({
                 <ProposalBanner
                   acronym={proposalAcronym}
                   title={proposalTitle || ''}
-                  className="mb-6 -mx-[var(--document-page-padding,1.5cm)]"
+                  className="mb-6"
                 />
               )}
 
