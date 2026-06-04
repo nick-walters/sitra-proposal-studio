@@ -23,7 +23,7 @@ export function ProposalBanner({ acronym, title, className }: ProposalBannerProp
         background: '#000',
         color: '#fff',
         display: 'flex',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         justifyContent: 'space-between',
         gap: '1cm',
         padding: '1.5cm 1.5cm 12pt 1.5cm',
