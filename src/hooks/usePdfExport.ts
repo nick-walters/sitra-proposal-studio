@@ -208,6 +208,14 @@ function buildPrintDocument(
       page-break-before: avoid;
       break-after: avoid;
       page-break-after: avoid;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+    /* Table caption must stay with the table that follows it */
+    .print-export-container .table-caption + table,
+    .print-export-container .caption-label + table {
+      break-before: avoid;
+      page-break-before: avoid;
     }
     /* Body paragraphs: prevent single-line orphans/widows */
     .print-export-container p {
