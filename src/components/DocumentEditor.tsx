@@ -1410,12 +1410,14 @@ export function DocumentEditor({
                 </div>
               )}
 
-              {/* Page Header - centered, shows Topic ID: Topic title (type of action) */}
-              <div className="document-page-header">
-                <span className="w-full text-center">
-                  {topicId ? `${topicId}: ` : ''}{topicTitle || ''}{proposalType ? ` (${proposalType})` : ''}
-                </span>
-              </div>
+              {/* Page Header - hidden on B1.1 (banner takes its place) */}
+              {section.number !== 'B1.1' && (
+                <div className="document-page-header">
+                  <span className="w-full text-center">
+                    {topicId ? `${topicId}: ` : ''}{topicTitle || ''}{proposalType ? ` (${proposalType})` : ''}
+                  </span>
+                </div>
+              )}
 
               <h1 className="document-h1 text-foreground mb-6">{formatSectionHeading(section.number)} {section.title}</h1>
               
