@@ -441,6 +441,13 @@ html, body {
     margin: 0 auto;
   }
 
+  .document-page h1,
+  .document-page h2,
+  .ProseMirror h1,
+  .ProseMirror h2 {
+    font-family: 'Arial Black', Arial, sans-serif;
+  }
+
   /* Keep header text inside the top margin without pushing content down */
   .document-page-header {
     position: absolute;
