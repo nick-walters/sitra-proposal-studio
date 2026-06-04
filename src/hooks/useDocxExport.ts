@@ -5,6 +5,23 @@ import { Proposal, Section, Participant } from '@/types/proposal';
 import { prepareExportContainer, ExportData } from '@/lib/printRenderer';
 import { scrubDomForExport } from '@/lib/exportDomScrubber';
 import { convertBadgesForWord } from '@/lib/exportWordBadgeConverter';
+import { SITRA_LOGO_BASE64 } from '@/lib/sitraLogo';
+
+function buildBannerHtml(acronym: string, title: string): string {
+  const esc = (s: string) =>
+    s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  return `
+<table data-proposal-banner="true" cellpadding="0" cellspacing="0" style="width:100%;background:#000;color:#fff;margin-bottom:12pt;">
+  <tr>
+    <td style="padding:1.5cm 1.5cm calc(1.5cm + 12pt) 1.5cm;background:#000;color:#fff;vertical-align:middle;font-family:'Arial Black',Arial,sans-serif;font-weight:900;font-size:16pt;line-height:1.2;text-align:left;">
+      ${esc(acronym)}<br/>${esc(title)}
+    </td>
+    <td style="padding:1.5cm 1.5cm calc(1.5cm + 12pt) 0;background:#000;text-align:right;vertical-align:middle;">
+      <img src="${SITRA_LOGO_BASE64}" alt="Sitra" style="height:1.5cm;width:auto;" />
+    </td>
+  </tr>
+</table>`;
+}
 
 /**
  * Wrap HTML content in a Word-compatible HTML document.
@@ -211,6 +228,17 @@ export function useDocxExport() {
         // Clean up editor-only UI and convert badges for Word
         scrubDomForExport(container);
         convertBadgesForWord(container);
+
+        // Replace the proposal banner div (flexbox) with a Word-compatible
+        // table-based equivalent. Flex layout is not supported in Word's
+        // HTML renderer; a 2-column table reproduces the layout reliably.
+        const bannerEl = container.querySelector('[data-proposal-banner]');
+        if (bannerEl) {
+          const wrapper = document.createElement('div');
+          wrapper.innerHTML = buildBannerHtml(proposal.acronym || '', proposal.title || '');
+          const replacement = wrapper.firstElementChild;
+          if (replacement) bannerEl.replaceWith(replacement);
+        }
 
         // Get the rendered HTML
         const bodyHtml = container.innerHTML;

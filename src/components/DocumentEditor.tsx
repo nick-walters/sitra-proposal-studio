@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Sparkles, BookOpen, Route, History, Info, Image, Lock, Unlock, MessageSquare, PanelRightClose, PanelRight, UserPlus, CalendarClock, User, FileText, X, Search, GitCompare, Keyboard, Wand2, FileCode, SplitSquareHorizontal, Layers, Building2, FlaskConical, Check, Link2, Table2, AlertTriangle } from "lucide-react";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { FormattingToolbar, useRichTextEditor } from "./RichTextEditor";
+import { ProposalBanner } from "./ProposalBanner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -1391,6 +1392,15 @@ export function DocumentEditor({
 
             {/* Document Page with Rich text editor */}
             <div ref={documentPageRef} className="document-page animate-fade-in">
+              {/* Non-editable proposal banner — only on B1.1 */}
+              {section.number === 'B1.1' && (
+                <ProposalBanner
+                  acronym={proposalAcronym}
+                  title={proposalTitle || ''}
+                  className="mb-6"
+                />
+              )}
+
               {/* Page Header - centered, shows Topic ID: Topic title (type of action) */}
               <div className="document-page-header">
                 <span className="w-full text-center">
