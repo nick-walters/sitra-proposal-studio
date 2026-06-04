@@ -1419,6 +1419,17 @@ export function DocumentEditor({
                 </div>
               )}
 
+              {(() => {
+                const partHeadings: Record<string, { num: string; title: string }> = {
+                  'B1.1': { num: '1.', title: 'Excellence' },
+                  'B2.1': { num: '2.', title: 'Impact' },
+                  'B3.1': { num: '3.', title: 'Quality & efficiency of the implementation' },
+                };
+                const ph = partHeadings[section.number];
+                return ph ? (
+                  <h1 className="document-h1 text-foreground mb-4">{ph.num} {ph.title}</h1>
+                ) : null;
+              })()}
               <h1 className="document-h1 text-foreground mb-6">{formatSectionHeading(section.number)} {section.title}</h1>
               
               {loading ? (
