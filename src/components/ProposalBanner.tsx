@@ -37,7 +37,7 @@ export function ProposalBanner({ acronym, title, className }: ProposalBannerProp
         style={{
           fontFamily: "'Arial Black', Arial, sans-serif",
           fontWeight: 900,
-          fontSize: '16pt',
+          fontSize: '15pt',
           lineHeight: 1.2,
           color: '#fff',
           textAlign: 'left',
