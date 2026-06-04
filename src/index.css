@@ -367,9 +367,12 @@ html, body {
   }
 
   .document-h2 + p,
-  .ProseMirror h2 + p {
+  .ProseMirror h2 + p,
+  .document-content h2 + p {
     margin-top: 0 !important;
+    padding-top: 0 !important;
   }
+
 
   .document-h3 {
     font-family: 'Times New Roman', Times, serif;
