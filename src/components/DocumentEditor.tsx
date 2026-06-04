@@ -1392,6 +1392,15 @@ export function DocumentEditor({
 
             {/* Document Page with Rich text editor */}
             <div ref={documentPageRef} className="document-page animate-fade-in">
+              {/* Non-editable proposal banner — only on B1.1 */}
+              {section.number === 'B1.1' && (
+                <ProposalBanner
+                  acronym={proposalAcronym}
+                  title={proposalTitle || ''}
+                  className="mb-6 -mx-[var(--document-page-padding,1.5cm)]"
+                />
+              )}
+
               {/* Page Header - centered, shows Topic ID: Topic title (type of action) */}
               <div className="document-page-header">
                 <span className="w-full text-center">
