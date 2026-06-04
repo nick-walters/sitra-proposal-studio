@@ -25,7 +25,8 @@ export function ProposalBanner({ acronym, title, className }: ProposalBannerProp
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '1.5cm 1.5cm calc(1.5cm + 12pt) 1.5cm',
+        gap: '1cm',
+        padding: '1.5cm 1.5cm 12pt 1.5cm',
         width: '100%',
         boxSizing: 'border-box',
         userSelect: 'none',
@@ -40,15 +41,16 @@ export function ProposalBanner({ acronym, title, className }: ProposalBannerProp
           lineHeight: 1.2,
           color: '#fff',
           textAlign: 'left',
+          flex: 1,
+          minWidth: 0,
         }}
       >
-        <div>{acronym}</div>
-        <div>{title}</div>
+        {acronym}{title ? `: ${title}` : ''}
       </div>
       <img
         src={SITRA_LOGO_BASE64}
         alt="Sitra"
-        style={{ height: '1.5cm', width: 'auto', display: 'block' }}
+        style={{ height: '1.2cm', width: 'auto', display: 'block', flexShrink: 0 }}
       />
     </div>
   );
