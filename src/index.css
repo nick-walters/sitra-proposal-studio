@@ -728,7 +728,10 @@ html, body {
   line-height: 1 !important;
   margin-top: 3pt !important;
   margin-bottom: 3pt !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
 }
+
 
 .ProseMirror h3,
 .ProseMirror h4,
