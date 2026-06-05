@@ -292,6 +292,131 @@ export function B11ParticipantsTable({ proposalId }: Props) {
   );
 }
 
+interface RowProps {
+  p: ParticipantRow;
+  isCoord: boolean;
+  wpLed: { number: number; shortName: string | null; color: string }[];
+  caseLed: { number: number; shortName: string | null; color: string; prefix: string }[];
+}
+
+function ParticipantRowView({ p, isCoord, wpLed, caseLed }: RowProps) {
+  const legalName = p.organisation_name || '';
+  const englishName =
+    p.english_name && p.english_name.trim().toLowerCase() !== legalName.trim().toLowerCase()
+      ? p.english_name
+      : '';
+  const typeCode = p.organisation_category ? String(p.organisation_category).toUpperCase() : '—';
+
+  const nameCellRef = useRef<HTMLTableCellElement>(null);
+  const [grouped, setGrouped] = useState(false);
+
+  // Detect whether the legal/english name column wraps to >2 lines when badges
+  // are rendered on a single line. If so, fall back to grouped (max 2 lines).
+  useLayoutEffect(() => {
+    const el = nameCellRef.current;
+    if (!el) return;
+    const measure = () => {
+      // Use a temp inline element to get accurate line height for current font.
+      const probe = document.createElement('span');
+      probe.style.visibility = 'hidden';
+      probe.style.position = 'absolute';
+      probe.textContent = 'M';
+      el.appendChild(probe);
+      const lineH = probe.getBoundingClientRect().height || 18;
+      el.removeChild(probe);
+      const maxAllowed = lineH * 2 + 2;
+      const overflow = el.scrollHeight > maxAllowed;
+      setGrouped((prev) => (prev !== overflow ? overflow : prev));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [legalName, englishName, isCoord, wpLed.length, caseLed.length]);
+
+  const coordBadges = isCoord ? [
+    <Tooltip key="coord">
+      <TooltipTrigger asChild>
+        <span style={{ ...roleBadgeBase, backgroundColor: '#000', color: '#fff', border: '1.5px solid #000' }}>Coord</span>
+      </TooltipTrigger>
+      <TooltipContent>Project coordinator</TooltipContent>
+    </Tooltip>
+  ] : [];
+  const wpBadges = wpLed.map((wp) => (
+    <Tooltip key={`wp-${wp.number}`}>
+      <TooltipTrigger asChild>
+        <span style={{ ...roleBadgeBase, backgroundColor: wp.color, color: '#fff' }}>WP{wp.number}</span>
+      </TooltipTrigger>
+      <TooltipContent>{wp.shortName ? `${wp.shortName} (Lead)` : `WP${wp.number} Lead`}</TooltipContent>
+    </Tooltip>
+  ));
+  const caseBadges = caseLed.map((c) => (
+    <Tooltip key={`case-${c.number}`}>
+      <TooltipTrigger asChild>
+        <span style={{ ...roleBadgeBase, backgroundColor: '#fff', color: '#000', border: '1.5px solid #000' }}>
+          {c.prefix ? `${c.prefix}${c.number}` : (c.shortName || c.number)}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>{c.shortName ? `${c.shortName} (Lead)` : `Lead`}</TooltipContent>
+    </Tooltip>
+  ));
+
+  // Build line groups based on `grouped` flag.
+  const groups: React.ReactNode[][] = [];
+  if (!grouped) {
+    const all = [...coordBadges, ...wpBadges, ...caseBadges];
+    if (all.length) groups.push(all);
+  } else {
+    if (coordBadges.length) groups.push(coordBadges);
+    if (wpBadges.length) groups.push(wpBadges);
+    if (caseBadges.length) groups.push(caseBadges);
+    while (groups.length > 2) {
+      const last = groups.pop()!;
+      groups[groups.length - 1] = [...groups[groups.length - 1], ...last];
+    }
+  }
+
+  return (
+    <tr>
+      <td style={{ verticalAlign: 'middle', whiteSpace: 'nowrap', width: '1%' }}>
+        <ParticipantBubble
+          number={p.participant_number}
+          shortName={p.organisation_short_name || ''}
+        />
+      </td>
+      <td ref={nameCellRef} style={{ verticalAlign: 'middle' }}>
+        {legalName}
+        {englishName ? (
+          <>
+            <br />
+            <span style={{ fontStyle: 'italic' }}>{englishName}</span>
+          </>
+        ) : null}
+      </td>
+      <td style={{ verticalAlign: 'middle', whiteSpace: 'nowrap', width: '1%' }}>
+        {groups.length === 0 ? null : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'flex-start' }}>
+            {groups.map((line, i) => (
+              <div key={i} style={{ display: 'flex', flexWrap: 'wrap', gap: '3px' }}>
+                {line}
+              </div>
+            ))}
+          </div>
+        )}
+      </td>
+      <td style={{ verticalAlign: 'middle', textAlign: 'center', whiteSpace: 'nowrap', width: '1%' }}>
+        <ParticipantLogo src={p.logo_url} />
+      </td>
+      <td style={{ verticalAlign: 'middle', whiteSpace: 'nowrap', width: '1%' }}>
+        {typeCode}
+      </td>
+      <td style={{ verticalAlign: 'middle', whiteSpace: 'nowrap', width: '1%' }}>
+        {p.country || '—'}
+      </td>
+    </tr>
+  );
+}
+
 function ResizableTh({
   index, canResize, onResize, children, ...rest
 }: {
