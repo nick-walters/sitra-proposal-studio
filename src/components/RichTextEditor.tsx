@@ -17,7 +17,7 @@ import { TableHeader } from '@tiptap/extension-table-header';
 import { ResizableImage } from './ResizableImage';
 import { ImageCropDialog } from './ImageCropDialog';
 import { resolveStorageUrl } from '@/hooks/useStorageUrl';
-import { createCitationTooltipPlugin, CitationMark } from './CitationMark';
+import { createCitationTooltipPlugin, CitationMark, CitationNode } from './CitationMark';
 import { BlockReordering } from '@/extensions/BlockReordering';
 import { ParagraphSpacing } from '@/extensions/ParagraphSpacing';
 
@@ -1283,6 +1283,7 @@ StarterKit.configure({
       OrderedListStyled,
       Typography,
       Underline,
+      CitationNode,
       CitationMark,
       Superscript,
       TextStyle,
@@ -1503,6 +1504,7 @@ StarterKit.configure({
       OrderedListStyled,
       Typography,
       Underline,
+      CitationNode,
       CitationMark,
       Superscript,
       TextStyle,

@@ -652,12 +652,11 @@ export function DocumentEditor({
   const handleInsertCitation = useCallback(async (reference: Reference, formattedCitation: string, citationNumber: number) => {
     if (!editor) return;
 
-    // Insert as a real ProseMirror text node with the citation mark. This avoids
-    // HTML parsing ambiguity with the generic Superscript extension and keeps
-    // the stable internal citation number in data-citation for footnotes.
-    const citationMark = editor.schema.marks.citationMark?.create({ citationNumber });
-    if (!citationMark) return;
-    const node = editor.schema.text(String(citationNumber), [citationMark]);
+    // Insert as an atom node so track-changes text processing cannot unwrap it
+    // into ordinary text. The stable internal id remains on data-citation.
+    const citationType = editor.schema.nodes.citation;
+    if (!citationType) return;
+    const node = citationType.create({ citationNumber });
     const tr = editor.state.tr.replaceSelectionWith(node, false).scrollIntoView();
     editor.view.focus();
     editor.view.dispatch(tr);
