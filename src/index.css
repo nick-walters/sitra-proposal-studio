@@ -526,7 +526,7 @@ html, body {
 
 .ProseMirror sup[data-citation],
 .document-content sup[data-citation] {
-  vertical-align: 0.3em;
+  vertical-align: 0.18em;
   font-size: 75%;
   line-height: 1;
 }
