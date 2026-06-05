@@ -345,20 +345,7 @@ function ParticipantRowView({ p, isCoord, wpLed, caseLed, canResize, onResize }:
     </Tooltip>
   ));
 
-  // Build line groups based on `grouped` flag.
-  const groups: React.ReactNode[][] = [];
-  if (!grouped) {
-    const all = [...coordBadges, ...wpBadges, ...caseBadges];
-    if (all.length) groups.push(all);
-  } else {
-    if (coordBadges.length) groups.push(coordBadges);
-    if (wpBadges.length) groups.push(wpBadges);
-    if (caseBadges.length) groups.push(caseBadges);
-    while (groups.length > 2) {
-      const last = groups.pop()!;
-      groups[groups.length - 1] = [...groups[groups.length - 1], ...last];
-    }
-  }
+  const allBadges = [...coordBadges, ...wpBadges, ...caseBadges];
 
   return (
     <tr>
@@ -368,7 +355,7 @@ function ParticipantRowView({ p, isCoord, wpLed, caseLed, canResize, onResize }:
           shortName={p.organisation_short_name || ''}
         />
       </ResizableTd>
-      <ResizableTd index={1} canResize={canResize} onResize={onResize} cellRef={nameCellRef} style={{ verticalAlign: 'middle' }}>
+      <ResizableTd index={1} canResize={canResize} onResize={onResize} style={{ verticalAlign: 'middle' }}>
         {legalName}
         {englishName ? (
           <>
@@ -380,14 +367,10 @@ function ParticipantRowView({ p, isCoord, wpLed, caseLed, canResize, onResize }:
       <ResizableTd index={2} canResize={canResize} onResize={onResize} style={{ verticalAlign: 'middle', textAlign: 'center', whiteSpace: 'nowrap' }}>
         <ParticipantLogo src={p.logo_url} />
       </ResizableTd>
-      <ResizableTd index={3} canResize={canResize} onResize={onResize} style={{ verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
-        {groups.length === 0 ? null : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'flex-start' }}>
-            {groups.map((line, i) => (
-              <div key={i} style={{ display: 'flex', flexWrap: 'wrap', gap: '3px' }}>
-                {line}
-              </div>
-            ))}
+      <ResizableTd index={3} canResize={canResize} onResize={onResize} style={{ verticalAlign: 'middle' }}>
+        {allBadges.length === 0 ? null : (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px', alignItems: 'center' }}>
+            {allBadges}
           </div>
         )}
       </ResizableTd>
