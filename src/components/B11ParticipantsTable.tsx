@@ -427,7 +427,7 @@ function ResizableTh({
   children: React.ReactNode;
 } & React.ThHTMLAttributes<HTMLTableCellElement>) {
   return (
-    <th {...rest} style={{ position: 'relative', textAlign: 'left', ...(rest.style || {}) }}>
+    <th {...rest} style={{ position: 'relative', textAlign: 'left', padding: '2px 10px', ...(rest.style || {}) }}>
       {children}
       {canResize && (
         <span
