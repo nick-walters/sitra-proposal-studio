@@ -159,7 +159,7 @@ export function DocumentEditor({
   const [isAssignmentDialogOpen, setIsAssignmentDialogOpen] = useState(false);
   const [selectedText, setSelectedText] = useState<string>('');
   const [selectionRange, setSelectionRange] = useState<{ start: number; end: number } | undefined>();
-  const [footnotes, setFootnotes] = useState<Array<{ number: number; citation: string }>>([]);
+  // Footnotes are derived from proposalReferences + global citation order (see below).
   
   // Proposal-wide references hook
   const { 
