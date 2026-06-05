@@ -1410,7 +1410,9 @@ export function DocumentEditor({
                     topicId={topicId}
                     topicTitle={topicTitle}
                     proposalType={proposalType}
+                    proposalId={proposalId}
                   />
+
                 </div>
               )}
 
