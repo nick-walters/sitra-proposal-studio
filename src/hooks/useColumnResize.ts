@@ -95,7 +95,10 @@ export function useColumnResize(options: {
         newWidths[colIdx] = startWidths[colIdx] + clampedDelta;
         newWidths[pairedIdx] = startWidths[pairedIdx] - clampedDelta;
       } else {
-        newWidths[colIdx] = Math.max(minWidth, startWidths[colIdx] + delta);
+        const proposed = Math.max(minWidth, startWidths[colIdx] + delta);
+        const containerWidth = tableRef.current?.parentElement?.clientWidth ?? Infinity;
+        const otherWidths = newWidths.reduce((sum, w, i) => i === colIdx ? sum : sum + w, 0);
+        newWidths[colIdx] = Math.min(proposed, Math.max(minWidth, containerWidth - otherWidths));
       }
 
       setColWidths(newWidths);
