@@ -131,26 +131,29 @@ export function createCitationTooltipPlugin(
       handleDOMEvents: {
         mouseover(view, event) {
           const target = event.target as HTMLElement;
-          
+
           // Check if hovering over a citation superscript
           if (target.tagName === 'SUP') {
-            const text = target.textContent || '';
-            const match = text.match(/^\[(\d+)\]$/);
-            
-            if (match) {
+            const dataAttr = target.getAttribute('data-citation');
+            const text = (target.textContent || '').trim();
+            const numStr =
+              (dataAttr && /^\d+$/.test(dataAttr) && dataAttr) ||
+              text.match(/^\[?(\d+)\]?$/)?.[1];
+
+            if (numStr) {
               if (hideTimeout) {
                 clearTimeout(hideTimeout);
                 hideTimeout = null;
               }
 
-              const citationNumber = parseInt(match[1], 10);
+              const citationNumber = parseInt(numStr, 10);
               const reference = getReference(citationNumber);
-              
+
               if (reference) {
                 const rect = target.getBoundingClientRect();
-                showTooltip(view, { 
-                  top: rect.top, 
-                  left: rect.left + rect.width / 2 
+                showTooltip(view, {
+                  top: rect.top,
+                  left: rect.left + rect.width / 2
                 }, reference.citation);
               }
             }
