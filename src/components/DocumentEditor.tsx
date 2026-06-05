@@ -432,6 +432,21 @@ export function DocumentEditor({
 
   // Note: trackChangesEnabled sync is handled by useRichTextEditor's own effect
 
+  // Re-run the citation display patcher after every editor transaction so
+  // ProseMirror re-renders do not revert our text rewrites.
+  useEffect(() => {
+    if (!editor) return;
+    const run = () => patchCitationDisplayRef.current();
+    editor.on('update', run);
+    editor.on('selectionUpdate', run);
+    editor.on('transaction', run);
+    return () => {
+      editor.off('update', run);
+      editor.off('selectionUpdate', run);
+      editor.off('transaction', run);
+    };
+  }, [editor]);
+
   // Backfill missing track-change attributes after editor loads
   // Fixes: authorName for ALL users, authorId & timestamp for current user
   // Dispatches WITHOUT preventUpdate so corrections are persisted to DB via onUpdate→onChange
