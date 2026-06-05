@@ -98,18 +98,19 @@ export function ProposalBanner({
           src={SITRA_LOGO_BASE64}
           alt="Sitra"
           style={{
-            height: '1cm',
+            height: '0.8cm',
             width: 'auto',
             display: 'block',
           }}
         />
         <div
           style={{
-            fontSize: '8pt',
-            lineHeight: 1.1,
+            fontSize: '10pt',
+            lineHeight: 1.0,
             color: '#fff',
             textAlign: 'center',
             marginTop: '2pt',
+            whiteSpace: 'nowrap',
           }}
         >
           and partners
