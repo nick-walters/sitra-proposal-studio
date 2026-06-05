@@ -86,18 +86,35 @@ export function ProposalBanner({
         overflow: 'hidden',
       }}
     >
-      <img
-        src={SITRA_LOGO_BASE64}
-        alt="Sitra"
+      <div
         style={{
           float: 'right',
-          height: '1cm',
-          width: 'auto',
-          display: 'block',
+          textAlign: 'center',
           marginLeft: '0.5cm',
           marginBottom: '0.25cm',
         }}
-      />
+      >
+        <img
+          src={SITRA_LOGO_BASE64}
+          alt="Sitra"
+          style={{
+            height: '1cm',
+            width: 'auto',
+            display: 'block',
+          }}
+        />
+        <div
+          style={{
+            fontSize: '8pt',
+            lineHeight: 1.1,
+            color: '#fff',
+            textAlign: 'center',
+            marginTop: '2pt',
+          }}
+        >
+          and partners
+        </div>
+      </div>
       {topicLine && (
         <EditableLine
           value={topicLine}
