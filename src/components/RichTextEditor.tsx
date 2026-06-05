@@ -1271,6 +1271,7 @@ StarterKit.configure({
       OrderedListStyled,
       Typography,
       Underline,
+      Superscript,
       TextStyle,
       Color,
       ParagraphClass,
