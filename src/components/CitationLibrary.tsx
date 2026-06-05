@@ -233,14 +233,11 @@ export function CitationLibrary({
                   <>
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Badge variant="outline" className="shrink-0 text-xs font-mono">
-                            [{ref.citation_number}]
-                          </Badge>
-                          {ref.verified && (
+                        {ref.verified && (
+                          <div className="mb-1">
                             <CheckCircle2 className="w-3 h-3 text-success shrink-0" />
-                          )}
-                        </div>
+                          </div>
+                        )}
                         <h4 className="font-medium text-sm line-clamp-2 leading-snug">
                           {ref.title}
                         </h4>
