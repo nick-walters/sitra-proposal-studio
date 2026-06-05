@@ -294,6 +294,21 @@ function normalizePartBLoadedContent(html: string) {
   const div = document.createElement('div');
   div.innerHTML = html;
 
+  div.querySelectorAll('sup').forEach((sup) => {
+    const el = sup as HTMLElement;
+    const dataCitation = el.getAttribute('data-citation');
+    const text = (el.textContent || '').trim();
+    const numericCitation =
+      (dataCitation && /^\d+$/.test(dataCitation) && dataCitation) ||
+      text.match(/^\[?\s*(\d+)\s*\]?$/)?.[1];
+
+    if (numericCitation) {
+      el.setAttribute('data-citation', numericCitation);
+      el.removeAttribute('style');
+      el.textContent = numericCitation;
+    }
+  });
+
   div.querySelectorAll('*').forEach((el) => {
     const h = el as HTMLElement;
     if (h.style) {

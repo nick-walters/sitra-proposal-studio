@@ -35,14 +35,26 @@ export const CitationNode = Node.create({
   },
 
   parseHTML() {
+    const getCitationAttrs = (element: HTMLElement) => {
+      const v = element.getAttribute('data-citation');
+      if (v && /^\d+$/.test(v)) return { citationNumber: parseInt(v, 10) };
+      const text = (element.textContent || '').trim();
+      const match = text.match(/^\[?(\d+)\]?$/);
+      return match ? { citationNumber: parseInt(match[1], 10) } : false;
+    };
+
     return [
       {
         tag: 'sup[data-citation]',
-        getAttrs: (element) => {
-          const el = element as HTMLElement;
-          const v = el.getAttribute('data-citation');
-          return v && /^\d+$/.test(v) ? { citationNumber: parseInt(v, 10) } : false;
-        },
+        getAttrs: (element) => getCitationAttrs(element as HTMLElement),
+      },
+      {
+        tag: 'sup',
+        getAttrs: (element) => getCitationAttrs(element as HTMLElement),
+      },
+      {
+        tag: 'span[data-citation]',
+        getAttrs: (element) => getCitationAttrs(element as HTMLElement),
       },
     ];
   },
