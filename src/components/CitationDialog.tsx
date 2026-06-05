@@ -277,6 +277,7 @@ export function CitationDialog({
               isLoading={isLoadingReferences}
               onSelectReference={handleInsertFromLibrary}
               onUpdateReference={onUpdateReference}
+              displayOrder={citationDisplayOrder}
             />
           </TabsContent>
 
