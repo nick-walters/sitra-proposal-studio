@@ -170,6 +170,10 @@ export function DocumentEditor({
     findExistingReference,
     getNextCitationNumber 
   } = useProposalReferences(proposalId);
+
+  // Proposal-wide citation order (numbers reflect order of first appearance
+  // across all Part B sections, not the order they were added to the library).
+  // Live content for the active section is folded in below once available.
   
   // Track changes persistence hook — remember last setting per user, default ON
   const [trackChangesEnabled, setTrackChangesEnabled] = useState(() => {
