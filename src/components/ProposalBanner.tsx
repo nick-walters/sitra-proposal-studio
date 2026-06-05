@@ -152,7 +152,7 @@ export function ProposalBanner({
         style={{
           fontFamily: "'Arial Black', Arial, sans-serif",
           fontWeight: 900,
-          fontSize: '14pt',
+          fontSize: '13pt',
           lineHeight: 1.2,
           color: '#fff',
           textAlign: 'left',
