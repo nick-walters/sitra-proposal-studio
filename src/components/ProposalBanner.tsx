@@ -105,6 +105,7 @@ export function ProposalBanner({
         />
         <div
           style={{
+            fontFamily: "'Arial Black', Arial, sans-serif",
             fontSize: '10pt',
             lineHeight: 1.0,
             color: '#fff',
