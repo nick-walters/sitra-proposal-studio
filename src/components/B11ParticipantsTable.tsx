@@ -450,3 +450,34 @@ function ResizableTh({
     </th>
   );
 }
+
+function ResizableTd({
+  index, canResize, onResize, children, cellRef, ...rest
+}: {
+  index: number;
+  canResize: boolean;
+  onResize: (i: number) => (e: React.MouseEvent) => void;
+  children: React.ReactNode;
+  cellRef?: React.Ref<HTMLTableCellElement>;
+} & React.TdHTMLAttributes<HTMLTableCellElement>) {
+  return (
+    <td ref={cellRef} {...rest} style={{ position: 'relative', ...(rest.style || {}) }}>
+      {children}
+      {canResize && (
+        <span
+          onMouseDown={onResize(index)}
+          style={{
+            position: 'absolute',
+            top: 0,
+            right: -2,
+            width: 4,
+            height: '100%',
+            cursor: 'col-resize',
+            userSelect: 'none',
+            zIndex: 2,
+          }}
+        />
+      )}
+    </td>
+  );
+}
