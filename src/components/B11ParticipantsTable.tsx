@@ -249,7 +249,7 @@ export function B11ParticipantsTable({ proposalId }: Props) {
               const caseLed = caseByPart[p.id] || [];
               const isCoord = p.participant_number === 1;
               return (
-                <ParticipantRow
+                <ParticipantRowView
                   key={p.id}
                   p={p}
                   isCoord={isCoord}
