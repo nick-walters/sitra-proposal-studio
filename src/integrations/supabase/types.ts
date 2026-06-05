@@ -3546,6 +3546,8 @@ export type Database = {
         Row: {
           acronym: string
           acronym_segments: Json | null
+          banner_title_override: string | null
+          banner_topic_line_override: string | null
           budget_template_id: string | null
           budget_type: Database["public"]["Enums"]["budget_type"]
           case_drafts_visible: boolean
@@ -3603,6 +3605,8 @@ export type Database = {
         Insert: {
           acronym: string
           acronym_segments?: Json | null
+          banner_title_override?: string | null
+          banner_topic_line_override?: string | null
           budget_template_id?: string | null
           budget_type?: Database["public"]["Enums"]["budget_type"]
           case_drafts_visible?: boolean
@@ -3660,6 +3664,8 @@ export type Database = {
         Update: {
           acronym?: string
           acronym_segments?: Json | null
+          banner_title_override?: string | null
+          banner_topic_line_override?: string | null
           budget_template_id?: string | null
           budget_type?: Database["public"]["Enums"]["budget_type"]
           case_drafts_visible?: boolean
