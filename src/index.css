@@ -526,9 +526,9 @@ html, body {
 
 .ProseMirror sup[data-citation],
 .document-content sup[data-citation] {
-  vertical-align: super;
+  vertical-align: 0.3em;
   font-size: 75%;
-  line-height: 0;
+  line-height: 1;
 }
 
 /* TipTap/ProseMirror table styles - OUTSIDE @layer for higher specificity */
