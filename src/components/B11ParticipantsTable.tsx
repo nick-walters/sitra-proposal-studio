@@ -193,7 +193,7 @@ export function B11ParticipantsTable({ proposalId }: Props) {
     canResize,
   });
 
-  const NUM_COLS = 5;
+  const NUM_COLS = 6;
 
   return (
     <TooltipProvider>
