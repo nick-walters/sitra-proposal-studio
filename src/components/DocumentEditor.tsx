@@ -652,8 +652,18 @@ export function DocumentEditor({
   const handleInsertCitation = useCallback(async (reference: Reference, formattedCitation: string, citationNumber: number) => {
     if (!editor) return;
     
-    // Insert superscript citation at cursor position
-    editor.chain().focus().insertContent(`<sup data-citation="${citationNumber}">${citationNumber}</sup>`).run();
+    // Insert superscript citation at cursor position using the citationMark
+    // schema directly so the mark is reliably applied (HTML-string insertion
+    // can drop inline marks depending on parse context).
+    editor
+      .chain()
+      .focus()
+      .insertContent({
+        type: 'text',
+        text: String(citationNumber),
+        marks: [{ type: 'citationMark', attrs: { citationNumber } }],
+      })
+      .run();
     
     // Check if this reference already exists in the proposal
     const existingRef = findExistingReference(reference);
