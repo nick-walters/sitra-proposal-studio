@@ -372,10 +372,11 @@ export function DocumentEditor({
   // DOM patcher: rewrite the visible text of every citation <sup> so it reflects
   // the proposal-wide display order. The internal id (citation_number) is kept
   // on the element via the data-citation attribute (preserved by CitationMark).
+  const patchCitationDisplayRef = useRef<() => void>(() => {});
   useEffect(() => {
-    const root = editorContainerRef.current;
-    if (!root) return;
-    const patch = () => {
+    patchCitationDisplayRef.current = () => {
+      const root = editorContainerRef.current;
+      if (!root) return;
       const sups = root.querySelectorAll('sup[data-citation]');
       sups.forEach((sup) => {
         const el = sup as HTMLElement;
@@ -386,11 +387,10 @@ export function DocumentEditor({
         if (el.textContent !== next) el.textContent = next;
       });
     };
-    patch();
-    // Re-patch on every editor render so ProseMirror's re-renders don't revert it.
-    const id = window.setInterval(patch, 250);
-    return () => window.clearInterval(id);
+    patchCitationDisplayRef.current();
   }, [citationDisplayMap, content]);
+
+
 
 
 
