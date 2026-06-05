@@ -652,23 +652,27 @@ export function DocumentEditor({
   const handleInsertCitation = useCallback(async (reference: Reference, formattedCitation: string, citationNumber: number) => {
     if (!editor) return;
 
+    const existingRef = findExistingReference(reference);
+    let stableCitationNumber = existingRef?.citation_number ?? citationNumber;
+
+    if (!existingRef) {
+      const savedRef = await addReference(reference, formattedCitation, citationNumber);
+      if (!savedRef) {
+        toast.error('Failed to save reference. Citation was not inserted.');
+        return;
+      }
+      stableCitationNumber = savedRef.citation_number;
+    }
+
     // Insert as an atom node so track-changes text processing cannot unwrap it
     // into ordinary text. The stable internal id remains on data-citation.
     const citationType = editor.schema.nodes.citation;
     if (!citationType) return;
-    const node = citationType.create({ citationNumber });
+    const node = citationType.create({ citationNumber: stableCitationNumber });
     const tr = editor.state.tr.replaceSelectionWith(node, false).scrollIntoView();
     editor.view.focus();
     editor.view.dispatch(tr);
     setContent(editor.getHTML());
-    
-    // Check if this reference already exists in the proposal
-    const existingRef = findExistingReference(reference);
-    
-    if (!existingRef) {
-      // Add to database for proposal-wide tracking
-      await addReference(reference, formattedCitation, citationNumber);
-    }
   }, [editor, setContent, findExistingReference, addReference]);
 
   // Helper to extract section number without "B" prefix (e.g., "1.1" from "B1.1" or just "1.1")
