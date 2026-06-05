@@ -229,11 +229,8 @@ export function B11ParticipantsTable({ proposalId }: Props) {
           )}
           <thead>
             <tr>
-              <ResizableTh index={0} canResize={canResize} onResize={handleColResizeStart} style={{ whiteSpace: 'nowrap', width: '1%', textAlign: 'left' }}>
-                № &amp; short name
-              </ResizableTh>
-              <ResizableTh index={1} canResize={canResize} onResize={handleColResizeStart} colSpan={3} style={{ textAlign: 'left' }}>
-                Participant organisation legal name, <em style={{ fontWeight: 'bold' }}>English name</em> &amp; roles
+              <ResizableTh index={0} canResize={canResize} onResize={handleColResizeStart} colSpan={4} style={{ textAlign: 'left' }}>
+                Participant organisation №, short name, legal name, <em style={{ fontWeight: 'bold' }}>English name</em>, logo &amp; roles
               </ResizableTh>
               <ResizableTh index={4} canResize={canResize} onResize={handleColResizeStart} style={{ whiteSpace: 'nowrap', width: '1%', textAlign: 'left' }}>
                 Type
@@ -341,7 +338,7 @@ function ParticipantRowView({ p, isCoord, wpLed, caseLed, canResize, onResize }:
   const coordBadges = isCoord ? [
     <Tooltip key="coord">
       <TooltipTrigger asChild>
-        <span style={{ ...roleBadgeBase, backgroundColor: '#000', color: '#fff', border: '1.5px solid #000' }}>Coord</span>
+        <span style={{ ...roleBadgeBase, backgroundColor: '#000', color: '#fff', border: '1.5px solid #000' }}>Coordinator</span>
       </TooltipTrigger>
       <TooltipContent>Project coordinator</TooltipContent>
     </Tooltip>
@@ -430,7 +427,7 @@ function ResizableTh({
   children: React.ReactNode;
 } & React.ThHTMLAttributes<HTMLTableCellElement>) {
   return (
-    <th {...rest} style={{ position: 'relative', textAlign: 'left', ...(rest.style || {}) }}>
+    <th {...rest} style={{ position: 'relative', textAlign: 'left', padding: '2px 10px', ...(rest.style || {}) }}>
       {children}
       {canResize && (
         <span
@@ -461,7 +458,7 @@ function ResizableTd({
   cellRef?: React.Ref<HTMLTableCellElement>;
 } & React.TdHTMLAttributes<HTMLTableCellElement>) {
   return (
-    <td ref={cellRef} {...rest} style={{ position: 'relative', ...(rest.style || {}) }}>
+    <td ref={cellRef} {...rest} style={{ position: 'relative', padding: '2px 10px', ...(rest.style || {}) }}>
       {children}
       {canResize && (
         <span
