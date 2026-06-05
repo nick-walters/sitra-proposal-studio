@@ -621,8 +621,6 @@ export function DocumentEditor({
     if (!existingRef) {
       // Add to database for proposal-wide tracking
       await addReference(reference, formattedCitation, citationNumber);
-      // Update local footnotes
-      setFootnotes(prev => [...prev, { number: citationNumber, citation: formattedCitation }]);
     }
   }, [editor, findExistingReference, addReference]);
 
