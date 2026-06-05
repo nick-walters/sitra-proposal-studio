@@ -255,6 +255,8 @@ export function B11ParticipantsTable({ proposalId }: Props) {
                   isCoord={isCoord}
                   wpLed={wpLed}
                   caseLed={caseLed}
+                  canResize={canResize}
+                  onResize={handleColResizeStart}
                 />
               );
             })}
