@@ -247,9 +247,7 @@ export function B11ParticipantsTable({ proposalId }: Props) {
                 p.english_name && p.english_name.trim().toLowerCase() !== legalName.trim().toLowerCase()
                   ? p.english_name
                   : '';
-              const typeLabel = p.organisation_category
-                ? ORGANISATION_CATEGORY_LABELS[p.organisation_category as OrganisationCategory] || p.organisation_category
-                : '—';
+              const typeCode = p.organisation_category ? String(p.organisation_category).toUpperCase() : '—';
               const wpLed = wpByPart[p.id] || [];
               const caseLed = caseByPart[p.id] || [];
               const isCoord = p.participant_number === 1;
