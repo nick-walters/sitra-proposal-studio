@@ -1,4 +1,4 @@
-import { Mark, mergeAttributes } from '@tiptap/core';
+import { Mark, Node, mergeAttributes } from '@tiptap/core';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import DOMPurify from 'dompurify';
@@ -6,6 +6,51 @@ import DOMPurify from 'dompurify';
 export interface CitationMarkOptions {
   getReference: (citationNumber: number) => { citation: string } | undefined;
 }
+
+export const CitationNode = Node.create({
+  name: 'citation',
+  group: 'inline',
+  inline: true,
+  atom: true,
+  selectable: true,
+  priority: 1200,
+
+  addAttributes() {
+    return {
+      citationNumber: {
+        default: null,
+        parseHTML: (element) => {
+          const el = element as HTMLElement;
+          const v = el.getAttribute('data-citation');
+          if (v && /^\d+$/.test(v)) return parseInt(v, 10);
+          const text = (el.textContent || '').trim();
+          const match = text.match(/^\[?(\d+)\]?$/);
+          return match ? parseInt(match[1], 10) : null;
+        },
+        renderHTML: (attrs) =>
+          attrs.citationNumber != null ? { 'data-citation': String(attrs.citationNumber) } : {},
+      },
+    };
+  },
+
+  parseHTML() {
+    return [
+      {
+        tag: 'sup[data-citation]',
+        getAttrs: (element) => {
+          const el = element as HTMLElement;
+          const v = el.getAttribute('data-citation');
+          return v && /^\d+$/.test(v) ? { citationNumber: parseInt(v, 10) } : false;
+        },
+      },
+    ];
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    const n = HTMLAttributes.citationNumber ?? HTMLAttributes['data-citation'] ?? '';
+    return ['sup', mergeAttributes(HTMLAttributes), String(n)];
+  },
+});
 
 export const CitationMark = Mark.create<CitationMarkOptions>({
   name: 'citationMark',
