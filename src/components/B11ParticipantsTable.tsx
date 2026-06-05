@@ -232,6 +232,13 @@ export function B11ParticipantsTable({ proposalId }: Props) {
             <tr>
               <ResizableTh index={0} canResize={canResize} onResize={handleColResizeStart} colSpan={4} style={{ textAlign: 'left' }}>
                 Participant organisation №, short name, legal name, <em style={{ fontWeight: 'bold' }}>English name</em>, logo &amp; roles
+                {canResize && colWidths.length === NUM_COLS && [0, 1, 2].map((boundaryIndex) => (
+                  <ColumnResizeGrip
+                    key={boundaryIndex}
+                    onMouseDown={handleColResizeStart(boundaryIndex)}
+                    style={{ left: `${colWidths.slice(0, boundaryIndex + 1).reduce((sum, width) => sum + width, 0) - 2}px`, right: 'auto' }}
+                  />
+                ))}
               </ResizableTh>
               <ResizableTh index={4} canResize={canResize} onResize={handleColResizeStart} style={{ whiteSpace: 'nowrap', textAlign: 'left' }}>
                 Type
@@ -431,19 +438,7 @@ function ResizableTh({
     <th {...rest} style={{ position: 'relative', textAlign: 'left', padding: '2px 10px', ...(rest.style || {}) }}>
       {children}
       {canResize && (
-        <span
-          onMouseDown={onResize(index)}
-          style={{
-            position: 'absolute',
-            top: 0,
-            right: -2,
-            width: 4,
-            height: '100%',
-            cursor: 'col-resize',
-            userSelect: 'none',
-            zIndex: 2,
-          }}
-        />
+        <ColumnResizeGrip onMouseDown={onResize(index)} />
       )}
     </th>
   );
@@ -462,20 +457,30 @@ function ResizableTd({
     <td ref={cellRef} {...rest} style={{ position: 'relative', padding: '2px 10px', ...(rest.style || {}) }}>
       {children}
       {canResize && (
-        <span
-          onMouseDown={onResize(index)}
-          style={{
-            position: 'absolute',
-            top: 0,
-            right: -2,
-            width: 4,
-            height: '100%',
-            cursor: 'col-resize',
-            userSelect: 'none',
-            zIndex: 2,
-          }}
-        />
+        <ColumnResizeGrip onMouseDown={onResize(index)} />
       )}
     </td>
+  );
+}
+
+function ColumnResizeGrip({ onMouseDown, style }: { onMouseDown: React.MouseEventHandler<HTMLSpanElement>; style?: React.CSSProperties }) {
+  return (
+    <span
+      onMouseDown={onMouseDown}
+      style={{
+        position: 'absolute',
+        top: 0,
+        right: -3,
+        width: 6,
+        height: '100%',
+        cursor: 'col-resize',
+        userSelect: 'none',
+        zIndex: 5,
+        background: 'rgba(37, 99, 235, 0.18)',
+        borderLeft: '1px solid rgba(37, 99, 235, 0.45)',
+        borderRight: '1px solid rgba(37, 99, 235, 0.25)',
+        ...style,
+      }}
+    />
   );
 }
