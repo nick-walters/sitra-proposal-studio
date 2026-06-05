@@ -467,6 +467,7 @@ function ColumnResizeGrip({ onMouseDown, style }: { onMouseDown: React.MouseEven
   return (
     <span
       onMouseDown={onMouseDown}
+      className="column-resize-grip"
       style={{
         position: 'absolute',
         top: 0,
@@ -476,11 +477,12 @@ function ColumnResizeGrip({ onMouseDown, style }: { onMouseDown: React.MouseEven
         cursor: 'col-resize',
         userSelect: 'none',
         zIndex: 5,
-        background: 'rgba(37, 99, 235, 0.18)',
-        borderLeft: '1px solid rgba(37, 99, 235, 0.45)',
-        borderRight: '1px solid rgba(37, 99, 235, 0.25)',
+        background: 'transparent',
+        transition: 'background 120ms ease',
         ...style,
       }}
+      onMouseEnter={(e) => { (e.currentTarget as HTMLSpanElement).style.background = 'rgba(37, 99, 235, 0.35)'; }}
+      onMouseLeave={(e) => { (e.currentTarget as HTMLSpanElement).style.background = 'transparent'; }}
     />
   );
 }
