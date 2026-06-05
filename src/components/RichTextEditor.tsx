@@ -1283,6 +1283,7 @@ StarterKit.configure({
       OrderedListStyled,
       Typography,
       Underline,
+      CitationMark,
       Superscript,
       TextStyle,
       Color,
