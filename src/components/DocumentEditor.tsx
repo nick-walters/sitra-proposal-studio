@@ -651,19 +651,17 @@ export function DocumentEditor({
 
   const handleInsertCitation = useCallback(async (reference: Reference, formattedCitation: string, citationNumber: number) => {
     if (!editor) return;
-    
-    // Insert superscript citation at cursor position using the citationMark
-    // schema directly so the mark is reliably applied (HTML-string insertion
-    // can drop inline marks depending on parse context).
-    editor
-      .chain()
-      .focus()
-      .insertContent({
-        type: 'text',
-        text: String(citationNumber),
-        marks: [{ type: 'citationMark', attrs: { citationNumber } }],
-      })
-      .run();
+
+    // Insert as a real ProseMirror text node with the citation mark. This avoids
+    // HTML parsing ambiguity with the generic Superscript extension and keeps
+    // the stable internal citation number in data-citation for footnotes.
+    const citationMark = editor.schema.marks.citationMark?.create({ citationNumber });
+    if (!citationMark) return;
+    const node = editor.schema.text(String(citationNumber), [citationMark]);
+    const tr = editor.state.tr.replaceSelectionWith(node, false).scrollIntoView();
+    editor.view.focus();
+    editor.view.dispatch(tr);
+    setContent(editor.getHTML());
     
     // Check if this reference already exists in the proposal
     const existingRef = findExistingReference(reference);
@@ -672,7 +670,7 @@ export function DocumentEditor({
       // Add to database for proposal-wide tracking
       await addReference(reference, formattedCitation, citationNumber);
     }
-  }, [editor, findExistingReference, addReference]);
+  }, [editor, setContent, findExistingReference, addReference]);
 
   // Helper to extract section number without "B" prefix (e.g., "1.1" from "B1.1" or just "1.1")
   const getSectionNumberWithoutPrefix = useCallback((sectionNum: string) => {

@@ -524,6 +524,13 @@ html, body {
   margin-bottom: 0 !important;
 }
 
+.ProseMirror sup[data-citation],
+.document-content sup[data-citation] {
+  vertical-align: super;
+  font-size: 75%;
+  line-height: 0;
+}
+
 /* TipTap/ProseMirror table styles - OUTSIDE @layer for higher specificity */
 .ProseMirror table {
   border-collapse: collapse !important;
