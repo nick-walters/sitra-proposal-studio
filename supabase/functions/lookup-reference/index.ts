@@ -62,49 +62,154 @@ function formatAuthors(authors: string[]): string {
 function abbreviateJournal(journal: string): string {
   const abbreviations: Record<string, string> = {
     "journal": "J",
+    "journals": "J",
     "international": "Int",
     "environmental": "Environ",
+    "environment": "Environ",
     "science": "Sci",
+    "sciences": "Sci",
+    "scientific": "Sci",
     "technology": "Technol",
+    "technologies": "Technol",
     "engineering": "Eng",
     "research": "Res",
     "management": "Manag",
     "development": "Dev",
     "sustainable": "Sustain",
+    "sustainability": "Sustain",
     "european": "Eur",
     "american": "Am",
     "review": "Rev",
+    "reviews": "Rev",
     "proceedings": "Proc",
     "transactions": "Trans",
     "letters": "Lett",
     "advances": "Adv",
     "applied": "Appl",
     "chemistry": "Chem",
+    "chemical": "Chem",
     "physics": "Phys",
+    "physical": "Phys",
     "biology": "Biol",
+    "biological": "Biol",
     "medicine": "Med",
+    "medical": "Med",
     "economics": "Econ",
+    "economic": "Econ",
     "production": "Prod",
-    "cleaner": "Clean"
+    "cleaner": "Clean",
+    "information": "Inf",
+    "informatics": "Inform",
+    "modeling": "Model",
+    "modelling": "Model",
+    "computer": "Comput",
+    "computing": "Comput",
+    "computational": "Comput",
+    "communications": "Commun",
+    "communication": "Commun",
+    "education": "Educ",
+    "educational": "Educ",
+    "psychology": "Psychol",
+    "psychological": "Psychol",
+    "behaviour": "Behav",
+    "behavior": "Behav",
+    "behavioural": "Behav",
+    "behavioral": "Behav",
+    "molecular": "Mol",
+    "biochemistry": "Biochem",
+    "biochemical": "Biochem",
+    "biotechnology": "Biotechnol",
+    "pharmaceutical": "Pharm",
+    "pharmacology": "Pharmacol",
+    "neuroscience": "Neurosci",
+    "neurological": "Neurol",
+    "neurology": "Neurol",
+    "clinical": "Clin",
+    "experimental": "Exp",
+    "theoretical": "Theor",
+    "analytical": "Anal",
+    "analysis": "Anal",
+    "industrial": "Ind",
+    "industry": "Ind",
+    "national": "Natl",
+    "academy": "Acad",
+    "society": "Soc",
+    "association": "Assoc",
+    "annual": "Annu",
+    "quarterly": "Q",
+    "monthly": "Mon",
+    "bulletin": "Bull",
+    "report": "Rep",
+    "reports": "Rep",
+    "studies": "Stud",
+    "study": "Stud",
+    "energy": "Energy",
+    "materials": "Mater",
+    "material": "Mater",
+    "agriculture": "Agric",
+    "agricultural": "Agric",
+    "ecology": "Ecol",
+    "ecological": "Ecol",
+    "geography": "Geogr",
+    "geological": "Geol",
+    "geology": "Geol",
+    "mathematics": "Math",
+    "mathematical": "Math",
+    "statistics": "Stat",
+    "statistical": "Stat",
+    "policy": "Policy",
+    "policies": "Policy",
+    "innovation": "Innov",
+    "renewable": "Renew",
+    "natural": "Nat",
+    "nature": "Nat",
   };
 
-  return journal.split(/\s+/).map(word => {
-    const lower = word.toLowerCase();
-    return abbreviations[lower] || word;
-  }).join(" ");
+  // Drop common stop words from journal titles per ISO 4 conventions
+  const drop = new Set(["of", "the", "and", "for", "in", "on", "an", "a", "to", "&", "from", "with", "by"]);
+
+  return journal
+    .split(/\s+/)
+    .filter(w => !drop.has(w.toLowerCase()))
+    .map(word => {
+      const lower = word.toLowerCase().replace(/[^\w]/g, '');
+      return abbreviations[lower] || word;
+    })
+    .join(" ");
+}
+
+function toSentenceCase(title: string): string {
+  // Split keeping whitespace so we can preserve original spacing
+  const parts = title.split(/(\s+)/);
+  let firstSeen = false;
+  return parts.map(p => {
+    if (/^\s+$/.test(p) || p.length === 0) return p;
+    // Preserve all-caps acronyms (>=2 letters) and tokens containing digits
+    const core = p.replace(/[^A-Za-z0-9]/g, '');
+    const isAcronym = core.length >= 2 && core === core.toUpperCase() && /[A-Z]/.test(core);
+    const hasDigit = /\d/.test(core);
+    if (!firstSeen) {
+      firstSeen = true;
+      if (isAcronym || hasDigit) return p;
+      return p.charAt(0).toUpperCase() + p.slice(1).toLowerCase();
+    }
+    if (isAcronym || hasDigit) return p;
+    return p.toLowerCase();
+  }).join('');
 }
 
 function formatCitation(ref: Reference): string {
   const authorStr = formatAuthors(ref.authors);
   const yearStr = ref.year ? `(${ref.year})` : "(n.d.)";
-  const titleStr = ref.title.endsWith(".") ? ref.title : `${ref.title}.`;
-  
-  let citation = `${authorStr} ${yearStr}. ${titleStr}`;
-  
+  const sentenceTitle = toSentenceCase(ref.title);
+  const titleStr = sentenceTitle.endsWith(".") ? sentenceTitle : `${sentenceTitle}.`;
+
+  let citation = `${authorStr} ${yearStr}. <span data-cite-title>${titleStr}</span>`;
+
   if (ref.journal) {
     const abbrevJournal = abbreviateJournal(ref.journal);
     citation += ` *${abbrevJournal}*`;
-    
+
     if (ref.volume) {
       citation += ` **${ref.volume}**`;
     }
