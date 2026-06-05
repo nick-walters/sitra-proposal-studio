@@ -39,6 +39,8 @@ interface CitationDialogProps {
   isLoadingReferences: boolean;
   nextCitationNumber: number;
   onUpdateReference?: (refId: string, updates: Partial<Omit<ProposalReference, 'id' | 'proposal_id' | 'created_at'>>) => Promise<boolean>;
+  /** Proposal-wide citation display order, by internal citation_number. */
+  citationDisplayOrder?: Map<number, number>;
 }
 
 export function CitationDialog({
@@ -49,6 +51,7 @@ export function CitationDialog({
   isLoadingReferences,
   nextCitationNumber,
   onUpdateReference,
+  citationDisplayOrder,
 }: CitationDialogProps) {
   const [activeTab, setActiveTab] = useState<string>('library');
   const [query, setQuery] = useState('');
@@ -274,6 +277,7 @@ export function CitationDialog({
               isLoading={isLoadingReferences}
               onSelectReference={handleInsertFromLibrary}
               onUpdateReference={onUpdateReference}
+              displayOrder={citationDisplayOrder}
             />
           </TabsContent>
 

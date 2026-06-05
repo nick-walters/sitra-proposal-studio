@@ -15,6 +15,9 @@ interface CitationLibraryProps {
   isLoading: boolean;
   onSelectReference: (reference: ProposalReference) => void;
   onUpdateReference?: (refId: string, updates: Partial<Omit<ProposalReference, 'id' | 'proposal_id' | 'created_at'>>) => Promise<boolean>;
+  /** Map from internal citation_number to the global display order. Uncited
+   * references (not in the map) are sorted last and hidden from the list. */
+  displayOrder?: Map<number, number>;
 }
 
 export function CitationLibrary({ 
@@ -22,6 +25,7 @@ export function CitationLibrary({
   isLoading,
   onSelectReference,
   onUpdateReference,
+  displayOrder,
 }: CitationLibraryProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -37,17 +41,27 @@ export function CitationLibrary({
   });
 
   const filteredReferences = useMemo(() => {
-    if (!searchQuery.trim()) return references;
-    
-    const query = searchQuery.toLowerCase();
-    return references.filter(ref => 
-      ref.title.toLowerCase().includes(query) ||
-      ref.authors?.some(a => a.toLowerCase().includes(query)) ||
-      ref.journal?.toLowerCase().includes(query) ||
-      ref.doi?.toLowerCase().includes(query) ||
-      ref.year?.toString().includes(query)
-    );
-  }, [references, searchQuery]);
+    const base = !searchQuery.trim()
+      ? references
+      : references.filter(ref =>
+          ref.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          ref.authors?.some(a => a.toLowerCase().includes(searchQuery.toLowerCase())) ||
+          ref.journal?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          ref.doi?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          ref.year?.toString().includes(searchQuery)
+        );
+    if (!displayOrder || displayOrder.size === 0) return base;
+    // Sort by global display order; uncited references (no display number)
+    // sit at the end in their original order.
+    return [...base].sort((a, b) => {
+      const ax = displayOrder.get(a.citation_number);
+      const bx = displayOrder.get(b.citation_number);
+      if (ax != null && bx != null) return ax - bx;
+      if (ax != null) return -1;
+      if (bx != null) return 1;
+      return 0;
+    });
+  }, [references, searchQuery, displayOrder]);
 
   const startEditing = (ref: ProposalReference, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -147,8 +161,7 @@ export function CitationLibrary({
                 {editingId === ref.id ? (
                   /* Edit mode */
                   <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex items-center justify-between mb-1">
-                      <Badge variant="outline" className="text-xs font-mono">[{ref.citation_number}]</Badge>
+                    <div className="flex items-center justify-end mb-1">
                       <div className="flex gap-1">
                         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={cancelEditing}>
                           <X className="w-3.5 h-3.5" />
@@ -220,14 +233,11 @@ export function CitationLibrary({
                   <>
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Badge variant="outline" className="shrink-0 text-xs font-mono">
-                            [{ref.citation_number}]
-                          </Badge>
-                          {ref.verified && (
+                        {ref.verified && (
+                          <div className="mb-1">
                             <CheckCircle2 className="w-3 h-3 text-success shrink-0" />
-                          )}
-                        </div>
+                          </div>
+                        )}
                         <h4 className="font-medium text-sm line-clamp-2 leading-snug">
                           {ref.title}
                         </h4>

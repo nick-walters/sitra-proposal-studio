@@ -394,6 +394,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
       const range = selection.getRangeAt(0);
       const citationSpan = document.createElement('sup');
       citationSpan.textContent = `${citationNumber}`;
+      citationSpan.setAttribute('data-citation', String(citationNumber));
       citationSpan.style.color = 'blue';
       citationSpan.style.cursor = 'pointer';
       range.insertNode(citationSpan);

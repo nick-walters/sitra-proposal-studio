@@ -9,6 +9,10 @@ export interface CitationMarkOptions {
 
 export const CitationMark = Mark.create<CitationMarkOptions>({
   name: 'citationMark',
+  // Higher priority than Superscript so <sup> elements with a numeric body
+  // (citations) are claimed by this mark and keep their data-citation attr.
+  priority: 1100,
+  inclusive: false,
 
   addOptions() {
     return {
@@ -21,8 +25,13 @@ export const CitationMark = Mark.create<CitationMarkOptions>({
       {
         tag: 'sup',
         getAttrs: (element) => {
-          const text = (element as HTMLElement).textContent || '';
-          const match = text.match(/^\[(\d+)\]$/);
+          const el = element as HTMLElement;
+          const dataAttr = el.getAttribute('data-citation');
+          if (dataAttr && /^\d+$/.test(dataAttr)) {
+            return { citationNumber: parseInt(dataAttr, 10) };
+          }
+          const text = (el.textContent || '').trim();
+          const match = text.match(/^\[?(\d+)\]?$/);
           if (match) {
             return { citationNumber: parseInt(match[1], 10) };
           }
@@ -36,6 +45,16 @@ export const CitationMark = Mark.create<CitationMarkOptions>({
     return {
       citationNumber: {
         default: null,
+        parseHTML: (element) => {
+          const el = element as HTMLElement;
+          const v = el.getAttribute('data-citation');
+          if (v && /^\d+$/.test(v)) return parseInt(v, 10);
+          const text = (el.textContent || '').trim();
+          const match = text.match(/^\[?(\d+)\]?$/);
+          return match ? parseInt(match[1], 10) : null;
+        },
+        renderHTML: (attrs) =>
+          attrs.citationNumber != null ? { 'data-citation': String(attrs.citationNumber) } : {},
       },
     };
   },
@@ -112,26 +131,29 @@ export function createCitationTooltipPlugin(
       handleDOMEvents: {
         mouseover(view, event) {
           const target = event.target as HTMLElement;
-          
+
           // Check if hovering over a citation superscript
           if (target.tagName === 'SUP') {
-            const text = target.textContent || '';
-            const match = text.match(/^\[(\d+)\]$/);
-            
-            if (match) {
+            const dataAttr = target.getAttribute('data-citation');
+            const text = (target.textContent || '').trim();
+            const numStr =
+              (dataAttr && /^\d+$/.test(dataAttr) && dataAttr) ||
+              text.match(/^\[?(\d+)\]?$/)?.[1];
+
+            if (numStr) {
               if (hideTimeout) {
                 clearTimeout(hideTimeout);
                 hideTimeout = null;
               }
 
-              const citationNumber = parseInt(match[1], 10);
+              const citationNumber = parseInt(numStr, 10);
               const reference = getReference(citationNumber);
-              
+
               if (reference) {
                 const rect = target.getBoundingClientRect();
-                showTooltip(view, { 
-                  top: rect.top, 
-                  left: rect.left + rect.width / 2 
+                showTooltip(view, {
+                  top: rect.top,
+                  left: rect.left + rect.width / 2
                 }, reference.citation);
               }
             }

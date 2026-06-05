@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sparkles, BookOpen, Route, History, Info, Image, Lock, Unlock, MessageSquare, PanelRightClose, PanelRight, UserPlus, CalendarClock, User, FileText, X, Search, GitCompare, Keyboard, Wand2, FileCode, SplitSquareHorizontal, Layers, Building2, FlaskConical, Check, Link2, Table2, AlertTriangle } from "lucide-react";
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { FormattingToolbar, useRichTextEditor } from "./RichTextEditor";
 import { ProposalBanner } from "./ProposalBanner";
 import { B11ParticipantsTable } from "./B11ParticipantsTable";
@@ -44,6 +44,7 @@ import { renumberFootnotes } from "@/lib/captionRenumbering";
 import { syncCrossReferences } from "@/lib/syncCrossReferences";
 import { renumberCaptionsInEditor } from "@/lib/renumberCaptionsInEditor";
 import { useProposalReferences } from "@/hooks/useProposalReferences";
+import { useGlobalCitationOrder } from "@/hooks/useGlobalCitationOrder";
 import { FootnoteCitation } from "@/components/FootnoteCitation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -158,7 +159,7 @@ export function DocumentEditor({
   const [isAssignmentDialogOpen, setIsAssignmentDialogOpen] = useState(false);
   const [selectedText, setSelectedText] = useState<string>('');
   const [selectionRange, setSelectionRange] = useState<{ start: number; end: number } | undefined>();
-  const [footnotes, setFootnotes] = useState<Array<{ number: number; citation: string }>>([]);
+  // Footnotes are derived from proposalReferences + global citation order (see below).
   
   // Proposal-wide references hook
   const { 
@@ -169,6 +170,10 @@ export function DocumentEditor({
     findExistingReference,
     getNextCitationNumber 
   } = useProposalReferences(proposalId);
+
+  // Proposal-wide citation order (numbers reflect order of first appearance
+  // across all Part B sections, not the order they were added to the library).
+  // Live content for the active section is folded in below once available.
   
   // Track changes persistence hook — remember last setting per user, default ON
   const [trackChangesEnabled, setTrackChangesEnabled] = useState(() => {
@@ -319,6 +324,13 @@ export function DocumentEditor({
 
   const { content, setContent, loading, saving, lastSaved, lastCitationMapping, isPlaceholder, isDirty, saveError, clearPlaceholder, saveNow } = sectionContentHook;
 
+  // Global citation ordering across all Part B sections
+  const { displayMap: citationDisplayMap, sectionCitedNumbers } = useGlobalCitationOrder(
+    proposalId,
+    section?.id,
+    content,
+  );
+
   // Use isDirty from the hook directly instead of tracking separately
   const hasUnsavedChanges = isDirty;
 
@@ -334,25 +346,53 @@ export function DocumentEditor({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [saveNow]);
 
-  // Sync footnotes when citations are renumbered
-  useEffect(() => {
-    if (lastCitationMapping && lastCitationMapping.size > 0 && footnotes.length > 0) {
-      const renumberedFootnotes = renumberFootnotes(footnotes, lastCitationMapping);
-      // Only update if there's an actual change
-      const hasChanges = renumberedFootnotes.some((fn, idx) => 
-        fn.number !== footnotes[idx]?.number || fn.citation !== footnotes[idx]?.citation
-      );
-      if (hasChanges) {
-        setFootnotes(renumberedFootnotes);
-      }
-    }
-  }, [lastCitationMapping]);
+  // Footnotes for the current section, derived from proposal-wide references
+  // and the global citation display map. Sorted by global display order.
+  const footnotes = useMemo(() => {
+    const refsByNumber = new Map<number, typeof proposalReferences[number]>();
+    proposalReferences.forEach(r => refsByNumber.set(r.citation_number, r));
+    return sectionCitedNumbers
+      .map(internal => {
+        const ref = refsByNumber.get(internal);
+        const display = citationDisplayMap.get(internal) ?? internal;
+        if (!ref) return null;
+        return { number: display, citation: ref.formatted_citation || ref.title };
+      })
+      .filter((x): x is { number: number; citation: string } => x !== null)
+      .sort((a, b) => a.number - b.number);
+  }, [sectionCitedNumbers, citationDisplayMap, proposalReferences]);
 
-  // Helper to get reference by citation number for tooltip display
-  const getReference = useCallback((citationNumber: number) => {
-    const footnote = footnotes.find(fn => fn.number === citationNumber);
-    return footnote ? { citation: footnote.citation } : undefined;
-  }, [footnotes]);
+  // Helper to get reference by INTERNAL citation number (data-citation attr)
+  // for tooltip display.
+  const getReference = useCallback((internalNumber: number) => {
+    const ref = proposalReferences.find(r => r.citation_number === internalNumber);
+    return ref ? { citation: ref.formatted_citation || ref.title } : undefined;
+  }, [proposalReferences]);
+
+  // DOM patcher: rewrite the visible text of every citation <sup> so it reflects
+  // the proposal-wide display order. The internal id (citation_number) is kept
+  // on the element via the data-citation attribute (preserved by CitationMark).
+  const patchCitationDisplayRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    patchCitationDisplayRef.current = () => {
+      const root = editorContainerRef.current;
+      if (!root) return;
+      const sups = root.querySelectorAll('sup[data-citation]');
+      sups.forEach((sup) => {
+        const el = sup as HTMLElement;
+        const internal = parseInt(el.getAttribute('data-citation') || '', 10);
+        if (!Number.isFinite(internal)) return;
+        const display = citationDisplayMap.get(internal);
+        const next = display != null ? String(display) : String(internal);
+        if (el.textContent !== next) el.textContent = next;
+      });
+    };
+    patchCitationDisplayRef.current();
+  }, [citationDisplayMap, content]);
+
+
+
+
 
   // Block locking refs for editor integration
   const blockLocksRef = useRef<Map<string, { userId: string; blockId: string; blockType: string }>>(new Map());
@@ -391,6 +431,21 @@ export function DocumentEditor({
   });
 
   // Note: trackChangesEnabled sync is handled by useRichTextEditor's own effect
+
+  // Re-run the citation display patcher after every editor transaction so
+  // ProseMirror re-renders do not revert our text rewrites.
+  useEffect(() => {
+    if (!editor) return;
+    const run = () => patchCitationDisplayRef.current();
+    editor.on('update', run);
+    editor.on('selectionUpdate', run);
+    editor.on('transaction', run);
+    return () => {
+      editor.off('update', run);
+      editor.off('selectionUpdate', run);
+      editor.off('transaction', run);
+    };
+  }, [editor]);
 
   // Backfill missing track-change attributes after editor loads
   // Fixes: authorName for ALL users, authorId & timestamp for current user
@@ -598,7 +653,7 @@ export function DocumentEditor({
     if (!editor) return;
     
     // Insert superscript citation at cursor position
-    editor.chain().focus().insertContent(`<sup>${citationNumber}</sup>`).run();
+    editor.chain().focus().insertContent(`<sup data-citation="${citationNumber}">${citationNumber}</sup>`).run();
     
     // Check if this reference already exists in the proposal
     const existingRef = findExistingReference(reference);
@@ -606,8 +661,6 @@ export function DocumentEditor({
     if (!existingRef) {
       // Add to database for proposal-wide tracking
       await addReference(reference, formattedCitation, citationNumber);
-      // Update local footnotes
-      setFootnotes(prev => [...prev, { number: citationNumber, citation: formattedCitation }]);
     }
   }, [editor, findExistingReference, addReference]);
 
@@ -1851,6 +1904,7 @@ export function DocumentEditor({
         isLoadingReferences={isLoadingReferences}
         nextCitationNumber={getNextCitationNumber()}
         onUpdateReference={updateReference}
+        citationDisplayOrder={citationDisplayMap}
       />
       <InsertFigureDialog
         isOpen={isFigureDialogOpen}
