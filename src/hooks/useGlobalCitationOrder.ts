@@ -1,23 +1,23 @@
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-// Match citation superscripts and prefer the stable internal id in data-citation.
-// Falls back to numeric text so older saved citations still produce footnotes.
-const SUP_RE = /<sup\b([^>]*)>([\s\S]*?)<\/sup>/gi;
+// Match citation elements and prefer the stable internal id in data-citation.
+// Falls back to numeric <sup> text so older saved citations still produce footnotes.
+const CITATION_RE = /<sup\b([^>]*)>([\s\S]*?)<\/sup>|<[^>]*\bdata-citation=(?:"(\d+)"|'(\d+)'|(\d+))[^>]*>/gi;
 
 export function extractCitedNumbersInOrder(html: string): number[] {
   const out: number[] = [];
   const seen = new Set<number>();
   if (!html) return out;
   let m: RegExpExecArray | null;
-  const re = new RegExp(SUP_RE.source, 'gi');
+  const re = new RegExp(CITATION_RE.source, 'gi');
   while ((m = re.exec(html)) !== null) {
     const attrs = m[1] || '';
     const body = m[2] || '';
     const dataMatch = attrs.match(/\bdata-citation=(?:"(\d+)"|'(\d+)'|(\d+))/i);
     const text = body.replace(/<[^>]+>/g, '').trim();
     const textMatch = text.match(/^\[?\s*(\d+)\s*\]?$/);
-    const n = parseInt(dataMatch?.[1] || dataMatch?.[2] || dataMatch?.[3] || textMatch?.[1] || '', 10);
+    const n = parseInt(dataMatch?.[1] || dataMatch?.[2] || dataMatch?.[3] || m[3] || m[4] || m[5] || textMatch?.[1] || '', 10);
     if (Number.isFinite(n) && !seen.has(n)) {
       seen.add(n);
       out.push(n);
