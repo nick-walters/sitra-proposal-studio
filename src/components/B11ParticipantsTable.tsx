@@ -319,6 +319,26 @@ export function B11ParticipantsTable({ proposalId }: Props) {
                 </td>
               </tr>
             )}
+            {participants.length > 0 && (() => {
+              const present = new Set(
+                participants
+                  .map(p => p.organisation_category ? String(p.organisation_category).toUpperCase() : null)
+                  .filter((c): c is string => !!c && c in ORGANISATION_CATEGORY_LABELS)
+              );
+              const legend = (Object.keys(ORGANISATION_CATEGORY_LABELS) as OrganisationCategory[])
+                .filter(code => present.has(code))
+                .map(code => `${code}: ${ORGANISATION_CATEGORY_LABELS[code]}`)
+                .join('; ');
+              if (!legend) return null;
+              return (
+                <tr>
+                  <td colSpan={NUM_COLS} style={{ fontStyle: 'italic', fontSize: '10pt', borderBottom: 'none', paddingTop: '4px' }}>
+                    {legend}
+                  </td>
+                </tr>
+              );
+            })()}
+
           </tbody>
         </table>
       </div>
