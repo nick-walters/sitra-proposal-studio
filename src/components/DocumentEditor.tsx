@@ -1556,7 +1556,7 @@ export function DocumentEditor({
               )}
               {/* Footnotes */}
               {footnotes.length > 0 && (
-                <div className="mt-8 pt-4 border-t border-border">
+                <div className="mt-8 border-t border-border">
                   <div>
                     {footnotes.map((fn) => {
                       // Build sanitized citation HTML — convert **bold** BEFORE *italic*
