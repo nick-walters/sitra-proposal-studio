@@ -1,8 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { ORGANISATION_CATEGORY_LABELS, OrganisationCategory } from '@/types/proposal';
 import { useStorageUrl } from '@/hooks/useStorageUrl';
+import { useColumnResize } from '@/hooks/useColumnResize';
+import { useProposalRole } from '@/hooks/useProposalRole';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface Props {
   proposalId: string;
@@ -19,6 +22,34 @@ interface ParticipantRow {
   logo_url: string | null;
 }
 
+interface WPLeadRow {
+  number: number;
+  short_name: string | null;
+  lead_participant_id: string | null;
+  color: string;
+}
+
+interface CaseLeadRow {
+  number: number;
+  short_name: string | null;
+  lead_participant_id: string | null;
+  color: string;
+  case_type: string;
+  custom_type_name: string | null;
+}
+
+function getCasePrefix(caseType: string, customTypeName: string | null): string {
+  if (caseType === 'other') return customTypeName ? customTypeName.toUpperCase() : '';
+  switch (caseType) {
+    case 'case_study': return 'CS';
+    case 'use_case': return 'UC';
+    case 'living_lab': return 'LL';
+    case 'pilot': return 'P';
+    case 'demonstration': return 'D';
+    default: return '';
+  }
+}
+
 function ParticipantLogo({ src }: { src: string | null }) {
   const url = useStorageUrl(src);
   if (!url) return <span>—</span>;
@@ -26,17 +57,50 @@ function ParticipantLogo({ src }: { src: string | null }) {
     <img
       src={url}
       alt=""
+      loading="eager"
+      decoding="async"
       style={{ maxWidth: 60, maxHeight: 30, objectFit: 'contain', display: 'inline-block' }}
     />
   );
 }
 
+const baseFont = "'Times New Roman', Times, serif";
+
+function ParticipantBubble({ number, shortName }: { number: number | null; shortName: string }) {
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        backgroundColor: '#000000',
+        color: '#FFFFFF',
+        border: '1.5px solid #000000',
+        borderRadius: '9999px',
+        fontFamily: baseFont,
+        fontSize: '11pt',
+        fontWeight: 700,
+        fontStyle: 'normal',
+        lineHeight: 1,
+        padding: '0px 5px',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {number ?? '—'}. {shortName}
+    </span>
+  );
+}
+
 export function B11ParticipantsTable({ proposalId }: Props) {
   const queryClient = useQueryClient();
-  const queryKey = ['b11-participants', proposalId];
+  const { roleTier } = useProposalRole(proposalId);
+  const canResize = roleTier === 'coordinator';
+
+  const participantsKey = ['b11-participants', proposalId];
+  const wpKey = ['b11-wp-leadership', proposalId];
+  const caseKey = ['b11-case-leadership', proposalId];
 
   const { data: participants = [] } = useQuery({
-    queryKey,
+    queryKey: participantsKey,
     queryFn: async (): Promise<ParticipantRow[]> => {
       const { data, error } = await supabase
         .from('participants')
@@ -48,116 +112,248 @@ export function B11ParticipantsTable({ proposalId }: Props) {
     },
   });
 
-  // Realtime: refetch on any participant change for this proposal
+  const { data: wpLeads = [] } = useQuery({
+    queryKey: wpKey,
+    queryFn: async (): Promise<WPLeadRow[]> => {
+      const { data, error } = await supabase
+        .from('wp_drafts')
+        .select('number, short_name, lead_participant_id, color')
+        .eq('proposal_id', proposalId)
+        .order('number');
+      if (error) throw error;
+      return (data || []) as WPLeadRow[];
+    },
+  });
+
+  const { data: caseLeads = [] } = useQuery({
+    queryKey: caseKey,
+    queryFn: async (): Promise<CaseLeadRow[]> => {
+      const { data, error } = await supabase
+        .from('case_drafts')
+        .select('number, short_name, lead_participant_id, color, case_type, custom_type_name')
+        .eq('proposal_id', proposalId)
+        .order('number');
+      if (error) throw error;
+      return (data || []) as CaseLeadRow[];
+    },
+  });
+
+  // Realtime
   useEffect(() => {
     const channel = supabase
       .channel(`b11-participants-${proposalId}`)
-      .on(
-        'postgres_changes',
+      .on('postgres_changes',
         { event: '*', schema: 'public', table: 'participants', filter: `proposal_id=eq.${proposalId}` },
-        () => queryClient.invalidateQueries({ queryKey }),
-      )
+        () => queryClient.invalidateQueries({ queryKey: participantsKey }))
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'wp_drafts', filter: `proposal_id=eq.${proposalId}` },
+        () => queryClient.invalidateQueries({ queryKey: wpKey }))
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'case_drafts', filter: `proposal_id=eq.${proposalId}` },
+        () => queryClient.invalidateQueries({ queryKey: caseKey }))
       .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [proposalId, queryClient]);
 
-  const baseFont = "'Times New Roman', Times, serif";
-  const borderColor = '#999';
-  const accentColor = '#1F2A44';
+  const wpByPart = useMemo(() => {
+    const m: Record<string, { number: number; shortName: string | null; color: string }[]> = {};
+    for (const w of wpLeads) {
+      if (!w.lead_participant_id) continue;
+      (m[w.lead_participant_id] ||= []).push({ number: w.number, shortName: w.short_name, color: w.color });
+    }
+    return m;
+  }, [wpLeads]);
+
+  const caseByPart = useMemo(() => {
+    const m: Record<string, { number: number; shortName: string | null; color: string; prefix: string }[]> = {};
+    for (const c of caseLeads) {
+      if (!c.lead_participant_id) continue;
+      (m[c.lead_participant_id] ||= []).push({
+        number: c.number, shortName: c.short_name, color: c.color,
+        prefix: getCasePrefix(c.case_type, c.custom_type_name),
+      });
+    }
+    return m;
+  }, [caseLeads]);
+
+  const { colWidths, tableRef, handleColResizeStart } = useColumnResize({
+    proposalId,
+    tableKey: 'b11-participants',
+    canResize,
+  });
 
   return (
-    <div
-      contentEditable={false}
-      style={{
-        userSelect: 'none',
-        fontFamily: baseFont,
-        fontSize: '11pt',
-        lineHeight: 1.15,
-        color: '#000',
-        margin: '0 0 12pt 0',
-      }}
-    >
+    <TooltipProvider>
       <div
+        contentEditable={false}
+        className="ProseMirror"
         style={{
-          fontStyle: 'italic',
+          userSelect: 'none',
           fontFamily: baseFont,
           fontSize: '11pt',
-          color: accentColor,
-          marginBottom: '3pt',
+          color: '#000',
+          margin: '6pt 0 6pt 0',
         }}
       >
-        List of participants
-      </div>
-      <table
-        style={{
-          width: '100%',
-          borderCollapse: 'collapse',
-          tableLayout: 'fixed',
-          fontFamily: baseFont,
-          fontSize: '11pt',
-        }}
-      >
-        <colgroup>
-          <col style={{ width: '16%' }} />
-          <col style={{ width: '38%' }} />
-          <col style={{ width: '12%' }} />
-          <col style={{ width: '20%' }} />
-          <col style={{ width: '14%' }} />
-        </colgroup>
-        <thead>
-          <tr style={{ borderBottom: `1px solid ${borderColor}` }}>
-            <th style={{ textAlign: 'left', fontWeight: 'bold', padding: '4pt 6pt' }}>№ &amp; short name</th>
-            <th style={{ textAlign: 'left', fontWeight: 'bold', padding: '4pt 6pt' }}>
-              Participant organisation legal name &amp; <em style={{ fontWeight: 'bold' }}>English name</em>
-            </th>
-            <th style={{ padding: '4pt 6pt' }} />
-            <th style={{ textAlign: 'left', fontWeight: 'bold', padding: '4pt 6pt' }}>Type</th>
-            <th style={{ textAlign: 'left', fontWeight: 'bold', padding: '4pt 6pt' }}>Country</th>
-          </tr>
-        </thead>
-        <tbody>
-          {participants.map((p) => {
-            const legalName = p.organisation_name || '';
-            const englishName =
-              p.english_name && p.english_name.trim().toLowerCase() !== legalName.trim().toLowerCase()
-                ? p.english_name
-                : '';
-            const typeLabel = p.organisation_category
-              ? ORGANISATION_CATEGORY_LABELS[p.organisation_category as OrganisationCategory] || p.organisation_category
-              : '—';
-            return (
-              <tr key={p.id} style={{ borderBottom: `1px solid ${borderColor}` }}>
-                <td style={{ padding: '6pt', verticalAlign: 'middle', fontStyle: 'italic', fontWeight: 'bold', color: accentColor }}>
-                  {p.participant_number ?? '—'}. {p.organisation_short_name || ''}
-                </td>
-                <td style={{ padding: '6pt', verticalAlign: 'middle' }}>
-                  {legalName}
-                  {englishName ? (
-                    <>
-                      <br />
-                      <span style={{ fontStyle: 'italic' }}>{englishName}</span>
-                    </>
-                  ) : null}
-                </td>
-                <td style={{ padding: '6pt', verticalAlign: 'middle', textAlign: 'center' }}>
-                  <ParticipantLogo src={p.logo_url} />
-                </td>
-                <td style={{ padding: '6pt', verticalAlign: 'middle' }}>{typeLabel}</td>
-                <td style={{ padding: '6pt', verticalAlign: 'middle' }}>{p.country || '—'}</td>
-              </tr>
-            );
-          })}
-          {participants.length === 0 && (
-            <tr>
-              <td colSpan={5} style={{ padding: '6pt', fontStyle: 'italic', color: '#666' }}>
-                No participants added yet. Add them in section A2.
-              </td>
-            </tr>
+        <table
+          ref={tableRef}
+          style={{
+            width: '100%',
+            maxWidth: '18cm',
+            borderCollapse: 'collapse',
+            tableLayout: colWidths.length === 4 ? 'fixed' : 'auto',
+            fontFamily: baseFont,
+            fontSize: '11pt',
+            margin: 0,
+          }}
+        >
+          {colWidths.length === 4 && (
+            <colgroup>
+              {colWidths.map((w, i) => <col key={i} style={{ width: `${w}px` }} />)}
+            </colgroup>
           )}
-        </tbody>
-      </table>
-    </div>
+          <thead>
+            <tr>
+              <ResizableTh index={0} canResize={canResize} onResize={handleColResizeStart} style={{ whiteSpace: 'nowrap', width: '1%' }}>
+                №
+              </ResizableTh>
+              <ResizableTh index={1} canResize={canResize} onResize={handleColResizeStart} colSpan={2}>
+                Participant organisation legal name &amp; <em style={{ fontWeight: 'bold' }}>English name</em>
+              </ResizableTh>
+              <ResizableTh index={3} canResize={canResize} onResize={handleColResizeStart} style={{ whiteSpace: 'nowrap', width: '1%' }}>
+                Type &amp; country
+              </ResizableTh>
+            </tr>
+          </thead>
+          <tbody>
+            {participants.map((p) => {
+              const legalName = p.organisation_name || '';
+              const englishName =
+                p.english_name && p.english_name.trim().toLowerCase() !== legalName.trim().toLowerCase()
+                  ? p.english_name
+                  : '';
+              const typeLabel = p.organisation_category
+                ? ORGANISATION_CATEGORY_LABELS[p.organisation_category as OrganisationCategory] || p.organisation_category
+                : '—';
+              const wpLed = wpByPart[p.id] || [];
+              const caseLed = caseByPart[p.id] || [];
+              const isCoord = p.participant_number === 1;
+
+              return (
+                <tr key={p.id}>
+                  <td style={{ verticalAlign: 'middle', whiteSpace: 'nowrap', width: '1%' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', alignItems: 'flex-start' }}>
+                      <ParticipantBubble
+                        number={p.participant_number}
+                        shortName={p.organisation_short_name || ''}
+                      />
+                      {(isCoord || wpLed.length > 0 || caseLed.length > 0) && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px' }}>
+                          {isCoord && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span style={{
+                                  display: 'inline-flex', alignItems: 'center',
+                                  padding: '0px 5px', borderRadius: 3,
+                                  backgroundColor: 'hsl(var(--primary))',
+                                  color: 'hsl(var(--primary-foreground))',
+                                  fontFamily: baseFont, fontSize: '9pt', fontWeight: 700, lineHeight: 1.2,
+                                }}>Coord</span>
+                              </TooltipTrigger>
+                              <TooltipContent>Project coordinator</TooltipContent>
+                            </Tooltip>
+                          )}
+                          {wpLed.map((wp) => (
+                            <Tooltip key={`wp-${wp.number}`}>
+                              <TooltipTrigger asChild>
+                                <span style={{
+                                  display: 'inline-flex', alignItems: 'center',
+                                  padding: '0px 5px', borderRadius: 9999,
+                                  backgroundColor: wp.color, color: '#fff',
+                                  fontFamily: baseFont, fontSize: '9pt', fontWeight: 700, lineHeight: 1.2,
+                                }}>WP{wp.number}</span>
+                              </TooltipTrigger>
+                              <TooltipContent>{wp.shortName ? `${wp.shortName} (Lead)` : `WP${wp.number} Lead`}</TooltipContent>
+                            </Tooltip>
+                          ))}
+                          {caseLed.map((c) => (
+                            <Tooltip key={`case-${c.number}`}>
+                              <TooltipTrigger asChild>
+                                <span style={{
+                                  display: 'inline-flex', alignItems: 'center',
+                                  padding: '0px 5px', borderRadius: 9999,
+                                  backgroundColor: '#fff', color: '#000',
+                                  border: '1.5px solid #000',
+                                  fontFamily: baseFont, fontSize: '9pt', fontWeight: 700, lineHeight: 1.2,
+                                }}>{c.prefix ? `${c.prefix}${c.number}` : (c.shortName || c.number)}</span>
+                              </TooltipTrigger>
+                              <TooltipContent>{c.shortName ? `${c.shortName} (Lead)` : `Lead`}</TooltipContent>
+                            </Tooltip>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                  <td style={{ verticalAlign: 'middle' }}>
+                    {legalName}
+                    {englishName ? (
+                      <>
+                        <br />
+                        <span style={{ fontStyle: 'italic' }}>{englishName}</span>
+                      </>
+                    ) : null}
+                  </td>
+                  <td style={{ verticalAlign: 'middle', textAlign: 'center', whiteSpace: 'nowrap', width: '1%' }}>
+                    <ParticipantLogo src={p.logo_url} />
+                  </td>
+                  <td style={{ verticalAlign: 'middle', whiteSpace: 'nowrap', width: '1%' }}>
+                    {typeLabel}
+                    <br />
+                    <span>{p.country || '—'}</span>
+                  </td>
+                </tr>
+              );
+            })}
+            {participants.length === 0 && (
+              <tr>
+                <td colSpan={4} style={{ fontStyle: 'italic', color: '#666' }}>
+                  No participants added yet. Add them in section A2.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </TooltipProvider>
+  );
+}
+
+function ResizableTh({
+  index, canResize, onResize, children, ...rest
+}: {
+  index: number;
+  canResize: boolean;
+  onResize: (i: number) => (e: React.MouseEvent) => void;
+  children: React.ReactNode;
+} & React.ThHTMLAttributes<HTMLTableCellElement>) {
+  return (
+    <th {...rest} style={{ position: 'relative', ...(rest.style || {}) }}>
+      {children}
+      {canResize && (
+        <span
+          onMouseDown={onResize(index)}
+          style={{
+            position: 'absolute',
+            top: 0,
+            right: -2,
+            width: 4,
+            height: '100%',
+            cursor: 'col-resize',
+            userSelect: 'none',
+            zIndex: 2,
+          }}
+        />
+      )}
+    </th>
   );
 }
