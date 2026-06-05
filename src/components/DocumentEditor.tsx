@@ -669,7 +669,10 @@ export function DocumentEditor({
     const citationType = editor.schema.nodes.citation;
     if (!citationType) return;
     const node = citationType.create({ citationNumber: stableCitationNumber });
-    const tr = editor.state.tr.replaceSelectionWith(node, false).scrollIntoView();
+    const tr = editor.state.tr
+      .replaceSelectionWith(node, false)
+      .setMeta('trackChangesInternal', true)
+      .scrollIntoView();
     editor.view.focus();
     editor.view.dispatch(tr);
     setContent(editor.getHTML());
