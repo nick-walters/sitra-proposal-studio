@@ -9,6 +9,7 @@ import { Sparkles, BookOpen, Route, History, Info, Image, Lock, Unlock, MessageS
 import { useState, useCallback, useEffect, useRef } from "react";
 import { FormattingToolbar, useRichTextEditor } from "./RichTextEditor";
 import { ProposalBanner } from "./ProposalBanner";
+import { B11ParticipantsTable } from "./B11ParticipantsTable";
 import {
   AlertDialog,
   AlertDialogAction,
