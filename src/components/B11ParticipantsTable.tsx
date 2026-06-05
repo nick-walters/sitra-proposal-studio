@@ -316,32 +316,7 @@ function ParticipantRowView({ p, isCoord, wpLed, caseLed, canResize, onResize }:
       : '';
   const typeCode = p.organisation_category ? String(p.organisation_category).toUpperCase() : '—';
 
-  const nameCellRef = useRef<HTMLTableCellElement>(null);
-  const [grouped, setGrouped] = useState(false);
-
-  // Detect whether the legal/english name column wraps to >2 lines when badges
-  // are rendered on a single line. If so, fall back to grouped (max 2 lines).
-  useLayoutEffect(() => {
-    const el = nameCellRef.current;
-    if (!el) return;
-    const measure = () => {
-      // Use a temp inline element to get accurate line height for current font.
-      const probe = document.createElement('span');
-      probe.style.visibility = 'hidden';
-      probe.style.position = 'absolute';
-      probe.textContent = 'M';
-      el.appendChild(probe);
-      const lineH = probe.getBoundingClientRect().height || 18;
-      el.removeChild(probe);
-      const maxAllowed = lineH * 2 + 2;
-      const overflow = el.scrollHeight > maxAllowed;
-      setGrouped((prev) => (prev !== overflow ? overflow : prev));
-    };
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [legalName, englishName, isCoord, wpLed.length, caseLed.length]);
+  // Badges all render on a single wrapping line; column width alone controls wrapping.
 
   const coordBadges = isCoord ? [
     <Tooltip key="coord">
