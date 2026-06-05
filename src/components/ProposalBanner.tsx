@@ -204,8 +204,7 @@ function EditableLine({ value, canEdit, onSave, style }: EditableLineProps) {
       }}
       title={canEdit ? 'Click to edit — press Enter to insert a line break' : undefined}
       style={{
-        // Auto-balance line lengths when wrapping; manual <br>s override.
-        textWrap: 'balance',
+        // Manual line breaks only; no auto-balancing across rows.
         whiteSpace: 'pre-line',
         outline: 'none',
         cursor: canEdit ? 'text' : 'default',
