@@ -324,6 +324,13 @@ export function DocumentEditor({
 
   const { content, setContent, loading, saving, lastSaved, lastCitationMapping, isPlaceholder, isDirty, saveError, clearPlaceholder, saveNow } = sectionContentHook;
 
+  // Global citation ordering across all Part B sections
+  const { displayMap: citationDisplayMap, sectionCitedNumbers } = useGlobalCitationOrder(
+    proposalId,
+    section?.id,
+    content,
+  );
+
   // Use isDirty from the hook directly instead of tracking separately
   const hasUnsavedChanges = isDirty;
 
