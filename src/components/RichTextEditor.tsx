@@ -834,6 +834,18 @@ export function FormattingToolbar({
           </Tooltip>
           <DropdownMenuContent align="start" className="w-64">
             <DropdownMenuItem onClick={() => {
+              const chain = editor.chain().focus();
+              if (editor.isActive('heading', { level: 1 })) chain.toggleHeading({ level: 1 });
+              else if (editor.isActive('heading', { level: 2 })) chain.toggleHeading({ level: 2 });
+              else if (editor.isActive('heading', { level: 3 })) chain.toggleHeading({ level: 3 });
+              if (editor.isActive('bold')) chain.toggleBold();
+              if (editor.isActive('underline')) chain.toggleUnderline();
+              chain.run();
+            }}>
+              <span className="text-sm">Body</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => {
               const cleanNum = sectionNumber ? sectionNumber.replace(/^[A-Za-z]+/, '') : '1.1';
               // Use a temporary placeholder number; renumber will fix it
               const placeholder = `${cleanNum}.0. `;
