@@ -193,7 +193,7 @@ export function B11ParticipantsTable({ proposalId }: Props) {
     canResize,
   });
 
-  const NUM_COLS = 5;
+  const NUM_COLS = 6;
 
   return (
     <TooltipProvider>
@@ -236,7 +236,10 @@ export function B11ParticipantsTable({ proposalId }: Props) {
                 Participant organisation legal name, <em style={{ fontWeight: 'bold' }}>English name</em> &amp; roles
               </ResizableTh>
               <ResizableTh index={4} canResize={canResize} onResize={handleColResizeStart} style={{ whiteSpace: 'nowrap', width: '1%', textAlign: 'left' }}>
-                Type &amp; country
+                Type
+              </ResizableTh>
+              <ResizableTh index={5} canResize={canResize} onResize={handleColResizeStart} style={{ whiteSpace: 'nowrap', width: '1%', textAlign: 'left' }}>
+                Country
               </ResizableTh>
             </tr>
           </thead>
@@ -270,44 +273,62 @@ export function B11ParticipantsTable({ proposalId }: Props) {
                     ) : null}
                   </td>
                   <td style={{ verticalAlign: 'middle', whiteSpace: 'nowrap', width: '1%' }}>
-                    {(isCoord || wpLed.length > 0 || caseLed.length > 0) && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'flex-start' }}>
-                        {isCoord && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span style={{ ...roleBadgeBase, backgroundColor: '#000', color: '#fff', border: '1.5px solid #000' }}>Coord</span>
-                            </TooltipTrigger>
-                            <TooltipContent>Project coordinator</TooltipContent>
-                          </Tooltip>
-                        )}
-                        {wpLed.map((wp) => (
-                          <Tooltip key={`wp-${wp.number}`}>
-                            <TooltipTrigger asChild>
-                              <span style={{ ...roleBadgeBase, backgroundColor: wp.color, color: '#fff' }}>WP{wp.number}</span>
-                            </TooltipTrigger>
-                            <TooltipContent>{wp.shortName ? `${wp.shortName} (Lead)` : `WP${wp.number} Lead`}</TooltipContent>
-                          </Tooltip>
-                        ))}
-                        {caseLed.map((c) => (
-                          <Tooltip key={`case-${c.number}`}>
-                            <TooltipTrigger asChild>
-                              <span style={{ ...roleBadgeBase, backgroundColor: '#fff', color: '#000', border: '1.5px solid #000' }}>
-                                {c.prefix ? `${c.prefix}${c.number}` : (c.shortName || c.number)}
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent>{c.shortName ? `${c.shortName} (Lead)` : `Lead`}</TooltipContent>
-                          </Tooltip>
-                        ))}
-                      </div>
-                    )}
+                    {(() => {
+                      const coordBadges = isCoord ? [
+                        <Tooltip key="coord">
+                          <TooltipTrigger asChild>
+                            <span style={{ ...roleBadgeBase, backgroundColor: '#000', color: '#fff', border: '1.5px solid #000' }}>Coord</span>
+                          </TooltipTrigger>
+                          <TooltipContent>Project coordinator</TooltipContent>
+                        </Tooltip>
+                      ] : [];
+                      const wpBadges = wpLed.map((wp) => (
+                        <Tooltip key={`wp-${wp.number}`}>
+                          <TooltipTrigger asChild>
+                            <span style={{ ...roleBadgeBase, backgroundColor: wp.color, color: '#fff' }}>WP{wp.number}</span>
+                          </TooltipTrigger>
+                          <TooltipContent>{wp.shortName ? `${wp.shortName} (Lead)` : `WP${wp.number} Lead`}</TooltipContent>
+                        </Tooltip>
+                      ));
+                      const caseBadges = caseLed.map((c) => (
+                        <Tooltip key={`case-${c.number}`}>
+                          <TooltipTrigger asChild>
+                            <span style={{ ...roleBadgeBase, backgroundColor: '#fff', color: '#000', border: '1.5px solid #000' }}>
+                              {c.prefix ? `${c.prefix}${c.number}` : (c.shortName || c.number)}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>{c.shortName ? `${c.shortName} (Lead)` : `Lead`}</TooltipContent>
+                        </Tooltip>
+                      ));
+                      const groups: React.ReactNode[][] = [];
+                      if (coordBadges.length) groups.push(coordBadges);
+                      if (wpBadges.length) groups.push(wpBadges);
+                      if (caseBadges.length) groups.push(caseBadges);
+                      // Collapse to max 2 lines by merging the last two groups
+                      while (groups.length > 2) {
+                        const last = groups.pop()!;
+                        groups[groups.length - 1] = [...groups[groups.length - 1], ...last];
+                      }
+                      if (groups.length === 0) return null;
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'flex-start' }}>
+                          {groups.map((line, i) => (
+                            <div key={i} style={{ display: 'flex', flexWrap: 'wrap', gap: '3px' }}>
+                              {line}
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
                   </td>
                   <td style={{ verticalAlign: 'middle', textAlign: 'center', whiteSpace: 'nowrap', width: '1%' }}>
                     <ParticipantLogo src={p.logo_url} />
                   </td>
                   <td style={{ verticalAlign: 'middle', whiteSpace: 'nowrap', width: '1%' }}>
                     {typeCode}
-                    <br />
-                    <span>{p.country || '—'}</span>
+                  </td>
+                  <td style={{ verticalAlign: 'middle', whiteSpace: 'nowrap', width: '1%' }}>
+                    {p.country || '—'}
                   </td>
                 </tr>
               );
