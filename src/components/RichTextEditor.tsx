@@ -1,5 +1,6 @@
 import { useEditor, EditorContent, Editor, Extension } from '@tiptap/react';
 import { Plugin, PluginKey, TextSelection } from '@tiptap/pm/state';
+import { Slice, Fragment } from '@tiptap/pm/model';
 import { HeadingExitOnEnter } from '@/extensions/HeadingExitOnEnter';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
@@ -239,6 +240,44 @@ function normalizePartBPastedAlignment(html: string) {
   });
 
   return div.innerHTML;
+}
+
+/**
+ * Strip textAlign attribute from pasted paragraph/heading nodes so they
+ * inherit the destination's default alignment (e.g. justified body text,
+ * centered captions). Cells inside tables and exempt caption classes keep
+ * their alignment.
+ */
+function stripPastedAlignment(slice: Slice): Slice {
+  const stripFragment = (fragment: Fragment, insideTable: boolean): Fragment => {
+    const children: any[] = [];
+    fragment.forEach((node) => {
+      let nextNode = node;
+      const isTable = node.type.name === 'table';
+      const isParaOrHeading = node.type.name === 'paragraph' || node.type.name === 'heading';
+      const className = (node.attrs as any)?.class as string | undefined;
+      const isExempt = !!className && className
+        .split(/\s+/)
+        .some((c) => PART_B_ALIGNMENT_EXEMPT_PARAGRAPH_CLASSES.has(c));
+
+      if (isParaOrHeading && !insideTable && !isExempt && (node.attrs as any)?.textAlign) {
+        nextNode = node.type.create(
+          { ...node.attrs, textAlign: null },
+          node.content,
+          node.marks,
+        );
+      }
+
+      if (nextNode.content && nextNode.content.size > 0) {
+        const newContent = stripFragment(nextNode.content, insideTable || isTable);
+        nextNode = nextNode.copy(newContent);
+      }
+      children.push(nextNode);
+    });
+    return Fragment.fromArray(children);
+  };
+
+  return new Slice(stripFragment(slice.content, false), slice.openStart, slice.openEnd);
 }
 
 /**
@@ -1350,6 +1389,9 @@ StarterKit.configure({
       transformPastedHTML(html) {
         return normalizePartBPastedAlignment(html);
       },
+      transformPasted(slice) {
+        return stripPastedAlignment(slice);
+      },
     },
   }, []);
 
@@ -1718,6 +1760,9 @@ StarterKit.configure({
       },
       transformPastedHTML(html) {
         return normalizePartBPastedAlignment(html);
+      },
+      transformPasted(slice) {
+        return stripPastedAlignment(slice);
       },
     },
   }, [instanceKey, isReady]);
