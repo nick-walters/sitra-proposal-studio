@@ -1,5 +1,6 @@
 import { useEditor, EditorContent, Editor, Extension } from '@tiptap/react';
 import { Plugin, PluginKey, TextSelection } from '@tiptap/pm/state';
+import { Slice, Fragment } from '@tiptap/pm/model';
 import { HeadingExitOnEnter } from '@/extensions/HeadingExitOnEnter';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
