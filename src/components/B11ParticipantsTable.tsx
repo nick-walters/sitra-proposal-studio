@@ -255,6 +255,8 @@ export function B11ParticipantsTable({ proposalId }: Props) {
                   isCoord={isCoord}
                   wpLed={wpLed}
                   caseLed={caseLed}
+                  canResize={canResize}
+                  onResize={handleColResizeStart}
                 />
               );
             })}
@@ -297,9 +299,11 @@ interface RowProps {
   isCoord: boolean;
   wpLed: { number: number; shortName: string | null; color: string }[];
   caseLed: { number: number; shortName: string | null; color: string; prefix: string }[];
+  canResize: boolean;
+  onResize: (i: number) => (e: React.MouseEvent) => void;
 }
 
-function ParticipantRowView({ p, isCoord, wpLed, caseLed }: RowProps) {
+function ParticipantRowView({ p, isCoord, wpLed, caseLed, canResize, onResize }: RowProps) {
   const legalName = p.organisation_name || '';
   const englishName =
     p.english_name && p.english_name.trim().toLowerCase() !== legalName.trim().toLowerCase()
@@ -378,13 +382,13 @@ function ParticipantRowView({ p, isCoord, wpLed, caseLed }: RowProps) {
 
   return (
     <tr>
-      <td style={{ verticalAlign: 'middle', whiteSpace: 'nowrap', width: '1%' }}>
+      <ResizableTd index={0} canResize={canResize} onResize={onResize} style={{ verticalAlign: 'middle', whiteSpace: 'nowrap', width: '1%' }}>
         <ParticipantBubble
           number={p.participant_number}
           shortName={p.organisation_short_name || ''}
         />
-      </td>
-      <td ref={nameCellRef} style={{ verticalAlign: 'middle' }}>
+      </ResizableTd>
+      <ResizableTd index={1} canResize={canResize} onResize={onResize} cellRef={nameCellRef} style={{ verticalAlign: 'middle' }}>
         {legalName}
         {englishName ? (
           <>
@@ -392,8 +396,11 @@ function ParticipantRowView({ p, isCoord, wpLed, caseLed }: RowProps) {
             <span style={{ fontStyle: 'italic' }}>{englishName}</span>
           </>
         ) : null}
-      </td>
-      <td style={{ verticalAlign: 'middle', whiteSpace: 'nowrap', width: '1%' }}>
+      </ResizableTd>
+      <ResizableTd index={2} canResize={canResize} onResize={onResize} style={{ verticalAlign: 'middle', textAlign: 'center', whiteSpace: 'nowrap', width: '1%' }}>
+        <ParticipantLogo src={p.logo_url} />
+      </ResizableTd>
+      <ResizableTd index={3} canResize={canResize} onResize={onResize} style={{ verticalAlign: 'middle', whiteSpace: 'nowrap', width: '1%' }}>
         {groups.length === 0 ? null : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'flex-start' }}>
             {groups.map((line, i) => (
@@ -403,16 +410,13 @@ function ParticipantRowView({ p, isCoord, wpLed, caseLed }: RowProps) {
             ))}
           </div>
         )}
-      </td>
-      <td style={{ verticalAlign: 'middle', textAlign: 'center', whiteSpace: 'nowrap', width: '1%' }}>
-        <ParticipantLogo src={p.logo_url} />
-      </td>
-      <td style={{ verticalAlign: 'middle', whiteSpace: 'nowrap', width: '1%' }}>
+      </ResizableTd>
+      <ResizableTd index={4} canResize={canResize} onResize={onResize} style={{ verticalAlign: 'middle', whiteSpace: 'nowrap', width: '1%' }}>
         {typeCode}
-      </td>
-      <td style={{ verticalAlign: 'middle', whiteSpace: 'nowrap', width: '1%' }}>
+      </ResizableTd>
+      <ResizableTd index={5} canResize={canResize} onResize={onResize} style={{ verticalAlign: 'middle', whiteSpace: 'nowrap', width: '1%' }}>
         {p.country || '—'}
-      </td>
+      </ResizableTd>
     </tr>
   );
 }
@@ -444,5 +448,36 @@ function ResizableTh({
         />
       )}
     </th>
+  );
+}
+
+function ResizableTd({
+  index, canResize, onResize, children, cellRef, ...rest
+}: {
+  index: number;
+  canResize: boolean;
+  onResize: (i: number) => (e: React.MouseEvent) => void;
+  children: React.ReactNode;
+  cellRef?: React.Ref<HTMLTableCellElement>;
+} & React.TdHTMLAttributes<HTMLTableCellElement>) {
+  return (
+    <td ref={cellRef} {...rest} style={{ position: 'relative', ...(rest.style || {}) }}>
+      {children}
+      {canResize && (
+        <span
+          onMouseDown={onResize(index)}
+          style={{
+            position: 'absolute',
+            top: 0,
+            right: -2,
+            width: 4,
+            height: '100%',
+            cursor: 'col-resize',
+            userSelect: 'none',
+            zIndex: 2,
+          }}
+        />
+      )}
+    </td>
   );
 }
