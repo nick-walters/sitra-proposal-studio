@@ -263,7 +263,7 @@ export async function buildPrintContainer(
     "background:#000;color:#fff;padding:1.5cm 1.5cm calc(1.5cm + 12pt) 1.5cm;" +
     "width:100%;box-sizing:border-box;margin-bottom:12pt;overflow:hidden;";
   banner.innerHTML = `
-    <img src="${SITRA_LOGO_BASE64}" alt="Sitra" style="float:right;height:1cm;width:auto;display:block;margin-left:1cm;margin-bottom:0.5cm;" />
+    <img src="${SITRA_LOGO_BASE64}" alt="Sitra" style="float:right;height:1cm;width:auto;display:block;margin-left:0.5cm;margin-bottom:0.25cm;" />
     ${topicLine ? `<div style="font-family:'Times New Roman',Times,serif;font-size:8pt;line-height:1;color:#fff;text-align:left;margin-top:0pt;margin-bottom:6pt;">${escapeHtml(topicLine)}</div>` : ''}
     <div style="font-family:'Arial Black',Arial,sans-serif;font-weight:900;font-size:16pt;line-height:1.2;color:#fff;text-align:left;">${escapeHtml(proposal.acronym || '')}</div>
     <div style="font-family:'Arial Black',Arial,sans-serif;font-weight:900;font-size:14pt;line-height:1.2;color:#fff;text-align:left;">${escapeHtml(proposal.title || '')}</div>
