@@ -231,7 +231,7 @@ export function B11ParticipantsTable({ proposalId }: Props) {
           <thead>
             <tr>
               <ResizableTh index={0} canResize={canResize} onResize={handleColResizeStart} colSpan={4} style={{ textAlign: 'left' }}>
-                Participant organisation №, short name, legal name, <em style={{ fontWeight: 'bold' }}>English name</em>, logo &amp; roles
+                Participant organisation №, short name, legal name, <em style={{ fontWeight: 'bold' }}>English name</em>, logo &amp; leadership roles
                 {canResize && colWidths.length === NUM_COLS && [0, 1, 2].map((boundaryIndex) => (
                   <ColumnResizeGrip
                     key={boundaryIndex}
