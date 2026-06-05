@@ -68,33 +68,37 @@ export async function resolveStorageUrl(storedValue: string | null | undefined):
 
 /**
  * Compute the initial/synchronous value for a stored path.
- * Returns the value directly for data URIs, blob URLs, and regular http URLs
- * that don't need signed-URL resolution. Returns null only when async resolution is needed.
+ * Returns the value directly for data URIs, blob URLs, regular http URLs,
+ * and cached signed URLs that don't need fresh async resolution.
  */
 function getInitialUrl(storedValue: string | null | undefined): string | null {
   if (!storedValue) return null;
   if (!isStoragePath(storedValue)) return storedValue;
-  return null; // needs async resolution
+  const path = extractStoragePath(storedValue);
+  if (!path) return storedValue;
+  return getCachedUrl(path); // null if not cached, triggers async fetch
 }
 
 /**
  * Hook that resolves a storage file path or expired signed URL to a fresh signed URL.
- * Pass a logoUrl/path value; returns a displayable URL.
- * For data URIs, blob URLs, and regular http URLs the value is returned synchronously
- * on the very first render (no flash of null).
+ * Uses a module-level cache so the same logo path resolves instantly across renders/components
+ * once it has been fetched once (signed URLs cached for 50 min).
  */
 export function useStorageUrl(storedValue: string | null | undefined): string | null {
   const [resolvedUrl, setResolvedUrl] = useState<string | null>(() => getInitialUrl(storedValue));
 
   useEffect(() => {
-    // Re-sync for value changes that can be resolved synchronously
-    const syncValue = getInitialUrl(storedValue);
-    if (syncValue !== null || !storedValue) {
-      setResolvedUrl(syncValue);
+    if (!storedValue) {
+      setResolvedUrl(null);
       return;
     }
 
-    // Async path: need a signed URL
+    const initial = getInitialUrl(storedValue);
+    if (initial !== null) {
+      setResolvedUrl(initial);
+      return;
+    }
+
     const path = extractStoragePath(storedValue);
     if (!path) {
       setResolvedUrl(storedValue);
@@ -102,11 +106,8 @@ export function useStorageUrl(storedValue: string | null | undefined): string | 
     }
 
     let cancelled = false;
-
-    getProposalFileSignedUrl(path, 3600).then(({ url }) => {
-      if (!cancelled) {
-        setResolvedUrl(url || storedValue);
-      }
+    fetchSignedUrl(path).then((url) => {
+      if (!cancelled) setResolvedUrl(url || storedValue);
     });
 
     return () => { cancelled = true; };
