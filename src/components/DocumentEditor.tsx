@@ -1889,6 +1889,7 @@ export function DocumentEditor({
         isLoadingReferences={isLoadingReferences}
         nextCitationNumber={getNextCitationNumber()}
         onUpdateReference={updateReference}
+        citationDisplayOrder={citationDisplayMap}
       />
       <InsertFigureDialog
         isOpen={isFigureDialogOpen}
