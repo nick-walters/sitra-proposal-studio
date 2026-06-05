@@ -9,6 +9,7 @@ import { Sparkles, BookOpen, Route, History, Info, Image, Lock, Unlock, MessageS
 import { useState, useCallback, useEffect, useRef } from "react";
 import { FormattingToolbar, useRichTextEditor } from "./RichTextEditor";
 import { ProposalBanner } from "./ProposalBanner";
+import { B11ParticipantsTable } from "./B11ParticipantsTable";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -1411,6 +1412,11 @@ export function DocumentEditor({
                     proposalType={proposalType}
                   />
                 </div>
+              )}
+
+              {/* Participants list — only on B1.1, mirrors A2, read-only */}
+              {section.number === 'B1.1' && (
+                <B11ParticipantsTable proposalId={proposalId} />
               )}
 
               {/* Page Header - hidden on B1.1 (banner takes its place) */}
