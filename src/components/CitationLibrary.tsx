@@ -41,17 +41,27 @@ export function CitationLibrary({
   });
 
   const filteredReferences = useMemo(() => {
-    if (!searchQuery.trim()) return references;
-    
-    const query = searchQuery.toLowerCase();
-    return references.filter(ref => 
-      ref.title.toLowerCase().includes(query) ||
-      ref.authors?.some(a => a.toLowerCase().includes(query)) ||
-      ref.journal?.toLowerCase().includes(query) ||
-      ref.doi?.toLowerCase().includes(query) ||
-      ref.year?.toString().includes(query)
-    );
-  }, [references, searchQuery]);
+    const base = !searchQuery.trim()
+      ? references
+      : references.filter(ref =>
+          ref.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          ref.authors?.some(a => a.toLowerCase().includes(searchQuery.toLowerCase())) ||
+          ref.journal?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          ref.doi?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          ref.year?.toString().includes(searchQuery)
+        );
+    if (!displayOrder || displayOrder.size === 0) return base;
+    // Sort by global display order; uncited references (no display number)
+    // sit at the end in their original order.
+    return [...base].sort((a, b) => {
+      const ax = displayOrder.get(a.citation_number);
+      const bx = displayOrder.get(b.citation_number);
+      if (ax != null && bx != null) return ax - bx;
+      if (ax != null) return -1;
+      if (bx != null) return 1;
+      return 0;
+    });
+  }, [references, searchQuery, displayOrder]);
 
   const startEditing = (ref: ProposalReference, e: React.MouseEvent) => {
     e.stopPropagation();
