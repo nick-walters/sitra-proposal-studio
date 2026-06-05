@@ -63,6 +63,7 @@ export const ALLOWED_DATA_ATTRS = new Set<string>([
   'data-author-name',
   'data-author-color',
   'data-timestamp',
+  'data-citation',
 ]);
 
 export const STYLE_ALLOWLIST = new Set<string>([
