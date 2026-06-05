@@ -12,7 +12,8 @@ export const CitationNode = Node.create({
   group: 'inline',
   inline: true,
   atom: true,
-  selectable: true,
+  selectable: false,
+  isolating: true,
   priority: 1200,
 
   addAttributes() {
@@ -49,6 +50,38 @@ export const CitationNode = Node.create({
   renderHTML({ HTMLAttributes }) {
     const n = HTMLAttributes.citationNumber ?? HTMLAttributes['data-citation'] ?? '';
     return ['sup', mergeAttributes(HTMLAttributes), String(n)];
+  },
+
+  addNodeView() {
+    return ({ node }) => {
+      const dom = document.createElement('sup');
+
+      const render = () => {
+        const n = node.attrs.citationNumber;
+        const value = n != null ? String(n) : '';
+        dom.setAttribute('data-citation', value);
+        dom.setAttribute('contenteditable', 'false');
+        dom.textContent = value;
+      };
+
+      render();
+
+      return {
+        dom,
+        update(updatedNode) {
+          if (updatedNode.type.name !== 'citation') return false;
+          node = updatedNode;
+          render();
+          return true;
+        },
+        ignoreMutation() {
+          return true;
+        },
+        stopEvent(event) {
+          return event.type === 'beforeinput' || event.type === 'input';
+        },
+      };
+    };
   },
 });
 
