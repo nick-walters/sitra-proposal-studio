@@ -71,15 +71,17 @@ export function renumberTableCaptions(content: string, sectionNumber: string): s
  * @returns Object containing updated content and a mapping of old to new numbers
  */
 export function renumberCitations(content: string): { content: string; mapping: Map<number, number> } {
-  // Find all citations and their positions
-  const citationPattern = /<sup>\[(\d+)\]<\/sup>/gi;
-  const citations: { fullMatch: string; number: number; index: number }[] = [];
+  // Citation numbers are now ordered globally at render time. Keep the stable
+  // internal citation id intact, especially data-citation on <sup> elements.
+  const citationPattern = /<sup\b([^>]*)>\s*\[\s*(\d+)\s*\]\s*<\/sup>/gi;
+  const citations: { fullMatch: string; attrs: string; number: number; index: number }[] = [];
   
   let match;
   while ((match = citationPattern.exec(content)) !== null) {
     citations.push({
       fullMatch: match[0],
-      number: parseInt(match[1], 10),
+      attrs: match[1] || '',
+      number: parseInt(match[2], 10),
       index: match.index
     });
   }
@@ -101,10 +103,10 @@ export function renumberCitations(content: string): { content: string; mapping: 
   }
   
   // Replace all citations with their new numbers
-  const updatedContent = content.replace(citationPattern, (match, oldNum) => {
+  const updatedContent = content.replace(citationPattern, (_match, attrs, oldNum) => {
     const oldNumber = parseInt(oldNum, 10);
     const newNumber = mapping.get(oldNumber) ?? oldNumber;
-    return `<sup>[${newNumber}]</sup>`;
+    return `<sup${attrs || ''}>[${newNumber}]</sup>`;
   });
   
   return { content: updatedContent, mapping };
