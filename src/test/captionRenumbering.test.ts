@@ -71,6 +71,12 @@ describe('renumberCitations', () => {
     expect(result.mapping.get(5)).toBe(1);
     expect(result.mapping.get(2)).toBe(2);
   });
+
+  it('preserves citation attributes when normalising bracketed legacy citations', () => {
+    const content = 'Text<sup data-citation="12">[5]</sup>';
+    const result = renumberCitations(content);
+    expect(result.content).toBe('Text<sup data-citation="12">[1]</sup>');
+  });
 });
 
 describe('renumberFootnotes', () => {
