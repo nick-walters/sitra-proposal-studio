@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 
 /**
  * Hook for draggable column resizing in tables with persistence.
@@ -51,7 +52,7 @@ export function useColumnResize(options: {
       .upsert({
         proposal_id: proposalId,
         table_key: tableKey,
-        column_widths: widths as any,
+        column_widths: widths as Json,
         updated_at: new Date().toISOString(),
         updated_by: user?.id || null,
       }, { onConflict: 'proposal_id,table_key' });
