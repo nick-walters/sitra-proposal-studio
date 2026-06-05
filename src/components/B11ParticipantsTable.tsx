@@ -247,9 +247,7 @@ export function B11ParticipantsTable({ proposalId }: Props) {
                 p.english_name && p.english_name.trim().toLowerCase() !== legalName.trim().toLowerCase()
                   ? p.english_name
                   : '';
-              const typeLabel = p.organisation_category
-                ? ORGANISATION_CATEGORY_LABELS[p.organisation_category as OrganisationCategory] || p.organisation_category
-                : '—';
+              const typeCode = p.organisation_category ? String(p.organisation_category).toUpperCase() : '—';
               const wpLed = wpByPart[p.id] || [];
               const caseLed = caseByPart[p.id] || [];
               const isCoord = p.participant_number === 1;
@@ -307,7 +305,7 @@ export function B11ParticipantsTable({ proposalId }: Props) {
                     <ParticipantLogo src={p.logo_url} />
                   </td>
                   <td style={{ verticalAlign: 'middle', whiteSpace: 'nowrap', width: '1%' }}>
-                    {typeLabel}
+                    {typeCode}
                     <br />
                     <span>{p.country || '—'}</span>
                   </td>
@@ -321,6 +319,26 @@ export function B11ParticipantsTable({ proposalId }: Props) {
                 </td>
               </tr>
             )}
+            {participants.length > 0 && (() => {
+              const present = new Set(
+                participants
+                  .map(p => p.organisation_category ? String(p.organisation_category).toUpperCase() : null)
+                  .filter((c): c is string => !!c && c in ORGANISATION_CATEGORY_LABELS)
+              );
+              const legend = (Object.keys(ORGANISATION_CATEGORY_LABELS) as OrganisationCategory[])
+                .filter(code => present.has(code))
+                .map(code => `${code}: ${ORGANISATION_CATEGORY_LABELS[code]}`)
+                .join('; ');
+              if (!legend) return null;
+              return (
+                <tr>
+                  <td colSpan={NUM_COLS} style={{ fontStyle: 'italic', fontSize: '10pt', borderBottom: 'none', paddingTop: '4px' }}>
+                    {legend}
+                  </td>
+                </tr>
+              );
+            })()}
+
           </tbody>
         </table>
       </div>
