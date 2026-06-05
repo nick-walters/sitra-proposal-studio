@@ -305,7 +305,7 @@ export function B11ParticipantsTable({ proposalId }: Props) {
                     <ParticipantLogo src={p.logo_url} />
                   </td>
                   <td style={{ verticalAlign: 'middle', whiteSpace: 'nowrap', width: '1%' }}>
-                    {typeLabel}
+                    {typeCode}
                     <br />
                     <span>{p.country || '—'}</span>
                   </td>
