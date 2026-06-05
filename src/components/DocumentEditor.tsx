@@ -44,6 +44,7 @@ import { renumberFootnotes } from "@/lib/captionRenumbering";
 import { syncCrossReferences } from "@/lib/syncCrossReferences";
 import { renumberCaptionsInEditor } from "@/lib/renumberCaptionsInEditor";
 import { useProposalReferences } from "@/hooks/useProposalReferences";
+import { useGlobalCitationOrder } from "@/hooks/useGlobalCitationOrder";
 import { FootnoteCitation } from "@/components/FootnoteCitation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
