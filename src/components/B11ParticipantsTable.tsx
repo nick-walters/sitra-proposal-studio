@@ -378,13 +378,13 @@ function ParticipantRowView({ p, isCoord, wpLed, caseLed }: RowProps) {
 
   return (
     <tr>
-      <td style={{ verticalAlign: 'middle', whiteSpace: 'nowrap', width: '1%' }}>
+      <ResizableTd index={0} style={{ verticalAlign: 'middle', whiteSpace: 'nowrap', width: '1%' }}>
         <ParticipantBubble
           number={p.participant_number}
           shortName={p.organisation_short_name || ''}
         />
-      </td>
-      <td ref={nameCellRef} style={{ verticalAlign: 'middle' }}>
+      </ResizableTd>
+      <ResizableTd index={1} cellRef={nameCellRef} style={{ verticalAlign: 'middle' }}>
         {legalName}
         {englishName ? (
           <>
@@ -392,8 +392,11 @@ function ParticipantRowView({ p, isCoord, wpLed, caseLed }: RowProps) {
             <span style={{ fontStyle: 'italic' }}>{englishName}</span>
           </>
         ) : null}
-      </td>
-      <td style={{ verticalAlign: 'middle', whiteSpace: 'nowrap', width: '1%' }}>
+      </ResizableTd>
+      <ResizableTd index={2} style={{ verticalAlign: 'middle', textAlign: 'center', whiteSpace: 'nowrap', width: '1%' }}>
+        <ParticipantLogo src={p.logo_url} />
+      </ResizableTd>
+      <ResizableTd index={3} style={{ verticalAlign: 'middle', whiteSpace: 'nowrap', width: '1%' }}>
         {groups.length === 0 ? null : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'flex-start' }}>
             {groups.map((line, i) => (
@@ -403,16 +406,13 @@ function ParticipantRowView({ p, isCoord, wpLed, caseLed }: RowProps) {
             ))}
           </div>
         )}
-      </td>
-      <td style={{ verticalAlign: 'middle', textAlign: 'center', whiteSpace: 'nowrap', width: '1%' }}>
-        <ParticipantLogo src={p.logo_url} />
-      </td>
-      <td style={{ verticalAlign: 'middle', whiteSpace: 'nowrap', width: '1%' }}>
+      </ResizableTd>
+      <ResizableTd index={4} style={{ verticalAlign: 'middle', whiteSpace: 'nowrap', width: '1%' }}>
         {typeCode}
-      </td>
-      <td style={{ verticalAlign: 'middle', whiteSpace: 'nowrap', width: '1%' }}>
+      </ResizableTd>
+      <ResizableTd index={5} style={{ verticalAlign: 'middle', whiteSpace: 'nowrap', width: '1%' }}>
         {p.country || '—'}
-      </td>
+      </ResizableTd>
     </tr>
   );
 }
