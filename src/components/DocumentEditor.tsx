@@ -44,6 +44,7 @@ import { renumberFootnotes } from "@/lib/captionRenumbering";
 import { syncCrossReferences } from "@/lib/syncCrossReferences";
 import { renumberCaptionsInEditor } from "@/lib/renumberCaptionsInEditor";
 import { useProposalReferences } from "@/hooks/useProposalReferences";
+import { FootnoteCitation } from "@/components/FootnoteCitation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -597,7 +598,7 @@ export function DocumentEditor({
     if (!editor) return;
     
     // Insert superscript citation at cursor position
-    editor.chain().focus().insertContent(`<span style="vertical-align: super; font-size: 0.75em; line-height: 0;">${citationNumber}</span>`).run();
+    editor.chain().focus().insertContent(`<sup>${citationNumber}</sup>`).run();
     
     // Check if this reference already exists in the proposal
     const existingRef = findExistingReference(reference);
@@ -1496,12 +1497,18 @@ export function DocumentEditor({
               {/* Footnotes */}
               {footnotes.length > 0 && (
                 <div className="mt-8 pt-4 border-t border-border">
-                  <div className="space-y-1">
+                  <div>
                     {footnotes.map((fn) => {
-                      // Build sanitized citation HTML
+                      // Build sanitized citation HTML — convert **bold** BEFORE *italic*
+                      // so the volume number renders as bold instead of leaving stray asterisks
                       let citationHtml = DOMPurify.sanitize(
-                        `<sup>${fn.number}</sup> ${fn.citation.replace(/\*([^*]+)\*/g, '<em>$1</em>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')}`,
-                        { ALLOWED_TAGS: ['em', 'strong', 'sup', 'span'], ALLOWED_ATTR: ['style'] }
+                        `<sup>${fn.number}</sup> ${fn.citation
+                          .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+                          .replace(/\*([^*]+)\*/g, '<em>$1</em>')}`,
+                        {
+                          ALLOWED_TAGS: ['em', 'strong', 'sup', 'span'],
+                          ALLOWED_ATTR: ['style', 'data-cite-title'],
+                        }
                       );
                       // Replace acronym occurrences with colored version
                       if (proposalAcronym && acronymSegments && acronymSegments.length > 0) {
@@ -1515,14 +1522,10 @@ export function DocumentEditor({
                         // Re-sanitize after acronym replacement to prevent XSS from DB-sourced segments
                         citationHtml = DOMPurify.sanitize(citationHtml, {
                           ALLOWED_TAGS: ['em', 'strong', 'sup', 'span'],
-                          ALLOWED_ATTR: ['style'],
+                          ALLOWED_ATTR: ['style', 'data-cite-title'],
                         });
                       }
-                      return (
-                        <p key={fn.number} className="text-[8pt] text-muted-foreground" 
-                         dangerouslySetInnerHTML={{ __html: citationHtml }} 
-                        />
-                      );
+                      return <FootnoteCitation key={fn.number} html={citationHtml} />;
                     })}
                   </div>
                 </div>

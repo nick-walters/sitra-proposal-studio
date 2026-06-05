@@ -4,6 +4,7 @@ import { Slice, Fragment } from '@tiptap/pm/model';
 import { HeadingExitOnEnter } from '@/extensions/HeadingExitOnEnter';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
+import Superscript from '@tiptap/extension-superscript';
 import TextAlign from '@tiptap/extension-text-align';
 import Link from '@tiptap/extension-link';
 import Typography from '@tiptap/extension-typography';
@@ -1282,6 +1283,7 @@ StarterKit.configure({
       OrderedListStyled,
       Typography,
       Underline,
+      Superscript,
       TextStyle,
       Color,
       ParagraphClass,
@@ -1500,6 +1502,7 @@ StarterKit.configure({
       OrderedListStyled,
       Typography,
       Underline,
+      Superscript,
       TextStyle,
       Color,
       ParagraphClass,
