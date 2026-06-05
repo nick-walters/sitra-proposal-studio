@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 
 /**
  * Hook for draggable column resizing in tables with persistence.
@@ -10,8 +11,10 @@ export function useColumnResize(options: {
   proposalId?: string;
   tableKey: string;
   canResize?: boolean;
+  resizeMode?: 'single' | 'adjacent';
+  minWidth?: number;
 } = { tableKey: 'default' }) {
-  const { proposalId, tableKey, canResize = false } = options;
+  const { proposalId, tableKey, canResize = false, resizeMode = 'single', minWidth = 40 } = options;
   const [colWidths, setColWidths] = useState<number[]>([]);
   const [loaded, setLoaded] = useState(false);
   const tableRef = useRef<HTMLTableElement>(null);
@@ -49,7 +52,7 @@ export function useColumnResize(options: {
       .upsert({
         proposal_id: proposalId,
         table_key: tableKey,
-        column_widths: widths as any,
+        column_widths: widths as Json,
         updated_at: new Date().toISOString(),
         updated_by: user?.id || null,
       }, { onConflict: 'proposal_id,table_key' });
@@ -71,7 +74,11 @@ export function useColumnResize(options: {
       const headerCells = table.querySelectorAll('thead th');
       return Array.from(headerCells).map(cell => (cell as HTMLElement).offsetWidth);
     };
-    const currentWidths = colWidths.length > 0 ? [...colWidths] : measureFromDom();
+    const measuredWidths = measureFromDom();
+    const hasUsableSavedWidths = colWidths.length > 0
+      && (measuredWidths.length === 0 || colWidths.length === measuredWidths.length)
+      && colWidths.every((w) => Number.isFinite(w));
+    const currentWidths = hasUsableSavedWidths ? [...colWidths] : measuredWidths;
     if (currentWidths[index] === undefined || Number.isNaN(currentWidths[index])) return;
     resizingRef.current = { index, startX: e.clientX, startWidths: currentWidths };
 
@@ -80,10 +87,21 @@ export function useColumnResize(options: {
       const { index: colIdx, startX, startWidths } = resizingRef.current;
       const delta = ev.clientX - startX;
       const newWidths = [...startWidths];
-      const proposed = Math.max(40, startWidths[colIdx] + delta);
-      const containerWidth = tableRef.current?.parentElement?.clientWidth ?? Infinity;
-      const otherWidths = newWidths.reduce((sum, w, i) => i === colIdx ? sum : sum + w, 0);
-      newWidths[colIdx] = Math.min(proposed, Math.max(40, containerWidth - otherWidths));
+
+      if (resizeMode === 'adjacent' && startWidths.length > 1) {
+        const pairedIdx = colIdx < startWidths.length - 1 ? colIdx + 1 : colIdx - 1;
+        const minDelta = minWidth - startWidths[colIdx];
+        const maxDelta = startWidths[pairedIdx] - minWidth;
+        const clampedDelta = Math.min(Math.max(delta, minDelta), maxDelta);
+        newWidths[colIdx] = startWidths[colIdx] + clampedDelta;
+        newWidths[pairedIdx] = startWidths[pairedIdx] - clampedDelta;
+      } else {
+        const proposed = Math.max(minWidth, startWidths[colIdx] + delta);
+        const containerWidth = tableRef.current?.parentElement?.clientWidth ?? Infinity;
+        const otherWidths = newWidths.reduce((sum, w, i) => i === colIdx ? sum : sum + w, 0);
+        newWidths[colIdx] = Math.min(proposed, Math.max(minWidth, containerWidth - otherWidths));
+      }
+
       setColWidths(newWidths);
     };
 
@@ -100,7 +118,7 @@ export function useColumnResize(options: {
 
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
-  }, [colWidths, canResize, saveWidths]);
+  }, [colWidths, canResize, saveWidths, resizeMode, minWidth]);
 
   return { colWidths, setColWidths, tableRef, handleColResizeStart, saveWidths, loaded };
 }
