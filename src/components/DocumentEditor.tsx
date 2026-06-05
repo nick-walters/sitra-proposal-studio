@@ -598,7 +598,7 @@ export function DocumentEditor({
     if (!editor) return;
     
     // Insert superscript citation at cursor position
-    editor.chain().focus().insertContent(`<sup>${citationNumber}</sup>`).run();
+    editor.chain().focus().insertContent(`<sup data-citation="${citationNumber}">${citationNumber}</sup>`).run();
     
     // Check if this reference already exists in the proposal
     const existingRef = findExistingReference(reference);
