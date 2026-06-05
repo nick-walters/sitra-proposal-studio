@@ -1761,6 +1761,9 @@ StarterKit.configure({
       transformPastedHTML(html) {
         return normalizePartBPastedAlignment(html);
       },
+      transformPasted(slice) {
+        return stripPastedAlignment(slice);
+      },
     },
   }, [instanceKey, isReady]);
 
