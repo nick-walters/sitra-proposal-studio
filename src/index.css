@@ -626,6 +626,17 @@ html, body {
 }
 
 
+/* Tables that should have first-column content flush with the page margin */
+.ProseMirror table.first-col-flush th:first-child,
+.ProseMirror table.first-col-flush td:first-child,
+table.first-col-flush th:first-child,
+table.first-col-flush td:first-child {
+  padding-left: 0 !important;
+}
+/* B3.1.f matrix uses border-spacing; shift left so first col is flush */
+table.b31-effort-matrix.first-col-flush {
+  margin-left: -5pt;
+}
 
 
 /* Inline reference bubbles (Task, Deliverable, Milestone) */

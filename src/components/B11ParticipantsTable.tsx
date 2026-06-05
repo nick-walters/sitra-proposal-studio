@@ -90,6 +90,18 @@ function ParticipantBubble({ number, shortName }: { number: number | null; short
   );
 }
 
+const roleBadgeBase: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  padding: '0px 5px',
+  borderRadius: 9999,
+  fontFamily: baseFont,
+  fontSize: '9pt',
+  fontWeight: 700,
+  lineHeight: 1.2,
+  whiteSpace: 'nowrap',
+};
+
 export function B11ParticipantsTable({ proposalId }: Props) {
   const queryClient = useQueryClient();
   const { roleTier } = useProposalRole(proposalId);
@@ -138,7 +150,6 @@ export function B11ParticipantsTable({ proposalId }: Props) {
     },
   });
 
-  // Realtime
   useEffect(() => {
     const channel = supabase
       .channel(`b11-participants-${proposalId}`)
@@ -182,6 +193,8 @@ export function B11ParticipantsTable({ proposalId }: Props) {
     canResize,
   });
 
+  const NUM_COLS = 5;
+
   return (
     <TooltipProvider>
       <div
@@ -193,34 +206,36 @@ export function B11ParticipantsTable({ proposalId }: Props) {
           fontSize: '11pt',
           color: '#000',
           margin: '6pt 0 6pt 0',
+          paddingBottom: '6pt',
         }}
       >
         <table
           ref={tableRef}
+          className="first-col-flush"
           style={{
             width: '100%',
             maxWidth: '18cm',
             borderCollapse: 'collapse',
-            tableLayout: colWidths.length === 4 ? 'fixed' : 'auto',
+            tableLayout: colWidths.length === NUM_COLS ? 'fixed' : 'auto',
             fontFamily: baseFont,
             fontSize: '11pt',
             margin: 0,
           }}
         >
-          {colWidths.length === 4 && (
+          {colWidths.length === NUM_COLS && (
             <colgroup>
               {colWidths.map((w, i) => <col key={i} style={{ width: `${w}px` }} />)}
             </colgroup>
           )}
           <thead>
             <tr>
-              <ResizableTh index={0} canResize={canResize} onResize={handleColResizeStart} style={{ whiteSpace: 'nowrap', width: '1%' }}>
+              <ResizableTh index={0} canResize={canResize} onResize={handleColResizeStart} style={{ whiteSpace: 'nowrap', width: '1%', textAlign: 'left' }}>
                 №
               </ResizableTh>
-              <ResizableTh index={1} canResize={canResize} onResize={handleColResizeStart} colSpan={2}>
-                Participant organisation legal name &amp; <em style={{ fontWeight: 'bold' }}>English name</em>
+              <ResizableTh index={1} canResize={canResize} onResize={handleColResizeStart} colSpan={3} style={{ textAlign: 'left' }}>
+                Participant organisation legal name, <em style={{ fontWeight: 'bold' }}>English name</em> &amp; roles
               </ResizableTh>
-              <ResizableTh index={3} canResize={canResize} onResize={handleColResizeStart} style={{ whiteSpace: 'nowrap', width: '1%' }}>
+              <ResizableTh index={4} canResize={canResize} onResize={handleColResizeStart} style={{ whiteSpace: 'nowrap', width: '1%', textAlign: 'left' }}>
                 Type &amp; country
               </ResizableTh>
             </tr>
@@ -242,57 +257,10 @@ export function B11ParticipantsTable({ proposalId }: Props) {
               return (
                 <tr key={p.id}>
                   <td style={{ verticalAlign: 'middle', whiteSpace: 'nowrap', width: '1%' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', alignItems: 'flex-start' }}>
-                      <ParticipantBubble
-                        number={p.participant_number}
-                        shortName={p.organisation_short_name || ''}
-                      />
-                      {(isCoord || wpLed.length > 0 || caseLed.length > 0) && (
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px' }}>
-                          {isCoord && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span style={{
-                                  display: 'inline-flex', alignItems: 'center',
-                                  padding: '0px 5px', borderRadius: 3,
-                                  backgroundColor: 'hsl(var(--primary))',
-                                  color: 'hsl(var(--primary-foreground))',
-                                  fontFamily: baseFont, fontSize: '9pt', fontWeight: 700, lineHeight: 1.2,
-                                }}>Coord</span>
-                              </TooltipTrigger>
-                              <TooltipContent>Project coordinator</TooltipContent>
-                            </Tooltip>
-                          )}
-                          {wpLed.map((wp) => (
-                            <Tooltip key={`wp-${wp.number}`}>
-                              <TooltipTrigger asChild>
-                                <span style={{
-                                  display: 'inline-flex', alignItems: 'center',
-                                  padding: '0px 5px', borderRadius: 9999,
-                                  backgroundColor: wp.color, color: '#fff',
-                                  fontFamily: baseFont, fontSize: '9pt', fontWeight: 700, lineHeight: 1.2,
-                                }}>WP{wp.number}</span>
-                              </TooltipTrigger>
-                              <TooltipContent>{wp.shortName ? `${wp.shortName} (Lead)` : `WP${wp.number} Lead`}</TooltipContent>
-                            </Tooltip>
-                          ))}
-                          {caseLed.map((c) => (
-                            <Tooltip key={`case-${c.number}`}>
-                              <TooltipTrigger asChild>
-                                <span style={{
-                                  display: 'inline-flex', alignItems: 'center',
-                                  padding: '0px 5px', borderRadius: 9999,
-                                  backgroundColor: '#fff', color: '#000',
-                                  border: '1.5px solid #000',
-                                  fontFamily: baseFont, fontSize: '9pt', fontWeight: 700, lineHeight: 1.2,
-                                }}>{c.prefix ? `${c.prefix}${c.number}` : (c.shortName || c.number)}</span>
-                              </TooltipTrigger>
-                              <TooltipContent>{c.shortName ? `${c.shortName} (Lead)` : `Lead`}</TooltipContent>
-                            </Tooltip>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                    <ParticipantBubble
+                      number={p.participant_number}
+                      shortName={p.organisation_short_name || ''}
+                    />
                   </td>
                   <td style={{ verticalAlign: 'middle' }}>
                     {legalName}
@@ -302,6 +270,38 @@ export function B11ParticipantsTable({ proposalId }: Props) {
                         <span style={{ fontStyle: 'italic' }}>{englishName}</span>
                       </>
                     ) : null}
+                  </td>
+                  <td style={{ verticalAlign: 'middle', whiteSpace: 'nowrap', width: '1%' }}>
+                    {(isCoord || wpLed.length > 0 || caseLed.length > 0) && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'flex-start' }}>
+                        {isCoord && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span style={{ ...roleBadgeBase, backgroundColor: '#000', color: '#fff', border: '1.5px solid #000' }}>Coord</span>
+                            </TooltipTrigger>
+                            <TooltipContent>Project coordinator</TooltipContent>
+                          </Tooltip>
+                        )}
+                        {wpLed.map((wp) => (
+                          <Tooltip key={`wp-${wp.number}`}>
+                            <TooltipTrigger asChild>
+                              <span style={{ ...roleBadgeBase, backgroundColor: wp.color, color: '#fff' }}>WP{wp.number}</span>
+                            </TooltipTrigger>
+                            <TooltipContent>{wp.shortName ? `${wp.shortName} (Lead)` : `WP${wp.number} Lead`}</TooltipContent>
+                          </Tooltip>
+                        ))}
+                        {caseLed.map((c) => (
+                          <Tooltip key={`case-${c.number}`}>
+                            <TooltipTrigger asChild>
+                              <span style={{ ...roleBadgeBase, backgroundColor: '#fff', color: '#000', border: '1.5px solid #000' }}>
+                                {c.prefix ? `${c.prefix}${c.number}` : (c.shortName || c.number)}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>{c.shortName ? `${c.shortName} (Lead)` : `Lead`}</TooltipContent>
+                          </Tooltip>
+                        ))}
+                      </div>
+                    )}
                   </td>
                   <td style={{ verticalAlign: 'middle', textAlign: 'center', whiteSpace: 'nowrap', width: '1%' }}>
                     <ParticipantLogo src={p.logo_url} />
@@ -316,7 +316,7 @@ export function B11ParticipantsTable({ proposalId }: Props) {
             })}
             {participants.length === 0 && (
               <tr>
-                <td colSpan={4} style={{ fontStyle: 'italic', color: '#666' }}>
+                <td colSpan={NUM_COLS} style={{ fontStyle: 'italic', color: '#666' }}>
                   No participants added yet. Add them in section A2.
                 </td>
               </tr>
@@ -337,7 +337,7 @@ function ResizableTh({
   children: React.ReactNode;
 } & React.ThHTMLAttributes<HTMLTableCellElement>) {
   return (
-    <th {...rest} style={{ position: 'relative', ...(rest.style || {}) }}>
+    <th {...rest} style={{ position: 'relative', textAlign: 'left', ...(rest.style || {}) }}>
       {children}
       {canResize && (
         <span
