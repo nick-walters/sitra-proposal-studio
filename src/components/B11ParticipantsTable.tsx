@@ -458,7 +458,7 @@ function ResizableTd({
   cellRef?: React.Ref<HTMLTableCellElement>;
 } & React.TdHTMLAttributes<HTMLTableCellElement>) {
   return (
-    <td ref={cellRef} {...rest} style={{ position: 'relative', ...(rest.style || {}) }}>
+    <td ref={cellRef} {...rest} style={{ position: 'relative', padding: '2px 10px', ...(rest.style || {}) }}>
       {children}
       {canResize && (
         <span
