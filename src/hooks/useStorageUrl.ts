@@ -23,6 +23,34 @@ export function extractStoragePath(value: string): string | null {
   return match ? match[1] : null;
 }
 
+// Module-level cache to dedupe and reuse signed URLs across components/renders.
+// Signed URLs are valid 1h; cache for 50 min to stay safely fresh.
+const URL_TTL_MS = 50 * 60 * 1000;
+const urlCache = new Map<string, { url: string; expiresAt: number }>();
+const inflight = new Map<string, Promise<string | null>>();
+
+function getCachedUrl(path: string): string | null {
+  const hit = urlCache.get(path);
+  if (hit && hit.expiresAt > Date.now()) return hit.url;
+  if (hit) urlCache.delete(path);
+  return null;
+}
+
+function fetchSignedUrl(path: string): Promise<string | null> {
+  const existing = inflight.get(path);
+  if (existing) return existing;
+  const p = getProposalFileSignedUrl(path, 3600).then(({ url }) => {
+    inflight.delete(path);
+    if (url) urlCache.set(path, { url, expiresAt: Date.now() + URL_TTL_MS });
+    return url || null;
+  }).catch(() => {
+    inflight.delete(path);
+    return null;
+  });
+  inflight.set(path, p);
+  return p;
+}
+
 /**
  * Non-hook async function to resolve a stored path/URL to a fresh signed URL.
  * Use in non-component contexts (e.g., export functions).
@@ -32,7 +60,9 @@ export async function resolveStorageUrl(storedValue: string | null | undefined):
   if (!isStoragePath(storedValue)) return storedValue;
   const path = extractStoragePath(storedValue);
   if (!path) return storedValue;
-  const { url } = await getProposalFileSignedUrl(path, 3600);
+  const cached = getCachedUrl(path);
+  if (cached) return cached;
+  const url = await fetchSignedUrl(path);
   return url || storedValue;
 }
 
