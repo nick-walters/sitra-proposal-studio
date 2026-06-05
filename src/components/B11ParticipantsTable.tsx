@@ -382,13 +382,13 @@ function ParticipantRowView({ p, isCoord, wpLed, caseLed, canResize, onResize }:
 
   return (
     <tr>
-      <ResizableTd index={0} style={{ verticalAlign: 'middle', whiteSpace: 'nowrap', width: '1%' }}>
+      <ResizableTd index={0} canResize={canResize} onResize={onResize} style={{ verticalAlign: 'middle', whiteSpace: 'nowrap', width: '1%' }}>
         <ParticipantBubble
           number={p.participant_number}
           shortName={p.organisation_short_name || ''}
         />
       </ResizableTd>
-      <ResizableTd index={1} cellRef={nameCellRef} style={{ verticalAlign: 'middle' }}>
+      <ResizableTd index={1} canResize={canResize} onResize={onResize} cellRef={nameCellRef} style={{ verticalAlign: 'middle' }}>
         {legalName}
         {englishName ? (
           <>
@@ -397,10 +397,10 @@ function ParticipantRowView({ p, isCoord, wpLed, caseLed, canResize, onResize }:
           </>
         ) : null}
       </ResizableTd>
-      <ResizableTd index={2} style={{ verticalAlign: 'middle', textAlign: 'center', whiteSpace: 'nowrap', width: '1%' }}>
+      <ResizableTd index={2} canResize={canResize} onResize={onResize} style={{ verticalAlign: 'middle', textAlign: 'center', whiteSpace: 'nowrap', width: '1%' }}>
         <ParticipantLogo src={p.logo_url} />
       </ResizableTd>
-      <ResizableTd index={3} style={{ verticalAlign: 'middle', whiteSpace: 'nowrap', width: '1%' }}>
+      <ResizableTd index={3} canResize={canResize} onResize={onResize} style={{ verticalAlign: 'middle', whiteSpace: 'nowrap', width: '1%' }}>
         {groups.length === 0 ? null : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'flex-start' }}>
             {groups.map((line, i) => (
@@ -411,10 +411,10 @@ function ParticipantRowView({ p, isCoord, wpLed, caseLed, canResize, onResize }:
           </div>
         )}
       </ResizableTd>
-      <ResizableTd index={4} style={{ verticalAlign: 'middle', whiteSpace: 'nowrap', width: '1%' }}>
+      <ResizableTd index={4} canResize={canResize} onResize={onResize} style={{ verticalAlign: 'middle', whiteSpace: 'nowrap', width: '1%' }}>
         {typeCode}
       </ResizableTd>
-      <ResizableTd index={5} style={{ verticalAlign: 'middle', whiteSpace: 'nowrap', width: '1%' }}>
+      <ResizableTd index={5} canResize={canResize} onResize={onResize} style={{ verticalAlign: 'middle', whiteSpace: 'nowrap', width: '1%' }}>
         {p.country || '—'}
       </ResizableTd>
     </tr>
