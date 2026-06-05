@@ -338,7 +338,7 @@ function ParticipantRowView({ p, isCoord, wpLed, caseLed, canResize, onResize }:
   const coordBadges = isCoord ? [
     <Tooltip key="coord">
       <TooltipTrigger asChild>
-        <span style={{ ...roleBadgeBase, backgroundColor: '#000', color: '#fff', border: '1.5px solid #000' }}>Coord</span>
+        <span style={{ ...roleBadgeBase, backgroundColor: '#000', color: '#fff', border: '1.5px solid #000' }}>Coordinator</span>
       </TooltipTrigger>
       <TooltipContent>Project coordinator</TooltipContent>
     </Tooltip>
