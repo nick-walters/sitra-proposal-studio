@@ -346,25 +346,28 @@ export function DocumentEditor({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [saveNow]);
 
-  // Sync footnotes when citations are renumbered
-  useEffect(() => {
-    if (lastCitationMapping && lastCitationMapping.size > 0 && footnotes.length > 0) {
-      const renumberedFootnotes = renumberFootnotes(footnotes, lastCitationMapping);
-      // Only update if there's an actual change
-      const hasChanges = renumberedFootnotes.some((fn, idx) => 
-        fn.number !== footnotes[idx]?.number || fn.citation !== footnotes[idx]?.citation
-      );
-      if (hasChanges) {
-        setFootnotes(renumberedFootnotes);
-      }
-    }
-  }, [lastCitationMapping]);
+  // Footnotes for the current section, derived from proposal-wide references
+  // and the global citation display map. Sorted by global display order.
+  const footnotes = useMemo(() => {
+    const refsByNumber = new Map<number, typeof proposalReferences[number]>();
+    proposalReferences.forEach(r => refsByNumber.set(r.citation_number, r));
+    return sectionCitedNumbers
+      .map(internal => {
+        const ref = refsByNumber.get(internal);
+        const display = citationDisplayMap.get(internal) ?? internal;
+        if (!ref) return null;
+        return { number: display, citation: ref.formatted_citation || ref.title };
+      })
+      .filter((x): x is { number: number; citation: string } => x !== null)
+      .sort((a, b) => a.number - b.number);
+  }, [sectionCitedNumbers, citationDisplayMap, proposalReferences]);
 
-  // Helper to get reference by citation number for tooltip display
-  const getReference = useCallback((citationNumber: number) => {
-    const footnote = footnotes.find(fn => fn.number === citationNumber);
-    return footnote ? { citation: footnote.citation } : undefined;
-  }, [footnotes]);
+  // Helper to get reference by INTERNAL citation number (data-citation attr)
+  // for tooltip display.
+  const getReference = useCallback((internalNumber: number) => {
+    const ref = proposalReferences.find(r => r.citation_number === internalNumber);
+    return ref ? { citation: ref.formatted_citation || ref.title } : undefined;
+  }, [proposalReferences]);
 
   // Block locking refs for editor integration
   const blockLocksRef = useRef<Map<string, { userId: string; blockId: string; blockType: string }>>(new Map());
