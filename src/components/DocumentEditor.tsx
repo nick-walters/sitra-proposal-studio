@@ -369,6 +369,31 @@ export function DocumentEditor({
     return ref ? { citation: ref.formatted_citation || ref.title } : undefined;
   }, [proposalReferences]);
 
+  // DOM patcher: rewrite the visible text of every citation <sup> so it reflects
+  // the proposal-wide display order. The internal id (citation_number) is kept
+  // on the element via the data-citation attribute (preserved by CitationMark).
+  useEffect(() => {
+    const root = editorContainerRef.current;
+    if (!root) return;
+    const patch = () => {
+      const sups = root.querySelectorAll('sup[data-citation]');
+      sups.forEach((sup) => {
+        const el = sup as HTMLElement;
+        const internal = parseInt(el.getAttribute('data-citation') || '', 10);
+        if (!Number.isFinite(internal)) return;
+        const display = citationDisplayMap.get(internal);
+        const next = display != null ? String(display) : String(internal);
+        if (el.textContent !== next) el.textContent = next;
+      });
+    };
+    patch();
+    // Re-patch on every editor render so ProseMirror's re-renders don't revert it.
+    const id = window.setInterval(patch, 250);
+    return () => window.clearInterval(id);
+  }, [citationDisplayMap, content]);
+
+
+
   // Block locking refs for editor integration
   const blockLocksRef = useRef<Map<string, { userId: string; blockId: string; blockType: string }>>(new Map());
   const getLockedBlocksForEditor = useCallback(() => {
