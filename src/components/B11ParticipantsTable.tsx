@@ -309,8 +309,9 @@ export function B11ParticipantsTable({ proposalId }: Props) {
                   </td>
                   <td style={{ verticalAlign: 'middle', whiteSpace: 'nowrap', width: '1%' }}>
                     {typeCode}
-                    <br />
-                    <span>{p.country || '—'}</span>
+                  </td>
+                  <td style={{ verticalAlign: 'middle', whiteSpace: 'nowrap', width: '1%' }}>
+                    {p.country || '—'}
                   </td>
                 </tr>
               );
