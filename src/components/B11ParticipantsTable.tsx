@@ -229,11 +229,8 @@ export function B11ParticipantsTable({ proposalId }: Props) {
           )}
           <thead>
             <tr>
-              <ResizableTh index={0} canResize={canResize} onResize={handleColResizeStart} style={{ whiteSpace: 'nowrap', width: '1%', textAlign: 'left' }}>
-                № &amp; short name
-              </ResizableTh>
-              <ResizableTh index={1} canResize={canResize} onResize={handleColResizeStart} colSpan={3} style={{ textAlign: 'left' }}>
-                Participant organisation legal name, <em style={{ fontWeight: 'bold' }}>English name</em> &amp; roles
+              <ResizableTh index={0} canResize={canResize} onResize={handleColResizeStart} colSpan={4} style={{ textAlign: 'left' }}>
+                Participant organisation №, short name, legal name, <em style={{ fontWeight: 'bold' }}>English name</em>, logo &amp; roles
               </ResizableTh>
               <ResizableTh index={4} canResize={canResize} onResize={handleColResizeStart} style={{ whiteSpace: 'nowrap', width: '1%', textAlign: 'left' }}>
                 Type
