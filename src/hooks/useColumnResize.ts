@@ -58,10 +58,21 @@ export function useColumnResize(options: {
   const handleColResizeStart = useCallback((index: number) => (e: React.MouseEvent) => {
     if (!canResize) return;
     e.preventDefault();
-    const currentWidths = colWidths.length > 0 ? [...colWidths] : (() => {
-      const headerCells = tableRef.current?.querySelectorAll('thead th');
-      return headerCells ? Array.from(headerCells).map(cell => (cell as HTMLElement).offsetWidth) : [];
-    })();
+    e.stopPropagation();
+    const measureFromDom = (): number[] => {
+      const table = tableRef.current;
+      if (!table) return [];
+      // Prefer first tbody row (always has every column) over thead which may
+      // contain colSpan headers that don't map 1:1 to columns.
+      const bodyCells = table.querySelectorAll('tbody tr:first-child > td');
+      if (bodyCells.length > 0) {
+        return Array.from(bodyCells).map(cell => (cell as HTMLElement).offsetWidth);
+      }
+      const headerCells = table.querySelectorAll('thead th');
+      return Array.from(headerCells).map(cell => (cell as HTMLElement).offsetWidth);
+    };
+    const currentWidths = colWidths.length > 0 ? [...colWidths] : measureFromDom();
+    if (currentWidths[index] === undefined || Number.isNaN(currentWidths[index])) return;
     resizingRef.current = { index, startX: e.clientX, startWidths: currentWidths };
 
     const onMouseMove = (ev: MouseEvent) => {
