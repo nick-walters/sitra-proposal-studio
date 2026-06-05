@@ -161,8 +161,7 @@ export function CitationLibrary({
                 {editingId === ref.id ? (
                   /* Edit mode */
                   <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex items-center justify-between mb-1">
-                      <Badge variant="outline" className="text-xs font-mono">[{ref.citation_number}]</Badge>
+                    <div className="flex items-center justify-end mb-1">
                       <div className="flex gap-1">
                         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={cancelEditing}>
                           <X className="w-3.5 h-3.5" />
