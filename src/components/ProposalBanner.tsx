@@ -45,8 +45,8 @@ export function ProposalBanner({ acronym, title, topicId, topicTitle, proposalTy
           height: '1cm',
           width: 'auto',
           display: 'block',
-          marginLeft: '1cm',
-          marginBottom: '0.5cm',
+          marginLeft: '0.5cm',
+          marginBottom: '0.25cm',
         }}
       />
       {topicLine && (
