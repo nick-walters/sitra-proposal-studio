@@ -15,6 +15,9 @@ interface CitationLibraryProps {
   isLoading: boolean;
   onSelectReference: (reference: ProposalReference) => void;
   onUpdateReference?: (refId: string, updates: Partial<Omit<ProposalReference, 'id' | 'proposal_id' | 'created_at'>>) => Promise<boolean>;
+  /** Map from internal citation_number to the global display order. Uncited
+   * references (not in the map) are sorted last and hidden from the list. */
+  displayOrder?: Map<number, number>;
 }
 
 export function CitationLibrary({ 
@@ -22,6 +25,7 @@ export function CitationLibrary({
   isLoading,
   onSelectReference,
   onUpdateReference,
+  displayOrder,
 }: CitationLibraryProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
