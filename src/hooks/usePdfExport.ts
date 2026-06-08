@@ -60,24 +60,27 @@ function buildPrintDocument(
   <title>${escapeHtml(docTitle)}</title>
   ${styleSheets.join('\n  ')}
   <style>
-    :root {
-      --header-text: "${headerText}";
-      --footer-text: "${footerAcronym} | Part B | Page " counter(page) " of " counter(pages);
-    }
-
     @page {
       size: A4 portrait;
       margin: 2cm 1.5cm 2cm 1.5cm;
 
       @top-center {
-        content: "TEST HEADER";
+        content: "${headerText}";
+        font-family: 'Times New Roman', Times, serif;
+        font-size: 9pt;
+        font-style: italic;
+        color: #666;
+      }
+
+      @bottom-center {
+        content: "${footerAcronym} | Part B";
         font-family: 'Times New Roman', Times, serif;
         font-size: 9pt;
         color: #666;
       }
 
-      @bottom-center {
-        content: "TEST FOOTER";
+      @bottom-right {
+        content: "Page " counter(page) " of " counter(pages);
         font-family: 'Times New Roman', Times, serif;
         font-size: 9pt;
         color: #666;
@@ -89,17 +92,7 @@ function buildPrintDocument(
       @top-center { content: none; }
     }
 
-    /* Proposal banner — bleed to page edges on page 1 */
-    [data-proposal-banner] {
-      margin: 0 -1.5cm;
-      width: calc(100% + 3cm);
-      break-after: avoid;
-      page-break-after: avoid;
-    }
-
-
-    html,
-    body {
+    html, body {
       margin: 0;
       padding: 0;
       background: #fff;
@@ -121,32 +114,27 @@ function buildPrintDocument(
       background: #fff;
     }
 
-    .document-h1, .print-export-container h1:first-of-type {
+    /* Proposal banner — bleed to page edges on page 1, matching online editor */
+    [data-proposal-banner] {
+      margin: 0 -1.5cm;
+      width: calc(100% + 3cm);
+      break-after: avoid;
+      page-break-after: avoid;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    /* H1 / H2 use Arial Black, matching the online editor */
+    .print-export-container h1,
+    .print-export-container h2,
+    .print-export-container h1.print-h1,
+    .print-export-container h2.print-h2,
+    .document-h1,
+    .print-export-container h1:first-of-type {
       font-family: 'Arial Black', Arial, sans-serif !important;
     }
 
-    /* Page break helpers */
-    .print-export-container h1.print-h1 {
-      page-break-before: auto;
-      page-break-after: avoid;
-    }
-    .print-export-container h2.print-h2 {
-      page-break-after: avoid;
-    }
-    .print-export-container h3 {
-      page-break-after: avoid;
-    }
-    .print-export-container tr {
-      page-break-inside: avoid;
-    }
-    .print-export-container img {
-      page-break-inside: avoid;
-    }
-    .print-export-container figure {
-      page-break-inside: avoid;
-    }
-
-    /* Ensure the container fills available width */
+    /* Container sizing */
     .print-export-container {
       width: 100% !important;
       max-width: 100% !important;
@@ -158,51 +146,45 @@ function buildPrintDocument(
       pointer-events: auto !important;
     }
 
-    /* Fix figures/images */
     .print-export-container img {
       max-width: 100% !important;
       height: auto !important;
     }
 
-    /* Ensure frozen inputs display correctly */
     .print-export-container span[style] {
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
     }
 
-    @media print {
-      body > *:not(.print-body-content) {
-        display: none !important;
-      }
-    }
-
-    /* === Page-break controls (Prompt 5) === */
-    /* Section headings: never orphaned at bottom of page */
+    /* === Page-break controls === */
     .print-export-container h1,
     .print-export-container h2,
     .print-export-container h3 {
       break-after: avoid;
       page-break-after: avoid;
     }
-    /* Keep heading together with next element */
     .print-export-container h1 + p,
     .print-export-container h2 + p,
     .print-export-container h3 + p,
     .print-export-container h1 + ul,
     .print-export-container h2 + ul,
+    .print-export-container h3 + ul,
     .print-export-container h1 + ol,
     .print-export-container h2 + ol,
+    .print-export-container h3 + ol,
     .print-export-container h1 + table,
-    .print-export-container h2 + table {
+    .print-export-container h2 + table,
+    .print-export-container h3 + table {
       break-before: avoid;
       page-break-before: avoid;
     }
-    /* Tables: do not split across pages */
     .print-export-container table {
       break-inside: avoid;
       page-break-inside: avoid;
     }
-    /* Figures stay with their captions */
+    .print-export-container tr {
+      page-break-inside: avoid;
+    }
     .print-export-container figure,
     .print-export-container img {
       break-inside: avoid;
@@ -219,22 +201,25 @@ function buildPrintDocument(
       break-inside: avoid;
       page-break-inside: avoid;
     }
-    /* Table caption must stay with the table that follows it */
     .print-export-container .table-caption + table,
     .print-export-container .caption-label + table {
       break-before: avoid;
       page-break-before: avoid;
     }
-    /* Body paragraphs: prevent single-line orphans/widows */
     .print-export-container p {
       orphans: 3;
       widows: 3;
     }
-    /* WP banner blocks stay with their content */
     .print-export-container [data-wp-banner],
     .print-export-container .wp-banner {
       break-after: avoid;
       page-break-after: avoid;
+    }
+
+    @media print {
+      body > *:not(.print-body-content) {
+        display: none !important;
+      }
     }
   </style>
 </head>
