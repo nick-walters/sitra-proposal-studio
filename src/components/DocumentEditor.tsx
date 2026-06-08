@@ -372,22 +372,49 @@ export function DocumentEditor({
   // DOM patcher: rewrite the visible text of every citation <sup> so it reflects
   // the proposal-wide display order. The internal id (citation_number) is kept
   // on the element via the data-citation attribute (preserved by CitationMark).
+  // A MutationObserver re-applies the patch whenever the editor renders or
+  // re-renders citation nodes (e.g. after hard refresh or any transaction).
   const patchCitationDisplayRef = useRef<() => void>(() => {});
+  // Keep latest map in a ref so the observer always uses fresh data.
+  const citationDisplayMapRef = useRef(citationDisplayMap);
+  citationDisplayMapRef.current = citationDisplayMap;
   useEffect(() => {
-    patchCitationDisplayRef.current = () => {
-      const root = editorContainerRef.current;
+    const root = editorContainerRef.current;
+    const apply = () => {
       if (!root) return;
+      const map = citationDisplayMapRef.current;
       const sups = root.querySelectorAll('sup[data-citation]');
       sups.forEach((sup) => {
         const el = sup as HTMLElement;
         const internal = parseInt(el.getAttribute('data-citation') || '', 10);
         if (!Number.isFinite(internal)) return;
-        const display = citationDisplayMap.get(internal);
+        const display = map.get(internal);
         const next = display != null ? String(display) : String(internal);
         if (el.textContent !== next) el.textContent = next;
       });
     };
-    patchCitationDisplayRef.current();
+    patchCitationDisplayRef.current = apply;
+    apply();
+    const t1 = requestAnimationFrame(apply);
+    const t2 = setTimeout(apply, 50);
+    const t3 = setTimeout(apply, 250);
+    if (!root) {
+      return () => {
+        cancelAnimationFrame(t1);
+        clearTimeout(t2);
+        clearTimeout(t3);
+      };
+    }
+    // Observe DOM mutations so nodeView re-renders (which reset textContent
+    // back to the internal id) are immediately re-patched.
+    const observer = new MutationObserver(() => apply());
+    observer.observe(root, { childList: true, subtree: true, characterData: true });
+    return () => {
+      cancelAnimationFrame(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      observer.disconnect();
+    };
   }, [citationDisplayMap, content]);
 
 
