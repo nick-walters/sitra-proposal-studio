@@ -66,22 +66,15 @@ function buildPrintDocument(
 
       @top-center {
         content: "${headerText}";
-        font-family: 'Times New Roman', Times, serif;
+        font-family: 'Times New Roman', Times, 'DejaVu Serif', Georgia, serif;
         font-size: 9pt;
         font-style: italic;
         color: #666;
       }
 
       @bottom-center {
-        content: "${footerAcronym} | Part B";
-        font-family: 'Times New Roman', Times, serif;
-        font-size: 9pt;
-        color: #666;
-      }
-
-      @bottom-right {
-        content: "Page " counter(page) " of " counter(pages);
-        font-family: 'Times New Roman', Times, serif;
+        content: "${footerAcronym} | Part B | Page " counter(page) " of " counter(pages);
+        font-family: 'Times New Roman', Times, 'DejaVu Serif', Georgia, serif;
         font-size: 9pt;
         color: #666;
       }
@@ -116,8 +109,12 @@ function buildPrintDocument(
 
     /* Proposal banner — bleed to page edges on page 1, matching online editor */
     [data-proposal-banner] {
-      margin: 0 -1.5cm;
-      width: calc(100% + 3cm);
+      margin-left: -1.5cm !important;
+      margin-right: -1.5cm !important;
+      margin-top: 0 !important;
+      width: calc(100% + 3cm) !important;
+      max-width: none !important;
+      box-sizing: border-box !important;
       break-after: avoid;
       page-break-after: avoid;
       -webkit-print-color-adjust: exact !important;
