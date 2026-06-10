@@ -266,7 +266,7 @@ export function useDocxExport() {
         toast.error('Failed to export Word document. Please try again.');
       }
     },
-    [],
+    [appQueryClient],
   );
 
   return { exportProposalToDocx };
