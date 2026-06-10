@@ -533,6 +533,7 @@ function freezeInteractiveElements(container: HTMLElement): void {
 export async function prepareExportContainer(
   options: PrintRenderOptions,
   statusMessage?: string,
+  appQueryClient?: QueryClient,
 ): Promise<{ container: HTMLDivElement; cleanup: () => void }> {
   console.time('export-build-container');
   const container = await buildPrintContainer(options);
