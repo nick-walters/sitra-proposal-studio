@@ -266,6 +266,7 @@ export function usePdfExport() {
       const { proposal, sectionContents, sections, participants = [] } = data;
 
       try {
+        console.time('export-total');
         toast.info('Preparing PDF – rendering content…');
 
         const { container, cleanup } = await prepareExportContainer({
@@ -282,9 +283,11 @@ export function usePdfExport() {
           sectionContents,
           participants,
         });
+        console.timeLog('export-total', 'container ready');
 
         // Build the self-contained HTML document
         const htmlDoc = buildPrintDocument(container, proposal);
+        console.timeLog('export-total', 'HTML built');
 
         // Compute desired filename title for print dialog
         const _now = new Date();
@@ -300,13 +303,17 @@ export function usePdfExport() {
           printWindow.document.open();
           printWindow.document.write(htmlDoc);
           printWindow.document.close();
+          console.timeLog('export-total', 'window opened');
 
           await waitForPrintAssets(printWindow.document);
+          console.timeLog('export-total', 'assets loaded');
 
           toast.info('Opening print dialog…');
           printWindow.focus();
           try { printWindow.document.title = _docTitle; } catch {}
+          console.timeEnd('export-total');
           printWindow.print();
+
 
 
           setTimeout(() => {
