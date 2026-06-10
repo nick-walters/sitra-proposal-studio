@@ -109,9 +109,11 @@ function buildPrintDocument(
     }
 
     [data-proposal-banner] {
-      margin-left: -1.5cm;
-      margin-right: -1.5cm;
-      width: calc(100% + 3cm);
+      margin-left: -1.5cm !important;
+      margin-right: -1.5cm !important;
+      width: calc(100% + 3cm) !important;
+      max-width: none !important;
+      box-sizing: border-box !important;
       break-after: avoid;
       page-break-after: avoid;
       -webkit-print-color-adjust: exact !important;
