@@ -385,6 +385,7 @@ export async function mountB31Components(
   container: HTMLElement,
   proposalId: string,
   proposalAcronym: string,
+  appQueryClient?: QueryClient,
 ): Promise<void> {
   const mount = container.querySelector('#print-b31-mount');
   if (!mount) return;
@@ -394,9 +395,13 @@ export async function mountB31Components(
     import('@/components/B31SectionContent'),
   ]);
 
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false, gcTime: 0 } },
-  });
+  // Reuse the app's QueryClient when available so the export tree reads from
+  // the already-warm cache instead of refetching every B3.1 query cold.
+  const queryClient =
+    appQueryClient ??
+    new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
 
   const root = createRoot(mount);
 
@@ -421,7 +426,7 @@ export async function mountB31Components(
       const isFetching = queryClient.isFetching() > 0;
       if ((hasTables && !isFetching) || elapsed > 15000) {
         clearInterval(interval);
-        setTimeout(resolve, 1000);
+        setTimeout(resolve, 200);
       }
     }, 200);
   });
