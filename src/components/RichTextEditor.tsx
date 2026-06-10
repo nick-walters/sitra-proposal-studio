@@ -1635,11 +1635,24 @@ StarterKit.configure({
                       to++;
                     }
                     
+                    // Special case: milestone marks have a "MS" prefix outside the mark
+                    // that should be selected as part of the unit
+                    if (markName === 'inlineReference' || markName === 'wpReference') {
+                      const selectedText = doc.textBetween(from, to);
+                      if (/^\d+$/.test(selectedText) && from >= 2) {
+                        const prefix = doc.textBetween(from - 2, from);
+                        if (prefix === 'MS') {
+                          from = from - 2;
+                        }
+                      }
+                    }
+                    
                     // Select the entire mark range
                     const tr = view.state.tr.setSelection(TextSelection.create(doc, from, to));
                     view.dispatch(tr);
                     return true;
                   }
+
                   
                   return false;
                 },
@@ -1670,12 +1683,25 @@ StarterKit.configure({
                       }
                     }
                   });
+                  // Also treat a selection starting with "MS" followed by a ref mark as protected
+                  if (!coversRefMark && to - from > 2) {
+                    const leading = doc.textBetween(from, from + 2);
+                    if (leading === 'MS') {
+                      doc.nodesBetween(from + 2, to, (node) => {
+                        if (!node.isText) return;
+                        for (const markName of markNames) {
+                          const markType = schema.marks[markName];
+                          if (markType && markType.isInSet(node.marks)) {
+                            coversRefMark = true;
+                          }
+                        }
+                      });
+                    }
+                  }
                   if (!coversRefMark) return false;
-                  const tr = view.state.tr;
-                  tr.setSelection(TextSelection.create(doc, to));
-                  tr.insertText(text, to);
-                  view.dispatch(tr);
+                  // Swallow the input — don't insert anything, don't move cursor
                   return true;
+
                 },
               },
             }),
