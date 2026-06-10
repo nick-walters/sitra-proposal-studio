@@ -1648,6 +1648,40 @@ StarterKit.configure({
           ];
         },
       }),
+      // Protect reference badges from being replaced by typed text when selected
+      Extension.create({
+        name: 'protectReferenceBadges',
+        addProseMirrorPlugins() {
+          return [
+            new Plugin({
+              key: new PluginKey('protectReferenceBadges'),
+              props: {
+                handleTextInput(view, from, to, text) {
+                  if (from === to) return false;
+                  const { doc, schema } = view.state;
+                  const markNames = ['inlineReference', 'wpReference', 'caseReference', 'participantReference', 'acronymReference', 'figureTableReference'];
+                  let coversRefMark = false;
+                  doc.nodesBetween(from, to, (node) => {
+                    if (!node.isText) return;
+                    for (const markName of markNames) {
+                      const markType = schema.marks[markName];
+                      if (markType && markType.isInSet(node.marks)) {
+                        coversRefMark = true;
+                      }
+                    }
+                  });
+                  if (!coversRefMark) return false;
+                  const tr = view.state.tr;
+                  tr.setSelection(TextSelection.create(doc, to));
+                  tr.insertText(text, to);
+                  view.dispatch(tr);
+                  return true;
+                },
+              },
+            }),
+          ];
+        },
+      }),
       // Add block locking extension
       Extension.create({
         name: 'blockLocking',
