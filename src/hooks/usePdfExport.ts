@@ -372,7 +372,7 @@ export function usePdfExport() {
         toast.error('Failed to export PDF. Please try again.');
       }
     },
-    [],
+    [appQueryClient],
   );
 
   return { exportProposalToPdf };
