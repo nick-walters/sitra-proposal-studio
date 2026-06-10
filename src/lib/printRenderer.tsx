@@ -277,6 +277,7 @@ export async function buildPrintContainer(
       }
     }
   } catch { /* fall back to computed values */ }
+  try { console.timeLog('export-build-container', 'banner fetched'); } catch {}
 
   const banner = document.createElement('div');
   banner.setAttribute('data-proposal-banner', 'true');
