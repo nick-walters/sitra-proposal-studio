@@ -263,13 +263,14 @@ export async function buildPrintContainer(
     "background:#000;color:#fff;padding:1.5cm 1.5cm 12pt 1.5cm;" +
     "width:100%;box-sizing:border-box;margin-bottom:12pt;overflow:hidden;";
   banner.innerHTML = `
-    <div style="float:right;text-align:center;margin-left:0.5cm;margin-bottom:0.25cm;">
-      <img src="${SITRA_LOGO_BASE64}" alt="Sitra" style="height:0.8cm;width:auto;display:block;" />
+    <div style="float:right;text-align:center;margin-left:0.5cm;margin-bottom:0.25cm;max-width:3cm;">
+      <img src="${SITRA_LOGO_BASE64}" alt="Sitra" style="height:0.8cm !important;width:auto !important;max-width:none !important;max-height:0.8cm !important;display:block;margin:0 auto;" />
       <div style="font-family:'Arial Black',Arial,sans-serif;font-size:10pt;line-height:1;color:#fff;text-align:center;margin-top:2pt;white-space:nowrap;">and partners</div>
     </div>
     ${topicLine ? `<div style="font-family:'Times New Roman',Times,serif;font-size:8pt;line-height:1.15;color:#fff;text-align:left;margin-top:0pt;margin-bottom:6pt;white-space:pre-line;">${escapeHtml(topicLine)}</div>` : ''}
     <div style="font-family:'Arial Black',Arial,sans-serif;font-weight:900;font-size:18pt;line-height:1.2;color:#fff;text-align:left;white-space:pre-line;">${escapeHtml(proposal.acronym || '')}</div>
     <div style="font-family:'Arial Black',Arial,sans-serif;font-weight:900;font-size:13pt;line-height:1.2;color:#fff;text-align:left;white-space:pre-line;">${escapeHtml(proposal.title || '')}</div>
+    <div style="clear:both;"></div>
   `;
   container.appendChild(banner);
 
