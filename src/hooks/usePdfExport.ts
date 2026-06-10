@@ -262,6 +262,7 @@ async function waitForPrintAssets(printDocument: Document): Promise<void> {
 }
 
 export function usePdfExport() {
+  const appQueryClient = useQueryClient();
   const exportProposalToPdf = useCallback(
     async (data: ExportData) => {
       const { proposal, sectionContents, sections, participants = [] } = data;
@@ -283,7 +284,7 @@ export function usePdfExport() {
           sections,
           sectionContents,
           participants,
-        });
+        }, undefined, appQueryClient);
         console.timeLog('export-total', 'container ready');
 
         // Build the self-contained HTML document
