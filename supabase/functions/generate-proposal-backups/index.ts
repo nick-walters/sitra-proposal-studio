@@ -371,10 +371,10 @@ Deno.serve(async (req) => {
   const { data: cfg } = await supabase
     .from("sharepoint_backup_config").select("*").maybeSingle();
 
-  // Active proposals = anything not archived.
+  // Active proposals = all non-final ones. Funded/not_funded are still backed up
+  // until manually excluded; the 90-day retention bounds storage cost.
   const { data: proposals, error: pErr } = await supabase
-    .from("proposals").select("*")
-    .neq("status", "archived");
+    .from("proposals").select("*");
   if (pErr) {
     return new Response(JSON.stringify({ error: pErr.message }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
