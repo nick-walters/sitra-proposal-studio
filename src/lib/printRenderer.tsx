@@ -535,9 +535,9 @@ export async function prepareExportContainer(
   statusMessage?: string,
   appQueryClient?: QueryClient,
 ): Promise<{ container: HTMLDivElement; cleanup: () => void }> {
-  console.time('export-build-container');
+  
   const container = await buildPrintContainer(options);
-  console.timeLog('export-build-container', 'sections built');
+  
 
   // Attach to DOM — must be visible for layout capture
   // Use fixed pixel width (680px ≈ 18cm at 96dpi) for React rendering
@@ -553,11 +553,11 @@ export async function prepareExportContainer(
 
   // Mount B3.1 React components (tables, charts)
   await mountB31Components(container, options.proposal.id, options.proposal.acronym, appQueryClient);
-  console.timeLog('export-build-container', 'B3.1 mounted');
+  
 
   // Refresh any expired signed URLs before waiting for images to load
   await refreshSignedUrls(container);
-  console.timeLog('export-build-container', 'URLs refreshed');
+  
 
   // Wait for all images to load
   const images = container.querySelectorAll('img');
@@ -571,7 +571,7 @@ export async function prepareExportContainer(
         }),
     ),
   );
-  console.timeLog('export-build-container', 'images loaded');
+  
 
   // Freeze interactive elements (inputs, selects, buttons) into static text
   // Must happen AFTER React mount but BEFORE detaching from DOM
@@ -588,7 +588,7 @@ export async function prepareExportContainer(
 
   // Allow a small delay for reflows
   await new Promise(r => setTimeout(r, 500));
-  console.timeEnd('export-build-container');
+  
 
   const cleanup = () => {
     if (container.parentNode) {
