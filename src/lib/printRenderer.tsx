@@ -253,23 +253,44 @@ export async function buildPrintContainer(
   const escapeHtml = (s: string) =>
     s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-  const topicLine = proposal.topicId || proposal.topicTitle || proposal.type
+  // Auto-computed fallbacks (mirrors ProposalBanner.tsx logic)
+  const computedTopicLine = proposal.topicId || proposal.topicTitle || proposal.type
     ? `${proposal.topicId || ''}${proposal.topicId && proposal.topicTitle ? ': ' : ''}${proposal.topicTitle || ''}${proposal.type ? ` (${proposal.type})` : ''}`
     : '';
+
+  // Fetch user's banner overrides — these contain the exact edited text
+  // (with manual line breaks preserved as \n) shown in the online editor.
+  let bannerTopicLine = computedTopicLine;
+  let bannerTitle = proposal.title || '';
+  try {
+    const { data: bannerData } = await supabase
+      .from('proposals')
+      .select('banner_topic_line_override, banner_title_override')
+      .eq('id', proposal.id)
+      .maybeSingle();
+    if (bannerData) {
+      if (bannerData.banner_topic_line_override != null) {
+        bannerTopicLine = bannerData.banner_topic_line_override;
+      }
+      if (bannerData.banner_title_override != null) {
+        bannerTitle = bannerData.banner_title_override;
+      }
+    }
+  } catch { /* fall back to computed values */ }
 
   const banner = document.createElement('div');
   banner.setAttribute('data-proposal-banner', 'true');
   banner.style.cssText =
     "background:#000;color:#fff;padding:1.5cm 1.5cm 12pt 1.5cm;" +
-    "width:100%;box-sizing:border-box;margin-bottom:12pt;overflow:hidden;";
+    "box-sizing:border-box;margin-bottom:12pt;overflow:hidden;";
   banner.innerHTML = `
     <div style="float:right;text-align:center;margin-left:0.5cm;margin-bottom:0.25cm;max-width:3cm;">
       <img src="${SITRA_LOGO_BASE64}" alt="Sitra" style="height:0.8cm !important;width:auto !important;max-width:none !important;max-height:0.8cm !important;display:block;margin:0 auto;" />
       <div style="font-family:'Arial Black',Arial,sans-serif;font-size:10pt;line-height:1;color:#fff;text-align:center;margin-top:2pt;white-space:nowrap;">and partners</div>
     </div>
-    ${topicLine ? `<div style="font-family:'Times New Roman',Times,serif;font-size:8pt;line-height:1.15;color:#fff;text-align:left;margin-top:0pt;margin-bottom:6pt;white-space:pre-line;">${escapeHtml(topicLine)}</div>` : ''}
+    ${bannerTopicLine ? `<div style="font-family:'Times New Roman',Times,serif;font-size:8pt;line-height:1.15;color:#fff;text-align:left;margin-top:0pt;margin-bottom:6pt;white-space:pre-line;">${escapeHtml(bannerTopicLine)}</div>` : ''}
     <div style="font-family:'Arial Black',Arial,sans-serif;font-weight:900;font-size:18pt;line-height:1.2;color:#fff;text-align:left;white-space:pre-line;">${escapeHtml(proposal.acronym || '')}</div>
-    <div style="font-family:'Arial Black',Arial,sans-serif;font-weight:900;font-size:13pt;line-height:1.2;color:#fff;text-align:left;white-space:pre-line;">${escapeHtml(proposal.title || '')}</div>
+    <div style="font-family:'Arial Black',Arial,sans-serif;font-weight:900;font-size:13pt;line-height:1.2;color:#fff;text-align:left;white-space:pre-line;">${escapeHtml(bannerTitle)}</div>
     <div style="clear:both;"></div>
   `;
   container.appendChild(banner);
