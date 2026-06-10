@@ -261,13 +261,14 @@ export function PERTChartFigure({
 
   const nodeW = 84;
   const nodeH = 35;
-  const minX = Math.min(...nodes.map(n => n.x));
-  const minY = Math.min(...nodes.map(n => n.y));
-  const maxX = Math.max(...nodes.map(n => n.x + nodeW));
-  const maxY = Math.max(...nodes.map(n => n.y + nodeH));
+  const hasNodes = nodes.length > 0;
+  const minX = hasNodes ? Math.min(...nodes.map(n => n.x)) : 0;
+  const minY = hasNodes ? Math.min(...nodes.map(n => n.y)) : 0;
+  const maxX = hasNodes ? Math.max(...nodes.map(n => n.x + nodeW)) : nodeW;
+  const maxY = hasNodes ? Math.max(...nodes.map(n => n.y + nodeH)) : nodeH;
   const pad = canEdit ? 30 : 5;
-  const svgWidth = canEdit ? Math.max(800, maxX + pad) : (maxX - minX + pad * 2);
-  const svgHeight = canEdit ? Math.max(400, maxY + pad) : (maxY - minY + pad * 2);
+  const svgWidth = canEdit ? Math.max(800, maxX + pad) : Math.max(1, maxX - minX + pad * 2);
+  const svgHeight = canEdit ? Math.max(400, maxY + pad) : Math.max(1, maxY - minY + pad * 2);
   const viewBoxStr = canEdit ? `0 0 ${svgWidth} ${svgHeight}` : `${minX - pad} ${minY - pad} ${svgWidth} ${svgHeight}`;
 
   const getWpLabel = (wpId: string) => {
