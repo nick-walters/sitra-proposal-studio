@@ -27,6 +27,7 @@ import { ProposalMessagingBoard } from "@/components/ProposalMessagingBoard";
 import { ProposalTaskAllocator } from "@/components/ProposalTaskAllocator";
 import { ProposalProgressTracker } from "@/components/ProposalProgressTracker";
 import { WorkloadDashboard } from "@/components/WorkloadDashboard";
+import { ProposalBackupsPanel } from "@/components/ProposalBackupsPanel";
 import { PanelEvaluator } from "@/components/PanelEvaluator";
 
 import { Button } from "@/components/ui/button";
@@ -505,6 +506,20 @@ export function ProposalEditor() {
       return (
         <div className="flex-1 overflow-y-auto">
           <ProposalMessagingBoard proposalId={id || ''} isCoordinator={isCoordinator} />
+        </div>
+      );
+    }
+    if (activeSection.id === 'backups') {
+      if (!isCoordinator) {
+        return (
+          <div className="flex-1 flex items-center justify-center text-muted-foreground">
+            Backups are only visible to coordinators &amp; admins.
+          </div>
+        );
+      }
+      return (
+        <div className="flex-1 overflow-y-auto">
+          <ProposalBackupsPanel proposalId={id || ''} />
         </div>
       );
     }

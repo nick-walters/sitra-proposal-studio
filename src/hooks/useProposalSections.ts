@@ -445,6 +445,7 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
         { id: 'task-allocator', number: '', title: 'Assignments' },
         { id: 'progress-tracker', number: '', title: 'Progress' },
         { id: 'availability', number: '', title: 'Availability' },
+        { id: 'backups', number: '', title: 'Backups' },
       ],
     };
 

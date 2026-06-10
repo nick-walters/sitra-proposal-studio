@@ -11,7 +11,8 @@ import {
   ChevronRight,
   Lock,
   MessageSquare,
-  Brain
+  Brain,
+  HardDrive
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -162,6 +163,37 @@ export function BackendAdmin() {
                 <CardTitle className="mt-4">Received Feedback</CardTitle>
                 <CardDescription>
                   Review feature requests and bug reports from users
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm text-muted-foreground">
+                  {isOwner ? (
+                    <span className="text-primary">Owner access granted</span>
+                  ) : (
+                    <span>Requires Owner role</span>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
+          {/* Backups & SharePoint - Owners only */}
+          <Link to="/admin/backups" className={!isOwner ? 'pointer-events-none' : ''}>
+            <Card className={`h-full transition-all hover:shadow-md ${!isOwner ? 'opacity-50' : 'hover:border-primary cursor-pointer'}`}>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="p-3 bg-sky-500/10 rounded-lg">
+                    <HardDrive className="w-6 h-6 text-sky-600" />
+                  </div>
+                  {isOwner ? (
+                    <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                  ) : (
+                    <Lock className="w-5 h-5 text-muted-foreground" />
+                  )}
+                </div>
+                <CardTitle className="mt-4">Backups &amp; SharePoint</CardTitle>
+                <CardDescription>
+                  Configure daily proposal backups and the optional SharePoint destination
                 </CardDescription>
               </CardHeader>
               <CardContent>
