@@ -185,6 +185,7 @@ ${bodyHtml}
 export { type ExportData };
 
 export function useDocxExport() {
+  const appQueryClient = useQueryClient();
   const exportProposalToDocx = useCallback(
     async (data: ExportData, options?: { includeWatermark?: boolean }) => {
       const { proposal, sectionContents, sections, participants = [] } = data;
@@ -205,7 +206,7 @@ export function useDocxExport() {
           sections,
           sectionContents,
           participants,
-        });
+        }, undefined, appQueryClient);
 
         // Convert images to base64 data URIs for embedding
         toast.info('Generating Word document – embedding images…');
