@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { saveAs } from 'file-saver';
 import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
 import { Proposal, Section, Participant } from '@/types/proposal';
 import { prepareExportContainer, ExportData } from '@/lib/printRenderer';
 import { scrubDomForExport } from '@/lib/exportDomScrubber';
