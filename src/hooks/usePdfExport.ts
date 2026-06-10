@@ -62,11 +62,11 @@ function buildPrintDocument(
   <style>
     @page {
       size: A4 portrait;
-      margin: 2cm 1.5cm 2cm 1.5cm;
+      margin: 2cm 0 2cm 0;
 
       @top-center {
         content: "${headerText}";
-        font-family: 'Times New Roman', Times, 'DejaVu Serif', Georgia, serif;
+        font-family: 'Times New Roman', Times, serif;
         font-size: 9pt;
         font-style: italic;
         color: #666;
@@ -74,15 +74,16 @@ function buildPrintDocument(
 
       @bottom-center {
         content: "${footerAcronym} | Part B | Page " counter(page) " of " counter(pages);
-        font-family: 'Times New Roman', Times, 'DejaVu Serif', Georgia, serif;
+        font-family: 'Times New Roman', Times, serif;
         font-size: 9pt;
         color: #666;
       }
     }
 
     @page :first {
-      margin-top: 0;
+      margin: 0;
       @top-center { content: none; }
+      @bottom-center { content: none; }
     }
 
     html, body {
@@ -102,19 +103,15 @@ function buildPrintDocument(
 
     .print-body-content {
       width: 100%;
-      padding: 0;
+      padding: 0 1.5cm;
       box-sizing: border-box;
       background: #fff;
     }
 
-    /* Proposal banner — bleed to page edges on page 1, matching online editor */
     [data-proposal-banner] {
-      margin-left: -1.5cm !important;
-      margin-right: -1.5cm !important;
-      margin-top: 0 !important;
-      width: calc(100% + 3cm) !important;
-      max-width: none !important;
-      box-sizing: border-box !important;
+      margin-left: -1.5cm;
+      margin-right: -1.5cm;
+      width: calc(100% + 3cm);
       break-after: avoid;
       page-break-after: avoid;
       -webkit-print-color-adjust: exact !important;
