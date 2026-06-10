@@ -69,7 +69,6 @@ function buildPrintDocument(
         content: "${headerText}";
         font-family: 'Times New Roman', Times, serif;
         font-size: 9pt;
-        font-style: italic;
         color: #666;
       }
 
