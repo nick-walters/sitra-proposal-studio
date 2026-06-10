@@ -60,8 +60,55 @@ export const HeadingNumberLabel = Mark.create({
           return true;
         },
 
-        appendTransaction(_transactions, _oldState, _newState) {
-          return null;
+        appendTransaction(transactions, _oldState, newState) {
+          if (!transactions.some(tr => tr.docChanged)) return null;
+
+          const changedRanges: { from: number; to: number }[] = [];
+          transactions.forEach(tr => {
+            tr.steps.forEach(step => {
+              const map = step.getMap();
+              map.forEach((_oldStart, _oldEnd, newStart, newEnd) => {
+                changedRanges.push({ from: newStart, to: newEnd });
+              });
+            });
+          });
+
+          if (changedRanges.length === 0) return null;
+
+          const { doc, schema, selection } = newState;
+          const markTypeRef = schema.marks.headingNumberLabel;
+          if (!markTypeRef) return null;
+
+          let needsClamp = false;
+          let labelFrom = -1;
+          let labelTo = -1;
+
+          for (const range of changedRanges) {
+            const from = Math.max(0, range.from - 5);
+            const to = Math.min(doc.content.size, range.to + 5);
+
+            doc.nodesBetween(from, to, (node, pos) => {
+              if (!node.isText) return;
+              const mark = markTypeRef.isInSet(node.marks);
+              if (mark) {
+                needsClamp = true;
+                if (labelFrom === -1 || pos < labelFrom) labelFrom = pos;
+                if (pos + node.nodeSize > labelTo) labelTo = pos + node.nodeSize;
+              }
+            });
+
+            if (needsClamp) break;
+          }
+
+          if (!needsClamp) return null;
+
+          const cursorPos = selection.$from.pos;
+          if (cursorPos < labelFrom || cursorPos > labelTo) return null;
+
+          const tr = newState.tr;
+          tr.setSelection(TextSelection.create(doc, labelTo));
+          tr.setMeta('addToHistory', false);
+          return tr;
         },
       }),
     ];
