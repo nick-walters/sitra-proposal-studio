@@ -3078,6 +3078,50 @@ export type Database = {
           },
         ]
       }
+      proposal_backups: {
+        Row: {
+          backup_timestamp: string
+          bucket_paths: Json
+          created_at: string
+          error: string | null
+          id: string
+          proposal_id: string
+          sharepoint_path: string | null
+          sharepoint_status: string
+          size_bytes: number
+        }
+        Insert: {
+          backup_timestamp?: string
+          bucket_paths?: Json
+          created_at?: string
+          error?: string | null
+          id?: string
+          proposal_id: string
+          sharepoint_path?: string | null
+          sharepoint_status?: string
+          size_bytes?: number
+        }
+        Update: {
+          backup_timestamp?: string
+          bucket_paths?: Json
+          created_at?: string
+          error?: string | null
+          id?: string
+          proposal_id?: string
+          sharepoint_path?: string | null
+          sharepoint_status?: string
+          size_bytes?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_backups_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proposal_message_recipients: {
         Row: {
           id: string
@@ -4198,6 +4242,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      sharepoint_backup_config: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          per_proposal_subfolder: boolean
+          root_folder_path: string
+          singleton: boolean
+          site_id: string | null
+          site_url: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          per_proposal_subfolder?: boolean
+          root_folder_path?: string
+          singleton?: boolean
+          site_id?: string | null
+          site_url?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          per_proposal_subfolder?: boolean
+          root_folder_path?: string
+          singleton?: boolean
+          site_id?: string | null
+          site_url?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
       }
       snippet_library: {
         Row: {
