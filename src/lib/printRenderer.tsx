@@ -552,7 +552,7 @@ export async function prepareExportContainer(
   document.body.appendChild(container);
 
   // Mount B3.1 React components (tables, charts)
-  await mountB31Components(container, options.proposal.id, options.proposal.acronym);
+  await mountB31Components(container, options.proposal.id, options.proposal.acronym, appQueryClient);
   console.timeLog('export-build-container', 'B3.1 mounted');
 
   // Refresh any expired signed URLs before waiting for images to load
