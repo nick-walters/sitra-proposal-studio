@@ -9,7 +9,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Participant, Section } from '@/types/proposal';
 import { supabase } from '@/integrations/supabase/client';
 import { resolveStorageUrl } from '@/hooks/useStorageUrl';
-import { extractFilePathFromUrl, getProposalFileSignedUrl } from '@/lib/proposalStorage';
+import { extractFilePathFromUrl } from '@/lib/proposalStorage';
 import { SITRA_LOGO_BASE64 } from '@/lib/sitraLogo';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -99,28 +99,42 @@ async function resolveImagesInHtml(html: string): Promise<string> {
 async function refreshSignedUrls(container: HTMLElement): Promise<void> {
   const images = container.querySelectorAll('img');
 
-  await Promise.all(
-    Array.from(images).map(async (img) => {
-      const src = img.getAttribute('src');
-      if (!src) return;
+  // Collect all storage paths that need refreshing
+  const imageEntries: { img: HTMLImageElement; storagePath: string }[] = [];
 
-      // Only process URLs that point to our storage bucket
-      const storagePath = extractFilePathFromUrl(src);
-      if (!storagePath) return;
+  images.forEach((img) => {
+    const src = img.getAttribute('src');
+    if (!src) return;
+    const storagePath = extractFilePathFromUrl(src);
+    if (!storagePath) return;
+    imageEntries.push({ img, storagePath });
+  });
 
-      try {
-        const { url, error } = await getProposalFileSignedUrl(storagePath);
-        if (url && !error) {
-          img.setAttribute('src', url);
-        } else {
-          console.warn('Failed to refresh signed URL for:', storagePath, error);
-        }
-      } catch (err) {
-        console.warn('Error refreshing signed URL for:', storagePath, err);
-        // Leave original src unchanged — don't break the export for one bad image
+  if (imageEntries.length === 0) return;
+
+  try {
+    // Single batch call to Supabase for all signed URLs
+    const { data, error } = await supabase.storage
+      .from('proposal-files')
+      .createSignedUrls(
+        imageEntries.map((e) => e.storagePath),
+        3600, // 1 hour expiry
+      );
+
+    if (error || !data) {
+      console.warn('Batch signed URL refresh failed:', error);
+      return;
+    }
+
+    // Apply the new URLs
+    data.forEach((result, index) => {
+      if (result?.signedUrl) {
+        imageEntries[index].img.setAttribute('src', result.signedUrl);
       }
-    })
-  );
+    });
+  } catch (err) {
+    console.warn('Error in batch signed URL refresh:', err);
+  }
 }
 
 // ── Build participant list HTML ──────────────────────────────────────────────
