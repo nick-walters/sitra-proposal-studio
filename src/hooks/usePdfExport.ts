@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
 import { Proposal, Section, Participant } from '@/types/proposal';
 import { prepareExportContainer, ExportData } from '@/lib/printRenderer';
 
@@ -261,6 +262,7 @@ async function waitForPrintAssets(printDocument: Document): Promise<void> {
 }
 
 export function usePdfExport() {
+  const appQueryClient = useQueryClient();
   const exportProposalToPdf = useCallback(
     async (data: ExportData) => {
       const { proposal, sectionContents, sections, participants = [] } = data;
@@ -282,7 +284,7 @@ export function usePdfExport() {
           sections,
           sectionContents,
           participants,
-        });
+        }, undefined, appQueryClient);
         console.timeLog('export-total', 'container ready');
 
         // Build the self-contained HTML document
@@ -370,7 +372,7 @@ export function usePdfExport() {
         toast.error('Failed to export PDF. Please try again.');
       }
     },
-    [],
+    [appQueryClient],
   );
 
   return { exportProposalToPdf };

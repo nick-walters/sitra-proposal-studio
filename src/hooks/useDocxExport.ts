@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { saveAs } from 'file-saver';
 import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
 import { Proposal, Section, Participant } from '@/types/proposal';
 import { prepareExportContainer, ExportData } from '@/lib/printRenderer';
 import { scrubDomForExport } from '@/lib/exportDomScrubber';
@@ -184,6 +185,7 @@ ${bodyHtml}
 export { type ExportData };
 
 export function useDocxExport() {
+  const appQueryClient = useQueryClient();
   const exportProposalToDocx = useCallback(
     async (data: ExportData, options?: { includeWatermark?: boolean }) => {
       const { proposal, sectionContents, sections, participants = [] } = data;
@@ -204,7 +206,7 @@ export function useDocxExport() {
           sections,
           sectionContents,
           participants,
-        });
+        }, undefined, appQueryClient);
 
         // Convert images to base64 data URIs for embedding
         toast.info('Generating Word document – embedding images…');
@@ -264,7 +266,7 @@ export function useDocxExport() {
         toast.error('Failed to export Word document. Please try again.');
       }
     },
-    [],
+    [appQueryClient],
   );
 
   return { exportProposalToDocx };

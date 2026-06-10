@@ -385,6 +385,7 @@ export async function mountB31Components(
   container: HTMLElement,
   proposalId: string,
   proposalAcronym: string,
+  appQueryClient?: QueryClient,
 ): Promise<void> {
   const mount = container.querySelector('#print-b31-mount');
   if (!mount) return;
@@ -394,9 +395,13 @@ export async function mountB31Components(
     import('@/components/B31SectionContent'),
   ]);
 
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false, gcTime: 0 } },
-  });
+  // Reuse the app's QueryClient when available so the export tree reads from
+  // the already-warm cache instead of refetching every B3.1 query cold.
+  const queryClient =
+    appQueryClient ??
+    new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
 
   const root = createRoot(mount);
 
@@ -421,7 +426,7 @@ export async function mountB31Components(
       const isFetching = queryClient.isFetching() > 0;
       if ((hasTables && !isFetching) || elapsed > 15000) {
         clearInterval(interval);
-        setTimeout(resolve, 1000);
+        setTimeout(resolve, 200);
       }
     }, 200);
   });
@@ -528,6 +533,7 @@ function freezeInteractiveElements(container: HTMLElement): void {
 export async function prepareExportContainer(
   options: PrintRenderOptions,
   statusMessage?: string,
+  appQueryClient?: QueryClient,
 ): Promise<{ container: HTMLDivElement; cleanup: () => void }> {
   console.time('export-build-container');
   const container = await buildPrintContainer(options);
@@ -546,7 +552,7 @@ export async function prepareExportContainer(
   document.body.appendChild(container);
 
   // Mount B3.1 React components (tables, charts)
-  await mountB31Components(container, options.proposal.id, options.proposal.acronym);
+  await mountB31Components(container, options.proposal.id, options.proposal.acronym, appQueryClient);
   console.timeLog('export-build-container', 'B3.1 mounted');
 
   // Refresh any expired signed URLs before waiting for images to load
