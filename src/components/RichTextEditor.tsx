@@ -1635,11 +1635,24 @@ StarterKit.configure({
                       to++;
                     }
                     
+                    // Special case: milestone marks have a "MS" prefix outside the mark
+                    // that should be selected as part of the unit
+                    if (markName === 'inlineReference' || markName === 'wpReference') {
+                      const selectedText = doc.textBetween(from, to);
+                      if (/^\d+$/.test(selectedText) && from >= 2) {
+                        const prefix = doc.textBetween(from - 2, from);
+                        if (prefix === 'MS') {
+                          from = from - 2;
+                        }
+                      }
+                    }
+                    
                     // Select the entire mark range
                     const tr = view.state.tr.setSelection(TextSelection.create(doc, from, to));
                     view.dispatch(tr);
                     return true;
                   }
+
                   
                   return false;
                 },
