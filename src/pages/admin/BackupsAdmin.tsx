@@ -206,13 +206,82 @@ export default function BackupsAdmin() {
           />
         </div>
 
-        <div className="flex gap-2">
-          <Button onClick={save} disabled={saving} className="gap-2">
-            <Save className="w-4 h-4" /> {saving ? "Saving…" : "Save settings"}
-          </Button>
-          <Button variant="outline" onClick={runNow} disabled={running} className="gap-2">
-            <Play className="w-4 h-4" /> {running ? "Running…" : "Run backup now"}
-          </Button>
+        <div className="space-y-3 pt-2">
+          <div>
+            <Label>Run a manual backup</Label>
+            <p className="text-xs text-muted-foreground mt-1">
+              Pick specific proposals from the list, or back up every proposal you have access to in one go. Each proposal is processed sequentially.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="min-w-[260px] justify-between" disabled={running}>
+                  <span className="truncate">{selectedLabel}</span>
+                  <ChevronsUpDown className="w-4 h-4 opacity-60 ml-2 shrink-0" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[340px] p-0" align="start">
+                <div className="p-2 border-b">
+                  <Input
+                    placeholder="Filter proposals…"
+                    value={filter}
+                    onChange={(e) => setFilter(e.target.value)}
+                    className="h-8"
+                  />
+                </div>
+                <div className="max-h-72 overflow-y-auto p-1">
+                  {filteredProposals.length === 0 ? (
+                    <div className="px-3 py-6 text-center text-xs text-muted-foreground">
+                      No matching proposals.
+                    </div>
+                  ) : (
+                    filteredProposals.map((p) => {
+                      const checked = selected.has(p.id);
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => toggleProposal(p.id)}
+                          className="w-full flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-muted text-left"
+                        >
+                          <Checkbox checked={checked} onCheckedChange={() => toggleProposal(p.id)} />
+                          <span className="text-sm font-medium">{p.acronym ?? "(no acronym)"}</span>
+                          <span className="text-xs text-muted-foreground truncate flex-1">{p.title}</span>
+                          {checked && <Check className="w-3 h-3 text-primary shrink-0" />}
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+                <div className="flex items-center justify-between border-t p-2 gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelected(new Set(filteredProposals.map((p) => p.id)))}
+                    disabled={filteredProposals.length === 0}
+                  >
+                    Select all{filter ? " (filtered)" : ""}
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())} disabled={selected.size === 0}>
+                    Clear
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            <Button
+              variant="outline"
+              onClick={() => runNow("selected")}
+              disabled={running || selected.size === 0}
+              className="gap-2"
+            >
+              <Play className="w-4 h-4" /> {running ? "Running…" : `Back up selected${selected.size ? ` (${selected.size})` : ""}`}
+            </Button>
+            <Button variant="outline" onClick={() => runNow("all")} disabled={running || proposals.length === 0} className="gap-2">
+              <Play className="w-4 h-4" /> {running ? "Running…" : `Back up all (${proposals.length})`}
+            </Button>
+          </div>
         </div>
       </Card>
 
