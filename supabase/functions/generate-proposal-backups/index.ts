@@ -614,7 +614,9 @@ async function buildA4(supabase: any, proposal: any): Promise<Uint8Array> {
     return await packDocx(children);
   }
 
-  // Build a name → value map of all booleans + page + details
+  // Build per-section tables of Item / Yes-No / Page.
+  // The freeform "_details" fields are intentionally omitted — they belong in
+  // the proposal text, not in the A4 backup summary.
   const entries = Object.entries(ethics).filter(([k]) => !["id", "proposal_id", "created_at", "updated_at"].includes(k));
   const used = new Set<string>();
   for (const sec of ETHICS_SECTIONS) {
@@ -622,38 +624,35 @@ async function buildA4(supabase: any, proposal: any): Promise<Uint8Array> {
     if (!matched.length) continue;
     const rows: string[][] = [];
     const bools = matched.filter(([k]) => typeof ethics[k] === "boolean" || ethics[k] === null);
-    const texts = matched.filter(([k]) => typeof ethics[k] === "string");
     for (const [k] of bools) {
       const base = k;
       const pageKey = `${base}_page`;
       const detailKey = `${base}_details`;
+      // Skip rows with no answer AND no page reference (keeps the table compact).
+      if ((ethics[base] === null || ethics[base] === undefined) && !ethics[pageKey]) {
+        used.add(base); used.add(pageKey); used.add(detailKey);
+        continue;
+      }
       rows.push([
         base.replace(/_/g, " "),
         yn(ethics[base]),
         ethics[pageKey] ?? "",
-        ethics[detailKey] ?? "",
       ]);
       used.add(base); used.add(pageKey); used.add(detailKey);
     }
-    // Loose text fields with the same prefix that weren't paired
-    for (const [k, v] of texts) {
-      if (used.has(k)) continue;
-      if (!v) continue;
-      rows.push([k.replace(/_/g, " "), "", "", String(v)]);
-      used.add(k);
-    }
     if (rows.length) {
       children.push(H(HeadingLevel.HEADING_2, sec.title));
-      children.push(simpleTable(["Item", "Yes/No", "Page", "Details"], rows));
+      children.push(simpleTable(["Item", "Yes/No", "Page"], rows));
     }
+    // mark any remaining matched fields as used so they don't reappear below
+    for (const [k] of matched) used.add(k);
   }
-  // Catch-all: any remaining fields not in a known section
+  // Catch-all: any remaining yes/no flags not in a known section.
   const leftover = entries.filter(([k]) => !used.has(k));
-  if (leftover.length) {
-    children.push(H(HeadingLevel.HEADING_2, "Other ethics fields"));
-    const rows = leftover.filter(([_, v]) => v !== null && v !== "" && v !== false)
-      .map(([k, v]) => [k.replace(/_/g, " "), typeof v === "boolean" ? yn(v) : String(v ?? "")]);
-    if (rows.length) children.push(simpleTable(["Field", "Value"], rows));
+  const leftoverBools = leftover.filter(([_, v]) => typeof v === "boolean");
+  if (leftoverBools.length) {
+    children.push(H(HeadingLevel.HEADING_2, "Other ethics items"));
+    children.push(simpleTable(["Field", "Yes/No"], leftoverBools.map(([k, v]) => [k.replace(/_/g, " "), yn(v as boolean)])));
   }
   if (ethics.self_assessment_text) {
     children.push(H(HeadingLevel.HEADING_2, "Self-assessment"));
