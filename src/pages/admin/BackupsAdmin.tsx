@@ -62,12 +62,16 @@ export default function BackupsAdmin() {
         body: { trigger: "manual", force: true },
       });
       if (error) throw error;
-      const results = (data as any)?.results ?? [];
-      const ok = results.filter((r: any) => !r.error).length;
-      const failed = results.length - ok;
-      toast.success(
-        `Backup run complete: ${ok} proposal${ok === 1 ? "" : "s"} backed up${failed ? `, ${failed} failed` : ""}.`,
-      );
+      if ((data as any)?.started) {
+        toast.success("Backup started in the background. Refresh the backups panel in ~1 minute to see new entries.");
+      } else {
+        const results = (data as any)?.results ?? [];
+        const ok = results.filter((r: any) => !r.error).length;
+        const failed = results.length - ok;
+        toast.success(
+          `Backup run complete: ${ok} proposal${ok === 1 ? "" : "s"} backed up${failed ? `, ${failed} failed` : ""}.`,
+        );
+      }
     } catch (e: any) {
       toast.error(e.message ?? "Backup run failed");
     } finally {

@@ -935,122 +935,129 @@ Deno.serve(async (req) => {
   const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
   const stamp = helsinkiStamp(now);
 
-  const { data: cfg } = await supabase.from("sharepoint_backup_config").select("*").maybeSingle();
-  const { data: proposals, error: pErr } = await supabase.from("proposals").select("*");
-  if (pErr) {
-    return new Response(JSON.stringify({ error: pErr.message }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
+  // Heavy work runs in the background so the request returns immediately
+  // (edge-runtime has a strict CPU budget per request). The frontend can
+  // poll `proposal_backups` to see results land.
+  const work = (async () => {
+    const { data: cfg } = await supabase.from("sharepoint_backup_config").select("*").maybeSingle();
+    const { data: proposals, error: pErr } = await supabase.from("proposals").select("*");
+    if (pErr) {
+      console.error("proposals fetch failed", pErr);
+      return;
+    }
 
-  const results: any[] = [];
-  for (const proposal of proposals ?? []) {
-    const acr = safeAcronym(proposal.acronym);
+    for (const proposal of proposals ?? []) {
+      const acr = safeAcronym(proposal.acronym);
+      try {
+        const files: { name: string; bytes: Uint8Array; mime: string }[] = [];
+
+        const { data: participants } = await supabase
+          .from("participants").select("id, participant_number, organisation_short_name")
+          .eq("proposal_id", proposal.id).order("participant_number", { ascending: true });
+
+        files.push({ name: `${acr} Part A1 ${stamp}.docx`, bytes: await buildA1(supabase, proposal), mime: DOCX_MIME });
+        files.push({ name: `${acr} Part A2 ${stamp}.docx`, bytes: await buildA2(supabase, proposal), mime: DOCX_MIME });
+        files.push({ name: `${acr} Part A3 ${stamp}.xlsx`, bytes: await buildA3Xlsx(supabase, proposal), mime: XLSX_MIME });
+        files.push({ name: `${acr} Part A4 ${stamp}.docx`, bytes: await buildA4(supabase, proposal), mime: DOCX_MIME });
+        files.push({ name: `${acr} Part A5 ${stamp}.docx`, bytes: await buildA5(supabase, proposal), mime: DOCX_MIME });
+
+        for (const sec of PART_B_SECTIONS) {
+          files.push({
+            name: `${acr} Part ${sec.label} ${stamp}.docx`,
+            bytes: await buildPartBSection(supabase, proposal, sec.id, sec.label),
+            mime: DOCX_MIME,
+          });
+        }
+        files.push({ name: `${acr} Part B3.1 ${stamp}.docx`, bytes: await buildB31(supabase, proposal), mime: DOCX_MIME });
+
+        const { data: wps } = await supabase.from("wp_drafts").select("*").eq("proposal_id", proposal.id).order("number", { ascending: true });
+        for (const w of wps ?? []) {
+          files.push({
+            name: `${acr} WP${w.number} Draft ${stamp}.docx`,
+            bytes: await buildWpDraft(supabase, proposal, w, participants ?? []),
+            mime: DOCX_MIME,
+          });
+        }
+
+        const { data: cases } = await supabase.from("case_drafts").select("*").eq("proposal_id", proposal.id).order("number", { ascending: true });
+        for (const c of cases ?? []) {
+          files.push({
+            name: `${acr} Case ${c.number} Draft ${stamp}.docx`,
+            bytes: await buildCaseDraft(supabase, proposal, c, participants ?? []),
+            mime: DOCX_MIME,
+          });
+        }
+
+        files.sort((a, b) => a.name.localeCompare(b.name));
+
+        const bucketPaths: string[] = [];
+        let totalBytes = 0;
+        for (const f of files) {
+          const path = `${proposal.id}/${stamp}/${f.name}`;
+          const { error: upErr } = await supabase.storage.from("proposal-backups").upload(path, f.bytes, {
+            contentType: f.mime, upsert: true,
+          });
+          if (upErr) throw upErr;
+          bucketPaths.push(path);
+          totalBytes += f.bytes.length;
+        }
+
+        const sp = await pushToSharePoint(cfg, acr, files);
+
+        await supabase.from("proposal_backups").insert({
+          proposal_id: proposal.id,
+          backup_timestamp: now.toISOString(),
+          sharepoint_status: sp.status,
+          sharepoint_path: sp.path ?? null,
+          bucket_paths: bucketPaths,
+          size_bytes: totalBytes,
+          error: sp.error ?? null,
+        });
+      } catch (e) {
+        console.error(`Backup failed for ${acr}:`, e);
+        await supabase.from("proposal_backups").insert({
+          proposal_id: proposal.id,
+          backup_timestamp: now.toISOString(),
+          sharepoint_status: "failed",
+          bucket_paths: [],
+          size_bytes: 0,
+          error: (e as Error).message,
+        });
+      }
+    }
+
+    // Cleanup: rows + objects older than 90 days
     try {
-      const files: { name: string; bytes: Uint8Array; mime: string }[] = [];
-
-      // Fetch participants once for reuse
-      const { data: participants } = await supabase
-        .from("participants").select("id, participant_number, organisation_short_name")
-        .eq("proposal_id", proposal.id).order("participant_number", { ascending: true });
-
-      // Part A
-      files.push({ name: `${acr} Part A1 ${stamp}.docx`, bytes: await buildA1(supabase, proposal), mime: DOCX_MIME });
-      files.push({ name: `${acr} Part A2 ${stamp}.docx`, bytes: await buildA2(supabase, proposal), mime: DOCX_MIME });
-      files.push({ name: `${acr} Part A3 ${stamp}.xlsx`, bytes: await buildA3Xlsx(supabase, proposal), mime: XLSX_MIME });
-      files.push({ name: `${acr} Part A4 ${stamp}.docx`, bytes: await buildA4(supabase, proposal), mime: DOCX_MIME });
-      files.push({ name: `${acr} Part A5 ${stamp}.docx`, bytes: await buildA5(supabase, proposal), mime: DOCX_MIME });
-
-      // Part B (canonical sections only — UUID/legacy 'b3' rows are ignored)
-      for (const sec of PART_B_SECTIONS) {
-        files.push({
-          name: `${acr} Part ${sec.label} ${stamp}.docx`,
-          bytes: await buildPartBSection(supabase, proposal, sec.id, sec.label),
-          mime: DOCX_MIME,
-        });
+      const cutoff = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000).toISOString();
+      const { data: old } = await supabase.from("proposal_backups").select("id, bucket_paths").lt("backup_timestamp", cutoff);
+      if (old?.length) {
+        const allPaths = old.flatMap((r: any) => (r.bucket_paths ?? []) as string[]);
+        for (let i = 0; i < allPaths.length; i += 100) {
+          await supabase.storage.from("proposal-backups").remove(allPaths.slice(i, i + 100));
+        }
+        await supabase.from("proposal_backups").delete().in("id", old.map((r: any) => r.id));
       }
-      files.push({ name: `${acr} Part B3.1 ${stamp}.docx`, bytes: await buildB31(supabase, proposal), mime: DOCX_MIME });
-
-      // WP drafts
-      const { data: wps } = await supabase.from("wp_drafts").select("*").eq("proposal_id", proposal.id).order("number", { ascending: true });
-      for (const w of wps ?? []) {
-        files.push({
-          name: `${acr} WP${w.number} Draft ${stamp}.docx`,
-          bytes: await buildWpDraft(supabase, proposal, w, participants ?? []),
-          mime: DOCX_MIME,
-        });
-      }
-
-      // Case drafts
-      const { data: cases } = await supabase.from("case_drafts").select("*").eq("proposal_id", proposal.id).order("number", { ascending: true });
-      for (const c of cases ?? []) {
-        files.push({
-          name: `${acr} Case ${c.number} Draft ${stamp}.docx`,
-          bytes: await buildCaseDraft(supabase, proposal, c, participants ?? []),
-          mime: DOCX_MIME,
-        });
-      }
-
-      // Sort alphabetically by filename before upload
-      files.sort((a, b) => a.name.localeCompare(b.name));
-
-      // Upload to bucket
-      const bucketPaths: string[] = [];
-      let totalBytes = 0;
-      for (const f of files) {
-        const path = `${proposal.id}/${stamp}/${f.name}`;
-        const { error: upErr } = await supabase.storage.from("proposal-backups").upload(path, f.bytes, {
-          contentType: f.mime, upsert: true,
-        });
-        if (upErr) throw upErr;
-        bucketPaths.push(path);
-        totalBytes += f.bytes.length;
-      }
-
-      const sp = await pushToSharePoint(cfg, acr, files);
-
-      const { error: insErr } = await supabase.from("proposal_backups").insert({
-        proposal_id: proposal.id,
-        backup_timestamp: now.toISOString(),
-        sharepoint_status: sp.status,
-        sharepoint_path: sp.path ?? null,
-        bucket_paths: bucketPaths,
-        size_bytes: totalBytes,
-        error: sp.error ?? null,
-      });
-      if (insErr) throw insErr;
-
-      results.push({ proposal_id: proposal.id, acronym: acr, files: files.length, bytes: totalBytes, sharepoint: sp.status });
     } catch (e) {
-      console.error(`Backup failed for ${acr}:`, e);
-      results.push({ proposal_id: proposal.id, acronym: acr, error: (e as Error).message });
-      await supabase.from("proposal_backups").insert({
-        proposal_id: proposal.id,
-        backup_timestamp: now.toISOString(),
-        sharepoint_status: "failed",
-        bucket_paths: [],
-        size_bytes: 0,
-        error: (e as Error).message,
-      });
+      console.warn("cleanup failed", e);
     }
+  })();
+
+  // @ts-ignore EdgeRuntime is provided by the Supabase edge runtime
+  if (typeof EdgeRuntime !== "undefined" && (EdgeRuntime as any).waitUntil) {
+    // @ts-ignore
+    EdgeRuntime.waitUntil(work);
+  } else {
+    work.catch((e) => console.error("background work failed", e));
   }
 
-  // Cleanup: rows + objects older than 90 days
-  try {
-    const cutoff = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000).toISOString();
-    const { data: old } = await supabase.from("proposal_backups").select("id, bucket_paths").lt("backup_timestamp", cutoff);
-    if (old?.length) {
-      const allPaths = old.flatMap((r: any) => (r.bucket_paths ?? []) as string[]);
-      for (let i = 0; i < allPaths.length; i += 100) {
-        await supabase.storage.from("proposal-backups").remove(allPaths.slice(i, i + 100));
-      }
-      await supabase.from("proposal_backups").delete().in("id", old.map((r: any) => r.id));
-    }
-  } catch (e) {
-    console.warn("cleanup failed", e);
-  }
-
-  return new Response(JSON.stringify({ ran_at: now.toISOString(), helsinki_stamp: stamp, forced: force, results }), {
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
+  return new Response(
+    JSON.stringify({
+      started: true,
+      ran_at: now.toISOString(),
+      helsinki_stamp: stamp,
+      forced: force,
+      message: "Backup started in background. Check the backups panel in a minute for results.",
+    }),
+    { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 202 },
+  );
 });
