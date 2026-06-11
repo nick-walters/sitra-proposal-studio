@@ -481,9 +481,44 @@ async function buildA3Xlsx(supabase: any, proposal: any): Promise<Uint8Array> {
     .from("participants").select("id, participant_number, organisation_short_name, organisation_name")
     .eq("proposal_id", proposal.id)
     .order("participant_number", { ascending: true });
+  const parts = participants ?? [];
+
+  const wb = XLSX.utils.book_new();
+
+  // ─── Sheet 1: Staff Effort (WPs × Participants matrix, PMs) ───
+  const { data: wps } = await supabase
+    .from("wp_drafts").select("id, number, short_name").eq("proposal_id", proposal.id)
+    .order("number", { ascending: true });
+  const wpList = wps ?? [];
+  const { data: effortRows } = await supabase
+    .from("wp_draft_effort").select("wp_draft_id, participant_id, person_months")
+    .in("wp_draft_id", wpList.map((w: any) => w.id).concat(["00000000-0000-0000-0000-000000000000"]));
+  const effortMap = new Map<string, number>();
+  for (const e of effortRows ?? []) effortMap.set(`${e.wp_draft_id}::${e.participant_id}`, Number(e.person_months ?? 0));
+
+  const effortHeader = ["Participant", ...wpList.map((w: any) => `WP${w.number}${w.short_name ? ` ${w.short_name}` : ""}`), "Total PMs"];
+  const effortData: any[][] = [effortHeader];
+  const wpTotals = new Array(wpList.length).fill(0);
+  for (const p of parts) {
+    const row: any[] = [`P${p.participant_number} ${p.organisation_short_name ?? ""}`];
+    let rowTotal = 0;
+    wpList.forEach((w: any, i: number) => {
+      const v = effortMap.get(`${w.id}::${p.id}`) ?? 0;
+      row.push(v || 0);
+      wpTotals[i] += v;
+      rowTotal += v;
+    });
+    row.push(rowTotal);
+    effortData.push(row);
+  }
+  effortData.push(["TOTAL", ...wpTotals, wpTotals.reduce((a, b) => a + b, 0)]);
+  const wsEffort = XLSX.utils.aoa_to_sheet(effortData);
+  wsEffort["!cols"] = effortHeader.map((h) => ({ wch: Math.max(10, h.length + 2) }));
+  XLSX.utils.book_append_sheet(wb, wsEffort, "Staff Effort");
+
+  // ─── Sheet 2: Budget Overview (per-participant totals) ───
   const { data: rows } = await supabase
     .from("budget_rows").select("*").eq("proposal_id", proposal.id);
-
   const byPart = new Map<string, any>();
   for (const r of rows ?? []) byPart.set(r.participant_id, r);
 
@@ -495,9 +530,8 @@ async function buildA3Xlsx(supabase: any, proposal: any): Promise<Uint8Array> {
     "Requested EU contribution",
   ];
   const data: any[][] = [header];
-  let totals = new Array(header.length - 3).fill(0);
-
-  for (const p of participants ?? []) {
+  const totals = new Array(header.length - 3).fill(0);
+  for (const p of parts) {
     const r = byPart.get(p.id) ?? {};
     const vals = [
       Number(r.personnel_costs ?? 0),
@@ -519,10 +553,7 @@ async function buildA3Xlsx(supabase: any, proposal: any): Promise<Uint8Array> {
     vals.forEach((v, i) => { if (typeof v === "number" && !isNaN(v)) totals[i] += v; });
   }
   data.push(["", "TOTAL", "", ...totals.map((t, i) => (i === 9 ? "" : t))]);
-
-  const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(data);
-  // Format numeric columns to 2 dp
   const range = XLSX.utils.decode_range(ws["!ref"] as string);
   for (let R = 1; R <= range.e.r; R++) {
     for (let C = 3; C <= range.e.c; C++) {
@@ -531,9 +562,9 @@ async function buildA3Xlsx(supabase: any, proposal: any): Promise<Uint8Array> {
     }
   }
   ws["!cols"] = header.map((h) => ({ wch: Math.max(12, h.length + 2) }));
-  XLSX.utils.book_append_sheet(wb, ws, "A3 Budget summary");
+  XLSX.utils.book_append_sheet(wb, ws, "Budget Overview");
 
-  // Cost justifications sheet
+  // ─── Sheet 3: Cost justifications (if any) ───
   const { data: justs } = await supabase
     .from("budget_cost_justifications").select("*, participant:participant_id(organisation_short_name)").eq("proposal_id", proposal.id);
   if (justs?.length) {
@@ -545,6 +576,7 @@ async function buildA3Xlsx(supabase: any, proposal: any): Promise<Uint8Array> {
   const buf = XLSX.write(wb, { bookType: "xlsx", type: "array" });
   return new Uint8Array(buf as ArrayBuffer);
 }
+
 
 // Group ethics_assessment fields into sections by prefix.
 const ETHICS_SECTIONS: { title: string; prefix: string }[] = [
