@@ -70,14 +70,23 @@ export function ProposalBackupsPanel({ proposalId }: Props) {
   };
 
   const download = async (path: string) => {
+    const fileName = path.split("/").pop() ?? "backup";
     const { data, error } = await supabase.storage
       .from("proposal-backups")
-      .createSignedUrl(path, 60);
+      .createSignedUrl(path, 60, { download: fileName });
     if (error || !data?.signedUrl) {
       toast.error("Could not generate download link");
       return;
     }
-    window.open(data.signedUrl, "_blank");
+    // Use a hidden anchor with the `download` attribute so the browser saves
+    // the file directly instead of opening it (or a blank tab) in the viewer.
+    const a = document.createElement("a");
+    a.href = data.signedUrl;
+    a.download = fileName;
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
   };
 
   const fmtSize = (n: number) => {
