@@ -43,6 +43,8 @@ export function ProposalBackupsPanel({ proposalId }: Props) {
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<BackupRow | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const load = async () => {
     setLoading(true);
