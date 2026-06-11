@@ -31,6 +31,7 @@ const STATUS_META: Record<BackupRow["sharepoint_status"], { label: string; icon:
 export function ProposalBackupsPanel({ proposalId }: Props) {
   const [rows, setRows] = useState<BackupRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [running, setRunning] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
 
   const load = async () => {
