@@ -163,10 +163,12 @@ export function ProposalBackupsPanel({ proposalId }: Props) {
             const isOpen = expanded === r.id;
             return (
               <Card key={r.id} className="overflow-hidden">
-                <button
-                  type="button"
+                <div
+                  role="button"
+                  tabIndex={0}
                   onClick={() => setExpanded(isOpen ? null : r.id)}
-                  className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/40 transition-colors text-left"
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setExpanded(isOpen ? null : r.id); } }}
+                  className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/40 transition-colors text-left cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
                     <FileText className="w-4 h-4 text-muted-foreground" />
@@ -194,7 +196,7 @@ export function ProposalBackupsPanel({ proposalId }: Props) {
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
-                </button>
+                </div>
                 {isOpen && (
                   <div className="border-t bg-muted/30 px-4 py-3 space-y-1">
                     {r.error && (
