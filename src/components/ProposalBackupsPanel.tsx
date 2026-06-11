@@ -49,6 +49,26 @@ export function ProposalBackupsPanel({ proposalId }: Props) {
 
   useEffect(() => { load(); }, [proposalId]);
 
+  const runNow = async () => {
+    setRunning(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-proposal-backups", {
+        body: { trigger: "manual", force: true, proposal_id: proposalId },
+      });
+      if (error) throw error;
+      if ((data as any)?.ok === false) {
+        toast.error(`Backup failed: ${(data as any)?.result?.error ?? "unknown error"}`);
+      } else {
+        toast.success("Backup complete.");
+        await load();
+      }
+    } catch (e: any) {
+      toast.error(e.message ?? "Backup failed");
+    } finally {
+      setRunning(false);
+    }
+  };
+
   const download = async (path: string) => {
     const { data, error } = await supabase.storage
       .from("proposal-backups")
