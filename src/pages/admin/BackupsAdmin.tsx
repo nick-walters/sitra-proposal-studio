@@ -58,20 +58,27 @@ export default function BackupsAdmin() {
   const runNow = async () => {
     setRunning(true);
     try {
-      const { data, error } = await supabase.functions.invoke("generate-proposal-backups", {
-        body: { trigger: "manual", force: true },
-      });
-      if (error) throw error;
-      if ((data as any)?.started) {
-        toast.success("Backup started in the background. Refresh the backups panel in ~1 minute to see new entries.");
-      } else {
-        const results = (data as any)?.results ?? [];
-        const ok = results.filter((r: any) => !r.error).length;
-        const failed = results.length - ok;
-        toast.success(
-          `Backup run complete: ${ok} proposal${ok === 1 ? "" : "s"} backed up${failed ? `, ${failed} failed` : ""}.`,
-        );
+      const { data: proposals, error: pErr } = await supabase
+        .from("proposals")
+        .select("id, acronym");
+      if (pErr) throw pErr;
+      const list = proposals ?? [];
+      if (!list.length) {
+        toast.info("No proposals to back up.");
+        return;
       }
+      toast.info(`Backing up ${list.length} proposal${list.length === 1 ? "" : "s"} one at a time…`);
+      let ok = 0; let failed = 0;
+      for (const p of list) {
+        try {
+          const { data, error } = await supabase.functions.invoke("generate-proposal-backups", {
+            body: { trigger: "manual", force: true, proposal_id: p.id },
+          });
+          if (error || (data as any)?.ok === false) { failed++; }
+          else { ok++; }
+        } catch (_) { failed++; }
+      }
+      toast.success(`Backup run complete: ${ok} succeeded${failed ? `, ${failed} failed` : ""}.`);
     } catch (e: any) {
       toast.error(e.message ?? "Backup run failed");
     } finally {

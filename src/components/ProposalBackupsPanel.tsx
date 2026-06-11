@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Download, CheckCircle2, XCircle, MinusCircle, Clock, FileText, RefreshCw } from "lucide-react";
+import { Download, CheckCircle2, XCircle, MinusCircle, Clock, FileText, RefreshCw, Play } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -31,6 +31,7 @@ const STATUS_META: Record<BackupRow["sharepoint_status"], { label: string; icon:
 export function ProposalBackupsPanel({ proposalId }: Props) {
   const [rows, setRows] = useState<BackupRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [running, setRunning] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
 
   const load = async () => {
@@ -47,6 +48,26 @@ export function ProposalBackupsPanel({ proposalId }: Props) {
   };
 
   useEffect(() => { load(); }, [proposalId]);
+
+  const runNow = async () => {
+    setRunning(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-proposal-backups", {
+        body: { trigger: "manual", force: true, proposal_id: proposalId },
+      });
+      if (error) throw error;
+      if ((data as any)?.ok === false) {
+        toast.error(`Backup failed: ${(data as any)?.result?.error ?? "unknown error"}`);
+      } else {
+        toast.success("Backup complete.");
+        await load();
+      }
+    } catch (e: any) {
+      toast.error(e.message ?? "Backup failed");
+    } finally {
+      setRunning(false);
+    }
+  };
 
   const download = async (path: string) => {
     const { data, error } = await supabase.storage
@@ -76,9 +97,14 @@ export function ProposalBackupsPanel({ proposalId }: Props) {
             Daily snapshots of this proposal’s sections &amp; budget. Generated automatically at 06:00 Europe/Helsinki and kept for 90 days. SharePoint copies (when configured) live in your Teams &amp; are retained by your organisation.
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={load} className="gap-2">
-          <RefreshCw className="w-4 h-4" /> Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={runNow} disabled={running} className="gap-2">
+            <Play className="w-4 h-4" /> {running ? "Running…" : "Run backup now"}
+          </Button>
+          <Button variant="outline" size="sm" onClick={load} className="gap-2">
+            <RefreshCw className="w-4 h-4" /> Refresh
+          </Button>
+        </div>
       </div>
 
       {loading ? (
