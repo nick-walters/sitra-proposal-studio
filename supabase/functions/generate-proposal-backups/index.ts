@@ -239,8 +239,9 @@ function blockToDocx(node: any): (Paragraph | Table)[] {
 }
 
 function htmlToDocxChildren(html: string | null | undefined): (Paragraph | Table)[] {
-  if (!html || !html.trim()) return [new Paragraph({ children: [new TextRun({ text: "(empty)", italics: true })] })];
-  const root = parseHtml(html, { lowerCaseTagName: true });
+  const cleaned = cleanHtml(html);
+  if (!cleaned || !cleaned.trim()) return [new Paragraph({ children: [new TextRun({ text: "(empty)", italics: true })] })];
+  const root = parseHtml(cleaned, { lowerCaseTagName: true });
   const out: (Paragraph | Table)[] = [];
   let inlineBuffer: any[] = [];
   const flush = () => {
