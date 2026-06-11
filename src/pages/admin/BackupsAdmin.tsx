@@ -206,6 +206,12 @@ export default function BackupsAdmin() {
           />
         </div>
 
+        <div className="flex gap-2">
+          <Button onClick={save} disabled={saving} className="gap-2">
+            <Save className="w-4 h-4" /> {saving ? "Saving…" : "Save settings"}
+          </Button>
+        </div>
+
         <div className="space-y-3 pt-2">
           <div>
             <Label>Run a manual backup</Label>
