@@ -63,18 +63,16 @@ export default function BackupsAdmin() {
     else toast.success("Backup settings saved");
   };
 
-  const runNow = async () => {
+  const runNow = async (mode: "all" | "selected") => {
+    const list = mode === "all"
+      ? proposals
+      : proposals.filter((p) => selected.has(p.id));
+    if (!list.length) {
+      toast.info(mode === "all" ? "No proposals to back up." : "Select at least one proposal.");
+      return;
+    }
     setRunning(true);
     try {
-      const { data: proposals, error: pErr } = await supabase
-        .from("proposals")
-        .select("id, acronym");
-      if (pErr) throw pErr;
-      const list = proposals ?? [];
-      if (!list.length) {
-        toast.info("No proposals to back up.");
-        return;
-      }
       toast.info(`Backing up ${list.length} proposal${list.length === 1 ? "" : "s"} one at a time…`);
       let ok = 0; let failed = 0;
       for (const p of list) {
@@ -93,6 +91,28 @@ export default function BackupsAdmin() {
       setRunning(false);
     }
   };
+
+  const toggleProposal = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const filteredProposals = useMemo(() => {
+    const q = filter.trim().toLowerCase();
+    if (!q) return proposals;
+    return proposals.filter((p) =>
+      (p.acronym ?? "").toLowerCase().includes(q) || (p.title ?? "").toLowerCase().includes(q)
+    );
+  }, [proposals, filter]);
+
+  const selectedLabel = selected.size === 0
+    ? "Select proposals…"
+    : selected.size === 1
+      ? proposals.find((p) => selected.has(p.id))?.acronym ?? "1 selected"
+      : `${selected.size} proposals selected`;
 
   if (loading || !cfg) {
     return <div className="p-8 text-center text-muted-foreground">Loading…</div>;
