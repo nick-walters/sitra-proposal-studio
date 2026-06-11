@@ -97,9 +97,14 @@ export function ProposalBackupsPanel({ proposalId }: Props) {
             Daily snapshots of this proposal’s sections &amp; budget. Generated automatically at 06:00 Europe/Helsinki and kept for 90 days. SharePoint copies (when configured) live in your Teams &amp; are retained by your organisation.
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={load} className="gap-2">
-          <RefreshCw className="w-4 h-4" /> Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={runNow} disabled={running} className="gap-2">
+            <Play className="w-4 h-4" /> {running ? "Running…" : "Run backup now"}
+          </Button>
+          <Button variant="outline" size="sm" onClick={load} className="gap-2">
+            <RefreshCw className="w-4 h-4" /> Refresh
+          </Button>
+        </div>
       </div>
 
       {loading ? (
