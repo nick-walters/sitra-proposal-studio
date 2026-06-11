@@ -764,35 +764,115 @@ async function buildWpDraft(supabase: any, proposal: any, wp: any, participants:
     const p = participants.find((x: any) => x.id === id);
     return p ? `P${p.participant_number} ${p.organisation_short_name ?? ""}` : "—";
   };
+  const monthRange = (s: any, e: any) => {
+    if (s == null && e == null) return "—";
+    if (s != null && e != null) return `M${s}–M${e}`;
+    return s != null ? `M${s}` : `M${e}`;
+  };
 
-  const [{ data: tasks }, { data: deliverables }, { data: milestones }, { data: risks }, { data: effort }] = await Promise.all([
-    supabase.from("wp_draft_tasks").select("*").eq("wp_draft_id", wp.id).order("number", { ascending: true }),
+  const { data: tasks } = await supabase.from("wp_draft_tasks").select("*").eq("wp_draft_id", wp.id).order("number", { ascending: true });
+  const taskIds = (tasks ?? []).map((t: any) => t.id);
+  const [{ data: deliverables }, { data: milestones }, { data: risks }, { data: effort }, { data: taskParts }] = await Promise.all([
     supabase.from("wp_draft_deliverables").select("*").eq("wp_draft_id", wp.id).order("number", { ascending: true }),
     supabase.from("wp_draft_milestones").select("*").eq("wp_draft_id", wp.id).order("number", { ascending: true }),
     supabase.from("wp_draft_risks").select("*").eq("wp_draft_id", wp.id).order("number", { ascending: true }),
     supabase.from("wp_draft_effort").select("*, participant:participant_id(participant_number, organisation_short_name)").eq("wp_draft_id", wp.id),
+    taskIds.length
+      ? supabase.from("wp_draft_task_participants").select("task_id, participant_id").in("task_id", taskIds)
+      : Promise.resolve({ data: [] }),
   ]);
+
+  // ---- Build Table 3.1.b-style WP description table ----
+  const SHADE = { fill: "E7E6E6", type: "clear", color: "auto" } as any;
+  const SHADE_DARK = { fill: "BFBFBF", type: "clear", color: "auto" } as any;
+  const cellOpts = (opts: { span?: number; shading?: any } = {}) => ({
+    borders: CELL_BORDERS,
+    margins: { top: 80, bottom: 80, left: 120, right: 120 },
+    columnSpan: opts.span,
+    shading: opts.shading,
+  });
+  const txtCell = (text: string, opts: { span?: number; shading?: any; bold?: boolean } = {}) =>
+    new TableCell({
+      ...cellOpts(opts),
+      children: [new Paragraph({ children: [new TextRun({ text: text ?? "", bold: opts.bold })] })],
+    });
+  const htmlCell = (html: string | null | undefined, opts: { span?: number; shading?: any } = {}) =>
+    new TableCell({
+      ...cellOpts(opts),
+      children: htmlToDocxChildren(html) as Paragraph[],
+    });
+  const kvCell = (label: string, value: string, opts: { span?: number; shading?: any } = {}) =>
+    new TableCell({
+      ...cellOpts(opts),
+      children: [new Paragraph({ children: [
+        new TextRun({ text: `${label}: `, bold: true }),
+        new TextRun({ text: value }),
+      ] })],
+    });
+
+  const rows: TableRow[] = [];
+  rows.push(new TableRow({
+    children: [txtCell(`Work package ${wp.number}: ${wp.short_name ?? ""}${wp.title ? ` — ${wp.title}` : ""}`, { span: 6, shading: SHADE_DARK, bold: true })],
+  }));
+  rows.push(new TableRow({
+    children: [
+      kvCell("Lead participant", partLabel(wp.lead_participant_id), { span: 3 }),
+      kvCell("Duration", wp.manual_duration ? String(wp.manual_duration) : "—", { span: 3 }),
+    ],
+  }));
+  if (wp.objectives && String(wp.objectives).trim()) {
+    rows.push(new TableRow({ children: [txtCell("Objectives", { span: 6, shading: SHADE, bold: true })] }));
+    rows.push(new TableRow({ children: [htmlCell(wp.objectives, { span: 6 })] }));
+  }
+  if (wp.description_before_tasks && String(wp.description_before_tasks).trim()) {
+    rows.push(new TableRow({ children: [txtCell("Description", { span: 6, shading: SHADE, bold: true })] }));
+    rows.push(new TableRow({ children: [htmlCell(wp.description_before_tasks, { span: 6 })] }));
+  }
+  if (wp.methodology && String(wp.methodology).trim()) {
+    rows.push(new TableRow({ children: [txtCell("Methodology", { span: 6, shading: SHADE, bold: true })] }));
+    rows.push(new TableRow({ children: [htmlCell(wp.methodology, { span: 6 })] }));
+  }
+  for (const t of tasks ?? []) {
+    const taskParticipantIds = (taskParts ?? []).filter((tp: any) => tp.task_id === t.id).map((tp: any) => tp.participant_id);
+    const participantsLabel = taskParticipantIds.length
+      ? taskParticipantIds.map((id: string) => partLabel(id)).join(", ")
+      : "—";
+    rows.push(new TableRow({
+      children: [txtCell(`Task ${wp.number}.${t.number}: ${t.title ?? ""}`, { span: 6, shading: SHADE, bold: true })],
+    }));
+    rows.push(new TableRow({
+      children: [
+        kvCell("Task leader", partLabel(t.lead_participant_id), { span: 2 }),
+        kvCell("Participants", participantsLabel, { span: 2 }),
+        kvCell("Duration", monthRange(t.start_month, t.end_month), { span: 2 }),
+      ],
+    }));
+    const desc = t.description ?? t.b31_description ?? "";
+    if (desc && String(desc).trim()) {
+      rows.push(new TableRow({ children: [htmlCell(desc, { span: 6 })] }));
+    }
+  }
+  const extras: [string, string][] = ([
+    ["Inputs", wp.inputs_question],
+    ["Outputs", wp.outputs_question],
+    ["Bottlenecks", wp.bottlenecks_question],
+  ] as [string, string][]).filter(([, v]) => v && String(v).trim());
+  for (const [label, value] of extras) {
+    rows.push(new TableRow({ children: [txtCell(label, { span: 6, shading: SHADE, bold: true })] }));
+    rows.push(new TableRow({ children: [htmlCell(value, { span: 6 })] }));
+  }
+
+  const wpTable = new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    columnWidths: [1500, 1500, 1500, 1500, 1500, 1500],
+    rows,
+  });
 
   const children: (Paragraph | Table)[] = [
     H(HeadingLevel.HEADING_1, `WP${wp.number} ${wp.short_name ?? ""}${wp.title ? ` — ${wp.title}` : ""}`),
-    KV("Lead participant", partLabel(wp.lead_participant_id)),
-    KV("Duration", wp.manual_duration ?? ""),
-    KV("Person-months (manual)", wp.manual_person_months ?? ""),
+    wpTable,
   ];
-  if (wp.objectives) { children.push(H(HeadingLevel.HEADING_2, "Objectives")); children.push(...htmlToDocxChildren(wp.objectives)); }
-  if (wp.methodology) { children.push(H(HeadingLevel.HEADING_2, "Methodology")); children.push(...htmlToDocxChildren(wp.methodology)); }
-  if (wp.description_before_tasks) { children.push(H(HeadingLevel.HEADING_2, "Description (before tasks)")); children.push(...htmlToDocxChildren(wp.description_before_tasks)); }
-  if (wp.inputs_question) children.push(KV("Inputs", wp.inputs_question));
-  if (wp.outputs_question) children.push(KV("Outputs", wp.outputs_question));
-  if (wp.bottlenecks_question) children.push(KV("Bottlenecks", wp.bottlenecks_question));
 
-  if (tasks?.length) {
-    children.push(H(HeadingLevel.HEADING_2, "Tasks"));
-    children.push(simpleTable(
-      ["#", "Title", "Lead", "Start", "End", "Description"],
-      tasks.map((t: any) => [t.number, t.title ?? "", partLabel(t.lead_participant_id), t.start_month ?? "", t.end_month ?? "", t.description ?? ""]),
-    ));
-  }
   if (deliverables?.length) {
     children.push(H(HeadingLevel.HEADING_2, "Deliverables"));
     children.push(simpleTable(
@@ -971,8 +1051,10 @@ Deno.serve(async (req) => {
 
       const { data: cases } = await supabase.from("case_drafts").select("*").eq("proposal_id", proposal.id).order("number", { ascending: true });
       for (const c of cases ?? []) {
+        const rawCaseName = (c.short_name ?? c.title ?? `${c.number}`).toString().trim();
+        const caseName = rawCaseName.replace(/[\/\\:*?"<>|]/g, "_").replace(/\s+/g, " ").slice(0, 80) || `${c.number}`;
         files.push({
-          name: `${acr} Case ${c.number} Draft ${stamp}.docx`,
+          name: `${acr} Case ${caseName} ${stamp}.docx`,
           bytes: await buildCaseDraft(supabase, proposal, c, participants ?? []),
           mime: DOCX_MIME,
         });
