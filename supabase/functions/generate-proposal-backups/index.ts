@@ -1,13 +1,37 @@
 // Daily backup engine for proposals.
-// Triggered hourly by pg_cron; self-gates to 06:00 Europe/Helsinki (handles EET/EEST).
-// For every active proposal it writes plain-text backups of:
-//   - Part A1, A2, A4, A5 (text summaries)
-//   - Part A3 (text budget summary — full Excel reuse pending refactor)
-//   - Part B sections (latest version content, HTML stripped)
-// Files land in the private `proposal-backups` bucket and (when configured)
-// are also pushed to SharePoint via the Microsoft SharePoint connector gateway.
+// Triggered hourly by pg_cron; self-gates to 06:00 Europe/Helsinki (handles EET/EEST)
+// unless `force=1` (query) or body.trigger === "manual" / body.force === true is passed.
+//
+// For every proposal it writes a per-day folder containing:
+//   - {ACR} Part A1 {stamp}.docx        general info
+//   - {ACR} Part A2 {stamp}.docx        full participants (incl. departments, researchers, infra, etc.)
+//   - {ACR} Part A3 {stamp}.xlsx        budget summary (single sheet — per-partner sheet refactor pending)
+//   - {ACR} Part A4 {stamp}.docx        ethics checklist + details
+//   - {ACR} Part A5 {stamp}.docx        ownership control declarations
+//   - {ACR} Part B1.1 / B1.2 / B2.1 / B2.2 / B3.2 {stamp}.docx   latest section content
+//   - {ACR} Part B3.1 {stamp}.docx      merged intro-text + b3-1 + compulsory tables
+//   - {ACR} WP{N} Draft {stamp}.docx    one per wp_drafts row
+//   - {ACR} Case {N} Draft {stamp}.docx one per case_drafts row
+//
+// Files are written to the private `proposal-backups` bucket and (when configured)
+// pushed to SharePoint via the Microsoft SharePoint connector gateway.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  Document,
+  Packer,
+  Paragraph,
+  TextRun,
+  HeadingLevel,
+  Table,
+  TableRow,
+  TableCell,
+  WidthType,
+  BorderStyle,
+  AlignmentType,
+} from "npm:docx@9.5.0";
+import * as XLSX from "npm:xlsx@0.18.5";
+import { parse as parseHtml } from "npm:node-html-parser@6.1.13";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -19,6 +43,16 @@ const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 const SHAREPOINT_API_KEY = Deno.env.get("MICROSOFT_SHAREPOINT_API_KEY");
 const GATEWAY = "https://connector-gateway.lovable.dev/microsoft_sharepoint";
+
+// Canonical Part B sections that map to standalone files.
+const PART_B_SECTIONS: { id: string; label: string }[] = [
+  { id: "b1-1", label: "B1.1" },
+  { id: "b1-2", label: "B1.2" },
+  { id: "b2-1", label: "B2.1" },
+  { id: "b2-2", label: "B2.2" },
+  // b3-1 is handled specially (merged with intro + compulsory tables)
+  { id: "b3-2", label: "B3.2" },
+];
 
 // ---------- helpers ----------
 
@@ -32,7 +66,6 @@ function helsinkiHour(now: Date): number {
 }
 
 function helsinkiStamp(now: Date): string {
-  // YYYY-MM-DD HH-MM-SS in Europe/Helsinki time
   const parts = new Intl.DateTimeFormat("en-GB", {
     timeZone: "Europe/Helsinki",
     year: "numeric",
@@ -51,51 +84,6 @@ function safeAcronym(a: string | null | undefined): string {
   return (a || "Proposal").replace(/[^A-Za-z0-9 _-]/g, "_").trim() || "Proposal";
 }
 
-// Minimal HTML → plain text converter (no external deps).
-// Preserves: headings as "# ...", lists as "- ...", table rows tab-separated,
-// br/p as line breaks, cross-ref badges as their visible text.
-function htmlToText(html: string | null | undefined): string {
-  if (!html) return "";
-  let s = String(html);
-  // Normalise.
-  s = s.replace(/\r\n?/g, "\n");
-  // Headings.
-  s = s.replace(/<h1[^>]*>([\s\S]*?)<\/h1>/gi, (_m, c) => `\n\n# ${strip(c)}\n`);
-  s = s.replace(/<h2[^>]*>([\s\S]*?)<\/h2>/gi, (_m, c) => `\n\n## ${strip(c)}\n`);
-  s = s.replace(/<h3[^>]*>([\s\S]*?)<\/h3>/gi, (_m, c) => `\n\n### ${strip(c)}\n`);
-  s = s.replace(/<h[4-6][^>]*>([\s\S]*?)<\/h[4-6]>/gi, (_m, c) => `\n\n#### ${strip(c)}\n`);
-  // Lists.
-  s = s.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, (_m, c) => `- ${strip(c)}\n`);
-  // Tables → tab-separated rows.
-  s = s.replace(/<tr[^>]*>([\s\S]*?)<\/tr>/gi, (_m, row) => {
-    const cells: string[] = [];
-    row.replace(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi, (_x: string, c: string) => {
-      cells.push(strip(c));
-      return "";
-    });
-    return cells.join("\t") + "\n";
-  });
-  // Paragraphs and line breaks.
-  s = s.replace(/<\/(p|div|section|article)\s*>/gi, "\n");
-  s = s.replace(/<br\s*\/?>/gi, "\n");
-  // Drop remaining tags.
-  s = s.replace(/<[^>]+>/g, "");
-  // Decode common entities.
-  s = s.replace(/&nbsp;/g, " ")
-       .replace(/&amp;/g, "&")
-       .replace(/&lt;/g, "<")
-       .replace(/&gt;/g, ">")
-       .replace(/&quot;/g, '"')
-       .replace(/&#39;|&apos;/g, "'");
-  // Collapse runs of blank lines.
-  s = s.replace(/\n{3,}/g, "\n\n").trim();
-  return s + "\n";
-}
-
-function strip(s: string): string {
-  return s.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
-}
-
 function eur(n: number | null | undefined): string {
   if (n === null || n === undefined || isNaN(Number(n))) return "0.00";
   return Number(n).toLocaleString("en-GB", {
@@ -104,189 +92,759 @@ function eur(n: number | null | undefined): string {
   });
 }
 
+function yn(v: boolean | null | undefined): string {
+  if (v === true) return "Yes";
+  if (v === false) return "No";
+  return "—";
+}
+
+function decodeEntities(s: string): string {
+  return s
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'");
+}
+
+// ---------- HTML → docx walker ----------
+
+const THIN_BORDER = { style: BorderStyle.SINGLE, size: 4, color: "BFBFBF" };
+const CELL_BORDERS = { top: THIN_BORDER, bottom: THIN_BORDER, left: THIN_BORDER, right: THIN_BORDER };
+
+function inlineRuns(node: any, parentBold = false, parentItalic = false, parentUnderline = false): TextRun[] {
+  const runs: TextRun[] = [];
+  if (!node) return runs;
+  if (node.nodeType === 3) {
+    const t = decodeEntities(String(node.rawText ?? node.text ?? "")).replace(/\s+/g, " ");
+    if (t) runs.push(new TextRun({ text: t, bold: parentBold, italics: parentItalic, underline: parentUnderline ? {} : undefined }));
+    return runs;
+  }
+  const tag = (node.tagName || "").toLowerCase();
+  let bold = parentBold;
+  let italic = parentItalic;
+  let underline = parentUnderline;
+  if (tag === "strong" || tag === "b") bold = true;
+  if (tag === "em" || tag === "i") italic = true;
+  if (tag === "u") underline = true;
+  if (tag === "br") { runs.push(new TextRun({ text: "", break: 1 })); return runs; }
+  for (const child of node.childNodes ?? []) {
+    runs.push(...inlineRuns(child, bold, italic, underline));
+  }
+  return runs;
+}
+
+function cellContents(node: any): Paragraph[] {
+  const out: Paragraph[] = [];
+  let inlineBuffer: any[] = [];
+  const flush = () => {
+    if (!inlineBuffer.length) return;
+    const runs = inlineBuffer.flatMap((n) => inlineRuns(n));
+    if (runs.length) out.push(new Paragraph({ children: runs }));
+    inlineBuffer = [];
+  };
+  for (const child of node.childNodes ?? []) {
+    const tag = (child.tagName || "").toLowerCase();
+    if (["p", "div", "ul", "ol", "h1", "h2", "h3", "h4", "h5", "h6", "table"].includes(tag)) {
+      flush();
+      out.push(...blockToDocx(child));
+    } else {
+      inlineBuffer.push(child);
+    }
+  }
+  flush();
+  if (!out.length) out.push(new Paragraph({ children: [new TextRun("")] }));
+  return out;
+}
+
+function blockToDocx(node: any): (Paragraph | Table)[] {
+  const tag = (node.tagName || "").toLowerCase();
+  const out: (Paragraph | Table)[] = [];
+  if (tag === "h1" || tag === "h2" || tag === "h3" || tag === "h4" || tag === "h5" || tag === "h6") {
+    const level = ({ h1: HeadingLevel.HEADING_1, h2: HeadingLevel.HEADING_2, h3: HeadingLevel.HEADING_3, h4: HeadingLevel.HEADING_4, h5: HeadingLevel.HEADING_5, h6: HeadingLevel.HEADING_6 } as any)[tag];
+    out.push(new Paragraph({ heading: level, children: inlineRuns(node) }));
+    return out;
+  }
+  if (tag === "ul" || tag === "ol") {
+    for (const li of node.childNodes ?? []) {
+      if ((li.tagName || "").toLowerCase() !== "li") continue;
+      out.push(new Paragraph({
+        bullet: tag === "ul" ? { level: 0 } : undefined,
+        numbering: tag === "ol" ? { reference: "decimal-list", level: 0 } : undefined,
+        children: inlineRuns(li),
+      }));
+    }
+    return out;
+  }
+  if (tag === "table") {
+    const rows: TableRow[] = [];
+    const trs = node.querySelectorAll("tr") ?? [];
+    for (const tr of trs) {
+      const cells: TableCell[] = [];
+      for (const td of tr.childNodes ?? []) {
+        const ctag = (td.tagName || "").toLowerCase();
+        if (ctag !== "td" && ctag !== "th") continue;
+        cells.push(new TableCell({
+          borders: CELL_BORDERS,
+          margins: { top: 60, bottom: 60, left: 90, right: 90 },
+          children: cellContents(td),
+        }));
+      }
+      if (cells.length) rows.push(new TableRow({ children: cells }));
+    }
+    if (rows.length) {
+      out.push(new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        rows,
+      }));
+    }
+    return out;
+  }
+  if (tag === "hr") {
+    out.push(new Paragraph({ children: [new TextRun("———")] }));
+    return out;
+  }
+  // p, div, blockquote, default
+  const runs = inlineRuns(node);
+  if (runs.length) {
+    out.push(new Paragraph({ children: runs, alignment: AlignmentType.JUSTIFIED }));
+  }
+  // Recurse into nested blocks inside divs
+  for (const child of node.childNodes ?? []) {
+    const ctag = (child.tagName || "").toLowerCase();
+    if (["table", "ul", "ol", "h1", "h2", "h3", "h4", "h5", "h6"].includes(ctag)) {
+      out.push(...blockToDocx(child));
+    }
+  }
+  return out;
+}
+
+function htmlToDocxChildren(html: string | null | undefined): (Paragraph | Table)[] {
+  if (!html || !html.trim()) return [new Paragraph({ children: [new TextRun({ text: "(empty)", italics: true })] })];
+  const root = parseHtml(html, { lowerCaseTagName: true });
+  const out: (Paragraph | Table)[] = [];
+  let inlineBuffer: any[] = [];
+  const flush = () => {
+    if (!inlineBuffer.length) return;
+    const runs = inlineBuffer.flatMap((n) => inlineRuns(n));
+    if (runs.length) out.push(new Paragraph({ children: runs, alignment: AlignmentType.JUSTIFIED }));
+    inlineBuffer = [];
+  };
+  for (const child of root.childNodes ?? []) {
+    const tag = (child.tagName || "").toLowerCase();
+    if (["p", "div", "ul", "ol", "h1", "h2", "h3", "h4", "h5", "h6", "table", "hr", "blockquote"].includes(tag)) {
+      flush();
+      out.push(...blockToDocx(child));
+    } else {
+      inlineBuffer.push(child);
+    }
+  }
+  flush();
+  if (!out.length) out.push(new Paragraph({ children: [new TextRun({ text: "(empty)", italics: true })] }));
+  return out;
+}
+
+// ---------- docx assembly helpers ----------
+
+function H(level: typeof HeadingLevel.HEADING_1, text: string): Paragraph {
+  return new Paragraph({ heading: level, children: [new TextRun({ text })] });
+}
+function P(text: string, opts: { bold?: boolean; italics?: boolean } = {}): Paragraph {
+  return new Paragraph({ children: [new TextRun({ text, bold: opts.bold, italics: opts.italics })] });
+}
+function KV(key: string, val: string | number | null | undefined): Paragraph {
+  return new Paragraph({
+    children: [
+      new TextRun({ text: `${key}: `, bold: true }),
+      new TextRun({ text: val === null || val === undefined || val === "" ? "—" : String(val) }),
+    ],
+  });
+}
+function simpleTable(headers: string[], rows: (string | number | null | undefined)[][]): Table {
+  const headRow = new TableRow({
+    tableHeader: true,
+    children: headers.map((h) => new TableCell({
+      borders: CELL_BORDERS,
+      margins: { top: 60, bottom: 60, left: 90, right: 90 },
+      shading: { fill: "EFEFEF", type: "clear", color: "auto" } as any,
+      children: [new Paragraph({ children: [new TextRun({ text: h, bold: true })] })],
+    })),
+  });
+  const bodyRows = rows.map((r) => new TableRow({
+    children: r.map((c) => new TableCell({
+      borders: CELL_BORDERS,
+      margins: { top: 60, bottom: 60, left: 90, right: 90 },
+      children: [new Paragraph({ children: [new TextRun({ text: c === null || c === undefined ? "" : String(c) })] })],
+    })),
+  }));
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    rows: [headRow, ...bodyRows],
+  });
+}
+
+async function packDocx(children: (Paragraph | Table)[]): Promise<Uint8Array> {
+  const doc = new Document({
+    numbering: {
+      config: [{
+        reference: "decimal-list",
+        levels: [{ level: 0, format: "decimal" as any, text: "%1.", alignment: AlignmentType.LEFT, style: { paragraph: { indent: { left: 720, hanging: 360 } } } }],
+      }],
+    },
+    styles: {
+      default: { document: { run: { font: "Calibri", size: 22 } } },
+    },
+    sections: [{ children }],
+  });
+  const buf = await Packer.toBuffer(doc);
+  return new Uint8Array(buf);
+}
+
+// ---------- data fetch ----------
+
+async function latestSectionContent(supabase: any, proposalId: string, sectionId: string): Promise<string> {
+  const { data } = await supabase
+    .from("section_versions")
+    .select("content, version_number")
+    .eq("proposal_id", proposalId)
+    .eq("section_id", sectionId)
+    .order("version_number", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data?.content ?? "";
+}
+
 // ---------- file builders ----------
 
-async function buildPartA1(supabase: any, proposal: any): Promise<string> {
-  const lines: string[] = [];
-  lines.push(`# Part A1 — General information`);
-  lines.push(``);
-  lines.push(`Acronym\t${proposal.acronym ?? ""}`);
-  lines.push(`Title\t${proposal.title ?? ""}`);
-  lines.push(`Type\t${proposal.type ?? ""}`);
-  lines.push(`Budget type\t${proposal.budget_type ?? ""}`);
-  lines.push(`Submission stage\t${proposal.submission_stage ?? ""}`);
-  lines.push(`Work programme\t${proposal.work_programme ?? ""}`);
-  lines.push(`Destination\t${proposal.destination ?? ""}`);
-  lines.push(`Topic URL\t${proposal.topic_url ?? ""}`);
-  lines.push(`Deadline\t${proposal.deadline ?? ""}`);
-  lines.push(`Status\t${proposal.status ?? ""}`);
-  lines.push(`Duration (months)\t${proposal.duration_months ?? ""}`);
-  lines.push(`Uses FSTP\t${proposal.uses_fstp ? "Yes" : "No"}`);
-
-  const { data: partA } = await supabase
-    .from("part_a_data")
-    .select("*")
-    .eq("proposal_id", proposal.id)
-    .maybeSingle();
-  if (partA) {
-    lines.push(``);
-    lines.push(`## Additional A1 fields`);
-    for (const [k, v] of Object.entries(partA)) {
-      if (["id", "proposal_id", "created_at", "updated_at"].includes(k)) continue;
-      if (v === null || v === "" || v === undefined) continue;
-      lines.push(`${k}\t${typeof v === "object" ? JSON.stringify(v) : v}`);
-    }
+async function buildA1(supabase: any, proposal: any): Promise<Uint8Array> {
+  const children: (Paragraph | Table)[] = [
+    H(HeadingLevel.HEADING_1, "Part A1 — General information"),
+    KV("Acronym", proposal.acronym),
+    KV("Title", proposal.title),
+    KV("Type", proposal.type),
+    KV("Budget type", proposal.budget_type),
+    KV("Submission stage", proposal.submission_stage),
+    KV("Work programme", proposal.work_programme),
+    KV("Destination", proposal.destination),
+    KV("Topic URL", proposal.topic_url),
+    KV("Topic ID", proposal.topic_id),
+    KV("Topic title", proposal.topic_title),
+    KV("Deadline", proposal.deadline),
+    KV("Opening date", proposal.opening_date),
+    KV("Status", proposal.status),
+    KV("Duration (months)", proposal.duration),
+    KV("Uses FSTP", yn(proposal.uses_fstp)),
+    KV("Cases enabled", yn(proposal.cases_enabled)),
+    KV("Indicative budget per project", proposal.indicative_budget_per_project),
+    KV("FSTP budget", proposal.fstp_budget),
+    KV("FSTP budget per third party", proposal.fstp_budget_per_third_party),
+    KV("Total budget text", proposal.total_budget_text),
+  ];
+  if (proposal.topic_expected_outcome) {
+    children.push(H(HeadingLevel.HEADING_2, "Expected outcome"));
+    children.push(...htmlToDocxChildren(proposal.topic_expected_outcome));
   }
-  return lines.join("\n") + "\n";
+  if (proposal.topic_scope) {
+    children.push(H(HeadingLevel.HEADING_2, "Scope"));
+    children.push(...htmlToDocxChildren(proposal.topic_scope));
+  }
+  if (proposal.topic_description) {
+    children.push(H(HeadingLevel.HEADING_2, "Topic description"));
+    children.push(...htmlToDocxChildren(proposal.topic_description));
+  }
+  return await packDocx(children);
 }
 
-async function buildPartA2(supabase: any, proposal: any): Promise<string> {
+async function buildA2(supabase: any, proposal: any): Promise<Uint8Array> {
   const { data: participants } = await supabase
-    .from("participants")
-    .select("*")
-    .eq("proposal_id", proposal.id)
+    .from("participants").select("*").eq("proposal_id", proposal.id)
     .order("participant_number", { ascending: true });
 
-  const lines: string[] = [];
-  lines.push(`# Part A2 — Participants`);
-  for (const p of participants ?? []) {
-    lines.push(``);
-    lines.push(`## P${p.participant_number} ${p.organisation_short_name ?? ""} — ${p.organisation_name ?? ""}`);
-    const fields: [string, any][] = [
-      ["English name", p.english_name],
-      ["PIC", p.pic_number],
-      ["Country", p.country],
-      ["Legal entity type", p.legal_entity_type],
-      ["Organisation category", p.organisation_category],
-      ["Organisation type", p.organisation_type],
-      ["SME", p.is_sme ? "Yes" : "No"],
-      ["Street", p.street],
-      ["Postcode", p.postcode],
-      ["Town", p.town],
-      ["Website", p.website],
-    ];
-    for (const [k, v] of fields) if (v) lines.push(`${k}\t${v}`);
+  const children: (Paragraph | Table)[] = [H(HeadingLevel.HEADING_1, "Part A2 — Participants")];
 
-    // Departments
-    const { data: deps } = await supabase
-      .from("participant_departments").select("*").eq("participant_id", p.id)
-      .order("order_index", { ascending: true });
-    if (deps?.length) {
-      lines.push(`### Departments`);
-      for (const d of deps) lines.push(`- ${d.department_name}${d.same_as_organisation ? " (same as organisation)" : ""}`);
+  for (const p of participants ?? []) {
+    children.push(H(HeadingLevel.HEADING_2, `P${p.participant_number ?? "?"} ${p.organisation_short_name ?? ""} — ${p.organisation_name ?? ""}`));
+    children.push(KV("English name", p.english_name));
+    children.push(KV("PIC", p.pic_number));
+    children.push(KV("Country", p.country));
+    children.push(KV("Legal entity type", p.legal_entity_type));
+    children.push(KV("Organisation category", p.organisation_category));
+    children.push(KV("Organisation type", p.organisation_type));
+    children.push(KV("SME", yn(p.is_sme)));
+    children.push(KV("Street", p.street));
+    children.push(KV("Postcode", p.postcode));
+    children.push(KV("Town", p.town));
+    children.push(KV("Website", p.website));
+    children.push(KV("Personnel cost rate (€)", p.personnel_cost_rate));
+    children.push(KV("Has Gender Equality Plan", yn(p.has_gender_equality_plan)));
+    children.push(KV("Dependency declaration", p.dependency_declaration));
+
+    children.push(H(HeadingLevel.HEADING_3, "Main contact"));
+    children.push(KV("Name", `${p.main_contact_title ?? ""} ${p.main_contact_first_name ?? ""} ${p.main_contact_last_name ?? ""}`.trim()));
+    children.push(KV("Position", p.main_contact_position));
+    children.push(KV("Gender", p.main_contact_gender));
+    children.push(KV("Email", p.contact_email));
+    children.push(KV("Phone", p.main_contact_phone));
+    if (!p.use_organisation_address) {
+      children.push(KV("Contact address", `${p.main_contact_street ?? ""}, ${p.main_contact_postcode ?? ""} ${p.main_contact_town ?? ""}, ${p.main_contact_country ?? ""}`));
     }
 
-    // Key researchers
-    const { data: researchers } = await supabase
-      .from("participant_researchers").select("*").eq("participant_id", p.id);
-    if (researchers?.length) {
-      lines.push(`### Key researchers`);
-      for (const r of researchers) {
-        lines.push(`- ${r.full_name ?? ""}${r.role ? ` — ${r.role}` : ""}${r.orcid ? ` (ORCID: ${r.orcid})` : ""}`);
+    const gep = [
+      ["Publication", p.gep_publication],
+      ["Dedicated resources", p.gep_dedicated_resources],
+      ["Data collection", p.gep_data_collection],
+      ["Training", p.gep_training],
+      ["Work–life balance", p.gep_work_life_balance],
+      ["Gender leadership", p.gep_gender_leadership],
+      ["Recruitment & progression", p.gep_recruitment_progression],
+      ["Research & teaching", p.gep_research_teaching],
+      ["Gender violence", p.gep_gender_violence],
+    ];
+    if (gep.some(([_, v]) => v !== null && v !== undefined)) {
+      children.push(H(HeadingLevel.HEADING_3, "Gender Equality Plan elements"));
+      children.push(simpleTable(["Element", "Status"], gep.map(([k, v]) => [k as string, yn(v as boolean)])));
+    }
+
+    const [{ data: deps }, { data: researchers }, { data: infra }, { data: ach }, { data: depns }, { data: prev }, { data: mem }, { data: roles }, { data: padata }] = await Promise.all([
+      supabase.from("participant_departments").select("*").eq("participant_id", p.id).order("order_index", { ascending: true }),
+      supabase.from("participant_researchers").select("*").eq("participant_id", p.id),
+      supabase.from("participant_infrastructure").select("*").eq("participant_id", p.id).order("order_index", { ascending: true }),
+      supabase.from("participant_achievements").select("*").eq("participant_id", p.id).order("order_index", { ascending: true }),
+      supabase.from("participant_dependencies").select("*, linked:linked_participant_id(organisation_short_name)").eq("participant_id", p.id),
+      supabase.from("participant_previous_projects").select("*").eq("participant_id", p.id).order("order_index", { ascending: true }),
+      supabase.from("participant_members").select("*").eq("participant_id", p.id),
+      supabase.from("participant_organisation_roles").select("*").eq("participant_id", p.id),
+      supabase.from("part_a_data").select("*").eq("participant_id", p.id).maybeSingle(),
+    ]);
+
+    if (deps?.length) {
+      children.push(H(HeadingLevel.HEADING_3, "Departments"));
+      for (const d of deps) {
+        children.push(new Paragraph({ children: [new TextRun({ text: `• ${d.department_name}${d.same_as_organisation ? " (same as organisation)" : ""}` })] }));
       }
     }
+    if (researchers?.length) {
+      children.push(H(HeadingLevel.HEADING_3, "Key researchers"));
+      children.push(simpleTable(
+        ["Name", "Role", "ORCID"],
+        researchers.map((r: any) => [r.full_name ?? "", r.role ?? "", r.orcid ?? ""]),
+      ));
+    }
+    if (infra?.length) {
+      children.push(H(HeadingLevel.HEADING_3, "Infrastructure"));
+      children.push(simpleTable(["Name", "Description"], infra.map((i: any) => [i.name ?? "", i.description ?? ""])));
+    }
+    if (ach?.length) {
+      children.push(H(HeadingLevel.HEADING_3, "Achievements"));
+      children.push(simpleTable(["Type", "Description"], ach.map((a: any) => [a.achievement_type ?? "", a.description ?? ""])));
+    }
+    if (depns?.length) {
+      children.push(H(HeadingLevel.HEADING_3, "Dependencies"));
+      children.push(simpleTable(["Linked participant", "Type", "Notes"], depns.map((d: any) => [d.linked?.organisation_short_name ?? "—", d.link_type ?? "", d.notes ?? ""])));
+    }
+    if (prev?.length) {
+      children.push(H(HeadingLevel.HEADING_3, "Previous projects"));
+      children.push(simpleTable(["Project", "Description"], prev.map((x: any) => [x.project_name ?? "", x.description ?? ""])));
+    }
+    if (mem?.length) {
+      children.push(H(HeadingLevel.HEADING_3, "Team members"));
+      children.push(simpleTable(
+        ["Name", "Role in project", "Email", "PM", "Primary contact"],
+        mem.map((m: any) => [m.full_name ?? "", m.role_in_project ?? "", m.email ?? "", m.person_months ?? "", yn(m.is_primary_contact)]),
+      ));
+    }
+    if (roles?.length) {
+      children.push(H(HeadingLevel.HEADING_3, "Organisation roles"));
+      for (const r of roles) {
+        children.push(KV(r.role_type ?? "Role", r.description ?? ""));
+      }
+    }
+    if (padata) {
+      children.push(H(HeadingLevel.HEADING_3, "Part A free-text"));
+      if (padata.dependencies) { children.push(P("Dependencies", { bold: true })); children.push(...htmlToDocxChildren(padata.dependencies)); }
+      if (padata.resources) { children.push(P("Resources", { bold: true })); children.push(...htmlToDocxChildren(padata.resources)); }
+      if (padata.previous_proposals) { children.push(P("Previous proposals", { bold: true })); children.push(...htmlToDocxChildren(padata.previous_proposals)); }
+      if (padata.declarations) { children.push(P("Declarations", { bold: true })); children.push(...htmlToDocxChildren(padata.declarations)); }
+    }
   }
-  return lines.join("\n") + "\n";
+  return await packDocx(children);
 }
 
-async function buildPartA3(supabase: any, proposal: any): Promise<string> {
+async function buildA3Xlsx(supabase: any, proposal: any): Promise<Uint8Array> {
   const { data: participants } = await supabase
-    .from("participants").select("id, participant_number, organisation_short_name")
+    .from("participants").select("id, participant_number, organisation_short_name, organisation_name")
     .eq("proposal_id", proposal.id)
     .order("participant_number", { ascending: true });
   const { data: rows } = await supabase
     .from("budget_rows").select("*").eq("proposal_id", proposal.id);
 
-  const lines: string[] = [];
-  lines.push(`# Part A3 — Budget summary`);
-  lines.push(``);
-  lines.push(`NOTE: This is a plain-text summary backup. The full Excel export (with per-participant detailed sheets) remains available in the live A3 portal. A future update will bundle the full .xlsx here as well.`);
-  lines.push(``);
-  lines.push(`Participant\tPersonnel\tSubcontracting\tEquipment\tOther goods/services/works\tIndirect costs\tTotal\tRequested EU`);
-
   const byPart = new Map<string, any>();
-  for (const r of rows ?? []) {
-    byPart.set(r.participant_id, r);
-  }
-  let grand = { p: 0, s: 0, e: 0, o: 0, i: 0, t: 0, req: 0 };
+  for (const r of rows ?? []) byPart.set(r.participant_id, r);
+
+  const header = [
+    "Participant #", "Short name", "Organisation",
+    "Personnel", "Subcontracting", "Travel", "Equipment", "Other goods/services",
+    "Internally invoiced", "FSTP", "Procurement", "Indirect costs (override)",
+    "Funding rate override", "Income generated", "Financial contributions", "Own resources",
+    "Requested EU contribution",
+  ];
+  const data: any[][] = [header];
+  let totals = new Array(header.length - 3).fill(0);
+
   for (const p of participants ?? []) {
     const r = byPart.get(p.id) ?? {};
-    const personnel = Number(r.personnel_total ?? r.personnel ?? 0);
-    const subcontract = Number(r.subcontracting_total ?? r.subcontracting ?? 0);
-    const equipment = Number(r.equipment_total ?? r.equipment ?? 0);
-    const other = Number(r.other_costs_total ?? r.other_costs ?? 0);
-    const indirect = Number(r.indirect_costs ?? 0);
-    const total = Number(r.total_costs ?? (personnel + subcontract + equipment + other + indirect));
-    const req = Number(r.requested_contribution ?? r.eu_contribution ?? 0);
-    lines.push(
-      `P${p.participant_number} ${p.organisation_short_name ?? ""}\t${eur(personnel)}\t${eur(subcontract)}\t${eur(equipment)}\t${eur(other)}\t${eur(indirect)}\t${eur(total)}\t${eur(req)}`
-    );
-    grand.p += personnel; grand.s += subcontract; grand.e += equipment;
-    grand.o += other; grand.i += indirect; grand.t += total; grand.req += req;
+    const vals = [
+      Number(r.personnel_costs ?? 0),
+      Number(r.subcontracting_costs ?? 0),
+      Number(r.purchase_travel ?? 0),
+      Number(r.purchase_equipment ?? 0),
+      Number(r.purchase_other_goods ?? 0),
+      Number(r.internally_invoiced ?? 0),
+      Number(r.financial_support_third_parties ?? 0),
+      Number(r.procurement ?? 0),
+      Number(r.indirect_costs_override ?? 0),
+      r.funding_rate_override !== null && r.funding_rate_override !== undefined ? Number(r.funding_rate_override) : "",
+      Number(r.income_generated ?? 0),
+      Number(r.financial_contributions ?? 0),
+      Number(r.own_resources ?? 0),
+      Number(r.requested_eu_contribution ?? 0),
+    ];
+    data.push([p.participant_number, p.organisation_short_name ?? "", p.organisation_name ?? "", ...vals]);
+    vals.forEach((v, i) => { if (typeof v === "number" && !isNaN(v)) totals[i] += v; });
   }
-  lines.push(
-    `TOTAL\t${eur(grand.p)}\t${eur(grand.s)}\t${eur(grand.e)}\t${eur(grand.o)}\t${eur(grand.i)}\t${eur(grand.t)}\t${eur(grand.req)}`
-  );
-  return lines.join("\n") + "\n";
+  data.push(["", "TOTAL", "", ...totals.map((t, i) => (i === 9 ? "" : t))]);
+
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  // Format numeric columns to 2 dp
+  const range = XLSX.utils.decode_range(ws["!ref"] as string);
+  for (let R = 1; R <= range.e.r; R++) {
+    for (let C = 3; C <= range.e.c; C++) {
+      const cell = ws[XLSX.utils.encode_cell({ r: R, c: C })];
+      if (cell && typeof cell.v === "number") cell.z = "#,##0.00";
+    }
+  }
+  ws["!cols"] = header.map((h) => ({ wch: Math.max(12, h.length + 2) }));
+  XLSX.utils.book_append_sheet(wb, ws, "A3 Budget summary");
+
+  // Cost justifications sheet
+  const { data: justs } = await supabase
+    .from("budget_cost_justifications").select("*, participant:participant_id(organisation_short_name)").eq("proposal_id", proposal.id);
+  if (justs?.length) {
+    const j: any[][] = [["Participant", "Category", "Justification"]];
+    for (const x of justs) j.push([x.participant?.organisation_short_name ?? "", x.category ?? "", x.justification ?? ""]);
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(j), "Cost justifications");
+  }
+
+  const buf = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+  return new Uint8Array(buf as ArrayBuffer);
 }
 
-async function buildPartA4(supabase: any, proposal: any): Promise<string> {
+// Group ethics_assessment fields into sections by prefix.
+const ETHICS_SECTIONS: { title: string; prefix: string }[] = [
+  { title: "Human embryonic stem cells & embryos", prefix: "human_embryonic" },
+  { title: "Human embryonic stem cells (continued)", prefix: "hesc_" },
+  { title: "Human embryos", prefix: "human_embryos" },
+  { title: "Human participants", prefix: "human_participants" },
+  { title: "Human volunteers", prefix: "human_volunteers" },
+  { title: "Human patients & vulnerable", prefix: "human_patients" },
+  { title: "Human vulnerable", prefix: "human_vulnerable" },
+  { title: "Children & unable to consent", prefix: "human_children" },
+  { title: "Unable to consent", prefix: "human_unable" },
+  { title: "Human interventions", prefix: "human_interventions" },
+  { title: "Invasive procedures", prefix: "human_invasive" },
+  { title: "Human biological samples", prefix: "human_biological" },
+  { title: "Clinical studies & trials", prefix: "clinical_" },
+  { title: "Low intervention trials", prefix: "low_intervention" },
+  { title: "Human cells / tissues", prefix: "human_cells" },
+  { title: "Personal data", prefix: "personal_data" },
+  { title: "Animals", prefix: "animals" },
+  { title: "Third countries", prefix: "third_countries" },
+  { title: "Environment & health", prefix: "environment" },
+  { title: "Dual use", prefix: "dual_use" },
+  { title: "Misuse", prefix: "misuse" },
+  { title: "Other ethics", prefix: "other_ethics" },
+  { title: "Security (EU classified / dual use / misuse / defence)", prefix: "security_" },
+];
+
+async function buildA4(supabase: any, proposal: any): Promise<Uint8Array> {
   const { data: ethics } = await supabase
     .from("ethics_assessment").select("*").eq("proposal_id", proposal.id).maybeSingle();
-  const lines: string[] = [`# Part A4 — Ethics & security`, ``];
-  if (!ethics) { lines.push(`(no ethics data captured)`); return lines.join("\n") + "\n"; }
-  for (const [k, v] of Object.entries(ethics)) {
-    if (["id", "proposal_id", "created_at", "updated_at"].includes(k)) continue;
-    if (v === null || v === "" || v === false || v === undefined) continue;
-    lines.push(`${k}\t${typeof v === "object" ? JSON.stringify(v) : v}`);
+  const children: (Paragraph | Table)[] = [H(HeadingLevel.HEADING_1, "Part A4 — Ethics & security")];
+  if (!ethics) {
+    children.push(P("(no ethics data captured)", { italics: true }));
+    return await packDocx(children);
   }
-  return lines.join("\n") + "\n";
-}
 
-async function buildPartA5(supabase: any, proposal: any): Promise<string> {
-  // A5 = OCDs (ownership/control declarations) and related per-participant uploads.
-  const { data: uploads } = await supabase
-    .from("participant_ocd_uploads").select("*, participants(participant_number, organisation_short_name)")
-    .order("created_at", { ascending: true });
-  const filtered = (uploads ?? []).filter((u: any) => u.participants);
-  const lines: string[] = [`# Part A5 — Ownership control declarations`, ``];
-  if (!filtered.length) { lines.push(`(no OCDs uploaded)`); return lines.join("\n") + "\n"; }
-  for (const u of filtered) {
-    const p = u.participants;
-    lines.push(`P${p.participant_number} ${p.organisation_short_name ?? ""}\t${u.file_name ?? ""}\t${u.created_at ?? ""}`);
-  }
-  return lines.join("\n") + "\n";
-}
-
-async function buildPartBSections(supabase: any, proposal: any): Promise<{ name: string; content: string }[]> {
-  // Latest version per Part B section.
-  const { data: rows } = await supabase.rpc("get_latest_part_b_sections", {
-    p_proposal_id: proposal.id,
-  }).then((r: any) => r).catch(() => ({ data: null }));
-
-  let sections: { section_id: string; content: string }[] = [];
-  if (rows && Array.isArray(rows)) {
-    sections = rows;
-  } else {
-    // Fallback: query directly using window function pattern via a simple raw query is not available.
-    // Fetch all then dedupe to latest per section_id in JS.
-    const { data: all } = await supabase
-      .from("section_versions")
-      .select("section_id, content, version_number")
-      .eq("proposal_id", proposal.id)
-      .like("section_id", "b%");
-    const latest = new Map<string, any>();
-    for (const v of all ?? []) {
-      const prev = latest.get(v.section_id);
-      if (!prev || v.version_number > prev.version_number) latest.set(v.section_id, v);
+  // Build a name → value map of all booleans + page + details
+  const entries = Object.entries(ethics).filter(([k]) => !["id", "proposal_id", "created_at", "updated_at"].includes(k));
+  const used = new Set<string>();
+  for (const sec of ETHICS_SECTIONS) {
+    const matched = entries.filter(([k]) => k.startsWith(sec.prefix));
+    if (!matched.length) continue;
+    const rows: string[][] = [];
+    const bools = matched.filter(([k]) => typeof ethics[k] === "boolean" || ethics[k] === null);
+    const texts = matched.filter(([k]) => typeof ethics[k] === "string");
+    for (const [k] of bools) {
+      const base = k;
+      const pageKey = `${base}_page`;
+      const detailKey = `${base}_details`;
+      rows.push([
+        base.replace(/_/g, " "),
+        yn(ethics[base]),
+        ethics[pageKey] ?? "",
+        ethics[detailKey] ?? "",
+      ]);
+      used.add(base); used.add(pageKey); used.add(detailKey);
     }
-    sections = Array.from(latest.values()).map((v) => ({ section_id: v.section_id, content: v.content ?? "" }));
+    // Loose text fields with the same prefix that weren't paired
+    for (const [k, v] of texts) {
+      if (used.has(k)) continue;
+      if (!v) continue;
+      rows.push([k.replace(/_/g, " "), "", "", String(v)]);
+      used.add(k);
+    }
+    if (rows.length) {
+      children.push(H(HeadingLevel.HEADING_2, sec.title));
+      children.push(simpleTable(["Item", "Yes/No", "Page", "Details"], rows));
+    }
+  }
+  // Catch-all: any remaining fields not in a known section
+  const leftover = entries.filter(([k]) => !used.has(k));
+  if (leftover.length) {
+    children.push(H(HeadingLevel.HEADING_2, "Other ethics fields"));
+    const rows = leftover.filter(([_, v]) => v !== null && v !== "" && v !== false)
+      .map(([k, v]) => [k.replace(/_/g, " "), typeof v === "boolean" ? yn(v) : String(v ?? "")]);
+    if (rows.length) children.push(simpleTable(["Field", "Value"], rows));
+  }
+  if (ethics.self_assessment_text) {
+    children.push(H(HeadingLevel.HEADING_2, "Self-assessment"));
+    children.push(...htmlToDocxChildren(ethics.self_assessment_text));
+  }
+  return await packDocx(children);
+}
+
+async function buildA5(supabase: any, proposal: any): Promise<Uint8Array> {
+  const { data: participants } = await supabase
+    .from("participants").select("id, participant_number, organisation_short_name").eq("proposal_id", proposal.id)
+    .order("participant_number", { ascending: true });
+  const partIds = (participants ?? []).map((p: any) => p.id);
+  const { data: uploads } = partIds.length
+    ? await supabase.from("participant_ocd_uploads").select("*").in("participant_id", partIds).order("created_at", { ascending: true })
+    : { data: [] };
+  const byPart = new Map<string, any[]>();
+  for (const u of uploads ?? []) {
+    if (!byPart.has(u.participant_id)) byPart.set(u.participant_id, []);
+    byPart.get(u.participant_id)!.push(u);
+  }
+  const children: (Paragraph | Table)[] = [
+    H(HeadingLevel.HEADING_1, "Part A5 — Ownership control declarations"),
+    KV("Requires OCD", yn(proposal.requires_ocd)),
+  ];
+  if (!uploads?.length) {
+    children.push(P("(no OCDs uploaded)", { italics: true }));
+  } else {
+    const rows: string[][] = [];
+    for (const p of participants ?? []) {
+      const ups = byPart.get(p.id) ?? [];
+      if (!ups.length) {
+        rows.push([`P${p.participant_number ?? "?"} ${p.organisation_short_name ?? ""}`, "—", "—"]);
+      } else {
+        for (const u of ups) {
+          rows.push([
+            `P${p.participant_number ?? "?"} ${p.organisation_short_name ?? ""}`,
+            u.file_name ?? "",
+            u.created_at ? new Date(u.created_at).toISOString().split("T")[0] : "",
+          ]);
+        }
+      }
+    }
+    children.push(simpleTable(["Participant", "File", "Uploaded"], rows));
+  }
+  return await packDocx(children);
+}
+
+async function buildPartBSection(supabase: any, proposal: any, sectionId: string, label: string): Promise<Uint8Array> {
+  const content = await latestSectionContent(supabase, proposal.id, sectionId);
+  const children: (Paragraph | Table)[] = [
+    H(HeadingLevel.HEADING_1, `Part ${label}`),
+    ...htmlToDocxChildren(content),
+  ];
+  return await packDocx(children);
+}
+
+async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
+  const [intro, body] = await Promise.all([
+    latestSectionContent(supabase, proposal.id, "b31-intro-text"),
+    latestSectionContent(supabase, proposal.id, "b3-1"),
+  ]);
+
+  const { data: wps } = await supabase
+    .from("wp_drafts")
+    .select("id, number, short_name, title, color, lead_participant_id, b31_objectives, background_knowledge, approach_summary, methodologies_list, foreseen_challenges, b31_description_before_tasks")
+    .eq("proposal_id", proposal.id)
+    .order("number", { ascending: true });
+
+  const wpIds = (wps ?? []).map((w: any) => w.id);
+  const [{ data: b31Tasks }, { data: deliverables }, { data: milestones }, { data: risks }, { data: participants }] = await Promise.all([
+    wpIds.length ? supabase.from("b31_tasks").select("*").in("wp_draft_id", wpIds).order("number", { ascending: true }) : { data: [] },
+    supabase.from("b31_deliverables").select("*").eq("proposal_id", proposal.id).order("order_index", { ascending: true }),
+    supabase.from("b31_milestones").select("*").eq("proposal_id", proposal.id).order("number", { ascending: true }),
+    supabase.from("b31_risks").select("*").eq("proposal_id", proposal.id).order("number", { ascending: true }),
+    supabase.from("participants").select("id, participant_number, organisation_short_name").eq("proposal_id", proposal.id).order("participant_number", { ascending: true }),
+  ]);
+
+  const partLabel = (id: string | null) => {
+    if (!id) return "—";
+    const p = (participants ?? []).find((x: any) => x.id === id);
+    return p ? `P${p.participant_number} ${p.organisation_short_name ?? ""}` : "—";
+  };
+
+  const children: (Paragraph | Table)[] = [H(HeadingLevel.HEADING_1, "Part B3.1 — Work plan & work packages")];
+
+  if (intro && intro.trim()) {
+    children.push(H(HeadingLevel.HEADING_2, "Intro text"));
+    children.push(...htmlToDocxChildren(intro));
+  }
+  if (body && body.trim()) {
+    children.push(H(HeadingLevel.HEADING_2, "Section body"));
+    children.push(...htmlToDocxChildren(body));
   }
 
-  return sections.map((s) => ({
-    name: s.section_id.toUpperCase().replace(/-/g, "."),
-    content: `# Part ${s.section_id.toUpperCase().replace(/-/g, ".")}\n\n${htmlToText(s.content)}`,
-  }));
+  // Per-WP detail
+  children.push(H(HeadingLevel.HEADING_2, "Work packages"));
+  for (const w of wps ?? []) {
+    children.push(H(HeadingLevel.HEADING_3, `WP${w.number} ${w.short_name ?? ""}${w.title ? ` — ${w.title}` : ""}`));
+    children.push(KV("Lead participant", partLabel(w.lead_participant_id)));
+    if (w.b31_objectives) { children.push(P("Objectives", { bold: true })); children.push(...htmlToDocxChildren(w.b31_objectives)); }
+    if (w.background_knowledge) { children.push(P("Background knowledge", { bold: true })); children.push(...htmlToDocxChildren(w.background_knowledge)); }
+    if (w.approach_summary) { children.push(P("Approach summary", { bold: true })); children.push(...htmlToDocxChildren(w.approach_summary)); }
+    if (w.b31_description_before_tasks) { children.push(P("Description (before tasks)", { bold: true })); children.push(...htmlToDocxChildren(w.b31_description_before_tasks)); }
+    if (w.foreseen_challenges) { children.push(P("Foreseen challenges", { bold: true })); children.push(...htmlToDocxChildren(w.foreseen_challenges)); }
+    const wpTasks = (b31Tasks ?? []).filter((t: any) => t.wp_draft_id === w.id);
+    if (wpTasks.length) {
+      children.push(P("Tasks", { bold: true }));
+      children.push(simpleTable(
+        ["#", "Title", "Lead", "Start", "End", "Description"],
+        wpTasks.map((t: any) => [t.number, t.title ?? "", partLabel(t.lead_participant_id), t.start_month ?? "", t.end_month ?? "", t.description ?? ""]),
+      ));
+    }
+  }
+
+  // Compulsory tables
+  if (deliverables?.length) {
+    children.push(H(HeadingLevel.HEADING_2, "Deliverables"));
+    children.push(simpleTable(
+      ["#", "Name", "WP", "Lead", "Type", "Diss.", "Due month"],
+      deliverables.map((d: any) => [d.number, d.name ?? "", d.wp_number ?? "", partLabel(d.lead_participant_id), d.type ?? "", d.dissemination_level ?? "", d.due_month ?? ""]),
+    ));
+  }
+  if (milestones?.length) {
+    children.push(H(HeadingLevel.HEADING_2, "Milestones"));
+    children.push(simpleTable(
+      ["#", "Name", "WPs", "Due month", "Means of verification"],
+      milestones.map((m: any) => [m.number, m.name ?? "", m.wps ?? "", m.due_month ?? "", m.means_of_verification ?? ""]),
+    ));
+  }
+  if (risks?.length) {
+    children.push(H(HeadingLevel.HEADING_2, "Risks"));
+    children.push(simpleTable(
+      ["#", "Description", "WPs", "Likelihood", "Severity", "Mitigation"],
+      risks.map((r: any) => [r.number, r.description ?? "", r.wps ?? "", r.likelihood ?? "", r.severity ?? "", r.mitigation ?? ""]),
+    ));
+  }
+
+  return await packDocx(children);
+}
+
+async function buildWpDraft(supabase: any, proposal: any, wp: any, participants: any[]): Promise<Uint8Array> {
+  const partLabel = (id: string | null) => {
+    if (!id) return "—";
+    const p = participants.find((x: any) => x.id === id);
+    return p ? `P${p.participant_number} ${p.organisation_short_name ?? ""}` : "—";
+  };
+
+  const [{ data: tasks }, { data: deliverables }, { data: milestones }, { data: risks }, { data: effort }] = await Promise.all([
+    supabase.from("wp_draft_tasks").select("*").eq("wp_draft_id", wp.id).order("number", { ascending: true }),
+    supabase.from("wp_draft_deliverables").select("*").eq("wp_draft_id", wp.id).order("number", { ascending: true }),
+    supabase.from("wp_draft_milestones").select("*").eq("wp_draft_id", wp.id).order("number", { ascending: true }),
+    supabase.from("wp_draft_risks").select("*").eq("wp_draft_id", wp.id).order("number", { ascending: true }),
+    supabase.from("wp_draft_effort").select("*, participant:participant_id(participant_number, organisation_short_name)").eq("wp_draft_id", wp.id),
+  ]);
+
+  const children: (Paragraph | Table)[] = [
+    H(HeadingLevel.HEADING_1, `WP${wp.number} ${wp.short_name ?? ""}${wp.title ? ` — ${wp.title}` : ""}`),
+    KV("Lead participant", partLabel(wp.lead_participant_id)),
+    KV("Duration", wp.manual_duration ?? ""),
+    KV("Person-months (manual)", wp.manual_person_months ?? ""),
+  ];
+  if (wp.objectives) { children.push(H(HeadingLevel.HEADING_2, "Objectives")); children.push(...htmlToDocxChildren(wp.objectives)); }
+  if (wp.methodology) { children.push(H(HeadingLevel.HEADING_2, "Methodology")); children.push(...htmlToDocxChildren(wp.methodology)); }
+  if (wp.description_before_tasks) { children.push(H(HeadingLevel.HEADING_2, "Description (before tasks)")); children.push(...htmlToDocxChildren(wp.description_before_tasks)); }
+  if (wp.inputs_question) children.push(KV("Inputs", wp.inputs_question));
+  if (wp.outputs_question) children.push(KV("Outputs", wp.outputs_question));
+  if (wp.bottlenecks_question) children.push(KV("Bottlenecks", wp.bottlenecks_question));
+
+  if (tasks?.length) {
+    children.push(H(HeadingLevel.HEADING_2, "Tasks"));
+    children.push(simpleTable(
+      ["#", "Title", "Lead", "Start", "End", "Description"],
+      tasks.map((t: any) => [t.number, t.title ?? "", partLabel(t.lead_participant_id), t.start_month ?? "", t.end_month ?? "", t.description ?? ""]),
+    ));
+  }
+  if (deliverables?.length) {
+    children.push(H(HeadingLevel.HEADING_2, "Deliverables"));
+    children.push(simpleTable(
+      ["#", "Title", "Type", "Diss.", "Lead", "Due month", "Description"],
+      deliverables.map((d: any) => [d.number, d.title ?? "", d.type ?? "", d.dissemination_level ?? "", partLabel(d.responsible_participant_id), d.due_month ?? "", d.description ?? ""]),
+    ));
+  }
+  if (milestones?.length) {
+    children.push(H(HeadingLevel.HEADING_2, "Milestones"));
+    children.push(simpleTable(
+      ["#", "Title", "Related WPs", "Due month", "Means of verification"],
+      milestones.map((m: any) => [m.number, m.title ?? "", m.related_wps ?? "", m.due_month ?? "", m.means_of_verification ?? ""]),
+    ));
+  }
+  if (risks?.length) {
+    children.push(H(HeadingLevel.HEADING_2, "Risks"));
+    children.push(simpleTable(
+      ["#", "Title", "Related WPs", "Likelihood", "Severity", "Mitigation"],
+      risks.map((r: any) => [r.number, r.title ?? "", r.related_wps ?? "", r.likelihood ?? "", r.severity ?? "", r.mitigation ?? ""]),
+    ));
+  }
+  if (effort?.length) {
+    children.push(H(HeadingLevel.HEADING_2, "Effort (person-months)"));
+    children.push(simpleTable(
+      ["Participant", "PM"],
+      effort.map((e: any) => [e.participant ? `P${e.participant.participant_number} ${e.participant.organisation_short_name ?? ""}` : "—", e.person_months ?? ""]),
+    ));
+  }
+  return await packDocx(children);
+}
+
+async function buildCaseDraft(_supabase: any, _proposal: any, cd: any, participants: any[]): Promise<Uint8Array> {
+  const lead = cd.lead_participant_id ? participants.find((p) => p.id === cd.lead_participant_id) : null;
+  const children: (Paragraph | Table)[] = [
+    H(HeadingLevel.HEADING_1, `Case ${cd.number} ${cd.short_name ?? ""}${cd.title ? ` — ${cd.title}` : ""}`),
+    KV("Type", cd.custom_type_name || cd.case_type),
+    KV("Lead participant", lead ? `P${lead.participant_number} ${lead.organisation_short_name ?? ""}` : "—"),
+  ];
+  if (cd.description) { children.push(H(HeadingLevel.HEADING_2, "Description")); children.push(...htmlToDocxChildren(cd.description)); }
+  const sections: [string, string, string][] = [
+    [cd.heading_background ?? "Background context", cd.background_context, cd.guideline_background],
+    [cd.heading_stakeholders ?? "Key stakeholders", cd.key_stakeholders, cd.guideline_stakeholders],
+    [cd.heading_solutions ?? "Proposed solutions", cd.proposed_solutions, cd.guideline_solutions],
+    [cd.heading_outcomes ?? "Expected outcomes", cd.expected_outcomes, cd.guideline_outcomes],
+    [cd.heading_replicability ?? "Replicability", cd.replicability, cd.guideline_replicability],
+  ];
+  for (const [heading, content] of sections) {
+    if (!content || !String(content).trim()) continue;
+    children.push(H(HeadingLevel.HEADING_2, heading));
+    children.push(...htmlToDocxChildren(content));
+  }
+  return await packDocx(children);
 }
 
 // ---------- SharePoint upload ----------
@@ -294,7 +852,7 @@ async function buildPartBSections(supabase: any, proposal: any): Promise<{ name:
 async function pushToSharePoint(
   cfg: any,
   acronym: string,
-  files: { name: string; bytes: Uint8Array; mime: string }[]
+  files: { name: string; bytes: Uint8Array; mime: string }[],
 ): Promise<{ status: "uploaded" | "failed" | "skipped"; path?: string; error?: string }> {
   if (!cfg?.enabled || !cfg.site_id || !cfg.root_folder_path) {
     return { status: "skipped" };
@@ -306,7 +864,6 @@ async function pushToSharePoint(
     const folder = cfg.per_proposal_subfolder
       ? `${cfg.root_folder_path}/${acronym} Proposal Backup`
       : cfg.root_folder_path;
-    // Best-effort create folder (ignore failure).
     try {
       await fetch(
         `${GATEWAY}/sites/${cfg.site_id}/drive/root:/${encodeURI(folder)}:/children`,
@@ -322,7 +879,7 @@ async function pushToSharePoint(
             folder: {},
             "@microsoft.graph.conflictBehavior": "replace",
           }),
-        }
+        },
       ).then((r) => r.text());
     } catch (_) { /* ignore */ }
 
@@ -351,30 +908,35 @@ async function pushToSharePoint(
 
 // ---------- main ----------
 
+const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+const XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const now = new Date();
-  const force = new URL(req.url).searchParams.get("force") === "1";
+  const url = new URL(req.url);
+  let bodyForce = false;
+  if (req.method === "POST") {
+    try {
+      const b = await req.clone().json();
+      if (b?.force === true || b?.trigger === "manual") bodyForce = true;
+    } catch (_) { /* no body */ }
+  }
+  const force = url.searchParams.get("force") === "1" || bodyForce;
   const helsinkiH = helsinkiHour(now);
   if (!force && helsinkiH !== 6) {
     return new Response(
       JSON.stringify({ skipped: true, helsinki_hour: helsinkiH }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
 
   const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
   const stamp = helsinkiStamp(now);
 
-  // SharePoint config (single global row).
-  const { data: cfg } = await supabase
-    .from("sharepoint_backup_config").select("*").maybeSingle();
-
-  // Active proposals = all non-final ones. Funded/not_funded are still backed up
-  // until manually excluded; the 90-day retention bounds storage cost.
-  const { data: proposals, error: pErr } = await supabase
-    .from("proposals").select("*");
+  const { data: cfg } = await supabase.from("sharepoint_backup_config").select("*").maybeSingle();
+  const { data: proposals, error: pErr } = await supabase.from("proposals").select("*");
   if (pErr) {
     return new Response(JSON.stringify({ error: pErr.message }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -385,44 +947,66 @@ Deno.serve(async (req) => {
   for (const proposal of proposals ?? []) {
     const acr = safeAcronym(proposal.acronym);
     try {
-      const enc = new TextEncoder();
       const files: { name: string; bytes: Uint8Array; mime: string }[] = [];
 
-      const a1 = await buildPartA1(supabase, proposal);
-      files.push({ name: `${acr} Part A1 ${stamp}.txt`, bytes: enc.encode(a1), mime: "text/plain" });
-      const a2 = await buildPartA2(supabase, proposal);
-      files.push({ name: `${acr} Part A2 ${stamp}.txt`, bytes: enc.encode(a2), mime: "text/plain" });
-      const a3 = await buildPartA3(supabase, proposal);
-      files.push({ name: `${acr} Part A3 ${stamp}.txt`, bytes: enc.encode(a3), mime: "text/plain" });
-      const a4 = await buildPartA4(supabase, proposal);
-      files.push({ name: `${acr} Part A4 ${stamp}.txt`, bytes: enc.encode(a4), mime: "text/plain" });
-      const a5 = await buildPartA5(supabase, proposal);
-      files.push({ name: `${acr} Part A5 ${stamp}.txt`, bytes: enc.encode(a5), mime: "text/plain" });
+      // Fetch participants once for reuse
+      const { data: participants } = await supabase
+        .from("participants").select("id, participant_number, organisation_short_name")
+        .eq("proposal_id", proposal.id).order("participant_number", { ascending: true });
 
-      const bSections = await buildPartBSections(supabase, proposal);
-      for (const s of bSections) {
+      // Part A
+      files.push({ name: `${acr} Part A1 ${stamp}.docx`, bytes: await buildA1(supabase, proposal), mime: DOCX_MIME });
+      files.push({ name: `${acr} Part A2 ${stamp}.docx`, bytes: await buildA2(supabase, proposal), mime: DOCX_MIME });
+      files.push({ name: `${acr} Part A3 ${stamp}.xlsx`, bytes: await buildA3Xlsx(supabase, proposal), mime: XLSX_MIME });
+      files.push({ name: `${acr} Part A4 ${stamp}.docx`, bytes: await buildA4(supabase, proposal), mime: DOCX_MIME });
+      files.push({ name: `${acr} Part A5 ${stamp}.docx`, bytes: await buildA5(supabase, proposal), mime: DOCX_MIME });
+
+      // Part B (canonical sections only — UUID/legacy 'b3' rows are ignored)
+      for (const sec of PART_B_SECTIONS) {
         files.push({
-          name: `${acr} Part ${s.name} ${stamp}.txt`,
-          bytes: enc.encode(s.content),
-          mime: "text/plain",
+          name: `${acr} Part ${sec.label} ${stamp}.docx`,
+          bytes: await buildPartBSection(supabase, proposal, sec.id, sec.label),
+          mime: DOCX_MIME,
+        });
+      }
+      files.push({ name: `${acr} Part B3.1 ${stamp}.docx`, bytes: await buildB31(supabase, proposal), mime: DOCX_MIME });
+
+      // WP drafts
+      const { data: wps } = await supabase.from("wp_drafts").select("*").eq("proposal_id", proposal.id).order("number", { ascending: true });
+      for (const w of wps ?? []) {
+        files.push({
+          name: `${acr} WP${w.number} Draft ${stamp}.docx`,
+          bytes: await buildWpDraft(supabase, proposal, w, participants ?? []),
+          mime: DOCX_MIME,
         });
       }
 
-      // Upload to bucket.
+      // Case drafts
+      const { data: cases } = await supabase.from("case_drafts").select("*").eq("proposal_id", proposal.id).order("number", { ascending: true });
+      for (const c of cases ?? []) {
+        files.push({
+          name: `${acr} Case ${c.number} Draft ${stamp}.docx`,
+          bytes: await buildCaseDraft(supabase, proposal, c, participants ?? []),
+          mime: DOCX_MIME,
+        });
+      }
+
+      // Sort alphabetically by filename before upload
+      files.sort((a, b) => a.name.localeCompare(b.name));
+
+      // Upload to bucket
       const bucketPaths: string[] = [];
       let totalBytes = 0;
       for (const f of files) {
         const path = `${proposal.id}/${stamp}/${f.name}`;
-        const { error: upErr } = await supabase.storage
-          .from("proposal-backups").upload(path, f.bytes, {
-            contentType: f.mime, upsert: true,
-          });
+        const { error: upErr } = await supabase.storage.from("proposal-backups").upload(path, f.bytes, {
+          contentType: f.mime, upsert: true,
+        });
         if (upErr) throw upErr;
         bucketPaths.push(path);
         totalBytes += f.bytes.length;
       }
 
-      // SharePoint push.
       const sp = await pushToSharePoint(cfg, acr, files);
 
       const { error: insErr } = await supabase.from("proposal_backups").insert({
@@ -438,6 +1022,7 @@ Deno.serve(async (req) => {
 
       results.push({ proposal_id: proposal.id, acronym: acr, files: files.length, bytes: totalBytes, sharepoint: sp.status });
     } catch (e) {
+      console.error(`Backup failed for ${acr}:`, e);
       results.push({ proposal_id: proposal.id, acronym: acr, error: (e as Error).message });
       await supabase.from("proposal_backups").insert({
         proposal_id: proposal.id,
@@ -450,18 +1035,14 @@ Deno.serve(async (req) => {
     }
   }
 
-  // Cleanup: delete rows + objects older than 90 days.
+  // Cleanup: rows + objects older than 90 days
   try {
     const cutoff = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000).toISOString();
-    const { data: old } = await supabase
-      .from("proposal_backups").select("id, bucket_paths").lt("backup_timestamp", cutoff);
+    const { data: old } = await supabase.from("proposal_backups").select("id, bucket_paths").lt("backup_timestamp", cutoff);
     if (old?.length) {
       const allPaths = old.flatMap((r: any) => (r.bucket_paths ?? []) as string[]);
-      if (allPaths.length) {
-        // Batch removes in chunks of 100.
-        for (let i = 0; i < allPaths.length; i += 100) {
-          await supabase.storage.from("proposal-backups").remove(allPaths.slice(i, i + 100));
-        }
+      for (let i = 0; i < allPaths.length; i += 100) {
+        await supabase.storage.from("proposal-backups").remove(allPaths.slice(i, i + 100));
       }
       await supabase.from("proposal_backups").delete().in("id", old.map((r: any) => r.id));
     }
@@ -469,7 +1050,7 @@ Deno.serve(async (req) => {
     console.warn("cleanup failed", e);
   }
 
-  return new Response(JSON.stringify({ ran_at: now.toISOString(), helsinki_stamp: stamp, results }), {
+  return new Response(JSON.stringify({ ran_at: now.toISOString(), helsinki_stamp: stamp, forced: force, results }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 });

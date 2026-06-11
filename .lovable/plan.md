@@ -1,163 +1,68 @@
-## Overview
+## Goal
 
-Three coordinated pieces of work:
+Make daily backups produce a complete, faithful, well-structured archive of every proposal — fixing all current defects (wrong files, missing content, wrong format, manual-run gated by hour), and adding WP draft + case draft backups.
 
-1. Add a **per-participant detailed-budget sheet** to the existing A3 Excel export. Summary sheets reference these new sheets via formulas.
-2. Build a **daily backup engine** that produces, for every active proposal:
-   - one `.txt` per Part A section (A1, A2, A4, A5),
-   - one `.txt` per Part B section (latest version only),
-   - one `.xlsx` for A3 (reusing the upgraded export generator).
-3. Push the same daily bundle to **two destinations**: a private Lovable Cloud storage bucket (90-day rolling, in-app download) **and** a SharePoint folder via the Microsoft SharePoint connector at **06:00 Europe/Helsinki** (handles EET/EEST automatically).
+## Issues being fixed
 
-File naming convention: `{ACRONYM} Part {X} YYYY-MM-DD HH-MM-SS.{ext}` (colons replaced with hyphens for SharePoint/Windows safety).
-
----
-
-## Part 1 — Per-participant detailed-budget sheet in A3 Excel export
-
-Refactor `src/lib/` Excel generator so each participant gets its own worksheet named e.g. `P{n} {ShortName}` containing the same detailed breakdown that the live A3 portal shows for that partner: personnel (with WP allocations and PM rates), subcontracting, equipment, other goods/services/works, indirect costs (25 %), totals, requested EU contribution.
-
-The existing summary sheets (A3.1 totals, A3.2 effort, A3.3 per-WP, FSTP if applicable) become **formula-driven**, referencing the per-participant tabs (e.g. `='P2 Acme'!$E$42`) instead of writing precomputed numbers. Round-to-cent rules in the budget engine memory remain authoritative — formulas use `ROUND(..., 2)` to match.
-
-The refactored generator is split into a **shared module** that runs in both browser (live export) and Deno (backup edge function):
-
-```
-src/lib/budgetExcel/
-  ├─ buildWorkbook.ts        ← pure function, uses xlsx-js-style + jszip via npm: specifiers
-  ├─ participantSheet.ts
-  ├─ summarySheets.ts
-  └─ formulas.ts             ← shared cell-reference helpers
-```
-
-The live "Export A3" button continues to call `buildWorkbook` from the browser unchanged. The backup edge function imports the same module via `npm:` specifiers.
-
----
-
-## Part 2 — Backup engine (edge function + storage)
-
-**New table** `proposal_backups`:
-
-| column | type | notes |
+| # | Current | Fix |
 |---|---|---|
-| id | uuid PK | |
-| proposal_id | uuid FK | |
-| backup_timestamp | timestamptz | exact run time |
-| sharepoint_status | text | `pending` / `uploaded` / `failed` / `skipped` |
-| sharepoint_path | text | full SharePoint path once uploaded |
-| bucket_paths | jsonb | array of object keys in `proposal-backups` bucket |
-| size_bytes | int | total bundle size |
-| error | text | last error message if any |
+| 1 | "Run backup now" returns 0 proposals when not at 06:00 Helsinki | Pass `force=1` (and `trigger:"manual"` body flag) so the hour-gate is bypassed for the admin button. |
+| 2 | 13 files including an orphan `b3` doc (B3 legacy content actually holds B1.2 material) and many UUID-keyed Part B versions | Build the file list from a fixed allow-list of canonical section IDs (`b1-1, b1-2, b2-1, b2-2, b3-1, b3-2`). Ignore any section_id that is a UUID or `b3` (legacy). |
+| 3 | `b31-intro-text` saved as a separate file | Merge `b31-intro-text` into the B3.1 file as the top section, followed by the b3-1 editor content, followed by the compulsory B3.1 tables (tasks, deliverables, milestones, risks). |
+| 4 | B3.1 file contains only a few cross-refs | Pull compulsory B3.1 data from `wp_drafts` + `b31_tasks` + `wp_draft_deliverables` + `wp_draft_milestones` + `wp_draft_risks` (and effort) and render them as proper tables in the docx. |
+| 5 | A2 only has basic org info | For each participant, include: departments, key researchers, infrastructure, achievements, dependencies, previous projects, members, organisation roles. |
+| 6 | A3 is a partial text file | Replace with `{ACR} Part A3 {stamp}.xlsx`: consolidated budget rows per participant + totals row (full per-partner sheet refactor remains deferred per your earlier instruction). |
+| 7 | A4 / A5 only contain justifications | Render full ethics checklist: every `*_yes/no` flag with its page reference and details; A5 lists OCD uploads plus any A5-related fields. |
+| 8 | Files are ordered by build sequence | Sort the file list alphabetically before upload (filenames already start with `{ACR} Part …`, so alpha = canonical order). |
+| 9 | Tables unreadable in `.txt` | Switch every text artefact to `.docx` (proper Word tables, headings, lists). A3 stays `.xlsx`. |
+| 10 | WP drafts and case drafts not backed up | Add `{ACR} WP{N} Draft {stamp}.docx` for each `wp_drafts` row and `{ACR} Case {N} Draft {stamp}.docx` for each `case_drafts` row. |
 
-RLS: read restricted via `is_proposal_admin()` (coordinators & global admins only). GRANT block follows public-schema rules.
+## Final file list per proposal (alphabetical)
 
-**New private storage bucket** `proposal-backups` created via `supabase--storage_create_bucket`. RLS on `storage.objects` mirrors the table policy. 90-day rolling retention enforced by a daily cleanup step inside the same edge function (deletes both bucket objects and table rows older than 90 days).
-
-**New edge function** `generate-proposal-backups`:
-- Triggered hourly by `pg_cron` → `net.http_post`.
-- On entry, computes current `Europe/Helsinki` local hour using `Intl.DateTimeFormat`. Exits immediately unless local hour is `06`. This handles EET/EEST switches with zero manual intervention.
-- For every active (non-archived) proposal:
-  1. Build Part A text files from `part_a_data`, `participants`, `participant_*`, `ethics_assessment`, `participant_ocd_uploads`.
-  2. Build Part B text files from latest `section_versions` per Part B section, using a minimal HTML→text converter (headings → `# Title`, lists → `- item`, tables → tab-separated rows, cross-refs rendered as visible text). HTML sanitised via `_shared/sanitizeEditorHtml.ts`.
-  3. Build A3 `.xlsx` by importing the shared `buildWorkbook` module from Part 1.
-  4. Upload each file to the `proposal-backups` bucket under `{proposal_id}/{YYYY-MM-DD HH-MM-SS}/{filename}`.
-  5. Push each file to SharePoint (Part 3).
-  6. Insert one `proposal_backups` row with the outcome.
-- Cleanup pass: delete bucket objects and rows older than 90 days. SharePoint files are **not** deleted automatically — they're owned by the user's tenant.
-
-**File naming** (used identically in bucket and SharePoint):
-- `{ACRONYM} Part A1 YYYY-MM-DD HH-MM-SS.txt`
-- `{ACRONYM} Part A2 YYYY-MM-DD HH-MM-SS.txt`
-- `{ACRONYM} Part A3 YYYY-MM-DD HH-MM-SS.xlsx`
-- `{ACRONYM} Part A4 YYYY-MM-DD HH-MM-SS.txt`
-- `{ACRONYM} Part A5 YYYY-MM-DD HH-MM-SS.txt`
-- `{ACRONYM} Part B{section_number} YYYY-MM-DD HH-MM-SS.txt`
-
----
-
-## Part 3 — SharePoint delivery
-
-Uses the **Microsoft SharePoint** connector (gateway-backed, auto-refreshing OAuth). One workspace-level connection covers all proposals.
-
-**Configuration table** `sharepoint_backup_config` (single-row, global, admin-editable):
-
-| column | type | notes |
-|---|---|---|
-| id | uuid PK | |
-| site_id | text | Microsoft Graph site ID |
-| root_folder_path | text | e.g. `Documents/Sitra proposal backups` |
-| per_proposal_subfolder | bool | default `true` |
-| updated_by | uuid | |
-| updated_at | timestamptz | |
-
-A small **Settings → Backups** admin page lets a global admin paste the SharePoint site URL and root folder path. The page resolves the site URL → site ID via Graph `GET /sites/{hostname}:/sites/{path}` and stores the resolved ID.
-
-**Per-proposal subfolder logic** (best-effort, with fallback as you requested):
-- Attempt to ensure folder `{root_folder_path}/{ACRONYM} Proposal Backup/` exists (PUT empty folder via Graph).
-- If creation fails (permission, naming collision, etc.), fall back to the flat root folder — the filename itself already contains the acronym and timestamp, so files remain unambiguous.
-
-**Upload call** (per file):
 ```
-PUT https://connector-gateway.lovable.dev/microsoft_sharepoint/sites/{site-id}/drive/root:/{folder}/{filename}:/content
-Authorization: Bearer ${LOVABLE_API_KEY}
-X-Connection-Api-Key: ${MICROSOFT_SHAREPOINT_API_KEY}
-Content-Type: text/plain  (or application/vnd.openxmlformats-officedocument.spreadsheetml.sheet)
-Body: <file bytes>
+{ACR} Case 1 Draft {stamp}.docx     (one per case_drafts row)
+{ACR} Case 2 Draft {stamp}.docx
+…
+{ACR} Part A1 {stamp}.docx
+{ACR} Part A2 {stamp}.docx
+{ACR} Part A3 {stamp}.xlsx
+{ACR} Part A4 {stamp}.docx
+{ACR} Part A5 {stamp}.docx
+{ACR} Part B1.1 {stamp}.docx
+{ACR} Part B1.2 {stamp}.docx
+{ACR} Part B2.1 {stamp}.docx
+{ACR} Part B2.2 {stamp}.docx
+{ACR} Part B3.1 {stamp}.docx     (intro-text + b3-1 editor + compulsory tables, all merged)
+{ACR} Part B3.2 {stamp}.docx
+{ACR} WP1 Draft {stamp}.docx        (one per wp_drafts row)
+{ACR} WP2 Draft {stamp}.docx
+…
 ```
 
-Files ≤4 MB use the simple PUT shown above; daily proposal bundles will be well under that. If a file ever exceeds 4 MB we'd switch to a resumable upload session — not needed for v1.
+## Technical approach
 
-Failures don't block the in-platform backup: the bucket upload always runs first, then SharePoint. The `proposal_backups` row records `sharepoint_status = failed` with the error and the next day's run retries automatically.
+- **Edge function** `supabase/functions/generate-proposal-backups/index.ts`:
+  - Add `docx` (via `npm:docx@9`) and `xlsx` (via `npm:xlsx@0.18`) to render artefacts in Deno.
+  - Refactor builders into one-per-artefact functions returning `{ name, bytes, mime }`:
+    - `buildA1Docx`, `buildA2Docx` (per-participant sections via `participants` + 7 child tables), `buildA3Xlsx` (single sheet from `budget_rows` joined to `participants`), `buildA4Docx`, `buildA5Docx`, `buildPartBSectionDocx(sectionId)`, `buildB31Docx` (intro + b3-1 + tables), `buildWpDraftDocx(wp)`, `buildCaseDraftDocx(case)`.
+  - HTML → docx: walk the section HTML and emit `Paragraph` / `Table` / `TextRun` nodes (covers headings, lists, paragraphs, tables, line breaks). No external HTML-to-docx parser — a small in-house walker, similar in spirit to the existing `htmlToText` helper.
+  - Force flag: read both `?force=1` query param and `body.trigger === "manual"` to bypass the 06:00 gate.
+  - Sort the final `files[]` array by name before uploading to the bucket / SharePoint.
+- **Section allow-list & merge logic**:
+  - Constant `PART_B_SECTIONS = ["b1-1","b1-2","b2-1","b2-2","b3-1","b3-2"]`.
+  - Helper `latestSectionContent(proposalId, sectionId)` (one query each, indexed lookup).
+  - For B3.1, also fetch `b31-intro-text` and the b31 children for the WP collection.
+- **Admin "Run backup now" button** (`src/pages/admin/BackupsAdmin.tsx`): invoke the function with `{ trigger: "manual", force: true }` and surface per-proposal result counts in the toast.
+- **No DB migration needed** — existing tables `proposal_backups` and `sharepoint_backup_config` already cover everything; row schema unchanged.
+- **No frontend types regen needed**.
 
----
+## Out of scope (per your earlier note)
 
-## Part 4 — In-app UI for coordinators & admins
+- Per-partner detailed A3 sheets feeding the consolidated sheets — deferred until after this round.
+- SharePoint connector linking — pending your admin approval.
 
-New **"Backups"** panel on the proposal editor (visible only when `is_proposal_admin()` is true):
-- Lists daily backup runs newest first.
-- Each row shows: timestamp, total size, SharePoint status icon, expand to see individual files.
-- Per-file download button generates a 60-second signed URL via `supabase.storage.from('proposal-backups').createSignedUrl(...)`.
-- Read-only — no manual trigger button (out of scope).
+## QA after build
 
-Settings → Backups admin page (global admins only):
-- SharePoint site URL + root folder inputs, "Test connection" button (calls Graph `/sites/{id}` and reports success/failure).
-- Toggle for "Create one subfolder per proposal".
-
----
-
-## Part 5 — Scheduling
-
-Run via `supabase--insert` (not migration — it embeds the project ref and anon key):
-
-```sql
-select cron.schedule(
-  'proposal-backups-hourly-helsinki-gate',
-  '0 * * * *',
-  $$
-  select net.http_post(
-    url := '<project-functions-url>/generate-proposal-backups',
-    headers := '{"Content-Type":"application/json","apikey":"<anon-key>"}'::jsonb,
-    body := concat('{"trigger":"cron","fired_at":"', now(), '"}')::jsonb
-  );
-  $$
-);
-```
-
-The edge function self-gates to 06:00 Helsinki local time. Hourly invocation cost is negligible (each non-matching call exits in <50 ms with no DB reads beyond the time check).
-
----
-
-## Required user action before/during build
-
-1. **Connect Microsoft SharePoint** via the connector picker when prompted. The connector is gateway-backed and OAuth-refreshed automatically.
-2. **After Part 3 lands**, an admin opens Settings → Backups and pastes the SharePoint site URL + root folder path (e.g. `https://yourtenant.sharepoint.com/sites/Sitra` + `Documents/Sitra proposal backups`). Until then, SharePoint uploads are skipped (`sharepoint_status = skipped`); in-platform bucket backups still run.
-
----
-
-## Out of scope
-
-- Restore flow (read-only backups only).
-- Including budget CSV/PDF or figures in the daily bundle.
-- Including B3.1 structured tables, WP drafts, or budget tables in the text bundle (only Part B section-editor content is included as text; A3 covers the budget side).
-- Email delivery / digest.
-- User-triggered ad-hoc backup button.
-- Deleting SharePoint files on retention expiry (tenant-owned).
+1. Click "Run backup now" → toast should report N proposals, including AddGenAI.
+2. Open the new AddGenAI backup in the Backups panel: confirm filenames, alphabetical order, presence of WP / Case files, no `b3` or UUID files.
+3. Download each docx/xlsx and spot-check: A2 per-participant content, A4 checklist with Yes/No + page, B3.1 with intro + body + tables, WP1 with tasks/deliverables/milestones/risks.
