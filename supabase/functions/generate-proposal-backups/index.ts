@@ -108,6 +108,22 @@ function decodeEntities(s: string): string {
     .replace(/&#39;|&apos;/g, "'");
 }
 
+// Strip noise that would otherwise leak into the docx as literal text:
+// <style>/<script> blocks, HTML comments, and stray Word/MSO conditional
+// markup. Inline tag attributes are kept (parser ignores them anyway).
+function cleanHtml(html: string | null | undefined): string {
+  if (!html) return "";
+  return String(html)
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/<o:p\b[^>]*>[\s\S]*?<\/o:p>/gi, "")
+    .replace(/<\/?o:[^>]+>/gi, "");
+}
+
+// Tags whose text content must NEVER be emitted as visible text.
+const SKIP_TAGS = new Set(["style", "script", "noscript", "template", "head", "meta", "link"]);
+
 // ---------- HTML → docx walker ----------
 
 const THIN_BORDER = { style: BorderStyle.SINGLE, size: 4, color: "BFBFBF" };
