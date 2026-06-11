@@ -108,6 +108,22 @@ function decodeEntities(s: string): string {
     .replace(/&#39;|&apos;/g, "'");
 }
 
+// Strip noise that would otherwise leak into the docx as literal text:
+// <style>/<script> blocks, HTML comments, and stray Word/MSO conditional
+// markup. Inline tag attributes are kept (parser ignores them anyway).
+function cleanHtml(html: string | null | undefined): string {
+  if (!html) return "";
+  return String(html)
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/<o:p\b[^>]*>[\s\S]*?<\/o:p>/gi, "")
+    .replace(/<\/?o:[^>]+>/gi, "");
+}
+
+// Tags whose text content must NEVER be emitted as visible text.
+const SKIP_TAGS = new Set(["style", "script", "noscript", "template", "head", "meta", "link"]);
+
 // ---------- HTML → docx walker ----------
 
 const THIN_BORDER = { style: BorderStyle.SINGLE, size: 4, color: "BFBFBF" };
@@ -122,6 +138,7 @@ function inlineRuns(node: any, parentBold = false, parentItalic = false, parentU
     return runs;
   }
   const tag = (node.tagName || "").toLowerCase();
+  if (SKIP_TAGS.has(tag)) return runs;
   let bold = parentBold;
   let italic = parentItalic;
   let underline = parentUnderline;
@@ -145,8 +162,9 @@ function cellContents(node: any): Paragraph[] {
     inlineBuffer = [];
   };
   for (const child of node.childNodes ?? []) {
-    const tag = (child.tagName || "").toLowerCase();
-    if (["p", "div", "ul", "ol", "h1", "h2", "h3", "h4", "h5", "h6", "table"].includes(tag)) {
+    const ctag = (child.tagName || "").toLowerCase();
+    if (SKIP_TAGS.has(ctag)) continue;
+    if (["p", "div", "ul", "ol", "h1", "h2", "h3", "h4", "h5", "h6", "table"].includes(ctag)) {
       flush();
       out.push(...blockToDocx(child));
     } else {
@@ -221,8 +239,9 @@ function blockToDocx(node: any): (Paragraph | Table)[] {
 }
 
 function htmlToDocxChildren(html: string | null | undefined): (Paragraph | Table)[] {
-  if (!html || !html.trim()) return [new Paragraph({ children: [new TextRun({ text: "(empty)", italics: true })] })];
-  const root = parseHtml(html, { lowerCaseTagName: true });
+  const cleaned = cleanHtml(html);
+  if (!cleaned || !cleaned.trim()) return [new Paragraph({ children: [new TextRun({ text: "(empty)", italics: true })] })];
+  const root = parseHtml(cleaned, { lowerCaseTagName: true });
   const out: (Paragraph | Table)[] = [];
   let inlineBuffer: any[] = [];
   const flush = () => {
@@ -233,6 +252,7 @@ function htmlToDocxChildren(html: string | null | undefined): (Paragraph | Table
   };
   for (const child of root.childNodes ?? []) {
     const tag = (child.tagName || "").toLowerCase();
+    if (SKIP_TAGS.has(tag)) continue;
     if (["p", "div", "ul", "ol", "h1", "h2", "h3", "h4", "h5", "h6", "table", "hr", "blockquote"].includes(tag)) {
       flush();
       out.push(...blockToDocx(child));
@@ -315,7 +335,110 @@ async function latestSectionContent(supabase: any, proposalId: string, sectionId
   return data?.content ?? "";
 }
 
+// ---------- Table 3.1.b–style WP description table (shared) ----------
+
+interface WpTableTask {
+  number: number | string;
+  title?: string | null;
+  leadLabel: string;
+  participantsLabel: string;
+  duration: string;
+  description?: string | null;
+}
+interface WpTableOpts {
+  wpNumber: number | string;
+  shortName?: string | null;
+  title?: string | null;
+  leadLabel: string;
+  duration?: string | null;
+  objectives?: string | null;
+  description?: string | null;
+  methodology?: string | null;
+  tasks: WpTableTask[];
+  extras?: [string, string | null | undefined][];
+}
+
+function buildWpDescriptionTable(opts: WpTableOpts): Table {
+  const SHADE = { fill: "E7E6E6", type: "clear", color: "auto" } as any;
+  const SHADE_DARK = { fill: "BFBFBF", type: "clear", color: "auto" } as any;
+  const cellOpts = (o: { span?: number; shading?: any } = {}) => ({
+    borders: CELL_BORDERS,
+    margins: { top: 80, bottom: 80, left: 120, right: 120 },
+    columnSpan: o.span,
+    shading: o.shading,
+  });
+  const txtCell = (text: string, o: { span?: number; shading?: any; bold?: boolean } = {}) =>
+    new TableCell({
+      ...cellOpts(o),
+      children: [new Paragraph({ children: [new TextRun({ text: text ?? "", bold: o.bold })] })],
+    });
+  const htmlCell = (html: string | null | undefined, o: { span?: number; shading?: any } = {}) =>
+    new TableCell({ ...cellOpts(o), children: htmlToDocxChildren(html) as Paragraph[] });
+  const kvCell = (label: string, value: string, o: { span?: number; shading?: any } = {}) =>
+    new TableCell({
+      ...cellOpts(o),
+      children: [new Paragraph({ children: [
+        new TextRun({ text: `${label}: `, bold: true }),
+        new TextRun({ text: value }),
+      ] })],
+    });
+
+  const rows: TableRow[] = [];
+  const titleBits = `Work package ${opts.wpNumber}: ${opts.shortName ?? ""}${opts.title ? ` — ${opts.title}` : ""}`;
+  rows.push(new TableRow({ children: [txtCell(titleBits, { span: 6, shading: SHADE_DARK, bold: true })] }));
+  rows.push(new TableRow({
+    children: [
+      kvCell("Lead participant", opts.leadLabel, { span: 3 }),
+      kvCell("Duration", opts.duration ? String(opts.duration) : "—", { span: 3 }),
+    ],
+  }));
+  if (opts.objectives && String(opts.objectives).trim()) {
+    rows.push(new TableRow({ children: [txtCell("Objectives", { span: 6, shading: SHADE, bold: true })] }));
+    rows.push(new TableRow({ children: [htmlCell(opts.objectives, { span: 6 })] }));
+  }
+  if (opts.description && String(opts.description).trim()) {
+    rows.push(new TableRow({ children: [txtCell("Description", { span: 6, shading: SHADE, bold: true })] }));
+    rows.push(new TableRow({ children: [htmlCell(opts.description, { span: 6 })] }));
+  }
+  if (opts.methodology && String(opts.methodology).trim()) {
+    rows.push(new TableRow({ children: [txtCell("Methodology", { span: 6, shading: SHADE, bold: true })] }));
+    rows.push(new TableRow({ children: [htmlCell(opts.methodology, { span: 6 })] }));
+  }
+  for (const t of opts.tasks) {
+    rows.push(new TableRow({
+      children: [txtCell(`Task ${opts.wpNumber}.${t.number}: ${t.title ?? ""}`, { span: 6, shading: SHADE, bold: true })],
+    }));
+    rows.push(new TableRow({
+      children: [
+        kvCell("Task leader", t.leadLabel, { span: 2 }),
+        kvCell("Participants", t.participantsLabel, { span: 2 }),
+        kvCell("Duration", t.duration, { span: 2 }),
+      ],
+    }));
+    if (t.description && String(t.description).trim()) {
+      rows.push(new TableRow({ children: [htmlCell(t.description, { span: 6 })] }));
+    }
+  }
+  for (const [label, value] of (opts.extras ?? [])) {
+    if (!value || !String(value).trim()) continue;
+    rows.push(new TableRow({ children: [txtCell(label, { span: 6, shading: SHADE, bold: true })] }));
+    rows.push(new TableRow({ children: [htmlCell(value, { span: 6 })] }));
+  }
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    columnWidths: [1500, 1500, 1500, 1500, 1500, 1500],
+    rows,
+  });
+}
+
+function monthRange(s: any, e: any): string {
+  if (s == null && e == null) return "—";
+  if (s != null && e != null) return `M${s}–M${e}`;
+  return s != null ? `M${s}` : `M${e}`;
+}
+
 // ---------- file builders ----------
+
 
 async function buildA1(supabase: any, proposal: any): Promise<Uint8Array> {
   const children: (Paragraph | Table)[] = [
@@ -327,9 +450,6 @@ async function buildA1(supabase: any, proposal: any): Promise<Uint8Array> {
     KV("Submission stage", proposal.submission_stage),
     KV("Work programme", proposal.work_programme),
     KV("Destination", proposal.destination),
-    KV("Topic URL", proposal.topic_url),
-    KV("Topic ID", proposal.topic_id),
-    KV("Topic title", proposal.topic_title),
     KV("Deadline", proposal.deadline),
     KV("Opening date", proposal.opening_date),
     KV("Status", proposal.status),
@@ -341,18 +461,6 @@ async function buildA1(supabase: any, proposal: any): Promise<Uint8Array> {
     KV("FSTP budget per third party", proposal.fstp_budget_per_third_party),
     KV("Total budget text", proposal.total_budget_text),
   ];
-  if (proposal.topic_expected_outcome) {
-    children.push(H(HeadingLevel.HEADING_2, "Expected outcome"));
-    children.push(...htmlToDocxChildren(proposal.topic_expected_outcome));
-  }
-  if (proposal.topic_scope) {
-    children.push(H(HeadingLevel.HEADING_2, "Scope"));
-    children.push(...htmlToDocxChildren(proposal.topic_scope));
-  }
-  if (proposal.topic_description) {
-    children.push(H(HeadingLevel.HEADING_2, "Topic description"));
-    children.push(...htmlToDocxChildren(proposal.topic_description));
-  }
   return await packDocx(children);
 }
 
@@ -476,9 +584,44 @@ async function buildA3Xlsx(supabase: any, proposal: any): Promise<Uint8Array> {
     .from("participants").select("id, participant_number, organisation_short_name, organisation_name")
     .eq("proposal_id", proposal.id)
     .order("participant_number", { ascending: true });
+  const parts = participants ?? [];
+
+  const wb = XLSX.utils.book_new();
+
+  // ─── Sheet 1: Staff Effort (WPs × Participants matrix, PMs) ───
+  const { data: wps } = await supabase
+    .from("wp_drafts").select("id, number, short_name").eq("proposal_id", proposal.id)
+    .order("number", { ascending: true });
+  const wpList = wps ?? [];
+  const { data: effortRows } = await supabase
+    .from("wp_draft_effort").select("wp_draft_id, participant_id, person_months")
+    .in("wp_draft_id", wpList.map((w: any) => w.id).concat(["00000000-0000-0000-0000-000000000000"]));
+  const effortMap = new Map<string, number>();
+  for (const e of effortRows ?? []) effortMap.set(`${e.wp_draft_id}::${e.participant_id}`, Number(e.person_months ?? 0));
+
+  const effortHeader = ["Participant", ...wpList.map((w: any) => `WP${w.number}${w.short_name ? ` ${w.short_name}` : ""}`), "Total PMs"];
+  const effortData: any[][] = [effortHeader];
+  const wpTotals = new Array(wpList.length).fill(0);
+  for (const p of parts) {
+    const row: any[] = [`P${p.participant_number} ${p.organisation_short_name ?? ""}`];
+    let rowTotal = 0;
+    wpList.forEach((w: any, i: number) => {
+      const v = effortMap.get(`${w.id}::${p.id}`) ?? 0;
+      row.push(v || 0);
+      wpTotals[i] += v;
+      rowTotal += v;
+    });
+    row.push(rowTotal);
+    effortData.push(row);
+  }
+  effortData.push(["TOTAL", ...wpTotals, wpTotals.reduce((a, b) => a + b, 0)]);
+  const wsEffort = XLSX.utils.aoa_to_sheet(effortData);
+  wsEffort["!cols"] = effortHeader.map((h) => ({ wch: Math.max(10, h.length + 2) }));
+  XLSX.utils.book_append_sheet(wb, wsEffort, "Staff Effort");
+
+  // ─── Sheet 2: Budget Overview (per-participant totals) ───
   const { data: rows } = await supabase
     .from("budget_rows").select("*").eq("proposal_id", proposal.id);
-
   const byPart = new Map<string, any>();
   for (const r of rows ?? []) byPart.set(r.participant_id, r);
 
@@ -490,9 +633,8 @@ async function buildA3Xlsx(supabase: any, proposal: any): Promise<Uint8Array> {
     "Requested EU contribution",
   ];
   const data: any[][] = [header];
-  let totals = new Array(header.length - 3).fill(0);
-
-  for (const p of participants ?? []) {
+  const totals = new Array(header.length - 3).fill(0);
+  for (const p of parts) {
     const r = byPart.get(p.id) ?? {};
     const vals = [
       Number(r.personnel_costs ?? 0),
@@ -514,10 +656,7 @@ async function buildA3Xlsx(supabase: any, proposal: any): Promise<Uint8Array> {
     vals.forEach((v, i) => { if (typeof v === "number" && !isNaN(v)) totals[i] += v; });
   }
   data.push(["", "TOTAL", "", ...totals.map((t, i) => (i === 9 ? "" : t))]);
-
-  const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(data);
-  // Format numeric columns to 2 dp
   const range = XLSX.utils.decode_range(ws["!ref"] as string);
   for (let R = 1; R <= range.e.r; R++) {
     for (let C = 3; C <= range.e.c; C++) {
@@ -526,9 +665,9 @@ async function buildA3Xlsx(supabase: any, proposal: any): Promise<Uint8Array> {
     }
   }
   ws["!cols"] = header.map((h) => ({ wch: Math.max(12, h.length + 2) }));
-  XLSX.utils.book_append_sheet(wb, ws, "A3 Budget summary");
+  XLSX.utils.book_append_sheet(wb, ws, "Budget Overview");
 
-  // Cost justifications sheet
+  // ─── Sheet 3: Cost justifications (if any) ───
   const { data: justs } = await supabase
     .from("budget_cost_justifications").select("*, participant:participant_id(organisation_short_name)").eq("proposal_id", proposal.id);
   if (justs?.length) {
@@ -540,6 +679,7 @@ async function buildA3Xlsx(supabase: any, proposal: any): Promise<Uint8Array> {
   const buf = XLSX.write(wb, { bookType: "xlsx", type: "array" });
   return new Uint8Array(buf as ArrayBuffer);
 }
+
 
 // Group ethics_assessment fields into sections by prefix.
 const ETHICS_SECTIONS: { title: string; prefix: string }[] = [
@@ -577,7 +717,9 @@ async function buildA4(supabase: any, proposal: any): Promise<Uint8Array> {
     return await packDocx(children);
   }
 
-  // Build a name → value map of all booleans + page + details
+  // Build per-section tables of Item / Yes-No / Page.
+  // The freeform "_details" fields are intentionally omitted — they belong in
+  // the proposal text, not in the A4 backup summary.
   const entries = Object.entries(ethics).filter(([k]) => !["id", "proposal_id", "created_at", "updated_at"].includes(k));
   const used = new Set<string>();
   for (const sec of ETHICS_SECTIONS) {
@@ -585,38 +727,35 @@ async function buildA4(supabase: any, proposal: any): Promise<Uint8Array> {
     if (!matched.length) continue;
     const rows: string[][] = [];
     const bools = matched.filter(([k]) => typeof ethics[k] === "boolean" || ethics[k] === null);
-    const texts = matched.filter(([k]) => typeof ethics[k] === "string");
     for (const [k] of bools) {
       const base = k;
       const pageKey = `${base}_page`;
       const detailKey = `${base}_details`;
+      // Skip rows with no answer AND no page reference (keeps the table compact).
+      if ((ethics[base] === null || ethics[base] === undefined) && !ethics[pageKey]) {
+        used.add(base); used.add(pageKey); used.add(detailKey);
+        continue;
+      }
       rows.push([
         base.replace(/_/g, " "),
         yn(ethics[base]),
         ethics[pageKey] ?? "",
-        ethics[detailKey] ?? "",
       ]);
       used.add(base); used.add(pageKey); used.add(detailKey);
     }
-    // Loose text fields with the same prefix that weren't paired
-    for (const [k, v] of texts) {
-      if (used.has(k)) continue;
-      if (!v) continue;
-      rows.push([k.replace(/_/g, " "), "", "", String(v)]);
-      used.add(k);
-    }
     if (rows.length) {
       children.push(H(HeadingLevel.HEADING_2, sec.title));
-      children.push(simpleTable(["Item", "Yes/No", "Page", "Details"], rows));
+      children.push(simpleTable(["Item", "Yes/No", "Page"], rows));
     }
+    // mark any remaining matched fields as used so they don't reappear below
+    for (const [k] of matched) used.add(k);
   }
-  // Catch-all: any remaining fields not in a known section
+  // Catch-all: any remaining yes/no flags not in a known section.
   const leftover = entries.filter(([k]) => !used.has(k));
-  if (leftover.length) {
-    children.push(H(HeadingLevel.HEADING_2, "Other ethics fields"));
-    const rows = leftover.filter(([_, v]) => v !== null && v !== "" && v !== false)
-      .map(([k, v]) => [k.replace(/_/g, " "), typeof v === "boolean" ? yn(v) : String(v ?? "")]);
-    if (rows.length) children.push(simpleTable(["Field", "Value"], rows));
+  const leftoverBools = leftover.filter(([_, v]) => typeof v === "boolean");
+  if (leftoverBools.length) {
+    children.push(H(HeadingLevel.HEADING_2, "Other ethics items"));
+    children.push(simpleTable(["Field", "Yes/No"], leftoverBools.map(([k, v]) => [k.replace(/_/g, " "), yn(v as boolean)])));
   }
   if (ethics.self_assessment_text) {
     children.push(H(HeadingLevel.HEADING_2, "Self-assessment"));
@@ -682,7 +821,7 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
 
   const { data: wps } = await supabase
     .from("wp_drafts")
-    .select("id, number, short_name, title, color, lead_participant_id, b31_objectives, background_knowledge, approach_summary, methodologies_list, foreseen_challenges, b31_description_before_tasks")
+    .select("id, number, short_name, title, color, lead_participant_id, manual_duration, b31_objectives, background_knowledge, approach_summary, methodologies_list, foreseen_challenges, b31_description_before_tasks")
     .eq("proposal_id", proposal.id)
     .order("number", { ascending: true });
 
@@ -694,6 +833,11 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
     supabase.from("b31_risks").select("*").eq("proposal_id", proposal.id).order("number", { ascending: true }),
     supabase.from("participants").select("id, participant_number, organisation_short_name").eq("proposal_id", proposal.id).order("participant_number", { ascending: true }),
   ]);
+
+  const taskIds = (b31Tasks ?? []).map((t: any) => t.id);
+  const { data: b31TaskParts } = taskIds.length
+    ? await supabase.from("b31_task_participants").select("task_id, participant_id").in("task_id", taskIds)
+    : { data: [] };
 
   const partLabel = (id: string | null) => {
     if (!id) return "—";
@@ -712,24 +856,37 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
     children.push(...htmlToDocxChildren(body));
   }
 
-  // Per-WP detail
+  // Per-WP detail using the shared Table 3.1.b structure.
   children.push(H(HeadingLevel.HEADING_2, "Work packages"));
   for (const w of wps ?? []) {
-    children.push(H(HeadingLevel.HEADING_3, `WP${w.number} ${w.short_name ?? ""}${w.title ? ` — ${w.title}` : ""}`));
-    children.push(KV("Lead participant", partLabel(w.lead_participant_id)));
-    if (w.b31_objectives) { children.push(P("Objectives", { bold: true })); children.push(...htmlToDocxChildren(w.b31_objectives)); }
-    if (w.background_knowledge) { children.push(P("Background knowledge", { bold: true })); children.push(...htmlToDocxChildren(w.background_knowledge)); }
-    if (w.approach_summary) { children.push(P("Approach summary", { bold: true })); children.push(...htmlToDocxChildren(w.approach_summary)); }
-    if (w.b31_description_before_tasks) { children.push(P("Description (before tasks)", { bold: true })); children.push(...htmlToDocxChildren(w.b31_description_before_tasks)); }
-    if (w.foreseen_challenges) { children.push(P("Foreseen challenges", { bold: true })); children.push(...htmlToDocxChildren(w.foreseen_challenges)); }
     const wpTasks = (b31Tasks ?? []).filter((t: any) => t.wp_draft_id === w.id);
-    if (wpTasks.length) {
-      children.push(P("Tasks", { bold: true }));
-      children.push(simpleTable(
-        ["#", "Title", "Lead", "Start", "End", "Description"],
-        wpTasks.map((t: any) => [t.number, t.title ?? "", partLabel(t.lead_participant_id), t.start_month ?? "", t.end_month ?? "", t.description ?? ""]),
-      ));
-    }
+    children.push(buildWpDescriptionTable({
+      wpNumber: w.number,
+      shortName: w.short_name,
+      title: w.title,
+      leadLabel: partLabel(w.lead_participant_id),
+      duration: w.manual_duration ? String(w.manual_duration) : null,
+      objectives: w.b31_objectives,
+      description: w.b31_description_before_tasks,
+      methodology: w.approach_summary,
+      tasks: wpTasks.map((t: any) => {
+        const ids = (b31TaskParts ?? []).filter((tp: any) => tp.task_id === t.id).map((tp: any) => tp.participant_id);
+        return {
+          number: t.number,
+          title: t.title,
+          leadLabel: partLabel(t.lead_participant_id),
+          participantsLabel: ids.length ? ids.map((id: string) => partLabel(id)).join(", ") : "—",
+          duration: monthRange(t.start_month, t.end_month),
+          description: t.description,
+        };
+      }),
+      extras: [
+        ["Background knowledge", w.background_knowledge],
+        ["Methodologies", w.methodologies_list],
+        ["Foreseen challenges", w.foreseen_challenges],
+      ],
+    }));
+    children.push(P("")); // spacer between WP tables
   }
 
   // Compulsory tables
@@ -764,11 +921,6 @@ async function buildWpDraft(supabase: any, proposal: any, wp: any, participants:
     const p = participants.find((x: any) => x.id === id);
     return p ? `P${p.participant_number} ${p.organisation_short_name ?? ""}` : "—";
   };
-  const monthRange = (s: any, e: any) => {
-    if (s == null && e == null) return "—";
-    if (s != null && e != null) return `M${s}–M${e}`;
-    return s != null ? `M${s}` : `M${e}`;
-  };
 
   const { data: tasks } = await supabase.from("wp_draft_tasks").select("*").eq("wp_draft_id", wp.id).order("number", { ascending: true });
   const taskIds = (tasks ?? []).map((t: any) => t.id);
@@ -782,91 +934,33 @@ async function buildWpDraft(supabase: any, proposal: any, wp: any, participants:
       : Promise.resolve({ data: [] }),
   ]);
 
-  // ---- Build Table 3.1.b-style WP description table ----
-  const SHADE = { fill: "E7E6E6", type: "clear", color: "auto" } as any;
-  const SHADE_DARK = { fill: "BFBFBF", type: "clear", color: "auto" } as any;
-  const cellOpts = (opts: { span?: number; shading?: any } = {}) => ({
-    borders: CELL_BORDERS,
-    margins: { top: 80, bottom: 80, left: 120, right: 120 },
-    columnSpan: opts.span,
-    shading: opts.shading,
-  });
-  const txtCell = (text: string, opts: { span?: number; shading?: any; bold?: boolean } = {}) =>
-    new TableCell({
-      ...cellOpts(opts),
-      children: [new Paragraph({ children: [new TextRun({ text: text ?? "", bold: opts.bold })] })],
-    });
-  const htmlCell = (html: string | null | undefined, opts: { span?: number; shading?: any } = {}) =>
-    new TableCell({
-      ...cellOpts(opts),
-      children: htmlToDocxChildren(html) as Paragraph[],
-    });
-  const kvCell = (label: string, value: string, opts: { span?: number; shading?: any } = {}) =>
-    new TableCell({
-      ...cellOpts(opts),
-      children: [new Paragraph({ children: [
-        new TextRun({ text: `${label}: `, bold: true }),
-        new TextRun({ text: value }),
-      ] })],
-    });
-
-  const rows: TableRow[] = [];
-  rows.push(new TableRow({
-    children: [txtCell(`Work package ${wp.number}: ${wp.short_name ?? ""}${wp.title ? ` — ${wp.title}` : ""}`, { span: 6, shading: SHADE_DARK, bold: true })],
-  }));
-  rows.push(new TableRow({
-    children: [
-      kvCell("Lead participant", partLabel(wp.lead_participant_id), { span: 3 }),
-      kvCell("Duration", wp.manual_duration ? String(wp.manual_duration) : "—", { span: 3 }),
+  const wpTable = buildWpDescriptionTable({
+    wpNumber: wp.number,
+    shortName: wp.short_name,
+    title: wp.title,
+    leadLabel: partLabel(wp.lead_participant_id),
+    duration: wp.manual_duration ? String(wp.manual_duration) : null,
+    objectives: wp.objectives,
+    description: wp.description_before_tasks,
+    methodology: wp.methodology,
+    tasks: (tasks ?? []).map((t: any) => {
+      const ids = (taskParts ?? []).filter((tp: any) => tp.task_id === t.id).map((tp: any) => tp.participant_id);
+      return {
+        number: t.number,
+        title: t.title,
+        leadLabel: partLabel(t.lead_participant_id),
+        participantsLabel: ids.length ? ids.map((id: string) => partLabel(id)).join(", ") : "—",
+        duration: monthRange(t.start_month, t.end_month),
+        description: t.description ?? t.b31_description ?? "",
+      };
+    }),
+    extras: [
+      ["Inputs", wp.inputs_question],
+      ["Outputs", wp.outputs_question],
+      ["Bottlenecks", wp.bottlenecks_question],
     ],
-  }));
-  if (wp.objectives && String(wp.objectives).trim()) {
-    rows.push(new TableRow({ children: [txtCell("Objectives", { span: 6, shading: SHADE, bold: true })] }));
-    rows.push(new TableRow({ children: [htmlCell(wp.objectives, { span: 6 })] }));
-  }
-  if (wp.description_before_tasks && String(wp.description_before_tasks).trim()) {
-    rows.push(new TableRow({ children: [txtCell("Description", { span: 6, shading: SHADE, bold: true })] }));
-    rows.push(new TableRow({ children: [htmlCell(wp.description_before_tasks, { span: 6 })] }));
-  }
-  if (wp.methodology && String(wp.methodology).trim()) {
-    rows.push(new TableRow({ children: [txtCell("Methodology", { span: 6, shading: SHADE, bold: true })] }));
-    rows.push(new TableRow({ children: [htmlCell(wp.methodology, { span: 6 })] }));
-  }
-  for (const t of tasks ?? []) {
-    const taskParticipantIds = (taskParts ?? []).filter((tp: any) => tp.task_id === t.id).map((tp: any) => tp.participant_id);
-    const participantsLabel = taskParticipantIds.length
-      ? taskParticipantIds.map((id: string) => partLabel(id)).join(", ")
-      : "—";
-    rows.push(new TableRow({
-      children: [txtCell(`Task ${wp.number}.${t.number}: ${t.title ?? ""}`, { span: 6, shading: SHADE, bold: true })],
-    }));
-    rows.push(new TableRow({
-      children: [
-        kvCell("Task leader", partLabel(t.lead_participant_id), { span: 2 }),
-        kvCell("Participants", participantsLabel, { span: 2 }),
-        kvCell("Duration", monthRange(t.start_month, t.end_month), { span: 2 }),
-      ],
-    }));
-    const desc = t.description ?? t.b31_description ?? "";
-    if (desc && String(desc).trim()) {
-      rows.push(new TableRow({ children: [htmlCell(desc, { span: 6 })] }));
-    }
-  }
-  const extras: [string, string][] = ([
-    ["Inputs", wp.inputs_question],
-    ["Outputs", wp.outputs_question],
-    ["Bottlenecks", wp.bottlenecks_question],
-  ] as [string, string][]).filter(([, v]) => v && String(v).trim());
-  for (const [label, value] of extras) {
-    rows.push(new TableRow({ children: [txtCell(label, { span: 6, shading: SHADE, bold: true })] }));
-    rows.push(new TableRow({ children: [htmlCell(value, { span: 6 })] }));
-  }
-
-  const wpTable = new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
-    columnWidths: [1500, 1500, 1500, 1500, 1500, 1500],
-    rows,
   });
+
 
   const children: (Paragraph | Table)[] = [
     H(HeadingLevel.HEADING_1, `WP${wp.number} ${wp.short_name ?? ""}${wp.title ? ` — ${wp.title}` : ""}`),
