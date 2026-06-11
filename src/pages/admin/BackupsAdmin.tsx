@@ -26,15 +26,21 @@ export default function BackupsAdmin() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [running, setRunning] = useState(false);
+  const [proposals, setProposals] = useState<{ id: string; acronym: string | null; title: string | null }[]>([]);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [filter, setFilter] = useState("");
 
   useEffect(() => {
     (async () => {
-      const { data, error } = await supabase
-        .from("sharepoint_backup_config")
-        .select("*")
-        .maybeSingle();
-      if (error) toast.error("Could not load backup settings");
-      setCfg(data as Cfg);
+      const [{ data: cfgData, error: cfgErr }, { data: pData, error: pErr }] = await Promise.all([
+        supabase.from("sharepoint_backup_config").select("*").maybeSingle(),
+        supabase.from("proposals").select("id, acronym, title").order("acronym", { ascending: true }),
+      ]);
+      if (cfgErr) toast.error("Could not load backup settings");
+      if (pErr) toast.error("Could not load proposal list");
+      setCfg(cfgData as Cfg);
+      setProposals((pData ?? []) as any);
       setLoading(false);
     })();
   }, []);
