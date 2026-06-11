@@ -335,7 +335,110 @@ async function latestSectionContent(supabase: any, proposalId: string, sectionId
   return data?.content ?? "";
 }
 
+// ---------- Table 3.1.b–style WP description table (shared) ----------
+
+interface WpTableTask {
+  number: number | string;
+  title?: string | null;
+  leadLabel: string;
+  participantsLabel: string;
+  duration: string;
+  description?: string | null;
+}
+interface WpTableOpts {
+  wpNumber: number | string;
+  shortName?: string | null;
+  title?: string | null;
+  leadLabel: string;
+  duration?: string | null;
+  objectives?: string | null;
+  description?: string | null;
+  methodology?: string | null;
+  tasks: WpTableTask[];
+  extras?: [string, string | null | undefined][];
+}
+
+function buildWpDescriptionTable(opts: WpTableOpts): Table {
+  const SHADE = { fill: "E7E6E6", type: "clear", color: "auto" } as any;
+  const SHADE_DARK = { fill: "BFBFBF", type: "clear", color: "auto" } as any;
+  const cellOpts = (o: { span?: number; shading?: any } = {}) => ({
+    borders: CELL_BORDERS,
+    margins: { top: 80, bottom: 80, left: 120, right: 120 },
+    columnSpan: o.span,
+    shading: o.shading,
+  });
+  const txtCell = (text: string, o: { span?: number; shading?: any; bold?: boolean } = {}) =>
+    new TableCell({
+      ...cellOpts(o),
+      children: [new Paragraph({ children: [new TextRun({ text: text ?? "", bold: o.bold })] })],
+    });
+  const htmlCell = (html: string | null | undefined, o: { span?: number; shading?: any } = {}) =>
+    new TableCell({ ...cellOpts(o), children: htmlToDocxChildren(html) as Paragraph[] });
+  const kvCell = (label: string, value: string, o: { span?: number; shading?: any } = {}) =>
+    new TableCell({
+      ...cellOpts(o),
+      children: [new Paragraph({ children: [
+        new TextRun({ text: `${label}: `, bold: true }),
+        new TextRun({ text: value }),
+      ] })],
+    });
+
+  const rows: TableRow[] = [];
+  const titleBits = `Work package ${opts.wpNumber}: ${opts.shortName ?? ""}${opts.title ? ` — ${opts.title}` : ""}`;
+  rows.push(new TableRow({ children: [txtCell(titleBits, { span: 6, shading: SHADE_DARK, bold: true })] }));
+  rows.push(new TableRow({
+    children: [
+      kvCell("Lead participant", opts.leadLabel, { span: 3 }),
+      kvCell("Duration", opts.duration ? String(opts.duration) : "—", { span: 3 }),
+    ],
+  }));
+  if (opts.objectives && String(opts.objectives).trim()) {
+    rows.push(new TableRow({ children: [txtCell("Objectives", { span: 6, shading: SHADE, bold: true })] }));
+    rows.push(new TableRow({ children: [htmlCell(opts.objectives, { span: 6 })] }));
+  }
+  if (opts.description && String(opts.description).trim()) {
+    rows.push(new TableRow({ children: [txtCell("Description", { span: 6, shading: SHADE, bold: true })] }));
+    rows.push(new TableRow({ children: [htmlCell(opts.description, { span: 6 })] }));
+  }
+  if (opts.methodology && String(opts.methodology).trim()) {
+    rows.push(new TableRow({ children: [txtCell("Methodology", { span: 6, shading: SHADE, bold: true })] }));
+    rows.push(new TableRow({ children: [htmlCell(opts.methodology, { span: 6 })] }));
+  }
+  for (const t of opts.tasks) {
+    rows.push(new TableRow({
+      children: [txtCell(`Task ${opts.wpNumber}.${t.number}: ${t.title ?? ""}`, { span: 6, shading: SHADE, bold: true })],
+    }));
+    rows.push(new TableRow({
+      children: [
+        kvCell("Task leader", t.leadLabel, { span: 2 }),
+        kvCell("Participants", t.participantsLabel, { span: 2 }),
+        kvCell("Duration", t.duration, { span: 2 }),
+      ],
+    }));
+    if (t.description && String(t.description).trim()) {
+      rows.push(new TableRow({ children: [htmlCell(t.description, { span: 6 })] }));
+    }
+  }
+  for (const [label, value] of (opts.extras ?? [])) {
+    if (!value || !String(value).trim()) continue;
+    rows.push(new TableRow({ children: [txtCell(label, { span: 6, shading: SHADE, bold: true })] }));
+    rows.push(new TableRow({ children: [htmlCell(value, { span: 6 })] }));
+  }
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    columnWidths: [1500, 1500, 1500, 1500, 1500, 1500],
+    rows,
+  });
+}
+
+function monthRange(s: any, e: any): string {
+  if (s == null && e == null) return "—";
+  if (s != null && e != null) return `M${s}–M${e}`;
+  return s != null ? `M${s}` : `M${e}`;
+}
+
 // ---------- file builders ----------
+
 
 async function buildA1(supabase: any, proposal: any): Promise<Uint8Array> {
   const children: (Paragraph | Table)[] = [
