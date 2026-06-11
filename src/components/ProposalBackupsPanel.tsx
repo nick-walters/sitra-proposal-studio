@@ -183,6 +183,16 @@ export function ProposalBackupsPanel({ proposalId }: Props) {
                     <Badge variant="outline" className={`gap-1 ${meta.cls}`}>
                       <Icon className="w-3 h-3" /> {meta.label}
                     </Badge>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                      onClick={(e) => { e.stopPropagation(); setPendingDelete(r); }}
+                      aria-label="Delete backup"
+                      title="Delete backup"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
                 </button>
                 {isOpen && (
