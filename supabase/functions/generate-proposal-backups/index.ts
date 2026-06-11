@@ -821,7 +821,7 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
 
   const { data: wps } = await supabase
     .from("wp_drafts")
-    .select("id, number, short_name, title, color, lead_participant_id, b31_objectives, background_knowledge, approach_summary, methodologies_list, foreseen_challenges, b31_description_before_tasks")
+    .select("id, number, short_name, title, color, lead_participant_id, manual_duration, b31_objectives, background_knowledge, approach_summary, methodologies_list, foreseen_challenges, b31_description_before_tasks")
     .eq("proposal_id", proposal.id)
     .order("number", { ascending: true });
 
@@ -833,6 +833,11 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
     supabase.from("b31_risks").select("*").eq("proposal_id", proposal.id).order("number", { ascending: true }),
     supabase.from("participants").select("id, participant_number, organisation_short_name").eq("proposal_id", proposal.id).order("participant_number", { ascending: true }),
   ]);
+
+  const taskIds = (b31Tasks ?? []).map((t: any) => t.id);
+  const { data: b31TaskParts } = taskIds.length
+    ? await supabase.from("b31_task_participants").select("task_id, participant_id").in("task_id", taskIds)
+    : { data: [] };
 
   const partLabel = (id: string | null) => {
     if (!id) return "—";
@@ -851,24 +856,37 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
     children.push(...htmlToDocxChildren(body));
   }
 
-  // Per-WP detail
+  // Per-WP detail using the shared Table 3.1.b structure.
   children.push(H(HeadingLevel.HEADING_2, "Work packages"));
   for (const w of wps ?? []) {
-    children.push(H(HeadingLevel.HEADING_3, `WP${w.number} ${w.short_name ?? ""}${w.title ? ` — ${w.title}` : ""}`));
-    children.push(KV("Lead participant", partLabel(w.lead_participant_id)));
-    if (w.b31_objectives) { children.push(P("Objectives", { bold: true })); children.push(...htmlToDocxChildren(w.b31_objectives)); }
-    if (w.background_knowledge) { children.push(P("Background knowledge", { bold: true })); children.push(...htmlToDocxChildren(w.background_knowledge)); }
-    if (w.approach_summary) { children.push(P("Approach summary", { bold: true })); children.push(...htmlToDocxChildren(w.approach_summary)); }
-    if (w.b31_description_before_tasks) { children.push(P("Description (before tasks)", { bold: true })); children.push(...htmlToDocxChildren(w.b31_description_before_tasks)); }
-    if (w.foreseen_challenges) { children.push(P("Foreseen challenges", { bold: true })); children.push(...htmlToDocxChildren(w.foreseen_challenges)); }
     const wpTasks = (b31Tasks ?? []).filter((t: any) => t.wp_draft_id === w.id);
-    if (wpTasks.length) {
-      children.push(P("Tasks", { bold: true }));
-      children.push(simpleTable(
-        ["#", "Title", "Lead", "Start", "End", "Description"],
-        wpTasks.map((t: any) => [t.number, t.title ?? "", partLabel(t.lead_participant_id), t.start_month ?? "", t.end_month ?? "", t.description ?? ""]),
-      ));
-    }
+    children.push(buildWpDescriptionTable({
+      wpNumber: w.number,
+      shortName: w.short_name,
+      title: w.title,
+      leadLabel: partLabel(w.lead_participant_id),
+      duration: w.manual_duration ? String(w.manual_duration) : null,
+      objectives: w.b31_objectives,
+      description: w.b31_description_before_tasks,
+      methodology: w.approach_summary,
+      tasks: wpTasks.map((t: any) => {
+        const ids = (b31TaskParts ?? []).filter((tp: any) => tp.task_id === t.id).map((tp: any) => tp.participant_id);
+        return {
+          number: t.number,
+          title: t.title,
+          leadLabel: partLabel(t.lead_participant_id),
+          participantsLabel: ids.length ? ids.map((id: string) => partLabel(id)).join(", ") : "—",
+          duration: monthRange(t.start_month, t.end_month),
+          description: t.description,
+        };
+      }),
+      extras: [
+        ["Background knowledge", w.background_knowledge],
+        ["Methodologies", w.methodologies_list],
+        ["Foreseen challenges", w.foreseen_challenges],
+      ],
+    }));
+    children.push(P("")); // spacer between WP tables
   }
 
   // Compulsory tables
