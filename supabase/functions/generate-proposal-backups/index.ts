@@ -1051,8 +1051,10 @@ Deno.serve(async (req) => {
 
       const { data: cases } = await supabase.from("case_drafts").select("*").eq("proposal_id", proposal.id).order("number", { ascending: true });
       for (const c of cases ?? []) {
+        const rawCaseName = (c.short_name ?? c.title ?? `${c.number}`).toString().trim();
+        const caseName = rawCaseName.replace(/[\/\\:*?"<>|]/g, "_").replace(/\s+/g, " ").slice(0, 80) || `${c.number}`;
         files.push({
-          name: `${acr} Case ${c.number} Draft ${stamp}.docx`,
+          name: `${acr} Case ${caseName} ${stamp}.docx`,
           bytes: await buildCaseDraft(supabase, proposal, c, participants ?? []),
           mime: DOCX_MIME,
         });
