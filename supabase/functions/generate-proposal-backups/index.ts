@@ -347,9 +347,6 @@ async function buildA1(supabase: any, proposal: any): Promise<Uint8Array> {
     KV("Submission stage", proposal.submission_stage),
     KV("Work programme", proposal.work_programme),
     KV("Destination", proposal.destination),
-    KV("Topic URL", proposal.topic_url),
-    KV("Topic ID", proposal.topic_id),
-    KV("Topic title", proposal.topic_title),
     KV("Deadline", proposal.deadline),
     KV("Opening date", proposal.opening_date),
     KV("Status", proposal.status),
@@ -361,18 +358,6 @@ async function buildA1(supabase: any, proposal: any): Promise<Uint8Array> {
     KV("FSTP budget per third party", proposal.fstp_budget_per_third_party),
     KV("Total budget text", proposal.total_budget_text),
   ];
-  if (proposal.topic_expected_outcome) {
-    children.push(H(HeadingLevel.HEADING_2, "Expected outcome"));
-    children.push(...htmlToDocxChildren(proposal.topic_expected_outcome));
-  }
-  if (proposal.topic_scope) {
-    children.push(H(HeadingLevel.HEADING_2, "Scope"));
-    children.push(...htmlToDocxChildren(proposal.topic_scope));
-  }
-  if (proposal.topic_description) {
-    children.push(H(HeadingLevel.HEADING_2, "Topic description"));
-    children.push(...htmlToDocxChildren(proposal.topic_description));
-  }
   return await packDocx(children);
 }
 
