@@ -138,6 +138,7 @@ function inlineRuns(node: any, parentBold = false, parentItalic = false, parentU
     return runs;
   }
   const tag = (node.tagName || "").toLowerCase();
+  if (SKIP_TAGS.has(tag)) return runs;
   let bold = parentBold;
   let italic = parentItalic;
   let underline = parentUnderline;
@@ -161,8 +162,9 @@ function cellContents(node: any): Paragraph[] {
     inlineBuffer = [];
   };
   for (const child of node.childNodes ?? []) {
-    const tag = (child.tagName || "").toLowerCase();
-    if (["p", "div", "ul", "ol", "h1", "h2", "h3", "h4", "h5", "h6", "table"].includes(tag)) {
+    const ctag = (child.tagName || "").toLowerCase();
+    if (SKIP_TAGS.has(ctag)) continue;
+    if (["p", "div", "ul", "ol", "h1", "h2", "h3", "h4", "h5", "h6", "table"].includes(ctag)) {
       flush();
       out.push(...blockToDocx(child));
     } else {
