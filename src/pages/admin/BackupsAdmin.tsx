@@ -59,10 +59,15 @@ export default function BackupsAdmin() {
     setRunning(true);
     try {
       const { data, error } = await supabase.functions.invoke("generate-proposal-backups", {
-        body: { trigger: "manual" },
+        body: { trigger: "manual", force: true },
       });
       if (error) throw error;
-      toast.success(`Backup run complete (${(data as any)?.results?.length ?? 0} proposals)`);
+      const results = (data as any)?.results ?? [];
+      const ok = results.filter((r: any) => !r.error).length;
+      const failed = results.length - ok;
+      toast.success(
+        `Backup run complete: ${ok} proposal${ok === 1 ? "" : "s"} backed up${failed ? `, ${failed} failed` : ""}.`,
+      );
     } catch (e: any) {
       toast.error(e.message ?? "Backup run failed");
     } finally {
