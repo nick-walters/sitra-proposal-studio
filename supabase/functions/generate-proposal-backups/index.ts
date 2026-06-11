@@ -252,6 +252,7 @@ function htmlToDocxChildren(html: string | null | undefined): (Paragraph | Table
   };
   for (const child of root.childNodes ?? []) {
     const tag = (child.tagName || "").toLowerCase();
+    if (SKIP_TAGS.has(tag)) continue;
     if (["p", "div", "ul", "ol", "h1", "h2", "h3", "h4", "h5", "h6", "table", "hr", "blockquote"].includes(tag)) {
       flush();
       out.push(...blockToDocx(child));
