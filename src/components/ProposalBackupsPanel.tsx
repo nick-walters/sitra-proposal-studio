@@ -109,6 +109,27 @@ export function ProposalBackupsPanel({ proposalId }: Props) {
 
   const fileNameOf = (path: string) => path.split("/").pop() ?? path;
 
+  const handleDelete = async () => {
+    if (!pendingDelete) return;
+    setDeleting(true);
+    try {
+      const paths = pendingDelete.bucket_paths ?? [];
+      if (paths.length > 0) {
+        const { error: sErr } = await supabase.storage.from("proposal-backups").remove(paths);
+        if (sErr) throw sErr;
+      }
+      const { error: dErr } = await supabase.from("proposal_backups").delete().eq("id", pendingDelete.id);
+      if (dErr) throw dErr;
+      toast.success("Backup deleted");
+      setPendingDelete(null);
+      await load();
+    } catch (e: any) {
+      toast.error(e.message ?? "Could not delete backup");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <div className="max-w-5xl mx-auto space-y-4 p-6">
       <div className="flex items-center justify-between">
