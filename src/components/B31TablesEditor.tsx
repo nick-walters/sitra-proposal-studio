@@ -919,7 +919,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
           <Table className={`${tableStyles} [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b [&_th]:border-black [&_td]:border-x-0 [&_td]:border-y [&_td]:border-gray-200 [&_tr]:border-0 [&_tr:last-child_td]:border-b-0 [&_tbody_tr:first-child_td]:border-t-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto', borderCollapse: 'collapse', width: colWidths.length > 0 ? `${colWidths.reduce((s, w) => s + w, 0)}px` : '100%' }} ref={tableRef}>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
-                <TableHead className={`${headerCellStyles} relative`} style={{ ...(colWidths.length > 0 ? { width: Math.max(colWidths[0], 56) } : { width: '56px', whiteSpace: 'nowrap' }) }}>
+                <TableHead className={`${headerCellStyles} relative`} style={{ ...(colWidths.length > 0 ? { width: Math.max(colWidths[0], 48) } : { width: '48px', whiteSpace: 'nowrap' }) }}>
                   No.
                   {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(0)} />}
                 </TableHead>
@@ -953,7 +953,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
               <TableBody>
                 {deliverables.map((del) => (
                   <SortableTableRow key={del.id} id={del.id} canDrag={isAdminOrOwner} onDelete={() => deleteDeliverable.mutate(del.id)}>
-                    <TableCell className={bubbleCellStyles} style={{ whiteSpace: 'nowrap', width: '56px', position: 'relative', zIndex: 2 }}>
+                    <TableCell className={bubbleCellStyles} style={{ whiteSpace: 'nowrap', width: '48px', position: 'relative', zIndex: 2 }}>
                       {(() => {
                         const wpColor = del.wp_number != null 
                           ? workPackages.find(wp => wp.number === del.wp_number)?.color || '#000'
