@@ -429,13 +429,9 @@ function buildWpDescriptionTable(opts: WpTableOpts): Table {
     rows.push(new TableRow({
       children: [txtCell(`Task ${opts.wpNumber}.${t.number}: ${t.title ?? ""}`, { span: 6, shading: SHADE, bold: true })],
     }));
-    rows.push(new TableRow({
-      children: [
-        kvCell("Task leader", t.leadLabel, { span: 2 }),
-        kvCell("Participants", t.participantsLabel, { span: 2 }),
-        kvCell("Duration", t.duration, { span: 2 }),
-      ],
-    }));
+    rows.push(new TableRow({ children: [kvCell("Task leader", t.leadLabel, { span: 6 })] }));
+    rows.push(new TableRow({ children: [kvCell("Participants", t.participantsLabel, { span: 6 })] }));
+    rows.push(new TableRow({ children: [kvCell("Duration", t.duration, { span: 6 })] }));
     if (t.description && String(t.description).trim()) {
       rows.push(new TableRow({ children: [htmlCell(t.description, { span: 6 })] }));
     }
@@ -447,8 +443,7 @@ function buildWpDescriptionTable(opts: WpTableOpts): Table {
   }
   return new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
-    // Narrower task-leader (cols 0-1) & duration (cols 4-5); wider participants (cols 2-3).
-    columnWidths: [900, 900, 2700, 2700, 900, 900],
+    columnWidths: [1500, 1500, 1500, 1500, 1500, 1500],
     rows,
   });
 }
