@@ -116,11 +116,18 @@ export default function BackupsAdmin() {
       : `${selected.size} proposals selected`;
 
   if (loading || !cfg) {
-    return <div className="p-8 text-center text-muted-foreground">Loading…</div>;
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="p-8 text-center text-muted-foreground">Loading…</div>
+      </div>
+    );
   }
 
   return (
-    <div className="max-w-3xl mx-auto p-6 space-y-6">
+    <div className="min-h-screen bg-background">
+      <Header />
+      <div className="max-w-3xl mx-auto p-6 space-y-6">
       <Button variant="ghost" size="sm" onClick={() => navigate("/admin")} className="gap-2">
         <ArrowLeft className="w-4 h-4" /> Back to admin
       </Button>
