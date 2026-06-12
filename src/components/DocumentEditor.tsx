@@ -334,31 +334,8 @@ export function DocumentEditor({
   // Use isDirty from the hook directly instead of tracking separately
   const hasUnsavedChanges = isDirty;
 
-  // Seed the B3.1 TipTap editor with a default intro sentence the first time
-  // it is opened with no saved content. After seeding, the user edits freely
-  // and their version is persisted; this never auto-regenerates.
-  const b31SeededRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (loading) return;
-    if (!section) return;
-    const isB31 = section.id === 'b3-1' || section.number === 'B3.1' || section.number === '3.1';
-    if (!isB31) return;
-    if (b31SeededRef.current === section.id) return;
-    const trimmed = (content || '').trim();
-    const isEmpty = trimmed === '' || trimmed === '<p></p>' || trimmed === '<p><br></p>';
-    if (!isEmpty) {
-      b31SeededRef.current = section.id;
-      return;
-    }
-    const acronymHtml = acronymSegments && acronymSegments.length > 0
-      ? `<span data-type="acronymReference" style="font-family: 'Arial Black', Arial, sans-serif; font-weight: 900;">${acronymSegments
-          .map(s => `<span style="color: ${s.color}">${s.text}</span>`)
-          .join('')}</span>`
-      : `<strong>${proposalAcronym || '[Acronym]'}</strong>`;
-    const seedHtml = `<p>${acronymHtml} consists of [X] WPs organised into [Y] reporting periods over [Z] months.</p>`;
-    b31SeededRef.current = section.id;
-    setContent(seedHtml);
-  }, [loading, section, content, acronymSegments, proposalAcronym, setContent]);
+  // B3.1 uses the standard TipTap editor; no seed content is written.
+  // An empty-state placeholder is shown via overlay (see EditorContent below).
 
 
 
@@ -1579,9 +1556,23 @@ export function DocumentEditor({
                     <EditorContent
                       key={section?.id}
                       editor={editor}
-                      className={`document-content outline-none prose prose-sm max-w-none ${isEffectivelyReadOnly ? 'pointer-events-none opacity-75' : ''} ${section?.number === 'B3.1' ? 'min-h-[60px]' : 'min-h-[400px]'}`}
+                      className={`document-content outline-none prose prose-sm max-w-none ${isEffectivelyReadOnly ? 'pointer-events-none opacity-75' : ''} ${section?.number === 'B3.1' ? 'min-h-[60px] b31-compact-editor' : 'min-h-[400px]'}`}
                       style={{ fontFamily: '"Times New Roman", Times, serif' }}
                     />
+                    {section?.number === 'B3.1' && (() => {
+                      const trimmed = (content || '').trim();
+                      const isEmpty = trimmed === '' || trimmed === '<p></p>' || trimmed === '<p><br></p>' || trimmed === '<p><br/></p>';
+                      if (!isEmpty) return null;
+                      return (
+                        <div
+                          className="pointer-events-none absolute top-0 left-0 text-muted-foreground italic select-none"
+                          style={{ fontFamily: '"Times New Roman", Times, serif', padding: '0.25em 0' }}
+                          aria-hidden="true"
+                        >
+                          Describe the work plan structure — number of WPs, reporting periods, project duration...
+                        </div>
+                      );
+                    })()}
                     {/* Track change bubble menu */}
                     {editor && <TrackChangeBubbleMenu editor={editor} proposalId={proposalId} />}
                     {/* Block lock indicators */}

@@ -1505,3 +1505,10 @@ table.b31-effort-matrix.first-col-flush {
   -webkit-print-color-adjust: exact !important;
   print-color-adjust: exact !important;
 }
+
+/* B3.1 compact editor: tighten paragraph margins so the editor sits
+   close to the auto-generated tables below it. Scoped to B3.1 only. */
+.b31-compact-editor .ProseMirror p {
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
