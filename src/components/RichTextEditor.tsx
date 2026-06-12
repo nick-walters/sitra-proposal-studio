@@ -1674,21 +1674,8 @@ StarterKit.configure({
                       }
                     }
                   });
-                  // Also treat a selection starting with "MS" followed by a ref mark as protected
-                  if (!coversRefMark && to - from > 2) {
-                    const leading = doc.textBetween(from, from + 2);
-                    if (leading === 'MS') {
-                      doc.nodesBetween(from + 2, to, (node) => {
-                        if (!node.isText) return;
-                        for (const markName of markNames) {
-                          const markType = schema.marks[markName];
-                          if (markType && markType.isInSet(node.marks)) {
-                            coversRefMark = true;
-                          }
-                        }
-                      });
-                    }
-                  }
+
+
                   if (!coversRefMark) return false;
                   // Swallow the input — don't insert anything, don't move cursor
                   return true;
