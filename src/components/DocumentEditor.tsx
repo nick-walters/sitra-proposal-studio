@@ -1546,35 +1546,39 @@ export function DocumentEditor({
                   <Skeleton className="h-4 w-2/3" />
                 </div>
               ) : (
-                <div ref={editorContainerRef} className="relative tiptap-editor-container overflow-visible">
-                  <EditorContent
-                    key={section?.id}
-                    editor={editor}
-                    className={`document-content outline-none prose prose-sm max-w-none ${isEffectivelyReadOnly ? 'pointer-events-none opacity-75' : ''} min-h-[400px]`}
-                    style={{ fontFamily: '"Times New Roman", Times, serif' }}
-                  />
-                  {/* Track change bubble menu */}
-                  {editor && <TrackChangeBubbleMenu editor={editor} proposalId={proposalId} />}
-                  {/* Block lock indicators */}
-                  <BlockLockIndicator
-                    editor={editor}
-                    blockLocks={blockLocks}
-                    containerRef={editorContainerRef}
-                  />
-                  {/* Collaborative cursors overlay */}
-                  <CollaborativeCursors
-                    editor={editor}
-                    collaborators={collaboratorsInSection}
-                    containerRef={editorContainerRef}
-                  />
-                  {/* Caption refresh icon */}
-                  <CaptionRefreshButton
-                    editor={editor}
-                    containerRef={editorContainerRef}
-                    sectionNumber={section?.number}
-                    tableOffset={0}
-                  />
-                </div>
+                <>
+                  {section?.number !== 'B3.1' && (
+                    <div ref={editorContainerRef} className="relative tiptap-editor-container overflow-visible">
+                      <EditorContent
+                        key={section?.id}
+                        editor={editor}
+                        className={`document-content outline-none prose prose-sm max-w-none ${isEffectivelyReadOnly ? 'pointer-events-none opacity-75' : ''} min-h-[400px]`}
+                        style={{ fontFamily: '"Times New Roman", Times, serif' }}
+                      />
+                      {/* Track change bubble menu */}
+                      {editor && <TrackChangeBubbleMenu editor={editor} proposalId={proposalId} />}
+                      {/* Block lock indicators */}
+                      <BlockLockIndicator
+                        editor={editor}
+                        blockLocks={blockLocks}
+                        containerRef={editorContainerRef}
+                      />
+                      {/* Collaborative cursors overlay */}
+                      <CollaborativeCursors
+                        editor={editor}
+                        collaborators={collaboratorsInSection}
+                        containerRef={editorContainerRef}
+                      />
+                      {/* Caption refresh icon */}
+                      <CaptionRefreshButton
+                        editor={editor}
+                        containerRef={editorContainerRef}
+                        sectionNumber={section?.number}
+                        tableOffset={0}
+                      />
+                    </div>
+                  )}
+                </>
               )}
 
 
