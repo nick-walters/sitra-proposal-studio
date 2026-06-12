@@ -9,6 +9,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getContrastingTextColor, lightenColor } from '@/lib/wpColors';
 import { exportAsPng, exportGanttAsPptx, type GanttExportData } from '@/lib/figureExport';
 import { toast } from 'sonner';
+import { scheduleFigurePngCache } from '@/lib/figureCache';
 
 interface Task {
   id: string;
