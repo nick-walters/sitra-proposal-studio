@@ -1559,7 +1559,7 @@ export function DocumentEditor({
                     <EditorContent
                       key={section?.id}
                       editor={editor}
-                      className={`document-content outline-none prose prose-sm max-w-none ${isEffectivelyReadOnly ? 'pointer-events-none opacity-75' : ''} ${isB31Section ? 'min-h-[60px] b31-compact-editor' : 'min-h-[400px]'}`}
+                      className={`document-content outline-none prose prose-sm max-w-none ${isEffectivelyReadOnly ? 'pointer-events-none opacity-75' : ''} ${isB31Section ? 'min-h-[20px] b31-compact-editor' : 'min-h-[400px]'}`}
                       style={{ fontFamily: '"Times New Roman", Times, serif' }}
                     />
                     {isB31Section && (() => {
