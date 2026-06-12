@@ -1699,6 +1699,57 @@ Deno.serve(async (req) => {
         });
       }
 
+      // ---- Figures (PNG) ----
+      // Uploaded image/AI figures live in `proposal-files` (path in content.imageUrl).
+      // PERT/Gantt figures are cached client-side at
+      // `proposal-backups/{proposal_id}/_figures-cache/{figure_id}.png`.
+      const { data: figures } = await supabase
+        .from("figures")
+        .select("id, figure_number, figure_type, content, title, caption")
+        .eq("proposal_id", proposal.id)
+        .order("figure_number", { ascending: true });
+
+      for (const fig of figures ?? []) {
+        const num = String(fig.figure_number || fig.id).replace(/[\/\\:*?"<>|]/g, "_");
+        let bytes: Uint8Array | null = null;
+        let ext = "png";
+        const imageUrl: string | undefined = fig.content?.imageUrl;
+
+        if (imageUrl) {
+          // Strip query string and bucket prefix to derive storage path.
+          const cleaned = String(imageUrl).split("?")[0];
+          const m = cleaned.match(/proposal-files\/(.+)$/);
+          const path = m ? m[1] : cleaned;
+          const { data: blob, error } = await supabase.storage
+            .from("proposal-files").download(path);
+          if (!error && blob) {
+            bytes = new Uint8Array(await blob.arrayBuffer());
+            const extMatch = path.match(/\.([a-zA-Z0-9]+)$/);
+            if (extMatch) ext = extMatch[1].toLowerCase();
+          }
+        } else if (fig.figure_type === "pert" || fig.figure_type === "gantt") {
+          const cachePath = `${proposal.id}/_figures-cache/${fig.id}.png`;
+          const { data: blob, error } = await supabase.storage
+            .from("proposal-backups").download(cachePath);
+          if (!error && blob) {
+            bytes = new Uint8Array(await blob.arrayBuffer());
+          }
+        }
+
+        if (bytes) {
+          const mime = ext === "jpg" || ext === "jpeg" ? "image/jpeg"
+            : ext === "gif" ? "image/gif"
+            : ext === "svg" ? "image/svg+xml"
+            : ext === "webp" ? "image/webp"
+            : "image/png";
+          files.push({
+            name: `${acr} Figure ${num} ${stamp}.${ext}`,
+            bytes,
+            mime,
+          });
+        }
+      }
+
       const { data: cases } = await supabase.from("case_drafts").select("*").eq("proposal_id", proposal.id).order("number", { ascending: true });
       for (const c of cases ?? []) {
         const rawCaseName = (c.short_name ?? c.title ?? `${c.number}`).toString().trim();
