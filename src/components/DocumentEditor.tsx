@@ -1560,8 +1560,20 @@ export function DocumentEditor({
                       style={{ fontFamily: '"Times New Roman", Times, serif' }}
                     />
                     {section?.number === 'B3.1' && (() => {
-                      const trimmed = (content || '').trim();
-                      const isEmpty = trimmed === '' || trimmed === '<p></p>' || trimmed === '<p><br></p>' || trimmed === '<p><br/></p>';
+                      const raw = content ?? '';
+                      if (typeof console !== 'undefined') {
+                        // Temporary diagnostic – inspect what's actually saved for B3.1.
+                        console.log('[B31-CONTENT]', raw);
+                      }
+                      // Treat as empty if there's no real text content – ignore any number
+                      // of empty paragraphs, <br> trailing breaks, or whitespace.
+                      const stripped = String(raw)
+                        .replace(/<br\b[^>]*>/gi, '')
+                        .replace(/<p\b[^>]*>\s*<\/p>/gi, '')
+                        .replace(/&nbsp;/gi, '')
+                        .replace(/\s+/g, '')
+                        .trim();
+                      const isEmpty = stripped === '';
                       if (!isEmpty) return null;
                       return (
                         <div
