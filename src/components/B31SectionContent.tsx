@@ -74,20 +74,7 @@ export function B31SectionContent({ proposalId }: Props) {
             proposalId={proposalId}
             tableKey="figure-3.1.b"
             label="Figure 3.1.b."
-            defaultCaption="Gantt chart, showing timings of WPs"
-            suffix={<>
-              <span style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'baseline', border: '1.5px solid #000000', borderRadius: '9999px', padding: '0px 5px', fontSize: '11pt', fontFamily: "'Times New Roman', Times, serif", fontWeight: 'bold', fontStyle: 'normal', lineHeight: 1, color: '#ffffff', backgroundColor: '#000000' }}>WPX</span>
-              {', '}tasks{' '}
-              <span style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'baseline', border: '1.5px solid #000000', borderRadius: '9999px', padding: '0px 5px', fontSize: '11pt', fontFamily: "'Times New Roman', Times, serif", fontWeight: 'bold', fontStyle: 'normal', lineHeight: 1, color: '#000000', backgroundColor: '#ffffff' }}>TX.X</span>
-              {', '}deliverables{' '}
-              <svg width={32} height={12} viewBox="0 0 32 12" style={{ display: 'inline-block', verticalAlign: 'baseline', overflow: 'visible', position: 'relative', top: '2px' }}>
-                <path d="M 0,0 L 26,0 L 32,6 L 26,12 L 0,12 Z" fill="#ffffff" stroke="#000000" strokeWidth={1.5} strokeLinejoin="round" />
-                <text x={13} y={9.5} textAnchor="middle" fontFamily="'Times New Roman', Times, serif" fontSize="8pt" fontWeight={700} fontStyle="normal" fill="#000000">DX.X</text>
-              </svg>
-              {' '}&amp; milestones{' '}
-              <span className="inline-ref-milestone" style={{ verticalAlign: 'baseline' }}>MSX</span>
-
-            </>}
+            defaultCaption="Gantt chart, showing timings of WPs, tasks, deliverables & milestones"
             className="mt-1"
           />
         </div>
