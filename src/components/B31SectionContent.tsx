@@ -63,6 +63,7 @@ export function B31SectionContent({ proposalId }: Props) {
       {ganttFigure ? (
         <div data-figure-type="gantt">
           <GanttChartFigure
+            figureId={ganttFigure.id}
             proposalId={proposalId}
             figureNumber={ganttFigure.figure_number}
             content={ganttFigure.content as any}
