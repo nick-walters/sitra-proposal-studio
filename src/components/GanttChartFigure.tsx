@@ -482,7 +482,7 @@ export function GanttChartFigure({
                   task.milestones?.forEach(ms => {
                     const parts = [`MS${ms.number}: ${ms.name}`];
                     if (ms.leadShortName) parts.push(`Lead: ${ms.leadShortName}`);
-                    taskBubbles.push({ month: ms.month, label: `${ms.number}`, color: '#000000', tooltipTitle: parts.join(' | '), type: 'ms', sortNum: String(ms.number) });
+                    taskBubbles.push({ month: ms.month, label: `MS${ms.number}`, color: '#000000', tooltipTitle: parts.join(' | '), type: 'ms', sortNum: String(ms.number) });
                   });
 
                   // Sort: by month, D before MS at same month, then numerically
@@ -495,14 +495,14 @@ export function GanttChartFigure({
                   const pointDepth = 5;
                   const estimateBubbleW = (label: string) => Math.max(10, label.length * 4 + 6);
 
-                  const msDiamondSize = 17;
                   type PBubble = typeof taskBubbles[0] & { leftX: number; width: number; bodyW: number; triSide: 'right' | 'left' };
                   const positioned: PBubble[] = taskBubbles.map(b => {
                     if (b.type === 'ms') {
+                      const bodyW = estimateBubbleW(b.label);
                       return {
                         ...b,
-                        bodyW: msDiamondSize,
-                        width: msDiamondSize,
+                        bodyW,
+                        width: bodyW,
                         leftX: 0,
                         triSide: 'left' as const,
                       };
@@ -670,12 +670,12 @@ export function GanttChartFigure({
                           let shapeW: number;
                           let shapeH: number;
                           if (isMs) {
-                            // Milestone: left-pointing isosceles triangle
-                            shapeW = msDiamondSize;
-                            shapeH = msDiamondSize;
-                            svgPath = isRight
-                              ? `M ${shapeW},${shapeH / 2} L 0,0 L 0,${shapeH} Z`
-                              : `M ${shapeW},0 L 0,${shapeH / 2} L ${shapeW},${shapeH} Z`;
+                            // Milestone: elongated hexagon
+                            shapeW = b.width;
+                            shapeH = 12;
+                            const x1 = shapeW * 0.12;
+                            const x2 = shapeW * 0.88;
+                            svgPath = `M ${x1},0 L ${x2},0 L ${shapeW},${shapeH / 2} L ${x2},${shapeH} L ${x1},${shapeH} L 0,${shapeH / 2} Z`;
                           } else {
                             shapeW = b.width;
                             shapeH = bH;
@@ -717,8 +717,8 @@ export function GanttChartFigure({
                                     style={{
                                       position: 'absolute',
                                       top: isMs ? 0 : -0.5,
-                                      left: isMs ? (isRight ? 0 : Math.round(shapeW * 0.3) + 1) : (isRight ? (isDel ? 1 : 0) : pointDepth),
-                                      width: isMs ? (isRight ? Math.round(shapeW * 0.7) : Math.round(shapeW * 0.7)) : b.bodyW,
+                                      left: isMs ? 0 : (isRight ? (isDel ? 1 : 0) : pointDepth),
+                                      width: isMs ? shapeW : b.bodyW,
                                       height: shapeH,
                                       display: 'flex',
                                       alignItems: 'center',
@@ -728,7 +728,6 @@ export function GanttChartFigure({
                                       fontWeight: 700,
                                       lineHeight: 1,
                                       color: isMs ? '#ffffff' : b.color,
-                                      letterSpacing: isMs ? '-0.5px' : undefined,
                                       whiteSpace: 'nowrap',
                                     }}
                                   >

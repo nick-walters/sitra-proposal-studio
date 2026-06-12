@@ -96,17 +96,26 @@ function MiniPentagon({ text }: { text: string }) {
 }
 
 function MiniTriangle({ text }: { text: string }) {
+  // Elongated hexagon milestone badge (toolbar icon)
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '1px' }}>
-      <span style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '8pt', fontWeight: 700, color: '#000', lineHeight: 1 }}>MS</span>
-      <span style={{ display: 'inline-block', verticalAlign: 'middle', position: 'relative', width: 15, height: 15 }}>
-        <svg width={15} height={15} viewBox="0 0 15 15" style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}>
-          <path d="M 15,0 L 0,7.5 L 15,15 Z" fill="#000000" />
-        </svg>
-        <span style={{ position: 'absolute', top: 0, right: -1, width: 11, height: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '6pt', fontWeight: 700, lineHeight: 1, color: '#ffffff', letterSpacing: '-0.5px', whiteSpace: 'nowrap' }}>
-          {text}
-        </span>
-      </span>
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: '#000',
+        color: '#fff',
+        fontFamily: "'Times New Roman', Times, serif",
+        fontSize: '8pt',
+        fontWeight: 700,
+        lineHeight: '14px',
+        height: '14px',
+        padding: '0 3px',
+        clipPath: 'polygon(12% 0%, 88% 0%, 100% 50%, 88% 100%, 12% 100%, 0% 50%)',
+        verticalAlign: 'middle',
+      }}
+    >
+      MS{text}
     </span>
   );
 }
@@ -150,14 +159,28 @@ function DeliverablePentagon({ label, color }: { label: string; color?: string }
 }
 
 function MilestoneTriangle({ number }: { number: number }) {
+  // Elongated hexagon milestone badge
   return (
-    <span className="shrink-0" style={{ display: 'inline-block', verticalAlign: 'middle', position: 'relative', width: 21, height: 21 }}>
-      <svg width={21} height={21} viewBox="0 0 21 21" style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}>
-        <path d="M 21,0 L 0,10.5 L 21,21 Z" fill="#000000" />
-      </svg>
-      <span style={{ position: 'absolute', top: 0, right: -1, width: 15, height: 21, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '9pt', fontWeight: 700, lineHeight: 1, color: '#ffffff', letterSpacing: '-0.7px', whiteSpace: 'nowrap' }}>
-        {number}
-      </span>
+    <span
+      className="shrink-0"
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: '#000',
+        color: '#fff',
+        fontFamily: "'Times New Roman', Times, serif",
+        fontSize: '11pt',
+        fontWeight: 700,
+        lineHeight: '18px',
+        height: '18px',
+        padding: '0 4px',
+        clipPath: 'polygon(12% 0%, 88% 0%, 100% 50%, 88% 100%, 12% 100%, 0% 50%)',
+        verticalAlign: 'middle',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      MS{number || ''}
     </span>
   );
 }
@@ -374,7 +397,7 @@ export function InsertTDMSReferenceDropdowns({
                   disabled={disabled}
                   onClick={() => setMilestoneDialogOpen(true)}
                 >
-                  <MiniTriangle text="MS" />
+                  <MiniTriangle text="" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Insert milestone reference</TooltipContent>
