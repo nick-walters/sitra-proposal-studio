@@ -980,11 +980,19 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                               style={{
                                 position: 'absolute',
                                 inset: 0,
-                                backgroundColor: '#ffffff',
-                                border: `1.5px solid ${wpColor}`,
+                                backgroundColor: wpColor,
                                 clipPath: 'polygon(0% 0%, calc(100% - 8px) 0%, 100% 50%, calc(100% - 8px) 100%, 0% 100%)',
                               }}
                             />
+                            <span
+                              style={{
+                                position: 'absolute',
+                                inset: '1.5px 2.5px 1.5px 1.5px',
+                                backgroundColor: '#ffffff',
+                                clipPath: 'polygon(0% 0%, calc(100% - 7px) 0%, 100% 50%, calc(100% - 7px) 100%, 0% 100%)',
+                              }}
+                            />
+
                             <span style={{ position: 'relative', zIndex: 1 }}>
                               <EditableTextInline
                                 value={del.number}
