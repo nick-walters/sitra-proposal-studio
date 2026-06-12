@@ -1556,9 +1556,23 @@ export function DocumentEditor({
                     <EditorContent
                       key={section?.id}
                       editor={editor}
-                      className={`document-content outline-none prose prose-sm max-w-none ${isEffectivelyReadOnly ? 'pointer-events-none opacity-75' : ''} ${section?.number === 'B3.1' ? 'min-h-[60px]' : 'min-h-[400px]'}`}
+                      className={`document-content outline-none prose prose-sm max-w-none ${isEffectivelyReadOnly ? 'pointer-events-none opacity-75' : ''} ${section?.number === 'B3.1' ? 'min-h-[60px] b31-compact-editor' : 'min-h-[400px]'}`}
                       style={{ fontFamily: '"Times New Roman", Times, serif' }}
                     />
+                    {section?.number === 'B3.1' && (() => {
+                      const trimmed = (content || '').trim();
+                      const isEmpty = trimmed === '' || trimmed === '<p></p>' || trimmed === '<p><br></p>' || trimmed === '<p><br/></p>';
+                      if (!isEmpty) return null;
+                      return (
+                        <div
+                          className="pointer-events-none absolute top-0 left-0 text-muted-foreground italic select-none"
+                          style={{ fontFamily: '"Times New Roman", Times, serif', padding: '0.25em 0' }}
+                          aria-hidden="true"
+                        >
+                          Describe the work plan structure — number of WPs, reporting periods, project duration...
+                        </div>
+                      );
+                    })()}
                     {/* Track change bubble menu */}
                     {editor && <TrackChangeBubbleMenu editor={editor} proposalId={proposalId} />}
                     {/* Block lock indicators */}
