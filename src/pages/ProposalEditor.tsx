@@ -34,7 +34,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { DuplicateProposalDialog } from "@/components/DuplicateProposalDialog";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -113,7 +113,7 @@ export function ProposalEditor() {
   const [activeSection, setActiveSection] = useState<Section | WPSection | CaseSection | null>(null);
   const [selectedParticipantId, setSelectedParticipantId] = useState<string | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [isDuplicateOpen, setIsDuplicateOpen] = useState(false);
+  
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isAddParticipantOpen, setIsAddParticipantOpen] = useState(false);
   const [isSubmitConfirmOpen, setIsSubmitConfirmOpen] = useState(false);
@@ -430,46 +430,6 @@ export function ProposalEditor() {
     }
   };
 
-  const handleDuplicateProposal = async (newAcronym: string, newTitle: string) => {
-    if (!proposal || !id) return;
-    
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        toast.error('You must be logged in to duplicate a proposal');
-        return;
-      }
-
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/duplicate-proposal`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            proposalId: id,
-            newAcronym,
-            newTitle,
-          }),
-        }
-      );
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to duplicate proposal');
-      }
-
-      toast.success(`Proposal "${newAcronym}" created as a draft. Redirecting...`);
-      setTimeout(() => navigate('/dashboard'), 1500);
-    } catch (error) {
-      console.error('Error duplicating proposal:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to duplicate proposal');
-    }
-  };
 
   // Render the appropriate content based on section
   const renderContent = () => {
@@ -1282,19 +1242,6 @@ export function ProposalEditor() {
 
       {/* Version History is now section-specific in DocumentEditor */}
 
-      {/* Duplicate Proposal Dialog */}
-      {proposal && (
-        <DuplicateProposalDialog
-          isOpen={isDuplicateOpen}
-          onClose={() => setIsDuplicateOpen(false)}
-          proposal={{
-            ...proposal,
-            members: [],
-            sections: allSections,
-          }}
-          onDuplicate={handleDuplicateProposal}
-        />
-      )}
 
       {/* Submission Confirmation Dialog */}
       <AlertDialog open={isSubmitConfirmOpen} onOpenChange={setIsSubmitConfirmOpen}>
