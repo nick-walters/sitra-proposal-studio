@@ -61,14 +61,6 @@ export function FeedbackAdmin() {
     <div className="min-h-screen bg-background">
       <Header />
       <div className="container mx-auto py-8 px-4">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate("/admin")}
-          className="mb-4 gap-2 text-muted-foreground"
-        >
-          <ArrowLeft className="w-4 h-4" /> Back to admin
-        </Button>
 
         <ReceivedFeedback highlightId={highlightFeedbackId} />
       </div>

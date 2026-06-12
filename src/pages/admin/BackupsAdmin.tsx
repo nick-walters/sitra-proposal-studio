@@ -128,9 +128,6 @@ export default function BackupsAdmin() {
     <div className="min-h-screen bg-background">
       <Header />
       <div className="max-w-3xl mx-auto p-6 space-y-6">
-      <Button variant="ghost" size="sm" onClick={() => navigate("/admin")} className="gap-2">
-        <ArrowLeft className="w-4 h-4" /> Back to admin
-      </Button>
 
       <div>
         <h1 className="text-2xl font-bold">Backups &amp; SharePoint</h1>
