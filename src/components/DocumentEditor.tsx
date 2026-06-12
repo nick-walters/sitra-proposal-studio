@@ -1120,6 +1120,9 @@ export function DocumentEditor({
 
   // Check if this is the B2.1 section (impact pathways)
   const isImpactSection = section?.id === 'b2-1' || section?.number === '2.1';
+  // Check if this is the B3.1 section — must match the exact condition used to
+  // render B31SectionContent below, so the compact editor and tables never disagree.
+  const isB31Section = section?.id === 'b3-1' || section?.number === 'B3.1' || section?.number === '3.1';
   // Strip HTML for grammar checking
   const plainText = content.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim();
 
@@ -1367,7 +1370,7 @@ export function DocumentEditor({
           onOpenParticipantRefDialog={() => setIsParticipantRefOpen(true)}
           isPartB={section && !section.isPartA}
           isReadOnly={isEffectivelyReadOnly}
-          hideTableInsert={section?.number === 'B3.1'}
+          hideTableInsert={isB31Section}
           tableOffset={0}
           b31TableFocus={b31TableFocus}
           onB31AutoResize={b31TableFocus ? handleB31AutoResize : undefined}
@@ -1556,10 +1559,10 @@ export function DocumentEditor({
                     <EditorContent
                       key={section?.id}
                       editor={editor}
-                      className={`document-content outline-none prose prose-sm max-w-none ${isEffectivelyReadOnly ? 'pointer-events-none opacity-75' : ''} ${section?.number === 'B3.1' ? 'min-h-[60px] b31-compact-editor' : 'min-h-[400px]'}`}
+                      className={`document-content outline-none prose prose-sm max-w-none ${isEffectivelyReadOnly ? 'pointer-events-none opacity-75' : ''} ${isB31Section ? 'min-h-[60px] b31-compact-editor' : 'min-h-[400px]'}`}
                       style={{ fontFamily: '"Times New Roman", Times, serif' }}
                     />
-                    {section?.number === 'B3.1' && (() => {
+                    {isB31Section && (() => {
                       const raw = content ?? '';
                       // Treat as empty if there's no real text content – ignore any number
                       // of empty paragraphs, <br> trailing breaks, or whitespace.
@@ -1618,7 +1621,7 @@ export function DocumentEditor({
 
 
               {/* B3.1 Section Content - auto-populated figures, tables, and structured content */}
-              {(section.id === 'b3-1' || section.number === 'B3.1' || section.number === '3.1') && (
+              {isB31Section && (
                 <B31SectionContent proposalId={proposalId} />
               )}
               {/* Footnotes */}
