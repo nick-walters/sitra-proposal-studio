@@ -74,7 +74,7 @@ export function B31SectionContent({ proposalId }: Props) {
             proposalId={proposalId}
             tableKey="figure-3.1.b"
             label="Figure 3.1.b."
-            defaultCaption="Gantt chart, tasks, deliverables & milestones"
+            defaultCaption="Gantt chart"
             className="mt-1"
           />
         </div>
