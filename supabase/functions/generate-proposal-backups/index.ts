@@ -309,11 +309,15 @@ function simpleTable(headers: string[], rows: (string | number | null | undefine
     })),
   });
   const bodyRows = rows.map((r) => new TableRow({
-    children: r.map((c) => new TableCell({
-      borders: CELL_BORDERS,
-      margins: { top: 60, bottom: 60, left: 90, right: 90 },
-      children: [new Paragraph({ children: [new TextRun({ text: c === null || c === undefined ? "" : String(c) })] })],
-    })),
+    children: r.map((c) => {
+      const cleaned = c === null || c === undefined ? "" : (typeof c === "number" ? String(c) : htmlToText(c));
+      const lines = cleaned ? cleaned.split("\n") : [""];
+      return new TableCell({
+        borders: CELL_BORDERS,
+        margins: { top: 60, bottom: 60, left: 90, right: 90 },
+        children: lines.map((line) => new Paragraph({ children: [new TextRun({ text: line })] })),
+      });
+    }),
   }));
   return new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
