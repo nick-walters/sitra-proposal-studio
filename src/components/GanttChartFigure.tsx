@@ -71,6 +71,13 @@ export function GanttChartFigure({
 }: GanttChartFigureProps) {
   const chartRef = useRef<HTMLDivElement>(null);
 
+  // Cache rendered PNG to storage so the backup edge function can include it.
+  useEffect(() => {
+    if (!figureId) return;
+    scheduleFigurePngCache(proposalId, figureId, () => chartRef.current);
+  }, [figureId, proposalId, content]);
+
+
   // Fetch proposal-level reporting periods
   const { data: proposalData } = useQuery({
     queryKey: ['proposal-rp', proposalId],
