@@ -58,7 +58,11 @@ interface GanttChartFigureProps {
 // 18cm = 680.315px at 96dpi. We use this as the total chart width.
 const TOTAL_WIDTH_PX = 680;
 const MIN_CELL_WIDTH = 7;
-const MARGIN_GAP = 27; // gap between month columns and right margin
+// Gap between month-grid right edge and figure right margin.
+// Must be wide enough for the widest MS badge anchored at the final month
+// boundary (triangle tip on the boundary, body extending right).
+// MS19 → estimateBubbleW = max(26, 5*6+8) = 38px. Add a 4px safety buffer.
+const MARGIN_GAP = 42;
 const ROW_HEIGHT = 20;
 
 export function GanttChartFigure({
