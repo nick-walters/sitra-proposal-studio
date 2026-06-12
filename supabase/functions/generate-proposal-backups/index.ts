@@ -1073,52 +1073,148 @@ async function buildA4(supabase: any, proposal: any): Promise<Uint8Array> {
     return await packDocx(children);
   }
 
-  // Build per-section tables of Item / Yes-No / Page.
-  // The freeform "_details" fields are intentionally omitted — they belong in
-  // the proposal text, not in the A4 backup summary.
+  const SHADE_HDR = { fill: "BFBFBF", type: "clear", color: "auto" } as any;
+  const SHADE_SUB = { fill: "E7E6E6", type: "clear", color: "auto" } as any;
+  const SHADE_LIGHT = { fill: "F7F7F7", type: "clear", color: "auto" } as any;
+  const cellOpts = (o: { span?: number; shading?: any } = {}) => ({
+    borders: CELL_BORDERS,
+    margins: { top: 60, bottom: 60, left: 90, right: 90 },
+    columnSpan: o.span,
+    shading: o.shading,
+  });
+  const txt = (text: string, o: { bold?: boolean; span?: number; shading?: any; italics?: boolean } = {}) =>
+    new TableCell({
+      ...cellOpts(o),
+      children: [new Paragraph({ children: [new TextRun({ text: text ?? "", bold: o.bold, italics: o.italics })] })],
+    });
+  const htmlCellA4 = (html: string, o: { span?: number; shading?: any } = {}) =>
+    new TableCell({ ...cellOpts(o), children: htmlToDocxChildren(html) as Paragraph[] });
+
+  const tableRows: TableRow[] = [];
+
+  // Single header row at the top.
+  tableRows.push(new TableRow({
+    tableHeader: true,
+    children: [
+      txt("Item", { bold: true, shading: SHADE_HDR }),
+      txt("Yes/No", { bold: true, shading: SHADE_HDR }),
+      txt("Page", { bold: true, shading: SHADE_HDR }),
+    ],
+  }));
+
   const entries = Object.entries(ethics).filter(([k]) => !["id", "proposal_id", "created_at", "updated_at"].includes(k));
   const used = new Set<string>();
+
   for (const sec of ETHICS_SECTIONS) {
     const matched = entries.filter(([k]) => k.startsWith(sec.prefix));
     if (!matched.length) continue;
-    const rows: string[][] = [];
     const bools = matched.filter(([k]) => typeof ethics[k] === "boolean" || ethics[k] === null);
+
+    const itemRows: { base: string; yn: string; page: string }[] = [];
     for (const [k] of bools) {
       const base = k;
       const pageKey = `${base}_page`;
       const detailKey = `${base}_details`;
-      // Skip rows with no answer AND no page reference (keeps the table compact).
-      if ((ethics[base] === null || ethics[base] === undefined) && !ethics[pageKey]) {
+      if ((ethics[base] === null || ethics[base] === undefined) && !ethics[pageKey] && !ethics[detailKey]) {
         used.add(base); used.add(pageKey); used.add(detailKey);
         continue;
       }
-      rows.push([
-        base.replace(/_/g, " "),
-        yn(ethics[base]),
-        ethics[pageKey] ?? "",
-      ]);
-      used.add(base); used.add(pageKey); used.add(detailKey);
+      itemRows.push({ base, yn: yn(ethics[base]), page: ethics[pageKey] ?? "" });
+      used.add(base); used.add(pageKey);
     }
-    if (rows.length) {
-      children.push(H(HeadingLevel.HEADING_2, sec.title));
-      children.push(simpleTable(["Item", "Yes/No", "Page"], rows));
+
+    // Collect any *_details text fields for this section (self-evaluation)
+    const detailFields = matched
+      .filter(([k]) => k.endsWith("_details") && typeof ethics[k] === "string" && ethics[k].trim())
+      .map(([k]) => k);
+    for (const k of detailFields) used.add(k);
+    // Also capture other free-text strings in this section that aren't pages/details (e.g. *_text)
+    const otherText = matched.filter(([k, v]) =>
+      !used.has(k) && typeof v === "string" && (v as string).trim() && !k.endsWith("_page")
+    );
+    for (const [k] of otherText) used.add(k);
+
+    if (!itemRows.length && !detailFields.length && !otherText.length) {
+      for (const [k] of matched) used.add(k);
+      continue;
     }
-    // mark any remaining matched fields as used so they don't reappear below
+
+    // Subsection heading row (spans all 3 cols)
+    tableRows.push(new TableRow({
+      children: [txt(sec.title, { bold: true, span: 3, shading: SHADE_SUB })],
+    }));
+    for (const r of itemRows) {
+      tableRows.push(new TableRow({
+        children: [txt(r.base.replace(/_/g, " ")), txt(r.yn), txt(r.page)],
+      }));
+    }
+    for (const k of detailFields) {
+      const label = k.replace(/_details$/, "").replace(/_/g, " ");
+      tableRows.push(new TableRow({
+        children: [txt(`${label} — details`, { italics: true, span: 3, shading: SHADE_LIGHT })],
+      }));
+      tableRows.push(new TableRow({ children: [htmlCellA4(String(ethics[k]), { span: 3 })] }));
+    }
+    for (const [k, v] of otherText) {
+      tableRows.push(new TableRow({
+        children: [txt(k.replace(/_/g, " "), { italics: true, span: 3, shading: SHADE_LIGHT })],
+      }));
+      tableRows.push(new TableRow({ children: [htmlCellA4(String(v), { span: 3 })] }));
+    }
+
     for (const [k] of matched) used.add(k);
   }
-  // Catch-all: any remaining yes/no flags not in a known section.
+
+  // Catch-all bool flags not in any known section.
   const leftover = entries.filter(([k]) => !used.has(k));
   const leftoverBools = leftover.filter(([_, v]) => typeof v === "boolean");
   if (leftoverBools.length) {
-    children.push(H(HeadingLevel.HEADING_2, "Other ethics items"));
-    children.push(simpleTable(["Field", "Yes/No"], leftoverBools.map(([k, v]) => [k.replace(/_/g, " "), yn(v as boolean)])));
+    tableRows.push(new TableRow({
+      children: [txt("Other ethics items", { bold: true, span: 3, shading: SHADE_SUB })],
+    }));
+    for (const [k, v] of leftoverBools) {
+      tableRows.push(new TableRow({
+        children: [txt(k.replace(/_/g, " ")), txt(yn(v as boolean)), txt("")],
+      }));
+      used.add(k);
+    }
   }
-  if (ethics.self_assessment_text) {
-    children.push(H(HeadingLevel.HEADING_2, "Self-assessment"));
-    children.push(...htmlToDocxChildren(ethics.self_assessment_text));
+
+  // Overall self-assessment text (always last)
+  if (ethics.self_assessment_text && String(ethics.self_assessment_text).trim()) {
+    tableRows.push(new TableRow({
+      children: [txt("Overall self-assessment", { bold: true, span: 3, shading: SHADE_SUB })],
+    }));
+    tableRows.push(new TableRow({
+      children: [htmlCellA4(String(ethics.self_assessment_text), { span: 3 })],
+    }));
+    used.add("self_assessment_text");
   }
+
+  // Any other free-text fields on ethics_assessment not yet shown
+  const remainingText = entries.filter(([k, v]) =>
+    !used.has(k) && typeof v === "string" && (v as string).trim() && !k.endsWith("_page")
+  );
+  if (remainingText.length) {
+    tableRows.push(new TableRow({
+      children: [txt("Additional self-evaluation text", { bold: true, span: 3, shading: SHADE_SUB })],
+    }));
+    for (const [k, v] of remainingText) {
+      tableRows.push(new TableRow({
+        children: [txt(k.replace(/_/g, " "), { italics: true, span: 3, shading: SHADE_LIGHT })],
+      }));
+      tableRows.push(new TableRow({ children: [htmlCellA4(String(v), { span: 3 })] }));
+    }
+  }
+
+  children.push(new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    columnWidths: [6000, 1500, 1500],
+    rows: tableRows,
+  }));
   return await packDocx(children);
 }
+
 
 async function buildA5(supabase: any, proposal: any): Promise<Uint8Array> {
   const { data: participants } = await supabase
