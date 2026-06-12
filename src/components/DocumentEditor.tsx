@@ -334,6 +334,34 @@ export function DocumentEditor({
   // Use isDirty from the hook directly instead of tracking separately
   const hasUnsavedChanges = isDirty;
 
+  // Seed the B3.1 TipTap editor with a default intro sentence the first time
+  // it is opened with no saved content. After seeding, the user edits freely
+  // and their version is persisted; this never auto-regenerates.
+  const b31SeededRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (loading) return;
+    if (!section) return;
+    const isB31 = section.id === 'b3-1' || section.number === 'B3.1' || section.number === '3.1';
+    if (!isB31) return;
+    if (b31SeededRef.current === section.id) return;
+    const trimmed = (content || '').trim();
+    const isEmpty = trimmed === '' || trimmed === '<p></p>' || trimmed === '<p><br></p>';
+    if (!isEmpty) {
+      b31SeededRef.current = section.id;
+      return;
+    }
+    const acronymHtml = acronymSegments && acronymSegments.length > 0
+      ? `<span data-type="acronymReference" style="font-family: 'Arial Black', Arial, sans-serif; font-weight: 900;">${acronymSegments
+          .map(s => `<span style="color: ${s.color}">${s.text}</span>`)
+          .join('')}</span>`
+      : `<strong>${proposalAcronym || '[Acronym]'}</strong>`;
+    const seedHtml = `<p>${acronymHtml} consists of [X] WPs organised into [Y] reporting periods over [Z] months.</p>`;
+    b31SeededRef.current = section.id;
+    setContent(seedHtml);
+  }, [loading, section, content, acronymSegments, proposalAcronym, setContent]);
+
+
+
   // Ctrl+S / Cmd+S keyboard shortcut to flush pending save
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -1582,10 +1610,13 @@ export function DocumentEditor({
 
 
 
-              {/* B3.1 Intro text - dynamic sentence before compulsory tables */}
+              {/* B3.1 Intro text - now lives in the standard TipTap editor above.
+                  B31IntroText kept for easy revert.
               {(section.id === 'b3-1' || section.number === 'B3.1' || section.number === '3.1') && (
                 <B31IntroText proposalId={proposalId} acronymSegments={acronymSegments} proposalAcronym={proposalAcronym} />
               )}
+              */}
+
 
               {/* B3.1 Section Content - auto-populated figures, tables, and structured content */}
               {(section.id === 'b3-1' || section.number === 'B3.1' || section.number === '3.1') && (
