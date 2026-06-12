@@ -46,6 +46,7 @@ interface GanttContent {
 }
 
 interface GanttChartFigureProps {
+  figureId?: string;
   figureNumber: string;
   proposalId: string;
   content: GanttContent | null;
@@ -60,6 +61,7 @@ const MARGIN_GAP = 27; // gap between month columns and right margin
 const ROW_HEIGHT = 20;
 
 export function GanttChartFigure({
+  figureId,
   figureNumber,
   proposalId,
   content,
