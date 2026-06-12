@@ -30,7 +30,7 @@ import {
   BorderStyle,
   AlignmentType,
 } from "npm:docx@9.5.0";
-import * as XLSX from "npm:xlsx@0.18.5";
+import XLSX from "npm:xlsx-js-style@1.2.0";
 import { parse as parseHtml } from "npm:node-html-parser@6.1.13";
 
 const corsHeaders = {
@@ -105,7 +105,24 @@ function decodeEntities(s: string): string {
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
-    .replace(/&#39;|&apos;/g, "'");
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(parseInt(d, 10)));
+}
+
+// Strip HTML to plain text (used for table cells, milestones, etc.)
+function htmlToText(s: any): string {
+  if (s == null) return "";
+  return cleanHtml(String(s))
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|h[1-6]|li|tr)>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/\u00a0/g, " ")
+    .split("\n")
+    .map((line) => decodeEntities(line).replace(/\s+/g, " ").trim())
+    .filter((line) => line.length > 0)
+    .join("\n")
+    .trim();
 }
 
 // Strip noise that would otherwise leak into the docx as literal text:
@@ -292,11 +309,15 @@ function simpleTable(headers: string[], rows: (string | number | null | undefine
     })),
   });
   const bodyRows = rows.map((r) => new TableRow({
-    children: r.map((c) => new TableCell({
-      borders: CELL_BORDERS,
-      margins: { top: 60, bottom: 60, left: 90, right: 90 },
-      children: [new Paragraph({ children: [new TextRun({ text: c === null || c === undefined ? "" : String(c) })] })],
-    })),
+    children: r.map((c) => {
+      const cleaned = c === null || c === undefined ? "" : (typeof c === "number" ? String(c) : htmlToText(c));
+      const lines = cleaned ? cleaned.split("\n") : [""];
+      return new TableCell({
+        borders: CELL_BORDERS,
+        margins: { top: 60, bottom: 60, left: 90, right: 90 },
+        children: lines.map((line) => new Paragraph({ children: [new TextRun({ text: line })] })),
+      });
+    }),
   }));
   return new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
@@ -426,15 +447,22 @@ function buildWpDescriptionTable(opts: WpTableOpts): Table {
   }
   return new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
-    columnWidths: [1500, 1500, 1500, 1500, 1500, 1500],
+    // Narrower task-leader (cols 0-1) & duration (cols 4-5); wider participants (cols 2-3).
+    columnWidths: [900, 900, 2700, 2700, 900, 900],
     rows,
   });
 }
 
+function mLabel(n: any): string {
+  if (n == null) return "—";
+  const v = Number(n);
+  if (!isFinite(v)) return String(n);
+  return `M${String(v).padStart(2, "0")}`;
+}
 function monthRange(s: any, e: any): string {
   if (s == null && e == null) return "—";
-  if (s != null && e != null) return `M${s}–M${e}`;
-  return s != null ? `M${s}` : `M${e}`;
+  if (s != null && e != null) return `${mLabel(s)}–${mLabel(e)}`;
+  return s != null ? mLabel(s) : mLabel(e);
 }
 
 // ---------- file builders ----------
@@ -579,106 +607,434 @@ async function buildA2(supabase: any, proposal: any): Promise<Uint8Array> {
   return await packDocx(children);
 }
 
+// Port of the in-app Budget Excel export (BudgetPortalSheet.handleExportXlsx).
+// Produces the same 3-sheet workbook (Staff Effort, Summary by Participant,
+// Budget Overview) with the same column structure, formulas and number formats.
 async function buildA3Xlsx(supabase: any, proposal: any): Promise<Uint8Array> {
-  const { data: participants } = await supabase
-    .from("participants").select("id, participant_number, organisation_short_name, organisation_name")
-    .eq("proposal_id", proposal.id)
-    .order("participant_number", { ascending: true });
-  const parts = participants ?? [];
+  const proposalType = proposal.type ?? null;
 
+  // ----- Fetch source data -----
+  const [
+    { data: participantsRaw },
+    { data: wpsRaw },
+    { data: budgetRowsRaw },
+    { data: effortRaw },
+  ] = await Promise.all([
+    supabase.from("participants")
+      .select("id, participant_number, organisation_name, organisation_short_name, country, organisation_category")
+      .eq("proposal_id", proposal.id)
+      .order("participant_number", { ascending: true }),
+    supabase.from("wp_drafts")
+      .select("id, number, short_name, title")
+      .eq("proposal_id", proposal.id)
+      .order("number", { ascending: true }),
+    supabase.from("budget_rows")
+      .select("*, participants!inner(participant_number, organisation_name, organisation_short_name, country, organisation_category)")
+      .eq("proposal_id", proposal.id),
+    supabase.from("wp_draft_effort")
+      .select("participant_id, person_months, wp_draft_id, wp_drafts!inner(proposal_id)")
+      .eq("wp_drafts.proposal_id", proposal.id),
+  ]);
+
+  const cachedParticipants = participantsRaw ?? [];
+  const cachedWps = wpsRaw ?? [];
+  const cachedEffort = (effortRaw ?? []).map((e: any) => ({
+    wp_draft_id: e.wp_draft_id, participant_id: e.participant_id, person_months: Number(e.person_months ?? 0),
+  }));
+
+  // Sub-items + justifications for note attachment (currently informational only here).
+  const budgetRowIds = (budgetRowsRaw ?? []).map((r: any) => r.id);
+  const [{ data: subItemsRaw }, { data: justsRaw }] = await Promise.all([
+    budgetRowIds.length
+      ? supabase.from("budget_subcontracting_items").select("*").in("budget_row_id", budgetRowIds).order("order_index")
+      : Promise.resolve({ data: [] }),
+    budgetRowIds.length
+      ? supabase.from("budget_cost_justifications").select("*").in("budget_row_id", budgetRowIds)
+      : Promise.resolve({ data: [] }),
+  ]);
+  const subItems = subItemsRaw ?? [];
+  const justifications = justsRaw ?? [];
+
+  // PM totals per participant (sum across all WPs)
+  const pmTotals = new Map<string, number>();
+  for (const e of cachedEffort) {
+    pmTotals.set(e.participant_id, (pmTotals.get(e.participant_id) || 0) + e.person_months);
+  }
+
+  // Compute rows (mirrors useBudgetRows.computeRow)
+  const rows = (budgetRowsRaw ?? []).map((r: any) => {
+    const totalPMs = pmTotals.get(r.participant_id) || 0;
+    const pmRate = r.pm_rate != null ? Number(r.pm_rate) : null;
+    const personnelCosts = pmRate != null && pmRate > 0
+      ? Math.round(pmRate * totalPMs)
+      : Number(r.personnel_costs || 0);
+    const subcontracting = Number(r.subcontracting_costs || 0);
+    const travel = Number(r.purchase_travel || 0);
+    const equipment = Number(r.purchase_equipment || 0);
+    const otherGoods = Number(r.purchase_other_goods || 0);
+    const fstp = Number(r.financial_support_third_parties || 0);
+    const internally = Number(r.internally_invoiced || 0);
+    const procurement = Number(r.procurement || 0);
+    const directCosts = personnelCosts + subcontracting + travel + equipment + otherGoods + fstp + internally + procurement;
+    const indirectBase = directCosts - subcontracting - fstp;
+    const indirectOverride = r.indirect_costs_override != null ? Number(r.indirect_costs_override) : null;
+    const indirectCosts = indirectOverride ?? Math.round(indirectBase * 0.25 * 100) / 100;
+    const totalEligibleCosts = directCosts + indirectCosts;
+    const fundingRateOverride = r.funding_rate_override != null ? Number(r.funding_rate_override) : null;
+    let fundingRate = fundingRateOverride ?? 100;
+    if (fundingRateOverride == null && proposalType === "IA" && r.participants?.organisation_category === "PRC") {
+      fundingRate = 70;
+    }
+    const maxEuContribution = Math.round(totalEligibleCosts * (fundingRate / 100) * 100) / 100;
+    const hasInKind = r.has_in_kind ?? false;
+    const reqOverride = r.requested_eu_contribution != null ? Number(r.requested_eu_contribution) : null;
+    let requestedEuContribution: number;
+    if (hasInKind) {
+      const reqPersonnel = r.requested_personnel_costs != null ? Number(r.requested_personnel_costs) : personnelCosts;
+      const reqSub = r.requested_subcontracting != null ? Number(r.requested_subcontracting) : subcontracting;
+      const reqTravel = r.requested_travel != null ? Number(r.requested_travel) : travel;
+      const reqEquip = r.requested_equipment != null ? Number(r.requested_equipment) : equipment;
+      const reqOther = r.requested_other_goods != null ? Number(r.requested_other_goods) : otherGoods;
+      const reqFstp = r.requested_fstp != null ? Number(r.requested_fstp) : fstp;
+      const reqInternally = r.requested_internally_invoiced != null ? Number(r.requested_internally_invoiced) : internally;
+      const reqDirectTotal = reqPersonnel + reqSub + reqTravel + reqEquip + reqOther + reqFstp + reqInternally;
+      const reqIndirect = Math.round((reqDirectTotal - reqSub - reqFstp) * 0.25 * 100) / 100;
+      requestedEuContribution = Math.min(reqDirectTotal + reqIndirect, maxEuContribution);
+    } else {
+      requestedEuContribution = reqOverride != null ? Math.min(reqOverride, maxEuContribution) : maxEuContribution;
+    }
+    return {
+      id: r.id,
+      participantId: r.participant_id,
+      participantNumber: r.participants?.participant_number ?? 0,
+      participantShortName: r.participants?.organisation_short_name ?? "",
+      participantName: r.participants?.organisation_name ?? "",
+      pmRate,
+      totalPersonMonths: totalPMs,
+      personnelCosts,
+      subcontractingCosts: subcontracting,
+      purchaseTravel: travel,
+      purchaseEquipment: equipment,
+      purchaseOtherGoods: otherGoods,
+      financialSupportThirdParties: fstp,
+      internallyInvoiced: internally,
+      indirectCostsOverride: indirectOverride,
+      totalEligibleCosts,
+      fundingRate,
+      maxEuContribution,
+      requestedEuContribution,
+      requestedEuContributionOverride: reqOverride,
+      hasInKind,
+      purchaseEquipmentJustification: r.purchase_equipment_justification || "",
+    };
+  });
+  rows.sort((a: any, b: any) => a.participantNumber - b.participantNumber);
+
+  // ----- Build workbook -----
   const wb = XLSX.utils.book_new();
+  const colLetter = (c: number): string => {
+    let s = ""; let n = c;
+    while (n >= 0) { s = String.fromCharCode(65 + (n % 26)) + s; n = Math.floor(n / 26) - 1; }
+    return s;
+  };
+  const bold = { font: { bold: true } };
+  const styleHeaders = (ws: any, rowNum: number, colCount: number) => {
+    for (let c = 0; c < colCount; c++) {
+      const ref = colLetter(c) + rowNum;
+      if (ws[ref]) ws[ref].s = bold;
+    }
+  };
+  const styleRow = (ws: any, rowNum: number, colCount: number, style: any) => {
+    for (let c = 0; c < colCount; c++) {
+      const ref = colLetter(c) + rowNum;
+      if (ws[ref]) ws[ref].s = { ...(ws[ref].s || {}), ...style };
+    }
+  };
+  const styleCol = (ws: any, colIdx: number, startRow: number, endRow: number) => {
+    const cl = colLetter(colIdx);
+    for (let r = startRow; r <= endRow; r++) {
+      const ref = cl + r;
+      if (ws[ref]) ws[ref].s = { ...(ws[ref].s || {}), font: { bold: true } };
+    }
+  };
+  const autoFitCols = (ws: any, aoa: any[][]) => {
+    const widths: number[] = [];
+    for (const row of aoa) {
+      row.forEach((cell: any, i: number) => {
+        let len = 0;
+        if (cell == null) len = 0;
+        else if (typeof cell === "object" && cell.f) len = 12;
+        else len = String(cell).length;
+        widths[i] = Math.max(widths[i] || 0, len);
+      });
+    }
+    ws["!cols"] = widths.map((w) => ({ wch: Math.max(w + 2, 8) }));
+  };
 
-  // ─── Sheet 1: Staff Effort (WPs × Participants matrix, PMs) ───
-  const { data: wps } = await supabase
-    .from("wp_drafts").select("id, number, short_name").eq("proposal_id", proposal.id)
-    .order("number", { ascending: true });
-  const wpList = wps ?? [];
-  const { data: effortRows } = await supabase
-    .from("wp_draft_effort").select("wp_draft_id, participant_id, person_months")
-    .in("wp_draft_id", wpList.map((w: any) => w.id).concat(["00000000-0000-0000-0000-000000000000"]));
-  const effortMap = new Map<string, number>();
-  for (const e of effortRows ?? []) effortMap.set(`${e.wp_draft_id}::${e.participant_id}`, Number(e.person_months ?? 0));
-
-  const effortHeader = ["Participant", ...wpList.map((w: any) => `WP${w.number}${w.short_name ? ` ${w.short_name}` : ""}`), "Total PMs"];
-  const effortData: any[][] = [effortHeader];
-  const wpTotals = new Array(wpList.length).fill(0);
-  for (const p of parts) {
-    const row: any[] = [`P${p.participant_number} ${p.organisation_short_name ?? ""}`];
-    let rowTotal = 0;
-    wpList.forEach((w: any, i: number) => {
-      const v = effortMap.get(`${w.id}::${p.id}`) ?? 0;
-      row.push(v || 0);
-      wpTotals[i] += v;
-      rowTotal += v;
+  // ─── Sheet 1: Staff Effort ───
+  const wpCount = cachedWps.length;
+  const partCount = cachedParticipants.length;
+  const effortTotalCol = colLetter(1 + wpCount);
+  const effortHeaders: any[] = ["Participant", ...cachedWps.map((wp: any) => `WP${wp.number}`), "Total"];
+  const effortAoa: any[][] = [effortHeaders];
+  cachedParticipants.forEach((p: any, pIdx: number) => {
+    const excelRow = pIdx + 2;
+    const wpValues = cachedWps.map((wp: any) => {
+      const entry = cachedEffort.find((e: any) => e.participant_id === p.id && e.wp_draft_id === wp.id);
+      return entry?.person_months || 0;
     });
-    row.push(rowTotal);
-    effortData.push(row);
+    const firstWpCol = colLetter(1);
+    const lastWpCol = colLetter(wpCount);
+    const totalFormula = wpCount > 0 ? `=SUM(${firstWpCol}${excelRow}:${lastWpCol}${excelRow})` : "0";
+    effortAoa.push([`${p.participant_number}. ${p.organisation_short_name || p.organisation_name}`, ...wpValues, { f: totalFormula }]);
+  });
+  const totalRowIdx = partCount + 2;
+  const effortTotalRow: any[] = ["Total"];
+  for (let c = 1; c <= wpCount; c++) {
+    const cl = colLetter(c);
+    effortTotalRow.push({ f: `=SUM(${cl}2:${cl}${totalRowIdx - 1})` });
   }
-  effortData.push(["TOTAL", ...wpTotals, wpTotals.reduce((a, b) => a + b, 0)]);
-  const wsEffort = XLSX.utils.aoa_to_sheet(effortData);
-  wsEffort["!cols"] = effortHeader.map((h) => ({ wch: Math.max(10, h.length + 2) }));
-  XLSX.utils.book_append_sheet(wb, wsEffort, "Staff Effort");
-
-  // ─── Sheet 2: Budget Overview (per-participant totals) ───
-  const { data: rows } = await supabase
-    .from("budget_rows").select("*").eq("proposal_id", proposal.id);
-  const byPart = new Map<string, any>();
-  for (const r of rows ?? []) byPart.set(r.participant_id, r);
-
-  const header = [
-    "Participant #", "Short name", "Organisation",
-    "Personnel", "Subcontracting", "Travel", "Equipment", "Other goods/services",
-    "Internally invoiced", "FSTP", "Procurement", "Indirect costs (override)",
-    "Funding rate override", "Income generated", "Financial contributions", "Own resources",
-    "Requested EU contribution",
-  ];
-  const data: any[][] = [header];
-  const totals = new Array(header.length - 3).fill(0);
-  for (const p of parts) {
-    const r = byPart.get(p.id) ?? {};
-    const vals = [
-      Number(r.personnel_costs ?? 0),
-      Number(r.subcontracting_costs ?? 0),
-      Number(r.purchase_travel ?? 0),
-      Number(r.purchase_equipment ?? 0),
-      Number(r.purchase_other_goods ?? 0),
-      Number(r.internally_invoiced ?? 0),
-      Number(r.financial_support_third_parties ?? 0),
-      Number(r.procurement ?? 0),
-      Number(r.indirect_costs_override ?? 0),
-      r.funding_rate_override !== null && r.funding_rate_override !== undefined ? Number(r.funding_rate_override) : "",
-      Number(r.income_generated ?? 0),
-      Number(r.financial_contributions ?? 0),
-      Number(r.own_resources ?? 0),
-      Number(r.requested_eu_contribution ?? 0),
-    ];
-    data.push([p.participant_number, p.organisation_short_name ?? "", p.organisation_name ?? "", ...vals]);
-    vals.forEach((v, i) => { if (typeof v === "number" && !isNaN(v)) totals[i] += v; });
+  effortTotalRow.push({ f: `=SUM(${effortTotalCol}2:${effortTotalCol}${totalRowIdx - 1})` });
+  effortAoa.push(effortTotalRow);
+  const ws1 = XLSX.utils.aoa_to_sheet(effortAoa);
+  const effortColCount = effortHeaders.length;
+  styleHeaders(ws1, 1, effortColCount);
+  for (let r = 2; r <= partCount + 1; r++) {
+    const ref = `A${r}`; if (ws1[ref]) ws1[ref].s = bold;
   }
-  data.push(["", "TOTAL", "", ...totals.map((t, i) => (i === 9 ? "" : t))]);
-  const ws = XLSX.utils.aoa_to_sheet(data);
-  const range = XLSX.utils.decode_range(ws["!ref"] as string);
-  for (let R = 1; R <= range.e.r; R++) {
-    for (let C = 3; C <= range.e.c; C++) {
-      const cell = ws[XLSX.utils.encode_cell({ r: R, c: C })];
-      if (cell && typeof cell.v === "number") cell.z = "#,##0.00";
+  styleRow(ws1, totalRowIdx, effortColCount, bold);
+  for (let r = 2; r <= totalRowIdx; r++) {
+    for (let c = 1; c < effortColCount; c++) {
+      const ref = colLetter(c) + r;
+      if (ws1[ref]) ws1[ref].s = { ...(ws1[ref].s || {}), numFmt: "0.0" };
     }
   }
-  ws["!cols"] = header.map((h) => ({ wch: Math.max(12, h.length + 2) }));
-  XLSX.utils.book_append_sheet(wb, ws, "Budget Overview");
+  styleCol(ws1, effortColCount - 1, 1, totalRowIdx);
+  autoFitCols(ws1, effortAoa);
+  XLSX.utils.book_append_sheet(wb, ws1, "Staff Effort");
 
-  // ─── Sheet 3: Cost justifications (if any) ───
-  const { data: justs } = await supabase
-    .from("budget_cost_justifications").select("*, participant:participant_id(organisation_short_name)").eq("proposal_id", proposal.id);
-  if (justs?.length) {
-    const j: any[][] = [["Participant", "Category", "Justification"]];
-    for (const x of justs) j.push([x.participant?.organisation_short_name ?? "", x.category ?? "", x.justification ?? ""]);
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(j), "Cost justifications");
+  // ─── Sheet 2: Summary by Participant ───
+  const summaryHeaders = [
+    "Participant", "PM rate (€)", "Total PMs",
+    "A. Personnel costs (€)", "B. Subcontracting costs (€)",
+    "C.1. Travel & subsistence (€)", "C.2. Equipment (€)", "C.3. Other goods (€)",
+    "D.1. Financial support to third parties (€)", "D.2. Internally invoiced goods & services (€)",
+    "E. Indirect costs (€)", "Total costs (€)",
+    "Max. eligible funding rate (%)", "Max. EU contribution (€)",
+    "Requested funding rate (%)", "Requested budget (€)",
+    "Share of total budget (%)", "Share of requested budget (%)",
+    "Share of requested budget, excl. FSTP (%)",
+  ];
+  const summaryAoa: any[][] = [summaryHeaders];
+  const summaryTotalRowNum = partCount + 2;
+
+  rows.forEach((row: any, rIdx: number) => {
+    const r = rIdx + 2;
+    const effortPIdx = cachedParticipants.findIndex((p: any) => p.id === row.participantId);
+    const effortRow = effortPIdx >= 0 ? effortPIdx + 2 : -1;
+    const totalPMsVal = effortRow > 0 ? { f: `='Staff Effort'!${effortTotalCol}${effortRow}` } : row.totalPersonMonths;
+    const personnelFormula = row.pmRate != null && row.pmRate > 0
+      ? { f: `=ROUND(B${r}*C${r},0)` } : row.personnelCosts;
+    const indirectFormula = row.indirectCostsOverride != null
+      ? row.indirectCostsOverride : { f: `=ROUND((D${r}+F${r}+G${r}+H${r}+J${r})*0.25,2)` };
+    const totalCostsFormula = { f: `=D${r}+E${r}+F${r}+G${r}+H${r}+I${r}+J${r}+K${r}` };
+    const fundingRate = row.fundingRate;
+    const maxEuFormula = { f: `=ROUND(L${r}*M${r}/100,2)` };
+    const hasCustomRequested = row.requestedEuContributionOverride != null || row.hasInKind;
+    const requestedRate = hasCustomRequested
+      ? { f: `=IF(L${r}>0,P${r}/L${r}*100,0)` } : fundingRate;
+    const requestedBudget = hasCustomRequested ? row.requestedEuContribution : { f: `=N${r}` };
+    const shareTotal = { f: `=IF(L$${summaryTotalRowNum}>0,L${r}/L$${summaryTotalRowNum}*100,0)` };
+    const shareRequested = { f: `=IF(P$${summaryTotalRowNum}>0,P${r}/P$${summaryTotalRowNum}*100,0)` };
+    const shareRequestedExclFstp = { f: `=IF((P$${summaryTotalRowNum}-I$${summaryTotalRowNum})>0,(P${r}-I${r})/(P$${summaryTotalRowNum}-I$${summaryTotalRowNum})*100,0)` };
+    summaryAoa.push([
+      `${row.participantNumber}. ${row.participantShortName || row.participantName}`,
+      row.pmRate ?? "",
+      totalPMsVal,
+      personnelFormula,
+      row.subcontractingCosts,
+      row.purchaseTravel,
+      row.purchaseEquipment,
+      row.purchaseOtherGoods,
+      row.financialSupportThirdParties,
+      row.internallyInvoiced,
+      indirectFormula,
+      totalCostsFormula,
+      fundingRate,
+      maxEuFormula,
+      requestedRate,
+      requestedBudget,
+      shareTotal,
+      shareRequested,
+      shareRequestedExclFstp,
+    ]);
+  });
+
+  const sumCols = ["C", "D", "E", "F", "G", "H", "I", "J", "K", "L"];
+  const totalRow: any[] = ["Total", ""];
+  sumCols.forEach((cl) => totalRow.push({ f: `=SUM(${cl}2:${cl}${summaryTotalRowNum - 1})` }));
+  totalRow.push("");
+  totalRow.push({ f: `=SUM(N2:N${summaryTotalRowNum - 1})` });
+  totalRow.push("");
+  totalRow.push({ f: `=SUM(P2:P${summaryTotalRowNum - 1})` });
+  totalRow.push(100); totalRow.push(100); totalRow.push(100);
+  summaryAoa.push(totalRow);
+
+  const ws2 = XLSX.utils.aoa_to_sheet(summaryAoa);
+  const summaryColCount = summaryHeaders.length;
+  styleHeaders(ws2, 1, summaryColCount);
+  for (let r = 2; r <= partCount + 1; r++) {
+    const ref = `A${r}`; if (ws2[ref]) ws2[ref].s = bold;
   }
+  styleRow(ws2, summaryTotalRowNum, summaryColCount, bold);
+  const currCols = [1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15];
+  const pctCols = [12, 14, 16, 17, 18];
+  const pmCols = [2];
+  for (let r = 2; r <= summaryTotalRowNum; r++) {
+    currCols.forEach((c) => {
+      const ref = colLetter(c) + r;
+      if (ws2[ref]) ws2[ref].s = { ...(ws2[ref].s || {}), numFmt: "#,##0.00" };
+    });
+    pctCols.forEach((c) => {
+      const ref = colLetter(c) + r;
+      if (ws2[ref]) ws2[ref].s = { ...(ws2[ref].s || {}), numFmt: "0.0" };
+    });
+    pmCols.forEach((c) => {
+      const ref = colLetter(c) + r;
+      if (ws2[ref]) ws2[ref].s = { ...(ws2[ref].s || {}), numFmt: "0.0" };
+    });
+  }
+  styleCol(ws2, 11, 1, summaryTotalRowNum);
+  styleCol(ws2, 15, 1, summaryTotalRowNum);
+  autoFitCols(ws2, summaryAoa);
+
+  // Cost-justification comments on the same cells the UI annotates.
+  rows.forEach((row: any, rIdx: number) => {
+    const excelRow = rIdx + 2;
+    const addComment = (colIdx: number, text: string) => {
+      if (!text || !text.trim()) return;
+      const ref = colLetter(colIdx) + excelRow;
+      if (!ws2[ref]) return;
+      ws2[ref].c = [{ a: "Sitra", t: text.trim() }];
+      (ws2[ref].c as any).hidden = true;
+    };
+    if (row.subcontractingCosts > 0) {
+      const subItem = subItems.find((s: any) => s.budget_row_id === row.id);
+      if (subItem?.justification) addComment(4, subItem.justification);
+    }
+    if (row.purchaseTravel > 0) {
+      const j = justifications.find((x: any) => x.budget_row_id === row.id && x.category === "travel");
+      if (j?.justification_text) addComment(5, j.justification_text);
+    }
+    if (row.purchaseEquipment > 0 && row.purchaseEquipmentJustification) {
+      addComment(6, row.purchaseEquipmentJustification);
+    }
+    if (row.purchaseOtherGoods > 0) {
+      const j = justifications.find((x: any) => x.budget_row_id === row.id && x.category === "other_goods");
+      if (j?.justification_text) addComment(7, j.justification_text);
+    }
+  });
+  XLSX.utils.book_append_sheet(wb, ws2, "Summary by Participant");
+
+  // ─── Sheet 3: Budget Overview ───
+  const sTotal = summaryTotalRowNum;
+  const COST_CATEGORIES = [
+    { key: "personnelCosts", code: "A." },
+    { key: "subcontractingCosts", code: "B." },
+    { key: null, code: "C.", isGroup: true },
+    { key: "purchaseTravel", code: "C.1." },
+    { key: "purchaseEquipment", code: "C.2." },
+    { key: "purchaseOtherGoods", code: "C.3." },
+    { key: null, code: "D.", isGroup: true },
+    { key: "financialSupportThirdParties", code: "D.1." },
+    { key: "internallyInvoiced", code: "D.2." },
+    { key: "indirectCosts", code: "E." },
+  ] as any[];
+  const COST_NAMES: Record<string, string> = {
+    "A.": "Personnel costs", "B.": "Subcontracting costs", "C.": "Purchase costs",
+    "C.1.": "Travel & subsistence", "C.2.": "Equipment", "C.3.": "Other goods, works & services",
+    "D.": "Other cost categories", "D.1.": "Financial support to third parties",
+    "D.2.": "Internally invoiced goods & services", "E.": "Indirect costs",
+  };
+  const catToSummaryCol: Record<string, string> = {
+    personnelCosts: "D", subcontractingCosts: "E",
+    purchaseTravel: "F", purchaseEquipment: "G", purchaseOtherGoods: "H",
+    financialSupportThirdParties: "I", internallyInvoiced: "J", indirectCosts: "K",
+  };
+  const overviewAoa: any[][] = [["Category", "Total budget (€)", "Share of total budget (%)", "Requested costs (€)", "Share of requested budget (%)"]];
+  let overviewRowIdx = 2;
+  const totalCostsRowTarget = 2 + COST_CATEGORIES.length;
+  for (const cat of COST_CATEGORIES) {
+    let amountCell: any;
+    if (cat.isGroup) {
+      if (cat.code === "C.") amountCell = { f: `='Summary by Participant'!F${sTotal}+'Summary by Participant'!G${sTotal}+'Summary by Participant'!H${sTotal}` };
+      else if (cat.code === "D.") amountCell = { f: `='Summary by Participant'!I${sTotal}+'Summary by Participant'!J${sTotal}` };
+    } else if (cat.key && catToSummaryCol[cat.key]) {
+      amountCell = { f: `='Summary by Participant'!${catToSummaryCol[cat.key]}${sTotal}` };
+    } else amountCell = 0;
+    const pctFormula = { f: `=IF(B$${totalCostsRowTarget}>0,B${overviewRowIdx}/B$${totalCostsRowTarget}*100,0)` };
+    const sFirstData = 2; const sLastData = sTotal - 1; const S = "'Summary by Participant'";
+    let requestedFormula: any;
+    if (cat.isGroup) requestedFormula = 0;
+    else if (cat.key && catToSummaryCol[cat.key]) {
+      const col = catToSummaryCol[cat.key];
+      requestedFormula = { f: `=SUMPRODUCT(IFERROR(${S}!${col}${sFirstData}:${col}${sLastData}*${S}!P${sFirstData}:P${sLastData}/${S}!L${sFirstData}:L${sLastData},0))` };
+    } else requestedFormula = 0;
+    const requestedPctFormula = { f: `=IF(D$${totalCostsRowTarget}>0,D${overviewRowIdx}/D$${totalCostsRowTarget}*100,0)` };
+    overviewAoa.push([`${cat.code} ${COST_NAMES[cat.code]}`, amountCell, pctFormula, requestedFormula, requestedPctFormula]);
+    overviewRowIdx++;
+  }
+  for (let i = 1; i < overviewAoa.length; i++) {
+    const label = String(overviewAoa[i][0]);
+    if (label.startsWith("C. ")) {
+      const excelRow = i + 1;
+      overviewAoa[i][3] = { f: `=D${excelRow + 1}+D${excelRow + 2}+D${excelRow + 3}` };
+    } else if (label.startsWith("D. ")) {
+      const excelRow = i + 1;
+      overviewAoa[i][3] = { f: `=D${excelRow + 1}+D${excelRow + 2}` };
+    }
+  }
+  const totalCostsRowNum = overviewRowIdx;
+  overviewAoa.push([
+    "Total costs",
+    { f: `='Summary by Participant'!L${sTotal}` }, 100,
+    { f: `='Summary by Participant'!P${sTotal}` }, 100,
+  ]);
+  overviewAoa.push([
+    "In-kind contributions",
+    { f: `=B${totalCostsRowNum}-D${totalCostsRowNum}` },
+    { f: `=IF(B${totalCostsRowNum}>0,B${totalCostsRowNum + 1}/B${totalCostsRowNum}*100,0)` },
+    "", "",
+  ]);
+  const ws3 = XLSX.utils.aoa_to_sheet(overviewAoa);
+  const overviewColCount = 5;
+  styleHeaders(ws3, 1, overviewColCount);
+  for (let r = 2; r < overviewAoa.length + 1; r++) {
+    const ref = `A${r}`; if (ws3[ref]) ws3[ref].s = bold;
+  }
+  for (let r = totalCostsRowNum; r <= totalCostsRowNum + 1; r++) {
+    styleRow(ws3, r, overviewColCount, bold);
+  }
+  for (let r = 2; r < overviewAoa.length + 1; r++) {
+    ["B", "D"].forEach((cl) => {
+      const ref = cl + r;
+      if (ws3[ref]) ws3[ref].s = { ...(ws3[ref].s || {}), numFmt: "#,##0.00" };
+    });
+    ["C", "E"].forEach((cl) => {
+      const ref = cl + r;
+      if (ws3[ref]) ws3[ref].s = { ...(ws3[ref].s || {}), numFmt: "0.0" };
+    });
+  }
+  const overviewLastRow = overviewAoa.length;
+  styleCol(ws3, 1, 1, overviewLastRow);
+  styleCol(ws3, 3, 1, overviewLastRow);
+  autoFitCols(ws3, overviewAoa);
+  XLSX.utils.book_append_sheet(wb, ws3, "Budget Overview");
 
   const buf = XLSX.write(wb, { bookType: "xlsx", type: "array" });
   return new Uint8Array(buf as ArrayBuffer);
 }
+
 
 
 // Group ethics_assessment fields into sections by prefix.
@@ -717,52 +1073,148 @@ async function buildA4(supabase: any, proposal: any): Promise<Uint8Array> {
     return await packDocx(children);
   }
 
-  // Build per-section tables of Item / Yes-No / Page.
-  // The freeform "_details" fields are intentionally omitted — they belong in
-  // the proposal text, not in the A4 backup summary.
+  const SHADE_HDR = { fill: "BFBFBF", type: "clear", color: "auto" } as any;
+  const SHADE_SUB = { fill: "E7E6E6", type: "clear", color: "auto" } as any;
+  const SHADE_LIGHT = { fill: "F7F7F7", type: "clear", color: "auto" } as any;
+  const cellOpts = (o: { span?: number; shading?: any } = {}) => ({
+    borders: CELL_BORDERS,
+    margins: { top: 60, bottom: 60, left: 90, right: 90 },
+    columnSpan: o.span,
+    shading: o.shading,
+  });
+  const txt = (text: string, o: { bold?: boolean; span?: number; shading?: any; italics?: boolean } = {}) =>
+    new TableCell({
+      ...cellOpts(o),
+      children: [new Paragraph({ children: [new TextRun({ text: text ?? "", bold: o.bold, italics: o.italics })] })],
+    });
+  const htmlCellA4 = (html: string, o: { span?: number; shading?: any } = {}) =>
+    new TableCell({ ...cellOpts(o), children: htmlToDocxChildren(html) as Paragraph[] });
+
+  const tableRows: TableRow[] = [];
+
+  // Single header row at the top.
+  tableRows.push(new TableRow({
+    tableHeader: true,
+    children: [
+      txt("Item", { bold: true, shading: SHADE_HDR }),
+      txt("Yes/No", { bold: true, shading: SHADE_HDR }),
+      txt("Page", { bold: true, shading: SHADE_HDR }),
+    ],
+  }));
+
   const entries = Object.entries(ethics).filter(([k]) => !["id", "proposal_id", "created_at", "updated_at"].includes(k));
   const used = new Set<string>();
+
   for (const sec of ETHICS_SECTIONS) {
     const matched = entries.filter(([k]) => k.startsWith(sec.prefix));
     if (!matched.length) continue;
-    const rows: string[][] = [];
     const bools = matched.filter(([k]) => typeof ethics[k] === "boolean" || ethics[k] === null);
+
+    const itemRows: { base: string; yn: string; page: string }[] = [];
     for (const [k] of bools) {
       const base = k;
       const pageKey = `${base}_page`;
       const detailKey = `${base}_details`;
-      // Skip rows with no answer AND no page reference (keeps the table compact).
-      if ((ethics[base] === null || ethics[base] === undefined) && !ethics[pageKey]) {
+      if ((ethics[base] === null || ethics[base] === undefined) && !ethics[pageKey] && !ethics[detailKey]) {
         used.add(base); used.add(pageKey); used.add(detailKey);
         continue;
       }
-      rows.push([
-        base.replace(/_/g, " "),
-        yn(ethics[base]),
-        ethics[pageKey] ?? "",
-      ]);
-      used.add(base); used.add(pageKey); used.add(detailKey);
+      itemRows.push({ base, yn: yn(ethics[base]), page: ethics[pageKey] ?? "" });
+      used.add(base); used.add(pageKey);
     }
-    if (rows.length) {
-      children.push(H(HeadingLevel.HEADING_2, sec.title));
-      children.push(simpleTable(["Item", "Yes/No", "Page"], rows));
+
+    // Collect any *_details text fields for this section (self-evaluation)
+    const detailFields = matched
+      .filter(([k]) => k.endsWith("_details") && typeof ethics[k] === "string" && ethics[k].trim())
+      .map(([k]) => k);
+    for (const k of detailFields) used.add(k);
+    // Also capture other free-text strings in this section that aren't pages/details (e.g. *_text)
+    const otherText = matched.filter(([k, v]) =>
+      !used.has(k) && typeof v === "string" && (v as string).trim() && !k.endsWith("_page")
+    );
+    for (const [k] of otherText) used.add(k);
+
+    if (!itemRows.length && !detailFields.length && !otherText.length) {
+      for (const [k] of matched) used.add(k);
+      continue;
     }
-    // mark any remaining matched fields as used so they don't reappear below
+
+    // Subsection heading row (spans all 3 cols)
+    tableRows.push(new TableRow({
+      children: [txt(sec.title, { bold: true, span: 3, shading: SHADE_SUB })],
+    }));
+    for (const r of itemRows) {
+      tableRows.push(new TableRow({
+        children: [txt(r.base.replace(/_/g, " ")), txt(r.yn), txt(r.page)],
+      }));
+    }
+    for (const k of detailFields) {
+      const label = k.replace(/_details$/, "").replace(/_/g, " ");
+      tableRows.push(new TableRow({
+        children: [txt(`${label} — details`, { italics: true, span: 3, shading: SHADE_LIGHT })],
+      }));
+      tableRows.push(new TableRow({ children: [htmlCellA4(String(ethics[k]), { span: 3 })] }));
+    }
+    for (const [k, v] of otherText) {
+      tableRows.push(new TableRow({
+        children: [txt(k.replace(/_/g, " "), { italics: true, span: 3, shading: SHADE_LIGHT })],
+      }));
+      tableRows.push(new TableRow({ children: [htmlCellA4(String(v), { span: 3 })] }));
+    }
+
     for (const [k] of matched) used.add(k);
   }
-  // Catch-all: any remaining yes/no flags not in a known section.
+
+  // Catch-all bool flags not in any known section.
   const leftover = entries.filter(([k]) => !used.has(k));
   const leftoverBools = leftover.filter(([_, v]) => typeof v === "boolean");
   if (leftoverBools.length) {
-    children.push(H(HeadingLevel.HEADING_2, "Other ethics items"));
-    children.push(simpleTable(["Field", "Yes/No"], leftoverBools.map(([k, v]) => [k.replace(/_/g, " "), yn(v as boolean)])));
+    tableRows.push(new TableRow({
+      children: [txt("Other ethics items", { bold: true, span: 3, shading: SHADE_SUB })],
+    }));
+    for (const [k, v] of leftoverBools) {
+      tableRows.push(new TableRow({
+        children: [txt(k.replace(/_/g, " ")), txt(yn(v as boolean)), txt("")],
+      }));
+      used.add(k);
+    }
   }
-  if (ethics.self_assessment_text) {
-    children.push(H(HeadingLevel.HEADING_2, "Self-assessment"));
-    children.push(...htmlToDocxChildren(ethics.self_assessment_text));
+
+  // Overall self-assessment text (always last)
+  if (ethics.self_assessment_text && String(ethics.self_assessment_text).trim()) {
+    tableRows.push(new TableRow({
+      children: [txt("Overall self-assessment", { bold: true, span: 3, shading: SHADE_SUB })],
+    }));
+    tableRows.push(new TableRow({
+      children: [htmlCellA4(String(ethics.self_assessment_text), { span: 3 })],
+    }));
+    used.add("self_assessment_text");
   }
+
+  // Any other free-text fields on ethics_assessment not yet shown
+  const remainingText = entries.filter(([k, v]) =>
+    !used.has(k) && typeof v === "string" && (v as string).trim() && !k.endsWith("_page")
+  );
+  if (remainingText.length) {
+    tableRows.push(new TableRow({
+      children: [txt("Additional self-evaluation text", { bold: true, span: 3, shading: SHADE_SUB })],
+    }));
+    for (const [k, v] of remainingText) {
+      tableRows.push(new TableRow({
+        children: [txt(k.replace(/_/g, " "), { italics: true, span: 3, shading: SHADE_LIGHT })],
+      }));
+      tableRows.push(new TableRow({ children: [htmlCellA4(String(v), { span: 3 })] }));
+    }
+  }
+
+  children.push(new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    columnWidths: [6000, 1500, 1500],
+    rows: tableRows,
+  }));
   return await packDocx(children);
 }
+
 
 async function buildA5(supabase: any, proposal: any): Promise<Uint8Array> {
   const { data: participants } = await supabase
@@ -826,13 +1278,38 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
     .order("number", { ascending: true });
 
   const wpIds = (wps ?? []).map((w: any) => w.id);
-  const [{ data: b31Tasks }, { data: deliverables }, { data: milestones }, { data: risks }, { data: participants }] = await Promise.all([
+  const [
+    { data: b31Tasks },
+    { data: deliverables },
+    { data: milestones },
+    { data: risks },
+    { data: participants },
+    { data: effortRows },
+  ] = await Promise.all([
     wpIds.length ? supabase.from("b31_tasks").select("*").in("wp_draft_id", wpIds).order("number", { ascending: true }) : { data: [] },
     supabase.from("b31_deliverables").select("*").eq("proposal_id", proposal.id).order("order_index", { ascending: true }),
     supabase.from("b31_milestones").select("*").eq("proposal_id", proposal.id).order("number", { ascending: true }),
     supabase.from("b31_risks").select("*").eq("proposal_id", proposal.id).order("number", { ascending: true }),
     supabase.from("participants").select("id, participant_number, organisation_short_name").eq("proposal_id", proposal.id).order("participant_number", { ascending: true }),
+    wpIds.length ? supabase.from("wp_draft_effort").select("wp_draft_id, participant_id, person_months").in("wp_draft_id", wpIds) : { data: [] },
   ]);
+
+  // Subcontracting & equipment for 3.1.g/3.1.h via budget_rows joined to participants
+  const { data: budgetRows } = await supabase
+    .from("budget_rows")
+    .select("id, participant_id")
+    .eq("proposal_id", proposal.id);
+  const brIds = (budgetRows ?? []).map((r: any) => r.id);
+  const [{ data: subItems }, { data: equipItems }] = await Promise.all([
+    brIds.length
+      ? supabase.from("budget_subcontracting_items").select("*").in("budget_row_id", brIds).order("order_index")
+      : Promise.resolve({ data: [] }),
+    brIds.length
+      ? supabase.from("budget_equipment_items").select("*").in("budget_row_id", brIds).order("order_index")
+      : Promise.resolve({ data: [] }),
+  ]);
+  const brToPart = new Map<string, string>();
+  for (const br of budgetRows ?? []) brToPart.set(br.id, br.participant_id);
 
   const taskIds = (b31Tasks ?? []).map((t: any) => t.id);
   const { data: b31TaskParts } = taskIds.length
@@ -856,8 +1333,40 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
     children.push(...htmlToDocxChildren(body));
   }
 
+  // Effort totals per (wp, participant) and per WP
+  const effortMap = new Map<string, number>();
+  const wpEffortTotal = new Map<string, number>();
+  for (const e of effortRows ?? []) {
+    const v = Number(e.person_months ?? 0);
+    effortMap.set(`${e.wp_draft_id}::${e.participant_id}`, v);
+    wpEffortTotal.set(e.wp_draft_id, (wpEffortTotal.get(e.wp_draft_id) || 0) + v);
+  }
+
+  // ─── Table 3.1.a — List of work packages ───
+  if ((wps ?? []).length) {
+    children.push(H(HeadingLevel.HEADING_2, "Table 3.1.a — List of work packages"));
+    children.push(simpleTable(
+      ["WP #", "WP title", "Lead participant", "Person-months", "Start month", "End month"],
+      (wps ?? []).map((w: any) => {
+        const wpTasks = (b31Tasks ?? []).filter((t: any) => t.wp_draft_id === w.id);
+        const starts = wpTasks.map((t: any) => t.start_month).filter((v: any) => v != null);
+        const ends = wpTasks.map((t: any) => t.end_month).filter((v: any) => v != null);
+        const wpStart = starts.length ? Math.min(...starts) : null;
+        const wpEnd = ends.length ? Math.max(...ends) : (w.manual_duration ?? null);
+        return [
+          `WP${w.number}${w.short_name ? ` ${w.short_name}` : ""}`,
+          w.title ?? "",
+          partLabel(w.lead_participant_id),
+          wpEffortTotal.get(w.id) ?? 0,
+          mLabel(wpStart),
+          mLabel(wpEnd),
+        ];
+      }),
+    ));
+  }
+
   // Per-WP detail using the shared Table 3.1.b structure.
-  children.push(H(HeadingLevel.HEADING_2, "Work packages"));
+  children.push(H(HeadingLevel.HEADING_2, "Table 3.1.b — Work package descriptions"));
   for (const w of wps ?? []) {
     const wpTasks = (b31Tasks ?? []).filter((t: any) => t.wp_draft_id === w.id);
     children.push(buildWpDescriptionTable({
@@ -889,31 +1398,83 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
     children.push(P("")); // spacer between WP tables
   }
 
-  // Compulsory tables
+  // ─── Tables 3.1.c/d/e ───
   if (deliverables?.length) {
-    children.push(H(HeadingLevel.HEADING_2, "Deliverables"));
+    children.push(H(HeadingLevel.HEADING_2, "Table 3.1.c — Deliverables"));
     children.push(simpleTable(
       ["#", "Name", "WP", "Lead", "Type", "Diss.", "Due month"],
-      deliverables.map((d: any) => [d.number, d.name ?? "", d.wp_number ?? "", partLabel(d.lead_participant_id), d.type ?? "", d.dissemination_level ?? "", d.due_month ?? ""]),
+      deliverables.map((d: any) => [d.number, d.name ?? "", d.wp_number ?? "", partLabel(d.lead_participant_id), d.type ?? "", d.dissemination_level ?? "", mLabel(d.due_month)]),
     ));
   }
   if (milestones?.length) {
-    children.push(H(HeadingLevel.HEADING_2, "Milestones"));
+    children.push(H(HeadingLevel.HEADING_2, "Table 3.1.d — Milestones"));
     children.push(simpleTable(
       ["#", "Name", "WPs", "Due month", "Means of verification"],
-      milestones.map((m: any) => [m.number, m.name ?? "", m.wps ?? "", m.due_month ?? "", m.means_of_verification ?? ""]),
+      milestones.map((m: any) => [m.number, m.name ?? "", m.wps ?? "", mLabel(m.due_month), m.means_of_verification ?? ""]),
     ));
   }
   if (risks?.length) {
-    children.push(H(HeadingLevel.HEADING_2, "Risks"));
+    children.push(H(HeadingLevel.HEADING_2, "Table 3.1.e — Critical risks"));
     children.push(simpleTable(
       ["#", "Description", "WPs", "Likelihood", "Severity", "Mitigation"],
       risks.map((r: any) => [r.number, r.description ?? "", r.wps ?? "", r.likelihood ?? "", r.severity ?? "", r.mitigation ?? ""]),
     ));
   }
 
+  // ─── Table 3.1.f — Effort matrix (Participants × WPs) ───
+  if ((wps ?? []).length && (participants ?? []).length) {
+    children.push(H(HeadingLevel.HEADING_2, "Table 3.1.f — Summary of staff effort"));
+    const wpCols = (wps ?? []);
+    const headers = ["Participant", ...wpCols.map((w: any) => `WP${w.number}`), "Total PMs"];
+    const matrixRows: (string | number)[][] = [];
+    const wpTotals = new Array(wpCols.length).fill(0);
+    for (const p of participants ?? []) {
+      const row: (string | number)[] = [`P${p.participant_number} ${p.organisation_short_name ?? ""}`];
+      let rowTotal = 0;
+      wpCols.forEach((w: any, i: number) => {
+        const v = effortMap.get(`${w.id}::${p.id}`) ?? 0;
+        row.push(v || 0);
+        wpTotals[i] += v;
+        rowTotal += v;
+      });
+      row.push(rowTotal);
+      matrixRows.push(row);
+    }
+    matrixRows.push(["Total", ...wpTotals, wpTotals.reduce((a, b) => a + b, 0)]);
+    children.push(simpleTable(headers, matrixRows));
+  }
+
+  // ─── Table 3.1.g — Subcontracting ───
+  if ((subItems ?? []).length) {
+    children.push(H(HeadingLevel.HEADING_2, "Table 3.1.g — Subcontracting"));
+    children.push(simpleTable(
+      ["Participant", "Description", "Cost (€)", "Justification"],
+      (subItems ?? []).map((s: any) => [
+        partLabel(brToPart.get(s.budget_row_id) ?? null),
+        s.description ?? "",
+        eur(s.amount),
+        s.justification ?? "",
+      ]),
+    ));
+  }
+
+  // ─── Table 3.1.h — Purchase costs / equipment ───
+  if ((equipItems ?? []).length) {
+    children.push(H(HeadingLevel.HEADING_2, "Table 3.1.h — Purchase costs (equipment, infrastructure or other assets)"));
+    children.push(simpleTable(
+      ["Participant", "Description", "Cost (€)", "Justification"],
+      (equipItems ?? []).map((e: any) => [
+        partLabel(brToPart.get(e.budget_row_id) ?? null),
+        e.description ?? "",
+        eur(e.amount),
+        e.justification ?? "",
+      ]),
+    ));
+  }
+
   return await packDocx(children);
 }
+
 
 async function buildWpDraft(supabase: any, proposal: any, wp: any, participants: any[]): Promise<Uint8Array> {
   const partLabel = (id: string | null) => {
