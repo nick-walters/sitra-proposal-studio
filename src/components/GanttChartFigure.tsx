@@ -496,8 +496,8 @@ export function GanttChartFigure({
                     return a.sortNum.localeCompare(b.sortNum, undefined, { numeric: true });
                   });
 
-                  const pointDepth = 5;
-                  const estimateBubbleW = (label: string) => Math.max(26, label.length * 6 + 8);
+                  const pointDepth = 4;
+                  const estimateBubbleW = (label: string) => Math.max(20, label.length * 5 + 4);
 
                   type PBubble = typeof taskBubbles[0] & { leftX: number; width: number; bodyW: number; triSide: 'right' | 'left' };
                   const positioned: PBubble[] = taskBubbles.map(b => {
