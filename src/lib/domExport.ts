@@ -82,6 +82,19 @@ async function renderSnapshotToCanvas(element: HTMLElement, width: number, heigh
   }
 }
 
+export async function renderElementToPngBlob(element: HTMLElement): Promise<Blob | null> {
+  const { clone, wrapper, width, height } = createDetachedSnapshot(element);
+  try {
+    await waitForRenderableAssets(wrapper);
+    const canvas = await renderSnapshotToCanvas(clone, width, height);
+    return await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob((b) => resolve(b), 'image/png'),
+    );
+  } finally {
+    wrapper.remove();
+  }
+}
+
 export async function exportElementAsPng(element: HTMLElement, filename: string) {
   const { clone, wrapper, width, height } = createDetachedSnapshot(element);
 
