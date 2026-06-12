@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 import type { Participant, ParticipantMember, BudgetType } from '@/types/proposal';
-import { snakeToCamel, proposalFromDb, proposalToDb } from '@/lib/proposalMapper';
+import { camelToSnake, snakeToCamel, proposalFromDb, proposalToDb } from '@/lib/proposalMapper';
 import { logError } from '@/lib/logger';
 
 // Dynamic ethics assessment interface - supports all fields from EthicsForm
