@@ -997,7 +997,8 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                         );
                       })()}
                     </TableCell>
-                    <TableCell className={cellStyles} style={{ lineHeight: 1.2 }}>
+                    <TableCell className={cellStyles} style={{ lineHeight: 1.2, backgroundColor: 'transparent', borderLeft: 'none' }}>
+
                       <span className="font-['Times_New_Roman',Times,serif] text-[11pt]" style={{ lineHeight: 1.2 }}>
                         <EditableTextInline
                           value={del.name}
