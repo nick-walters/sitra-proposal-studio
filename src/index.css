@@ -1512,3 +1512,11 @@ table.b31-effort-matrix.first-col-flush {
   margin-top: 0.25em;
   margin-bottom: 0.25em;
 }
+
+/* B3.1 compact editor: the inner ProseMirror element receives a hardcoded
+   min-h-[400px] class via editorProps (shared across all Part B sections).
+   Override it here so B3.1's editor grows with content instead of forcing
+   a 400px gap above the tables. Scoped to B3.1 only. */
+.b31-compact-editor .ProseMirror {
+  min-height: 60px !important;
+}
