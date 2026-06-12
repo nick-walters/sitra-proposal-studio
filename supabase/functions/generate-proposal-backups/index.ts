@@ -1278,13 +1278,38 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
     .order("number", { ascending: true });
 
   const wpIds = (wps ?? []).map((w: any) => w.id);
-  const [{ data: b31Tasks }, { data: deliverables }, { data: milestones }, { data: risks }, { data: participants }] = await Promise.all([
+  const [
+    { data: b31Tasks },
+    { data: deliverables },
+    { data: milestones },
+    { data: risks },
+    { data: participants },
+    { data: effortRows },
+  ] = await Promise.all([
     wpIds.length ? supabase.from("b31_tasks").select("*").in("wp_draft_id", wpIds).order("number", { ascending: true }) : { data: [] },
     supabase.from("b31_deliverables").select("*").eq("proposal_id", proposal.id).order("order_index", { ascending: true }),
     supabase.from("b31_milestones").select("*").eq("proposal_id", proposal.id).order("number", { ascending: true }),
     supabase.from("b31_risks").select("*").eq("proposal_id", proposal.id).order("number", { ascending: true }),
     supabase.from("participants").select("id, participant_number, organisation_short_name").eq("proposal_id", proposal.id).order("participant_number", { ascending: true }),
+    wpIds.length ? supabase.from("wp_draft_effort").select("wp_draft_id, participant_id, person_months").in("wp_draft_id", wpIds) : { data: [] },
   ]);
+
+  // Subcontracting & equipment for 3.1.g/3.1.h via budget_rows joined to participants
+  const { data: budgetRows } = await supabase
+    .from("budget_rows")
+    .select("id, participant_id")
+    .eq("proposal_id", proposal.id);
+  const brIds = (budgetRows ?? []).map((r: any) => r.id);
+  const [{ data: subItems }, { data: equipItems }] = await Promise.all([
+    brIds.length
+      ? supabase.from("budget_subcontracting_items").select("*").in("budget_row_id", brIds).order("order_index")
+      : Promise.resolve({ data: [] }),
+    brIds.length
+      ? supabase.from("budget_equipment_items").select("*").in("budget_row_id", brIds).order("order_index")
+      : Promise.resolve({ data: [] }),
+  ]);
+  const brToPart = new Map<string, string>();
+  for (const br of budgetRows ?? []) brToPart.set(br.id, br.participant_id);
 
   const taskIds = (b31Tasks ?? []).map((t: any) => t.id);
   const { data: b31TaskParts } = taskIds.length
@@ -1308,8 +1333,40 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
     children.push(...htmlToDocxChildren(body));
   }
 
+  // Effort totals per (wp, participant) and per WP
+  const effortMap = new Map<string, number>();
+  const wpEffortTotal = new Map<string, number>();
+  for (const e of effortRows ?? []) {
+    const v = Number(e.person_months ?? 0);
+    effortMap.set(`${e.wp_draft_id}::${e.participant_id}`, v);
+    wpEffortTotal.set(e.wp_draft_id, (wpEffortTotal.get(e.wp_draft_id) || 0) + v);
+  }
+
+  // ─── Table 3.1.a — List of work packages ───
+  if ((wps ?? []).length) {
+    children.push(H(HeadingLevel.HEADING_2, "Table 3.1.a — List of work packages"));
+    children.push(simpleTable(
+      ["WP #", "WP title", "Lead participant", "Person-months", "Start month", "End month"],
+      (wps ?? []).map((w: any) => {
+        const wpTasks = (b31Tasks ?? []).filter((t: any) => t.wp_draft_id === w.id);
+        const starts = wpTasks.map((t: any) => t.start_month).filter((v: any) => v != null);
+        const ends = wpTasks.map((t: any) => t.end_month).filter((v: any) => v != null);
+        const wpStart = starts.length ? Math.min(...starts) : null;
+        const wpEnd = ends.length ? Math.max(...ends) : (w.manual_duration ?? null);
+        return [
+          `WP${w.number}${w.short_name ? ` ${w.short_name}` : ""}`,
+          w.title ?? "",
+          partLabel(w.lead_participant_id),
+          wpEffortTotal.get(w.id) ?? 0,
+          mLabel(wpStart),
+          mLabel(wpEnd),
+        ];
+      }),
+    ));
+  }
+
   // Per-WP detail using the shared Table 3.1.b structure.
-  children.push(H(HeadingLevel.HEADING_2, "Work packages"));
+  children.push(H(HeadingLevel.HEADING_2, "Table 3.1.b — Work package descriptions"));
   for (const w of wps ?? []) {
     const wpTasks = (b31Tasks ?? []).filter((t: any) => t.wp_draft_id === w.id);
     children.push(buildWpDescriptionTable({
@@ -1341,31 +1398,83 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
     children.push(P("")); // spacer between WP tables
   }
 
-  // Compulsory tables
+  // ─── Tables 3.1.c/d/e ───
   if (deliverables?.length) {
-    children.push(H(HeadingLevel.HEADING_2, "Deliverables"));
+    children.push(H(HeadingLevel.HEADING_2, "Table 3.1.c — Deliverables"));
     children.push(simpleTable(
       ["#", "Name", "WP", "Lead", "Type", "Diss.", "Due month"],
-      deliverables.map((d: any) => [d.number, d.name ?? "", d.wp_number ?? "", partLabel(d.lead_participant_id), d.type ?? "", d.dissemination_level ?? "", d.due_month ?? ""]),
+      deliverables.map((d: any) => [d.number, d.name ?? "", d.wp_number ?? "", partLabel(d.lead_participant_id), d.type ?? "", d.dissemination_level ?? "", mLabel(d.due_month)]),
     ));
   }
   if (milestones?.length) {
-    children.push(H(HeadingLevel.HEADING_2, "Milestones"));
+    children.push(H(HeadingLevel.HEADING_2, "Table 3.1.d — Milestones"));
     children.push(simpleTable(
       ["#", "Name", "WPs", "Due month", "Means of verification"],
-      milestones.map((m: any) => [m.number, m.name ?? "", m.wps ?? "", m.due_month ?? "", m.means_of_verification ?? ""]),
+      milestones.map((m: any) => [m.number, m.name ?? "", m.wps ?? "", mLabel(m.due_month), m.means_of_verification ?? ""]),
     ));
   }
   if (risks?.length) {
-    children.push(H(HeadingLevel.HEADING_2, "Risks"));
+    children.push(H(HeadingLevel.HEADING_2, "Table 3.1.e — Critical risks"));
     children.push(simpleTable(
       ["#", "Description", "WPs", "Likelihood", "Severity", "Mitigation"],
       risks.map((r: any) => [r.number, r.description ?? "", r.wps ?? "", r.likelihood ?? "", r.severity ?? "", r.mitigation ?? ""]),
     ));
   }
 
+  // ─── Table 3.1.f — Effort matrix (Participants × WPs) ───
+  if ((wps ?? []).length && (participants ?? []).length) {
+    children.push(H(HeadingLevel.HEADING_2, "Table 3.1.f — Summary of staff effort"));
+    const wpCols = (wps ?? []);
+    const headers = ["Participant", ...wpCols.map((w: any) => `WP${w.number}`), "Total PMs"];
+    const matrixRows: (string | number)[][] = [];
+    const wpTotals = new Array(wpCols.length).fill(0);
+    for (const p of participants ?? []) {
+      const row: (string | number)[] = [`P${p.participant_number} ${p.organisation_short_name ?? ""}`];
+      let rowTotal = 0;
+      wpCols.forEach((w: any, i: number) => {
+        const v = effortMap.get(`${w.id}::${p.id}`) ?? 0;
+        row.push(v || 0);
+        wpTotals[i] += v;
+        rowTotal += v;
+      });
+      row.push(rowTotal);
+      matrixRows.push(row);
+    }
+    matrixRows.push(["Total", ...wpTotals, wpTotals.reduce((a, b) => a + b, 0)]);
+    children.push(simpleTable(headers, matrixRows));
+  }
+
+  // ─── Table 3.1.g — Subcontracting ───
+  if ((subItems ?? []).length) {
+    children.push(H(HeadingLevel.HEADING_2, "Table 3.1.g — Subcontracting"));
+    children.push(simpleTable(
+      ["Participant", "Description", "Cost (€)", "Justification"],
+      (subItems ?? []).map((s: any) => [
+        partLabel(brToPart.get(s.budget_row_id) ?? null),
+        s.description ?? "",
+        eur(s.amount),
+        s.justification ?? "",
+      ]),
+    ));
+  }
+
+  // ─── Table 3.1.h — Purchase costs / equipment ───
+  if ((equipItems ?? []).length) {
+    children.push(H(HeadingLevel.HEADING_2, "Table 3.1.h — Purchase costs (equipment, infrastructure or other assets)"));
+    children.push(simpleTable(
+      ["Participant", "Description", "Cost (€)", "Justification"],
+      (equipItems ?? []).map((e: any) => [
+        partLabel(brToPart.get(e.budget_row_id) ?? null),
+        e.description ?? "",
+        eur(e.amount),
+        e.justification ?? "",
+      ]),
+    ));
+  }
+
   return await packDocx(children);
 }
+
 
 async function buildWpDraft(supabase: any, proposal: any, wp: any, participants: any[]): Promise<Uint8Array> {
   const partLabel = (id: string | null) => {
