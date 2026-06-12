@@ -714,13 +714,16 @@ table.b31-effort-matrix.first-col-flush {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 21px;
-  height: 21px;
   background: #000;
   color: #fff;
-  clip-path: polygon(100% 0%, 0% 50%, 100% 100%);
-  padding-left: 6px;
-  letter-spacing: -0.7px;
+  font-weight: 700;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 11pt;
+  padding: 0 4px;
+  height: 18px;
+  line-height: 18px;
+  clip-path: polygon(12% 0%, 88% 0%, 100% 50%, 88% 100%, 12% 100%, 0% 50%);
+  vertical-align: baseline;
 }
 
 .ProseMirror p:not(.figure-caption) {
@@ -1329,14 +1332,21 @@ table.b31-effort-matrix.first-col-flush {
   print-color-adjust: exact !important;
 }
 
-/* Milestone bubble – dark shape */
+/* Milestone bubble – elongated hexagon */
 .print-export-container .inline-ref-milestone {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  width: auto !important;
-  min-width: 17px !important;
-  height: 17px !important;
+  background: #000 !important;
+  color: #fff !important;
+  font-weight: 700 !important;
+  font-family: 'Times New Roman', Times, serif !important;
+  font-size: 11pt !important;
+  padding: 0 4px !important;
+  height: 18px !important;
+  line-height: 18px !important;
+  clip-path: polygon(12% 0%, 88% 0%, 100% 50%, 88% 100%, 12% 100%, 0% 50%) !important;
+  vertical-align: baseline !important;
   -webkit-print-color-adjust: exact !important;
   print-color-adjust: exact !important;
 }

@@ -1315,35 +1315,19 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
                           display: 'inline-flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          position: 'relative',
-                          width: '21px',
-                          height: '21px',
+                          background: '#000',
+                          color: '#fff',
+                          fontFamily: "'Times New Roman', Times, serif",
+                          fontSize: '11pt',
+                          fontWeight: 700,
+                          lineHeight: '18px',
+                          height: '18px',
+                          padding: '0 4px',
+                          clipPath: 'polygon(12% 0%, 88% 0%, 100% 50%, 88% 100%, 12% 100%, 0% 50%)',
                           verticalAlign: 'baseline',
                         }}
                       >
-                        <span
-                          style={{
-                            position: 'absolute',
-                            inset: 0,
-                            backgroundColor: '#000000',
-                            clipPath: 'polygon(100% 0%, 0% 50%, 100% 100%)',
-                          }}
-                        />
-                        <span
-                          style={{
-                            position: 'relative',
-                            zIndex: 1,
-                            fontFamily: "'Times New Roman', Times, serif",
-                            fontSize: '11pt',
-                            fontWeight: 700,
-                            lineHeight: 1,
-                            color: '#ffffff',
-                            letterSpacing: '-0.7px',
-                            paddingLeft: '6px',
-                          }}
-                        >
-                          {ms.number}
-                        </span>
+                        MS{ms.number}
                       </span>
                     </TableCell>
                     <TableCell className={cellStyles} style={{ lineHeight: 1.2 }}>
