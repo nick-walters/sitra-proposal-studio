@@ -987,7 +987,10 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                             <span
                               style={{
                                 position: 'absolute',
-                                inset: '1.5px 2.5px 1.5px 1.5px',
+                                top: '1.5px',
+                                bottom: '1.5px',
+                                left: '1.5px',
+                                right: '2.5px',
                                 backgroundColor: '#ffffff',
                                 clipPath: 'polygon(0% 0%, calc(100% - 7px) 0%, 100% 50%, calc(100% - 7px) 100%, 0% 100%)',
                               }}
@@ -1005,8 +1008,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                         );
                       })()}
                     </TableCell>
-                    <TableCell className={cellStyles} style={{ lineHeight: 1.2, backgroundColor: 'transparent', borderLeft: 'none' }}>
-
+                    <TableCell className={cellStyles} style={{ lineHeight: 1.2 }}>
                       <span className="font-['Times_New_Roman',Times,serif] text-[11pt]" style={{ lineHeight: 1.2 }}>
                         <EditableTextInline
                           value={del.name}
