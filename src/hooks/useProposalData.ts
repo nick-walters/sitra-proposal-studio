@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 import type { Participant, ParticipantMember, BudgetType } from '@/types/proposal';
-import { camelToSnake, snakeToCamel, proposalFromDb, proposalToDb } from '@/lib/proposalMapper';
+import { snakeToCamel, proposalFromDb, proposalToDb } from '@/lib/proposalMapper';
 import { logError } from '@/lib/logger';
 
 // Dynamic ethics assessment interface - supports all fields from EthicsForm
@@ -88,18 +88,7 @@ export function useProposalData(proposalId: string) {
     }
 
     if (data) {
-      const mapped = proposalFromDb(data as Record<string, any>);
-      setProposal({
-        ...mapped,
-        id: data.id,
-        acronym: data.acronym,
-        title: data.title,
-        type: data.type as 'RIA' | 'IA' | 'CSA',
-        budgetType: data.budget_type as BudgetType,
-        status: data.status as ProposalData['status'],
-        createdAt: new Date(data.created_at),
-        updatedAt: new Date(data.updated_at),
-      } as ProposalData);
+      setProposal(proposalFromDb(data) as ProposalData);
     }
   }, [proposalId]);
 
@@ -289,13 +278,9 @@ export function useProposalData(proposalId: string) {
   const updateProposal = async (updates: Partial<ProposalData>) => {
     if (!proposalId) return;
 
-    // Use mapper for fields it knows about; handle direct-name fields separately
+    // All field mapping (including title/acronym/budgetType/status) is handled by proposalToDb.
     const dbUpdates: any = proposalToDb(updates);
-    // Direct-name fields not in the mapper (same name in camelCase and snake_case, or special)
-    if (updates.title !== undefined) dbUpdates.title = updates.title;
-    if (updates.acronym !== undefined) dbUpdates.acronym = updates.acronym;
-    if (updates.budgetType !== undefined) dbUpdates.budget_type = updates.budgetType;
-    if (updates.status !== undefined) dbUpdates.status = updates.status;
+
 
     const { error } = await supabase
       .from('proposals')
