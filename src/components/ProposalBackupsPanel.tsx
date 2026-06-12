@@ -82,23 +82,26 @@ export function ProposalBackupsPanel({ proposalId }: Props) {
   };
 
   const download = async (path: string) => {
-    const fileName = path.split("/").pop() ?? "backup";
+    // Open the backup straight in the browser (e.g. Word Online for .docx,
+    // built-in viewer for .xlsx / .pdf). We pre-open a tab synchronously so
+    // popup blockers don't interfere, then either point it at the signed URL
+    // or close it if the URL could not be generated — this avoids leaving a
+    // stray blank tab behind.
+    const tab = window.open("about:blank", "_blank", "noopener");
     const { data, error } = await supabase.storage
       .from("proposal-backups")
-      .createSignedUrl(path, 60, { download: fileName });
+      .createSignedUrl(path, 60);
     if (error || !data?.signedUrl) {
+      if (tab) tab.close();
       toast.error("Could not generate download link");
       return;
     }
-    // Use a hidden anchor with the `download` attribute so the browser saves
-    // the file directly instead of opening it (or a blank tab) in the viewer.
-    const a = document.createElement("a");
-    a.href = data.signedUrl;
-    a.download = fileName;
-    a.rel = "noopener";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+    if (tab) {
+      tab.location.href = data.signedUrl;
+    } else {
+      // Popup blocked — fall back to navigating the current window via a link.
+      window.location.href = data.signedUrl;
+    }
   };
 
   const fmtSize = (n: number) => {
