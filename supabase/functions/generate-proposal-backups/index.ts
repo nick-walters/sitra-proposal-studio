@@ -447,15 +447,22 @@ function buildWpDescriptionTable(opts: WpTableOpts): Table {
   }
   return new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
-    columnWidths: [1500, 1500, 1500, 1500, 1500, 1500],
+    // Narrower task-leader (cols 0-1) & duration (cols 4-5); wider participants (cols 2-3).
+    columnWidths: [900, 900, 2700, 2700, 900, 900],
     rows,
   });
 }
 
+function mLabel(n: any): string {
+  if (n == null) return "—";
+  const v = Number(n);
+  if (!isFinite(v)) return String(n);
+  return `M${String(v).padStart(2, "0")}`;
+}
 function monthRange(s: any, e: any): string {
   if (s == null && e == null) return "—";
-  if (s != null && e != null) return `M${s}–M${e}`;
-  return s != null ? `M${s}` : `M${e}`;
+  if (s != null && e != null) return `${mLabel(s)}–${mLabel(e)}`;
+  return s != null ? mLabel(s) : mLabel(e);
 }
 
 // ---------- file builders ----------
