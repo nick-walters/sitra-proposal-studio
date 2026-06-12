@@ -342,6 +342,27 @@ function normalizePartBLoadedContent(html: string) {
     }
   });
 
+  // Migrate legacy milestone refs: <strong>MS</strong><span data-inline-reference data-ref-type="milestone">1</span>
+  // → <span data-inline-reference data-ref-type="milestone">MS1</span>
+  div.querySelectorAll('span[data-inline-reference][data-ref-type="milestone"]').forEach((span) => {
+    const el = span as HTMLElement;
+    const text = (el.textContent || '').trim();
+    if (/^MS/i.test(text)) return; // already migrated
+    // Look at previous sibling (skip empty text nodes)
+    let prev: Node | null = el.previousSibling;
+    while (prev && prev.nodeType === Node.TEXT_NODE && !((prev as Text).data || '').trim()) {
+      prev = prev.previousSibling;
+    }
+    if (prev && prev.nodeType === Node.ELEMENT_NODE) {
+      const prevEl = prev as HTMLElement;
+      const tag = prevEl.tagName.toLowerCase();
+      if ((tag === 'strong' || tag === 'b') && (prevEl.textContent || '').trim() === 'MS') {
+        prevEl.remove();
+        el.textContent = `MS${text}`;
+      }
+    }
+  });
+
   return div.innerHTML;
 }
 
