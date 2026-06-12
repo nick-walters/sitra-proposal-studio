@@ -9,6 +9,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getContrastingTextColor, lightenColor } from '@/lib/wpColors';
 import { exportAsPng, exportGanttAsPptx, type GanttExportData } from '@/lib/figureExport';
 import { toast } from 'sonner';
+import { scheduleFigurePngCache } from '@/lib/figureCache';
 
 interface Task {
   id: string;
@@ -46,6 +47,7 @@ interface GanttContent {
 }
 
 interface GanttChartFigureProps {
+  figureId?: string;
   figureNumber: string;
   proposalId: string;
   content: GanttContent | null;
@@ -60,6 +62,7 @@ const MARGIN_GAP = 27; // gap between month columns and right margin
 const ROW_HEIGHT = 20;
 
 export function GanttChartFigure({
+  figureId,
   figureNumber,
   proposalId,
   content,
@@ -67,6 +70,13 @@ export function GanttChartFigure({
   canEdit,
 }: GanttChartFigureProps) {
   const chartRef = useRef<HTMLDivElement>(null);
+
+  // Cache rendered PNG to storage so the backup edge function can include it.
+  useEffect(() => {
+    if (!figureId) return;
+    scheduleFigurePngCache(proposalId, figureId, () => chartRef.current);
+  }, [figureId, proposalId, content]);
+
 
   // Fetch proposal-level reporting periods
   const { data: proposalData } = useQuery({

@@ -1,4 +1,5 @@
-import { useState, useMemo, useCallback, useRef } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import { scheduleFigurePngCache } from '@/lib/figureCache';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -33,6 +34,7 @@ interface PERTContent {
 }
 
 interface PERTChartFigureProps {
+  figureId?: string;
   figureNumber: string;
   proposalId: string;
   content: PERTContent | null;
@@ -41,6 +43,7 @@ interface PERTChartFigureProps {
 }
 
 export function PERTChartFigure({
+  figureId,
   figureNumber,
   proposalId,
   content,
@@ -52,6 +55,12 @@ export function PERTChartFigure({
   const queryClient = useQueryClient();
   const [draggingNode, setDraggingNode] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+
+  // Cache rendered PNG to storage so the backup edge function can include it.
+  useEffect(() => {
+    if (!figureId) return;
+    scheduleFigurePngCache(proposalId, figureId, () => chartRef.current);
+  }, [figureId, proposalId, content]);
 
   // Fetch WP drafts
   const { data: wpDrafts = [] } = useQuery({

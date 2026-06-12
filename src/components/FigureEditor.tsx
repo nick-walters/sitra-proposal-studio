@@ -206,6 +206,7 @@ export function FigureEditor({
       case 'gantt':
         return (
           <GanttChartFigure
+            figureId={figure.id}
             figureNumber={figure.figureNumber}
             proposalId={proposalId}
             content={figure.content}
@@ -216,6 +217,7 @@ export function FigureEditor({
       case 'pert':
         return (
           <PERTChartFigure
+            figureId={figure.id}
             figureNumber={figure.figureNumber}
             proposalId={proposalId}
             content={figure.content}
