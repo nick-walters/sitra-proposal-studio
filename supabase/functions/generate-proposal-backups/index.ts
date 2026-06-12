@@ -105,7 +105,24 @@ function decodeEntities(s: string): string {
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
-    .replace(/&#39;|&apos;/g, "'");
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(parseInt(d, 10)));
+}
+
+// Strip HTML to plain text (used for table cells, milestones, etc.)
+function htmlToText(s: any): string {
+  if (s == null) return "";
+  return cleanHtml(String(s))
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|h[1-6]|li|tr)>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/\u00a0/g, " ")
+    .split("\n")
+    .map((line) => decodeEntities(line).replace(/\s+/g, " ").trim())
+    .filter((line) => line.length > 0)
+    .join("\n")
+    .trim();
 }
 
 // Strip noise that would otherwise leak into the docx as literal text:
