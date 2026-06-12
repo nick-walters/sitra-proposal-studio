@@ -1610,10 +1610,13 @@ export function DocumentEditor({
 
 
 
-              {/* B3.1 Intro text - dynamic sentence before compulsory tables */}
+              {/* B3.1 Intro text - now lives in the standard TipTap editor above.
+                  B31IntroText kept for easy revert.
               {(section.id === 'b3-1' || section.number === 'B3.1' || section.number === '3.1') && (
                 <B31IntroText proposalId={proposalId} acronymSegments={acronymSegments} proposalAcronym={proposalAcronym} />
               )}
+              */}
+
 
               {/* B3.1 Section Content - auto-populated figures, tables, and structured content */}
               {(section.id === 'b3-1' || section.number === 'B3.1' || section.number === '3.1') && (
