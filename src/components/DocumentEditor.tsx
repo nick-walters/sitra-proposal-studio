@@ -934,7 +934,7 @@ export function DocumentEditor({
     editor.chain().focus().insertMilestoneReference({
       milestoneNumber: ms.number,
       milestoneId: ms.id,
-    }).insertContent(' ').unsetBold().unsetItalic().run();
+    }).insertContent(' ').run();
   }, [editor]);
 
   const handleApplySuggestion = useCallback((originalText: string, suggestedText: string) => {

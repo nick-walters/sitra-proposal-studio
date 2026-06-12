@@ -172,7 +172,7 @@ export const InlineReferenceMark = Mark.create<InlineReferenceOptions>({
               } else if (refType === 'deliverable') {
                 expected = mark.attrs.deliverableNumber;
               } else if (refType === 'milestone') {
-                expected = `${mark.attrs.milestoneNumber}`;
+                expected = `MS${mark.attrs.milestoneNumber}`;
               }
 
               if (expected && node.text !== expected) {
@@ -235,14 +235,9 @@ export const InlineReferenceMark = Mark.create<InlineReferenceOptions>({
       insertMilestoneReference:
         (attrs) =>
         ({ chain }) => {
-          const label = `${attrs.milestoneNumber}`;
+          const label = `MS${attrs.milestoneNumber}`;
           return chain()
             .insertContent([
-              {
-                type: 'text',
-                text: 'MS',
-                marks: [{ type: 'bold' }],
-              },
               {
                 type: 'text',
                 text: label,

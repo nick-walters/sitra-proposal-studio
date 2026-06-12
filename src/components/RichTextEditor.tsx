@@ -342,6 +342,27 @@ function normalizePartBLoadedContent(html: string) {
     }
   });
 
+  // Migrate legacy milestone refs: <strong>MS</strong><span data-inline-reference data-ref-type="milestone">1</span>
+  // → <span data-inline-reference data-ref-type="milestone">MS1</span>
+  div.querySelectorAll('span[data-inline-reference][data-ref-type="milestone"]').forEach((span) => {
+    const el = span as HTMLElement;
+    const text = (el.textContent || '').trim();
+    if (/^MS/i.test(text)) return; // already migrated
+    // Look at previous sibling (skip empty text nodes)
+    let prev: Node | null = el.previousSibling;
+    while (prev && prev.nodeType === Node.TEXT_NODE && !((prev as Text).data || '').trim()) {
+      prev = prev.previousSibling;
+    }
+    if (prev && prev.nodeType === Node.ELEMENT_NODE) {
+      const prevEl = prev as HTMLElement;
+      const tag = prevEl.tagName.toLowerCase();
+      if ((tag === 'strong' || tag === 'b') && (prevEl.textContent || '').trim() === 'MS') {
+        prevEl.remove();
+        el.textContent = `MS${text}`;
+      }
+    }
+  });
+
   return div.innerHTML;
 }
 
@@ -1635,17 +1656,8 @@ StarterKit.configure({
                       to++;
                     }
                     
-                    // Special case: milestone marks have a "MS" prefix outside the mark
-                    // that should be selected as part of the unit
-                    if (markName === 'inlineReference' || markName === 'wpReference') {
-                      const selectedText = doc.textBetween(from, to);
-                      if (/^\d+$/.test(selectedText) && from >= 2) {
-                        const prefix = doc.textBetween(from - 2, from);
-                        if (prefix === 'MS') {
-                          from = from - 2;
-                        }
-                      }
-                    }
+                    // (milestone "MS" prefix is now inside the mark itself)
+
                     
                     // Select the entire mark range
                     const tr = view.state.tr.setSelection(TextSelection.create(doc, from, to));
@@ -1683,21 +1695,8 @@ StarterKit.configure({
                       }
                     }
                   });
-                  // Also treat a selection starting with "MS" followed by a ref mark as protected
-                  if (!coversRefMark && to - from > 2) {
-                    const leading = doc.textBetween(from, from + 2);
-                    if (leading === 'MS') {
-                      doc.nodesBetween(from + 2, to, (node) => {
-                        if (!node.isText) return;
-                        for (const markName of markNames) {
-                          const markType = schema.marks[markName];
-                          if (markType && markType.isInSet(node.marks)) {
-                            coversRefMark = true;
-                          }
-                        }
-                      });
-                    }
-                  }
+
+
                   if (!coversRefMark) return false;
                   // Swallow the input — don't insert anything, don't move cursor
                   return true;
