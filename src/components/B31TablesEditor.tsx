@@ -1309,7 +1309,7 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
               <TableBody>
                 {milestones.map((ms) => (
                   <SortableTableRow key={ms.id} id={ms.id} canDrag={isAdminOrOwner} onDelete={() => deleteMilestone.mutate(ms.id)}>
-                    <TableCell className={bubbleCellStyles} style={{ lineHeight: 1.2, whiteSpace: 'nowrap', width: '46px' }}>
+                    <TableCell className={bubbleCellStyles} style={{ lineHeight: 1.2, whiteSpace: 'nowrap', width: '64px' }}>
                       <span
                         style={{
                           display: 'inline-flex',
