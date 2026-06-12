@@ -1518,5 +1518,7 @@ table.b31-effort-matrix.first-col-flush {
    Override it here so B3.1's editor grows with content instead of forcing
    a 400px gap above the tables. Scoped to B3.1 only. */
 .b31-compact-editor .ProseMirror {
-  min-height: 60px !important;
+  min-height: 20px !important;
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
 }
