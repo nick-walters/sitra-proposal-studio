@@ -30,7 +30,7 @@ import {
   BorderStyle,
   AlignmentType,
 } from "npm:docx@9.5.0";
-import * as XLSX from "npm:xlsx@0.18.5";
+import * as XLSX from "npm:xlsx-js-style@1.2.0";
 import { parse as parseHtml } from "npm:node-html-parser@6.1.13";
 
 const corsHeaders = {
