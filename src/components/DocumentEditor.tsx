@@ -1561,10 +1561,6 @@ export function DocumentEditor({
                     />
                     {section?.number === 'B3.1' && (() => {
                       const raw = content ?? '';
-                      if (typeof console !== 'undefined') {
-                        // Temporary diagnostic – inspect what's actually saved for B3.1.
-                        console.log('[B31-CONTENT]', raw);
-                      }
                       // Treat as empty if there's no real text content – ignore any number
                       // of empty paragraphs, <br> trailing breaks, or whitespace.
                       const stripped = String(raw)
