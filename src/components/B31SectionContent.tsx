@@ -85,10 +85,8 @@ export function B31SectionContent({ proposalId }: Props) {
                 <text x={13} y={9.5} textAnchor="middle" fontFamily="'Times New Roman', Times, serif" fontSize="8pt" fontWeight={700} fontStyle="normal" fill="#000000">DX.X</text>
               </svg>
               {' '}&amp; milestones{' '}
-              <svg width={17} height={17} viewBox="0 0 17 17" style={{ display: 'inline-block', verticalAlign: 'baseline', overflow: 'visible', position: 'relative', top: '2px' }}>
-                <path d="M 17,0 L 0,8.5 L 17,17 Z" fill="#000000" />
-                <text x={11} y={12.5} textAnchor="middle" fontFamily="'Times New Roman', Times, serif" fontSize="8pt" fontWeight={700} fontStyle="normal" fill="#ffffff" letterSpacing="-0.5">X</text>
-              </svg>
+              <span className="inline-ref-milestone" style={{ verticalAlign: 'baseline' }}>MSX</span>
+
             </>}
             className="mt-1"
           />
