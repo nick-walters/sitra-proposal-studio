@@ -308,6 +308,7 @@ export default function BackupsAdmin() {
           Retention: 90 days in-platform. SharePoint files are owned by your tenant and never deleted by the platform.
         </p>
       </Card>
+      </div>
     </div>
   );
 }
