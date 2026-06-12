@@ -172,7 +172,7 @@ export const InlineReferenceMark = Mark.create<InlineReferenceOptions>({
               } else if (refType === 'deliverable') {
                 expected = mark.attrs.deliverableNumber;
               } else if (refType === 'milestone') {
-                expected = `${mark.attrs.milestoneNumber}`;
+                expected = `MS${mark.attrs.milestoneNumber}`;
               }
 
               if (expected && node.text !== expected) {
