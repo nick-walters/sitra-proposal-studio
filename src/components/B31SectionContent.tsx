@@ -30,7 +30,7 @@ export function B31SectionContent({ proposalId }: Props) {
   if (loading) return null;
 
   return (
-    <div className="b31-tables-container space-y-4 [&_p]:!my-0 mt-[8px]">
+    <div className="b31-tables-container space-y-4 [&_p]:!my-0 mt-[2px]">
       {/* Table 3.1.a – List of work packages */}
       <B31WPListTable wpData={wpData} participants={participants} proposalId={proposalId} />
 
