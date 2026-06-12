@@ -33,6 +33,7 @@ interface PERTContent {
 }
 
 interface PERTChartFigureProps {
+  figureId?: string;
   figureNumber: string;
   proposalId: string;
   content: PERTContent | null;
@@ -41,6 +42,7 @@ interface PERTChartFigureProps {
 }
 
 export function PERTChartFigure({
+  figureId,
   figureNumber,
   proposalId,
   content,
