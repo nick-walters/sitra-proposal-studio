@@ -791,8 +791,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
         proposalId={proposalId}
         tableKey="table-3.1.b"
         label="Table 3.1.b."
-        defaultCaption="Work package descriptions"
-        suffix="Work package descriptions, including objectives, task descriptions, task/WP leaders, other task participants & duration"
+        defaultCaption="Work package descriptions, including objectives, task descriptions, task/WP leaders, other task participants & duration"
         className="mb-0"
       />
       {populatedWPs.map((wp, idx) => {
