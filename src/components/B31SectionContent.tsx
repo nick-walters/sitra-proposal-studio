@@ -38,6 +38,7 @@ export function B31SectionContent({ proposalId }: Props) {
       {pertFigure ? (
          <div data-figure-type="pert">
           <PERTChartFigure
+            figureId={pertFigure.id}
             proposalId={proposalId}
             figureNumber={pertFigure.figure_number}
             content={pertFigure.content as any}
