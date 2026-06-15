@@ -311,6 +311,9 @@ export function B31SortableTable<TRow extends { id: string; order_index: number 
     onSuccess: () => {
       invalidateAll();
       if (reorderToastLabel) toast.success(reorderToastLabel);
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
+      }, 100);
     },
   });
 
