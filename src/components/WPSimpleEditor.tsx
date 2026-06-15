@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { ImageIcon } from 'lucide-react';
+import { Image as ImageLucide, Table2 } from 'lucide-react';
 import {
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
