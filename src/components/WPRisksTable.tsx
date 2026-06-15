@@ -9,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { AlertTriangle, Plus, GripVertical, ChevronsUpDown } from 'lucide-react';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { getDefaultWPColor } from '@/lib/wpColors';
+import { RISK_COLORS } from '@/lib/constants';
 import type { WPDraftRisk } from '@/hooks/useWPDrafts';
 import {
   DndContext,
