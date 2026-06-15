@@ -1075,12 +1075,12 @@ export function GeneralInfoForm({
         </Card>
 
 
-        {/* Delete Proposal - Admins/Owners Only */}
-        {isCoordinator && (
-          <DeleteProposalSection proposalId={proposalId} proposalTitle={proposal?.title || 'this proposal'} />
-        )}
-      </div>
-    </div>
+      {/* Delete Proposal - Admins/Owners Only */}
+      {isCoordinator && (
+        <DeleteProposalSection proposalId={proposalId} proposalTitle={proposal?.title || 'this proposal'} />
+      )}
+    </PartAPageLayout>
+
   );
 }
 
