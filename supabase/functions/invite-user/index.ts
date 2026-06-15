@@ -50,11 +50,32 @@ serve(async (req: Request) => {
     const body = (await req.json()) as Partial<InviteRequest>;
     const email = body.email?.trim().toLowerCase();
     const proposalId = body.proposalId?.trim();
-    const proposalAcronym = body.proposalAcronym?.trim() || "Proposal";
-    const fullName = body.fullName?.trim();
+    const proposalAcronym = (body.proposalAcronym?.replace(/<[^>]*>/g, '').trim()) || "Proposal";
+    const fullName = body.fullName?.replace(/<[^>]*>/g, '').trim();
 
     if (!email || !proposalId) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return new Response(JSON.stringify({ error: "Invalid email address" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    if (fullName && fullName.length > 200) {
+      return new Response(JSON.stringify({ error: "Name is too long (max 200 characters)" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    if (proposalAcronym.length > 100) {
+      return new Response(JSON.stringify({ error: "Proposal acronym is too long" }), {
         status: 400,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });

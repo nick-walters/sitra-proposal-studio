@@ -502,9 +502,16 @@ serve(async (req: Request) => {
 
     const { organisationName, shortName } = await req.json();
     
-    if (!organisationName) {
+    if (!organisationName || typeof organisationName !== 'string') {
       return new Response(
         JSON.stringify({ error: 'Organisation name is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (organisationName.length > 200 || (typeof shortName === 'string' && shortName.length > 100)) {
+      return new Response(
+        JSON.stringify({ error: 'Organisation name is too long' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
