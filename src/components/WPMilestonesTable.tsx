@@ -206,21 +206,10 @@ function SortableMilestoneCard({
       {selectedWpNumbers.map(n => {
         const wpDraft = allWpDrafts.find(w => w.number === n);
         const color = wpDraft?.color || getDefaultWPColor(n);
-        const textColor = '#ffffff';
         return (
-          <span
-            key={n}
-            className="inline-flex items-center justify-center px-1.5 rounded-full text-[10px] font-bold leading-[17px]"
-            style={{
-              backgroundColor: color,
-              color: textColor,
-              height: '17px',
-              fontFamily: 'Times New Roman, serif',
-              fontSize: '11pt',
-            }}
-          >
+          <WPBubble key={n} wpColor={color}>
             WP{n}
-          </span>
+          </WPBubble>
         );
       })}
     </span>
