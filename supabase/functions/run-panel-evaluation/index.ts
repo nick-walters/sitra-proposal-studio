@@ -46,7 +46,8 @@ async function callAnthropicWithCache(
   userPrompt: string,
   maxTokens: number,
   enableThinking = false,
-  maxRetries = 3,
+  maxRetries = 2,
+  abortSignal?: AbortSignal,
 ): Promise<AnthropicCallResult> {
   const body: any = {
     model,
@@ -71,6 +72,7 @@ async function callAnthropicWithCache(
         "content-type": "application/json",
       },
       body: JSON.stringify(body),
+      signal: abortSignal,
     });
 
     if (res.ok) {
@@ -92,9 +94,12 @@ async function callAnthropicWithCache(
     if (res.status === 429 && attempt < maxRetries) {
       const retryAfterHeader = res.headers.get("retry-after");
       const retryAfterSec = retryAfterHeader ? parseInt(retryAfterHeader, 10) : NaN;
-      const backoffMs = Number.isFinite(retryAfterSec)
-        ? retryAfterSec * 1000
-        : Math.min(120_000, 2 ** attempt * 1000) + Math.floor(Math.random() * 500);
+      // Initial 2s, 2x multiplier, capped at 15s. Retry-after honoured but capped at 15s.
+      const baseMs = 2000 * 2 ** attempt;
+      const backoffMs = Math.min(
+        15_000,
+        Number.isFinite(retryAfterSec) ? retryAfterSec * 1000 : baseMs,
+      );
       console.warn(`Rate limited. Backing off ${backoffMs}ms before retry ${attempt + 2}/${maxRetries + 1}.`);
       await sleep(backoffMs);
       attempt++;
