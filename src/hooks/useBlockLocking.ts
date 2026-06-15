@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { Editor } from '@tiptap/react';
+import { PRESENCE_COLORS } from '@/lib/constants';
 
 export interface BlockLock {
   userId: string;
@@ -18,12 +19,6 @@ interface UseBlockLockingProps {
   editor: Editor | null;
 }
 
-// Predefined colors for users
-const USER_COLORS = [
-  '#E91E63', '#9C27B0', '#673AB7', '#3F51B5', '#2196F3',
-  '#00BCD4', '#009688', '#4CAF50', '#FF9800', '#FF5722',
-];
-
 function getColorForUser(userId: string): string {
   let hash = 0;
   for (let i = 0; i < userId.length; i++) {
@@ -31,7 +26,7 @@ function getColorForUser(userId: string): string {
     hash = ((hash << 5) - hash) + char;
     hash = hash & hash;
   }
-  return USER_COLORS[Math.abs(hash) % USER_COLORS.length];
+  return PRESENCE_COLORS[Math.abs(hash) % PRESENCE_COLORS.length];
 }
 
 // Get a stable block identifier from position
