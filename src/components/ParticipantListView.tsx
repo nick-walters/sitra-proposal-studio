@@ -14,6 +14,8 @@ import { generateParticipantLogoPath, uploadProposalFile } from '@/lib/proposalS
 import { StorageImage } from './StorageImage';
 import { CountrySelect } from './CountrySelect';
 import { PartAGuidelinesDialog } from './PartAGuidelinesDialog';
+import { PartAPageLayout } from './PartAPageLayout';
+
 import { Badge } from './ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { InviteToProposalDialog } from './InviteToProposalDialog';
