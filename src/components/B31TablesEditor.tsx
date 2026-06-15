@@ -1,17 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { computeAutoFitSmart } from '@/lib/autoFitColumns';
-import { useColumnResize } from '@/hooks/useColumnResize';
-import { ColumnResizer } from '@/components/ColumnResizer';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import {
   Select,
   SelectContent,
@@ -25,33 +14,18 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Button } from '@/components/ui/button';
-import { Plus, ChevronDown, GripVertical, ArrowUpDown, Settings2, Hash, CalendarDays } from 'lucide-react';
-import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { toast } from 'sonner';
+import { Plus, ArrowUpDown, Settings2, Hash, CalendarDays } from 'lucide-react';
 import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
 import { useUserRole } from '@/hooks/useUserRole';
 import { DeliverableTaskMappingDialog } from './DeliverableTaskMappingDialog';
 import { MilestoneTaskMappingDialog } from './MilestoneTaskMappingDialog';
 import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { EditableCaption } from '@/components/EditableCaption';
+  B31SortableTable,
+  B31Column,
+  CaptionIconButton,
+  cellStyles,
+  bubbleCellStyles,
+} from './B31SortableTable';
 
 interface B31TablesEditorProps {
   proposalId: string;
@@ -159,11 +133,6 @@ const disseminationLevels = [
   { value: 'EU-SEC', label: 'EU Secret' },
 ];
 
-const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
-const cellStyles = "!px-[1pt] !py-0 px-[1pt] h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight";
-const bubbleCellStyles = "!px-[1pt] !py-[1px] px-[1pt] h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-none overflow-visible";
-const headerCellStyles = "!px-[1pt] !py-0 px-[1pt] h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight font-bold";
-
 // Editable div that renders HTML content (e.g. WP reference spans) and saves as HTML
 function EditableHtml({
   value,
@@ -179,7 +148,6 @@ function EditableHtml({
   const isFocused = useRef(false);
   const lastValueRef = useRef(value);
 
-  // Set initial HTML via ref on mount
   useEffect(() => {
     if (divRef.current) {
       divRef.current.innerHTML = value || '';
@@ -187,7 +155,6 @@ function EditableHtml({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Sync HTML when prop changes externally (not while focused)
   useEffect(() => {
     if (!isFocused.current && divRef.current && value !== lastValueRef.current) {
       divRef.current.innerHTML = value || '';
@@ -195,7 +162,6 @@ function EditableHtml({
     }
   }, [value]);
 
-  // Cleanup timeout on unmount
   useEffect(() => {
     return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); };
   }, []);
@@ -216,7 +182,6 @@ function EditableHtml({
       onFocus={() => { isFocused.current = true; }}
       onBlur={() => {
         isFocused.current = false;
-        // Flush any pending save on blur
         if (timeoutRef.current) {
           clearTimeout(timeoutRef.current);
           timeoutRef.current = null;
@@ -231,14 +196,14 @@ function EditableHtml({
   );
 }
 
-// Inline editable text that expands to multiple lines - uses contentEditable to avoid textarea extra space
-function EditableText({ 
-  value, 
-  onChange, 
+// Inline editable text that expands to multiple lines
+function EditableText({
+  value,
+  onChange,
   placeholder,
   className = '',
-}: { 
-  value: string; 
+}: {
+  value: string;
   onChange: (val: string) => void;
   placeholder?: string;
   className?: string;
@@ -247,14 +212,13 @@ function EditableText({
   const divRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isFocused = useRef(false);
-  
-  // Set initial text content via ref (not dangerouslySetInnerHTML to avoid React conflicts)
+
   useEffect(() => {
     if (!isFocused.current && divRef.current) {
       divRef.current.textContent = value || '';
     }
   }, [value]);
-  
+
   const handleInput = useCallback(() => {
     const text = divRef.current?.textContent || '';
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -272,14 +236,13 @@ function EditableText({
     const text = divRef.current?.textContent || '';
     onChange(text);
   }, [onChange]);
-  
-  // Cleanup timeout on unmount
+
   useEffect(() => {
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, []);
-  
+
   return (
     <div
       ref={divRef}
@@ -290,7 +253,7 @@ function EditableText({
       onBlur={flushAndBlur}
       data-placeholder={placeholder}
       className={`bg-transparent focus:outline-none font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight w-full empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground empty:before:pointer-events-none ${className}`}
-      style={{ 
+      style={{
         minHeight: '1em',
         lineHeight: '1.2',
         whiteSpace: 'pre-wrap',
@@ -300,14 +263,14 @@ function EditableText({
   );
 }
 
-// Inline editable text using contenteditable for true inline flow (no indent on wrap)
-function EditableTextInline({ 
-  value, 
-  onChange, 
+// Inline editable text using contenteditable for true inline flow
+function EditableTextInline({
+  value,
+  onChange,
   placeholder,
   inheritFont = false,
-}: { 
-  value: string; 
+}: {
+  value: string;
   onChange: (val: string) => void;
   placeholder?: string;
   inheritFont?: boolean;
@@ -316,8 +279,7 @@ function EditableTextInline({
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isFocused = useRef(false);
   const lastValueRef = useRef(value);
-  
-  // Set initial text via ref on mount
+
   useEffect(() => {
     if (spanRef.current) {
       spanRef.current.textContent = value || '';
@@ -326,31 +288,28 @@ function EditableTextInline({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Sync text when prop changes externally (not while focused)
   useEffect(() => {
     if (!isFocused.current && spanRef.current && value !== lastValueRef.current) {
       spanRef.current.textContent = value || '';
       lastValueRef.current = value;
     }
   }, [value]);
-  
+
   const handleInput = () => {
     const newValue = spanRef.current?.textContent || '';
     lastValueRef.current = newValue;
-    
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     timeoutRef.current = setTimeout(() => {
       onChange(newValue);
     }, 500);
   };
-  
-  // Cleanup timeout on unmount
+
   useEffect(() => {
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, []);
-  
+
   return (
     <span
       ref={spanRef}
@@ -374,20 +333,20 @@ function EditableTextInline({
   );
 }
 
-// Compact month selector with minimal padding
-function MonthSelect({ 
-  value, 
+// Compact month selector
+function MonthSelect({
+  value,
   onChange,
   projectDuration = 36,
-}: { 
-  value: number | null; 
+}: {
+  value: number | null;
   onChange: (val: number | null) => void;
   projectDuration?: number;
 }) {
   const options = getMonthOptions(projectDuration);
   return (
-    <Select 
-      value={value?.toString() || ''} 
+    <Select
+      value={value?.toString() || ''}
       onValueChange={(v) => onChange(v ? parseInt(v) : null)}
     >
       <SelectTrigger hideArrow className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex font-['Times_New_Roman',Times,serif] text-[11pt]">
@@ -406,16 +365,16 @@ function MonthSelect({
   );
 }
 
-// WP Bubble component - pill shape matching cross-reference style
+// WP Bubble
 function WPBubble({ wp, onRemove }: { wp: WorkPackage; onRemove?: () => void }) {
   return (
-    <span 
+    <span
       className="inline-flex items-center justify-center gap-0.5 rounded-full text-white font-bold whitespace-nowrap"
       style={{ backgroundColor: wp.color || '#666', border: `1.5px solid ${wp.color || '#666'}`, color: '#ffffff', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px', height: '17px', position: 'relative', top: '-1px' }}
     >
       WP{wp.number}
       {onRemove && (
-        <button 
+        <button
           onClick={onRemove}
           className="ml-0.5 hover:bg-black/20 rounded-full w-3 h-3 flex items-center justify-center text-[8pt]"
         >
@@ -426,21 +385,20 @@ function WPBubble({ wp, onRemove }: { wp: WorkPackage; onRemove?: () => void }) 
   );
 }
 
-// Single WP selector (for deliverables)
-function SingleWPSelector({ 
-  value, 
-  onChange, 
-  workPackages 
-}: { 
-  value: number | null; 
+function SingleWPSelector({
+  value,
+  onChange,
+  workPackages,
+}: {
+  value: number | null;
   onChange: (val: number | null) => void;
   workPackages: WorkPackage[];
 }) {
   const selectedWP = workPackages.find(wp => wp.number === value);
-  
+
   return (
-    <Select 
-      value={value?.toString() || ''} 
+    <Select
+      value={value?.toString() || ''}
       onValueChange={(v) => onChange(v ? parseInt(v) : null)}
     >
       <SelectTrigger hideArrow className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex items-center overflow-visible">
@@ -466,20 +424,19 @@ function SingleWPSelector({
   );
 }
 
-// Multi WP selector (for milestones and risks)
-function MultiWPSelector({ 
-  value, 
-  onChange, 
+function MultiWPSelector({
+  value,
+  onChange,
   workPackages,
-}: { 
-  value: string; // comma-separated WP numbers
+}: {
+  value: string;
   onChange: (val: string) => void;
   workPackages: WorkPackage[];
 }) {
   const selectedNumbers = value ? value.split(',').map(n => parseInt(n.trim().replace(/^WP/i, ''))).filter(n => !isNaN(n)) : [];
   const selectedWPs = workPackages.filter(wp => selectedNumbers.includes(wp.number));
   const [open, setOpen] = useState(false);
-  
+
   const toggleWP = (wpNumber: number) => {
     if (selectedNumbers.includes(wpNumber)) {
       onChange(selectedNumbers.filter(n => n !== wpNumber).join(', '));
@@ -487,7 +444,7 @@ function MultiWPSelector({
       onChange([...selectedNumbers, wpNumber].sort((a, b) => a - b).join(', '));
     }
   };
-  
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -508,7 +465,7 @@ function MultiWPSelector({
           <div className="space-y-1">
             {workPackages.map(wp => (
               <label key={wp.id} className="flex items-center gap-2 cursor-pointer p-1 hover:bg-muted rounded">
-                <Checkbox 
+                <Checkbox
                   checked={selectedNumbers.includes(wp.number)}
                   onCheckedChange={() => toggleWP(wp.number)}
                 />
@@ -523,13 +480,12 @@ function MultiWPSelector({
   );
 }
 
-// Risk level badge - 9pt font
 function RiskBadge({ level }: { level: 'L' | 'M' | 'H' }) {
   const colorMap: Record<string, string> = { H: '#ef4444', M: '#f59e0b', L: '#22c55e' };
   const levelColor = colorMap[level] || '#000';
-  
+
   return (
-    <span 
+    <span
       className="inline-flex items-center justify-center rounded-full font-bold not-italic whitespace-nowrap"
       style={{ backgroundColor: '#ffffff', color: levelColor, border: `1.5px solid ${levelColor}`, fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, verticalAlign: 'baseline', padding: '0px', width: '19px', height: '17px', position: 'relative', top: '-1.4px' }}
     >
@@ -538,34 +494,28 @@ function RiskBadge({ level }: { level: 'L' | 'M' | 'H' }) {
   );
 }
 
-// Removed InlineRiskLevelSelect - now using direct Select in table cell
-
-// Hook to fetch work packages with colors - uses wp_drafts table
 function useWorkPackages(proposalId: string) {
   return useQuery({
     queryKey: ['wp-drafts-for-b31', proposalId],
     queryFn: async () => {
-      // Fetch from wp_drafts table (not work_packages)
       const { data: wps, error: wpError } = await supabase
         .from('wp_drafts')
         .select('id, number, title, color')
         .eq('proposal_id', proposalId)
         .order('number');
       if (wpError) throw wpError;
-      
-      // Map WPs with colors from wp_drafts.color
+
       return (wps || []).map(wp => ({
         id: wp.id,
         number: wp.number,
         title: wp.title || `WP${wp.number}`,
         short_name: wp.title?.split(':')[0]?.trim() || wp.title || `WP${wp.number}`,
-        color: wp.color || DEFAULT_WP_COLORS[(wp.number - 1) % DEFAULT_WP_COLORS.length]
+        color: wp.color || DEFAULT_WP_COLORS[(wp.number - 1) % DEFAULT_WP_COLORS.length],
       })) as WorkPackage[];
     },
   });
 }
 
-// Hook to fetch participants
 function useParticipants(proposalId: string) {
   return useQuery({
     queryKey: ['participants', proposalId],
@@ -581,197 +531,214 @@ function useParticipants(proposalId: string) {
   });
 }
 
-// ========== SORTABLE ROW WRAPPER ==========
-function SortableTableRow({ 
-  id, 
-  children, 
-  canDrag,
-  onDelete
-}: { 
-  id: string; 
-  children: React.ReactNode; 
-  canDrag: boolean;
-  onDelete?: () => void;
-}) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id, disabled: !canDrag });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
-  // position:relative doesn't work on <tr> in most browsers, so we inject
-  // the drag-handle into the first <td> and the delete button into the last <td>.
-  const childArray = React.Children.toArray(children);
-
-  const enhanced = childArray.map((child, index) => {
-    if (!React.isValidElement(child)) return child;
-
-    // Inject drag handle into first cell
-    if (index === 0 && canDrag) {
-      return React.cloneElement(child as React.ReactElement<any>, {
-        style: { ...(child as React.ReactElement<any>).props.style, position: 'relative' as const },
-        children: (
-          <>
-            <div 
-              className="absolute top-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity z-10"
-              style={{ left: '-20px' }}
-              {...attributes} 
-              {...listeners}
-            >
-              <GripVertical className="h-4 w-4 text-[#2563EB]" />
-            </div>
-            {(child as React.ReactElement<any>).props.children}
-          </>
-        ),
-      });
-    }
-
-    // Inject delete button into last cell
-    if (index === childArray.length - 1 && onDelete) {
-      return React.cloneElement(child as React.ReactElement<any>, {
-        style: { ...(child as React.ReactElement<any>).props.style, position: 'relative' as const },
-        children: (
-          <>
-            {(child as React.ReactElement<any>).props.children}
-            <div 
-              className="absolute top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-10"
-              style={{ right: '-24px' }}
-            >
-              <DeleteConfirmDialog
-                itemLabel="this row"
-                onConfirm={() => onDelete?.()}
-                buttonClassName="h-5 w-5 text-destructive hover:text-destructive hover:bg-destructive/10"
-                iconSize="h-3 w-3"
-              />
-            </div>
-          </>
-        ),
-      });
-    }
-
-    return child;
-  });
-
-  return (
-    <TableRow ref={setNodeRef} style={style} className="hover:bg-muted/50 group">
-      {enhanced}
-    </TableRow>
-  );
-}
-
-// Table wrapper - full width with overflow visible for margin controls
-function B31TableWrapper({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="relative w-full [&>div]:overflow-visible">
-      {children}
-    </div>
-  );
-}
-
-// ColumnResizer now imported from shared component
-
-/** Small icon-only button used in the caption-left hover cluster. */
-const CaptionIconButton = React.forwardRef<HTMLButtonElement, {
-  tooltip: string;
-  onClick?: () => void;
-  children: React.ReactNode;
-} & Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'title'>>(
-  ({ tooltip, onClick, children, ...rest }, ref) => (
-    <button
-      ref={ref}
-      type="button"
-      title={tooltip}
-      aria-label={tooltip}
-      onMouseDown={(e) => e.preventDefault()}
-      onClick={onClick}
-      className="inline-flex items-center justify-center h-5 w-5 rounded text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-      {...rest}
-    >
-      {children}
-    </button>
-  )
-);
-CaptionIconButton.displayName = 'CaptionIconButton';
-
-
 // ========== DELIVERABLES TABLE (3.1c) ==========
 export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
-  const queryClient = useQueryClient();
   const projectDuration = useProjectDuration(proposalId);
   const { data: workPackages = [] } = useWorkPackages(proposalId);
   const { data: participants = [] } = useParticipants(proposalId);
-  const { isAdminOrOwner, loading: roleLoading } = useUserRole();
-  const { colWidths, setColWidths, tableRef, handleColResizeStart, saveWidths } = useColumnResize({ proposalId, tableKey: 'deliverables', canResize: isAdminOrOwner });
-  
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  );
+  const { isAdminOrOwner } = useUserRole();
 
-  const { data: deliverables = [], isLoading } = useQuery({
-    queryKey: ['b31-deliverables', proposalId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('b31_deliverables')
-        .select('*')
-        .eq('proposal_id', proposalId)
-        .order('order_index');
-      if (error) throw error;
-      return data as Deliverable[];
+  const [deliverableOrderMode, setDeliverableOrderMode] = useState<'number' | 'month'>('number');
+
+  const columns: B31Column<Deliverable>[] = [
+    {
+      key: 'no',
+      header: 'No.',
+      defaultHeaderStyle: { width: '48px', whiteSpace: 'nowrap' },
+      minWidth: 48,
+      cellClassName: bubbleCellStyles,
+      cellStyle: { whiteSpace: 'nowrap', width: '48px', position: 'relative', zIndex: 2 },
+      renderCell: (del, updateRow) => {
+        const wpColor = del.wp_number != null
+          ? workPackages.find(wp => wp.number === del.wp_number)?.color || '#000'
+          : '#000';
+        return (
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              position: 'relative',
+              height: '17px',
+              padding: '0 10px 0 5px',
+              fontFamily: "'Times New Roman', Times, serif",
+              fontSize: '11pt',
+              fontWeight: 700,
+              lineHeight: 1,
+              color: wpColor,
+              whiteSpace: 'nowrap',
+              verticalAlign: 'baseline',
+            }}
+          >
+            <span
+              style={{
+                position: 'absolute',
+                inset: 0,
+                backgroundColor: wpColor,
+                clipPath: 'polygon(0% 0%, calc(100% - 8px) 0%, 100% 50%, calc(100% - 8px) 100%, 0% 100%)',
+              }}
+            />
+            <span
+              style={{
+                position: 'absolute',
+                top: '1.5px',
+                bottom: '1.5px',
+                left: '1.5px',
+                right: '2.5px',
+                backgroundColor: '#ffffff',
+                clipPath: 'polygon(0% 0%, calc(100% - 7px) 0%, 100% 50%, calc(100% - 7px) 100%, 0% 100%)',
+              }}
+            />
+            <span style={{ position: 'relative', zIndex: 1 }}>
+              <EditableTextInline
+                value={del.number}
+                onChange={(val) => updateRow(del.id, { number: val })}
+                placeholder="D#.#"
+                inheritFont
+              />
+            </span>
+          </span>
+        );
+      },
     },
-  });
-
-  const updateDeliverable = useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<Deliverable> & { id: string }) => {
-      const { error } = await supabase
-        .from('b31_deliverables')
-        .update(updates)
-        .eq('id', id);
-      if (error) throw error;
+    {
+      key: 'title',
+      header: 'Deliverable title',
+      cellClassName: cellStyles,
+      cellStyle: { lineHeight: 1.2 },
+      renderCell: (del, updateRow) => (
+        <span className="font-['Times_New_Roman',Times,serif] text-[11pt]" style={{ lineHeight: 1.2 }}>
+          <EditableTextInline
+            value={del.name}
+            onChange={(val) => updateRow(del.id, { name: val })}
+            placeholder="Deliverable name"
+          />
+        </span>
+      ),
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['b31-deliverables', proposalId] }); queryClient.invalidateQueries({ queryKey: ['wp-drafts-gantt', proposalId] }); },
-  });
-
-  const addDeliverable = useMutation({
-    mutationFn: async () => {
-      const nextIndex = deliverables.length;
-      const { error } = await supabase
-        .from('b31_deliverables')
-        .insert({ 
-          proposal_id: proposalId, 
-          number: 'DX.X',
-          name: '', 
-          description: '',
-          order_index: nextIndex
-        });
-      if (error) throw error;
+    {
+      key: 'wp',
+      header: 'WP',
+      defaultHeaderStyle: { width: '40px' },
+      cellClassName: bubbleCellStyles,
+      renderCell: (del, updateRow, allRows) => (
+        <SingleWPSelector
+          value={del.wp_number}
+          onChange={(val) => {
+            const wpNum = val != null ? val : 'X';
+            const existingInWP = allRows.filter(d => d.wp_number === val && d.id !== del.id);
+            const subNum = existingInWP.length + 1;
+            updateRow(del.id, { wp_number: val, number: `D${wpNum}.${subNum}` });
+          }}
+          workPackages={workPackages}
+        />
+      ),
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['b31-deliverables', proposalId] }); queryClient.invalidateQueries({ queryKey: ['wp-drafts-gantt', proposalId] }); },
-  });
-
-  const deleteDeliverable = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('b31_deliverables')
-        .delete()
-        .eq('id', id);
-      if (error) throw error;
+    {
+      key: 'lead',
+      header: 'Lead',
+      defaultHeaderStyle: { width: '60px' },
+      cellClassName: bubbleCellStyles,
+      renderCell: (del, updateRow) => (
+        <Select
+          value={del.lead_participant_id || ''}
+          onValueChange={(v) => updateRow(del.id, { lead_participant_id: v || null })}
+        >
+          <SelectTrigger hideArrow className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex items-center overflow-visible">
+            <SelectValue placeholder="-">
+              {del.lead_participant_id ? (
+                <span
+                  className="inline-flex items-center justify-center rounded-full font-bold text-white whitespace-nowrap relative"
+                  style={{ backgroundColor: '#000', border: '1.5px solid #000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, fontStyle: 'normal', lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px', height: '17px', position: 'relative', top: '-1px' }}
+                >
+                  {participants.find(p => p.id === del.lead_participant_id)?.organisation_short_name || '-'}
+                </span>
+              ) : (
+                <span className="font-['Times_New_Roman',Times,serif] text-[11pt]">-</span>
+              )}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent className="bg-background z-50">
+            {participants.map(p => (
+              <SelectItem key={p.id} value={p.id}>
+                <span
+                  className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
+                  style={{ backgroundColor: '#000000', color: '#ffffff', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, padding: '0px 5px', height: '17px' }}
+                >
+                  {p.organisation_short_name || p.organisation_name}
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      ),
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['b31-deliverables', proposalId] }); queryClient.invalidateQueries({ queryKey: ['wp-drafts-gantt', proposalId] }); },
-  });
+    {
+      key: 'type',
+      header: 'Type',
+      defaultHeaderStyle: { width: '40px' },
+      cellClassName: cellStyles,
+      renderCell: (del, updateRow) => (
+        <Select
+          value={del.type || ''}
+          onValueChange={(v) => updateRow(del.id, { type: v || null })}
+        >
+          <SelectTrigger hideArrow className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto font-['Times_New_Roman',Times,serif] text-[11pt]">
+            <SelectValue placeholder="-">
+              <span className="font-['Times_New_Roman',Times,serif] text-[11pt]">{del.type || '-'}</span>
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent className="bg-background z-50">
+            {deliverableTypes.map(t => (
+              <SelectItem key={t.value} value={t.value}>
+                {t.value} - {t.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      ),
+    },
+    {
+      key: 'diss',
+      header: 'Diss.',
+      defaultHeaderStyle: { width: '50px' },
+      cellClassName: cellStyles,
+      renderCell: (del, updateRow) => (
+        <Select
+          value={del.dissemination_level || ''}
+          onValueChange={(v) => updateRow(del.id, { dissemination_level: v || null })}
+        >
+          <SelectTrigger hideArrow className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto font-['Times_New_Roman',Times,serif] text-[11pt]">
+            <SelectValue placeholder="-">
+              <span className="font-['Times_New_Roman',Times,serif] text-[11pt]">{del.dissemination_level || '-'}</span>
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent className="bg-background z-50">
+            {disseminationLevels.map(l => (
+              <SelectItem key={l.value} value={l.value}>
+                {l.value} - {l.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      ),
+    },
+    {
+      key: 'due',
+      header: 'Due',
+      defaultHeaderStyle: { width: '40px' },
+      cellClassName: cellStyles,
+      renderCell: (del, updateRow) => (
+        <MonthSelect
+          value={del.due_month}
+          onChange={(val) => updateRow(del.id, { due_month: val })}
+          projectDuration={projectDuration}
+        />
+      ),
+    },
+  ];
 
-  // Recalculate deliverable sub-numbers within each WP based on due_month order
-  const recalculateDeliverableNumbers = (dels: Deliverable[]): { id: string; number: string; order_index: number }[] => {
-    // Group by WP number
+  const recomputeNumbers = (dels: Deliverable[]) => {
     const byWP = new Map<number | null, Deliverable[]>();
     dels.forEach(d => {
       const key = d.wp_number;
@@ -779,120 +746,67 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
       byWP.get(key)!.push(d);
     });
 
-    // Within each WP group, sort by due_month to assign sub-numbers
-    const updates: { id: string; number: string; order_index: number }[] = [];
-    dels.forEach((del, index) => {
+    return dels.map((del, index) => {
       const wpGroup = byWP.get(del.wp_number) || [];
       const sortedGroup = [...wpGroup].sort((a, b) => (a.due_month ?? 999) - (b.due_month ?? 999));
       const subIndex = sortedGroup.findIndex(d => d.id === del.id) + 1;
       const wpNum = del.wp_number != null ? del.wp_number : 'X';
-      updates.push({ id: del.id, number: `D${wpNum}.${subIndex}`, order_index: index });
+      return { id: del.id, updates: { order_index: index, number: `D${wpNum}.${subIndex}` } };
     });
-    return updates;
   };
-
-  const reorderDeliverables = useMutation({
-    mutationFn: async (newOrder: Deliverable[]) => {
-      const updates = recalculateDeliverableNumbers(newOrder);
-      
-      for (const update of updates) {
-        const { error } = await supabase
-          .from('b31_deliverables')
-          .update({ order_index: update.order_index, number: update.number })
-          .eq('id', update.id);
-        if (error) throw error;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['b31-deliverables', proposalId] });
-      queryClient.invalidateQueries({ queryKey: ['wp-drafts-gantt', proposalId] });
-      toast.success('Deliverables reordered');
-    },
-  });
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-
-    const oldIndex = deliverables.findIndex((d) => d.id === active.id);
-    const newIndex = deliverables.findIndex((d) => d.id === over.id);
-    const reordered = arrayMove(deliverables, oldIndex, newIndex);
-    reorderDeliverables.mutate(reordered);
-  };
-
-  const [deliverableOrderMode, setDeliverableOrderMode] = useState<'number' | 'month'>('number');
-
-  const orderByNumber = () => {
-    const sorted = [...deliverables].sort((a, b) => {
-      const wpA = a.wp_number ?? 999;
-      const wpB = b.wp_number ?? 999;
-      if (wpA !== wpB) return wpA - wpB;
-      // Parse sub-number from e.g. "D2.3" -> 3
-      const subA = parseInt(a.number.replace(/^D?\d+\./, '')) || 0;
-      const subB = parseInt(b.number.replace(/^D?\d+\./, '')) || 0;
-      return subA - subB;
-    });
-    setDeliverableOrderMode('number');
-    reorderDeliverables.mutate(sorted);
-  };
-
-  const orderByMonth = () => {
-    const sorted = [...deliverables].sort((a, b) => {
-      const monthA = a.due_month ?? 999;
-      const monthB = b.due_month ?? 999;
-      if (monthA !== monthB) return monthA - monthB;
-      const wpA = a.wp_number ?? 999;
-      const wpB = b.wp_number ?? 999;
-      return wpA - wpB;
-    });
-    setDeliverableOrderMode('month');
-    reorderDeliverables.mutate(sorted);
-  };
-
-  const toggleDeliverableOrder = () => {
-    if (deliverableOrderMode === 'month') {
-      orderByNumber();
-    } else {
-      orderByMonth();
-    }
-  };
-
-  const autoFitColumns = useCallback(() => {
-    const table = tableRef.current;
-    if (!table) return;
-    const widths = computeAutoFitSmart(table);
-    if (widths) {
-      setColWidths(widths);
-      saveWidths(widths);
-    }
-  }, [tableRef, setColWidths, saveWidths]);
-
-  useEffect(() => {
-    const handler = (event: Event) => {
-      const detail = (event as CustomEvent<{ tableId?: string }>).detail;
-      if (detail?.tableId !== 'b31-deliverables') return;
-      autoFitColumns();
-    };
-    window.addEventListener('b31-table-autoresize', handler as EventListener);
-    return () => window.removeEventListener('b31-table-autoresize', handler as EventListener);
-  }, [autoFitColumns]);
-
-  const dispatchToolbarFocus = useCallback(() => {
-    window.dispatchEvent(new CustomEvent('b31-table-focus', {
-      detail: { tableId: 'b31-deliverables' },
-    }));
-  }, []);
 
   return (
-    <div onFocusCapture={dispatchToolbarFocus}>
-      <EditableCaption
-        proposalId={proposalId}
-        tableKey="table-3.1.c"
-        label="Table 3.1.c."
-        defaultCaption="Deliverables, including the partner responsible, type, dissemination level & month due"
-        leftButtons={
+    <B31SortableTable<Deliverable>
+      proposalId={proposalId}
+      dbTable="b31_deliverables"
+      queryKey="b31-deliverables"
+      columnResizeKey="deliverables"
+      columns={columns}
+      captionTableKey="table-3.1.c"
+      captionLabel="Table 3.1.c."
+      captionDefaultText="Deliverables, including the partner responsible, type, dissemination level & month due"
+      createDefaultRow={(rows) => ({
+        number: 'DX.X',
+        name: '',
+        description: '',
+        order_index: rows.length,
+      })}
+      recomputeNumbers={recomputeNumbers}
+      reorderToastLabel="Deliverables reordered"
+      invalidateGantt
+      tableWidthMode="sum"
+      captionLeftButtons={(api) => {
+        const orderByNumber = () => {
+          const sorted = [...api.rows].sort((a, b) => {
+            const wpA = a.wp_number ?? 999;
+            const wpB = b.wp_number ?? 999;
+            if (wpA !== wpB) return wpA - wpB;
+            const subA = parseInt(a.number.replace(/^D?\d+\./, '')) || 0;
+            const subB = parseInt(b.number.replace(/^D?\d+\./, '')) || 0;
+            return subA - subB;
+          });
+          setDeliverableOrderMode('number');
+          api.reorder(sorted);
+        };
+        const orderByMonth = () => {
+          const sorted = [...api.rows].sort((a, b) => {
+            const monthA = a.due_month ?? 999;
+            const monthB = b.due_month ?? 999;
+            if (monthA !== monthB) return monthA - monthB;
+            const wpA = a.wp_number ?? 999;
+            const wpB = b.wp_number ?? 999;
+            return wpA - wpB;
+          });
+          setDeliverableOrderMode('month');
+          api.reorder(sorted);
+        };
+        const toggleOrder = () => {
+          if (deliverableOrderMode === 'month') orderByNumber();
+          else orderByMonth();
+        };
+        return (
           <>
-            <CaptionIconButton tooltip="Add deliverable" onClick={() => addDeliverable.mutate()}>
+            <CaptionIconButton tooltip="Add deliverable" onClick={api.add}>
               <Plus className="h-3 w-3" />
             </CaptionIconButton>
             <DeliverableTaskMappingDialog
@@ -906,371 +820,146 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
             {isAdminOrOwner && (
               <CaptionIconButton
                 tooltip={deliverableOrderMode === 'month' ? 'Order by deliverable number' : 'Order by month due'}
-                onClick={toggleDeliverableOrder}
+                onClick={toggleOrder}
               >
                 {deliverableOrderMode === 'month' ? <Hash className="h-3 w-3" /> : <CalendarDays className="h-3 w-3" />}
               </CaptionIconButton>
             )}
           </>
-        }
-      />
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <B31TableWrapper>
-          <Table className={`${tableStyles} [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b [&_th]:border-black [&_td]:border-x-0 [&_td]:border-y [&_td]:border-gray-200 [&_tr]:border-0 [&_tr:last-child_td]:border-b-0 [&_tbody_tr:first-child_td]:border-t-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto', borderCollapse: 'collapse', width: colWidths.length > 0 ? `${colWidths.reduce((s, w) => s + w, 0)}px` : '100%' }} ref={tableRef}>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead className={`${headerCellStyles} relative`} style={{ ...(colWidths.length > 0 ? { width: Math.max(colWidths[0], 48) } : { width: '48px', whiteSpace: 'nowrap' }) }}>
-                  No.
-                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(0)} />}
-                </TableHead>
-                <TableHead className={`${headerCellStyles} relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[1] } : {}) }}>
-                  Deliverable title
-                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(1)} />}
-                </TableHead>
-                <TableHead className={`${headerCellStyles} relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[2] } : { width: '40px' }) }}>
-                  WP
-                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(2)} />}
-                </TableHead>
-                <TableHead className={`${headerCellStyles} relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[3] } : { width: '60px' }) }}>
-                  Lead
-                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(3)} />}
-                </TableHead>
-                <TableHead className={`${headerCellStyles} relative`} style={colWidths.length > 0 ? { width: colWidths[4] } : { width: '40px' }}>
-                  Type
-                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(4)} />}
-                </TableHead>
-                <TableHead className={`${headerCellStyles} relative`} style={colWidths.length > 0 ? { width: colWidths[5] } : { width: '50px' }}>
-                  Diss.
-                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(5)} />}
-                </TableHead>
-                <TableHead className={`${headerCellStyles} relative`} style={colWidths.length > 0 ? { width: colWidths[6] } : { width: '40px' }}>
-                  Due
-                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(6)} />}
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <SortableContext items={deliverables.map(d => d.id)} strategy={verticalListSortingStrategy}>
-              <TableBody>
-                {deliverables.map((del) => (
-                  <SortableTableRow key={del.id} id={del.id} canDrag={isAdminOrOwner} onDelete={() => deleteDeliverable.mutate(del.id)}>
-                    <TableCell className={bubbleCellStyles} style={{ whiteSpace: 'nowrap', width: '48px', position: 'relative', zIndex: 2 }}>
-                      {(() => {
-                        const wpColor = del.wp_number != null 
-                          ? workPackages.find(wp => wp.number === del.wp_number)?.color || '#000'
-                          : '#000';
-                        return (
-                          <span
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              position: 'relative',
-                              height: '17px',
-                              padding: '0 10px 0 5px',
-                              fontFamily: "'Times New Roman', Times, serif",
-                              fontSize: '11pt',
-                              fontWeight: 700,
-                              lineHeight: 1,
-                              color: wpColor,
-                              whiteSpace: 'nowrap',
-                              verticalAlign: 'baseline',
-                            }}
-                          >
-                            <span
-                              style={{
-                                position: 'absolute',
-                                inset: 0,
-                                backgroundColor: wpColor,
-                                clipPath: 'polygon(0% 0%, calc(100% - 8px) 0%, 100% 50%, calc(100% - 8px) 100%, 0% 100%)',
-                              }}
-                            />
-                            <span
-                              style={{
-                                position: 'absolute',
-                                top: '1.5px',
-                                bottom: '1.5px',
-                                left: '1.5px',
-                                right: '2.5px',
-                                backgroundColor: '#ffffff',
-                                clipPath: 'polygon(0% 0%, calc(100% - 7px) 0%, 100% 50%, calc(100% - 7px) 100%, 0% 100%)',
-                              }}
-                            />
-
-                            <span style={{ position: 'relative', zIndex: 1 }}>
-                              <EditableTextInline
-                                value={del.number}
-                                onChange={(val) => updateDeliverable.mutate({ id: del.id, number: val })}
-                                placeholder="D#.#"
-                                inheritFont
-                              />
-                            </span>
-                          </span>
-                        );
-                      })()}
-                    </TableCell>
-                    <TableCell className={cellStyles} style={{ lineHeight: 1.2 }}>
-                      <span className="font-['Times_New_Roman',Times,serif] text-[11pt]" style={{ lineHeight: 1.2 }}>
-                        <EditableTextInline
-                          value={del.name}
-                          onChange={(val) => updateDeliverable.mutate({ id: del.id, name: val })}
-                          placeholder="Deliverable name"
-                        />
-                      </span>
-                    </TableCell>
-                    <TableCell className={bubbleCellStyles}>
-                      <SingleWPSelector
-                        value={del.wp_number}
-                        onChange={(val) => {
-                          // When WP changes, update wp_number and recalculate the deliverable number
-                          const wpNum = val != null ? val : 'X';
-                          // Count existing deliverables in the target WP to determine sub-number
-                          const existingInWP = deliverables.filter(d => d.wp_number === val && d.id !== del.id);
-                          const subNum = existingInWP.length + 1;
-                          updateDeliverable.mutate({ id: del.id, wp_number: val, number: `D${wpNum}.${subNum}` });
-                        }}
-                        workPackages={workPackages}
-                      />
-                    </TableCell>
-                    <TableCell className={bubbleCellStyles}>
-                      <Select 
-                        value={del.lead_participant_id || ''} 
-                        onValueChange={(v) => updateDeliverable.mutate({ id: del.id, lead_participant_id: v || null })}
-                      >
-                        <SelectTrigger hideArrow className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex items-center overflow-visible">
-                          <SelectValue placeholder="-">
-                            {del.lead_participant_id ? (
-                              <span
-                                className="inline-flex items-center justify-center rounded-full font-bold text-white whitespace-nowrap relative"
-                                style={{ backgroundColor: '#000', border: '1.5px solid #000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, fontStyle: 'normal', lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px', height: '17px', position: 'relative', top: '-1px' }}
-                              >
-                                {participants.find(p => p.id === del.lead_participant_id)?.organisation_short_name || '-'}
-                              </span>
-                            ) : (
-                              <span className="font-['Times_New_Roman',Times,serif] text-[11pt]">-</span>
-                            )}
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent className="bg-background z-50">
-                          {participants.map(p => (
-                            <SelectItem key={p.id} value={p.id}>
-                              <span
-                                className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
-                                style={{ backgroundColor: '#000000', color: '#ffffff', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, padding: '0px 5px', height: '17px' }}
-                              >
-                                {p.organisation_short_name || p.organisation_name}
-                              </span>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell className={cellStyles}>
-                      <Select 
-                        value={del.type || ''} 
-                        onValueChange={(v) => updateDeliverable.mutate({ id: del.id, type: v || null })}
-                      >
-                        <SelectTrigger hideArrow className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto font-['Times_New_Roman',Times,serif] text-[11pt]">
-                          <SelectValue placeholder="-">
-                            <span className="font-['Times_New_Roman',Times,serif] text-[11pt]">{del.type || '-'}</span>
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent className="bg-background z-50">
-                          {deliverableTypes.map(t => (
-                            <SelectItem key={t.value} value={t.value}>
-                              {t.value} - {t.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell className={cellStyles}>
-                      <Select 
-                        value={del.dissemination_level || ''} 
-                        onValueChange={(v) => updateDeliverable.mutate({ id: del.id, dissemination_level: v || null })}
-                      >
-                        <SelectTrigger hideArrow className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto font-['Times_New_Roman',Times,serif] text-[11pt]">
-                          <SelectValue placeholder="-">
-                            <span className="font-['Times_New_Roman',Times,serif] text-[11pt]">{del.dissemination_level || '-'}</span>
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent className="bg-background z-50">
-                          {disseminationLevels.map(l => (
-                            <SelectItem key={l.value} value={l.value}>
-                              {l.value} - {l.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell className={cellStyles}>
-                      <MonthSelect
-                        value={del.due_month}
-                        onChange={(val) => updateDeliverable.mutate({ id: del.id, due_month: val })}
-                        projectDuration={projectDuration}
-                      />
-                    </TableCell>
-                  </SortableTableRow>
-                ))}
-              </TableBody>
-            </SortableContext>
-          </Table>
-        </B31TableWrapper>
-      </DndContext>
-    </div>
+        );
+      }}
+    />
   );
 }
 
 // ========== MILESTONES TABLE (3.1d) ==========
 export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
-  const queryClient = useQueryClient();
   const projectDuration = useProjectDuration(proposalId);
   const { data: workPackages = [] } = useWorkPackages(proposalId);
   const { isAdminOrOwner } = useUserRole();
-  
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  );
 
-  const { data: milestones = [], isLoading } = useQuery({
-    queryKey: ['b31-milestones', proposalId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('b31_milestones')
-        .select('*')
-        .eq('proposal_id', proposalId)
-        .order('order_index');
-      if (error) throw error;
-      return data as Milestone[];
+  const columns: B31Column<Milestone>[] = [
+    {
+      key: 'no',
+      header: 'No.',
+      defaultHeaderStyle: { width: '50px', whiteSpace: 'nowrap' },
+      minWidth: 50,
+      cellClassName: bubbleCellStyles,
+      cellStyle: { lineHeight: 1.2, whiteSpace: 'nowrap', width: '50px' },
+      renderCell: (ms) => (
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: '#000',
+            color: '#fff',
+            fontFamily: "'Times New Roman', Times, serif",
+            fontSize: '11pt',
+            fontWeight: 700,
+            lineHeight: '18px',
+            height: '18px',
+            padding: '0 4px',
+            clipPath: 'polygon(12% 0%, 88% 0%, 100% 50%, 88% 100%, 12% 100%, 0% 50%)',
+            verticalAlign: 'baseline',
+          }}
+        >
+          MS{ms.number}
+        </span>
+      ),
     },
-  });
-
-  const updateMilestone = useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<Milestone> & { id: string }) => {
-      const { error } = await supabase
-        .from('b31_milestones')
-        .update(updates)
-        .eq('id', id);
-      if (error) throw error;
+    {
+      key: 'name',
+      header: 'Milestone name',
+      cellClassName: cellStyles,
+      cellStyle: { lineHeight: 1.2 },
+      renderCell: (ms, updateRow) => (
+        <EditableTextInline
+          value={ms.name}
+          onChange={(val) => updateRow(ms.id, { name: val })}
+          placeholder="Milestone name"
+        />
+      ),
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['b31-milestones', proposalId] }); queryClient.invalidateQueries({ queryKey: ['wp-drafts-gantt', proposalId] }); },
-  });
-
-  const addMilestone = useMutation({
-    mutationFn: async () => {
-      const nextNumber = milestones.length + 1;
-      const { error } = await supabase
-        .from('b31_milestones')
-        .insert({ 
-          proposal_id: proposalId, 
-          number: nextNumber, 
-          name: '', 
-          wps: '', 
-          means_of_verification: '',
-          order_index: milestones.length
-        });
-      if (error) throw error;
+    {
+      key: 'wps',
+      header: 'WPs',
+      defaultHeaderStyle: { width: '40px', whiteSpace: 'nowrap' },
+      cellClassName: bubbleCellStyles,
+      renderCell: (ms, updateRow) => (
+        <MultiWPSelector
+          value={ms.wps}
+          onChange={(val) => updateRow(ms.id, { wps: val })}
+          workPackages={workPackages}
+        />
+      ),
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['b31-milestones', proposalId] }); queryClient.invalidateQueries({ queryKey: ['wp-drafts-gantt', proposalId] }); },
-  });
-
-  const deleteMilestone = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('b31_milestones')
-        .delete()
-        .eq('id', id);
-      if (error) throw error;
+    {
+      key: 'due',
+      header: 'Due',
+      defaultHeaderStyle: { width: '40px', whiteSpace: 'nowrap' },
+      cellClassName: cellStyles,
+      renderCell: (ms, updateRow) => (
+        <MonthSelect
+          value={ms.due_month}
+          onChange={(val) => updateRow(ms.id, { due_month: val })}
+          projectDuration={projectDuration}
+        />
+      ),
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['b31-milestones', proposalId] }); queryClient.invalidateQueries({ queryKey: ['wp-drafts-gantt', proposalId] }); },
-  });
-
-  const reorderMilestones = useMutation({
-    mutationFn: async (newOrder: Milestone[]) => {
-      const updates = newOrder.map((ms, index) => ({
-        id: ms.id,
-        order_index: index,
-        number: index + 1
-      }));
-      
-      for (const update of updates) {
-        const { error } = await supabase
-          .from('b31_milestones')
-          .update({ order_index: update.order_index, number: update.number })
-          .eq('id', update.id);
-        if (error) throw error;
-      }
+    {
+      key: 'mov',
+      header: 'Means of verification',
+      cellClassName: cellStyles,
+      renderCell: (ms, updateRow) => (
+        <EditableHtml
+          value={ms.means_of_verification}
+          onChange={(val) => updateRow(ms.id, { means_of_verification: val })}
+          placeholder="How will this be verified?"
+        />
+      ),
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['b31-milestones', proposalId] });
-      queryClient.invalidateQueries({ queryKey: ['wp-drafts-gantt', proposalId] });
-      toast.success('Milestones reordered');
-    },
-  });
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-
-    const oldIndex = milestones.findIndex((m) => m.id === active.id);
-    const newIndex = milestones.findIndex((m) => m.id === over.id);
-    const reordered = arrayMove(milestones, oldIndex, newIndex);
-    reorderMilestones.mutate(reordered);
-  };
-
-  const autoReorder = () => {
-    const sorted = [...milestones].sort((a, b) => {
-      // First by due month
-      const monthA = a.due_month ?? 999;
-      const monthB = b.due_month ?? 999;
-      if (monthA !== monthB) return monthA - monthB;
-      // Then by first WP number in the list
-      const wpA = a.wps ? parseInt(a.wps.split(',')[0].trim()) || 999 : 999;
-      const wpB = b.wps ? parseInt(b.wps.split(',')[0].trim()) || 999 : 999;
-      return wpA - wpB;
-    });
-    reorderMilestones.mutate(sorted);
-  };
-
-  // Column resizing
-  const { colWidths, setColWidths, tableRef, handleColResizeStart, saveWidths } = useColumnResize({ proposalId, tableKey: 'milestones', canResize: isAdminOrOwner });
-
-  const autoFitColumns = useCallback(() => {
-    const table = tableRef.current;
-    if (!table) return;
-    const widths = computeAutoFitSmart(table, { fullWidth: true });
-    if (widths) {
-      setColWidths(widths);
-      saveWidths(widths);
-    }
-  }, [tableRef, setColWidths, saveWidths]);
-
-  useEffect(() => {
-    const handler = (event: Event) => {
-      const detail = (event as CustomEvent<{ tableId?: string }>).detail;
-      if (detail?.tableId !== 'b31-milestones') return;
-      autoFitColumns();
-    };
-    window.addEventListener('b31-table-autoresize', handler as EventListener);
-    return () => window.removeEventListener('b31-table-autoresize', handler as EventListener);
-  }, [autoFitColumns]);
-
-  const dispatchToolbarFocus = useCallback(() => {
-    window.dispatchEvent(new CustomEvent('b31-table-focus', {
-      detail: { tableId: 'b31-milestones' },
-    }));
-  }, []);
+  ];
 
   return (
-    <div onFocusCapture={dispatchToolbarFocus}>
-      <EditableCaption
-        proposalId={proposalId}
-        tableKey="table-3.1.d"
-        label="Table 3.1.d."
-        defaultCaption="Milestones"
-        leftButtons={
+    <B31SortableTable<Milestone>
+      proposalId={proposalId}
+      dbTable="b31_milestones"
+      queryKey="b31-milestones"
+      columnResizeKey="milestones"
+      columns={columns}
+      captionTableKey="table-3.1.d"
+      captionLabel="Table 3.1.d."
+      captionDefaultText="Milestones"
+      createDefaultRow={(rows) => ({
+        number: rows.length + 1,
+        name: '',
+        wps: '',
+        means_of_verification: '',
+        order_index: rows.length,
+      })}
+      recomputeNumbers={(items) =>
+        items.map((m, i) => ({ id: m.id, updates: { order_index: i, number: i + 1 } }))
+      }
+      reorderToastLabel="Milestones reordered"
+      invalidateGantt
+      autoFitFullWidth
+      tableWidthMode="sum"
+      captionLeftButtons={(api) => {
+        const autoReorder = () => {
+          const sorted = [...api.rows].sort((a, b) => {
+            const monthA = a.due_month ?? 999;
+            const monthB = b.due_month ?? 999;
+            if (monthA !== monthB) return monthA - monthB;
+            const wpA = a.wps ? parseInt(a.wps.split(',')[0].trim()) || 999 : 999;
+            const wpB = b.wps ? parseInt(b.wps.split(',')[0].trim()) || 999 : 999;
+            return wpA - wpB;
+          });
+          api.reorder(sorted);
+        };
+        return (
           <>
-            <CaptionIconButton tooltip="Add milestone" onClick={() => addMilestone.mutate()}>
+            <CaptionIconButton tooltip="Add milestone" onClick={api.add}>
               <Plus className="h-3 w-3" />
             </CaptionIconButton>
             <MilestoneTaskMappingDialog
@@ -1287,254 +976,162 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
               </CaptionIconButton>
             )}
           </>
-        }
-      />
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <B31TableWrapper>
-          <Table className={`${tableStyles} [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b [&_th]:border-black [&_td]:border-x-0 [&_td]:border-y [&_td]:border-gray-200 [&_tr]:border-0 [&_tr:last-child_td]:border-b-0 [&_tbody_tr:first-child_td]:border-t-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto', borderCollapse: 'collapse', width: colWidths.length > 0 ? `${colWidths.reduce((s, w) => s + w, 0)}px` : '100%' }} ref={tableRef}>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead className={`${headerCellStyles} relative`} style={{ ...(colWidths.length > 0 ? { width: Math.max(colWidths[0], 50) } : { width: '50px', whiteSpace: 'nowrap' }) }}>
-                  No.
-                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(0)} />}
-                </TableHead>
-                <TableHead className={`${headerCellStyles} relative`} style={colWidths.length > 0 ? { width: colWidths[1] } : undefined}>
-                  Milestone name
-                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(1)} />}
-                </TableHead>
-                <TableHead className={`${headerCellStyles} relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[2] } : { width: '40px', whiteSpace: 'nowrap' }) }}>
-                  WPs
-                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(2)} />}
-                </TableHead>
-                <TableHead className={`${headerCellStyles} relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[3] } : { width: '40px', whiteSpace: 'nowrap' }) }}>
-                  Due
-                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(3)} />}
-                </TableHead>
-                <TableHead className={`${headerCellStyles} relative`} style={colWidths.length > 0 ? { width: colWidths[4] } : undefined}>
-                  Means of verification
-                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(4)} />}
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <SortableContext items={milestones.map(m => m.id)} strategy={verticalListSortingStrategy}>
-              <TableBody>
-                {milestones.map((ms) => (
-                  <SortableTableRow key={ms.id} id={ms.id} canDrag={isAdminOrOwner} onDelete={() => deleteMilestone.mutate(ms.id)}>
-                    <TableCell className={bubbleCellStyles} style={{ lineHeight: 1.2, whiteSpace: 'nowrap', width: '50px' }}>
-                      <span
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          background: '#000',
-                          color: '#fff',
-                          fontFamily: "'Times New Roman', Times, serif",
-                          fontSize: '11pt',
-                          fontWeight: 700,
-                          lineHeight: '18px',
-                          height: '18px',
-                          padding: '0 4px',
-                          clipPath: 'polygon(12% 0%, 88% 0%, 100% 50%, 88% 100%, 12% 100%, 0% 50%)',
-                          verticalAlign: 'baseline',
-                        }}
-                      >
-                        MS{ms.number}
-                      </span>
-                    </TableCell>
-                    <TableCell className={cellStyles} style={{ lineHeight: 1.2 }}>
-                      <EditableTextInline
-                        value={ms.name}
-                        onChange={(val) => updateMilestone.mutate({ id: ms.id, name: val })}
-                        placeholder="Milestone name"
-                      />
-                    </TableCell>
-                    <TableCell className={bubbleCellStyles}>
-                      <MultiWPSelector
-                        value={ms.wps}
-                        onChange={(val) => updateMilestone.mutate({ id: ms.id, wps: val })}
-                        workPackages={workPackages}
-                      />
-                    </TableCell>
-                    <TableCell className={cellStyles}>
-                      <MonthSelect
-                        value={ms.due_month}
-                        onChange={(val) => updateMilestone.mutate({ id: ms.id, due_month: val })}
-                        projectDuration={projectDuration}
-                      />
-                    </TableCell>
-                    <TableCell className={cellStyles}>
-                      <EditableHtml
-                        value={ms.means_of_verification}
-                        onChange={(val) => updateMilestone.mutate({ id: ms.id, means_of_verification: val })}
-                        placeholder="How will this be verified?"
-                      />
-                    </TableCell>
-                  </SortableTableRow>
-                ))}
-              </TableBody>
-            </SortableContext>
-          </Table>
-        </B31TableWrapper>
-      </DndContext>
-    </div>
+        );
+      }}
+    />
   );
 }
 
 // ========== RISKS TABLE (3.1e) ==========
 export function B31RisksTable({ proposalId }: { proposalId: string }) {
-  const queryClient = useQueryClient();
   const { data: workPackages = [] } = useWorkPackages(proposalId);
   const { isAdminOrOwner } = useUserRole();
-  const { colWidths, setColWidths, tableRef, handleColResizeStart, saveWidths } = useColumnResize({ proposalId, tableKey: 'risks', canResize: isAdminOrOwner });
-  
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  );
 
-  const { data: risks = [], isLoading } = useQuery({
-    queryKey: ['b31-risks', proposalId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('b31_risks')
-        .select('*')
-        .eq('proposal_id', proposalId)
-        .order('order_index');
-      if (error) throw error;
-      return data as Risk[];
+  const columns: B31Column<Risk>[] = [
+    {
+      key: 'risk',
+      header: 'Risk',
+      defaultHeaderStyle: { width: '25%' },
+      cellClassName: cellStyles,
+      renderCell: (risk, updateRow) => (
+        <EditableText
+          value={risk.description}
+          onChange={(val) => updateRow(risk.id, { description: val })}
+          placeholder="Description of risk"
+        />
+      ),
     },
-  });
-
-  const updateRisk = useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<Risk> & { id: string }) => {
-      const { error } = await supabase
-        .from('b31_risks')
-        .update(updates)
-        .eq('id', id);
-      if (error) throw error;
+    {
+      key: 'likelihood',
+      header: 'i.',
+      headerClassName: 'text-center',
+      defaultHeaderStyle: { width: '24px' },
+      cellClassName: `${cellStyles} text-center`,
+      renderCell: (risk, updateRow) => (
+        <Select
+          value={risk.likelihood || ''}
+          onValueChange={(v) => updateRow(risk.id, { likelihood: (v as 'L' | 'M' | 'H') || null })}
+        >
+          <SelectTrigger hideArrow className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex justify-center">
+            <SelectValue>
+              {risk.likelihood ? <RiskBadge level={risk.likelihood} /> : <span className="text-muted-foreground">-</span>}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent className="bg-background z-50">
+            {riskLevelOptions.map(opt => (
+              <SelectItem key={opt.value} value={opt.value}>
+                <div className="flex items-center gap-2">
+                  <RiskBadge level={opt.value as 'L' | 'M' | 'H'} />
+                  <span>{opt.label}</span>
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      ),
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['b31-risks', proposalId] }),
-  });
-
-  const addRisk = useMutation({
-    mutationFn: async () => {
-      const nextNumber = risks.length + 1;
-      const { error } = await supabase
-        .from('b31_risks')
-        .insert({ 
-          proposal_id: proposalId, 
-          number: nextNumber, 
-          description: '', 
-          wps: '', 
-          mitigation: '',
-          order_index: risks.length
-        });
-      if (error) throw error;
+    {
+      key: 'severity',
+      header: 'ii.',
+      headerClassName: 'text-center',
+      defaultHeaderStyle: { width: '24px' },
+      cellClassName: `${cellStyles} text-center`,
+      renderCell: (risk, updateRow) => (
+        <Select
+          value={risk.severity || ''}
+          onValueChange={(v) => updateRow(risk.id, { severity: (v as 'L' | 'M' | 'H') || null })}
+        >
+          <SelectTrigger hideArrow className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex justify-center">
+            <SelectValue>
+              {risk.severity ? <RiskBadge level={risk.severity} /> : <span className="text-muted-foreground">-</span>}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent className="bg-background z-50">
+            {riskLevelOptions.map(opt => (
+              <SelectItem key={opt.value} value={opt.value}>
+                <div className="flex items-center gap-2">
+                  <RiskBadge level={opt.value as 'L' | 'M' | 'H'} />
+                  <span>{opt.label}</span>
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      ),
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['b31-risks', proposalId] }),
-  });
-
-  const deleteRisk = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('b31_risks')
-        .delete()
-        .eq('id', id);
-      if (error) throw error;
+    {
+      key: 'wps',
+      header: 'WPs',
+      defaultHeaderStyle: { width: '84px' },
+      cellClassName: cellStyles,
+      renderCell: (risk, updateRow) => (
+        <MultiWPSelector
+          value={risk.wps}
+          onChange={(val) => updateRow(risk.id, { wps: val })}
+          workPackages={workPackages}
+        />
+      ),
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['b31-risks', proposalId] }),
-  });
-
-  const reorderRisks = useMutation({
-    mutationFn: async (newOrder: Risk[]) => {
-      const updates = newOrder.map((risk, index) => ({
-        id: risk.id,
-        order_index: index,
-        number: index + 1
-      }));
-      
-      for (const update of updates) {
-        const { error } = await supabase
-          .from('b31_risks')
-          .update({ order_index: update.order_index, number: update.number })
-          .eq('id', update.id);
-        if (error) throw error;
-      }
+    {
+      key: 'mitigation',
+      header: 'Mitigation & adaptation measures',
+      cellClassName: cellStyles,
+      renderCell: (risk, updateRow) => (
+        <EditableText
+          value={risk.mitigation}
+          onChange={(val) => updateRow(risk.id, { mitigation: val })}
+          placeholder="Proposed mitigation measures"
+        />
+      ),
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['b31-risks', proposalId] });
-      toast.success('Risks reordered');
-    },
-  });
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-
-    const oldIndex = risks.findIndex((r) => r.id === active.id);
-    const newIndex = risks.findIndex((r) => r.id === over.id);
-    const reordered = arrayMove(risks, oldIndex, newIndex);
-    reorderRisks.mutate(reordered);
-  };
+  ];
 
   const getRiskOrder = (level: string | null): number => {
     const opt = riskLevelOptions.find(o => o.value === level);
-    return opt?.order ?? 3; // null/undefined comes last
+    return opt?.order ?? 3;
   };
-
-  const autoReorder = () => {
-    const sorted = [...risks].sort((a, b) => {
-      // First by likelihood (H=0, M=1, L=2, null=3)
-      const likelihoodA = getRiskOrder(a.likelihood);
-      const likelihoodB = getRiskOrder(b.likelihood);
-      if (likelihoodA !== likelihoodB) return likelihoodA - likelihoodB;
-      // Then by severity
-      const severityA = getRiskOrder(a.severity);
-      const severityB = getRiskOrder(b.severity);
-      return severityA - severityB;
-    });
-    reorderRisks.mutate(sorted);
-  };
-
-  const autoFitColumns = useCallback(() => {
-    const table = tableRef.current;
-    if (!table) return;
-
-    const widths = computeAutoFitSmart(table, { fullWidth: true });
-    if (widths) {
-      setColWidths(widths);
-      saveWidths(widths);
-    }
-  }, [tableRef, setColWidths, saveWidths]);
-
-  useEffect(() => {
-    const handler = (event: Event) => {
-      const detail = (event as CustomEvent<{ tableId?: string }>).detail;
-      if (detail?.tableId !== 'b31-risks') return;
-      autoFitColumns();
-    };
-    window.addEventListener('b31-table-autoresize', handler as EventListener);
-    return () => window.removeEventListener('b31-table-autoresize', handler as EventListener);
-  }, [autoFitColumns]);
-
-  const dispatchToolbarFocus = useCallback(() => {
-    window.dispatchEvent(new CustomEvent('b31-table-focus', {
-      detail: { tableId: 'b31-risks' },
-    }));
-  }, []);
 
   return (
-    <div onFocusCapture={dispatchToolbarFocus}>
-      <EditableCaption
-        proposalId={proposalId}
-        tableKey="table-3.1.e"
-        label="Table 3.1.e."
-        defaultCaption="Critical risks"
-        suffix={<>(<span className="font-bold">i.</span> likelihood; <span className="font-bold">ii.</span> severity; <RiskBadge level="L" /> = low, <RiskBadge level="M" /> = medium, <RiskBadge level="H" /> = high)</>}
-        className="flex items-center gap-1 flex-wrap"
-        leftButtons={
+    <B31SortableTable<Risk>
+      proposalId={proposalId}
+      dbTable="b31_risks"
+      queryKey="b31-risks"
+      columnResizeKey="risks"
+      columns={columns}
+      captionTableKey="table-3.1.e"
+      captionLabel="Table 3.1.e."
+      captionDefaultText="Critical risks"
+      captionSuffix={
+        <>(<span className="font-bold">i.</span> likelihood; <span className="font-bold">ii.</span> severity; <RiskBadge level="L" /> = low, <RiskBadge level="M" /> = medium, <RiskBadge level="H" /> = high)</>
+      }
+      captionClassName="flex items-center gap-1 flex-wrap"
+      createDefaultRow={(rows) => ({
+        number: rows.length + 1,
+        description: '',
+        wps: '',
+        mitigation: '',
+        order_index: rows.length,
+      })}
+      recomputeNumbers={(items) =>
+        items.map((r, i) => ({ id: r.id, updates: { order_index: i, number: i + 1 } }))
+      }
+      reorderToastLabel="Risks reordered"
+      tableWidthMode="maxFull"
+      captionLeftButtons={(api) => {
+        const autoReorder = () => {
+          const sorted = [...api.rows].sort((a, b) => {
+            const likelihoodA = getRiskOrder(a.likelihood);
+            const likelihoodB = getRiskOrder(b.likelihood);
+            if (likelihoodA !== likelihoodB) return likelihoodA - likelihoodB;
+            const severityA = getRiskOrder(a.severity);
+            const severityB = getRiskOrder(b.severity);
+            return severityA - severityB;
+          });
+          api.reorder(sorted);
+        };
+        return (
           <>
-            <CaptionIconButton tooltip="Add risk" onClick={() => addRisk.mutate()}>
+            <CaptionIconButton tooltip="Add risk" onClick={api.add}>
               <Plus className="h-3 w-3" />
             </CaptionIconButton>
             {isAdminOrOwner && (
@@ -1543,108 +1140,9 @@ export function B31RisksTable({ proposalId }: { proposalId: string }) {
               </CaptionIconButton>
             )}
           </>
-        }
-      />
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <B31TableWrapper>
-          <Table className={`${tableStyles} [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b [&_th]:border-black [&_td]:border-x-0 [&_td]:border-y [&_td]:border-gray-200 [&_tr]:border-0 [&_tr:last-child_td]:border-b-0 [&_tbody_tr:first-child_td]:border-t-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto', borderCollapse: 'collapse', width: colWidths.length > 0 ? `max(${colWidths.reduce((s, w) => s + w, 0)}px, 100%)` : '100%' }} ref={tableRef}>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead className={`${headerCellStyles} relative`} style={colWidths.length > 0 ? { width: colWidths[0] } : { width: '25%' }}>
-                  Risk
-                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(0)} />}
-                </TableHead>
-                <TableHead className={`${headerCellStyles} relative text-center`} style={colWidths.length > 0 ? { width: colWidths[1] } : { width: '24px' }}>
-                  i.
-                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(1)} />}
-                </TableHead>
-                <TableHead className={`${headerCellStyles} relative text-center`} style={colWidths.length > 0 ? { width: colWidths[2] } : { width: '24px' }}>
-                  ii.
-                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(2)} />}
-                </TableHead>
-                <TableHead className={`${headerCellStyles} relative`} style={colWidths.length > 0 ? { width: colWidths[3] } : { width: '84px' }}>
-                  WPs
-                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(3)} />}
-                </TableHead>
-                <TableHead className={`${headerCellStyles} relative`} style={colWidths.length > 0 ? { width: colWidths[4] } : undefined}>
-                  Mitigation &amp; adaptation measures
-                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(4)} />}
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <SortableContext items={risks.map(r => r.id)} strategy={verticalListSortingStrategy}>
-              <TableBody>
-                {risks.map((risk) => (
-                  <SortableTableRow key={risk.id} id={risk.id} canDrag={isAdminOrOwner} onDelete={() => deleteRisk.mutate(risk.id)}>
-                    <TableCell className={cellStyles}>
-                      <EditableText
-                        value={risk.description}
-                        onChange={(val) => updateRisk.mutate({ id: risk.id, description: val })}
-                        placeholder="Description of risk"
-                      />
-                    </TableCell>
-                    {/* Likelihood (i) column */}
-                    <TableCell className={`${cellStyles} text-center`}>
-                      <Select value={risk.likelihood || ''} onValueChange={(v) => updateRisk.mutate({ id: risk.id, likelihood: v as 'L' | 'M' | 'H' || null })}>
-                        <SelectTrigger hideArrow className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex justify-center">
-                          <SelectValue>
-                            {risk.likelihood ? <RiskBadge level={risk.likelihood} /> : <span className="text-muted-foreground">-</span>}
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent className="bg-background z-50">
-                          {riskLevelOptions.map(opt => (
-                            <SelectItem key={opt.value} value={opt.value}>
-                              <div className="flex items-center gap-2">
-                                <RiskBadge level={opt.value as 'L' | 'M' | 'H'} />
-                                <span>{opt.label}</span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    {/* Severity (ii) column */}
-                    <TableCell className={`${cellStyles} text-center`}>
-                      <Select value={risk.severity || ''} onValueChange={(v) => updateRisk.mutate({ id: risk.id, severity: v as 'L' | 'M' | 'H' || null })}>
-                        <SelectTrigger hideArrow className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex justify-center">
-                          <SelectValue>
-                            {risk.severity ? <RiskBadge level={risk.severity} /> : <span className="text-muted-foreground">-</span>}
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent className="bg-background z-50">
-                          {riskLevelOptions.map(opt => (
-                            <SelectItem key={opt.value} value={opt.value}>
-                              <div className="flex items-center gap-2">
-                                <RiskBadge level={opt.value as 'L' | 'M' | 'H'} />
-                                <span>{opt.label}</span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell className={cellStyles}>
-                      <MultiWPSelector
-                        value={risk.wps}
-                        onChange={(val) => updateRisk.mutate({ id: risk.id, wps: val })}
-                        workPackages={workPackages}
-                      />
-                    </TableCell>
-                    <TableCell className={cellStyles}>
-                      <EditableText
-                        value={risk.mitigation}
-                        onChange={(val) => updateRisk.mutate({ id: risk.id, mitigation: val })}
-                        placeholder="Proposed mitigation measures"
-                      />
-                    </TableCell>
-                  </SortableTableRow>
-                ))}
-              </TableBody>
-            </SortableContext>
-          </Table>
-        </B31TableWrapper>
-      </DndContext>
-    </div>
+        );
+      }}
+    />
   );
 }
 
