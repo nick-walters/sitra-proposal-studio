@@ -253,20 +253,12 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
           <div className="flex-1 overflow-y-auto -mx-6 px-6">
             {/* WP header bubble */}
             <div className="mb-3">
-              <span
-                className="inline-flex items-center rounded-full font-bold text-white whitespace-nowrap"
-                style={{
-                  backgroundColor: currentWp.color || getDefaultWPColor(currentWp.number),
-                  fontFamily: "'Times New Roman', Times, serif",
-                  fontSize: '11pt',
-                  fontWeight: 700,
-                  lineHeight: 1,
-                  padding: '0px 6px',
-                  height: '20px',
-                }}
+              <WPBubble
+                wpColor={currentWp.color || getDefaultWPColor(currentWp.number)}
+                style={{ padding: '0px 6px', height: '20px' }}
               >
                 WP{currentWp.number}{currentWp.short_name ? `: ${currentWp.short_name}` : ''}{currentWp.title ? ` – ${currentWp.title}` : ''}
-              </span>
+              </WPBubble>
             </div>
 
             <div className="space-y-4 pb-2">
