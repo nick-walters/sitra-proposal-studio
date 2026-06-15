@@ -306,13 +306,34 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
   // Dialog states for editor features
   const [isCitationOpen, setIsCitationOpen] = useState(false);
   const [isCrossRefOpen, setIsCrossRefOpen] = useState(false);
+  const [crossRefFilterType, setCrossRefFilterType] = useState<'figure' | 'table' | undefined>(undefined);
   const [isWPRefOpen, setIsWPRefOpen] = useState(false);
   const [isParticipantRefOpen, setIsParticipantRefOpen] = useState(false);
   const [isFigureDialogOpen, setIsFigureDialogOpen] = useState(false);
   const [isTaskRefOpen, setIsTaskRefOpen] = useState(false);
   const [isDeliverableRefOpen, setIsDeliverableRefOpen] = useState(false);
+  const [isMilestoneRefOpen, setIsMilestoneRefOpen] = useState(false);
+  const [isCaseRefOpen, setIsCaseRefOpen] = useState(false);
   const [figures, setFigures] = useState<any[]>([]);
   const [wpDrafts, setWpDrafts] = useState<any[]>([]);
+
+  // Fetch proposal acronym segments + has-cases for dropdown
+  const { data: proposalMeta } = useQuery({
+    queryKey: ['wp-draft-proposal-meta', proposalId],
+    queryFn: async () => {
+      const [{ data: proposal }, { count }] = await Promise.all([
+        supabase.from('proposals').select('acronym_segments').eq('id', proposalId).maybeSingle(),
+        supabase.from('case_drafts').select('id', { count: 'exact', head: true }).eq('proposal_id', proposalId),
+      ]);
+      return {
+        acronymSegments: (proposal?.acronym_segments as { text: string; color: string }[] | null) || [],
+        hasCases: (count || 0) > 0,
+      };
+    },
+    enabled: !!proposalId,
+  });
+  const acronymSegments = proposalMeta?.acronymSegments || [];
+  const hasCases = !!proposalMeta?.hasCases;
 
   // Save the selection range before opening dialogs so we can restore it when inserting
   const savedRangeRef = useRef<Range | null>(null);
