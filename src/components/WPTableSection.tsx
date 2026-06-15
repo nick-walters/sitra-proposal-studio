@@ -240,26 +240,7 @@ function SortableTaskCard({
     opacity: isDragging ? 0.5 : 1,
   };
 
-  const [localTitle, setLocalTitle] = useState(task.title || '');
-  const [titleTimeout, setTitleTimeout] = useState<NodeJS.Timeout | null>(null);
   const [descriptionTimeout, setDescriptionTimeout] = useState<NodeJS.Timeout | null>(null);
-  const isFocused = useRef(false);
-
-  useEffect(() => {
-    if (!isFocused.current) setLocalTitle(task.title || '');
-  }, [task.title]);
-
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setLocalTitle(newValue);
-
-    if (titleTimeout) clearTimeout(titleTimeout);
-    
-    const timeout = setTimeout(() => {
-      onUpdate(task.id, { title: newValue });
-    }, 500);
-    setTitleTimeout(timeout);
-  };
 
   const handleDescriptionChange = (value: string) => {
     if (descriptionTimeout) clearTimeout(descriptionTimeout);
@@ -269,6 +250,7 @@ function SortableTaskCard({
     }, 500);
     setDescriptionTimeout(timeout);
   };
+
 
   const selectedParticipantIds = (task.participants?.map(p => p.participant_id) || []).filter(id => id !== task.lead_participant_id);
   const availableParticipants = task.lead_participant_id ? participants.filter(p => p.id !== task.lead_participant_id) : participants;
