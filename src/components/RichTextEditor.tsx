@@ -342,50 +342,6 @@ function normalizePartBLoadedContent(html: string) {
   return div.innerHTML;
 }
 
-// Table size selector grid
-function TableSizeSelector({ onSelect }: { onSelect: (rows: number, cols: number) => void }) {
-  const [hoveredRows, setHoveredRows] = useState(0);
-  const [hoveredCols, setHoveredCols] = useState(0);
-  const maxRows = 8;
-  const maxCols = 8;
-
-  return (
-    <div className="p-2">
-      <div className="text-xs text-muted-foreground mb-2 text-center">
-        {hoveredRows > 0 && hoveredCols > 0 
-          ? `${hoveredRows} × ${hoveredCols} table` 
-          : 'Select table size'}
-      </div>
-      <div 
-        className="grid gap-0.5"
-        style={{ gridTemplateColumns: `repeat(${maxCols}, 1fr)` }}
-        onMouseLeave={() => { setHoveredRows(0); setHoveredCols(0); }}
-      >
-        {Array.from({ length: maxRows * maxCols }).map((_, index) => {
-          const row = Math.floor(index / maxCols) + 1;
-          const col = (index % maxCols) + 1;
-          const isHighlighted = row <= hoveredRows && col <= hoveredCols;
-          const isHeaderRow = row === 1 && isHighlighted;
-          
-          return (
-            <button
-              key={index}
-              className={`w-4 h-4 border rounded-sm transition-colors ${
-                isHeaderRow
-                  ? 'bg-foreground border-foreground'
-                  : isHighlighted 
-                    ? 'bg-primary/40 border-primary/60'
-                    : 'bg-muted border-border hover:border-primary/50'
-              }`}
-              onMouseEnter={() => { setHoveredRows(row); setHoveredCols(col); }}
-              onClick={() => onSelect(row, col)}
-            />
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 // ── Text Color Picker ───────────────────────────────────────────────────
 const PRESET_COLORS = [
