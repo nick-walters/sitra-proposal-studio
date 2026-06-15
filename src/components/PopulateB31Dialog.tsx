@@ -20,6 +20,7 @@ import {
   type WPDraftForPopulate,
   type PopulateSelections,
 } from '@/lib/b31Population';
+import { WPBubble } from '@/components/B31Pill';
 
 interface PopulateB31DialogProps {
   open: boolean;
