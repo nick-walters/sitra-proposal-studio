@@ -179,16 +179,17 @@ function ParticipantCard({
               <span className="font-bold text-primary text-xs">{participant.participantNumber}</span>
             </div>
             {canEdit ? (
-              <Input
-                value={shortName}
-                onChange={handleChange(setShortName)}
+              <DebouncedInput
+                value={participant.organisationShortName || ''}
+                onDebouncedChange={(val) => saveField({ organisationShortName: val || undefined })}
+                debounceMs={1000}
                 placeholder="Short"
                 className="h-7 text-sm font-bold px-1.5"
               />
             ) : (
-              shortName ? (
+              participant.organisationShortName ? (
                 <ParticipantBubble style={{ fontSize: '12px', height: 'auto', padding: '1.5px 8px' }}>
-                  {shortName}
+                  {participant.organisationShortName}
                 </ParticipantBubble>
               ) : (
                 <span className="text-muted-foreground text-sm">—</span>
@@ -200,15 +201,17 @@ function ParticipantCard({
           <div className="flex-1 min-w-0 space-y-1">
             {canEdit ? (
               <>
-                <Input
-                  value={legalName}
-                  onChange={handleChange(setLegalName)}
+                <DebouncedInput
+                  value={participant.organisationName || ''}
+                  onDebouncedChange={(val) => saveField({ organisationName: val })}
+                  debounceMs={1000}
                   placeholder="Legal name"
                   className="h-7 text-sm px-1.5"
                 />
-                <Input
-                  value={englishName}
-                  onChange={handleChange(setEnglishName)}
+                <DebouncedInput
+                  value={participant.englishName || ''}
+                  onDebouncedChange={(val) => saveField({ englishName: val || undefined })}
+                  debounceMs={1000}
                   placeholder="English name (if different)"
                   className="h-7 text-sm px-1.5 italic text-muted-foreground"
                 />
@@ -216,13 +219,13 @@ function ParticipantCard({
             ) : (
               <>
                 <div className="text-sm truncate">
-                  {legalName || 'Unnamed Organisation'}
+                  {participant.organisationName || 'Unnamed Organisation'}
                 </div>
-                {englishName && 
-                 englishName.trim() && 
-                 englishName.trim().toLowerCase() !== legalName.trim().toLowerCase() && (
+                {participant.englishName &&
+                 participant.englishName.trim() &&
+                 participant.englishName.trim().toLowerCase() !== (participant.organisationName || '').trim().toLowerCase() && (
                   <div className="text-sm text-muted-foreground italic truncate">
-                    {englishName}
+                    {participant.englishName}
                   </div>
                 )}
               </>
