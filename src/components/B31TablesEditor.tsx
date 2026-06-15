@@ -386,7 +386,7 @@ function SingleWPSelector({
     >
       <SelectTrigger hideArrow className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex items-center overflow-visible">
         <SelectValue placeholder="-">
-          {selectedWP ? <WPBubble wp={selectedWP} /> : <span className="font-['Times_New_Roman',Times,serif] text-[11pt]">-</span>}
+          {selectedWP ? <WPBubble wpNumber={selectedWP.number} wpColor={selectedWP.color || '#666'} style={{ position: 'relative', top: '-1px' }} /> : <span className="font-['Times_New_Roman',Times,serif] text-[11pt]">-</span>}
         </SelectValue>
       </SelectTrigger>
       <SelectContent className="bg-background z-50">
