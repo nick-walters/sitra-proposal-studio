@@ -613,7 +613,7 @@ function SectionItem({
                               lineHeight: '1.1',
                             }}
                           >
-                            {caseSub.title}
+                            {caseSub.number}
                           </B31Pill>
                         )}
                       </TooltipTrigger>
