@@ -801,96 +801,51 @@ export function FormattingToolbar({
         <Separator orientation="vertical" className="h-5 mx-1.5" />
 
         {/* Subheading dropdown */}
-        <DropdownMenu>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant={editor.isActive('heading', { level: 3 }) || (editor.isActive('bold') && editor.isActive('underline')) ? "secondary" : "ghost"}
-                  size="sm"
-                  className="h-7 px-2 text-xs gap-1"
-                >
-                  <span className="font-black underline">Subheading</span>
-                  <ChevronDown className="w-3 h-3" />
-                </Button>
-              </DropdownMenuTrigger>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">
-              Insert subheading
-            </TooltipContent>
-          </Tooltip>
-          <DropdownMenuContent align="start" className="w-64">
-            {showSubheadingBodyItem && (
-              <>
-                <DropdownMenuItem onClick={() => {
-                  const chain = editor.chain().focus();
-                  if (editor.isActive('heading', { level: 1 })) chain.toggleHeading({ level: 1 });
-                  else if (editor.isActive('heading', { level: 2 })) chain.toggleHeading({ level: 2 });
-                  else if (editor.isActive('heading', { level: 3 })) chain.toggleHeading({ level: 3 });
-                  if (editor.isActive('bold')) chain.toggleBold();
-                  if (editor.isActive('underline')) chain.toggleUnderline();
-                  chain.run();
-                }}>
-                  <span className="text-sm">Body</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-              </>
-            )}
-            <DropdownMenuItem onClick={() => {
-              const cleanNum = subheadingPrefix ?? (sectionNumber ? sectionNumber.replace(/^[A-Za-z]+/, '') : '1.1');
-              // Use a temporary placeholder number; renumber will fix it
-              const placeholder = `${cleanNum}.0. `;
-              editor.chain().focus().toggleHeading({ level: 3 }).run();
-              if (editor.isActive('heading', { level: 3 })) {
-                const $from = editor.state.selection.$from;
-                const startOfNode = $from.start();
-                const currentText = $from.parent.textContent;
-                // Only add prefix if there isn't already a numbered prefix
-                const hasPrefix = /^\d+\.\d+\.\d+\.\s/.test(currentText);
-                if (!hasPrefix) {
-                  editor.chain().focus().insertContentAt(startOfNode, placeholder).run();
+        {(() => {
+          const cleanNum = subheadingPrefix ?? (sectionNumber ? sectionNumber.replace(/^[A-Za-z]+/, '') : '1.1');
+          return (
+            <SubheadingDropdown
+              isActive={editor.isActive('heading', { level: 3 }) || (editor.isActive('bold') && editor.isActive('underline'))}
+              numberedLabel={`${cleanNum}.1. Numbered subheading`}
+              onBody={showSubheadingBodyItem ? () => {
+                const chain = editor.chain().focus();
+                if (editor.isActive('heading', { level: 1 })) chain.toggleHeading({ level: 1 });
+                else if (editor.isActive('heading', { level: 2 })) chain.toggleHeading({ level: 2 });
+                else if (editor.isActive('heading', { level: 3 })) chain.toggleHeading({ level: 3 });
+                if (editor.isActive('bold')) chain.toggleBold();
+                if (editor.isActive('underline')) chain.toggleUnderline();
+                chain.run();
+              } : undefined}
+              onNumbered={() => {
+                const placeholder = `${cleanNum}.0. `;
+                editor.chain().focus().toggleHeading({ level: 3 }).run();
+                if (editor.isActive('heading', { level: 3 })) {
+                  const $from = editor.state.selection.$from;
+                  const startOfNode = $from.start();
+                  const currentText = $from.parent.textContent;
+                  const hasPrefix = /^\d+\.\d+\.\d+\.\s/.test(currentText);
+                  if (!hasPrefix) {
+                    editor.chain().focus().insertContentAt(startOfNode, placeholder).run();
+                  }
+                  renumberH3Headings(editor, cleanNum);
                 }
-                // Renumber all H3s by position
-                renumberH3Headings(editor, cleanNum);
-              }
-            }}>
-              <span className="text-sm font-semibold underline">{(subheadingPrefix ?? (sectionNumber ? sectionNumber.replace(/^[A-Za-z]+/, '') : '1.1'))}.1. Numbered subheading</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              // Unnumbered subheading (bold + underline inline style)
-              editor.chain().focus().toggleBold().run();
-              editor.chain().focus().toggleUnderline().run();
-            }}>
-              <span className="text-sm font-bold underline">Unnumbered subheading</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant={editor.isActive('bold') ? "secondary" : "ghost"}
-              size="icon"
-              className="h-7 w-7"
-              onClick={() => editor.chain().focus().toggleBold().run()}
-            >
-              <span className="font-black text-sm">B</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" className="text-xs">
-            Bold (Ctrl+B)
-          </TooltipContent>
-        </Tooltip>
-        <ToolbarButton
-          icon={<Italic className="w-3.5 h-3.5" />} 
-          label="Italic (Ctrl+I)"
-          onClick={() => editor.chain().focus().toggleItalic().run()}
-          isActive={editor.isActive('italic')}
-        />
-        <ToolbarButton 
-          icon={<UnderlineIcon className="w-4 h-4" />} 
-          label="Underline (Ctrl+U)"
-          onClick={() => editor.chain().focus().toggleUnderline().run()}
-          isActive={editor.isActive('underline')}
+              }}
+              onUnnumbered={() => {
+                editor.chain().focus().toggleBold().run();
+                editor.chain().focus().toggleUnderline().run();
+              }}
+            />
+          );
+        })()}
+
+        {/* Bold / Italic / Underline */}
+        <TextFormattingGroup
+          onBold={() => editor.chain().focus().toggleBold().run()}
+          onItalic={() => editor.chain().focus().toggleItalic().run()}
+          onUnderline={() => editor.chain().focus().toggleUnderline().run()}
+          isBoldActive={editor.isActive('bold')}
+          isItalicActive={editor.isActive('italic')}
+          isUnderlineActive={editor.isActive('underline')}
         />
 
         {/* Link (standalone) */}
@@ -923,58 +878,24 @@ export function FormattingToolbar({
         <Separator orientation="vertical" className="h-5 mx-1.5" />
 
         {/* Left Centre Right Justify */}
-        <ToolbarButton 
-          icon={<AlignLeft className="w-4 h-4" />} 
-          label="Align left"
-          onClick={() => {
+        <AlignmentGroup
+          disabled={isAlignDisabled}
+          activeAlignment={
+            editor.isActive({ textAlign: 'left' }) ? 'left'
+              : editor.isActive({ textAlign: 'center' }) ? 'center'
+              : editor.isActive({ textAlign: 'right' }) ? 'right'
+              : editor.isActive({ textAlign: 'justify' }) ? 'justify'
+              : undefined
+          }
+          onAlign={(a: Alignment) => {
             const s = (editor.storage as any).trackChanges;
             const was = s?.enabled;
             if (s) s.enabled = false;
-            editor.chain().focus().setTextAlign('left').run();
+            editor.chain().focus().setTextAlign(a).run();
             if (s) s.enabled = was;
           }}
-          isActive={!isAlignDisabled && editor.isActive({ textAlign: 'left' })}
-          disabled={isAlignDisabled}
         />
-        <ToolbarButton 
-          icon={<AlignCenter className="w-4 h-4" />} 
-          label="Align center"
-          onClick={() => {
-            const s = (editor.storage as any).trackChanges;
-            const was = s?.enabled;
-            if (s) s.enabled = false;
-            editor.chain().focus().setTextAlign('center').run();
-            if (s) s.enabled = was;
-          }}
-          isActive={!isAlignDisabled && editor.isActive({ textAlign: 'center' })}
-          disabled={isAlignDisabled}
-        />
-        <ToolbarButton 
-          icon={<AlignRight className="w-4 h-4" />} 
-          label="Align right"
-          onClick={() => {
-            const s = (editor.storage as any).trackChanges;
-            const was = s?.enabled;
-            if (s) s.enabled = false;
-            editor.chain().focus().setTextAlign('right').run();
-            if (s) s.enabled = was;
-          }}
-          isActive={!isAlignDisabled && editor.isActive({ textAlign: 'right' })}
-          disabled={isAlignDisabled}
-        />
-        <ToolbarButton 
-          icon={<AlignJustify className="w-4 h-4" />} 
-          label="Justify"
-          onClick={() => {
-            const s = (editor.storage as any).trackChanges;
-            const was = s?.enabled;
-            if (s) s.enabled = false;
-            editor.chain().focus().setTextAlign('justify').run();
-            if (s) s.enabled = was;
-          }}
-          isActive={!isAlignDisabled && editor.isActive({ textAlign: 'justify' })}
-          disabled={isAlignDisabled}
-        />
+
 
         {showParagraphSpacing && <ParagraphSpacingPopover editor={editor} disabled={isAlignDisabled} />}
 
