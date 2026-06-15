@@ -158,12 +158,13 @@ export function RiskBadge({
     L: '#22c55e',
   };
   const color = level ? colorMap[level] || '#9ca3af' : '#9ca3af';
+  const { style: extraStyle, ...restNoStyle } = rest;
   return (
     <B31Pill
       variant="outline"
       color={color}
-      style={{ width: '19px', height: '17px', padding: 0, ...rest.style }}
-      {...rest}
+      {...restNoStyle}
+      style={{ width: '19px', height: '17px', padding: 0, ...extraStyle }}
     >
       {level || '–'}
     </B31Pill>
