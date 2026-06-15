@@ -15,6 +15,7 @@ import { CitationDialog } from '@/components/CitationDialog';
 import { InsertCrossReferenceDialog } from '@/components/InsertCrossReferenceDialog';
 import { InsertWPReferenceDialog } from '@/components/InsertWPReferenceDialog';
 import { InsertParticipantReferenceDialog } from '@/components/InsertParticipantReferenceDialog';
+import { InsertCaseReferenceDialog } from '@/components/InsertCaseReferenceDialog';
 import { InsertFigureDialog } from '@/components/InsertFigureDialog';
 import { InsertTDMSReferenceDropdowns } from '@/components/InsertTDMSReferenceDropdowns';
 import { useProposalReferences } from '@/hooks/useProposalReferences';
@@ -33,7 +34,7 @@ import { Separator } from '@/components/ui/separator';
 import { 
   BookOpen, Lightbulb, Bold, Italic, Underline, List, ListOrdered, 
   AlignLeft, AlignCenter, AlignRight, AlignJustify, FileText, Link2, 
-  Layers, Building2, Table2, ImageIcon, ChevronDown, Undo2, Redo2, Crown, ChevronsUpDown, Check, Lock
+  Layers, Building2, Table2, ImageIcon, Image as ImageLucide, ChevronDown, Undo2, Redo2, Crown, ChevronsUpDown, Check, Lock
 } from 'lucide-react';
 import {
   DropdownMenu,
