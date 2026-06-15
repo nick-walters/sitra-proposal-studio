@@ -38,6 +38,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { ParticipantBubble } from '@/components/B31Pill';
 import { Participant, BudgetType } from '@/types/proposal';
 import { BudgetItem, BudgetChange } from '@/hooks/useBudget';
 import { BudgetChangeHistory } from './BudgetChangeHistory';
