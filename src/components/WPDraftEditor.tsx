@@ -1297,10 +1297,24 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
       {/* Cross-reference Dialog */}
       <InsertCrossReferenceDialog
         isOpen={isCrossRefOpen}
-        onClose={() => setIsCrossRefOpen(false)}
+        onClose={() => { setIsCrossRefOpen(false); setCrossRefFilterType(undefined); }}
         proposalId={proposalId}
         sectionNumber=""
         onInsert={insertCrossRefAtCursor}
+        filterType={crossRefFilterType}
+      />
+
+      {/* Case Reference Dialog */}
+      <InsertCaseReferenceDialog
+        open={isCaseRefOpen}
+        onOpenChange={setIsCaseRefOpen}
+        proposalId={proposalId}
+        onSelect={(caseItem) => {
+          setIsCaseRefOpen(false);
+          setTimeout(() => {
+            insertCaseRefAtCursor(caseItem);
+          }, 100);
+        }}
       />
       
       {/* WP Reference Dialog */}
