@@ -757,6 +757,49 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
           );
         })}
       </div>
+
+      {/* Cross-reference dialogs */}
+      <InsertCrossReferenceDialog
+        isOpen={isCrossRefOpen}
+        onClose={() => { setIsCrossRefOpen(false); setCrossRefFilterType(undefined); }}
+        proposalId={proposalId}
+        sectionNumber=""
+        onInsert={insertCrossRefAtCursor}
+        filterType={crossRefFilterType}
+      />
+      <InsertWPReferenceDialog
+        open={isWPRefOpen}
+        onOpenChange={setIsWPRefOpen}
+        proposalId={proposalId}
+        onSelect={(wp) => {
+          setIsWPRefOpen(false);
+          setTimeout(() => {
+            insertWPRefAtCursor(wp.number, wp.short_name || '', wp.color || '#3b82f6', wp.id);
+          }, 100);
+        }}
+      />
+      <InsertParticipantReferenceDialog
+        open={isParticipantRefOpen}
+        onOpenChange={setIsParticipantRefOpen}
+        proposalId={proposalId}
+        onSelect={(participant) => {
+          setIsParticipantRefOpen(false);
+          setTimeout(() => {
+            insertParticipantRefAtCursor(participant.participantNumber, participant.shortName, participant.id);
+          }, 100);
+        }}
+      />
+      <InsertCaseReferenceDialog
+        open={isCaseRefOpen}
+        onOpenChange={setIsCaseRefOpen}
+        proposalId={proposalId}
+        onSelect={(caseItem) => {
+          setIsCaseRefOpen(false);
+          setTimeout(() => {
+            insertCaseRefAtCursor(caseItem);
+          }, 100);
+        }}
+      />
     </ScrollArea>
   );
 }
