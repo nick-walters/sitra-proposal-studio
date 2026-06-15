@@ -60,7 +60,7 @@ export function InsertParticipantReferenceDialog({
     onSelect({
       id: participant.id,
       participantNumber: participant.participant_number,
-      shortName: `${participant.participant_number}. ${baseName}`,
+      shortName: baseName,
     });
     onOpenChange(false);
   };
