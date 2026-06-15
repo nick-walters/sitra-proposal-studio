@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import type { WPDraftDeliverable } from '@/hooks/useWPDrafts';
 import type { ParticipantSummary } from '@/types/proposal';
+import { ParticipantBubble } from '@/components/B31Pill';
 import {
   DndContext,
   closestCenter,
