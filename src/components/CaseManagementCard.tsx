@@ -28,6 +28,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { ParticipantBubble } from '@/components/B31Pill';
 import {
   Select,
   SelectContent,
