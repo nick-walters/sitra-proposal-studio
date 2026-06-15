@@ -134,202 +134,144 @@ const disseminationLevels = [
   { value: 'EU-SEC', label: 'EU Secret' },
 ];
 
-// Editable div that renders HTML content (e.g. WP reference spans) and saves as HTML
-function EditableHtml({
-  value,
-  onChange,
-  placeholder,
-}: {
+// Unified inline-editable cell. Replaces EditableHtml / EditableText / EditableTextInline.
+// - format='html' reads/writes innerHTML (preserves embedded chips); 'text' uses textContent.
+// - as='div' is a block cell with pre-wrap; as='span' flows inline.
+// - inheritFont skips the Times New Roman 11pt override (used inside styled chips).
+// - 500ms debounce on input; blur flushes pending edit only if value changed since last write.
+// - Prop value re-syncs only when not focused AND value differs from lastValueRef.
+interface EditableCellProps {
   value: string;
-  onChange: (val: string) => void;
+  onChange: (value: string) => void;
   placeholder?: string;
-}) {
-  const divRef = useRef<HTMLDivElement>(null);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isFocused = useRef(false);
-  const lastValueRef = useRef(value);
-
-  useEffect(() => {
-    if (divRef.current) {
-      divRef.current.innerHTML = value || '';
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    if (!isFocused.current && divRef.current && value !== lastValueRef.current) {
-      divRef.current.innerHTML = value || '';
-      lastValueRef.current = value;
-    }
-  }, [value]);
-
-  useEffect(() => {
-    return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); };
-  }, []);
-
-  const handleInput = () => {
-    const html = divRef.current?.innerHTML || '';
-    lastValueRef.current = html;
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(() => { onChange(html); }, 500);
-  };
-
-  return (
-    <div
-      ref={divRef}
-      contentEditable
-      suppressContentEditableWarning
-      onInput={handleInput}
-      onFocus={() => { isFocused.current = true; }}
-      onBlur={() => {
-        isFocused.current = false;
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current);
-          timeoutRef.current = null;
-          const html = divRef.current?.innerHTML || '';
-          if (html !== lastValueRef.current) onChange(html);
-        }
-      }}
-      data-placeholder={placeholder}
-      className="bg-transparent border-0 p-0 m-0 resize-none focus:outline-none focus:ring-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight w-full empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground"
-      style={{ minHeight: '1em', lineHeight: '1.2' }}
-    />
-  );
-}
-
-// Inline editable text that expands to multiple lines
-function EditableText({
-  value,
-  onChange,
-  placeholder,
-  className = '',
-}: {
-  value: string;
-  onChange: (val: string) => void;
-  placeholder?: string;
+  /** 'html' preserves innerHTML (for rich content like WP chips). 'text' uses textContent. Default: 'text' */
+  format?: 'html' | 'text';
+  /** 'div' for block-level cells, 'span' for inline. Default: 'div' */
+  as?: 'div' | 'span';
+  /** Pass through extra className */
   className?: string;
-  inline?: boolean;
-}) {
-  const divRef = useRef<HTMLDivElement>(null);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isFocused = useRef(false);
-
-  useEffect(() => {
-    if (!isFocused.current && divRef.current) {
-      divRef.current.textContent = value || '';
-    }
-  }, [value]);
-
-  const handleInput = useCallback(() => {
-    const text = divRef.current?.textContent || '';
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(() => {
-      onChange(text);
-    }, 500);
-  }, [onChange]);
-
-  const flushAndBlur = useCallback(() => {
-    isFocused.current = false;
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
-    const text = divRef.current?.textContent || '';
-    onChange(text);
-  }, [onChange]);
-
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    };
-  }, []);
-
-  return (
-    <div
-      ref={divRef}
-      contentEditable
-      suppressContentEditableWarning
-      onInput={handleInput}
-      onFocus={() => { isFocused.current = true; }}
-      onBlur={flushAndBlur}
-      data-placeholder={placeholder}
-      className={`bg-transparent focus:outline-none font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight w-full empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground empty:before:pointer-events-none ${className}`}
-      style={{
-        minHeight: '1em',
-        lineHeight: '1.2',
-        whiteSpace: 'pre-wrap',
-        wordBreak: 'break-word',
-      }}
-    />
-  );
+  /** Inherit font from parent instead of applying Times New Roman 11pt */
+  inheritFont?: boolean;
 }
 
-// Inline editable text using contenteditable for true inline flow
-function EditableTextInline({
+function EditableCell({
   value,
   onChange,
   placeholder,
+  format = 'text',
+  as = 'div',
+  className = '',
   inheritFont = false,
-}: {
-  value: string;
-  onChange: (val: string) => void;
-  placeholder?: string;
-  inheritFont?: boolean;
-}) {
-  const spanRef = useRef<HTMLSpanElement>(null);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+}: EditableCellProps) {
+  const elRef = useRef<HTMLElement | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isFocused = useRef(false);
   const lastValueRef = useRef(value);
 
+  const readValue = useCallback((): string => {
+    const el = elRef.current;
+    if (!el) return '';
+    return format === 'html' ? el.innerHTML : (el.textContent || '');
+  }, [format]);
+
+  const writeValue = useCallback((val: string) => {
+    const el = elRef.current;
+    if (!el) return;
+    if (format === 'html') el.innerHTML = val || '';
+    else el.textContent = val || '';
+  }, [format]);
+
+  // Mount: seed contents once.
   useEffect(() => {
-    if (spanRef.current) {
-      spanRef.current.textContent = value || '';
-    }
+    writeValue(value);
     lastValueRef.current = value;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Re-sync from prop updates only when not focused and value diverged from last write.
   useEffect(() => {
-    if (!isFocused.current && spanRef.current && value !== lastValueRef.current) {
-      spanRef.current.textContent = value || '';
+    if (!isFocused.current && elRef.current && value !== lastValueRef.current) {
+      writeValue(value);
       lastValueRef.current = value;
     }
-  }, [value]);
+  }, [value, writeValue]);
 
-  const handleInput = () => {
-    const newValue = spanRef.current?.textContent || '';
-    lastValueRef.current = newValue;
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(() => {
-      onChange(newValue);
-    }, 500);
-  };
-
+  // Cleanup pending debounce on unmount.
   useEffect(() => {
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, []);
 
+  const handleInput = () => {
+    const next = readValue();
+    lastValueRef.current = next;
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => {
+      onChange(next);
+    }, 500);
+  };
+
+  const handleFocus = () => {
+    isFocused.current = true;
+  };
+
+  const handleBlur = () => {
+    isFocused.current = false;
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+      const current = readValue();
+      if (current !== lastValueRef.current) {
+        lastValueRef.current = current;
+        onChange(current);
+      } else {
+        // Pending debounce existed; flush latest in case it differed from last write.
+        onChange(current);
+      }
+    }
+  };
+
+  const fontClasses = inheritFont
+    ? ''
+    : "font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight";
+
+  if (as === 'span') {
+    return (
+      <span
+        ref={(el) => { elRef.current = el; }}
+        contentEditable
+        suppressContentEditableWarning
+        onInput={handleInput}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
+        data-placeholder={placeholder}
+        className={`outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground ${fontClasses} ${className}`}
+        style={{
+          display: 'inline',
+          lineHeight: inheritFont ? 1 : 1.2,
+          ...(inheritFont ? { fontFamily: 'inherit', fontSize: 'inherit' } : {}),
+        }}
+      />
+    );
+  }
+
   return (
-    <span
-      ref={spanRef}
+    <div
+      ref={(el) => { elRef.current = el; }}
       contentEditable
       suppressContentEditableWarning
       onInput={handleInput}
-      onFocus={() => { isFocused.current = true; }}
-      onBlur={() => {
-        isFocused.current = false;
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current);
-          timeoutRef.current = null;
-          const text = spanRef.current?.textContent || '';
-          if (text !== lastValueRef.current) onChange(text);
-        }
-      }}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
       data-placeholder={placeholder}
-      className={`outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground ${inheritFont ? '' : "font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight"}`}
-      style={{ display: 'inline', lineHeight: 1, ...(inheritFont ? { fontFamily: 'inherit', fontSize: 'inherit' } : {}) }}
+      className={`bg-transparent border-0 p-0 m-0 resize-none focus:outline-none focus:ring-0 w-full empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground empty:before:pointer-events-none ${fontClasses} ${className}`}
+      style={{
+        minHeight: '1em',
+        lineHeight: 1.2,
+        whiteSpace: 'pre-wrap',
+        wordBreak: 'break-word',
+      }}
     />
   );
 }
@@ -561,7 +503,8 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
               }}
             />
             <span style={{ position: 'relative', zIndex: 1 }}>
-              <EditableTextInline
+              <EditableCell
+                as="span"
                 value={del.number}
                 onChange={(val) => updateRow(del.id, { number: val })}
                 placeholder="D#.#"
@@ -579,7 +522,9 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
       cellStyle: { lineHeight: 1.2 },
       renderCell: (del, updateRow) => (
         <span className="font-['Times_New_Roman',Times,serif] text-[11pt]" style={{ lineHeight: 1.2 }}>
-          <EditableTextInline
+          <EditableCell
+            as="span"
+            inheritFont
             value={del.name}
             onChange={(val) => updateRow(del.id, { name: val })}
             placeholder="Deliverable name"
@@ -838,7 +783,9 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
       cellClassName: cellStyles,
       cellStyle: { lineHeight: 1.2 },
       renderCell: (ms, updateRow) => (
-        <EditableTextInline
+        <EditableCell
+          as="span"
+          inheritFont
           value={ms.name}
           onChange={(val) => updateRow(ms.id, { name: val })}
           placeholder="Milestone name"
@@ -876,7 +823,8 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
       header: 'Means of verification',
       cellClassName: cellStyles,
       renderCell: (ms, updateRow) => (
-        <EditableHtml
+        <EditableCell
+          format="html"
           value={ms.means_of_verification}
           onChange={(val) => updateRow(ms.id, { means_of_verification: val })}
           placeholder="How will this be verified?"
@@ -958,7 +906,7 @@ export function B31RisksTable({ proposalId }: { proposalId: string }) {
       defaultHeaderStyle: { width: '25%' },
       cellClassName: cellStyles,
       renderCell: (risk, updateRow) => (
-        <EditableText
+        <EditableCell
           value={risk.description}
           onChange={(val) => updateRow(risk.id, { description: val })}
           placeholder="Description of risk"
@@ -1041,7 +989,7 @@ export function B31RisksTable({ proposalId }: { proposalId: string }) {
       header: 'Mitigation & adaptation measures',
       cellClassName: cellStyles,
       renderCell: (risk, updateRow) => (
-        <EditableText
+        <EditableCell
           value={risk.mitigation}
           onChange={(val) => updateRow(risk.id, { mitigation: val })}
           placeholder="Proposed mitigation measures"
