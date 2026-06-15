@@ -134,10 +134,16 @@ function EffortCell({ value, onChange, readOnly }: EffortCellProps) {
   }, [onChange, debounceTimeout]);
 
   const handleBlur = useCallback(() => {
+    // Flush any pending debounced save immediately so navigation/unmount can't drop the edit
+    if (debounceTimeout) {
+      clearTimeout(debounceTimeout);
+      setDebounceTimeout(null);
+    }
     const numValue = parseFloat(localValue) || 0;
     const rounded = Math.round(numValue * 10) / 10;
+    onChange(rounded);
     setLocalValue(rounded > 0 ? rounded.toString() : '0');
-  }, [localValue]);
+  }, [localValue, onChange, debounceTimeout]);
 
   return (
     <TableCell className="p-0.5">
@@ -154,3 +160,4 @@ function EffortCell({ value, onChange, readOnly }: EffortCellProps) {
     </TableCell>
   );
 }
+
