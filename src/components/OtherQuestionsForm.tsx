@@ -155,14 +155,11 @@ export function OtherQuestionsForm({ proposalId, isTwoStageSecondStage, canEdit 
   }
 
   return (
-    <div className="flex-1 overflow-auto p-6 bg-muted/30">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div className="space-y-2">
-          <h1 className="text-xl font-bold text-foreground">Part A5: Other questions</h1>
-          <div className="flex items-center gap-3">
-            {canEdit && <SaveIndicator saving={saving} lastSaved={lastSaved} onSaveNow={() => saveContent(formData)} />}
-          </div>
-        </div>
+    <PartAPageLayout
+      title="Part A5: Other questions"
+      saveIndicator={canEdit ? <SaveIndicator saving={saving} lastSaved={lastSaved} onSaveNow={() => saveContent(formData)} /> : undefined}
+    >
+
 
         {/* Two-stage submission question - only for second stage proposals */}
         {isTwoStageSecondStage && (
