@@ -174,7 +174,7 @@ function PartnersPicker({
         <button className="inline-flex items-center gap-1 flex-wrap cursor-pointer hover:opacity-80">
           {selected.length > 0 ? (
             selected.map(p => (
-              <ParticipantBubble key={p.id} shortName={p.organisation_short_name || p.organisation_name} />
+              <ParticipantBubble key={p.id} shortName={p.organisation_short_name || p.organisation_name} style={{ fontStyle: 'normal' }} />
             ))
           ) : (
             <span className="text-muted-foreground text-[9pt] italic">Select participant(s)</span>
