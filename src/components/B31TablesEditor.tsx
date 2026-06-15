@@ -503,7 +503,8 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
               }}
             />
             <span style={{ position: 'relative', zIndex: 1 }}>
-              <EditableTextInline
+              <EditableCell
+                as="span"
                 value={del.number}
                 onChange={(val) => updateRow(del.id, { number: val })}
                 placeholder="D#.#"
@@ -521,7 +522,9 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
       cellStyle: { lineHeight: 1.2 },
       renderCell: (del, updateRow) => (
         <span className="font-['Times_New_Roman',Times,serif] text-[11pt]" style={{ lineHeight: 1.2 }}>
-          <EditableTextInline
+          <EditableCell
+            as="span"
+            inheritFont
             value={del.name}
             onChange={(val) => updateRow(del.id, { name: val })}
             placeholder="Deliverable name"
@@ -780,7 +783,9 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
       cellClassName: cellStyles,
       cellStyle: { lineHeight: 1.2 },
       renderCell: (ms, updateRow) => (
-        <EditableTextInline
+        <EditableCell
+          as="span"
+          inheritFont
           value={ms.name}
           onChange={(val) => updateRow(ms.id, { name: val })}
           placeholder="Milestone name"
@@ -818,7 +823,8 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
       header: 'Means of verification',
       cellClassName: cellStyles,
       renderCell: (ms, updateRow) => (
-        <EditableHtml
+        <EditableCell
+          format="html"
           value={ms.means_of_verification}
           onChange={(val) => updateRow(ms.id, { means_of_verification: val })}
           placeholder="How will this be verified?"
@@ -900,7 +906,7 @@ export function B31RisksTable({ proposalId }: { proposalId: string }) {
       defaultHeaderStyle: { width: '25%' },
       cellClassName: cellStyles,
       renderCell: (risk, updateRow) => (
-        <EditableText
+        <EditableCell
           value={risk.description}
           onChange={(val) => updateRow(risk.id, { description: val })}
           placeholder="Description of risk"
@@ -983,7 +989,7 @@ export function B31RisksTable({ proposalId }: { proposalId: string }) {
       header: 'Mitigation & adaptation measures',
       cellClassName: cellStyles,
       renderCell: (risk, updateRow) => (
-        <EditableText
+        <EditableCell
           value={risk.mitigation}
           onChange={(val) => updateRow(risk.id, { mitigation: val })}
           placeholder="Proposed mitigation measures"
