@@ -152,9 +152,9 @@ export function B31IntroText({ proposalId, acronymSegments, proposalAcronym }: P
         const text = e.currentTarget.textContent || '';
         const defaultFull = (proposalAcronym + defaultSuffix).trim();
         if (!text.trim() || text.trim() === defaultFull) {
-          saveText('');
+          flushSaveText('');
         } else {
-          saveText(text);
+          flushSaveText(text);
         }
       }}
     >
