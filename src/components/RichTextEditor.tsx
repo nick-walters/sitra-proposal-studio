@@ -888,20 +888,24 @@ export function FormattingToolbar({
             </TooltipContent>
           </Tooltip>
           <DropdownMenuContent align="start" className="w-64">
+            {showSubheadingBodyItem && (
+              <>
+                <DropdownMenuItem onClick={() => {
+                  const chain = editor.chain().focus();
+                  if (editor.isActive('heading', { level: 1 })) chain.toggleHeading({ level: 1 });
+                  else if (editor.isActive('heading', { level: 2 })) chain.toggleHeading({ level: 2 });
+                  else if (editor.isActive('heading', { level: 3 })) chain.toggleHeading({ level: 3 });
+                  if (editor.isActive('bold')) chain.toggleBold();
+                  if (editor.isActive('underline')) chain.toggleUnderline();
+                  chain.run();
+                }}>
+                  <span className="text-sm">Body</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
             <DropdownMenuItem onClick={() => {
-              const chain = editor.chain().focus();
-              if (editor.isActive('heading', { level: 1 })) chain.toggleHeading({ level: 1 });
-              else if (editor.isActive('heading', { level: 2 })) chain.toggleHeading({ level: 2 });
-              else if (editor.isActive('heading', { level: 3 })) chain.toggleHeading({ level: 3 });
-              if (editor.isActive('bold')) chain.toggleBold();
-              if (editor.isActive('underline')) chain.toggleUnderline();
-              chain.run();
-            }}>
-              <span className="text-sm">Body</span>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => {
-              const cleanNum = sectionNumber ? sectionNumber.replace(/^[A-Za-z]+/, '') : '1.1';
+              const cleanNum = subheadingPrefix ?? (sectionNumber ? sectionNumber.replace(/^[A-Za-z]+/, '') : '1.1');
               // Use a temporary placeholder number; renumber will fix it
               const placeholder = `${cleanNum}.0. `;
               editor.chain().focus().toggleHeading({ level: 3 }).run();
@@ -918,7 +922,7 @@ export function FormattingToolbar({
                 renumberH3Headings(editor, cleanNum);
               }
             }}>
-              <span className="text-sm font-semibold underline">{sectionNumber ? `${sectionNumber.replace(/^[A-Za-z]+/, '')}.1.` : '1.1.1.'} Numbered subheading</span>
+              <span className="text-sm font-semibold underline">{(subheadingPrefix ?? (sectionNumber ? sectionNumber.replace(/^[A-Za-z]+/, '') : '1.1'))}.1. Numbered subheading</span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => {
               // Unnumbered subheading (bold + underline inline style)
