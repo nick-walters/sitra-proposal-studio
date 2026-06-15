@@ -1644,6 +1644,51 @@ const XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.s
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  // Auth: accept either (a) Bearer == service role key (cron / server-to-server),
+  // or (b) a valid user JWT belonging to an owner/admin/coordinator (manual UI trigger).
+  const authHeader = req.headers.get("Authorization") || "";
+  const isServiceCall = authHeader === `Bearer ${SERVICE_KEY}`;
+  let isAuthorizedUser = false;
+  if (!isServiceCall) {
+    if (!authHeader.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    try {
+      const userClient = createClient(
+        SUPABASE_URL,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        { global: { headers: { Authorization: authHeader } } },
+      );
+      const token = authHeader.replace("Bearer ", "");
+      const { data: claimsData, error: claimsErr } = await userClient.auth.getClaims(token);
+      if (claimsErr || !claimsData?.claims?.sub) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const adminClient = createClient(SUPABASE_URL, SERVICE_KEY);
+      const { data: roles } = await adminClient
+        .from("user_roles")
+        .select("role, proposal_id")
+        .eq("user_id", claimsData.claims.sub);
+      isAuthorizedUser = !!roles?.some((r: any) =>
+        (r.proposal_id === null && (r.role === "owner" || r.role === "admin")) ||
+        r.role === "coordinator"
+      );
+      if (!isAuthorizedUser) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    } catch (_e) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+  }
+
   const now = new Date();
   const url = new URL(req.url);
   let bodyForce = false;
@@ -1664,6 +1709,7 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
+
 
   const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
   const stamp = helsinkiStamp(now);
