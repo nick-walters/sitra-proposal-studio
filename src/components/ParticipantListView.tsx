@@ -902,7 +902,8 @@ export function ParticipantListView({
             />
           </>
         )}
-      </div>
+      </PartAPageLayout>
     </TooltipProvider>
+
   );
 }
