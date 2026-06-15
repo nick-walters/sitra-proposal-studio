@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
+import DOMPurify from 'dompurify';
 import { Image as ImageLucide, Table2 } from 'lucide-react';
 import {
   DropdownMenuItem,
@@ -6,6 +7,11 @@ import {
 import { cn } from '@/lib/utils';
 import { InsertTDMSReferenceDropdowns } from '@/components/InsertTDMSReferenceDropdowns';
 import { DraftFormattingToolbar } from '@/components/DraftFormattingToolbar';
+
+const SIMPLE_SANITIZE_CONFIG = {
+  ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'ul', 'ol', 'li', 'span', 'a', 'h1', 'h2', 'h3', 'h4', 'sub', 'sup', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'img', 'figure', 'figcaption', 'div'],
+  ALLOWED_ATTR: ['class', 'style', 'href', 'target', 'rel', 'colspan', 'rowspan', 'src', 'alt', 'data-type', 'data-id', 'data-wp-number', 'data-wp-short-name', 'data-wp-color', 'data-task-number', 'data-deliverable-number', 'data-milestone-number', 'data-participant-number', 'data-short-name', 'data-case-number', 'data-case-short-name', 'data-case-color', 'data-case-type', 'data-figure-id', 'data-table-key', 'data-ref-type', 'data-ref-id', 'data-citation-id', 'data-acronym', 'contenteditable'],
+} as const;
 
 interface AcronymSegment {
   text: string;
