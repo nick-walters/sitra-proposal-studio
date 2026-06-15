@@ -10,6 +10,7 @@ import { useUserRole } from '@/hooks/useUserRole';
 import { useColumnResize } from '@/hooks/useColumnResize';
 import { ColumnResizer } from '@/components/ColumnResizer';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
+import { WPBubble, ParticipantBubble } from '@/components/B31Pill';
 
 import { EditableCaption } from '@/components/EditableCaption';
 
