@@ -166,6 +166,9 @@ export function ParticipantDetailForm({
     setSaving(true);
     onUpdateParticipant(participant.id, { [field]: value });
     setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
+    }, 100);
+    setTimeout(() => {
       setSaving(false);
       setLastSaved(new Date());
     }, 500);
