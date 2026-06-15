@@ -44,15 +44,9 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import {
-  Italic,
-  Underline as UnderlineIcon,
   Strikethrough,
   List,
   ListOrdered,
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
-  AlignJustify,
   Link as LinkIcon,
   Undo,
   Redo,
@@ -81,7 +75,6 @@ import {
   Pipette,
   Ban,
   Check,
-  ChevronDown,
 } from "lucide-react";
 import {
   Tooltip,
@@ -111,6 +104,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  ToolbarButton,
+  TextFormattingGroup,
+  AlignmentGroup,
+  TableGridPicker,
+  SubheadingDropdown,
+  type Alignment,
+} from './toolbar';
 
 interface RichTextEditorProps {
   content: string;
@@ -122,38 +123,6 @@ interface RichTextEditorProps {
   sectionNumber?: string; // Section number for caption numbering (e.g., "1.1")
 }
 
-interface ToolbarButtonProps {
-  icon: React.ReactNode;
-  tooltip: string;
-  onClick?: () => void;
-  active?: boolean;
-  disabled?: boolean;
-}
-
-function ToolbarButton({ icon, tooltip, onClick, active, disabled }: ToolbarButtonProps) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          type="button"
-          variant={active ? "secondary" : "ghost"}
-          size="icon"
-          className="h-7 w-7"
-          onMouseDown={(e) => {
-            e.preventDefault();
-            if (!disabled) onClick?.();
-          }}
-          disabled={disabled}
-        >
-          {icon}
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent side="bottom" className="text-xs">
-        {tooltip}
-      </TooltipContent>
-    </Tooltip>
-  );
-}
 
 const PART_B_ALIGNMENT_EXEMPT_PARAGRAPH_CLASSES = new Set(['figure-caption', 'table-caption']);
 
@@ -366,50 +335,6 @@ function normalizePartBLoadedContent(html: string) {
   return div.innerHTML;
 }
 
-// Table size selector grid
-function TableSizeSelector({ onSelect }: { onSelect: (rows: number, cols: number) => void }) {
-  const [hoveredRows, setHoveredRows] = useState(0);
-  const [hoveredCols, setHoveredCols] = useState(0);
-  const maxRows = 8;
-  const maxCols = 8;
-
-  return (
-    <div className="p-2">
-      <div className="text-xs text-muted-foreground mb-2 text-center">
-        {hoveredRows > 0 && hoveredCols > 0 
-          ? `${hoveredRows} × ${hoveredCols} table` 
-          : 'Select table size'}
-      </div>
-      <div 
-        className="grid gap-0.5"
-        style={{ gridTemplateColumns: `repeat(${maxCols}, 1fr)` }}
-        onMouseLeave={() => { setHoveredRows(0); setHoveredCols(0); }}
-      >
-        {Array.from({ length: maxRows * maxCols }).map((_, index) => {
-          const row = Math.floor(index / maxCols) + 1;
-          const col = (index % maxCols) + 1;
-          const isHighlighted = row <= hoveredRows && col <= hoveredCols;
-          const isHeaderRow = row === 1 && isHighlighted;
-          
-          return (
-            <button
-              key={index}
-              className={`w-4 h-4 border rounded-sm transition-colors ${
-                isHeaderRow
-                  ? 'bg-foreground border-foreground'
-                  : isHighlighted 
-                    ? 'bg-primary/40 border-primary/60'
-                    : 'bg-muted border-border hover:border-primary/50'
-              }`}
-              onMouseEnter={() => { setHoveredRows(row); setHoveredCols(col); }}
-              onClick={() => onSelect(row, col)}
-            />
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 // ── Text Color Picker ───────────────────────────────────────────────────
 const PRESET_COLORS = [
@@ -855,13 +780,13 @@ export function FormattingToolbar({
         {/* Undo Redo */}
         <ToolbarButton 
           icon={<Undo className="w-4 h-4" />} 
-          tooltip="Undo (Ctrl+Z)"
+          label="Undo (Ctrl+Z)"
           onClick={() => editor.chain().focus().undo().run()}
           disabled={!editor.can().undo()}
         />
         <ToolbarButton 
           icon={<Redo className="w-4 h-4" />} 
-          tooltip="Redo (Ctrl+Y)"
+          label="Redo (Ctrl+Y)"
           onClick={() => editor.chain().focus().redo().run()}
           disabled={!editor.can().redo()}
         />
@@ -869,105 +794,60 @@ export function FormattingToolbar({
         <Separator orientation="vertical" className="h-5 mx-1.5" />
 
         {/* Subheading dropdown */}
-        <DropdownMenu>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant={editor.isActive('heading', { level: 3 }) || (editor.isActive('bold') && editor.isActive('underline')) ? "secondary" : "ghost"}
-                  size="sm"
-                  className="h-7 px-2 text-xs gap-1"
-                >
-                  <span className="font-black underline">Subheading</span>
-                  <ChevronDown className="w-3 h-3" />
-                </Button>
-              </DropdownMenuTrigger>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">
-              Insert subheading
-            </TooltipContent>
-          </Tooltip>
-          <DropdownMenuContent align="start" className="w-64">
-            {showSubheadingBodyItem && (
-              <>
-                <DropdownMenuItem onClick={() => {
-                  const chain = editor.chain().focus();
-                  if (editor.isActive('heading', { level: 1 })) chain.toggleHeading({ level: 1 });
-                  else if (editor.isActive('heading', { level: 2 })) chain.toggleHeading({ level: 2 });
-                  else if (editor.isActive('heading', { level: 3 })) chain.toggleHeading({ level: 3 });
-                  if (editor.isActive('bold')) chain.toggleBold();
-                  if (editor.isActive('underline')) chain.toggleUnderline();
-                  chain.run();
-                }}>
-                  <span className="text-sm">Body</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-              </>
-            )}
-            <DropdownMenuItem onClick={() => {
-              const cleanNum = subheadingPrefix ?? (sectionNumber ? sectionNumber.replace(/^[A-Za-z]+/, '') : '1.1');
-              // Use a temporary placeholder number; renumber will fix it
-              const placeholder = `${cleanNum}.0. `;
-              editor.chain().focus().toggleHeading({ level: 3 }).run();
-              if (editor.isActive('heading', { level: 3 })) {
-                const $from = editor.state.selection.$from;
-                const startOfNode = $from.start();
-                const currentText = $from.parent.textContent;
-                // Only add prefix if there isn't already a numbered prefix
-                const hasPrefix = /^\d+\.\d+\.\d+\.\s/.test(currentText);
-                if (!hasPrefix) {
-                  editor.chain().focus().insertContentAt(startOfNode, placeholder).run();
+        {(() => {
+          const cleanNum = subheadingPrefix ?? (sectionNumber ? sectionNumber.replace(/^[A-Za-z]+/, '') : '1.1');
+          return (
+            <SubheadingDropdown
+              isActive={editor.isActive('heading', { level: 3 }) || (editor.isActive('bold') && editor.isActive('underline'))}
+              numberedLabel={`${cleanNum}.1. Numbered subheading`}
+              onBody={showSubheadingBodyItem ? () => {
+                const chain = editor.chain().focus();
+                if (editor.isActive('heading', { level: 1 })) chain.toggleHeading({ level: 1 });
+                else if (editor.isActive('heading', { level: 2 })) chain.toggleHeading({ level: 2 });
+                else if (editor.isActive('heading', { level: 3 })) chain.toggleHeading({ level: 3 });
+                if (editor.isActive('bold')) chain.toggleBold();
+                if (editor.isActive('underline')) chain.toggleUnderline();
+                chain.run();
+              } : undefined}
+              onNumbered={() => {
+                const placeholder = `${cleanNum}.0. `;
+                editor.chain().focus().toggleHeading({ level: 3 }).run();
+                if (editor.isActive('heading', { level: 3 })) {
+                  const $from = editor.state.selection.$from;
+                  const startOfNode = $from.start();
+                  const currentText = $from.parent.textContent;
+                  const hasPrefix = /^\d+\.\d+\.\d+\.\s/.test(currentText);
+                  if (!hasPrefix) {
+                    editor.chain().focus().insertContentAt(startOfNode, placeholder).run();
+                  }
+                  renumberH3Headings(editor, cleanNum);
                 }
-                // Renumber all H3s by position
-                renumberH3Headings(editor, cleanNum);
-              }
-            }}>
-              <span className="text-sm font-semibold underline">{(subheadingPrefix ?? (sectionNumber ? sectionNumber.replace(/^[A-Za-z]+/, '') : '1.1'))}.1. Numbered subheading</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              // Unnumbered subheading (bold + underline inline style)
-              editor.chain().focus().toggleBold().run();
-              editor.chain().focus().toggleUnderline().run();
-            }}>
-              <span className="text-sm font-bold underline">Unnumbered subheading</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant={editor.isActive('bold') ? "secondary" : "ghost"}
-              size="icon"
-              className="h-7 w-7"
-              onClick={() => editor.chain().focus().toggleBold().run()}
-            >
-              <span className="font-black text-sm">B</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" className="text-xs">
-            Bold (Ctrl+B)
-          </TooltipContent>
-        </Tooltip>
-        <ToolbarButton
-          icon={<Italic className="w-3.5 h-3.5" />} 
-          tooltip="Italic (Ctrl+I)"
-          onClick={() => editor.chain().focus().toggleItalic().run()}
-          active={editor.isActive('italic')}
-        />
-        <ToolbarButton 
-          icon={<UnderlineIcon className="w-4 h-4" />} 
-          tooltip="Underline (Ctrl+U)"
-          onClick={() => editor.chain().focus().toggleUnderline().run()}
-          active={editor.isActive('underline')}
+              }}
+              onUnnumbered={() => {
+                editor.chain().focus().toggleBold().run();
+                editor.chain().focus().toggleUnderline().run();
+              }}
+            />
+          );
+        })()}
+
+        {/* Bold / Italic / Underline */}
+        <TextFormattingGroup
+          onBold={() => editor.chain().focus().toggleBold().run()}
+          onItalic={() => editor.chain().focus().toggleItalic().run()}
+          onUnderline={() => editor.chain().focus().toggleUnderline().run()}
+          isBoldActive={editor.isActive('bold')}
+          isItalicActive={editor.isActive('italic')}
+          isUnderlineActive={editor.isActive('underline')}
         />
 
         {/* Link (standalone) */}
         {showLinkButton && (
           <ToolbarButton
             icon={<LinkIcon className="w-4 h-4" />}
-            tooltip="Insert link"
+            label="Insert link"
             onClick={setLink}
-            active={editor.isActive('link')}
+            isActive={editor.isActive('link')}
           />
         )}
 
@@ -979,9 +859,9 @@ export function FormattingToolbar({
         {/* Bullet Numbered */}
         <ToolbarButton 
           icon={<List className="w-4 h-4" />} 
-          tooltip="Bullet list"
+          label="Bullet list"
           onClick={() => editor.chain().focus().toggleBulletList().run()}
-          active={editor.isActive('bulletList')}
+          isActive={editor.isActive('bulletList')}
         />
         <OrderedListDropdown
           editor={editor}
@@ -991,58 +871,24 @@ export function FormattingToolbar({
         <Separator orientation="vertical" className="h-5 mx-1.5" />
 
         {/* Left Centre Right Justify */}
-        <ToolbarButton 
-          icon={<AlignLeft className="w-4 h-4" />} 
-          tooltip="Align left"
-          onClick={() => {
+        <AlignmentGroup
+          disabled={isAlignDisabled}
+          activeAlignment={
+            editor.isActive({ textAlign: 'left' }) ? 'left'
+              : editor.isActive({ textAlign: 'center' }) ? 'center'
+              : editor.isActive({ textAlign: 'right' }) ? 'right'
+              : editor.isActive({ textAlign: 'justify' }) ? 'justify'
+              : undefined
+          }
+          onAlign={(a: Alignment) => {
             const s = (editor.storage as any).trackChanges;
             const was = s?.enabled;
             if (s) s.enabled = false;
-            editor.chain().focus().setTextAlign('left').run();
+            editor.chain().focus().setTextAlign(a).run();
             if (s) s.enabled = was;
           }}
-          active={!isAlignDisabled && editor.isActive({ textAlign: 'left' })}
-          disabled={isAlignDisabled}
         />
-        <ToolbarButton 
-          icon={<AlignCenter className="w-4 h-4" />} 
-          tooltip="Align center"
-          onClick={() => {
-            const s = (editor.storage as any).trackChanges;
-            const was = s?.enabled;
-            if (s) s.enabled = false;
-            editor.chain().focus().setTextAlign('center').run();
-            if (s) s.enabled = was;
-          }}
-          active={!isAlignDisabled && editor.isActive({ textAlign: 'center' })}
-          disabled={isAlignDisabled}
-        />
-        <ToolbarButton 
-          icon={<AlignRight className="w-4 h-4" />} 
-          tooltip="Align right"
-          onClick={() => {
-            const s = (editor.storage as any).trackChanges;
-            const was = s?.enabled;
-            if (s) s.enabled = false;
-            editor.chain().focus().setTextAlign('right').run();
-            if (s) s.enabled = was;
-          }}
-          active={!isAlignDisabled && editor.isActive({ textAlign: 'right' })}
-          disabled={isAlignDisabled}
-        />
-        <ToolbarButton 
-          icon={<AlignJustify className="w-4 h-4" />} 
-          tooltip="Justify"
-          onClick={() => {
-            const s = (editor.storage as any).trackChanges;
-            const was = s?.enabled;
-            if (s) s.enabled = false;
-            editor.chain().focus().setTextAlign('justify').run();
-            if (s) s.enabled = was;
-          }}
-          active={!isAlignDisabled && editor.isActive({ textAlign: 'justify' })}
-          disabled={isAlignDisabled}
-        />
+
 
         {showParagraphSpacing && <ParagraphSpacingPopover editor={editor} disabled={isAlignDisabled} />}
 
@@ -1066,28 +912,11 @@ export function FormattingToolbar({
           </Tooltip>
         )}
         {!showTableOptions && !hideTableInsert && tableInsertMode === 'popover' && (
-          <Popover open={tablePopoverOpen} onOpenChange={setTablePopoverOpen}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 px-2 gap-1"
-                  >
-                    <TableIcon className="w-4 h-4" />
-                    <span className="text-xs">Table</span>
-                  </Button>
-                </PopoverTrigger>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="text-xs">
-                Insert table
-              </TooltipContent>
-            </Tooltip>
-            <PopoverContent align="start" className="w-auto p-0">
-              <TableSizeSelector onSelect={insertTable} />
-            </PopoverContent>
-          </Popover>
+          <TableGridPicker
+            open={tablePopoverOpen}
+            onOpenChange={setTablePopoverOpen}
+            onInsert={insertTable}
+          />
         )}
         {showTableOptions && showTableEditing && (
           <DropdownMenu>
@@ -1285,7 +1114,7 @@ export function FormattingToolbar({
 
               <ToolbarButton
                 icon={<Crop className="w-4 h-4" />}
-                tooltip="Crop image"
+                label="Crop image"
                 onClick={handleCropClick}
               />
               
@@ -1294,21 +1123,21 @@ export function FormattingToolbar({
               {/* Image alignment controls */}
               <ToolbarButton
                 icon={<AlignHorizontalJustifyStart className="w-4 h-4" />}
-                tooltip="Align left"
+                label="Align left"
                 onClick={() => setImageAlignment('left')}
-                active={currentImageAlignment === 'left'}
+                isActive={currentImageAlignment === 'left'}
               />
               <ToolbarButton
                 icon={<AlignHorizontalJustifyCenter className="w-4 h-4" />}
-                tooltip="Align center"
+                label="Align center"
                 onClick={() => setImageAlignment('center')}
-                active={currentImageAlignment === 'center'}
+                isActive={currentImageAlignment === 'center'}
               />
               <ToolbarButton
                 icon={<AlignHorizontalJustifyEnd className="w-4 h-4" />}
-                tooltip="Align right"
+                label="Align right"
                 onClick={() => setImageAlignment('right')}
-                active={currentImageAlignment === 'right'}
+                isActive={currentImageAlignment === 'right'}
               />
               
               <Separator orientation="vertical" className="h-5 mx-1" />
@@ -1317,13 +1146,13 @@ export function FormattingToolbar({
               {onOpenFigureDialog && (
                 <ToolbarButton
                   icon={<RefreshCw className="w-4 h-4" />}
-                  tooltip="Replace figure"
+                  label="Replace figure"
                   onClick={replaceFigure}
                 />
               )}
               <ToolbarButton
                 icon={<Trash2 className="w-4 h-4 text-destructive" />}
-                tooltip="Delete figure with caption"
+                label="Delete figure with caption"
                 onClick={() => setShowDeleteConfirm(true)}
               />
             </div>
