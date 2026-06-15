@@ -1,8 +1,8 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { DebouncedInput } from '@/components/ui/debounced-input';
 import { Button } from '@/components/ui/button';
 import { Users, Lock, Unlock } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { getContrastingTextColor } from '@/lib/wpColors';
 import { WPBubble, ParticipantBubble } from '@/components/B31Pill';
+
 
 function formatPM(value: number): string {
   if (value === 0) return '0';
