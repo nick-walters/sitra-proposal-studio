@@ -51,14 +51,39 @@ serve(async (req) => {
         );
       }
 
-      console.log('Fetching topic content from:', topicUrl);
+      // SSRF guard: only https + allowlisted EU public hosts.
+      let parsedUrl: URL;
+      try {
+        parsedUrl = new URL(topicUrl);
+      } catch {
+        return new Response(
+          JSON.stringify({ error: "Invalid topic URL" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      if (parsedUrl.protocol !== "https:") {
+        return new Response(
+          JSON.stringify({ error: "Only https URLs are allowed" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      const allowedHost = /^([a-z0-9-]+\.)*(europa\.eu)$/i;
+      if (!allowedHost.test(parsedUrl.hostname)) {
+        return new Response(
+          JSON.stringify({ error: "Topic URL host is not in the allowlist" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      console.log('Fetching topic content from:', parsedUrl.toString());
 
       try {
-        const response = await fetch(topicUrl, {
+        const response = await fetch(parsedUrl.toString(), {
           headers: {
             'User-Agent': 'Mozilla/5.0 (compatible; ProposalStudio/1.0)',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
           },
+          redirect: 'error',
         });
 
         if (!response.ok) {
