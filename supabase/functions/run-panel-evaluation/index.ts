@@ -777,8 +777,22 @@ async function runSynthesisPhase(serviceClient: any, evaluationId: string) {
   const synthesisContext = analysisData.synthesis_context || {};
   const parsedEvaluations = Array.isArray(analysisData.evaluations) ? analysisData.evaluations : [];
 
-  if (parsedEvaluations.length === 0) {
-    throw new Error("No evaluator reports available for synthesis");
+  const successfulEvaluations = parsedEvaluations.filter((item: any) => !item?.data?.error);
+  if (successfulEvaluations.length < MIN_SUCCESSFUL_EVALUATORS) {
+    const msg = `Only ${successfulEvaluations.length} of ${parsedEvaluations.length} evaluators completed. Minimum ${MIN_SUCCESSFUL_EVALUATORS} required for synthesis.`;
+    await serviceClient
+      .from("proposal_analyses")
+      .update({
+        status: "failed",
+        error_message: msg,
+        analysis_data: {
+          ...analysisData,
+          active_step_started_at: null,
+          progress_message: msg,
+        },
+      })
+      .eq("id", evaluationId);
+    return { evaluationId, status: "failed", error: msg };
   }
 
   const [proposalRes, instrumentRes, criteriaRes, configRes] = await Promise.all([
