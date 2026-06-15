@@ -15,6 +15,7 @@ import { BookOpen, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { ParticipantSummary } from '@/types/proposal';
+import { ParticipantBubble } from '@/components/B31Pill';
 
 const CASE_TYPES: Record<string, string> = {
   case_study: 'CS',
