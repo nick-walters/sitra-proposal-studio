@@ -59,6 +59,7 @@ export function AIConfigAdmin() {
 
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<AiConfigRow[]>([]);
+  const [otherRows, setOtherRows] = useState<AiConfigRow[]>([]);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string | null>>({});
   const [savingKey, setSavingKey] = useState<string | null>(null);
