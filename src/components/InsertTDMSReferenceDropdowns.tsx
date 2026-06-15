@@ -346,7 +346,7 @@ export function InsertTDMSReferenceDropdowns({
                 disabled={disabled}
                 onClick={() => setTaskDialogOpen(true)}
               >
-                <BubblePill text="T" bg="#ffffff" fg="#000" border="#000" />
+                <B31Pill variant="outline" color="#000" size="toolbar">T</B31Pill>
               </Button>
             </TooltipTrigger>
             <TooltipContent>Insert task reference</TooltipContent>
