@@ -206,26 +206,6 @@ function SortableDeliverableCard({
     opacity: isDragging ? 0.5 : 1,
   };
 
-  const [localTitle, setLocalTitle] = useState(deliverable.title || '');
-  const [titleTimeout, setTitleTimeout] = useState<NodeJS.Timeout | null>(null);
-  const isFocused = useRef(false);
-
-  useEffect(() => {
-    if (!isFocused.current) setLocalTitle(deliverable.title || '');
-  }, [deliverable.title]);
-
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setLocalTitle(newValue);
-
-    if (titleTimeout) clearTimeout(titleTimeout);
-    
-    const timeout = setTimeout(() => {
-      onUpdate(deliverable.id, { title: newValue });
-    }, 500);
-    setTitleTimeout(timeout);
-  };
-
   return (
     <div
       ref={setNodeRef}
@@ -251,23 +231,12 @@ function SortableDeliverableCard({
             {formatNumber(deliverable.number)}
           </span>
         </span>
-        <input
-          value={localTitle}
-          onChange={handleTitleChange}
-          onFocus={() => { isFocused.current = true; }}
-          onBlur={() => {
-            // Flush pending debounced save immediately so navigation/unmount can't drop the edit
-            if (titleTimeout) {
-              clearTimeout(titleTimeout);
-              setTitleTimeout(null);
-            }
-            if ((localTitle || '') !== (deliverable.title || '')) {
-              onUpdate(deliverable.id, { title: localTitle });
-            }
-            isFocused.current = false;
-          }}
+        <DebouncedInput
+          value={deliverable.title || ''}
+          onDebouncedChange={(val) => { onUpdate(deliverable.id, { title: val }); }}
+          debounceMs={500}
           placeholder="Deliverable title..."
-          className="h-6 text-draft flex-1 font-bold bg-transparent border-0 outline-none px-1 text-foreground placeholder:text-muted-foreground/60"
+          className="h-6 text-draft flex-1 font-bold bg-transparent border-0 outline-none px-1 text-foreground placeholder:text-muted-foreground/60 shadow-none focus-visible:ring-0"
           style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt' }}
           disabled={readOnly}
         />
