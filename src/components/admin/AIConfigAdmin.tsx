@@ -81,14 +81,18 @@ export function AIConfigAdmin() {
       setLoading(false);
       return;
     }
-    const filtered = (data || []).filter(
+    const all = data || [];
+    const filtered = all.filter(
       (r) => MODEL_KEYS.has(r.key) || r.key.endsWith("_model"),
     );
+    const others = all.filter((r) => r.key === "usd_eur_rate");
     setRows(filtered);
+    setOtherRows(others);
     setDrafts(Object.fromEntries(filtered.map((r) => [r.key, r.value])));
     setErrors({});
     setLoading(false);
   };
+
 
   useEffect(() => {
     if (isOwner) void load();
