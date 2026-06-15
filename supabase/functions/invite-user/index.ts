@@ -103,10 +103,18 @@ serve(async (req: Request) => {
       .eq("email", email)
       .maybeSingle();
 
-    // Use the published app URL as the redirect base
+    // Use the published app URL as the redirect base. Only accept Origin if it is on a strict allowlist
+    // (prevents an attacker-controlled Origin header from hijacking the password-set link).
     const PUBLISHED_URL = "https://sitra-proposal-studio.lovable.app";
-    const origin = req.headers.get("origin")?.trim();
-    const redirectBase = origin && /^https?:\/\//i.test(origin) && !origin.includes("supabase") ? origin : PUBLISHED_URL;
+    const ALLOWED_ORIGINS = new Set<string>([
+      PUBLISHED_URL,
+      "https://id-preview--41c4eaa0-9c42-48fb-8a64-8c910390fe96.lovable.app",
+      "http://localhost:5173",
+      "http://localhost:8080",
+    ]);
+    const rawOrigin = req.headers.get("origin")?.trim();
+    const isAllowedLovableHost = !!rawOrigin && /^https:\/\/[a-z0-9-]+\.lovable\.app$/i.test(rawOrigin) && !rawOrigin.includes("supabase");
+    const redirectBase = (rawOrigin && (ALLOWED_ORIGINS.has(rawOrigin) || isAllowedLovableHost)) ? rawOrigin : PUBLISHED_URL;
 
     if (existingProfile) {
       return new Response(

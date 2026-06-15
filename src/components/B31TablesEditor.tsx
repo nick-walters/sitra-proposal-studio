@@ -1,6 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import DOMPurify from 'dompurify';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+
+const B31_CELL_SANITIZE_CONFIG = {
+  ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'ul', 'ol', 'li', 'span', 'a', 'sub', 'sup'],
+  ALLOWED_ATTR: ['class', 'style', 'href', 'target', 'rel', 'data-type', 'data-id', 'data-wp-number', 'data-wp-short-name', 'data-wp-color', 'data-task-number', 'data-deliverable-number', 'data-milestone-number', 'data-participant-number', 'data-short-name', 'data-case-number', 'data-case-short-name', 'data-case-color', 'data-case-type', 'data-figure-id', 'data-table-key', 'data-ref-type', 'data-ref-id', 'data-citation-id', 'contenteditable'],
+};
 import {
   Select,
   SelectContent,
@@ -177,7 +183,7 @@ function EditableCell({
   const writeValue = useCallback((val: string) => {
     const el = elRef.current;
     if (!el) return;
-    if (format === 'html') el.innerHTML = val || '';
+    if (format === 'html') el.innerHTML = DOMPurify.sanitize(val || '', B31_CELL_SANITIZE_CONFIG);
     else el.textContent = val || '';
   }, [format]);
 
