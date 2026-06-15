@@ -1168,7 +1168,7 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
             </p>
           </CardContent>
         </Card>
-      </div>
-    </div>
+    </PartAPageLayout>
+
   );
 }
