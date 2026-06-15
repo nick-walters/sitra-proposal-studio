@@ -26,6 +26,7 @@ import {
   cellStyles,
   bubbleCellStyles,
 } from './B31SortableTable';
+import { WPBubble, RiskBadge, ParticipantBubble } from './B31Pill';
 
 interface B31TablesEditorProps {
   proposalId: string;
@@ -365,25 +366,7 @@ function MonthSelect({
   );
 }
 
-// WP Bubble
-function WPBubble({ wp, onRemove }: { wp: WorkPackage; onRemove?: () => void }) {
-  return (
-    <span
-      className="inline-flex items-center justify-center gap-0.5 rounded-full text-white font-bold whitespace-nowrap"
-      style={{ backgroundColor: wp.color || '#666', border: `1.5px solid ${wp.color || '#666'}`, color: '#ffffff', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px', height: '17px', position: 'relative', top: '-1px' }}
-    >
-      WP{wp.number}
-      {onRemove && (
-        <button
-          onClick={onRemove}
-          className="ml-0.5 hover:bg-black/20 rounded-full w-3 h-3 flex items-center justify-center text-[8pt]"
-        >
-          ×
-        </button>
-      )}
-    </span>
-  );
-}
+// WPBubble and RiskBadge are imported from './B31Pill'
 
 function SingleWPSelector({
   value,
@@ -403,7 +386,7 @@ function SingleWPSelector({
     >
       <SelectTrigger hideArrow className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex items-center overflow-visible">
         <SelectValue placeholder="-">
-          {selectedWP ? <WPBubble wp={selectedWP} /> : <span className="font-['Times_New_Roman',Times,serif] text-[11pt]">-</span>}
+          {selectedWP ? <WPBubble wpNumber={selectedWP.number} wpColor={selectedWP.color || '#666'} style={{ position: 'relative', top: '-1px' }} /> : <span className="font-['Times_New_Roman',Times,serif] text-[11pt]">-</span>}
         </SelectValue>
       </SelectTrigger>
       <SelectContent className="bg-background z-50">
@@ -413,7 +396,7 @@ function SingleWPSelector({
           workPackages.map(wp => (
             <SelectItem key={wp.id} value={wp.number.toString()}>
               <div className="flex items-center gap-2">
-                <WPBubble wp={wp} />
+                <WPBubble wpNumber={wp.number} wpColor={wp.color || '#666'} style={{ position: 'relative', top: '-1px' }} />
                 <span className="text-sm">{wp.short_name || wp.title}</span>
               </div>
             </SelectItem>
@@ -451,7 +434,7 @@ function MultiWPSelector({
         <button className="flex flex-wrap gap-0.5 items-center min-h-[1.2em] text-left">
           {selectedWPs.length > 0 ? (
             selectedWPs.map(wp => (
-              <WPBubble key={wp.id} wp={wp} />
+              <WPBubble key={wp.id} wpNumber={wp.number} wpColor={wp.color || '#666'} style={{ position: 'relative', top: '-1px' }} />
             ))
           ) : (
             <span className="font-['Times_New_Roman',Times,serif] text-[11pt] text-muted-foreground">-</span>
@@ -469,7 +452,7 @@ function MultiWPSelector({
                   checked={selectedNumbers.includes(wp.number)}
                   onCheckedChange={() => toggleWP(wp.number)}
                 />
-                <WPBubble wp={wp} />
+                <WPBubble wpNumber={wp.number} wpColor={wp.color || '#666'} style={{ position: 'relative', top: '-1px' }} />
                 <span className="text-sm truncate">{wp.short_name || wp.title}</span>
               </label>
             ))}
@@ -480,19 +463,7 @@ function MultiWPSelector({
   );
 }
 
-function RiskBadge({ level }: { level: 'L' | 'M' | 'H' }) {
-  const colorMap: Record<string, string> = { H: '#ef4444', M: '#f59e0b', L: '#22c55e' };
-  const levelColor = colorMap[level] || '#000';
-
-  return (
-    <span
-      className="inline-flex items-center justify-center rounded-full font-bold not-italic whitespace-nowrap"
-      style={{ backgroundColor: '#ffffff', color: levelColor, border: `1.5px solid ${levelColor}`, fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, verticalAlign: 'baseline', padding: '0px', width: '19px', height: '17px', position: 'relative', top: '-1.4px' }}
-    >
-      {level}
-    </span>
-  );
-}
+// RiskBadge is imported from './B31Pill'
 
 function useWorkPackages(proposalId: string) {
   return useQuery({
@@ -647,12 +618,10 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
           <SelectTrigger hideArrow className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex items-center overflow-visible">
             <SelectValue placeholder="-">
               {del.lead_participant_id ? (
-                <span
-                  className="inline-flex items-center justify-center rounded-full font-bold text-white whitespace-nowrap relative"
-                  style={{ backgroundColor: '#000', border: '1.5px solid #000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, fontStyle: 'normal', lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px', height: '17px', position: 'relative', top: '-1px' }}
-                >
-                  {participants.find(p => p.id === del.lead_participant_id)?.organisation_short_name || '-'}
-                </span>
+                <ParticipantBubble
+                  shortName={participants.find(p => p.id === del.lead_participant_id)?.organisation_short_name || '-'}
+                  style={{ position: 'relative', top: '-1px' }}
+                />
               ) : (
                 <span className="font-['Times_New_Roman',Times,serif] text-[11pt]">-</span>
               )}
@@ -661,12 +630,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
           <SelectContent className="bg-background z-50">
             {participants.map(p => (
               <SelectItem key={p.id} value={p.id}>
-                <span
-                  className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
-                  style={{ backgroundColor: '#000000', color: '#ffffff', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, padding: '0px 5px', height: '17px' }}
-                >
-                  {p.organisation_short_name || p.organisation_name}
-                </span>
+                <ParticipantBubble shortName={p.organisation_short_name || p.organisation_name} />
               </SelectItem>
             ))}
           </SelectContent>

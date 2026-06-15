@@ -37,6 +37,7 @@ import {
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { B31WPData, B31Participant, B31Task } from '@/hooks/useB31SectionData';
+import { B31Pill, WPBubble, ParticipantBubble } from './B31Pill';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 
@@ -47,18 +48,7 @@ interface Props {
   projectDuration?: number;
 }
 
-/* ── Participant bubble ── */
-function ParticipantBubble({ participant, showCrown = false }: { participant: B31Participant; showCrown?: boolean }) {
-  return (
-    <span
-      className="inline-flex items-center rounded-full font-bold whitespace-nowrap"
-      style={{ backgroundColor: '#000000', color: '#FFFFFF', border: '1.5px solid #000000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, fontStyle: 'normal', lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px' }}
-    >
-      {showCrown && <Crown className="h-2.5 w-2.5 mr-0.5 fill-white" strokeWidth={0} />}
-      {participant.organisation_short_name || participant.organisation_name}
-    </span>
-  );
-}
+// ParticipantBubble is imported from './B31Pill'
 
 /* ── Single-select participant picker (with deselect support) ── */
 function LeaderPicker({
@@ -90,7 +80,7 @@ function LeaderPicker({
 
   const arrow = <ChevronsUpDown className="h-3 w-3 opacity-50 shrink-0" />;
   const content = leader ? (
-    <ParticipantBubble participant={leader} showCrown={showCrown} />
+    <ParticipantBubble shortName={leader.organisation_short_name || leader.organisation_name} showCrown={showCrown} />
   ) : (
     <span className="text-muted-foreground text-[9pt] italic">{entityTable === 'wp_drafts' ? 'Select WP leader' : 'Select task leader'}</span>
   );
@@ -184,7 +174,7 @@ function PartnersPicker({
         <button className="inline-flex items-center gap-1 flex-wrap cursor-pointer hover:opacity-80">
           {selected.length > 0 ? (
             selected.map(p => (
-              <ParticipantBubble key={p.id} participant={p} />
+              <ParticipantBubble key={p.id} shortName={p.organisation_short_name || p.organisation_name} />
             ))
           ) : (
             <span className="text-muted-foreground text-[9pt] italic">Select participant(s)</span>
@@ -495,40 +485,7 @@ function EditableHeaderText({
   );
 }
 
-/* ── Caption bubble helpers ── */
-function CaptionParticipantBubble({ showCrown = false }: { showCrown?: boolean }) {
-  return (
-    <span
-      className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
-      style={{ backgroundColor: '#000000', color: '#FFFFFF', border: '1.5px solid #000000', fontFamily: "'Times New Roman', Times, serif", fontSize: '8pt', fontWeight: 700, fontStyle: 'normal', lineHeight: 1, verticalAlign: 'baseline', padding: '0px 4px', height: '17px' }}
-    >
-      {showCrown && <Crown className="h-2.5 w-2.5 fill-white" strokeWidth={0} />}
-      {!showCrown && <span style={{ display: 'inline-block', width: 10 }}>&nbsp;</span>}
-    </span>
-  );
-}
-
-function CaptionTaskBubble() {
-  return (
-    <span
-      className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
-      style={{ backgroundColor: '#ffffff', color: '#000000', border: '1.5px solid #000000', fontFamily: "'Times New Roman', Times, serif", fontSize: '8pt', fontWeight: 700, fontStyle: 'normal', lineHeight: 1, verticalAlign: 'baseline', padding: '0px 4px', height: '17px' }}
-    >
-      TX.X
-    </span>
-  );
-}
-
-function CaptionWPBubble() {
-  return (
-    <span
-      className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
-      style={{ backgroundColor: '#000000', color: '#ffffff', border: '1.5px solid #000000', fontFamily: "'Times New Roman', Times, serif", fontSize: '8pt', fontWeight: 700, fontStyle: 'normal', lineHeight: 1, verticalAlign: 'baseline', padding: '0px 4px', height: '17px' }}
-    >
-      WPX
-    </span>
-  );
-}
+/* Caption bubble helpers were unused; use <ParticipantBubble size="caption">, <B31Pill variant="outline" size="caption">, or <WPBubble size="caption"> directly. */
 
 /* ── Sortable task group (wraps 3 rows in a tbody) ── */
 function SortableTaskGroup({
@@ -618,12 +575,9 @@ function SortableTaskGroup({
             </AlertDialogContent>
           </AlertDialog>
           <div className="flex items-center gap-1">
-            <span
-              className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
-              style={{ backgroundColor: '#fff', color: wp.color, border: `1.5px solid ${wp.color}`, fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px' }}
-            >
+            <B31Pill variant="outline" color={wp.color}>
               T{wp.number}.{task.number}
-            </span>
+            </B31Pill>
             <span className="font-bold text-[11pt] font-['Times_New_Roman',Times,serif] leading-tight flex-1" data-commentable={`task-title-${wp.number}-${task.number}`}>
               <EditableHeaderText
                 value={task.title || ''}
@@ -820,25 +774,25 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
                     className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight"
                     style={{ padding: '0 2px', border: 'none' }}
                   >
-                     <span
-                       className="inline-flex items-baseline rounded-full font-bold text-white w-full"
-                        style={{ backgroundColor: wp.color, border: `1.5px solid ${wp.color}`, fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, padding: '0px 6px', color: '#ffffff' }}
+                     <WPBubble
+                       wpColor={wp.color}
+                       style={{ alignItems: 'baseline', justifyContent: 'flex-start', width: '100%', height: 'auto', padding: '0 6px' }}
                      >
-                      WP{wp.number}:&nbsp;
-                      <EditableHeaderText
-                        value={shortName}
-                        onSave={(val) => saveWPField(wp.id, 'short_name', val)}
-                        className="text-white"
-                        style={{ fontFamily: "'Times New Roman', Times, serif" }}
-                      />
-                      {shortName && title ? <>&nbsp;–&nbsp;</> : null}
-                      <EditableHeaderText
-                        value={title}
-                        onSave={(val) => saveWPField(wp.id, 'title', val)}
-                        className="text-white"
-                        style={{ fontFamily: "'Times New Roman', Times, serif" }}
-                      />
-                    </span>
+                       WP{wp.number}:&nbsp;
+                       <EditableHeaderText
+                         value={shortName}
+                         onSave={(val) => saveWPField(wp.id, 'short_name', val)}
+                         className="text-white"
+                         style={{ fontFamily: "'Times New Roman', Times, serif" }}
+                       />
+                       {shortName && title ? <>&nbsp;–&nbsp;</> : null}
+                       <EditableHeaderText
+                         value={title}
+                         onSave={(val) => saveWPField(wp.id, 'title', val)}
+                         className="text-white"
+                         style={{ fontFamily: "'Times New Roman', Times, serif" }}
+                       />
+                     </WPBubble>
                   </td>
                 </tr>
 
