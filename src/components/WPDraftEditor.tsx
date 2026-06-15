@@ -915,10 +915,24 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
           onOpenCitationDialog={() => setIsCitationOpen(true)}
           crossRefMenuItems={
             <>
-              <DropdownMenuItem onClick={() => setIsCrossRefOpen(true)} className="flex items-center gap-2">
-                <span className="w-16 flex justify-start shrink-0"><ImageIcon className="w-3.5 h-3.5 text-foreground" /></span>
-                <span>Figure / Table number</span>
+              <DropdownMenuItem onClick={() => { setCrossRefFilterType('figure'); setIsCrossRefOpen(true); }} className="flex items-center gap-2">
+                <span className="w-16 flex justify-start shrink-0"><ImageLucide className="w-3.5 h-3.5 text-foreground" /></span>
+                <span>Figure number</span>
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => { setCrossRefFilterType('table'); setIsCrossRefOpen(true); }} className="flex items-center gap-2">
+                <span className="w-16 flex justify-start shrink-0"><Table2 className="w-3.5 h-3.5 text-foreground" /></span>
+                <span>Table number</span>
+              </DropdownMenuItem>
+              {acronymSegments && acronymSegments.length > 0 && (
+                <DropdownMenuItem onClick={insertAcronymRefAtCursor} className="flex items-center gap-2">
+                  <span className="w-16 flex justify-start shrink-0">
+                    <span style={{ fontFamily: "'Arial Black', Arial, sans-serif", fontWeight: 900, fontSize: '9px', whiteSpace: 'nowrap' }}>
+                      {acronymSegments.map((seg, i) => <span key={i} style={{ color: seg.color }}>{seg.text}</span>)}
+                    </span>
+                  </span>
+                  <span>Acronym</span>
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onClick={() => setIsWPRefOpen(true)} className="flex items-center gap-2">
                 <span className="w-16 flex justify-start shrink-0">
                   <span style={{ display: 'inline-block', width: '22px', height: '14px', backgroundColor: '#2563EB', border: '1.5px solid #2563EB', borderRadius: '9999px' }} />
@@ -939,6 +953,20 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
                 </span>
                 <span>Deliverable</span>
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setIsMilestoneRefOpen(true)} className="flex items-center gap-2">
+                <span className="w-16 flex justify-start shrink-0">
+                  <span style={{ display: 'inline-block', width: '16px', height: '16px', background: '#000', clipPath: 'polygon(100% 0%, 0% 50%, 100% 100%)', margin: '-1px 0' }} />
+                </span>
+                <span>Milestone</span>
+              </DropdownMenuItem>
+              {hasCases && (
+                <DropdownMenuItem onClick={() => setIsCaseRefOpen(true)} className="flex items-center gap-2">
+                  <span className="w-16 flex justify-start shrink-0">
+                    <span style={{ display: 'inline-block', width: '22px', height: '14px', border: '1.5px solid #000000', borderRadius: '9999px', background: '#ffffff' }} />
+                  </span>
+                  <span>Case</span>
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onClick={() => setIsParticipantRefOpen(true)} className="flex items-center gap-2">
                 <span className="w-16 flex justify-start shrink-0">
                   <span style={{ display: 'inline-block', width: '22px', height: '14px', backgroundColor: '#000000', border: '1.5px solid #000000', borderRadius: '9999px' }} />
@@ -959,7 +987,8 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
               onOpenTaskChange={setIsTaskRefOpen}
               openDeliverable={isDeliverableRefOpen}
               onOpenDeliverableChange={setIsDeliverableRefOpen}
-              hideMilestone
+              openMilestone={isMilestoneRefOpen}
+              onOpenMilestoneChange={setIsMilestoneRefOpen}
             />
           }
         />
