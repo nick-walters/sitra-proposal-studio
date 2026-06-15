@@ -868,7 +868,7 @@ async function runSynthesisPhase(serviceClient: any, evaluationId: string) {
   const opusOutPrice = parseFloat(configMap.opus_price_output_per_mtok || "75.00");
   const cacheReadMul = parseFloat(configMap.cache_read_multiplier || "0.10");
   const cacheWriteMul = parseFloat(configMap.cache_write_multiplier || "1.25");
-  const usdEurRate = parseFloat(configMap.usd_eur_rate || "0.92");
+  const usdEurRate = await fetchUsdEurRate(serviceClient);
 
   const topicSpecificContext = (proposal.evaluation_criteria_notes || "").trim()
     ? `\n\nTOPIC-SPECIFIC CONTEXT FROM THE PROPOSAL TEAM:\n${proposal.evaluation_criteria_notes}`
