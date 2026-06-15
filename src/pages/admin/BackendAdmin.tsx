@@ -12,7 +12,9 @@ import {
   Lock,
   MessageSquare,
   Brain,
-  HardDrive
+  HardDrive,
+  Wand2
+
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -194,6 +196,37 @@ export function BackendAdmin() {
                 <CardTitle className="mt-4">Backups &amp; SharePoint</CardTitle>
                 <CardDescription>
                   Configure daily proposal backups and the optional SharePoint destination
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm text-muted-foreground">
+                  {isOwner ? (
+                    <span className="text-primary">Owner access granted</span>
+                  ) : (
+                    <span>Requires Owner role</span>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
+          {/* AI Configuration - Owners only */}
+          <Link to="/admin/ai-config" className={!isOwner ? 'pointer-events-none' : ''}>
+            <Card className={`h-full transition-all hover:shadow-md ${!isOwner ? 'opacity-50' : 'hover:border-primary cursor-pointer'}`}>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="p-3 bg-primary/10 rounded-lg">
+                    <Wand2 className="w-6 h-6 text-primary" />
+                  </div>
+                  {isOwner ? (
+                    <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                  ) : (
+                    <Lock className="w-5 h-5 text-muted-foreground" />
+                  )}
+                </div>
+                <CardTitle className="mt-4">AI Configuration</CardTitle>
+                <CardDescription>
+                  Update the Anthropic model IDs used by the evaluation pipeline
                 </CardDescription>
               </CardHeader>
               <CardContent>
