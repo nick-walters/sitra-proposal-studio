@@ -1101,7 +1101,7 @@ serve(async (req) => {
         !proposalStage
       ) {
         return new Response(
-          JSON.stringify({ error: "Invalid input: need 3–10 evaluators and instrument/stage info" }),
+          JSON.stringify({ error: "Invalid input: need 3–8 evaluators and instrument/stage info" }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }

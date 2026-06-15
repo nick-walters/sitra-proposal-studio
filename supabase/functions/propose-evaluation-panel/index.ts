@@ -143,7 +143,7 @@ serve(async (req) => {
     }
 
     const eligibilityModel = configMap.eligibility_model || "claude-haiku-4-5-20251001";
-    const assemblyModel = configMap.assembly_model || "claude-haiku-4-5-20251001";
+    const assemblyModel = configMap.panel_selection_model || configMap.assembly_model || "claude-haiku-4-5-20251001";
 
     // Estimate page count using platform formula (500 words/page + 1 front-matter page)
     const WORDS_PER_PAGE = 500;
@@ -269,7 +269,7 @@ ${sectionList || "(none)"}
     const assemblySystem = `You are a European Commission Programme Officer assembling an expert evaluation panel.
 
 SELECTION RULES:
-- Select minimum 3, maximum 10 evaluators. Target 5–8. Rank in order of relevance.
+- Select minimum 3, maximum 8 evaluators. Target 5–7. Rank in order of relevance.
 - Ensure disciplinary diversity. Include at least one critical/sceptical perspective.
 - For Stage 1, prioritise evaluators strong on Excellence and Impact.
 
