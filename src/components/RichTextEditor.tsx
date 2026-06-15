@@ -831,13 +831,13 @@ export function FormattingToolbar({
         {/* Undo Redo */}
         <ToolbarButton 
           icon={<Undo className="w-4 h-4" />} 
-          tooltip="Undo (Ctrl+Z)"
+          label="Undo (Ctrl+Z)"
           onClick={() => editor.chain().focus().undo().run()}
           disabled={!editor.can().undo()}
         />
         <ToolbarButton 
           icon={<Redo className="w-4 h-4" />} 
-          tooltip="Redo (Ctrl+Y)"
+          label="Redo (Ctrl+Y)"
           onClick={() => editor.chain().focus().redo().run()}
           disabled={!editor.can().redo()}
         />
@@ -926,24 +926,24 @@ export function FormattingToolbar({
         </Tooltip>
         <ToolbarButton
           icon={<Italic className="w-3.5 h-3.5" />} 
-          tooltip="Italic (Ctrl+I)"
+          label="Italic (Ctrl+I)"
           onClick={() => editor.chain().focus().toggleItalic().run()}
-          active={editor.isActive('italic')}
+          isActive={editor.isActive('italic')}
         />
         <ToolbarButton 
           icon={<UnderlineIcon className="w-4 h-4" />} 
-          tooltip="Underline (Ctrl+U)"
+          label="Underline (Ctrl+U)"
           onClick={() => editor.chain().focus().toggleUnderline().run()}
-          active={editor.isActive('underline')}
+          isActive={editor.isActive('underline')}
         />
 
         {/* Link (standalone) */}
         {showLinkButton && (
           <ToolbarButton
             icon={<LinkIcon className="w-4 h-4" />}
-            tooltip="Insert link"
+            label="Insert link"
             onClick={setLink}
-            active={editor.isActive('link')}
+            isActive={editor.isActive('link')}
           />
         )}
 
@@ -955,13 +955,13 @@ export function FormattingToolbar({
         {/* Bullet Numbered */}
         <ToolbarButton 
           icon={<List className="w-4 h-4" />} 
-          tooltip="Bullet list"
+          label="Bullet list"
           onClick={() => editor.chain().focus().toggleBulletList().run()}
-          active={editor.isActive('bulletList')}
+          isActive={editor.isActive('bulletList')}
         />
         <OrderedListDropdown
           editor={editor}
-          active={editor.isActive('orderedList')}
+          isActive={editor.isActive('orderedList')}
         />
 
         <Separator orientation="vertical" className="h-5 mx-1.5" />
@@ -969,7 +969,7 @@ export function FormattingToolbar({
         {/* Left Centre Right Justify */}
         <ToolbarButton 
           icon={<AlignLeft className="w-4 h-4" />} 
-          tooltip="Align left"
+          label="Align left"
           onClick={() => {
             const s = (editor.storage as any).trackChanges;
             const was = s?.enabled;
@@ -977,12 +977,12 @@ export function FormattingToolbar({
             editor.chain().focus().setTextAlign('left').run();
             if (s) s.enabled = was;
           }}
-          active={!isAlignDisabled && editor.isActive({ textAlign: 'left' })}
+          isActive={!isAlignDisabled && editor.isActive({ textAlign: 'left' })}
           disabled={isAlignDisabled}
         />
         <ToolbarButton 
           icon={<AlignCenter className="w-4 h-4" />} 
-          tooltip="Align center"
+          label="Align center"
           onClick={() => {
             const s = (editor.storage as any).trackChanges;
             const was = s?.enabled;
@@ -990,12 +990,12 @@ export function FormattingToolbar({
             editor.chain().focus().setTextAlign('center').run();
             if (s) s.enabled = was;
           }}
-          active={!isAlignDisabled && editor.isActive({ textAlign: 'center' })}
+          isActive={!isAlignDisabled && editor.isActive({ textAlign: 'center' })}
           disabled={isAlignDisabled}
         />
         <ToolbarButton 
           icon={<AlignRight className="w-4 h-4" />} 
-          tooltip="Align right"
+          label="Align right"
           onClick={() => {
             const s = (editor.storage as any).trackChanges;
             const was = s?.enabled;
@@ -1003,12 +1003,12 @@ export function FormattingToolbar({
             editor.chain().focus().setTextAlign('right').run();
             if (s) s.enabled = was;
           }}
-          active={!isAlignDisabled && editor.isActive({ textAlign: 'right' })}
+          isActive={!isAlignDisabled && editor.isActive({ textAlign: 'right' })}
           disabled={isAlignDisabled}
         />
         <ToolbarButton 
           icon={<AlignJustify className="w-4 h-4" />} 
-          tooltip="Justify"
+          label="Justify"
           onClick={() => {
             const s = (editor.storage as any).trackChanges;
             const was = s?.enabled;
@@ -1016,7 +1016,7 @@ export function FormattingToolbar({
             editor.chain().focus().setTextAlign('justify').run();
             if (s) s.enabled = was;
           }}
-          active={!isAlignDisabled && editor.isActive({ textAlign: 'justify' })}
+          isActive={!isAlignDisabled && editor.isActive({ textAlign: 'justify' })}
           disabled={isAlignDisabled}
         />
 
@@ -1261,7 +1261,7 @@ export function FormattingToolbar({
 
               <ToolbarButton
                 icon={<Crop className="w-4 h-4" />}
-                tooltip="Crop image"
+                label="Crop image"
                 onClick={handleCropClick}
               />
               
@@ -1270,21 +1270,21 @@ export function FormattingToolbar({
               {/* Image alignment controls */}
               <ToolbarButton
                 icon={<AlignHorizontalJustifyStart className="w-4 h-4" />}
-                tooltip="Align left"
+                label="Align left"
                 onClick={() => setImageAlignment('left')}
-                active={currentImageAlignment === 'left'}
+                isActive={currentImageAlignment === 'left'}
               />
               <ToolbarButton
                 icon={<AlignHorizontalJustifyCenter className="w-4 h-4" />}
-                tooltip="Align center"
+                label="Align center"
                 onClick={() => setImageAlignment('center')}
-                active={currentImageAlignment === 'center'}
+                isActive={currentImageAlignment === 'center'}
               />
               <ToolbarButton
                 icon={<AlignHorizontalJustifyEnd className="w-4 h-4" />}
-                tooltip="Align right"
+                label="Align right"
                 onClick={() => setImageAlignment('right')}
-                active={currentImageAlignment === 'right'}
+                isActive={currentImageAlignment === 'right'}
               />
               
               <Separator orientation="vertical" className="h-5 mx-1" />
@@ -1293,13 +1293,13 @@ export function FormattingToolbar({
               {onOpenFigureDialog && (
                 <ToolbarButton
                   icon={<RefreshCw className="w-4 h-4" />}
-                  tooltip="Replace figure"
+                  label="Replace figure"
                   onClick={replaceFigure}
                 />
               )}
               <ToolbarButton
                 icon={<Trash2 className="w-4 h-4 text-destructive" />}
-                tooltip="Delete figure with caption"
+                label="Delete figure with caption"
                 onClick={() => setShowDeleteConfirm(true)}
               />
             </div>
