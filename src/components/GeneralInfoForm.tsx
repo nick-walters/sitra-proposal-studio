@@ -31,6 +31,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useNavigate } from "react-router-dom";
 import { format, addMonths } from "date-fns";
 import { cn } from "@/lib/utils";
+import declarationsData from "@/data/declarations.json";
 
 interface GeneralInfoFormProps {
   proposalId: string;
@@ -89,7 +90,7 @@ interface FormData {
   };
 }
 
-const DECLARATIONS: Declaration[] = [
+const DECLARATIONS = declarationsData as Declaration[];
   {
     id: 'consent',
     number: 1,
