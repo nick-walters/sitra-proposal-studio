@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { DebouncedInput } from '@/components/ui/debounced-input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Users } from 'lucide-react';
 import type { ParticipantSummary } from '@/types/proposal';
@@ -10,6 +10,7 @@ function formatPM(value: number): string {
   const fixed = value.toFixed(1);
   return fixed.endsWith('.0') ? Math.round(value).toString() : fixed;
 }
+
 
 interface WPEffortEntry {
   participant_id: string;
@@ -112,52 +113,29 @@ interface EffortCellProps {
 }
 
 function EffortCell({ value, onChange, readOnly }: EffortCellProps) {
-  const [localValue, setLocalValue] = useState(value.toString());
-  const [debounceTimeout, setDebounceTimeout] = useState<NodeJS.Timeout | null>(null);
+  const stringValue = value.toString();
 
-  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setLocalValue(newValue);
-
-    if (debounceTimeout) {
-      clearTimeout(debounceTimeout);
-    }
-
-    const timeout = setTimeout(() => {
-      const numValue = parseFloat(newValue) || 0;
-      // Round to 1 decimal place
-      const rounded = Math.round(numValue * 10) / 10;
-      onChange(rounded);
-    }, 500);
-
-    setDebounceTimeout(timeout);
-  }, [onChange, debounceTimeout]);
-
-  const handleBlur = useCallback(() => {
-    // Flush any pending debounced save immediately so navigation/unmount can't drop the edit
-    if (debounceTimeout) {
-      clearTimeout(debounceTimeout);
-      setDebounceTimeout(null);
-    }
-    const numValue = parseFloat(localValue) || 0;
+  const handleDebouncedChange = useCallback((raw: string) => {
+    const numValue = parseFloat(raw) || 0;
+    // Round to 1 decimal place
     const rounded = Math.round(numValue * 10) / 10;
     onChange(rounded);
-    setLocalValue(rounded > 0 ? rounded.toString() : '0');
-  }, [localValue, onChange, debounceTimeout]);
+  }, [onChange]);
 
   return (
     <TableCell className="p-0.5">
-      <Input
+      <DebouncedInput
         type="number"
         step="0.1"
         min="0"
-        value={localValue}
-        onChange={handleChange}
-        onBlur={handleBlur}
+        value={stringValue}
+        onDebouncedChange={handleDebouncedChange}
+        debounceMs={500}
         className="h-6 text-center text-xs [&::-webkit-inner-spin-button]:appearance-none"
         disabled={readOnly}
       />
     </TableCell>
   );
 }
+
 

@@ -1,8 +1,10 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+
+import { DebouncedInput } from '@/components/ui/debounced-input';
 import { Checkbox } from '@/components/ui/checkbox';
+
 import { Participant, ParticipantMember, Section, ParticipantType } from '@/types/proposal';
 import { Building2, GripVertical, UserPlus, Plus, Search, Check, Upload, X, Loader2, Hash, FileText, Download } from 'lucide-react';
 import { SaveIndicator } from './SaveIndicator';
@@ -115,22 +117,8 @@ interface SortableParticipantCardProps {
   onUpdateParticipant?: (id: string, updates: Partial<Participant>) => Promise<void>;
 }
 
-// Debounce hook for autosave
-function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
 
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
 
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [value, delay]);
-
-  return debouncedValue;
-}
 
 function ParticipantCard({ 
   participant, 
@@ -146,94 +134,29 @@ function ParticipantCard({
   isFetchingLogo,
   onUpdateParticipant,
 }: ParticipantCardProps) {
-  // Local state for editable fields
-  const [shortName, setShortName] = useState(participant.organisationShortName || '');
-  const [legalName, setLegalName] = useState(participant.organisationName || '');
-  const [englishName, setEnglishName] = useState(participant.englishName || '');
+  // Local state for the country dropdown (CountrySelect commits on selection — no debounce needed)
   const [country, setCountry] = useState(participant.country || '');
   const [isSaving, setIsSaving] = useState(false);
-  const [hasChanges, setHasChanges] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
-  
-  // Track if values have changed from original
-  const originalRef = useRef({
-    shortName: participant.organisationShortName || '',
-    legalName: participant.organisationName || '',
-    englishName: participant.englishName || '',
-    country: participant.country || '',
-  });
 
-  // Update local state when participant prop changes
+  // Re-sync country when participant prop changes
   useEffect(() => {
-    setShortName(participant.organisationShortName || '');
-    setLegalName(participant.organisationName || '');
-    setEnglishName(participant.englishName || '');
     setCountry(participant.country || '');
-    originalRef.current = {
-      shortName: participant.organisationShortName || '',
-      legalName: participant.organisationName || '',
-      englishName: participant.englishName || '',
-      country: participant.country || '',
-    };
-    setHasChanges(false);
-  }, [participant.id, participant.organisationShortName, participant.organisationName, participant.englishName, participant.country]);
+  }, [participant.id, participant.country]);
 
-  // Debounced values for autosave
-  const debouncedShortName = useDebounce(shortName, 1000);
-  const debouncedLegalName = useDebounce(legalName, 1000);
-  const debouncedEnglishName = useDebounce(englishName, 1000);
-  const debouncedCountry = useDebounce(country, 1000);
-
-  // Autosave effect
-  useEffect(() => {
+  // Wrap a field save so we keep the existing saving indicator
+  const saveField = useCallback(async (updates: Partial<Participant>) => {
     if (!canEdit || !onUpdateParticipant) return;
+    setIsSaving(true);
+    try {
+      await onUpdateParticipant(participant.id, updates);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [canEdit, onUpdateParticipant, participant.id]);
 
-    const updates: Partial<Participant> = {};
-    let hasUpdates = false;
 
-    if (debouncedShortName !== originalRef.current.shortName) {
-      updates.organisationShortName = debouncedShortName || undefined;
-      hasUpdates = true;
-    }
-    if (debouncedLegalName !== originalRef.current.legalName) {
-      updates.organisationName = debouncedLegalName;
-      hasUpdates = true;
-    }
-    if (debouncedEnglishName !== originalRef.current.englishName) {
-      updates.englishName = debouncedEnglishName || undefined;
-      hasUpdates = true;
-    }
-    if (debouncedCountry !== originalRef.current.country) {
-      updates.country = debouncedCountry || undefined;
-      hasUpdates = true;
-    }
-
-    if (hasUpdates) {
-      setIsSaving(true);
-      onUpdateParticipant(participant.id, updates)
-        .then(() => {
-          originalRef.current = {
-            shortName: debouncedShortName,
-            legalName: debouncedLegalName,
-            englishName: debouncedEnglishName,
-            country: debouncedCountry,
-          };
-          setHasChanges(false);
-        })
-        .finally(() => {
-          setIsSaving(false);
-        });
-    }
-  }, [debouncedShortName, debouncedLegalName, debouncedEnglishName, debouncedCountry, canEdit, onUpdateParticipant, participant.id]);
-
-  // Track changes
-  const handleChange = useCallback((setter: React.Dispatch<React.SetStateAction<string>>) => {
-    return (e: React.ChangeEvent<HTMLInputElement>) => {
-      setter(e.target.value);
-      setHasChanges(true);
-    };
-  }, []);
 
   return (
     <Card className={`${isDragging ? 'shadow-lg ring-2 ring-primary' : ''}`}>
@@ -256,16 +179,17 @@ function ParticipantCard({
               <span className="font-bold text-primary text-xs">{participant.participantNumber}</span>
             </div>
             {canEdit ? (
-              <Input
-                value={shortName}
-                onChange={handleChange(setShortName)}
+              <DebouncedInput
+                value={participant.organisationShortName || ''}
+                onDebouncedChange={(val) => saveField({ organisationShortName: val || undefined })}
+                debounceMs={1000}
                 placeholder="Short"
                 className="h-7 text-sm font-bold px-1.5"
               />
             ) : (
-              shortName ? (
+              participant.organisationShortName ? (
                 <ParticipantBubble style={{ fontSize: '12px', height: 'auto', padding: '1.5px 8px' }}>
-                  {shortName}
+                  {participant.organisationShortName}
                 </ParticipantBubble>
               ) : (
                 <span className="text-muted-foreground text-sm">—</span>
@@ -277,15 +201,17 @@ function ParticipantCard({
           <div className="flex-1 min-w-0 space-y-1">
             {canEdit ? (
               <>
-                <Input
-                  value={legalName}
-                  onChange={handleChange(setLegalName)}
+                <DebouncedInput
+                  value={participant.organisationName || ''}
+                  onDebouncedChange={(val) => saveField({ organisationName: val })}
+                  debounceMs={1000}
                   placeholder="Legal name"
                   className="h-7 text-sm px-1.5"
                 />
-                <Input
-                  value={englishName}
-                  onChange={handleChange(setEnglishName)}
+                <DebouncedInput
+                  value={participant.englishName || ''}
+                  onDebouncedChange={(val) => saveField({ englishName: val || undefined })}
+                  debounceMs={1000}
                   placeholder="English name (if different)"
                   className="h-7 text-sm px-1.5 italic text-muted-foreground"
                 />
@@ -293,13 +219,13 @@ function ParticipantCard({
             ) : (
               <>
                 <div className="text-sm truncate">
-                  {legalName || 'Unnamed Organisation'}
+                  {participant.organisationName || 'Unnamed Organisation'}
                 </div>
-                {englishName && 
-                 englishName.trim() && 
-                 englishName.trim().toLowerCase() !== legalName.trim().toLowerCase() && (
+                {participant.englishName &&
+                 participant.englishName.trim() &&
+                 participant.englishName.trim().toLowerCase() !== (participant.organisationName || '').trim().toLowerCase() && (
                   <div className="text-sm text-muted-foreground italic truncate">
-                    {englishName}
+                    {participant.englishName}
                   </div>
                 )}
               </>
@@ -467,7 +393,7 @@ function ParticipantCard({
                 value={country}
                 onValueChange={(val) => {
                   setCountry(val);
-                  setHasChanges(true);
+                  saveField({ country: val || undefined });
                 }}
                 className="h-7 text-xs px-1.5"
                 placeholder="Country"
@@ -481,18 +407,9 @@ function ParticipantCard({
           
           {/* Save indicator / Edit button */}
           <div className="shrink-0 flex items-center justify-end">
-            {canEdit && (isSaving || hasChanges) && (
+            {canEdit && isSaving && (
               <span className="text-xs text-muted-foreground flex items-center gap-1">
-                {isSaving ? (
-                  <span className="animate-pulse">Saving...</span>
-                ) : hasChanges ? (
-                  <span className="animate-pulse">...</span>
-                ) : (
-                  <>
-                    <Check className="w-3 h-3 text-green-600" />
-                    <span>Saved</span>
-                  </>
-                )}
+                <span className="animate-pulse">Saving...</span>
               </span>
             )}
             {canEdit && (

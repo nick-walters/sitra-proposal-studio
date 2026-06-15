@@ -1,7 +1,8 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import { DebouncedTextarea } from '@/components/ui/debounced-textarea';
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -169,44 +170,8 @@ function SortableRiskCard({
     opacity: isDragging ? 0.5 : 1,
   };
 
-  const [localTitle, setLocalTitle] = useState(risk.title || '');
-  const [localMitigation, setLocalMitigation] = useState(risk.mitigation || '');
-  const [titleTimeout, setTitleTimeout] = useState<NodeJS.Timeout | null>(null);
-  const [mitigationTimeout, setMitigationTimeout] = useState<NodeJS.Timeout | null>(null);
   const [wpPopoverOpen, setWpPopoverOpen] = useState(false);
-  const isFocused = useRef(false);
 
-  useEffect(() => {
-    if (!isFocused.current) setLocalTitle(risk.title || '');
-  }, [risk.title]);
-
-  useEffect(() => {
-    if (!isFocused.current) setLocalMitigation(risk.mitigation || '');
-  }, [risk.mitigation]);
-
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setLocalTitle(newValue);
-
-    if (titleTimeout) clearTimeout(titleTimeout);
-    
-    const timeout = setTimeout(() => {
-      onUpdate(risk.id, { title: newValue });
-    }, 500);
-    setTitleTimeout(timeout);
-  };
-
-  const handleMitigationChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newValue = e.target.value;
-    setLocalMitigation(newValue);
-
-    if (mitigationTimeout) clearTimeout(mitigationTimeout);
-    
-    const timeout = setTimeout(() => {
-      onUpdate(risk.id, { mitigation: newValue });
-    }, 500);
-    setMitigationTimeout(timeout);
-  };
 
   // Parse related_wps string into array of WP numbers
   const selectedWpNumbers: number[] = (() => {
@@ -269,29 +234,10 @@ function SortableRiskCard({
             <GripVertical className="w-4 h-4 text-[#2563EB]" />
           </button>
         )}
-        <Textarea
-          value={localTitle}
-          onChange={(e) => {
-            const newValue = e.target.value;
-            setLocalTitle(newValue);
-            if (titleTimeout) clearTimeout(titleTimeout);
-            const timeout = setTimeout(() => {
-              onUpdate(risk.id, { title: newValue });
-            }, 500);
-            setTitleTimeout(timeout);
-          }}
-          onFocus={() => { isFocused.current = true; }}
-          onBlur={() => {
-            // Flush pending debounced save immediately
-            if (titleTimeout) {
-              clearTimeout(titleTimeout);
-              setTitleTimeout(null);
-            }
-            if ((localTitle || '') !== (risk.title || '')) {
-              onUpdate(risk.id, { title: localTitle });
-            }
-            isFocused.current = false;
-          }}
+        <DebouncedTextarea
+          value={risk.title || ''}
+          onDebouncedChange={(val) => { onUpdate(risk.id, { title: val }); }}
+          debounceMs={500}
           placeholder="Describe the risk..."
           className="min-h-[28px] resize-none text-draft flex-1 overflow-hidden font-bold"
           style={{ height: 'auto', fieldSizing: 'content' } as any}
@@ -412,21 +358,10 @@ function SortableRiskCard({
 
       {/* Row 3: Mitigation */}
       <div className="flex items-start gap-1.5 mt-1.5 ml-5">
-        <Textarea
-          value={localMitigation}
-          onChange={handleMitigationChange}
-          onFocus={() => { isFocused.current = true; }}
-          onBlur={() => {
-            // Flush pending debounced save immediately
-            if (mitigationTimeout) {
-              clearTimeout(mitigationTimeout);
-              setMitigationTimeout(null);
-            }
-            if ((localMitigation || '') !== (risk.mitigation || '')) {
-              onUpdate(risk.id, { mitigation: localMitigation });
-            }
-            isFocused.current = false;
-          }}
+        <DebouncedTextarea
+          value={risk.mitigation || ''}
+          onDebouncedChange={(val) => { onUpdate(risk.id, { mitigation: val }); }}
+          debounceMs={500}
           placeholder="Describe mitigation & adaptation measures..."
           className="min-h-[40px] resize-y text-draft flex-1"
           disabled={readOnly}

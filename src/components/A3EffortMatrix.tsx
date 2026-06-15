@@ -1,8 +1,8 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { DebouncedInput } from '@/components/ui/debounced-input';
 import { Button } from '@/components/ui/button';
 import { Users, Lock, Unlock } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { getContrastingTextColor } from '@/lib/wpColors';
 import { WPBubble, ParticipantBubble } from '@/components/B31Pill';
+
 
 function formatPM(value: number): string {
   if (value === 0) return '0';
@@ -333,69 +334,27 @@ interface EffortInputCellProps {
 }
 
 function EffortInputCell({ value, canEdit, onSave }: EffortInputCellProps) {
-  const [localValue, setLocalValue] = useState(() => formatPM(value));
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const isFocused = useRef(false);
+  const displayValue = formatPM(value);
 
-  useEffect(() => {
-    if (!isFocused.current) {
-      setLocalValue(formatPM(value));
-    }
-  }, [value]);
-
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, []);
-
-  const commitValue = useCallback(async (rawValue: string) => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
-
-    const parsed = parseFloat(rawValue) || 0;
-    const rounded = Math.round(parsed * 10) / 10;
-    setLocalValue(formatPM(rounded));
-
-    if (rounded === value) return;
-
-    await onSave(rounded);
-  }, [onSave, value]);
-
-  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const nextValue = event.target.value;
-    setLocalValue(nextValue);
-
+  const handleDebouncedChange = useCallback((raw: string) => {
     if (!canEdit) return;
-
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-
-    timeoutRef.current = setTimeout(() => {
-      void commitValue(nextValue);
-    }, 500);
-  };
+    const parsed = parseFloat(raw) || 0;
+    const rounded = Math.round(parsed * 10) / 10;
+    if (rounded === value) return;
+    void onSave(rounded);
+  }, [canEdit, onSave, value]);
 
   return (
-    <Input
+    <DebouncedInput
       type="number"
       step="0.1"
       min="0"
-      value={localValue}
-      onChange={handleChange}
-      onFocus={() => { isFocused.current = true; }}
-      onBlur={() => {
-        isFocused.current = false;
-        if (!canEdit) return;
-        void commitValue(localValue);
-      }}
+      value={displayValue}
+      onDebouncedChange={handleDebouncedChange}
+      debounceMs={500}
       className="h-8 min-w-[5.5rem] text-center text-sm tabular-nums"
       disabled={!canEdit}
     />
   );
 }
+
