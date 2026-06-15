@@ -396,7 +396,7 @@ function SingleWPSelector({
           workPackages.map(wp => (
             <SelectItem key={wp.id} value={wp.number.toString()}>
               <div className="flex items-center gap-2">
-                <WPBubble wp={wp} />
+                <WPBubble wpNumber={wp.number} wpColor={wp.color || '#666'} style={{ position: 'relative', top: '-1px' }} />
                 <span className="text-sm">{wp.short_name || wp.title}</span>
               </div>
             </SelectItem>
@@ -434,7 +434,7 @@ function MultiWPSelector({
         <button className="flex flex-wrap gap-0.5 items-center min-h-[1.2em] text-left">
           {selectedWPs.length > 0 ? (
             selectedWPs.map(wp => (
-              <WPBubble key={wp.id} wp={wp} />
+              <WPBubble key={wp.id} wpNumber={wp.number} wpColor={wp.color || '#666'} style={{ position: 'relative', top: '-1px' }} />
             ))
           ) : (
             <span className="font-['Times_New_Roman',Times,serif] text-[11pt] text-muted-foreground">-</span>
@@ -452,7 +452,7 @@ function MultiWPSelector({
                   checked={selectedNumbers.includes(wp.number)}
                   onCheckedChange={() => toggleWP(wp.number)}
                 />
-                <WPBubble wp={wp} />
+                <WPBubble wpNumber={wp.number} wpColor={wp.color || '#666'} style={{ position: 'relative', top: '-1px' }} />
                 <span className="text-sm truncate">{wp.short_name || wp.title}</span>
               </label>
             ))}
@@ -463,19 +463,7 @@ function MultiWPSelector({
   );
 }
 
-function RiskBadge({ level }: { level: 'L' | 'M' | 'H' }) {
-  const colorMap: Record<string, string> = { H: '#ef4444', M: '#f59e0b', L: '#22c55e' };
-  const levelColor = colorMap[level] || '#000';
-
-  return (
-    <span
-      className="inline-flex items-center justify-center rounded-full font-bold not-italic whitespace-nowrap"
-      style={{ backgroundColor: '#ffffff', color: levelColor, border: `1.5px solid ${levelColor}`, fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, verticalAlign: 'baseline', padding: '0px', width: '19px', height: '17px', position: 'relative', top: '-1.4px' }}
-    >
-      {level}
-    </span>
-  );
-}
+// RiskBadge is imported from './B31Pill'
 
 function useWorkPackages(proposalId: string) {
   return useQuery({
