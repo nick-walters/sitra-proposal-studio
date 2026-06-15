@@ -855,7 +855,7 @@ async function runSynthesisPhase(serviceClient: any, evaluationId: string) {
     : "(no eligibility flags recorded)";
 
   const synthesisSystem = `You are the Panel Rapporteur for a Horizon Europe expert evaluation panel.
-Synthesise ${parsedEvaluations.length} independent evaluator reports into a single Evaluation Summary Report (ESR)
+Synthesise ${successfulEvaluations.length} independent evaluator reports into a single Evaluation Summary Report (ESR)
 in the style of the official EC evaluation form.
 
 OUTPUT STRUCTURE — produce EXACTLY these top-level sections, in this order, and NOTHING else:
@@ -889,7 +889,7 @@ ELIGIBILITY FLAGS (for the European Commission initial check section):
 ${eligibilityBlock}
 
 EVALUATOR REPORTS:
-${parsedEvaluations
+${successfulEvaluations
   .map(
     (evaluationItem: any, index: number) => `
 === Evaluator ${index + 1}: ${evaluationItem.persona.name} ===
