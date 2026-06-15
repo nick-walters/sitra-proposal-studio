@@ -618,12 +618,10 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
           <SelectTrigger hideArrow className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex items-center overflow-visible">
             <SelectValue placeholder="-">
               {del.lead_participant_id ? (
-                <span
-                  className="inline-flex items-center justify-center rounded-full font-bold text-white whitespace-nowrap relative"
-                  style={{ backgroundColor: '#000', border: '1.5px solid #000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, fontStyle: 'normal', lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px', height: '17px', position: 'relative', top: '-1px' }}
-                >
-                  {participants.find(p => p.id === del.lead_participant_id)?.organisation_short_name || '-'}
-                </span>
+                <ParticipantBubble
+                  shortName={participants.find(p => p.id === del.lead_participant_id)?.organisation_short_name || '-'}
+                  style={{ position: 'relative', top: '-1px' }}
+                />
               ) : (
                 <span className="font-['Times_New_Roman',Times,serif] text-[11pt]">-</span>
               )}
@@ -632,12 +630,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
           <SelectContent className="bg-background z-50">
             {participants.map(p => (
               <SelectItem key={p.id} value={p.id}>
-                <span
-                  className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
-                  style={{ backgroundColor: '#000000', color: '#ffffff', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, padding: '0px 5px', height: '17px' }}
-                >
-                  {p.organisation_short_name || p.organisation_name}
-                </span>
+                <ParticipantBubble shortName={p.organisation_short_name || p.organisation_name} />
               </SelectItem>
             ))}
           </SelectContent>
