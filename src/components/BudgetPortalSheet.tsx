@@ -1063,6 +1063,7 @@ export function BudgetPortalSheet({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PartAPageLayout>
+
   );
 }
