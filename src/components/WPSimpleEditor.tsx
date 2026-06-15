@@ -66,6 +66,7 @@ export function WPSimpleEditor({
   const [isFocused, setIsFocused] = useState(false);
   const [isTaskRefOpen, setIsTaskRefOpen] = useState(false);
   const [isDeliverableRefOpen, setIsDeliverableRefOpen] = useState(false);
+  const [isMilestoneRefOpen, setIsMilestoneRefOpen] = useState(false);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const isInitialMount = useRef(true);
   const hasPendingLocalChangesRef = useRef(false);
