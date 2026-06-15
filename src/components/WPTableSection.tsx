@@ -287,23 +287,12 @@ function SortableTaskCard({
         >
           {formatTaskNumber(task.number)}
         </span>
-        <input
-          value={localTitle}
-          onChange={handleTitleChange}
-          onFocus={() => { isFocused.current = true; }}
-          onBlur={() => {
-            // Flush pending debounced save immediately
-            if (titleTimeout) {
-              clearTimeout(titleTimeout);
-              setTitleTimeout(null);
-            }
-            if ((localTitle || '') !== (task.title || '')) {
-              onUpdate(task.id, { title: localTitle });
-            }
-            isFocused.current = false;
-          }}
+        <DebouncedInput
+          value={task.title || ''}
+          onDebouncedChange={(val) => { onUpdate(task.id, { title: val }); }}
+          debounceMs={500}
           placeholder="Task title..."
-          className="h-6 text-draft flex-1 font-bold bg-transparent border-0 outline-none px-1 text-foreground placeholder:text-muted-foreground/60"
+          className="h-6 text-draft flex-1 font-bold bg-transparent border-0 outline-none px-1 text-foreground placeholder:text-muted-foreground/60 shadow-none focus-visible:ring-0"
           style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt' }}
           disabled={readOnly}
         />
