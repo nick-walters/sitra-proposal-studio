@@ -288,7 +288,7 @@ function ParticipantRowView({ p, isCoord, wpLed, caseLed, canResize, onResize }:
   const coordBadges = isCoord ? [
     <Tooltip key="coord">
       <TooltipTrigger asChild>
-        <span style={{ ...roleBadgeBase, backgroundColor: '#000', color: '#fff', border: '1.5px solid #000' }}>Coordinator</span>
+        <B31Pill variant="filled" color="#000" size="role" style={{ lineHeight: 1.2 }}>Coordinator</B31Pill>
       </TooltipTrigger>
       <TooltipContent>Project coordinator</TooltipContent>
     </Tooltip>
@@ -296,7 +296,7 @@ function ParticipantRowView({ p, isCoord, wpLed, caseLed, canResize, onResize }:
   const wpBadges = wpLed.map((wp) => (
     <Tooltip key={`wp-${wp.number}`}>
       <TooltipTrigger asChild>
-        <span style={{ ...roleBadgeBase, backgroundColor: wp.color, color: '#fff' }}>WP{wp.number}</span>
+        <WPBubble wpNumber={wp.number} wpColor={wp.color} size="role" style={{ lineHeight: 1.2 }} />
       </TooltipTrigger>
       <TooltipContent>{wp.shortName ? `${wp.shortName} (Lead)` : `WP${wp.number} Lead`}</TooltipContent>
     </Tooltip>
@@ -304,9 +304,9 @@ function ParticipantRowView({ p, isCoord, wpLed, caseLed, canResize, onResize }:
   const caseBadges = caseLed.map((c) => (
     <Tooltip key={`case-${c.number}`}>
       <TooltipTrigger asChild>
-        <span style={{ ...roleBadgeBase, backgroundColor: '#fff', color: '#000', border: '1.5px solid #000' }}>
+        <B31Pill variant="outline" color="#000" size="role" style={{ lineHeight: 1.2 }}>
           {c.prefix ? `${c.prefix}${c.number}` : (c.shortName || c.number)}
-        </span>
+        </B31Pill>
       </TooltipTrigger>
       <TooltipContent>{c.shortName ? `${c.shortName} (Lead)` : `Lead`}</TooltipContent>
     </Tooltip>
@@ -317,10 +317,9 @@ function ParticipantRowView({ p, isCoord, wpLed, caseLed, canResize, onResize }:
   return (
     <tr>
       <ResizableTd index={0} canResize={canResize} onResize={onResize} style={{ verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
-        <ParticipantBubble
-          number={p.participant_number}
-          shortName={p.organisation_short_name || ''}
-        />
+        <ParticipantBubble>
+          {p.participant_number ?? '—'}. {p.organisation_short_name || ''}
+        </ParticipantBubble>
       </ResizableTd>
       <ResizableTd index={1} canResize={canResize} onResize={onResize} style={{ verticalAlign: 'middle' }}>
         {legalName}
