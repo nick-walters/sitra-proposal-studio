@@ -41,7 +41,7 @@ export const cellStyles = "!px-[1pt] !py-0 px-[1pt] h-auto align-middle font-['T
 export const bubbleCellStyles = "!px-[1pt] !py-[1px] px-[1pt] h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-none overflow-visible";
 export const headerCellStyles = "!px-[1pt] !py-0 px-[1pt] h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight font-bold";
 
-// ============== SORTABLE ROW (moved from B31TablesEditor) ==============
+// ============== SORTABLE ROW ==============
 export function SortableTableRow({
   id,
   children,
@@ -174,6 +174,12 @@ export interface B31Column<TRow> {
   ) => React.ReactNode;
 }
 
+export interface B31CaptionApi<TRow> {
+  add: () => void;
+  rows: TRow[];
+  reorder: (newOrder: TRow[]) => void;
+}
+
 export interface B31SortableTableProps<TRow extends { id: string; order_index: number }> {
   proposalId: string;
   dbTable: string;
@@ -187,12 +193,11 @@ export interface B31SortableTableProps<TRow extends { id: string; order_index: n
   captionTableKey: string;
   captionLabel: string;
   captionDefaultText: string;
-  captionLeftButtons?: React.ReactNode;
+  captionLeftButtons?: (api: B31CaptionApi<TRow>) => React.ReactNode;
   captionSuffix?: React.ReactNode;
   captionClassName?: string;
 
   // Add
-  addButtonLabel?: string;
   createDefaultRow: (existingRows: TRow[]) => Record<string, any>;
 
   // Numbering / reorder side effects.
@@ -200,13 +205,8 @@ export interface B31SortableTableProps<TRow extends { id: string; order_index: n
   recomputeNumbers?: (reorderedRows: TRow[]) => Array<{ id: string; updates: Record<string, any> }>;
   reorderToastLabel?: string;
 
-  // Side queries to invalidate alongside the main one
   invalidateGantt?: boolean;
-
-  // Auto-fit options
   autoFitFullWidth?: boolean;
-
-  // Table width: 'sum' = sum of column widths, 'maxFull' = max(sum, 100%)
   tableWidthMode?: 'sum' | 'maxFull';
 }
 
@@ -235,7 +235,7 @@ export function B31SortableTable<TRow extends { id: string; order_index: number 
 
   const queryClient = useQueryClient();
   const { isAdminOrOwner } = useUserRole();
-  const eventTableId = queryKey; // e.g. 'b31-deliverables'
+  const eventTableId = queryKey;
 
   const { colWidths, setColWidths, tableRef, handleColResizeStart, saveWidths } = useColumnResize({
     proposalId,
@@ -355,6 +355,12 @@ export function B31SortableTable<TRow extends { id: string; order_index: number 
         : `${sumWidth}px`
       : '100%';
 
+  const api: B31CaptionApi<TRow> = {
+    add: () => addMutation.mutate(),
+    rows,
+    reorder: (newOrder) => reorderMutation.mutate(newOrder),
+  };
+
   return (
     <div onFocusCapture={dispatchToolbarFocus}>
       <EditableCaption
@@ -364,11 +370,7 @@ export function B31SortableTable<TRow extends { id: string; order_index: number 
         defaultCaption={captionDefaultText}
         suffix={captionSuffix}
         className={captionClassName}
-        leftButtons={
-          <>
-            {captionLeftButtons}
-          </>
-        }
+        leftButtons={captionLeftButtons ? captionLeftButtons(api) : undefined}
       />
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <B31TableWrapper>
@@ -430,19 +432,6 @@ export function B31SortableTable<TRow extends { id: string; order_index: number 
           </Table>
         </B31TableWrapper>
       </DndContext>
-      {/* Expose add action via the caption — consumers wire it themselves via captionLeftButtons. */}
-      {/* The add mutation is exposed via the AddButton render-prop pattern below. */}
-      <AddMutationBridge mutation={addMutation} />
     </div>
   );
-}
-
-/**
- * Helper that re-exposes the internal add mutation. Consumers don't actually
- * use this — the add button lives inside captionLeftButtons and calls the
- * exported useB31AddRow hook instead. Kept as a no-op renderer to preserve
- * the mutation lifecycle.
- */
-function AddMutationBridge({ mutation: _mutation }: { mutation: any }) {
-  return null;
 }
