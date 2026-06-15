@@ -288,7 +288,7 @@ function ParticipantRowView({ p, isCoord, wpLed, caseLed, canResize, onResize }:
   const coordBadges = isCoord ? [
     <Tooltip key="coord">
       <TooltipTrigger asChild>
-        <B31Pill variant="filled" color="#000" size="role" style={{ lineHeight: 1.2 }}>Coordinator</B31Pill>
+        <B31Pill variant="filled" color="#000" size="document" style={{ lineHeight: 1.2 }}>Coordinator</B31Pill>
       </TooltipTrigger>
       <TooltipContent>Project coordinator</TooltipContent>
     </Tooltip>
@@ -296,7 +296,7 @@ function ParticipantRowView({ p, isCoord, wpLed, caseLed, canResize, onResize }:
   const wpBadges = wpLed.map((wp) => (
     <Tooltip key={`wp-${wp.number}`}>
       <TooltipTrigger asChild>
-        <WPBubble wpNumber={wp.number} wpColor={wp.color} size="role" style={{ lineHeight: 1.2 }} />
+        <WPBubble wpNumber={wp.number} wpColor={wp.color} size="document" style={{ lineHeight: 1.2 }} />
       </TooltipTrigger>
       <TooltipContent>{wp.shortName ? `${wp.shortName} (Lead)` : `WP${wp.number} Lead`}</TooltipContent>
     </Tooltip>
@@ -304,7 +304,7 @@ function ParticipantRowView({ p, isCoord, wpLed, caseLed, canResize, onResize }:
   const caseBadges = caseLed.map((c) => (
     <Tooltip key={`case-${c.number}`}>
       <TooltipTrigger asChild>
-        <B31Pill variant="outline" color="#000" size="role" style={{ lineHeight: 1.2 }}>
+        <B31Pill variant="outline" color="#000" size="document" style={{ lineHeight: 1.2 }}>
           {c.prefix ? `${c.prefix}${c.number}` : (c.shortName || c.number)}
         </B31Pill>
       </TooltipTrigger>
