@@ -531,6 +531,15 @@ export function FormattingToolbar({
   b31TableFocus,
   onB31AutoResize,
   crossRefDropdown,
+  showLinkButton = false,
+  showColor = true,
+  showParagraphSpacing = true,
+  showImageControls = true,
+  showTableEditing = true,
+  tableInsertMode = 'popover',
+  figureInsertMode = 'dialog',
+  subheadingPrefix,
+  showSubheadingBodyItem = true,
 }: { 
   editor: Editor | null;
   sectionNumber?: string;
@@ -549,6 +558,15 @@ export function FormattingToolbar({
    b31TableFocus?: string | null;
    onB31AutoResize?: () => void;
   crossRefDropdown?: React.ReactNode;
+  showLinkButton?: boolean;
+  showColor?: boolean;
+  showParagraphSpacing?: boolean;
+  showImageControls?: boolean;
+  showTableEditing?: boolean;
+  tableInsertMode?: 'popover' | 'fixed3x3';
+  figureInsertMode?: 'dialog' | 'urlPrompt' | 'none';
+  subheadingPrefix?: string;
+  showSubheadingBodyItem?: boolean;
 }) {
   const [tablePopoverOpen, setTablePopoverOpen] = useState(false);
   const [isCropOpen, setIsCropOpen] = useState(false);
@@ -870,20 +888,24 @@ export function FormattingToolbar({
             </TooltipContent>
           </Tooltip>
           <DropdownMenuContent align="start" className="w-64">
+            {showSubheadingBodyItem && (
+              <>
+                <DropdownMenuItem onClick={() => {
+                  const chain = editor.chain().focus();
+                  if (editor.isActive('heading', { level: 1 })) chain.toggleHeading({ level: 1 });
+                  else if (editor.isActive('heading', { level: 2 })) chain.toggleHeading({ level: 2 });
+                  else if (editor.isActive('heading', { level: 3 })) chain.toggleHeading({ level: 3 });
+                  if (editor.isActive('bold')) chain.toggleBold();
+                  if (editor.isActive('underline')) chain.toggleUnderline();
+                  chain.run();
+                }}>
+                  <span className="text-sm">Body</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
             <DropdownMenuItem onClick={() => {
-              const chain = editor.chain().focus();
-              if (editor.isActive('heading', { level: 1 })) chain.toggleHeading({ level: 1 });
-              else if (editor.isActive('heading', { level: 2 })) chain.toggleHeading({ level: 2 });
-              else if (editor.isActive('heading', { level: 3 })) chain.toggleHeading({ level: 3 });
-              if (editor.isActive('bold')) chain.toggleBold();
-              if (editor.isActive('underline')) chain.toggleUnderline();
-              chain.run();
-            }}>
-              <span className="text-sm">Body</span>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => {
-              const cleanNum = sectionNumber ? sectionNumber.replace(/^[A-Za-z]+/, '') : '1.1';
+              const cleanNum = subheadingPrefix ?? (sectionNumber ? sectionNumber.replace(/^[A-Za-z]+/, '') : '1.1');
               // Use a temporary placeholder number; renumber will fix it
               const placeholder = `${cleanNum}.0. `;
               editor.chain().focus().toggleHeading({ level: 3 }).run();
@@ -900,7 +922,7 @@ export function FormattingToolbar({
                 renumberH3Headings(editor, cleanNum);
               }
             }}>
-              <span className="text-sm font-semibold underline">{sectionNumber ? `${sectionNumber.replace(/^[A-Za-z]+/, '')}.1.` : '1.1.1.'} Numbered subheading</span>
+              <span className="text-sm font-semibold underline">{(subheadingPrefix ?? (sectionNumber ? sectionNumber.replace(/^[A-Za-z]+/, '') : '1.1'))}.1. Numbered subheading</span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => {
               // Unnumbered subheading (bold + underline inline style)
@@ -939,8 +961,18 @@ export function FormattingToolbar({
           active={editor.isActive('underline')}
         />
 
+        {/* Link (standalone) */}
+        {showLinkButton && (
+          <ToolbarButton
+            icon={<LinkIcon className="w-4 h-4" />}
+            tooltip="Insert link"
+            onClick={setLink}
+            active={editor.isActive('link')}
+          />
+        )}
+
         {/* Text colour */}
-        <TextColorPicker editor={editor} />
+        {showColor && <TextColorPicker editor={editor} />}
 
         <Separator orientation="vertical" className="h-5 mx-1.5" />
 
@@ -1012,12 +1044,28 @@ export function FormattingToolbar({
           disabled={isAlignDisabled}
         />
 
-        <ParagraphSpacingPopover editor={editor} disabled={isAlignDisabled} />
+        {showParagraphSpacing && <ParagraphSpacingPopover editor={editor} disabled={isAlignDisabled} />}
 
         <Separator orientation="vertical" className="h-5 mx-1.5" />
 
         {/* Table */}
-        {!showTableOptions && !hideTableInsert && (
+        {!showTableOptions && !hideTableInsert && tableInsertMode === 'fixed3x3' && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 gap-1"
+                onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+              >
+                <TableIcon className="w-4 h-4" />
+                <span className="text-xs">Table</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs">Insert table</TooltipContent>
+          </Tooltip>
+        )}
+        {!showTableOptions && !hideTableInsert && tableInsertMode === 'popover' && (
           <Popover open={tablePopoverOpen} onOpenChange={setTablePopoverOpen}>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -1041,7 +1089,7 @@ export function FormattingToolbar({
             </PopoverContent>
           </Popover>
         )}
-        {showTableOptions && (
+        {showTableOptions && showTableEditing && (
           <DropdownMenu>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -1150,7 +1198,7 @@ export function FormattingToolbar({
         )}
 
         {/* Figure */}
-        {isPartB && onOpenFigureDialog && (
+        {figureInsertMode === 'dialog' && isPartB && onOpenFigureDialog && (
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -1158,6 +1206,28 @@ export function FormattingToolbar({
                 size="sm"
                 className="h-7 px-2 gap-1"
                 onClick={onOpenFigureDialog}
+                disabled={isReadOnly}
+              >
+                <ImageIcon className="w-4 h-4" />
+                <span className="text-xs">Figure</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs">
+              Insert figure
+            </TooltipContent>
+          </Tooltip>
+        )}
+        {figureInsertMode === 'urlPrompt' && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 gap-1"
+                onClick={() => {
+                  const url = window.prompt('Enter image URL:');
+                  if (url) editor.chain().focus().setImage({ src: url }).run();
+                }}
                 disabled={isReadOnly}
               >
                 <ImageIcon className="w-4 h-4" />
@@ -1195,7 +1265,7 @@ export function FormattingToolbar({
         {crossRefDropdown}
 
         {/* Image controls - show when image is selected */}
-        {isImageSelected && (
+        {showImageControls && isImageSelected && (
           <>
             <Separator orientation="vertical" className="h-5 mx-1.5" />
             <div className="flex items-center gap-1">
