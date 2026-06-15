@@ -768,6 +768,33 @@ ${fullProposalOutputBlock}`;
   return finalizeEvaluatorPhase(nextEvaluations, nextUsageTotals);
 }
 
+async function fetchUsdEurRate(serviceClient: any): Promise<number> {
+  try {
+    const response = await fetch("https://api.frankfurter.app/latest?from=USD&to=EUR");
+    if (response.ok) {
+      const data = await response.json();
+      const rate = data?.rates?.EUR;
+      if (typeof rate === "number" && rate > 0) {
+        await serviceClient
+          .from("ai_platform_config")
+          .update({ value: rate.toString(), updated_at: new Date().toISOString() })
+          .eq("key", "usd_eur_rate");
+        return rate;
+      }
+    }
+  } catch (error) {
+    console.warn("Failed to fetch live USD/EUR rate, falling back to config:", error);
+  }
+  const { data } = await serviceClient
+    .from("ai_platform_config")
+    .select("value")
+    .eq("key", "usd_eur_rate")
+    .single();
+  return parseFloat(data?.value || "0.92");
+}
+
+
+
 async function runSynthesisPhase(serviceClient: any, evaluationId: string) {
   const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
   if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
