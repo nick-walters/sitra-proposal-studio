@@ -49,10 +49,6 @@ import {
   Strikethrough,
   List,
   ListOrdered,
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
-  AlignJustify,
   Link as LinkIcon,
   Undo,
   Redo,
@@ -81,7 +77,6 @@ import {
   Pipette,
   Ban,
   Check,
-  ChevronDown,
 } from "lucide-react";
 import {
   Tooltip,
