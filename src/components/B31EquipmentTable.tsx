@@ -5,6 +5,7 @@ import { useUserRole } from '@/hooks/useUserRole';
 import { useColumnResize } from '@/hooks/useColumnResize';
 import { ColumnResizer } from '@/components/ColumnResizer';
 import { EditableCaption } from '@/components/EditableCaption';
+import { ParticipantBubble } from '@/components/B31Pill';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 const cellStyles = "border-y border-gray-200 px-[1pt] py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle";
@@ -80,9 +81,9 @@ export function B31EquipmentTable({ items, participants, proposalId }: Props) {
                 )}
                 <tr>
                   <td className={`${cellStyles} border-y-0`} style={{ whiteSpace: 'nowrap' }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'baseline', border: '1.5px solid #000000', borderRadius: '9999px', padding: '0px 5px', fontSize: '11pt', fontFamily: "'Times New Roman', Times, serif", fontWeight: 'bold', fontStyle: 'normal', lineHeight: 1, color: '#ffffff', backgroundColor: '#000000' }}>
+                    <ParticipantBubble>
                       {label}
-                    </span>
+                    </ParticipantBubble>
                   </td>
                   <td className={`${cellStyles} text-right border-y-0`}>{formatCurrency(entry.totalCost)}</td>
                   <td className={`${cellStyles} border-y-0`}>{justification}</td>

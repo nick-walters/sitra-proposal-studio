@@ -9,6 +9,7 @@ import { useColumnResize } from '@/hooks/useColumnResize';
 import { ColumnResizer } from '@/components/ColumnResizer';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { EditableCaption } from '@/components/EditableCaption';
+import { ParticipantBubble } from '@/components/B31Pill';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 const cellStyles = "px-[1pt] py-[1pt] font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-center align-middle border-none";
@@ -186,23 +187,9 @@ borderTopLeftRadius: '12px',
                     className="px-[1pt] py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle"
                     style={{ textAlign: 'left' }}
                   >
-                    <span
-                      className="inline-flex items-center font-bold italic whitespace-nowrap rounded-full"
-                      style={{
-                        backgroundColor: '#000000',
-                        color: '#FFFFFF',
-                        fontFamily: "'Times New Roman', Times, serif",
-                        fontSize: '11pt',
-                        fontWeight: 700,
-                        fontStyle: 'normal',
-                        lineHeight: 1,
-                        verticalAlign: 'baseline',
-                        padding: '0px 5px',
-                        border: '1.5px solid #000000',
-                      }}
-                    >
+                    <ParticipantBubble>
                       {p.participant_number}. {p.organisation_short_name || p.organisation_name}
-                    </span>
+                    </ParticipantBubble>
                   </td>
                   {/* Data cells — WP column color behind */}
                   {wpData.map((wp) => {

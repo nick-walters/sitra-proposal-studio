@@ -11,6 +11,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { B31Pill } from '@/components/B31Pill';
 
 
 interface Task {
@@ -56,27 +57,8 @@ interface InsertTDMSReferenceDropdownsProps {
   hideMilestone?: boolean;
 }
 
-// Miniature bubble helpers for toolbar buttons
-function BubblePill({ text, bg, fg, border }: { text: string; bg: string; fg: string; border?: string }) {
-  return (
-    <span
-      className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
-      style={{
-        backgroundColor: bg,
-        color: fg,
-        border: border ? `1.5px solid ${border}` : undefined,
-        fontFamily: "'Times New Roman', Times, serif",
-        fontSize: '7pt',
-        fontWeight: 700,
-        lineHeight: 1,
-        padding: '1px 4px',
-        height: '13px',
-      }}
-    >
-      {text}
-    </span>
-  );
-}
+// Miniature toolbar pill — uses shared B31Pill at toolbar size
+
 
 function MiniPentagon({ text }: { text: string }) {
   const w = Math.max(32, text.length * 7 + 14);
@@ -364,7 +346,7 @@ export function InsertTDMSReferenceDropdowns({
                 disabled={disabled}
                 onClick={() => setTaskDialogOpen(true)}
               >
-                <BubblePill text="T" bg="#ffffff" fg="#000" border="#000" />
+                <B31Pill variant="outline" color="#000" size="toolbar">T</B31Pill>
               </Button>
             </TooltipTrigger>
             <TooltipContent>Insert task reference</TooltipContent>

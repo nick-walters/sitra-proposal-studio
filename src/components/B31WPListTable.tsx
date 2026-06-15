@@ -10,6 +10,7 @@ import { useUserRole } from '@/hooks/useUserRole';
 import { useColumnResize } from '@/hooks/useColumnResize';
 import { ColumnResizer } from '@/components/ColumnResizer';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
+import { WPBubble, ParticipantBubble } from '@/components/B31Pill';
 
 import { EditableCaption } from '@/components/EditableCaption';
 
@@ -97,12 +98,9 @@ function LeadPicker({
       <PopoverTrigger asChild>
         <button className="inline-flex items-center gap-0.5 cursor-pointer hover:opacity-80">
           {leader ? (
-            <span
-              className="inline-flex items-center rounded-full font-bold whitespace-nowrap"
-              style={{ backgroundColor: '#000000', color: '#FFFFFF', border: '1.5px solid #000000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, fontStyle: 'normal', lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px' }}
-            >
+            <ParticipantBubble>
               {leader.participant_number}. {leader.organisation_short_name || leader.organisation_name}
-            </span>
+            </ParticipantBubble>
           ) : (
             <span className="text-muted-foreground font-['Times_New_Roman',Times,serif] text-[11pt] italic">Select…</span>
           )}
@@ -128,12 +126,9 @@ function LeadPicker({
               >
                 {p.id === currentLeaderId && <Check className="h-3 w-3 text-primary-foreground" />}
               </div>
-              <span
-                className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
-                style={{ backgroundColor: '#000000', color: '#ffffff', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, padding: '0px 5px', height: '17px' }}
-              >
+              <ParticipantBubble>
                 {p.participant_number}. {p.organisation_short_name || p.organisation_name}
-              </span>
+              </ParticipantBubble>
             </button>
           ))}
         </div>
@@ -269,17 +264,14 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
             return (
               <TableRow key={wp.id}>
                 <TableCell className={`${editableCellStyles} leading-[0]`}>
-                  <span
-                    className="inline-flex items-center rounded-full text-white font-bold whitespace-nowrap"
-                    style={{ backgroundColor: wp.color || '#666', border: `1.5px solid ${wp.color || '#666'}`, color: '#ffffff', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px' }}
-                  >
+                  <WPBubble wpColor={wp.color || '#666'}>
                     WP{wp.number}: {shortName}{shortName && title ? ' –\u00A0' : ''}
                     <InlineEdit
                       value={title}
                       onSave={(val) => saveWPField(wp.id, 'title', val)}
                       className="text-white font-bold font-['Times_New_Roman',Times,serif] text-[11pt]"
                     />
-                  </span>
+                  </WPBubble>
                 </TableCell>
                 <TableCell className={`${editableCellStyles} whitespace-nowrap leading-[0]`}>
                   {proposalId ? (
