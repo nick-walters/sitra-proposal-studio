@@ -371,6 +371,39 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
     toast.success('Case reference inserted');
   }, [insertNodeAtCursor]);
 
+  const insertCitationAtCursor = useCallback((citationNumber: number) => {
+    const sup = document.createElement('sup');
+    sup.textContent = `${citationNumber}`;
+    sup.setAttribute('data-citation', String(citationNumber));
+    sup.style.color = 'blue';
+    sup.style.cursor = 'pointer';
+    insertNodeAtCursor(sup);
+    toast.success(`Citation ${citationNumber} inserted`);
+  }, [insertNodeAtCursor]);
+
+  const insertFigureAtCursor = useCallback((figure: any) => {
+    const refSpan = document.createElement('span');
+    refSpan.textContent = `(see ${figure.figure_number})`;
+    refSpan.style.color = 'blue';
+    refSpan.style.textDecoration = 'underline';
+    insertNodeAtCursor(refSpan);
+    toast.success('Figure reference inserted');
+  }, [insertNodeAtCursor]);
+
+  // Browser-level undo/redo for contentEditable surfaces in the case draft
+  const handleUndo = useCallback(() => {
+    const { editorEl } = restoreSelection();
+    if (editorEl) editorEl.focus({ preventScroll: true });
+    document.execCommand('undo');
+  }, [restoreSelection]);
+  const handleRedo = useCallback(() => {
+    const { editorEl } = restoreSelection();
+    if (editorEl) editorEl.focus({ preventScroll: true });
+    document.execCommand('redo');
+  }, [restoreSelection]);
+
+
+
 
   // Fetch case draft
   const { data: caseDraft, isLoading } = useQuery({
