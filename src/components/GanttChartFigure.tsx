@@ -733,6 +733,8 @@ export function GanttChartFigure({
                                       lineHeight: 1,
                                       color: isMs ? '#ffffff' : b.color,
                                       whiteSpace: 'nowrap',
+                                      padding: isMs ? '0 4px' : undefined,
+                                      boxSizing: 'border-box',
                                     }}
                                   >
                                     {b.label}
