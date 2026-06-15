@@ -15,6 +15,8 @@ import {
 import { Participant, ParticipantMember, ParticipantSummary, PARTICIPANT_TYPE_LABELS } from '@/types/proposal';
 import { ORGANISATION_CATEGORY_LABELS } from '@/types/proposal';
 import { SaveIndicator } from './SaveIndicator';
+import { PartAPageLayout } from './PartAPageLayout';
+
 import { CountrySelect } from './CountrySelect';
 import { User } from 'lucide-react';
 import { isEligibleForGEP } from '@/lib/countries';
