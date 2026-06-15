@@ -576,8 +576,9 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
-      const color = del.wp_color || '#2563EB';
-      const label = del.number;
+      const rawColor = del.wp_color || '#2563EB';
+      const color = /^#[0-9a-fA-F]{3,8}$/.test(rawColor) ? rawColor : '#2563EB';
+      const label = String(del.number).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
       const textWidth = Math.max(36, label.length * 8 + 8);
       const totalWidth = textWidth + 8;
       const wrapper = document.createElement('span');
