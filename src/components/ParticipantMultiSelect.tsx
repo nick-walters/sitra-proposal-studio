@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import type { ParticipantSummary } from '@/types/proposal';
+import { ParticipantBubble } from '@/components/B31Pill';
 
 interface ParticipantMultiSelectProps {
   participants: ParticipantSummary[];
