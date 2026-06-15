@@ -230,15 +230,12 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
                   <th key={wp.id} className="px-1 py-1.5 text-center border-r">
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <span
-                          className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap cursor-default"
-                          style={{
-                            backgroundColor: wp.color || '#3b82f6',
-                            color: '#ffffff',
-                          }}
+                        <WPBubble
+                          wpColor={wp.color || '#3b82f6'}
+                          style={{ fontSize: '10px', height: 'auto', padding: '2px 8px', cursor: 'default' }}
                         >
                           WP{wp.number}
-                        </span>
+                        </WPBubble>
                       </TooltipTrigger>
                       <TooltipContent>
                         <span className="text-xs">WP{wp.number}{wp.short_name ? `: ${wp.short_name}` : ''}{wp.title ? ` – ${wp.title}` : ''}</span>
