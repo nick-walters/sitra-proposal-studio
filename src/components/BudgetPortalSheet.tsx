@@ -1017,7 +1017,7 @@ export function BudgetPortalSheet({
           <BudgetValidationDialog proposalId={proposalId} open={validationOpen} onOpenChange={setValidationOpen} />
         </Tabs>
 
-      </div>
+
 
       {/* Participant Budget Dialog */}
       <Dialog open={!!editingParticipantId} onOpenChange={(open) => { if (!open) { setEditingParticipantId(null); refetchBudgetRows(); } }}>
