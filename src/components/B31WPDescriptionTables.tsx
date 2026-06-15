@@ -575,12 +575,9 @@ function SortableTaskGroup({
             </AlertDialogContent>
           </AlertDialog>
           <div className="flex items-center gap-1">
-            <span
-              className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
-              style={{ backgroundColor: '#fff', color: wp.color, border: `1.5px solid ${wp.color}`, fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px' }}
-            >
+            <B31Pill variant="outline" color={wp.color}>
               T{wp.number}.{task.number}
-            </span>
+            </B31Pill>
             <span className="font-bold text-[11pt] font-['Times_New_Roman',Times,serif] leading-tight flex-1" data-commentable={`task-title-${wp.number}-${task.number}`}>
               <EditableHeaderText
                 value={task.title || ''}
