@@ -655,29 +655,27 @@ export function BudgetPortalSheet({
   }
 
   return (
-    <div className="flex-1 overflow-auto p-6 bg-muted/30">
-      <div className="mx-auto space-y-6 max-w-full">
-        <div className="space-y-2">
-          <h1 className="text-xl font-bold text-foreground">Part A3: Budget</h1>
-          <div className="flex items-center gap-3">
-            <PartAGuidelinesDialog
-              sectionTitle="Part A3: Budget"
-              officialGuidelines={[{
-                id: 'budget-info',
-                title: 'Budget Guidelines',
-                content: 'The estimated budget should include all eligible costs for the action.\n\nKey budget categories:\n• A. Personnel costs\n• B. Subcontracting\n• C. Purchase costs (Travel, Equipment, Other)\n• D. Other cost categories (Internally invoiced)\n• E. Indirect costs (25% flat rate)\n\nAll costs must be directly linked to the project activities.'
-              }]}
-              sitraTips={[{
-                id: 'budget-tip',
-                title: 'Budget planning tips',
-                content: 'Start by estimating person months per work package, then convert to costs.\n\nRecommendations:\n• Distribute effort proportionally across partners\n• Include buffer for unexpected costs where rules allow\n• Ensure consistency between budget and work package descriptions'
-              }]}
-            />
-            {activeTab !== 'validation' && (
-              <SaveIndicator saving={saving} lastSaved={null} onSaveNow={refetchBudgetRows} />
-            )}
-          </div>
-        </div>
+    <PartAPageLayout
+      title="Part A3: Budget"
+      maxWidth="max-w-full"
+      guidelines={
+        <PartAGuidelinesDialog
+          sectionTitle="Part A3: Budget"
+          officialGuidelines={[{
+            id: 'budget-info',
+            title: 'Budget Guidelines',
+            content: 'The estimated budget should include all eligible costs for the action.\n\nKey budget categories:\n• A. Personnel costs\n• B. Subcontracting\n• C. Purchase costs (Travel, Equipment, Other)\n• D. Other cost categories (Internally invoiced)\n• E. Indirect costs (25% flat rate)\n\nAll costs must be directly linked to the project activities.'
+          }]}
+          sitraTips={[{
+            id: 'budget-tip',
+            title: 'Budget planning tips',
+            content: 'Start by estimating person months per work package, then convert to costs.\n\nRecommendations:\n• Distribute effort proportionally across partners\n• Include buffer for unexpected costs where rules allow\n• Ensure consistency between budget and work package descriptions'
+          }]}
+        />
+      }
+      saveIndicator={activeTab !== 'validation' ? <SaveIndicator saving={saving} lastSaved={null} onSaveNow={refetchBudgetRows} /> : undefined}
+    >
+
 
         {/* Main Content Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
