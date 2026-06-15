@@ -36,6 +36,7 @@ import { BudgetParticipantForm } from './BudgetParticipantForm';
 import { A3EffortMatrix } from './A3EffortMatrix';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { ParticipantBubble } from '@/components/B31Pill';
 
 interface BudgetPortalSheetProps {
   proposalId: string;
