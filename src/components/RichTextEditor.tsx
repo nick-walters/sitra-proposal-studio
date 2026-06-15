@@ -1198,7 +1198,7 @@ export function FormattingToolbar({
         )}
 
         {/* Figure */}
-        {isPartB && onOpenFigureDialog && (
+        {figureInsertMode === 'dialog' && isPartB && onOpenFigureDialog && (
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -1206,6 +1206,28 @@ export function FormattingToolbar({
                 size="sm"
                 className="h-7 px-2 gap-1"
                 onClick={onOpenFigureDialog}
+                disabled={isReadOnly}
+              >
+                <ImageIcon className="w-4 h-4" />
+                <span className="text-xs">Figure</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs">
+              Insert figure
+            </TooltipContent>
+          </Tooltip>
+        )}
+        {figureInsertMode === 'urlPrompt' && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 gap-1"
+                onClick={() => {
+                  const url = window.prompt('Enter image URL:');
+                  if (url) editor.chain().focus().setImage({ src: url }).run();
+                }}
                 disabled={isReadOnly}
               >
                 <ImageIcon className="w-4 h-4" />
