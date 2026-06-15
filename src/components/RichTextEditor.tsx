@@ -1049,7 +1049,23 @@ export function FormattingToolbar({
         <Separator orientation="vertical" className="h-5 mx-1.5" />
 
         {/* Table */}
-        {!showTableOptions && !hideTableInsert && (
+        {!showTableOptions && !hideTableInsert && tableInsertMode === 'fixed3x3' && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 gap-1"
+                onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+              >
+                <TableIcon className="w-4 h-4" />
+                <span className="text-xs">Table</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs">Insert table</TooltipContent>
+          </Tooltip>
+        )}
+        {!showTableOptions && !hideTableInsert && tableInsertMode === 'popover' && (
           <Popover open={tablePopoverOpen} onOpenChange={setTablePopoverOpen}>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -1073,7 +1089,7 @@ export function FormattingToolbar({
             </PopoverContent>
           </Popover>
         )}
-        {showTableOptions && (
+        {showTableOptions && showTableEditing && (
           <DropdownMenu>
             <Tooltip>
               <TooltipTrigger asChild>
