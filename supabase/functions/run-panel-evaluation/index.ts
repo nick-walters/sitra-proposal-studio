@@ -821,7 +821,8 @@ async function runSynthesisPhase(serviceClient: any, evaluationId: string) {
   const totalThresholdSuffix =
     totalThreshold !== null ? ` (threshold: ${totalThreshold} / ${maxPoints})` : "";
 
-  const evaluationModel = synthesisContext.evaluation_model || configMap.evaluation_model || "claude-opus-4-5-20250929";
+  const evaluationModel = synthesisContext.evaluation_model || configMap.evaluation_model || "claude-opus-4-8";
+  const synthesisModel = configMap.synthesis_model || evaluationModel;
   const opusInPrice = parseFloat(configMap.opus_price_input_per_mtok || "15.00");
   const opusOutPrice = parseFloat(configMap.opus_price_output_per_mtok || "75.00");
   const cacheReadMul = parseFloat(configMap.cache_read_multiplier || "0.10");
@@ -1081,7 +1082,7 @@ serve(async (req) => {
         !proposalId ||
         !Array.isArray(selectedEvaluators) ||
         selectedEvaluators.length < 3 ||
-        selectedEvaluators.length > 10 ||
+        selectedEvaluators.length > 8 ||
         !instrumentCode ||
         !proposalStage
       ) {
