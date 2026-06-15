@@ -264,17 +264,14 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
             return (
               <TableRow key={wp.id}>
                 <TableCell className={`${editableCellStyles} leading-[0]`}>
-                  <span
-                    className="inline-flex items-center rounded-full text-white font-bold whitespace-nowrap"
-                    style={{ backgroundColor: wp.color || '#666', border: `1.5px solid ${wp.color || '#666'}`, color: '#ffffff', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px' }}
-                  >
+                  <WPBubble wpColor={wp.color || '#666'}>
                     WP{wp.number}: {shortName}{shortName && title ? ' –\u00A0' : ''}
                     <InlineEdit
                       value={title}
                       onSave={(val) => saveWPField(wp.id, 'title', val)}
                       className="text-white font-bold font-['Times_New_Roman',Times,serif] text-[11pt]"
                     />
-                  </span>
+                  </WPBubble>
                 </TableCell>
                 <TableCell className={`${editableCellStyles} whitespace-nowrap leading-[0]`}>
                   {proposalId ? (
