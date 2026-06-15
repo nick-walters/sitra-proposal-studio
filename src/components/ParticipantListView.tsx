@@ -544,6 +544,9 @@ export function ParticipantListView({
 
       if (onReorderParticipants) {
         await onReorderParticipants(reorderedParticipants);
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
+        }, 100);
       }
     }
   };
