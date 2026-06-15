@@ -48,18 +48,7 @@ interface Props {
   projectDuration?: number;
 }
 
-/* ── Participant bubble ── */
-function ParticipantBubble({ participant, showCrown = false }: { participant: B31Participant; showCrown?: boolean }) {
-  return (
-    <span
-      className="inline-flex items-center rounded-full font-bold whitespace-nowrap"
-      style={{ backgroundColor: '#000000', color: '#FFFFFF', border: '1.5px solid #000000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, fontStyle: 'normal', lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px' }}
-    >
-      {showCrown && <Crown className="h-2.5 w-2.5 mr-0.5 fill-white" strokeWidth={0} />}
-      {participant.organisation_short_name || participant.organisation_name}
-    </span>
-  );
-}
+// ParticipantBubble is imported from './B31Pill'
 
 /* ── Single-select participant picker (with deselect support) ── */
 function LeaderPicker({
