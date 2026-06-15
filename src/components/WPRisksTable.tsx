@@ -234,29 +234,10 @@ function SortableRiskCard({
             <GripVertical className="w-4 h-4 text-[#2563EB]" />
           </button>
         )}
-        <Textarea
-          value={localTitle}
-          onChange={(e) => {
-            const newValue = e.target.value;
-            setLocalTitle(newValue);
-            if (titleTimeout) clearTimeout(titleTimeout);
-            const timeout = setTimeout(() => {
-              onUpdate(risk.id, { title: newValue });
-            }, 500);
-            setTitleTimeout(timeout);
-          }}
-          onFocus={() => { isFocused.current = true; }}
-          onBlur={() => {
-            // Flush pending debounced save immediately
-            if (titleTimeout) {
-              clearTimeout(titleTimeout);
-              setTitleTimeout(null);
-            }
-            if ((localTitle || '') !== (risk.title || '')) {
-              onUpdate(risk.id, { title: localTitle });
-            }
-            isFocused.current = false;
-          }}
+        <DebouncedTextarea
+          value={risk.title || ''}
+          onDebouncedChange={(val) => { onUpdate(risk.id, { title: val }); }}
+          debounceMs={500}
           placeholder="Describe the risk..."
           className="min-h-[28px] resize-none text-draft flex-1 overflow-hidden font-bold"
           style={{ height: 'auto', fieldSizing: 'content' } as any}
