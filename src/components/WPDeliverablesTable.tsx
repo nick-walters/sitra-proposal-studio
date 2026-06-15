@@ -255,7 +255,17 @@ function SortableDeliverableCard({
           value={localTitle}
           onChange={handleTitleChange}
           onFocus={() => { isFocused.current = true; }}
-          onBlur={() => { isFocused.current = false; }}
+          onBlur={() => {
+            // Flush pending debounced save immediately so navigation/unmount can't drop the edit
+            if (titleTimeout) {
+              clearTimeout(titleTimeout);
+              setTitleTimeout(null);
+            }
+            if ((localTitle || '') !== (deliverable.title || '')) {
+              onUpdate(deliverable.id, { title: localTitle });
+            }
+            isFocused.current = false;
+          }}
           placeholder="Deliverable title..."
           className="h-6 text-draft flex-1 font-bold bg-transparent border-0 outline-none px-1 text-foreground placeholder:text-muted-foreground/60"
           style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt' }}
