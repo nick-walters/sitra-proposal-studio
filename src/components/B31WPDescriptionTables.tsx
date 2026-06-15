@@ -80,7 +80,7 @@ function LeaderPicker({
 
   const arrow = <ChevronsUpDown className="h-3 w-3 opacity-50 shrink-0" />;
   const content = leader ? (
-    <ParticipantBubble participant={leader} showCrown={showCrown} />
+    <ParticipantBubble shortName={leader.organisation_short_name || leader.organisation_name} showCrown={showCrown} />
   ) : (
     <span className="text-muted-foreground text-[9pt] italic">{entityTable === 'wp_drafts' ? 'Select WP leader' : 'Select task leader'}</span>
   );
@@ -174,7 +174,7 @@ function PartnersPicker({
         <button className="inline-flex items-center gap-1 flex-wrap cursor-pointer hover:opacity-80">
           {selected.length > 0 ? (
             selected.map(p => (
-              <ParticipantBubble key={p.id} participant={p} />
+              <ParticipantBubble key={p.id} shortName={p.organisation_short_name || p.organisation_name} />
             ))
           ) : (
             <span className="text-muted-foreground text-[9pt] italic">Select participant(s)</span>
