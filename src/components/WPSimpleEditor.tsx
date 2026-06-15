@@ -7,6 +7,11 @@ import { cn } from '@/lib/utils';
 import { InsertTDMSReferenceDropdowns } from '@/components/InsertTDMSReferenceDropdowns';
 import { DraftFormattingToolbar } from '@/components/DraftFormattingToolbar';
 
+interface AcronymSegment {
+  text: string;
+  color: string;
+}
+
 interface WPSimpleEditorProps {
   value: string;
   onChange: (value: string) => void;
@@ -18,13 +23,18 @@ interface WPSimpleEditorProps {
   proposalId?: string;
   // Dialog handlers for advanced features
   onOpenCitationDialog?: () => void;
-  onOpenCrossRefDialog?: () => void;
+  /** Open the figure/table cross-reference dialog, optionally pre-filtered to figure or table */
+  onOpenCrossRefDialog?: (filterType?: 'figure' | 'table') => void;
   onOpenWPRefDialog?: () => void;
   onOpenParticipantRefDialog?: () => void;
   onOpenFigureDialog?: () => void;
   onInsertTaskRef?: (task: any) => void;
   onInsertDeliverableRef?: (del: any) => void;
   onInsertMilestoneRef?: (ms: any) => void;
+  onInsertAcronymRef?: () => void;
+  onOpenCaseRefDialog?: () => void;
+  acronymSegments?: AcronymSegment[];
+  hasCases?: boolean;
   /** Called before opening a cross-ref dialog so the parent can save the cursor position */
   onSaveSelection?: () => void;
 }
