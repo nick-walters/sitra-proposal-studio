@@ -1,4 +1,5 @@
 import { useEditor, EditorContent } from '@tiptap/react';
+import DOMPurify from 'dompurify';
 import StarterKit from '@tiptap/starter-kit';
 import { HeadingExitOnEnter } from '@/extensions/HeadingExitOnEnter';
 import { HeadingNumberLabel } from '@/extensions/HeadingNumberLabel';
