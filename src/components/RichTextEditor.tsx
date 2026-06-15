@@ -130,38 +130,6 @@ interface RichTextEditorProps {
   sectionNumber?: string; // Section number for caption numbering (e.g., "1.1")
 }
 
-interface ToolbarButtonProps {
-  icon: React.ReactNode;
-  tooltip: string;
-  onClick?: () => void;
-  active?: boolean;
-  disabled?: boolean;
-}
-
-function ToolbarButton({ icon, tooltip, onClick, active, disabled }: ToolbarButtonProps) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          type="button"
-          variant={active ? "secondary" : "ghost"}
-          size="icon"
-          className="h-7 w-7"
-          onMouseDown={(e) => {
-            e.preventDefault();
-            if (!disabled) onClick?.();
-          }}
-          disabled={disabled}
-        >
-          {icon}
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent side="bottom" className="text-xs">
-        {tooltip}
-      </TooltipContent>
-    </Tooltip>
-  );
-}
 
 const PART_B_ALIGNMENT_EXEMPT_PARAGRAPH_CLASSES = new Set(['figure-caption', 'table-caption']);
 
