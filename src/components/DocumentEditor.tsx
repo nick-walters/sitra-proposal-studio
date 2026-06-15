@@ -28,6 +28,7 @@ import { InsertCrossReferenceDialog } from "./InsertCrossReferenceDialog";
 import { InsertWPReferenceDialog } from "./InsertWPReferenceDialog";
 import { InsertCaseReferenceDialog } from "./InsertCaseReferenceDialog";
 import { InsertParticipantReferenceDialog } from "./InsertParticipantReferenceDialog";
+import { B31Pill, WPBubble } from "./B31Pill";
 import { InsertTDMSReferenceDropdowns } from "./InsertTDMSReferenceDropdowns";
 import { CommentsSidebar } from "./CommentsSidebar";
 import { SectionAssignmentDialog } from "./SectionAssignmentDialog";
