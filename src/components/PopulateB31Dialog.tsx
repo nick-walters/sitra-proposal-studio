@@ -233,20 +233,12 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
                       className="mt-0.5"
                     />
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span
-                        className="inline-flex items-center rounded-full font-bold text-white whitespace-nowrap"
-                        style={{
-                          backgroundColor: wpColor,
-                          fontFamily: "'Times New Roman', Times, serif",
-                          fontSize: '11pt',
-                          fontWeight: 700,
-                          lineHeight: 1,
-                          padding: '0px 6px',
-                          height: '20px',
-                        }}
+                      <WPBubble
+                        wpColor={wpColor}
+                        style={{ padding: '0px 6px', height: '20px' }}
                       >
                         WP{wp.number}{wp.short_name ? `: ${wp.short_name}` : ''}{wp.title ? ` – ${wp.title}` : ''}
-                      </span>
+                      </WPBubble>
                       <span className="text-xs text-muted-foreground">
                         {wp.tasks.length} {wp.tasks.length === 1 ? 'task' : 'tasks'} · {wp.deliverables.length} {wp.deliverables.length === 1 ? 'deliverable' : 'deliverables'} · {wp.milestones.length} {wp.milestones.length === 1 ? 'milestone' : 'milestones'} · {wp.risks.length} {wp.risks.length === 1 ? 'risk' : 'risks'}
                       </span>
