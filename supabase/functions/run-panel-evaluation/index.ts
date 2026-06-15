@@ -152,6 +152,8 @@ const SYNTHESIS_MAX_TOKENS = 4200;
 const MAX_SECTION_CHARS = 2200;
 const MAX_TOTAL_SECTION_CHARS = 32000;
 const ACTIVE_STEP_STALE_MS = 180_000;
+const EVALUATOR_TIMEOUT_MS = 120_000;
+const MIN_SUCCESSFUL_EVALUATORS = 3;
 
 function formatRetryDelay(retryAfterSeconds?: number) {
   const seconds = Math.max(30, Math.min(retryAfterSeconds ?? 60, 300));
@@ -315,7 +317,7 @@ async function loadEvaluationContext(serviceClient: any, evaluationId: string): 
       )
     : [];
 
-  if (selectedEvaluators.length < 3 || selectedEvaluators.length > 10) {
+  if (selectedEvaluators.length < 3 || selectedEvaluators.length > 8) {
     throw new Error("Saved evaluation panel is invalid");
   }
 
@@ -395,7 +397,7 @@ async function runEvaluatorPhase(serviceClient: any, evaluationId: string) {
     evaluator_cache_write_tokens: Number(savedUsage.evaluator_cache_write_tokens || 0),
   };
 
-  const evaluationModel = configMap.evaluation_model || "claude-opus-4-5-20250929";
+  const evaluationModel = configMap.evaluation_model || "claude-opus-4-8";
 
   const WORDS_PER_PAGE = 500;
   const FRONT_MATTER_PAGES = 1;
