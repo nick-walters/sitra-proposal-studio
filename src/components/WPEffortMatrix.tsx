@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { DebouncedInput } from '@/components/ui/debounced-input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Users } from 'lucide-react';
 import type { ParticipantSummary } from '@/types/proposal';
@@ -10,6 +10,7 @@ function formatPM(value: number): string {
   const fixed = value.toFixed(1);
   return fixed.endsWith('.0') ? Math.round(value).toString() : fixed;
 }
+
 
 interface WPEffortEntry {
   participant_id: string;
