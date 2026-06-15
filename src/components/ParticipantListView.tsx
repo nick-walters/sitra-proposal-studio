@@ -134,94 +134,29 @@ function ParticipantCard({
   isFetchingLogo,
   onUpdateParticipant,
 }: ParticipantCardProps) {
-  // Local state for editable fields
-  const [shortName, setShortName] = useState(participant.organisationShortName || '');
-  const [legalName, setLegalName] = useState(participant.organisationName || '');
-  const [englishName, setEnglishName] = useState(participant.englishName || '');
+  // Local state for the country dropdown (CountrySelect commits on selection — no debounce needed)
   const [country, setCountry] = useState(participant.country || '');
   const [isSaving, setIsSaving] = useState(false);
-  const [hasChanges, setHasChanges] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
-  
-  // Track if values have changed from original
-  const originalRef = useRef({
-    shortName: participant.organisationShortName || '',
-    legalName: participant.organisationName || '',
-    englishName: participant.englishName || '',
-    country: participant.country || '',
-  });
 
-  // Update local state when participant prop changes
+  // Re-sync country when participant prop changes
   useEffect(() => {
-    setShortName(participant.organisationShortName || '');
-    setLegalName(participant.organisationName || '');
-    setEnglishName(participant.englishName || '');
     setCountry(participant.country || '');
-    originalRef.current = {
-      shortName: participant.organisationShortName || '',
-      legalName: participant.organisationName || '',
-      englishName: participant.englishName || '',
-      country: participant.country || '',
-    };
-    setHasChanges(false);
-  }, [participant.id, participant.organisationShortName, participant.organisationName, participant.englishName, participant.country]);
+  }, [participant.id, participant.country]);
 
-  // Debounced values for autosave
-  const debouncedShortName = useDebounce(shortName, 1000);
-  const debouncedLegalName = useDebounce(legalName, 1000);
-  const debouncedEnglishName = useDebounce(englishName, 1000);
-  const debouncedCountry = useDebounce(country, 1000);
-
-  // Autosave effect
-  useEffect(() => {
+  // Wrap a field save so we keep the existing saving indicator
+  const saveField = useCallback(async (updates: Partial<Participant>) => {
     if (!canEdit || !onUpdateParticipant) return;
+    setIsSaving(true);
+    try {
+      await onUpdateParticipant(participant.id, updates);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [canEdit, onUpdateParticipant, participant.id]);
 
-    const updates: Partial<Participant> = {};
-    let hasUpdates = false;
 
-    if (debouncedShortName !== originalRef.current.shortName) {
-      updates.organisationShortName = debouncedShortName || undefined;
-      hasUpdates = true;
-    }
-    if (debouncedLegalName !== originalRef.current.legalName) {
-      updates.organisationName = debouncedLegalName;
-      hasUpdates = true;
-    }
-    if (debouncedEnglishName !== originalRef.current.englishName) {
-      updates.englishName = debouncedEnglishName || undefined;
-      hasUpdates = true;
-    }
-    if (debouncedCountry !== originalRef.current.country) {
-      updates.country = debouncedCountry || undefined;
-      hasUpdates = true;
-    }
-
-    if (hasUpdates) {
-      setIsSaving(true);
-      onUpdateParticipant(participant.id, updates)
-        .then(() => {
-          originalRef.current = {
-            shortName: debouncedShortName,
-            legalName: debouncedLegalName,
-            englishName: debouncedEnglishName,
-            country: debouncedCountry,
-          };
-          setHasChanges(false);
-        })
-        .finally(() => {
-          setIsSaving(false);
-        });
-    }
-  }, [debouncedShortName, debouncedLegalName, debouncedEnglishName, debouncedCountry, canEdit, onUpdateParticipant, participant.id]);
-
-  // Track changes
-  const handleChange = useCallback((setter: React.Dispatch<React.SetStateAction<string>>) => {
-    return (e: React.ChangeEvent<HTMLInputElement>) => {
-      setter(e.target.value);
-      setHasChanges(true);
-    };
-  }, []);
 
   return (
     <Card className={`${isDragging ? 'shadow-lg ring-2 ring-primary' : ''}`}>
