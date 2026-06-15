@@ -1044,7 +1044,7 @@ export function FormattingToolbar({
           disabled={isAlignDisabled}
         />
 
-        <ParagraphSpacingPopover editor={editor} disabled={isAlignDisabled} />
+        {showParagraphSpacing && <ParagraphSpacingPopover editor={editor} disabled={isAlignDisabled} />}
 
         <Separator orientation="vertical" className="h-5 mx-1.5" />
 
