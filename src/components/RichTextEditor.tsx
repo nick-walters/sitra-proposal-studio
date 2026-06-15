@@ -44,8 +44,6 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import {
-  Italic,
-  Underline as UnderlineIcon,
   Strikethrough,
   List,
   ListOrdered,
