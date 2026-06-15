@@ -595,6 +595,12 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
             onSaveNow: () => {},
           }}
           isReadOnly={readOnly}
+          undo={{
+            canUndo: !readOnly,
+            canRedo: !readOnly,
+            onUndo: handleUndo,
+            onRedo: handleRedo,
+          }}
           onCommand={execCommand}
           table={{
             open: tablePopoverOpen,
@@ -603,7 +609,13 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
             onHoverCell: setHoveredCell,
             onInsert: insertTable,
           }}
+          paragraphSpacingContainer={() =>
+            (document.activeElement && (document.activeElement as HTMLElement).closest('[contenteditable="true"]')) as HTMLElement | null
+            || (document.querySelector('.case-draft-editor [contenteditable="true"]') as HTMLElement | null)
+          }
           onSaveSelection={saveSelection}
+          onOpenFigureDialog={() => setIsFigureDialogOpen(true)}
+          onOpenCitationDialog={() => setIsCitationOpen(true)}
           crossRefMenuItems={
             <>
               <DropdownMenuItem onClick={() => { setCrossRefFilterType('figure'); setIsCrossRefOpen(true); }} className="flex items-center gap-2">
