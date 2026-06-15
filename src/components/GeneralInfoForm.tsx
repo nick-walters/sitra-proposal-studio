@@ -15,6 +15,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { Separator } from "@/components/ui/separator";
 import { InlineGuideline } from "./GuidelineBox";
 import { PartAGuidelinesDialog } from "./PartAGuidelinesDialog";
+import { PartAPageLayout } from "./PartAPageLayout";
+
 import { LogoUpload } from "./LogoUpload";
 import { StorageImage } from "./StorageImage";
 
