@@ -16,6 +16,8 @@ import { Lock, Loader2, Copy, Check, Plus, Trash2, AlertTriangle } from 'lucide-
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { BudgetPersonnelBreakdown } from '@/components/BudgetPersonnelBreakdown';
+import { PartAPageLayout } from '@/components/PartAPageLayout';
+
 
 interface BudgetParticipantFormProps {
   proposalId: string;
