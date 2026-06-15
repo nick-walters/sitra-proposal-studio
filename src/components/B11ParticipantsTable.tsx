@@ -67,41 +67,7 @@ function ParticipantLogo({ src }: { src: string | null }) {
 
 const baseFont = "'Times New Roman', Times, serif";
 
-function ParticipantBubble({ number, shortName }: { number: number | null; shortName: string }) {
-  return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        backgroundColor: '#000000',
-        color: '#FFFFFF',
-        border: '1.5px solid #000000',
-        borderRadius: '9999px',
-        fontFamily: baseFont,
-        fontSize: '11pt',
-        fontWeight: 700,
-        fontStyle: 'normal',
-        lineHeight: 1,
-        padding: '0px 5px',
-        whiteSpace: 'nowrap',
-      }}
-    >
-      {number ?? '—'}. {shortName}
-    </span>
-  );
-}
-
-const roleBadgeBase: React.CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  padding: '0px 5px',
-  borderRadius: 9999,
-  fontFamily: baseFont,
-  fontSize: '9pt',
-  fontWeight: 700,
-  lineHeight: 1.2,
-  whiteSpace: 'nowrap',
-};
+// ParticipantBubble is imported from './B31Pill'. roleBadgeBase removed in favour of B31Pill size="role".
 
 export function B11ParticipantsTable({ proposalId }: Props) {
   const queryClient = useQueryClient();
