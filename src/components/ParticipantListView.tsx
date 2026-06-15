@@ -232,53 +232,6 @@ function ParticipantCard({
             )}
           </div>
           
-          {/* Roles/Leadership badges */}
-          <div className="w-28 shrink-0 flex flex-col gap-0.5 items-start">
-            {participant.participantNumber === 1 && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Badge className="text-xs py-0 px-1.5 w-fit">Coordinator</Badge>
-                </TooltipTrigger>
-                <TooltipContent>Project coordinator</TooltipContent>
-              </Tooltip>
-            )}
-            {wpLeadership && wpLeadership.length > 0 && (
-              wpLeadership.map((wp) => (
-                <Tooltip key={`wp-${wp.wpNumber}`}>
-                  <TooltipTrigger asChild>
-                    <WPBubble
-                      wpColor={wp.color}
-                      style={{ fontSize: '12px', height: 'auto', padding: '1.5px 6px' }}
-                    >
-                      WP{wp.wpNumber}
-                    </WPBubble>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {wp.shortName ? `${wp.shortName} (Lead)` : `WP${wp.wpNumber} Lead`}
-                  </TooltipContent>
-                </Tooltip>
-              ))
-            )}
-            {caseLeadership && caseLeadership.length > 0 && (
-              caseLeadership.map((c) => (
-                <Tooltip key={`case-${c.caseNumber}`}>
-                  <TooltipTrigger asChild>
-                    <B31Pill
-                      variant="outline"
-                      color="#000000"
-                      style={{ fontSize: '12px', height: 'auto', padding: '1.5px 6px' }}
-                    >
-                      {c.prefix ? `${c.prefix}${c.caseNumber}` : (c.shortName || c.caseNumber)}
-                    </B31Pill>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {c.shortName ? `${c.shortName} (Lead)` : `${c.prefix ? `${c.prefix}${c.caseNumber}` : c.caseNumber} Lead`}
-                  </TooltipContent>
-                </Tooltip>
-              ))
-            )}
-          </div>
-          
           {/* Logo with fetch/upload/delete buttons */}
           <div className="w-10 h-10 shrink-0 flex items-center justify-center relative group">
             {/* Hidden file input for logo upload */}
@@ -383,6 +336,53 @@ function ParticipantCard({
                   </>
                 )}
               </div>
+            )}
+          </div>
+          
+          {/* Roles/Leadership badges */}
+          <div className="w-28 shrink-0 flex flex-col gap-0.5 items-start">
+            {participant.participantNumber === 1 && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge className="text-xs py-0 px-1.5 w-fit">Coordinator</Badge>
+                </TooltipTrigger>
+                <TooltipContent>Project coordinator</TooltipContent>
+              </Tooltip>
+            )}
+            {wpLeadership && wpLeadership.length > 0 && (
+              wpLeadership.map((wp) => (
+                <Tooltip key={`wp-${wp.wpNumber}`}>
+                  <TooltipTrigger asChild>
+                    <WPBubble
+                      wpColor={wp.color}
+                      style={{ fontSize: '12px', height: 'auto', padding: '1.5px 6px' }}
+                    >
+                      WP{wp.wpNumber}
+                    </WPBubble>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {wp.shortName ? `${wp.shortName} (Lead)` : `WP${wp.wpNumber} Lead`}
+                  </TooltipContent>
+                </Tooltip>
+              ))
+            )}
+            {caseLeadership && caseLeadership.length > 0 && (
+              caseLeadership.map((c) => (
+                <Tooltip key={`case-${c.caseNumber}`}>
+                  <TooltipTrigger asChild>
+                    <B31Pill
+                      variant="outline"
+                      color="#000000"
+                      style={{ fontSize: '12px', height: 'auto', padding: '1.5px 6px' }}
+                    >
+                      {c.prefix ? `${c.prefix}${c.caseNumber}` : (c.shortName || c.caseNumber)}
+                    </B31Pill>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {c.shortName ? `${c.shortName} (Lead)` : `${c.prefix ? `${c.prefix}${c.caseNumber}` : c.caseNumber} Lead`}
+                  </TooltipContent>
+                </Tooltip>
+              ))
             )}
           </div>
           
