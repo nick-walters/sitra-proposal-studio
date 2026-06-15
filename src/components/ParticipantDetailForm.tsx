@@ -465,8 +465,8 @@ export function ParticipantDetailForm({
               </div>
             </CardContent>
           </Card>
-        )}
-      </div>
-    </div>
+      )}
+    </PartAPageLayout>
+
   );
 }
