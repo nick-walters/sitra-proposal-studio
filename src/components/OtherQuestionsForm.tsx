@@ -310,7 +310,7 @@ export function OtherQuestionsForm({ proposalId, isTwoStageSecondStage, canEdit 
             )}
           </CardContent>
         </Card>
-      </div>
-    </div>
+    </PartAPageLayout>
   );
+
 }
