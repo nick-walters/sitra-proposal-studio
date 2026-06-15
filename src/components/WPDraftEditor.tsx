@@ -510,7 +510,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
       partSpan.style.borderRadius = '9999px';
       partSpan.style.fontFamily = "'Times New Roman', Times, serif";
       partSpan.style.fontWeight = '700';
-      partSpan.style.fontStyle = 'normal';
+      partSpan.style.setProperty('font-style', 'normal', 'important');
       partSpan.style.fontSize = '11pt';
       partSpan.style.lineHeight = '1';
       partSpan.style.verticalAlign = 'baseline';
