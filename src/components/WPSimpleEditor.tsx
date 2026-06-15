@@ -56,6 +56,10 @@ export function WPSimpleEditor({
   onInsertTaskRef,
   onInsertDeliverableRef,
   onInsertMilestoneRef,
+  onInsertAcronymRef,
+  onOpenCaseRefDialog,
+  acronymSegments,
+  hasCases,
   onSaveSelection,
 }: WPSimpleEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
