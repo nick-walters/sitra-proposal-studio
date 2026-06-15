@@ -358,21 +358,10 @@ function SortableRiskCard({
 
       {/* Row 3: Mitigation */}
       <div className="flex items-start gap-1.5 mt-1.5 ml-5">
-        <Textarea
-          value={localMitigation}
-          onChange={handleMitigationChange}
-          onFocus={() => { isFocused.current = true; }}
-          onBlur={() => {
-            // Flush pending debounced save immediately
-            if (mitigationTimeout) {
-              clearTimeout(mitigationTimeout);
-              setMitigationTimeout(null);
-            }
-            if ((localMitigation || '') !== (risk.mitigation || '')) {
-              onUpdate(risk.id, { mitigation: localMitigation });
-            }
-            isFocused.current = false;
-          }}
+        <DebouncedTextarea
+          value={risk.mitigation || ''}
+          onDebouncedChange={(val) => { onUpdate(risk.id, { mitigation: val }); }}
+          debounceMs={500}
           placeholder="Describe mitigation & adaptation measures..."
           className="min-h-[40px] resize-y text-draft flex-1"
           disabled={readOnly}
