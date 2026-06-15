@@ -1265,7 +1265,7 @@ export function FormattingToolbar({
         {crossRefDropdown}
 
         {/* Image controls - show when image is selected */}
-        {isImageSelected && (
+        {showImageControls && isImageSelected && (
           <>
             <Separator orientation="vertical" className="h-5 mx-1.5" />
             <div className="flex items-center gap-1">
