@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { getContrastingTextColor } from '@/lib/wpColors';
+import { WPBubble, ParticipantBubble } from '@/components/B31Pill';
 
 function formatPM(value: number): string {
   if (value === 0) return '0';
