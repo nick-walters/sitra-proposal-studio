@@ -37,6 +37,7 @@ import {
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { B31WPData, B31Participant, B31Task } from '@/hooks/useB31SectionData';
+import { B31Pill, WPBubble, ParticipantBubble } from './B31Pill';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 
