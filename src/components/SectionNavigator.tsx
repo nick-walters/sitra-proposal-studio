@@ -352,7 +352,7 @@ function SectionItem({
           <B31Pill
             variant="outline"
             color="#000000"
-            style={{ fontSize: '9px', height: 'auto', padding: '1px 6px' }}
+            style={{ fontSize: '9px', height: 'auto', padding: '1px 6px', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '140px', whiteSpace: 'nowrap' }}
           >
             {caseSection.number}
           </B31Pill>
@@ -601,7 +601,7 @@ function SectionItem({
                             color="#000000"
                             onClick={() => onSectionClick(subsection)}
                             className={cn(
-                              "max-w-full break-all transition-all cursor-pointer",
+                              "max-w-full transition-all cursor-pointer",
                               isSubActive && "ring-2 ring-primary ring-offset-1",
                             )}
                             style={{
@@ -609,8 +609,11 @@ function SectionItem({
                               height: 'auto',
                               padding: '0 6px',
                               justifyContent: 'flex-start',
-                              whiteSpace: 'normal',
+                              whiteSpace: 'nowrap',
                               lineHeight: '1.1',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              maxWidth: '140px',
                             }}
                           >
                             {caseSub.number}
