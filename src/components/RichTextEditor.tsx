@@ -961,8 +961,18 @@ export function FormattingToolbar({
           active={editor.isActive('underline')}
         />
 
+        {/* Link (standalone) */}
+        {showLinkButton && (
+          <ToolbarButton
+            icon={<LinkIcon className="w-4 h-4" />}
+            tooltip="Insert link"
+            onClick={setLink}
+            active={editor.isActive('link')}
+          />
+        )}
+
         {/* Text colour */}
-        <TextColorPicker editor={editor} />
+        {showColor && <TextColorPicker editor={editor} />}
 
         <Separator orientation="vertical" className="h-5 mx-1.5" />
 
