@@ -171,35 +171,35 @@ export function ParticipantDetailForm({
 
 
   return (
-    <div className="flex-1 overflow-auto p-6 bg-muted/30">
-      <div className="max-w-7xl mx-auto space-y-4">
-        {/* Header */}
-        <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-              <span className="text-lg font-bold text-primary">{participant.participantNumber}</span>
-            </div>
-            <div>
-              <h1 className="text-xl font-semibold">
-                {participant.organisationName || 'New Participant'}
-                {participant.organisationShortName && (
-                  <span className="text-muted-foreground font-normal ml-2">
-                    ({participant.organisationShortName})
-                  </span>
-                )}
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                {PARTICIPANT_TYPE_LABELS[participant.organisationType]}
-                {participant.participantNumber === 1 && (
-                  <Badge variant="outline" className="ml-2">Coordinator</Badge>
-                )}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            {canEdit && <SaveIndicator saving={saving} lastSaved={lastSaved} onSaveNow={() => {}} />}
-          </div>
+    <PartAPageLayout
+      title={participant.organisationName || 'New Participant'}
+      titleNode={
+        <h1 className="text-xl font-semibold">
+          {participant.organisationName || 'New Participant'}
+          {participant.organisationShortName && (
+            <span className="text-muted-foreground font-normal ml-2">
+              ({participant.organisationShortName})
+            </span>
+          )}
+        </h1>
+      }
+      titleLeftAdornment={
+        <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+          <span className="text-lg font-bold text-primary">{participant.participantNumber}</span>
         </div>
+      }
+      subtitle={
+        <p className="text-sm text-muted-foreground">
+          {PARTICIPANT_TYPE_LABELS[participant.organisationType]}
+          {participant.participantNumber === 1 && (
+            <Badge variant="outline" className="ml-2">Coordinator</Badge>
+          )}
+        </p>
+      }
+      spacing="space-y-4"
+      saveIndicator={canEdit ? <SaveIndicator saving={saving} lastSaved={lastSaved} onSaveNow={() => {}} /> : undefined}
+    >
+
 
         {/* 1. Organisation Details */}
         <Card>
