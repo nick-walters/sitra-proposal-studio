@@ -1690,6 +1690,7 @@ Deno.serve(async (req) => {
   const url = new URL(req.url);
   let bodyForce = false;
   let bodyProposalId: string | null = null;
+  let callerUserId: string | null = null;
   if (req.method === "POST") {
     try {
       const b = await req.clone().json();
@@ -1699,6 +1700,51 @@ Deno.serve(async (req) => {
   }
   const force = url.searchParams.get("force") === "1" || bodyForce;
   const proposalId = bodyProposalId ?? url.searchParams.get("proposal_id");
+
+  // Re-derive caller's user id (when user-authenticated) to enforce per-proposal authorization.
+  if (!isServiceCall) {
+    try {
+      const userClient = createClient(
+        SUPABASE_URL,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        { global: { headers: { Authorization: authHeader } } },
+      );
+      const token = authHeader.replace("Bearer ", "");
+      const { data: claimsData } = await userClient.auth.getClaims(token);
+      callerUserId = claimsData?.claims?.sub ?? null;
+    } catch (_) { /* already validated above */ }
+
+    // When a specific proposal is targeted, require admin/owner/coordinator on THAT proposal
+    // (or a global owner/admin). Prevents cross-proposal data exfiltration via backup trigger.
+    if (proposalId && callerUserId) {
+      const adminClient = createClient(SUPABASE_URL, SERVICE_KEY);
+      const { data: allowed, error: rpcErr } = await adminClient.rpc("is_proposal_admin", {
+        _user_id: callerUserId,
+        _proposal_id: proposalId,
+      });
+      if (rpcErr || !allowed) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    } else if (!proposalId) {
+      // Full-fleet backup runs (no proposal_id) require global owner/admin, not just any coordinator.
+      const adminClient = createClient(SUPABASE_URL, SERVICE_KEY);
+      const { data: roles } = await adminClient
+        .from("user_roles")
+        .select("role, proposal_id")
+        .eq("user_id", callerUserId);
+      const isGlobalAdmin = !!roles?.some((r: any) =>
+        r.proposal_id === null && (r.role === "owner" || r.role === "admin")
+      );
+      if (!isGlobalAdmin) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+  }
+
   const helsinkiH = helsinkiHour(now);
   if (!force && helsinkiH !== 6) {
     return new Response(
