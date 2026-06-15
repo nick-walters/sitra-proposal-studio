@@ -231,6 +231,13 @@ export function BudgetParticipantForm({
       title={`${row.participantNumber}. ${row.participantShortName || row.participantName}`}
       titleAs="h2"
       titleClassName="text-lg font-semibold"
+      titleNode={
+        <h2 className="text-lg font-semibold">
+          {row.participantNumber}. {row.participantShortName || row.participantName}
+          <span className="text-sm font-normal text-muted-foreground ml-2">({row.roleLabel})</span>
+        </h2>
+      }
+
       subtitle={<p className="text-sm text-muted-foreground">{row.country || 'No country specified'}</p>}
       titleRightSlot={saving ? (
         <span className="text-xs text-muted-foreground flex items-center gap-1">
