@@ -377,7 +377,7 @@ export async function buildPrintContainer(
         const resolved = await resolveImagesInHtml(content);
         const sectionDiv = document.createElement('div');
         sectionDiv.className = 'print-section-content ProseMirror';
-        sectionDiv.innerHTML = resolved;
+        sectionDiv.innerHTML = DOMPurify.sanitize(resolved, PRINT_SANITIZE_CONFIG);
         container.appendChild(sectionDiv);
       } else {
         const placeholder = document.createElement('p');
