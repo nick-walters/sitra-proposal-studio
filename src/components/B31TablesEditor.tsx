@@ -26,6 +26,7 @@ import {
   cellStyles,
   bubbleCellStyles,
 } from './B31SortableTable';
+import { WPBubble, RiskBadge, ParticipantBubble } from './B31Pill';
 
 interface B31TablesEditorProps {
   proposalId: string;
