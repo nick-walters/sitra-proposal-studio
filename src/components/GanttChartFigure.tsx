@@ -760,12 +760,9 @@ export function GanttChartFigure({
                         className="shrink-0 flex items-center justify-center"
                         style={{ width: 38, height: ROW_HEIGHT, marginLeft: 6 }}
                       >
-                        <span
-                          className="inline-flex items-center justify-center rounded-full font-bold"
-                          style={{ backgroundColor: '#fff', color: wpColor, border: `1.5px solid ${wpColor}`, fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, padding: '0px 4px', whiteSpace: 'nowrap', verticalAlign: 'baseline' }}
-                        >
+                        <B31Pill variant="outline" color={wpColor} style={{ padding: '0px 4px' }}>
                           T{wp.number}.{task.number}
-                        </span>
+                        </B31Pill>
                       </div>
                       {/* Task title */}
                       <div 
