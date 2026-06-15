@@ -28,6 +28,7 @@ import { InsertCrossReferenceDialog } from "./InsertCrossReferenceDialog";
 import { InsertWPReferenceDialog } from "./InsertWPReferenceDialog";
 import { InsertCaseReferenceDialog } from "./InsertCaseReferenceDialog";
 import { InsertParticipantReferenceDialog } from "./InsertParticipantReferenceDialog";
+import { B31Pill, WPBubble } from "./B31Pill";
 import { InsertTDMSReferenceDropdowns } from "./InsertTDMSReferenceDropdowns";
 import { CommentsSidebar } from "./CommentsSidebar";
 import { SectionAssignmentDialog } from "./SectionAssignmentDialog";
@@ -1409,13 +1410,13 @@ export function DocumentEditor({
                   )}
                   <DropdownMenuItem onClick={() => setIsWPRefOpen(true)} className="flex items-center gap-2">
                     <span className="w-16 flex justify-start shrink-0">
-                      <span style={{ display: 'inline-block', width: '22px', height: '14px', backgroundColor: '#2563EB', border: '1.5px solid #2563EB', borderRadius: '9999px' }} />
+                      <WPBubble wpColor="#2563EB" style={{ width: '22px', height: '14px', padding: 0 }}>{' '}</WPBubble>
                     </span>
                     <span>Work package</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setIsTaskRefOpen(true)} className="flex items-center gap-2">
                     <span className="w-16 flex justify-start shrink-0">
-                      <span style={{ display: 'inline-block', width: '22px', height: '14px', borderRadius: '9999px', border: '1.5px solid #2563EB', background: '#ffffff' }} />
+                      <B31Pill variant="outline" color="#2563EB" style={{ width: '22px', height: '14px', padding: 0 }}>{' '}</B31Pill>
                     </span>
                     <span>Task</span>
                   </DropdownMenuItem>

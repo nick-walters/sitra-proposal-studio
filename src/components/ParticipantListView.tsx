@@ -20,6 +20,7 @@ import { Badge } from './ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { InviteToProposalDialog } from './InviteToProposalDialog';
 import { AddParticipantDialog } from './AddParticipantDialog';
+import { B31Pill, WPBubble, ParticipantBubble } from './B31Pill';
 import { getContrastingTextColor } from '@/lib/wpColors';
 import { supabase } from '@/integrations/supabase/client';
 import { useProposalRole } from '@/hooks/useProposalRole';
@@ -263,12 +264,9 @@ function ParticipantCard({
               />
             ) : (
               shortName ? (
-                <span 
-                  className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold w-fit"
-                  style={{ backgroundColor: '#000000', color: '#ffffff' }}
-                >
+                <ParticipantBubble style={{ fontSize: '12px', height: 'auto', padding: '1.5px 8px' }}>
                   {shortName}
-                </span>
+                </ParticipantBubble>
               ) : (
                 <span className="text-muted-foreground text-sm">—</span>
               )
@@ -322,14 +320,12 @@ function ParticipantCard({
               wpLeadership.map((wp) => (
                 <Tooltip key={`wp-${wp.wpNumber}`}>
                   <TooltipTrigger asChild>
-                    <span
-                      className="inline-flex items-center px-1.5 py-0 rounded-full text-xs font-bold cursor-default w-fit text-white"
-                      style={{
-                        backgroundColor: wp.color,
-                      }}
+                    <WPBubble
+                      wpColor={wp.color}
+                      style={{ fontSize: '12px', height: 'auto', padding: '1.5px 6px' }}
                     >
                       WP{wp.wpNumber}
-                    </span>
+                    </WPBubble>
                   </TooltipTrigger>
                   <TooltipContent>
                     {wp.shortName ? `${wp.shortName} (Lead)` : `WP${wp.wpNumber} Lead`}
@@ -341,11 +337,13 @@ function ParticipantCard({
               caseLeadership.map((c) => (
                 <Tooltip key={`case-${c.caseNumber}`}>
                   <TooltipTrigger asChild>
-                    <span
-                      className="inline-flex items-center px-1.5 py-0 rounded-full text-xs font-bold cursor-default w-fit border-[1.5px] border-black text-black bg-white"
+                    <B31Pill
+                      variant="outline"
+                      color="#000000"
+                      style={{ fontSize: '12px', height: 'auto', padding: '1.5px 6px' }}
                     >
                       {c.prefix ? `${c.prefix}${c.caseNumber}` : (c.shortName || c.caseNumber)}
-                    </span>
+                    </B31Pill>
                   </TooltipTrigger>
                   <TooltipContent>
                     {c.shortName ? `${c.shortName} (Lead)` : `${c.prefix ? `${c.prefix}${c.caseNumber}` : c.caseNumber} Lead`}

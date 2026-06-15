@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { getContrastingTextColor } from '@/lib/wpColors';
+import { WPBubble, ParticipantBubble } from '@/components/B31Pill';
 
 function formatPM(value: number): string {
   if (value === 0) return '0';
@@ -229,15 +230,12 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
                   <th key={wp.id} className="px-1 py-1.5 text-center border-r">
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <span
-                          className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap cursor-default"
-                          style={{
-                            backgroundColor: wp.color || '#3b82f6',
-                            color: '#ffffff',
-                          }}
+                        <WPBubble
+                          wpColor={wp.color || '#3b82f6'}
+                          style={{ fontSize: '10px', height: 'auto', padding: '2px 8px', cursor: 'default' }}
                         >
                           WP{wp.number}
-                        </span>
+                        </WPBubble>
                       </TooltipTrigger>
                       <TooltipContent>
                         <span className="text-xs">WP{wp.number}{wp.short_name ? `: ${wp.short_name}` : ''}{wp.title ? ` – ${wp.title}` : ''}</span>
@@ -260,12 +258,11 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
                     <td className="px-2 py-1 border-r whitespace-nowrap">
                       <div className="flex items-center justify-between gap-1">
                         <span className="flex items-center gap-1">
-                          <span
-                            className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap"
-                            style={{ backgroundColor: '#000000', color: '#ffffff' }}
+                          <ParticipantBubble
+                            style={{ fontSize: '10px', height: 'auto', padding: '2px 6px' }}
                           >
                             {p.participant_number}. {p.organisation_short_name || p.organisation_name}
-                          </span>
+                          </ParticipantBubble>
                           {isLocked && !isCoordinator && <Lock className="w-3 h-3 text-muted-foreground flex-shrink-0" />}
                         </span>
                         {isCoordinator && (

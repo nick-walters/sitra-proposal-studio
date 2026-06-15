@@ -15,6 +15,7 @@ import { BookOpen, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { ParticipantSummary } from '@/types/proposal';
+import { ParticipantBubble } from '@/components/B31Pill';
 
 const CASE_TYPES: Record<string, string> = {
   case_study: 'CS',
@@ -362,12 +363,9 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
                 <SelectContent>
                   {participants.map((p) => (
                     <SelectItem key={p.id} value={p.id}>
-                      <span
-                        className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
-                        style={{ backgroundColor: '#000000', color: '#ffffff', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, padding: '0px 5px', height: '17px' }}
-                      >
+                      <ParticipantBubble>
                         {p.organisation_short_name || p.organisation_name}
-                      </span>
+                      </ParticipantBubble>
                     </SelectItem>
                   ))}
                 </SelectContent>

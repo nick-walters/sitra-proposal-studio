@@ -38,6 +38,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { ParticipantBubble } from '@/components/B31Pill';
 import { Participant, BudgetType } from '@/types/proposal';
 import { BudgetItem, BudgetChange } from '@/hooks/useBudget';
 import { BudgetChangeHistory } from './BudgetChangeHistory';
@@ -720,12 +721,11 @@ export function BudgetSpreadsheetEnhanced({
                       return (
                         <TableRow key={p.id}>
                           <TableCell className="font-medium">
-                            <span
-                              className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap"
-                              style={{ backgroundColor: '#000000', color: '#ffffff' }}
+                            <ParticipantBubble
+                              style={{ fontSize: '10px', height: 'auto', padding: '2px 6px' }}
                             >
                               {p.participantNumber}. {p.organisationShortName || p.organisationName}
-                            </span>
+                            </ParticipantBubble>
                           </TableCell>
                           <TableCell>{p.country || '—'}</TableCell>
                           <TableCell>

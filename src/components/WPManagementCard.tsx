@@ -28,6 +28,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { WPBubble, ParticipantBubble } from '@/components/B31Pill';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
@@ -122,12 +123,12 @@ function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete
       {/* WP Number Badge - with Color Picker or Theme Color */}
       {useThemes ? (
         <div className="flex justify-center">
-          <span
-            className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold text-white"
-            style={{ backgroundColor: effectiveColor }}
+          <WPBubble
+            wpColor={effectiveColor}
+            style={{ fontSize: '12px', height: 'auto', padding: '2px 8px' }}
           >
             WP{wp.number}
-          </span>
+          </WPBubble>
         </div>
       ) : (
         <WPColorPicker
@@ -191,20 +192,27 @@ function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete
       />
 
       {/* WP Lead - Dialog styled like partner reference dialog */}
-      <button
-        className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold italic whitespace-nowrap hover:ring-2 hover:ring-primary/30 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-self-start"
-        style={{
-          backgroundColor: selectedLead ? '#000000' : 'transparent',
-          color: selectedLead ? '#ffffff' : undefined,
-          border: selectedLead ? 'none' : '1px dashed hsl(var(--muted-foreground))',
-        }}
-        disabled={!canEdit}
-        onClick={() => setLeadOpen(true)}
-      >
-        {selectedLead
-          ? selectedLead.organisation_short_name || `P${selectedLead.participant_number}`
-          : '+ Lead'}
-      </button>
+      {selectedLead ? (
+        <ParticipantBubble
+          onClick={() => { if (canEdit) setLeadOpen(true); }}
+          style={{ fontSize: '12px', height: 'auto', padding: '2px 8px', fontStyle: 'italic', cursor: canEdit ? 'pointer' : 'not-allowed', opacity: canEdit ? 1 : 0.5 }}
+          className="justify-self-start whitespace-nowrap hover:ring-2 hover:ring-primary/30 hover:scale-105 transition-all"
+        >
+          {selectedLead.organisation_short_name || `P${selectedLead.participant_number}`}
+        </ParticipantBubble>
+      ) : (
+        <button
+          className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold italic whitespace-nowrap hover:ring-2 hover:ring-primary/30 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-self-start"
+          style={{
+            backgroundColor: 'transparent',
+            border: '1px dashed hsl(var(--muted-foreground))',
+          }}
+          disabled={!canEdit}
+          onClick={() => setLeadOpen(true)}
+        >
+          + Lead
+        </button>
+      )}
       <Dialog open={leadOpen} onOpenChange={setLeadOpen}>
         <DialogContent className="max-w-xl">
           <DialogHeader>

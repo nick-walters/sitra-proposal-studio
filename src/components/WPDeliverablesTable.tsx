@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import type { WPDraftDeliverable } from '@/hooks/useWPDrafts';
 import type { ParticipantSummary } from '@/types/proposal';
+import { ParticipantBubble } from '@/components/B31Pill';
 import {
   DndContext,
   closestCenter,
@@ -351,12 +352,9 @@ function SortableDeliverableCard({
               </SelectItem>
               {participants.map((p) => (
                 <SelectItem key={p.id} value={p.id}>
-                  <span
-                    className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
-                    style={{ backgroundColor: '#000000', color: '#ffffff', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, padding: '0px 5px', height: '17px' }}
-                  >
+                  <ParticipantBubble>
                     {p.organisation_short_name || p.organisation_name}
-                  </span>
+                  </ParticipantBubble>
                 </SelectItem>
               ))}
             </SelectContent>

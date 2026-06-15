@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SectionAssignment } from "@/hooks/useSectionAssignments";
 import { isPast, isToday, differenceInDays, format } from "date-fns";
 import type { WPSection, CaseSection } from "@/hooks/useProposalSections";
+import { B31Pill, WPBubble, ParticipantBubble } from "@/components/B31Pill";
 
 // JS-based truncation that trims trailing whitespace before "..."
 function TruncatedText({ text, className, isActive }: { text: string; className?: string; isActive?: boolean }) {
@@ -341,35 +342,35 @@ function SectionItem({
         
         {/* WP sections render as colored bubbles - with left margin to align with text */}
         {isWPSection && wpColor ? (
-          <span 
-            className="inline-flex items-center justify-center px-1.5 py-px rounded-full text-[9px] font-bold whitespace-nowrap"
-            style={{ backgroundColor: wpColor, color: '#ffffff' }}
+          <WPBubble
+            wpColor={wpColor}
+            style={{ fontSize: '9px', height: 'auto', padding: '1px 6px' }}
           >
             WP{wpSection.wpNumber}{wpSection.title ? `: ${wpSection.title}` : ''}
-          </span>
+          </WPBubble>
         ) : isCaseSection && caseColor ? (
           (() => {
-            // Match case manager bubble format: "PREFIX+NUM: SHORT_NAME" or just "SHORT_NAME"
             const hasPrefix = /^[A-Za-z]/.test(caseSection.number);
             const label = hasPrefix
               ? `${caseSection.number}${caseSection.title ? ` ${caseSection.title}` : ''}`
               : caseSection.number;
             return (
-              <span 
-                className="inline-flex items-center justify-center px-1.5 py-px rounded-full text-[9px] font-bold whitespace-nowrap border-[1.5px] border-black"
-                style={{ backgroundColor: '#ffffff', color: '#000000' }}
+              <B31Pill
+                variant="outline"
+                color="#000000"
+                style={{ fontSize: '9px', height: 'auto', padding: '1px 6px' }}
               >
                 {label}
-              </span>
+              </B31Pill>
             );
           })()
         ) : isParticipantSection ? (
-          <span 
-            className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[11px] font-bold whitespace-nowrap ml-5"
-            style={{ backgroundColor: '#000000', color: '#ffffff' }}
+          <ParticipantBubble
+            className="ml-5"
+            style={{ fontSize: '11px', height: 'auto', padding: '2px 8px' }}
           >
             P{section.number}: {section.title}
-          </span>
+          </ParticipantBubble>
         ) : (
           <>
             {/* Only show number if not a top-level bold item and number exists */}
@@ -583,23 +584,46 @@ function SectionItem({
                   <TooltipProvider key={subsection.id}>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                          <button
-                          className={cn(
-                            "inline-flex items-center justify-start w-fit px-1.5 py-0 rounded-full text-[11px] font-bold truncate cursor-pointer transition-all max-w-full leading-tight break-all",
-                            isSubActive && "ring-2 ring-primary ring-offset-1",
-                          )}
-                          style={{ 
-                            backgroundColor: isWP ? wpSub.wpColor : '#ffffff',
-                            color: isCase ? '#000000' : '#ffffff',
-                            border: isCase ? '1.5px solid #000000' : undefined,
-                          }}
-                          onClick={() => onSectionClick(subsection)}
-                        >
-                          {isWP 
-                            ? `WP${wpSub.wpNumber}: ${wpSub.title}`
-                            : `${caseSub.number}: ${caseSub.title}`
-                          }
-                        </button>
+                        {isWP ? (
+                          <WPBubble
+                            wpColor={wpSub.wpColor}
+                            onClick={() => onSectionClick(subsection)}
+                            className={cn(
+                              "max-w-full break-all transition-all cursor-pointer",
+                              isSubActive && "ring-2 ring-primary ring-offset-1",
+                            )}
+                            style={{
+                              fontSize: '11px',
+                              height: 'auto',
+                              padding: '0 6px',
+                              justifyContent: 'flex-start',
+                              whiteSpace: 'normal',
+                              lineHeight: '1.1',
+                            }}
+                          >
+                            WP{wpSub.wpNumber}: {wpSub.title}
+                          </WPBubble>
+                        ) : (
+                          <B31Pill
+                            variant="outline"
+                            color="#000000"
+                            onClick={() => onSectionClick(subsection)}
+                            className={cn(
+                              "max-w-full break-all transition-all cursor-pointer",
+                              isSubActive && "ring-2 ring-primary ring-offset-1",
+                            )}
+                            style={{
+                              fontSize: '11px',
+                              height: 'auto',
+                              padding: '0 6px',
+                              justifyContent: 'flex-start',
+                              whiteSpace: 'normal',
+                              lineHeight: '1.1',
+                            }}
+                          >
+                            {caseSub.number}: {caseSub.title}
+                          </B31Pill>
+                        )}
                       </TooltipTrigger>
                       <TooltipContent side="right" className="text-xs">
                         {isWP 
