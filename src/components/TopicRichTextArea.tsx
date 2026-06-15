@@ -144,12 +144,15 @@ export function TopicRichTextArea({
     });
   }, [footnotes, onFootnotesChange, footnoteStartNumber]);
 
+  const lastValueRef = useRef<string>(value);
+
   const handleInput = useCallback(() => {
     if (!editorRef.current) return;
     syncFootnotesWithContent();
     const newValue = editorRef.current.innerHTML;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
+      lastValueRef.current = newValue;
       onChange(newValue);
     }, 500);
   }, [onChange, syncFootnotesWithContent]);
@@ -159,6 +162,20 @@ export function TopicRichTextArea({
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, []);
+
+  const handleBlur = useCallback(() => {
+    // Flush any pending debounced save immediately
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+    const currentContent = editorRef.current?.innerHTML ?? '';
+    if (currentContent !== lastValueRef.current) {
+      lastValueRef.current = currentContent;
+      onChange(currentContent);
+    }
+    setIsFocused(false);
+  }, [onChange]);
 
   const showPlaceholder = !value && !isFocused;
 
@@ -170,7 +187,7 @@ export function TopicRichTextArea({
         onInput={handleInput}
         onPaste={handlePaste}
         onFocus={() => { setIsFocused(true); onFocus?.(); }}
-        onBlur={() => setIsFocused(false)}
+        onBlur={handleBlur}
         className={cn(
           "p-3 outline-none resize-y overflow-auto text-sm topic-rich-text-content",
           "[&_ul]:list-disc [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:ml-4",
