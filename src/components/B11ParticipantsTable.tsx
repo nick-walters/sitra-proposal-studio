@@ -6,6 +6,7 @@ import { useStorageUrl } from '@/hooks/useStorageUrl';
 import { useColumnResize } from '@/hooks/useColumnResize';
 import { useProposalRole } from '@/hooks/useProposalRole';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { B31Pill, WPBubble, ParticipantBubble } from './B31Pill';
 
 interface Props {
   proposalId: string;
