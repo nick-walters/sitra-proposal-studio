@@ -11,6 +11,7 @@ import { Building2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import type { ParticipantSummary } from '@/types/proposal';
+import { ParticipantBubble } from '@/components/B31Pill';
 
 interface InsertParticipantReferenceDialogProps {
   open: boolean;
