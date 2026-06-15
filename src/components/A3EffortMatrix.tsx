@@ -258,12 +258,11 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
                     <td className="px-2 py-1 border-r whitespace-nowrap">
                       <div className="flex items-center justify-between gap-1">
                         <span className="flex items-center gap-1">
-                          <span
-                            className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap"
-                            style={{ backgroundColor: '#000000', color: '#ffffff' }}
+                          <ParticipantBubble
+                            style={{ fontSize: '10px', height: 'auto', padding: '2px 6px' }}
                           >
                             {p.participant_number}. {p.organisation_short_name || p.organisation_name}
-                          </span>
+                          </ParticipantBubble>
                           {isLocked && !isCoordinator && <Lock className="w-3 h-3 text-muted-foreground flex-shrink-0" />}
                         </span>
                         {isCoordinator && (
