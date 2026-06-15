@@ -474,8 +474,25 @@ ${criterion.scoring_descriptors}`;
 
   const finalizeEvaluatorPhase = async (parsedEvaluations: any[], nextUsageTotals: Record<string, number>) => {
     const validEvaluations = parsedEvaluations.filter((item) => !item?.data?.error);
-    if (validEvaluations.length === 0) {
-      throw new Error("All evaluator outputs failed to parse");
+    if (validEvaluations.length < MIN_SUCCESSFUL_EVALUATORS) {
+      const msg = `Only ${validEvaluations.length} of ${parsedEvaluations.length} evaluators completed. Minimum ${MIN_SUCCESSFUL_EVALUATORS} required for synthesis.`;
+      await serviceClient
+        .from("proposal_analyses")
+        .update({
+          status: "failed",
+          error_message: msg,
+          analysis_data: {
+            ...baseAnalysisData,
+            eligibility_flags: eligibilityFlags,
+            evaluations: parsedEvaluations,
+            token_usage: nextUsageTotals,
+            instrument_code: instrument.code,
+            active_step_started_at: null,
+            progress_message: msg,
+          },
+        })
+        .eq("id", evaluationId);
+      return { evaluationId, status: "failed", error: msg };
     }
 
     const excellenceScores = validEvaluations
@@ -649,6 +666,9 @@ ${fullProposalOutputBlock}`;
     .eq("id", evaluationId);
 
   let result: AnthropicCallResult;
+  let evaluatorTimedOut = false;
+  const abortController = new AbortController();
+  const timeoutHandle = setTimeout(() => abortController.abort(), EVALUATOR_TIMEOUT_MS);
   try {
     result = await callAnthropicWithCache(
       ANTHROPIC_API_KEY,
@@ -658,9 +678,17 @@ ${fullProposalOutputBlock}`;
       EVALUATOR_MAX_TOKENS,
       false,
       2,
+      abortController.signal,
     );
   } catch (error) {
-    if (error instanceof RateLimitError) {
+    const isAbort =
+      (error instanceof DOMException && error.name === "AbortError") ||
+      (error instanceof Error && /abort/i.test(error.message));
+    if (isAbort) {
+      console.warn(`Evaluator ${evaluator.name} timed out after ${EVALUATOR_TIMEOUT_MS / 1000}s, skipping`);
+      evaluatorTimedOut = true;
+      result = { text: "", usage: {} };
+    } else if (error instanceof RateLimitError) {
       const retry = formatRetryDelay(error.retryAfter);
       const message = `The evaluator model is rate limited right now. Please retry after ${retry.label}.`;
       await serviceClient
@@ -682,19 +710,24 @@ ${fullProposalOutputBlock}`;
         })
         .eq("id", evaluationId);
       return { evaluationId, status: "failed", error: message };
+    } else {
+      throw error;
     }
-    throw error;
+  } finally {
+    clearTimeout(timeoutHandle);
   }
 
   const parsedEvaluation = {
     persona: evaluator,
-    data: (() => {
-      try {
-        return extractJson(result.text);
-      } catch (error) {
-        return { error: error instanceof Error ? error.message : "parse error", raw: result.text };
-      }
-    })(),
+    data: evaluatorTimedOut
+      ? { error: `Evaluator timeout: ${EVALUATOR_TIMEOUT_MS / 1000}s exceeded` }
+      : (() => {
+          try {
+            return extractJson(result.text);
+          } catch (error) {
+            return { error: error instanceof Error ? error.message : "parse error", raw: result.text };
+          }
+        })(),
   };
 
   const nextEvaluations = [...savedEvaluations, parsedEvaluation];
