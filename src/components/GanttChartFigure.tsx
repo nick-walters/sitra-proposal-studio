@@ -498,12 +498,13 @@ export function GanttChartFigure({
                   });
 
                   const pointDepth = 4;
-                  const estimateBubbleW = (label: string) => Math.max(32, label.length * 7 + 10);
+                  const estimateMsW = (label: string) => Math.max(32, label.length * 7 + 10);
+                  const estimateDelW = (label: string) => Math.max(28, label.length * 6 + 8);
 
                   type PBubble = typeof taskBubbles[0] & { leftX: number; width: number; bodyW: number; triSide: 'right' | 'left' };
                   const positioned: PBubble[] = taskBubbles.map(b => {
                     if (b.type === 'ms') {
-                      const bodyW = estimateBubbleW(b.label);
+                      const bodyW = estimateMsW(b.label);
                       return {
                         ...b,
                         bodyW,
@@ -512,7 +513,7 @@ export function GanttChartFigure({
                         triSide: 'left' as const,
                       };
                     }
-                    const bodyW = estimateBubbleW(b.label);
+                    const bodyW = estimateDelW(b.label);
                     return {
                       ...b,
                       bodyW,
