@@ -718,6 +718,9 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
         }
       }
       await queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
+      }, 100);
       return true;
     };
 
