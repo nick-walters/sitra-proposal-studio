@@ -616,6 +616,76 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
     toast.success(`MS${ms.number} reference inserted`);
   }, [notifyEditorInput, restoreSelection]);
 
+  // Handle Acronym reference insertion - colored letters mimicking AcronymReference extension
+  const insertAcronymRefAtCursor = useCallback(() => {
+    if (!acronymSegments || acronymSegments.length === 0) return;
+    const { editorEl } = restoreSelection();
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      const wrapper = document.createElement('span');
+      wrapper.setAttribute('data-acronym-reference', '');
+      wrapper.setAttribute('contenteditable', 'false');
+      wrapper.setAttribute('data-acronym-segments', JSON.stringify(acronymSegments));
+      Object.assign(wrapper.style, {
+        display: 'inline',
+        fontFamily: "'Arial Black', Arial, sans-serif",
+        fontWeight: '900',
+        fontSize: 'inherit',
+        whiteSpace: 'nowrap',
+        cursor: 'pointer',
+      });
+      acronymSegments.forEach((seg) => {
+        const s = document.createElement('span');
+        s.style.color = seg.color;
+        s.textContent = seg.text;
+        wrapper.appendChild(s);
+      });
+      range.insertNode(wrapper);
+      range.setStartAfter(wrapper);
+      range.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(range);
+      notifyEditorInput(editorEl);
+    }
+    toast.success('Acronym reference inserted');
+  }, [acronymSegments, notifyEditorInput, restoreSelection]);
+
+  // Handle Case reference insertion - rounded outline badge matching CaseReferenceMark
+  const insertCaseRefAtCursor = useCallback((caseItem: { id: string; number: number; short_name: string | null; case_type: string }) => {
+    const { editorEl } = restoreSelection();
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      const CASE_PREFIXES: Record<string, string> = { case_study: 'CS', use_case: 'UC', living_lab: 'LL', pilot: 'P', demonstration: 'D', challenge: 'CH' };
+      const prefix = CASE_PREFIXES[caseItem.case_type] || '';
+      const label = prefix ? `${prefix}${caseItem.number}` : (caseItem.short_name || String(caseItem.number));
+      const span = document.createElement('span');
+      span.textContent = label;
+      span.setAttribute('data-case-reference', '');
+      span.setAttribute('data-case-id', caseItem.id);
+      span.setAttribute('data-case-number', String(caseItem.number));
+      span.setAttribute('data-case-type', caseItem.case_type);
+      if (caseItem.short_name) span.setAttribute('data-case-short-name', caseItem.short_name);
+      span.setAttribute('contenteditable', 'false');
+      Object.assign(span.style, {
+        display: 'inline-flex', alignItems: 'center', backgroundColor: '#ffffff', color: '#000000',
+        border: '1.5px solid #000000', padding: '0 0.4rem', borderRadius: '9999px',
+        fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: '700',
+        fontStyle: 'normal', lineHeight: '1', whiteSpace: 'nowrap', verticalAlign: 'baseline',
+        cursor: 'pointer', userSelect: 'none',
+      });
+      range.insertNode(span);
+      range.setStartAfter(span);
+      range.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(range);
+      notifyEditorInput(editorEl);
+    }
+    toast.success('Case reference inserted');
+  }, [notifyEditorInput, restoreSelection]);
+
+
   // Fetch participants, figures, and WP drafts for the proposal
   useEffect(() => {
     const fetchParticipants = async () => {
