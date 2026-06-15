@@ -5,9 +5,10 @@ import DOMPurify from "dompurify";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Route, History, Info, Image, Lock, MessageSquare, PanelRightClose, PanelRight, CalendarClock, User, FileText, X, Search, GitCompare, Keyboard, Wand2, FileCode, SplitSquareHorizontal, Layers, Building2, FlaskConical, Check, Link2, Table2, AlertTriangle } from "lucide-react";
+import { Route, History, Info, Image, Lock, MessageSquare, PanelRightClose, PanelRight, CalendarClock, User, FileText, X, GitCompare, Keyboard, Layers, Building2, FlaskConical, Check, Link2, Table2, AlertTriangle } from "lucide-react";
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { FormattingToolbar, useRichTextEditor } from "./RichTextEditor";
+import { AdvancedToolbar } from "./toolbar/AdvancedToolbar";
 import { ProposalBanner } from "./ProposalBanner";
 import { B11ParticipantsTable } from "./B11ParticipantsTable";
 import {
@@ -1164,115 +1165,25 @@ export function DocumentEditor({
         {/* Row 1: Guidelines | Autosaved | Find | Split Compare | Lock History | Shortcuts Comments/Panel */}
         <div className="px-2 py-1 border-b border-border bg-card">
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-1 min-w-0 flex-1 overflow-x-auto">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="h-6 px-2 text-xs gap-1 text-destructive border-destructive/50 hover:bg-destructive/10 hover:text-destructive"
-                onClick={() => setIsGuidelinesOpen(true)}
-              >
-                <Info className="w-3 h-3" />
-                Guidelines
-              </Button>
-              
-              <Separator orientation="vertical" className="h-4 mx-1" />
-              
-              {!isEffectivelyReadOnly && <SaveIndicator saving={saving} lastSaved={lastSaved} hasUnsavedChanges={hasUnsavedChanges} saveError={saveError} onSaveNow={saveNow} />}
-              
-              <Separator orientation="vertical" className="h-4 mx-1" />
-              
-              <Button variant="outline" size="sm" className="h-6 px-2 text-xs gap-1" onClick={() => setIsSearchOpen(true)}>
-                <Search className="w-3 h-3" />
-                Find
-              </Button>
-              
-              <Separator orientation="vertical" className="h-4 mx-1" />
-              
-              <Button 
-                variant={isSplitViewOpen ? "default" : "outline"}
-                size="sm" 
-                className="h-6 px-2 text-xs gap-1"
-                onClick={() => setIsSplitViewOpen(!isSplitViewOpen)}
-              >
-                <SplitSquareHorizontal className="w-3 h-3" />
-                Split
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="h-6 px-2 text-xs gap-1" 
-                onClick={() => setIsComparisonOpen(true)}
-              >
-                <GitCompare className="w-3 h-3" />
-                Compare
-              </Button>
-              
-              <Separator orientation="vertical" className="h-4 mx-1" />
-              
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="h-6 px-2 text-xs gap-1"
-                onClick={() => setIsWritingAssistantOpen(true)}
-                disabled={!editor || isEffectivelyReadOnly}
-              >
-                <Wand2 className="w-3 h-3" />
-                AI tools
-              </Button>
-              {canUseSnippets && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="h-6 px-2 text-xs gap-1"
-                onClick={() => setIsSnippetsOpen(true)}
-                disabled={!editor || isEffectivelyReadOnly}
-              >
-                <FileCode className="w-3 h-3" />
-                Snippets
-              </Button>
-              )}
-              
-              <Separator orientation="vertical" className="h-4 mx-1" />
-              
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="h-6 px-2 text-xs gap-1" 
-                onClick={() => setIsVersionHistoryOpen(true)}
-              >
-                <History className="w-3 h-3" />
-                History
-              </Button>
-              <Separator orientation="vertical" className="h-4 mx-1" />
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant={isCollaborationPanelOpen ? "default" : "outline"}
-                    size="sm"
-                    className="h-6 px-2 text-xs gap-1"
-                    onClick={() => {
-                      setIsCollaborationPanelOpen(!isCollaborationPanelOpen);
-                    }}
-                  >
-                    {isCollaborationPanelOpen ? <PanelRightClose className="w-3 h-3" /> : <PanelRight className="w-3 h-3" />}
-                    Review panel
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{isCollaborationPanelOpen ? 'Hide collaboration panel' : 'Show collaboration panel'}</TooltipContent>
-              </Tooltip>
-              {isImpactSection && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-6 px-2 text-xs gap-1 bg-primary/5 border-primary/30 hover:bg-primary/10" 
-                  onClick={() => setIsImpactPathwayOpen(true)}
-                  disabled={isEffectivelyReadOnly}
-                >
-                  <Route className="w-3 h-3" />
-                  Impact Mapper
-                </Button>
-              )}
-            </div>
+            <AdvancedToolbar
+              onOpenGuidelines={() => setIsGuidelinesOpen(true)}
+              saveIndicator={!isEffectivelyReadOnly ? <SaveIndicator saving={saving} lastSaved={lastSaved} hasUnsavedChanges={hasUnsavedChanges} saveError={saveError} onSaveNow={saveNow} /> : undefined}
+              onOpenSearch={() => setIsSearchOpen(true)}
+              isSplitViewOpen={isSplitViewOpen}
+              onToggleSplitView={() => setIsSplitViewOpen(prev => !prev)}
+              onOpenComparison={() => setIsComparisonOpen(true)}
+              onOpenWritingAssistant={() => setIsWritingAssistantOpen(true)}
+              isWritingAssistantDisabled={!editor || isEffectivelyReadOnly}
+              onOpenSnippets={() => setIsSnippetsOpen(true)}
+              showSnippets={canUseSnippets}
+              isSnippetsDisabled={isEffectivelyReadOnly}
+              onOpenVersionHistory={() => setIsVersionHistoryOpen(true)}
+              isCollaborationPanelOpen={isCollaborationPanelOpen}
+              onToggleCollaborationPanel={() => setIsCollaborationPanelOpen(prev => !prev)}
+              onOpenImpactPathway={() => setIsImpactPathwayOpen(true)}
+              showImpactPathway={isImpactSection}
+              isImpactPathwayDisabled={isEffectivelyReadOnly}
+            />
             
           </div>
         </div>

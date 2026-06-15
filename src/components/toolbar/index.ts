@@ -8,3 +8,5 @@ export { TableGridPicker } from "./TableGridPicker";
 export type { TableGridPickerProps } from "./TableGridPicker";
 export { SubheadingDropdown } from "./SubheadingDropdown";
 export type { SubheadingDropdownProps } from "./SubheadingDropdown";
+export { AdvancedToolbar } from "./AdvancedToolbar";
+export type { AdvancedToolbarProps } from "./AdvancedToolbar";
