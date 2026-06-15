@@ -16,6 +16,8 @@ import { Lock, Loader2, Copy, Check, Plus, Trash2, AlertTriangle } from 'lucide-
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { BudgetPersonnelBreakdown } from '@/components/BudgetPersonnelBreakdown';
+import { PartAPageLayout } from '@/components/PartAPageLayout';
+
 
 interface BudgetParticipantFormProps {
   proposalId: string;
@@ -225,22 +227,26 @@ export function BudgetParticipantForm({
   ) : null;
 
   return (
-    <div className="max-w-2xl mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold">
-            {row.participantNumber}. {row.participantShortName || row.participantName}
-            <span className="text-sm font-normal text-muted-foreground ml-2">({row.roleLabel})</span>
-          </h2>
-          <p className="text-sm text-muted-foreground">{row.country || 'No country specified'}</p>
-        </div>
-        {saving && (
-          <span className="text-xs text-muted-foreground flex items-center gap-1">
-            <Loader2 className="w-3 h-3 animate-spin" /> Saving…
-          </span>
-        )}
-      </div>
+    <PartAPageLayout
+      title={`${row.participantNumber}. ${row.participantShortName || row.participantName}`}
+      titleAs="h2"
+      titleClassName="text-lg font-semibold"
+      titleNode={
+        <h2 className="text-lg font-semibold">
+          {row.participantNumber}. {row.participantShortName || row.participantName}
+          <span className="text-sm font-normal text-muted-foreground ml-2">({row.roleLabel})</span>
+        </h2>
+      }
+
+      subtitle={<p className="text-sm text-muted-foreground">{row.country || 'No country specified'}</p>}
+      titleRightSlot={saving ? (
+        <span className="text-xs text-muted-foreground flex items-center gap-1">
+          <Loader2 className="w-3 h-3 animate-spin" /> Saving…
+        </span>
+      ) : undefined}
+      maxWidth="max-w-2xl"
+    >
+
 
       {/* Lock banner */}
       {row.isLocked && !isAdmin && (
@@ -694,6 +700,7 @@ export function BudgetParticipantForm({
           </div>
         </CardContent>
       </Card>
-    </div>
+    </PartAPageLayout>
+
   );
 }

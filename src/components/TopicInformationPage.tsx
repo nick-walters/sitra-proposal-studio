@@ -14,6 +14,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Calendar } from "@/components/ui/calendar";
 import { Separator } from "@/components/ui/separator";
 import { SaveIndicator } from "./SaveIndicator";
+import { PartAPageLayout } from "./PartAPageLayout";
+
 
 import { Proposal, WORK_PROGRAMMES, DESTINATIONS, getDestinationsForWorkProgramme } from "@/types/proposal";
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
@@ -333,14 +335,13 @@ export function TopicInformationPage({
   };
 
   return (
-    <div className="flex-1 overflow-auto bg-muted/30">
-      <div className="max-w-7xl mx-auto space-y-4 p-4">
-        <div className="space-y-2">
-          <h1 className="text-xl font-bold">Topic information</h1>
-          <div className="flex items-center gap-3">
-            {userCanEdit && <SaveIndicator saving={saving} lastSaved={lastSaved} hasUnsavedChanges={!!hasUnsavedChanges} onSaveNow={() => { if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current); saveEdits(); }} />}
-          </div>
-        </div>
+    <PartAPageLayout
+      title="Topic information"
+      padding="p-4"
+      spacing="space-y-4"
+      saveIndicator={userCanEdit ? <SaveIndicator saving={saving} lastSaved={lastSaved} hasUnsavedChanges={!!hasUnsavedChanges} onSaveNow={() => { if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current); saveEdits(); }} /> : undefined}
+    >
+
 
         {/* General Topic Information Card */}
         <Card>
@@ -832,7 +833,7 @@ export function TopicInformationPage({
             </CardContent>
           </Card>
         )}
-      </div>
-    </div>
+    </PartAPageLayout>
+
   );
 }

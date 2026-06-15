@@ -14,6 +14,8 @@ import { generateParticipantLogoPath, uploadProposalFile } from '@/lib/proposalS
 import { StorageImage } from './StorageImage';
 import { CountrySelect } from './CountrySelect';
 import { PartAGuidelinesDialog } from './PartAGuidelinesDialog';
+import { PartAPageLayout } from './PartAPageLayout';
+
 import { Badge } from './ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { InviteToProposalDialog } from './InviteToProposalDialog';
@@ -666,38 +668,34 @@ export function ParticipantListView({
 
   return (
     <TooltipProvider>
-      <div className="flex-1 overflow-auto p-6 bg-muted/30">
-        <div className="max-w-7xl mx-auto space-y-6">
-          {/* Header */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between gap-4">
-              <h1 className="text-xl font-bold text-foreground">Part A2: Participants</h1>
-              <div className="flex gap-2">
-                {canAddParticipant && onAddParticipant && (
-                  <>
-                    <Button size="sm" onClick={() => setIsAddParticipantDialogOpen(true)} className="gap-1.5 h-8">
-                      <Plus className="w-3.5 h-3.5" />
-                      Add participant
-                    </Button>
-                  </>
-                )}
-                {canInvite && (
-                  <Button variant="outline" size="sm" onClick={() => setIsInviteDialogOpen(true)} className="gap-1.5 h-8">
-                    <UserPlus className="w-3.5 h-3.5" />
-                    Invite
-                  </Button>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <PartAGuidelinesDialog
-                sectionTitle="Part A2: Participants"
-                officialGuidelines={officialGuidelines}
-                sitraTips={sitraTips}
-              />
-              <SaveIndicator saving={false} lastSaved={lastSaved} onSaveNow={() => {}} />
-            </div>
+      <PartAPageLayout
+        title="Part A2: Participants"
+        titleRightSlot={
+          <div className="flex gap-2">
+            {canAddParticipant && onAddParticipant && (
+              <Button size="sm" onClick={() => setIsAddParticipantDialogOpen(true)} className="gap-1.5 h-8">
+                <Plus className="w-3.5 h-3.5" />
+                Add participant
+              </Button>
+            )}
+            {canInvite && (
+              <Button variant="outline" size="sm" onClick={() => setIsInviteDialogOpen(true)} className="gap-1.5 h-8">
+                <UserPlus className="w-3.5 h-3.5" />
+                Invite
+              </Button>
+            )}
           </div>
+        }
+        guidelines={
+          <PartAGuidelinesDialog
+            sectionTitle="Part A2: Participants"
+            officialGuidelines={officialGuidelines}
+            sitraTips={sitraTips}
+          />
+        }
+        saveIndicator={<SaveIndicator saving={false} lastSaved={lastSaved} onSaveNow={() => {}} />}
+      >
+
 
           {/* OCD Controls - coordinator+ only */}
           {isAdmin && (
@@ -874,9 +872,9 @@ export function ParticipantListView({
               </TabsContent>
             )}
           </Tabs>
-        </div>
 
         {/* Invite to Proposal Dialog */}
+
         <InviteToProposalDialog
           open={isInviteDialogOpen}
           onOpenChange={setIsInviteDialogOpen}
@@ -906,7 +904,8 @@ export function ParticipantListView({
             />
           </>
         )}
-      </div>
+      </PartAPageLayout>
     </TooltipProvider>
+
   );
 }
