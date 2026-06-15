@@ -28,6 +28,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { useState, useMemo } from 'react';
 import { PartAGuidelinesDialog } from './PartAGuidelinesDialog';
+import { PartAPageLayout } from './PartAPageLayout';
+
 import { toast } from 'sonner';
 import { FstpTab } from './FstpTab';
 import { BudgetParticipantForm } from './BudgetParticipantForm';
