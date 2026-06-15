@@ -924,7 +924,7 @@ Produce the full ESR markdown using the four-section structure defined in your s
     console.log(`Running ESR synthesis for ${evaluationId}...`);
     const synthesisResult = await callAnthropicWithCache(
       ANTHROPIC_API_KEY,
-      evaluationModel,
+      synthesisModel,
       [{ type: "text", text: synthesisSystem }],
       synthesisUser,
       SYNTHESIS_MAX_TOKENS,
