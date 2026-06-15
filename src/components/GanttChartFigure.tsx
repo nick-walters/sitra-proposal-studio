@@ -10,6 +10,7 @@ import { getContrastingTextColor, lightenColor } from '@/lib/wpColors';
 import { exportAsPng, exportGanttAsPptx, type GanttExportData } from '@/lib/figureExport';
 import { toast } from 'sonner';
 import { scheduleFigurePngCache } from '@/lib/figureCache';
+import { B31Pill } from '@/components/B31Pill';
 
 interface Task {
   id: string;
