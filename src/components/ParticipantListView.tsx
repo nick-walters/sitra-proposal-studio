@@ -264,12 +264,9 @@ function ParticipantCard({
               />
             ) : (
               shortName ? (
-                <span 
-                  className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold w-fit"
-                  style={{ backgroundColor: '#000000', color: '#ffffff' }}
-                >
+                <ParticipantBubble style={{ fontSize: '12px', height: 'auto', padding: '1.5px 8px' }}>
                   {shortName}
-                </span>
+                </ParticipantBubble>
               ) : (
                 <span className="text-muted-foreground text-sm">—</span>
               )
