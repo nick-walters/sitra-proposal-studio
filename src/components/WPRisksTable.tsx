@@ -9,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { AlertTriangle, Plus, GripVertical, ChevronsUpDown } from 'lucide-react';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { getDefaultWPColor } from '@/lib/wpColors';
+import { RISK_COLORS } from '@/lib/constants';
 import type { WPDraftRisk } from '@/hooks/useWPDrafts';
 import {
   DndContext,
@@ -48,14 +49,13 @@ interface WPRisksTableProps {
 }
 
 const RISK_LEVELS = [
-  { value: 'H', label: 'High', borderColor: '#ef4444' },
-  { value: 'M', label: 'Medium', borderColor: '#f59e0b' },
-  { value: 'L', label: 'Low', borderColor: '#22c55e' },
+  { value: 'H', label: 'High', borderColor: RISK_COLORS.H },
+  { value: 'M', label: 'Medium', borderColor: RISK_COLORS.M },
+  { value: 'L', label: 'Low', borderColor: RISK_COLORS.L },
 ];
 
 function RiskLevelBubble({ level }: { level: string }) {
-  const colorMap: Record<string, string> = { H: '#ef4444', M: '#f59e0b', L: '#22c55e' };
-  const levelColor = colorMap[level] || '#000';
+  const levelColor = RISK_COLORS[level as 'H' | 'M' | 'L'] || '#000';
   return (
     <span
       className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"

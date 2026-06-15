@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import { PRESENCE_COLORS } from '@/lib/constants';
 
 export interface CursorPosition {
   line: number;
@@ -27,20 +28,6 @@ interface UseCollaborativeCursorsProps {
   currentSectionId: string | null;
 }
 
-// Predefined colors for collaborators - vibrant and distinct
-const COLLABORATOR_COLORS = [
-  '#E91E63', // Pink
-  '#9C27B0', // Purple
-  '#673AB7', // Deep Purple
-  '#3F51B5', // Indigo
-  '#2196F3', // Blue
-  '#00BCD4', // Cyan
-  '#009688', // Teal
-  '#4CAF50', // Green
-  '#FF9800', // Orange
-  '#FF5722', // Deep Orange
-];
-
 // Get consistent color for a user based on their ID
 function getColorForUser(userId: string): string {
   let hash = 0;
@@ -49,7 +36,7 @@ function getColorForUser(userId: string): string {
     hash = ((hash << 5) - hash) + char;
     hash = hash & hash;
   }
-  return COLLABORATOR_COLORS[Math.abs(hash) % COLLABORATOR_COLORS.length];
+  return PRESENCE_COLORS[Math.abs(hash) % PRESENCE_COLORS.length];
 }
 
 export function useCollaborativeCursors({ proposalId, currentSectionId }: UseCollaborativeCursorsProps) {

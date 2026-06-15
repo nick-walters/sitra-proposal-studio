@@ -1,5 +1,6 @@
 import React from 'react';
 import { Crown } from 'lucide-react';
+import { RISK_COLORS } from '@/lib/constants';
 
 export type B31PillSize = 'document' | 'caption' | 'role' | 'toolbar';
 
@@ -152,12 +153,7 @@ export function RiskBadge({
 }: {
   level: 'L' | 'M' | 'H' | null;
 } & Omit<B31PillProps, 'variant' | 'color' | 'children'>) {
-  const colorMap: Record<string, string> = {
-    H: '#ef4444',
-    M: '#f59e0b',
-    L: '#22c55e',
-  };
-  const color = level ? colorMap[level] || '#9ca3af' : '#9ca3af';
+  const color = level ? RISK_COLORS[level] || '#9ca3af' : '#9ca3af';
   const { style: extraStyle, ...restNoStyle } = rest;
   return (
     <B31Pill

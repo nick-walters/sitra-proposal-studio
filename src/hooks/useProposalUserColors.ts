@@ -1,18 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-
-const USER_COLORS = [
-  '#E91E63', // Pink
-  '#9C27B0', // Purple
-  '#673AB7', // Deep Purple
-  '#3F51B5', // Indigo
-  '#2196F3', // Blue
-  '#00BCD4', // Cyan
-  '#009688', // Teal
-  '#4CAF50', // Green
-  '#FF9800', // Orange
-  '#FF5722', // Deep Orange
-];
+import { PRESENCE_COLORS } from '@/lib/constants';
 
 interface UserProfile {
   color: string;
@@ -68,7 +56,7 @@ export function useProposalUserColors(proposalId: string | undefined) {
       ordered.forEach((id, i) => {
         const prof = profileMap.get(id);
         map.set(id, {
-          color: USER_COLORS[i % USER_COLORS.length],
+          color: PRESENCE_COLORS[i % PRESENCE_COLORS.length],
           avatarUrl: prof?.avatar_url || null,
           fullName: prof?.full_name || 'Unknown',
         });
@@ -80,7 +68,7 @@ export function useProposalUserColors(proposalId: string | undefined) {
   }, [proposalId]);
 
   const getUserColor = useMemo(() => {
-    return (userId: string): string => profiles.get(userId)?.color || USER_COLORS[0];
+    return (userId: string): string => profiles.get(userId)?.color || PRESENCE_COLORS[0];
   }, [profiles]);
 
   const getUserAvatar = useMemo(() => {
