@@ -83,21 +83,34 @@ export function B31IntroText({ proposalId, acronymSegments, proposalAcronym }: P
       });
   }, [proposalId]);
 
+  const persistText = useCallback(async (text: string) => {
+    if (!text) {
+      await supabase.from('section_content').delete().eq('proposal_id', proposalId).eq('section_id', 'b31-intro-text');
+    } else {
+      await supabase.from('section_content').upsert({
+        proposal_id: proposalId,
+        section_id: 'b31-intro-text',
+        content: text,
+      }, { onConflict: 'proposal_id,section_id' });
+    }
+  }, [proposalId]);
+
   const saveText = useCallback((text: string) => {
     setSavedText(text || null);
     clearTimeout(saveTimeout.current);
-    saveTimeout.current = setTimeout(async () => {
-      if (!text) {
-        await supabase.from('section_content').delete().eq('proposal_id', proposalId).eq('section_id', 'b31-intro-text');
-      } else {
-        await supabase.from('section_content').upsert({
-          proposal_id: proposalId,
-          section_id: 'b31-intro-text',
-          content: text,
-        }, { onConflict: 'proposal_id,section_id' });
-      }
+    saveTimeout.current = setTimeout(() => {
+      persistText(text);
     }, 500);
-  }, [proposalId]);
+  }, [persistText]);
+
+  const flushSaveText = useCallback((text: string) => {
+    // Cancel any pending debounce and save immediately
+    clearTimeout(saveTimeout.current);
+    saveTimeout.current = undefined;
+    setSavedText(text || null);
+    persistText(text);
+  }, [persistText]);
+
 
   const duration = proposalMeta?.duration || 36;
   const rps = (proposalMeta?.reporting_periods as any[]);
@@ -139,9 +152,9 @@ export function B31IntroText({ proposalId, acronymSegments, proposalAcronym }: P
         const text = e.currentTarget.textContent || '';
         const defaultFull = (proposalAcronym + defaultSuffix).trim();
         if (!text.trim() || text.trim() === defaultFull) {
-          saveText('');
+          flushSaveText('');
         } else {
-          saveText(text);
+          flushSaveText(text);
         }
       }}
     >

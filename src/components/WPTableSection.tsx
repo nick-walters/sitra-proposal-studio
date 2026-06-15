@@ -309,7 +309,17 @@ function SortableTaskCard({
           value={localTitle}
           onChange={handleTitleChange}
           onFocus={() => { isFocused.current = true; }}
-          onBlur={() => { isFocused.current = false; }}
+          onBlur={() => {
+            // Flush pending debounced save immediately
+            if (titleTimeout) {
+              clearTimeout(titleTimeout);
+              setTitleTimeout(null);
+            }
+            if ((localTitle || '') !== (task.title || '')) {
+              onUpdate(task.id, { title: localTitle });
+            }
+            isFocused.current = false;
+          }}
           placeholder="Task title..."
           className="h-6 text-draft flex-1 font-bold bg-transparent border-0 outline-none px-1 text-foreground placeholder:text-muted-foreground/60"
           style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt' }}

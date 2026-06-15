@@ -281,7 +281,17 @@ function SortableRiskCard({
             setTitleTimeout(timeout);
           }}
           onFocus={() => { isFocused.current = true; }}
-          onBlur={() => { isFocused.current = false; }}
+          onBlur={() => {
+            // Flush pending debounced save immediately
+            if (titleTimeout) {
+              clearTimeout(titleTimeout);
+              setTitleTimeout(null);
+            }
+            if ((localTitle || '') !== (risk.title || '')) {
+              onUpdate(risk.id, { title: localTitle });
+            }
+            isFocused.current = false;
+          }}
           placeholder="Describe the risk..."
           className="min-h-[28px] resize-none text-draft flex-1 overflow-hidden font-bold"
           style={{ height: 'auto', fieldSizing: 'content' } as any}
@@ -406,7 +416,17 @@ function SortableRiskCard({
           value={localMitigation}
           onChange={handleMitigationChange}
           onFocus={() => { isFocused.current = true; }}
-          onBlur={() => { isFocused.current = false; }}
+          onBlur={() => {
+            // Flush pending debounced save immediately
+            if (mitigationTimeout) {
+              clearTimeout(mitigationTimeout);
+              setMitigationTimeout(null);
+            }
+            if ((localMitigation || '') !== (risk.mitigation || '')) {
+              onUpdate(risk.id, { mitigation: localMitigation });
+            }
+            isFocused.current = false;
+          }}
           placeholder="Describe mitigation & adaptation measures..."
           className="min-h-[40px] resize-y text-draft flex-1"
           disabled={readOnly}

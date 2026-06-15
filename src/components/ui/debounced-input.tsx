@@ -2,14 +2,14 @@ import * as React from 'react';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 
-interface DebouncedInputProps extends Omit<React.ComponentProps<'input'>, 'onChange' | 'onFocus' | 'onBlur'> {
+interface DebouncedInputProps extends Omit<React.ComponentProps<'input'>, 'onChange'> {
   value: string;
   onDebouncedChange: (value: string) => void;
   debounceMs?: number;
 }
 
 const DebouncedInput = React.forwardRef<HTMLInputElement, DebouncedInputProps>(
-  ({ value, onDebouncedChange, debounceMs = 500, ...props }, ref) => {
+  ({ value, onDebouncedChange, debounceMs = 500, onFocus, onBlur, ...props }, ref) => {
     const [localValue, setLocalValue] = useState(value ?? '');
     const isFocused = useRef(false);
     const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -47,11 +47,12 @@ const DebouncedInput = React.forwardRef<HTMLInputElement, DebouncedInputProps>(
       }, debounceMs);
     };
 
-    const handleFocus = () => {
+    const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
       isFocused.current = true;
+      onFocus?.(e);
     };
 
-    const handleBlur = () => {
+    const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
       isFocused.current = false;
       // Flush any pending debounced change immediately on blur
       if (timeoutRef.current) {
@@ -59,6 +60,7 @@ const DebouncedInput = React.forwardRef<HTMLInputElement, DebouncedInputProps>(
         timeoutRef.current = null;
         callbackRef.current(localValue);
       }
+      onBlur?.(e);
     };
 
     return (
@@ -73,6 +75,7 @@ const DebouncedInput = React.forwardRef<HTMLInputElement, DebouncedInputProps>(
     );
   }
 );
+
 
 DebouncedInput.displayName = 'DebouncedInput';
 
