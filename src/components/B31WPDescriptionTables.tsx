@@ -80,7 +80,7 @@ function LeaderPicker({
 
   const arrow = <ChevronsUpDown className="h-3 w-3 opacity-50 shrink-0" />;
   const content = leader ? (
-    <ParticipantBubble shortName={leader.organisation_short_name || leader.organisation_name} showCrown={showCrown} />
+    <ParticipantBubble shortName={leader.organisation_short_name || leader.organisation_name} showCrown={showCrown} style={{ fontStyle: 'normal' }} />
   ) : (
     <span className="text-muted-foreground text-[9pt] italic">{entityTable === 'wp_drafts' ? 'Select WP leader' : 'Select task leader'}</span>
   );
