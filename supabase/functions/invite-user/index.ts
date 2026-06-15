@@ -157,10 +157,18 @@ serve(async (req: Request) => {
       redirectTo: redirectUrl,
     });
 
+    // Redact email in logs (PII): keep first char + domain only.
+    const redactEmail = (e: string) => {
+      const [local, domain] = e.split("@");
+      if (!local || !domain) return "***";
+      return `${local[0]}***@${domain}`;
+    };
+    const safeEmail = redactEmail(email);
+
     if (resetError) {
       console.warn("Failed to send password-set email:", resetError.message);
     } else {
-      console.log(`Password-set email sent to ${email}`);
+      console.log(`Password-set email sent to ${safeEmail}`);
     }
 
     // Step 3: Also generate a direct link for the admin to share as backup
@@ -181,7 +189,7 @@ serve(async (req: Request) => {
       signupUrl = linkData?.properties?.action_link ?? `${redirectBase}/auth`;
     }
 
-    console.log(`User ${email} created for proposal ${proposalAcronym}`);
+    console.log(`User ${safeEmail} created for proposal ${proposalAcronym}`);
 
     return new Response(
       JSON.stringify({

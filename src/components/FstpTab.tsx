@@ -1,4 +1,5 @@
 import { useEditor, EditorContent } from '@tiptap/react';
+import DOMPurify from 'dompurify';
 import StarterKit from '@tiptap/starter-kit';
 import { HeadingExitOnEnter } from '@/extensions/HeadingExitOnEnter';
 import { HeadingNumberLabel } from '@/extensions/HeadingNumberLabel';
@@ -167,7 +168,7 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, f
   const parseHtmlToBlocks = useCallback((html: string): ContentBlock[] => {
     if (!html) return [];
     const div = document.createElement('div');
-    div.innerHTML = html;
+    div.innerHTML = DOMPurify.sanitize(html, { ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'ul', 'ol', 'li', 'span', 'a', 'h1', 'h2', 'h3', 'h4', 'sub', 'sup', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'div'], ALLOWED_ATTR: ['class', 'style', 'href', 'target', 'rel', 'colspan', 'rowspan'] });
     const blocks: ContentBlock[] = [];
 
     const processNode = (node: Node) => {
