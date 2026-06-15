@@ -355,13 +355,26 @@ function SectionItem({
               ? `${caseSection.number}${caseSection.title ? ` ${caseSection.title}` : ''}`
               : caseSection.number;
             return (
-              <B31Pill
-                variant="outline"
-                color="#000000"
-                style={{ fontSize: '9px', height: 'auto', padding: '1px 6px' }}
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  fontSize: '9px',
+                  height: 'auto',
+                  padding: '1px 6px',
+                  border: '1.5px solid #000000',
+                  backgroundColor: '#ffffff',
+                  color: '#000000',
+                  fontWeight: 700,
+                  lineHeight: 1,
+                  whiteSpace: 'nowrap',
+                  verticalAlign: 'baseline',
+                  borderRadius: '4px',
+                  fontFamily: "'Times New Roman', Times, serif",
+                }}
               >
                 {label}
-              </B31Pill>
+              </span>
             );
           })()
         ) : isParticipantSection ? (
