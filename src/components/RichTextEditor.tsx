@@ -111,6 +111,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  ToolbarButton,
+  TextFormattingGroup,
+  AlignmentGroup,
+  TableGridPicker,
+  SubheadingDropdown,
+  type Alignment,
+} from './toolbar';
 
 interface RichTextEditorProps {
   content: string;
