@@ -354,7 +354,7 @@ function SectionItem({
             color="#000000"
             style={{ fontSize: '9px', height: 'auto', padding: '1px 6px' }}
           >
-            {caseSection.title}
+            {caseSection.number}
           </B31Pill>
         ) : isParticipantSection ? (
           <ParticipantBubble
