@@ -164,7 +164,7 @@ export function RiskBadge({
       variant="outline"
       color={color}
       {...restNoStyle}
-      style={{ width: '19px', height: '17px', padding: 0, ...extraStyle }}
+      style={{ width: '19px', height: '17px', padding: 0, position: 'relative', top: '-1.4px', ...extraStyle }}
     >
       {level || '–'}
     </B31Pill>
