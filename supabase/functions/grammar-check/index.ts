@@ -52,6 +52,16 @@ serve(async (req) => {
       );
     }
 
+    const { data: roles } = await supabase
+      .from('user_roles')
+      .select('id')
+      .eq('user_id', claimsData.claims.sub)
+      .limit(1);
+
+    if (!roles || roles.length === 0) {
+      return new Response(JSON.stringify({ error: 'No proposal access' }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     const { text, categories } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
