@@ -700,6 +700,7 @@ export function BudgetParticipantForm({
           </div>
         </CardContent>
       </Card>
-    </div>
+    </PartAPageLayout>
+
   );
 }
