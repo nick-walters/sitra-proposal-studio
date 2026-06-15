@@ -531,6 +531,15 @@ export function FormattingToolbar({
   b31TableFocus,
   onB31AutoResize,
   crossRefDropdown,
+  showLinkButton = false,
+  showColor = true,
+  showParagraphSpacing = true,
+  showImageControls = true,
+  showTableEditing = true,
+  tableInsertMode = 'popover',
+  figureInsertMode = 'dialog',
+  subheadingPrefix,
+  showSubheadingBodyItem = true,
 }: { 
   editor: Editor | null;
   sectionNumber?: string;
@@ -549,6 +558,15 @@ export function FormattingToolbar({
    b31TableFocus?: string | null;
    onB31AutoResize?: () => void;
   crossRefDropdown?: React.ReactNode;
+  showLinkButton?: boolean;
+  showColor?: boolean;
+  showParagraphSpacing?: boolean;
+  showImageControls?: boolean;
+  showTableEditing?: boolean;
+  tableInsertMode?: 'popover' | 'fixed3x3';
+  figureInsertMode?: 'dialog' | 'urlPrompt' | 'none';
+  subheadingPrefix?: string;
+  showSubheadingBodyItem?: boolean;
 }) {
   const [tablePopoverOpen, setTablePopoverOpen] = useState(false);
   const [isCropOpen, setIsCropOpen] = useState(false);
