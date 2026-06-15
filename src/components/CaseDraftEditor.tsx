@@ -272,10 +272,11 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
     Object.assign(span.style, {
       backgroundColor: '#000000', color: '#ffffff', border: '1.5px solid #000000',
       padding: '0px 5px', borderRadius: '9999px', fontFamily: "'Times New Roman', Times, serif",
-      fontWeight: '700', fontStyle: 'normal', fontSize: '11pt', lineHeight: '1',
+      fontWeight: '700', fontSize: '11pt', lineHeight: '1',
       verticalAlign: 'baseline', display: 'inline-flex', alignItems: 'center',
       whiteSpace: 'nowrap', userSelect: 'none',
     });
+    span.style.setProperty('font-style', 'normal', 'important');
     insertNodeAtCursor(span);
     toast.success(`${shortName} reference inserted`);
   }, [insertNodeAtCursor]);
