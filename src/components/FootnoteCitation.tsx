@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import DOMPurify from 'dompurify';
 
 interface Props {
   html: string;
@@ -52,6 +53,15 @@ export function FootnoteCitation({ html }: Props) {
     return () => ro.disconnect();
   }, [html]);
 
+  const sanitized = useMemo(
+    () =>
+      DOMPurify.sanitize(html, {
+        ALLOWED_TAGS: ['em', 'strong', 'i', 'b', 'a', 'sup', 'sub', 'span'],
+        ALLOWED_ATTR: ['href', 'target', 'rel', 'class', 'style', 'data-cite-title', 'data-original'],
+      }),
+    [html]
+  );
+
   return (
     <p
       ref={containerRef}
@@ -62,7 +72,7 @@ export function FootnoteCitation({ html }: Props) {
         lineHeight: 1,
         margin: 0,
       }}
-      dangerouslySetInnerHTML={{ __html: html }}
+      dangerouslySetInnerHTML={{ __html: sanitized }}
     />
   );
 }
