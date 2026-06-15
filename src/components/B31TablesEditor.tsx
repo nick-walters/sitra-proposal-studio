@@ -183,7 +183,7 @@ function EditableCell({
   const writeValue = useCallback((val: string) => {
     const el = elRef.current;
     if (!el) return;
-    if (format === 'html') el.innerHTML = val || '';
+    if (format === 'html') el.innerHTML = DOMPurify.sanitize(val || '', B31_CELL_SANITIZE_CONFIG);
     else el.textContent = val || '';
   }, [format]);
 
