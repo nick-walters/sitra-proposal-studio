@@ -106,17 +106,9 @@ export function ParticipantListTable({
                   <td>
                     <p>
                       {participant.organisationShortName ? (
-                        <span
-                          className="inline-flex items-center px-2.5 py-1 rounded-full text-[11pt]"
-                          style={{ 
-                            backgroundColor: '#000000', 
-                            color: '#ffffff',
-                            fontWeight: 'bold',
-                            fontStyle: 'normal',
-                          }}
-                        >
+                        <ParticipantBubble style={{ fontSize: '11pt', height: 'auto', padding: '4px 10px' }}>
                           {participant.organisationShortName}
-                        </span>
+                        </ParticipantBubble>
                       ) : (
                         '—'
                       )}
