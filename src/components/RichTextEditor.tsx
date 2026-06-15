@@ -961,7 +961,7 @@ export function FormattingToolbar({
         />
         <OrderedListDropdown
           editor={editor}
-          isActive={editor.isActive('orderedList')}
+          active={editor.isActive('orderedList')}
         />
 
         <Separator orientation="vertical" className="h-5 mx-1.5" />
