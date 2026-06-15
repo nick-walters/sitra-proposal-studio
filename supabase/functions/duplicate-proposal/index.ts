@@ -43,10 +43,27 @@ serve(async (req) => {
       });
     }
 
-    const { proposalId, newAcronym, newTitle } = await req.json() as DuplicateRequest;
+    const body = await req.json() as DuplicateRequest;
+    const proposalId = body.proposalId;
+    const newAcronym = body.newAcronym?.replace(/<[^>]*>/g, '').trim();
+    const newTitle = body.newTitle?.replace(/<[^>]*>/g, '').trim();
 
     if (!proposalId || !newAcronym || !newTitle) {
       return new Response(JSON.stringify({ error: 'Missing required fields' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (newAcronym.length > 50) {
+      return new Response(JSON.stringify({ error: 'Acronym is too long (max 50 characters)' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (newTitle.length > 500) {
+      return new Response(JSON.stringify({ error: 'Title is too long (max 500 characters)' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
