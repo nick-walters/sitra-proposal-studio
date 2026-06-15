@@ -393,7 +393,7 @@ function ParticipantCard({
                 value={country}
                 onValueChange={(val) => {
                   setCountry(val);
-                  setHasChanges(true);
+                  saveField({ country: val || undefined });
                 }}
                 className="h-7 text-xs px-1.5"
                 placeholder="Country"
@@ -407,18 +407,9 @@ function ParticipantCard({
           
           {/* Save indicator / Edit button */}
           <div className="shrink-0 flex items-center justify-end">
-            {canEdit && (isSaving || hasChanges) && (
+            {canEdit && isSaving && (
               <span className="text-xs text-muted-foreground flex items-center gap-1">
-                {isSaving ? (
-                  <span className="animate-pulse">Saving...</span>
-                ) : hasChanges ? (
-                  <span className="animate-pulse">...</span>
-                ) : (
-                  <>
-                    <Check className="w-3 h-3 text-green-600" />
-                    <span>Saved</span>
-                  </>
-                )}
+                <span className="animate-pulse">Saving...</span>
               </span>
             )}
             {canEdit && (
