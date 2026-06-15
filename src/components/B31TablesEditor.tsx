@@ -366,25 +366,7 @@ function MonthSelect({
   );
 }
 
-// WP Bubble
-function WPBubble({ wp, onRemove }: { wp: WorkPackage; onRemove?: () => void }) {
-  return (
-    <span
-      className="inline-flex items-center justify-center gap-0.5 rounded-full text-white font-bold whitespace-nowrap"
-      style={{ backgroundColor: wp.color || '#666', border: `1.5px solid ${wp.color || '#666'}`, color: '#ffffff', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px', height: '17px', position: 'relative', top: '-1px' }}
-    >
-      WP{wp.number}
-      {onRemove && (
-        <button
-          onClick={onRemove}
-          className="ml-0.5 hover:bg-black/20 rounded-full w-3 h-3 flex items-center justify-center text-[8pt]"
-        >
-          ×
-        </button>
-      )}
-    </span>
-  );
-}
+// WPBubble and RiskBadge are imported from './B31Pill'
 
 function SingleWPSelector({
   value,
