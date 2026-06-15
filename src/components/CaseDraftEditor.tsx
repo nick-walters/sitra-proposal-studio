@@ -18,6 +18,9 @@ import { InsertWPReferenceDialog } from '@/components/InsertWPReferenceDialog';
 import { InsertParticipantReferenceDialog } from '@/components/InsertParticipantReferenceDialog';
 import { InsertCaseReferenceDialog } from '@/components/InsertCaseReferenceDialog';
 import { InsertTDMSReferenceDropdowns } from '@/components/InsertTDMSReferenceDropdowns';
+import { CitationDialog } from '@/components/CitationDialog';
+import { InsertFigureDialog } from '@/components/InsertFigureDialog';
+import { useProposalReferences } from '@/hooks/useProposalReferences';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { ParticipantSummary } from '@/types/proposal';
@@ -148,6 +151,15 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
   const [isDeliverableRefOpen, setIsDeliverableRefOpen] = useState(false);
   const [isMilestoneRefOpen, setIsMilestoneRefOpen] = useState(false);
   const [isCaseRefOpen, setIsCaseRefOpen] = useState(false);
+  const [isCitationOpen, setIsCitationOpen] = useState(false);
+  const [isFigureDialogOpen, setIsFigureDialogOpen] = useState(false);
+
+  // Proposal-wide references hook (for citations)
+  const {
+    references: proposalReferences,
+    updateReference,
+    getNextCitationNumber,
+  } = useProposalReferences(proposalId);
 
   // Proposal acronym + has-cases for dropdown
   const { data: proposalMeta } = useQuery({
@@ -359,6 +371,39 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
     toast.success('Case reference inserted');
   }, [insertNodeAtCursor]);
 
+  const insertCitationAtCursor = useCallback((citationNumber: number) => {
+    const sup = document.createElement('sup');
+    sup.textContent = `${citationNumber}`;
+    sup.setAttribute('data-citation', String(citationNumber));
+    sup.style.color = 'blue';
+    sup.style.cursor = 'pointer';
+    insertNodeAtCursor(sup);
+    toast.success(`Citation ${citationNumber} inserted`);
+  }, [insertNodeAtCursor]);
+
+  const insertFigureAtCursor = useCallback((figure: any) => {
+    const refSpan = document.createElement('span');
+    refSpan.textContent = `(see ${figure.figure_number})`;
+    refSpan.style.color = 'blue';
+    refSpan.style.textDecoration = 'underline';
+    insertNodeAtCursor(refSpan);
+    toast.success('Figure reference inserted');
+  }, [insertNodeAtCursor]);
+
+  // Browser-level undo/redo for contentEditable surfaces in the case draft
+  const handleUndo = useCallback(() => {
+    const { editorEl } = restoreSelection();
+    if (editorEl) editorEl.focus({ preventScroll: true });
+    document.execCommand('undo');
+  }, [restoreSelection]);
+  const handleRedo = useCallback(() => {
+    const { editorEl } = restoreSelection();
+    if (editorEl) editorEl.focus({ preventScroll: true });
+    document.execCommand('redo');
+  }, [restoreSelection]);
+
+
+
 
   // Fetch case draft
   const { data: caseDraft, isLoading } = useQuery({
@@ -550,6 +595,12 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
             onSaveNow: () => {},
           }}
           isReadOnly={readOnly}
+          undo={{
+            canUndo: !readOnly,
+            canRedo: !readOnly,
+            onUndo: handleUndo,
+            onRedo: handleRedo,
+          }}
           onCommand={execCommand}
           table={{
             open: tablePopoverOpen,
@@ -558,7 +609,13 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
             onHoverCell: setHoveredCell,
             onInsert: insertTable,
           }}
+          paragraphSpacingContainer={() =>
+            (document.activeElement && (document.activeElement as HTMLElement).closest('[contenteditable="true"]')) as HTMLElement | null
+            || (document.querySelector('.case-draft-editor [contenteditable="true"]') as HTMLElement | null)
+          }
           onSaveSelection={saveSelection}
+          onOpenFigureDialog={() => setIsFigureDialogOpen(true)}
+          onOpenCitationDialog={() => setIsCitationOpen(true)}
           crossRefMenuItems={
             <>
               <DropdownMenuItem onClick={() => { setCrossRefFilterType('figure'); setIsCrossRefOpen(true); }} className="flex items-center gap-2">
@@ -800,6 +857,28 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
             insertCaseRefAtCursor(caseItem);
           }, 100);
         }}
+      />
+
+      {/* Citation Dialog */}
+      <CitationDialog
+        isOpen={isCitationOpen}
+        onClose={() => setIsCitationOpen(false)}
+        onInsertCitation={(_reference, _formattedCitation, citationNumber) => {
+          insertCitationAtCursor(citationNumber);
+        }}
+        proposalReferences={proposalReferences}
+        isLoadingReferences={false}
+        nextCitationNumber={getNextCitationNumber()}
+        onUpdateReference={updateReference}
+      />
+
+      {/* Figure Dialog */}
+      <InsertFigureDialog
+        isOpen={isFigureDialogOpen}
+        onClose={() => setIsFigureDialogOpen(false)}
+        proposalId={proposalId}
+        currentSectionId=""
+        onInsertFigure={insertFigureAtCursor}
       />
     </ScrollArea>
   );
