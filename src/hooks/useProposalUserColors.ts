@@ -56,7 +56,7 @@ export function useProposalUserColors(proposalId: string | undefined) {
       ordered.forEach((id, i) => {
         const prof = profileMap.get(id);
         map.set(id, {
-          color: USER_COLORS[i % USER_COLORS.length],
+          color: PRESENCE_COLORS[i % PRESENCE_COLORS.length],
           avatarUrl: prof?.avatar_url || null,
           fullName: prof?.full_name || 'Unknown',
         });
@@ -68,7 +68,7 @@ export function useProposalUserColors(proposalId: string | undefined) {
   }, [proposalId]);
 
   const getUserColor = useMemo(() => {
-    return (userId: string): string => profiles.get(userId)?.color || USER_COLORS[0];
+    return (userId: string): string => profiles.get(userId)?.color || PRESENCE_COLORS[0];
   }, [profiles]);
 
   const getUserAvatar = useMemo(() => {
