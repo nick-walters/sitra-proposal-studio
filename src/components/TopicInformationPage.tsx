@@ -14,6 +14,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Calendar } from "@/components/ui/calendar";
 import { Separator } from "@/components/ui/separator";
 import { SaveIndicator } from "./SaveIndicator";
+import { PartAPageLayout } from "./PartAPageLayout";
+
 
 import { Proposal, WORK_PROGRAMMES, DESTINATIONS, getDestinationsForWorkProgramme } from "@/types/proposal";
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
