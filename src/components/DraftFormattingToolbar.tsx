@@ -180,148 +180,70 @@ export function DraftFormattingToolbar({
         <div className={row2Class}>
           {undo && (
             <>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 w-7 p-0"
-                    disabled={disabled || !undo.canUndo}
-                    onClick={undo.onUndo}
-                  >
-                    <Undo2 className="h-3.5 w-3.5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-xs">{undo.undoLabel ?? 'Undo'}</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 w-7 p-0"
-                    disabled={disabled || !undo.canRedo}
-                    onClick={undo.onRedo}
-                  >
-                    <Redo2 className="h-3.5 w-3.5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-xs">{undo.redoLabel ?? 'Redo'}</TooltipContent>
-              </Tooltip>
+              <ToolbarButton
+                icon={<Undo2 className="h-3.5 w-3.5" />}
+                label={undo.undoLabel ?? 'Undo'}
+                onClick={undo.onUndo}
+                disabled={disabled || !undo.canUndo}
+              />
+              <ToolbarButton
+                icon={<Redo2 className="h-3.5 w-3.5" />}
+                label={undo.redoLabel ?? 'Redo'}
+                onClick={undo.onRedo}
+                disabled={disabled || !undo.canRedo}
+              />
               <Separator orientation="vertical" className="h-5 mx-1.5" />
             </>
           )}
 
           {/* Subheading dropdown */}
           {showSubheading && (
-            <DropdownMenu>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <DropdownMenuTrigger asChild>
-                    <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1" disabled={disabled}>
-                      <span className="text-xs font-black underline">Subheading</span>
-                      <ChevronDown className="w-3 h-3" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-xs">Insert subheading</TooltipContent>
-              </Tooltip>
-              <DropdownMenuContent align="start" className="w-64">
-                {onSubheadingNumbered && (
-                  <DropdownMenuItem onClick={onSubheadingNumbered}>
-                    <span className="text-sm font-semibold">Numbered subheading</span>
-                  </DropdownMenuItem>
-                )}
-                {onSubheadingUnnumbered && (
-                  <DropdownMenuItem onClick={onSubheadingUnnumbered}>
-                    <span className="text-sm font-bold underline">Unnumbered subheading</span>
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <SubheadingDropdown
+              onNumbered={() => onSubheadingNumbered?.()}
+              onUnnumbered={() => onSubheadingUnnumbered?.()}
+              disabled={disabled}
+              numberedLabel="Numbered subheading"
+              unnumberedLabel="Unnumbered subheading"
+            />
           )}
 
           {/* Bold / Italic / Underline */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" disabled={disabled} onClick={() => exec('bold')}>
-                <span className="font-black text-sm">B</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">Bold (Ctrl+B)</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" disabled={disabled} onClick={() => exec('italic')}>
-                <Italic className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">Italic (Ctrl+I)</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" disabled={disabled} onClick={() => exec('underline')}>
-                <Underline className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">Underline (Ctrl+U)</TooltipContent>
-          </Tooltip>
+          <TextFormattingGroup
+            onBold={() => exec('bold')}
+            onItalic={() => exec('italic')}
+            onUnderline={() => exec('underline')}
+            disabled={disabled}
+          />
 
           <Separator orientation="vertical" className="h-5 mx-1.5" />
 
           {/* Lists */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" disabled={disabled} onClick={() => exec('insertUnorderedList')}>
-                <List className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">Bullet list</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" disabled={disabled} onClick={() => exec('insertOrderedList')}>
-                <ListOrdered className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">Numbered list</TooltipContent>
-          </Tooltip>
+          <ToolbarButton
+            icon={<List className="h-4 w-4" />}
+            label="Bullet list"
+            onClick={() => exec('insertUnorderedList')}
+            disabled={disabled}
+          />
+          <ToolbarButton
+            icon={<ListOrdered className="h-4 w-4" />}
+            label="Numbered list"
+            onClick={() => exec('insertOrderedList')}
+            disabled={disabled}
+          />
 
           <Separator orientation="vertical" className="h-5 mx-1.5" />
 
           {/* Alignment */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" disabled={disabled} onClick={() => exec('justifyLeft')}>
-                <AlignLeft className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">Align left</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" disabled={disabled} onClick={() => exec('justifyCenter')}>
-                <AlignCenter className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">Align center</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" disabled={disabled} onClick={() => exec('justifyRight')}>
-                <AlignRight className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">Align right</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" disabled={disabled} onClick={() => exec('justifyFull')}>
-                <AlignJustify className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">Justify</TooltipContent>
-          </Tooltip>
+          <AlignmentGroup
+            disabled={disabled}
+            onAlign={(a: Alignment) => {
+              const cmd = a === 'left' ? 'justifyLeft'
+                : a === 'center' ? 'justifyCenter'
+                : a === 'right' ? 'justifyRight'
+                : 'justifyFull';
+              exec(cmd);
+            }}
+          />
 
           {paragraphSpacingContainer && (
             <ParagraphSpacingExecPopover getContainer={paragraphSpacingContainer} />
@@ -330,46 +252,12 @@ export function DraftFormattingToolbar({
           <Separator orientation="vertical" className="h-5 mx-1.5" />
 
           {/* Table picker */}
-          <Popover open={effectiveTable.open} onOpenChange={effectiveTable.onOpenChange}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <PopoverTrigger asChild>
-                  <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1" disabled={disabled}>
-                    <Table2 className="h-4 w-4" />
-                    <span className="text-xs">Table</span>
-                  </Button>
-                </PopoverTrigger>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="text-xs">Insert table</TooltipContent>
-            </Tooltip>
-            <PopoverContent className="w-auto p-2" align="start">
-              <div className="text-xs text-muted-foreground mb-2">
-                {effectiveTable.hoveredCell ? `${effectiveTable.hoveredCell.row} × ${effectiveTable.hoveredCell.col}` : 'Select size'}
-              </div>
-              <div className="grid gap-0.5" style={{ gridTemplateColumns: 'repeat(8, 1fr)' }}>
-                {Array.from({ length: 8 }, (_, row) =>
-                  Array.from({ length: 8 }, (_, col) => {
-                    const isHighlighted = effectiveTable.hoveredCell && row < effectiveTable.hoveredCell.row && col < effectiveTable.hoveredCell.col;
-                    const isFirstRow = row === 0;
-                    return (
-                      <button
-                        key={`${row}-${col}`}
-                        className={cn(
-                          "w-4 h-4 border border-border rounded-sm transition-colors",
-                          isHighlighted
-                            ? isFirstRow ? "bg-foreground" : "bg-primary/40"
-                            : "bg-background hover:bg-muted"
-                        )}
-                        onMouseEnter={() => effectiveTable.onHoverCell({ row: row + 1, col: col + 1 })}
-                        onMouseLeave={() => effectiveTable.onHoverCell(null)}
-                        onClick={() => effectiveTable.onInsert(row + 1, col + 1)}
-                      />
-                    );
-                  })
-                )}
-              </div>
-            </PopoverContent>
-          </Popover>
+          <TableGridPicker
+            disabled={disabled}
+            open={effectiveTable.open}
+            onOpenChange={effectiveTable.onOpenChange}
+            onInsert={effectiveTable.onInsert}
+          />
 
           {/* Figure */}
           {onOpenFigureDialog && (
