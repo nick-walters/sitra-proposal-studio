@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { StorageImage } from '@/components/StorageImage';
 import { Participant } from '@/types/proposal';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { B31Pill, WPBubble, ParticipantBubble } from '@/components/B31Pill';
 
 // WP Leadership info type
 export interface WPLeadershipInfo {
