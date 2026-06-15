@@ -271,15 +271,11 @@ function SortableCaseRow({ caseItem, participants, casePrefix, includeNumber, in
                   className="w-full flex items-center p-3 rounded-md text-left hover:bg-muted/80 transition-colors"
                 >
                   <div className="w-24 shrink-0">
-                    <span
-                      className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold italic whitespace-nowrap"
-                      style={{
-                        backgroundColor: '#000000',
-                        color: '#ffffff',
-                      }}
+                    <ParticipantBubble
+                      style={{ fontSize: '12px', height: 'auto', padding: '2px 8px', fontStyle: 'italic' }}
                     >
                       {p.organisation_short_name || `P${p.participant_number}`}
-                    </span>
+                    </ParticipantBubble>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm truncate">
