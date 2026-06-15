@@ -170,44 +170,8 @@ function SortableRiskCard({
     opacity: isDragging ? 0.5 : 1,
   };
 
-  const [localTitle, setLocalTitle] = useState(risk.title || '');
-  const [localMitigation, setLocalMitigation] = useState(risk.mitigation || '');
-  const [titleTimeout, setTitleTimeout] = useState<NodeJS.Timeout | null>(null);
-  const [mitigationTimeout, setMitigationTimeout] = useState<NodeJS.Timeout | null>(null);
   const [wpPopoverOpen, setWpPopoverOpen] = useState(false);
-  const isFocused = useRef(false);
 
-  useEffect(() => {
-    if (!isFocused.current) setLocalTitle(risk.title || '');
-  }, [risk.title]);
-
-  useEffect(() => {
-    if (!isFocused.current) setLocalMitigation(risk.mitigation || '');
-  }, [risk.mitigation]);
-
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setLocalTitle(newValue);
-
-    if (titleTimeout) clearTimeout(titleTimeout);
-    
-    const timeout = setTimeout(() => {
-      onUpdate(risk.id, { title: newValue });
-    }, 500);
-    setTitleTimeout(timeout);
-  };
-
-  const handleMitigationChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newValue = e.target.value;
-    setLocalMitigation(newValue);
-
-    if (mitigationTimeout) clearTimeout(mitigationTimeout);
-    
-    const timeout = setTimeout(() => {
-      onUpdate(risk.id, { mitigation: newValue });
-    }, 500);
-    setMitigationTimeout(timeout);
-  };
 
   // Parse related_wps string into array of WP numbers
   const selectedWpNumbers: number[] = (() => {
