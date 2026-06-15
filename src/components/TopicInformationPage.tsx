@@ -833,7 +833,7 @@ export function TopicInformationPage({
             </CardContent>
           </Card>
         )}
-      </div>
-    </div>
+    </PartAPageLayout>
+
   );
 }
