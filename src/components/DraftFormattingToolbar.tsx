@@ -2,21 +2,25 @@ import { ReactNode, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { SaveIndicator } from '@/components/SaveIndicator';
 import { ParagraphSpacingExecPopover } from '@/components/ParagraphSpacingExecPopover';
 import {
-  BookOpen, Italic, Underline, List, ListOrdered,
-  AlignLeft, AlignCenter, AlignRight, AlignJustify,
-  Table2, ImageIcon, FileText, Link2, Undo2, Redo2, ChevronDown,
+  BookOpen, List, ListOrdered,
+  ImageIcon, FileText, Link2, Undo2, Redo2,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import {
+  ToolbarButton,
+  TextFormattingGroup,
+  AlignmentGroup,
+  TableGridPicker,
+  SubheadingDropdown,
+  type Alignment,
+} from './toolbar';
 
 export interface DraftToolbarSaveProps {
   saving: boolean;
