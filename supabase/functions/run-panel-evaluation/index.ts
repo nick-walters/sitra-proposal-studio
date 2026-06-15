@@ -46,7 +46,8 @@ async function callAnthropicWithCache(
   userPrompt: string,
   maxTokens: number,
   enableThinking = false,
-  maxRetries = 3,
+  maxRetries = 2,
+  abortSignal?: AbortSignal,
 ): Promise<AnthropicCallResult> {
   const body: any = {
     model,
@@ -71,6 +72,7 @@ async function callAnthropicWithCache(
         "content-type": "application/json",
       },
       body: JSON.stringify(body),
+      signal: abortSignal,
     });
 
     if (res.ok) {
@@ -92,9 +94,12 @@ async function callAnthropicWithCache(
     if (res.status === 429 && attempt < maxRetries) {
       const retryAfterHeader = res.headers.get("retry-after");
       const retryAfterSec = retryAfterHeader ? parseInt(retryAfterHeader, 10) : NaN;
-      const backoffMs = Number.isFinite(retryAfterSec)
-        ? retryAfterSec * 1000
-        : Math.min(120_000, 2 ** attempt * 1000) + Math.floor(Math.random() * 500);
+      // Initial 2s, 2x multiplier, capped at 15s. Retry-after honoured but capped at 15s.
+      const baseMs = 2000 * 2 ** attempt;
+      const backoffMs = Math.min(
+        15_000,
+        Number.isFinite(retryAfterSec) ? retryAfterSec * 1000 : baseMs,
+      );
       console.warn(`Rate limited. Backing off ${backoffMs}ms before retry ${attempt + 2}/${maxRetries + 1}.`);
       await sleep(backoffMs);
       attempt++;
@@ -147,6 +152,8 @@ const SYNTHESIS_MAX_TOKENS = 4200;
 const MAX_SECTION_CHARS = 2200;
 const MAX_TOTAL_SECTION_CHARS = 32000;
 const ACTIVE_STEP_STALE_MS = 180_000;
+const EVALUATOR_TIMEOUT_MS = 120_000;
+const MIN_SUCCESSFUL_EVALUATORS = 3;
 
 function formatRetryDelay(retryAfterSeconds?: number) {
   const seconds = Math.max(30, Math.min(retryAfterSeconds ?? 60, 300));
@@ -310,7 +317,7 @@ async function loadEvaluationContext(serviceClient: any, evaluationId: string): 
       )
     : [];
 
-  if (selectedEvaluators.length < 3 || selectedEvaluators.length > 10) {
+  if (selectedEvaluators.length < 3 || selectedEvaluators.length > 8) {
     throw new Error("Saved evaluation panel is invalid");
   }
 
@@ -390,7 +397,7 @@ async function runEvaluatorPhase(serviceClient: any, evaluationId: string) {
     evaluator_cache_write_tokens: Number(savedUsage.evaluator_cache_write_tokens || 0),
   };
 
-  const evaluationModel = configMap.evaluation_model || "claude-opus-4-5-20250929";
+  const evaluationModel = configMap.evaluation_model || "claude-opus-4-8";
 
   const WORDS_PER_PAGE = 500;
   const FRONT_MATTER_PAGES = 1;
@@ -467,8 +474,25 @@ ${criterion.scoring_descriptors}`;
 
   const finalizeEvaluatorPhase = async (parsedEvaluations: any[], nextUsageTotals: Record<string, number>) => {
     const validEvaluations = parsedEvaluations.filter((item) => !item?.data?.error);
-    if (validEvaluations.length === 0) {
-      throw new Error("All evaluator outputs failed to parse");
+    if (validEvaluations.length < MIN_SUCCESSFUL_EVALUATORS) {
+      const msg = `Only ${validEvaluations.length} of ${parsedEvaluations.length} evaluators completed. Minimum ${MIN_SUCCESSFUL_EVALUATORS} required for synthesis.`;
+      await serviceClient
+        .from("proposal_analyses")
+        .update({
+          status: "failed",
+          error_message: msg,
+          analysis_data: {
+            ...baseAnalysisData,
+            eligibility_flags: eligibilityFlags,
+            evaluations: parsedEvaluations,
+            token_usage: nextUsageTotals,
+            instrument_code: instrument.code,
+            active_step_started_at: null,
+            progress_message: msg,
+          },
+        })
+        .eq("id", evaluationId);
+      return { evaluationId, status: "failed", error: msg };
     }
 
     const excellenceScores = validEvaluations
@@ -642,6 +666,9 @@ ${fullProposalOutputBlock}`;
     .eq("id", evaluationId);
 
   let result: AnthropicCallResult;
+  let evaluatorTimedOut = false;
+  const abortController = new AbortController();
+  const timeoutHandle = setTimeout(() => abortController.abort(), EVALUATOR_TIMEOUT_MS);
   try {
     result = await callAnthropicWithCache(
       ANTHROPIC_API_KEY,
@@ -651,9 +678,17 @@ ${fullProposalOutputBlock}`;
       EVALUATOR_MAX_TOKENS,
       false,
       2,
+      abortController.signal,
     );
   } catch (error) {
-    if (error instanceof RateLimitError) {
+    const isAbort =
+      (error instanceof DOMException && error.name === "AbortError") ||
+      (error instanceof Error && /abort/i.test(error.message));
+    if (isAbort) {
+      console.warn(`Evaluator ${evaluator.name} timed out after ${EVALUATOR_TIMEOUT_MS / 1000}s, skipping`);
+      evaluatorTimedOut = true;
+      result = { text: "", usage: {} };
+    } else if (error instanceof RateLimitError) {
       const retry = formatRetryDelay(error.retryAfter);
       const message = `The evaluator model is rate limited right now. Please retry after ${retry.label}.`;
       await serviceClient
@@ -675,19 +710,24 @@ ${fullProposalOutputBlock}`;
         })
         .eq("id", evaluationId);
       return { evaluationId, status: "failed", error: message };
+    } else {
+      throw error;
     }
-    throw error;
+  } finally {
+    clearTimeout(timeoutHandle);
   }
 
   const parsedEvaluation = {
     persona: evaluator,
-    data: (() => {
-      try {
-        return extractJson(result.text);
-      } catch (error) {
-        return { error: error instanceof Error ? error.message : "parse error", raw: result.text };
-      }
-    })(),
+    data: evaluatorTimedOut
+      ? { error: `Evaluator timeout: ${EVALUATOR_TIMEOUT_MS / 1000}s exceeded` }
+      : (() => {
+          try {
+            return extractJson(result.text);
+          } catch (error) {
+            return { error: error instanceof Error ? error.message : "parse error", raw: result.text };
+          }
+        })(),
   };
 
   const nextEvaluations = [...savedEvaluations, parsedEvaluation];
@@ -737,8 +777,22 @@ async function runSynthesisPhase(serviceClient: any, evaluationId: string) {
   const synthesisContext = analysisData.synthesis_context || {};
   const parsedEvaluations = Array.isArray(analysisData.evaluations) ? analysisData.evaluations : [];
 
-  if (parsedEvaluations.length === 0) {
-    throw new Error("No evaluator reports available for synthesis");
+  const successfulEvaluations = parsedEvaluations.filter((item: any) => !item?.data?.error);
+  if (successfulEvaluations.length < MIN_SUCCESSFUL_EVALUATORS) {
+    const msg = `Only ${successfulEvaluations.length} of ${parsedEvaluations.length} evaluators completed. Minimum ${MIN_SUCCESSFUL_EVALUATORS} required for synthesis.`;
+    await serviceClient
+      .from("proposal_analyses")
+      .update({
+        status: "failed",
+        error_message: msg,
+        analysis_data: {
+          ...analysisData,
+          active_step_started_at: null,
+          progress_message: msg,
+        },
+      })
+      .eq("id", evaluationId);
+    return { evaluationId, status: "failed", error: msg };
   }
 
   const [proposalRes, instrumentRes, criteriaRes, configRes] = await Promise.all([
@@ -781,7 +835,8 @@ async function runSynthesisPhase(serviceClient: any, evaluationId: string) {
   const totalThresholdSuffix =
     totalThreshold !== null ? ` (threshold: ${totalThreshold} / ${maxPoints})` : "";
 
-  const evaluationModel = synthesisContext.evaluation_model || configMap.evaluation_model || "claude-opus-4-5-20250929";
+  const evaluationModel = synthesisContext.evaluation_model || configMap.evaluation_model || "claude-opus-4-8";
+  const synthesisModel = configMap.synthesis_model || evaluationModel;
   const opusInPrice = parseFloat(configMap.opus_price_input_per_mtok || "15.00");
   const opusOutPrice = parseFloat(configMap.opus_price_output_per_mtok || "75.00");
   const cacheReadMul = parseFloat(configMap.cache_read_multiplier || "0.10");
@@ -800,7 +855,7 @@ async function runSynthesisPhase(serviceClient: any, evaluationId: string) {
     : "(no eligibility flags recorded)";
 
   const synthesisSystem = `You are the Panel Rapporteur for a Horizon Europe expert evaluation panel.
-Synthesise ${parsedEvaluations.length} independent evaluator reports into a single Evaluation Summary Report (ESR)
+Synthesise ${successfulEvaluations.length} independent evaluator reports into a single Evaluation Summary Report (ESR)
 in the style of the official EC evaluation form.
 
 OUTPUT STRUCTURE — produce EXACTLY these top-level sections, in this order, and NOTHING else:
@@ -834,7 +889,7 @@ ELIGIBILITY FLAGS (for the European Commission initial check section):
 ${eligibilityBlock}
 
 EVALUATOR REPORTS:
-${parsedEvaluations
+${successfulEvaluations
   .map(
     (evaluationItem: any, index: number) => `
 === Evaluator ${index + 1}: ${evaluationItem.persona.name} ===
@@ -869,7 +924,7 @@ Produce the full ESR markdown using the four-section structure defined in your s
     console.log(`Running ESR synthesis for ${evaluationId}...`);
     const synthesisResult = await callAnthropicWithCache(
       ANTHROPIC_API_KEY,
-      evaluationModel,
+      synthesisModel,
       [{ type: "text", text: synthesisSystem }],
       synthesisUser,
       SYNTHESIS_MAX_TOKENS,
@@ -1041,12 +1096,12 @@ serve(async (req) => {
         !proposalId ||
         !Array.isArray(selectedEvaluators) ||
         selectedEvaluators.length < 3 ||
-        selectedEvaluators.length > 10 ||
+        selectedEvaluators.length > 8 ||
         !instrumentCode ||
         !proposalStage
       ) {
         return new Response(
-          JSON.stringify({ error: "Invalid input: need 3–10 evaluators and instrument/stage info" }),
+          JSON.stringify({ error: "Invalid input: need 3–8 evaluators and instrument/stage info" }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }

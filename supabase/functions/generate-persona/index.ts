@@ -65,12 +65,12 @@ serve(async (req) => {
       });
     }
 
-    const { data: cfg } = await supabase
+    const { data: cfgRows } = await supabase
       .from("ai_platform_config")
       .select("key, value")
-      .eq("key", "persona_creation_model")
-      .maybeSingle();
-    const model = cfg?.value || "claude-haiku-4-5-20251001";
+      .in("key", ["persona_generation_model", "persona_creation_model"]);
+    const cfgMap = Object.fromEntries((cfgRows || []).map((r: any) => [r.key, r.value]));
+    const model = cfgMap.persona_generation_model || cfgMap.persona_creation_model || "claude-haiku-4-5-20251001";
 
     const systemPrompt = `You are building an evaluator persona library. Generate a structured persona from the user's description.
 OUTPUT: JSON only: {"name": "Title, field — max 10 words", "brief": "One sentence, max 25 words", "thematic_area": "Circular Economy|Data & AI|Democracy & Trust|Health & Wellbeing"}
