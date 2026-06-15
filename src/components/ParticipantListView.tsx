@@ -337,11 +337,13 @@ function ParticipantCard({
               caseLeadership.map((c) => (
                 <Tooltip key={`case-${c.caseNumber}`}>
                   <TooltipTrigger asChild>
-                    <span
-                      className="inline-flex items-center px-1.5 py-0 rounded-full text-xs font-bold cursor-default w-fit border-[1.5px] border-black text-black bg-white"
+                    <B31Pill
+                      variant="outline"
+                      color="#000000"
+                      style={{ fontSize: '12px', height: 'auto', padding: '1.5px 6px' }}
                     >
                       {c.prefix ? `${c.prefix}${c.caseNumber}` : (c.shortName || c.caseNumber)}
-                    </span>
+                    </B31Pill>
                   </TooltipTrigger>
                   <TooltipContent>
                     {c.shortName ? `${c.shortName} (Lead)` : `${c.prefix ? `${c.prefix}${c.caseNumber}` : c.caseNumber} Lead`}
