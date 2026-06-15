@@ -223,10 +223,10 @@ async function buildParticipantListHtml(
       roleHtml += `<span class="print-bubble" style="background:hsl(221.2,83.2%,53.3%);color:#fff;border-radius:4px;padding:0 5px;font-weight:bold;font-size:11pt;font-style:normal;font-family:'Times New Roman',Times,serif;line-height:1;white-space:nowrap;">Coord</span> `;
     }
     for (const wp of wpLeadership.get(p.id) || []) {
-      roleHtml += `<span class="print-bubble" style="background:${wp.color};color:#fff;border-radius:9999px;padding:0 5px;font-weight:bold;font-size:11pt;font-style:normal;font-family:'Times New Roman',Times,serif;line-height:1;white-space:nowrap;">WP${wp.num}</span> `;
+      roleHtml += `<span class="print-bubble" style="background:${safeColor(wp.color)};color:#fff;border-radius:9999px;padding:0 5px;font-weight:bold;font-size:11pt;font-style:normal;font-family:'Times New Roman',Times,serif;line-height:1;white-space:nowrap;">WP${escHtml(wp.num)}</span> `;
     }
     for (const c of caseLeadership.get(p.id) || []) {
-      roleHtml += `<span class="print-bubble" style="background:#fff;color:#000;border:1.5px solid #000;border-radius:9999px;padding:0 5px;font-weight:bold;font-size:11pt;font-style:normal;font-family:'Times New Roman',Times,serif;line-height:1;white-space:nowrap;">${c.label}</span> `;
+      roleHtml += `<span class="print-bubble" style="background:#fff;color:#000;border:1.5px solid #000;border-radius:9999px;padding:0 5px;font-weight:bold;font-size:11pt;font-style:normal;font-family:'Times New Roman',Times,serif;line-height:1;white-space:nowrap;">${escHtml(c.label)}</span> `;
     }
     if (!isCoord && !wpLeadership.has(p.id) && !caseLeadership.has(p.id)) {
       roleHtml = '—';
@@ -234,17 +234,17 @@ async function buildParticipantListHtml(
 
     // Short name bubble with participant number inside
     const shortBubble = shortName
-      ? `<span class="print-bubble" style="background:#000;color:#fff;border-radius:9999px;padding:0 5px;font-weight:bold;font-size:11pt;font-style:normal;font-family:'Times New Roman',Times,serif;line-height:1;white-space:nowrap;">${p.participantNumber}. ${shortName}</span>`
+      ? `<span class="print-bubble" style="background:#000;color:#fff;border-radius:9999px;padding:0 5px;font-weight:bold;font-size:11pt;font-style:normal;font-family:'Times New Roman',Times,serif;line-height:1;white-space:nowrap;">${escHtml(p.participantNumber)}. ${escHtml(shortName)}</span>`
       : '—';
 
     rows += `<tr>
       <td class="print-td" style="vertical-align:middle;">${shortBubble}</td>
       <td class="print-td" style="vertical-align:middle;">
-        ${legalName}${englishName ? `<br/><span style="font-style:italic;color:#666;">${englishName}</span>` : ''}
+        ${escHtml(legalName)}${englishName ? `<br/><span style="font-style:italic;color:#666;">${escHtml(englishName)}</span>` : ''}
       </td>
       ${logoHtml}
       <td class="print-td" style="vertical-align:middle;">${roleHtml}</td>
-      <td class="print-td" style="vertical-align:middle;">${p.country || '—'}</td>
+      <td class="print-td" style="vertical-align:middle;">${escHtml(p.country || '—')}</td>
     </tr>`;
   }
 
