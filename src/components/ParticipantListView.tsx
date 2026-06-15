@@ -233,11 +233,11 @@ function ParticipantCard({
           </div>
           
           {/* Roles/Leadership badges */}
-          <div className="w-20 shrink-0 flex flex-col gap-0.5">
+          <div className="shrink-0 flex flex-col gap-0.5">
             {participant.participantNumber === 1 && (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Badge className="text-xs py-0 px-1.5 w-fit">Coord</Badge>
+                  <Badge className="text-xs py-0 px-1.5 w-fit">Coordinator</Badge>
                 </TooltipTrigger>
                 <TooltipContent>Project coordinator</TooltipContent>
               </Tooltip>
