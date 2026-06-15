@@ -169,14 +169,33 @@ export function WPSimpleEditor({
     !!onOpenWPRefDialog ||
     !!onInsertTaskRef ||
     !!onInsertDeliverableRef ||
-    !!onOpenParticipantRefDialog;
+    !!onInsertMilestoneRef ||
+    !!onOpenParticipantRefDialog ||
+    !!onOpenCaseRefDialog ||
+    !!onInsertAcronymRef;
 
   const crossRefMenuItems = hasCrossRef ? (
     <>
       {onOpenCrossRefDialog && (
-        <DropdownMenuItem onClick={onOpenCrossRefDialog} className="flex items-center gap-2">
-          <span className="w-16 flex justify-start shrink-0"><ImageIcon className="w-3.5 h-3.5 text-foreground" /></span>
-          <span>Figure / Table number</span>
+        <DropdownMenuItem onClick={() => onOpenCrossRefDialog('figure')} className="flex items-center gap-2">
+          <span className="w-16 flex justify-start shrink-0"><ImageLucide className="w-3.5 h-3.5 text-foreground" /></span>
+          <span>Figure number</span>
+        </DropdownMenuItem>
+      )}
+      {onOpenCrossRefDialog && (
+        <DropdownMenuItem onClick={() => onOpenCrossRefDialog('table')} className="flex items-center gap-2">
+          <span className="w-16 flex justify-start shrink-0"><Table2 className="w-3.5 h-3.5 text-foreground" /></span>
+          <span>Table number</span>
+        </DropdownMenuItem>
+      )}
+      {onInsertAcronymRef && acronymSegments && acronymSegments.length > 0 && (
+        <DropdownMenuItem onClick={onInsertAcronymRef} className="flex items-center gap-2">
+          <span className="w-16 flex justify-start shrink-0">
+            <span style={{ fontFamily: "'Arial Black', Arial, sans-serif", fontWeight: 900, fontSize: '9px', whiteSpace: 'nowrap' }}>
+              {acronymSegments.map((seg, i) => <span key={i} style={{ color: seg.color }}>{seg.text}</span>)}
+            </span>
+          </span>
+          <span>Acronym</span>
         </DropdownMenuItem>
       )}
       {onOpenWPRefDialog && (
@@ -205,6 +224,22 @@ export function WPSimpleEditor({
           <span>Deliverable</span>
         </DropdownMenuItem>
       )}
+      {onInsertMilestoneRef && (
+        <DropdownMenuItem onClick={() => setIsMilestoneRefOpen(true)} className="flex items-center gap-2">
+          <span className="w-16 flex justify-start shrink-0">
+            <span style={{ display: 'inline-block', width: '16px', height: '16px', background: '#000', clipPath: 'polygon(100% 0%, 0% 50%, 100% 100%)', margin: '-1px 0' }} />
+          </span>
+          <span>Milestone</span>
+        </DropdownMenuItem>
+      )}
+      {onOpenCaseRefDialog && hasCases && (
+        <DropdownMenuItem onClick={onOpenCaseRefDialog} className="flex items-center gap-2">
+          <span className="w-16 flex justify-start shrink-0">
+            <span style={{ display: 'inline-block', width: '22px', height: '14px', border: '1.5px solid #000000', borderRadius: '9999px', background: '#ffffff' }} />
+          </span>
+          <span>Case</span>
+        </DropdownMenuItem>
+      )}
       {onOpenParticipantRefDialog && (
         <DropdownMenuItem onClick={onOpenParticipantRefDialog} className="flex items-center gap-2">
           <span className="w-16 flex justify-start shrink-0">
@@ -229,7 +264,8 @@ export function WPSimpleEditor({
         onOpenTaskChange={setIsTaskRefOpen}
         openDeliverable={isDeliverableRefOpen}
         onOpenDeliverableChange={setIsDeliverableRefOpen}
-        hideMilestone
+        openMilestone={isMilestoneRefOpen}
+        onOpenMilestoneChange={setIsMilestoneRefOpen}
       />
     ) : null;
 
