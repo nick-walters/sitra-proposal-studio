@@ -870,9 +870,9 @@ export function ParticipantListView({
               </TabsContent>
             )}
           </Tabs>
-        </div>
 
         {/* Invite to Proposal Dialog */}
+
         <InviteToProposalDialog
           open={isInviteDialogOpen}
           onOpenChange={setIsInviteDialogOpen}
