@@ -15,6 +15,7 @@ import { CitationDialog } from '@/components/CitationDialog';
 import { InsertCrossReferenceDialog } from '@/components/InsertCrossReferenceDialog';
 import { InsertWPReferenceDialog } from '@/components/InsertWPReferenceDialog';
 import { InsertParticipantReferenceDialog } from '@/components/InsertParticipantReferenceDialog';
+import { InsertCaseReferenceDialog } from '@/components/InsertCaseReferenceDialog';
 import { InsertFigureDialog } from '@/components/InsertFigureDialog';
 import { InsertTDMSReferenceDropdowns } from '@/components/InsertTDMSReferenceDropdowns';
 import { useProposalReferences } from '@/hooks/useProposalReferences';
@@ -33,7 +34,7 @@ import { Separator } from '@/components/ui/separator';
 import { 
   BookOpen, Lightbulb, Bold, Italic, Underline, List, ListOrdered, 
   AlignLeft, AlignCenter, AlignRight, AlignJustify, FileText, Link2, 
-  Layers, Building2, Table2, ImageIcon, ChevronDown, Undo2, Redo2, Crown, ChevronsUpDown, Check, Lock
+  Layers, Building2, Table2, ImageIcon, Image as ImageLucide, ChevronDown, Undo2, Redo2, Crown, ChevronsUpDown, Check, Lock
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -305,13 +306,34 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
   // Dialog states for editor features
   const [isCitationOpen, setIsCitationOpen] = useState(false);
   const [isCrossRefOpen, setIsCrossRefOpen] = useState(false);
+  const [crossRefFilterType, setCrossRefFilterType] = useState<'figure' | 'table' | undefined>(undefined);
   const [isWPRefOpen, setIsWPRefOpen] = useState(false);
   const [isParticipantRefOpen, setIsParticipantRefOpen] = useState(false);
   const [isFigureDialogOpen, setIsFigureDialogOpen] = useState(false);
   const [isTaskRefOpen, setIsTaskRefOpen] = useState(false);
   const [isDeliverableRefOpen, setIsDeliverableRefOpen] = useState(false);
+  const [isMilestoneRefOpen, setIsMilestoneRefOpen] = useState(false);
+  const [isCaseRefOpen, setIsCaseRefOpen] = useState(false);
   const [figures, setFigures] = useState<any[]>([]);
   const [wpDrafts, setWpDrafts] = useState<any[]>([]);
+
+  // Fetch proposal acronym segments + has-cases for dropdown
+  const { data: proposalMeta } = useQuery({
+    queryKey: ['wp-draft-proposal-meta', proposalId],
+    queryFn: async () => {
+      const [{ data: proposal }, { count }] = await Promise.all([
+        supabase.from('proposals').select('acronym_segments').eq('id', proposalId).maybeSingle(),
+        supabase.from('case_drafts').select('id', { count: 'exact', head: true }).eq('proposal_id', proposalId),
+      ]);
+      return {
+        acronymSegments: (proposal?.acronym_segments as { text: string; color: string }[] | null) || [],
+        hasCases: (count || 0) > 0,
+      };
+    },
+    enabled: !!proposalId,
+  });
+  const acronymSegments = proposalMeta?.acronymSegments || [];
+  const hasCases = !!proposalMeta?.hasCases;
 
   // Save the selection range before opening dialogs so we can restore it when inserting
   const savedRangeRef = useRef<Range | null>(null);
@@ -594,6 +616,76 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
     toast.success(`MS${ms.number} reference inserted`);
   }, [notifyEditorInput, restoreSelection]);
 
+  // Handle Acronym reference insertion - colored letters mimicking AcronymReference extension
+  const insertAcronymRefAtCursor = useCallback(() => {
+    if (!acronymSegments || acronymSegments.length === 0) return;
+    const { editorEl } = restoreSelection();
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      const wrapper = document.createElement('span');
+      wrapper.setAttribute('data-acronym-reference', '');
+      wrapper.setAttribute('contenteditable', 'false');
+      wrapper.setAttribute('data-acronym-segments', JSON.stringify(acronymSegments));
+      Object.assign(wrapper.style, {
+        display: 'inline',
+        fontFamily: "'Arial Black', Arial, sans-serif",
+        fontWeight: '900',
+        fontSize: 'inherit',
+        whiteSpace: 'nowrap',
+        cursor: 'pointer',
+      });
+      acronymSegments.forEach((seg) => {
+        const s = document.createElement('span');
+        s.style.color = seg.color;
+        s.textContent = seg.text;
+        wrapper.appendChild(s);
+      });
+      range.insertNode(wrapper);
+      range.setStartAfter(wrapper);
+      range.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(range);
+      notifyEditorInput(editorEl);
+    }
+    toast.success('Acronym reference inserted');
+  }, [acronymSegments, notifyEditorInput, restoreSelection]);
+
+  // Handle Case reference insertion - rounded outline badge matching CaseReferenceMark
+  const insertCaseRefAtCursor = useCallback((caseItem: { id: string; number: number; short_name: string | null; case_type: string }) => {
+    const { editorEl } = restoreSelection();
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      const CASE_PREFIXES: Record<string, string> = { case_study: 'CS', use_case: 'UC', living_lab: 'LL', pilot: 'P', demonstration: 'D', challenge: 'CH' };
+      const prefix = CASE_PREFIXES[caseItem.case_type] || '';
+      const label = prefix ? `${prefix}${caseItem.number}` : (caseItem.short_name || String(caseItem.number));
+      const span = document.createElement('span');
+      span.textContent = label;
+      span.setAttribute('data-case-reference', '');
+      span.setAttribute('data-case-id', caseItem.id);
+      span.setAttribute('data-case-number', String(caseItem.number));
+      span.setAttribute('data-case-type', caseItem.case_type);
+      if (caseItem.short_name) span.setAttribute('data-case-short-name', caseItem.short_name);
+      span.setAttribute('contenteditable', 'false');
+      Object.assign(span.style, {
+        display: 'inline-flex', alignItems: 'center', backgroundColor: '#ffffff', color: '#000000',
+        border: '1.5px solid #000000', padding: '0 0.4rem', borderRadius: '9999px',
+        fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: '700',
+        fontStyle: 'normal', lineHeight: '1', whiteSpace: 'nowrap', verticalAlign: 'baseline',
+        cursor: 'pointer', userSelect: 'none',
+      });
+      range.insertNode(span);
+      range.setStartAfter(span);
+      range.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(range);
+      notifyEditorInput(editorEl);
+    }
+    toast.success('Case reference inserted');
+  }, [notifyEditorInput, restoreSelection]);
+
+
   // Fetch participants, figures, and WP drafts for the proposal
   useEffect(() => {
     const fetchParticipants = async () => {
@@ -823,10 +915,24 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
           onOpenCitationDialog={() => setIsCitationOpen(true)}
           crossRefMenuItems={
             <>
-              <DropdownMenuItem onClick={() => setIsCrossRefOpen(true)} className="flex items-center gap-2">
-                <span className="w-16 flex justify-start shrink-0"><ImageIcon className="w-3.5 h-3.5 text-foreground" /></span>
-                <span>Figure / Table number</span>
+              <DropdownMenuItem onClick={() => { setCrossRefFilterType('figure'); setIsCrossRefOpen(true); }} className="flex items-center gap-2">
+                <span className="w-16 flex justify-start shrink-0"><ImageLucide className="w-3.5 h-3.5 text-foreground" /></span>
+                <span>Figure number</span>
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => { setCrossRefFilterType('table'); setIsCrossRefOpen(true); }} className="flex items-center gap-2">
+                <span className="w-16 flex justify-start shrink-0"><Table2 className="w-3.5 h-3.5 text-foreground" /></span>
+                <span>Table number</span>
+              </DropdownMenuItem>
+              {acronymSegments && acronymSegments.length > 0 && (
+                <DropdownMenuItem onClick={insertAcronymRefAtCursor} className="flex items-center gap-2">
+                  <span className="w-16 flex justify-start shrink-0">
+                    <span style={{ fontFamily: "'Arial Black', Arial, sans-serif", fontWeight: 900, fontSize: '9px', whiteSpace: 'nowrap' }}>
+                      {acronymSegments.map((seg, i) => <span key={i} style={{ color: seg.color }}>{seg.text}</span>)}
+                    </span>
+                  </span>
+                  <span>Acronym</span>
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onClick={() => setIsWPRefOpen(true)} className="flex items-center gap-2">
                 <span className="w-16 flex justify-start shrink-0">
                   <span style={{ display: 'inline-block', width: '22px', height: '14px', backgroundColor: '#2563EB', border: '1.5px solid #2563EB', borderRadius: '9999px' }} />
@@ -847,6 +953,20 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
                 </span>
                 <span>Deliverable</span>
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setIsMilestoneRefOpen(true)} className="flex items-center gap-2">
+                <span className="w-16 flex justify-start shrink-0">
+                  <span style={{ display: 'inline-block', width: '16px', height: '16px', background: '#000', clipPath: 'polygon(100% 0%, 0% 50%, 100% 100%)', margin: '-1px 0' }} />
+                </span>
+                <span>Milestone</span>
+              </DropdownMenuItem>
+              {hasCases && (
+                <DropdownMenuItem onClick={() => setIsCaseRefOpen(true)} className="flex items-center gap-2">
+                  <span className="w-16 flex justify-start shrink-0">
+                    <span style={{ display: 'inline-block', width: '22px', height: '14px', border: '1.5px solid #000000', borderRadius: '9999px', background: '#ffffff' }} />
+                  </span>
+                  <span>Case</span>
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onClick={() => setIsParticipantRefOpen(true)} className="flex items-center gap-2">
                 <span className="w-16 flex justify-start shrink-0">
                   <span style={{ display: 'inline-block', width: '22px', height: '14px', backgroundColor: '#000000', border: '1.5px solid #000000', borderRadius: '9999px' }} />
@@ -867,7 +987,8 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
               onOpenTaskChange={setIsTaskRefOpen}
               openDeliverable={isDeliverableRefOpen}
               onOpenDeliverableChange={setIsDeliverableRefOpen}
-              hideMilestone
+              openMilestone={isMilestoneRefOpen}
+              onOpenMilestoneChange={setIsMilestoneRefOpen}
             />
           }
         />
@@ -1176,10 +1297,24 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
       {/* Cross-reference Dialog */}
       <InsertCrossReferenceDialog
         isOpen={isCrossRefOpen}
-        onClose={() => setIsCrossRefOpen(false)}
+        onClose={() => { setIsCrossRefOpen(false); setCrossRefFilterType(undefined); }}
         proposalId={proposalId}
         sectionNumber=""
         onInsert={insertCrossRefAtCursor}
+        filterType={crossRefFilterType}
+      />
+
+      {/* Case Reference Dialog */}
+      <InsertCaseReferenceDialog
+        open={isCaseRefOpen}
+        onOpenChange={setIsCaseRefOpen}
+        proposalId={proposalId}
+        onSelect={(caseItem) => {
+          setIsCaseRefOpen(false);
+          setTimeout(() => {
+            insertCaseRefAtCursor(caseItem);
+          }, 100);
+        }}
       />
       
       {/* WP Reference Dialog */}

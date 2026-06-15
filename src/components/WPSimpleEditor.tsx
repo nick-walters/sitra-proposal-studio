@@ -1,11 +1,16 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { ImageIcon } from 'lucide-react';
+import { Image as ImageLucide, Table2 } from 'lucide-react';
 import {
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { InsertTDMSReferenceDropdowns } from '@/components/InsertTDMSReferenceDropdowns';
 import { DraftFormattingToolbar } from '@/components/DraftFormattingToolbar';
+
+interface AcronymSegment {
+  text: string;
+  color: string;
+}
 
 interface WPSimpleEditorProps {
   value: string;
@@ -18,13 +23,18 @@ interface WPSimpleEditorProps {
   proposalId?: string;
   // Dialog handlers for advanced features
   onOpenCitationDialog?: () => void;
-  onOpenCrossRefDialog?: () => void;
+  /** Open the figure/table cross-reference dialog, optionally pre-filtered to figure or table */
+  onOpenCrossRefDialog?: (filterType?: 'figure' | 'table') => void;
   onOpenWPRefDialog?: () => void;
   onOpenParticipantRefDialog?: () => void;
   onOpenFigureDialog?: () => void;
   onInsertTaskRef?: (task: any) => void;
   onInsertDeliverableRef?: (del: any) => void;
   onInsertMilestoneRef?: (ms: any) => void;
+  onInsertAcronymRef?: () => void;
+  onOpenCaseRefDialog?: () => void;
+  acronymSegments?: AcronymSegment[];
+  hasCases?: boolean;
   /** Called before opening a cross-ref dialog so the parent can save the cursor position */
   onSaveSelection?: () => void;
 }
@@ -46,12 +56,17 @@ export function WPSimpleEditor({
   onInsertTaskRef,
   onInsertDeliverableRef,
   onInsertMilestoneRef,
+  onInsertAcronymRef,
+  onOpenCaseRefDialog,
+  acronymSegments,
+  hasCases,
   onSaveSelection,
 }: WPSimpleEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const [isFocused, setIsFocused] = useState(false);
   const [isTaskRefOpen, setIsTaskRefOpen] = useState(false);
   const [isDeliverableRefOpen, setIsDeliverableRefOpen] = useState(false);
+  const [isMilestoneRefOpen, setIsMilestoneRefOpen] = useState(false);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const isInitialMount = useRef(true);
   const hasPendingLocalChangesRef = useRef(false);
@@ -155,14 +170,33 @@ export function WPSimpleEditor({
     !!onOpenWPRefDialog ||
     !!onInsertTaskRef ||
     !!onInsertDeliverableRef ||
-    !!onOpenParticipantRefDialog;
+    !!onInsertMilestoneRef ||
+    !!onOpenParticipantRefDialog ||
+    !!onOpenCaseRefDialog ||
+    !!onInsertAcronymRef;
 
   const crossRefMenuItems = hasCrossRef ? (
     <>
       {onOpenCrossRefDialog && (
-        <DropdownMenuItem onClick={onOpenCrossRefDialog} className="flex items-center gap-2">
-          <span className="w-16 flex justify-start shrink-0"><ImageIcon className="w-3.5 h-3.5 text-foreground" /></span>
-          <span>Figure / Table number</span>
+        <DropdownMenuItem onClick={() => onOpenCrossRefDialog('figure')} className="flex items-center gap-2">
+          <span className="w-16 flex justify-start shrink-0"><ImageLucide className="w-3.5 h-3.5 text-foreground" /></span>
+          <span>Figure number</span>
+        </DropdownMenuItem>
+      )}
+      {onOpenCrossRefDialog && (
+        <DropdownMenuItem onClick={() => onOpenCrossRefDialog('table')} className="flex items-center gap-2">
+          <span className="w-16 flex justify-start shrink-0"><Table2 className="w-3.5 h-3.5 text-foreground" /></span>
+          <span>Table number</span>
+        </DropdownMenuItem>
+      )}
+      {onInsertAcronymRef && acronymSegments && acronymSegments.length > 0 && (
+        <DropdownMenuItem onClick={onInsertAcronymRef} className="flex items-center gap-2">
+          <span className="w-16 flex justify-start shrink-0">
+            <span style={{ fontFamily: "'Arial Black', Arial, sans-serif", fontWeight: 900, fontSize: '9px', whiteSpace: 'nowrap' }}>
+              {acronymSegments.map((seg, i) => <span key={i} style={{ color: seg.color }}>{seg.text}</span>)}
+            </span>
+          </span>
+          <span>Acronym</span>
         </DropdownMenuItem>
       )}
       {onOpenWPRefDialog && (
@@ -191,6 +225,22 @@ export function WPSimpleEditor({
           <span>Deliverable</span>
         </DropdownMenuItem>
       )}
+      {onInsertMilestoneRef && (
+        <DropdownMenuItem onClick={() => setIsMilestoneRefOpen(true)} className="flex items-center gap-2">
+          <span className="w-16 flex justify-start shrink-0">
+            <span style={{ display: 'inline-block', width: '16px', height: '16px', background: '#000', clipPath: 'polygon(100% 0%, 0% 50%, 100% 100%)', margin: '-1px 0' }} />
+          </span>
+          <span>Milestone</span>
+        </DropdownMenuItem>
+      )}
+      {onOpenCaseRefDialog && hasCases && (
+        <DropdownMenuItem onClick={onOpenCaseRefDialog} className="flex items-center gap-2">
+          <span className="w-16 flex justify-start shrink-0">
+            <span style={{ display: 'inline-block', width: '22px', height: '14px', border: '1.5px solid #000000', borderRadius: '9999px', background: '#ffffff' }} />
+          </span>
+          <span>Case</span>
+        </DropdownMenuItem>
+      )}
       {onOpenParticipantRefDialog && (
         <DropdownMenuItem onClick={onOpenParticipantRefDialog} className="flex items-center gap-2">
           <span className="w-16 flex justify-start shrink-0">
@@ -215,7 +265,8 @@ export function WPSimpleEditor({
         onOpenTaskChange={setIsTaskRefOpen}
         openDeliverable={isDeliverableRefOpen}
         onOpenDeliverableChange={setIsDeliverableRefOpen}
-        hideMilestone
+        openMilestone={isMilestoneRefOpen}
+        onOpenMilestoneChange={setIsMilestoneRefOpen}
       />
     ) : null;
 
