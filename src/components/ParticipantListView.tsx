@@ -320,14 +320,12 @@ function ParticipantCard({
               wpLeadership.map((wp) => (
                 <Tooltip key={`wp-${wp.wpNumber}`}>
                   <TooltipTrigger asChild>
-                    <span
-                      className="inline-flex items-center px-1.5 py-0 rounded-full text-xs font-bold cursor-default w-fit text-white"
-                      style={{
-                        backgroundColor: wp.color,
-                      }}
+                    <WPBubble
+                      wpColor={wp.color}
+                      style={{ fontSize: '12px', height: 'auto', padding: '1.5px 6px' }}
                     >
                       WP{wp.wpNumber}
-                    </span>
+                    </WPBubble>
                   </TooltipTrigger>
                   <TooltipContent>
                     {wp.shortName ? `${wp.shortName} (Lead)` : `WP${wp.wpNumber} Lead`}
