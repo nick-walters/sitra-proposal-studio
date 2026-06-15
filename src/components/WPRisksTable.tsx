@@ -416,7 +416,17 @@ function SortableRiskCard({
           value={localMitigation}
           onChange={handleMitigationChange}
           onFocus={() => { isFocused.current = true; }}
-          onBlur={() => { isFocused.current = false; }}
+          onBlur={() => {
+            // Flush pending debounced save immediately
+            if (mitigationTimeout) {
+              clearTimeout(mitigationTimeout);
+              setMitigationTimeout(null);
+            }
+            if ((localMitigation || '') !== (risk.mitigation || '')) {
+              onUpdate(risk.id, { mitigation: localMitigation });
+            }
+            isFocused.current = false;
+          }}
           placeholder="Describe mitigation & adaptation measures..."
           className="min-h-[40px] resize-y text-draft flex-1"
           disabled={readOnly}
