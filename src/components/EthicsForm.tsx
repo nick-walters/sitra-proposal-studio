@@ -14,6 +14,7 @@ import { PartAGuidelinesDialog } from './PartAGuidelinesDialog';
 import { PartAPageLayout } from './PartAPageLayout';
 
 import { SaveIndicator } from './SaveIndicator';
+import ethicsQuestionsRaw from '@/data/ethicsQuestions.json';
 
 // Extended ethics assessment interface for full proposals
 export interface EthicsAssessment {
@@ -316,7 +317,7 @@ const SECURITY_SECTIONS: SecuritySection[] = [
   },
 ];
 
-const ETHICS_SECTIONS: EthicsSection[] = [
+const ETHICS_SECTIONS = ethicsQuestionsRaw as EthicsSection[];
   {
     id: 'hesc',
     number: 1,
