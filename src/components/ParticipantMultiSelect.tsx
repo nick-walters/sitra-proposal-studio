@@ -66,20 +66,9 @@ export function ParticipantMultiSelect({
               <span className="truncate">{placeholder}</span>
             ) : (
               selectedParticipants.map(p => (
-                <span
-                  key={p.id}
-                  className="inline-flex items-center justify-center px-1.5 rounded-full font-bold"
-                  style={{
-                    backgroundColor: '#000000',
-                    color: '#ffffff',
-                    height: '17px',
-                    fontFamily: 'Times New Roman, serif',
-                    fontSize: '11pt',
-                    lineHeight: '17px',
-                  }}
-                >
+                <ParticipantBubble key={p.id}>
                   {p.organisation_short_name || p.organisation_name.substring(0, 8)}
-                </span>
+                </ParticipantBubble>
               ))
             )}
           </div>
