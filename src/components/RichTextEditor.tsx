@@ -998,28 +998,11 @@ export function FormattingToolbar({
           </Tooltip>
         )}
         {!showTableOptions && !hideTableInsert && tableInsertMode === 'popover' && (
-          <Popover open={tablePopoverOpen} onOpenChange={setTablePopoverOpen}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 px-2 gap-1"
-                  >
-                    <TableIcon className="w-4 h-4" />
-                    <span className="text-xs">Table</span>
-                  </Button>
-                </PopoverTrigger>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="text-xs">
-                Insert table
-              </TooltipContent>
-            </Tooltip>
-            <PopoverContent align="start" className="w-auto p-0">
-              <TableSizeSelector onSelect={insertTable} />
-            </PopoverContent>
-          </Popover>
+          <TableGridPicker
+            open={tablePopoverOpen}
+            onOpenChange={setTablePopoverOpen}
+            onInsert={insertTable}
+          />
         )}
         {showTableOptions && showTableEditing && (
           <DropdownMenu>
