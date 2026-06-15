@@ -858,6 +858,28 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
           }, 100);
         }}
       />
+
+      {/* Citation Dialog */}
+      <CitationDialog
+        isOpen={isCitationOpen}
+        onClose={() => setIsCitationOpen(false)}
+        onInsertCitation={(_reference, _formattedCitation, citationNumber) => {
+          insertCitationAtCursor(citationNumber);
+        }}
+        proposalReferences={proposalReferences}
+        isLoadingReferences={false}
+        nextCitationNumber={getNextCitationNumber()}
+        onUpdateReference={updateReference}
+      />
+
+      {/* Figure Dialog */}
+      <InsertFigureDialog
+        isOpen={isFigureDialogOpen}
+        onClose={() => setIsFigureDialogOpen(false)}
+        proposalId={proposalId}
+        currentSectionId=""
+        onInsertFigure={insertFigureAtCursor}
+      />
     </ScrollArea>
   );
 }
