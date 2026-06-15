@@ -151,6 +151,15 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
   const [isDeliverableRefOpen, setIsDeliverableRefOpen] = useState(false);
   const [isMilestoneRefOpen, setIsMilestoneRefOpen] = useState(false);
   const [isCaseRefOpen, setIsCaseRefOpen] = useState(false);
+  const [isCitationOpen, setIsCitationOpen] = useState(false);
+  const [isFigureDialogOpen, setIsFigureDialogOpen] = useState(false);
+
+  // Proposal-wide references hook (for citations)
+  const {
+    references: proposalReferences,
+    updateReference,
+    getNextCitationNumber,
+  } = useProposalReferences(proposalId);
 
   // Proposal acronym + has-cases for dropdown
   const { data: proposalMeta } = useQuery({
