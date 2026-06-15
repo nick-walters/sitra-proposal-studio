@@ -2,7 +2,9 @@ import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DebouncedInput } from '@/components/ui/debounced-input';
 import { Checkbox } from '@/components/ui/checkbox';
+
 import { Participant, ParticipantMember, Section, ParticipantType } from '@/types/proposal';
 import { Building2, GripVertical, UserPlus, Plus, Search, Check, Upload, X, Loader2, Hash, FileText, Download } from 'lucide-react';
 import { SaveIndicator } from './SaveIndicator';
