@@ -10,6 +10,7 @@ import { getDefaultWPColor } from '@/lib/wpColors';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { WPSimpleEditor } from '@/components/WPSimpleEditor';
+import { WPBubble } from '@/components/B31Pill';
 import type { WPDraftMilestone } from '@/hooks/useWPDrafts';
 import {
   DndContext,
