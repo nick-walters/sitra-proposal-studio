@@ -174,7 +174,13 @@ export function AdminAvatarUpload({ userId, avatarUrl, initials, onAvatarChange 
 
   return (
     <>
-      <div className="relative group cursor-pointer" onClick={() => fileRef.current?.click()}>
+      <button
+        type="button"
+        className="relative group cursor-pointer rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        onClick={() => fileRef.current?.click()}
+        aria-label="Upload avatar"
+        title="Upload avatar"
+      >
         <Avatar className="flex-shrink-0" style={{ width: 50, height: 50 }}>
           <AvatarImage src={avatarUrl || undefined} />
           <AvatarFallback>{initials}</AvatarFallback>
@@ -182,7 +188,7 @@ export function AdminAvatarUpload({ userId, avatarUrl, initials, onAvatarChange 
         <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
           <Camera className="w-3.5 h-3.5 text-white" />
         </div>
-      </div>
+      </button>
       <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} className="hidden" />
       <canvas ref={exportCanvasRef} className="hidden" />
 

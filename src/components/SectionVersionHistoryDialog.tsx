@@ -10,8 +10,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Document, Packer, Paragraph, TextRun, AlignmentType, convertMillimetersToTwip } from 'docx';
-import { saveAs } from 'file-saver';
+import type { Paragraph as ParagraphType } from 'docx';
+// docx and file-saver are loaded lazily inside handleDownloadDocx() to keep them out of the initial bundle.
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
@@ -328,10 +328,16 @@ export function SectionVersionHistoryDialog({
 
   const handleDownloadDocx = async (version: SectionVersion) => {
     try {
+      const [docxMod, fileSaverMod] = await Promise.all([
+        import('docx'),
+        import('file-saver'),
+      ]);
+      const { Document, Packer, Paragraph, TextRun, convertMillimetersToTwip } = docxMod;
+      const { saveAs } = fileSaverMod;
       const html = version.content || '';
       const div = document.createElement('div');
       div.innerHTML = DOMPurify.sanitize(html, RICH_TEXT_WITH_IMAGES_CONFIG);
-      const paragraphs: Paragraph[] = [];
+      const paragraphs: ParagraphType[] = [];
 
       const processNode = (node: Node) => {
         if (node.nodeType === Node.TEXT_NODE) {

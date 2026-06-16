@@ -441,7 +441,7 @@ export function FeedbackDetail({ feedbackId, onBack, onDeleted }: FeedbackDetail
                 onClick={handleSendComment}
                 disabled={sending || !newComment.trim()}
                 className="shrink-0 self-end"
-               aria-label="Loader2" title="Loader2">
+               aria-label="Send comment" title="Send comment">
                 {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               </Button>
             </div>

@@ -29,24 +29,14 @@ import { TableHeader } from '@tiptap/extension-table-header';
 import { ResizableImage } from './ResizableImage';
 import { useCallback, useEffect, useState, useRef } from 'react';
 import { toast } from 'sonner';
-import jsPDF from 'jspdf';
-import {
-  Document,
-  Packer,
+// jsPDF, docx and file-saver are loaded lazily inside handleExportPdf / handleExportDocx
+// to keep these heavy libraries out of the initial bundle.
+import type jsPDF from 'jspdf';
+import type {
   Paragraph,
   TextRun,
   AlignmentType,
-  Header,
-  Footer,
-  PageNumber,
-  convertMillimetersToTwip,
-  Table as DocxTable,
-  TableRow as DocxTableRow,
-  TableCell as DocxTableCell,
-  WidthType,
-  BorderStyle,
 } from 'docx';
-import { saveAs } from 'file-saver';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -228,6 +218,7 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, f
     if (!editor) return;
     setExporting(true);
     try {
+      const { default: jsPDF } = await import('jspdf');
       const doc = new jsPDF({ unit: 'mm', format: 'a4' });
       const margin = 15;
       const contentWidth = 210 - 2 * margin;
@@ -446,11 +437,24 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, f
     if (!editor) return;
     setExporting(true);
     try {
+      const [docxMod, fileSaverMod] = await Promise.all([
+        import('docx'),
+        import('file-saver'),
+      ]);
+      const {
+        Document, Packer, Paragraph, TextRun, AlignmentType,
+        Header, Footer, PageNumber, convertMillimetersToTwip,
+        Table: DocxTable, TableRow: DocxTableRow, TableCell: DocxTableCell,
+        WidthType, BorderStyle,
+      } = docxMod;
+      const { saveAs } = fileSaverMod;
+
       const FONT = 'Times New Roman';
       const SZ = 22;
       const LINE = 240;
       const SP_BEFORE = 60;
       const SP_AFTER = 60;
+
 
       const segsToRunOpts = (segs: TextSegment[]): Record<string, unknown>[] =>
         segs.map(s => ({

@@ -726,7 +726,7 @@ export function ContactPersonsSection({
                                 size="icon"
                                 className={`h-7 w-7 ${isMCP ? 'text-primary' : 'text-muted-foreground'}`}
                                 onClick={() => handleSetMCP(member.id)}
-                               aria-label="Crown" title="Crown">
+                               aria-label="Toggle main contact" title="Toggle main contact">
                                 <Crown className={`w-4 h-4 ${isMCP ? 'fill-primary' : ''}`} />
                               </Button>
                             </TooltipTrigger>
@@ -775,7 +775,7 @@ export function ContactPersonsSection({
                                       className="h-7 w-7 text-destructive hover:text-destructive"
                                       onClick={() => handleRevokeAccess(member)}
                                       disabled={isRevoking}
-                                     aria-label="Loader2" title="Loader2">
+                                     aria-label="Revoke access" title="Revoke access">
                                       {isRevoking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ShieldOff className="w-3.5 h-3.5" />}
                                     </Button>
                                   </TooltipTrigger>
