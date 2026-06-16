@@ -53,8 +53,25 @@ const App = () => {
       }
     };
     window.addEventListener('keydown', handler, true);
-    return () => window.removeEventListener('keydown', handler, true);
+
+    // Prefetch the two most likely next routes once the browser is idle,
+    // so the lazy chunks are already in cache by the time the user clicks.
+    const ric: (cb: () => void) => number =
+      (window as unknown as { requestIdleCallback?: (cb: () => void) => number }).requestIdleCallback ??
+      ((cb) => window.setTimeout(cb, 1500));
+    const handle = ric(() => {
+      void import('./pages/Dashboard');
+      void import('./pages/ProposalEditor');
+    });
+
+    return () => {
+      window.removeEventListener('keydown', handler, true);
+      const cic = (window as unknown as { cancelIdleCallback?: (h: number) => void }).cancelIdleCallback;
+      if (cic) cic(handle);
+      else window.clearTimeout(handle);
+    };
   }, []);
+
 
   return (
     <ErrorBoundary>
