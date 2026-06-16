@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Lightbulb, Bug, CheckCircle, Clock, AlertCircle, XCircle, ChevronRight } from "lucide-react";
 import { FeedbackDetail } from "@/components/FeedbackDetail";
+import { formatDate } from "@/lib/formatDate";
 
 interface FeedbackItem {
   id: string;
@@ -102,7 +103,7 @@ export function ReceivedFeedback({ highlightId }: { highlightId?: string }) {
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">{item.title}</p>
               <p className="text-xs text-muted-foreground">
-                {emails[item.user_id] || "Unknown"} · {new Date(item.created_at).toLocaleDateString()}
+                {emails[item.user_id] || "Unknown"} · {formatDate(item.created_at)}
               </p>
             </div>
             {statusBadge(item.status)}

@@ -18,6 +18,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { formatDate } from "@/lib/formatDate";
 import { MentionTextarea, MentionMember, renderMentionContent } from "@/components/MentionTextarea";
 import { toast } from "sonner";
 import {
@@ -280,7 +281,7 @@ export function FeedbackDetail({ feedbackId, onBack, onDeleted }: FeedbackDetail
             <div className="space-y-1 min-w-0">
               <CardTitle className="text-lg">{item.title}</CardTitle>
               <p className="text-xs text-muted-foreground">
-                by {profiles[item.user_id]?.name || "Unknown"} · {new Date(item.created_at).toLocaleDateString()}
+                by {profiles[item.user_id]?.name || "Unknown"} · {formatDate(item.created_at)}
               </p>
             </div>
             {statusBadge(item.status)}
