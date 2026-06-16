@@ -723,39 +723,39 @@ export function Dashboard() {
             
             <div className="flex items-center border rounded-md h-9">
               <Button
-                variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
-                size="icon"
-                className="h-8 w-8 rounded-r-none"
-                onClick={() => setViewMode('grid')}
-                title="Grid view"
-              >
+ variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+ size="icon"
+ className="h-8 w-8 rounded-r-none"
+ onClick={() => setViewMode('grid')}
+ title="Grid view"
+ aria-label="Layout Grid" >
                 <LayoutGrid className="w-4 h-4" />
               </Button>
               <Button
-                variant={viewMode === 'list' ? 'secondary' : 'ghost'}
-                size="icon"
-                className="h-8 w-8 rounded-none border-x"
-                onClick={() => setViewMode('list')}
-                title="List view"
-              >
+ variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+ size="icon"
+ className="h-8 w-8 rounded-none border-x"
+ onClick={() => setViewMode('list')}
+ title="List view"
+ aria-label="List" >
                 <List className="w-4 h-4" />
               </Button>
               <Button
-                variant={viewMode === 'table' ? 'secondary' : 'ghost'}
-                size="icon"
-                className="h-8 w-8 rounded-none"
-                onClick={() => setViewMode('table')}
-                title="Table view"
-              >
+ variant={viewMode === 'table' ? 'secondary' : 'ghost'}
+ size="icon"
+ className="h-8 w-8 rounded-none"
+ onClick={() => setViewMode('table')}
+ title="Table view"
+ aria-label="Table2" >
                 <Table2 className="w-4 h-4" />
               </Button>
               <Button
-                variant={viewMode === 'kanban' ? 'secondary' : 'ghost'}
-                size="icon"
-                className="h-8 w-8 rounded-l-none"
-                onClick={() => setViewMode('kanban')}
-                title="Kanban board"
-              >
+ variant={viewMode === 'kanban' ? 'secondary' : 'ghost'}
+ size="icon"
+ className="h-8 w-8 rounded-l-none"
+ onClick={() => setViewMode('kanban')}
+ title="Kanban board"
+ aria-label="Columns3" >
                 <Columns3 className="w-4 h-4" />
               </Button>
             </div>

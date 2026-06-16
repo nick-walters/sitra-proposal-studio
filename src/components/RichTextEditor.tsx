@@ -365,7 +365,7 @@ function TextColorPicker({ editor }: { editor: Editor }) {
               variant="ghost"
               size="icon"
               className="h-7 w-7 relative"
-            >
+             aria-label="Colour" title="Colour">
               <Palette className="w-4 h-4" />
               {currentColor && (
                 <span
@@ -410,16 +410,16 @@ function TextColorPicker({ editor }: { editor: Editor }) {
               maxLength={7}
             />
             <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 shrink-0"
-              onClick={() => {
-                if (/^#[0-9A-Fa-f]{6}$/.test(customHex)) {
-                  applyColor(customHex);
-                }
-              }}
-              title="Apply colour"
-            >
+ variant="ghost"
+ size="icon"
+ className="h-7 w-7 shrink-0"
+ onClick={() => {
+ if (/^#[0-9A-Fa-f]{6}$/.test(customHex)) {
+ applyColor(customHex);
+ }
+ }}
+ title="Apply colour"
+ aria-label="Confirm" >
               <Check className="w-3.5 h-3.5" />
             </Button>
           </div>
@@ -927,7 +927,7 @@ export function FormattingToolbar({
                     variant="secondary"
                     size="icon"
                     className="h-7 w-7"
-                  >
+                   aria-label="Table Icon" title="Table Icon">
                     <TableIcon className="w-4 h-4" />
                   </Button>
                 </DropdownMenuTrigger>

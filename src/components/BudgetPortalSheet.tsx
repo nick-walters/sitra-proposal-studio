@@ -7,8 +7,8 @@ import { SaveIndicator } from '@/components/SaveIndicator';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import * as XLSX from 'xlsx-js-style';
-import JSZip from 'jszip';
+import type * as XLSXNS from 'xlsx-js-style';
+// XLSX runtime is loaded lazily inside handleExportXlsx() to keep it out of the initial bundle.
 import { Lock, Unlock, Loader2, Euro, Calculator, FileSpreadsheet, Download, History, TableProperties, AlertCircle, Info, X, Users } from 'lucide-react';
 import {
   Tooltip,
@@ -157,6 +157,11 @@ export function BudgetPortalSheet({
   }, [rows]);
 
   const handleExportXlsx = async () => {
+    const [XLSX, JSZipMod] = await Promise.all([
+      import('xlsx-js-style'),
+      import('jszip'),
+    ]);
+    const JSZip = JSZipMod.default;
     const wb = XLSX.utils.book_new();
 
     const colLetter = (c: number): string => {
@@ -177,7 +182,7 @@ export function BudgetPortalSheet({
     const pmFmt = { numFmt: '0.0' };
 
     // Helper to apply styles to header row
-    const styleHeaders = (ws: XLSX.WorkSheet, rowNum: number, colCount: number) => {
+    const styleHeaders = (ws: XLSXNS.WorkSheet, rowNum: number, colCount: number) => {
       for (let c = 0; c < colCount; c++) {
         const ref = colLetter(c) + rowNum;
         if (ws[ref]) ws[ref].s = bold;
@@ -185,7 +190,7 @@ export function BudgetPortalSheet({
     };
 
     // Helper to apply styles to a row
-    const styleRow = (ws: XLSX.WorkSheet, rowNum: number, colCount: number, style: any) => {
+    const styleRow = (ws: XLSXNS.WorkSheet, rowNum: number, colCount: number, style: any) => {
       for (let c = 0; c < colCount; c++) {
         const ref = colLetter(c) + rowNum;
         if (ws[ref]) ws[ref].s = { ...ws[ref].s, ...style };
@@ -193,7 +198,7 @@ export function BudgetPortalSheet({
     };
 
     // Helper to bold an entire column
-    const styleCol = (ws: XLSX.WorkSheet, colIdx: number, startRow: number, endRow: number) => {
+    const styleCol = (ws: XLSXNS.WorkSheet, colIdx: number, startRow: number, endRow: number) => {
       const cl = colLetter(colIdx);
       for (let r = startRow; r <= endRow; r++) {
         const ref = cl + r;
@@ -202,7 +207,7 @@ export function BudgetPortalSheet({
     };
 
     // Helper to auto-fit column widths based on content
-    const autoFitCols = (ws: XLSX.WorkSheet, aoa: any[][]) => {
+    const autoFitCols = (ws: XLSXNS.WorkSheet, aoa: any[][]) => {
       const colWidths: number[] = [];
       for (const row of aoa) {
         row.forEach((cell: any, i: number) => {
@@ -854,7 +859,7 @@ export function BudgetPortalSheet({
                                           lockAllRows();
                                         }
                                       }}
-                                    >
+                                     aria-label="Lock" title="Lock">
                                       {rows.every(r => r.isLocked)
                                         ? <Lock className="w-3.5 h-3.5 text-destructive" />
                                         : <Unlock className="w-3.5 h-3.5 text-green-600" />}
@@ -922,7 +927,7 @@ export function BudgetPortalSheet({
                                         size="icon"
                                         className="h-6 w-6"
                                         onClick={() => row.isLocked ? unlockRow(row.id) : lockRow(row.id)}
-                                      >
+                                       aria-label="Lock" title="Lock">
                                         {row.isLocked ? <Lock className="w-3 h-3 text-destructive" /> : <Unlock className="w-3 h-3 text-green-600" />}
                                       </Button>
                                     )}

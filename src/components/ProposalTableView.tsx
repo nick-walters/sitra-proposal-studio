@@ -226,7 +226,7 @@ export function ProposalTableView({ proposals, onProposalClick, pinnedIds = [], 
                     className="h-6 w-6"
                     onClick={(e) => { e.stopPropagation(); onTogglePin(proposal.id); }}
                     disabled={!pinned && !canPin}
-                  >
+                   aria-label="Pin" title="Pin">
                     <Pin className={`w-3.5 h-3.5 ${pinned ? 'fill-primary text-primary stroke-[2.5]' : 'text-muted-foreground/30 stroke-[1.5]'}`} />
                   </Button>
                 </TooltipTrigger>

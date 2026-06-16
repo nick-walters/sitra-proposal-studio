@@ -171,7 +171,7 @@ export function CitationLibrary({
                         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={cancelEditing}>
                           <X className="w-3.5 h-3.5" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 text-primary" onClick={saveEditing}>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 text-primary" onClick={saveEditing} aria-label="Save" title="Save">
                           <Save className="w-3.5 h-3.5" />
                         </Button>
                       </div>

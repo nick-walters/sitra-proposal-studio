@@ -277,10 +277,10 @@ function FundingProgrammesPanel({
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(programme)}>
+                  <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(programme)} aria-label="Edit" title="Edit">
                     <Pencil className="w-4 h-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" onClick={() => handleDelete(programme.id)}>
+                  <Button variant="ghost" size="icon" onClick={() => handleDelete(programme.id)} aria-label="Delete" title="Delete">
                     <Trash2 className="w-4 h-4 text-destructive" />
                   </Button>
                 </div>
@@ -794,13 +794,13 @@ function TemplateTypeRow({
           <BookOpen className="w-4 h-4" />
           Sections
         </Button>
-        <Button variant="ghost" size="icon" onClick={onDuplicate}>
+        <Button variant="ghost" size="icon" onClick={onDuplicate} aria-label="Copy" title="Copy">
           <Copy className="w-4 h-4" />
         </Button>
-        <Button variant="ghost" size="icon" onClick={onEdit}>
+        <Button variant="ghost" size="icon" onClick={onEdit} aria-label="Edit" title="Edit">
           <Pencil className="w-4 h-4" />
         </Button>
-        <Button variant="ghost" size="icon" onClick={onDelete}>
+        <Button variant="ghost" size="icon" onClick={onDelete} aria-label="Delete" title="Delete">
           <Trash2 className="w-4 h-4 text-destructive" />
         </Button>
       </div>
@@ -1396,14 +1396,14 @@ function SectionAccordionItem({
                         variant="ghost" 
                         size="icon" 
                         onClick={() => handleOpenGuidelineDialog(g)}
-                      >
+                       aria-label="Edit" title="Edit">
                         <Pencil className="w-3 h-3" />
                       </Button>
                       <Button 
                         variant="ghost" 
                         size="icon" 
                         onClick={() => handleDeleteGuideline(g.id)}
-                      >
+                       aria-label="Delete" title="Delete">
                         <Trash2 className="w-3 h-3" />
                       </Button>
                     </div>
@@ -1434,7 +1434,7 @@ function SectionAccordionItem({
                     <Badge variant="outline">{f.field_type}</Badge>
                     {f.is_required && <Badge variant="destructive" className="text-xs">Required</Badge>}
                   </div>
-                  <Button variant="ghost" size="icon" onClick={() => onDeleteFormField(f.id)}>
+                  <Button variant="ghost" size="icon" onClick={() => onDeleteFormField(f.id)} aria-label="Delete" title="Delete">
                     <Trash2 className="w-3 h-3" />
                   </Button>
                 </div>

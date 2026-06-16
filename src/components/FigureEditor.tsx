@@ -248,7 +248,7 @@ export function FigureEditor({
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={onBack}>
+            <Button variant="ghost" size="icon" onClick={onBack} aria-label="Back" title="Back">
               <ArrowLeft className="w-4 h-4" />
             </Button>
             <div>

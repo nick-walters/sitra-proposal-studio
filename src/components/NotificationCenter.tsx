@@ -76,28 +76,28 @@ function NotificationItem({
         <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
           {notification.is_read && (
             <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6"
-              title="Mark as unread"
-              onClick={(e) => {
-                e.stopPropagation();
-                onMarkUnread(notification.id);
-              }}
-            >
+ variant="ghost"
+ size="icon"
+ className="h-6 w-6"
+ title="Mark as unread"
+ onClick={(e) => {
+ e.stopPropagation();
+ onMarkUnread(notification.id);
+ }}
+ aria-label="Hide" >
               <EyeOff className="h-3 w-3" />
             </Button>
           )}
           <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6"
-            title="Delete"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(notification.id);
-            }}
-          >
+ variant="ghost"
+ size="icon"
+ className="h-6 w-6"
+ title="Delete"
+ onClick={(e) => {
+ e.stopPropagation();
+ onDelete(notification.id);
+ }}
+ aria-label="Delete" >
             <Trash2 className="h-3 w-3" />
           </Button>
         </div>
@@ -126,7 +126,7 @@ export function NotificationCenter({ onNotificationClick }: NotificationCenterPr
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
+        <Button variant="ghost" size="icon" className="relative" aria-label="Notifications" title="Notifications">
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
             <Badge 

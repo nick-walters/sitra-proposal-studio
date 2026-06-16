@@ -199,7 +199,7 @@ export function WorkProgrammeExtensionsAdmin() {
                         variant="ghost"
                         size="icon"
                         onClick={() => openEditDialog(extension)}
-                      >
+                       aria-label="Edit" title="Edit">
                         <Pencil className="w-4 h-4" />
                       </Button>
                       <Button
@@ -209,7 +209,7 @@ export function WorkProgrammeExtensionsAdmin() {
                           setDeletingId(extension.id);
                           setDeleteDialogOpen(true);
                         }}
-                      >
+                       aria-label="Delete" title="Delete">
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>

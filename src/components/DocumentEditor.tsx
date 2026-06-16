@@ -1364,7 +1364,7 @@ export function DocumentEditor({
               <Separator orientation="vertical" className="h-4 mx-1" />
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsShortcutsOpen(true)}>
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsShortcutsOpen(true)} aria-label="Keyboard" title="Keyboard">
                     <Keyboard className="w-3 h-3" />
                   </Button>
                 </TooltipTrigger>

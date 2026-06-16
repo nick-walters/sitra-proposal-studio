@@ -1015,7 +1015,7 @@ export function ProposalEditor() {
   const StatusIcon = statusInfo.icon;
 
   return (
-    <div className="h-screen bg-background flex flex-col overflow-hidden">
+    <div className="h-dvh bg-background flex flex-col overflow-hidden">
       <Header />
       {/* Proposal Top Bar */}
       <header className="h-10 border-b border-border bg-card/80 backdrop-blur-sm sticky top-10 z-40">
