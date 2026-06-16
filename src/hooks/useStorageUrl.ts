@@ -17,7 +17,7 @@ export function isStoragePath(value: string): boolean {
 /**
  * Extracts the file path from a stored value (could be a path or a full URL).
  */
-export function extractStoragePath(value: string): string | null {
+function extractStoragePath(value: string): string | null {
   if (!value.startsWith('http')) return value;
   const match = value.match(/\/proposal-files\/([^?]+)/);
   return match ? match[1] : null;

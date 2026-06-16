@@ -4,10 +4,6 @@ export type UserRole = 'coordinator' | 'editor' | 'viewer';
 export type ProposalStatus = 'draft' | 'submitted' | 'funded' | 'not_funded';
 export type SubmissionStage = 'full' | 'stage_1';
 
-export const BUDGET_TYPE_LABELS: Record<BudgetType, string> = {
-  traditional: 'Actual costs',
-  lump_sum: 'Lump sum',
-};
 
 export const SUBMISSION_STAGE_LABELS: Record<SubmissionStage, string> = {
   full: 'Full Proposal',

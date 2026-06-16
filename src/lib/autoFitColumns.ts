@@ -114,13 +114,6 @@ export function computeAutoFitSmart(
   return finalWidths.map(w => Math.round(w));
 }
 
-// Legacy exports
-export const computeAutoFitNarrow = (table: HTMLTableElement) =>
-  computeAutoFitSmart(table);
-export const computeAutoFitFull = (
-  table: HTMLTableElement,
-  _colMaxWidths?: Record<number, number>
-) => computeAutoFitSmart(table, { fullWidth: true });
 
 export function applyColumnWidthsToTable(
   table: HTMLTableElement,
