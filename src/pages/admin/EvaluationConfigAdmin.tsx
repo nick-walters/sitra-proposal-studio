@@ -33,6 +33,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Plus, ChevronRight, ChevronDown, AlertTriangle, Eye, Pencil } from "lucide-react";
 import { toast } from "sonner";
+import { formatDateTime } from "@/lib/formatDate";
 
 type InstrumentType = {
   id: string;
@@ -1042,7 +1043,7 @@ function AiConfigTab() {
                       {r.notes || "—"}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
-                      {r.updated_at ? new Date(r.updated_at).toLocaleString() : "—"}
+                      {r.updated_at ? formatDateTime(r.updated_at) : "—"}
                     </TableCell>
                     <TableCell>
                       <Button size="sm" onClick={() => save(r)}>

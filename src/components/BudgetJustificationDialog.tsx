@@ -9,6 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { BudgetJustification } from '@/hooks/useBudgetRows';
+import { formatDateTime } from '@/lib/formatDate';
 
 interface BudgetJustificationDialogProps {
   open: boolean;
@@ -72,7 +73,7 @@ export function BudgetJustificationDialog({
           />
           {justification?.updatedAt && (
             <p className="text-xs text-muted-foreground">
-              Last updated: {new Date(justification.updatedAt).toLocaleString()}
+              Last updated: {formatDateTime(justification.updatedAt)}
             </p>
           )}
         </div>

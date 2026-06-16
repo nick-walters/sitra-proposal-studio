@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { Lightbulb, Bug, Send, CheckCircle, Clock, AlertCircle, XCircle, ChevronRight } from "lucide-react";
 import { FeedbackDetail } from "@/components/FeedbackDetail";
+import { formatDate } from "@/lib/formatDate";
 
 interface FeedbackItem {
   id: string;
@@ -195,7 +196,7 @@ export function Feedback() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{item.title}</p>
-                      <p className="text-xs text-muted-foreground">{new Date(item.created_at).toLocaleDateString()}</p>
+                      <p className="text-xs text-muted-foreground">{formatDate(item.created_at)}</p>
                     </div>
                     {statusBadge(item.status)}
                     <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />

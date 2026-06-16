@@ -1,6 +1,7 @@
 import { Cloud, Check, Loader2, Save, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { formatTime } from "@/lib/formatDate";
 
 interface SaveIndicatorProps {
   saving: boolean;
@@ -12,9 +13,6 @@ interface SaveIndicatorProps {
 }
 
 export function SaveIndicator({ saving, lastSaved, hasUnsavedChanges = false, saveError, onSaveNow, className }: SaveIndicatorProps) {
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
 
   const state = saveError ? 'error' : saving ? 'saving' : hasUnsavedChanges ? 'pending' : lastSaved ? 'saved' : 'idle';
 

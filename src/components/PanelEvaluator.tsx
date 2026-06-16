@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { formatNumber, formatCurrency } from "@/lib/formatNumber";
+import { formatDate, formatDateTime } from "@/lib/formatDate";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -181,7 +182,7 @@ export function PanelEvaluator({ proposalId }: Props) {
   const deleteEsr = async (h: AnalysisRow) => {
     if (!isCoordinator) return;
     const ok = window.confirm(
-      `Delete this Evaluation Summary Report from ${new Date(h.created_at).toLocaleString()}? This cannot be undone.`,
+      `Delete this Evaluation Summary Report from ${formatDateTime(h.created_at)}? This cannot be undone.`,
     );
     if (!ok) return;
     const { error } = await supabase.from("proposal_analyses").delete().eq("id", h.id);
@@ -481,7 +482,7 @@ export function PanelEvaluator({ proposalId }: Props) {
   );
 
   const chartData = history.map((h) => ({
-    date: new Date(h.created_at).toLocaleDateString(),
+    date: formatDate(h.created_at),
     score: Number(h.total_score_unweighted ?? h.overall_score ?? 0),
     id: h.id,
   }));
@@ -747,7 +748,7 @@ export function PanelEvaluator({ proposalId }: Props) {
                         className="flex-1 min-w-0 flex items-center gap-3 text-left"
                       >
                         <span className="font-medium truncate">
-                          {new Date(h.created_at).toLocaleString()}
+                          {formatDateTime(h.created_at)}
                         </span>
                         <Badge variant="outline" className="text-[10px]">
                           {instruments.find((i) => i.id === h.instrument_id)?.name || "?"}

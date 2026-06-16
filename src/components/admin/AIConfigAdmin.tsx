@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Wand2, Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { formatDateTime } from "@/lib/formatDate";
 
 type AiConfigRow = {
   id: string;
@@ -42,15 +43,8 @@ function validateModelId(value: string): string | null {
 
 function formatDate(value: string | null): string {
   if (!value) return "Never";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return "Unknown";
-  return d.toLocaleString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const formatted = formatDateTime(value);
+  return formatted || "Unknown";
 }
 
 export function AIConfigAdmin() {
