@@ -441,7 +441,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7"
-                          onClick={() = aria-label="Copy" title="Copy"> {
+                          onClick={() => {
                             navigator.clipboard.writeText(totpSecret);
                             toast.success('Secret copied');
                           }}

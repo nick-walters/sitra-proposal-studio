@@ -411,7 +411,7 @@ export function FeedbackDetail({ feedbackId, onBack, onDeleted }: FeedbackDetail
                         variant="ghost"
                         size="icon"
                         className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity ml-auto"
-                        onClick={() = aria-label="Delete" title="Delete"> handleDeleteComment(c.id)}
+                        onClick={() => handleDeleteComment(c.id)}
                       >
                         <Trash2 className="w-3 h-3 text-muted-foreground" />
                       </Button>

@@ -183,7 +183,7 @@ export function DependenciesSection({
                           variant="ghost"
                           size="icon"
                           className="text-destructive hover:text-destructive"
-                          onClick={() = aria-label="Delete" title="Delete"> onDelete(dep.id)}
+                          onClick={() => onDelete(dep.id)}
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>

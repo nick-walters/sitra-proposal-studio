@@ -125,7 +125,7 @@ function SortableDepartmentCard({
             variant="ghost"
             size="icon"
             className="flex-shrink-0 text-destructive hover:text-destructive"
-            onClick={() = aria-label="Delete" title="Delete"> onDelete(dept.id)}
+            onClick={() => onDelete(dept.id)}
           >
             <Trash2 className="w-4 h-4" />
           </Button>

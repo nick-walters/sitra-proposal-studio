@@ -413,7 +413,7 @@ function TextColorPicker({ editor }: { editor: Editor }) {
               variant="ghost"
               size="icon"
               className="h-7 w-7 shrink-0"
-              onClick={() = aria-label="Confirm" title="Confirm"> {
+              onClick={() => {
                 if (/^#[0-9A-Fa-f]{6}$/.test(customHex)) {
                   applyColor(customHex);
                 }

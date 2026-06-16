@@ -80,7 +80,7 @@ function NotificationItem({
               size="icon"
               className="h-6 w-6"
               title="Mark as unread"
-              onClick={(e) = aria-label="Hide" title="Hide"> {
+              onClick={(e) => {
                 e.stopPropagation();
                 onMarkUnread(notification.id);
               }}
@@ -93,7 +93,7 @@ function NotificationItem({
             size="icon"
             className="h-6 w-6"
             title="Delete"
-            onClick={(e) = aria-label="Delete" title="Delete"> {
+            onClick={(e) => {
               e.stopPropagation();
               onDelete(notification.id);
             }}

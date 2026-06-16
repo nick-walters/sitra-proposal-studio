@@ -88,7 +88,7 @@ export function ParagraphSpacingExecPopover({ getContainer, disabled }: Props) {
               size="icon"
               className="h-7 w-7"
               disabled={disabled}
-              onMouseDown={(e) = aria-label="Arrow Up Down" title="Arrow Up Down"> e.preventDefault()}
+              onMouseDown={(e) => e.preventDefault()}
             >
               <ArrowUpDown className="h-4 w-4" />
             </Button>
