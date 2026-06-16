@@ -66,12 +66,12 @@ serve(async (req: Request) => {
     const { data: callerRole } = await adminClient
       .from("user_roles")
       .select("role")
-      .eq("user_id", caller.id)
+      .eq("user_id", callerId)
       .eq("proposal_id", proposalId)
       .maybeSingle();
 
     const { data: isOwner } = await adminClient.rpc("is_owner", {
-      _user_id: caller.id,
+      _user_id: callerId,
     });
 
     if (!callerRole && !isOwner) {
