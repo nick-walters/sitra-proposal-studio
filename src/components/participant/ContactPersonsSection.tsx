@@ -253,6 +253,14 @@ export function ContactPersonsSection({
       onUpdateParticipant('mainContactFirstName', parts[0] || '');
       onUpdateParticipant('mainContactLastName', parts.slice(1).join(' ') || '');
       onUpdateParticipant('contactEmail', member.email || '');
+      // Carry over phone (stored on the member's roleInProject field) and
+      // the organisation website to the MCP fields
+      if (member.roleInProject) {
+        onUpdateParticipant('mainContactPhone', member.roleInProject);
+      }
+      if (participant.website) {
+        onUpdateParticipant('mainContactWebsite', participant.website);
+      }
     }
 
     // If unsetting, clear MCP-specific fields
