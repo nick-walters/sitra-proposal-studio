@@ -1,11 +1,7 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
 import DOMPurify from 'dompurify';
 import { cn } from '@/lib/utils';
-
-const SANITIZE_CONFIG = {
-  ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'ul', 'ol', 'li', 'span', 'a', 'h1', 'h2', 'h3', 'h4', 'sub', 'sup', 'table', 'thead', 'tbody', 'tr', 'th', 'td'],
-  ALLOWED_ATTR: ['class', 'style', 'href', 'target', 'rel', 'colspan', 'rowspan'],
-};
+import { RICH_TEXT_CONFIG as SANITIZE_CONFIG, FOOTNOTE_CONFIG } from '@/lib/sanitizePresets';
 
 /** Strip Word/XML artifacts (mso-*, borders, backgrounds) from HTML */
 function stripXmlArtifacts(html: string): string {
