@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import DOMPurify from 'dompurify';
+import { RICH_TEXT_WITH_DIFF_CONFIG } from '@/lib/sanitizePresets';
 import {
   Dialog,
   DialogContent,
