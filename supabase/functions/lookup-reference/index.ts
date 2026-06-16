@@ -230,10 +230,18 @@ serve(async (req) => {
     if (!auth.ok) return auth.response;
 
     const { query } = await req.json();
-    
-    if (!query || query.trim().length === 0) {
+
+    if (!query || typeof query !== "string" || query.trim().length === 0) {
       return new Response(
         JSON.stringify({ error: "Query is required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Cap input length to protect external API calls from abuse
+    if (query.length > 500) {
+      return new Response(
+        JSON.stringify({ error: "Query too long (max 500 characters)" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

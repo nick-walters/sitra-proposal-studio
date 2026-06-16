@@ -371,6 +371,23 @@ serve(async (req: Request) => {
     const { picNumber, searchTerm } = await req.json();
     console.log(`Lookup: PIC=${picNumber}, Search=${searchTerm}`);
 
+    // Input validation: cap user input lengths to prevent abuse via external HTTP calls
+    if (searchTerm !== undefined && searchTerm !== null && (typeof searchTerm !== 'string' || searchTerm.length > 200)) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'searchTerm too long or invalid' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    if (picNumber !== undefined && picNumber !== null) {
+      const picStr = String(picNumber);
+      if (picStr.length > 20 || !/^\d{1,20}$/.test(picStr.replace(/\s/g, ''))) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'picNumber invalid (must be digits, max 20 chars)' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
     const query = picNumber || searchTerm;
     if (!query || query.length < 2) {
       return new Response(
