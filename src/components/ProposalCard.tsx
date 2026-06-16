@@ -144,7 +144,7 @@ export function ProposalCard({ proposal, onClick, compact = false, isPinned, can
             {/* Acronym and title - fixed width column */}
             <div className="sm:w-64 md:w-80 lg:w-96 flex-shrink-0">
               <div className="font-semibold text-sm">
-                {proposal.acronym}
+                <ColoredAcronym acronym={proposal.acronym} segments={proposal.acronymSegments} />
                 {proposal.submissionStage === 'stage_1' && <span className="font-normal text-muted-foreground"> (Stage 1 of 2)</span>}
               </div>
               <div className="text-xs text-muted-foreground truncate">{proposal.title}</div>
