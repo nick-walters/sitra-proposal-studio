@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
+import { formatNumber } from '@/lib/formatNumber';
+
 import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -404,7 +406,7 @@ function EthicsQuestionRow({
           maxLength={maxLength}
         />
         <div className="text-xs text-muted-foreground text-right">
-          {localVal.length.toLocaleString()} / {maxLength.toLocaleString()} characters
+          {formatNumber(localVal.length)} / {formatNumber(maxLength)} characters
         </div>
       </div>
     );
@@ -768,7 +770,7 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
               disabled={!canEdit}
             />
             <p className="text-xs text-muted-foreground mt-1 text-right">
-              {(ethicsData.securitySelfAssessment || '').length.toLocaleString()}/{(5000).toLocaleString()} characters
+              {formatNumber((ethicsData.securitySelfAssessment || '').length)}/{formatNumber(5000)} characters
             </p>
           </CardContent>
         </Card>

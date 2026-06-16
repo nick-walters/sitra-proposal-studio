@@ -1,6 +1,8 @@
 import { useState, useCallback, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { formatNumber } from '@/lib/formatNumber';
+
 
 interface EuroCurrencyInputProps {
   value: string;
@@ -38,7 +40,7 @@ export function EuroCurrencyInput({
       // Try to parse as number and format with commas
       const num = parseFloat(trimmed.replace(/,/g, ''));
       if (!isNaN(num)) {
-        return num.toLocaleString('en-IE', { maximumFractionDigits: 0 });
+        return formatNumber(num, 0);
       }
       return trimmed;
     }).join('–');
