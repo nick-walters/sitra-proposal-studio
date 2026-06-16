@@ -157,6 +157,11 @@ export function BudgetPortalSheet({
   }, [rows]);
 
   const handleExportXlsx = async () => {
+    const [XLSX, JSZipMod] = await Promise.all([
+      import('xlsx-js-style'),
+      import('jszip'),
+    ]);
+    const JSZip = JSZipMod.default;
     const wb = XLSX.utils.book_new();
 
     const colLetter = (c: number): string => {
