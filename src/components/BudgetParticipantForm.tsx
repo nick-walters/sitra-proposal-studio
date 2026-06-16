@@ -3,7 +3,7 @@ import { useBudgetRows, ComputedBudgetRow } from '@/hooks/useBudgetRows';
 import { useProposalRole } from '@/hooks/useProposalRole';
 import { FormattedNumberInput } from '@/components/FormattedNumberInput';
 import { BudgetJustificationDialog } from '@/components/BudgetJustificationDialog';
-import { formatCurrency } from '@/lib/formatNumber';
+import { formatCurrency, formatPercent } from '@/lib/formatNumber';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -558,7 +558,7 @@ export function BudgetParticipantForm({
                     <span className="text-xs text-muted-foreground">%</span>
                   </div>
                   <div className="flex items-center gap-1 flex-1 justify-end">
-                    <span className="text-sm font-medium tabular-nums">{requestedPct.toFixed(1)}%</span>
+                    <span className="text-sm font-medium tabular-nums">{formatPercent(requestedPct)}</span>
                     <CopyButton value={requestedPct.toFixed(1)} />
                   </div>
                 </div>
