@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useProposalRole } from "@/hooks/useProposalRole";
 import { EsrRenderer } from "@/components/EsrRenderer";
-import { exportEsrToPdf } from "@/lib/esrPdfExport";
+// esrPdfExport is loaded lazily inside downloadEsr() to keep jsPDF out of the initial bundle.
 import {
   LineChart,
   Line,
@@ -167,11 +167,12 @@ export function PanelEvaluator({ proposalId }: Props) {
     if (hist && hist.length > 0) setSelectedHistoryId(hist[hist.length - 1].id);
   };
 
-  const downloadEsr = (h: AnalysisRow) => {
+  const downloadEsr = async (h: AnalysisRow) => {
     const analysisData = (h.analysis_data ?? {}) as Record<string, any>;
     const markdown = analysisData.esr_markdown || "(no ESR available)";
     const acronym = proposal?.acronym || "proposal";
     try {
+      const { exportEsrToPdf } = await import("@/lib/esrPdfExport");
       exportEsrToPdf({ acronym, createdAt: h.created_at, markdown });
     } catch (err) {
       console.error("ESR PDF export failed:", err);

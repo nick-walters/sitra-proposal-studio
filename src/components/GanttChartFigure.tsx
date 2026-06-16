@@ -7,7 +7,7 @@ import { Download, BarChart3, Plus, Trash2, Image, FileDown } from 'lucide-react
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { getContrastingTextColor, lightenColor } from '@/lib/wpColors';
-import { exportAsPng, exportGanttAsPptx, type GanttExportData } from '@/lib/figureExport';
+import type { GanttExportData } from '@/lib/figureExport';
 import { toast } from 'sonner';
 import { scheduleFigurePngCache } from '@/lib/figureCache';
 import { B31Pill } from '@/components/B31Pill';
@@ -321,16 +321,17 @@ export function GanttChartFigure({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => {
+                <DropdownMenuItem onClick={async () => {
                   if (chartRef.current) {
-                    exportAsPng(chartRef.current, `Gantt-Chart-Figure-${figureNumber}`);
+                    const { exportAsPng } = await import('@/lib/figureExport');
+                    await exportAsPng(chartRef.current, `Gantt-Chart-Figure-${figureNumber}`);
                     toast.success('PNG downloaded');
                   }
                 }}>
                   <Image className="w-4 h-4 mr-2" />
                   Download as PNG
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => {
+                <DropdownMenuItem onClick={async () => {
                   const exportData: GanttExportData = {
                     projectDuration,
                     workPackages: workPackages.map(wp => ({
@@ -349,7 +350,8 @@ export function GanttChartFigure({
                     })),
                     milestones: milestones.map(m => ({ number: m.number, name: m.name, month: m.month })),
                   };
-                  exportGanttAsPptx(exportData, `Gantt-Chart-Figure-${figureNumber}`);
+                  const { exportGanttAsPptx } = await import('@/lib/figureExport');
+                  await exportGanttAsPptx(exportData, `Gantt-Chart-Figure-${figureNumber}`);
                   toast.success('PPTX downloaded');
                 }}>
                   <FileDown className="w-4 h-4 mr-2" />
