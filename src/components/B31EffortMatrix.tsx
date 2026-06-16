@@ -154,7 +154,7 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(0)} />}
                </th>
                {wpData.map((wp, i) => {
-                 const wpColor = wp.color || '#2563EB';
+                 const wpColor = wp.color || '#73C92D';
                  return (
                    <th
                      key={wp.id}
@@ -194,7 +194,7 @@ borderTopLeftRadius: '12px',
                   {/* Data cells — WP column color behind */}
                   {wpData.map((wp) => {
                     const val = pMap.get(wp.id) || 0;
-                    const wpColor = wp.color || '#2563EB';
+                    const wpColor = wp.color || '#73C92D';
                     const isEditing = editingCell?.participantId === p.id && editingCell?.wpId === wp.id;
 
                     return (
@@ -235,7 +235,7 @@ borderTopLeftRadius: '12px',
             <tr>
               <td className="px-[1pt] py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle font-bold" style={{ textAlign: 'left' }}>Total</td>
               {wpData.map(wp => {
-                const wpColor = wp.color || '#2563EB';
+                const wpColor = wp.color || '#73C92D';
                 const colTotal = participants.reduce((sum, p) => sum + (matrix.get(p.id)!.get(wp.id) || 0), 0);
                 return (
                   <td

@@ -437,7 +437,7 @@ export function GanttChartFigure({
 
           {/* Work packages and Tasks */}
           {workPackages.map((wp, wpIdx) => {
-            const wpColor = wp.color || '#2563EB';
+            const wpColor = wp.color || '#73C92D';
             const taskColor = '#d4d4d4';
             
             const wpId = wpDraftsData?.wps.find(w => w.number === wp.number)?.id;

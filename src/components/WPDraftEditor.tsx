@@ -263,7 +263,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
     if (proposalData?.use_wp_themes && themeData) {
       return themeData.color;
     }
-    return wpDraft?.color || '#2563EB';
+    return wpDraft?.color || '#73C92D';
   }, [proposalData?.use_wp_themes, themeData, wpDraft?.color]);
 
   // Lock enforcement
@@ -554,7 +554,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
-      const color = task.wp_color || '#2563EB';
+      const color = task.wp_color || '#73C92D';
       const span = document.createElement('span');
       span.textContent = `T${task.wp_number}.${task.number}`;
       span.setAttribute('contenteditable', 'false');
@@ -576,8 +576,8 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
-      const rawColor = del.wp_color || '#2563EB';
-      const color = /^#[0-9a-fA-F]{3,8}$/.test(rawColor) ? rawColor : '#2563EB';
+      const rawColor = del.wp_color || '#73C92D';
+      const color = /^#[0-9a-fA-F]{3,8}$/.test(rawColor) ? rawColor : '#73C92D';
       const label = String(del.number).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
       const textWidth = Math.max(36, label.length * 8 + 8);
       const totalWidth = textWidth + 8;
@@ -736,7 +736,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
 
     const wpColorByNumber = new Map<number, string>();
     for (const wp of wpDrafts) {
-      wpColorByNumber.set(wp.number, wp.color || '#2563EB');
+      wpColorByNumber.set(wp.number, wp.color || '#73C92D');
     }
 
     const recolorInContainer = async () => {
@@ -750,7 +750,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
       if (tasks) {
         for (const t of tasks) {
           const wp = wpDrafts.find(w => w.id === t.wp_draft_id);
-          if (wp) taskColorMap.set(t.id, wp.color || '#2563EB');
+          if (wp) taskColorMap.set(t.id, wp.color || '#73C92D');
         }
       }
 
@@ -763,7 +763,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
       const delColorMap = new Map<string, string>();
       if (deliverables) {
         for (const d of deliverables) {
-          if (d.wp_number) delColorMap.set(d.id, wpColorByNumber.get(d.wp_number) || '#2563EB');
+          if (d.wp_number) delColorMap.set(d.id, wpColorByNumber.get(d.wp_number) || '#73C92D');
         }
       }
 
@@ -936,19 +936,19 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
               )}
               <DropdownMenuItem onClick={() => setIsWPRefOpen(true)} className="flex items-center gap-2">
                 <span className="w-16 flex justify-start shrink-0">
-                  <span style={{ display: 'inline-block', width: '22px', height: '14px', backgroundColor: '#2563EB', border: '1.5px solid #2563EB', borderRadius: '9999px' }} />
+                  <span style={{ display: 'inline-block', width: '22px', height: '14px', backgroundColor: '#73C92D', border: '1.5px solid #73C92D', borderRadius: '9999px' }} />
                 </span>
                 <span>Work package</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setIsTaskRefOpen(true)} className="flex items-center gap-2">
                 <span className="w-16 flex justify-start shrink-0">
-                  <span style={{ display: 'inline-block', width: '22px', height: '14px', borderRadius: '9999px', border: '1.5px solid #2563EB', background: '#ffffff' }} />
+                  <span style={{ display: 'inline-block', width: '22px', height: '14px', borderRadius: '9999px', border: '1.5px solid #73C92D', background: '#ffffff' }} />
                 </span>
                 <span>Task</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setIsDeliverableRefOpen(true)} className="flex items-center gap-2">
                 <span className="w-16 flex justify-start shrink-0">
-                  <span style={{ display: 'inline-block', width: '22px', height: '14px', background: '#2563EB', clipPath: 'polygon(0% 0%, calc(100% - 6px) 0%, 100% 50%, calc(100% - 6px) 100%, 0% 100%)', position: 'relative' }}>
+                  <span style={{ display: 'inline-block', width: '22px', height: '14px', background: '#73C92D', clipPath: 'polygon(0% 0%, calc(100% - 6px) 0%, 100% 50%, calc(100% - 6px) 100%, 0% 100%)', position: 'relative' }}>
                     <span style={{ position: 'absolute', inset: '1.5px', right: '2px', background: '#ffffff', clipPath: 'polygon(0% 0%, calc(100% - 5px) 0%, 100% 50%, calc(100% - 5px) 100%, 0% 100%)' }} />
                   </span>
                 </span>

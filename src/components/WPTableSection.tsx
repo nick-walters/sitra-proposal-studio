@@ -276,8 +276,8 @@ function SortableTaskCard({
           className="inline-flex items-center justify-center rounded-full font-bold select-none flex-shrink-0"
           style={{
             backgroundColor: '#ffffff',
-            border: '1.5px solid #2563EB',
-            color: '#2563EB',
+            border: '1.5px solid #73C92D',
+            color: '#73C92D',
             height: '22px',
             fontFamily: "'Times New Roman', Times, serif",
             fontSize: '11pt',
