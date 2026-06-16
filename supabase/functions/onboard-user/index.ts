@@ -34,7 +34,13 @@ Deno.serve(async (req) => {
 
 
     const { proposalId } = await req.json();
-    if (!proposalId) throw new Error("Missing proposalId");
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!proposalId || typeof proposalId !== "string" || !UUID_RE.test(proposalId)) {
+      return new Response(JSON.stringify({ error: "Invalid proposalId" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const admin = createClient(supabaseUrl, serviceKey);
 
