@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { formatNumber, formatCurrency } from "@/lib/formatNumber";
+
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -791,13 +793,14 @@ export function PanelEvaluator({ proposalId }: Props) {
                               }
                             | undefined;
                           const fmt = (n: number | undefined) =>
-                            n == null ? "—" : Number(n).toLocaleString();
+                            n == null ? "—" : formatNumber(Number(n));
+
                           return (
                             <TooltipProvider delayDuration={150}>
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Badge variant="outline" className="cursor-help">
-                                    €{Number(h.cost_eur).toFixed(2)}
+                                    {formatCurrency(Number(h.cost_eur))}
                                   </Badge>
                                 </TooltipTrigger>
                                 <TooltipContent side="top" className="max-w-xs">
