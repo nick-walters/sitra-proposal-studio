@@ -27,15 +27,6 @@ interface ParticipantListTableProps {
   onRowClick?: (participant: Participant) => void;
 }
 
-// Convert name to name case (capitalize first letter of each word)
-function toNameCase(str: string): string {
-  if (!str) return '';
-  return str
-    .toLowerCase()
-    .split(' ')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-}
 
 /**
  * A read-only participant list table styled to match Part B editor tables.
