@@ -728,7 +728,7 @@ export function Dashboard() {
  className="h-8 w-8 rounded-r-none"
  onClick={() => setViewMode('grid')}
  title="Grid view"
- aria-label="Layout Grid" >
+ aria-label="Grid view">
                 <LayoutGrid className="w-4 h-4" />
               </Button>
               <Button
@@ -737,7 +737,7 @@ export function Dashboard() {
  className="h-8 w-8 rounded-none border-x"
  onClick={() => setViewMode('list')}
  title="List view"
- aria-label="List" >
+ aria-label="List view">
                 <List className="w-4 h-4" />
               </Button>
               <Button
@@ -746,7 +746,7 @@ export function Dashboard() {
  className="h-8 w-8 rounded-none"
  onClick={() => setViewMode('table')}
  title="Table view"
- aria-label="Table2" >
+ aria-label="Table view">
                 <Table2 className="w-4 h-4" />
               </Button>
               <Button
@@ -755,7 +755,7 @@ export function Dashboard() {
  className="h-8 w-8 rounded-l-none"
  onClick={() => setViewMode('kanban')}
  title="Kanban board"
- aria-label="Columns3" >
+ aria-label="Kanban board">
                 <Columns3 className="w-4 h-4" />
               </Button>
             </div>

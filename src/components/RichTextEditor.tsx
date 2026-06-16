@@ -927,7 +927,7 @@ export function FormattingToolbar({
                     variant="secondary"
                     size="icon"
                     className="h-7 w-7"
-                   aria-label="Table Icon" title="Table Icon">
+                   aria-label="Table options" title="Table options">
                     <TableIcon className="w-4 h-4" />
                   </Button>
                 </DropdownMenuTrigger>
