@@ -371,22 +371,28 @@ function ParticipantCard({
               ))
             )}
             {caseLeadership && caseLeadership.length > 0 && (
-              caseLeadership.map((c) => (
-                <Tooltip key={`case-${c.caseNumber}`}>
-                  <TooltipTrigger asChild>
-                    <B31Pill
-                      variant="outline"
-                      color="#000000"
-                      style={{ fontSize: '12px', height: 'auto', padding: '1.5px 6px' }}
-                    >
-                      {c.prefix ? `${c.prefix}${c.caseNumber}` : (c.shortName || c.caseNumber)}
-                    </B31Pill>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {c.shortName ? `${c.shortName} (Lead)` : `${c.prefix ? `${c.prefix}${c.caseNumber}` : c.caseNumber} Lead`}
-                  </TooltipContent>
-                </Tooltip>
-              ))
+              caseLeadership.map((c) => {
+                const numberLabel = c.prefix ? `${c.prefix}${c.caseNumber}` : String(c.caseNumber);
+                const displayLabel = caseIncludeNumber
+                  ? numberLabel
+                  : (c.shortName || numberLabel);
+                return (
+                  <Tooltip key={`case-${c.caseNumber}`}>
+                    <TooltipTrigger asChild>
+                      <B31Pill
+                        variant="outline"
+                        color="#000000"
+                        style={{ fontSize: '12px', height: 'auto', padding: '1.5px 6px' }}
+                      >
+                        {displayLabel}
+                      </B31Pill>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {c.shortName ? `${c.shortName} (Lead)` : `${numberLabel} Lead`}
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              })
             )}
           </div>
           
