@@ -1,5 +1,6 @@
 import { useEditor, EditorContent } from '@tiptap/react';
 import DOMPurify from 'dompurify';
+import { RICH_TEXT_WITH_DIV_CONFIG } from '@/lib/sanitizePresets';
 import StarterKit from '@tiptap/starter-kit';
 import { HeadingExitOnEnter } from '@/extensions/HeadingExitOnEnter';
 import { HeadingNumberLabel } from '@/extensions/HeadingNumberLabel';
