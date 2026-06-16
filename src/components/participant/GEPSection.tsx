@@ -1,12 +1,19 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Building2, ExternalLink, CheckCircle2 } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 
 interface GEPSectionProps {
   showGEPSection: boolean;
+  hasGenderEqualityPlan?: boolean;
+  onChangeHasGEP?: (value: boolean | null) => void;
+  canEdit?: boolean;
 }
 
-export function GEPSection({ showGEPSection }: GEPSectionProps) {
+export function GEPSection({ showGEPSection, hasGenderEqualityPlan, onChangeHasGEP, canEdit = true }: GEPSectionProps) {
   if (!showGEPSection) return null;
+
+  const value = hasGenderEqualityPlan;
 
   return (
     <Card>
@@ -29,6 +36,28 @@ export function GEPSection({ showGEPSection }: GEPSectionProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
+        {/* Yes/No status */}
+        <div className="flex items-center justify-between gap-4 p-3 rounded-md border bg-muted/30">
+          <Label className="text-sm font-medium">
+            Does this organisation have a Gender Equality Plan in place?
+          </Label>
+          <RadioGroup
+            value={value === true ? 'yes' : value === false ? 'no' : ''}
+            onValueChange={(v) => onChangeHasGEP?.(v === 'yes' ? true : v === 'no' ? false : null)}
+            className="flex items-center gap-4"
+            disabled={!canEdit}
+          >
+            <div className="flex items-center space-x-1">
+              <RadioGroupItem value="yes" id="gep-yes" className="h-4 w-4" />
+              <Label htmlFor="gep-yes" className="text-xs font-normal cursor-pointer">Yes</Label>
+            </div>
+            <div className="flex items-center space-x-1">
+              <RadioGroupItem value="no" id="gep-no" className="h-4 w-4" />
+              <Label htmlFor="gep-no" className="text-xs font-normal cursor-pointer">No</Label>
+            </div>
+          </RadioGroup>
+        </div>
+
         {/* Building Blocks */}
         <div className="space-y-2">
           <h4 className="text-sm font-medium">
