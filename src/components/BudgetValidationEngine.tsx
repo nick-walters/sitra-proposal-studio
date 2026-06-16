@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Progress } from '@/components/ui/progress';
+import { formatPercent } from '@/lib/formatNumber';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -99,7 +100,7 @@ export function BudgetValidationDialog({ proposalId, open, onOpenChange }: Budge
         results.push({
           id: 'subcontracting-ratio', name: 'Subcontracting ratio',
           severity: tooHigh ? 'warning' : 'info',
-          message: tooHigh ? `Subcontracting is ${(ratio * 100).toFixed(1)}% of direct costs (>30% requires justification)` : `Subcontracting is ${(ratio * 100).toFixed(1)}% of direct costs`,
+          message: tooHigh ? `Subcontracting is ${formatPercent(ratio * 100)} of direct costs (>30% requires justification)` : `Subcontracting is ${formatPercent(ratio * 100)} of direct costs`,
           passed: !tooHigh,
         });
       }
@@ -119,7 +120,7 @@ export function BudgetValidationDialog({ proposalId, open, onOpenChange }: Budge
           const p = parts.find(p => p.id === over[0]);
           results.push({
             id: 'concentration', name: 'Budget concentration', severity: 'warning',
-            message: `${p?.organisation_short_name || 'A partner'} holds ${((over[1] / totalDirectExFstp) * 100).toFixed(0)}% of budget (excl. FSTP; >35% flagged)`,
+            message: `${p?.organisation_short_name || 'A partner'} holds ${formatPercent((over[1] / totalDirectExFstp) * 100, 0)} of budget (excl. FSTP; >35% flagged)`,
             passed: false,
           });
         }
@@ -142,7 +143,7 @@ export function BudgetValidationDialog({ proposalId, open, onOpenChange }: Budge
           results.push({
             id: 'equipment-ratio', name: 'Equipment costs',
             severity: justified ? 'info' : 'warning',
-            message: `Equipment is ${((equipmentTotal / personnelTotal) * 100).toFixed(1)}% of personnel costs (>15% requires justification)`,
+            message: `Equipment is ${formatPercent((equipmentTotal / personnelTotal) * 100)} of personnel costs (>15% requires justification)`,
             passed: justified,
           });
         }
