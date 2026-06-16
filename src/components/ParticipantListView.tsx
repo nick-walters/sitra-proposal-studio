@@ -784,6 +784,7 @@ export function ParticipantListView({
                             canEdit={canEdit}
                             wpLeadership={wpLeadership[participant.id]}
                             caseLeadership={caseLeadership[participant.id]}
+                            caseIncludeNumber={caseIncludeNumber}
                             onFetchLogo={() => handleFetchLogo(participant)}
                             isFetchingLogo={fetchingLogoFor === participant.id}
                             onUpdateParticipant={onUpdateParticipant}
