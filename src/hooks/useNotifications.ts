@@ -293,7 +293,7 @@ export async function createAssignmentNotification(params: {
   const { proposalId, userId, assignedBy, sectionId, sectionTitle, dueDate } = params;
 
   const dueDateText = dueDate 
-    ? ` (due ${new Date(dueDate).toLocaleDateString()})` 
+    ? ` (due ${formatDate(dueDate)})` 
     : '';
 
   const { error } = await supabase
@@ -327,8 +327,8 @@ export async function createDueDateNotification(params: {
 
   const title = type === 'overdue' ? 'Section Overdue' : 'Section Due Soon';
   const message = type === 'overdue'
-    ? `"${sectionTitle}" was due on ${new Date(dueDate).toLocaleDateString()}`
-    : `"${sectionTitle}" is due on ${new Date(dueDate).toLocaleDateString()}`;
+    ? `"${sectionTitle}" was due on ${formatDate(dueDate)}`
+    : `"${sectionTitle}" is due on ${formatDate(dueDate)}`;
 
   const { error } = await supabase
     .from('notifications')

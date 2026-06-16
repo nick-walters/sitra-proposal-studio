@@ -9,6 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { BudgetJustification } from '@/hooks/useBudgetRows';
+import { formatDateTime } from '@/lib/formatDate';
 
 interface BudgetJustificationDialogProps {
   open: boolean;
