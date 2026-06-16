@@ -73,7 +73,7 @@ export function BudgetJustificationDialog({
           />
           {justification?.updatedAt && (
             <p className="text-xs text-muted-foreground">
-              Last updated: {new Date(justification.updatedAt).toLocaleString()}
+              Last updated: {formatDateTime(justification.updatedAt)}
             </p>
           )}
         </div>
