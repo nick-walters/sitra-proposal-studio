@@ -196,8 +196,7 @@ export function AddParticipantDialog({
                 id="org-name"
                 value={form.organisationName}
                 onChange={(e) => {
-                  // Apply name case
-                  const value = e.target.value.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substring(1).toLowerCase());
+                  const value = e.target.value;
                   setForm(prev => ({ ...prev, organisationName: value }));
                   if (formErrors.organisationName) setFormErrors(prev => ({ ...prev, organisationName: '' }));
                 }}
