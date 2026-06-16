@@ -6,6 +6,15 @@ import { format, differenceInDays } from "date-fns";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { StorageImage } from "@/components/StorageImage";
 
+function ColoredAcronym({ acronym, segments }: { acronym: string; segments?: { text: string; color: string }[] }) {
+  if (segments && segments.length > 0) {
+    return <>{segments.map((seg, i) => (
+      <span key={i} style={{ color: seg.color, whiteSpace: 'pre' }}>{seg.text}</span>
+    ))}</>;
+  }
+  return <>{acronym}</>;
+}
+
 interface ProposalCardProps {
   proposal: Proposal;
   onClick: () => void;
