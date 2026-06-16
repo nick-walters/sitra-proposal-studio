@@ -128,7 +128,7 @@ serve(async (req) => {
     // Verify caller has access to this proposal
     const { data: hasAccess, error: accessError } = await supabase.rpc(
       "has_any_proposal_role",
-      { _user_id: authData.user.id, _proposal_id: proposalId }
+      { _user_id: callerId, _proposal_id: proposalId }
     );
     if (accessError || !hasAccess) {
       return new Response(JSON.stringify({ error: "Forbidden" }), {
