@@ -506,6 +506,35 @@ export function ParticipantListView({
   const isAdmin = roleTier === 'coordinator';
   const ocd = useOCD(proposalId);
   const templateInputRef = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
+
+  // Fetch case display setting (whether to show numbers vs short names on case bubbles)
+  const { data: caseSettings } = useQuery({
+    queryKey: ['case-settings', proposalId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('proposals')
+        .select('case_include_number')
+        .eq('id', proposalId)
+        .maybeSingle() as { data: { case_include_number: boolean | null } | null };
+      return data;
+    },
+    enabled: !!proposalId,
+  });
+  const caseIncludeNumber: boolean = caseSettings?.case_include_number !== false;
+
+  // Listen for cross-ref data changes so WP / Case leadership badges update in real time
+  // when a lead is changed in WPManagementCard or CaseManagementCard.
+  useEffect(() => {
+    if (!proposalId) return;
+    const handler = () => {
+      queryClient.invalidateQueries({ queryKey: ['wp-leadership', proposalId] });
+      queryClient.invalidateQueries({ queryKey: ['case-leadership', proposalId] });
+      queryClient.invalidateQueries({ queryKey: ['case-settings', proposalId] });
+    };
+    window.addEventListener('cross-ref-data-changed', handler);
+    return () => window.removeEventListener('cross-ref-data-changed', handler);
+  }, [proposalId, queryClient]);
 
   // Extract guidelines from section
   const officialGuidelines = useMemo(() => {
