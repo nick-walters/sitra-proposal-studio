@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
 import DOMPurify from 'dompurify';
+import { RICH_TEXT_CONFIG } from '@/lib/sanitizePresets';
 import { Button } from '@/components/ui/button';
 import {
   DndContext,
