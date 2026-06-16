@@ -274,7 +274,7 @@ export function TopicRichTextReadonly({ html, footnotes = [], emptyMessage = '�
           {footnotes.map((fn, idx) => (
             <div key={fn.id} className="flex items-start gap-1.5 text-xs text-muted-foreground">
               <span className="text-primary font-semibold text-[10px] shrink-0" style={{ marginTop: '1.5px' }}>{footnoteStartNumber + idx}</span>
-              <span className="[&_a]:text-primary [&_a]:underline [&_a]:cursor-pointer" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(fn.text || '–', { ALLOWED_TAGS: ['em', 'strong', 'a', 'br', 'sup', 'span'], ALLOWED_ATTR: ['href', 'target', 'rel', 'style'] }) }} />
+              <span className="[&_a]:text-primary [&_a]:underline [&_a]:cursor-pointer" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(fn.text || '–', FOOTNOTE_CONFIG) }} />
             </div>
           ))}
         </div>
