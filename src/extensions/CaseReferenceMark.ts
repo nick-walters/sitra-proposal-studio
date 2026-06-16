@@ -102,7 +102,7 @@ export const CaseReferenceMark = Mark.create<CaseReferenceOptions>({
         },
       },
       caseColor: {
-        default: '#7C3AED',
+        default: '#000000',
         parseHTML: (element) => element.getAttribute('data-case-color'),
         renderHTML: (attributes) => {
           return {

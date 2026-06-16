@@ -294,7 +294,7 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
   }, [insertNodeAtCursor]);
 
   const insertTaskRefAtCursor = useCallback((task: { id: string; wp_number: number; number: number; title: string; wp_color?: string }) => {
-    const color = task.wp_color || '#2563EB';
+    const color = task.wp_color || '#73C92D';
     const span = document.createElement('span');
     span.textContent = `T${task.wp_number}.${task.number}`;
     span.setAttribute('contenteditable', 'false');
@@ -305,8 +305,8 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
   }, [insertNodeAtCursor]);
 
   const insertDeliverableRefAtCursor = useCallback((del: { id: string; number: string; name: string; wp_color?: string }) => {
-    const rawColor = del.wp_color || '#2563EB';
-    const color = /^#[0-9a-fA-F]{3,8}$/.test(rawColor) ? rawColor : '#2563EB';
+    const rawColor = del.wp_color || '#73C92D';
+    const color = /^#[0-9a-fA-F]{3,8}$/.test(rawColor) ? rawColor : '#73C92D';
     const label = String(del.number).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     const textWidth = Math.max(36, label.length * 8 + 8);
     const totalWidth = textWidth + 8;
@@ -639,19 +639,19 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
               )}
               <DropdownMenuItem onClick={() => setIsWPRefOpen(true)} className="flex items-center gap-2">
                 <span className="w-16 flex justify-start shrink-0">
-                  <span style={{ display: 'inline-block', width: '22px', height: '14px', backgroundColor: '#2563EB', border: '1.5px solid #2563EB', borderRadius: '9999px' }} />
+                  <span style={{ display: 'inline-block', width: '22px', height: '14px', backgroundColor: '#73C92D', border: '1.5px solid #73C92D', borderRadius: '9999px' }} />
                 </span>
                 <span>Work package</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setIsTaskRefOpen(true)} className="flex items-center gap-2">
                 <span className="w-16 flex justify-start shrink-0">
-                  <span style={{ display: 'inline-block', width: '22px', height: '14px', borderRadius: '9999px', border: '1.5px solid #2563EB', background: '#ffffff' }} />
+                  <span style={{ display: 'inline-block', width: '22px', height: '14px', borderRadius: '9999px', border: '1.5px solid #73C92D', background: '#ffffff' }} />
                 </span>
                 <span>Task</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setIsDeliverableRefOpen(true)} className="flex items-center gap-2">
                 <span className="w-16 flex justify-start shrink-0">
-                  <span style={{ display: 'inline-block', width: '22px', height: '14px', background: '#2563EB', clipPath: 'polygon(0% 0%, calc(100% - 6px) 0%, 100% 50%, calc(100% - 6px) 100%, 0% 100%)', position: 'relative' }}>
+                  <span style={{ display: 'inline-block', width: '22px', height: '14px', background: '#73C92D', clipPath: 'polygon(0% 0%, calc(100% - 6px) 0%, 100% 50%, calc(100% - 6px) 100%, 0% 100%)', position: 'relative' }}>
                     <span style={{ position: 'absolute', inset: '1.5px', right: '2px', background: '#ffffff', clipPath: 'polygon(0% 0%, calc(100% - 5px) 0%, 100% 50%, calc(100% - 5px) 100%, 0% 100%)' }} />
                   </span>
                 </span>

@@ -1321,19 +1321,19 @@ export function DocumentEditor({
                   )}
                   <DropdownMenuItem onClick={() => setIsWPRefOpen(true)} className="flex items-center gap-2">
                     <span className="w-16 flex justify-start shrink-0">
-                      <WPBubble wpColor="#2563EB" style={{ width: '22px', height: '14px', padding: 0 }}>{' '}</WPBubble>
+                      <WPBubble wpColor="#73C92D" style={{ width: '22px', height: '14px', padding: 0 }}>{' '}</WPBubble>
                     </span>
                     <span>Work package</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setIsTaskRefOpen(true)} className="flex items-center gap-2">
                     <span className="w-16 flex justify-start shrink-0">
-                      <B31Pill variant="outline" color="#2563EB" style={{ width: '22px', height: '14px', padding: 0 }}>{' '}</B31Pill>
+                      <B31Pill variant="outline" color="#73C92D" style={{ width: '22px', height: '14px', padding: 0 }}>{' '}</B31Pill>
                     </span>
                     <span>Task</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setIsDeliverableRefOpen(true)} className="flex items-center gap-2">
                     <span className="w-16 flex justify-start shrink-0">
-                      <span style={{ display: 'inline-block', width: '22px', height: '14px', background: '#2563EB', clipPath: 'polygon(0% 0%, calc(100% - 6px) 0%, 100% 50%, calc(100% - 6px) 100%, 0% 100%)', position: 'relative' }}>
+                      <span style={{ display: 'inline-block', width: '22px', height: '14px', background: '#73C92D', clipPath: 'polygon(0% 0%, calc(100% - 6px) 0%, 100% 50%, calc(100% - 6px) 100%, 0% 100%)', position: 'relative' }}>
                         <span style={{ position: 'absolute', inset: '1.5px', right: '2px', background: '#ffffff', clipPath: 'polygon(0% 0%, calc(100% - 5px) 0%, 100% 50%, calc(100% - 5px) 100%, 0% 100%)' }} />
                       </span>
                     </span>

@@ -208,7 +208,7 @@ export function WPSimpleEditor({
       {onOpenWPRefDialog && (
         <DropdownMenuItem onClick={onOpenWPRefDialog} className="flex items-center gap-2">
           <span className="w-16 flex justify-start shrink-0">
-            <span style={{ display: 'inline-block', width: '22px', height: '14px', backgroundColor: '#2563EB', border: '1.5px solid #2563EB', borderRadius: '9999px' }} />
+            <span style={{ display: 'inline-block', width: '22px', height: '14px', backgroundColor: '#73C92D', border: '1.5px solid #73C92D', borderRadius: '9999px' }} />
           </span>
           <span>Work package</span>
         </DropdownMenuItem>
@@ -216,7 +216,7 @@ export function WPSimpleEditor({
       {onInsertTaskRef && (
         <DropdownMenuItem onClick={() => setIsTaskRefOpen(true)} className="flex items-center gap-2">
           <span className="w-16 flex justify-start shrink-0">
-            <span style={{ display: 'inline-block', width: '22px', height: '14px', borderRadius: '9999px', border: '1.5px solid #2563EB', background: '#ffffff' }} />
+            <span style={{ display: 'inline-block', width: '22px', height: '14px', borderRadius: '9999px', border: '1.5px solid #73C92D', background: '#ffffff' }} />
           </span>
           <span>Task</span>
         </DropdownMenuItem>
@@ -224,7 +224,7 @@ export function WPSimpleEditor({
       {onInsertDeliverableRef && (
         <DropdownMenuItem onClick={() => setIsDeliverableRefOpen(true)} className="flex items-center gap-2">
           <span className="w-16 flex justify-start shrink-0">
-            <span style={{ display: 'inline-block', width: '22px', height: '14px', background: '#2563EB', clipPath: 'polygon(0% 0%, calc(100% - 6px) 0%, 100% 50%, calc(100% - 6px) 100%, 0% 100%)', position: 'relative' }}>
+            <span style={{ display: 'inline-block', width: '22px', height: '14px', background: '#73C92D', clipPath: 'polygon(0% 0%, calc(100% - 6px) 0%, 100% 50%, calc(100% - 6px) 100%, 0% 100%)', position: 'relative' }}>
               <span style={{ position: 'absolute', inset: '1.5px', right: '2px', background: '#ffffff', clipPath: 'polygon(0% 0%, calc(100% - 5px) 0%, 100% 50%, calc(100% - 5px) 100%, 0% 100%)' }} />
             </span>
           </span>

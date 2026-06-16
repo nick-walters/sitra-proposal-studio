@@ -87,7 +87,7 @@ export const WPReferenceMark = Mark.create<WPReferenceOptions>({
         },
       },
       wpColor: {
-        default: '#2563EB',
+        default: '#73C92D',
         parseHTML: (element) => element.getAttribute('data-wp-color'),
         renderHTML: (attributes) => {
           return {
@@ -119,7 +119,7 @@ export const WPReferenceMark = Mark.create<WPReferenceOptions>({
   },
 
   renderHTML({ HTMLAttributes }) {
-    const color = HTMLAttributes['data-wp-color'] || '#2563EB';
+    const color = HTMLAttributes['data-wp-color'] || '#73C92D';
     const wpNumber = HTMLAttributes['data-wp-number'];
     const wpShortName = HTMLAttributes['data-wp-short-name'];
 
