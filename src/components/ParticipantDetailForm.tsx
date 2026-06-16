@@ -432,6 +432,9 @@ export function ParticipantDetailForm({
         {/* 10. Gender Equality Plan (Enhanced) */}
         <GEPSection
           showGEPSection={showGEPSection}
+          hasGenderEqualityPlan={participant.hasGenderEqualityPlan}
+          onChangeHasGEP={(v) => handleFieldUpdate('hasGenderEqualityPlan', v)}
+          canEdit={canEdit}
         />
 
         {/* 11. Ownership Control Declaration (hidden for public bodies) */}
