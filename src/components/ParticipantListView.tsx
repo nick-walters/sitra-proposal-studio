@@ -441,7 +441,7 @@ function ParticipantCard({
   );
 }
 
-function SortableParticipantCard({ participant, proposalId, onSelect, canReorder, canEdit, wpLeadership, caseLeadership, onFetchLogo, isFetchingLogo, onUpdateParticipant }: SortableParticipantCardProps) {
+function SortableParticipantCard({ participant, proposalId, onSelect, canReorder, canEdit, wpLeadership, caseLeadership, caseIncludeNumber, onFetchLogo, isFetchingLogo, onUpdateParticipant }: SortableParticipantCardProps) {
   const {
     attributes,
     listeners,
@@ -468,6 +468,7 @@ function SortableParticipantCard({ participant, proposalId, onSelect, canReorder
         canEdit={canEdit}
         wpLeadership={wpLeadership}
         caseLeadership={caseLeadership}
+        caseIncludeNumber={caseIncludeNumber}
         dragHandleProps={{ ...attributes, ...listeners }}
         isDragging={isDragging}
         onFetchLogo={onFetchLogo}
