@@ -28,6 +28,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useProposalRole } from '@/hooks/useProposalRole';
 import { useOCD } from '@/hooks/useOCD';
 import { toast } from 'sonner';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   DndContext,
   closestCenter,
@@ -97,6 +98,7 @@ interface ParticipantCardProps {
   canEdit: boolean;
   wpLeadership?: WPLeadershipInfo[];
   caseLeadership?: CaseLeadershipInfo[];
+  caseIncludeNumber?: boolean;
   dragHandleProps?: Record<string, unknown>;
   isDragging?: boolean;
   onFetchLogo?: () => void;
@@ -112,6 +114,7 @@ interface SortableParticipantCardProps {
   canEdit: boolean;
   wpLeadership?: WPLeadershipInfo[];
   caseLeadership?: CaseLeadershipInfo[];
+  caseIncludeNumber?: boolean;
   onFetchLogo?: () => void;
   isFetchingLogo?: boolean;
   onUpdateParticipant?: (id: string, updates: Partial<Participant>) => Promise<void>;
@@ -128,6 +131,7 @@ function ParticipantCard({
   canEdit,
   wpLeadership,
   caseLeadership,
+  caseIncludeNumber = true,
   dragHandleProps,
   isDragging,
   onFetchLogo,
@@ -367,22 +371,28 @@ function ParticipantCard({
               ))
             )}
             {caseLeadership && caseLeadership.length > 0 && (
-              caseLeadership.map((c) => (
-                <Tooltip key={`case-${c.caseNumber}`}>
-                  <TooltipTrigger asChild>
-                    <B31Pill
-                      variant="outline"
-                      color="#000000"
-                      style={{ fontSize: '12px', height: 'auto', padding: '1.5px 6px' }}
-                    >
-                      {c.prefix ? `${c.prefix}${c.caseNumber}` : (c.shortName || c.caseNumber)}
-                    </B31Pill>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {c.shortName ? `${c.shortName} (Lead)` : `${c.prefix ? `${c.prefix}${c.caseNumber}` : c.caseNumber} Lead`}
-                  </TooltipContent>
-                </Tooltip>
-              ))
+              caseLeadership.map((c) => {
+                const numberLabel = c.prefix ? `${c.prefix}${c.caseNumber}` : String(c.caseNumber);
+                const displayLabel = caseIncludeNumber
+                  ? numberLabel
+                  : (c.shortName || numberLabel);
+                return (
+                  <Tooltip key={`case-${c.caseNumber}`}>
+                    <TooltipTrigger asChild>
+                      <B31Pill
+                        variant="outline"
+                        color="#000000"
+                        style={{ fontSize: '12px', height: 'auto', padding: '1.5px 6px' }}
+                      >
+                        {displayLabel}
+                      </B31Pill>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {c.shortName ? `${c.shortName} (Lead)` : `${numberLabel} Lead`}
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              })
             )}
           </div>
           
@@ -431,7 +441,7 @@ function ParticipantCard({
   );
 }
 
-function SortableParticipantCard({ participant, proposalId, onSelect, canReorder, canEdit, wpLeadership, caseLeadership, onFetchLogo, isFetchingLogo, onUpdateParticipant }: SortableParticipantCardProps) {
+function SortableParticipantCard({ participant, proposalId, onSelect, canReorder, canEdit, wpLeadership, caseLeadership, caseIncludeNumber, onFetchLogo, isFetchingLogo, onUpdateParticipant }: SortableParticipantCardProps) {
   const {
     attributes,
     listeners,
@@ -458,6 +468,7 @@ function SortableParticipantCard({ participant, proposalId, onSelect, canReorder
         canEdit={canEdit}
         wpLeadership={wpLeadership}
         caseLeadership={caseLeadership}
+        caseIncludeNumber={caseIncludeNumber}
         dragHandleProps={{ ...attributes, ...listeners }}
         isDragging={isDragging}
         onFetchLogo={onFetchLogo}
@@ -495,6 +506,35 @@ export function ParticipantListView({
   const isAdmin = roleTier === 'coordinator';
   const ocd = useOCD(proposalId);
   const templateInputRef = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
+
+  // Fetch case display setting (whether to show numbers vs short names on case bubbles)
+  const { data: caseSettings } = useQuery({
+    queryKey: ['case-settings', proposalId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('proposals')
+        .select('case_include_number')
+        .eq('id', proposalId)
+        .maybeSingle() as { data: { case_include_number: boolean | null } | null };
+      return data;
+    },
+    enabled: !!proposalId,
+  });
+  const caseIncludeNumber: boolean = caseSettings?.case_include_number !== false;
+
+  // Listen for cross-ref data changes so WP / Case leadership badges update in real time
+  // when a lead is changed in WPManagementCard or CaseManagementCard.
+  useEffect(() => {
+    if (!proposalId) return;
+    const handler = () => {
+      queryClient.invalidateQueries({ queryKey: ['wp-leadership', proposalId] });
+      queryClient.invalidateQueries({ queryKey: ['case-leadership', proposalId] });
+      queryClient.invalidateQueries({ queryKey: ['case-settings', proposalId] });
+    };
+    window.addEventListener('cross-ref-data-changed', handler);
+    return () => window.removeEventListener('cross-ref-data-changed', handler);
+  }, [proposalId, queryClient]);
 
   // Extract guidelines from section
   const officialGuidelines = useMemo(() => {
@@ -744,6 +784,7 @@ export function ParticipantListView({
                             canEdit={canEdit}
                             wpLeadership={wpLeadership[participant.id]}
                             caseLeadership={caseLeadership[participant.id]}
+                            caseIncludeNumber={caseIncludeNumber}
                             onFetchLogo={() => handleFetchLogo(participant)}
                             isFetchingLogo={fetchingLogoFor === participant.id}
                             onUpdateParticipant={onUpdateParticipant}
@@ -774,6 +815,7 @@ export function ParticipantListView({
                         canEdit={canEdit}
                         wpLeadership={wpLeadership[participant.id]}
                         caseLeadership={caseLeadership[participant.id]}
+                        caseIncludeNumber={caseIncludeNumber}
                         onFetchLogo={onUpdateParticipant ? () => handleFetchLogo(participant) : undefined}
                         isFetchingLogo={fetchingLogoFor === participant.id}
                         onUpdateParticipant={onUpdateParticipant}
