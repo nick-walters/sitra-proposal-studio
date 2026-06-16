@@ -448,7 +448,7 @@ export function VersionComparisonDialog({
                     <ScrollArea className="h-[310px]">
                       <div 
                         className="p-3 prose prose-sm max-w-none dark:prose-invert"
-                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(rightHtml || '<p class="text-muted-foreground italic">No content</p>', { ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'ul', 'ol', 'li', 'span', 'a', 'h1', 'h2', 'h3', 'h4', 'sub', 'sup', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'img', 'del', 'ins', 'mark'], ALLOWED_ATTR: ['class', 'style', 'href', 'target', 'rel', 'src', 'alt', 'width', 'height', 'colspan', 'rowspan', 'data-diff'] }) }}
+                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(rightHtml || '<p class="text-muted-foreground italic">No content</p>', RICH_TEXT_WITH_DIFF_CONFIG) }}
                       />
                     </ScrollArea>
                   </div>
