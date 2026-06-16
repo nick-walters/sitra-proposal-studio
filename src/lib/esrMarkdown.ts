@@ -76,27 +76,11 @@ function parseRuns(text: string): Run[] {
 }
 
 // British date formatting helper: "24th April 2026 14:35"
-export function formatBritishDateTime(date: Date): string {
-  const day = date.getDate();
-  const suffix = ordinalSuffix(day);
-  const months = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December",
-  ];
-  const month = months[date.getMonth()];
-  const year = date.getFullYear();
-  const hh = String(date.getHours()).padStart(2, "0");
-  const mm = String(date.getMinutes()).padStart(2, "0");
-  return `${day}${suffix} ${month} ${year} ${hh}:${mm}`;
-}
+// Thin re-export over the shared formatter (src/lib/formatDate.ts) to remove
+// duplication. Output is identical to formatDateTime. Kept under this name
+// because external call sites import it from this module.
+import { formatDateTime } from "@/lib/formatDate";
 
-function ordinalSuffix(n: number): string {
-  const v = n % 100;
-  if (v >= 11 && v <= 13) return "th";
-  switch (n % 10) {
-    case 1: return "st";
-    case 2: return "nd";
-    case 3: return "rd";
-    default: return "th";
-  }
+export function formatBritishDateTime(date: Date): string {
+  return formatDateTime(date);
 }
