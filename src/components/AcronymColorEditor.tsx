@@ -320,6 +320,27 @@ export function AcronymColorEditor({ acronym, segments, onChange, onAcronymChang
         setSelStart(0);
         setSelEnd(chars.length - 1);
       }
+    } else if ((e.key === ' ' || e.key === 'Space' || e.key === 'Spacebar') && !e.metaKey && !e.ctrlKey) {
+      e.preventDefault();
+      // Inherit color from character at cursor position (before cursor), or after cursor, or default black
+      const colorAtCursor = cursorPos > 0 ? chars[cursorPos - 1].color : (chars.length > 0 ? chars[0].color : '#000000');
+
+      if (range) {
+        const [start, end] = range;
+        const newChars = [...chars];
+        newChars.splice(start, end - start + 1, { char: ' ', color: colorAtCursor });
+        setInternalChars(newChars);
+        setCursorPos(start + 1);
+        setSelStart(null);
+        setSelEnd(null);
+        flushToParent(newChars);
+      } else {
+        const newChars = [...chars];
+        newChars.splice(cursorPos, 0, { char: ' ', color: colorAtCursor });
+        setInternalChars(newChars);
+        setCursorPos(cursorPos + 1);
+        flushToParent(newChars);
+      }
     } else if (e.key.length === 1 && !e.metaKey && !e.ctrlKey) {
       e.preventDefault();
       // Inherit color from character at cursor position (before cursor), or after cursor, or default black
