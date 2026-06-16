@@ -91,6 +91,7 @@ export function Dashboard() {
         createdAt: new Date(row.created_at),
         updatedAt: new Date(row.updated_at),
         description: row.description || undefined,
+        acronymSegments: (row as any).acronym_segments || undefined,
         sections: HORIZON_EUROPE_SECTIONS,
         members: [],
       }));
