@@ -287,7 +287,7 @@ export function ProposalCard({ proposal, onClick, compact = false, isPinned, can
 
             {/* Acronym and title */}
             <h3 className="proposal-title text-sm font-semibold group-hover:text-primary transition-colors">
-              {proposal.acronym}
+              <ColoredAcronym acronym={proposal.acronym} segments={proposal.acronymSegments} />
               {proposal.submissionStage === 'stage_1' && <span className="font-normal text-muted-foreground"> (Stage 1 of 2)</span>}
             </h3>
             <p className="text-muted-foreground text-[11px] line-clamp-2">
