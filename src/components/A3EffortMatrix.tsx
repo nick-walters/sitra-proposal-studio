@@ -214,7 +214,7 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
                                 (participants || []).filter(p => !lockedParticipants.has(p.id)).forEach(p => lockRow(p.id));
                               }
                             }}
-                          >
+                           aria-label="Lock" title="Lock">
                             {(participants || []).length > 0 && (participants || []).every(p => lockedParticipants.has(p.id))
                               ? <Lock className="w-3.5 h-3.5 text-destructive" />
                               : <Unlock className="w-3.5 h-3.5 text-green-600" />}
@@ -270,7 +270,7 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
                             size="icon"
                             className="h-6 w-6 shrink-0"
                             onClick={() => isLocked ? unlockRow(p.id) : lockRow(p.id)}
-                          >
+                           aria-label="Lock" title="Lock">
                             {isLocked ? <Lock className="w-3 h-3 text-destructive" /> : <Unlock className="w-3 h-3 text-green-600" />}
                           </Button>
                         )}

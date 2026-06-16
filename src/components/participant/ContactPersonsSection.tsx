@@ -675,7 +675,7 @@ export function ContactPersonsSection({
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleCancelEdit}>
                           <X className="w-4 h-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-primary" onClick={() => handleSaveEdit(member.id)}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-primary" onClick={() => handleSaveEdit(member.id)} aria-label="Confirm" title="Confirm">
                           <Check className="w-4 h-4" />
                         </Button>
                       </div>
@@ -709,7 +709,7 @@ export function ContactPersonsSection({
                                 size="icon"
                                 className="h-7 w-7 text-muted-foreground"
                                 onClick={() => handleStartEdit(member)}
-                              >
+                               aria-label="Edit" title="Edit">
                                 <Edit2 className="w-3.5 h-3.5" />
                               </Button>
                             </TooltipTrigger>
@@ -726,7 +726,7 @@ export function ContactPersonsSection({
                                 size="icon"
                                 className={`h-7 w-7 ${isMCP ? 'text-primary' : 'text-muted-foreground'}`}
                                 onClick={() => handleSetMCP(member.id)}
-                              >
+                               aria-label="Crown" title="Crown">
                                 <Crown className={`w-4 h-4 ${isMCP ? 'fill-primary' : ''}`} />
                               </Button>
                             </TooltipTrigger>
@@ -743,7 +743,7 @@ export function ContactPersonsSection({
                                 size="icon"
                                 className="h-7 w-7 text-muted-foreground"
                                 onClick={() => handleCopyToResearchers(member)}
-                              >
+                               aria-label="Copy" title="Copy">
                                 <Copy className="w-3.5 h-3.5" />
                               </Button>
                             </TooltipTrigger>
@@ -775,7 +775,7 @@ export function ContactPersonsSection({
                                       className="h-7 w-7 text-destructive hover:text-destructive"
                                       onClick={() => handleRevokeAccess(member)}
                                       disabled={isRevoking}
-                                    >
+                                     aria-label="Loader2" title="Loader2">
                                       {isRevoking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ShieldOff className="w-3.5 h-3.5" />}
                                     </Button>
                                   </TooltipTrigger>
@@ -804,7 +804,7 @@ export function ContactPersonsSection({
                             size="icon"
                             className="text-destructive hover:text-destructive h-7 w-7"
                             onClick={() => setDeleteConfirm({ id: member.id, name: member.fullName })}
-                          >
+                           aria-label="Delete" title="Delete">
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         )}

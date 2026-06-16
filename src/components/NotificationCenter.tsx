@@ -84,7 +84,7 @@ function NotificationItem({
                 e.stopPropagation();
                 onMarkUnread(notification.id);
               }}
-            >
+             aria-label="Hide" title="Hide">
               <EyeOff className="h-3 w-3" />
             </Button>
           )}
@@ -97,7 +97,7 @@ function NotificationItem({
               e.stopPropagation();
               onDelete(notification.id);
             }}
-          >
+           aria-label="Delete" title="Delete">
             <Trash2 className="h-3 w-3" />
           </Button>
         </div>

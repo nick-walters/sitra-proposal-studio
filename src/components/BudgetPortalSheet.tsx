@@ -854,7 +854,7 @@ export function BudgetPortalSheet({
                                           lockAllRows();
                                         }
                                       }}
-                                    >
+                                     aria-label="Lock" title="Lock">
                                       {rows.every(r => r.isLocked)
                                         ? <Lock className="w-3.5 h-3.5 text-destructive" />
                                         : <Unlock className="w-3.5 h-3.5 text-green-600" />}
@@ -922,7 +922,7 @@ export function BudgetPortalSheet({
                                         size="icon"
                                         className="h-6 w-6"
                                         onClick={() => row.isLocked ? unlockRow(row.id) : lockRow(row.id)}
-                                      >
+                                       aria-label="Lock" title="Lock">
                                         {row.isLocked ? <Lock className="w-3 h-3 text-destructive" /> : <Unlock className="w-3 h-3 text-green-600" />}
                                       </Button>
                                     )}

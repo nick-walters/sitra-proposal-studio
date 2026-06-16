@@ -419,7 +419,7 @@ function TextColorPicker({ editor }: { editor: Editor }) {
                 }
               }}
               title="Apply colour"
-            >
+             aria-label="Confirm" title="Confirm">
               <Check className="w-3.5 h-3.5" />
             </Button>
           </div>

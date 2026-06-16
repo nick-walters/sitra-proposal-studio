@@ -285,7 +285,7 @@ function InstrumentTypesTab() {
                           size="icon"
                           className="h-7 w-7"
                           onClick={() => setExpandedId(expandedId === row.id ? null : row.id)}
-                        >
+                         aria-label="Move down" title="Move down">
                           {expandedId === row.id ? (
                             <ChevronDown className="h-4 w-4" />
                           ) : (
@@ -855,7 +855,7 @@ function PersonasTab() {
                       setEditing(p);
                       setDialogOpen(true);
                     }}
-                  >
+                   aria-label="Edit" title="Edit">
                     <Pencil className="h-4 w-4" />
                   </Button>
                 </div>

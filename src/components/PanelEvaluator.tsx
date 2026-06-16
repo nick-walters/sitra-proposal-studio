@@ -858,7 +858,7 @@ export function PanelEvaluator({ proposalId }: Props) {
                             e.stopPropagation();
                             downloadEsr(h);
                           }}
-                        >
+                         aria-label="Download" title="Download">
                           <Download className="h-4 w-4" />
                         </Button>
                         {isCoordinator && (
@@ -871,7 +871,7 @@ export function PanelEvaluator({ proposalId }: Props) {
                               e.stopPropagation();
                               void deleteEsr(h);
                             }}
-                          >
+                           aria-label="Delete" title="Delete">
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         )}

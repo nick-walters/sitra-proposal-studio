@@ -661,7 +661,7 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, f
                 size="icon"
                 className="h-8 w-8 shrink-0"
                 onClick={() => { setDraftInstructions(data.instructionsText); setEditingInstructions(true); }}
-              >
+               aria-label="Edit" title="Edit">
                 <Pencil className="w-4 h-4" />
               </Button>
             )}

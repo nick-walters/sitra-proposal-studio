@@ -96,7 +96,7 @@ function PinButton({ isPinned, canPin, onTogglePin, proposalId, className = '' }
           className={`h-6 w-6 flex-shrink-0 ${className}`}
           onClick={(e) => { e.stopPropagation(); onTogglePin(proposalId); }}
           disabled={!isPinned && !canPin}
-        >
+         aria-label="Pin" title="Pin">
           <Pin className={`w-3.5 h-3.5 ${isPinned ? 'fill-primary text-primary stroke-[2.5]' : 'text-muted-foreground/30 stroke-[1.5]'}`} />
         </Button>
       </TooltipTrigger>

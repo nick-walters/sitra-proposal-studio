@@ -544,7 +544,7 @@ export function UserRightsAdmin() {
                                             className="h-6 w-6"
                                             title="Remove all access"
                                             onClick={() => setDeleteConfirmUser(u)}
-                                          >
+                                           aria-label="Delete" title="Delete">
                                             <Trash2 className="w-3 h-3 text-destructive" />
                                           </Button>
                                         )}
@@ -582,7 +582,7 @@ export function UserRightsAdmin() {
                                               size="icon"
                                               className="h-6 w-6"
                                               onClick={() => handleRemoveRole(u, r.id, r.proposal_id)}
-                                            >
+                                             aria-label="Delete" title="Delete">
                                               <Trash2 className="w-3 h-3 text-destructive" />
                                             </Button>
                                           )}
