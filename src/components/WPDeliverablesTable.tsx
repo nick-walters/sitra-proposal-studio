@@ -353,7 +353,7 @@ function SortableDeliverableCard({
           {!readOnly && onMove && allWpDrafts.filter(wp => wp.id !== currentWpDraftId).length > 0 && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0">
+                <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0" aria-label="Forward" title="Forward">
                   <ArrowRight className="h-3.5 w-3.5 text-blue-500" />
                 </Button>
               </DropdownMenuTrigger>

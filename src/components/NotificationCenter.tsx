@@ -80,7 +80,7 @@ function NotificationItem({
               size="icon"
               className="h-6 w-6"
               title="Mark as unread"
-              onClick={(e) => {
+              onClick={(e) = aria-label="Hide" title="Hide"> {
                 e.stopPropagation();
                 onMarkUnread(notification.id);
               }}
@@ -93,7 +93,7 @@ function NotificationItem({
             size="icon"
             className="h-6 w-6"
             title="Delete"
-            onClick={(e) => {
+            onClick={(e) = aria-label="Delete" title="Delete"> {
               e.stopPropagation();
               onDelete(notification.id);
             }}
@@ -126,7 +126,7 @@ export function NotificationCenter({ onNotificationClick }: NotificationCenterPr
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
+        <Button variant="ghost" size="icon" className="relative" aria-label="Notifications" title="Notifications">
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
             <Badge 

@@ -59,7 +59,7 @@ export function OrderedListDropdown({
           size="icon"
           className={buttonClassName}
           title="Numbered list"
-        >
+         aria-label="Numbered list" title="Numbered list">
           <ListOrdered className={iconClassName} />
         </Button>
       </DropdownMenuTrigger>

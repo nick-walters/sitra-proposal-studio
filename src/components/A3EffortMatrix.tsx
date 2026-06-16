@@ -206,7 +206,7 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
                             variant="ghost"
                             size="icon"
                             className="h-6 w-6"
-                            onClick={() => {
+                            onClick={() = aria-label="Lock" title="Lock"> {
                               const allLocked = (participants || []).every(p => lockedParticipants.has(p.id));
                               if (allLocked) {
                                 (participants || []).forEach(p => unlockRow(p.id));
@@ -269,7 +269,7 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
                             variant="ghost"
                             size="icon"
                             className="h-6 w-6 shrink-0"
-                            onClick={() => isLocked ? unlockRow(p.id) : lockRow(p.id)}
+                            onClick={() = aria-label="Lock" title="Lock"> isLocked ? unlockRow(p.id) : lockRow(p.id)}
                           >
                             {isLocked ? <Lock className="w-3 h-3 text-destructive" /> : <Unlock className="w-3 h-3 text-green-600" />}
                           </Button>

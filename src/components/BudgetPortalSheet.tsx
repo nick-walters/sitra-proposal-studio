@@ -846,7 +846,7 @@ export function BudgetPortalSheet({
                                       variant="ghost"
                                       size="icon"
                                       className="h-6 w-6"
-                                      onClick={() => {
+                                      onClick={() = aria-label="Lock" title="Lock"> {
                                         const allLocked = rows.every(r => r.isLocked);
                                         if (allLocked) {
                                           unlockAllRows();
@@ -921,7 +921,7 @@ export function BudgetPortalSheet({
                                         variant="ghost"
                                         size="icon"
                                         className="h-6 w-6"
-                                        onClick={() => row.isLocked ? unlockRow(row.id) : lockRow(row.id)}
+                                        onClick={() = aria-label="Lock" title="Lock"> row.isLocked ? unlockRow(row.id) : lockRow(row.id)}
                                       >
                                         {row.isLocked ? <Lock className="w-3 h-3 text-destructive" /> : <Unlock className="w-3 h-3 text-green-600" />}
                                       </Button>

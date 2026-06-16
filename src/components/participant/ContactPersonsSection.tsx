@@ -675,7 +675,7 @@ export function ContactPersonsSection({
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleCancelEdit}>
                           <X className="w-4 h-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-primary" onClick={() => handleSaveEdit(member.id)}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-primary" onClick={() = aria-label="Confirm" title="Confirm"> handleSaveEdit(member.id)}>
                           <Check className="w-4 h-4" />
                         </Button>
                       </div>
@@ -708,7 +708,7 @@ export function ContactPersonsSection({
                                 variant="ghost"
                                 size="icon"
                                 className="h-7 w-7 text-muted-foreground"
-                                onClick={() => handleStartEdit(member)}
+                                onClick={() = aria-label="Edit" title="Edit"> handleStartEdit(member)}
                               >
                                 <Edit2 className="w-3.5 h-3.5" />
                               </Button>
@@ -725,7 +725,7 @@ export function ContactPersonsSection({
                                 variant="ghost"
                                 size="icon"
                                 className={`h-7 w-7 ${isMCP ? 'text-primary' : 'text-muted-foreground'}`}
-                                onClick={() => handleSetMCP(member.id)}
+                                onClick={() = aria-label="Crown" title="Crown"> handleSetMCP(member.id)}
                               >
                                 <Crown className={`w-4 h-4 ${isMCP ? 'fill-primary' : ''}`} />
                               </Button>
@@ -742,7 +742,7 @@ export function ContactPersonsSection({
                                 variant="ghost"
                                 size="icon"
                                 className="h-7 w-7 text-muted-foreground"
-                                onClick={() => handleCopyToResearchers(member)}
+                                onClick={() = aria-label="Copy" title="Copy"> handleCopyToResearchers(member)}
                               >
                                 <Copy className="w-3.5 h-3.5" />
                               </Button>
@@ -773,7 +773,7 @@ export function ContactPersonsSection({
                                       variant="ghost"
                                       size="icon"
                                       className="h-7 w-7 text-destructive hover:text-destructive"
-                                      onClick={() => handleRevokeAccess(member)}
+                                      onClick={() = aria-label="Loader2" title="Loader2"> handleRevokeAccess(member)}
                                       disabled={isRevoking}
                                     >
                                       {isRevoking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ShieldOff className="w-3.5 h-3.5" />}
@@ -803,7 +803,7 @@ export function ContactPersonsSection({
                             variant="ghost"
                             size="icon"
                             className="text-destructive hover:text-destructive h-7 w-7"
-                            onClick={() => setDeleteConfirm({ id: member.id, name: member.fullName })}
+                            onClick={() = aria-label="Delete" title="Delete"> setDeleteConfirm({ id: member.id, name: member.fullName })}
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>

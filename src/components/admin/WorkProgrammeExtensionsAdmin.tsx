@@ -198,14 +198,14 @@ export function WorkProgrammeExtensionsAdmin() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => openEditDialog(extension)}
+                        onClick={() = aria-label="Edit" title="Edit"> openEditDialog(extension)}
                       >
                         <Pencil className="w-4 h-4" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => {
+                        onClick={() = aria-label="Delete" title="Delete"> {
                           setDeletingId(extension.id);
                           setDeleteDialogOpen(true);
                         }}

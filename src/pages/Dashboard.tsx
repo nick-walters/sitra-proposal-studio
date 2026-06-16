@@ -726,7 +726,7 @@ export function Dashboard() {
                 variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
                 size="icon"
                 className="h-8 w-8 rounded-r-none"
-                onClick={() => setViewMode('grid')}
+                onClick={() = aria-label="Layout Grid" title="Layout Grid"> setViewMode('grid')}
                 title="Grid view"
               >
                 <LayoutGrid className="w-4 h-4" />
@@ -735,7 +735,7 @@ export function Dashboard() {
                 variant={viewMode === 'list' ? 'secondary' : 'ghost'}
                 size="icon"
                 className="h-8 w-8 rounded-none border-x"
-                onClick={() => setViewMode('list')}
+                onClick={() = aria-label="List" title="List"> setViewMode('list')}
                 title="List view"
               >
                 <List className="w-4 h-4" />
@@ -744,7 +744,7 @@ export function Dashboard() {
                 variant={viewMode === 'table' ? 'secondary' : 'ghost'}
                 size="icon"
                 className="h-8 w-8 rounded-none"
-                onClick={() => setViewMode('table')}
+                onClick={() = aria-label="Table2" title="Table2"> setViewMode('table')}
                 title="Table view"
               >
                 <Table2 className="w-4 h-4" />
@@ -753,7 +753,7 @@ export function Dashboard() {
                 variant={viewMode === 'kanban' ? 'secondary' : 'ghost'}
                 size="icon"
                 className="h-8 w-8 rounded-l-none"
-                onClick={() => setViewMode('kanban')}
+                onClick={() = aria-label="Columns3" title="Columns3"> setViewMode('kanban')}
                 title="Kanban board"
               >
                 <Columns3 className="w-4 h-4" />

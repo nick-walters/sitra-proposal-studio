@@ -284,7 +284,7 @@ function InstrumentTypesTab() {
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7"
-                          onClick={() => setExpandedId(expandedId === row.id ? null : row.id)}
+                          onClick={() = aria-label="Move down" title="Move down"> setExpandedId(expandedId === row.id ? null : row.id)}
                         >
                           {expandedId === row.id ? (
                             <ChevronDown className="h-4 w-4" />
@@ -851,7 +851,7 @@ function PersonasTab() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => {
+                    onClick={() = aria-label="Edit" title="Edit"> {
                       setEditing(p);
                       setDialogOpen(true);
                     }}

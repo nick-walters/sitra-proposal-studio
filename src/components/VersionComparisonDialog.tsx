@@ -319,7 +319,7 @@ export function VersionComparisonDialog({
                 size="icon" 
                 onClick={swapVersions}
                 className="mt-5"
-              >
+               aria-label="Arrow Left Right" title="Arrow Left Right">
                 <ArrowLeftRight className="w-4 h-4" />
               </Button>
               

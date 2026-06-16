@@ -854,7 +854,7 @@ export function PanelEvaluator({ proposalId }: Props) {
                           size="icon"
                           className="h-7 w-7"
                           title="Download ESR (PDF)"
-                          onClick={(e) => {
+                          onClick={(e) = aria-label="Download" title="Download"> {
                             e.stopPropagation();
                             downloadEsr(h);
                           }}
@@ -867,7 +867,7 @@ export function PanelEvaluator({ proposalId }: Props) {
                             size="icon"
                             className="h-7 w-7 text-destructive hover:text-destructive"
                             title="Delete ESR"
-                            onClick={(e) => {
+                            onClick={(e) = aria-label="Delete" title="Delete"> {
                               e.stopPropagation();
                               void deleteEsr(h);
                             }}

@@ -411,7 +411,7 @@ export function FeedbackDetail({ feedbackId, onBack, onDeleted }: FeedbackDetail
                         variant="ghost"
                         size="icon"
                         className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity ml-auto"
-                        onClick={() => handleDeleteComment(c.id)}
+                        onClick={() = aria-label="Delete" title="Delete"> handleDeleteComment(c.id)}
                       >
                         <Trash2 className="w-3 h-3 text-muted-foreground" />
                       </Button>
@@ -441,7 +441,7 @@ export function FeedbackDetail({ feedbackId, onBack, onDeleted }: FeedbackDetail
                 onClick={handleSendComment}
                 disabled={sending || !newComment.trim()}
                 className="shrink-0 self-end"
-              >
+               aria-label="Loader2" title="Loader2">
                 {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               </Button>
             </div>

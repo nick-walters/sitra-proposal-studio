@@ -701,7 +701,7 @@ export function CollaboratorsDialog({ open, onOpenChange }: CollaboratorsDialogP
                                       variant="ghost"
                                       size="icon"
                                       className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-                                      onClick={() => handleRemoveFromProposal(collab)}
+                                      onClick={() = aria-label="Delete" title="Delete"> handleRemoveFromProposal(collab)}
                                     >
                                       <Trash2 className="w-3 h-3 text-destructive" />
                                     </Button>
