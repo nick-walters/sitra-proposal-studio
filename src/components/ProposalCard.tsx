@@ -5,15 +5,7 @@ import { Calendar, FileText, ArrowRight, Send, CheckCircle2, XCircle, Clock, Ext
 import { format, differenceInDays } from "date-fns";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { StorageImage } from "@/components/StorageImage";
-
-function ColoredAcronym({ acronym, segments }: { acronym: string; segments?: { text: string; color: string }[] }) {
-  if (segments && segments.length > 0) {
-    return <>{segments.map((seg, i) => (
-      <span key={i} style={{ color: seg.color, whiteSpace: 'pre' }}>{seg.text}</span>
-    ))}</>;
-  }
-  return <>{acronym}</>;
-}
+import { ColoredAcronym } from "@/components/AcronymColorEditor";
 
 interface ProposalCardProps {
   proposal: Proposal;
@@ -153,7 +145,11 @@ export function ProposalCard({ proposal, onClick, compact = false, isPinned, can
             {/* Acronym and title - fixed width column */}
             <div className="sm:w-64 md:w-80 lg:w-96 flex-shrink-0">
               <div className="font-semibold text-sm">
-                <ColoredAcronym acronym={proposal.acronym} segments={proposal.acronymSegments} />
+                {proposal.acronymSegments?.length ? (
+                  <ColoredAcronym segments={proposal.acronymSegments} />
+                ) : (
+                  proposal.acronym
+                )}
                 {proposal.submissionStage === 'stage_1' && <span className="font-normal text-muted-foreground"> (Stage 1 of 2)</span>}
               </div>
               <div className="text-xs text-muted-foreground truncate">{proposal.title}</div>
@@ -296,7 +292,11 @@ export function ProposalCard({ proposal, onClick, compact = false, isPinned, can
 
             {/* Acronym and title */}
             <h3 className="proposal-title text-sm font-semibold group-hover:text-primary transition-colors">
-              <ColoredAcronym acronym={proposal.acronym} segments={proposal.acronymSegments} />
+              {proposal.acronymSegments?.length ? (
+                <ColoredAcronym segments={proposal.acronymSegments} />
+              ) : (
+                proposal.acronym
+              )}
               {proposal.submissionStage === 'stage_1' && <span className="font-normal text-muted-foreground"> (Stage 1 of 2)</span>}
             </h3>
             <p className="text-muted-foreground text-[11px] line-clamp-2">
