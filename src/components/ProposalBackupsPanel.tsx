@@ -95,11 +95,7 @@ export function ProposalBackupsPanel({ proposalId }: Props) {
     window.open(data.signedUrl, "_blank", "noopener,noreferrer");
   };
 
-  const fmtSize = (n: number) => {
-    if (n < 1024) return `${n} B`;
-    if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-    return `${(n / 1024 / 1024).toFixed(2)} MB`;
-  };
+  const fmtSize = (n: number) => formatFileSize(n);
 
   const fileNameOf = (path: string) => path.split("/").pop() ?? path;
 
