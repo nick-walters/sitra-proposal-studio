@@ -16,6 +16,7 @@ import {
 import { Download, CheckCircle2, XCircle, MinusCircle, Clock, FileText, RefreshCw, Play, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { formatFileSize } from "@/lib/formatNumber";
 
 interface BackupRow {
   id: string;
