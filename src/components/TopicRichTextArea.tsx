@@ -222,7 +222,7 @@ export function TopicRichTextArea({
                     data-placeholder="Enter reference (paste links supported)..."
                   />
                 ) : (
-                  <span className="text-muted-foreground [&_a]:text-primary [&_a]:underline" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(fn.text || '–', { ALLOWED_TAGS: ['em', 'strong', 'a', 'br', 'sup', 'span'], ALLOWED_ATTR: ['href', 'target', 'rel', 'style'] }) }} />
+                  <span className="text-muted-foreground [&_a]:text-primary [&_a]:underline" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(fn.text || '–', FOOTNOTE_CONFIG) }} />
                 )}
               </div>
             );
