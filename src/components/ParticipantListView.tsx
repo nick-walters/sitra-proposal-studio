@@ -98,6 +98,7 @@ interface ParticipantCardProps {
   canEdit: boolean;
   wpLeadership?: WPLeadershipInfo[];
   caseLeadership?: CaseLeadershipInfo[];
+  caseIncludeNumber?: boolean;
   dragHandleProps?: Record<string, unknown>;
   isDragging?: boolean;
   onFetchLogo?: () => void;
