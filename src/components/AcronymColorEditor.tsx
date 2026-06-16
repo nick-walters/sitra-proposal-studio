@@ -320,7 +320,7 @@ export function AcronymColorEditor({ acronym, segments, onChange, onAcronymChang
         setSelStart(0);
         setSelEnd(chars.length - 1);
       }
-      e.preventDefault();
+    } else if (e.key.length === 1 && !e.metaKey && !e.ctrlKey) {
       // Inherit color from character at cursor position (before cursor), or after cursor, or default black
       const colorAtCursor = cursorPos > 0 ? chars[cursorPos - 1].color : (chars.length > 0 ? chars[0].color : '#000000');
 
