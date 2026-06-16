@@ -131,6 +131,7 @@ function ParticipantCard({
   canEdit,
   wpLeadership,
   caseLeadership,
+  caseIncludeNumber = true,
   dragHandleProps,
   isDragging,
   onFetchLogo,
