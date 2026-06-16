@@ -182,7 +182,7 @@ export function BudgetPortalSheet({
     const pmFmt = { numFmt: '0.0' };
 
     // Helper to apply styles to header row
-    const styleHeaders = (ws: XLSX.WorkSheet, rowNum: number, colCount: number) => {
+    const styleHeaders = (ws: XLSXNS.WorkSheet, rowNum: number, colCount: number) => {
       for (let c = 0; c < colCount; c++) {
         const ref = colLetter(c) + rowNum;
         if (ws[ref]) ws[ref].s = bold;
@@ -190,7 +190,7 @@ export function BudgetPortalSheet({
     };
 
     // Helper to apply styles to a row
-    const styleRow = (ws: XLSX.WorkSheet, rowNum: number, colCount: number, style: any) => {
+    const styleRow = (ws: XLSXNS.WorkSheet, rowNum: number, colCount: number, style: any) => {
       for (let c = 0; c < colCount; c++) {
         const ref = colLetter(c) + rowNum;
         if (ws[ref]) ws[ref].s = { ...ws[ref].s, ...style };
@@ -198,7 +198,7 @@ export function BudgetPortalSheet({
     };
 
     // Helper to bold an entire column
-    const styleCol = (ws: XLSX.WorkSheet, colIdx: number, startRow: number, endRow: number) => {
+    const styleCol = (ws: XLSXNS.WorkSheet, colIdx: number, startRow: number, endRow: number) => {
       const cl = colLetter(colIdx);
       for (let r = startRow; r <= endRow; r++) {
         const ref = cl + r;
@@ -207,7 +207,7 @@ export function BudgetPortalSheet({
     };
 
     // Helper to auto-fit column widths based on content
-    const autoFitCols = (ws: XLSX.WorkSheet, aoa: any[][]) => {
+    const autoFitCols = (ws: XLSXNS.WorkSheet, aoa: any[][]) => {
       const colWidths: number[] = [];
       for (const row of aoa) {
         row.forEach((cell: any, i: number) => {
