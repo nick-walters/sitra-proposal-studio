@@ -116,8 +116,15 @@ serve(async (req) => {
 
     const { proposalId, participantId } = await req.json();
 
-    if (!proposalId || !participantId) {
-      return new Response(JSON.stringify({ error: "Missing proposalId or participantId" }), {
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!proposalId || typeof proposalId !== "string" || !UUID_RE.test(proposalId)) {
+      return new Response(JSON.stringify({ error: "Invalid proposalId" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (!participantId || typeof participantId !== "string" || !UUID_RE.test(participantId)) {
+      return new Response(JSON.stringify({ error: "Invalid participantId" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
