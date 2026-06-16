@@ -189,7 +189,7 @@ export function createCitationTooltipPlugin(
       .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
       .replace(/\*([^*]+)\*/g, '<em>$1</em>');
 
-    tooltip.innerHTML = DOMPurify.sanitize(formattedContent, { ALLOWED_TAGS: ['em', 'strong'] });
+    tooltip.innerHTML = DOMPurify.sanitize(formattedContent, INLINE_EMPHASIS_CONFIG);
     tooltip.style.display = 'block';
     
     // Position tooltip above the citation
