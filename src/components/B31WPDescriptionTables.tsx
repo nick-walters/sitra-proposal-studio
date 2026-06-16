@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
 import DOMPurify from 'dompurify';
+import { RICH_TEXT_CONFIG } from '@/lib/sanitizePresets';
 import { Button } from '@/components/ui/button';
 import {
   DndContext,
@@ -412,8 +413,8 @@ function EditableText({
   const Tag = inline ? 'span' : 'div';
 
   const displayHtml = (!focused && isEmpty)
-    ? DOMPurify.sanitize(placeholder || '', { ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'ul', 'ol', 'li', 'span', 'a', 'h1', 'h2', 'h3', 'h4', 'sub', 'sup', 'table', 'thead', 'tbody', 'tr', 'th', 'td'], ALLOWED_ATTR: ['class', 'style', 'href', 'target', 'rel', 'colspan', 'rowspan'] })
-    : DOMPurify.sanitize(value || '', { ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'ul', 'ol', 'li', 'span', 'a', 'h1', 'h2', 'h3', 'h4', 'sub', 'sup', 'table', 'thead', 'tbody', 'tr', 'th', 'td'], ALLOWED_ATTR: ['class', 'style', 'href', 'target', 'rel', 'colspan', 'rowspan'] });
+    ? DOMPurify.sanitize(placeholder || '', RICH_TEXT_CONFIG)
+    : DOMPurify.sanitize(value || '', RICH_TEXT_CONFIG);
 
   return (
     <Tag

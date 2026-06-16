@@ -1,11 +1,7 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
 import DOMPurify from 'dompurify';
 import { cn } from '@/lib/utils';
-
-const SANITIZE_CONFIG = {
-  ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'ul', 'ol', 'li', 'span', 'a', 'h1', 'h2', 'h3', 'h4', 'sub', 'sup', 'table', 'thead', 'tbody', 'tr', 'th', 'td'],
-  ALLOWED_ATTR: ['class', 'style', 'href', 'target', 'rel', 'colspan', 'rowspan'],
-};
+import { RICH_TEXT_CONFIG as SANITIZE_CONFIG, FOOTNOTE_CONFIG } from '@/lib/sanitizePresets';
 
 /** Strip Word/XML artifacts (mso-*, borders, backgrounds) from HTML */
 function stripXmlArtifacts(html: string): string {
@@ -215,7 +211,7 @@ export function TopicRichTextArea({
                     contentEditable
                     suppressContentEditableWarning
                     className="flex-1 bg-transparent border-b border-dashed border-muted-foreground/30 outline-none text-xs py-0.5 focus:border-primary [&_a]:text-primary [&_a]:underline"
-                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(fn.text || '', { ALLOWED_TAGS: ['em', 'strong', 'a', 'br', 'sup', 'span'], ALLOWED_ATTR: ['href', 'target', 'rel', 'style'] }) }}
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(fn.text || '', FOOTNOTE_CONFIG) }}
                     onBlur={(e) => {
                       if (onFootnotesChange) {
                         const updated = [...footnotes];
@@ -226,7 +222,7 @@ export function TopicRichTextArea({
                     data-placeholder="Enter reference (paste links supported)..."
                   />
                 ) : (
-                  <span className="text-muted-foreground [&_a]:text-primary [&_a]:underline" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(fn.text || '–', { ALLOWED_TAGS: ['em', 'strong', 'a', 'br', 'sup', 'span'], ALLOWED_ATTR: ['href', 'target', 'rel', 'style'] }) }} />
+                  <span className="text-muted-foreground [&_a]:text-primary [&_a]:underline" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(fn.text || '–', FOOTNOTE_CONFIG) }} />
                 )}
               </div>
             );
@@ -278,7 +274,7 @@ export function TopicRichTextReadonly({ html, footnotes = [], emptyMessage = '�
           {footnotes.map((fn, idx) => (
             <div key={fn.id} className="flex items-start gap-1.5 text-xs text-muted-foreground">
               <span className="text-primary font-semibold text-[10px] shrink-0" style={{ marginTop: '1.5px' }}>{footnoteStartNumber + idx}</span>
-              <span className="[&_a]:text-primary [&_a]:underline [&_a]:cursor-pointer" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(fn.text || '–', { ALLOWED_TAGS: ['em', 'strong', 'a', 'br', 'sup', 'span'], ALLOWED_ATTR: ['href', 'target', 'rel', 'style'] }) }} />
+              <span className="[&_a]:text-primary [&_a]:underline [&_a]:cursor-pointer" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(fn.text || '–', FOOTNOTE_CONFIG) }} />
             </div>
           ))}
         </div>

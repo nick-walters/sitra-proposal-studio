@@ -2,6 +2,7 @@ import { Mark, Node, mergeAttributes } from '@tiptap/core';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import DOMPurify from 'dompurify';
+import { INLINE_EMPHASIS_CONFIG } from '@/lib/sanitizePresets';
 
 export interface CitationMarkOptions {
   getReference: (citationNumber: number) => { citation: string } | undefined;
@@ -188,7 +189,7 @@ export function createCitationTooltipPlugin(
       .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
       .replace(/\*([^*]+)\*/g, '<em>$1</em>');
 
-    tooltip.innerHTML = DOMPurify.sanitize(formattedContent, { ALLOWED_TAGS: ['em', 'strong'] });
+    tooltip.innerHTML = DOMPurify.sanitize(formattedContent, INLINE_EMPHASIS_CONFIG);
     tooltip.style.display = 'block';
     
     // Position tooltip above the citation
