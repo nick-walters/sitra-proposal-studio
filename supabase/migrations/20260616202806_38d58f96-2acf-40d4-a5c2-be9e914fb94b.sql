@@ -1,0 +1,9 @@
+ALTER TABLE public.ethics_assessment ALTER COLUMN human_subjects DROP DEFAULT;
+ALTER TABLE public.ethics_assessment ALTER COLUMN personal_data DROP DEFAULT;
+ALTER TABLE public.ethics_assessment ALTER COLUMN animals DROP DEFAULT;
+ALTER TABLE public.ethics_assessment ALTER COLUMN human_cells DROP DEFAULT;
+ALTER TABLE public.ethics_assessment ALTER COLUMN third_countries DROP DEFAULT;
+ALTER TABLE public.ethics_assessment ALTER COLUMN environment DROP DEFAULT;
+ALTER TABLE public.ethics_assessment ALTER COLUMN dual_use DROP DEFAULT;
+ALTER TABLE public.ethics_assessment ALTER COLUMN misuse DROP DEFAULT;
+ALTER TABLE public.ethics_assessment ALTER COLUMN other_ethics DROP DEFAULT;
