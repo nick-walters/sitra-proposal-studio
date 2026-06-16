@@ -1,25 +1,34 @@
-import { useEffect } from "react";
+import { useEffect, lazy, Suspense } from "react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
-import { Dashboard } from "./pages/Dashboard";
-import { ProposalEditor } from "./pages/ProposalEditor";
-import { BackendAdmin } from "./pages/admin/BackendAdmin";
-import { TemplateAdmin } from "./pages/admin/TemplateAdmin";
-import { UserRightsAdmin } from "./pages/admin/UserRightsAdmin";
-import { InitialSetup } from "./pages/admin/InitialSetup";
-import { FeedbackAdmin } from "./pages/admin/FeedbackAdmin";
-import { EvaluationConfigAdmin } from "./pages/admin/EvaluationConfigAdmin";
-import { AIConfigAdmin } from "./components/admin/AIConfigAdmin";
-import BackupsAdmin from "./pages/admin/BackupsAdmin";
-import { Feedback } from "./pages/Feedback";
 import NotFound from "./pages/NotFound";
+
+// Route-level code splitting for heavy / less-frequently visited pages.
+const Dashboard = lazy(() => import("./pages/Dashboard").then(m => ({ default: m.Dashboard })));
+const ProposalEditor = lazy(() => import("./pages/ProposalEditor").then(m => ({ default: m.ProposalEditor })));
+const BackendAdmin = lazy(() => import("./pages/admin/BackendAdmin").then(m => ({ default: m.BackendAdmin })));
+const TemplateAdmin = lazy(() => import("./pages/admin/TemplateAdmin").then(m => ({ default: m.TemplateAdmin })));
+const UserRightsAdmin = lazy(() => import("./pages/admin/UserRightsAdmin").then(m => ({ default: m.UserRightsAdmin })));
+const InitialSetup = lazy(() => import("./pages/admin/InitialSetup").then(m => ({ default: m.InitialSetup })));
+const FeedbackAdmin = lazy(() => import("./pages/admin/FeedbackAdmin").then(m => ({ default: m.FeedbackAdmin })));
+const EvaluationConfigAdmin = lazy(() => import("./pages/admin/EvaluationConfigAdmin").then(m => ({ default: m.EvaluationConfigAdmin })));
+const AIConfigAdmin = lazy(() => import("./components/admin/AIConfigAdmin").then(m => ({ default: m.AIConfigAdmin })));
+const BackupsAdmin = lazy(() => import("./pages/admin/BackupsAdmin"));
+const Feedback = lazy(() => import("./pages/Feedback").then(m => ({ default: m.Feedback })));
+
+const RouteFallback = () => (
+  <div className="flex h-dvh items-center justify-center" role="status" aria-label="Loading">
+    <Loader2 className="size-6 animate-spin text-muted-foreground" />
+  </div>
+);
 
 const queryClient = new QueryClient({
   defaultOptions: {
