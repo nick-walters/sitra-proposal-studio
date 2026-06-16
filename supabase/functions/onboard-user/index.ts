@@ -1,5 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
+import { requireAuth } from "../_shared/auth.ts";
+
+
 
 
 const WELCOME_MESSAGE = `Welcome to Sitra Proposal Studio, a co-writing platform for developing funding proposals!
