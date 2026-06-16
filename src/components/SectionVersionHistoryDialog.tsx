@@ -330,7 +330,7 @@ export function SectionVersionHistoryDialog({
     try {
       const html = version.content || '';
       const div = document.createElement('div');
-      div.innerHTML = DOMPurify.sanitize(html, { ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'ul', 'ol', 'li', 'span', 'a', 'h1', 'h2', 'h3', 'h4', 'sub', 'sup', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'img', 'figure', 'figcaption', 'div'], ALLOWED_ATTR: ['class', 'style', 'href', 'target', 'rel', 'src', 'alt', 'width', 'height', 'colspan', 'rowspan'] });
+      div.innerHTML = DOMPurify.sanitize(html, RICH_TEXT_WITH_IMAGES_CONFIG);
       const paragraphs: Paragraph[] = [];
 
       const processNode = (node: Node) => {
