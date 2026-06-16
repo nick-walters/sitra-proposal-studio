@@ -211,7 +211,7 @@ export function TopicRichTextArea({
                     contentEditable
                     suppressContentEditableWarning
                     className="flex-1 bg-transparent border-b border-dashed border-muted-foreground/30 outline-none text-xs py-0.5 focus:border-primary [&_a]:text-primary [&_a]:underline"
-                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(fn.text || '', { ALLOWED_TAGS: ['em', 'strong', 'a', 'br', 'sup', 'span'], ALLOWED_ATTR: ['href', 'target', 'rel', 'style'] }) }}
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(fn.text || '', FOOTNOTE_CONFIG) }}
                     onBlur={(e) => {
                       if (onFootnotesChange) {
                         const updated = [...footnotes];
