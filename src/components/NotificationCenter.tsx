@@ -76,28 +76,28 @@ function NotificationItem({
         <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
           {notification.is_read && (
             <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6"
-              title="Mark as unread"
-              onClick={(e) => {
-                e.stopPropagation();
-                onMarkUnread(notification.id);
-              }}
-             aria-label="Hide" title="Hide">
+ variant="ghost"
+ size="icon"
+ className="h-6 w-6"
+ title="Mark as unread"
+ onClick={(e) => {
+ e.stopPropagation();
+ onMarkUnread(notification.id);
+ }}
+ aria-label="Hide" >
               <EyeOff className="h-3 w-3" />
             </Button>
           )}
           <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6"
-            title="Delete"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(notification.id);
-            }}
-           aria-label="Delete" title="Delete">
+ variant="ghost"
+ size="icon"
+ className="h-6 w-6"
+ title="Delete"
+ onClick={(e) => {
+ e.stopPropagation();
+ onDelete(notification.id);
+ }}
+ aria-label="Delete" >
             <Trash2 className="h-3 w-3" />
           </Button>
         </div>

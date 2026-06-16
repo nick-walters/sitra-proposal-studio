@@ -851,28 +851,28 @@ export function PanelEvaluator({ proposalId }: Props) {
                           );
                         })()}
                         <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          title="Download ESR (PDF)"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            downloadEsr(h);
-                          }}
-                         aria-label="Download" title="Download">
+ variant="ghost"
+ size="icon"
+ className="h-7 w-7"
+ title="Download ESR (PDF)"
+ onClick={(e) => {
+ e.stopPropagation();
+ downloadEsr(h);
+ }}
+ aria-label="Download" >
                           <Download className="h-4 w-4" />
                         </Button>
                         {isCoordinator && (
                           <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-destructive hover:text-destructive"
-                            title="Delete ESR"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              void deleteEsr(h);
-                            }}
-                           aria-label="Delete" title="Delete">
+ variant="ghost"
+ size="icon"
+ className="h-7 w-7 text-destructive hover:text-destructive"
+ title="Delete ESR"
+ onClick={(e) => {
+ e.stopPropagation();
+ void deleteEsr(h);
+ }}
+ aria-label="Delete" >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         )}

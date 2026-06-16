@@ -539,12 +539,12 @@ export function UserRightsAdmin() {
                                       <TableCell className="py-1">
                                         {isOwner && !isSelf && (
                                           <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-6 w-6"
-                                            title="Remove all access"
-                                            onClick={() => setDeleteConfirmUser(u)}
-                                           aria-label="Delete" title="Delete">
+ variant="ghost"
+ size="icon"
+ className="h-6 w-6"
+ title="Remove all access"
+ onClick={() => setDeleteConfirmUser(u)}
+ aria-label="Delete" >
                                             <Trash2 className="w-3 h-3 text-destructive" />
                                           </Button>
                                         )}

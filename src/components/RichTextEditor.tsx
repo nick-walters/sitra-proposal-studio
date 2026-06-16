@@ -410,16 +410,16 @@ function TextColorPicker({ editor }: { editor: Editor }) {
               maxLength={7}
             />
             <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 shrink-0"
-              onClick={() => {
-                if (/^#[0-9A-Fa-f]{6}$/.test(customHex)) {
-                  applyColor(customHex);
-                }
-              }}
-              title="Apply colour"
-             aria-label="Confirm" title="Confirm">
+ variant="ghost"
+ size="icon"
+ className="h-7 w-7 shrink-0"
+ onClick={() => {
+ if (/^#[0-9A-Fa-f]{6}$/.test(customHex)) {
+ applyColor(customHex);
+ }
+ }}
+ title="Apply colour"
+ aria-label="Confirm" >
               <Check className="w-3.5 h-3.5" />
             </Button>
           </div>
