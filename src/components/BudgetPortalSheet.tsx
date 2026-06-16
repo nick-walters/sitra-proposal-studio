@@ -7,8 +7,8 @@ import { SaveIndicator } from '@/components/SaveIndicator';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import * as XLSX from 'xlsx-js-style';
-import JSZip from 'jszip';
+import type * as XLSXNS from 'xlsx-js-style';
+// XLSX runtime is loaded lazily inside handleExportXlsx() to keep it out of the initial bundle.
 import { Lock, Unlock, Loader2, Euro, Calculator, FileSpreadsheet, Download, History, TableProperties, AlertCircle, Info, X, Users } from 'lucide-react';
 import {
   Tooltip,
