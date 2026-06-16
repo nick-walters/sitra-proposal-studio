@@ -1632,24 +1632,38 @@ StarterKit.configure({
                 // Check if transaction affects locked block
                 let affectsLocked = false;
                 tr.steps.forEach((step) => {
+                  if (affectsLocked) return;
                   const stepMap = step.getMap();
                   stepMap.forEach((oldStart, oldEnd) => {
-                    for (let pos = oldStart; pos <= Math.min(oldEnd, state.doc.content.size); pos++) {
-                      try {
-                        const $pos = state.doc.resolve(pos);
-                        let depth = $pos.depth;
-                        while (depth > 1) depth--;
-                        if (depth >= 1) {
-                          const node = $pos.node(depth);
-                          const start = $pos.start(depth);
-                          const blockId = `${start}-${node.type.name}`;
-                          if (lockedBlockIds.has(blockId)) {
-                            affectsLocked = true;
+                    if (affectsLocked) return;
+                    const clampedStart = Math.max(0, Math.min(oldStart, state.doc.content.size));
+                    const clampedEnd = Math.max(clampedStart, Math.min(oldEnd, state.doc.content.size));
+                    try {
+                      // Visit only actual nodes in the changed range (O(nodes), not O(positions)).
+                      // This catches locked blocks at the boundaries AND any locked block sitting
+                      // entirely inside a multi-block edit (e.g. a large paste / bulk delete).
+                      state.doc.nodesBetween(clampedStart, clampedEnd, (_node, pos) => {
+                        if (affectsLocked) return false;
+                        try {
+                          const $pos = state.doc.resolve(pos);
+                          let depth = $pos.depth;
+                          while (depth > 1) depth--;
+                          if (depth >= 1) {
+                            const blockNode = $pos.node(depth);
+                            const start = $pos.start(depth);
+                            const blockId = `${start}-${blockNode.type.name}`;
+                            if (lockedBlockIds.has(blockId)) {
+                              affectsLocked = true;
+                              return false; // stop walking
+                            }
                           }
+                        } catch {
+                          // Ignore invalid positions
                         }
-                      } catch {
-                        // Ignore invalid positions
-                      }
+                        return true;
+                      });
+                    } catch {
+                      // Ignore invalid ranges
                     }
                   });
                 });

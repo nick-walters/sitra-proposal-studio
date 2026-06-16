@@ -1646,6 +1646,7 @@ Deno.serve(async (req) => {
   const authHeader = req.headers.get("Authorization") || "";
   const isServiceCall = authHeader === `Bearer ${SERVICE_KEY}`;
   let isAuthorizedUser = false;
+  let callerUserId: string | null = null;
   if (!isServiceCall) {
     if (!authHeader.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -1665,11 +1666,14 @@ Deno.serve(async (req) => {
           status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+      // Capture caller id once — reused below for per-proposal authorization checks
+      // so we don't re-validate the JWT (extra network round-trip + silent-failure risk).
+      callerUserId = claimsData.claims.sub;
       const adminClient = createClient(SUPABASE_URL, SERVICE_KEY);
       const { data: roles } = await adminClient
         .from("user_roles")
         .select("role, proposal_id")
-        .eq("user_id", claimsData.claims.sub);
+        .eq("user_id", callerUserId);
       isAuthorizedUser = !!roles?.some((r: any) =>
         (r.proposal_id === null && (r.role === "owner" || r.role === "admin")) ||
         r.role === "coordinator"
@@ -1690,7 +1694,6 @@ Deno.serve(async (req) => {
   const url = new URL(req.url);
   let bodyForce = false;
   let bodyProposalId: string | null = null;
-  let callerUserId: string | null = null;
   if (req.method === "POST") {
     try {
       const b = await req.clone().json();
@@ -1701,19 +1704,9 @@ Deno.serve(async (req) => {
   const force = url.searchParams.get("force") === "1" || bodyForce;
   const proposalId = bodyProposalId ?? url.searchParams.get("proposal_id");
 
-  // Re-derive caller's user id (when user-authenticated) to enforce per-proposal authorization.
+  // Per-proposal / full-fleet authorization (user-authenticated calls only).
+  // Uses callerUserId captured during the first getClaims() above — no second JWT validation.
   if (!isServiceCall) {
-    try {
-      const userClient = createClient(
-        SUPABASE_URL,
-        Deno.env.get("SUPABASE_ANON_KEY")!,
-        { global: { headers: { Authorization: authHeader } } },
-      );
-      const token = authHeader.replace("Bearer ", "");
-      const { data: claimsData } = await userClient.auth.getClaims(token);
-      callerUserId = claimsData?.claims?.sub ?? null;
-    } catch (_) { /* already validated above */ }
-
     // When a specific proposal is targeted, require admin/owner/coordinator on THAT proposal
     // (or a global owner/admin). Prevents cross-proposal data exfiltration via backup trigger.
     if (proposalId && callerUserId) {
