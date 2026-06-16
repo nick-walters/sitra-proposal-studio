@@ -2,6 +2,7 @@ import { Mark, Node, mergeAttributes } from '@tiptap/core';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import DOMPurify from 'dompurify';
+import { INLINE_EMPHASIS_CONFIG } from '@/lib/sanitizePresets';
 
 export interface CitationMarkOptions {
   getReference: (citationNumber: number) => { citation: string } | undefined;
