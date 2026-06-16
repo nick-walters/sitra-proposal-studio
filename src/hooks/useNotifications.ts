@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import { formatDate } from '@/lib/formatDate';
 
 export type NotificationType = 'assignment' | 'due_soon' | 'overdue' | 'assignment_changed' | 'assignment_removed' | 'mention' | 'profile_incomplete';
 
