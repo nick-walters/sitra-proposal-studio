@@ -34,18 +34,22 @@ const SIZE_STYLES: Record<B31PillSize, React.CSSProperties> = {
   toolbar: { fontSize: '7pt', height: '13px', padding: '1px 4px' },
 };
 
-export function B31Pill({
-  children,
-  variant,
-  color,
-  textColor,
-  size = 'document',
-  icon,
-  onRemove,
-  onClick,
-  className,
-  style,
-}: B31PillProps) {
+export const B31Pill = React.forwardRef<HTMLSpanElement, B31PillProps>(function B31Pill(
+  {
+    children,
+    variant,
+    color,
+    textColor,
+    size = 'document',
+    icon,
+    onRemove,
+    onClick,
+    className,
+    style,
+    ...rest
+  },
+  ref,
+) {
   const variantStyle: React.CSSProperties =
     variant === 'filled'
       ? {
@@ -61,6 +65,7 @@ export function B31Pill({
 
   return (
     <span
+      ref={ref}
       onClick={onClick}
       className={className}
       style={{
@@ -77,6 +82,7 @@ export function B31Pill({
         ...variantStyle,
         ...style,
       }}
+      {...rest}
     >
       {icon}
       {children}
@@ -93,7 +99,8 @@ export function B31Pill({
       )}
     </span>
   );
-}
+});
+
 
 /** WP bubble — filled pill with WP colour */
 export function WPBubble({
