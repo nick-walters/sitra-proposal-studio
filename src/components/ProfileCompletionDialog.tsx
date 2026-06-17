@@ -65,27 +65,32 @@ export function ProfileCompletionDialog({
   const fetchProfile = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
+      const [baseRes, privRes] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('first_name, last_name, organisation, department, country, avatar_url')
+          .eq('id', userId)
+          .single(),
+        supabase.rpc('get_my_private_profile'),
+      ]);
 
-      if (error) throw error;
+      if (baseRes.error) throw baseRes.error;
+      const data = baseRes.data;
+      const priv: any = Array.isArray(privRes.data) ? privRes.data[0] : privRes.data;
 
       setAvatarUrl(data.avatar_url);
-      setGdprConsented(!!(data as any).gdpr_consented_at);
+      setGdprConsented(!!priv?.gdpr_consented_at);
       setProfile({
         first_name: data.first_name || '',
         last_name: data.last_name || '',
         organisation: data.organisation || '',
         department: data.department || '',
-        country_code: data.country_code || '',
-        phone_number: data.phone_number || '',
-        address: data.address || '',
-        address_line_2: data.address_line_2 || '',
-        postcode: data.postcode || '',
-        city: data.city || '',
+        country_code: priv?.country_code || '',
+        phone_number: priv?.phone_number || '',
+        address: priv?.address || '',
+        address_line_2: priv?.address_line_2 || '',
+        postcode: priv?.postcode || '',
+        city: priv?.city || '',
         country: data.country || '',
       });
     } catch (error) {
@@ -94,6 +99,7 @@ export function ProfileCompletionDialog({
       setLoading(false);
     }
   };
+
 
   const validateProfile = (): boolean => {
     const newErrors: ProfileErrors = {};

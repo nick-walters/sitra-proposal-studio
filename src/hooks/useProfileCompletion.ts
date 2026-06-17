@@ -22,35 +22,40 @@ export function useProfileCompletion(): ProfileStatus {
 
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('first_name, last_name, organisation, country_code, phone_number, address, postcode, city, country, gdpr_consented_at')
-        .eq('id', user.id)
-        .single();
+      const [baseRes, privateRes] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('first_name, last_name, organisation, country')
+          .eq('id', user.id)
+          .single(),
+        supabase.rpc('get_my_private_profile'),
+      ]);
 
-      if (error) {
-        console.error('Error checking profile completion:', error);
+      if (baseRes.error) {
+        console.error('Error checking profile completion:', baseRes.error);
         setIsComplete(true);
         return;
       }
 
+      const priv = Array.isArray(privateRes.data) ? privateRes.data[0] : (privateRes.data as any);
+
       const requiredFields = [
-        data.first_name,
-        data.last_name,
-        data.organisation,
-        data.country_code,
-        data.phone_number,
-        data.address,
-        data.postcode,
-        data.city,
-        data.country,
+        baseRes.data.first_name,
+        baseRes.data.last_name,
+        baseRes.data.organisation,
+        priv?.country_code,
+        priv?.phone_number,
+        priv?.address,
+        priv?.postcode,
+        priv?.city,
+        baseRes.data.country,
       ];
 
       const allFieldsFilled = requiredFields.every(
         (field) => field !== null && field !== undefined && String(field).trim() !== ''
       );
 
-      const hasGdprConsent = !!(data as any).gdpr_consented_at;
+      const hasGdprConsent = !!priv?.gdpr_consented_at;
 
       setIsComplete(allFieldsFilled && hasGdprConsent);
     } catch (error) {
@@ -59,6 +64,7 @@ export function useProfileCompletion(): ProfileStatus {
     } finally {
       setIsLoading(false);
     }
+
   }, [user]);
 
   useEffect(() => {

@@ -5480,36 +5480,30 @@ export type Database = {
       profiles_basic: {
         Row: {
           avatar_url: string | null
-          country_code: string | null
           email: string | null
           first_name: string | null
           full_name: string | null
           id: string | null
           last_name: string | null
           organisation: string | null
-          phone_number: string | null
         }
         Insert: {
           avatar_url?: string | null
-          country_code?: string | null
           email?: string | null
           first_name?: string | null
           full_name?: string | null
           id?: string | null
           last_name?: string | null
           organisation?: string | null
-          phone_number?: string | null
         }
         Update: {
           avatar_url?: string | null
-          country_code?: string | null
           email?: string | null
           first_name?: string | null
           full_name?: string | null
           id?: string | null
           last_name?: string | null
           organisation?: string | null
-          phone_number?: string | null
         }
         Relationships: []
       }
@@ -5534,6 +5528,18 @@ export type Database = {
           p_work_programme?: string
         }
         Returns: string
+      }
+      get_my_private_profile: {
+        Args: never
+        Returns: {
+          address: string
+          address_line_2: string
+          city: string
+          country_code: string
+          gdpr_consented_at: string
+          phone_number: string
+          postcode: string
+        }[]
       }
       has_any_proposal_role: {
         Args: { _proposal_id: string; _user_id: string }
