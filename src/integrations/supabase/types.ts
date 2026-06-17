@@ -2695,15 +2695,18 @@ export type Database = {
           main_contact_access_requested_by: string | null
           main_contact_country: string | null
           main_contact_dept_same_as_org: boolean | null
+          main_contact_email: string | null
           main_contact_first_name: string | null
           main_contact_gender: string | null
           main_contact_last_name: string | null
           main_contact_phone: string | null
+          main_contact_phone2: string | null
           main_contact_position: string | null
           main_contact_postcode: string | null
           main_contact_street: string | null
           main_contact_title: string | null
           main_contact_town: string | null
+          main_contact_website: string | null
           organisation_category: string | null
           organisation_name: string
           organisation_short_name: string | null
@@ -2750,15 +2753,18 @@ export type Database = {
           main_contact_access_requested_by?: string | null
           main_contact_country?: string | null
           main_contact_dept_same_as_org?: boolean | null
+          main_contact_email?: string | null
           main_contact_first_name?: string | null
           main_contact_gender?: string | null
           main_contact_last_name?: string | null
           main_contact_phone?: string | null
+          main_contact_phone2?: string | null
           main_contact_position?: string | null
           main_contact_postcode?: string | null
           main_contact_street?: string | null
           main_contact_title?: string | null
           main_contact_town?: string | null
+          main_contact_website?: string | null
           organisation_category?: string | null
           organisation_name: string
           organisation_short_name?: string | null
@@ -2805,15 +2811,18 @@ export type Database = {
           main_contact_access_requested_by?: string | null
           main_contact_country?: string | null
           main_contact_dept_same_as_org?: boolean | null
+          main_contact_email?: string | null
           main_contact_first_name?: string | null
           main_contact_gender?: string | null
           main_contact_last_name?: string | null
           main_contact_phone?: string | null
+          main_contact_phone2?: string | null
           main_contact_position?: string | null
           main_contact_postcode?: string | null
           main_contact_street?: string | null
           main_contact_title?: string | null
           main_contact_town?: string | null
+          main_contact_website?: string | null
           organisation_category?: string | null
           organisation_name?: string
           organisation_short_name?: string | null
