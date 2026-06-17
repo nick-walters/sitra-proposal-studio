@@ -235,7 +235,21 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
     }));
 
     mapped.sort((a, b) => a.participantNumber - b.participantNumber);
-    setRows(mapped);
+    // Stabilise row references: reuse existing row objects whose data
+    // hasn't changed, so React/memoized children can skip re-rendering.
+    setRows(prev => {
+      const existingByParticipant = new Map(prev.map(r => [r.participantId, r]));
+      let anyChanged = prev.length !== mapped.length;
+      const stabilised = mapped.map(newRow => {
+        const existing = existingByParticipant.get(newRow.participantId);
+        if (existing && JSON.stringify(existing) === JSON.stringify(newRow)) {
+          return existing;
+        }
+        anyChanged = true;
+        return newRow;
+      });
+      return anyChanged ? stabilised : prev;
+    });
     setLoading(false);
   }, [proposalId]);
 
