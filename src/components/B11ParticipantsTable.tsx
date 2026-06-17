@@ -304,7 +304,7 @@ interface RowProps {
   onResize: (i: number) => (e: React.MouseEvent) => void;
 }
 
-function ParticipantRowView({ p, isCoord, wpLed, caseLed, canResize, onResize }: RowProps) {
+function ParticipantRowView({ p, isCoord, wpLed, caseLed, caseIncludeNumber, canResize, onResize }: RowProps) {
   const legalName = p.organisation_name || '';
   const englishName =
     p.english_name && p.english_name.trim().toLowerCase() !== legalName.trim().toLowerCase()
