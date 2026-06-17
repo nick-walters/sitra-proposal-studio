@@ -38,6 +38,14 @@ serve(async (req) => {
       );
     }
 
+    const MAX_TEXT_CHARS = 20_000;
+    if (typeof text !== 'string' || text.length > MAX_TEXT_CHARS) {
+      return new Response(
+        JSON.stringify({ error: `Text too long (max ${MAX_TEXT_CHARS} characters)` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     let systemPrompt = "";
     let userPrompt = "";
 
@@ -293,7 +301,7 @@ Return ONLY valid JSON, nothing else.`;
   } catch (error) {
     console.error("Writing assistant error:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ error: "An internal error occurred" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

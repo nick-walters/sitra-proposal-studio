@@ -180,7 +180,7 @@ Analyze this consortium and identify gaps with specific partner profile recommen
   } catch (error) {
     console.error("Consortium analysis error:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ error: "An internal error occurred" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

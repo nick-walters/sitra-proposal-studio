@@ -54,6 +54,14 @@ serve(async (req) => {
       );
     }
 
+    const MAX_TEXT_CHARS = 50_000;
+    if (typeof text !== 'string' || text.length > MAX_TEXT_CHARS) {
+      return new Response(
+        JSON.stringify({ error: `Text too long (max ${MAX_TEXT_CHARS} characters)` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const allCategories: Category[] = ['grammar', 'conciseness', 'clarity', 'tone', 'terminology'];
     const selected: Category[] = Array.isArray(categories) && categories.length > 0
       ? (categories as string[]).filter((c): c is Category => (allCategories as string[]).includes(c))
@@ -161,7 +169,7 @@ Be thorough but practical. If the text is already strong in the selected categor
   } catch (error) {
     console.error("Grammar check error:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ error: "An internal error occurred" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
