@@ -155,6 +155,7 @@ export function ParticipantCompletenessChecker({ proposalId }: ParticipantComple
 
   const errorCount = issues.filter(i => i.severity === 'error').length;
   const warningCount = issues.filter(i => i.severity === 'warning').length;
+  const infoCount = issues.filter(i => i.severity === 'info').length;
 
   const grouped = useMemo(() => {
     const map: Record<string, CompletionIssue[]> = {};
