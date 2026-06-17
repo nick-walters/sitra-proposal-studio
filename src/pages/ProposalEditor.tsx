@@ -103,6 +103,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ColoredAcronym } from "@/components/AcronymColorEditor";
 
 export function ProposalEditor() {
+  console.log('[FLICKER][ProposalEditor RENDER]', Date.now());
   const { id } = useParams();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
