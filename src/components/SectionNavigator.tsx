@@ -8,6 +8,8 @@ import { SectionAssignment } from "@/hooks/useSectionAssignments";
 import { isPast, isToday, differenceInDays, format } from "date-fns";
 import type { WPSection, CaseSection } from "@/hooks/useProposalSections";
 import { B31Pill, WPBubble, ParticipantBubble } from "@/components/B31Pill";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 // JS-based truncation that trims trailing whitespace before "..."
 function TruncatedText({ text, className, isActive }: { text: string; className?: string; isActive?: boolean }) {
