@@ -119,6 +119,31 @@ export function B11ParticipantsTable({ proposalId }: Props) {
     },
   });
 
+  const { data: caseIncludeNumberRaw } = useQuery({
+    queryKey: caseSettingsKey,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('proposals')
+        .select('case_include_number')
+        .eq('id', proposalId)
+        .single();
+      if (error) throw error;
+      return data?.case_include_number ?? true;
+    },
+  });
+  const caseIncludeNumber = caseIncludeNumberRaw ?? true;
+
+  useEffect(() => {
+    const handleCrossRefChange = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.type === 'case-settings' || detail?.type === 'case-management') {
+        queryClient.invalidateQueries({ queryKey: caseSettingsKey });
+      }
+    };
+    window.addEventListener('cross-ref-data-changed', handleCrossRefChange);
+    return () => window.removeEventListener('cross-ref-data-changed', handleCrossRefChange);
+  }, [proposalId, queryClient]);
+
   useEffect(() => {
     const channel = supabase
       .channel(`b11-participants-${proposalId}`)
