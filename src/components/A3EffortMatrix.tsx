@@ -350,7 +350,7 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
 
 interface EffortRowProps {
   participant: ParticipantInfo;
-  values: Record<string, number>;
+  values: Record<string, number | undefined>;
   wpIds: string[];
   wpIdsKey: string;
   isLocked: boolean;
