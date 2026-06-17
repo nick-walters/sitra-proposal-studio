@@ -291,6 +291,7 @@ export function ProposalEditor() {
 
   // Auto-select section on initial load: localStorage > A1
   useEffect(() => {
+    console.log('[FLICKER][ProposalEditor useEffect#2 auto-select]', Date.now());
     if (!sectionsLoading && allSections.length > 0 && !activeSection) {
       // Check localStorage for last visited section
       const lastSectionId = localStorage.getItem(`proposal-${id}-lastSection`);
@@ -312,6 +313,7 @@ export function ProposalEditor() {
 
   // Dismiss any "creating proposal" toasts once proposal data has loaded
   useEffect(() => {
+    console.log('[FLICKER][ProposalEditor useEffect#3 toast-dismiss]', Date.now(), 'proposalRef=', proposal?.id);
     if (!loading && proposal) {
       toast.dismiss();
     }
