@@ -258,7 +258,7 @@ export function ContactPersonsSection({
       if (member.roleInProject) {
         onUpdateParticipant('mainContactPhone', member.roleInProject);
       }
-      if (participant.website) {
+      if (participant.website && !participant.mainContactWebsite) {
         onUpdateParticipant('mainContactWebsite', participant.website);
       }
     }
