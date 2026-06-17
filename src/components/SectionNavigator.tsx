@@ -1,6 +1,7 @@
 import { Section, Participant } from "@/types/proposal";
 import { ChevronRight, ChevronDown, FileText, User, Clock, AlertTriangle, BarChart3, Layers, Building2, Info, Euro, Lightbulb, Target, Settings, FlaskConical, ShieldCheck, HelpCircle, MessageSquare, ListTodo, Briefcase, Lock, Unlock, CalendarDays, Download } from "lucide-react";
 import { useState, useMemo, useRef, useLayoutEffect, useCallback } from "react";
+import { useParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
