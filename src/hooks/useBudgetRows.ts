@@ -718,28 +718,31 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
         .eq('id', itemId);
       if (error) toast.error('Failed to save personnel row');
       if (field === 'pmCount' || field === 'pmRate') {
-        const item = personnelBreakdown.find(i => i.id === itemId);
+        const item = personnelRef.current.find(i => i.id === itemId);
         if (item) {
-          const updated = personnelBreakdown.map(i => i.id === itemId ? { ...i, [field]: Number(value) } : i);
+          const updated = personnelRef.current.map(i => i.id === itemId ? { ...i, [field]: Number(value) } : i);
           await syncWeightedPmRate(item.budgetRowId, updated);
         }
       }
       setSaving(false);
     }, 300);
-  }, [personnelBreakdown, syncWeightedPmRate]);
+  }, [syncWeightedPmRate]);
 
   const deletePersonnelBreakdownItem = useCallback(async (itemId: string) => {
-    const item = personnelBreakdown.find(i => i.id === itemId);
+    const item = personnelRef.current.find(i => i.id === itemId);
     if (!item) return;
     const { error } = await supabase.from('budget_personnel_breakdown').delete().eq('id', itemId);
     if (error) {
       toast.error('Failed to delete personnel row');
       return;
     }
-    const remaining = personnelBreakdown.filter(i => i.id !== itemId);
-    setPersonnelBreakdown(remaining);
+    let remaining: PersonnelBreakdownItem[] = [];
+    setPersonnelBreakdown(prev => {
+      remaining = prev.filter(i => i.id !== itemId);
+      return remaining;
+    });
     await syncWeightedPmRate(item.budgetRowId, remaining);
-  }, [personnelBreakdown, syncWeightedPmRate]);
+  }, [syncWeightedPmRate]);
 
 
   const updateRow = useCallback((rowId: string, field: string, value: number | string | boolean) => {
