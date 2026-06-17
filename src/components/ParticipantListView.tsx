@@ -12,7 +12,7 @@ import { BulkPicLookupDialog } from './BulkPicLookupDialog';
 import { ParticipantCompletenessChecker } from './ParticipantCompletenessChecker';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { ParticipantListTable } from './ParticipantListTable';
-import { generateParticipantLogoPath, uploadProposalFile } from '@/lib/proposalStorage';
+// (logo uploads go directly to the public participant-logos bucket)
 import { StorageImage } from './StorageImage';
 import { CountrySelect } from './CountrySelect';
 import { PartAGuidelinesDialog } from './PartAGuidelinesDialog';
