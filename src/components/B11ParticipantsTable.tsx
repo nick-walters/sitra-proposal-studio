@@ -77,6 +77,8 @@ export function B11ParticipantsTable({ proposalId }: Props) {
   const participantsKey = ['b11-participants', proposalId];
   const wpKey = ['b11-wp-leadership', proposalId];
   const caseKey = ['b11-case-leadership', proposalId];
+  const caseSettingsKey = ['case-settings', proposalId];
+
 
   const { data: participants = [] } = useQuery({
     queryKey: participantsKey,
@@ -116,6 +118,31 @@ export function B11ParticipantsTable({ proposalId }: Props) {
       return (data || []) as CaseLeadRow[];
     },
   });
+
+  const { data: caseIncludeNumberRaw } = useQuery({
+    queryKey: caseSettingsKey,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('proposals')
+        .select('case_include_number')
+        .eq('id', proposalId)
+        .single();
+      if (error) throw error;
+      return data?.case_include_number ?? true;
+    },
+  });
+  const caseIncludeNumber = caseIncludeNumberRaw ?? true;
+
+  useEffect(() => {
+    const handleCrossRefChange = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.type === 'case-settings' || detail?.type === 'case-management') {
+        queryClient.invalidateQueries({ queryKey: caseSettingsKey });
+      }
+    };
+    window.addEventListener('cross-ref-data-changed', handleCrossRefChange);
+    return () => window.removeEventListener('cross-ref-data-changed', handleCrossRefChange);
+  }, [proposalId, queryClient]);
 
   useEffect(() => {
     const channel = supabase
@@ -221,12 +248,13 @@ export function B11ParticipantsTable({ proposalId }: Props) {
               const caseLed = caseByPart[p.id] || [];
               const isCoord = p.participant_number === 1;
               return (
-                <ParticipantRowView
+              <ParticipantRowView
                   key={p.id}
                   p={p}
                   isCoord={isCoord}
                   wpLed={wpLed}
                   caseLed={caseLed}
+                  caseIncludeNumber={caseIncludeNumber}
                   canResize={canResize}
                   onResize={handleColResizeStart}
                 />
@@ -271,11 +299,12 @@ interface RowProps {
   isCoord: boolean;
   wpLed: { number: number; shortName: string | null; color: string }[];
   caseLed: { number: number; shortName: string | null; color: string; prefix: string }[];
+  caseIncludeNumber: boolean;
   canResize: boolean;
   onResize: (i: number) => (e: React.MouseEvent) => void;
 }
 
-function ParticipantRowView({ p, isCoord, wpLed, caseLed, canResize, onResize }: RowProps) {
+function ParticipantRowView({ p, isCoord, wpLed, caseLed, caseIncludeNumber, canResize, onResize }: RowProps) {
   const legalName = p.organisation_name || '';
   const englishName =
     p.english_name && p.english_name.trim().toLowerCase() !== legalName.trim().toLowerCase()
@@ -301,16 +330,20 @@ function ParticipantRowView({ p, isCoord, wpLed, caseLed, canResize, onResize }:
       <TooltipContent>{wp.shortName ? `${wp.shortName} (Lead)` : `WP${wp.number} Lead`}</TooltipContent>
     </Tooltip>
   ));
-  const caseBadges = caseLed.map((c) => (
-    <Tooltip key={`case-${c.number}`}>
-      <TooltipTrigger asChild>
-        <B31Pill variant="outline" color="#000" size="document" style={{ lineHeight: 1.2 }}>
-          {c.prefix ? `${c.prefix}${c.number}` : (c.shortName || c.number)}
-        </B31Pill>
-      </TooltipTrigger>
-      <TooltipContent>{c.shortName ? `${c.shortName} (Lead)` : `Lead`}</TooltipContent>
-    </Tooltip>
-  ));
+  const caseBadges = caseLed.map((c) => {
+    const numberLabel = c.prefix ? `${c.prefix}${c.number}` : String(c.number);
+    const displayLabel = caseIncludeNumber ? numberLabel : (c.shortName || numberLabel);
+    return (
+      <Tooltip key={`case-${c.number}`}>
+        <TooltipTrigger asChild>
+          <B31Pill variant="outline" color="#000" size="document" style={{ lineHeight: 1.2 }}>
+            {displayLabel}
+          </B31Pill>
+        </TooltipTrigger>
+        <TooltipContent>{c.shortName ? `${c.shortName} (Lead)` : `Lead`}</TooltipContent>
+      </Tooltip>
+    );
+  });
 
   const allBadges = [...coordBadges, ...wpBadges, ...caseBadges];
 
