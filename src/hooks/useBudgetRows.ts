@@ -679,7 +679,7 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
   }, []);
 
   const addPersonnelBreakdownItem = useCallback(async (budgetRowId: string) => {
-    const existing = personnelBreakdown.filter(i => i.budgetRowId === budgetRowId);
+    const existing = personnelRef.current.filter(i => i.budgetRowId === budgetRowId);
     const nextIndex = existing.length;
     const { data, error } = await supabase
       .from('budget_personnel_breakdown')
@@ -690,17 +690,21 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
       toast.error('Failed to add personnel row');
       return;
     }
-    const newItems = [...personnelBreakdown, {
+    const mapped: PersonnelBreakdownItem = {
       id: data.id,
       budgetRowId: data.budget_row_id,
       category: data.category || '',
       pmCount: Number(data.pm_count) || 0,
       pmRate: Number(data.pm_rate) || 0,
       orderIndex: data.order_index,
-    }];
-    setPersonnelBreakdown(newItems);
-    await syncWeightedPmRate(budgetRowId, newItems);
-  }, [personnelBreakdown, syncWeightedPmRate]);
+    };
+    let snapshot: PersonnelBreakdownItem[] = [];
+    setPersonnelBreakdown(prev => {
+      snapshot = [...prev, mapped];
+      return snapshot;
+    });
+    await syncWeightedPmRate(budgetRowId, snapshot);
+  }, [syncWeightedPmRate]);
 
   const updatePersonnelBreakdownItem = useCallback((itemId: string, field: 'category' | 'pmCount' | 'pmRate', value: string | number) => {
     setPersonnelBreakdown(prev => prev.map(i => i.id === itemId ? { ...i, [field]: value } : i));
