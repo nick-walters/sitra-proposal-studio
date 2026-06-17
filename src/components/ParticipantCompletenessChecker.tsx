@@ -244,7 +244,11 @@ export function ParticipantCompletenessChecker({ proposalId }: ParticipantComple
                         <div
                           key={idx}
                           className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm ${
-                            issue.severity === 'error' ? 'bg-destructive/10 text-destructive' : 'bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-400'
+                            issue.severity === 'error'
+                              ? 'bg-destructive/10 text-destructive'
+                              : issue.severity === 'info'
+                                ? 'bg-sky-50 text-sky-700 dark:bg-sky-950/20 dark:text-sky-400'
+                                : 'bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-400'
                           }`}
                         >
                           {issue.icon}
