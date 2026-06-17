@@ -251,6 +251,7 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
       });
       return anyChanged ? stabilised : prev;
     });
+    hasLoadedRef.current = true;
     setLoading(false);
   }, [proposalId]);
 
