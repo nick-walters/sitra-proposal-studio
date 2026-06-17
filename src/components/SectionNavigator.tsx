@@ -108,7 +108,6 @@ interface SectionNavigatorProps {
   wpDraftsVisible?: boolean;
   caseDraftsVisible?: boolean;
   onExportPartB?: () => void;
-  proposalId?: string;
 }
 
 // Format section number for display in left navigation
