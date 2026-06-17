@@ -89,8 +89,7 @@ export function BudgetPortalSheet({
   onNavigateToParticipantBudget,
 }: BudgetPortalSheetProps) {
   console.log('[FLICKER][BudgetPortalSheet RENDER]', Date.now());
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  (require('react') as typeof import('react')).useEffect(() => {
+  useEffect(() => {
     console.log('[FLICKER][BudgetPortalSheet MOUNT]', Date.now());
     return () => console.log('[FLICKER][BudgetPortalSheet UNMOUNT]', Date.now());
   }, []);
