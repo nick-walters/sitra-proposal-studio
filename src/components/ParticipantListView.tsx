@@ -289,23 +289,10 @@ function ParticipantCard({
             {/* Hover overlay with action buttons */}
             {canEdit && onUpdateParticipant && (
               <div className="absolute inset-0 bg-background/90 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-0.5 transition-opacity">
-                {isUploadingLogo || isFetchingLogo ? (
+                {isUploadingLogo ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   <>
-                    {/* Fetch logo from web */}
-                    {onFetchLogo && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onFetchLogo();
-                        }}
-                        className="p-1 hover:bg-muted rounded"
-                        title="Fetch logo from web"
-                      >
-                        <Search className="w-3 h-3" />
-                      </button>
-                    )}
                     {/* Upload logo from file */}
                     <button
                       onClick={(e) => {
@@ -435,7 +422,7 @@ function ParticipantCard({
   );
 }
 
-function SortableParticipantCard({ participant, proposalId, onSelect, canReorder, canEdit, wpLeadership, caseLeadership, caseIncludeNumber, onFetchLogo, isFetchingLogo, onUpdateParticipant }: SortableParticipantCardProps) {
+function SortableParticipantCard({ participant, proposalId, onSelect, canReorder, canEdit, wpLeadership, caseLeadership, caseIncludeNumber, onUpdateParticipant }: SortableParticipantCardProps) {
   const {
     attributes,
     listeners,
@@ -465,8 +452,6 @@ function SortableParticipantCard({ participant, proposalId, onSelect, canReorder
         caseIncludeNumber={caseIncludeNumber}
         dragHandleProps={{ ...attributes, ...listeners }}
         isDragging={isDragging}
-        onFetchLogo={onFetchLogo}
-        isFetchingLogo={isFetchingLogo}
         onUpdateParticipant={onUpdateParticipant}
       />
     </div>
@@ -493,7 +478,6 @@ export function ParticipantListView({
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [isAddParticipantDialogOpen, setIsAddParticipantDialogOpen] = useState(false);
   const [isBulkPicOpen, setIsBulkPicOpen] = useState(false);
-  const [fetchingLogoFor, setFetchingLogoFor] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('participants');
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const { roleTier } = useProposalRole(proposalId);
@@ -582,34 +566,6 @@ export function ParticipantListView({
           window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
         }, 100);
       }
-    }
-  };
-
-  const handleFetchLogo = async (participant: Participant) => {
-    if (!onUpdateParticipant) return;
-    
-    setFetchingLogoFor(participant.id);
-    try {
-      const { data, error } = await supabase.functions.invoke('fetch-logo', {
-        body: { 
-          organisationName: participant.organisationName,
-          shortName: participant.organisationShortName 
-        },
-      });
-
-      if (error) throw error;
-
-      if (data?.logoUrl) {
-        await onUpdateParticipant(participant.id, { logoUrl: data.logoUrl });
-        toast.success('Logo fetched successfully');
-      } else {
-        toast.info('No logo found');
-      }
-    } catch (err) {
-      console.error('Failed to fetch logo:', err);
-      toast.error('Failed to fetch logo');
-    } finally {
-      setFetchingLogoFor(null);
     }
   };
 
@@ -781,8 +737,6 @@ export function ParticipantListView({
                             wpLeadership={wpLeadership[participant.id]}
                             caseLeadership={caseLeadership[participant.id]}
                             caseIncludeNumber={caseIncludeNumber}
-                            onFetchLogo={() => handleFetchLogo(participant)}
-                            isFetchingLogo={fetchingLogoFor === participant.id}
                             onUpdateParticipant={onUpdateParticipant}
                           />
                         ))}
@@ -812,8 +766,6 @@ export function ParticipantListView({
                         wpLeadership={wpLeadership[participant.id]}
                         caseLeadership={caseLeadership[participant.id]}
                         caseIncludeNumber={caseIncludeNumber}
-                        onFetchLogo={onUpdateParticipant ? () => handleFetchLogo(participant) : undefined}
-                        isFetchingLogo={fetchingLogoFor === participant.id}
                         onUpdateParticipant={onUpdateParticipant}
                       />
                     ))}
