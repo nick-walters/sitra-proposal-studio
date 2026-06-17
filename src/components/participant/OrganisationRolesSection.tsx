@@ -21,6 +21,11 @@ export function OrganisationRolesSection({
     roles.find(r => r.roleType === 'other')?.otherDescription || ''
   );
 
+  useEffect(() => {
+    const otherRole = roles.find(r => r.roleType === 'other');
+    setOtherDescription(otherRole?.otherDescription || '');
+  }, [roles]);
+
   const isRoleSelected = (roleType: string) => {
     return roles.some(r => r.roleType === roleType);
   };
