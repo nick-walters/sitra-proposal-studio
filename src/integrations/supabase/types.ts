@@ -2694,6 +2694,7 @@ export type Database = {
           main_contact_access_requested: boolean | null
           main_contact_access_requested_by: string | null
           main_contact_country: string | null
+          main_contact_department: string | null
           main_contact_dept_same_as_org: boolean | null
           main_contact_email: string | null
           main_contact_first_name: string | null
@@ -2753,6 +2754,7 @@ export type Database = {
           main_contact_access_requested?: boolean | null
           main_contact_access_requested_by?: string | null
           main_contact_country?: string | null
+          main_contact_department?: string | null
           main_contact_dept_same_as_org?: boolean | null
           main_contact_email?: string | null
           main_contact_first_name?: string | null
@@ -2812,6 +2814,7 @@ export type Database = {
           main_contact_access_requested?: boolean | null
           main_contact_access_requested_by?: string | null
           main_contact_country?: string | null
+          main_contact_department?: string | null
           main_contact_dept_same_as_org?: boolean | null
           main_contact_email?: string | null
           main_contact_first_name?: string | null
