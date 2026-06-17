@@ -321,15 +321,76 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
       return;
     }
 
-    setPersonnelBreakdown((data || []).map((item: any) => ({
+    // Detect orphan duplicate rows: same budget_row_id + order_index, empty
+    // values (no category, pm_count=0, pm_rate=0). Keep the first, drop the rest.
+    const seen = new Map<string, any>();
+    const orphanIds: string[] = [];
+    for (const it of (data || [])) {
+      const key = `${it.budget_row_id}::${it.order_index}`;
+      const isEmpty = (!it.category || it.category === '') && Number(it.pm_count) === 0 && Number(it.pm_rate) === 0;
+      if (seen.has(key) && isEmpty) {
+        orphanIds.push(it.id);
+      } else if (!seen.has(key)) {
+        seen.set(key, it);
+      }
+    }
+    if (orphanIds.length > 0) {
+      await supabase.from('budget_personnel_breakdown').delete().in('id', orphanIds);
+    }
+
+    const cleaned = (data || []).filter((it: any) => !orphanIds.includes(it.id));
+    const items: PersonnelBreakdownItem[] = cleaned.map((item: any) => ({
       id: item.id,
       budgetRowId: item.budget_row_id,
       category: item.category || '',
       pmCount: Number(item.pm_count) || 0,
       pmRate: Number(item.pm_rate) || 0,
       orderIndex: item.order_index,
-    })));
-  }, [proposalId, rows.map(r => r.id).join(',')]);
+    }));
+
+    // Seed a default row for any budget row that ended up empty and where the
+    // current user can edit (unlocked or locked by them). Runs exactly once
+    // per fetch, with full DB knowledge — no race with the component.
+    const rowsWithItems = new Set(items.map(i => i.budgetRowId));
+    const editableRowIds = rowIds.filter(rid => {
+      const r = rows.find(x => x.id === rid);
+      if (!r) return false;
+      if (!r.isLocked) return true;
+      return r.lockedBy === user?.id;
+    });
+    const toSeed = editableRowIds.filter(
+      rid => !rowsWithItems.has(rid) && !seedingRef.current.has(rid)
+    );
+
+    for (const rid of toSeed) {
+      seedingRef.current.add(rid);
+      const { data: inserted, error: insErr } = await supabase
+        .from('budget_personnel_breakdown')
+        .insert({
+          budget_row_id: rid,
+          category: 'Average weighted PM',
+          pm_count: 0,
+          pm_rate: 0,
+          order_index: 0,
+        })
+        .select()
+        .single();
+      seedingRef.current.delete(rid);
+      if (!insErr && inserted) {
+        items.push({
+          id: inserted.id,
+          budgetRowId: inserted.budget_row_id,
+          category: inserted.category || '',
+          pmCount: Number(inserted.pm_count) || 0,
+          pmRate: Number(inserted.pm_rate) || 0,
+          orderIndex: inserted.order_index,
+        });
+      }
+    }
+
+    setPersonnelBreakdown(items);
+    setPersonnelLoaded(new Set(rowIds));
+  }, [proposalId, rows.map(r => r.id).join(','), user?.id]);
 
   const fetchJustifications = useCallback(async () => {
     if (!proposalId) return;
