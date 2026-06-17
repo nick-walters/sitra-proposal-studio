@@ -430,21 +430,22 @@ export function ParticipantDetailForm({
           canEdit={canEdit}
         />
 
-        {/* 11. Ownership Control Declaration (hidden for public bodies) */}
-        {participant.organisationCategory !== 'PUB' && (
-          <OCDSection
-            visible={ocd.requiresOcd}
-            templateExists={!!ocd.templatePath}
-            hasUploadedOcd={!!ocd.uploads[participant.id]}
-            uploadedAt={ocd.uploads[participant.id]?.uploadedAt}
-            downloadingPrefilled={ocd.downloadingFor === participant.id}
-            onDownloadTemplate={() => ocd.downloadPrefilled(participant.id)}
-            onUploadSigned={(file) => ocd.uploadSignedOcd(participant.id, file)}
-            onDownloadSigned={ocd.uploads[participant.id] ? () => ocd.downloadSignedOcd(participant.id) : undefined}
-            canEdit={canEdit}
-            isHorizonEurope={['RIA', 'IA', 'CSA'].includes(proposalType || '')}
-          />
-        )}
+        {/* 11. Ownership Control Declaration (shown for all org types; PUB is exempt by default) */}
+        <OCDSection
+          visible={ocd.requiresOcd}
+          templateExists={!!ocd.templatePath}
+          hasUploadedOcd={!!ocd.uploads[participant.id]}
+          uploadedAt={ocd.uploads[participant.id]?.uploadedAt}
+          downloadingPrefilled={ocd.downloadingFor === participant.id}
+          onDownloadTemplate={() => ocd.downloadPrefilled(participant.id)}
+          onUploadSigned={(file) => ocd.uploadSignedOcd(participant.id, file)}
+          onDownloadSigned={ocd.uploads[participant.id] ? () => ocd.downloadSignedOcd(participant.id) : undefined}
+          canEdit={canEdit}
+          isHorizonEurope={['RIA', 'IA', 'CSA'].includes(proposalType || '')}
+          participantId={participant.id}
+          isAdmin={canGrant}
+          organisationCategory={participant.organisationCategory}
+        />
 
         {/* Delete Participant */}
         {canDelete && (
