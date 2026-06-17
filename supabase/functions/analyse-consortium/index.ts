@@ -78,7 +78,7 @@ serve(async (req) => {
 
 Consider these Horizon Europe best practices:
 - Geographic diversity across EU member states and associated countries
-- Balance of organisation types: HES (Higher Education), RES (Research), PRC (Private/Industry), PUB (Public Bodies), OTH (NGOs/Civil society)
+- Balance of organisation types: HES (Higher Education), RES (Research), SME (Small/medium enterprise), LE (Large enterprise), PUB (Public Bodies), OTH (NGOs/Civil society)
 - SME involvement for exploitation and market access
 - Widening participation countries (Eastern/Southern EU) for bonus scoring
 - Each Work Package should have a credible lead
@@ -86,7 +86,7 @@ Consider these Horizon Europe best practices:
 - Dissemination and communication capacity
 - End-user/stakeholder representation
 
-Organisation categories: HES (Higher Education), RES (Research Organisation), PRC (Private Company), PUB (Public Body), INT (International Org), OTH (Other/NGO/CSO)
+Organisation categories: HES (Higher Education), RES (Research Organisation), SME (Small or medium-sized enterprise, private sector), LE (Large enterprise, private sector), PUB (Public Body), INT (International Org), OTH (Other/NGO/CSO)
 
 Return your analysis as JSON with this exact structure:
 {
@@ -98,7 +98,7 @@ Return your analysis as JSON with this exact structure:
       "priority": "high" | "medium" | "low",
       "description": "What is missing",
       "suggestedProfile": {
-        "organisationType": "HES|RES|PRC|PUB|OTH",
+        "organisationType": "HES|RES|SME|LE|PUB|OTH",
         "region": "Suggested region/countries",
         "expertise": "Required expertise area",
         "role": "Suggested role in consortium"

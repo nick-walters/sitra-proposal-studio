@@ -674,7 +674,7 @@ async function buildA3Xlsx(supabase: any, proposal: any): Promise<Uint8Array> {
     const totalEligibleCosts = directCosts + indirectCosts;
     const fundingRateOverride = r.funding_rate_override != null ? Number(r.funding_rate_override) : null;
     let fundingRate = fundingRateOverride ?? 100;
-    if (fundingRateOverride == null && proposalType === "IA" && r.participants?.organisation_category === "PRC") {
+    if (fundingRateOverride == null && proposalType === "IA" && r.participants?.organisation_category === "LE") {
       fundingRate = 70;
     }
     const maxEuContribution = Math.round(totalEligibleCosts * (fundingRate / 100) * 100) / 100;
