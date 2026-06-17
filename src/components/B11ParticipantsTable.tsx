@@ -299,6 +299,7 @@ interface RowProps {
   isCoord: boolean;
   wpLed: { number: number; shortName: string | null; color: string }[];
   caseLed: { number: number; shortName: string | null; color: string; prefix: string }[];
+  caseIncludeNumber: boolean;
   canResize: boolean;
   onResize: (i: number) => (e: React.MouseEvent) => void;
 }
