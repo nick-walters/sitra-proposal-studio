@@ -676,8 +676,9 @@ export function SectionNavigator({
   wpDraftsVisible = true,
   caseDraftsVisible = true,
   onExportPartB,
-  proposalId,
 }: SectionNavigatorProps) {
+  const { id: proposalId } = useParams();
+
   // Fetch case display setting (whether to show numbers vs short names on case bubbles)
   const { data: caseSettings } = useQuery({
     queryKey: ['case-settings', proposalId],
