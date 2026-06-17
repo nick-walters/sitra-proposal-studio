@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -137,22 +137,51 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
     if (pMap) pMap.set(e.wp_draft_id, e.person_months || 0);
   });
 
-  const saveEffortValue = useCallback(async (participantId: string, wpId: string, personMonths: number) => {
-    // Optimistically update the local cache so the table doesn't refetch & re-render
+  // Coalesce optimistic cache updates + downstream invalidations so rapid
+  // edits across multiple cells trigger a single matrix re-render after
+  // the user pauses (~800 ms), not one re-render per keystroke flush.
+  const pendingEditsRef = useRef<Map<string, { participantId: string; wpId: string; personMonths: number }>>(new Map());
+  const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const flushPendingEdits = useCallback(() => {
+    flushTimerRef.current = null;
+    const pending = pendingEditsRef.current;
+    if (pending.size === 0) return;
+    const edits = Array.from(pending.values());
+    pendingEditsRef.current = new Map();
+
     queryClient.setQueryData(
       ['a3-effort-data', proposalId],
       (old: { wp_draft_id: string; participant_id: string; person_months: number }[] | undefined) => {
-        if (!old) return old;
-        const idx = old.findIndex(e => e.wp_draft_id === wpId && e.participant_id === participantId);
-        if (idx >= 0) {
-          const updated = [...old];
-          updated[idx] = { ...updated[idx], person_months: personMonths };
-          return updated;
+        const base = old ? [...old] : [];
+        for (const { participantId, wpId, personMonths } of edits) {
+          const idx = base.findIndex(e => e.wp_draft_id === wpId && e.participant_id === participantId);
+          if (idx >= 0) {
+            base[idx] = { ...base[idx], person_months: personMonths };
+          } else {
+            base.push({ wp_draft_id: wpId, participant_id: participantId, person_months: personMonths });
+          }
         }
-        return [...old, { wp_draft_id: wpId, participant_id: participantId, person_months: personMonths }];
+        return base;
       }
     );
 
+    queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
+    window.dispatchEvent(new CustomEvent('effort-data-changed', { detail: { proposalId } }));
+  }, [proposalId, queryClient]);
+
+  useEffect(() => {
+    return () => {
+      if (flushTimerRef.current) {
+        clearTimeout(flushTimerRef.current);
+        // Final flush so unmount doesn't lose pending UI updates.
+        flushPendingEdits();
+      }
+    };
+  }, [flushPendingEdits]);
+
+  const saveEffortValue = useCallback(async (participantId: string, wpId: string, personMonths: number) => {
+    // Persist immediately — no debounce on the DB write so no data is lost.
     await supabase
       .from('wp_draft_effort')
       .upsert({
@@ -163,12 +192,12 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
         onConflict: 'wp_draft_id,participant_id',
       });
 
-    // Refresh dependent tables (not this one — already updated optimistically)
-    queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
+    // Queue UI refresh; coalesce across cells.
+    pendingEditsRef.current.set(`${participantId}|${wpId}`, { participantId, wpId, personMonths });
+    if (flushTimerRef.current) clearTimeout(flushTimerRef.current);
+    flushTimerRef.current = setTimeout(flushPendingEdits, 800);
+  }, [flushPendingEdits]);
 
-    // Notify budget tables that effort data changed
-    window.dispatchEvent(new CustomEvent('effort-data-changed', { detail: { proposalId } }));
-  }, [proposalId, queryClient]);
 
   if (!wps?.length || !participants?.length) return null;
 
