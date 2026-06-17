@@ -37,7 +37,7 @@ export interface WPTheme {
    const addThemeMutation = useMutation({
      mutationFn: async () => {
        const newNumber = themes.length + 1;
-       const color = DEFAULT_THEME_COLORS[(newNumber - 1) % DEFAULT_THEME_COLORS.length];
+       const color = WP_CONTENT_COLORS[(newNumber - 1) % WP_CONTENT_COLORS.length];
        
        const { data, error } = await supabase
          .from('wp_themes')
