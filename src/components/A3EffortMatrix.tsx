@@ -436,11 +436,7 @@ interface EffortInputCellProps {
 
 function EffortInputCell({ value, canEdit, onSave }: EffortInputCellProps) {
   const displayValue = formatPM(value ?? 0);
-  const [displayOverride, setDisplayOverride] = useState<string | null>(null);
-
-  useEffect(() => {
-    setDisplayOverride(null);
-  }, [value]);
+  const [resetCount, setResetCount] = useState(0);
 
   const handleDebouncedChange = useCallback((raw: string) => {
     if (!canEdit) return;
@@ -451,19 +447,20 @@ function EffortInputCell({ value, canEdit, onSave }: EffortInputCellProps) {
     const rounded = Math.round(safe * 10) / 10;
     if (rounded === (value ?? null)) return;
     void onSave(rounded);
-    // If the user cleared the cell, immediately show "0" so the cell
-    // doesn't stay blank while waiting for the upstream flush.
+    // If the user cleared the cell, remount DebouncedInput so it
+    // initialises from the value prop ("0") immediately.
     if (rounded === 0 && !Number.isFinite(parsed)) {
-      setDisplayOverride('0');
+      setResetCount(c => c + 1);
     }
   }, [canEdit, onSave, value]);
 
   return (
     <DebouncedInput
+      key={resetCount}
       type="number"
       step="0.1"
       min="0"
-      value={displayOverride ?? displayValue}
+      value={displayValue}
       onDebouncedChange={handleDebouncedChange}
       debounceMs={500}
       className="h-8 min-w-[5.5rem] text-center text-sm tabular-nums"
