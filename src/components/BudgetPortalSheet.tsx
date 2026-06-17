@@ -88,11 +88,6 @@ export function BudgetPortalSheet({
   proposalAcronym = '',
   onNavigateToParticipantBudget,
 }: BudgetPortalSheetProps) {
-  console.log('[FLICKER][BudgetPortalSheet RENDER]', Date.now());
-  useEffect(() => {
-    console.log('[FLICKER][BudgetPortalSheet MOUNT]', Date.now());
-    return () => console.log('[FLICKER][BudgetPortalSheet UNMOUNT]', Date.now());
-  }, []);
   const {
     rows,
     justifications,

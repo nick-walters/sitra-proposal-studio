@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -9,7 +9,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { getContrastingTextColor } from '@/lib/wpColors';
 import { WPBubble, ParticipantBubble } from '@/components/B31Pill';
 
 
@@ -48,7 +47,6 @@ interface EffortLock {
 }
 
 export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A3EffortMatrixProps) {
-  console.log('[FLICKER][A3EffortMatrix RENDER]', Date.now());
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
@@ -102,8 +100,9 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
     },
   });
 
-  const lockedParticipants = new Set(
-    (effortLocks || []).map(l => l.participant_id)
+  const lockedParticipants = useMemo(
+    () => new Set((effortLocks || []).map(l => l.participant_id)),
+    [effortLocks]
   );
 
   const lockRow = useCallback(async (participantId: string) => {
@@ -131,16 +130,40 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
     queryClient.invalidateQueries({ queryKey: ['effort-row-locks', proposalId] });
   }, [proposalId, queryClient]);
 
-  // Memoize matrix so unrelated parent re-renders don't rebuild every cell.
-  const matrix = useMemo(() => {
-    const m = new Map<string, Map<string, number>>();
-    (participants || []).forEach(p => m.set(p.id, new Map()));
+  // Stable list of WP IDs in column order; reference only changes when the
+  // WP set or order changes.
+  const wpIds = useMemo(() => (wps || []).map(w => w.id), [wps]);
+  const wpIdsKey = wpIds.join('|');
+
+  // Build a per-participant lookup of {wpId: pm}. Each participant's values
+  // object is a fresh plain object on every recompute, but the memoized row
+  // component below uses a JSON comparator to skip re-render when its own
+  // numbers are unchanged.
+  const participantEfforts = useMemo(() => {
+    const byPart = new Map<string, Record<string, number>>();
+    (participants || []).forEach(p => byPart.set(p.id, {}));
     (effortData || []).forEach(e => {
-      const pMap = m.get(e.participant_id);
-      if (pMap) pMap.set(e.wp_draft_id, e.person_months || 0);
+      const rec = byPart.get(e.participant_id);
+      if (rec) rec[e.wp_draft_id] = e.person_months || 0;
     });
-    return m;
+    return byPart;
   }, [participants, effortData]);
+
+  // Column / grand totals derived once per data change (no setState → no
+  // extra render passes).
+  const { colTotals, grandTotal } = useMemo(() => {
+    const cols: Record<string, number> = {};
+    for (const wpId of wpIds) cols[wpId] = 0;
+    let grand = 0;
+    participantEfforts.forEach(values => {
+      for (const wpId of wpIds) {
+        const v = values[wpId] || 0;
+        cols[wpId] += v;
+        grand += v;
+      }
+    });
+    return { colTotals: cols, grandTotal: grand };
+  }, [participantEfforts, wpIds]);
 
   // Coalesce optimistic cache updates + downstream invalidations so rapid
   // edits across multiple cells trigger a single matrix re-render after
@@ -152,7 +175,6 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
     flushTimerRef.current = null;
     const pending = pendingEditsRef.current;
     if (pending.size === 0) return;
-    console.log('[FLICKER][EFFORT] flushing', pending.size, 'edits @', Date.now());
     const edits = Array.from(pending.values());
     pendingEditsRef.current = new Map();
 
@@ -187,7 +209,6 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
   }, [flushPendingEdits]);
 
   const saveEffortValue = useCallback(async (participantId: string, wpId: string, personMonths: number) => {
-    console.log('[FLICKER][EFFORT] upsert start', participantId, wpId, personMonths, '@', Date.now());
     await supabase
       .from('wp_draft_effort')
       .upsert({
@@ -197,10 +218,8 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
       }, {
         onConflict: 'wp_draft_id,participant_id',
       });
-    console.log('[FLICKER][EFFORT] upsert done @', Date.now());
 
     pendingEditsRef.current.set(`${participantId}|${wpId}`, { participantId, wpId, personMonths });
-    console.log('[FLICKER][EFFORT] queued pending edit, size=', pendingEditsRef.current.size);
     if (flushTimerRef.current) clearTimeout(flushTimerRef.current);
     flushTimerRef.current = setTimeout(flushPendingEdits, 800);
   }, [flushPendingEdits]);
@@ -285,49 +304,23 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
             </thead>
             <tbody>
               {participants.map(p => {
-                const pMap = matrix.get(p.id)!;
-                const rowTotal = wps.reduce((sum, wp) => sum + (pMap?.get(wp.id) || 0), 0);
+                const values = participantEfforts.get(p.id) || {};
                 const isLocked = lockedParticipants.has(p.id);
-                // Coordinators+ can always edit; regular users cannot edit locked rows
                 const rowEditable = canEdit && (isCoordinator || !isLocked);
                 return (
-                  <tr key={p.id} className={cn('border-t hover:bg-muted/50', isLocked && !isCoordinator && 'opacity-60')}>
-                    <td className="px-2 py-1 border-r whitespace-nowrap">
-                      <div className="flex items-center justify-between gap-1">
-                        <span className="flex items-center gap-1">
-                          <ParticipantBubble>
-                            {p.participant_number}. {p.organisation_short_name || p.organisation_name}
-                          </ParticipantBubble>
-                          {isLocked && !isCoordinator && <Lock className="w-3 h-3 text-muted-foreground flex-shrink-0" />}
-                        </span>
-                        {isCoordinator && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 shrink-0"
-                            onClick={() => isLocked ? unlockRow(p.id) : lockRow(p.id)}
-                           aria-label="Lock" title="Lock">
-                            {isLocked ? <Lock className="w-3 h-3 text-destructive" /> : <Unlock className="w-3 h-3 text-green-600" />}
-                          </Button>
-                        )}
-                      </div>
-                    </td>
-                    {wps.map(wp => {
-                      const val = pMap?.get(wp.id) || 0;
-                      return (
-                        <td key={wp.id} className="p-1 border-r align-middle">
-                          <EffortInputCell
-                            value={val}
-                            canEdit={rowEditable}
-                            onSave={(nextValue) => saveEffortValue(p.id, wp.id, nextValue)}
-                          />
-                        </td>
-                      );
-                    })}
-                    <td className="px-2 py-1 text-center border-r font-bold tabular-nums">
-                      {rowTotal ? formatPM(rowTotal) : '—'}
-                    </td>
-                  </tr>
+                  <EffortRow
+                    key={p.id}
+                    participant={p}
+                    values={values}
+                    wpIds={wpIds}
+                    wpIdsKey={wpIdsKey}
+                    isLocked={isLocked}
+                    isCoordinator={isCoordinator}
+                    rowEditable={rowEditable}
+                    onSave={saveEffortValue}
+                    onLock={lockRow}
+                    onUnlock={unlockRow}
+                  />
                 );
               })}
             </tbody>
@@ -335,7 +328,7 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
               <tr className="border-t-2 border-foreground/20 bg-muted/40 font-semibold">
                 <td className="px-2 py-1 border-r font-bold">Total</td>
                 {wps.map(wp => {
-                  const colTotal = participants.reduce((sum, p) => sum + (matrix.get(p.id)?.get(wp.id) || 0), 0);
+                  const colTotal = colTotals[wp.id] || 0;
                   return (
                     <td key={wp.id} className="px-2 py-1 text-center border-r font-bold tabular-nums align-middle">
                       {colTotal ? formatPM(colTotal) : '—'}
@@ -343,13 +336,7 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
                   );
                 })}
                 <td className="px-2 py-1 text-center border-r font-bold tabular-nums align-middle">
-                  {(() => {
-                    const grandTotal = participants.reduce((sum, p) => {
-                      const pMap = matrix.get(p.id)!;
-                      return sum + wps.reduce((s, wp) => s + (pMap?.get(wp.id) || 0), 0);
-                    }, 0);
-                    return grandTotal ? formatPM(grandTotal) : '—';
-                  })()}
+                  {grandTotal ? formatPM(grandTotal) : '—'}
                 </td>
               </tr>
             </tfoot>
@@ -360,6 +347,86 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
     </Card>
   );
 }
+
+interface EffortRowProps {
+  participant: ParticipantInfo;
+  values: Record<string, number>;
+  wpIds: string[];
+  wpIdsKey: string;
+  isLocked: boolean;
+  isCoordinator: boolean;
+  rowEditable: boolean;
+  onSave: (participantId: string, wpId: string, personMonths: number) => Promise<void>;
+  onLock: (participantId: string) => void;
+  onUnlock: (participantId: string) => void;
+}
+
+const EffortRow = React.memo(function EffortRow({
+  participant: p,
+  values,
+  wpIds,
+  isLocked,
+  isCoordinator,
+  rowEditable,
+  onSave,
+  onLock,
+  onUnlock,
+}: EffortRowProps) {
+  const rowTotal = wpIds.reduce((sum, wpId) => sum + (values[wpId] || 0), 0);
+  return (
+    <tr className={cn('border-t hover:bg-muted/50', isLocked && !isCoordinator && 'opacity-60')}>
+      <td className="px-2 py-1 border-r whitespace-nowrap">
+        <div className="flex items-center justify-between gap-1">
+          <span className="flex items-center gap-1">
+            <ParticipantBubble>
+              {p.participant_number}. {p.organisation_short_name || p.organisation_name}
+            </ParticipantBubble>
+            {isLocked && !isCoordinator && <Lock className="w-3 h-3 text-muted-foreground flex-shrink-0" />}
+          </span>
+          {isCoordinator && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 shrink-0"
+              onClick={() => isLocked ? onUnlock(p.id) : onLock(p.id)}
+             aria-label="Lock" title="Lock">
+              {isLocked ? <Lock className="w-3 h-3 text-destructive" /> : <Unlock className="w-3 h-3 text-green-600" />}
+            </Button>
+          )}
+        </div>
+      </td>
+      {wpIds.map(wpId => {
+        const val = values[wpId] || 0;
+        return (
+          <td key={wpId} className="p-1 border-r align-middle">
+            <EffortInputCell
+              value={val}
+              canEdit={rowEditable}
+              onSave={(nextValue) => onSave(p.id, wpId, nextValue)}
+            />
+          </td>
+        );
+      })}
+      <td className="px-2 py-1 text-center border-r font-bold tabular-nums">
+        {rowTotal ? formatPM(rowTotal) : '—'}
+      </td>
+    </tr>
+  );
+}, (prev, next) => {
+  if (prev.participant !== next.participant) return false;
+  if (prev.wpIdsKey !== next.wpIdsKey) return false;
+  if (prev.isLocked !== next.isLocked) return false;
+  if (prev.isCoordinator !== next.isCoordinator) return false;
+  if (prev.rowEditable !== next.rowEditable) return false;
+  if (prev.onSave !== next.onSave) return false;
+  if (prev.onLock !== next.onLock) return false;
+  if (prev.onUnlock !== next.onUnlock) return false;
+  // Numeric value comparison restricted to current WP columns.
+  for (const wpId of next.wpIds) {
+    if ((prev.values[wpId] || 0) !== (next.values[wpId] || 0)) return false;
+  }
+  return true;
+});
 
 interface EffortInputCellProps {
   value: number;
@@ -391,4 +458,3 @@ function EffortInputCell({ value, canEdit, onSave }: EffortInputCellProps) {
     />
   );
 }
-

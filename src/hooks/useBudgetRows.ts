@@ -168,7 +168,6 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
 
   const fetchRows = useCallback(async () => {
     if (!proposalId) return;
-    console.log('[FLICKER][BUDGET_ROWS] fetchRows executing @', Date.now());
     setLoading(true);
 
     const [{ data, error }, { data: effortData }] = await Promise.all([
@@ -391,10 +390,8 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
       if (detail?.proposalId !== proposalId) return;
-      console.log('[FLICKER][BUDGET_ROWS] effort-data-changed received @', Date.now());
       if (timer) clearTimeout(timer);
       timer = setTimeout(() => {
-        console.log('[FLICKER][BUDGET_ROWS] debounce fired -> fetchRows @', Date.now());
         fetchRows();
         timer = null;
       }, 800);
