@@ -165,10 +165,11 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const hasLoadedRef = useRef(false);
 
   const fetchRows = useCallback(async () => {
     if (!proposalId) return;
-    setLoading(true);
+    if (!hasLoadedRef.current) setLoading(true);
 
     const [{ data, error }, { data: effortData }] = await Promise.all([
       supabase
