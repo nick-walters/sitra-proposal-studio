@@ -253,16 +253,23 @@ function ParticipantCard({
                 
                 setIsUploadingLogo(true);
                 try {
-                  const filePath = generateParticipantLogoPath(proposalId, participant.participantNumber || 0, file.name);
-                  const { error } = await uploadProposalFile(file, filePath, { upsert: true });
-                  
-                  if (error) {
+                  const ext = (file.name.split('.').pop() || 'png').toLowerCase();
+                  const filePath = `logos/${participant.id}-${Date.now()}.${ext}`;
+                  const { error: uploadError } = await supabase.storage
+                    .from('participant-logos')
+                    .upload(filePath, file, { upsert: true, contentType: file.type });
+
+                  if (uploadError) {
+                    console.error('Upload error:', uploadError);
                     toast.error('Failed to upload logo');
                     return;
                   }
-                  
-                  // Store the file path, not the signed URL
-                  await onUpdateParticipant(participant.id, { logoUrl: filePath });
+
+                  const { data: { publicUrl } } = supabase.storage
+                    .from('participant-logos')
+                    .getPublicUrl(filePath);
+
+                  await onUpdateParticipant(participant.id, { logoUrl: publicUrl });
                   toast.success('Logo uploaded');
                 } catch (err) {
                   console.error('Upload error:', err);
