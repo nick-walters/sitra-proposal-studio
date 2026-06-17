@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -436,6 +436,11 @@ interface EffortInputCellProps {
 
 function EffortInputCell({ value, canEdit, onSave }: EffortInputCellProps) {
   const displayValue = formatPM(value ?? 0);
+  const [displayOverride, setDisplayOverride] = useState<string | null>(null);
+
+  useEffect(() => {
+    setDisplayOverride(null);
+  }, [value]);
 
   const handleDebouncedChange = useCallback((raw: string) => {
     if (!canEdit) return;
@@ -446,6 +451,11 @@ function EffortInputCell({ value, canEdit, onSave }: EffortInputCellProps) {
     const rounded = Math.round(safe * 10) / 10;
     if (rounded === (value ?? null)) return;
     void onSave(rounded);
+    // If the user cleared the cell, immediately show "0" so the cell
+    // doesn't stay blank while waiting for the upstream flush.
+    if (rounded === 0 && !Number.isFinite(parsed)) {
+      setDisplayOverride('0');
+    }
   }, [canEdit, onSave, value]);
 
   return (
@@ -453,7 +463,7 @@ function EffortInputCell({ value, canEdit, onSave }: EffortInputCellProps) {
       type="number"
       step="0.1"
       min="0"
-      value={displayValue}
+      value={displayOverride ?? displayValue}
       onDebouncedChange={handleDebouncedChange}
       debounceMs={500}
       className="h-8 min-w-[5.5rem] text-center text-sm tabular-nums"
