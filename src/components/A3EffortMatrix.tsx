@@ -396,7 +396,7 @@ const EffortRow = React.memo(function EffortRow({
         </div>
       </td>
       {wpIds.map(wpId => {
-        const val = values[wpId] || 0;
+        const val = values[wpId];
         return (
           <td key={wpId} className="p-1 border-r align-middle">
             <EffortInputCell
