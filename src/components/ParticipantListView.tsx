@@ -101,8 +101,6 @@ interface ParticipantCardProps {
   caseIncludeNumber?: boolean;
   dragHandleProps?: Record<string, unknown>;
   isDragging?: boolean;
-  onFetchLogo?: () => void;
-  isFetchingLogo?: boolean;
   onUpdateParticipant?: (id: string, updates: Partial<Participant>) => Promise<void>;
 }
 
