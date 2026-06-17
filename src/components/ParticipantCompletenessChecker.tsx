@@ -106,8 +106,14 @@ export function ParticipantCompletenessChecker({ proposalId }: ParticipantComple
         }
 
         // OCD: only when the proposal requires it and a template exists.
-        // PUB (public bodies) are exempt — validated by Central Validation Service.
-        if (ocdRequired && p.organisation_category !== 'PUB') {
+        // Effective exempt = explicit ocd_exempt boolean if set, else default by org type
+        // (PUB = exempt, all others = not exempt).
+        const effectiveOcdExempt =
+          p.ocd_exempt === null || p.ocd_exempt === undefined
+            ? p.organisation_category === 'PUB'
+            : Boolean(p.ocd_exempt);
+
+        if (ocdRequired && !effectiveOcdExempt) {
           const orgType = (p.organisation_type || '').toLowerCase();
           const isHardRequirement =
             orgType === 'beneficiary' ||
