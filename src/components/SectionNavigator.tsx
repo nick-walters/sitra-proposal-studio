@@ -676,7 +676,22 @@ export function SectionNavigator({
   wpDraftsVisible = true,
   caseDraftsVisible = true,
   onExportPartB,
+  proposalId,
 }: SectionNavigatorProps) {
+  // Fetch case display setting (whether to show numbers vs short names on case bubbles)
+  const { data: caseSettings } = useQuery({
+    queryKey: ['case-settings', proposalId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('proposals')
+        .select('case_include_number')
+        .eq('id', proposalId)
+        .maybeSingle() as { data: { case_include_number: boolean | null } | null };
+      return data;
+    },
+    enabled: !!proposalId,
+  });
+  const caseIncludeNumber: boolean = caseSettings?.case_include_number !== false;
   // All users with proposal access can see all participants
   const visibleParticipants = useMemo(() => {
     return participants;
