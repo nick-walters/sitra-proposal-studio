@@ -13,7 +13,7 @@ export interface WPTheme {
   order_index: number;
 }
 
-const DEFAULT_THEME_COLORS = WP_CONTENT_COLORS;
+ 
  
  export function useWPThemes(proposalId: string) {
    const queryClient = useQueryClient();
