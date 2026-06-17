@@ -121,6 +121,24 @@ serve(async (req) => {
     // Handle pathway generation
     const { projectDescription, expectedOutcomes, topicId, topicContent, proposalContent, workProgramme, destination } = body;
 
+    const MAX_FIELD_CHARS = 5_000;
+    if (projectDescription !== undefined && projectDescription !== null) {
+      if (typeof projectDescription !== 'string' || projectDescription.length > MAX_FIELD_CHARS) {
+        return new Response(
+          JSON.stringify({ error: `projectDescription too long (max ${MAX_FIELD_CHARS} characters)` }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+    if (expectedOutcomes !== undefined && expectedOutcomes !== null) {
+      if (typeof expectedOutcomes !== 'string' || expectedOutcomes.length > MAX_FIELD_CHARS) {
+        return new Response(
+          JSON.stringify({ error: `expectedOutcomes too long (max ${MAX_FIELD_CHARS} characters)` }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     
     if (!LOVABLE_API_KEY) {

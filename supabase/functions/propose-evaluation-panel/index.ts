@@ -314,9 +314,8 @@ Return JSON array only.`;
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : "Unknown error";
-    console.error("propose-evaluation-panel error:", msg);
-    return new Response(JSON.stringify({ error: msg }), {
+    console.error("propose-evaluation-panel error:", e);
+    return new Response(JSON.stringify({ error: "An internal error occurred" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

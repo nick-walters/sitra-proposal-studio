@@ -117,9 +117,8 @@ Name style examples: "Machine learning researcher, applied AI" / "Health equity 
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : "Unknown error";
-    console.error("generate-persona error:", msg);
-    return new Response(JSON.stringify({ error: msg }), {
+    console.error("generate-persona error:", e);
+    return new Response(JSON.stringify({ error: "An internal error occurred" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
