@@ -62,18 +62,10 @@ export function BudgetPersonnelBreakdown({
   const undefinedPm = Math.round((totalPersonMonths - totalPm) * 100) / 100;
   const hasMismatch = rows.length > 0 && Math.abs(undefinedPm) > 0.001;
 
-  // Ensure at least one row always exists
-  const seededRef = useRef(false);
-  useEffect(() => {
-    if (!editable) return;
-    if (rows.length === 0 && !seededRef.current) {
-      seededRef.current = true;
-      onAdd();
-    }
-    if (rows.length > 0) {
-      seededRef.current = false;
-    }
-  }, [rows.length, editable, onAdd]);
+  // Seeding the initial "Average weighted PM" row is handled by the parent
+  // fetch in useBudgetRows.fetchPersonnelBreakdown. The component must NOT
+  // insert rows on mount — that races the fetch and creates orphan duplicates.
+
 
   // Alert when staff effort total changes while rows exist
   const lastTotalRef = useRef<number | null>(null);
