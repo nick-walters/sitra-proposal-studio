@@ -157,7 +157,7 @@ serve(async (req) => {
     );
   } catch (err) {
     console.error("Compile OCDs error:", err);
-    return new Response(JSON.stringify({ error: String(err) }), {
+    return new Response(JSON.stringify({ error: "An internal error occurred" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
