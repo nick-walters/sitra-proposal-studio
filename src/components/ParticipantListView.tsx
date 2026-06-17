@@ -512,10 +512,13 @@ export function ParticipantListView({
   // when a lead is changed in WPManagementCard or CaseManagementCard.
   useEffect(() => {
     if (!proposalId) return;
-    const handler = () => {
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent).detail;
+      if (detail?.type === 'case-settings') {
+        queryClient.invalidateQueries({ queryKey: ['case-settings', proposalId] });
+      }
       queryClient.invalidateQueries({ queryKey: ['wp-leadership', proposalId] });
       queryClient.invalidateQueries({ queryKey: ['case-leadership', proposalId] });
-      queryClient.invalidateQueries({ queryKey: ['case-settings', proposalId] });
     };
     window.addEventListener('cross-ref-data-changed', handler);
     return () => window.removeEventListener('cross-ref-data-changed', handler);
