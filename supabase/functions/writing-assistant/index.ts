@@ -46,6 +46,16 @@ serve(async (req) => {
       );
     }
 
+    const MAX_CONTEXT_CHARS = 10_000;
+    if (context !== undefined && context !== null) {
+      if (typeof context !== 'string' || context.length > MAX_CONTEXT_CHARS) {
+        return new Response(
+          JSON.stringify({ error: `Context too long (max ${MAX_CONTEXT_CHARS} characters)` }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     let systemPrompt = "";
     let userPrompt = "";
 
