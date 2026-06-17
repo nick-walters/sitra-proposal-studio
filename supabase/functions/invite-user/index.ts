@@ -63,19 +63,14 @@ serve(async (req: Request) => {
 
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { data: callerRole } = await adminClient
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", callerId)
-      .eq("proposal_id", proposalId)
-      .maybeSingle();
-
-    const { data: isOwner } = await adminClient.rpc("is_owner", {
+    // Only coordinators, proposal admins, or platform owners/admins may invite users
+    const { data: canInvite } = await adminClient.rpc("is_proposal_admin", {
       _user_id: callerId,
+      _proposal_id: proposalId,
     });
 
-    if (!callerRole && !isOwner) {
-      return new Response(JSON.stringify({ error: "No access to this proposal" }), {
+    if (!canInvite) {
+      return new Response(JSON.stringify({ error: "Permission denied: coordinator role required to invite users" }), {
         status: 403,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });

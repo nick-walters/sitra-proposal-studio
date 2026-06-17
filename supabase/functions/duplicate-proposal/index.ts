@@ -55,18 +55,14 @@ serve(async (req) => {
       });
     }
 
-    // Verify the user has access to the source proposal
-    const { data: callerRole } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .eq('proposal_id', proposalId)
-      .maybeSingle();
+    // Only coordinators, proposal admins, or platform owners/admins may duplicate
+    const { data: isAllowed } = await supabase.rpc('is_proposal_admin', {
+      _user_id: user.id,
+      _proposal_id: proposalId,
+    });
 
-    const { data: isOwnerResult } = await supabase.rpc('is_owner', { _user_id: user.id });
-
-    if (!callerRole && !isOwnerResult) {
-      return new Response(JSON.stringify({ error: 'No access to this proposal' }), {
+    if (!isAllowed) {
+      return new Response(JSON.stringify({ error: 'Permission denied: coordinator role required to duplicate a proposal' }), {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
