@@ -94,9 +94,10 @@ export function UserProfileDialog({ open, onOpenChange, userId, editable = false
       const [baseRes, privRes] = await Promise.all([
         supabase
           .from('profiles')
-          .select('*')
+          .select('id, email, full_name, avatar_url, organisation, first_name, last_name, department, country, website, linkedin, bluesky, instagram, facebook, other_links')
           .eq('id', userId)
           .single(),
+
         supabase.rpc('get_my_private_profile'),
       ]);
 
