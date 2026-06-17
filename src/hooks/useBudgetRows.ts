@@ -110,10 +110,10 @@ function computeRow(row: BudgetRowData, proposalType: string | null): ComputedBu
   const indirectCosts = row.indirectCostsOverride ?? Math.round(indirectCostsBase * 0.25 * 100) / 100;
   const totalEligibleCosts = directCosts + indirectCosts;
 
-  // Funding rate: RIA = 100% all; IA = 100% except PRC (private companies) = 70%
+  // Funding rate: RIA = 100% all; IA = 100% except LE (large enterprises) = 70%. SMEs get 100% even in IA.
   let fundingRate = row.fundingRateOverride ?? 100;
   if (row.fundingRateOverride == null) {
-    if (proposalType === 'IA' && row.organisationCategory === 'PRC') {
+    if (proposalType === 'IA' && row.organisationCategory === 'LE') {
       fundingRate = 70;
     }
   }

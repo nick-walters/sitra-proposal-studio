@@ -376,7 +376,8 @@ export interface EthicsAssessment {
 export type OrganisationCategory = 
   | 'HES' 
   | 'RES' 
-  | 'PRC' 
+  | 'SME' 
+  | 'LE' 
   | 'PUB' 
   | 'INT' 
   | 'OTH';
@@ -384,7 +385,8 @@ export type OrganisationCategory =
 export const ORGANISATION_CATEGORY_LABELS: Record<OrganisationCategory, string> = {
   HES: 'Higher or secondary education establishment',
   RES: 'Research organisation',
-  PRC: 'Private for-profit entity',
+  SME: 'Small or medium-sized enterprise',
+  LE: 'Large enterprise',
   PUB: 'Public body',
   INT: 'International organisation',
   OTH: 'Other',

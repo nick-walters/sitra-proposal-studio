@@ -14,13 +14,13 @@ interface OrganisationInfo {
   countryCode: string;
   legalEntityType?: string;
   isSme: boolean;
-  organisationCategory?: 'HES' | 'RES' | 'PRC' | 'PUB' | 'INT' | 'OTH';
+  organisationCategory?: 'HES' | 'RES' | 'SME' | 'LE' | 'PUB' | 'INT' | 'OTH';
   englishName?: string;
   logoUrl?: string;
 }
 
 // Map legal entity type to official EC organisation categories
-function mapLegalEntityToCategory(legalEntityType?: string, isSme?: boolean): 'HES' | 'RES' | 'PRC' | 'PUB' | 'INT' | 'OTH' {
+function mapLegalEntityToCategory(legalEntityType?: string, isSme?: boolean): 'HES' | 'RES' | 'SME' | 'LE' | 'PUB' | 'INT' | 'OTH' {
   if (!legalEntityType) return 'OTH';
   const type = legalEntityType.toLowerCase();
   // Public bodies first (highest priority)
@@ -28,8 +28,10 @@ function mapLegalEntityToCategory(legalEntityType?: string, isSme?: boolean): 'H
   // Education and research
   if (type.includes('university') || type.includes('higher education') || type.includes('secondary education') || type.includes('hes')) return 'HES';
   if (type.includes('research') || type.includes('rto') || type.includes('rec')) return 'RES';
-  // Private sector (SMEs are also PRC in official EC categorization)
-  if (type.includes('private') || type.includes('prc') || type.includes('for-profit') || type.includes('enterprise') || type.includes('sme')) return 'PRC';
+  // Private sector — split by SME flag
+  if (type.includes('private') || type.includes('prc') || type.includes('for-profit') || type.includes('enterprise') || type.includes('sme')) {
+    return isSme ? 'SME' : 'LE';
+  }
   // Non-profits and civil society map to OTH
   if (type.includes('ngo') || type.includes('non-governmental') || type.includes('cso') || type.includes('civil society') || type.includes('non-profit') || type.includes('nonprofit')) return 'OTH';
   // International
@@ -234,8 +236,8 @@ async function lookupPicFromCordis(pic: string): Promise<OrganisationInfo | null
     } else if (typeCheck.includes('pub') || typeCheck.includes('public body')) {
       organisationCategory = 'PUB';
     } else if (typeCheck.includes('sme') || typeCheck.includes('prc') || typeCheck.includes('private')) {
-      organisationCategory = 'PRC';
       isSme = typeCheck.includes('sme');
+      organisationCategory = isSme ? 'SME' : 'LE';
     }
     
     if (!legalName) return null;
