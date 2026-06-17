@@ -768,6 +768,7 @@ export function SectionNavigator({
             lockedSections={lockedSections}
             onToggleLock={onToggleLock}
             onExportPartB={onExportPartB}
+            caseIncludeNumber={caseIncludeNumber}
           />
         ))}
       </div>
