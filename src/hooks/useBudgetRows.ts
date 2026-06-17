@@ -162,10 +162,14 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
   const [subcontractingItems, setSubcontractingItems] = useState<SubcontractingItem[]>([]);
   const [equipmentItems, setEquipmentItems] = useState<EquipmentItem[]>([]);
   const [personnelBreakdown, setPersonnelBreakdown] = useState<PersonnelBreakdownItem[]>([]);
+  const [personnelLoaded, setPersonnelLoaded] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const hasLoadedRef = useRef(false);
+  const personnelRef = useRef<PersonnelBreakdownItem[]>([]);
+  const seedingRef = useRef<Set<string>>(new Set());
+  useEffect(() => { personnelRef.current = personnelBreakdown; }, [personnelBreakdown]);
 
   const fetchRows = useCallback(async () => {
     if (!proposalId) return;
