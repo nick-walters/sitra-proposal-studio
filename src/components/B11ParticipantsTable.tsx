@@ -77,6 +77,8 @@ export function B11ParticipantsTable({ proposalId }: Props) {
   const participantsKey = ['b11-participants', proposalId];
   const wpKey = ['b11-wp-leadership', proposalId];
   const caseKey = ['b11-case-leadership', proposalId];
+  const caseSettingsKey = ['case-settings', proposalId];
+
 
   const { data: participants = [] } = useQuery({
     queryKey: participantsKey,
