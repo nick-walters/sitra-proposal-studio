@@ -918,6 +918,7 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
     subcontractingItems,
     equipmentItems,
     personnelBreakdown,
+    personnelLoaded,
     grandTotals,
     loading,
     saving,
