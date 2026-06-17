@@ -359,7 +359,7 @@ function SectionItem({
             color="#000000"
             style={{ fontSize: '9px', height: 'auto', padding: '1px 6px', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '140px', whiteSpace: 'nowrap' }}
           >
-            {caseSection.number}
+            {caseIncludeNumber ? caseSection.number : caseSection.title}
           </B31Pill>
         ) : isParticipantSection ? (
           <ParticipantBubble
@@ -621,7 +621,7 @@ function SectionItem({
                               maxWidth: '140px',
                             }}
                           >
-                            {caseSub.number}
+                            {caseIncludeNumber ? caseSub.number : caseSub.title}
                           </B31Pill>
                         )}
                       </TooltipTrigger>
@@ -651,6 +651,7 @@ function SectionItem({
                 isCoordinator={isCoordinator}
                 lockedSections={lockedSections}
                 onToggleLock={onToggleLock}
+                caseIncludeNumber={caseIncludeNumber}
               />
             ))
           )}
