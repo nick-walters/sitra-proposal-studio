@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Briefcase } from 'lucide-react';
 import { ParticipantOrganisationRole, ORGANISATION_ROLES } from '@/types/participantDetails';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface OrganisationRolesSectionProps {
   roles: ParticipantOrganisationRole[];
