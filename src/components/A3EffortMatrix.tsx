@@ -48,6 +48,7 @@ interface EffortLock {
 }
 
 export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A3EffortMatrixProps) {
+  console.log('[FLICKER][A3EffortMatrix RENDER]', Date.now());
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
@@ -151,6 +152,7 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
     flushTimerRef.current = null;
     const pending = pendingEditsRef.current;
     if (pending.size === 0) return;
+    console.log('[FLICKER][EFFORT] flushing', pending.size, 'edits @', Date.now());
     const edits = Array.from(pending.values());
     pendingEditsRef.current = new Map();
 
@@ -185,7 +187,7 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
   }, [flushPendingEdits]);
 
   const saveEffortValue = useCallback(async (participantId: string, wpId: string, personMonths: number) => {
-    // Persist immediately — no debounce on the DB write so no data is lost.
+    console.log('[FLICKER][EFFORT] upsert start', participantId, wpId, personMonths, '@', Date.now());
     await supabase
       .from('wp_draft_effort')
       .upsert({
@@ -195,9 +197,10 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
       }, {
         onConflict: 'wp_draft_id,participant_id',
       });
+    console.log('[FLICKER][EFFORT] upsert done @', Date.now());
 
-    // Queue UI refresh; coalesce across cells.
     pendingEditsRef.current.set(`${participantId}|${wpId}`, { participantId, wpId, personMonths });
+    console.log('[FLICKER][EFFORT] queued pending edit, size=', pendingEditsRef.current.size);
     if (flushTimerRef.current) clearTimeout(flushTimerRef.current);
     flushTimerRef.current = setTimeout(flushPendingEdits, 800);
   }, [flushPendingEdits]);
