@@ -150,11 +150,8 @@ export function ParticipantDetailForm({
 
   // GEP eligibility: HES, RES, or PUB organisations from EU Member States or Associated countries
   const showGEPSection = useMemo(() => {
-    const GEP_ELIGIBLE_CATEGORIES = ['HES', 'RES', 'PUB'];
-    const isEligibleCategory = GEP_ELIGIBLE_CATEGORIES.includes(participant.organisationCategory || '');
-    const isEligibleCountry = isEligibleForGEP(participant.country || '');
-    return isEligibleCategory && isEligibleCountry;
-  }, [participant.organisationCategory, participant.country]);
+    return isEligibleForGEP(participant.country || '');
+  }, [participant.country]);
 
 
   const handleFieldUpdate = (field: string, value: unknown) => {
