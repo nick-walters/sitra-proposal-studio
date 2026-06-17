@@ -103,7 +103,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ColoredAcronym } from "@/components/AcronymColorEditor";
 
 export function ProposalEditor() {
-  console.log('[FLICKER][ProposalEditor RENDER]', Date.now());
   const { id } = useParams();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -273,7 +272,6 @@ export function ProposalEditor() {
 
   // React to URL search param changes (for notification navigation)
   useEffect(() => {
-    console.log('[FLICKER][ProposalEditor useEffect#1 searchParams]', Date.now());
     if (sectionsLoading || allSections.length === 0) return;
     const urlSection = searchParams.get('section');
     const urlPanel = searchParams.get('panel') as 'comments' | 'changes' | null;
@@ -291,7 +289,6 @@ export function ProposalEditor() {
 
   // Auto-select section on initial load: localStorage > A1
   useEffect(() => {
-    console.log('[FLICKER][ProposalEditor useEffect#2 auto-select]', Date.now());
     if (!sectionsLoading && allSections.length > 0 && !activeSection) {
       // Check localStorage for last visited section
       const lastSectionId = localStorage.getItem(`proposal-${id}-lastSection`);
@@ -313,7 +310,6 @@ export function ProposalEditor() {
 
   // Dismiss any "creating proposal" toasts once proposal data has loaded
   useEffect(() => {
-    console.log('[FLICKER][ProposalEditor useEffect#3 toast-dismiss]', Date.now(), 'proposalRef=', proposal?.id);
     if (!loading && proposal) {
       toast.dismiss();
     }
@@ -713,7 +709,6 @@ export function ProposalEditor() {
         );
       },
       'a3': () => {
-        console.log('[FLICKER][A3 PARENT RENDER]', Date.now(), 'proposalRef=', proposal?.id, 'activeSectionId=', activeSection?.id);
         return (
         <div className="flex-1 overflow-y-auto">
           <BudgetPortalSheet
