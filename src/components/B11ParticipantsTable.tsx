@@ -330,16 +330,20 @@ function ParticipantRowView({ p, isCoord, wpLed, caseLed, caseIncludeNumber, can
       <TooltipContent>{wp.shortName ? `${wp.shortName} (Lead)` : `WP${wp.number} Lead`}</TooltipContent>
     </Tooltip>
   ));
-  const caseBadges = caseLed.map((c) => (
-    <Tooltip key={`case-${c.number}`}>
-      <TooltipTrigger asChild>
-        <B31Pill variant="outline" color="#000" size="document" style={{ lineHeight: 1.2 }}>
-          {c.prefix ? `${c.prefix}${c.number}` : (c.shortName || c.number)}
-        </B31Pill>
-      </TooltipTrigger>
-      <TooltipContent>{c.shortName ? `${c.shortName} (Lead)` : `Lead`}</TooltipContent>
-    </Tooltip>
-  ));
+  const caseBadges = caseLed.map((c) => {
+    const numberLabel = c.prefix ? `${c.prefix}${c.number}` : String(c.number);
+    const displayLabel = caseIncludeNumber ? numberLabel : (c.shortName || numberLabel);
+    return (
+      <Tooltip key={`case-${c.number}`}>
+        <TooltipTrigger asChild>
+          <B31Pill variant="outline" color="#000" size="document" style={{ lineHeight: 1.2 }}>
+            {displayLabel}
+          </B31Pill>
+        </TooltipTrigger>
+        <TooltipContent>{c.shortName ? `${c.shortName} (Lead)` : `Lead`}</TooltipContent>
+      </Tooltip>
+    );
+  });
 
   const allBadges = [...coordBadges, ...wpBadges, ...caseBadges];
 
