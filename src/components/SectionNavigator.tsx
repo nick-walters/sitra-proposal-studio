@@ -691,6 +691,7 @@ export function SectionNavigator({
       return data;
     },
     enabled: !!proposalId,
+    placeholderData: (previousData) => previousData,
   });
   const caseIncludeNumber: boolean = caseSettings?.case_include_number !== false;
   // All users with proposal access can see all participants
