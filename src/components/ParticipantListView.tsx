@@ -113,8 +113,6 @@ interface SortableParticipantCardProps {
   wpLeadership?: WPLeadershipInfo[];
   caseLeadership?: CaseLeadershipInfo[];
   caseIncludeNumber?: boolean;
-  onFetchLogo?: () => void;
-  isFetchingLogo?: boolean;
   onUpdateParticipant?: (id: string, updates: Partial<Participant>) => Promise<void>;
 }
 
