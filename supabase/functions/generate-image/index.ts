@@ -38,6 +38,14 @@ serve(async (req) => {
       );
     }
 
+    const MAX_PROMPT_CHARS = 2_000;
+    if (typeof prompt !== 'string' || prompt.length > MAX_PROMPT_CHARS) {
+      return new Response(
+        JSON.stringify({ error: `Prompt too long (max ${MAX_PROMPT_CHARS} characters)` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -91,7 +99,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("Image generation error:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ error: "An internal error occurred" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

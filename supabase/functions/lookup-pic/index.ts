@@ -467,7 +467,7 @@ serve(async (req: Request) => {
   } catch (error) {
     console.error('Error:', error);
     return new Response(
-      JSON.stringify({ success: false, error: String(error) }),
+      JSON.stringify({ success: false, error: 'An internal error occurred' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

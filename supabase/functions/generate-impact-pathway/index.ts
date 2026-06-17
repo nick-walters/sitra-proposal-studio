@@ -267,10 +267,9 @@ Generate 2-3 outcomes, 2-3 impacts, and 2-3 barriers. Make all content specific 
 
   } catch (error: unknown) {
     console.error('Error in generate-impact-pathway:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Failed to generate impact pathways';
     return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { 
+      JSON.stringify({ error: "An internal error occurred" }),
+      {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
