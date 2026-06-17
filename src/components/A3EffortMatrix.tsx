@@ -435,9 +435,7 @@ interface EffortInputCellProps {
 }
 
 function EffortInputCell({ value, canEdit, onSave }: EffortInputCellProps) {
-  // Untouched cells (no row in wp_draft_effort) show empty.
-  // Cells explicitly set — including cleared to 0 — show their numeric value.
-  const displayValue = value == null ? '' : formatPM(value);
+  const displayValue = formatPM(value ?? 0);
 
   const handleDebouncedChange = useCallback((raw: string) => {
     if (!canEdit) return;
