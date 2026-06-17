@@ -1,6 +1,7 @@
 import { Section, Participant } from "@/types/proposal";
 import { ChevronRight, ChevronDown, FileText, User, Clock, AlertTriangle, BarChart3, Layers, Building2, Info, Euro, Lightbulb, Target, Settings, FlaskConical, ShieldCheck, HelpCircle, MessageSquare, ListTodo, Briefcase, Lock, Unlock, CalendarDays, Download } from "lucide-react";
 import { useState, useMemo, useRef, useLayoutEffect, useCallback } from "react";
+import { useParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -8,6 +9,8 @@ import { SectionAssignment } from "@/hooks/useSectionAssignments";
 import { isPast, isToday, differenceInDays, format } from "date-fns";
 import type { WPSection, CaseSection } from "@/hooks/useProposalSections";
 import { B31Pill, WPBubble, ParticipantBubble } from "@/components/B31Pill";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 // JS-based truncation that trims trailing whitespace before "..."
 function TruncatedText({ text, className, isActive }: { text: string; className?: string; isActive?: boolean }) {
@@ -150,6 +153,7 @@ function SectionItem({
   lockedSections,
   onToggleLock,
   onExportPartB,
+  caseIncludeNumber = true,
 }: {
   section: Section | WPSection | CaseSection;
   depth?: number;
@@ -162,6 +166,7 @@ function SectionItem({
   lockedSections?: Set<string>;
   onToggleLock?: (sectionId: string) => void;
   onExportPartB?: () => void;
+  caseIncludeNumber?: boolean;
 }) {
   const isAlwaysExpanded = false;
   const [isExpanded, setIsExpanded] = useState(section.id !== 'a2');
@@ -354,7 +359,7 @@ function SectionItem({
             color="#000000"
             style={{ fontSize: '9px', height: 'auto', padding: '1px 6px', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '140px', whiteSpace: 'nowrap' }}
           >
-            {caseSection.number}
+            {caseIncludeNumber ? caseSection.number : caseSection.title}
           </B31Pill>
         ) : isParticipantSection ? (
           <ParticipantBubble
@@ -616,7 +621,7 @@ function SectionItem({
                               maxWidth: '140px',
                             }}
                           >
-                            {caseSub.number}
+                            {caseIncludeNumber ? caseSub.number : caseSub.title}
                           </B31Pill>
                         )}
                       </TooltipTrigger>
@@ -646,6 +651,7 @@ function SectionItem({
                 isCoordinator={isCoordinator}
                 lockedSections={lockedSections}
                 onToggleLock={onToggleLock}
+                caseIncludeNumber={caseIncludeNumber}
               />
             ))
           )}
@@ -671,6 +677,22 @@ export function SectionNavigator({
   caseDraftsVisible = true,
   onExportPartB,
 }: SectionNavigatorProps) {
+  const { id: proposalId } = useParams();
+
+  // Fetch case display setting (whether to show numbers vs short names on case bubbles)
+  const { data: caseSettings } = useQuery({
+    queryKey: ['case-settings', proposalId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('proposals')
+        .select('case_include_number')
+        .eq('id', proposalId)
+        .maybeSingle() as { data: { case_include_number: boolean | null } | null };
+      return data;
+    },
+    enabled: !!proposalId,
+  });
+  const caseIncludeNumber: boolean = caseSettings?.case_include_number !== false;
   // All users with proposal access can see all participants
   const visibleParticipants = useMemo(() => {
     return participants;
@@ -747,6 +769,7 @@ export function SectionNavigator({
             lockedSections={lockedSections}
             onToggleLock={onToggleLock}
             onExportPartB={onExportPartB}
+            caseIncludeNumber={caseIncludeNumber}
           />
         ))}
       </div>
