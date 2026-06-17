@@ -1202,7 +1202,7 @@ serve(async (req) => {
     if (error instanceof Response) return error;
     const message = error instanceof Error ? error.message : "Unknown error";
     console.error("run-panel-evaluation error:", message);
-    return new Response(JSON.stringify({ error: message }), {
+    return new Response(JSON.stringify({ error: "An internal error occurred" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
