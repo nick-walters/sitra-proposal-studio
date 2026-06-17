@@ -350,7 +350,7 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
 
 interface EffortRowProps {
   participant: ParticipantInfo;
-  values: Record<string, number>;
+  values: Record<string, number | undefined>;
   wpIds: string[];
   wpIdsKey: string;
   isLocked: boolean;
@@ -396,7 +396,7 @@ const EffortRow = React.memo(function EffortRow({
         </div>
       </td>
       {wpIds.map(wpId => {
-        const val = values[wpId] || 0;
+        const val = values[wpId];
         return (
           <td key={wpId} className="p-1 border-r align-middle">
             <EffortInputCell
@@ -429,19 +429,24 @@ const EffortRow = React.memo(function EffortRow({
 });
 
 interface EffortInputCellProps {
-  value: number;
+  value: number | undefined;
   canEdit: boolean;
   onSave: (value: number) => Promise<void>;
 }
 
 function EffortInputCell({ value, canEdit, onSave }: EffortInputCellProps) {
-  const displayValue = formatPM(value);
+  // Untouched cells (no row in wp_draft_effort) show empty.
+  // Cells explicitly set — including cleared to 0 — show their numeric value.
+  const displayValue = value == null ? '' : formatPM(value);
 
   const handleDebouncedChange = useCallback((raw: string) => {
     if (!canEdit) return;
-    const parsed = parseFloat(raw) || 0;
-    const rounded = Math.round(parsed * 10) / 10;
-    if (rounded === value) return;
+    // Empty / NaN inputs are treated as 0 and persisted, so the cell
+    // shows "0" on next load instead of reverting to empty.
+    const parsed = parseFloat(raw);
+    const safe = Number.isFinite(parsed) ? parsed : 0;
+    const rounded = Math.round(safe * 10) / 10;
+    if (rounded === (value ?? null)) return;
     void onSave(rounded);
   }, [canEdit, onSave, value]);
 

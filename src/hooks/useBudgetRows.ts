@@ -384,23 +384,17 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
     fetchRows();
   }, [fetchRows]);
 
-  // Re-fetch when effort data changes (e.g. from A3 effort matrix edits)
-  // Debounced so rapid keystrokes in the staff effort table don't trigger
-  // a refetch+re-render storm on the budget portal.
+  // Re-fetch when effort data changes (e.g. from A3 effort matrix edits).
+  // The source event in A3EffortMatrix is already coalesced behind an 800ms
+  // flush timer, so fetch immediately here — no second debounce needed.
   useEffect(() => {
-    let timer: ReturnType<typeof setTimeout> | null = null;
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
       if (detail?.proposalId !== proposalId) return;
-      if (timer) clearTimeout(timer);
-      timer = setTimeout(() => {
-        fetchRows();
-        timer = null;
-      }, 800);
+      fetchRows();
     };
     window.addEventListener('effort-data-changed', handler);
     return () => {
-      if (timer) clearTimeout(timer);
       window.removeEventListener('effort-data-changed', handler);
     };
   }, [proposalId, fetchRows]);
