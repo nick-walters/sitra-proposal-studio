@@ -530,9 +530,8 @@ serve(async (req: Request) => {
     
   } catch (error: unknown) {
     console.error('Error:', error);
-    const message = error instanceof Error ? error.message : 'Failed to fetch logo';
     return new Response(
-      JSON.stringify({ error: message }),
+      JSON.stringify({ error: "An internal error occurred" }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

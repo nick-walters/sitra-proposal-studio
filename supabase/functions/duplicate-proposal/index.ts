@@ -492,7 +492,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error duplicating proposal:', error);
     return new Response(
-      JSON.stringify({ error: 'Internal server error', details: String(error) }),
+      JSON.stringify({ error: "An internal error occurred" }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
