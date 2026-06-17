@@ -2707,6 +2707,7 @@ export type Database = {
           main_contact_title: string | null
           main_contact_town: string | null
           main_contact_website: string | null
+          ocd_exempt: boolean | null
           organisation_category: string | null
           organisation_name: string
           organisation_short_name: string | null
@@ -2765,6 +2766,7 @@ export type Database = {
           main_contact_title?: string | null
           main_contact_town?: string | null
           main_contact_website?: string | null
+          ocd_exempt?: boolean | null
           organisation_category?: string | null
           organisation_name: string
           organisation_short_name?: string | null
@@ -2823,6 +2825,7 @@ export type Database = {
           main_contact_title?: string | null
           main_contact_town?: string | null
           main_contact_website?: string | null
+          ocd_exempt?: boolean | null
           organisation_category?: string | null
           organisation_name?: string
           organisation_short_name?: string | null
