@@ -3,7 +3,7 @@
  * Supabase edge functions (Deno). Pure TypeScript, no runtime-specific
  * syntax. Imported from:
  *   - src/lib/editorContentSanitizer.ts (re-export for client)
- *   - supabase/functions/duplicate-proposal/index.ts (and any other fns)
+ *   - supabase/functions/ (any function that needs HTML sanitisation)
  *
  * Uses isomorphic-dompurify which transparently uses the native browser
  * DOM in the client and a bundled jsdom in Deno/Node.
