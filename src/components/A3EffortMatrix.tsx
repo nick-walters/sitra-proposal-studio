@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -130,12 +130,16 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
     queryClient.invalidateQueries({ queryKey: ['effort-row-locks', proposalId] });
   }, [proposalId, queryClient]);
 
-  const matrix = new Map<string, Map<string, number>>();
-  (participants || []).forEach(p => matrix.set(p.id, new Map()));
-  (effortData || []).forEach(e => {
-    const pMap = matrix.get(e.participant_id);
-    if (pMap) pMap.set(e.wp_draft_id, e.person_months || 0);
-  });
+  // Memoize matrix so unrelated parent re-renders don't rebuild every cell.
+  const matrix = useMemo(() => {
+    const m = new Map<string, Map<string, number>>();
+    (participants || []).forEach(p => m.set(p.id, new Map()));
+    (effortData || []).forEach(e => {
+      const pMap = m.get(e.participant_id);
+      if (pMap) pMap.set(e.wp_draft_id, e.person_months || 0);
+    });
+    return m;
+  }, [participants, effortData]);
 
   // Coalesce optimistic cache updates + downstream invalidations so rapid
   // edits across multiple cells trigger a single matrix re-render after
