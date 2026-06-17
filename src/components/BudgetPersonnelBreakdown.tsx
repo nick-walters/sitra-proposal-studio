@@ -168,7 +168,7 @@ export function BudgetPersonnelBreakdown({
             ))}
             {hasMismatch && (
               <tr className="border-t bg-destructive/5">
-                <td className="px-2 py-1 font-semibold text-destructive">Undefined!</td>
+                <td className="px-2 py-1 font-semibold text-destructive">Unallocated PMs</td>
                 <td className="px-2 py-1" />
                 <td className="py-1 pr-5 text-right tabular-nums font-semibold text-destructive">{formatPM(undefinedPm)}</td>
                 <td className="px-2 py-1" />
