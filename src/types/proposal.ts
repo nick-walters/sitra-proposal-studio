@@ -249,6 +249,7 @@ export interface Participant {
   organisationCategory?: string;
   englishName?: string;
   personnelCostRate?: number;
+  ocdExempt?: boolean | null;
   // Part A2 additional fields
   department?: string;
   mainContactTitle?: string;

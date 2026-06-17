@@ -166,6 +166,7 @@ export function useProposalData(proposalId: string) {
         organisationCategory: p.organisation_category || undefined,
         englishName: p.english_name || undefined,
         personnelCostRate: p.personnel_cost_rate || undefined,
+        ocdExempt: p.ocd_exempt ?? null,
         department: p.department || undefined,
         mainContactTitle: p.main_contact_title || undefined,
         mainContactPosition: p.main_contact_position || undefined,
