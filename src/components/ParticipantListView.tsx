@@ -702,8 +702,7 @@ export function ParticipantListView({
                       size="sm"
                       onClick={async () => {
                         const isOcdExempt = (p: Participant) =>
-                          (p as any).ocd_exempt === true ||
-                          ((p as any).ocd_exempt == null && p.organisationCategory === 'PUB');
+                          p.ocdExempt === true || (p.ocdExempt == null && p.organisationCategory === 'PUB');
                         const missing = participants.filter(p => !ocd.uploads[p.id] && !isOcdExempt(p));
                         if (missing.length > 0) {
                           const names = missing.map(p => p.organisationShortName || p.organisationName).join(', ');

@@ -166,6 +166,7 @@ export function useProposalData(proposalId: string) {
         organisationCategory: p.organisation_category || undefined,
         englishName: p.english_name || undefined,
         personnelCostRate: p.personnel_cost_rate || undefined,
+        ocdExempt: p.ocd_exempt ?? null,
         department: p.department || undefined,
         mainContactTitle: p.main_contact_title || undefined,
         mainContactPosition: p.main_contact_position || undefined,
@@ -405,6 +406,7 @@ export function useProposalData(proposalId: string) {
     if (updates.hasGenderEqualityPlan !== undefined) dbUpdates.has_gender_equality_plan = updates.hasGenderEqualityPlan;
     if (updates.dependencyDeclaration !== undefined) dbUpdates.dependency_declaration = updates.dependencyDeclaration;
     if (updates.personnelCostRate !== undefined) dbUpdates.personnel_cost_rate = updates.personnelCostRate;
+    if (updates.ocdExempt !== undefined) dbUpdates.ocd_exempt = updates.ocdExempt;
     // Handle logoUrl - use null check to allow clearing (null means delete, undefined means no change)
     if ('logoUrl' in updates) dbUpdates.logo_url = updates.logoUrl || null;
 
