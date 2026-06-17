@@ -273,6 +273,7 @@ export function ProposalEditor() {
 
   // React to URL search param changes (for notification navigation)
   useEffect(() => {
+    console.log('[FLICKER][ProposalEditor useEffect#1 searchParams]', Date.now());
     if (sectionsLoading || allSections.length === 0) return;
     const urlSection = searchParams.get('section');
     const urlPanel = searchParams.get('panel') as 'comments' | 'changes' | null;
