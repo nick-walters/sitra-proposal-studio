@@ -33,7 +33,9 @@ export function OCDSection({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
 
-  if (!visible || !templateExists) return null;
+  // Visible only to users who can edit the participant (editor+),
+  // when the proposal requires OCD and a template has been uploaded.
+  if (!visible || !templateExists || !canEdit) return null;
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
