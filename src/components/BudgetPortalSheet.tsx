@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { PartAGuidelinesDialog } from './PartAGuidelinesDialog';
 import { PartAPageLayout } from './PartAPageLayout';
 
@@ -89,6 +89,10 @@ export function BudgetPortalSheet({
   onNavigateToParticipantBudget,
 }: BudgetPortalSheetProps) {
   console.log('[FLICKER][BudgetPortalSheet RENDER]', Date.now());
+  useEffect(() => {
+    console.log('[FLICKER][BudgetPortalSheet MOUNT]', Date.now());
+    return () => console.log('[FLICKER][BudgetPortalSheet UNMOUNT]', Date.now());
+  }, []);
   const {
     rows,
     justifications,
