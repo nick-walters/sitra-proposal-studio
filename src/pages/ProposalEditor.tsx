@@ -712,7 +712,9 @@ export function ProposalEditor() {
           </div>
         );
       },
-      'a3': () => (
+      'a3': () => {
+        console.log('[FLICKER][A3 PARENT RENDER]', Date.now(), 'proposalRef=', proposal?.id, 'activeSectionId=', activeSection?.id);
+        return (
         <div className="flex-1 overflow-y-auto">
           <BudgetPortalSheet
             proposalId={id || ''}
@@ -727,7 +729,8 @@ export function ProposalEditor() {
             }}
           />
         </div>
-      ),
+        );
+      },
       'a4': () => (
         <div className="flex-1 overflow-y-auto">
           <EthicsForm
