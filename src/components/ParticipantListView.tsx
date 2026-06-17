@@ -130,8 +130,6 @@ function ParticipantCard({
   caseIncludeNumber = true,
   dragHandleProps,
   isDragging,
-  onFetchLogo,
-  isFetchingLogo,
   onUpdateParticipant,
 }: ParticipantCardProps) {
   // Local state for the country dropdown (CountrySelect commits on selection — no debounce needed)
