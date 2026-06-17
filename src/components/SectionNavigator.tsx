@@ -153,6 +153,7 @@ function SectionItem({
   lockedSections,
   onToggleLock,
   onExportPartB,
+  caseIncludeNumber = true,
 }: {
   section: Section | WPSection | CaseSection;
   depth?: number;
@@ -165,6 +166,7 @@ function SectionItem({
   lockedSections?: Set<string>;
   onToggleLock?: (sectionId: string) => void;
   onExportPartB?: () => void;
+  caseIncludeNumber?: boolean;
 }) {
   const isAlwaysExpanded = false;
   const [isExpanded, setIsExpanded] = useState(section.id !== 'a2');
