@@ -11,6 +11,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
 import { Separator } from "@/components/ui/separator";
 import { SaveIndicator } from "./SaveIndicator";
@@ -23,7 +24,7 @@ import { TopicFormattingToolbar } from "./TopicFormattingToolbar";
 import { StickyToolbarWrapper } from "./StickyToolbarWrapper";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Target, Euro, Calendar as CalendarIcon, ExternalLink, FileText, FileDown, CheckCircle2, RefreshCw, Pencil, Save, X, ClipboardList } from "lucide-react";
+import { Loader2, Target, Euro, Calendar as CalendarIcon, ExternalLink, FileText, FileDown, CheckCircle2, RefreshCw, Pencil, Save, X, ClipboardList, Download, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -109,6 +110,72 @@ export function TopicInformationPage({
   const [editSnapshot, setEditSnapshot] = useState<Record<string, any> | null>(null);
 
   const userCanEdit = canEdit && isCoordinator;
+
+  // --- Import-from-portal state ---
+  const [importing, setImporting] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [importedMeta, setImportedMeta] = useState<{ topicId: string; url: string | null; otherSections: { label: string; html: string }[] } | null>(null);
+  const [importTitle, setImportTitle] = useState('');
+  const [importOutcome, setImportOutcome] = useState('');
+  const [importScope, setImportScope] = useState('');
+  const [importDestination, setImportDestination] = useState('');
+
+  const handleImportFromPortal = async () => {
+    if (!proposal?.topicId) return;
+    setImporting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('import-topic-info', {
+        body: { topicId: proposal.topicId },
+      });
+      if (error || !data?.success || !data?.topic) {
+        toast.error("Couldn't import this topic from the portal. Check the Topic ID is correct.");
+        return;
+      }
+      const t = data.topic;
+      setImportTitle(t.title || '');
+      setImportOutcome(t.expectedOutcome || '');
+      setImportScope(t.scope || '');
+      setImportDestination(t.destinationDetails || '');
+      setImportedMeta({
+        topicId: t.topicId,
+        url: t.url || null,
+        otherSections: Array.isArray(t.otherSections) ? t.otherSections : [],
+      });
+      setImportDialogOpen(true);
+    } catch (e) {
+      toast.error("Couldn't import this topic from the portal. Check the Topic ID is correct.");
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const handleConfirmImport = async () => {
+    if (!editedProposal) return;
+    const updates: Record<string, any> = {
+      ...editedProposal,
+      topicTitle: importTitle,
+      topicExpectedOutcome: importOutcome,
+      topicScope: importScope,
+      topicDestinationDescription: importDestination,
+      outcomeFootnotes: [],
+      scopeFootnotes: [],
+      destinationFootnotes: [],
+      topicContentImportedAt: new Date(),
+    };
+    setEditedProposal(updates as any);
+    setSaving(true);
+    try {
+      await onUpdateProposal(updates);
+      setLastSaved(new Date());
+      toast.success('Topic information imported.');
+    } catch {
+      toast.error('Could not save imported topic.');
+    } finally {
+      setSaving(false);
+      setImportDialogOpen(false);
+    }
+  };
+
 
   const startEditing = (field: EditableField) => {
     if (!userCanEdit || !editedProposal) return;
@@ -351,19 +418,35 @@ export function TopicInformationPage({
                 <Target className="w-4 h-4" />
                 General topic information
               </CardTitle>
-              {proposal?.topicUrl && !isEditing && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5 h-7 text-xs"
-                  onClick={() => window.open(proposal.topicUrl, '_blank')}
-                >
-                  <ExternalLink className="w-3 h-3" />
-                  View on portal
-                </Button>
-              )}
+              <div className="flex items-center gap-2">
+                {userCanEdit && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 h-7 text-xs"
+                    onClick={handleImportFromPortal}
+                    disabled={!proposal?.topicId || importing}
+                    title={!proposal?.topicId ? 'Set a Topic ID first' : 'Import topic content from the EU portal'}
+                  >
+                    {importing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
+                    Import from portal
+                  </Button>
+                )}
+                {proposal?.topicUrl && !isEditing && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 h-7 text-xs"
+                    onClick={() => window.open(proposal.topicUrl, '_blank')}
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    View on portal
+                  </Button>
+                )}
+              </div>
             </div>
           </CardHeader>
+
           <CardContent className="space-y-3">
             <div>
               <label className="text-xs text-muted-foreground mb-0.5 block">Topic ID</label>
@@ -833,7 +916,116 @@ export function TopicInformationPage({
             </CardContent>
           </Card>
         )}
+      <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Review imported topic information</DialogTitle>
+            <DialogDescription>
+              Review and edit the content fetched from the EU portal. Nothing is saved until you click Confirm.
+            </DialogDescription>
+          </DialogHeader>
+
+          {importedMeta && (
+            <div className="text-xs text-muted-foreground border rounded-md p-2 bg-muted/30 space-y-0.5">
+              <div><span className="font-medium text-foreground">Topic ID:</span> {importedMeta.topicId}</div>
+              {importTitle && <div><span className="font-medium text-foreground">Matched title:</span> {importTitle}</div>}
+              {importedMeta.url && (
+                <div>
+                  <a href={importedMeta.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline">
+                    <ExternalLink className="w-3 h-3" /> Open on portal
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
+
+          {(((proposal as any)?.outcomeFootnotes || []).length > 0 ||
+            ((proposal as any)?.scopeFootnotes || []).length > 0 ||
+            ((proposal as any)?.destinationFootnotes || []).length > 0) && (
+            <div className="flex gap-2 items-start text-xs border border-amber-300 bg-amber-50 text-amber-900 dark:bg-amber-900/20 dark:text-amber-200 dark:border-amber-700 rounded-md p-2">
+              <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+              <div>
+                Importing will replace the current Expected Outcome / Scope / Destination text and remove their footnotes. Your other edits are unaffected.
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-4">
+            <div>
+              <Label className="text-xs">Topic title</Label>
+              <Input value={importTitle} onChange={(e) => setImportTitle(e.target.value)} className="h-8 text-sm mt-1" />
+            </div>
+
+            <div>
+              <Label className="text-xs">Expected outcome</Label>
+              <div className="border rounded-md mt-1">
+                <TopicRichTextArea
+                  value={importOutcome}
+                  onChange={setImportOutcome}
+                  footnotes={[]}
+                  onFootnotesChange={() => {}}
+                  footnoteStartNumber={1}
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs">Scope</Label>
+              <div className="border rounded-md mt-1">
+                <TopicRichTextArea
+                  value={importScope}
+                  onChange={setImportScope}
+                  footnotes={[]}
+                  onFootnotesChange={() => {}}
+                  footnoteStartNumber={1}
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs">Destination description</Label>
+              <div className="border rounded-md mt-1">
+                <TopicRichTextArea
+                  value={importDestination}
+                  onChange={setImportDestination}
+                  footnotes={[]}
+                  onFootnotesChange={() => {}}
+                  footnoteStartNumber={1}
+                />
+              </div>
+            </div>
+
+            {importedMeta && importedMeta.otherSections.length > 0 && (
+              <div className="space-y-2 pt-2 border-t">
+                <p className="text-xs text-muted-foreground italic">
+                  These additional sections were found on the portal but won&rsquo;t be saved.
+                </p>
+                {importedMeta.otherSections.map((s, i) => (
+                  <div key={i}>
+                    <Label className="text-xs">{s.label || 'Section'}</Label>
+                    <div
+                      className="text-sm border rounded-md p-2 mt-1 bg-muted/30 prose prose-sm max-w-none dark:prose-invert"
+                      dangerouslySetInnerHTML={{ __html: s.html }}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setImportDialogOpen(false)} disabled={saving}>
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmImport} disabled={saving}>
+              {saving ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : null}
+              Confirm import
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PartAPageLayout>
+
 
   );
 }

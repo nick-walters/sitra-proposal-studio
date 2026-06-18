@@ -129,9 +129,13 @@ serve(async (req: Request) => {
       } else if (/^scope/i.test(norm) && !scope) {
         scope = s.html || null;
       } else {
+        // Filter SEDIA sentinel/empty sections (e.g. trailing `<p class="topicdescriptionkind">null</p>`)
+        if (!norm || norm === "null") continue;
+        if (!s.html || !s.html.replace(/\s+/g, "")) continue;
         otherSections.push(s);
       }
     }
+
 
     return new Response(
       JSON.stringify({
