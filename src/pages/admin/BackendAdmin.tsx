@@ -4,8 +4,8 @@ import { Header } from "@/components/Header";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { 
-  FileText, 
+import {
+  FileText,
   Users,
   Shield,
   ChevronRight,
@@ -13,8 +13,8 @@ import {
   MessageSquare,
   Brain,
   HardDrive,
-  Wand2
-
+  Wand2,
+  Building2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -236,6 +236,29 @@ export function BackendAdmin() {
                   ) : (
                     <span>Requires Owner role</span>
                   )}
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
+          {/* Organisation Registry - any coordinator+ */}
+          <Link to="/admin/organisations">
+            <Card className="h-full transition-all hover:shadow-md hover:border-primary cursor-pointer">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="p-3 bg-emerald-500/10 rounded-lg">
+                    <Building2 className="w-6 h-6 text-emerald-600" />
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                </div>
+                <CardTitle className="mt-4">Organisation Registry</CardTitle>
+                <CardDescription>
+                  Manage the platform-wide organisation registry used across all proposals
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm text-muted-foreground">
+                  <span className="text-primary">Coordinator access or higher</span>
                 </div>
               </CardContent>
             </Card>
