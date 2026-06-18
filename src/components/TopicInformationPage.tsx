@@ -916,7 +916,116 @@ export function TopicInformationPage({
             </CardContent>
           </Card>
         )}
+      <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Review imported topic information</DialogTitle>
+            <DialogDescription>
+              Review and edit the content fetched from the EU portal. Nothing is saved until you click Confirm.
+            </DialogDescription>
+          </DialogHeader>
+
+          {importedMeta && (
+            <div className="text-xs text-muted-foreground border rounded-md p-2 bg-muted/30 space-y-0.5">
+              <div><span className="font-medium text-foreground">Topic ID:</span> {importedMeta.topicId}</div>
+              {importTitle && <div><span className="font-medium text-foreground">Matched title:</span> {importTitle}</div>}
+              {importedMeta.url && (
+                <div>
+                  <a href={importedMeta.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline">
+                    <ExternalLink className="w-3 h-3" /> Open on portal
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
+
+          {(((proposal as any)?.outcomeFootnotes || []).length > 0 ||
+            ((proposal as any)?.scopeFootnotes || []).length > 0 ||
+            ((proposal as any)?.destinationFootnotes || []).length > 0) && (
+            <div className="flex gap-2 items-start text-xs border border-amber-300 bg-amber-50 text-amber-900 dark:bg-amber-900/20 dark:text-amber-200 dark:border-amber-700 rounded-md p-2">
+              <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+              <div>
+                Importing will replace the current Expected Outcome / Scope / Destination text and remove their footnotes. Your other edits are unaffected.
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-4">
+            <div>
+              <Label className="text-xs">Topic title</Label>
+              <Input value={importTitle} onChange={(e) => setImportTitle(e.target.value)} className="h-8 text-sm mt-1" />
+            </div>
+
+            <div>
+              <Label className="text-xs">Expected outcome</Label>
+              <div className="border rounded-md mt-1">
+                <TopicRichTextArea
+                  value={importOutcome}
+                  onChange={setImportOutcome}
+                  footnotes={[]}
+                  onFootnotesChange={() => {}}
+                  footnoteStartNumber={1}
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs">Scope</Label>
+              <div className="border rounded-md mt-1">
+                <TopicRichTextArea
+                  value={importScope}
+                  onChange={setImportScope}
+                  footnotes={[]}
+                  onFootnotesChange={() => {}}
+                  footnoteStartNumber={1}
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs">Destination description</Label>
+              <div className="border rounded-md mt-1">
+                <TopicRichTextArea
+                  value={importDestination}
+                  onChange={setImportDestination}
+                  footnotes={[]}
+                  onFootnotesChange={() => {}}
+                  footnoteStartNumber={1}
+                />
+              </div>
+            </div>
+
+            {importedMeta && importedMeta.otherSections.length > 0 && (
+              <div className="space-y-2 pt-2 border-t">
+                <p className="text-xs text-muted-foreground italic">
+                  These additional sections were found on the portal but won&rsquo;t be saved.
+                </p>
+                {importedMeta.otherSections.map((s, i) => (
+                  <div key={i}>
+                    <Label className="text-xs">{s.label || 'Section'}</Label>
+                    <div
+                      className="text-sm border rounded-md p-2 mt-1 bg-muted/30 prose prose-sm max-w-none dark:prose-invert"
+                      dangerouslySetInnerHTML={{ __html: s.html }}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setImportDialogOpen(false)} disabled={saving}>
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmImport} disabled={saving}>
+              {saving ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : null}
+              Confirm import
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PartAPageLayout>
+
 
   );
 }
