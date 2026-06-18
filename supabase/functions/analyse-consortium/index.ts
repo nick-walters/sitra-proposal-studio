@@ -42,7 +42,7 @@ serve(async (req) => {
       { data: sectionContent },
     ] = await Promise.all([
       supabase.from('proposals').select('acronym, title, type, work_programme, destination, topic_url').eq('id', proposalId).single(),
-      supabase.from('participants').select('organisation_name, organisation_short_name, country, organisation_category, legal_entity_type, is_sme').eq('proposal_id', proposalId),
+      supabase.from('participants').select('organisation_name, organisation_short_name, country, organisation_category, legal_entity_type').eq('proposal_id', proposalId),
       supabase.from('wp_drafts').select('number, short_name, title, lead_participant_id').eq('proposal_id', proposalId).order('number'),
       supabase.from('section_content').select('section_id, content').eq('proposal_id', proposalId).in('section_id', ['b1-1', 'b1-2', 'b2-1']),
     ]);
@@ -50,7 +50,7 @@ serve(async (req) => {
     // Build context summary
     const partsList = (participants || []).map(p => {
       const cat = p.organisation_category || 'Unknown';
-      return `- ${p.organisation_short_name || p.organisation_name} (${cat}, ${p.country || 'Unknown country'}${p.is_sme ? ', SME' : ''})`;
+      return `- ${p.organisation_short_name || p.organisation_name} (${cat}, ${p.country || 'Unknown country'})`;
     }).join('\n');
 
     const countriesSet = new Set((participants || []).map(p => p.country).filter(Boolean));
