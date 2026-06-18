@@ -2161,12 +2161,11 @@ export type Database = {
           created_by: string | null
           english_name: string | null
           id: string
-          is_sme: boolean | null
-          legal_entity_type: string | null
           logo_url: string | null
           name: string
-          pic_number: string | null
-          short_name: string | null
+          organisation_category: string | null
+          pic_number: string
+          short_name: string
           updated_at: string
         }
         Insert: {
@@ -2175,12 +2174,11 @@ export type Database = {
           created_by?: string | null
           english_name?: string | null
           id?: string
-          is_sme?: boolean | null
-          legal_entity_type?: string | null
           logo_url?: string | null
           name: string
-          pic_number?: string | null
-          short_name?: string | null
+          organisation_category?: string | null
+          pic_number: string
+          short_name: string
           updated_at?: string
         }
         Update: {
@@ -2189,12 +2187,11 @@ export type Database = {
           created_by?: string | null
           english_name?: string | null
           id?: string
-          is_sme?: boolean | null
-          legal_entity_type?: string | null
           logo_url?: string | null
           name?: string
-          pic_number?: string | null
-          short_name?: string | null
+          organisation_category?: string | null
+          pic_number?: string
+          short_name?: string
           updated_at?: string
         }
         Relationships: []
