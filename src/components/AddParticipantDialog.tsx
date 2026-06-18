@@ -602,9 +602,37 @@ export function AddParticipantDialog({
                     </Select>
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Tip: a logo can be uploaded later from the Organisation Registry admin page.
-                </p>
+                <div className="space-y-2">
+                  <Label>Logo (optional)</Label>
+                  <div className="flex items-center gap-3">
+                    <div className="w-14 h-14 flex-shrink-0 flex items-center justify-center rounded border bg-muted overflow-hidden">
+                      {registryLogoPreview ? (
+                        <img src={registryLogoPreview} alt="" className="w-full h-full object-contain" />
+                      ) : (
+                        <Building2 className="w-6 h-6 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleRegistryLogoSelect(e.target.files?.[0] ?? null)}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">PNG, JPG or SVG, max 5MB.</p>
+                    </div>
+                    {registryLogoFile && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleRegistryLogoSelect(null)}
+                        title="Remove"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
           </div>
