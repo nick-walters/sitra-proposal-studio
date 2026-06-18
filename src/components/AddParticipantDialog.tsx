@@ -132,8 +132,9 @@ export function AddParticipantDialog({
 
   const filteredOrgs = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return orgs;
-    return orgs.filter((o) => {
+    const available = orgs.filter((o) => !existingPicSet.has(o.pic_number?.trim()));
+    if (!q) return available;
+    return available.filter((o) => {
       return (
         o.name?.toLowerCase().includes(q) ||
         o.short_name?.toLowerCase().includes(q) ||
@@ -141,7 +142,7 @@ export function AddParticipantDialog({
         o.pic_number?.toLowerCase().includes(q)
       );
     });
-  }, [orgs, search]);
+  }, [orgs, search, existingPicSet]);
 
   const logoUrlFor = (path: string | null): string | null => {
     if (!path) return null;
