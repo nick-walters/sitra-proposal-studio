@@ -145,7 +145,7 @@ function mapSediaResult(result: any): OrganisationInfo {
   const country = countryCode ? (COUNTRY_NAMES[countryCode] || '') : '';
   const orgTypeId = metadata.organisationType?.[0];
   const organisationCategory: OrganisationInfo['organisationCategory'] = orgTypeId
-    ? (SEDIA_ORG_TYPE_TO_CATEGORY[orgTypeId] || 'OTH')
+    ? SEDIA_ORG_TYPE_TO_CATEGORY[orgTypeId]
     : undefined;
   return {
     picNumber,
