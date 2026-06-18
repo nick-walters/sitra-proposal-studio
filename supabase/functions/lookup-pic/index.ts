@@ -126,16 +126,8 @@ async function searchDatabase(supabase: any, searchTerm: string): Promise<Organi
   return results;
 }
 
-function mapSediaCategory(orgType?: string): OrganisationInfo['organisationCategory'] {
-  if (!orgType) return 'OTH';
-  const t = orgType.toUpperCase();
-  if (t === 'REC') return 'RES';
-  if (t === 'HES') return 'HES';
-  if (t === 'PUB') return 'PUB';
-  if (t === 'PRC') return 'PRC';
-  if (t === 'INT') return 'INT';
-  return 'OTH';
-}
+
+
 
 function mapSediaResult(result: any): OrganisationInfo {
   const metadata = result?.metadata || {};
