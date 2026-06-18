@@ -11,7 +11,7 @@ interface OrganisationInfo {
   city?: string;
   legalEntityType?: string;
   isSme: boolean;
-  organisationCategory?: 'HES' | 'RES' | 'SME' | 'LE' | 'PUB' | 'INT' | 'OTH' | 'PRC';
+  organisationCategory?: 'HES' | 'RES' | 'SME' | 'LE' | 'PUB' | 'INT' | 'OTH';
   englishName?: string;
   logoUrl?: string;
 }
