@@ -47,6 +47,7 @@ export function AddParticipantDialog({
   participantCount,
 }: AddParticipantDialogProps) {
   const [loading, setLoading] = useState(false);
+  const [lookingUp, setLookingUp] = useState(false);
   const [countryPopoverOpen, setCountryPopoverOpen] = useState(false);
   
   // Form state
@@ -63,6 +64,64 @@ export function AddParticipantDialog({
   
   // Form validation errors
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  const countryCodeMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    [...EU_MEMBER_STATES, ...ASSOCIATED_COUNTRIES, ...THIRD_COUNTRIES].forEach((c) => {
+      map[c.code] = c.name;
+    });
+    return map;
+  }, []);
+
+  const handleLookup = async () => {
+    const pic = form.picNumber.trim();
+    if (!/^\d{9}$/.test(pic)) return;
+
+    setLookingUp(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('lookup-pic', {
+        body: { picNumber: pic },
+      });
+
+      if (error || !data?.success || !data.organisation) {
+        toast.info('No public record found for this PIC. Please enter the details manually.');
+        return;
+      }
+
+      const org = data.organisation;
+      const updates: Partial<typeof form> = {};
+      const clearedErrors: Record<string, string> = {};
+
+      if (org.legalName) {
+        updates.organisationName = org.legalName;
+        clearedErrors.organisationName = '';
+      }
+      if (org.shortName) {
+        updates.organisationShortName = org.shortName;
+      }
+      if (org.englishName) {
+        updates.englishName = org.englishName;
+      }
+      if (org.organisationCategory && ['HES', 'RES', 'PRC', 'PUB', 'INT', 'OTH'].includes(org.organisationCategory)) {
+        updates.organisationCategory = org.organisationCategory;
+        clearedErrors.organisationCategory = '';
+      }
+      if (org.countryCode && countryCodeMap[org.countryCode]) {
+        updates.country = countryCodeMap[org.countryCode];
+        clearedErrors.country = '';
+      }
+
+      setForm((prev) => ({ ...prev, ...updates }));
+      setFormErrors((prev) => ({ ...prev, ...clearedErrors }));
+
+      toast.success(`Imported details for ${org.legalName}. Please verify country and category.`);
+    } catch (err) {
+      console.error('PIC lookup error:', err);
+      toast.info('No public record found for this PIC. Please enter the details manually.');
+    } finally {
+      setLookingUp(false);
+    }
+  };
 
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
