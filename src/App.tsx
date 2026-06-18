@@ -22,6 +22,7 @@ const FeedbackAdmin = lazy(() => import("./pages/admin/FeedbackAdmin").then(m =>
 const EvaluationConfigAdmin = lazy(() => import("./pages/admin/EvaluationConfigAdmin").then(m => ({ default: m.EvaluationConfigAdmin })));
 const AIConfigAdmin = lazy(() => import("./components/admin/AIConfigAdmin").then(m => ({ default: m.AIConfigAdmin })));
 const BackupsAdmin = lazy(() => import("./pages/admin/BackupsAdmin"));
+const OrganisationRegistryAdmin = lazy(() => import("./pages/admin/OrganisationRegistryAdmin").then(m => ({ default: m.OrganisationRegistryAdmin })));
 const Feedback = lazy(() => import("./pages/Feedback").then(m => ({ default: m.Feedback })));
 
 const RouteFallback = () => (
@@ -94,6 +95,7 @@ const App = () => {
                 <Route path="/admin/evaluation-config" element={<ProtectedRoute><EvaluationConfigAdmin /></ProtectedRoute>} />
                 <Route path="/admin/ai-config" element={<ProtectedRoute><AIConfigAdmin /></ProtectedRoute>} />
                 <Route path="/admin/backups" element={<ProtectedRoute><BackupsAdmin /></ProtectedRoute>} />
+                <Route path="/admin/organisations" element={<ProtectedRoute><OrganisationRegistryAdmin /></ProtectedRoute>} />
 
                 <Route path="/feedback" element={<ProtectedRoute><Feedback /></ProtectedRoute>} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
