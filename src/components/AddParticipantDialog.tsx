@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -8,19 +8,27 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Loader2, Building2, Info, ChevronsUpDown, Check, Search } from 'lucide-react';
+import { Building2, ChevronsUpDown, ExternalLink, Loader2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
-import { PARTICIPANT_TYPE_LABELS, ParticipantType } from '@/types/proposal';
-import { EU_MEMBER_STATES, ASSOCIATED_COUNTRIES, THIRD_COUNTRIES } from '@/lib/countries';
-import { ORGANISATION_CATEGORY_LABELS, OrganisationCategory } from '@/types/proposal';
+import { PARTICIPANT_TYPE_LABELS, ParticipantType, OrganisationCategory } from '@/types/proposal';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
+
+interface RegistryOrg {
+  id: string;
+  name: string;
+  short_name: string | null;
+  english_name: string | null;
+  pic_number: string;
+  country: string | null;
+  logo_url: string | null;
+  organisation_category: string | null;
+}
 
 interface AddParticipantDialogProps {
   open: boolean;
@@ -32,12 +40,12 @@ interface AddParticipantDialogProps {
     country?: string;
     picNumber?: string;
     legalEntityType?: string;
-    
     organisationCategory?: OrganisationCategory;
     englishName?: string;
     logoUrl?: string;
   }) => Promise<void>;
   participantCount: number;
+  existingPics?: string[];
 }
 
 export function AddParticipantDialog({
@@ -45,418 +53,256 @@ export function AddParticipantDialog({
   onOpenChange,
   onAddParticipant,
   participantCount,
+  existingPics = [],
 }: AddParticipantDialogProps) {
   const [loading, setLoading] = useState(false);
-  const [lookingUp, setLookingUp] = useState(false);
-  const [countryPopoverOpen, setCountryPopoverOpen] = useState(false);
-  
-  // Form state
-  const [form, setForm] = useState({
-    organisationName: '',
-    organisationShortName: '',
-    englishName: '',
-    picNumber: '',
-    organisationType: 'beneficiary' as ParticipantType,
-    country: '',
-    organisationCategory: '' as OrganisationCategory | '',
-    logoUrl: '',
-  });
-  
-  // Form validation errors
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [loadingOrgs, setLoadingOrgs] = useState(false);
+  const [orgs, setOrgs] = useState<RegistryOrg[]>([]);
+  const [orgPopoverOpen, setOrgPopoverOpen] = useState(false);
+  const [selectedOrg, setSelectedOrg] = useState<RegistryOrg | null>(null);
+  const [participantType, setParticipantType] = useState<ParticipantType>('beneficiary');
+  const [search, setSearch] = useState('');
 
-  const countryCodeMap = useMemo(() => {
-    const map: Record<string, string> = {};
-    [...EU_MEMBER_STATES, ...ASSOCIATED_COUNTRIES, ...THIRD_COUNTRIES].forEach((c) => {
-      map[c.code] = c.name;
+  // Load registry on open
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    (async () => {
+      setLoadingOrgs(true);
+      const { data, error } = await supabase
+        .from('organisations')
+        .select('id, name, short_name, english_name, pic_number, country, logo_url, organisation_category')
+        .order('name');
+      if (cancelled) return;
+      if (error) {
+        toast.error('Failed to load organisation registry');
+        setOrgs([]);
+      } else {
+        setOrgs((data as RegistryOrg[]) ?? []);
+      }
+      setLoadingOrgs(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
+
+  const existingPicSet = useMemo(
+    () => new Set(existingPics.map((p) => p?.trim()).filter(Boolean)),
+    [existingPics]
+  );
+
+  const filteredOrgs = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return orgs;
+    return orgs.filter((o) => {
+      return (
+        o.name?.toLowerCase().includes(q) ||
+        o.short_name?.toLowerCase().includes(q) ||
+        o.english_name?.toLowerCase().includes(q) ||
+        o.pic_number?.toLowerCase().includes(q)
+      );
     });
-    return map;
-  }, []);
+  }, [orgs, search]);
 
-  const handleLookup = async () => {
-    const pic = form.picNumber.trim();
-    if (!/^\d{9}$/.test(pic)) return;
-
-    setLookingUp(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('lookup-pic', {
-        body: { picNumber: pic },
-      });
-
-      if (error || !data?.success || !data.organisation) {
-        toast.info('No public record found for this PIC. Please enter the details manually.');
-        return;
-      }
-
-      const org = data.organisation;
-      const updates: Partial<typeof form> = {};
-      const clearedErrors: Record<string, string> = {};
-
-      if (org.legalName) {
-        updates.organisationName = org.legalName;
-        clearedErrors.organisationName = '';
-      }
-      if (org.shortName) {
-        updates.organisationShortName = org.shortName;
-      }
-      if (org.englishName) {
-        updates.englishName = org.englishName;
-      }
-      if (org.organisationCategory && ['HES', 'RES', 'SME', 'LE', 'PUB', 'INT', 'OTH'].includes(org.organisationCategory)) {
-        updates.organisationCategory = org.organisationCategory;
-        clearedErrors.organisationCategory = '';
-      }
-      if (org.countryCode && countryCodeMap[org.countryCode]) {
-        updates.country = countryCodeMap[org.countryCode];
-        clearedErrors.country = '';
-      }
-
-      setForm((prev) => ({ ...prev, ...updates }));
-      setFormErrors((prev) => ({ ...prev, ...clearedErrors }));
-
-      toast.success(`Imported details for ${org.legalName}. Please verify country and category.`);
-    } catch (err) {
-      console.error('PIC lookup error:', err);
-      toast.info('No public record found for this PIC. Please enter the details manually.');
-    } finally {
-      setLookingUp(false);
-    }
+  const logoUrlFor = (path: string | null): string | null => {
+    if (!path) return null;
+    const { data } = supabase.storage.from('participant-logos').getPublicUrl(path);
+    return data?.publicUrl ?? null;
   };
 
-  const validateForm = (): boolean => {
-    const errors: Record<string, string> = {};
-    
-    if (!form.organisationName.trim()) {
-      errors.organisationName = 'Legal name is required';
-    }
-    
-    if (!form.picNumber.trim()) {
-      errors.picNumber = 'PIC is required';
-    } else if (!/^\d{9}$/.test(form.picNumber.trim())) {
-      errors.picNumber = 'PIC must be a 9-digit code';
-    }
-    
-    if (!form.country) {
-      errors.country = 'Country is required';
-    }
-    
-    if (!form.organisationCategory) {
-      errors.organisationCategory = 'Organisation category is required';
-    }
-    
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
+  const isDuplicate = selectedOrg ? existingPicSet.has(selectedOrg.pic_number?.trim()) : false;
 
   const handleAdd = async () => {
-    if (!validateForm()) {
-      toast.error('Please fill in all required fields');
-      return;
-    }
-
+    if (!selectedOrg || isDuplicate) return;
     setLoading(true);
     try {
       await onAddParticipant({
-        organisationName: form.organisationName.trim(),
-        organisationShortName: form.organisationShortName.trim() || undefined,
-        englishName: form.englishName.trim() || undefined,
-        picNumber: form.picNumber.trim(),
-        organisationType: form.organisationType,
-        country: form.country || undefined,
-        
-        organisationCategory: form.organisationCategory || undefined,
-        legalEntityType: form.organisationCategory || undefined,
-        logoUrl: form.logoUrl || undefined,
+        organisationName: selectedOrg.name,
+        organisationShortName: selectedOrg.short_name || undefined,
+        englishName: selectedOrg.english_name || undefined,
+        organisationType: participantType,
+        country: selectedOrg.country || undefined,
+        picNumber: selectedOrg.pic_number,
+        organisationCategory: (selectedOrg.organisation_category as OrganisationCategory) || undefined,
+        logoUrl: selectedOrg.logo_url || undefined,
       });
-      handleClose();
       toast.success('Participant added successfully');
-    } catch (error) {
-      console.error('Add participant error:', error);
-      toast.error('Failed to add participant');
+      handleClose();
+    } catch (err: any) {
+      const msg = String(err?.message || err || '');
+      if (msg.toLowerCase().includes('duplicate') || msg.includes('idx_participants_proposal_pic') || err?.code === '23505') {
+        toast.error('This organisation is already in this proposal');
+      } else {
+        toast.error('Failed to add participant');
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const handleClose = () => {
-    setFormErrors({});
-    setForm({
-      organisationName: '',
-      organisationShortName: '',
-      englishName: '',
-      picNumber: '',
-      organisationType: 'beneficiary',
-      country: '',
-      organisationCategory: '',
-      logoUrl: '',
-    });
+    setSelectedOrg(null);
+    setParticipantType('beneficiary');
+    setSearch('');
+    setOrgPopoverOpen(false);
     onOpenChange(false);
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[550px]">
+    <Dialog open={open} onOpenChange={(o) => (o ? onOpenChange(o) : handleClose())}>
+      <DialogContent className="sm:max-w-[560px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Building2 className="w-5 h-5" />
             Add participant #{participantCount + 1}
           </DialogTitle>
           <DialogDescription>
-            Add a new participating organisation to your consortium.
+            Select an organisation from the platform registry, then choose its participant type.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 pt-2">
-          <Alert>
-            <Info className="w-4 h-4" />
-            <AlertDescription>
-              Enter organisation details. Fields marked with * are required.
-            </AlertDescription>
-          </Alert>
-          
-          <div className="grid gap-4">
-            {/* PIC and Short name */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="pic-number">PIC *</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="pic-number"
-                    value={form.picNumber}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/\D/g, '').slice(0, 9);
-                      setForm(prev => ({ ...prev, picNumber: value }));
-                      if (formErrors.picNumber) setFormErrors(prev => ({ ...prev, picNumber: '' }));
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleLookup();
-                      }
-                    }}
-                    placeholder="e.g. 906912365"
-                    maxLength={9}
-                    className={formErrors.picNumber ? 'border-destructive' : ''}
-                  />
+          {/* Step 1: Select organisation */}
+          {!selectedOrg && (
+            <div className="space-y-2">
+              <Label>Organisation</Label>
+              <Popover open={orgPopoverOpen} onOpenChange={setOrgPopoverOpen}>
+                <PopoverTrigger asChild>
                   <Button
-                    type="button"
                     variant="outline"
-                    size="sm"
-                    disabled={!/^\d{9}$/.test(form.picNumber) || lookingUp}
-                    onClick={handleLookup}
-                    className="gap-1 flex-shrink-0"
+                    role="combobox"
+                    aria-expanded={orgPopoverOpen}
+                    className="w-full justify-between font-normal h-auto py-2"
+                    disabled={loadingOrgs}
                   >
-                    {lookingUp ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                    Look up
-                  </Button>
-                </div>
-                {formErrors.picNumber && (
-                  <p className="text-xs text-destructive mt-1">{formErrors.picNumber}</p>
-                )}
-              </div>
-              <div>
-                <Label htmlFor="short-name">Short name</Label>
-                <Input
-                  id="short-name"
-                  value={form.organisationShortName}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setForm(prev => ({ ...prev, organisationShortName: value }));
-                  }}
-                  placeholder="e.g. Sitra"
-                />
-              </div>
-            </div>
-
-            {/* Legal Name - Required - Name Case */}
-            <div>
-              <Label htmlFor="org-name">Legal name *</Label>
-              <Input
-                id="org-name"
-                value={form.organisationName}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setForm(prev => ({ ...prev, organisationName: value }));
-                  if (formErrors.organisationName) setFormErrors(prev => ({ ...prev, organisationName: '' }));
-                }}
-                placeholder="e.g. Suomen Itsenäisyyden Juhlarahasto"
-                className={formErrors.organisationName ? 'border-destructive' : ''}
-              />
-              {formErrors.organisationName && (
-                <p className="text-xs text-destructive mt-1">{formErrors.organisationName}</p>
-              )}
-              <p className="text-xs text-muted-foreground mt-1">
-                The official legal name as registered
-              </p>
-            </div>
-            
-            {/* English Name - Optional - Name Case */}
-            <div>
-              <Label htmlFor="english-name">English name (if different from legal name)</Label>
-              <Input
-                id="english-name"
-                value={form.englishName}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setForm(prev => ({ ...prev, englishName: value }));
-                }}
-                placeholder="e.g. The Finnish Innovation Fund"
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Leave blank if the legal name is already in English
-              </p>
-            </div>
-            
-            {/* Country and Category - Required */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Country *</Label>
-                <Popover open={countryPopoverOpen} onOpenChange={setCountryPopoverOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={countryPopoverOpen}
-                      className={cn(
-                        "w-full justify-between font-normal",
-                        !form.country && "text-muted-foreground",
-                        formErrors.country && "border-destructive"
-                      )}
-                    >
-                      {form.country || "Select country"}
+                    <span className="text-muted-foreground">
+                      {loadingOrgs ? 'Loading registry…' : 'Select organisation from registry'}
+                    </span>
+                    {loadingOrgs ? (
+                      <Loader2 className="ml-2 h-4 w-4 shrink-0 animate-spin opacity-50" />
+                    ) : (
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[250px] p-0 z-50 bg-popover" align="start">
-                    <Command>
-                      <CommandInput placeholder="Search country..." />
-                      <CommandList className="max-h-60 overflow-y-auto">
-                        <CommandEmpty>No country found.</CommandEmpty>
-                        <CommandGroup heading="EU Member States">
-                          {EU_MEMBER_STATES.map((country) => (
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[520px] p-0 z-50 bg-popover" align="start">
+                  <Command shouldFilter={false}>
+                    <CommandInput
+                      placeholder="Search by name, short name, English name or PIC…"
+                      value={search}
+                      onValueChange={setSearch}
+                    />
+                    <CommandList className="max-h-72 overflow-y-auto">
+                      <CommandEmpty>No organisations found.</CommandEmpty>
+                      <CommandGroup>
+                        {filteredOrgs.map((org) => {
+                          const logo = logoUrlFor(org.logo_url);
+                          const alreadyIn = existingPicSet.has(org.pic_number?.trim());
+                          return (
                             <CommandItem
-                              key={country.code}
-                              value={country.name}
+                              key={org.id}
+                              value={org.id}
                               onSelect={() => {
-                                setForm(prev => ({ ...prev, country: country.name }));
-                                if (formErrors.country) setFormErrors(prev => ({ ...prev, country: '' }));
-                                setCountryPopoverOpen(false);
+                                setSelectedOrg(org);
+                                setOrgPopoverOpen(false);
                               }}
+                              className="flex items-center gap-3 py-2"
                             >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  form.country === country.name ? "opacity-100" : "opacity-0"
+                              <div className="w-6 h-6 flex-shrink-0 flex items-center justify-center rounded bg-muted overflow-hidden">
+                                {logo ? (
+                                  <img src={logo} alt="" className="w-full h-full object-contain" />
+                                ) : (
+                                  <Building2 className="w-3.5 h-3.5 text-muted-foreground" />
                                 )}
-                              />
-                              {country.name}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                        <CommandGroup heading="Associated countries">
-                          {ASSOCIATED_COUNTRIES.map((country) => (
-                            <CommandItem
-                              key={country.code}
-                              value={country.name}
-                              onSelect={() => {
-                                setForm(prev => ({ ...prev, country: country.name }));
-                                if (formErrors.country) setFormErrors(prev => ({ ...prev, country: '' }));
-                                setCountryPopoverOpen(false);
-                              }}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  form.country === country.name ? "opacity-100" : "opacity-0"
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="truncate text-sm">{org.name}</div>
+                                {org.english_name && org.english_name !== org.name && (
+                                  <div className="truncate text-xs text-muted-foreground">{org.english_name}</div>
                                 )}
-                              />
-                              {country.name}
+                              </div>
+                              <div className="text-xs font-mono text-muted-foreground tabular-nums flex-shrink-0">
+                                {org.pic_number}
+                                {alreadyIn && <span className="ml-1 text-amber-600">·in proposal</span>}
+                              </div>
                             </CommandItem>
-                          ))}
-                        </CommandGroup>
-                        <CommandGroup heading="Third countries">
-                          {THIRD_COUNTRIES.map((country) => (
-                            <CommandItem
-                              key={country.code}
-                              value={country.name}
-                              onSelect={() => {
-                                setForm(prev => ({ ...prev, country: country.name }));
-                                if (formErrors.country) setFormErrors(prev => ({ ...prev, country: '' }));
-                                setCountryPopoverOpen(false);
-                              }}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  form.country === country.name ? "opacity-100" : "opacity-0"
-                                )}
-                              />
-                              {country.name}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-                {formErrors.country && (
-                  <p className="text-xs text-destructive mt-1">{formErrors.country}</p>
-                )}
-              </div>
-              <div>
-                <Label>Organisation category *</Label>
-                <Select
-                  value={form.organisationCategory}
-                  onValueChange={(v) => {
-                    setForm(prev => ({ ...prev, organisationCategory: v as OrganisationCategory }));
-                    if (formErrors.organisationCategory) setFormErrors(prev => ({ ...prev, organisationCategory: '' }));
-                  }}
+                          );
+                        })}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+
+              <p className="text-xs text-muted-foreground">
+                Can't find the organisation?{' '}
+                <button
+                  type="button"
+                  className="underline hover:text-foreground"
+                  onClick={() => window.open('/admin/organisations', '_blank')}
                 >
-                  <SelectTrigger className={formErrors.organisationCategory ? 'border-destructive' : ''}>
-                    <SelectValue placeholder="Select category" />
+                  Add it to the registry first
+                  <ExternalLink className="inline w-3 h-3 ml-0.5 align-text-top" />
+                </button>
+              </p>
+            </div>
+          )}
+
+          {/* Step 2: Selected org summary + participant type */}
+          {selectedOrg && (
+            <>
+              <div className="rounded-md border p-3 flex items-center gap-3">
+                <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded bg-muted overflow-hidden">
+                  {logoUrlFor(selectedOrg.logo_url) ? (
+                    <img src={logoUrlFor(selectedOrg.logo_url)!} alt="" className="w-full h-full object-contain" />
+                  ) : (
+                    <Building2 className="w-5 h-5 text-muted-foreground" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="truncate font-medium">{selectedOrg.name}</div>
+                  <div className="text-xs text-muted-foreground font-mono">PIC {selectedOrg.pic_number}</div>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => setSelectedOrg(null)}>
+                  Change
+                </Button>
+              </div>
+
+              {isDuplicate && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="w-4 h-4" />
+                  <AlertDescription>
+                    This organisation is already a participant in this proposal.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              <div>
+                <Label>Participant type</Label>
+                <Select value={participantType} onValueChange={(v) => setParticipantType(v as ParticipantType)}>
+                  <SelectTrigger>
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {Object.entries(ORGANISATION_CATEGORY_LABELS).map(([code, label]) => (
-                      <SelectItem key={code} value={code}>{code} - {label}</SelectItem>
+                    {Object.entries(PARTICIPANT_TYPE_LABELS).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                {formErrors.organisationCategory && (
-                  <p className="text-xs text-destructive mt-1">{formErrors.organisationCategory}</p>
-                )}
               </div>
-            </div>
-
-            {/* Participant Type */}
-            <div>
-              <Label>Participant type</Label>
-              <Select
-                value={form.organisationType}
-                onValueChange={(v) => setForm(prev => ({ ...prev, organisationType: v as ParticipantType }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(PARTICIPANT_TYPE_LABELS).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>{label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+            </>
+          )}
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="outline" onClick={handleClose}>
+        <DialogFooter>
+          <Button variant="outline" onClick={handleClose} disabled={loading}>
             Cancel
           </Button>
-          <Button 
-            onClick={handleAdd} 
-            disabled={loading}
-            className="gap-2"
-          >
-            {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+          <Button onClick={handleAdd} disabled={!selectedOrg || isDuplicate || loading}>
+            {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
             Add participant
           </Button>
         </DialogFooter>
