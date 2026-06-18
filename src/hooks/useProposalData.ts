@@ -312,27 +312,10 @@ export function useProposalData(proposalId: string) {
       }
     }
 
-    // Upsert to shared organisations registry (by PIC number)
-    if (picNumber) {
-      const { data: existingOrg } = await supabase
-        .from('organisations')
-        .select('id')
-        .eq('pic_number', picNumber)
-        .maybeSingle();
-      
-      if (!existingOrg) {
-        // Insert new organisation to shared registry
-        await supabase.from('organisations').insert({
-          name: participant.organisationName,
-          short_name: participant.organisationShortName || participant.organisationName,
-          pic_number: picNumber,
-          country: participant.country,
-          english_name: participant.englishName,
-          logo_url: participant.logoUrl,
-          organisation_category: participant.organisationCategory,
-        } as any);
-      }
-    }
+    // Registry writes are intentionally NOT performed here.
+    // The organisations registry is curated separately via the admin page.
+
+
   
 
     const { data, error } = await supabase
@@ -420,50 +403,9 @@ export function useProposalData(proposalId: string) {
         prev.map((p) => (p.id === id ? { ...p, ...updates } : p))
       );
 
-      // Sync to centralized organisations registry (by PIC number)
-      // Find the participant to get its PIC
-      const participant = participants.find(p => p.id === id);
-      const picNumber = updates.picNumber?.trim() || participant?.picNumber?.trim();
-      
-      if (picNumber) {
-        // Build registry updates - only sync org-level fields, not proposal-specific ones
-        const registryUpdates: any = {};
-        if (updates.organisationName !== undefined) registryUpdates.name = updates.organisationName;
-        if (updates.organisationShortName !== undefined) registryUpdates.short_name = updates.organisationShortName;
-          if (updates.country !== undefined) registryUpdates.country = updates.country;
-          if (updates.organisationCategory !== undefined) registryUpdates.organisation_category = updates.organisationCategory;
-          if (updates.englishName !== undefined) registryUpdates.english_name = updates.englishName;
-          if ('logoUrl' in updates) registryUpdates.logo_url = updates.logoUrl || null;
+      // Registry writes are intentionally NOT performed here.
+      // The organisations registry is curated separately via the admin page.
 
-          if (Object.keys(registryUpdates).length > 0) {
-            // Upsert to registry - update if exists, insert if not
-            const { data: existingOrg } = await supabase
-              .from('organisations')
-              .select('id')
-              .eq('pic_number', picNumber)
-              .maybeSingle();
-
-            if (existingOrg) {
-              // Update existing registry entry
-              await supabase
-                .from('organisations')
-                .update(registryUpdates)
-                .eq('pic_number', picNumber);
-            } else {
-              // Create new registry entry with full participant data
-              const fullParticipant = { ...participant, ...updates };
-              await supabase.from('organisations').insert({
-                name: fullParticipant.organisationName || '',
-                short_name: fullParticipant.organisationShortName || fullParticipant.organisationName || '',
-                pic_number: picNumber,
-                country: fullParticipant.country,
-                english_name: fullParticipant.englishName,
-                logo_url: fullParticipant.logoUrl,
-                organisation_category: fullParticipant.organisationCategory,
-              } as any);
-            }
-          }
-        }
     }
   };
 
