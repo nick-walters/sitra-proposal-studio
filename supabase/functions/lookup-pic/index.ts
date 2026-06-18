@@ -178,17 +178,26 @@ async function searchSedia(text: string, apiKey: string = 'SEDIA_PERSON'): Promi
 
   const response = await fetch(url, {
     method: 'POST',
-    headers: { Accept: 'application/json' },
+    headers: { Accept: 'application/json', 'Accept-Encoding': 'identity' },
     body: form,
   });
 
-  const bodyText = await response.text();
-  console.log(`SEDIA status ${response.status}; body preview: ${bodyText.slice(0, 1500)}`);
+  let raw: string;
+  try {
+    raw = await response.text();
+  } catch {
+    try {
+      raw = new TextDecoder().decode(await response.arrayBuffer());
+    } catch {
+      raw = '';
+    }
+  }
+  console.log(`SEDIA status ${response.status}; body preview: ${raw.slice(0, 1500)}`);
 
   if (!response.ok) return { results: [], raw: null };
 
   let json: any;
-  try { json = JSON.parse(bodyText); } catch { return { results: [], raw: null }; }
+  try { json = JSON.parse(raw); } catch { return { results: [], raw: null }; }
 
   const rawResults = Array.isArray(json?.results) ? json.results : [];
   const mapped = rawResults
@@ -234,14 +243,28 @@ serve(async (req: Request) => {
       );
     }
 
-    const dbResults = await searchDatabase(supabase, String(query));
-    console.log(`DB results: ${dbResults.length}`);
-
-    const isNumericPic = /^\d{9}$/.test(String(query).trim());
-
-    // Direct PIC lookup
+    // Direct PIC lookup — SEDIA is authoritative
     if (picNumber) {
       const cleanPic = String(picNumber).replace(/\D/g, '');
+
+      let sediaResults: OrganisationInfo[] = [];
+      try {
+        const r = await searchSedia(cleanPic);
+        sediaResults = r.results;
+      } catch (e) {
+        console.log('SEDIA PIC lookup failed:', e);
+      }
+      const sediaMatch = sediaResults.find(o => o.picNumber === cleanPic);
+      if (sediaMatch) {
+        return new Response(
+          JSON.stringify({ success: true, organisation: sediaMatch }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Fallback to local DB
+      const dbResults = await searchDatabase(supabase, cleanPic);
+      console.log(`DB results: ${dbResults.length}`);
       const localMatch = dbResults.find(o => o.picNumber === cleanPic);
       if (localMatch) {
         return new Response(
@@ -249,14 +272,7 @@ serve(async (req: Request) => {
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      const { results: sediaResults } = await searchSedia(cleanPic);
-      const match = sediaResults.find(o => o.picNumber === cleanPic);
-      if (match) {
-        return new Response(
-          JSON.stringify({ success: true, organisation: match }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+
       return new Response(
         JSON.stringify({
           success: false,
@@ -267,6 +283,9 @@ serve(async (req: Request) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    const dbResults = await searchDatabase(supabase, String(query));
+    console.log(`DB results: ${dbResults.length}`);
 
     // Name search: always also query SEDIA to enrich
     let sediaResults: OrganisationInfo[] = [];
