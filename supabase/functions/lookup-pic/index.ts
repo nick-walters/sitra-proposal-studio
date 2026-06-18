@@ -8,12 +8,32 @@ interface OrganisationInfo {
   shortName?: string;
   country: string;
   countryCode: string;
+  city?: string;
   legalEntityType?: string;
   isSme: boolean;
   organisationCategory?: 'HES' | 'RES' | 'SME' | 'LE' | 'PUB' | 'INT' | 'OTH' | 'PRC';
   englishName?: string;
   logoUrl?: string;
 }
+
+// EC dictionary id → ISO country code. Harvested from live SEDIA ORGANISATION queries.
+const COUNTRY_ID_TO_ISO: Record<string, string> = {
+  '20000832': 'AT', '20000839': 'BE', '20000841': 'BG', '20000860': 'CH',
+  '20000871': 'CY', '20000872': 'CZ', '20000873': 'DE', '20000875': 'DK',
+  '20000880': 'EE', '20000883': 'ES', '20000885': 'FI', '20000890': 'FR',
+  '20000893': 'GB', '20000902': 'GR', '20000911': 'HR', '20000913': 'HU',
+  '20000915': 'IE', '20000916': 'IL', '20000921': 'IS', '20000922': 'IT',
+  '20000944': 'LT', '20000945': 'LU', '20000946': 'LV', '20000960': 'MT',
+  '20000973': 'NL', '20000974': 'NO', '20000986': 'PL', '20000990': 'PT',
+  '20000994': 'RO', '20001001': 'SE', '20001004': 'SI', '20001005': 'SK',
+  '20001026': 'TR', '20001034': 'US',
+};
+
+const SEDIA_ORG_TYPE_TO_CATEGORY: Record<string, OrganisationInfo['organisationCategory']> = {
+  '31079051': 'RES',
+  '31079052': 'HES',
+  '31079053': 'PUB',
+};
 
 const COUNTRY_NAMES: Record<string, string> = {
   'AT': 'Austria', 'BE': 'Belgium', 'BG': 'Bulgaria', 'CY': 'Cyprus', 'CZ': 'Czech Republic',
@@ -106,35 +126,36 @@ async function searchDatabase(supabase: any, searchTerm: string): Promise<Organi
   return results;
 }
 
-function mapSediaCategory(orgType?: string): OrganisationInfo['organisationCategory'] {
-  if (!orgType) return 'OTH';
-  const t = orgType.toUpperCase();
-  if (t === 'REC') return 'RES';
-  if (t === 'HES') return 'HES';
-  if (t === 'PUB') return 'PUB';
-  if (t === 'PRC') return 'PRC';
-  if (t === 'INT') return 'INT';
-  return 'OTH';
-}
 
-function mapSediaResult(metadata: any): OrganisationInfo {
-  const pic = metadata.pic?.[0] || '';
-  const englishName = metadata.englishName?.[0];
-  const legalName = metadata.legalName?.[0] || englishName || '';
-  const shortName = metadata.businessName?.[0] || metadata.acronym?.[0];
-  const countryCode = metadata.country?.[0] || '';
-  const isSme = String(metadata.sme?.[0]).toLowerCase() === 'true';
-  const orgType = metadata.organisationType?.[0];
+
+
+function mapSediaResult(result: any): OrganisationInfo {
+  const metadata = result?.metadata || {};
+  const picNumber = metadata.pic?.[0] || result?.reference || '';
+  const legalName = metadata.name?.[0] || result?.summary || '';
+  const city = metadata.city?.[0];
+  const countryId = metadata.country?.[0];
+  let countryCode = countryId ? (COUNTRY_ID_TO_ISO[countryId] || '') : '';
+  if (!countryCode && metadata.vat?.[0]) {
+    const vatPrefix = String(metadata.vat[0]).slice(0, 2).toUpperCase();
+    if (/^[A-Z]{2}$/.test(vatPrefix)) countryCode = vatPrefix;
+  }
+  const country = countryCode ? (COUNTRY_NAMES[countryCode] || '') : '';
+  const orgTypeId = metadata.organisationType?.[0];
+  const organisationCategory: OrganisationInfo['organisationCategory'] = orgTypeId
+    ? (SEDIA_ORG_TYPE_TO_CATEGORY[orgTypeId] || 'OTH')
+    : undefined;
   return {
-    picNumber: pic,
+    picNumber,
     legalName,
-    englishName,
-    shortName,
+    englishName: undefined,
+    shortName: undefined,
+    city,
     countryCode,
-    country: COUNTRY_NAMES[countryCode] || countryCode || '',
-    isSme,
-    legalEntityType: orgType,
-    organisationCategory: mapSediaCategory(orgType),
+    country,
+    isSme: false,
+    legalEntityType: undefined,
+    organisationCategory,
     logoUrl: undefined,
   };
 }
@@ -171,7 +192,7 @@ async function searchSedia(text: string, apiKey: string = 'SEDIA_PERSON'): Promi
 
   const rawResults = Array.isArray(json?.results) ? json.results : [];
   const mapped = rawResults
-    .map((r: any) => mapSediaResult(r?.metadata || {}))
+    .map((r: any) => mapSediaResult(r))
     .filter((o: OrganisationInfo) => o.legalName || o.picNumber);
   return { results: mapped, raw: json };
 }
