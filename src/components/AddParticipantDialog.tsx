@@ -193,10 +193,18 @@ export function AddParticipantDialog({
   };
 
   // --- Registry inline dialog handlers ---
-  const openRegistryDialog = () => {
+  const openRegistryDialog = (prefill?: string) => {
     setOrgPopoverOpen(false);
-    setPicInput('');
-    setRegistryForm(null);
+    const trimmed = (prefill ?? '').trim();
+    const isPic = /^\d{9}$/.test(trimmed);
+    setPicInput(isPic ? trimmed : '');
+    if (isPic) {
+      setRegistryForm(null);
+    } else if (trimmed) {
+      setRegistryForm({ ...emptyRegistryForm, name: trimmed });
+    } else {
+      setRegistryForm(null);
+    }
     setRegistryLogoFile(null);
     setRegistryLogoPreview(null);
     setRegistryOpen(true);
