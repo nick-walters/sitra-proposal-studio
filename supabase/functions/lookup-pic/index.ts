@@ -52,6 +52,8 @@ function mapLegalEntityToCategory(legalEntityType?: string, isSme?: boolean): Or
   if (t === 'HES') return 'HES';
   if (t === 'PUB') return 'PUB';
   if (t === 'PRC') return isSme ? 'SME' : 'LE';
+  if (t === 'SME') return 'SME';
+  if (t === 'LE') return 'LE';
   if (t === 'INT') return 'INT';
   return 'OTH';
 }
