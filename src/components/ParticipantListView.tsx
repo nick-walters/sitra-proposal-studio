@@ -77,7 +77,7 @@ interface ParticipantListViewProps {
     country?: string;
     picNumber?: string;
     legalEntityType?: string;
-    isSme: boolean;
+    
     organisationCategory?: string;
     englishName?: string;
   }) => Promise<void>;

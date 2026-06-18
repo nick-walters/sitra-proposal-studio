@@ -154,7 +154,7 @@ export function useProposalData(proposalId: string) {
         logoUrl: p.logo_url || undefined,
         picNumber: p.pic_number || undefined,
         legalEntityType: p.legal_entity_type || undefined,
-        isSme: p.is_sme || false,
+        
         participantNumber: p.participant_number || 1,
         contactEmail: p.contact_email || undefined,
         address: p.address || undefined,
@@ -324,16 +324,16 @@ export function useProposalData(proposalId: string) {
         // Insert new organisation to shared registry
         await supabase.from('organisations').insert({
           name: participant.organisationName,
-          short_name: participant.organisationShortName,
+          short_name: participant.organisationShortName || participant.organisationName,
           pic_number: picNumber,
           country: participant.country,
-          legal_entity_type: participant.legalEntityType,
-          is_sme: participant.isSme,
           english_name: participant.englishName,
           logo_url: participant.logoUrl,
-        });
+          organisation_category: participant.organisationCategory,
+        } as any);
       }
     }
+  
 
     const { data, error } = await supabase
       .from('participants')
@@ -345,7 +345,6 @@ export function useProposalData(proposalId: string) {
         country: participant.country,
         pic_number: participant.picNumber,
         legal_entity_type: participant.legalEntityType,
-        is_sme: participant.isSme,
         participant_number: participant.participantNumber,
         contact_email: participant.contactEmail,
         address: participant.address,
@@ -374,7 +373,7 @@ export function useProposalData(proposalId: string) {
     if (updates.country !== undefined) dbUpdates.country = updates.country;
     if (updates.picNumber !== undefined) dbUpdates.pic_number = updates.picNumber;
     if (updates.legalEntityType !== undefined) dbUpdates.legal_entity_type = updates.legalEntityType;
-    if (updates.isSme !== undefined) dbUpdates.is_sme = updates.isSme;
+    
     if (updates.contactEmail !== undefined) dbUpdates.contact_email = updates.contactEmail;
     if (updates.address !== undefined) dbUpdates.address = updates.address;
     if (updates.street !== undefined) dbUpdates.street = updates.street;
@@ -431,42 +430,40 @@ export function useProposalData(proposalId: string) {
         const registryUpdates: any = {};
         if (updates.organisationName !== undefined) registryUpdates.name = updates.organisationName;
         if (updates.organisationShortName !== undefined) registryUpdates.short_name = updates.organisationShortName;
-        if (updates.country !== undefined) registryUpdates.country = updates.country;
-        if (updates.legalEntityType !== undefined) registryUpdates.legal_entity_type = updates.legalEntityType;
-        if (updates.isSme !== undefined) registryUpdates.is_sme = updates.isSme;
-        if (updates.englishName !== undefined) registryUpdates.english_name = updates.englishName;
-        if ('logoUrl' in updates) registryUpdates.logo_url = updates.logoUrl || null;
-        
-        if (Object.keys(registryUpdates).length > 0) {
-          // Upsert to registry - update if exists, insert if not
-          const { data: existingOrg } = await supabase
-            .from('organisations')
-            .select('id')
-            .eq('pic_number', picNumber)
-            .maybeSingle();
-          
-          if (existingOrg) {
-            // Update existing registry entry
-            await supabase
+          if (updates.country !== undefined) registryUpdates.country = updates.country;
+          if (updates.organisationCategory !== undefined) registryUpdates.organisation_category = updates.organisationCategory;
+          if (updates.englishName !== undefined) registryUpdates.english_name = updates.englishName;
+          if ('logoUrl' in updates) registryUpdates.logo_url = updates.logoUrl || null;
+
+          if (Object.keys(registryUpdates).length > 0) {
+            // Upsert to registry - update if exists, insert if not
+            const { data: existingOrg } = await supabase
               .from('organisations')
-              .update(registryUpdates)
-              .eq('pic_number', picNumber);
-          } else {
-            // Create new registry entry with full participant data
-            const fullParticipant = { ...participant, ...updates };
-            await supabase.from('organisations').insert({
-              name: fullParticipant.organisationName || '',
-              short_name: fullParticipant.organisationShortName,
-              pic_number: picNumber,
-              country: fullParticipant.country,
-              legal_entity_type: fullParticipant.legalEntityType,
-              is_sme: fullParticipant.isSme,
-              english_name: fullParticipant.englishName,
-              logo_url: fullParticipant.logoUrl,
-            });
+              .select('id')
+              .eq('pic_number', picNumber)
+              .maybeSingle();
+
+            if (existingOrg) {
+              // Update existing registry entry
+              await supabase
+                .from('organisations')
+                .update(registryUpdates)
+                .eq('pic_number', picNumber);
+            } else {
+              // Create new registry entry with full participant data
+              const fullParticipant = { ...participant, ...updates };
+              await supabase.from('organisations').insert({
+                name: fullParticipant.organisationName || '',
+                short_name: fullParticipant.organisationShortName || fullParticipant.organisationName || '',
+                pic_number: picNumber,
+                country: fullParticipant.country,
+                english_name: fullParticipant.englishName,
+                logo_url: fullParticipant.logoUrl,
+                organisation_category: fullParticipant.organisationCategory,
+              } as any);
+            }
           }
         }
-      }
     }
   };
 
