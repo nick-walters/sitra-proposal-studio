@@ -30,7 +30,11 @@ import {
   BorderStyle,
   AlignmentType,
 } from "npm:docx@9.5.0";
-import XLSX from "npm:xlsx-js-style@1.2.0";
+import xlsxNs from "npm:xlsx-js-style@1.2.0";
+// xlsx-js-style ships as CJS; Deno's npm: interop sometimes nests it under `.default`.
+// Reach the real module regardless of which shape we get.
+// deno-lint-ignore no-explicit-any
+const XLSX: any = (xlsxNs as any)?.utils ? xlsxNs : (xlsxNs as any)?.default ?? xlsxNs;
 import { parse as parseHtml } from "npm:node-html-parser@6.1.13";
 import { corsHeaders } from "../_shared/cors.ts";
 
@@ -496,7 +500,6 @@ async function buildA2(supabase: any, proposal: any): Promise<Uint8Array> {
     children.push(KV("English name", p.english_name));
     children.push(KV("PIC", p.pic_number));
     children.push(KV("Country", p.country));
-    children.push(KV("Legal entity type", p.legal_entity_type));
     children.push(KV("Organisation category", p.organisation_category));
     children.push(KV("Organisation type", p.organisation_type));
     
