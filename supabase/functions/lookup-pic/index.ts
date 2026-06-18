@@ -11,7 +11,7 @@ interface OrganisationInfo {
   city?: string;
   legalEntityType?: string;
   isSme: boolean;
-  organisationCategory?: 'HES' | 'RES' | 'SME' | 'LE' | 'PUB' | 'INT' | 'OTH' | 'PRC';
+  organisationCategory?: 'HES' | 'RES' | 'SME' | 'LE' | 'PUB' | 'INT' | 'OTH';
   englishName?: string;
   logoUrl?: string;
 }
@@ -52,6 +52,8 @@ function mapLegalEntityToCategory(legalEntityType?: string, isSme?: boolean): Or
   if (t === 'HES') return 'HES';
   if (t === 'PUB') return 'PUB';
   if (t === 'PRC') return isSme ? 'SME' : 'LE';
+  if (t === 'SME') return 'SME';
+  if (t === 'LE') return 'LE';
   if (t === 'INT') return 'INT';
   return 'OTH';
 }
@@ -114,7 +116,7 @@ async function searchDatabase(supabase: any, searchTerm: string): Promise<Organi
           countryCode: p.country || '',
           legalEntityType: p.legal_entity_type,
           isSme: p.is_sme || false,
-          organisationCategory: p.organisation_category || mapLegalEntityToCategory(p.legal_entity_type, p.is_sme),
+          organisationCategory: (p.organisation_category === 'PRC' ? (p.is_sme ? 'SME' : 'LE') : p.organisation_category) || mapLegalEntityToCategory(p.legal_entity_type, p.is_sme),
           englishName: p.english_name,
           logoUrl: p.logo_url,
         });
@@ -143,7 +145,7 @@ function mapSediaResult(result: any): OrganisationInfo {
   const country = countryCode ? (COUNTRY_NAMES[countryCode] || '') : '';
   const orgTypeId = metadata.organisationType?.[0];
   const organisationCategory: OrganisationInfo['organisationCategory'] = orgTypeId
-    ? (SEDIA_ORG_TYPE_TO_CATEGORY[orgTypeId] || 'OTH')
+    ? SEDIA_ORG_TYPE_TO_CATEGORY[orgTypeId]
     : undefined;
   return {
     picNumber,
