@@ -116,7 +116,7 @@ async function searchDatabase(supabase: any, searchTerm: string): Promise<Organi
           countryCode: p.country || '',
           legalEntityType: p.legal_entity_type,
           isSme: p.is_sme || false,
-          organisationCategory: p.organisation_category || mapLegalEntityToCategory(p.legal_entity_type, p.is_sme),
+          organisationCategory: (p.organisation_category === 'PRC' ? (p.is_sme ? 'SME' : 'LE') : p.organisation_category) || mapLegalEntityToCategory(p.legal_entity_type, p.is_sme),
           englishName: p.english_name,
           logoUrl: p.logo_url,
         });
