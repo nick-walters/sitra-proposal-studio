@@ -103,6 +103,8 @@ export function AddParticipantDialog({
   const [lookingUp, setLookingUp] = useState(false);
   const [registryForm, setRegistryForm] = useState<RegistryFormState | null>(null);
   const [savingRegistry, setSavingRegistry] = useState(false);
+  const [registryLogoFile, setRegistryLogoFile] = useState<File | null>(null);
+  const [registryLogoPreview, setRegistryLogoPreview] = useState<string | null>(null);
 
   const fetchOrgs = useCallback(async () => {
     setLoadingOrgs(true);
