@@ -402,7 +402,6 @@ export function AddParticipantDialog({
                         <CommandGroup>
                           {filteredOrgs.map((org) => {
                             const logo = logoUrlFor(org.logo_url);
-                            const alreadyIn = existingPicSet.has(org.pic_number?.trim());
                             return (
                               <CommandItem
                                 key={org.id}
@@ -428,27 +427,26 @@ export function AddParticipantDialog({
                                 </div>
                                 <div className="text-xs font-mono text-muted-foreground tabular-nums flex-shrink-0">
                                   {org.pic_number}
-                                  {alreadyIn && <span className="ml-1 text-amber-600">·in proposal</span>}
                                 </div>
                               </CommandItem>
                             );
                           })}
                         </CommandGroup>
+                        <CommandGroup forceMount className="border-t">
+                          <CommandItem
+                            value="__lookup_new__"
+                            forceMount
+                            onSelect={() => openRegistryDialog(search)}
+                            className="flex items-center gap-2 py-2 text-sm font-medium"
+                          >
+                            <Search className="w-4 h-4" />
+                            Look up organisation by name or PIC
+                          </CommandItem>
+                        </CommandGroup>
                       </CommandList>
                     </Command>
                   </PopoverContent>
                 </Popover>
-
-                <p className="text-xs text-muted-foreground">
-                  Can't find the organisation?{' '}
-                  <button
-                    type="button"
-                    className="underline hover:text-foreground inline-flex items-center gap-0.5"
-                    onClick={openRegistryDialog}
-                  >
-                    <Plus className="w-3 h-3" /> Add it to the registry
-                  </button>
-                </p>
               </div>
             )}
 
