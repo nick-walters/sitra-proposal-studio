@@ -257,6 +257,26 @@ export function AddParticipantDialog({
     }
   };
 
+  const handleRegistryLogoSelect = (file: File | null) => {
+    if (!file) {
+      setRegistryLogoFile(null);
+      setRegistryLogoPreview(null);
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be less than 5MB');
+      return;
+    }
+    setRegistryLogoFile(file);
+    const reader = new FileReader();
+    reader.onload = (e) => setRegistryLogoPreview(e.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
   const handleRegistrySave = async () => {
     if (!registryForm) return;
     if (!registryForm.name.trim()) return toast.error('Legal name is required');
@@ -264,30 +284,60 @@ export function AddParticipantDialog({
     if (!registryForm.organisation_category) return toast.error('Category is required');
 
     setSavingRegistry(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    const { data: inserted, error } = await supabase
-      .from('organisations')
-      .insert({
-        pic_number: registryForm.pic_number,
-        name: registryForm.name.trim(),
-        short_name: registryForm.short_name.trim(),
-        english_name: registryForm.english_name.trim() || null,
-        country: registryForm.country || null,
-        organisation_category: registryForm.organisation_category,
-        created_by: user?.id,
-      } as any)
-      .select('id, name, short_name, english_name, pic_number, country, logo_url, organisation_category')
-      .single();
-    setSavingRegistry(false);
-    if (error || !inserted) {
-      toast.error(`Failed to add: ${error?.message || 'unknown error'}`);
-      return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: inserted, error } = await supabase
+        .from('organisations')
+        .insert({
+          pic_number: registryForm.pic_number,
+          name: registryForm.name.trim(),
+          short_name: registryForm.short_name.trim(),
+          english_name: registryForm.english_name.trim() || null,
+          country: registryForm.country || null,
+          organisation_category: registryForm.organisation_category,
+          created_by: user?.id,
+        } as any)
+        .select('id, name, short_name, english_name, pic_number, country, logo_url, organisation_category')
+        .single();
+
+      if (error || !inserted) {
+        toast.error(`Failed to add: ${error?.message || 'unknown error'}`);
+        return;
+      }
+
+      let finalOrg = inserted as RegistryOrg;
+
+      // Optional logo upload
+      if (registryLogoFile) {
+        const ext = (registryLogoFile.name.split('.').pop() || 'png').toLowerCase();
+        const path = `registry/${registryForm.pic_number}/logo.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from('participant-logos')
+          .upload(path, registryLogoFile, { upsert: true, contentType: registryLogoFile.type });
+        if (upErr) {
+          toast.error(`Org saved, but logo upload failed: ${upErr.message}`);
+        } else {
+          const { error: updErr } = await supabase
+            .from('organisations')
+            .update({ logo_url: path })
+            .eq('id', inserted.id);
+          if (updErr) {
+            toast.error(`Logo uploaded but failed to link: ${updErr.message}`);
+          } else {
+            finalOrg = { ...finalOrg, logo_url: path };
+          }
+        }
+      }
+
+      // Refresh registry and auto-advance to Step 2.
+      await fetchOrgs();
+      setSelectedOrg(finalOrg);
+      setParticipantType('beneficiary');
+      closeRegistryDialog();
+      toast.success('Added to registry. Select a participant type to add to this proposal.');
+    } finally {
+      setSavingRegistry(false);
     }
-    toast.success('Organisation added to registry');
-    // Refresh and auto-select
-    await fetchOrgs();
-    setSelectedOrg(inserted as RegistryOrg);
-    closeRegistryDialog();
   };
 
   return (
