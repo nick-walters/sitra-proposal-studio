@@ -53,19 +53,11 @@ interface DepartmentsSectionProps {
 function SortableDepartmentCard({
   dept,
   canEdit,
-  orgStreet,
-  orgTown,
-  orgPostcode,
-  orgCountry,
   onUpdate,
   onDelete,
 }: {
   dept: Department;
   canEdit: boolean;
-  orgStreet?: string;
-  orgTown?: string;
-  orgPostcode?: string;
-  orgCountry?: string;
   onUpdate: (id: string, updates: Partial<Department>) => void;
   onDelete: (id: string) => void;
 }) {
@@ -84,19 +76,8 @@ function SortableDepartmentCard({
     opacity: isDragging ? 0.5 : 1,
   };
 
-  const handleSameAsOrg = (checked: boolean) => {
-    if (checked) {
-      onUpdate(dept.id, {
-        sameAsOrganisation: true,
-        street: orgStreet || '',
-        town: orgTown || '',
-        postcode: orgPostcode || '',
-        country: orgCountry || '',
-      });
-    } else {
-      onUpdate(dept.id, { sameAsOrganisation: false });
-    }
-  };
+  const handleSameAsOrg = (checked: boolean) =>
+    onUpdate(dept.id, { sameAsOrganisation: !!checked });
 
   return (
     <div ref={setNodeRef} style={style} className="border rounded-lg p-4 bg-muted/30 space-y-3">
