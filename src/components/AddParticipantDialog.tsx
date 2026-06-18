@@ -14,12 +14,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Loader2, Building2, Info, ChevronsUpDown, Check } from 'lucide-react';
+import { Loader2, Building2, Info, ChevronsUpDown, Check, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { PARTICIPANT_TYPE_LABELS, ParticipantType } from '@/types/proposal';
 import { EU_MEMBER_STATES, ASSOCIATED_COUNTRIES, THIRD_COUNTRIES } from '@/lib/countries';
 import { ORGANISATION_CATEGORY_LABELS, OrganisationCategory } from '@/types/proposal';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AddParticipantDialogProps {
   open: boolean;
@@ -46,6 +47,7 @@ export function AddParticipantDialog({
   participantCount,
 }: AddParticipantDialogProps) {
   const [loading, setLoading] = useState(false);
+  const [lookingUp, setLookingUp] = useState(false);
   const [countryPopoverOpen, setCountryPopoverOpen] = useState(false);
   
   // Form state
@@ -62,6 +64,64 @@ export function AddParticipantDialog({
   
   // Form validation errors
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  const countryCodeMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    [...EU_MEMBER_STATES, ...ASSOCIATED_COUNTRIES, ...THIRD_COUNTRIES].forEach((c) => {
+      map[c.code] = c.name;
+    });
+    return map;
+  }, []);
+
+  const handleLookup = async () => {
+    const pic = form.picNumber.trim();
+    if (!/^\d{9}$/.test(pic)) return;
+
+    setLookingUp(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('lookup-pic', {
+        body: { picNumber: pic },
+      });
+
+      if (error || !data?.success || !data.organisation) {
+        toast.info('No public record found for this PIC. Please enter the details manually.');
+        return;
+      }
+
+      const org = data.organisation;
+      const updates: Partial<typeof form> = {};
+      const clearedErrors: Record<string, string> = {};
+
+      if (org.legalName) {
+        updates.organisationName = org.legalName;
+        clearedErrors.organisationName = '';
+      }
+      if (org.shortName) {
+        updates.organisationShortName = org.shortName;
+      }
+      if (org.englishName) {
+        updates.englishName = org.englishName;
+      }
+      if (org.organisationCategory && ['HES', 'RES', 'PRC', 'PUB', 'INT', 'OTH'].includes(org.organisationCategory)) {
+        updates.organisationCategory = org.organisationCategory;
+        clearedErrors.organisationCategory = '';
+      }
+      if (org.countryCode && countryCodeMap[org.countryCode]) {
+        updates.country = countryCodeMap[org.countryCode];
+        clearedErrors.country = '';
+      }
+
+      setForm((prev) => ({ ...prev, ...updates }));
+      setFormErrors((prev) => ({ ...prev, ...clearedErrors }));
+
+      toast.success(`Imported details for ${org.legalName}. Please verify country and category.`);
+    } catch (err) {
+      console.error('PIC lookup error:', err);
+      toast.info('No public record found for this PIC. Please enter the details manually.');
+    } finally {
+      setLookingUp(false);
+    }
+  };
 
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
@@ -159,18 +219,37 @@ export function AddParticipantDialog({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="pic-number">PIC *</Label>
-                <Input
-                  id="pic-number"
-                  value={form.picNumber}
-                  onChange={(e) => {
-                    const value = e.target.value.replace(/\D/g, '').slice(0, 9);
-                    setForm(prev => ({ ...prev, picNumber: value }));
-                    if (formErrors.picNumber) setFormErrors(prev => ({ ...prev, picNumber: '' }));
-                  }}
-                  placeholder="e.g. 906912365"
-                  maxLength={9}
-                  className={formErrors.picNumber ? 'border-destructive' : ''}
-                />
+                <div className="flex gap-2">
+                  <Input
+                    id="pic-number"
+                    value={form.picNumber}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, '').slice(0, 9);
+                      setForm(prev => ({ ...prev, picNumber: value }));
+                      if (formErrors.picNumber) setFormErrors(prev => ({ ...prev, picNumber: '' }));
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleLookup();
+                      }
+                    }}
+                    placeholder="e.g. 906912365"
+                    maxLength={9}
+                    className={formErrors.picNumber ? 'border-destructive' : ''}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={!/^\d{9}$/.test(form.picNumber) || lookingUp}
+                    onClick={handleLookup}
+                    className="gap-1 flex-shrink-0"
+                  >
+                    {lookingUp ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                    Look up
+                  </Button>
+                </div>
                 {formErrors.picNumber && (
                   <p className="text-xs text-destructive mt-1">{formErrors.picNumber}</p>
                 )}
