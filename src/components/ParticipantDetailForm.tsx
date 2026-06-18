@@ -289,33 +289,6 @@ export function ParticipantDetailForm({
               </div>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-2 sm:col-span-2">
-                <Label>Street</Label>
-                <DebouncedInput
-                  value={participant.street || ''}
-                  onDebouncedChange={(v) => handleFieldUpdate('street', v)}
-                  placeholder="Street address"
-                  disabled={!canEdit}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Town</Label>
-                <DebouncedInput
-                  value={participant.town || ''}
-                  onDebouncedChange={(v) => handleFieldUpdate('town', v)}
-                  placeholder="Town / City"
-                  disabled={!canEdit}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Postcode</Label>
-                <DebouncedInput
-                  value={participant.postcode || ''}
-                  onDebouncedChange={(v) => handleFieldUpdate('postcode', v)}
-                  placeholder="Postcode"
-                  disabled={!canEdit}
-                />
-              </div>
               <div className="space-y-2">
                 <Label>Country *</Label>
                 {canEdit ? (
