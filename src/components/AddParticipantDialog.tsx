@@ -156,6 +156,9 @@ export function AddParticipantDialog({
     if (!selectedOrg || isDuplicate) return;
     setLoading(true);
     try {
+      // Resolve registry logo path to a full publicUrl so participant display
+      // (which expects full URLs or proposal-files paths) renders correctly.
+      const resolvedLogo = selectedOrg.logo_url ? logoUrlFor(selectedOrg.logo_url) : null;
       await onAddParticipant({
         organisationName: selectedOrg.name,
         organisationShortName: selectedOrg.short_name || undefined,
@@ -164,7 +167,7 @@ export function AddParticipantDialog({
         country: selectedOrg.country || undefined,
         picNumber: selectedOrg.pic_number,
         organisationCategory: (selectedOrg.organisation_category as OrganisationCategory) || undefined,
-        logoUrl: selectedOrg.logo_url || undefined,
+        logoUrl: resolvedLogo || undefined,
       });
       toast.success('Participant added successfully');
       handleClose();
@@ -193,6 +196,8 @@ export function AddParticipantDialog({
     setOrgPopoverOpen(false);
     setPicInput('');
     setRegistryForm(null);
+    setRegistryLogoFile(null);
+    setRegistryLogoPreview(null);
     setRegistryOpen(true);
   };
 
@@ -200,18 +205,21 @@ export function AddParticipantDialog({
     setRegistryOpen(false);
     setPicInput('');
     setRegistryForm(null);
+    setRegistryLogoFile(null);
+    setRegistryLogoPreview(null);
   };
 
   const handleLookup = async () => {
     const pic = picInput.trim();
     if (!/^\d{9}$/.test(pic)) return;
 
-    // Pre-check existing in registry
+    // Pre-check existing in registry — auto-advance to Step 2.
     const existing = orgs.find((o) => o.pic_number === pic);
     if (existing) {
-      toast.info('This PIC is already in the registry');
       closeRegistryDialog();
       setSelectedOrg(existing);
+      setParticipantType('beneficiary');
+      toast.info('Already in registry — select a participant type.');
       return;
     }
 
