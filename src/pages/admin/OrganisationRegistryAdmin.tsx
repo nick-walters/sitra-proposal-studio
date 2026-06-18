@@ -83,12 +83,15 @@ const COUNTRY_CODE_TO_NAME: Record<string, string> = Object.fromEntries(
 
 const LOGO_BUCKET = "participant-logos";
 
-function getLogoPublicUrl(path: string | null): string | null {
+function getLogoPublicUrl(path: string | null, cacheBust?: number | string): string | null {
   if (!path) return null;
   if (path.startsWith("http")) return path;
   const { data } = supabase.storage.from(LOGO_BUCKET).getPublicUrl(path);
-  return data?.publicUrl || null;
+  if (!data?.publicUrl) return null;
+  const bust = cacheBust ?? Date.now();
+  return `${data.publicUrl}?t=${bust}`;
 }
+
 
 interface FormState {
   pic_number: string;
@@ -334,9 +337,24 @@ export function OrganisationRegistryAdmin() {
     if (!file || !editing) return;
     setUploadingEditLogo(true);
     const path = await uploadLogo(editing.pic_number, file);
-    if (path) setEditForm((f) => ({ ...f, logo_url: path }));
+    if (path) {
+      setEditForm((f) => ({ ...f, logo_url: path }));
+      // Persist immediately so the list reflects the new logo without waiting for Save.
+      const { error } = await supabase
+        .from("organisations")
+        .update({ logo_url: path } as any)
+        .eq("id", editing.id);
+      if (error) {
+        toast.error(`Failed to save logo: ${error.message}`);
+      } else {
+        setEditing((prev) => (prev ? { ...prev, logo_url: path } : prev));
+        toast.success("Logo updated");
+        fetchOrgs();
+      }
+    }
     setUploadingEditLogo(false);
   };
+
 
   const handleEditSave = async () => {
     if (!editing) return;

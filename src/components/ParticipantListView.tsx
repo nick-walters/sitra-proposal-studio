@@ -812,7 +812,9 @@ export function ParticipantListView({
                 await onAddParticipant(participantData);
               }}
               participantCount={participants.length}
+              existingPics={participants.map(p => p.picNumber).filter(Boolean) as string[]}
             />
+
             <BulkPicLookupDialog
               isOpen={isBulkPicOpen}
               onClose={() => setIsBulkPicOpen(false)}
