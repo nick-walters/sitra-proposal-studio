@@ -1641,10 +1641,14 @@ const XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.s
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  // Auth: accept either (a) Bearer == service role key (cron / server-to-server),
-  // or (b) a valid user JWT belonging to an owner/admin/coordinator (manual UI trigger).
+  // Auth: accept either (a) Bearer == service role key OR Bearer == CRON_SECRET
+  // (cron / server-to-server), or (b) a valid user JWT belonging to an
+  // owner/admin/coordinator (manual UI trigger).
   const authHeader = req.headers.get("Authorization") || "";
-  const isServiceCall = authHeader === `Bearer ${SERVICE_KEY}`;
+  const cronSecret = Deno.env.get("CRON_SECRET");
+  const isServiceCall =
+    authHeader === `Bearer ${SERVICE_KEY}` ||
+    (!!cronSecret && authHeader === `Bearer ${cronSecret}`);
   let isAuthorizedUser = false;
   let callerUserId: string | null = null;
   if (!isServiceCall) {
