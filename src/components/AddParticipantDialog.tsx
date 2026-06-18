@@ -101,6 +101,7 @@ export function AddParticipantDialog({
   const [registryOpen, setRegistryOpen] = useState(false);
   const [picInput, setPicInput] = useState('');
   const [lookingUp, setLookingUp] = useState(false);
+  const [lookupSuccess, setLookupSuccess] = useState(false);
   const [registryForm, setRegistryForm] = useState<RegistryFormState | null>(null);
   const [savingRegistry, setSavingRegistry] = useState(false);
   const [registryLogoFile, setRegistryLogoFile] = useState<File | null>(null);
@@ -198,6 +199,7 @@ export function AddParticipantDialog({
     const trimmed = (prefill ?? '').trim();
     const isPic = /^\d{9}$/.test(trimmed);
     setPicInput(isPic ? trimmed : '');
+    setLookupSuccess(false);
     if (isPic) {
       setRegistryForm(null);
     } else if (trimmed) {
@@ -213,6 +215,7 @@ export function AddParticipantDialog({
   const closeRegistryDialog = () => {
     setRegistryOpen(false);
     setPicInput('');
+    setLookupSuccess(false);
     setRegistryForm(null);
     setRegistryLogoFile(null);
     setRegistryLogoPreview(null);
@@ -257,6 +260,7 @@ export function AddParticipantDialog({
         country: countryName,
         organisation_category: cat,
       });
+      setLookupSuccess(true);
       toast.success(`Found ${org.legalName || pic}. Please review and save.`);
     } catch {
       toast.info('Lookup failed. Enter details manually.');
@@ -389,7 +393,9 @@ export function AddParticipantDialog({
                   </PopoverTrigger>
                   <PopoverContent
                     className="w-[520px] p-0 z-50 bg-popover max-h-[60vh] overflow-hidden"
+                    side="bottom"
                     align="start"
+                    sideOffset={4}
                   >
                     <Command shouldFilter={false}>
                       <CommandInput
@@ -537,12 +543,12 @@ export function AddParticipantDialog({
                   }}
                   placeholder="e.g. 906912365"
                   maxLength={9}
-                  disabled={!!registryForm}
+                  disabled={lookupSuccess}
                 />
               </div>
               <Button
                 onClick={handleLookup}
-                disabled={!/^\d{9}$/.test(picInput) || lookingUp || !!registryForm}
+                disabled={!/^\d{9}$/.test(picInput) || lookingUp || lookupSuccess}
               >
                 {lookingUp ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Search className="w-4 h-4 mr-2" />}
                 Look up
