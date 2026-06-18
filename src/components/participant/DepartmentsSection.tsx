@@ -173,10 +173,6 @@ function SortableDepartmentCard({
 
 export function DepartmentsSection({
   participantId,
-  organisationStreet,
-  organisationTown,
-  organisationPostcode,
-  organisationCountry,
   departmentsNotApplicable,
   onToggleNotApplicable,
   canEdit,
@@ -353,10 +349,6 @@ export function DepartmentsSection({
                         key={dept.id}
                         dept={dept}
                         canEdit={canEdit}
-                        orgStreet={organisationStreet}
-                        orgTown={organisationTown}
-                        orgPostcode={organisationPostcode}
-                        orgCountry={organisationCountry}
                         onUpdate={updateDepartment}
                         onDelete={deleteDepartment}
                       />
