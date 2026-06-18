@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Building2, ChevronsUpDown, Loader2, AlertTriangle, Plus, Search } from 'lucide-react';
+import { Building2, ChevronsUpDown, Loader2, AlertTriangle, Plus, Search, Upload, X } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   PARTICIPANT_TYPE_LABELS,
@@ -103,6 +103,8 @@ export function AddParticipantDialog({
   const [lookingUp, setLookingUp] = useState(false);
   const [registryForm, setRegistryForm] = useState<RegistryFormState | null>(null);
   const [savingRegistry, setSavingRegistry] = useState(false);
+  const [registryLogoFile, setRegistryLogoFile] = useState<File | null>(null);
+  const [registryLogoPreview, setRegistryLogoPreview] = useState<string | null>(null);
 
   const fetchOrgs = useCallback(async () => {
     setLoadingOrgs(true);
@@ -154,6 +156,9 @@ export function AddParticipantDialog({
     if (!selectedOrg || isDuplicate) return;
     setLoading(true);
     try {
+      // Resolve registry logo path to a full publicUrl so participant display
+      // (which expects full URLs or proposal-files paths) renders correctly.
+      const resolvedLogo = selectedOrg.logo_url ? logoUrlFor(selectedOrg.logo_url) : null;
       await onAddParticipant({
         organisationName: selectedOrg.name,
         organisationShortName: selectedOrg.short_name || undefined,
@@ -162,7 +167,7 @@ export function AddParticipantDialog({
         country: selectedOrg.country || undefined,
         picNumber: selectedOrg.pic_number,
         organisationCategory: (selectedOrg.organisation_category as OrganisationCategory) || undefined,
-        logoUrl: selectedOrg.logo_url || undefined,
+        logoUrl: resolvedLogo || undefined,
       });
       toast.success('Participant added successfully');
       handleClose();
@@ -191,6 +196,8 @@ export function AddParticipantDialog({
     setOrgPopoverOpen(false);
     setPicInput('');
     setRegistryForm(null);
+    setRegistryLogoFile(null);
+    setRegistryLogoPreview(null);
     setRegistryOpen(true);
   };
 
@@ -198,18 +205,21 @@ export function AddParticipantDialog({
     setRegistryOpen(false);
     setPicInput('');
     setRegistryForm(null);
+    setRegistryLogoFile(null);
+    setRegistryLogoPreview(null);
   };
 
   const handleLookup = async () => {
     const pic = picInput.trim();
     if (!/^\d{9}$/.test(pic)) return;
 
-    // Pre-check existing in registry
+    // Pre-check existing in registry — auto-advance to Step 2.
     const existing = orgs.find((o) => o.pic_number === pic);
     if (existing) {
-      toast.info('This PIC is already in the registry');
       closeRegistryDialog();
       setSelectedOrg(existing);
+      setParticipantType('beneficiary');
+      toast.info('Already in registry — select a participant type.');
       return;
     }
 
@@ -247,6 +257,26 @@ export function AddParticipantDialog({
     }
   };
 
+  const handleRegistryLogoSelect = (file: File | null) => {
+    if (!file) {
+      setRegistryLogoFile(null);
+      setRegistryLogoPreview(null);
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be less than 5MB');
+      return;
+    }
+    setRegistryLogoFile(file);
+    const reader = new FileReader();
+    reader.onload = (e) => setRegistryLogoPreview(e.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
   const handleRegistrySave = async () => {
     if (!registryForm) return;
     if (!registryForm.name.trim()) return toast.error('Legal name is required');
@@ -254,30 +284,60 @@ export function AddParticipantDialog({
     if (!registryForm.organisation_category) return toast.error('Category is required');
 
     setSavingRegistry(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    const { data: inserted, error } = await supabase
-      .from('organisations')
-      .insert({
-        pic_number: registryForm.pic_number,
-        name: registryForm.name.trim(),
-        short_name: registryForm.short_name.trim(),
-        english_name: registryForm.english_name.trim() || null,
-        country: registryForm.country || null,
-        organisation_category: registryForm.organisation_category,
-        created_by: user?.id,
-      } as any)
-      .select('id, name, short_name, english_name, pic_number, country, logo_url, organisation_category')
-      .single();
-    setSavingRegistry(false);
-    if (error || !inserted) {
-      toast.error(`Failed to add: ${error?.message || 'unknown error'}`);
-      return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: inserted, error } = await supabase
+        .from('organisations')
+        .insert({
+          pic_number: registryForm.pic_number,
+          name: registryForm.name.trim(),
+          short_name: registryForm.short_name.trim(),
+          english_name: registryForm.english_name.trim() || null,
+          country: registryForm.country || null,
+          organisation_category: registryForm.organisation_category,
+          created_by: user?.id,
+        } as any)
+        .select('id, name, short_name, english_name, pic_number, country, logo_url, organisation_category')
+        .single();
+
+      if (error || !inserted) {
+        toast.error(`Failed to add: ${error?.message || 'unknown error'}`);
+        return;
+      }
+
+      let finalOrg = inserted as RegistryOrg;
+
+      // Optional logo upload
+      if (registryLogoFile) {
+        const ext = (registryLogoFile.name.split('.').pop() || 'png').toLowerCase();
+        const path = `registry/${registryForm.pic_number}/logo.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from('participant-logos')
+          .upload(path, registryLogoFile, { upsert: true, contentType: registryLogoFile.type });
+        if (upErr) {
+          toast.error(`Org saved, but logo upload failed: ${upErr.message}`);
+        } else {
+          const { error: updErr } = await supabase
+            .from('organisations')
+            .update({ logo_url: path })
+            .eq('id', inserted.id);
+          if (updErr) {
+            toast.error(`Logo uploaded but failed to link: ${updErr.message}`);
+          } else {
+            finalOrg = { ...finalOrg, logo_url: path };
+          }
+        }
+      }
+
+      // Refresh registry and auto-advance to Step 2.
+      await fetchOrgs();
+      setSelectedOrg(finalOrg);
+      setParticipantType('beneficiary');
+      closeRegistryDialog();
+      toast.success('Added to registry. Select a participant type to add to this proposal.');
+    } finally {
+      setSavingRegistry(false);
     }
-    toast.success('Organisation added to registry');
-    // Refresh and auto-select
-    await fetchOrgs();
-    setSelectedOrg(inserted as RegistryOrg);
-    closeRegistryDialog();
   };
 
   return (
@@ -542,9 +602,37 @@ export function AddParticipantDialog({
                     </Select>
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Tip: a logo can be uploaded later from the Organisation Registry admin page.
-                </p>
+                <div className="space-y-2">
+                  <Label>Logo (optional)</Label>
+                  <div className="flex items-center gap-3">
+                    <div className="w-14 h-14 flex-shrink-0 flex items-center justify-center rounded border bg-muted overflow-hidden">
+                      {registryLogoPreview ? (
+                        <img src={registryLogoPreview} alt="" className="w-full h-full object-contain" />
+                      ) : (
+                        <Building2 className="w-6 h-6 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleRegistryLogoSelect(e.target.files?.[0] ?? null)}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">PNG, JPG or SVG, max 5MB.</p>
+                    </div>
+                    {registryLogoFile && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleRegistryLogoSelect(null)}
+                        title="Remove"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
           </div>
