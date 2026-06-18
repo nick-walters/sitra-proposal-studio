@@ -499,7 +499,7 @@ async function buildA2(supabase: any, proposal: any): Promise<Uint8Array> {
     children.push(KV("Legal entity type", p.legal_entity_type));
     children.push(KV("Organisation category", p.organisation_category));
     children.push(KV("Organisation type", p.organisation_type));
-    children.push(KV("SME", yn(p.is_sme)));
+    
     children.push(KV("Street", p.street));
     children.push(KV("Postcode", p.postcode));
     children.push(KV("Town", p.town));

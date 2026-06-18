@@ -10,7 +10,6 @@ interface OrganisationInfo {
   countryCode: string;
   city?: string;
   legalEntityType?: string;
-  isSme: boolean;
   organisationCategory?: 'HES' | 'RES' | 'SME' | 'LE' | 'PUB' | 'INT' | 'OTH';
   englishName?: string;
   logoUrl?: string;
@@ -45,17 +44,16 @@ const COUNTRY_NAMES: Record<string, string> = {
   'GB': 'United Kingdom', 'IL': 'Israel', 'TR': 'Turkey', 'IS': 'Iceland',
 };
 
-function mapLegalEntityToCategory(legalEntityType?: string, isSme?: boolean): OrganisationInfo['organisationCategory'] {
-  if (!legalEntityType) return 'OTH';
+function mapLegalEntityToCategory(legalEntityType?: string): OrganisationInfo['organisationCategory'] {
+  if (!legalEntityType) return undefined;
   const t = legalEntityType.toUpperCase();
   if (t === 'REC') return 'RES';
   if (t === 'HES') return 'HES';
   if (t === 'PUB') return 'PUB';
-  if (t === 'PRC') return isSme ? 'SME' : 'LE';
   if (t === 'SME') return 'SME';
   if (t === 'LE') return 'LE';
   if (t === 'INT') return 'INT';
-  return 'OTH';
+  return undefined;
 }
 
 function sanitiseTerm(raw: string): string {
@@ -89,9 +87,8 @@ async function searchDatabase(supabase: any, searchTerm: string): Promise<Organi
           shortName: org.short_name,
           country: COUNTRY_NAMES[org.country] || org.country || '',
           countryCode: org.country || '',
-          legalEntityType: org.legal_entity_type,
-          isSme: org.is_sme || false,
-          organisationCategory: mapLegalEntityToCategory(org.legal_entity_type, org.is_sme),
+          legalEntityType: undefined,
+          organisationCategory: org.organisation_category,
           englishName: org.english_name,
           logoUrl: org.logo_url,
         });
@@ -115,8 +112,7 @@ async function searchDatabase(supabase: any, searchTerm: string): Promise<Organi
           country: COUNTRY_NAMES[p.country] || p.country || '',
           countryCode: p.country || '',
           legalEntityType: p.legal_entity_type,
-          isSme: p.is_sme || false,
-          organisationCategory: (p.organisation_category === 'PRC' ? (p.is_sme ? 'SME' : 'LE') : p.organisation_category) || mapLegalEntityToCategory(p.legal_entity_type, p.is_sme),
+          organisationCategory: (p.organisation_category === 'PRC' ? 'LE' : p.organisation_category) || mapLegalEntityToCategory(p.legal_entity_type),
           englishName: p.english_name,
           logoUrl: p.logo_url,
         });
@@ -155,7 +151,6 @@ function mapSediaResult(result: any): OrganisationInfo {
     city,
     countryCode,
     country,
-    isSme: false,
     legalEntityType: undefined,
     organisationCategory,
     logoUrl: undefined,

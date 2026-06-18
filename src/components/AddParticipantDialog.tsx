@@ -32,7 +32,7 @@ interface AddParticipantDialogProps {
     country?: string;
     picNumber?: string;
     legalEntityType?: string;
-    isSme: boolean;
+    
     organisationCategory?: OrganisationCategory;
     englishName?: string;
     logoUrl?: string;
@@ -163,7 +163,7 @@ export function AddParticipantDialog({
         picNumber: form.picNumber.trim(),
         organisationType: form.organisationType,
         country: form.country || undefined,
-        isSme: false,
+        
         organisationCategory: form.organisationCategory || undefined,
         legalEntityType: form.organisationCategory || undefined,
         logoUrl: form.logoUrl || undefined,

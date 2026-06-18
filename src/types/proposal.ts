@@ -237,7 +237,7 @@ export interface Participant {
   logoUrl?: string;
   picNumber?: string;
   legalEntityType?: string;
-  isSme: boolean;
+  
   participantNumber: number;
   contactEmail?: string;
   address?: string;

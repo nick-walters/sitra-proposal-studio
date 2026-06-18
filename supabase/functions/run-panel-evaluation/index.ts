@@ -268,7 +268,7 @@ async function loadEvaluationContext(serviceClient: any, evaluationId: string): 
     serviceClient.from("section_content").select("section_id, content").eq("proposal_id", evaluation.proposal_id),
     serviceClient
       .from("participants")
-      .select("id, organisation_short_name, organisation_name, participant_number, country, organisation_category, is_sme")
+      .select("id, organisation_short_name, organisation_name, participant_number, country, organisation_category")
       .eq("proposal_id", evaluation.proposal_id),
     serviceClient
       .from("wp_drafts")
@@ -415,7 +415,7 @@ WORK PROGRAMME: ${proposal.work_programme || "?"}
 ESTIMATED PAGES: ${estimatedPages} (~${totalWords} words at 500 words/page + 1 front-matter)
 
 PARTICIPANTS:
-${participants.map((participant: any) => `- #${participant.participant_number} ${participant.organisation_short_name || participant.organisation_name} (${participant.country}, ${participant.organisation_category || "?"}${participant.is_sme ? ", SME" : ""})`).join("\n")}
+${participants.map((participant: any) => `- #${participant.participant_number} ${participant.organisation_short_name || participant.organisation_name} (${participant.country}, ${participant.organisation_category || "?"})`).join("\n")}
 
 WORK PACKAGES:
 ${wpDrafts.map((wp: any) => `WP${wp.number} ${wp.short_name || ""} ${wp.title || ""}\nObjectives: ${stripHtml(wp.objectives).slice(0, 600)}\nMethodology: ${stripHtml(wp.methodology).slice(0, 800)}`).join("\n\n")}

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Check, ChevronsUpDown, Plus, Building2 } from "lucide-react";
+import { Check, ChevronsUpDown, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -26,18 +26,17 @@ interface OrganisationSelectProps {
   placeholder?: string;
 }
 
-export function OrganisationSelect({ 
-  value, 
-  onValueChange, 
-  className, 
+export function OrganisationSelect({
+  value,
+  onValueChange,
+  className,
   hasError,
-  placeholder = "Select or enter organisation" 
+  placeholder = "Select organisation",
 }: OrganisationSelectProps) {
   const [open, setOpen] = useState(false);
   const [organisations, setOrganisations] = useState<Organisation[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchValue, setSearchValue] = useState("");
-  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     fetchOrganisations();
@@ -64,56 +63,12 @@ export function OrganisationSelect({
   const filteredOrganisations = useMemo(() => {
     if (!searchValue.trim()) return organisations;
     const search = searchValue.toLowerCase();
-    return organisations.filter(org => 
-      org.name.toLowerCase().includes(search) ||
-      (org.short_name && org.short_name.toLowerCase().includes(search))
+    return organisations.filter(
+      (org) =>
+        org.name.toLowerCase().includes(search) ||
+        (org.short_name && org.short_name.toLowerCase().includes(search))
     );
   }, [organisations, searchValue]);
-
-  const showCreateOption = useMemo(() => {
-    if (!searchValue.trim()) return false;
-    const searchLower = searchValue.toLowerCase().trim();
-    return !organisations.some(org => 
-      org.name.toLowerCase() === searchLower
-    );
-  }, [searchValue, organisations]);
-
-  const handleCreateOrganisation = async () => {
-    if (!searchValue.trim()) return;
-    
-    setCreating(true);
-    try {
-      const { data, error } = await supabase
-        .from("organisations")
-        .insert({ name: searchValue.trim() })
-        .select()
-        .single();
-
-      if (error) {
-        if (error.code === '23505') {
-          onValueChange(searchValue.trim());
-          setOpen(false);
-          setSearchValue("");
-          return;
-        }
-        throw error;
-      }
-
-      if (data) {
-        setOrganisations(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
-        onValueChange(data.name);
-        setOpen(false);
-        setSearchValue("");
-      }
-    } catch (err) {
-      console.error("Error creating organisation:", err);
-      onValueChange(searchValue.trim());
-      setOpen(false);
-      setSearchValue("");
-    } finally {
-      setCreating(false);
-    }
-  };
 
   const handleSelect = (orgName: string) => {
     onValueChange(orgName);
@@ -122,10 +77,13 @@ export function OrganisationSelect({
   };
 
   return (
-    <Popover open={open} onOpenChange={(isOpen) => {
-      setOpen(isOpen);
-      if (!isOpen) setSearchValue("");
-    }}>
+    <Popover
+      open={open}
+      onOpenChange={(isOpen) => {
+        setOpen(isOpen);
+        if (!isOpen) setSearchValue("");
+      }}
+    >
       <PopoverTrigger asChild>
         <Button
           variant="outline"
@@ -149,21 +107,24 @@ export function OrganisationSelect({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[350px] p-0 z-50" align="start">
-        <div className="flex flex-col bg-popover rounded-md" style={{ maxHeight: '350px' }}>
+        <div
+          className="flex flex-col bg-popover rounded-md"
+          style={{ maxHeight: "350px" }}
+        >
           <div className="flex items-center border-b px-3 shrink-0">
             <Input
-              placeholder="Type to search or add..."
+              placeholder="Type to search..."
               value={searchValue}
               onChange={(e) => setSearchValue(e.target.value)}
               className="h-10 border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-0"
             />
           </div>
-          <div 
-            style={{ 
-              maxHeight: '300px', 
-              overflowY: 'auto',
-              WebkitOverflowScrolling: 'touch',
-              overscrollBehavior: 'contain'
+          <div
+            style={{
+              maxHeight: "300px",
+              overflowY: "auto",
+              WebkitOverflowScrolling: "touch",
+              overscrollBehavior: "contain",
             }}
           >
             {loading ? (
@@ -172,25 +133,7 @@ export function OrganisationSelect({
               </div>
             ) : (
               <>
-                {showCreateOption && (
-                  <div className="p-1">
-                    <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
-                      Add new organisation
-                    </div>
-                    <div
-                      onClick={handleCreateOrganisation}
-                      className={cn(
-                        "flex items-center px-2 py-1.5 text-sm cursor-pointer rounded-sm hover:bg-accent hover:text-accent-foreground",
-                        creating && "opacity-50 pointer-events-none"
-                      )}
-                    >
-                      <Plus className="mr-2 h-4 w-4 text-primary" />
-                      <span>Add "{searchValue.trim()}"</span>
-                    </div>
-                  </div>
-                )}
-
-                {filteredOrganisations.length > 0 && (
+                {filteredOrganisations.length > 0 ? (
                   <div className="p-1">
                     <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
                       Organisations
@@ -219,11 +162,9 @@ export function OrganisationSelect({
                       </div>
                     ))}
                   </div>
-                )}
-
-                {filteredOrganisations.length === 0 && !showCreateOption && (
+                ) : (
                   <div className="py-6 text-center text-sm text-muted-foreground">
-                    No organisations found. Start typing to add one.
+                    No organisations found.
                   </div>
                 )}
               </>
