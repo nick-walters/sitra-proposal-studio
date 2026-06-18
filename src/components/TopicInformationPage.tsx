@@ -111,6 +111,72 @@ export function TopicInformationPage({
 
   const userCanEdit = canEdit && isCoordinator;
 
+  // --- Import-from-portal state ---
+  const [importing, setImporting] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [importedMeta, setImportedMeta] = useState<{ topicId: string; url: string | null; otherSections: { label: string; html: string }[] } | null>(null);
+  const [importTitle, setImportTitle] = useState('');
+  const [importOutcome, setImportOutcome] = useState('');
+  const [importScope, setImportScope] = useState('');
+  const [importDestination, setImportDestination] = useState('');
+
+  const handleImportFromPortal = async () => {
+    if (!proposal?.topicId) return;
+    setImporting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('import-topic-info', {
+        body: { topicId: proposal.topicId },
+      });
+      if (error || !data?.success || !data?.topic) {
+        toast.error("Couldn't import this topic from the portal. Check the Topic ID is correct.");
+        return;
+      }
+      const t = data.topic;
+      setImportTitle(t.title || '');
+      setImportOutcome(t.expectedOutcome || '');
+      setImportScope(t.scope || '');
+      setImportDestination(t.destinationDetails || '');
+      setImportedMeta({
+        topicId: t.topicId,
+        url: t.url || null,
+        otherSections: Array.isArray(t.otherSections) ? t.otherSections : [],
+      });
+      setImportDialogOpen(true);
+    } catch (e) {
+      toast.error("Couldn't import this topic from the portal. Check the Topic ID is correct.");
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const handleConfirmImport = async () => {
+    if (!editedProposal) return;
+    const updates: Record<string, any> = {
+      ...editedProposal,
+      topicTitle: importTitle,
+      topicExpectedOutcome: importOutcome,
+      topicScope: importScope,
+      topicDestinationDescription: importDestination,
+      outcomeFootnotes: [],
+      scopeFootnotes: [],
+      destinationFootnotes: [],
+      topicContentImportedAt: new Date(),
+    };
+    setEditedProposal(updates as any);
+    setSaving(true);
+    try {
+      await onUpdateProposal(updates);
+      setLastSaved(new Date());
+      toast.success('Topic information imported.');
+    } catch {
+      toast.error('Could not save imported topic.');
+    } finally {
+      setSaving(false);
+      setImportDialogOpen(false);
+    }
+  };
+
+
   const startEditing = (field: EditableField) => {
     if (!userCanEdit || !editedProposal) return;
     setEditSnapshot({
