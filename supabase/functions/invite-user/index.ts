@@ -68,9 +68,12 @@ serve(async (req: Request) => {
       _user_id: callerId,
       _proposal_id: proposalId,
     });
+    const { data: isOwner } = await adminClient.rpc("is_owner", {
+      _user_id: callerId,
+    });
 
-    if (!canInvite) {
-      return new Response(JSON.stringify({ error: "Permission denied: coordinator role required to invite users" }), {
+    if (!canInvite && !isOwner) {
+      return new Response(JSON.stringify({ error: "Only coordinators can invite users to this proposal" }), {
         status: 403,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
