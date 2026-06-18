@@ -102,7 +102,7 @@ export function AddParticipantDialog({
       if (org.englishName) {
         updates.englishName = org.englishName;
       }
-      if (org.organisationCategory && ['HES', 'RES', 'PRC', 'PUB', 'INT', 'OTH'].includes(org.organisationCategory)) {
+      if (org.organisationCategory && ['HES', 'RES', 'SME', 'LE', 'PUB', 'INT', 'OTH'].includes(org.organisationCategory)) {
         updates.organisationCategory = org.organisationCategory;
         clearedErrors.organisationCategory = '';
       }
