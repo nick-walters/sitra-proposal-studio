@@ -125,46 +125,48 @@ function SortableDepartmentCard({
         </Label>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 ml-9">
-        <div className="space-y-1 sm:col-span-2">
-          <Label className="text-xs">Street</Label>
-          <DebouncedInput
-            value={dept.street || ''}
-            onDebouncedChange={(v) => onUpdate(dept.id, { street: v })}
-            placeholder="Street address"
-            disabled={!canEdit || dept.sameAsOrganisation}
-          />
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs">Town</Label>
-          <DebouncedInput
-            value={dept.town || ''}
-            onDebouncedChange={(v) => onUpdate(dept.id, { town: v })}
-            placeholder="Town / City"
-            disabled={!canEdit || dept.sameAsOrganisation}
-          />
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs">Postcode</Label>
-          <DebouncedInput
-            value={dept.postcode || ''}
-            onDebouncedChange={(v) => onUpdate(dept.id, { postcode: v })}
-            placeholder="Postcode"
-            disabled={!canEdit || dept.sameAsOrganisation}
-          />
-        </div>
-        <div className="space-y-1 sm:col-span-2">
-          <Label className="text-xs">Country</Label>
-          {canEdit && !dept.sameAsOrganisation ? (
-            <CountrySelect
-              value={dept.country || ''}
-              onValueChange={(v) => onUpdate(dept.id, { country: v })}
+      {!dept.sameAsOrganisation && (
+        <div className="grid gap-3 sm:grid-cols-2 ml-9">
+          <div className="space-y-1 sm:col-span-2">
+            <Label className="text-xs">Street</Label>
+            <DebouncedInput
+              value={dept.street || ''}
+              onDebouncedChange={(v) => onUpdate(dept.id, { street: v })}
+              placeholder="Street address"
+              disabled={!canEdit}
             />
-          ) : (
-            <Input value={dept.country || ''} disabled />
-          )}
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Town</Label>
+            <DebouncedInput
+              value={dept.town || ''}
+              onDebouncedChange={(v) => onUpdate(dept.id, { town: v })}
+              placeholder="Town / City"
+              disabled={!canEdit}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Postcode</Label>
+            <DebouncedInput
+              value={dept.postcode || ''}
+              onDebouncedChange={(v) => onUpdate(dept.id, { postcode: v })}
+              placeholder="Postcode"
+              disabled={!canEdit}
+            />
+          </div>
+          <div className="space-y-1 sm:col-span-2">
+            <Label className="text-xs">Country</Label>
+            {canEdit ? (
+              <CountrySelect
+                value={dept.country || ''}
+                onValueChange={(v) => onUpdate(dept.id, { country: v })}
+              />
+            ) : (
+              <Input value={dept.country || ''} disabled />
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
