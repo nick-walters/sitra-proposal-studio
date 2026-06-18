@@ -219,18 +219,37 @@ export function AddParticipantDialog({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="pic-number">PIC *</Label>
-                <Input
-                  id="pic-number"
-                  value={form.picNumber}
-                  onChange={(e) => {
-                    const value = e.target.value.replace(/\D/g, '').slice(0, 9);
-                    setForm(prev => ({ ...prev, picNumber: value }));
-                    if (formErrors.picNumber) setFormErrors(prev => ({ ...prev, picNumber: '' }));
-                  }}
-                  placeholder="e.g. 906912365"
-                  maxLength={9}
-                  className={formErrors.picNumber ? 'border-destructive' : ''}
-                />
+                <div className="flex gap-2">
+                  <Input
+                    id="pic-number"
+                    value={form.picNumber}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, '').slice(0, 9);
+                      setForm(prev => ({ ...prev, picNumber: value }));
+                      if (formErrors.picNumber) setFormErrors(prev => ({ ...prev, picNumber: '' }));
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleLookup();
+                      }
+                    }}
+                    placeholder="e.g. 906912365"
+                    maxLength={9}
+                    className={formErrors.picNumber ? 'border-destructive' : ''}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={!/^\d{9}$/.test(form.picNumber) || lookingUp}
+                    onClick={handleLookup}
+                    className="gap-1 flex-shrink-0"
+                  >
+                    {lookingUp ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                    Look up
+                  </Button>
+                </div>
                 {formErrors.picNumber && (
                   <p className="text-xs text-destructive mt-1">{formErrors.picNumber}</p>
                 )}
