@@ -8,12 +8,32 @@ interface OrganisationInfo {
   shortName?: string;
   country: string;
   countryCode: string;
+  city?: string;
   legalEntityType?: string;
   isSme: boolean;
   organisationCategory?: 'HES' | 'RES' | 'SME' | 'LE' | 'PUB' | 'INT' | 'OTH' | 'PRC';
   englishName?: string;
   logoUrl?: string;
 }
+
+// EC dictionary id → ISO country code. Harvested from live SEDIA ORGANISATION queries.
+const COUNTRY_ID_TO_ISO: Record<string, string> = {
+  '20000832': 'AT', '20000839': 'BE', '20000841': 'BG', '20000860': 'CH',
+  '20000871': 'CY', '20000872': 'CZ', '20000873': 'DE', '20000875': 'DK',
+  '20000880': 'EE', '20000883': 'ES', '20000885': 'FI', '20000890': 'FR',
+  '20000893': 'GB', '20000902': 'GR', '20000911': 'HR', '20000913': 'HU',
+  '20000915': 'IE', '20000916': 'IL', '20000921': 'IS', '20000922': 'IT',
+  '20000944': 'LT', '20000945': 'LU', '20000946': 'LV', '20000960': 'MT',
+  '20000973': 'NL', '20000974': 'NO', '20000986': 'PL', '20000990': 'PT',
+  '20000994': 'RO', '20001001': 'SE', '20001004': 'SI', '20001005': 'SK',
+  '20001026': 'TR', '20001034': 'US',
+};
+
+const SEDIA_ORG_TYPE_TO_CATEGORY: Record<string, OrganisationInfo['organisationCategory']> = {
+  '31079051': 'RES',
+  '31079052': 'HES',
+  '31079053': 'PUB',
+};
 
 const COUNTRY_NAMES: Record<string, string> = {
   'AT': 'Austria', 'BE': 'Belgium', 'BG': 'Bulgaria', 'CY': 'Cyprus', 'CZ': 'Czech Republic',
