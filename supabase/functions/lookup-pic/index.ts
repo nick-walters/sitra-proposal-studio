@@ -137,24 +137,33 @@ function mapSediaCategory(orgType?: string): OrganisationInfo['organisationCateg
   return 'OTH';
 }
 
-function mapSediaResult(metadata: any): OrganisationInfo {
-  const pic = metadata.pic?.[0] || '';
-  const englishName = metadata.englishName?.[0];
-  const legalName = metadata.legalName?.[0] || englishName || '';
-  const shortName = metadata.businessName?.[0] || metadata.acronym?.[0];
-  const countryCode = metadata.country?.[0] || '';
-  const isSme = String(metadata.sme?.[0]).toLowerCase() === 'true';
-  const orgType = metadata.organisationType?.[0];
+function mapSediaResult(result: any): OrganisationInfo {
+  const metadata = result?.metadata || {};
+  const picNumber = metadata.pic?.[0] || result?.reference || '';
+  const legalName = metadata.name?.[0] || result?.summary || '';
+  const city = metadata.city?.[0];
+  const countryId = metadata.country?.[0];
+  let countryCode = countryId ? (COUNTRY_ID_TO_ISO[countryId] || '') : '';
+  if (!countryCode && metadata.vat?.[0]) {
+    const vatPrefix = String(metadata.vat[0]).slice(0, 2).toUpperCase();
+    if (/^[A-Z]{2}$/.test(vatPrefix)) countryCode = vatPrefix;
+  }
+  const country = countryCode ? (COUNTRY_NAMES[countryCode] || '') : '';
+  const orgTypeId = metadata.organisationType?.[0];
+  const organisationCategory: OrganisationInfo['organisationCategory'] = orgTypeId
+    ? (SEDIA_ORG_TYPE_TO_CATEGORY[orgTypeId] || 'OTH')
+    : undefined;
   return {
-    picNumber: pic,
+    picNumber,
     legalName,
-    englishName,
-    shortName,
+    englishName: undefined,
+    shortName: undefined,
+    city,
     countryCode,
-    country: COUNTRY_NAMES[countryCode] || countryCode || '',
-    isSme,
-    legalEntityType: orgType,
-    organisationCategory: mapSediaCategory(orgType),
+    country,
+    isSme: false,
+    legalEntityType: undefined,
+    organisationCategory,
     logoUrl: undefined,
   };
 }
@@ -191,7 +200,7 @@ async function searchSedia(text: string, apiKey: string = 'SEDIA_PERSON'): Promi
 
   const rawResults = Array.isArray(json?.results) ? json.results : [];
   const mapped = rawResults
-    .map((r: any) => mapSediaResult(r?.metadata || {}))
+    .map((r: any) => mapSediaResult(r))
     .filter((o: OrganisationInfo) => o.legalName || o.picNumber);
   return { results: mapped, raw: json };
 }
