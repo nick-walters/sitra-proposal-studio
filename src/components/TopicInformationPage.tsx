@@ -418,19 +418,35 @@ export function TopicInformationPage({
                 <Target className="w-4 h-4" />
                 General topic information
               </CardTitle>
-              {proposal?.topicUrl && !isEditing && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5 h-7 text-xs"
-                  onClick={() => window.open(proposal.topicUrl, '_blank')}
-                >
-                  <ExternalLink className="w-3 h-3" />
-                  View on portal
-                </Button>
-              )}
+              <div className="flex items-center gap-2">
+                {userCanEdit && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 h-7 text-xs"
+                    onClick={handleImportFromPortal}
+                    disabled={!proposal?.topicId || importing}
+                    title={!proposal?.topicId ? 'Set a Topic ID first' : 'Import topic content from the EU portal'}
+                  >
+                    {importing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
+                    Import from portal
+                  </Button>
+                )}
+                {proposal?.topicUrl && !isEditing && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 h-7 text-xs"
+                    onClick={() => window.open(proposal.topicUrl, '_blank')}
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    View on portal
+                  </Button>
+                )}
+              </div>
             </div>
           </CardHeader>
+
           <CardContent className="space-y-3">
             <div>
               <label className="text-xs text-muted-foreground mb-0.5 block">Topic ID</label>
