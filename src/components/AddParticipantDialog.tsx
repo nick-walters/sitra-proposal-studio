@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Building2, ChevronsUpDown, Loader2, AlertTriangle, Plus, Search } from 'lucide-react';
+import { Building2, ChevronsUpDown, Loader2, AlertTriangle, Plus, Search, Upload, X } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   PARTICIPANT_TYPE_LABELS,
