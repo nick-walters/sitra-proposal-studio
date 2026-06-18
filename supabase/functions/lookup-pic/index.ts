@@ -1,10 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { requireAuth } from "../_shared/auth.ts";
-
-
-
 
 interface OrganisationInfo {
   picNumber: string;
@@ -14,29 +10,9 @@ interface OrganisationInfo {
   countryCode: string;
   legalEntityType?: string;
   isSme: boolean;
-  organisationCategory?: 'HES' | 'RES' | 'SME' | 'LE' | 'PUB' | 'INT' | 'OTH';
+  organisationCategory?: 'HES' | 'RES' | 'SME' | 'LE' | 'PUB' | 'INT' | 'OTH' | 'PRC';
   englishName?: string;
   logoUrl?: string;
-}
-
-// Map legal entity type to official EC organisation categories
-function mapLegalEntityToCategory(legalEntityType?: string, isSme?: boolean): 'HES' | 'RES' | 'SME' | 'LE' | 'PUB' | 'INT' | 'OTH' {
-  if (!legalEntityType) return 'OTH';
-  const type = legalEntityType.toLowerCase();
-  // Public bodies first (highest priority)
-  if (type.includes('public') || type.includes('government') || type.includes('pub') || type.includes('agency') || type.includes('regulatory')) return 'PUB';
-  // Education and research
-  if (type.includes('university') || type.includes('higher education') || type.includes('secondary education') || type.includes('hes')) return 'HES';
-  if (type.includes('research') || type.includes('rto') || type.includes('rec')) return 'RES';
-  // Private sector — split by SME flag
-  if (type.includes('private') || type.includes('prc') || type.includes('for-profit') || type.includes('enterprise') || type.includes('sme')) {
-    return isSme ? 'SME' : 'LE';
-  }
-  // Non-profits and civil society map to OTH
-  if (type.includes('ngo') || type.includes('non-governmental') || type.includes('cso') || type.includes('civil society') || type.includes('non-profit') || type.includes('nonprofit')) return 'OTH';
-  // International
-  if (type.includes('international')) return 'INT';
-  return 'OTH';
 }
 
 const COUNTRY_NAMES: Record<string, string> = {
@@ -49,23 +25,38 @@ const COUNTRY_NAMES: Record<string, string> = {
   'GB': 'United Kingdom', 'IL': 'Israel', 'TR': 'Turkey', 'IS': 'Iceland',
 };
 
-const COUNTRY_CODES: Record<string, string> = Object.fromEntries(
-  Object.entries(COUNTRY_NAMES).map(([code, name]) => [name.toLowerCase(), code])
-);
+function mapLegalEntityToCategory(legalEntityType?: string, isSme?: boolean): OrganisationInfo['organisationCategory'] {
+  if (!legalEntityType) return 'OTH';
+  const t = legalEntityType.toUpperCase();
+  if (t === 'REC') return 'RES';
+  if (t === 'HES') return 'HES';
+  if (t === 'PUB') return 'PUB';
+  if (t === 'PRC') return isSme ? 'SME' : 'LE';
+  if (t === 'INT') return 'INT';
+  return 'OTH';
+}
 
-// Search shared organisations registry first, then participants as fallback
+function sanitiseTerm(raw: string): string {
+  return String(raw)
+    .replace(/[,()%_]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 100);
+}
+
 async function searchDatabase(supabase: any, searchTerm: string): Promise<OrganisationInfo[]> {
   const results: OrganisationInfo[] = [];
   const seenPics = new Set<string>();
-  
+  const term = sanitiseTerm(searchTerm);
+  if (!term) return results;
+
   try {
-    // First, search the shared organisations registry
     const { data: organisations } = await supabase
       .from('organisations')
       .select('*')
-      .or(`name.ilike.%${searchTerm}%,short_name.ilike.%${searchTerm}%,pic_number.eq.${searchTerm}`)
+      .or(`name.ilike.%${term}%,short_name.ilike.%${term}%,pic_number.eq.${term}`)
       .limit(15);
-    
+
     for (const org of organisations || []) {
       if (org.pic_number || org.name) {
         const picKey = org.pic_number || '';
@@ -84,18 +75,15 @@ async function searchDatabase(supabase: any, searchTerm: string): Promise<Organi
         });
       }
     }
-    
-    // Also search participants table for any not in organisations registry
+
     const { data: participants } = await supabase
       .from('participants')
       .select('*')
-      .or(`organisation_name.ilike.%${searchTerm}%,organisation_short_name.ilike.%${searchTerm}%,english_name.ilike.%${searchTerm}%,pic_number.eq.${searchTerm}`)
+      .or(`organisation_name.ilike.%${term}%,organisation_short_name.ilike.%${term}%,english_name.ilike.%${term}%,pic_number.eq.${term}`)
       .limit(15);
-    
+
     for (const p of participants || []) {
-      // Skip if we already have this PIC from organisations table
       if (p.pic_number && seenPics.has(p.pic_number)) continue;
-      
       if (p.pic_number || p.organisation_name) {
         if (p.pic_number) seenPics.add(p.pic_number);
         results.push({
@@ -113,251 +101,80 @@ async function searchDatabase(supabase: any, searchTerm: string): Promise<Organi
       }
     }
   } catch (error) {
-    console.error('Database search error:', error);
+    console.log('Database search error:', error);
   }
   return results;
 }
 
-// Scrape CORDIS organisation page directly using Firecrawl
-async function lookupPicFromCordis(pic: string): Promise<OrganisationInfo | null> {
-  const apiKey = Deno.env.get('FIRECRAWL_API_KEY');
-  if (!apiKey) {
-    console.error('FIRECRAWL_API_KEY not configured');
-    return null;
-  }
-  
-  try {
-    const url = `https://cordis.europa.eu/organisation/id/${pic}/en`;
-    console.log(`Scraping CORDIS organisation page: ${url}`);
-    
-    const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        url,
-        formats: ['markdown'],
-        onlyMainContent: true,
-        waitFor: 2000,
-      }),
-    });
-    
-    if (!response.ok) {
-      console.error(`Firecrawl scrape error: ${response.status}`);
-      return null;
-    }
-    
-    const data = await response.json();
-    const content = data.data?.markdown || data.markdown || '';
-    
-    // Check for 404 or error page
-    if (!content || content.length < 100 || 
-        content.includes('Page not found') || 
-        content.includes('Page not available') ||
-        content.includes('Error [404]') ||
-        content.includes('Error 404')) {
-      console.log('CORDIS organisation page not found (404)');
-      return null;
-    }
-    
-    // Parse the organisation details
-    const lines = content.split('\n').filter((line: string) => line.trim());
-    let legalName = '';
-    let country = '';
-    let countryCode = '';
-    let organisationType = '';
-    
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (trimmed.startsWith('![') || trimmed.startsWith('[') || 
-          trimmed.includes('europa.eu') || trimmed.includes('CORDIS') ||
-          trimmed.length < 5 || trimmed.length > 300) continue;
-      
-      if (trimmed.startsWith('#') && !legalName) {
-        const name = trimmed.replace(/^#+\s*/, '');
-        if (name.length > 3 && !name.toLowerCase().includes('organisation')) {
-          legalName = name;
-          continue;
-        }
-      }
-      
-      if (trimmed.toLowerCase().includes('country')) {
-        const match = trimmed.match(/country[:\s]+([A-Za-z\s]+)/i);
-        if (match) {
-          const countryText = match[1].trim();
-          for (const [code, name] of Object.entries(COUNTRY_NAMES)) {
-            if (countryText.toLowerCase() === name.toLowerCase()) {
-              country = name;
-              countryCode = code;
-              break;
-            }
-          }
-        }
-      }
-      
-      if (trimmed.toLowerCase().includes('type')) {
-        const match = trimmed.match(/(?:type|activity type)[:\s]+(.+)/i);
-        if (match) organisationType = match[1].trim();
-      }
-    }
-    
-    if (!legalName) {
-      for (const line of lines.slice(0, 20)) {
-        const trimmed = line.replace(/[#*_\[\]]/g, '').trim();
-        if (trimmed.length > 10 && trimmed.length < 200 &&
-            !trimmed.includes('|') && !trimmed.includes('europa') &&
-            /^[A-Z]/.test(trimmed)) {
-          legalName = trimmed;
-          break;
-        }
-      }
-    }
-    
-    if (!country) {
-      for (const [code, name] of Object.entries(COUNTRY_NAMES)) {
-        if (new RegExp(`\\b${name}\\b`, 'i').test(content)) {
-          country = name;
-          countryCode = code;
-          break;
-        }
-      }
-    }
-    
-    let organisationCategory: OrganisationInfo['organisationCategory'] = 'OTH';
-    let isSme = false;
-    const typeCheck = (organisationType + ' ' + content).toLowerCase();
-    
-    if (typeCheck.includes('hes') || typeCheck.includes('higher education')) {
-      organisationCategory = 'HES';
-    } else if (typeCheck.includes('rec') || typeCheck.includes('research organisation')) {
-      organisationCategory = 'RES';
-    } else if (typeCheck.includes('pub') || typeCheck.includes('public body')) {
-      organisationCategory = 'PUB';
-    } else if (typeCheck.includes('sme') || typeCheck.includes('prc') || typeCheck.includes('private')) {
-      isSme = typeCheck.includes('sme');
-      organisationCategory = isSme ? 'SME' : 'LE';
-    }
-    
-    if (!legalName) return null;
-    
-    console.log(`CORDIS found: ${legalName} | ${country} | ${organisationCategory}`);
-    return { picNumber: pic, legalName, country, countryCode, isSme, organisationCategory };
-  } catch (error) {
-    console.error('CORDIS scrape error:', error);
-    return null;
-  }
+function mapSediaCategory(orgType?: string): OrganisationInfo['organisationCategory'] {
+  if (!orgType) return 'OTH';
+  const t = orgType.toUpperCase();
+  if (t === 'REC') return 'RES';
+  if (t === 'HES') return 'HES';
+  if (t === 'PUB') return 'PUB';
+  if (t === 'PRC') return 'PRC';
+  if (t === 'INT') return 'INT';
+  return 'OTH';
 }
 
-// Fallback: Try scraping EC Funding & Tenders participant info page
-async function lookupFromECPortal(pic: string): Promise<OrganisationInfo | null> {
-  const apiKey = Deno.env.get('FIRECRAWL_API_KEY');
-  if (!apiKey) return null;
-  
-  try {
-    // Try multiple search strategies
-    const searchQueries = [
-      `site:ec.europa.eu "${pic}" organisation legal name`,
-      `"PIC ${pic}" EU funding tenders participant`,
-    ];
-    
-    for (const query of searchQueries) {
-      console.log(`Searching: ${query}`);
-      
-      const response = await fetch('https://api.firecrawl.dev/v1/search', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query,
-          limit: 3,
-          scrapeOptions: { formats: ['markdown'] },
-        }),
-      });
-      
-      if (!response.ok) {
-        console.error(`Search error: ${response.status}`);
-        continue;
-      }
-      
-      const data = await response.json();
-      const results = data.data || [];
-      
-      for (const result of results) {
-        const content = result.markdown || '';
-        const title = result.title || '';
-        const url = result.url || '';
-        
-        // Skip if PIC not mentioned in content
-        if (!content.includes(pic)) continue;
-        
-        // Skip EC general pages, not org-specific
-        if (url.includes('/opportunities/') && !url.includes('participant')) continue;
-        
-        // Try to extract org name - look for patterns near PIC mention
-        const picIndex = content.indexOf(pic);
-        const contextStart = Math.max(0, picIndex - 500);
-        const contextEnd = Math.min(content.length, picIndex + 500);
-        const context = content.substring(contextStart, contextEnd);
-        
-        let legalName = '';
-        let country = '';
-        let countryCode = '';
-        
-        // Pattern: "Legal Name: XYZ" or "Organisation: XYZ" or "Name: XYZ"
-        const namePatterns = [
-          /(?:legal name|organisation name|company name|name)[:\s]+([A-Z][^\n|,]{3,100})/i,
-          /\*\*([A-Z][^*\n]{3,80})\*\*/,  // Bold text often contains org name
-        ];
-        
-        for (const pattern of namePatterns) {
-          const match = context.match(pattern);
-          if (match && match[1].length > 5 && match[1].length < 100) {
-            const candidate = match[1].trim();
-            // Skip if it's a generic term
-            if (!candidate.toLowerCase().includes('participant') &&
-                !candidate.toLowerCase().includes('commission') &&
-                !candidate.toLowerCase().includes('funding')) {
-              legalName = candidate;
-              break;
-            }
-          }
-        }
-        
-        // Find country
-        for (const [code, name] of Object.entries(COUNTRY_NAMES)) {
-          if (new RegExp(`\\b${name}\\b`, 'i').test(context)) {
-            country = name;
-            countryCode = code;
-            break;
-          }
-        }
-        
-        if (legalName) {
-          console.log(`EC Portal found: ${legalName} | ${country}`);
-          return {
-            picNumber: pic,
-            legalName,
-            country,
-            countryCode,
-            isSme: false,
-            organisationCategory: 'OTH',
-          };
-        }
-      }
-    }
-    
-    console.log('EC Portal search did not find usable organisation info');
-    return null;
-  } catch (error) {
-    console.error('EC Portal search error:', error);
-    return null;
-  }
+function mapSediaResult(metadata: any): OrganisationInfo {
+  const pic = metadata.pic?.[0] || '';
+  const englishName = metadata.englishName?.[0];
+  const legalName = metadata.legalName?.[0] || englishName || '';
+  const shortName = metadata.businessName?.[0] || metadata.acronym?.[0];
+  const countryCode = metadata.country?.[0] || '';
+  const isSme = String(metadata.sme?.[0]).toLowerCase() === 'true';
+  const orgType = metadata.organisationType?.[0];
+  return {
+    picNumber: pic,
+    legalName,
+    englishName,
+    shortName,
+    countryCode,
+    country: COUNTRY_NAMES[countryCode] || countryCode || '',
+    isSme,
+    legalEntityType: orgType,
+    organisationCategory: mapSediaCategory(orgType),
+    logoUrl: undefined,
+  };
 }
 
+async function searchSedia(text: string, apiKey: string = 'SEDIA_PERSON'): Promise<{ results: OrganisationInfo[]; raw: any }> {
+  const url = `https://api.tech.ec.europa.eu/search-api/prod/rest/search?apiKey=${apiKey}&text=${encodeURIComponent(text)}&pageSize=10&pageNumber=1`;
+  console.log(`SEDIA request: ${url}`);
+
+  const form = new FormData();
+  form.append(
+    'query',
+    new Blob([JSON.stringify({ bool: { must: [{ terms: { type: ['ORGANISATION'] } }] } })], { type: 'application/json' }),
+    'blob'
+  );
+  form.append(
+    'languages',
+    new Blob([JSON.stringify(['en'])], { type: 'application/json' }),
+    'blob'
+  );
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { Accept: 'application/json' },
+    body: form,
+  });
+
+  const bodyText = await response.text();
+  console.log(`SEDIA status ${response.status}; body preview: ${bodyText.slice(0, 1500)}`);
+
+  if (!response.ok) return { results: [], raw: null };
+
+  let json: any;
+  try { json = JSON.parse(bodyText); } catch { return { results: [], raw: null }; }
+
+  const rawResults = Array.isArray(json?.results) ? json.results : [];
+  const mapped = rawResults
+    .map((r: any) => mapSediaResult(r?.metadata || {}))
+    .filter((o: OrganisationInfo) => o.legalName || o.picNumber);
+  return { results: mapped, raw: json };
+}
 
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -369,11 +186,9 @@ serve(async (req: Request) => {
     if (!auth.ok) return auth.response;
     const supabase = auth.callerClient;
 
-
     const { picNumber, searchTerm } = await req.json();
     console.log(`Lookup: PIC=${picNumber}, Search=${searchTerm}`);
 
-    // Input validation: cap user input lengths to prevent abuse via external HTTP calls
     if (searchTerm !== undefined && searchTerm !== null && (typeof searchTerm !== 'string' || searchTerm.length > 200)) {
       return new Response(
         JSON.stringify({ success: false, error: 'searchTerm too long or invalid' }),
@@ -391,55 +206,30 @@ serve(async (req: Request) => {
     }
 
     const query = picNumber || searchTerm;
-    if (!query || query.length < 2) {
+    if (!query || String(query).length < 2) {
       return new Response(
         JSON.stringify({ success: false, error: 'Please provide a search term' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Step 1: Search local database first
-    const dbResults = await searchDatabase(supabase, query);
+    const dbResults = await searchDatabase(supabase, String(query));
     console.log(`DB results: ${dbResults.length}`);
-    
-    // Step 2: If searching by PIC and no DB results, try CORDIS search
-    const isNumericPic = /^\d{9}$/.test(query.trim());
-    let cordisResult: OrganisationInfo | null = null;
-    
-    if (isNumericPic && dbResults.length === 0) {
-      // Try CORDIS first (for orgs that have participated in EU projects)
-      cordisResult = await lookupPicFromCordis(query.trim());
-      console.log(`CORDIS result: ${cordisResult ? 'found' : 'not found'}`);
-      
-      // If CORDIS has no data, try EC Portal search as fallback
-      if (!cordisResult) {
-        cordisResult = await lookupFromECPortal(query.trim());
-        console.log(`EC Portal result: ${cordisResult ? 'found' : 'not found'}`);
-      }
-    }
-    
-    // Combine results
-    const allResults = [...dbResults];
-    if (cordisResult) {
-      allResults.push(cordisResult);
-    }
-    
-    // Deduplicate by PIC
-    const seen = new Set<string>();
-    const uniqueResults: OrganisationInfo[] = [];
-    
-    for (const org of allResults) {
-      const key = org.picNumber || org.legalName.toLowerCase();
-      if (!seen.has(key)) {
-        seen.add(key);
-        uniqueResults.push(org);
-      }
-    }
-    
-    // For direct PIC lookup, return single organisation
+
+    const isNumericPic = /^\d{9}$/.test(String(query).trim());
+
+    // Direct PIC lookup
     if (picNumber) {
-      const cleanPic = picNumber.replace(/\D/g, '');
-      const match = uniqueResults.find(o => o.picNumber === cleanPic);
+      const cleanPic = String(picNumber).replace(/\D/g, '');
+      const localMatch = dbResults.find(o => o.picNumber === cleanPic);
+      if (localMatch) {
+        return new Response(
+          JSON.stringify({ success: true, organisation: localMatch }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      const { results: sediaResults } = await searchSedia(cleanPic);
+      const match = sediaResults.find(o => o.picNumber === cleanPic);
       if (match) {
         return new Response(
           JSON.stringify({ success: true, organisation: match }),
@@ -447,29 +237,46 @@ serve(async (req: Request) => {
         );
       }
       return new Response(
-        JSON.stringify({ 
-          success: false, 
+        JSON.stringify({
+          success: false,
           error: 'PIC not found',
           message: 'This PIC was not found in available databases. The organisation may not have participated in EU projects yet, or you may need to enter details manually.',
-          suggestManualEntry: true 
+          suggestManualEntry: true,
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-    
+
+    // Name search: always also query SEDIA to enrich
+    let sediaResults: OrganisationInfo[] = [];
+    try {
+      const r = await searchSedia(String(query));
+      sediaResults = r.results;
+    } catch (e) {
+      console.log('SEDIA search failed:', e);
+    }
+
+    const seen = new Set<string>();
+    const uniqueResults: OrganisationInfo[] = [];
+    for (const org of [...dbResults, ...sediaResults]) {
+      const key = org.picNumber || (org.legalName || '').toLowerCase();
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      uniqueResults.push(org);
+    }
+
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         results: uniqueResults.slice(0, 20),
-        note: uniqueResults.length === 0 ? 'No results found. Try a different search term or enter details manually.' : undefined
+        note: uniqueResults.length === 0 ? 'No results found. Try a different search term or enter details manually.' : undefined,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-
   } catch (error) {
-    console.error('Error:', error);
+    console.log('lookup-pic error:', error);
     return new Response(
-      JSON.stringify({ success: false, error: 'An internal error occurred' }),
+      JSON.stringify({ success: false, error: 'Lookup failed' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
