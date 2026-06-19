@@ -626,70 +626,72 @@ export function ParticipantListView({
                   </CardTitle>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="requires-ocd"
-                    checked={ocd.requiresOcd}
-                    onCheckedChange={(checked) => ocd.toggleRequiresOcd(!!checked)}
-                  />
-                  <label htmlFor="requires-ocd" className="text-sm font-medium cursor-pointer">
-                    This topic requires OCDs
-                  </label>
-                </div>
-
-                {ocd.requiresOcd && (
-                  <div className="flex flex-wrap items-center gap-3">
-                    <input
-                      ref={templateInputRef}
-                      type="file"
-                      accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                      className="hidden"
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (file) await ocd.uploadTemplate(file);
-                        if (templateInputRef.current) templateInputRef.current.value = '';
-                      }}
+              <CardContent>
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="requires-ocd"
+                      checked={ocd.requiresOcd}
+                      onCheckedChange={(checked) => ocd.toggleRequiresOcd(!!checked)}
                     />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => templateInputRef.current?.click()}
-                      className="gap-1.5"
-                    >
-                      <Upload className="w-3.5 h-3.5" />
-                      {ocd.templatePath ? 'Replace OCD template' : 'Upload OCD template'}
-                    </Button>
-                    {ocd.templatePath && (
+                    <label htmlFor="requires-ocd" className="text-sm font-medium cursor-pointer">
+                      This topic requires OCDs
+                    </label>
+                  </div>
+
+                  {ocd.requiresOcd && (
+                    <>
+                      <input
+                        ref={templateInputRef}
+                        type="file"
+                        accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) await ocd.uploadTemplate(file);
+                          if (templateInputRef.current) templateInputRef.current.value = '';
+                        }}
+                      />
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={async () => {
-                          const isOcdExempt = (p: Participant) =>
-                            p.ocdExempt === true || (p.ocdExempt == null && p.organisationCategory === 'PUB');
-                          const missing = participants.filter(p => !ocd.uploads[p.id] && !isOcdExempt(p));
-                          if (missing.length > 0) {
-                            const names = missing.map(p => p.organisationShortName || p.organisationName).join(', ');
-                            const proceed = window.confirm(
-                              `The following partners have not uploaded their signed OCD:\n\n${names}\n\nDo you wish to proceed with compiling the available declarations?`
-                            );
-                            if (!proceed) return;
-                          }
-                          await ocd.compileOcds();
-                        }}
-                        disabled={ocd.compiling}
+                        onClick={() => templateInputRef.current?.click()}
                         className="gap-1.5"
                       >
-                        {ocd.compiling ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <FileText className="w-3.5 h-3.5" />
-                        )}
-                        Compile OCDs
+                        <Upload className="w-3.5 h-3.5" />
+                        {ocd.templatePath ? 'Replace OCD template' : 'Upload OCD template'}
                       </Button>
-                    )}
-                  </div>
-                )}
+                      {ocd.templatePath && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            const isOcdExempt = (p: Participant) =>
+                              p.ocdExempt === true || (p.ocdExempt == null && p.organisationCategory === 'PUB');
+                            const missing = participants.filter(p => !ocd.uploads[p.id] && !isOcdExempt(p));
+                            if (missing.length > 0) {
+                              const names = missing.map(p => p.organisationShortName || p.organisationName).join(', ');
+                              const proceed = window.confirm(
+                                `The following partners have not uploaded their signed OCD:\n\n${names}\n\nDo you wish to proceed with compiling the available declarations?`
+                              );
+                              if (!proceed) return;
+                            }
+                            await ocd.compileOcds();
+                          }}
+                          disabled={ocd.compiling}
+                          className="gap-1.5"
+                        >
+                          {ocd.compiling ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <FileText className="w-3.5 h-3.5" />
+                          )}
+                          Compile OCDs
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </div>
               </CardContent>
             </Card>
           )}
