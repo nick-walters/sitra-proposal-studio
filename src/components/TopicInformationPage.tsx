@@ -121,6 +121,121 @@ export function TopicInformationPage({
   const [importScope, setImportScope] = useState('');
   const [importDestination, setImportDestination] = useState('');
 
+  // --- Update-check state ---
+  const [checkingUpdates, setCheckingUpdates] = useState(false);
+  const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
+  const [updateMeta, setUpdateMeta] = useState<{ topicId: string; url: string | null; otherSections: { label: string; html: string }[] } | null>(null);
+  const [updateCheckedAt, setUpdateCheckedAt] = useState<Date | null>(null);
+  const [upTitle, setUpTitle] = useState('');
+  const [upOutcome, setUpOutcome] = useState('');
+  const [upScope, setUpScope] = useState('');
+  const [upDestination, setUpDestination] = useState('');
+  const [applyTitle, setApplyTitle] = useState(false);
+  const [applyOutcome, setApplyOutcome] = useState(false);
+  const [applyScope, setApplyScope] = useState(false);
+  const [applyDestination, setApplyDestination] = useState(false);
+  const [applyingUpdates, setApplyingUpdates] = useState(false);
+
+  const normaliseVisibleText = (html: string): string => {
+    if (!html) return '';
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    doc.querySelectorAll('sup.footnote-marker, sup[data-footnote-id], [data-footnote-id]').forEach((el) => el.remove());
+    const text = doc.body.textContent || '';
+    return text.replace(/\s+/g, ' ').trim();
+  };
+  const normaliseTitle = (s: string): string => (s || '').replace(/\s+/g, ' ').trim();
+
+  const titleChanged = useMemo(
+    () => normaliseTitle((editedProposal as any)?.topicTitle) !== normaliseTitle(upTitle),
+    [editedProposal, upTitle],
+  );
+  const outcomeChanged = useMemo(
+    () => normaliseVisibleText((editedProposal as any)?.topicExpectedOutcome) !== normaliseVisibleText(upOutcome),
+    [editedProposal, upOutcome],
+  );
+  const scopeChanged = useMemo(
+    () => normaliseVisibleText((editedProposal as any)?.topicScope) !== normaliseVisibleText(upScope),
+    [editedProposal, upScope],
+  );
+  const destinationChanged = useMemo(
+    () => normaliseVisibleText((editedProposal as any)?.topicDestinationDescription) !== normaliseVisibleText(upDestination),
+    [editedProposal, upDestination],
+  );
+
+  const changedCount = (titleChanged ? 1 : 0) + (outcomeChanged ? 1 : 0) + (scopeChanged ? 1 : 0) + (destinationChanged ? 1 : 0);
+  const anyApplySelected = applyTitle || applyOutcome || applyScope || applyDestination;
+
+  const handleCheckForUpdates = async () => {
+    if (!proposal?.topicId) return;
+    setCheckingUpdates(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('import-topic-info', {
+        body: { topicId: proposal.topicId },
+      });
+      if (error || !data?.success || !data?.topic) {
+        toast.error("Couldn't check the portal for updates. Check the Topic ID is correct.");
+        return;
+      }
+      const t = data.topic;
+      const pTitle = t.title || '';
+      const pOutcome = t.expectedOutcome || '';
+      const pScope = t.scope || '';
+      const pDestination = t.destinationDetails || '';
+      setUpTitle(pTitle);
+      setUpOutcome(pOutcome);
+      setUpScope(pScope);
+      setUpDestination(pDestination);
+      setUpdateMeta({
+        topicId: t.topicId,
+        url: t.url || null,
+        otherSections: Array.isArray(t.otherSections) ? t.otherSections : [],
+      });
+      setUpdateCheckedAt(new Date());
+      // Default: apply changed fields, skip unchanged
+      const ep: any = editedProposal || {};
+      setApplyTitle(normaliseTitle(ep.topicTitle) !== normaliseTitle(pTitle));
+      setApplyOutcome(normaliseVisibleText(ep.topicExpectedOutcome) !== normaliseVisibleText(pOutcome));
+      setApplyScope(normaliseVisibleText(ep.topicScope) !== normaliseVisibleText(pScope));
+      setApplyDestination(normaliseVisibleText(ep.topicDestinationDescription) !== normaliseVisibleText(pDestination));
+      setUpdateDialogOpen(true);
+    } catch {
+      toast.error("Couldn't check the portal for updates. Check the Topic ID is correct.");
+    } finally {
+      setCheckingUpdates(false);
+    }
+  };
+
+  const handleApplyUpdates = async () => {
+    if (!editedProposal || !anyApplySelected) return;
+    const updates: Record<string, any> = { ...editedProposal };
+    if (applyTitle) updates.topicTitle = upTitle;
+    if (applyOutcome) {
+      updates.topicExpectedOutcome = upOutcome;
+      updates.outcomeFootnotes = [];
+    }
+    if (applyScope) {
+      updates.topicScope = upScope;
+      updates.scopeFootnotes = [];
+    }
+    if (applyDestination) {
+      updates.topicDestinationDescription = upDestination;
+      updates.destinationFootnotes = [];
+    }
+    updates.topicContentImportedAt = new Date();
+    setEditedProposal(updates as any);
+    setApplyingUpdates(true);
+    try {
+      await onUpdateProposal(updates);
+      setLastSaved(new Date());
+      toast.success('Topic updates applied.');
+      setUpdateDialogOpen(false);
+    } catch {
+      toast.error('Could not save topic updates.');
+    } finally {
+      setApplyingUpdates(false);
+    }
+  };
+
   const handleImportFromPortal = async () => {
     if (!proposal?.topicId) return;
     setImporting(true);
@@ -419,7 +534,7 @@ export function TopicInformationPage({
                 <Target className="w-4 h-4" />
                 General topic information
               </CardTitle>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap justify-end">
                 {userCanEdit && (
                   <Button
                     variant="outline"
@@ -431,6 +546,19 @@ export function TopicInformationPage({
                   >
                     {importing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
                     Import from portal
+                  </Button>
+                )}
+                {userCanEdit && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 h-7 text-xs"
+                    onClick={handleCheckForUpdates}
+                    disabled={!proposal?.topicId || checkingUpdates}
+                    title={!proposal?.topicId ? 'Set a Topic ID first' : 'Re-fetch from the EU portal and compare'}
+                  >
+                    {checkingUpdates ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                    Check for topic updates
                   </Button>
                 )}
                 {proposal?.topicUrl && !isEditing && (
@@ -1021,6 +1149,163 @@ export function TopicInformationPage({
             <Button onClick={handleConfirmImport} disabled={saving}>
               {saving ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : null}
               Confirm import
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Update-check comparison dialog */}
+      <Dialog open={updateDialogOpen} onOpenChange={setUpdateDialogOpen}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Topic updates from the portal</DialogTitle>
+            <DialogDescription>
+              Compare your saved content with the latest from the EU portal. Choose which fields to apply.
+            </DialogDescription>
+          </DialogHeader>
+
+          {updateMeta && (
+            <div className="text-xs text-muted-foreground border rounded-md p-2 bg-muted/30 space-y-0.5">
+              <div><span className="font-medium text-foreground">Matched title:</span> {upTitle || '–'}</div>
+              <div><span className="font-medium text-foreground">Topic ID:</span> {updateMeta.topicId}</div>
+              {updateMeta.url && (
+                <div>
+                  <a href={updateMeta.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline">
+                    <ExternalLink className="w-3 h-3" /> Open on portal
+                  </a>
+                </div>
+              )}
+              {updateCheckedAt && (
+                <div className="italic">Re-checked just now.</div>
+              )}
+            </div>
+          )}
+
+          <div className="text-sm">
+            {changedCount === 0
+              ? 'No differences found — your saved content matches the portal.'
+              : `${changedCount} field(s) differ from the portal. Review and choose which to apply.`}
+          </div>
+
+          {(() => {
+            const losingFootnotes: string[] = [];
+            if (applyOutcome && (((editedProposal as any)?.outcomeFootnotes || []).length > 0)) losingFootnotes.push('Expected outcome');
+            if (applyScope && (((editedProposal as any)?.scopeFootnotes || []).length > 0)) losingFootnotes.push('Scope');
+            if (applyDestination && (((editedProposal as any)?.destinationFootnotes || []).length > 0)) losingFootnotes.push('Destination');
+            if (losingFootnotes.length === 0) return null;
+            return (
+              <div className="flex gap-2 items-start text-xs border border-amber-300 bg-amber-50 text-amber-900 dark:bg-amber-900/20 dark:text-amber-200 dark:border-amber-700 rounded-md p-2">
+                <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                <div>
+                  Applying a field replaces its text and removes that field's footnotes. Fields you don't apply are untouched.
+                  <div className="mt-0.5 opacity-80">Affected: {losingFootnotes.join(', ')}.</div>
+                </div>
+              </div>
+            );
+          })()}
+
+          <div className="space-y-6">
+            {/* Title */}
+            {(() => {
+              const changed = titleChanged;
+              return (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <Label className="text-sm font-semibold">Topic title</Label>
+                      <Badge variant="outline" className={cn('text-[10px] px-1.5 py-0 h-4', changed ? 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-900/30 dark:text-amber-200 dark:border-amber-700' : 'bg-muted text-muted-foreground')}>
+                        {changed ? 'Changed' : 'No change'}
+                      </Badge>
+                    </div>
+                    <label className="flex items-center gap-2 text-xs">
+                      <Checkbox checked={applyTitle} onCheckedChange={(v) => setApplyTitle(!!v)} />
+                      Apply this field
+                    </label>
+                  </div>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">Current (saved)</p>
+                      <div className="text-sm border rounded-md p-2 bg-muted/30 min-h-[2.25rem]">
+                        {(editedProposal as any)?.topicTitle || '–'}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">From portal</p>
+                      <Input value={upTitle} onChange={(e) => setUpTitle(e.target.value)} className="h-9 text-sm" />
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Rich-text fields */}
+            {([
+              { key: 'outcome', label: 'Expected outcome', savedKey: 'topicExpectedOutcome', fnKey: 'outcomeFootnotes', changed: outcomeChanged, apply: applyOutcome, setApply: setApplyOutcome, value: upOutcome, setValue: setUpOutcome },
+              { key: 'scope', label: 'Scope', savedKey: 'topicScope', fnKey: 'scopeFootnotes', changed: scopeChanged, apply: applyScope, setApply: setApplyScope, value: upScope, setValue: setUpScope },
+              { key: 'destination', label: 'Destination description', savedKey: 'topicDestinationDescription', fnKey: 'destinationFootnotes', changed: destinationChanged, apply: applyDestination, setApply: setApplyDestination, value: upDestination, setValue: setUpDestination },
+            ] as const).map((f) => (
+              <div key={f.key} className="space-y-2">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <Label className="text-sm font-semibold">{f.label}</Label>
+                    <Badge variant="outline" className={cn('text-[10px] px-1.5 py-0 h-4', f.changed ? 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-900/30 dark:text-amber-200 dark:border-amber-700' : 'bg-muted text-muted-foreground')}>
+                      {f.changed ? 'Changed' : 'No change'}
+                    </Badge>
+                  </div>
+                  <label className="flex items-center gap-2 text-xs">
+                    <Checkbox checked={f.apply} onCheckedChange={(v) => f.setApply(!!v)} />
+                    Apply this field
+                  </label>
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">Current (saved)</p>
+                    <div className="border rounded-md p-2 bg-muted/30">
+                      <TopicRichTextReadonly
+                        html={(editedProposal as any)?.[f.savedKey]}
+                        footnotes={(editedProposal as any)?.[f.fnKey] || []}
+                        emptyMessage="—"
+                        footnoteStartNumber={1}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">From portal</p>
+                    <div className="border rounded-md">
+                      <TopicRichTextArea
+                        value={f.value}
+                        onChange={f.setValue}
+                        footnotes={[]}
+                        onFootnotesChange={() => {}}
+                        footnoteStartNumber={1}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {updateMeta && updateMeta.otherSections.length > 0 && (
+              <div className="space-y-2 pt-2 border-t">
+                <p className="text-xs text-muted-foreground italic">
+                  Additional portal sections (not tracked here).
+                </p>
+                {updateMeta.otherSections.map((s, i) => (
+                  <div key={i} className="text-xs text-muted-foreground">
+                    • {s.label || 'Section'}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUpdateDialogOpen(false)} disabled={applyingUpdates}>
+              Cancel
+            </Button>
+            <Button onClick={handleApplyUpdates} disabled={!anyApplySelected || applyingUpdates}>
+              {applyingUpdates ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : null}
+              Apply selected updates
             </Button>
           </DialogFooter>
         </DialogContent>
