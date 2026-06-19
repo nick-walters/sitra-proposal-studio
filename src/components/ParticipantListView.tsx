@@ -618,7 +618,7 @@ export function ParticipantListView({
           {/* OCD Controls - coordinator+ only */}
           {isAdmin && (
             <Card>
-              <CardHeader className="pb-2 pt-4">
+              <CardHeader className="pb-2 pt-2">
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2 text-sm">
                     <FileText className="w-4 h-4" />
