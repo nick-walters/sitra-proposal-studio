@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { Loader2, Target, Euro, Calendar as CalendarIcon, ExternalLink, FileText, FileDown, CheckCircle2, RefreshCw, Pencil, Save, X, ClipboardList, Download, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import DOMPurify from 'dompurify';
 
 interface TopicInformationPageProps {
   proposalId: string;
@@ -1005,7 +1006,7 @@ export function TopicInformationPage({
                     <Label className="text-xs">{s.label || 'Section'}</Label>
                     <div
                       className="text-sm border rounded-md p-2 mt-1 bg-muted/30 prose prose-sm max-w-none dark:prose-invert"
-                      dangerouslySetInnerHTML={{ __html: s.html }}
+                      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(s.html, { ALLOWED_TAGS: ['p','br','strong','em','b','i','u','ul','ol','li','a','table','thead','tbody','tr','th','td','span','div','h1','h2','h3','h4','h5','h6','blockquote','code','pre'], ALLOWED_ATTR: ['href','target','rel'] }) }}
                     />
                   </div>
                 ))}
