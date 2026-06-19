@@ -159,7 +159,7 @@ export function InsertWPReferenceDialog({
                     <button
                       onClick={() => handleSelectNumberOnly(wp)}
                       className={cn(
-                        "flex items-center justify-center gap-2 px-2 py-1.5 rounded-md text-left",
+                        "flex items-center justify-start gap-2 px-2 py-1.5 rounded-md text-left",
                         "hover:bg-muted/80 transition-colors"
                       )}
                     >
@@ -175,7 +175,7 @@ export function InsertWPReferenceDialog({
                     <button
                       onClick={() => handleSelectWithShortName(wp)}
                       className={cn(
-                        "flex items-center justify-center gap-2 px-2 py-1.5 rounded-md text-left",
+                        "flex items-center justify-start gap-2 px-2 py-1.5 rounded-md text-left",
                         "hover:bg-muted/80 transition-colors"
                       )}
                     >
@@ -188,6 +188,9 @@ export function InsertWPReferenceDialog({
                         WP{wp.number}: {wp.short_name || '—'}
                       </Badge>
                     </button>
+                    <span className="col-span-2 text-xs text-muted-foreground px-2">
+                      {wp.title || 'Untitled'}
+                    </span>
                   </div>
                 );
               })}
