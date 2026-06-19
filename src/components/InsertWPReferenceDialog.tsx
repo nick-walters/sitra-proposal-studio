@@ -148,13 +148,16 @@ export function InsertWPReferenceDialog({
               No work packages found.
             </div>
           ) : (
-            <div className="p-1 space-y-2">
-              {wpDrafts.map((wp) => {
+            <div className="p-1">
+              {wpDrafts.map((wp, idx) => {
                 const effectiveColor = getEffectiveColor(wp);
                 return (
                   <div
                     key={wp.id}
-                    className="grid grid-cols-2 gap-2 items-center"
+                    className={cn(
+                      "grid grid-cols-2 gap-x-2 gap-y-1 items-center pb-2",
+                      idx < wpDrafts.length - 1 && "border-b border-border mb-2"
+                    )}
                   >
                     <button
                       onClick={() => handleSelectNumberOnly(wp)}
