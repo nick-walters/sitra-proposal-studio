@@ -111,8 +111,13 @@ export function InsertWPReferenceDialog({
     return wp.color;
   };
 
-  const handleSelect = (wp: WPRefData) => {
-    // Pass the effective color to the callback
+  const handleSelectNumberOnly = (wp: WPRefData) => {
+    const effectiveColor = getEffectiveColor(wp);
+    onSelect({ ...wp, short_name: '', color: effectiveColor });
+    onOpenChange(false);
+  };
+
+  const handleSelectWithShortName = (wp: WPRefData) => {
     const effectiveColor = getEffectiveColor(wp);
     onSelect({ ...wp, color: effectiveColor });
     onOpenChange(false);
