@@ -111,8 +111,13 @@ export function InsertWPReferenceDialog({
     return wp.color;
   };
 
-  const handleSelect = (wp: WPRefData) => {
-    // Pass the effective color to the callback
+  const handleSelectNumberOnly = (wp: WPRefData) => {
+    const effectiveColor = getEffectiveColor(wp);
+    onSelect({ ...wp, short_name: '', color: effectiveColor });
+    onOpenChange(false);
+  };
+
+  const handleSelectWithShortName = (wp: WPRefData) => {
     const effectiveColor = getEffectiveColor(wp);
     onSelect({ ...wp, color: effectiveColor });
     onOpenChange(false);
@@ -143,30 +148,49 @@ export function InsertWPReferenceDialog({
               No work packages found.
             </div>
           ) : (
-            <div className="p-1">
-              {wpDrafts.map((wp) => (
-                <button
-                  key={wp.id}
-                  onClick={() => handleSelect(wp)}
-                  className={cn(
-                    "w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left",
-                    "hover:bg-muted/80 transition-colors"
-                  )}
-                >
-                  <Badge
-                    className="shrink-0 rounded-full font-bold text-white w-12 justify-center"
-                    style={{
-                      backgroundColor: getEffectiveColor(wp),
-                    }}
+            <div className="p-1 space-y-2">
+              {wpDrafts.map((wp) => {
+                const effectiveColor = getEffectiveColor(wp);
+                return (
+                  <div
+                    key={wp.id}
+                    className="grid grid-cols-2 gap-2 items-center"
                   >
-                    WP{wp.number}
-                  </Badge>
-                  <span className="text-sm truncate">
-                    <span className="font-bold">{wp.short_name || '—'}</span>
-                    {wp.title ? ` – ${wp.title}` : ''}
-                  </span>
-                </button>
-              ))}
+                    <button
+                      onClick={() => handleSelectNumberOnly(wp)}
+                      className={cn(
+                        "flex items-center justify-center gap-2 px-2 py-1.5 rounded-md text-left",
+                        "hover:bg-muted/80 transition-colors"
+                      )}
+                    >
+                      <Badge
+                        className="rounded-full font-bold text-white justify-center"
+                        style={{
+                          backgroundColor: effectiveColor,
+                        }}
+                      >
+                        WP{wp.number}
+                      </Badge>
+                    </button>
+                    <button
+                      onClick={() => handleSelectWithShortName(wp)}
+                      className={cn(
+                        "flex items-center justify-center gap-2 px-2 py-1.5 rounded-md text-left",
+                        "hover:bg-muted/80 transition-colors"
+                      )}
+                    >
+                      <Badge
+                        className="rounded-full font-bold text-white justify-center"
+                        style={{
+                          backgroundColor: effectiveColor,
+                        }}
+                      >
+                        WP{wp.number}: {wp.short_name || '—'}
+                      </Badge>
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           )}
         </ScrollArea>
