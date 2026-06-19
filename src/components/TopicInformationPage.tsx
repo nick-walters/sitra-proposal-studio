@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { Loader2, Target, Euro, Calendar as CalendarIcon, ExternalLink, FileText, FileDown, CheckCircle2, RefreshCw, Pencil, Save, X, ClipboardList, Download, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import DOMPurify from 'dompurify';
 
 interface TopicInformationPageProps {
   proposalId: string;
