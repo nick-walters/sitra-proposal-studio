@@ -189,7 +189,7 @@ export function InsertWPReferenceDialog({
                       </Badge>
                     </button>
                     <span className="col-span-2 text-xs text-muted-foreground px-2">
-                      {wp.title || 'Untitled'}
+                      WP{wp.number}: {wp.short_name || '—'} — {wp.title || 'Untitled'}
                     </span>
                   </div>
                 );
