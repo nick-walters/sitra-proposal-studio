@@ -1153,6 +1153,163 @@ export function TopicInformationPage({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Update-check comparison dialog */}
+      <Dialog open={updateDialogOpen} onOpenChange={setUpdateDialogOpen}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Topic updates from the portal</DialogTitle>
+            <DialogDescription>
+              Compare your saved content with the latest from the EU portal. Choose which fields to apply.
+            </DialogDescription>
+          </DialogHeader>
+
+          {updateMeta && (
+            <div className="text-xs text-muted-foreground border rounded-md p-2 bg-muted/30 space-y-0.5">
+              <div><span className="font-medium text-foreground">Matched title:</span> {upTitle || '–'}</div>
+              <div><span className="font-medium text-foreground">Topic ID:</span> {updateMeta.topicId}</div>
+              {updateMeta.url && (
+                <div>
+                  <a href={updateMeta.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline">
+                    <ExternalLink className="w-3 h-3" /> Open on portal
+                  </a>
+                </div>
+              )}
+              {updateCheckedAt && (
+                <div className="italic">Re-checked just now.</div>
+              )}
+            </div>
+          )}
+
+          <div className="text-sm">
+            {changedCount === 0
+              ? 'No differences found — your saved content matches the portal.'
+              : `${changedCount} field(s) differ from the portal. Review and choose which to apply.`}
+          </div>
+
+          {(() => {
+            const losingFootnotes: string[] = [];
+            if (applyOutcome && (((editedProposal as any)?.outcomeFootnotes || []).length > 0)) losingFootnotes.push('Expected outcome');
+            if (applyScope && (((editedProposal as any)?.scopeFootnotes || []).length > 0)) losingFootnotes.push('Scope');
+            if (applyDestination && (((editedProposal as any)?.destinationFootnotes || []).length > 0)) losingFootnotes.push('Destination');
+            if (losingFootnotes.length === 0) return null;
+            return (
+              <div className="flex gap-2 items-start text-xs border border-amber-300 bg-amber-50 text-amber-900 dark:bg-amber-900/20 dark:text-amber-200 dark:border-amber-700 rounded-md p-2">
+                <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                <div>
+                  Applying a field replaces its text and removes that field's footnotes. Fields you don't apply are untouched.
+                  <div className="mt-0.5 opacity-80">Affected: {losingFootnotes.join(', ')}.</div>
+                </div>
+              </div>
+            );
+          })()}
+
+          <div className="space-y-6">
+            {/* Title */}
+            {(() => {
+              const changed = titleChanged;
+              return (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <Label className="text-sm font-semibold">Topic title</Label>
+                      <Badge variant="outline" className={cn('text-[10px] px-1.5 py-0 h-4', changed ? 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-900/30 dark:text-amber-200 dark:border-amber-700' : 'bg-muted text-muted-foreground')}>
+                        {changed ? 'Changed' : 'No change'}
+                      </Badge>
+                    </div>
+                    <label className="flex items-center gap-2 text-xs">
+                      <Checkbox checked={applyTitle} onCheckedChange={(v) => setApplyTitle(!!v)} />
+                      Apply this field
+                    </label>
+                  </div>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">Current (saved)</p>
+                      <div className="text-sm border rounded-md p-2 bg-muted/30 min-h-[2.25rem]">
+                        {(editedProposal as any)?.topicTitle || '–'}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">From portal</p>
+                      <Input value={upTitle} onChange={(e) => setUpTitle(e.target.value)} className="h-9 text-sm" />
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Rich-text fields */}
+            {([
+              { key: 'outcome', label: 'Expected outcome', savedKey: 'topicExpectedOutcome', fnKey: 'outcomeFootnotes', changed: outcomeChanged, apply: applyOutcome, setApply: setApplyOutcome, value: upOutcome, setValue: setUpOutcome },
+              { key: 'scope', label: 'Scope', savedKey: 'topicScope', fnKey: 'scopeFootnotes', changed: scopeChanged, apply: applyScope, setApply: setApplyScope, value: upScope, setValue: setUpScope },
+              { key: 'destination', label: 'Destination description', savedKey: 'topicDestinationDescription', fnKey: 'destinationFootnotes', changed: destinationChanged, apply: applyDestination, setApply: setApplyDestination, value: upDestination, setValue: setUpDestination },
+            ] as const).map((f) => (
+              <div key={f.key} className="space-y-2">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <Label className="text-sm font-semibold">{f.label}</Label>
+                    <Badge variant="outline" className={cn('text-[10px] px-1.5 py-0 h-4', f.changed ? 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-900/30 dark:text-amber-200 dark:border-amber-700' : 'bg-muted text-muted-foreground')}>
+                      {f.changed ? 'Changed' : 'No change'}
+                    </Badge>
+                  </div>
+                  <label className="flex items-center gap-2 text-xs">
+                    <Checkbox checked={f.apply} onCheckedChange={(v) => f.setApply(!!v)} />
+                    Apply this field
+                  </label>
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">Current (saved)</p>
+                    <div className="border rounded-md p-2 bg-muted/30">
+                      <TopicRichTextReadonly
+                        html={(editedProposal as any)?.[f.savedKey]}
+                        footnotes={(editedProposal as any)?.[f.fnKey] || []}
+                        emptyMessage="—"
+                        footnoteStartNumber={1}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">From portal</p>
+                    <div className="border rounded-md">
+                      <TopicRichTextArea
+                        value={f.value}
+                        onChange={f.setValue}
+                        footnotes={[]}
+                        onFootnotesChange={() => {}}
+                        footnoteStartNumber={1}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {updateMeta && updateMeta.otherSections.length > 0 && (
+              <div className="space-y-2 pt-2 border-t">
+                <p className="text-xs text-muted-foreground italic">
+                  Additional portal sections (not tracked here).
+                </p>
+                {updateMeta.otherSections.map((s, i) => (
+                  <div key={i} className="text-xs text-muted-foreground">
+                    • {s.label || 'Section'}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUpdateDialogOpen(false)} disabled={applyingUpdates}>
+              Cancel
+            </Button>
+            <Button onClick={handleApplyUpdates} disabled={!anyApplySelected || applyingUpdates}>
+              {applyingUpdates ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : null}
+              Apply selected updates
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PartAPageLayout>
 
 
