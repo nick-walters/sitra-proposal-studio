@@ -121,6 +121,121 @@ export function TopicInformationPage({
   const [importScope, setImportScope] = useState('');
   const [importDestination, setImportDestination] = useState('');
 
+  // --- Update-check state ---
+  const [checkingUpdates, setCheckingUpdates] = useState(false);
+  const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
+  const [updateMeta, setUpdateMeta] = useState<{ topicId: string; url: string | null; otherSections: { label: string; html: string }[] } | null>(null);
+  const [updateCheckedAt, setUpdateCheckedAt] = useState<Date | null>(null);
+  const [upTitle, setUpTitle] = useState('');
+  const [upOutcome, setUpOutcome] = useState('');
+  const [upScope, setUpScope] = useState('');
+  const [upDestination, setUpDestination] = useState('');
+  const [applyTitle, setApplyTitle] = useState(false);
+  const [applyOutcome, setApplyOutcome] = useState(false);
+  const [applyScope, setApplyScope] = useState(false);
+  const [applyDestination, setApplyDestination] = useState(false);
+  const [applyingUpdates, setApplyingUpdates] = useState(false);
+
+  const normaliseVisibleText = (html: string): string => {
+    if (!html) return '';
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    doc.querySelectorAll('sup.footnote-marker, sup[data-footnote-id], [data-footnote-id]').forEach((el) => el.remove());
+    const text = doc.body.textContent || '';
+    return text.replace(/\s+/g, ' ').trim();
+  };
+  const normaliseTitle = (s: string): string => (s || '').replace(/\s+/g, ' ').trim();
+
+  const titleChanged = useMemo(
+    () => normaliseTitle((editedProposal as any)?.topicTitle) !== normaliseTitle(upTitle),
+    [editedProposal, upTitle],
+  );
+  const outcomeChanged = useMemo(
+    () => normaliseVisibleText((editedProposal as any)?.topicExpectedOutcome) !== normaliseVisibleText(upOutcome),
+    [editedProposal, upOutcome],
+  );
+  const scopeChanged = useMemo(
+    () => normaliseVisibleText((editedProposal as any)?.topicScope) !== normaliseVisibleText(upScope),
+    [editedProposal, upScope],
+  );
+  const destinationChanged = useMemo(
+    () => normaliseVisibleText((editedProposal as any)?.topicDestinationDescription) !== normaliseVisibleText(upDestination),
+    [editedProposal, upDestination],
+  );
+
+  const changedCount = (titleChanged ? 1 : 0) + (outcomeChanged ? 1 : 0) + (scopeChanged ? 1 : 0) + (destinationChanged ? 1 : 0);
+  const anyApplySelected = applyTitle || applyOutcome || applyScope || applyDestination;
+
+  const handleCheckForUpdates = async () => {
+    if (!proposal?.topicId) return;
+    setCheckingUpdates(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('import-topic-info', {
+        body: { topicId: proposal.topicId },
+      });
+      if (error || !data?.success || !data?.topic) {
+        toast.error("Couldn't check the portal for updates. Check the Topic ID is correct.");
+        return;
+      }
+      const t = data.topic;
+      const pTitle = t.title || '';
+      const pOutcome = t.expectedOutcome || '';
+      const pScope = t.scope || '';
+      const pDestination = t.destinationDetails || '';
+      setUpTitle(pTitle);
+      setUpOutcome(pOutcome);
+      setUpScope(pScope);
+      setUpDestination(pDestination);
+      setUpdateMeta({
+        topicId: t.topicId,
+        url: t.url || null,
+        otherSections: Array.isArray(t.otherSections) ? t.otherSections : [],
+      });
+      setUpdateCheckedAt(new Date());
+      // Default: apply changed fields, skip unchanged
+      const ep: any = editedProposal || {};
+      setApplyTitle(normaliseTitle(ep.topicTitle) !== normaliseTitle(pTitle));
+      setApplyOutcome(normaliseVisibleText(ep.topicExpectedOutcome) !== normaliseVisibleText(pOutcome));
+      setApplyScope(normaliseVisibleText(ep.topicScope) !== normaliseVisibleText(pScope));
+      setApplyDestination(normaliseVisibleText(ep.topicDestinationDescription) !== normaliseVisibleText(pDestination));
+      setUpdateDialogOpen(true);
+    } catch {
+      toast.error("Couldn't check the portal for updates. Check the Topic ID is correct.");
+    } finally {
+      setCheckingUpdates(false);
+    }
+  };
+
+  const handleApplyUpdates = async () => {
+    if (!editedProposal || !anyApplySelected) return;
+    const updates: Record<string, any> = { ...editedProposal };
+    if (applyTitle) updates.topicTitle = upTitle;
+    if (applyOutcome) {
+      updates.topicExpectedOutcome = upOutcome;
+      updates.outcomeFootnotes = [];
+    }
+    if (applyScope) {
+      updates.topicScope = upScope;
+      updates.scopeFootnotes = [];
+    }
+    if (applyDestination) {
+      updates.topicDestinationDescription = upDestination;
+      updates.destinationFootnotes = [];
+    }
+    updates.topicContentImportedAt = new Date();
+    setEditedProposal(updates as any);
+    setApplyingUpdates(true);
+    try {
+      await onUpdateProposal(updates);
+      setLastSaved(new Date());
+      toast.success('Topic updates applied.');
+      setUpdateDialogOpen(false);
+    } catch {
+      toast.error('Could not save topic updates.');
+    } finally {
+      setApplyingUpdates(false);
+    }
+  };
+
   const handleImportFromPortal = async () => {
     if (!proposal?.topicId) return;
     setImporting(true);
