@@ -626,7 +626,7 @@ export function ParticipantListView({
                   </CardTitle>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pb-4">
                 <div className="flex flex-wrap items-center gap-3">
                   <div className="flex items-center gap-2">
                     <Checkbox
