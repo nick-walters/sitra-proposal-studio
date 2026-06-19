@@ -155,7 +155,7 @@ export function InsertWPReferenceDialog({
                   <div
                     key={wp.id}
                     className={cn(
-                      "grid grid-cols-2 gap-x-2 gap-y-1 items-center pb-2",
+                      "grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 items-center pb-2",
                       idx < wpDrafts.length - 1 && "border-b border-border mb-2"
                     )}
                   >
