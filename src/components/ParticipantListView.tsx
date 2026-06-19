@@ -1,12 +1,12 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
 import { DebouncedInput } from '@/components/ui/debounced-input';
 import { Checkbox } from '@/components/ui/checkbox';
 
 import { Participant, ParticipantMember, Section, ParticipantType } from '@/types/proposal';
-import { Building2, GripVertical, UserPlus, Plus, Check, Upload, X, Loader2, Hash, FileText, Download } from 'lucide-react';
+import { Building2, GripVertical, UserPlus, Plus, Upload, X, Loader2, Hash, FileText, Download } from 'lucide-react';
 import { SaveIndicator } from './SaveIndicator';
 import { BulkPicLookupDialog } from './BulkPicLookupDialog';
 import { ParticipantCompletenessChecker } from './ParticipantCompletenessChecker';
@@ -617,76 +617,81 @@ export function ParticipantListView({
 
           {/* OCD Controls - coordinator+ only */}
           {isAdmin && (
-            <div className="flex flex-wrap items-center gap-3 p-3 bg-muted/50 rounded-lg border">
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="requires-ocd"
-                  checked={ocd.requiresOcd}
-                  onCheckedChange={(checked) => ocd.toggleRequiresOcd(!!checked)}
-                />
-                <label htmlFor="requires-ocd" className="text-sm font-medium cursor-pointer">
-                  This topic requires Ownership Control Declarations
-                </label>
-              </div>
-
-              {ocd.requiresOcd && (
-                <>
-                  <input
-                    ref={templateInputRef}
-                    type="file"
-                    accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                    className="hidden"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (file) await ocd.uploadTemplate(file);
-                      if (templateInputRef.current) templateInputRef.current.value = '';
-                    }}
+            <Card>
+              <CardHeader className="pb-2 pt-4">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 text-sm">
+                    <FileText className="w-4 h-4" />
+                    Ownership Control Declarations
+                  </CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="requires-ocd"
+                    checked={ocd.requiresOcd}
+                    onCheckedChange={(checked) => ocd.toggleRequiresOcd(!!checked)}
                   />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => templateInputRef.current?.click()}
-                    className="gap-1.5"
-                  >
-                    <Upload className="w-3.5 h-3.5" />
-                    {ocd.templatePath ? 'Replace OCD template' : 'Upload OCD template'}
-                  </Button>
-                  {ocd.templatePath && (
-                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Check className="w-3 h-3 text-green-600" /> Template uploaded
-                    </span>
-                  )}
-                  {ocd.templatePath && (
+                  <label htmlFor="requires-ocd" className="text-sm font-medium cursor-pointer">
+                    This topic requires OCDs
+                  </label>
+                </div>
+
+                {ocd.requiresOcd && (
+                  <div className="flex flex-wrap items-center gap-3">
+                    <input
+                      ref={templateInputRef}
+                      type="file"
+                      accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) await ocd.uploadTemplate(file);
+                        if (templateInputRef.current) templateInputRef.current.value = '';
+                      }}
+                    />
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={async () => {
-                        const isOcdExempt = (p: Participant) =>
-                          p.ocdExempt === true || (p.ocdExempt == null && p.organisationCategory === 'PUB');
-                        const missing = participants.filter(p => !ocd.uploads[p.id] && !isOcdExempt(p));
-                        if (missing.length > 0) {
-                          const names = missing.map(p => p.organisationShortName || p.organisationName).join(', ');
-                          const proceed = window.confirm(
-                            `The following partners have not uploaded their signed OCD:\n\n${names}\n\nDo you wish to proceed with compiling the available declarations?`
-                          );
-                          if (!proceed) return;
-                        }
-                        await ocd.compileOcds();
-                      }}
-                      disabled={ocd.compiling}
+                      onClick={() => templateInputRef.current?.click()}
                       className="gap-1.5"
                     >
-                      {ocd.compiling ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        <FileText className="w-3.5 h-3.5" />
-                      )}
-                      Compile Ownership Control Declarations
+                      <Upload className="w-3.5 h-3.5" />
+                      {ocd.templatePath ? 'Replace OCD template' : 'Upload OCD template'}
                     </Button>
-                  )}
-                </>
-              )}
-            </div>
+                    {ocd.templatePath && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          const isOcdExempt = (p: Participant) =>
+                            p.ocdExempt === true || (p.ocdExempt == null && p.organisationCategory === 'PUB');
+                          const missing = participants.filter(p => !ocd.uploads[p.id] && !isOcdExempt(p));
+                          if (missing.length > 0) {
+                            const names = missing.map(p => p.organisationShortName || p.organisationName).join(', ');
+                            const proceed = window.confirm(
+                              `The following partners have not uploaded their signed OCD:\n\n${names}\n\nDo you wish to proceed with compiling the available declarations?`
+                            );
+                            if (!proceed) return;
+                          }
+                          await ocd.compileOcds();
+                        }}
+                        disabled={ocd.compiling}
+                        className="gap-1.5"
+                      >
+                        {ocd.compiling ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <FileText className="w-3.5 h-3.5" />
+                        )}
+                        Compile OCDs
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           )}
 
           <Tabs value={activeTab} onValueChange={setActiveTab}>
