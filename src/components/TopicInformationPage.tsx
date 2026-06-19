@@ -534,7 +534,7 @@ export function TopicInformationPage({
                 <Target className="w-4 h-4" />
                 General topic information
               </CardTitle>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap justify-end">
                 {userCanEdit && (
                   <Button
                     variant="outline"
@@ -546,6 +546,19 @@ export function TopicInformationPage({
                   >
                     {importing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
                     Import from portal
+                  </Button>
+                )}
+                {userCanEdit && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 h-7 text-xs"
+                    onClick={handleCheckForUpdates}
+                    disabled={!proposal?.topicId || checkingUpdates}
+                    title={!proposal?.topicId ? 'Set a Topic ID first' : 'Re-fetch from the EU portal and compare'}
+                  >
+                    {checkingUpdates ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                    Check for topic updates
                   </Button>
                 )}
                 {proposal?.topicUrl && !isEditing && (
