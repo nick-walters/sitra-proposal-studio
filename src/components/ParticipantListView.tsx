@@ -618,7 +618,7 @@ export function ParticipantListView({
           {/* OCD Controls - coordinator+ only */}
           {isAdmin && (
             <Card>
-              <CardHeader className="pb-2 pt-2">
+              <CardHeader className="pb-2 pt-4">
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2 text-sm">
                     <FileText className="w-4 h-4" />
@@ -626,7 +626,7 @@ export function ParticipantListView({
                   </CardTitle>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pb-4">
                 <div className="flex flex-wrap items-center gap-3">
                   <div className="flex items-center gap-2">
                     <Checkbox
