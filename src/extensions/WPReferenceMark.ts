@@ -179,7 +179,7 @@ export const WPReferenceMark = Mark.create<WPReferenceOptions>({
           const markType = schema.marks[markName];
           if (!markType) return null;
 
-          const replacements: { pos: number; end: number; expected: string; marks: typeof newState.doc.firstChild.marks }[] = [];
+          const replacements: { pos: number; end: number; expected: string; marks: readonly any[] }[] = [];
           const seen = new Set<number>();
 
           for (const range of changedRanges) {
