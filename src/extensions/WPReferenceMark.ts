@@ -179,7 +179,7 @@ export const WPReferenceMark = Mark.create<WPReferenceOptions>({
           const markType = schema.marks[markName];
           if (!markType) return null;
 
-          let modified = false;
+          const replacements: { pos: number; end: number; expected: string; marks: readonly any[] }[] = [];
           const seen = new Set<number>();
 
           for (const range of changedRanges) {
@@ -191,7 +191,7 @@ export const WPReferenceMark = Mark.create<WPReferenceOptions>({
               if (!node.isText) return;
               if (seen.has(pos)) return;
               const mark = node.marks.find(m => m.type === markType);
-              if (!mark) return;
+              if (!mark) return; // defensive: only queue nodes that already carry THIS mark
               seen.add(pos);
 
               const wpNum = mark.attrs.wpNumber;
@@ -200,14 +200,26 @@ export const WPReferenceMark = Mark.create<WPReferenceOptions>({
               const actual = node.text || '';
 
               if (actual !== expected) {
-                const newNode = schema.text(expected, node.marks);
-                tr.replaceWith(pos, pos + node.nodeSize, newNode);
-                modified = true;
+                replacements.push({ pos, end: pos + node.nodeSize, expected, marks: node.marks });
               }
             });
           }
 
+          // Apply highest position first so lower positions remain valid (no mapping drift).
+          replacements.sort((a, b) => b.pos - a.pos);
+          let modified = false;
+          for (const r of replacements) {
+            // Re-verify the target node still carries this mark before overwriting.
+            const target = doc.nodeAt(r.pos);
+            if (!target || !target.isText) continue;
+            if (!target.marks.some(m => m.type === markType)) continue;
+            const newNode = schema.text(r.expected, r.marks);
+            tr.replaceWith(r.pos, r.end, newNode);
+            modified = true;
+          }
+
           return modified ? tr : null;
+
         },
       }),
     ];
