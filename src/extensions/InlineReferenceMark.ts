@@ -150,7 +150,7 @@ export const InlineReferenceMark = Mark.create<InlineReferenceOptions>({
           const markType = schema.marks[markName];
           if (!markType) return null;
 
-          const replacements: { pos: number; end: number; expected: string; marks: readonly any[] }[] = [];
+          let modified = false;
           const seen = new Set<number>();
 
           for (const range of changedRanges) {
@@ -162,7 +162,7 @@ export const InlineReferenceMark = Mark.create<InlineReferenceOptions>({
               if (!node.isText) return;
               if (seen.has(pos)) return;
               const mark = node.marks.find(m => m.type === markType);
-              if (!mark) return; // defensive: only queue nodes that already carry THIS mark
+              if (!mark) return;
               seen.add(pos);
 
               let expected: string | null = null;
@@ -176,25 +176,14 @@ export const InlineReferenceMark = Mark.create<InlineReferenceOptions>({
               }
 
               if (expected && node.text !== expected) {
-                replacements.push({ pos, end: pos + node.nodeSize, expected, marks: node.marks });
+                const newNode = schema.text(expected, node.marks);
+                tr.replaceWith(pos, pos + node.nodeSize, newNode);
+                modified = true;
               }
             });
           }
 
-          // Apply highest position first so lower positions remain valid (no mapping drift).
-          replacements.sort((a, b) => b.pos - a.pos);
-          let modified = false;
-          for (const r of replacements) {
-            const target = doc.nodeAt(r.pos);
-            if (!target || !target.isText) continue;
-            if (!target.marks.some(m => m.type === markType)) continue;
-            const newNode = schema.text(r.expected, r.marks);
-            tr.replaceWith(r.pos, r.end, newNode);
-            modified = true;
-          }
-
           return modified ? tr : null;
-
         },
       }),
     ];

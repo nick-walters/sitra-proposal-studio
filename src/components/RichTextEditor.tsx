@@ -28,7 +28,6 @@ import { TableFormula } from '@/extensions/TableFormula';
 import { WPReferenceMark } from '@/extensions/WPReferenceMark';
 import { CaseReferenceMark } from '@/extensions/CaseReferenceMark';
 import { ParticipantReferenceMark } from '@/extensions/ParticipantReferenceMark';
-
 import { AcronymReference } from '@/extensions/AcronymReference';
 import { FigureTableReferenceMark } from '@/extensions/FigureTableReferenceMark';
 import { CaptionLabel } from '@/extensions/CaptionLabel';
@@ -1492,7 +1491,6 @@ StarterKit.configure({
       HeadingNumberLabel,
       // Figure/table reference marks for atomic deletion
       FigureTableReferenceMark,
-      
       // Block drag-and-drop via drag handle
       BlockDragHandle.configure({
         getLockedBlocks: () => getLockedBlocksRef.current(),
