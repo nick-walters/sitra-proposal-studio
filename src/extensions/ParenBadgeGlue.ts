@@ -9,11 +9,14 @@ import { Decoration, DecorationSet } from '@tiptap/pm/view';
  * "(" or ")" and an immediately-adjacent reference badge (wpReference,
  * caseReference, participantReference, inlineReference).
  *
- * It inserts a zero-width U+2060 (WORD JOINER) widget decoration at each
- * such boundary. Decorations are view-only — saved content is never modified.
+ * Mechanism: wraps the "(" + badge (and/or badge + ")") range in an inline
+ * decoration carrying `white-space: nowrap`. Because badges are atomic
+ * display:inline-flex boxes, a nowrap container is required to suppress the
+ * break opportunity at the box edge — a zero-width word-joiner is not
+ * reliable in that situation.
  *
- * Figure/table refs are intentionally excluded (they are plain inline and
- * wrap naturally).
+ * Decorations are view-only: saved HTML is never modified. Figure/table
+ * references are intentionally excluded.
  */
 
 const BADGE_MARKS = new Set([
@@ -23,8 +26,6 @@ const BADGE_MARKS = new Set([
   'inlineReference',
 ]);
 
-const WJ = '\u2060';
-
 function hasBadgeMark(node: any): boolean {
   if (!node || !node.marks) return false;
   return node.marks.some((m: any) => BADGE_MARKS.has(m.type.name));
@@ -32,59 +33,74 @@ function hasBadgeMark(node: any): boolean {
 
 function buildDecorations(doc: any): DecorationSet {
   const decorations: Decoration[] = [];
+  const NOWRAP = { style: 'white-space: nowrap' } as any;
 
   doc.descendants((node: any, pos: number) => {
     if (!node.isTextblock) return;
 
-    // Walk inline children of this textblock, comparing each adjacent pair.
-    let offset = 0;
+    // Collect inline children with their relative offsets inside this textblock.
     const children: { node: any; relPos: number }[] = [];
+    let offset = 0;
     node.forEach((child: any) => {
       children.push({ node: child, relPos: offset });
       offset += child.nodeSize;
     });
 
-    for (let i = 0; i < children.length - 1; i++) {
-      const a = children[i];
-      const b = children[i + 1];
-      if (!a.node.isText || !b.node.isText) continue;
-
-      const aText = a.node.text || '';
-      const bText = b.node.text || '';
-      if (!aText.length || !bText.length) continue;
-
-      const aBadge = hasBadgeMark(a.node);
-      const bBadge = hasBadgeMark(b.node);
-
-      // Boundary position in document coordinates (between a and b).
-      // pos is the position before the textblock; +1 enters it; +a.relPos+a.nodeSize lands at the boundary.
-      const boundaryPos = pos + 1 + a.relPos + a.node.nodeSize;
-
-      const lastChar = aText[aText.length - 1];
-      const firstChar = bText[0];
-
-      // Case 1: "(" immediately before a badge — no whitespace.
-      if (!aBadge && bBadge && lastChar === '(') {
-        decorations.push(
-          Decoration.widget(boundaryPos, () => document.createTextNode(WJ), {
-            side: -1,
-            ignoreSelection: true,
-            key: 'paren-glue-open',
-          } as any),
-        );
+    // Group contiguous badge-marked text children into runs.
+    // A "run" is a maximal sequence of adjacent text nodes that all carry a badge mark.
+    const i = 0;
+    let idx = 0;
+    while (idx < children.length) {
+      const c = children[idx];
+      if (!c.node.isText || !hasBadgeMark(c.node)) {
+        idx++;
+        continue;
+      }
+      const runStartIdx = idx;
+      let runEndIdx = idx;
+      while (
+        runEndIdx + 1 < children.length &&
+        children[runEndIdx + 1].node.isText &&
+        hasBadgeMark(children[runEndIdx + 1].node)
+      ) {
+        runEndIdx++;
       }
 
-      // Case 2: badge immediately followed by ")".
-      if (aBadge && !bBadge && firstChar === ')') {
-        decorations.push(
-          Decoration.widget(boundaryPos, () => document.createTextNode(WJ), {
-            side: 1,
-            ignoreSelection: true,
-            key: 'paren-glue-close',
-          } as any),
-        );
+      const runStart = children[runStartIdx];
+      const runEnd = children[runEndIdx];
+      // Absolute doc positions for this badge run.
+      // pos = position before the textblock; +1 enters it.
+      const badgeStartAbs = pos + 1 + runStart.relPos;
+      const badgeEndAbs = pos + 1 + runEnd.relPos + runEnd.node.nodeSize;
+
+      // OPENING case: preceding sibling is text, no whitespace, ends with "(".
+      if (runStartIdx > 0) {
+        const prev = children[runStartIdx - 1];
+        if (prev.node.isText && !hasBadgeMark(prev.node)) {
+          const prevText: string = prev.node.text || '';
+          if (prevText.length && prevText[prevText.length - 1] === '(') {
+            const parenPos = pos + 1 + prev.relPos + (prevText.length - 1);
+            decorations.push(Decoration.inline(parenPos, badgeEndAbs, NOWRAP));
+          }
+        }
       }
+
+      // CLOSING case: following sibling is text, no whitespace, starts with ")".
+      if (runEndIdx + 1 < children.length) {
+        const next = children[runEndIdx + 1];
+        if (next.node.isText && !hasBadgeMark(next.node)) {
+          const nextText: string = next.node.text || '';
+          if (nextText.length && nextText[0] === ')') {
+            const parenEndPos = pos + 1 + next.relPos + 1;
+            decorations.push(Decoration.inline(badgeStartAbs, parenEndPos, NOWRAP));
+          }
+        }
+      }
+
+      idx = runEndIdx + 1;
     }
+    // no-op reference to silence unused-var lint
+    void i;
   });
 
   return DecorationSet.create(doc, decorations);
