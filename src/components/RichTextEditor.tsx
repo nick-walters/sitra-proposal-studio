@@ -1261,6 +1261,7 @@ StarterKit.configure({
       CaseReferenceMark,
       AcronymReference,
       FigureTableReferenceMark,
+      ParenBadgeGlue,
       CaptionLabel,
       HeadingNumberLabel,
       // Suppress heading input rules inside table cells: revert heading nodes back to paragraphs
