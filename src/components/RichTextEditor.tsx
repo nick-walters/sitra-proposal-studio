@@ -28,6 +28,7 @@ import { TableFormula } from '@/extensions/TableFormula';
 import { WPReferenceMark } from '@/extensions/WPReferenceMark';
 import { CaseReferenceMark } from '@/extensions/CaseReferenceMark';
 import { ParticipantReferenceMark } from '@/extensions/ParticipantReferenceMark';
+import { ParenBadgeGlue } from '@/extensions/ParenBadgeGlue';
 import { AcronymReference } from '@/extensions/AcronymReference';
 import { FigureTableReferenceMark } from '@/extensions/FigureTableReferenceMark';
 import { CaptionLabel } from '@/extensions/CaptionLabel';
