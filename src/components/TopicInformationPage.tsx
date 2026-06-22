@@ -67,21 +67,26 @@ function parseBudgetRange(val: string): [number, number] | null {
   return null;
 }
 
+function computeIndicativeProjects(totalBudgetText: string | undefined, totalBudget: number | undefined, budgetPerProject: string): string {
+  const topicRange = totalBudgetText ? parseBudgetRange(totalBudgetText) : (totalBudget ? [totalBudget, totalBudget] as [number, number] : null);
+  if (!topicRange || !budgetPerProject) return '';
+  const perProjectRange = parseBudgetRange(budgetPerProject);
+  if (!perProjectRange) return '';
+  const [topicMin, topicMax] = topicRange;
+  const [ppMin, ppMax] = perProjectRange;
+  const low = Math.floor(topicMin / ppMax);
+  const high = Math.floor(topicMax / ppMin);
+  if (low === high) return high.toString();
+  if (low > high) return `${high}–${low}`;
+  return `${low}–${high}`;
+}
+
 function IndicativeProjectsField({ totalBudgetText, totalBudget, budgetPerProject }: { totalBudgetText?: string; totalBudget?: number; budgetPerProject: string }) {
-  const computed = useMemo(() => {
-    const topicRange = totalBudgetText ? parseBudgetRange(totalBudgetText) : (totalBudget ? [totalBudget, totalBudget] as [number, number] : null);
-    if (!topicRange || !budgetPerProject) return '–';
-    const perProjectRange = parseBudgetRange(budgetPerProject);
-    if (!perProjectRange) return '–';
-    const [topicMin, topicMax] = topicRange;
-    const [ppMin, ppMax] = perProjectRange;
-    const low = Math.floor(topicMin / ppMax);
-    const high = Math.floor(topicMax / ppMin);
-    if (low === high) return high.toString();
-    if (low > high) return `${high}–${low}`;
-    return `${low}–${high}`;
-  }, [totalBudgetText, totalBudget, budgetPerProject]);
-  return <p className="text-sm font-medium">{computed}</p>;
+  const computed = useMemo(
+    () => computeIndicativeProjects(totalBudgetText, totalBudget, budgetPerProject),
+    [totalBudgetText, totalBudget, budgetPerProject]
+  );
+  return <p className="text-sm font-medium">{computed || '–'}</p>;
 }
 
 type EditableField = 'expectedOutcome' | 'scope' | 'destination' | null;
@@ -863,12 +868,35 @@ export function TopicInformationPage({
               </div>
               <div>
                 <label className="text-xs text-muted-foreground mb-0.5 block">Indicative № projects to be funded</label>
-                <IndicativeProjectsField
-                  totalBudgetText={isEditing ? (editedProposal as any)?.totalBudgetText : (proposal as any)?.totalBudgetText}
-                  totalBudget={isEditing ? editedProposal?.totalBudget : proposal?.totalBudget}
-                  budgetPerProject={(isEditing ? (editedProposal as any)?.indicativeBudgetPerProject : (proposal as any)?.indicativeBudgetPerProject) || ''}
-                />
+                {isEditing && editedProposal ? (
+                  (() => {
+                    const computed = computeIndicativeProjects(
+                      (editedProposal as any)?.totalBudgetText,
+                      editedProposal?.totalBudget,
+                      (editedProposal as any)?.indicativeBudgetPerProject || ''
+                    );
+                    const current = (editedProposal as any)?.expectedProjects ?? '';
+                    const displayValue = current !== '' ? current : computed;
+                    return (
+                      <Input
+                        value={displayValue}
+                        onChange={(e) => setEditedProposal({ ...editedProposal, expectedProjects: e.target.value } as any)}
+                        placeholder={computed || 'e.g. 3–4'}
+                        className="h-8 text-sm"
+                      />
+                    );
+                  })()
+                ) : (proposal as any)?.expectedProjects ? (
+                  <p className="text-sm font-medium">{(proposal as any).expectedProjects}</p>
+                ) : (
+                  <IndicativeProjectsField
+                    totalBudgetText={(proposal as any)?.totalBudgetText}
+                    totalBudget={proposal?.totalBudget}
+                    budgetPerProject={(proposal as any)?.indicativeBudgetPerProject || ''}
+                  />
+                )}
               </div>
+
             </div>
 
             <div className="space-y-2">
