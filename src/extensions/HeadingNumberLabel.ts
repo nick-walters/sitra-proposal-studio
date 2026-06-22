@@ -153,6 +153,23 @@ export const HeadingNumberLabel = Mark.create({
           const markTypeRef = schema.marks.headingNumberLabel;
           if (!markTypeRef) return null;
 
+          // Snapshot of all headings + headingNumberLabel runs in the doc
+          const headingSnap: any[] = [];
+          doc.descendants((node, pos) => {
+            if (node.type.name === 'heading') {
+              const labels: any[] = [];
+              node.descendants((child, childOff) => {
+                if (child.isText && markTypeRef.isInSet(child.marks)) {
+                  labels.push({ pos: pos + 1 + childOff, end: pos + 1 + childOff + child.nodeSize, text: child.text });
+                }
+              });
+              headingSnap.push({ pos, end: pos + node.nodeSize, level: node.attrs.level, text: node.textContent, labels });
+            }
+          });
+          // eslint-disable-next-line no-console
+          console.log('[HNL-CLAMP] doc snapshot', { changedRanges, sel: { a: selection.anchor, h: selection.head }, headings: headingSnap });
+
+
           let needsClamp = false;
           let labelFrom = -1;
           let labelTo = -1;
