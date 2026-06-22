@@ -26,6 +26,8 @@ export interface CaseSection extends Section {
   caseNumber?: number;
   caseColor?: string;
   caseType?: string;
+  caseLabel?: string;
+  caseShortName?: string;
 }
 
 interface TemplateSectionData {
