@@ -45,6 +45,7 @@ import { useBlockLocking } from "@/hooks/useBlockLocking";
 import { renumberFootnotes } from "@/lib/captionRenumbering";
 import { syncCrossReferences } from "@/lib/syncCrossReferences";
 import { renumberCaptionsInEditor } from "@/lib/renumberCaptionsInEditor";
+import { renumberH3Headings } from "@/lib/renumberH3Headings";
 import { useProposalReferences } from "@/hooks/useProposalReferences";
 import { useGlobalCitationOrder } from "@/hooks/useGlobalCitationOrder";
 import { FootnoteCitation } from "@/components/FootnoteCitation";
