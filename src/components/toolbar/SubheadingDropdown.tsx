@@ -60,7 +60,11 @@ export function SubheadingDropdown({
           Insert subheading
         </TooltipContent>
       </Tooltip>
-      <DropdownMenuContent align="start" className="w-64">
+      <DropdownMenuContent
+        align="start"
+        className="w-64"
+        onCloseAutoFocus={(e) => e.preventDefault()}
+      >
         {onBody && (
           <>
             <DropdownMenuItem onClick={onBody}>
