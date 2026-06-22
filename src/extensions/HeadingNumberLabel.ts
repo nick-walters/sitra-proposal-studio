@@ -42,6 +42,8 @@ export const HeadingNumberLabel = Mark.create({
 
   excludes: '',
 
+  inclusive: false,
+
   parseHTML() {
     return [{ tag: 'span[data-heading-number]' }];
   },
