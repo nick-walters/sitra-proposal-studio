@@ -44,6 +44,7 @@ const BADGE_MARK_NAMES = [
   'participantReference',
   'inlineReference',
   'figureTableReference',
+  'headingNumberLabel',
 ];
 
 export const BadgeTrailingCaret = Extension.create({
