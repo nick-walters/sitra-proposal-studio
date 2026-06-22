@@ -868,12 +868,35 @@ export function TopicInformationPage({
               </div>
               <div>
                 <label className="text-xs text-muted-foreground mb-0.5 block">Indicative № projects to be funded</label>
-                <IndicativeProjectsField
-                  totalBudgetText={isEditing ? (editedProposal as any)?.totalBudgetText : (proposal as any)?.totalBudgetText}
-                  totalBudget={isEditing ? editedProposal?.totalBudget : proposal?.totalBudget}
-                  budgetPerProject={(isEditing ? (editedProposal as any)?.indicativeBudgetPerProject : (proposal as any)?.indicativeBudgetPerProject) || ''}
-                />
+                {isEditing && editedProposal ? (
+                  (() => {
+                    const computed = computeIndicativeProjects(
+                      (editedProposal as any)?.totalBudgetText,
+                      editedProposal?.totalBudget,
+                      (editedProposal as any)?.indicativeBudgetPerProject || ''
+                    );
+                    const current = (editedProposal as any)?.expectedProjects ?? '';
+                    const displayValue = current !== '' ? current : computed;
+                    return (
+                      <Input
+                        value={displayValue}
+                        onChange={(e) => setEditedProposal({ ...editedProposal, expectedProjects: e.target.value } as any)}
+                        placeholder={computed || 'e.g. 3–4'}
+                        className="h-8 text-sm"
+                      />
+                    );
+                  })()
+                ) : (proposal as any)?.expectedProjects ? (
+                  <p className="text-sm font-medium">{(proposal as any).expectedProjects}</p>
+                ) : (
+                  <IndicativeProjectsField
+                    totalBudgetText={(proposal as any)?.totalBudgetText}
+                    totalBudget={proposal?.totalBudget}
+                    budgetPerProject={(proposal as any)?.indicativeBudgetPerProject || ''}
+                  />
+                )}
               </div>
+
             </div>
 
             <div className="space-y-2">
