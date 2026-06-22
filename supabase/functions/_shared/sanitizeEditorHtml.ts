@@ -64,6 +64,7 @@ export const ALLOWED_DATA_ATTRS = new Set<string>([
   'data-author-color',
   'data-timestamp',
   'data-citation',
+  'data-heading-number',
 ]);
 
 export const STYLE_ALLOWLIST = new Set<string>([
@@ -84,6 +85,7 @@ export const STYLE_ALLOWLIST = new Set<string>([
   'stroke',
   'stroke-width',
   '--wp-color',
+  'user-select',
 ]);
 
 export const ALLOWED_TAGS = [

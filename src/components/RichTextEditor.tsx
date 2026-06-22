@@ -813,33 +813,17 @@ export function FormattingToolbar({
               } : undefined}
               onNumbered={() => {
                 const placeholder = `${cleanNum}.0. `;
-                const dump = (label: string) => {
-                  const d = editor.state.doc;
-                  const sel = editor.state.selection;
-                  const blocks: any[] = [];
-                  d.forEach((n, off) => {
-                    blocks.push({ type: n.type.name, attrs: n.attrs, size: n.nodeSize, text: n.textContent, off });
-                  });
-                  // eslint-disable-next-line no-console
-                  console.log('[NUMSUB]', label, JSON.stringify({ selFrom: sel.from, selTo: sel.to, docSize: d.content.size, blocks }));
-                };
-                dump('s0');
                 editor.chain().focus().toggleHeading({ level: 3 }).run();
-                dump('s1');
                 if (editor.isActive('heading', { level: 3 })) {
                   const $from = editor.state.selection.$from;
                   const startOfNode = $from.start();
                   const currentText = $from.parent.textContent;
                   const hasPrefix = /^\d+\.\d+\.\d+\.\s/.test(currentText);
-                  // eslint-disable-next-line no-console
-                  console.log('[NUMSUB] startOfNode=', startOfNode, 'parentTextLen=', currentText.length, 'hasPrefix=', hasPrefix);
                   if (!hasPrefix) {
                     const tr = editor.state.tr.insertText(placeholder, startOfNode);
                     editor.view.dispatch(tr);
                   }
-                  dump('s2');
                   renumberH3Headings(editor, cleanNum);
-                  dump('s3');
                 }
               }}
               onUnnumbered={() => {
