@@ -820,7 +820,7 @@ export function FormattingToolbar({
                   const currentText = $from.parent.textContent;
                   const hasPrefix = /^\d+\.\d+\.\d+\.\s/.test(currentText);
                   if (!hasPrefix) {
-                    editor.chain().focus().insertContentAt(startOfNode, placeholder).run();
+                    editor.chain().focus().insertContentAt(startOfNode, { type: 'text', text: placeholder }).run();
                   }
                   renumberH3Headings(editor, cleanNum);
                 }
