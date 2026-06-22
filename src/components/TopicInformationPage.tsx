@@ -67,21 +67,26 @@ function parseBudgetRange(val: string): [number, number] | null {
   return null;
 }
 
+function computeIndicativeProjects(totalBudgetText: string | undefined, totalBudget: number | undefined, budgetPerProject: string): string {
+  const topicRange = totalBudgetText ? parseBudgetRange(totalBudgetText) : (totalBudget ? [totalBudget, totalBudget] as [number, number] : null);
+  if (!topicRange || !budgetPerProject) return '';
+  const perProjectRange = parseBudgetRange(budgetPerProject);
+  if (!perProjectRange) return '';
+  const [topicMin, topicMax] = topicRange;
+  const [ppMin, ppMax] = perProjectRange;
+  const low = Math.floor(topicMin / ppMax);
+  const high = Math.floor(topicMax / ppMin);
+  if (low === high) return high.toString();
+  if (low > high) return `${high}–${low}`;
+  return `${low}–${high}`;
+}
+
 function IndicativeProjectsField({ totalBudgetText, totalBudget, budgetPerProject }: { totalBudgetText?: string; totalBudget?: number; budgetPerProject: string }) {
-  const computed = useMemo(() => {
-    const topicRange = totalBudgetText ? parseBudgetRange(totalBudgetText) : (totalBudget ? [totalBudget, totalBudget] as [number, number] : null);
-    if (!topicRange || !budgetPerProject) return '–';
-    const perProjectRange = parseBudgetRange(budgetPerProject);
-    if (!perProjectRange) return '–';
-    const [topicMin, topicMax] = topicRange;
-    const [ppMin, ppMax] = perProjectRange;
-    const low = Math.floor(topicMin / ppMax);
-    const high = Math.floor(topicMax / ppMin);
-    if (low === high) return high.toString();
-    if (low > high) return `${high}–${low}`;
-    return `${low}–${high}`;
-  }, [totalBudgetText, totalBudget, budgetPerProject]);
-  return <p className="text-sm font-medium">{computed}</p>;
+  const computed = useMemo(
+    () => computeIndicativeProjects(totalBudgetText, totalBudget, budgetPerProject),
+    [totalBudgetText, totalBudget, budgetPerProject]
+  );
+  return <p className="text-sm font-medium">{computed || '–'}</p>;
 }
 
 type EditableField = 'expectedOutcome' | 'scope' | 'destination' | null;
