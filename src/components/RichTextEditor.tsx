@@ -840,11 +840,15 @@ export function FormattingToolbar({
               onUnnumbered={() => {
                 // Block H3 on its own line (bold+underline come from .prose h3 styling).
                 editor.chain().focus().setNode('heading', { level: 3 }).run();
-                requestAnimationFrame(() => {
+                // Outlast Radix dropdown's onCloseAutoFocus (which restores
+                // focus to the trigger after rAF). setTimeout ensures our
+                // editor focus + caret placement wins.
+                setTimeout(() => {
                   const sel = editor.state.selection;
                   const endOfHeading = sel.$from.end();
                   editor.chain().focus().setTextSelection(endOfHeading).run();
-                });
+                }, 60);
+
               }}
             />
           );
