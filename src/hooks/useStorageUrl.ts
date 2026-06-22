@@ -1,26 +1,45 @@
 import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { getProposalFileSignedUrl } from '@/lib/proposalStorage';
+
+type StorageBucket = 'proposal-files' | 'participant-logos';
+
+interface ResolvedPath {
+  bucket: StorageBucket;
+  path: string;
+}
 
 /**
  * Determines if a stored URL/path needs a fresh signed URL.
- * File paths (no protocol) and expired signed URLs need refreshing.
+ * File paths (no protocol) and any URL pointing at a private bucket need refreshing.
  */
 export function isStoragePath(value: string): boolean {
-  // Data URIs and blob URLs are already displayable, not storage paths
   if (value.startsWith('data:') || value.startsWith('blob:')) return false;
   if (!value.startsWith('http')) return true;
-  // Any URL referencing proposal-files bucket needs resolution (signed URLs expire, public URLs don't work on private buckets)
+  // Any URL referencing a private bucket (or one we now treat as private) needs resolution.
   if (value.includes('/proposal-files/')) return true;
+  if (value.includes('/participant-logos/')) return true;
   return false;
 }
 
 /**
- * Extracts the file path from a stored value (could be a path or a full URL).
+ * Resolves a stored value (raw path or full URL) to a {bucket, path} pair.
+ * Raw paths default to 'proposal-files' unless they start with a known
+ * participant-logos prefix ('logos/' or 'registry/').
  */
-function extractStoragePath(value: string): string | null {
-  if (!value.startsWith('http')) return value;
-  const match = value.match(/\/proposal-files\/([^?]+)/);
-  return match ? match[1] : null;
+function resolveStoragePath(value: string): ResolvedPath | null {
+  if (!value.startsWith('http')) {
+    if (value.startsWith('logos/') || value.startsWith('registry/')) {
+      return { bucket: 'participant-logos', path: value };
+    }
+    return { bucket: 'proposal-files', path: value };
+  }
+  const noQuery = value.split('?')[0];
+  const partMatch = noQuery.match(/\/participant-logos\/(.+)$/);
+  if (partMatch) return { bucket: 'participant-logos', path: partMatch[1] };
+  const propMatch = noQuery.match(/\/proposal-files\/(.+)$/);
+  if (propMatch) return { bucket: 'proposal-files', path: propMatch[1] };
+  return null;
 }
 
 // Module-level cache to dedupe and reuse signed URLs across components/renders.
@@ -29,60 +48,71 @@ const URL_TTL_MS = 50 * 60 * 1000;
 const urlCache = new Map<string, { url: string; expiresAt: number }>();
 const inflight = new Map<string, Promise<string | null>>();
 
-function getCachedUrl(path: string): string | null {
-  const hit = urlCache.get(path);
+function cacheKey(bucket: StorageBucket, path: string): string {
+  return `${bucket}:${path}`;
+}
+
+function getCachedUrl(bucket: StorageBucket, path: string): string | null {
+  const key = cacheKey(bucket, path);
+  const hit = urlCache.get(key);
   if (hit && hit.expiresAt > Date.now()) return hit.url;
-  if (hit) urlCache.delete(path);
+  if (hit) urlCache.delete(key);
   return null;
 }
 
-function fetchSignedUrl(path: string): Promise<string | null> {
-  const existing = inflight.get(path);
-  if (existing) return existing;
-  const p = getProposalFileSignedUrl(path, 3600).then(({ url }) => {
-    inflight.delete(path);
-    if (url) urlCache.set(path, { url, expiresAt: Date.now() + URL_TTL_MS });
+async function createSignedUrl(bucket: StorageBucket, path: string): Promise<string | null> {
+  if (bucket === 'proposal-files') {
+    const { url } = await getProposalFileSignedUrl(path, 3600);
     return url || null;
-  }).catch(() => {
-    inflight.delete(path);
-    return null;
-  });
-  inflight.set(path, p);
+  }
+  const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, 3600);
+  if (error || !data?.signedUrl) return null;
+  return data.signedUrl;
+}
+
+function fetchSignedUrl(bucket: StorageBucket, path: string): Promise<string | null> {
+  const key = cacheKey(bucket, path);
+  const existing = inflight.get(key);
+  if (existing) return existing;
+  const p = createSignedUrl(bucket, path)
+    .then((url) => {
+      inflight.delete(key);
+      if (url) urlCache.set(key, { url, expiresAt: Date.now() + URL_TTL_MS });
+      return url;
+    })
+    .catch(() => {
+      inflight.delete(key);
+      return null;
+    });
+  inflight.set(key, p);
   return p;
 }
 
 /**
  * Non-hook async function to resolve a stored path/URL to a fresh signed URL.
- * Use in non-component contexts (e.g., export functions).
  */
 export async function resolveStorageUrl(storedValue: string | null | undefined): Promise<string | null> {
   if (!storedValue) return null;
   if (!isStoragePath(storedValue)) return storedValue;
-  const path = extractStoragePath(storedValue);
-  if (!path) return storedValue;
-  const cached = getCachedUrl(path);
+  const resolved = resolveStoragePath(storedValue);
+  if (!resolved) return storedValue;
+  const cached = getCachedUrl(resolved.bucket, resolved.path);
   if (cached) return cached;
-  const url = await fetchSignedUrl(path);
+  const url = await fetchSignedUrl(resolved.bucket, resolved.path);
   return url || storedValue;
 }
 
-/**
- * Compute the initial/synchronous value for a stored path.
- * Returns the value directly for data URIs, blob URLs, regular http URLs,
- * and cached signed URLs that don't need fresh async resolution.
- */
 function getInitialUrl(storedValue: string | null | undefined): string | null {
   if (!storedValue) return null;
   if (!isStoragePath(storedValue)) return storedValue;
-  const path = extractStoragePath(storedValue);
-  if (!path) return storedValue;
-  return getCachedUrl(path); // null if not cached, triggers async fetch
+  const resolved = resolveStoragePath(storedValue);
+  if (!resolved) return storedValue;
+  return getCachedUrl(resolved.bucket, resolved.path);
 }
 
 /**
  * Hook that resolves a storage file path or expired signed URL to a fresh signed URL.
- * Uses a module-level cache so the same logo path resolves instantly across renders/components
- * once it has been fetched once (signed URLs cached for 50 min).
+ * Supports both 'proposal-files' and 'participant-logos' buckets.
  */
 export function useStorageUrl(storedValue: string | null | undefined): string | null {
   const [resolvedUrl, setResolvedUrl] = useState<string | null>(() => getInitialUrl(storedValue));
@@ -99,14 +129,14 @@ export function useStorageUrl(storedValue: string | null | undefined): string | 
       return;
     }
 
-    const path = extractStoragePath(storedValue);
-    if (!path) {
+    const resolved = resolveStoragePath(storedValue);
+    if (!resolved) {
       setResolvedUrl(storedValue);
       return;
     }
 
     let cancelled = false;
-    fetchSignedUrl(path).then((url) => {
+    fetchSignedUrl(resolved.bucket, resolved.path).then((url) => {
       if (!cancelled) setResolvedUrl(url || storedValue);
     });
 

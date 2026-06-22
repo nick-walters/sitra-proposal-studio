@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { CountrySelect } from "@/components/CountrySelect";
+import { StorageImage } from "@/components/StorageImage";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -83,14 +84,9 @@ const COUNTRY_CODE_TO_NAME: Record<string, string> = Object.fromEntries(
 
 const LOGO_BUCKET = "participant-logos";
 
-function getLogoPublicUrl(path: string | null, cacheBust?: number | string): string | null {
-  if (!path) return null;
-  if (path.startsWith("http")) return path;
-  const { data } = supabase.storage.from(LOGO_BUCKET).getPublicUrl(path);
-  if (!data?.publicUrl) return null;
-  const bust = cacheBust ?? Date.now();
-  return `${data.publicUrl}?t=${bust}`;
-}
+// The participant-logos bucket is private. Storage paths/URLs are resolved to
+// short-lived signed URLs at render time via <StorageImage>.
+
 
 
 interface FormState {
@@ -564,8 +560,8 @@ export function OrganisationRegistryAdmin() {
                   <Label>Logo</Label>
                   <div className="flex items-center gap-3">
                     {addForm.logo_url && (
-                      <img
-                        src={getLogoPublicUrl(addForm.logo_url) || ""}
+                      <StorageImage
+                        storedPath={addForm.logo_url}
                         alt="logo"
                         className="w-12 h-12 object-contain border rounded bg-white"
                       />
@@ -658,7 +654,6 @@ export function OrganisationRegistryAdmin() {
                   </TableHeader>
                   <TableBody>
                     {filteredOrgs.map((org) => {
-                      const logoUrl = getLogoPublicUrl(org.logo_url);
                       const isHighlighted = highlightedPic === org.pic_number;
                       return (
                         <TableRow
@@ -669,9 +664,9 @@ export function OrganisationRegistryAdmin() {
                           }
                         >
                           <TableCell>
-                            {logoUrl ? (
-                              <img
-                                src={logoUrl}
+                            {org.logo_url ? (
+                              <StorageImage
+                                storedPath={org.logo_url}
                                 alt={org.short_name}
                                 className="w-8 h-8 object-contain border rounded bg-white"
                               />
@@ -821,8 +816,8 @@ export function OrganisationRegistryAdmin() {
                 <Label>Logo</Label>
                 <div className="flex items-center gap-3">
                   {editForm.logo_url && (
-                    <img
-                      src={getLogoPublicUrl(editForm.logo_url) || ""}
+                    <StorageImage
+                      storedPath={editForm.logo_url}
                       alt="logo"
                       className="w-12 h-12 object-contain border rounded bg-white"
                     />
