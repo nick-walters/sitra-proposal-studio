@@ -76,12 +76,14 @@ export const BadgeTrailingCaret = Extension.create({
 
             const $from = selection.$from;
             const nodeBefore = $from.nodeBefore;
-            if (!nodeBefore || !nodeBefore.isText) return false;
+            // eslint-disable-next-line no-console
+            console.log('[BTC] keydown key=', JSON.stringify(event.key), 'pos=', $from.pos, 'nodeBefore=', nodeBefore ? { isText: nodeBefore.isText, text: nodeBefore.text, marks: nodeBefore.marks.map(m=>m.type.name) } : null, 'parentType=', $from.parent.type.name, 'parentContent=', $from.parent.textContent);
+            if (!nodeBefore || !nodeBefore.isText) { console.log('[BTC] bail: no text nodeBefore'); return false; }
 
             const badgeMark = nodeBefore.marks.find((m) =>
               markTypes.includes(m.type)
             );
-            if (!badgeMark) return false;
+            if (!badgeMark) { console.log('[BTC] bail: no badge mark on nodeBefore'); return false; }
 
             // If the node after continues the same badge run, the caret is
             // logically INSIDE the badge — leave it to normal handling
@@ -93,8 +95,10 @@ export const BadgeTrailingCaret = Extension.create({
               nodeAfter.isText &&
               nodeAfter.marks.some((m) => m.type === badgeMark.type)
             ) {
+              console.log('[BTC] bail: inside badge run');
               return false;
             }
+            console.log('[BTC] FIRING shim insert');
 
             const ch = isSpace ? ' ' : event.key;
 

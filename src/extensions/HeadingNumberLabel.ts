@@ -158,6 +158,8 @@ export const HeadingNumberLabel = Mark.create({
           const cursorPos = selection.$from.pos;
           if (cursorPos < labelFrom || cursorPos > labelTo) return null;
 
+          // eslint-disable-next-line no-console
+          console.log('[HNL-CLAMP] cursorPos=', cursorPos, 'labelFrom=', labelFrom, 'labelTo=', labelTo);
           const tr = newState.tr;
           tr.setSelection(TextSelection.create(doc, labelTo));
           tr.setMeta('addToHistory', false);
