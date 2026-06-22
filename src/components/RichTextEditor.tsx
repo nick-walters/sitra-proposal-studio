@@ -1544,8 +1544,8 @@ StarterKit.configure({
                   const target = event.target as HTMLElement;
                   const refEl = target.closest('[data-inline-reference], [data-wp-reference], [data-case-reference], [data-participant-reference], [data-acronym-reference], [data-fig-table-ref]');
                   if (!refEl) return false;
-                  // eslint-disable-next-line no-console
-                  console.log('[CLICK] referenceClickSelect', { pos, tagName: refEl.tagName, attrs: Array.from(refEl.attributes).map(a => `${a.name}=${a.value}`).slice(0, 4) });
+
+                  
 
                   
                   // Find the mark range at this position

@@ -104,8 +104,6 @@ export const BadgeTrailingCaret = Extension.create({
                 TextSelection.create(tr.doc, $from.pos + ch.length)
               );
               tr.scrollIntoView();
-              // eslint-disable-next-line no-console
-              console.log('[BTC] insert', { ch, atPos: $from.pos, badge: badgeMark.type.name, nodeBeforeText: nodeBefore.text });
               view.dispatch(tr);
             } catch {
               return false;
