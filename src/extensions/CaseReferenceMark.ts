@@ -203,6 +203,8 @@ export const CaseReferenceMark = Mark.create<CaseReferenceOptions>({
           let modified = false;
           const seen = new Set<number>();
 
+          const replacements: { pos: number; end: number; expected: string; marks: readonly any[] }[] = [];
+
           for (const range of changedRanges) {
             const from = Math.max(0, range.from - 10);
             const to = Math.min(doc.content.size, range.to + 10);
@@ -220,11 +222,18 @@ export const CaseReferenceMark = Mark.create<CaseReferenceOptions>({
               const actual = node.text || '';
 
               if (actual !== expected) {
-                const newNode = schema.text(expected, node.marks);
-                tr.replaceWith(pos, pos + node.nodeSize, newNode);
-                modified = true;
+                replacements.push({ pos, end: pos + node.nodeSize, expected, marks: node.marks });
               }
             });
+          }
+
+          replacements.sort((a, b) => b.pos - a.pos);
+          for (const r of replacements) {
+            const target = doc.nodeAt(r.pos);
+            if (!target || !target.isText) continue;
+            if (!target.marks.some(m => m.type === markType)) continue;
+            tr.replaceWith(r.pos, r.end, schema.text(r.expected, r.marks));
+            modified = true;
           }
 
           return modified ? tr : null;
