@@ -45,6 +45,7 @@ import { useBlockLocking } from "@/hooks/useBlockLocking";
 import { renumberFootnotes } from "@/lib/captionRenumbering";
 import { syncCrossReferences } from "@/lib/syncCrossReferences";
 import { renumberCaptionsInEditor } from "@/lib/renumberCaptionsInEditor";
+import { renumberH3Headings } from "@/lib/renumberH3Headings";
 import { useProposalReferences } from "@/hooks/useProposalReferences";
 import { useGlobalCitationOrder } from "@/hooks/useGlobalCitationOrder";
 import { FootnoteCitation } from "@/components/FootnoteCitation";
@@ -564,6 +565,8 @@ export function DocumentEditor({
       // Renumber captions first, then sync cross-references
       if (editor && section?.number) {
         renumberCaptionsInEditor(editor, section.number, 0);
+        const cleanNum = section.number.replace(/^[A-Za-z]+/, '');
+        renumberH3Headings(editor, cleanNum);
       }
       setSyncTrigger(prev => prev + 1);
     };
