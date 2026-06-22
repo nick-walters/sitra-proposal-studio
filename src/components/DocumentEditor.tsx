@@ -562,12 +562,12 @@ export function DocumentEditor({
   useEffect(() => {
     const handleCrossRefDataChanged = () => setSyncTrigger(prev => prev + 1);
     const handleBlockReordered = () => {
-      // Renumber captions first, then sync cross-references
-      if (editor && section?.number) {
+      // Renumber H3 headings first (synchronously, same handler invocation),
+      // then captions, then trigger debounced cross-ref sync.
+      if (editor && section?.number && !editor.view.composing) {
+        const cleanNum = section.number.replace(/^[A-Za-z]+/, '');
+        renumberH3Headings(editor, cleanNum);
         renumberCaptionsInEditor(editor, section.number, 0);
-        // TEMPORARILY DISABLED: renumber-on-reorder while diagnosing cross-heading cursor jump
-        // const cleanNum = section.number.replace(/^[A-Za-z]+/, '');
-        // renumberH3Headings(editor, cleanNum);
       }
       setSyncTrigger(prev => prev + 1);
     };
