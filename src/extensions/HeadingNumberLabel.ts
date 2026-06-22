@@ -94,48 +94,23 @@ export const HeadingNumberLabel = Mark.create({
           if (!tr.docChanged) return true;
 
           let dominated = false;
+          const tested: any[] = [];
           tr.steps.forEach((step) => {
             const stepMap = step.getMap();
             stepMap.forEach((oldStart, oldEnd, newStart, newEnd) => {
               if (newEnd > newStart && oldStart < state.doc.content.size) {
-                // Determine if the edit position is STRICTLY INSIDE a
-                // headingNumberLabel run, versus exactly at its trailing
-                // boundary (where typed heading text should be allowed).
-                //
-                // A position is interior to the marked run when BOTH:
-                //   - the node immediately before (nodeBefore) carries the mark
-                //   - AND the node at the position (nodeAfter) also carries
-                //     the mark (i.e. we're between two marked characters, or
-                //     equivalently, replacing characters within the marked text)
-                //
-                // At the trailing boundary (labelTo), nodeBefore is marked but
-                // nodeAfter is either unmarked text, a different node, or null
-                // (end of heading) — that is a pure insertion AFTER the label
-                // and must be allowed.
-                //
-                // Pure insertions (oldStart === oldEnd) are only blocked when
-                // strictly interior. Replacements that overlap the marked run
-                // (oldEnd > oldStart and the start sits inside the run) are
-                // also blocked.
                 const $pos = state.doc.resolve(Math.min(oldStart, state.doc.content.size));
                 const nodeBefore = $pos.nodeBefore;
                 const nodeAfter = $pos.nodeAfter;
                 const beforeMarked = !!nodeBefore && nodeBefore.isText && markType.isInSet(nodeBefore.marks);
                 const afterMarked = !!nodeAfter && nodeAfter.isText && !!markType.isInSet(nodeAfter.marks);
+                tested.push({ oldStart, oldEnd, newStart, newEnd, beforeMarked: !!beforeMarked, afterMarked, nodeBeforeText: nodeBefore?.isText ? nodeBefore.text : null, nodeAfterText: nodeAfter?.isText ? nodeAfter.text : null });
 
                 if (oldEnd > oldStart) {
-                  // Replacement/deletion that starts inside the marked text.
-                  if (beforeMarked && afterMarked) {
-                    dominated = true;
-                  } else if (afterMarked) {
-                    // Range begins exactly on the first character of the label.
-                    dominated = true;
-                  }
+                  if (beforeMarked && afterMarked) dominated = true;
+                  else if (afterMarked) dominated = true;
                 } else {
-                  // Pure insertion: only block when strictly interior.
-                  if (beforeMarked && afterMarked) {
-                    dominated = true;
-                  }
+                  if (beforeMarked && afterMarked) dominated = true;
                 }
               }
             });
@@ -143,11 +118,21 @@ export const HeadingNumberLabel = Mark.create({
 
           if (dominated) {
             const isProgram = tr.getMeta('addToHistory') === false || tr.getMeta('blockReorder');
-            if (!isProgram) return false;
+            if (!isProgram) {
+              // eslint-disable-next-line no-console
+              console.log('[HNL-FILTER] BLOCK', { tested, sel: { a: tr.selection.anchor, h: tr.selection.head } });
+              return false;
+            }
+            // eslint-disable-next-line no-console
+            console.log('[HNL-FILTER] ALLOW(program)', { tested });
+          } else if (tested.length) {
+            // eslint-disable-next-line no-console
+            console.log('[HNL-FILTER] ALLOW', { tested, sel: { a: tr.selection.anchor, h: tr.selection.head } });
           }
 
           return true;
         },
+
 
         appendTransaction(transactions, _oldState, newState) {
           if (!transactions.some(tr => tr.docChanged)) return null;
@@ -168,9 +153,27 @@ export const HeadingNumberLabel = Mark.create({
           const markTypeRef = schema.marks.headingNumberLabel;
           if (!markTypeRef) return null;
 
+          // Snapshot of all headings + headingNumberLabel runs in the doc
+          const headingSnap: any[] = [];
+          doc.descendants((node, pos) => {
+            if (node.type.name === 'heading') {
+              const labels: any[] = [];
+              node.descendants((child, childOff) => {
+                if (child.isText && markTypeRef.isInSet(child.marks)) {
+                  labels.push({ pos: pos + 1 + childOff, end: pos + 1 + childOff + child.nodeSize, text: child.text });
+                }
+              });
+              headingSnap.push({ pos, end: pos + node.nodeSize, level: node.attrs.level, text: node.textContent, labels });
+            }
+          });
+          // eslint-disable-next-line no-console
+          console.log('[HNL-CLAMP] doc snapshot', { changedRanges, sel: { a: selection.anchor, h: selection.head }, headings: headingSnap });
+
+
           let needsClamp = false;
           let labelFrom = -1;
           let labelTo = -1;
+          const foundLabels: Array<{ pos: number; end: number; text: string }> = [];
 
           for (const range of changedRanges) {
             const from = Math.max(0, range.from - 5);
@@ -181,6 +184,7 @@ export const HeadingNumberLabel = Mark.create({
               const mark = markTypeRef.isInSet(node.marks);
               if (mark) {
                 needsClamp = true;
+                foundLabels.push({ pos, end: pos + node.nodeSize, text: node.text || '' });
                 if (labelFrom === -1 || pos < labelFrom) labelFrom = pos;
                 if (pos + node.nodeSize > labelTo) labelTo = pos + node.nodeSize;
               }
@@ -189,16 +193,23 @@ export const HeadingNumberLabel = Mark.create({
             if (needsClamp) break;
           }
 
-          if (!needsClamp) return null;
+          if (!needsClamp) {
+            return null;
+          }
 
           const cursorPos = selection.$from.pos;
+          // eslint-disable-next-line no-console
+          console.log('[HNL-CLAMP] fired', { changedRanges, foundLabels, labelFrom, labelTo, cursorPos, willClamp: cursorPos >= labelFrom && cursorPos <= labelTo });
           if (cursorPos < labelFrom || cursorPos > labelTo) return null;
 
           const tr = newState.tr;
           tr.setSelection(TextSelection.create(doc, labelTo));
           tr.setMeta('addToHistory', false);
+          // eslint-disable-next-line no-console
+          console.log('[HNL-CLAMP] setSelection ->', labelTo);
           return tr;
         },
+
       }),
     ];
   },
