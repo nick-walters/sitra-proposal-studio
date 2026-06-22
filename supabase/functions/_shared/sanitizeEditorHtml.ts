@@ -85,6 +85,7 @@ export const STYLE_ALLOWLIST = new Set<string>([
   'stroke',
   'stroke-width',
   '--wp-color',
+  'user-select',
 ]);
 
 export const ALLOWED_TAGS = [
