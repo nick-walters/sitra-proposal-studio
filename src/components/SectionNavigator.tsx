@@ -621,7 +621,7 @@ function SectionItem({
                               maxWidth: '140px',
                             }}
                           >
-                            {caseIncludeNumber ? caseSub.number : caseSub.title}
+                            {caseSub.caseLabel || caseSub.caseShortName || caseSub.number}
                           </B31Pill>
                         )}
                       </TooltipTrigger>
