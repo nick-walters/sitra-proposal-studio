@@ -156,6 +156,7 @@ export const HeadingNumberLabel = Mark.create({
           let needsClamp = false;
           let labelFrom = -1;
           let labelTo = -1;
+          const foundLabels: Array<{ pos: number; end: number; text: string }> = [];
 
           for (const range of changedRanges) {
             const from = Math.max(0, range.from - 5);
@@ -166,6 +167,7 @@ export const HeadingNumberLabel = Mark.create({
               const mark = markTypeRef.isInSet(node.marks);
               if (mark) {
                 needsClamp = true;
+                foundLabels.push({ pos, end: pos + node.nodeSize, text: node.text || '' });
                 if (labelFrom === -1 || pos < labelFrom) labelFrom = pos;
                 if (pos + node.nodeSize > labelTo) labelTo = pos + node.nodeSize;
               }
@@ -174,16 +176,23 @@ export const HeadingNumberLabel = Mark.create({
             if (needsClamp) break;
           }
 
-          if (!needsClamp) return null;
+          if (!needsClamp) {
+            return null;
+          }
 
           const cursorPos = selection.$from.pos;
+          // eslint-disable-next-line no-console
+          console.log('[HNL-CLAMP] fired', { changedRanges, foundLabels, labelFrom, labelTo, cursorPos, willClamp: cursorPos >= labelFrom && cursorPos <= labelTo });
           if (cursorPos < labelFrom || cursorPos > labelTo) return null;
 
           const tr = newState.tr;
           tr.setSelection(TextSelection.create(doc, labelTo));
           tr.setMeta('addToHistory', false);
+          // eslint-disable-next-line no-console
+          console.log('[HNL-CLAMP] setSelection ->', labelTo);
           return tr;
         },
+
       }),
     ];
   },
