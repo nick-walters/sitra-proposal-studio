@@ -382,31 +382,15 @@ html, body {
     padding-top: 0 !important;
   }
 
-  /* Inline H3 sub-header styling for Part B templates */
-  .document-h3-inline {
-    font-family: 'Times New Roman', Times, serif;
-    font-size: 11pt;
-    font-weight: 700;
-    text-decoration: underline;
-    display: inline;
-    margin-top: 3pt !important;
-    margin-bottom: 3pt !important;
-  }
-
-  /* TipTap editor H3 styling */
+  /* TipTap editor H3 styling — block subheading on its own line */
   .prose h3 {
     font-family: 'Times New Roman', Times, serif;
     font-size: 11pt;
     font-weight: 700;
     text-decoration: underline;
-    display: inline;
-    margin: 0;
+    margin-top: 3pt;
+    margin-bottom: 3pt;
     text-align: left;
-  }
-
-  /* Ensure text after H3 can continue on same line */
-  .prose h3 + p {
-    display: inline;
   }
 }
 
