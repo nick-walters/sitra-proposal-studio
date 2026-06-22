@@ -136,6 +136,9 @@ function VersionListItem({ version, isLatest, isSelected, displayNumber, content
             <span className={`text-sm truncate ${version.is_major ? 'font-semibold' : 'font-medium text-muted-foreground'}`}>
               Version {displayNumber}
             </span>
+            {String(version.version_number) !== displayNumber && (
+              <span className="text-[10px] text-muted-foreground font-normal">v{version.version_number}</span>
+            )}
             {isLatest && (
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Latest</Badge>
             )}
@@ -606,6 +609,12 @@ export function SectionVersionHistoryDialog({
                 <div>
                   <h4 className={`text-sm ${selectedVersion.is_major ? 'font-semibold' : 'font-medium'}`}>
                     Version {displayVersionNumbers.get(selectedVersion.id) || selectedVersion.version_number}
+                    {(() => {
+                      const derived = displayVersionNumbers.get(selectedVersion.id);
+                      return derived && derived !== String(selectedVersion.version_number) ? (
+                        <span className="text-xs text-muted-foreground font-normal ml-1">(v{selectedVersion.version_number})</span>
+                      ) : null;
+                    })()}
                   </h4>
 
                   {/* Label display / editing */}
