@@ -220,14 +220,14 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
     enabled: !!proposalId,
   });
 
-  // Fetch proposal's use_wp_themes flag
+  // Fetch proposal's use_wp_themes flag and case display settings
   const { data: proposalData } = useQuery({
     queryKey: ['proposal-themes-flag', proposalId],
     queryFn: async () => {
       if (!proposalId) return null;
       const { data, error } = await supabase
         .from('proposals')
-        .select('use_wp_themes')
+        .select('use_wp_themes, case_include_number, case_include_abbreviation')
         .eq('id', proposalId)
         .single();
       if (error) throw error;
