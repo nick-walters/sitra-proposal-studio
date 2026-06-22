@@ -1,5 +1,6 @@
 import { Mark } from '@tiptap/core';
 import { Plugin, PluginKey, TextSelection } from '@tiptap/pm/state';
+import { Decoration, DecorationSet } from '@tiptap/pm/view';
 
 /**
  * A TipTap mark that wraps the numbered prefix of H3 headings
