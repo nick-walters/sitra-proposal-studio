@@ -609,6 +609,12 @@ export function SectionVersionHistoryDialog({
                 <div>
                   <h4 className={`text-sm ${selectedVersion.is_major ? 'font-semibold' : 'font-medium'}`}>
                     Version {displayVersionNumbers.get(selectedVersion.id) || selectedVersion.version_number}
+                    {(() => {
+                      const derived = displayVersionNumbers.get(selectedVersion.id);
+                      return derived && derived !== String(selectedVersion.version_number) ? (
+                        <span className="text-xs text-muted-foreground font-normal ml-1">(v{selectedVersion.version_number})</span>
+                      ) : null;
+                    })()}
                   </h4>
 
                   {/* Label display / editing */}
