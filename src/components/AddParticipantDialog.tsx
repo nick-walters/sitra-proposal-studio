@@ -145,12 +145,9 @@ export function AddParticipantDialog({
     });
   }, [orgs, search, existingPicSet]);
 
-  const logoUrlFor = (path: string | null): string | null => {
-    if (!path) return null;
-    if (path.startsWith('http')) return path;
-    const { data } = supabase.storage.from('participant-logos').getPublicUrl(path);
-    return data?.publicUrl ?? null;
-  };
+  // The participant-logos bucket is private — pass the raw stored value through;
+  // <StorageImage> resolves it to a short-lived signed URL at render time.
+  const logoUrlFor = (path: string | null): string | null => path || null;
 
   const isDuplicate = selectedOrg ? existingPicSet.has(selectedOrg.pic_number?.trim()) : false;
 

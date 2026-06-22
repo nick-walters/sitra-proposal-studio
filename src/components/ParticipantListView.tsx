@@ -265,11 +265,9 @@ function ParticipantCard({
                     return;
                   }
 
-                  const { data: { publicUrl } } = supabase.storage
-                    .from('participant-logos')
-                    .getPublicUrl(filePath);
-
-                  await onUpdateParticipant(participant.id, { logoUrl: publicUrl });
+                  // Store the storage path (not a public URL); bucket is private and
+                  // StorageImage will resolve it to a signed URL at render time.
+                  await onUpdateParticipant(participant.id, { logoUrl: filePath });
                   toast.success('Logo uploaded');
                 } catch (err) {
                   console.error('Upload error:', err);
