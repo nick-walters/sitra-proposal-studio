@@ -827,8 +827,8 @@ export function FormattingToolbar({
                 }
               }}
               onUnnumbered={() => {
-                editor.chain().focus().toggleBold().run();
-                editor.chain().focus().toggleUnderline().run();
+                // Block H3 on its own line (bold+underline come from .prose h3 styling).
+                editor.chain().focus().setNode('heading', { level: 3 }).run();
               }}
             />
           );
