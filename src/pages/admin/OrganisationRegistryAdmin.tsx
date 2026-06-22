@@ -816,8 +816,8 @@ export function OrganisationRegistryAdmin() {
                 <Label>Logo</Label>
                 <div className="flex items-center gap-3">
                   {editForm.logo_url && (
-                    <img
-                      src={getLogoPublicUrl(editForm.logo_url) || ""}
+                    <StorageImage
+                      storedPath={editForm.logo_url}
                       alt="logo"
                       className="w-12 h-12 object-contain border rounded bg-white"
                     />
