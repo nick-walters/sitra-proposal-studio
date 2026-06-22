@@ -1261,7 +1261,7 @@ StarterKit.configure({
       CaseReferenceMark,
       AcronymReference,
       FigureTableReferenceMark,
-      ParenBadgeGlue,
+      // ParenBadgeGlue, // TEMPORARILY DISABLED FOR TESTING
       CaptionLabel,
       HeadingNumberLabel,
       // Suppress heading input rules inside table cells: revert heading nodes back to paragraphs
@@ -1493,7 +1493,7 @@ StarterKit.configure({
       HeadingNumberLabel,
       // Figure/table reference marks for atomic deletion
       FigureTableReferenceMark,
-      ParenBadgeGlue,
+      // ParenBadgeGlue, // TEMPORARILY DISABLED FOR TESTING
       // Block drag-and-drop via drag handle
       BlockDragHandle.configure({
         getLockedBlocks: () => getLockedBlocksRef.current(),
