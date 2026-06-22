@@ -34,6 +34,29 @@ export const HeadingNumberLabel = Mark.create({
 
     return [
       new Plugin({
+        key: new PluginKey('headingNumberTrailingCaretWidget'),
+        // View-only decoration: provides a tiny zero-width DOM caret target
+        // immediately after each headingNumberLabel-marked text run, so the
+        // browser can host a DOM caret at that PM position. Never inserted
+        // into the document; never serialized into getHTML(). Rebuilt on
+        // docChanged only (same pattern as ParenBadgeGlue).
+        state: {
+          init(_, { doc }) {
+            return buildHeadingTailDecorations(doc, markType);
+          },
+          apply(tr, old) {
+            if (!tr.docChanged) return old;
+            return buildHeadingTailDecorations(tr.doc, markType);
+          },
+        },
+        props: {
+          decorations(state) {
+            return this.getState(state);
+          },
+        },
+      }),
+
+      new Plugin({
         key: new PluginKey('headingNumberGuard'),
 
         filterTransaction(tr, state) {
