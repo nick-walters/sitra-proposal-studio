@@ -30,7 +30,7 @@ import { CaseReferenceMark } from '@/extensions/CaseReferenceMark';
 import { ParticipantReferenceMark } from '@/extensions/ParticipantReferenceMark';
 import { AcronymReference } from '@/extensions/AcronymReference';
 import { FigureTableReferenceMark } from '@/extensions/FigureTableReferenceMark';
-import { ParenBadgeGlue } from '@/extensions/ParenBadgeGlue';
+// import { ParenBadgeGlue } from '@/extensions/ParenBadgeGlue'; // TEMPORARILY DISABLED FOR TESTING
 import { CaptionLabel } from '@/extensions/CaptionLabel';
 import { HeadingNumberLabel } from '@/extensions/HeadingNumberLabel';
 import { OrderedListStyled } from '@/extensions/OrderedListStyled';
