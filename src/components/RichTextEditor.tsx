@@ -825,14 +825,17 @@ export function FormattingToolbar({
                   }
                   renumberH3Headings(editor, cleanNum);
                 }
-                // After all mutations settle (and the dropdown closes / blurs),
-                // restore focus into the editor and place caret at the end of
-                // the current heading using FRESH editor state.
-                requestAnimationFrame(() => {
+                // After all mutations settle AND the Radix dropdown finishes
+                // closing + restoring focus to its trigger, restore focus into
+                // the editor and place caret at the end of the current heading
+                // using FRESH editor state. A small setTimeout outlasts the
+                // dropdown's onCloseAutoFocus, which fires after rAF.
+                setTimeout(() => {
                   const sel = editor.state.selection;
                   const endOfHeading = sel.$from.end();
                   editor.chain().focus().setTextSelection(endOfHeading).run();
-                });
+                }, 60);
+
               }}
               onUnnumbered={() => {
                 // Block H3 on its own line (bold+underline come from .prose h3 styling).
