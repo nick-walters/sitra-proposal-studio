@@ -26,6 +26,8 @@ export interface CaseSection extends Section {
   caseNumber?: number;
   caseColor?: string;
   caseType?: string;
+  caseLabel?: string;
+  caseShortName?: string;
 }
 
 interface TemplateSectionData {
@@ -218,14 +220,14 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
     enabled: !!proposalId,
   });
 
-  // Fetch proposal's use_wp_themes flag
+  // Fetch proposal's use_wp_themes flag and case display settings
   const { data: proposalData } = useQuery({
     queryKey: ['proposal-themes-flag', proposalId],
     queryFn: async () => {
       if (!proposalId) return null;
       const { data, error } = await supabase
         .from('proposals')
-        .select('use_wp_themes')
+        .select('use_wp_themes, case_include_number, case_include_abbreviation')
         .eq('id', proposalId)
         .single();
       if (error) throw error;
@@ -306,22 +308,35 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
     }
   };
 
+  const caseIncludeNumber = (proposalData as any)?.case_include_number !== false;
+  const caseIncludeAbbreviation = (proposalData as any)?.case_include_abbreviation !== false;
+
   // Convert Case drafts to sections (filter hidden for non-coordinators)
   const caseDraftSections: CaseSection[] = useMemo(() => {
     const visibleCases = isCoordinator ? caseDraftsData : caseDraftsData.filter(c => !c.is_hidden);
     return visibleCases.map(c => {
       const prefix = getCasePrefix(c.case_type);
+      const shortName = c.short_name || '';
+      const showAbbrev = (caseIncludeNumber || caseIncludeAbbreviation) && !!prefix;
+      const showNumber = caseIncludeNumber;
+      const prefixPart = `${showAbbrev ? prefix : ''}${showNumber ? c.number : ''}`;
+      const label = prefixPart
+        ? `${prefixPart}: ${shortName || c.title || ''}`
+        : (shortName || c.title || `${c.number}`);
       return {
         id: `case-${c.id}`,
-        number: prefix ? `${prefix}${c.number}` : (c.short_name || `${c.number}`),
-        title: prefix ? (c.short_name || c.title || '') : (c.title || ''),
+        number: prefix ? `${prefix}${c.number}` : (shortName || `${c.number}`),
+        title: prefix ? (shortName || c.title || '') : (c.title || ''),
         caseId: c.id,
         caseNumber: c.number,
         caseColor: c.color,
         caseType: c.case_type,
+        caseLabel: label,
+        caseShortName: shortName,
       };
     });
-  }, [caseDraftsData, isCoordinator]);
+  }, [caseDraftsData, isCoordinator, caseIncludeNumber, caseIncludeAbbreviation]);
+
 
   // Subscribe to realtime updates for WP drafts and invalidate react-query cache
   useEffect(() => {
