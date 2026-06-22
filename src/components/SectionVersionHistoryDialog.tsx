@@ -136,6 +136,9 @@ function VersionListItem({ version, isLatest, isSelected, displayNumber, content
             <span className={`text-sm truncate ${version.is_major ? 'font-semibold' : 'font-medium text-muted-foreground'}`}>
               Version {displayNumber}
             </span>
+            {String(version.version_number) !== displayNumber && (
+              <span className="text-[10px] text-muted-foreground font-normal">v{version.version_number}</span>
+            )}
             {isLatest && (
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Latest</Badge>
             )}
