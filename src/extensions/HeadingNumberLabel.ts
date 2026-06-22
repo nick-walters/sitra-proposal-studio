@@ -1,5 +1,35 @@
 import { Mark } from '@tiptap/core';
 import { Plugin, PluginKey, TextSelection } from '@tiptap/pm/state';
+import { Decoration, DecorationSet } from '@tiptap/pm/view';
+
+/**
+ * Build a DecorationSet of zero-width inline widgets placed immediately after
+ * each headingNumberLabel-marked text run. View-only: never enters the saved
+ * document and never round-trips through getHTML().
+ */
+function buildHeadingTailDecorations(doc: any, markType: any): DecorationSet {
+  const decos: Decoration[] = [];
+  doc.descendants((node: any, pos: number) => {
+    if (!node.isText) return;
+    if (!markType.isInSet(node.marks)) return;
+    const labelTo = pos + node.nodeSize;
+    decos.push(
+      Decoration.widget(
+        labelTo,
+        () => {
+          const span = document.createElement('span');
+          span.setAttribute('data-heading-number-tail', '');
+          span.setAttribute('aria-hidden', 'true');
+          span.textContent = '\u200B';
+          return span;
+        },
+        { side: 1, key: `heading-number-tail@${labelTo}`, ignoreSelection: false } as any,
+      ),
+    );
+  });
+  return DecorationSet.create(doc, decos);
+}
+
 
 /**
  * A TipTap mark that wraps the numbered prefix of H3 headings
@@ -32,6 +62,29 @@ export const HeadingNumberLabel = Mark.create({
     const markType = this.type;
 
     return [
+      new Plugin({
+        key: new PluginKey('headingNumberTrailingCaretWidget'),
+        // View-only decoration: provides a tiny zero-width DOM caret target
+        // immediately after each headingNumberLabel-marked text run, so the
+        // browser can host a DOM caret at that PM position. Never inserted
+        // into the document; never serialized into getHTML(). Rebuilt on
+        // docChanged only (same pattern as ParenBadgeGlue).
+        state: {
+          init(_, { doc }) {
+            return buildHeadingTailDecorations(doc, markType);
+          },
+          apply(tr, old) {
+            if (!tr.docChanged) return old;
+            return buildHeadingTailDecorations(tr.doc, markType);
+          },
+        },
+        props: {
+          decorations(state) {
+            return this.getState(state);
+          },
+        },
+      }),
+
       new Plugin({
         key: new PluginKey('headingNumberGuard'),
 
