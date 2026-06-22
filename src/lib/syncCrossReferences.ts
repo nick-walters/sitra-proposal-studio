@@ -183,175 +183,220 @@ export async function syncCrossReferences(
   const { doc, tr } = state;
   let changed = false;
 
-  // Walk through all text nodes and check their marks
-  doc.descendants((node, pos) => {
+  // ─────────────────────────────────────────────────────────────────────────
+  // Position-safe sync.
+  //
+  // The previous implementation called tr.removeMark/addMark/replaceWith
+  // immediately inside the doc.descendants walk using positions from the
+  // OLD doc. As soon as one badge changed length, every later position was
+  // stale — slicing a character off the next badge and leaving a one-char
+  // marked tail (e.g. "WP3: Prototyping" → "WP3: Prototypin" + "g").
+  //
+  // The new pipeline:
+  //   (1) Walk the doc collecting candidate text nodes + ref-mark metadata.
+  //   (2) Detect runs of ADJACENT same-mark/same-id text nodes (existing
+  //       splits from previous buggy runs) and queue a merge replacement.
+  //   (3) For every other ref-mark-bearing text node, queue an attr/label
+  //       update if its computed target differs.
+  //   (4) Sort all queued changes by pos DESCENDING and apply with a live
+  //       doc re-check (nodeAt + same mark/id) so positions never drift.
+  // ─────────────────────────────────────────────────────────────────────────
+
+  type RefId = { markName: string; idKey: string; idValue: string };
+
+  const getRefId = (mark: any): RefId | null => {
+    const a = mark.attrs;
+    switch (mark.type.name) {
+      case 'wpReference':
+        return a.wpId ? { markName: 'wpReference', idKey: 'wpId', idValue: a.wpId } : null;
+      case 'inlineReference':
+        if (a.refType === 'task' && a.taskId) return { markName: 'inlineReference', idKey: 'taskId', idValue: a.taskId };
+        if (a.refType === 'deliverable' && a.deliverableId) return { markName: 'inlineReference', idKey: 'deliverableId', idValue: a.deliverableId };
+        if (a.refType === 'milestone' && a.milestoneId) return { markName: 'inlineReference', idKey: 'milestoneId', idValue: a.milestoneId };
+        return null;
+      case 'caseReference':
+        return a.caseId ? { markName: 'caseReference', idKey: 'caseId', idValue: a.caseId } : null;
+      case 'participantReference':
+        return a.participantId ? { markName: 'participantReference', idKey: 'participantId', idValue: a.participantId } : null;
+      case 'figureTableReference':
+        return a.figureId ? { markName: 'figureTableReference', idKey: 'figureId', idValue: a.figureId } : null;
+      default:
+        return null;
+    }
+  };
+
+  const computeTarget = (mark: any): { newAttrs: Record<string, any>; newLabel: string } | null => {
+    const a = mark.attrs;
+    switch (mark.type.name) {
+      case 'wpReference': {
+        const wp = data.wpById.get(a.wpId);
+        if (!wp) return null;
+        return {
+          newAttrs: { ...a, wpNumber: wp.number, wpColor: wp.color, wpShortName: wp.short_name || a.wpShortName },
+          newLabel: wp.short_name ? `WP${wp.number}: ${wp.short_name}` : `WP${wp.number}`,
+        };
+      }
+      case 'inlineReference': {
+        if (a.refType === 'task') {
+          const t = data.taskById.get(a.taskId);
+          if (!t) return null;
+          return {
+            newAttrs: { ...a, wpNumber: t.wp_number, taskNumber: t.number, wpColor: t.wp_color },
+            newLabel: `T${t.wp_number}.${t.number}`,
+          };
+        }
+        if (a.refType === 'deliverable') {
+          const d = data.deliverableById.get(a.deliverableId);
+          if (!d) return null;
+          return {
+            newAttrs: { ...a, deliverableNumber: d.number, wpColor: d.wp_color },
+            newLabel: d.number,
+          };
+        }
+        if (a.refType === 'milestone') {
+          const m = data.milestoneById.get(a.milestoneId);
+          if (!m) return null;
+          return {
+            newAttrs: { ...a, milestoneNumber: m.number },
+            newLabel: `${m.number}`,
+          };
+        }
+        return null;
+      }
+      case 'caseReference': {
+        const c = data.caseById.get(a.caseId);
+        if (!c) return null;
+        const prefix = getCasePrefix(c.case_type);
+        return {
+          newAttrs: { ...a, caseNumber: c.number, caseColor: c.color, caseShortName: c.short_name || a.caseShortName, caseType: c.case_type },
+          newLabel: prefix ? `${prefix}${c.number}` : (c.short_name || `${c.number}`),
+        };
+      }
+      case 'participantReference': {
+        const p = data.participantById.get(a.participantId);
+        if (!p) return null;
+        return {
+          newAttrs: { ...a, participantNumber: p.participant_number, shortName: p.organisation_short_name },
+          newLabel: p.organisation_short_name || 'Partner',
+        };
+      }
+      case 'figureTableReference': {
+        const f = data.figureById.get(a.figureId);
+        if (!f) return null;
+        return { newAttrs: { ...a }, newLabel: `Figure ${f.figure_number}` };
+      }
+    }
+    return null;
+  };
+
+  const attrsEqual = (a: Record<string, any>, b: Record<string, any>): boolean => {
+    const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+    for (const k of keys) if (a[k] !== b[k]) return false;
+    return true;
+  };
+
+  type Change = {
+    pos: number;
+    end: number;
+    markName: string;
+    idKey: string;
+    idValue: string;
+    newAttrs: Record<string, any>;
+    newLabel: string | null; // null = leave text alone, only refresh attrs
+    otherMarks: readonly any[];
+  };
+
+  // (1) Collect ref-mark-bearing text nodes.
+  type Entry = { node: any; pos: number; parent: any; refMark: any; refId: RefId };
+  const entries: Entry[] = [];
+  doc.descendants((node, pos, parent) => {
     if (!node.isText) return;
-
-    const marks = node.marks;
-    for (const mark of marks) {
-      // Handle WP references
-      if (mark.type.name === 'wpReference' && mark.attrs.wpId) {
-        const wp = data.wpById.get(mark.attrs.wpId);
-        if (wp) {
-          const currentLabel = wp.short_name ? `WP${wp.number}: ${wp.short_name}` : `WP${wp.number}`;
-          const currentText = node.text || '';
-          if (currentText !== currentLabel || mark.attrs.wpNumber !== wp.number || mark.attrs.wpColor !== wp.color) {
-            const newMark = mark.type.create({
-              ...mark.attrs,
-              wpNumber: wp.number,
-              wpColor: wp.color,
-              wpShortName: wp.short_name || mark.attrs.wpShortName,
-            });
-            tr.removeMark(pos, pos + node.nodeSize, mark.type);
-            tr.addMark(pos, pos + node.nodeSize, newMark);
-            if (currentText !== currentLabel) {
-              tr.replaceWith(pos, pos + node.nodeSize, state.schema.text(currentLabel, [newMark, ...marks.filter(m => m !== mark)]));
-            }
-            changed = true;
-          }
-        }
-      }
-
-      // Handle inline references (task, deliverable, milestone)
-      if (mark.type.name === 'inlineReference') {
-        const refType = mark.attrs.refType;
-        const currentText = node.text || '';
-
-        if (refType === 'task' && mark.attrs.taskId) {
-          const task = data.taskById.get(mark.attrs.taskId);
-          if (task) {
-            const newLabel = `T${task.wp_number}.${task.number}`;
-            if (currentText !== newLabel || mark.attrs.wpNumber !== task.wp_number || mark.attrs.taskNumber !== task.number || mark.attrs.wpColor !== task.wp_color) {
-              const newMark = mark.type.create({
-                ...mark.attrs,
-                wpNumber: task.wp_number,
-                taskNumber: task.number,
-                wpColor: task.wp_color,
-              });
-              tr.removeMark(pos, pos + node.nodeSize, mark.type);
-              tr.addMark(pos, pos + node.nodeSize, newMark);
-              if (currentText !== newLabel) {
-                tr.replaceWith(pos, pos + node.nodeSize, state.schema.text(newLabel, [newMark, ...marks.filter(m => m !== mark)]));
-              }
-              changed = true;
-            }
-          }
-        }
-
-        if (refType === 'deliverable' && mark.attrs.deliverableId) {
-          const del = data.deliverableById.get(mark.attrs.deliverableId);
-          if (del) {
-            const newLabel = del.number;
-            if (currentText !== newLabel || mark.attrs.deliverableNumber !== del.number || mark.attrs.wpColor !== del.wp_color) {
-              const newMark = mark.type.create({
-                ...mark.attrs,
-                deliverableNumber: del.number,
-                wpColor: del.wp_color,
-              });
-              tr.removeMark(pos, pos + node.nodeSize, mark.type);
-              tr.addMark(pos, pos + node.nodeSize, newMark);
-              if (currentText !== newLabel) {
-                tr.replaceWith(pos, pos + node.nodeSize, state.schema.text(newLabel, [newMark, ...marks.filter(m => m !== mark)]));
-              }
-              changed = true;
-            }
-          }
-        }
-
-        if (refType === 'milestone' && mark.attrs.milestoneId) {
-          const ms = data.milestoneById.get(mark.attrs.milestoneId);
-          if (ms) {
-            const newLabel = `${ms.number}`;
-            if (currentText !== newLabel || mark.attrs.milestoneNumber !== ms.number) {
-              const newMark = mark.type.create({
-                ...mark.attrs,
-                milestoneNumber: ms.number,
-              });
-              tr.removeMark(pos, pos + node.nodeSize, mark.type);
-              tr.addMark(pos, pos + node.nodeSize, newMark);
-              if (currentText !== newLabel) {
-                tr.replaceWith(pos, pos + node.nodeSize, state.schema.text(newLabel, [newMark, ...marks.filter(m => m !== mark)]));
-              }
-              changed = true;
-            }
-          }
-        }
-      }
-
-      // Handle case references
-      if (mark.type.name === 'caseReference' && mark.attrs.caseId) {
-        const caseItem = data.caseById.get(mark.attrs.caseId);
-        if (caseItem) {
-          const prefix = getCasePrefix(caseItem.case_type);
-          const newLabel = prefix ? `${prefix}${caseItem.number}` : (caseItem.short_name || `${caseItem.number}`);
-          const currentText = node.text || '';
-          if (currentText !== newLabel || mark.attrs.caseNumber !== caseItem.number || mark.attrs.caseColor !== caseItem.color || mark.attrs.caseType !== caseItem.case_type) {
-            const newMark = mark.type.create({
-              ...mark.attrs,
-              caseNumber: caseItem.number,
-              caseColor: caseItem.color,
-              caseShortName: caseItem.short_name || mark.attrs.caseShortName,
-              caseType: caseItem.case_type,
-            });
-            tr.removeMark(pos, pos + node.nodeSize, mark.type);
-            tr.addMark(pos, pos + node.nodeSize, newMark);
-            if (currentText !== newLabel) {
-              tr.replaceWith(pos, pos + node.nodeSize, state.schema.text(newLabel, [newMark, ...marks.filter(m => m !== mark)]));
-            }
-            changed = true;
-          }
-        }
-      }
-
-      // Handle participant references
-      if (mark.type.name === 'participantReference' && mark.attrs.participantId) {
-        const participant = data.participantById.get(mark.attrs.participantId);
-        if (participant) {
-          const newLabel = participant.organisation_short_name || 'Partner';
-          const currentText = node.text || '';
-          if (currentText !== newLabel || mark.attrs.participantNumber !== participant.participant_number || mark.attrs.shortName !== participant.organisation_short_name) {
-            const newMark = mark.type.create({
-              ...mark.attrs,
-              participantNumber: participant.participant_number,
-              shortName: participant.organisation_short_name,
-            });
-            tr.removeMark(pos, pos + node.nodeSize, mark.type);
-            tr.addMark(pos, pos + node.nodeSize, newMark);
-            if (currentText !== newLabel) {
-              tr.replaceWith(pos, pos + node.nodeSize, state.schema.text(newLabel, [newMark, ...marks.filter(m => m !== mark)]));
-            }
-            changed = true;
-          }
-        }
-      }
-
-      // Handle figure/table references
-      if (mark.type.name === 'figureTableReference') {
-        const currentText = node.text || '';
-
-        // Sync figures by figureId
-        if (mark.attrs.figureId) {
-          const figure = data.figureById.get(mark.attrs.figureId);
-          if (figure) {
-            const newLabel = `Figure ${figure.figure_number}`;
-            if (currentText !== newLabel) {
-              const newMark = mark.type.create({ ...mark.attrs });
-              tr.removeMark(pos, pos + node.nodeSize, mark.type);
-              tr.addMark(pos, pos + node.nodeSize, newMark);
-              tr.replaceWith(pos, pos + node.nodeSize, state.schema.text(newLabel, [newMark, ...marks.filter(m => m !== mark)]));
-              changed = true;
-            }
-          }
-        }
-
-        // Sync tables by tableKey — the table_key itself is stable,
-        // but if the caption changes we don't need to update the ref text
-        // (ref text is "Table 3.1.a", not the caption).
-        // Table labels are derived from their key, so no dynamic update needed
-        // unless we add table renumbering in the future.
+    for (const m of node.marks) {
+      const id = getRefId(m);
+      if (id) {
+        entries.push({ node, pos, parent, refMark: m, refId: id });
+        break; // one ref mark per badge text node
       }
     }
   });
+
+  // (2) Detect adjacent same-mark/same-id runs (split badges) and queue merges.
+  const changes: Change[] = [];
+  const handled = new Set<number>(); // positions covered by a merge
+
+  let i = 0;
+  while (i < entries.length) {
+    const start = entries[i];
+    let runEnd = start.pos + start.node.nodeSize;
+    let j = i + 1;
+    while (j < entries.length) {
+      const next = entries[j];
+      if (next.parent !== start.parent) break;
+      if (next.pos !== runEnd) break;
+      if (next.refId.markName !== start.refId.markName) break;
+      if (next.refId.idValue !== start.refId.idValue) break;
+      runEnd = next.pos + next.node.nodeSize;
+      j++;
+    }
+    if (j - i > 1) {
+      const target = computeTarget(start.refMark);
+      if (target) {
+        changes.push({
+          pos: start.pos,
+          end: runEnd,
+          markName: start.refId.markName,
+          idKey: start.refId.idKey,
+          idValue: start.refId.idValue,
+          newAttrs: target.newAttrs,
+          newLabel: target.newLabel,
+          otherMarks: start.node.marks.filter((m: any) => m !== start.refMark),
+        });
+        for (let k = i; k < j; k++) handled.add(entries[k].pos);
+      }
+    }
+    i = j;
+  }
+
+  // (3) Single-node attr/label updates.
+  for (const e of entries) {
+    if (handled.has(e.pos)) continue;
+    const target = computeTarget(e.refMark);
+    if (!target) continue;
+    const currentText = e.node.text || '';
+    const textDiffers = currentText !== target.newLabel;
+    const attrsDiffer = !attrsEqual(e.refMark.attrs, target.newAttrs);
+    if (!textDiffers && !attrsDiffer) continue;
+    changes.push({
+      pos: e.pos,
+      end: e.pos + e.node.nodeSize,
+      markName: e.refId.markName,
+      idKey: e.refId.idKey,
+      idValue: e.refId.idValue,
+      newAttrs: target.newAttrs,
+      newLabel: textDiffers ? target.newLabel : null,
+      otherMarks: e.node.marks.filter((m: any) => m !== e.refMark),
+    });
+  }
+
+  // (4) Apply highest-pos-first with a live re-check.
+  changes.sort((a, b) => b.pos - a.pos);
+  for (const c of changes) {
+    const targetNode = doc.nodeAt(c.pos);
+    if (!targetNode || !targetNode.isText) continue;
+    const stillHas = targetNode.marks.some(
+      (m: any) => m.type.name === c.markName && m.attrs[c.idKey] === c.idValue,
+    );
+    if (!stillHas) continue;
+    const markType = state.schema.marks[c.markName];
+    if (!markType) continue;
+    const newMark = markType.create(c.newAttrs);
+    tr.removeMark(c.pos, c.end, markType);
+    tr.addMark(c.pos, c.end, newMark);
+    if (c.newLabel !== null) {
+      tr.replaceWith(c.pos, c.end, state.schema.text(c.newLabel, [newMark, ...c.otherMarks]));
+    }
+    changed = true;
+  }
 
   if (changed) {
     tr.setMeta('addToHistory', false);
