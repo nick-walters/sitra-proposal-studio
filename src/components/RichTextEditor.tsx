@@ -824,17 +824,24 @@ export function FormattingToolbar({
                     editor.view.dispatch(tr);
                   }
                   renumberH3Headings(editor, cleanNum);
-                  // Place caret at end of heading so user can type immediately.
+                }
+                // After all mutations settle (and the dropdown closes / blurs),
+                // restore focus into the editor and place caret at the end of
+                // the current heading using FRESH editor state.
+                requestAnimationFrame(() => {
                   const sel = editor.state.selection;
                   const endOfHeading = sel.$from.end();
                   editor.chain().focus().setTextSelection(endOfHeading).run();
-                }
+                });
               }}
               onUnnumbered={() => {
                 // Block H3 on its own line (bold+underline come from .prose h3 styling).
                 editor.chain().focus().setNode('heading', { level: 3 }).run();
-                const endOfHeading = editor.state.selection.$from.end();
-                editor.chain().focus().setTextSelection(endOfHeading).run();
+                requestAnimationFrame(() => {
+                  const sel = editor.state.selection;
+                  const endOfHeading = sel.$from.end();
+                  editor.chain().focus().setTextSelection(endOfHeading).run();
+                });
               }}
             />
           );
