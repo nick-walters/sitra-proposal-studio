@@ -30,7 +30,7 @@ import { CaseReferenceMark } from '@/extensions/CaseReferenceMark';
 import { ParticipantReferenceMark } from '@/extensions/ParticipantReferenceMark';
 import { AcronymReference } from '@/extensions/AcronymReference';
 import { FigureTableReferenceMark } from '@/extensions/FigureTableReferenceMark';
-import { ParenBadgeGlue } from '@/extensions/ParenBadgeGlue';
+// import { ParenBadgeGlue } from '@/extensions/ParenBadgeGlue'; // TEMPORARILY DISABLED FOR TESTING
 import { CaptionLabel } from '@/extensions/CaptionLabel';
 import { HeadingNumberLabel } from '@/extensions/HeadingNumberLabel';
 import { OrderedListStyled } from '@/extensions/OrderedListStyled';
@@ -1261,7 +1261,7 @@ StarterKit.configure({
       CaseReferenceMark,
       AcronymReference,
       FigureTableReferenceMark,
-      ParenBadgeGlue,
+      // ParenBadgeGlue, // TEMPORARILY DISABLED FOR TESTING
       CaptionLabel,
       HeadingNumberLabel,
       // Suppress heading input rules inside table cells: revert heading nodes back to paragraphs
@@ -1493,7 +1493,7 @@ StarterKit.configure({
       HeadingNumberLabel,
       // Figure/table reference marks for atomic deletion
       FigureTableReferenceMark,
-      ParenBadgeGlue,
+      // ParenBadgeGlue, // TEMPORARILY DISABLED FOR TESTING
       // Block drag-and-drop via drag handle
       BlockDragHandle.configure({
         getLockedBlocks: () => getLockedBlocksRef.current(),
