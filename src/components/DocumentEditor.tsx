@@ -565,6 +565,8 @@ export function DocumentEditor({
       // Renumber captions first, then sync cross-references
       if (editor && section?.number) {
         renumberCaptionsInEditor(editor, section.number, 0);
+        const cleanNum = section.number.replace(/^[A-Za-z]+/, '');
+        renumberH3Headings(editor, cleanNum);
       }
       setSyncTrigger(prev => prev + 1);
     };
