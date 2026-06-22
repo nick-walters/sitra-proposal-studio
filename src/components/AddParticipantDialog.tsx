@@ -23,6 +23,7 @@ import {
   ORGANISATION_CATEGORY_LABELS,
 } from '@/types/proposal';
 import { CountrySelect } from '@/components/CountrySelect';
+import { StorageImage } from '@/components/StorageImage';
 import { supabase } from '@/integrations/supabase/client';
 import {
   EU_MEMBER_STATES,
@@ -417,7 +418,7 @@ export function AddParticipantDialog({
                               >
                                 <div className="w-6 h-6 flex-shrink-0 flex items-center justify-center rounded bg-muted overflow-hidden">
                                   {logo ? (
-                                    <img src={logo} alt="" className="w-full h-full object-contain" />
+                                    <StorageImage storedPath={logo} alt="" className="w-full h-full object-contain" />
                                   ) : (
                                     <Building2 className="w-3.5 h-3.5 text-muted-foreground" />
                                   )}
@@ -458,8 +459,8 @@ export function AddParticipantDialog({
               <>
                 <div className="rounded-md border p-3 flex items-center gap-3">
                   <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded bg-muted overflow-hidden">
-                    {logoUrlFor(selectedOrg.logo_url) ? (
-                      <img src={logoUrlFor(selectedOrg.logo_url)!} alt="" className="w-full h-full object-contain" />
+                    {selectedOrg.logo_url ? (
+                      <StorageImage storedPath={selectedOrg.logo_url} alt="" className="w-full h-full object-contain" />
                     ) : (
                       <Building2 className="w-5 h-5 text-muted-foreground" />
                     )}
