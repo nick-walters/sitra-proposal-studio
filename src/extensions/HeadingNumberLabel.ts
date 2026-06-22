@@ -94,7 +94,6 @@ export const HeadingNumberLabel = Mark.create({
           if (!tr.docChanged) return true;
 
           let dominated = false;
-          const tested: any[] = [];
           tr.steps.forEach((step) => {
             const stepMap = step.getMap();
             stepMap.forEach((oldStart, oldEnd, newStart, newEnd) => {
@@ -104,7 +103,6 @@ export const HeadingNumberLabel = Mark.create({
                 const nodeAfter = $pos.nodeAfter;
                 const beforeMarked = !!nodeBefore && nodeBefore.isText && markType.isInSet(nodeBefore.marks);
                 const afterMarked = !!nodeAfter && nodeAfter.isText && !!markType.isInSet(nodeAfter.marks);
-                tested.push({ oldStart, oldEnd, newStart, newEnd, beforeMarked: !!beforeMarked, afterMarked, nodeBeforeText: nodeBefore?.isText ? nodeBefore.text : null, nodeAfterText: nodeAfter?.isText ? nodeAfter.text : null });
 
                 if (oldEnd > oldStart) {
                   if (beforeMarked && afterMarked) dominated = true;
