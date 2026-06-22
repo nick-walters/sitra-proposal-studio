@@ -119,15 +119,8 @@ export const HeadingNumberLabel = Mark.create({
           if (dominated) {
             const isProgram = tr.getMeta('addToHistory') === false || tr.getMeta('blockReorder');
             if (!isProgram) {
-              // eslint-disable-next-line no-console
-              console.log('[HNL-FILTER] BLOCK', { tested, sel: { a: tr.selection.anchor, h: tr.selection.head } });
               return false;
             }
-            // eslint-disable-next-line no-console
-            console.log('[HNL-FILTER] ALLOW(program)', { tested });
-          } else if (tested.length) {
-            // eslint-disable-next-line no-console
-            console.log('[HNL-FILTER] ALLOW', { tested, sel: { a: tr.selection.anchor, h: tr.selection.head } });
           }
 
           return true;
@@ -153,60 +146,40 @@ export const HeadingNumberLabel = Mark.create({
           const markTypeRef = schema.marks.headingNumberLabel;
           if (!markTypeRef) return null;
 
-          // Snapshot of all headings + headingNumberLabel runs in the doc
-          const headingSnap: any[] = [];
-          doc.descendants((node, pos) => {
-            if (node.type.name === 'heading') {
-              const labels: any[] = [];
-              node.descendants((child, childOff) => {
-                if (child.isText && markTypeRef.isInSet(child.marks)) {
-                  labels.push({ pos: pos + 1 + childOff, end: pos + 1 + childOff + child.nodeSize, text: child.text });
-                }
-              });
-              headingSnap.push({ pos, end: pos + node.nodeSize, level: node.attrs.level, text: node.textContent, labels });
-            }
-          });
-          // eslint-disable-next-line no-console
-          console.log('[HNL-CLAMP] doc snapshot', { changedRanges, sel: { a: selection.anchor, h: selection.head }, headings: headingSnap });
-
-
-          let needsClamp = false;
-          let labelFrom = -1;
-          let labelTo = -1;
-          const foundLabels: Array<{ pos: number; end: number; text: string }> = [];
-
+          // Collect individual label runs in a ±5 window around each changed
+          // range. Do NOT merge them into a single envelope — adjacent
+          // headings' labels would otherwise span the editable text between
+          // them and wrongly trap a cursor sitting in heading body text.
+          const labelRuns: Array<{ from: number; to: number }> = [];
           for (const range of changedRanges) {
             const from = Math.max(0, range.from - 5);
             const to = Math.min(doc.content.size, range.to + 5);
-
             doc.nodesBetween(from, to, (node, pos) => {
               if (!node.isText) return;
-              const mark = markTypeRef.isInSet(node.marks);
-              if (mark) {
-                needsClamp = true;
-                foundLabels.push({ pos, end: pos + node.nodeSize, text: node.text || '' });
-                if (labelFrom === -1 || pos < labelFrom) labelFrom = pos;
-                if (pos + node.nodeSize > labelTo) labelTo = pos + node.nodeSize;
+              if (markTypeRef.isInSet(node.marks)) {
+                labelRuns.push({ from: pos, to: pos + node.nodeSize });
               }
             });
-
-            if (needsClamp) break;
           }
 
-          if (!needsClamp) {
-            return null;
-          }
+          if (labelRuns.length === 0) return null;
 
           const cursorPos = selection.$from.pos;
-          // eslint-disable-next-line no-console
-          console.log('[HNL-CLAMP] fired', { changedRanges, foundLabels, labelFrom, labelTo, cursorPos, willClamp: cursorPos >= labelFrom && cursorPos <= labelTo });
-          if (cursorPos < labelFrom || cursorPos > labelTo) return null;
+
+          // Clamp ONLY when the cursor sits strictly inside a single label
+          // run (i.e. genuinely within the uneditable number text). Strict
+          // inequalities ensure that a cursor exactly at run.to (the
+          // legitimate "just after the number" position) is NOT clamped,
+          // and a cursor in a heading's body text between two labels is
+          // never moved into a different heading.
+          const containing = labelRuns.find(
+            (r) => cursorPos > r.from && cursorPos < r.to,
+          );
+          if (!containing) return null;
 
           const tr = newState.tr;
-          tr.setSelection(TextSelection.create(doc, labelTo));
+          tr.setSelection(TextSelection.create(doc, containing.to));
           tr.setMeta('addToHistory', false);
-          // eslint-disable-next-line no-console
-          console.log('[HNL-CLAMP] setSelection ->', labelTo);
           return tr;
         },
 
