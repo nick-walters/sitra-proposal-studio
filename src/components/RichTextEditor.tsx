@@ -411,6 +411,22 @@ function normalizePartBLoadedContent(html: string) {
     p.classList.add('b12-lead-badge');
   });
   div.querySelectorAll('table[data-b12-cases-table="true"] td[data-role="sub"] p').forEach((p) => {
+    let node = p.lastChild;
+    while (node) {
+      if (node.nodeType === Node.TEXT_NODE && !((node.textContent || '').trim())) {
+        const prev = node.previousSibling;
+        node.remove();
+        node = prev;
+        continue;
+      }
+      if (node.nodeType === Node.ELEMENT_NODE && (node as Element).tagName === 'BR') {
+        const prev = node.previousSibling;
+        node.remove();
+        node = prev;
+        continue;
+      }
+      break;
+    }
     const html = p.innerHTML.replace(/<br\s*\/?>(\s*)/gi, '').replace(/&nbsp;/gi, '').trim();
     if (!html) p.remove();
   });
