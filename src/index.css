@@ -203,6 +203,17 @@ table[data-b12-cases-table="true"] .b12-lead-badge,
 .ProseMirror table[data-b12-cases-table="true"] td[data-role="sub"] p:empty {
   display: none !important;
 }
+/* Bullets and numbered lists stay left-aligned even though the cell is justified */
+.he-table[data-b12-cases-table="true"] td[data-role="sub"] ul,
+.he-table[data-b12-cases-table="true"] td[data-role="sub"] ol,
+.he-table[data-b12-cases-table="true"] td[data-role="sub"] li,
+.he-table[data-b12-cases-table="true"] td[data-role="sub"] li p,
+.ProseMirror table[data-b12-cases-table="true"] td[data-role="sub"] ul,
+.ProseMirror table[data-b12-cases-table="true"] td[data-role="sub"] ol,
+.ProseMirror table[data-b12-cases-table="true"] td[data-role="sub"] li,
+.ProseMirror table[data-b12-cases-table="true"] td[data-role="sub"] li p {
+  text-align: left !important;
+}
 
 /* Wider gap between cases (no top border — padding instead) */
 .he-table[data-b12-cases-table="true"] td[data-case-start="true"],
