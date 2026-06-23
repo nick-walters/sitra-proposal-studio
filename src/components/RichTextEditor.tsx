@@ -1286,7 +1286,6 @@ StarterKit.configure({
       FigureTableReferenceMark,
       ParenBadgeGlue,
       BadgeTrailingCaret,
-      BadgeArrowNav,
       CaptionLabel,
       HeadingNumberLabel,
       // Suppress heading input rules inside table cells: revert heading nodes back to paragraphs
@@ -1520,7 +1519,7 @@ StarterKit.configure({
       FigureTableReferenceMark,
       ParenBadgeGlue,
       BadgeTrailingCaret,
-      BadgeArrowNav,
+      
       // Block drag-and-drop via drag handle
       BlockDragHandle.configure({
         getLockedBlocks: () => getLockedBlocksRef.current(),
