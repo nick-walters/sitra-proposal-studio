@@ -72,15 +72,14 @@ function caseLabel(opts: {
   includeNumber: boolean;
   includeAbbreviation: boolean;
 }): string {
-  const { prefix, number, shortName, title, includeNumber, includeAbbreviation } = opts;
+  const { prefix, number, shortName, includeNumber, includeAbbreviation } = opts;
   const showAbbrev = (includeNumber || includeAbbreviation) && !!prefix;
   const showNumber = includeNumber;
   const prefixPart = `${showAbbrev ? prefix : ''}${showNumber ? number : ''}`;
   const nameBit = shortName || '';
-  const titleSuffix = title ? ` \u2014 ${title}` : '';
-  if (prefixPart && nameBit) return `${prefixPart}: ${nameBit}${titleSuffix}`;
-  if (prefixPart) return `${prefixPart}${titleSuffix}`;
-  return `${nameBit || ''}${titleSuffix}`.trim() || `${number}`;
+  if (prefixPart && nameBit) return `${prefixPart}: ${nameBit}`;
+  if (prefixPart) return prefixPart;
+  return nameBit || `${number}`;
 }
 
 const CASE_BLOCK_HEADING_TEXTS = new Set([
