@@ -84,34 +84,36 @@ html, body {
   font-style: italic !important;
 }
 
-/* ===== B1.2 Cases combined table ===== */
+/* ===== B1.2 Cases combined table (borderless, flush with margin) ===== */
 table[data-b12-cases-table="true"],
 .he-table[data-b12-cases-table="true"],
 .ProseMirror table[data-b12-cases-table="true"] {
-  border: 2px solid #000 !important;
+  border: none !important;
   border-collapse: collapse !important;
   table-layout: fixed;
   width: 100% !important;
+  margin: 0 !important;
+  overflow: visible !important;
 }
 table[data-b12-cases-table="true"] td,
 .he-table[data-b12-cases-table="true"] td,
 .ProseMirror table[data-b12-cases-table="true"] td,
 .ProseMirror tr[data-case-id] > td[data-role] {
-  border: 2px solid #000 !important;
-  background: #ffffff !important;
-  padding: 4px 8px !important;
+  border: none !important;
+  background: transparent !important;
+  padding: 3px 0 !important;
   font-family: "Times New Roman", Times, serif !important;
   font-size: 11pt !important;
   vertical-align: top;
+  position: relative;
 }
-/* Title pill row */
+
+/* Title pill row — flush left, no padding */
 .he-table[data-b12-cases-table="true"] td[data-role="title"],
 .ProseMirror table[data-b12-cases-table="true"] td[data-role="title"],
 .ProseMirror tr[data-case-id] > td[data-role="title"] {
-  text-align: center !important;
-  font-weight: bold !important;
-  background: #ffffff !important;
-  color: #000 !important;
+  text-align: left !important;
+  padding: 2px 0 !important;
 }
 .he-table[data-b12-cases-table="true"] .b12-case-title-badge,
 .ProseMirror table[data-b12-cases-table="true"] .b12-case-title-badge,
@@ -119,73 +121,30 @@ table[data-b12-cases-table="true"] .b12-case-title-badge,
 .ProseMirror tr[data-case-id] > td[data-role="title"] > p {
   display: inline-flex !important;
   align-items: center !important;
-  justify-content: center !important;
-  position: relative !important;
-  width: calc(100% - 28px) !important;
-  box-sizing: border-box !important;
+  justify-content: flex-start !important;
   background: #ffffff !important;
   color: #000000 !important;
   border: 1.5px solid #000000 !important;
   border-radius: 9999px !important;
-  padding: 1px 7px !important;
-  text-align: center !important;
+  padding: 0 8px !important;
+  height: 17px !important;
+  text-align: left !important;
   margin: 0 !important;
   font-weight: 700 !important;
   line-height: 1 !important;
   font-family: "Times New Roman", Times, serif !important;
   font-size: 11pt !important;
   white-space: nowrap !important;
+  vertical-align: baseline !important;
 }
-.ProseMirror table[data-b12-cases-table="true"] .b12-case-title-badge::after {
-  content: "";
-  position: absolute;
-  right: -24px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 16px;
-  height: 16px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 9999px;
-  color: hsl(var(--destructive));
-  border: 1.5px solid hsl(var(--destructive));
-  background: #ffffff;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23dc2626' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 6h18'/%3E%3Cpath d='M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6'/%3E%3Cpath d='M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: 11px 11px;
-  cursor: pointer;
-}
-.ProseMirror tr[data-case-id] > td[data-role="title"] > p::after {
-  content: "";
-  position: absolute;
-  right: -24px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 16px;
-  height: 16px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 9999px;
-  color: hsl(var(--destructive));
-  border: 1.5px solid hsl(var(--destructive));
-  background: #ffffff;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23dc2626' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 6h18'/%3E%3Cpath d='M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6'/%3E%3Cpath d='M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: 11px 11px;
-  cursor: pointer;
-}
-/* Lead participant bubble row (black bg, white text) */
+
+/* Lead participant bubble (filled black, crown) — flush left, thin border below */
 .he-table[data-b12-cases-table="true"] td[data-role="lead"],
 .ProseMirror table[data-b12-cases-table="true"] td[data-role="lead"],
 .ProseMirror tr[data-case-id] > td[data-role="lead"] {
-  text-align: center !important;
-  font-weight: bold !important;
-  background: #ffffff !important;
-  color: #000000 !important;
+  text-align: left !important;
+  padding: 2px 0 6px 0 !important;
+  border-bottom: 1px solid #000 !important;
 }
 .he-table[data-b12-cases-table="true"] .b12-lead-badge,
 .ProseMirror table[data-b12-cases-table="true"] .b12-lead-badge,
@@ -193,33 +152,84 @@ table[data-b12-cases-table="true"] .b12-lead-badge,
 .ProseMirror tr[data-case-id] > td[data-role="lead"] > p {
   display: inline-flex !important;
   align-items: center !important;
-  justify-content: center !important;
+  justify-content: flex-start !important;
   background: #000000 !important;
   color: #ffffff !important;
   border: 1.5px solid #000000 !important;
   border-radius: 9999px !important;
-  padding: 0 5px !important;
-  text-align: center !important;
+  padding: 0 6px !important;
+  height: 17px !important;
   margin: 0 !important;
   font-weight: 700 !important;
   line-height: 1 !important;
   font-family: "Times New Roman", Times, serif !important;
   font-size: 11pt !important;
   white-space: nowrap !important;
+  gap: 3px !important;
+  vertical-align: baseline !important;
 }
-/* Thick black divider between cases */
-.he-table[data-b12-cases-table="true"] td[data-case-start="true"],
-.ProseMirror table[data-b12-cases-table="true"] td[data-case-start="true"],
-.ProseMirror tr[data-case-id] > td[data-case-start="true"] {
-  border-top: 4px solid #000 !important;
+.he-table[data-b12-cases-table="true"] .b12-lead-badge svg,
+.ProseMirror table[data-b12-cases-table="true"] .b12-lead-badge svg {
+  width: 10px !important;
+  height: 10px !important;
+  fill: #ffffff !important;
+  stroke: #ffffff !important;
+  display: inline-block !important;
+  flex-shrink: 0 !important;
+}
+
+/* Subsection rows — same paragraph spacing as 3.1.b, thin divider below */
+.he-table[data-b12-cases-table="true"] td[data-role="sub"],
+.ProseMirror table[data-b12-cases-table="true"] td[data-role="sub"],
+.ProseMirror tr[data-case-id] > td[data-role="sub"] {
+  padding: 4px 0 !important;
+  text-align: justify !important;
+  border-bottom: 1px solid #000 !important;
 }
 .he-table[data-b12-cases-table="true"] td[data-role="sub"] p,
 .ProseMirror table[data-b12-cases-table="true"] td[data-role="sub"] p {
-  margin: 0 0 3pt 0 !important;
+  margin: 0 0 6pt 0 !important;
+  text-align: justify !important;
+}
+.he-table[data-b12-cases-table="true"] td[data-role="sub"] p:last-child,
+.ProseMirror table[data-b12-cases-table="true"] td[data-role="sub"] p:last-child {
+  margin-bottom: 0 !important;
 }
 .he-table[data-b12-cases-table="true"] td[data-role="sub"] p:empty,
 .ProseMirror table[data-b12-cases-table="true"] td[data-role="sub"] p:empty {
   display: none !important;
+}
+
+/* Wider gap between cases (no top border — padding instead) */
+.he-table[data-b12-cases-table="true"] td[data-case-start="true"],
+.ProseMirror table[data-b12-cases-table="true"] td[data-case-start="true"],
+.ProseMirror tr[data-case-id] > td[data-case-start="true"] {
+  padding-top: 18px !important;
+  border-top: none !important;
+}
+
+/* Delete icon in the left page margin (platform-standard red trash) */
+.ProseMirror tr[data-case-id] > td[data-role="title"]::before {
+  content: "";
+  position: absolute;
+  top: 4px;
+  left: -26px;
+  width: 20px;
+  height: 17px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23dc2626' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 6h18'/%3E%3Cpath d='M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6'/%3E%3Cpath d='M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 16px 16px;
+  cursor: pointer;
+  opacity: 0;
+  border-radius: 4px;
+  transition: opacity 0.15s, background-color 0.15s;
+}
+.ProseMirror tr[data-case-id]:hover > td[data-role="title"]::before {
+  opacity: 1;
+}
+.ProseMirror tr[data-case-id] > td[data-role="title"]:hover::before {
+  background-color: hsl(var(--destructive) / 0.1);
 }
 
 /* Figure container styling */
