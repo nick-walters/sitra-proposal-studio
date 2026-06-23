@@ -505,10 +505,17 @@ export function CaseManagementCard({
       }
       toast.error('Failed to reorder cases');
     },
-    onSettled: () => {
+    onSettled: async (_data, _error, reorderedCases) => {
       invalidateCaseQueries();
       window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
       onSaveEvent?.();
+      // Mirror the new order into the B1.2 cases block (no-op if not populated)
+      try {
+        await reorderB12CaseTablesInSection(proposalId, reorderedCases.map((c) => c.id));
+        queryClient.invalidateQueries({ queryKey: ['section-content', proposalId, 'b1-2'] });
+      } catch (e) {
+        console.warn('[CaseManager] B1.2 reorder sync failed', e);
+      }
     },
   });
 
