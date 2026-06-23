@@ -38,8 +38,9 @@ import {
 } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { FlaskConical, GripVertical, Plus, Trash2, Lock, LockOpen, Eye, EyeOff, Settings } from 'lucide-react';
+import { FlaskConical, GripVertical, Plus, Trash2, Lock, LockOpen, Eye, EyeOff, Settings, FileOutput } from 'lucide-react';
 import { CaseSubsectionTemplateDialog } from '@/components/CaseSubsectionTemplateDialog';
+import { populateCasesToB12 } from '@/lib/b12CasesPopulation';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
@@ -352,6 +353,7 @@ export function CaseManagementCard({
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [subsectionsDialogOpen, setSubsectionsDialogOpen] = useState(false);
+  const [populating, setPopulating] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -840,7 +842,7 @@ export function CaseManagementCard({
 
                 {/* Add button & subsection-template editor */}
                 {isCoordinator && (
-                  <div className="pt-2 flex items-center justify-between gap-2">
+                  <div className="pt-2 flex items-center justify-between gap-2 flex-wrap">
                     <Button
                       variant="outline"
                       size="sm"
@@ -849,14 +851,43 @@ export function CaseManagementCard({
                     >
                       <Plus className="w-4 h-4 mr-1" />
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setSubsectionsDialogOpen(true)}
-                    >
-                      <Settings className="w-4 h-4 mr-1" />
-                      Edit case subsections &amp; guidelines
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSubsectionsDialogOpen(true)}
+                      >
+                        <Settings className="w-4 h-4 mr-1" />
+                        Edit case subsections &amp; guidelines
+                      </Button>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        disabled={caseDrafts.length === 0 || populating}
+                        onClick={async () => {
+                          if (caseDrafts.length === 0) return;
+                          const ok = window.confirm(
+                            'Populate B1.2 with these cases? This will insert/overwrite the cases table in B1.2 and lock all case drafts. Coordinators can still override the lock.'
+                          );
+                          if (!ok) return;
+                          try {
+                            setPopulating(true);
+                            const res = await populateCasesToB12(proposalId);
+                            toast.success(`Populated ${res.insertedOrUpdated} case${res.insertedOrUpdated === 1 ? '' : 's'} into B1.2.`);
+                            invalidateCaseQueries();
+                            queryClient.invalidateQueries({ queryKey: ['section-content', proposalId, 'b1-2'] });
+                          } catch (e: any) {
+                            console.error(e);
+                            toast.error(`Populate failed: ${e?.message || 'unknown error'}`);
+                          } finally {
+                            setPopulating(false);
+                          }
+                        }}
+                      >
+                        <FileOutput className="w-4 h-4 mr-1" />
+                        {populating ? 'Populating…' : 'Populate to B1.2'}
+                      </Button>
+                    </div>
                   </div>
                 )}
               </>
