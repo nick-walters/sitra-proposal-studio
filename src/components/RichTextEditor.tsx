@@ -1623,8 +1623,48 @@ StarterKit.configure({
 
       {/* Editor Content */}
       <EditorContent editor={editor} />
+      <B12CaseTitleHeightSync editor={editor} />
     </div>
   );
+}
+
+/** Syncs all B1.2 case title pills within each table to the same (max) height. */
+function B12CaseTitleHeightSync({ editor }: { editor: Editor }) {
+  useEffect(() => {
+    if (!editor) return;
+    let raf = 0;
+    const sync = () => {
+      const root = editor.view?.dom as HTMLElement | undefined;
+      if (!root) return;
+      const tables = root.querySelectorAll('table[data-b12-cases-table="true"]');
+      tables.forEach((table) => {
+        const pills = Array.from(
+          table.querySelectorAll('.b12-case-title-badge'),
+        ) as HTMLElement[];
+        if (pills.length === 0) return;
+        pills.forEach((p) => { p.style.minHeight = ''; });
+        let max = 0;
+        pills.forEach((p) => { max = Math.max(max, p.offsetHeight); });
+        if (max > 0) pills.forEach((p) => { p.style.minHeight = `${max}px`; });
+      });
+    };
+    const schedule = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(sync);
+    };
+    schedule();
+    editor.on('update', schedule);
+    const ro = new ResizeObserver(schedule);
+    if (editor.view?.dom) ro.observe(editor.view.dom);
+    window.addEventListener('resize', schedule);
+    return () => {
+      cancelAnimationFrame(raf);
+      editor.off('update', schedule);
+      ro.disconnect();
+      window.removeEventListener('resize', schedule);
+    };
+  }, [editor]);
+  return null;
 }
 
 // Hook to get editor instance for external toolbar control
