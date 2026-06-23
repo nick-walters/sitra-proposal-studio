@@ -219,7 +219,7 @@ export async function populateCasesToB12(
   );
   blocks.push(tableHtml);
 
-  const newBlockHTML = `<div data-b12-cases-block="true">${blocks.join('')}</div>`;
+  const blockInnerHTML = blocks.join('');
 
   // 7. Load existing b1-2 content
   const { data: existing } = await supabase
@@ -234,25 +234,49 @@ export async function populateCasesToB12(
   const doc = parser.parseFromString(`<div id="root">${existingHtml}</div>`, 'text/html');
   const root = doc.getElementById('root')!;
 
+  // Remove any previous cases block — match the wrapper div if present, OR
+  // (when the wrapper has been stripped by the editor) find the cases table
+  // and also remove the heading + caption sitting directly before it.
   root.querySelectorAll('[data-b12-cases-block="true"]').forEach((n) => n.remove());
+  root.querySelectorAll('table[data-b12-cases-table="true"]').forEach((tbl) => {
+    const prevCaption = tbl.previousElementSibling;
+    const prevHeading =
+      prevCaption?.previousElementSibling &&
+      /^H[1-6]$/.test(prevCaption.previousElementSibling.tagName)
+        ? prevCaption.previousElementSibling
+        : null;
+    tbl.remove();
+    if (prevCaption && prevCaption.classList?.contains('table-caption')) prevCaption.remove();
+    if (prevHeading) prevHeading.remove();
+  });
 
   // Insert just before "Linked research" subheading; else top
+  const insertBlock = (beforeNode: Element | null) => {
+    const tmp = doc.createElement('div');
+    tmp.innerHTML = blockInnerHTML;
+    const nodes = Array.from(tmp.childNodes);
+    if (beforeNode) {
+      nodes.forEach((n) => beforeNode.parentNode!.insertBefore(n, beforeNode));
+    } else {
+      nodes.forEach((n) => root.insertBefore(n, root.firstChild));
+    }
+  };
+
   let inserted = false;
   const headings = Array.from(root.querySelectorAll('h1, h2, h3, h4'));
   for (const h of headings) {
     if (/linked\s+research/i.test(h.textContent || '')) {
-      const wrapper = doc.createElement('div');
-      wrapper.innerHTML = newBlockHTML;
-      const node = wrapper.firstElementChild!;
-      h.parentNode!.insertBefore(node, h);
+      insertBlock(h);
       inserted = true;
       break;
     }
   }
   if (!inserted) {
-    const wrapper = doc.createElement('div');
-    wrapper.innerHTML = newBlockHTML;
-    root.insertBefore(wrapper.firstElementChild!, root.firstChild);
+    // Insert at top, in reverse order so they end up in correct order
+    const tmp = doc.createElement('div');
+    tmp.innerHTML = blockInnerHTML;
+    const nodes = Array.from(tmp.childNodes).reverse();
+    nodes.forEach((n) => root.insertBefore(n, root.firstChild));
   }
 
   const finalHtml = root.innerHTML;
