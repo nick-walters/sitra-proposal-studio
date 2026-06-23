@@ -235,14 +235,14 @@ function SortableCaseRow({ caseItem, participants, casePrefix, includeNumber, in
       {selectedLead ? (
         <ParticipantBubble
           onClick={() => { if (canEdit) setLeadOpen(true); }}
-          style={{ fontSize: '12px', height: 'auto', padding: '2px 8px', fontStyle: 'italic', cursor: canEdit ? 'pointer' : 'not-allowed', opacity: canEdit ? 1 : 0.5 }}
+          style={{ fontSize: '12px', height: 'auto', padding: '2px 8px', cursor: canEdit ? 'pointer' : 'not-allowed', opacity: canEdit ? 1 : 0.5 }}
           className="justify-self-start whitespace-nowrap hover:ring-2 hover:ring-primary/30 hover:scale-105 transition-all"
         >
           {selectedLead.organisation_short_name || `P${selectedLead.participant_number}`}
         </ParticipantBubble>
       ) : (
         <button
-          className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold italic whitespace-nowrap hover:ring-2 hover:ring-primary/30 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-self-start"
+          className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold whitespace-nowrap hover:ring-2 hover:ring-primary/30 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-self-start"
           style={{
             backgroundColor: 'transparent',
             border: '1px dashed hsl(var(--muted-foreground))',
