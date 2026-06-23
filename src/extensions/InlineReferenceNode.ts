@@ -45,6 +45,19 @@ function computeLabel(attrs: Record<string, any>): string {
       return `${attrs.deliverableNumber ?? ''}`;
     case 'milestone':
       return `MS${attrs.milestoneNumber ?? ''}`;
+    case 'deleted': {
+      const kindMap: Record<string, string> = {
+        task: 'task',
+        deliverable: 'deliverable',
+        milestone: 'milestone',
+        wp: 'WP',
+        case: 'case',
+        participant: 'participant',
+        figure: 'figure/table',
+      };
+      const kind = kindMap[attrs.deletedKind] || 'item';
+      return `[cross-reference to a deleted ${kind}]`;
+    }
     default:
       return '';
   }
@@ -168,6 +181,12 @@ export const InlineReferenceNode = Node.create<InlineReferenceOptions>({
         renderHTML: (attrs) =>
           attrs.wpColor ? { 'data-wp-color': attrs.wpColor } : {},
       },
+      deletedKind: {
+        default: null,
+        parseHTML: (el) => el.getAttribute('data-deleted-kind'),
+        renderHTML: (attrs) =>
+          attrs.deletedKind ? { 'data-deleted-kind': attrs.deletedKind } : {},
+      },
     };
   },
 
@@ -183,9 +202,23 @@ export const InlineReferenceNode = Node.create<InlineReferenceOptions>({
     const refType = (node.attrs.refType as string) || 'task';
     const wpColor = node.attrs.wpColor as string | null;
     const label = computeLabel(node.attrs);
-    // TEMP-LOG
-    console.log('[INLINE-RENDER]', { refType, attrs: node.attrs, label });
 
+    // Deleted-reference placeholder: plain yellow-highlighted text, no pill
+    // geometry. Inherits paragraph typography so it sits naturally in the
+    // body text and is easy to select and delete manually.
+    if (refType === 'deleted') {
+      return [
+        'span',
+        mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
+          'data-inline-reference': '',
+          'class': 'inline-ref inline-ref-deleted',
+          'contenteditable': 'false',
+          'style':
+            'background-color: #fff59d; color: #000; padding: 0 2px; border-radius: 2px; font-style: italic;',
+        }),
+        label,
+      ];
+    }
 
     // Pill-geometry styles live on the outer span (carried mainly by the
     // .inline-ref / .inline-ref-<refType> class CSS in index.css). We

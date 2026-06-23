@@ -197,6 +197,15 @@ export async function syncCrossReferences(
   const { doc, tr } = state;
   let changed = false;
 
+  // Deleted-ref placeholder replacements. Each entry replaces the document
+  // range [pos, end) with a single `inlineReference` atom carrying
+  // refType='deleted' and a `deletedKind` so the editor renders a yellow
+  // "[cross-reference to a deleted X]" placeholder the user can manually
+  // remove. Applied AFTER all per-type attr/text refreshes, highest-pos
+  // first, so earlier positions stay valid through size changes.
+  type DeletionReplacement = { pos: number; end: number; kind: string };
+  const deletions: DeletionReplacement[] = [];
+
   // ─────────────────────────────────────────────────────────────────────────
   // Position-safe sync.
   //
@@ -276,6 +285,17 @@ export async function syncCrossReferences(
       }
     }
   });
+
+  // Detect figureTableReference marks whose figure has been deleted. Queue
+  // a deletion replacement for the marked text range so it becomes a
+  // yellow "[cross-reference to a deleted figure/table]" placeholder.
+  for (const e of entries) {
+    if (e.refMark.type.name !== 'figureTableReference') continue;
+    const figId = e.refMark.attrs.figureId;
+    if (figId && !data.figureById.get(figId)) {
+      deletions.push({ pos: e.pos, end: e.pos + e.node.nodeSize, kind: 'figure' });
+    }
+  }
 
   // (2) Detect adjacent same-mark/same-id runs (split badges) and queue merges.
   const changes: Change[] = [];
@@ -370,7 +390,7 @@ export async function syncCrossReferences(
     const a = node.attrs;
     if (!a.wpId) return;
     const wp = data.wpById.get(a.wpId);
-    if (!wp) return;
+    if (!wp) { deletions.push({ pos, end: pos + node.nodeSize, kind: 'wp' }); return; }
     const newAttrs = {
       ...a,
       wpNumber: wp.number,
@@ -408,7 +428,7 @@ export async function syncCrossReferences(
     const a = node.attrs;
     if (!a.caseId) return;
     const c = data.caseById.get(a.caseId);
-    if (!c) return;
+    if (!c) { deletions.push({ pos, end: pos + node.nodeSize, kind: 'case' }); return; }
     const newAttrs = {
       ...a,
       caseNumber: c.number,
@@ -445,7 +465,7 @@ export async function syncCrossReferences(
     const a = node.attrs;
     if (!a.participantId) return;
     const p = data.participantById.get(a.participantId);
-    if (!p) return;
+    if (!p) { deletions.push({ pos, end: pos + node.nodeSize, kind: 'participant' }); return; }
     const newAttrs = {
       ...a,
       participantNumber: p.participant_number,
@@ -485,59 +505,38 @@ export async function syncCrossReferences(
     const refType = a.refType;
 
     if (refType === 'task') {
-      if (!a.taskId) {
-        console.log('[SYNC-INLINE] task node MISSING taskId', { attrs: a });
-        return;
-      }
+      if (!a.taskId) return;
       const t = data.taskById.get(a.taskId);
-      if (!t) {
-        console.log('[SYNC-INLINE] task lookup FAILED', { taskId: a.taskId, currentAttrs: { wpNumber: a.wpNumber, taskNumber: a.taskNumber } });
-        return;
-      }
+      if (!t) { deletions.push({ pos, end: pos + node.nodeSize, kind: 'task' }); return; }
       const newAttrs = { ...a, wpNumber: t.wp_number, taskNumber: t.number, wpColor: t.wp_color };
       const attrsDiffer =
         a.wpNumber !== newAttrs.wpNumber ||
         a.taskNumber !== newAttrs.taskNumber ||
         a.wpColor !== newAttrs.wpColor;
-      console.log('[SYNC-INLINE] task', { taskId: a.taskId, stored: { wpNumber: a.wpNumber, taskNumber: a.taskNumber, wpColor: a.wpColor }, fresh: { wpNumber: t.wp_number, taskNumber: t.number, wpColor: t.wp_color }, attrsDiffer });
       if (!attrsDiffer) return;
       inlineNodeChanges.push({ pos, newAttrs, refType, idKey: 'taskId', idValue: a.taskId });
       return;
     }
 
     if (refType === 'deliverable') {
-      if (!a.deliverableId) {
-        console.log('[SYNC-INLINE] deliverable node MISSING deliverableId', { attrs: a });
-        return;
-      }
+      if (!a.deliverableId) return;
       const d = data.deliverableById.get(a.deliverableId);
-      if (!d) {
-        console.log('[SYNC-INLINE] deliverable lookup FAILED', { deliverableId: a.deliverableId, currentAttrs: { deliverableNumber: a.deliverableNumber } });
-        return;
-      }
+      if (!d) { deletions.push({ pos, end: pos + node.nodeSize, kind: 'deliverable' }); return; }
       const newAttrs = { ...a, deliverableNumber: d.number, wpColor: d.wp_color };
       const attrsDiffer =
         a.deliverableNumber !== newAttrs.deliverableNumber ||
         a.wpColor !== newAttrs.wpColor;
-      console.log('[SYNC-INLINE] deliverable', { deliverableId: a.deliverableId, stored: { deliverableNumber: a.deliverableNumber, wpColor: a.wpColor }, fresh: { deliverableNumber: d.number, wpColor: d.wp_color }, attrsDiffer });
       if (!attrsDiffer) return;
       inlineNodeChanges.push({ pos, newAttrs, refType, idKey: 'deliverableId', idValue: a.deliverableId });
       return;
     }
 
     if (refType === 'milestone') {
-      if (!a.milestoneId) {
-        console.log('[SYNC-INLINE] milestone node MISSING milestoneId', { attrs: a });
-        return;
-      }
+      if (!a.milestoneId) return;
       const m = data.milestoneById.get(a.milestoneId);
-      if (!m) {
-        console.log('[SYNC-INLINE] milestone lookup FAILED', { milestoneId: a.milestoneId, currentAttrs: { milestoneNumber: a.milestoneNumber } });
-        return;
-      }
+      if (!m) { deletions.push({ pos, end: pos + node.nodeSize, kind: 'milestone' }); return; }
       const newAttrs = { ...a, milestoneNumber: m.number };
       const attrsDiffer = a.milestoneNumber !== newAttrs.milestoneNumber;
-      console.log('[SYNC-INLINE] milestone', { milestoneId: a.milestoneId, stored: { milestoneNumber: a.milestoneNumber }, fresh: { milestoneNumber: m.number }, attrsDiffer });
       if (!attrsDiffer) return;
       inlineNodeChanges.push({ pos, newAttrs, refType, idKey: 'milestoneId', idValue: a.milestoneId });
       return;
@@ -565,7 +564,27 @@ export async function syncCrossReferences(
     changed = true;
   }
 
-
+  // ─────────────────────────────────────────────────────────────────────────
+  // Deleted-ref placeholders — apply LAST, highest-pos first so earlier
+  // positions stay valid through any size changes (figureTable mark ranges
+  // can be multi-char; atom nodes are size 1). Each replacement collapses
+  // the original ref range into a single `inlineReference` atom with
+  // refType='deleted' which renders as yellow plain text.
+  // ─────────────────────────────────────────────────────────────────────────
+  const inlineRefNodeType = state.schema.nodes['inlineReference'];
+  if (inlineRefNodeType && deletions.length > 0) {
+    deletions.sort((a, b) => b.pos - a.pos);
+    for (const d of deletions) {
+      // Map through any prior tr steps (mark refreshes / atom setMarkup)
+      // so original-doc positions land at the right place in tr.doc.
+      const mappedPos = tr.mapping.map(d.pos);
+      const mappedEnd = tr.mapping.map(d.end);
+      if (mappedEnd <= mappedPos) continue;
+      const node = inlineRefNodeType.create({ refType: 'deleted', deletedKind: d.kind });
+      tr.replaceWith(mappedPos, mappedEnd, node);
+      changed = true;
+    }
+  }
 
   if (changed) {
     tr.setMeta('addToHistory', false);
