@@ -1507,7 +1507,7 @@ StarterKit.configure({
       HeadingExitOnEnter,
       BlockReordering,
       
-      InlineReferenceMark,
+      InlineReferenceNode,
       // WP reference: inline atom NODE (migrated from mark in Stage 1 pilot)
       WPReferenceNode,
       // Case reference: inline atom NODE (migrated from mark in Stage 2)
