@@ -351,6 +351,7 @@ export function CaseManagementCard({
 }: CaseManagementCardProps) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const [subsectionsDialogOpen, setSubsectionsDialogOpen] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
