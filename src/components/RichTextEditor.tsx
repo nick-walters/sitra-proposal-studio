@@ -197,6 +197,74 @@ function isB12CasesTableActive(editor: Editor | null): boolean {
   return false;
 }
 
+const B12CaseDeleteControl = Extension.create({
+  name: 'b12CaseDeleteControl',
+  addProseMirrorPlugins() {
+    return [
+      new Plugin({
+        key: new PluginKey('b12CaseDeleteControl'),
+        props: {
+          handleClick(view, _pos, event) {
+            const target = event.target as HTMLElement | null;
+            const badge = target?.closest?.('.b12-case-title-badge') as HTMLElement | null;
+            if (!badge) return false;
+
+            const table = badge.closest('table[data-b12-cases-table="true"]');
+            const row = badge.closest('tr[data-case-id]') as HTMLTableRowElement | null;
+            const caseId = row?.getAttribute('data-case-id');
+            if (!table || !caseId) return false;
+
+            const rect = badge.getBoundingClientRect();
+            const clickedDeleteIcon = event.clientX >= rect.right + 2 && event.clientX <= rect.right + 32;
+            if (!clickedDeleteIcon) return false;
+
+            const { state } = view;
+            const rowsToDelete: { pos: number; size: number }[] = [];
+            state.doc.descendants((node, pos) => {
+              if (node.type.name === 'tableRow' && node.attrs?.['data-case-id'] === caseId) {
+                rowsToDelete.push({ pos, size: node.nodeSize });
+                return false;
+              }
+              return true;
+            });
+            if (rowsToDelete.length === 0) return false;
+
+            let tr = state.tr;
+            rowsToDelete
+              .sort((a, b) => b.pos - a.pos)
+              .forEach(({ pos, size }) => {
+                tr = tr.delete(pos, pos + size);
+              });
+
+            let firstTitleCellPos: number | null = null;
+            tr.doc.descendants((node, pos) => {
+              if (firstTitleCellPos !== null) return false;
+              if (node.type.name === 'tableCell' && node.attrs?.['data-role'] === 'title') {
+                firstTitleCellPos = pos;
+                return false;
+              }
+              return true;
+            });
+            if (firstTitleCellPos !== null) {
+              const cell = tr.doc.nodeAt(firstTitleCellPos);
+              if (cell?.attrs?.['data-case-start']) {
+                tr = tr.setNodeMarkup(firstTitleCellPos, undefined, {
+                  ...cell.attrs,
+                  'data-case-start': null,
+                });
+              }
+            }
+
+            view.dispatch(tr.scrollIntoView());
+            event.preventDefault();
+            return true;
+          },
+        },
+      }),
+    ];
+  },
+});
+
 /**
  * Strips text-align from pasted paragraphs so they adopt the default (justified).
  * Only used for transformPastedHTML — NOT for initial content load, so that
