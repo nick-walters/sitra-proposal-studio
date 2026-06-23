@@ -77,9 +77,10 @@ function caseLabel(opts: {
   const showNumber = includeNumber;
   const prefixPart = `${showAbbrev ? prefix : ''}${showNumber ? number : ''}`;
   const nameBit = shortName || '';
-  if (prefixPart && nameBit) return `${prefixPart}: ${nameBit}${title ? ` \u2013 ${title}` : ''}`;
-  if (prefixPart) return prefixPart;
-  return nameBit || title || `${number}`;
+  const titleSuffix = title ? ` \u2014 ${title}` : '';
+  if (prefixPart && nameBit) return `${prefixPart}: ${nameBit}${titleSuffix}`;
+  if (prefixPart) return `${prefixPart}${titleSuffix}`;
+  return `${nameBit || ''}${titleSuffix}`.trim() || `${number}`;
 }
 
 const CASE_BLOCK_HEADING_TEXTS = new Set([
