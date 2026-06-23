@@ -215,6 +215,7 @@ interface SortableTaskCardProps {
 function SortableTaskCard({
   task,
   wpNumber,
+  wpColor,
   participants,
   monthOptions,
   projectDuration,
