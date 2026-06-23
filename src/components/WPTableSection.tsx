@@ -67,6 +67,7 @@ interface WPTableSectionProps {
 
 export function WPTableSection({
   wpNumber,
+  wpColor,
   objectives,
   descriptionBeforeTasks,
   tasks,
