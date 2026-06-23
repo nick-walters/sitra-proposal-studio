@@ -216,13 +216,12 @@ const B12CaseDeleteControl = Extension.create({
             const caseId = row?.getAttribute('data-case-id');
             if (!table || !caseId) return false;
 
-            const rect = badge.getBoundingClientRect();
             const cellRect = titleCell.getBoundingClientRect();
             const clickedDeleteIcon =
-              event.clientX >= rect.right + 2 &&
-              event.clientX <= Math.min(rect.right + 34, cellRect.right - 2) &&
-              event.clientY >= rect.top - 4 &&
-              event.clientY <= rect.bottom + 4;
+              event.clientX >= cellRect.left - 30 &&
+              event.clientX <= cellRect.left - 2 &&
+              event.clientY >= cellRect.top &&
+              event.clientY <= cellRect.bottom;
             if (!clickedDeleteIcon) return false;
 
             const { state } = view;

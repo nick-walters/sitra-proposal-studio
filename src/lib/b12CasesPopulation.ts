@@ -201,8 +201,9 @@ function buildCaseRows(args: {
 
   const titleRow = `<tr data-case-id="${caseId}" data-role="title-row"><td data-role="title" data-case-id="${caseId}"${startAttr}><p class="b12-case-title-badge" data-case-id="${caseId}">${esc(badgeText)}</p></td></tr>`;
 
-  const leadText = leadName ? `\u2654 ${esc(leadName)}` : 'Lead not set';
-  const leadRow = `<tr data-case-id="${caseId}" data-role="lead-row"><td data-role="lead" data-case-id="${caseId}"><p class="b12-lead-badge" data-case-id="${caseId}">${leadText}</p></td></tr>`;
+  const crownSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#ffffff" stroke="#ffffff" stroke-width="0"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></svg>`;
+  const leadInner = leadName ? `${crownSvg}<span>${esc(leadName)}</span>` : 'Lead not set';
+  const leadRow = `<tr data-case-id="${caseId}" data-role="lead-row"><td data-role="lead" data-case-id="${caseId}"><p class="b12-lead-badge" data-case-id="${caseId}">${leadInner}</p></td></tr>`;
 
   const subRows = subsections
     .map((s) => {
