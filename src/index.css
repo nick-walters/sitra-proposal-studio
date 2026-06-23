@@ -211,7 +211,7 @@ table[data-b12-cases-table="true"] .b12-lead-badge,
 .ProseMirror tr[data-case-id] > td[data-role="title"]::before {
   content: "";
   position: absolute;
-  top: 2px;
+  top: 1px;
   left: -26px;
   width: 20px;
   height: 17px;
