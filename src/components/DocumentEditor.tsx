@@ -1899,7 +1899,6 @@ export function DocumentEditor({
         onClose={() => setIsFigureDialogOpen(false)}
         proposalId={proposalId}
         currentSectionId={section?.id || ''}
-        onInsertFigure={handleInsertFigureReference}
         onInsertFigureImage={handleInsertFigureImage}
       />
       <ImpactPathwayGenerator
