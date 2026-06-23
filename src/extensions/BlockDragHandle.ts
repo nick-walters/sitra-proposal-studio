@@ -227,6 +227,13 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
           handleDOMEvents: {
             mousemove(view, event) {
               const { clientX, clientY } = event;
+              const eventTarget = event.target as HTMLElement | null;
+              if (eventTarget?.closest?.('table[data-b12-cases-table="true"], tr[data-case-id], td[data-role="title"], td[data-role="lead"], td[data-role="sub"]')) {
+                dragContainer!.style.display = 'none';
+                currentHoveredBlockPos = null;
+                currentHoveredBlockRange = null;
+                return false;
+              }
               const pos = view.posAtCoords({ left: clientX, top: clientY });
               if (!pos || !dragContainer) {
                 dragContainer!.style.display = 'none';
@@ -267,6 +274,16 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
                 const dragHandle = dragContainer!.querySelector('.block-drag-handle') as HTMLElement;
                 const isB12CaseTable = rangeContainsB12CasesTable(view.state.doc, blockRange.startPos, blockRange.endPos);
                 const isReorderable = isReorderableBlock(blockRange.node);
+
+                // The generated B1.2 table has its own per-case delete control
+                // inside each title row. Do not show the generic block controls
+                // beside the preceding subheading while hovering the table/caption.
+                if (nodeIsB12CasesTable(blockRange.node)) {
+                  dragContainer!.style.display = 'none';
+                  currentHoveredBlockPos = null;
+                  currentHoveredBlockRange = null;
+                  return false;
+                }
 
                 if (!isReorderable && !isB12CaseTable) {
                   dragContainer!.style.display = 'none';

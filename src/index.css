@@ -95,8 +95,9 @@ table[data-b12-cases-table="true"],
 }
 table[data-b12-cases-table="true"] td,
 .he-table[data-b12-cases-table="true"] td,
-.ProseMirror table[data-b12-cases-table="true"] td {
-  border: 1.5px solid #000 !important;
+.ProseMirror table[data-b12-cases-table="true"] td,
+.ProseMirror tr[data-case-id] > td[data-role] {
+  border: 2px solid #000 !important;
   background: #ffffff !important;
   padding: 4px 8px !important;
   font-family: "Times New Roman", Times, serif !important;
@@ -105,7 +106,8 @@ table[data-b12-cases-table="true"] td,
 }
 /* Title pill row */
 .he-table[data-b12-cases-table="true"] td[data-role="title"],
-.ProseMirror table[data-b12-cases-table="true"] td[data-role="title"] {
+.ProseMirror table[data-b12-cases-table="true"] td[data-role="title"],
+.ProseMirror tr[data-case-id] > td[data-role="title"] {
   text-align: center !important;
   font-weight: bold !important;
   background: #ffffff !important;
@@ -113,7 +115,8 @@ table[data-b12-cases-table="true"] td,
 }
 .he-table[data-b12-cases-table="true"] .b12-case-title-badge,
 .ProseMirror table[data-b12-cases-table="true"] .b12-case-title-badge,
-table[data-b12-cases-table="true"] .b12-case-title-badge {
+table[data-b12-cases-table="true"] .b12-case-title-badge,
+.ProseMirror tr[data-case-id] > td[data-role="title"] > p {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -154,9 +157,31 @@ table[data-b12-cases-table="true"] .b12-case-title-badge {
   background-size: 11px 11px;
   cursor: pointer;
 }
+.ProseMirror tr[data-case-id] > td[data-role="title"] > p::after {
+  content: "";
+  position: absolute;
+  right: -24px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  color: hsl(var(--destructive));
+  border: 1.5px solid hsl(var(--destructive));
+  background: #ffffff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23dc2626' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 6h18'/%3E%3Cpath d='M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6'/%3E%3Cpath d='M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 11px 11px;
+  cursor: pointer;
+}
 /* Lead participant bubble row (black bg, white text) */
 .he-table[data-b12-cases-table="true"] td[data-role="lead"],
-.ProseMirror table[data-b12-cases-table="true"] td[data-role="lead"] {
+.ProseMirror table[data-b12-cases-table="true"] td[data-role="lead"],
+.ProseMirror tr[data-case-id] > td[data-role="lead"] {
   text-align: center !important;
   font-weight: bold !important;
   background: #ffffff !important;
@@ -164,7 +189,8 @@ table[data-b12-cases-table="true"] .b12-case-title-badge {
 }
 .he-table[data-b12-cases-table="true"] .b12-lead-badge,
 .ProseMirror table[data-b12-cases-table="true"] .b12-lead-badge,
-table[data-b12-cases-table="true"] .b12-lead-badge {
+table[data-b12-cases-table="true"] .b12-lead-badge,
+.ProseMirror tr[data-case-id] > td[data-role="lead"] > p {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -183,7 +209,8 @@ table[data-b12-cases-table="true"] .b12-lead-badge {
 }
 /* Thick black divider between cases */
 .he-table[data-b12-cases-table="true"] td[data-case-start="true"],
-.ProseMirror table[data-b12-cases-table="true"] td[data-case-start="true"] {
+.ProseMirror table[data-b12-cases-table="true"] td[data-case-start="true"],
+.ProseMirror tr[data-case-id] > td[data-case-start="true"] {
   border-top: 4px solid #000 !important;
 }
 .he-table[data-b12-cases-table="true"] td[data-role="sub"] p,
