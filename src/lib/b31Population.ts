@@ -256,6 +256,7 @@ export async function populateB31(
       for (const wp of wpDrafts) {
         for (const ms of wp.milestones) {
           if (!selections.milestones[ms.id]) continue;
+          flag(wp.id, 'milestones');
           msIndex++;
 
           const wpsValue = ms.related_wps || `WP${wp.number}`;
