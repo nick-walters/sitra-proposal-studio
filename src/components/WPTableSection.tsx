@@ -45,6 +45,7 @@ interface WPOption {
 
 interface WPTableSectionProps {
   wpNumber: number;
+  wpColor?: string;
   objectives: string | null;
   descriptionBeforeTasks: string | null;
   tasks: WPDraftTask[];
