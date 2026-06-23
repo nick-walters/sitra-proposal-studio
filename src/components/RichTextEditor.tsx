@@ -1520,6 +1520,7 @@ StarterKit.configure({
       FigureTableReferenceMark,
       ParenBadgeGlue,
       BadgeTrailingCaret,
+      BadgeArrowNav,
       // Block drag-and-drop via drag handle
       BlockDragHandle.configure({
         getLockedBlocks: () => getLockedBlocksRef.current(),
