@@ -835,9 +835,9 @@ export function CaseManagementCard({
                   </DndContext>
                 </div>
 
-                {/* Add button & visibility */}
+                {/* Add button & subsection-template editor */}
                 {isCoordinator && (
-                  <div className="pt-2 flex items-center justify-between">
+                  <div className="pt-2 flex items-center justify-between gap-2">
                     <Button
                       variant="outline"
                       size="sm"
@@ -846,8 +846,31 @@ export function CaseManagementCard({
                     >
                       <Plus className="w-4 h-4 mr-1" />
                     </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSubsectionsDialogOpen(true)}
+                    >
+                      <Settings className="w-4 h-4 mr-1" />
+                      Edit case subsections &amp; guidelines
+                    </Button>
                   </div>
                 )}
+              </>
+            )}
+          </>
+        )}
+
+        <CaseSubsectionTemplateDialog
+          open={subsectionsDialogOpen}
+          onOpenChange={setSubsectionsDialogOpen}
+          proposalId={proposalId}
+          canEdit={isCoordinator}
+        />
+      </CardContent>
+    </Card>
+  );
+}
               </>
             )}
           </>
