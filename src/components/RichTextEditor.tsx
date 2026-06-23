@@ -1280,7 +1280,7 @@ StarterKit.configure({
       }),
       HeadingExitOnEnter,
       BlockReordering,
-      InlineReferenceMark,
+      InlineReferenceNode,
       WPReferenceNode,
       CaseReferenceNode,
       ParticipantReferenceNode,
