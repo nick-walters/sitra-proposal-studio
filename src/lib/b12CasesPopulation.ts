@@ -306,6 +306,7 @@ export async function populateCasesToB12(
         caseId: c.id,
         isFirst: idx === 0,
         badgeText,
+        caseTitle: c.title,
         leadName,
         subsections,
       });
