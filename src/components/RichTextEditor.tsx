@@ -206,16 +206,23 @@ const B12CaseDeleteControl = Extension.create({
         props: {
           handleClick(view, _pos, event) {
             const target = event.target as HTMLElement | null;
-            const badge = target?.closest?.('.b12-case-title-badge') as HTMLElement | null;
-            if (!badge) return false;
+            const directBadge = target?.closest?.('.b12-case-title-badge') as HTMLElement | null;
+            const titleCell = target?.closest?.('td[data-role="title"]') as HTMLTableCellElement | null;
+            const badge = directBadge || (titleCell?.querySelector('.b12-case-title-badge') as HTMLElement | null);
+            if (!badge || !titleCell) return false;
 
             const table = badge.closest('table[data-b12-cases-table="true"]');
-            const row = badge.closest('tr[data-case-id]') as HTMLTableRowElement | null;
+            const row = titleCell.closest('tr[data-case-id]') as HTMLTableRowElement | null;
             const caseId = row?.getAttribute('data-case-id');
             if (!table || !caseId) return false;
 
             const rect = badge.getBoundingClientRect();
-            const clickedDeleteIcon = event.clientX >= rect.right + 2 && event.clientX <= rect.right + 32;
+            const cellRect = titleCell.getBoundingClientRect();
+            const clickedDeleteIcon =
+              event.clientX >= rect.right + 2 &&
+              event.clientX <= Math.min(rect.right + 34, cellRect.right - 2) &&
+              event.clientY >= rect.top - 4 &&
+              event.clientY <= rect.bottom + 4;
             if (!clickedDeleteIcon) return false;
 
             const { state } = view;
@@ -405,12 +412,17 @@ function normalizePartBLoadedContent(html: string) {
   div.querySelectorAll('table[data-b12-cases-table="true"] td[data-role="title"]').forEach((cell) => {
     const p = cell.querySelector('p') || cell;
     p.classList.add('b12-case-title-badge');
+    const caseId = cell.getAttribute('data-case-id');
+    if (caseId) p.setAttribute('data-case-id', caseId);
   });
   div.querySelectorAll('table[data-b12-cases-table="true"] td[data-role="lead"]').forEach((cell) => {
     const p = cell.querySelector('p') || cell;
     p.classList.add('b12-lead-badge');
+    const caseId = cell.getAttribute('data-case-id');
+    if (caseId) p.setAttribute('data-case-id', caseId);
   });
   div.querySelectorAll('table[data-b12-cases-table="true"] td[data-role="sub"] p').forEach((p) => {
+    p.querySelectorAll('o\\:p, o\:p').forEach((el) => el.remove());
     let node = p.lastChild;
     while (node) {
       if (node.nodeType === Node.TEXT_NODE && !((node.textContent || '').trim())) {
@@ -429,6 +441,12 @@ function normalizePartBLoadedContent(html: string) {
     }
     const html = p.innerHTML.replace(/<br\s*\/?>(\s*)/gi, '').replace(/&nbsp;/gi, '').trim();
     if (!html) p.remove();
+  });
+  div.querySelectorAll('table[data-b12-cases-table="true"] td[data-role="sub"] div').forEach((block) => {
+    const parent = block.parentNode;
+    if (!parent) return;
+    while (block.firstChild) parent.insertBefore(block.firstChild, block);
+    block.remove();
   });
 
   div.querySelectorAll('*').forEach((el) => {
