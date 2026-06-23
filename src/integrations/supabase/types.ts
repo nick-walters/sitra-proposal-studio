@@ -848,6 +848,7 @@ export type Database = {
       }
       case_drafts: {
         Row: {
+          b12_populated: boolean
           background_context: string | null
           case_type: string
           color: string
@@ -878,10 +879,12 @@ export type Database = {
           proposed_solutions: string | null
           replicability: string | null
           short_name: string | null
+          subsection_content: Json
           title: string | null
           updated_at: string
         }
         Insert: {
+          b12_populated?: boolean
           background_context?: string | null
           case_type?: string
           color?: string
@@ -912,10 +915,12 @@ export type Database = {
           proposed_solutions?: string | null
           replicability?: string | null
           short_name?: string | null
+          subsection_content?: Json
           title?: string | null
           updated_at?: string
         }
         Update: {
+          b12_populated?: boolean
           background_context?: string | null
           case_type?: string
           color?: string
@@ -946,6 +951,7 @@ export type Database = {
           proposed_solutions?: string | null
           replicability?: string | null
           short_name?: string | null
+          subsection_content?: Json
           title?: string | null
           updated_at?: string
         }
@@ -959,6 +965,50 @@ export type Database = {
           },
           {
             foreignKeyName: "case_drafts_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      case_subsection_templates: {
+        Row: {
+          created_at: string
+          guideline: string | null
+          heading: string
+          id: string
+          is_default: boolean
+          key: string
+          order_index: number
+          proposal_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          guideline?: string | null
+          heading: string
+          id?: string
+          is_default?: boolean
+          key: string
+          order_index?: number
+          proposal_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          guideline?: string | null
+          heading?: string
+          id?: string
+          is_default?: boolean
+          key?: string
+          order_index?: number
+          proposal_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_subsection_templates_proposal_id_fkey"
             columns: ["proposal_id"]
             isOneToOne: false
             referencedRelation: "proposals"
@@ -3612,6 +3662,7 @@ export type Database = {
         Row: {
           acronym: string
           acronym_segments: Json | null
+          b_subheadings_seeded: Json
           banner_title_override: string | null
           banner_topic_line_override: string | null
           budget_template_id: string | null
@@ -3671,6 +3722,7 @@ export type Database = {
         Insert: {
           acronym: string
           acronym_segments?: Json | null
+          b_subheadings_seeded?: Json
           banner_title_override?: string | null
           banner_topic_line_override?: string | null
           budget_template_id?: string | null
@@ -3730,6 +3782,7 @@ export type Database = {
         Update: {
           acronym?: string
           acronym_segments?: Json | null
+          b_subheadings_seeded?: Json
           banner_title_override?: string | null
           banner_topic_line_override?: string | null
           budget_template_id?: string | null
