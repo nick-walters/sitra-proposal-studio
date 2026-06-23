@@ -548,12 +548,23 @@ export async function syncCrossReferences(
   inlineNodeChanges.sort((a, b) => b.pos - a.pos);
   for (const c of inlineNodeChanges) {
     const targetNode = tr.doc.nodeAt(c.pos);
-    if (!targetNode || targetNode.type.name !== 'inlineReference') continue;
-    if (targetNode.attrs.refType !== c.refType) continue;
-    if (targetNode.attrs[c.idKey] !== c.idValue) continue;
+    if (!targetNode || targetNode.type.name !== 'inlineReference') {
+      console.log('[SYNC-INLINE] APPLY skipped — node not found', { refType: c.refType, pos: c.pos });
+      continue;
+    }
+    if (targetNode.attrs.refType !== c.refType) {
+      console.log('[SYNC-INLINE] APPLY skipped — refType drift', { expected: c.refType, got: targetNode.attrs.refType });
+      continue;
+    }
+    if (targetNode.attrs[c.idKey] !== c.idValue) {
+      console.log('[SYNC-INLINE] APPLY skipped — id drift', { refType: c.refType });
+      continue;
+    }
     tr.setNodeMarkup(c.pos, undefined, c.newAttrs);
+    console.log('[SYNC-INLINE] APPLIED setNodeMarkup', { refType: c.refType, idValue: c.idValue, newAttrs: c.newAttrs });
     changed = true;
   }
+
 
 
   if (changed) {
