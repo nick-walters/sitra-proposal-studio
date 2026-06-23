@@ -217,80 +217,55 @@ export function InsertTDMSReferenceDropdowns({
         .order('number');
 
       const wpColorMap = new Map<number, string>();
-
+      const wpShortNameMap = new Map<number, string | null>();
+      const wpIdToNumber = new Map<string, number>();
       if (wpDrafts) {
         for (const wp of wpDrafts) {
           wpColorMap.set(wp.number, wp.color || '#000000');
+          wpShortNameMap.set(wp.number, wp.short_name);
+          wpIdToNumber.set(wp.id, wp.number);
         }
-
-        const allTasks: Task[] = [];
-        for (const wp of wpDrafts) {
-          const { data: wpTasks } = await supabase
-            .from('wp_draft_tasks')
-            .select('id, number, title')
-            .eq('wp_draft_id', wp.id)
-            .order('number');
-          if (wpTasks) {
-            for (const t of wpTasks) {
-              allTasks.push({
-                id: t.id,
-                number: t.number,
-                title: t.title || '',
-                wp_number: wp.number,
-                wp_short_name: wp.short_name,
-                wp_color: wp.color || '#000000',
-              });
-            }
-          }
-        }
-        setTasks(allTasks);
       }
 
-      // Fetch deliverables from both b31_deliverables AND wp_draft_deliverables
-      const [{ data: dels }, { data: draftDels }] = await Promise.all([
-        supabase
-          .from('b31_deliverables')
-          .select('id, number, name, wp_number')
-          .eq('proposal_id', proposalId)
-          .order('number'),
-        supabase
-          .from('wp_draft_deliverables')
-          .select('id, number, title, wp_draft_id')
-          .in('wp_draft_id', (wpDrafts || []).map(wp => wp.id))
-          .order('number'),
-      ]);
+      // Tasks: B3.1 only (b31_tasks). Items only in wp_draft_tasks are not pickable
+      // until their WP has been populated to B3.1.
+      const allTasks: Task[] = [];
+      if (wpDrafts && wpDrafts.length > 0) {
+        const { data: b31Tasks } = await supabase
+          .from('b31_tasks')
+          .select('id, number, title, wp_draft_id, order_index')
+          .in('wp_draft_id', wpDrafts.map(wp => wp.id))
+          .order('order_index');
+        if (b31Tasks) {
+          for (const t of b31Tasks) {
+            const wpNum = wpIdToNumber.get(t.wp_draft_id) || 0;
+            allTasks.push({
+              id: t.id,
+              number: t.number,
+              title: t.title || '',
+              wp_number: wpNum,
+              wp_short_name: wpShortNameMap.get(wpNum) ?? null,
+              wp_color: wpColorMap.get(wpNum) || '#000000',
+            });
+          }
+          allTasks.sort((a, b) =>
+            a.wp_number !== b.wp_number ? a.wp_number - b.wp_number : a.number - b.number
+          );
+        }
+      }
+      setTasks(allTasks);
 
-      // Build a set of b31 deliverable IDs to avoid duplicates
-      const b31Deliverables: Deliverable[] = (dels || []).map(d => ({
+      // Deliverables: B3.1 only
+      const { data: dels } = await supabase
+        .from('b31_deliverables')
+        .select('id, number, name, wp_number')
+        .eq('proposal_id', proposalId)
+        .order('number');
+
+      const allDeliverables: Deliverable[] = (dels || []).map(d => ({
         ...d,
         wp_color: d.wp_number ? wpColorMap.get(d.wp_number) || '#000000' : '#000000',
-      }));
-
-      // Build map of wp_draft_id -> wp_number
-      const wpDraftIdToNumber = new Map<string, number>();
-      if (wpDrafts) {
-        for (const wp of wpDrafts) {
-          wpDraftIdToNumber.set(wp.id, wp.number);
-        }
-      }
-
-      // Add wp_draft_deliverables that don't already exist in b31_deliverables
-      // Match by D{wp_number}.{number} format
-      const b31Numbers = new Set(b31Deliverables.map(d => d.number));
-      const draftDeliverables: Deliverable[] = (draftDels || []).map(d => {
-        const wpNum = wpDraftIdToNumber.get(d.wp_draft_id) || 0;
-        return {
-          id: d.id,
-          number: `D${wpNum}.${d.number}`,
-          name: d.title || '',
-          wp_number: wpNum,
-          wp_color: wpColorMap.get(wpNum) || '#000000',
-        };
-      }).filter(d => !b31Numbers.has(d.number));
-
-      // Merge and sort numerically
-      const allDeliverables = [...b31Deliverables, ...draftDeliverables].sort((a, b) => {
-        // Parse "D{wp}.{num}" format
+      })).sort((a, b) => {
         const parseDelNum = (n: string) => {
           const match = n.match(/D?(\d+)\.(\d+)/);
           return match ? [parseInt(match[1]), parseInt(match[2])] : [0, 0];
