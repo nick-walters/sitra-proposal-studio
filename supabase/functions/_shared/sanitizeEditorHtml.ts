@@ -65,6 +65,9 @@ export const ALLOWED_DATA_ATTRS = new Set<string>([
   'data-timestamp',
   'data-citation',
   'data-heading-number',
+  'data-caption-label',
+  'data-spacing-before',
+  'data-spacing-after',
 ]);
 
 export const STYLE_ALLOWLIST = new Set<string>([
