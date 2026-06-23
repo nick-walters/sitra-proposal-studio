@@ -218,15 +218,9 @@ export async function syncCrossReferences(
   const getRefId = (mark: any): RefId | null => {
     const a = mark.attrs;
     switch (mark.type.name) {
-      case 'wpReference':
-        return a.wpId ? { markName: 'wpReference', idKey: 'wpId', idValue: a.wpId } : null;
-      case 'inlineReference':
-        if (a.refType === 'task' && a.taskId) return { markName: 'inlineReference', idKey: 'taskId', idValue: a.taskId };
-        if (a.refType === 'deliverable' && a.deliverableId) return { markName: 'inlineReference', idKey: 'deliverableId', idValue: a.deliverableId };
-        if (a.refType === 'milestone' && a.milestoneId) return { markName: 'inlineReference', idKey: 'milestoneId', idValue: a.milestoneId };
-        return null;
-      // caseReference / participantReference are now inline atom NODES
-      // (Stage 2 migration) — handled by their own descendants pass below.
+      // wpReference / caseReference / participantReference / inlineReference
+      // are now inline atom NODES (Stages 1–3) — handled by their own
+      // descendants passes below.
       case 'figureTableReference':
         return a.figureId ? { markName: 'figureTableReference', idKey: 'figureId', idValue: a.figureId } : null;
       default:
