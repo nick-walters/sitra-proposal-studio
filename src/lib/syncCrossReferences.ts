@@ -403,10 +403,53 @@ export async function syncCrossReferences(
     changed = true;
   }
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // wpReference is an inline atom NODE (Stage 1 pilot migration).
+  // Walk descendants for `wpReference` nodes, refresh their attrs against
+  // current WP data, and apply via tr.setNodeMarkup. The label is recomputed
+  // from attrs at render time, so no text replacement is needed and the
+  // atom is structurally indivisible (no split-run / merge logic).
+  // ─────────────────────────────────────────────────────────────────────────
+  type WPNodeChange = { pos: number; newAttrs: Record<string, any> };
+  const wpNodeChanges: WPNodeChange[] = [];
+
+  doc.descendants((node, pos) => {
+    if (node.type.name !== 'wpReference') return;
+    const a = node.attrs;
+    if (!a.wpId) return;
+    const wp = data.wpById.get(a.wpId);
+    if (!wp) return;
+    const newAttrs = {
+      ...a,
+      wpNumber: wp.number,
+      wpColor: wp.color,
+      wpShortName: wp.short_name || a.wpShortName,
+    };
+    const attrsDiffer =
+      a.wpNumber !== newAttrs.wpNumber ||
+      a.wpColor !== newAttrs.wpColor ||
+      a.wpShortName !== newAttrs.wpShortName;
+    if (!attrsDiffer) return;
+    wpNodeChanges.push({ pos, newAttrs });
+  });
+
+  // Apply highest-pos-first with a live re-check (defensive — atom nodes
+  // are size 1 so position shifts won't actually occur, but the pattern
+  // matches the mark pipeline for safety).
+  wpNodeChanges.sort((a, b) => b.pos - a.pos);
+  for (const c of wpNodeChanges) {
+    const targetNode = tr.doc.nodeAt(c.pos);
+    if (!targetNode || targetNode.type.name !== 'wpReference') continue;
+    if (targetNode.attrs.wpId !== c.newAttrs.wpId) continue;
+    tr.setNodeMarkup(c.pos, undefined, c.newAttrs);
+    changed = true;
+  }
+
   if (changed) {
     tr.setMeta('addToHistory', false);
     editor.view.dispatch(tr);
   }
 
   return changed;
+
 }
