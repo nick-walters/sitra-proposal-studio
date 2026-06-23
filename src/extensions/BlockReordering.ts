@@ -116,8 +116,16 @@ export function findBlockRange(
         const afterNode = $afterPos.nodeAfter;
         
         if (afterNode && afterNode.type.name === 'table') {
+          let captionStartPos = pos;
+          if (nodeIsB12CasesTable(afterNode) && pos > 0) {
+            const $captionStart = doc.resolve(pos);
+            const headingBefore = $captionStart.nodeBefore;
+            if (headingBefore?.type.name === 'heading' && headingBefore.attrs?.['data-b12-cases-heading'] === 'true') {
+              captionStartPos = pos - headingBefore.nodeSize;
+            }
+          }
           return {
-            startPos: pos,
+            startPos: captionStartPos,
             endPos: afterPos + afterNode.nodeSize,
             node,
           };
