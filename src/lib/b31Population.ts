@@ -133,6 +133,7 @@ export async function populateB31(
           .from('b31_tasks')
           .insert({
             wp_draft_id: wp.id,
+            wp_draft_task_id: task.id,
             number: i + 1,
             title: task.title,
             description: task.description,
@@ -140,7 +141,7 @@ export async function populateB31(
             start_month: task.start_month,
             end_month: task.end_month,
             order_index: i,
-          })
+          } as any)
           .select('id')
           .single();
 
