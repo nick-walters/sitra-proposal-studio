@@ -188,6 +188,7 @@ export async function populateB31(
       for (const wp of wpDrafts) {
         for (const del of wp.deliverables) {
           if (!selections.deliverables[del.id]) continue;
+          flag(wp.id, 'deliverables');
 
           // Check if already exists by matching wp_number + number pattern
           const delNumber = `D${wp.number}.${del.number}`;
