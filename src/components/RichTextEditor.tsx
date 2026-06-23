@@ -129,6 +129,7 @@ interface RichTextEditorProps {
 
 
 const PART_B_ALIGNMENT_EXEMPT_PARAGRAPH_CLASSES = new Set(['figure-caption', 'table-caption']);
+const B12_CASE_PARAGRAPH_CLASSES = new Set(['b12-case-title-badge', 'b12-lead-badge']);
 
 const ParagraphClass = Extension.create({
   name: 'paragraphClass',
@@ -141,6 +142,11 @@ const ParagraphClass = Extension.create({
             default: null,
             parseHTML: (element) => element.getAttribute('class') || null,
             renderHTML: (attributes) => attributes.class ? { class: attributes.class } : {},
+          },
+          'data-case-id': {
+            default: null,
+            parseHTML: (element) => element.getAttribute('data-case-id'),
+            renderHTML: (attributes) => attributes['data-case-id'] ? { 'data-case-id': attributes['data-case-id'] } : {},
           },
         },
       },
@@ -190,6 +196,74 @@ function isB12CasesTableActive(editor: Editor | null): boolean {
 
   return false;
 }
+
+const B12CaseDeleteControl = Extension.create({
+  name: 'b12CaseDeleteControl',
+  addProseMirrorPlugins() {
+    return [
+      new Plugin({
+        key: new PluginKey('b12CaseDeleteControl'),
+        props: {
+          handleClick(view, _pos, event) {
+            const target = event.target as HTMLElement | null;
+            const badge = target?.closest?.('.b12-case-title-badge') as HTMLElement | null;
+            if (!badge) return false;
+
+            const table = badge.closest('table[data-b12-cases-table="true"]');
+            const row = badge.closest('tr[data-case-id]') as HTMLTableRowElement | null;
+            const caseId = row?.getAttribute('data-case-id');
+            if (!table || !caseId) return false;
+
+            const rect = badge.getBoundingClientRect();
+            const clickedDeleteIcon = event.clientX >= rect.right + 2 && event.clientX <= rect.right + 32;
+            if (!clickedDeleteIcon) return false;
+
+            const { state } = view;
+            const rowsToDelete: { pos: number; size: number }[] = [];
+            state.doc.descendants((node, pos) => {
+              if (node.type.name === 'tableRow' && node.attrs?.['data-case-id'] === caseId) {
+                rowsToDelete.push({ pos, size: node.nodeSize });
+                return false;
+              }
+              return true;
+            });
+            if (rowsToDelete.length === 0) return false;
+
+            let tr = state.tr;
+            rowsToDelete
+              .sort((a, b) => b.pos - a.pos)
+              .forEach(({ pos, size }) => {
+                tr = tr.delete(pos, pos + size);
+              });
+
+            let firstTitleCellPos: number | null = null;
+            tr.doc.descendants((node, pos) => {
+              if (firstTitleCellPos !== null) return false;
+              if (node.type.name === 'tableCell' && node.attrs?.['data-role'] === 'title') {
+                firstTitleCellPos = pos;
+                return false;
+              }
+              return true;
+            });
+            if (firstTitleCellPos !== null) {
+              const cell = tr.doc.nodeAt(firstTitleCellPos);
+              if (cell?.attrs?.['data-case-start']) {
+                tr = tr.setNodeMarkup(firstTitleCellPos, undefined, {
+                  ...cell.attrs,
+                  'data-case-start': null,
+                });
+              }
+            }
+
+            view.dispatch(tr.scrollIntoView());
+            event.preventDefault();
+            return true;
+          },
+        },
+      }),
+    ];
+  },
+});
 
 /**
  * Strips text-align from pasted paragraphs so they adopt the default (justified).
@@ -325,6 +399,38 @@ function normalizePartBLoadedContent(html: string) {
     }
   });
 
+  // Repair generated B1.2 case rows that were saved before the editor preserved
+  // the badge structure. TipTap can unwrap spans directly inside table cells into
+  // plain paragraphs, so style the generated title/lead paragraphs themselves.
+  div.querySelectorAll('table[data-b12-cases-table="true"] td[data-role="title"]').forEach((cell) => {
+    const p = cell.querySelector('p') || cell;
+    p.classList.add('b12-case-title-badge');
+  });
+  div.querySelectorAll('table[data-b12-cases-table="true"] td[data-role="lead"]').forEach((cell) => {
+    const p = cell.querySelector('p') || cell;
+    p.classList.add('b12-lead-badge');
+  });
+  div.querySelectorAll('table[data-b12-cases-table="true"] td[data-role="sub"] p').forEach((p) => {
+    let node = p.lastChild;
+    while (node) {
+      if (node.nodeType === Node.TEXT_NODE && !((node.textContent || '').trim())) {
+        const prev = node.previousSibling;
+        node.remove();
+        node = prev;
+        continue;
+      }
+      if (node.nodeType === Node.ELEMENT_NODE && (node as Element).tagName === 'BR') {
+        const prev = node.previousSibling;
+        node.remove();
+        node = prev;
+        continue;
+      }
+      break;
+    }
+    const html = p.innerHTML.replace(/<br\s*\/?>(\s*)/gi, '').replace(/&nbsp;/gi, '').trim();
+    if (!html) p.remove();
+  });
+
   div.querySelectorAll('*').forEach((el) => {
     const h = el as HTMLElement;
     if (h.style) {
@@ -340,16 +446,21 @@ function normalizePartBLoadedContent(html: string) {
       h.style.fontVariant = '';
       h.style.fontFeatureSettings = '';
       h.style.webkitTextStrokeWidth = '';
-      h.style.border = '';
-      h.style.borderTop = '';
-      h.style.borderBottom = '';
-      h.style.borderLeft = '';
-      h.style.borderRight = '';
-      h.style.borderColor = '';
-      h.style.borderStyle = '';
-      h.style.borderWidth = '';
-      h.style.background = '';
-      h.style.backgroundColor = '';
+      const keepGeneratedCaseStyling =
+        h.closest('table[data-b12-cases-table="true"]') ||
+        Array.from(h.classList || []).some((className) => B12_CASE_PARAGRAPH_CLASSES.has(className));
+      if (!keepGeneratedCaseStyling) {
+        h.style.border = '';
+        h.style.borderTop = '';
+        h.style.borderBottom = '';
+        h.style.borderLeft = '';
+        h.style.borderRight = '';
+        h.style.borderColor = '';
+        h.style.borderStyle = '';
+        h.style.borderWidth = '';
+        h.style.background = '';
+        h.style.backgroundColor = '';
+      }
     }
     if (el.tagName === 'FONT') {
       const span = document.createElement('span');
@@ -1298,6 +1409,7 @@ StarterKit.configure({
       Color,
       ParagraphClass,
       HeadingDataAttributes,
+      B12CaseDeleteControl,
       ParagraphSpacing,
       TextAlign.configure({
         types: ['heading', 'paragraph'],
@@ -1582,6 +1694,7 @@ StarterKit.configure({
       Color,
       ParagraphClass,
       HeadingDataAttributes,
+      B12CaseDeleteControl,
       ParagraphSpacing,
       TextAlign.configure({
         types: ['heading', 'paragraph'],
