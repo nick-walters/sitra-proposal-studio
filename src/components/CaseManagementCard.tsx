@@ -419,12 +419,15 @@ export function CaseManagementCard({
   const handleIncludeNumberChange = async (checked: boolean) => {
     await supabase.from('proposals').update({ case_include_number: checked } as any).eq('id', proposalId);
     queryClient.invalidateQueries({ queryKey: ['case-settings', proposalId] });
+    queryClient.invalidateQueries({ queryKey: ['proposal-themes-flag', proposalId] });
   };
 
   const handleIncludeAbbreviationChange = async (checked: boolean) => {
     await supabase.from('proposals').update({ case_include_abbreviation: checked } as any).eq('id', proposalId);
     queryClient.invalidateQueries({ queryKey: ['case-settings', proposalId] });
+    queryClient.invalidateQueries({ queryKey: ['proposal-themes-flag', proposalId] });
   };
+
 
   const updateCaseMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<CaseDraft> }) => {
