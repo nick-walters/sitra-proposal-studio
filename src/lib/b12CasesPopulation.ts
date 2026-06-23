@@ -92,6 +92,32 @@ function isBlankElement(el: Element): boolean {
   return html.length === 0;
 }
 
+function removeTrailingBreaks(el: Element) {
+  let node = el.lastChild;
+  while (node) {
+    if (node.nodeType === Node.TEXT_NODE && !((node.textContent || '').trim())) {
+      const prev = node.previousSibling;
+      node.remove();
+      node = prev;
+      continue;
+    }
+    if (node.nodeType === Node.ELEMENT_NODE && (node as Element).tagName === 'BR') {
+      const prev = node.previousSibling;
+      node.remove();
+      node = prev;
+      continue;
+    }
+    break;
+  }
+}
+
+function cleanCaseContentRoot(root: HTMLElement) {
+  root.querySelectorAll('p').forEach((p) => {
+    removeTrailingBreaks(p);
+    if (isBlankElement(p)) p.remove();
+  });
+}
+
 function renderSubsectionCell(heading: string, content: string): string {
   const prefix = `<strong><em>${esc(heading)}:</em></strong> `;
   const hasMeaningfulContent = content && content.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, '').trim();
@@ -102,6 +128,8 @@ function renderSubsectionCell(heading: string, content: string): string {
 
   const doc = new DOMParser().parseFromString(`<div id="case-content">${content}</div>`, 'text/html');
   const root = doc.getElementById('case-content')!;
+
+  cleanCaseContentRoot(root);
 
   while (root.firstElementChild && root.firstElementChild.tagName === 'P' && isBlankElement(root.firstElementChild)) {
     root.firstElementChild.remove();
@@ -164,10 +192,10 @@ function buildCaseRows(args: {
   const { caseId, isFirst, badgeText, leadName, subsections } = args;
   const startAttr = isFirst ? '' : ' data-case-start="true"';
 
-  const titleRow = `<tr data-case-id="${caseId}" data-role="title-row"><td data-role="title" data-case-id="${caseId}"${startAttr}><span class="case-reference-badge b12-case-title-badge">${esc(badgeText)}</span></td></tr>`;
+  const titleRow = `<tr data-case-id="${caseId}" data-role="title-row"><td data-role="title" data-case-id="${caseId}"${startAttr}><p class="b12-case-title-badge">${esc(badgeText)}</p></td></tr>`;
 
   const leadText = leadName ? `\u2654 ${esc(leadName)}` : 'Lead not set';
-  const leadRow = `<tr data-case-id="${caseId}" data-role="lead-row"><td data-role="lead" data-case-id="${caseId}"><span class="participant-reference-badge b12-lead-badge">${leadText}</span></td></tr>`;
+  const leadRow = `<tr data-case-id="${caseId}" data-role="lead-row"><td data-role="lead" data-case-id="${caseId}"><p class="b12-lead-badge">${leadText}</p></td></tr>`;
 
   const subRows = subsections
     .map((s) => {
