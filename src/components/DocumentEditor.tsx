@@ -812,13 +812,8 @@ export function DocumentEditor({
     editor.chain().focus().insertContent(impactContent).run();
   }, [editor]);
 
-  // Handle figure reference insertion (text link only)
-  const handleInsertFigureReference = useCallback((figure: { figureNumber: string; title: string }) => {
-    if (!editor) return;
-    editor.chain().focus().insertContent(
-      `<span class="figure-reference text-primary cursor-pointer hover:underline">(see Figure ${figure.figureNumber})</span>`
-    ).run();
-  }, [editor]);
+  // Figure text cross-references are inserted via the cross-reference dropdown
+  // (handleInsertCrossRef). The Insert Figure dialog now only inserts images.
 
   const handleRestoreVersion = useCallback((restoredContent: string) => {
     setContent(restoredContent);
@@ -1904,7 +1899,6 @@ export function DocumentEditor({
         onClose={() => setIsFigureDialogOpen(false)}
         proposalId={proposalId}
         currentSectionId={section?.id || ''}
-        onInsertFigure={handleInsertFigureReference}
         onInsertFigureImage={handleInsertFigureImage}
       />
       <ImpactPathwayGenerator
