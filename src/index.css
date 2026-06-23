@@ -119,23 +119,28 @@ table[data-b12-cases-table="true"] td,
 .ProseMirror table[data-b12-cases-table="true"] .b12-case-title-badge,
 table[data-b12-cases-table="true"] .b12-case-title-badge,
 .ProseMirror tr[data-case-id] > td[data-role="title"] > p {
-  display: inline-flex !important;
+  display: flex !important;
   align-items: center !important;
   justify-content: flex-start !important;
   background: #ffffff !important;
   color: #000000 !important;
   border: 1.5px solid #000000 !important;
-  border-radius: 9999px !important;
-  padding: 0 10px !important;
-  height: 17px !important;
+  border-radius: 14px !important;
+  padding: 3px 12px !important;
+  width: 18cm !important;
+  max-width: 18cm !important;
+  min-height: 17px !important;
   text-align: left !important;
   margin: 0 !important;
   font-weight: 700 !important;
-  line-height: 1 !important;
+  line-height: 1.25 !important;
   font-family: "Times New Roman", Times, serif !important;
   font-size: 11pt !important;
-  white-space: nowrap !important;
+  white-space: normal !important;
+  overflow-wrap: break-word !important;
+  word-break: normal !important;
   vertical-align: baseline !important;
+  box-sizing: border-box !important;
 }
 
 /* Lead participant badge — below title, flush left, no divider */
