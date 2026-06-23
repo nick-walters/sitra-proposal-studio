@@ -119,6 +119,7 @@ export async function populateB31(
           .from('wp_drafts')
           .update({ b31_objectives: wp.objectives || null })
           .eq('id', wp.id);
+        flag(wp.id, 'objectives');
         counts.objectives++;
       }
     }
@@ -130,8 +131,15 @@ export async function populateB31(
           .from('wp_drafts')
           .update({ b31_description_before_tasks: wp.description_before_tasks || null } as any)
           .eq('id', wp.id);
+        flag(wp.id, 'description');
       }
     }
+
+    // 2. Copy tasks → b31_tasks (replace existing b31_tasks for selected WPs)
+    for (const wp of wpDrafts) {
+      const selectedTasks = wp.tasks.filter(t => selections.tasks[t.id]);
+      if (selectedTasks.length === 0) continue;
+      flag(wp.id, 'tasks');
 
     // 2. Copy tasks → b31_tasks (replace existing b31_tasks for selected WPs)
     for (const wp of wpDrafts) {
