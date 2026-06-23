@@ -422,7 +422,7 @@ function normalizePartBLoadedContent(html: string) {
     if (caseId) p.setAttribute('data-case-id', caseId);
   });
   div.querySelectorAll('table[data-b12-cases-table="true"] td[data-role="sub"] p').forEach((p) => {
-    p.querySelectorAll('o\\:p, o\:p').forEach((el) => el.remove());
+    p.querySelectorAll('o\\:p').forEach((el) => el.remove());
     let node = p.lastChild;
     while (node) {
       if (node.nodeType === Node.TEXT_NODE && !((node.textContent || '').trim())) {
