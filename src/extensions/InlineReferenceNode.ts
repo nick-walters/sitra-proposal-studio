@@ -183,6 +183,9 @@ export const InlineReferenceNode = Node.create<InlineReferenceOptions>({
     const refType = (node.attrs.refType as string) || 'task';
     const wpColor = node.attrs.wpColor as string | null;
     const label = computeLabel(node.attrs);
+    // TEMP-LOG
+    console.log('[INLINE-RENDER]', { refType, attrs: node.attrs, label });
+
 
     // Pill-geometry styles live on the outer span (carried mainly by the
     // .inline-ref / .inline-ref-<refType> class CSS in index.css). We
