@@ -227,6 +227,13 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
           handleDOMEvents: {
             mousemove(view, event) {
               const { clientX, clientY } = event;
+              const eventTarget = event.target as HTMLElement | null;
+              if (eventTarget?.closest?.('table[data-b12-cases-table="true"], tr[data-case-id], td[data-role="title"], td[data-role="lead"], td[data-role="sub"]')) {
+                dragContainer!.style.display = 'none';
+                currentHoveredBlockPos = null;
+                currentHoveredBlockRange = null;
+                return false;
+              }
               const pos = view.posAtCoords({ left: clientX, top: clientY });
               if (!pos || !dragContainer) {
                 dragContainer!.style.display = 'none';
