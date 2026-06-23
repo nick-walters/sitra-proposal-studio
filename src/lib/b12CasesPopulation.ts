@@ -204,7 +204,7 @@ function buildCaseRows(args: {
 
   const titleRow = `<tr data-case-id="${caseId}" data-role="title-row"><td data-role="title" data-case-id="${caseId}"${startAttr}><p class="b12-case-title-badge" data-case-id="${caseId}">${esc(badgeText)}</p></td><td data-role="lead" data-case-id="${caseId}"${startAttr}><p class="b12-lead-badge" data-case-id="${caseId}">${leadInner}</p></td></tr>`;
 
-  const titleTextRow = `<tr data-case-id="${caseId}" data-role="case-title-row"><td data-role="case-title" data-case-id="${caseId}" colspan="2"><p class="b12-case-title-text" data-case-id="${caseId}"><strong><em>${esc(caseTitle || '')}</em></strong></p></td></tr>`;
+  const titleTextRow = `<tr data-case-id="${caseId}" data-role="case-title-row"><td data-role="case-title" data-case-id="${caseId}" colspan="2"><p class="b12-case-title-text" data-case-id="${caseId}"><strong>${esc(caseTitle || '')}</strong></p></td></tr>`;
 
   const subRows = subsections
     .map((s) => {
