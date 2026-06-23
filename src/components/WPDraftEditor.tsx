@@ -1290,7 +1290,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
           onDeliverableDelete={deleteDeliverable}
           onDeliverableReorder={reorderDeliverables}
           onDeliverableMove={moveDeliverableToWP}
-          readOnly={readOnly}
+          readOnly={readOnly || isSectionLocked('deliverables')}
           projectDuration={projectDuration}
           allWpDrafts={wpDrafts}
           currentWpDraftId={wpDraft.id}
@@ -1308,6 +1308,14 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
         />
 
         {/* Milestones */}
+        {populated.milestones && (
+          <SectionLockBanner
+            label="Milestones have been populated to Part B3.1 and are now locked here."
+            canOverride={isCoordinator}
+            overridden={overrideSections.has('milestones')}
+            onToggle={() => toggleOverride('milestones')}
+          />
+        )}
         <WPMilestonesTable
           wpNumber={wpDraft.number}
           milestones={wpDraft.milestones || []}
@@ -1315,12 +1323,20 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
           onMilestoneAdd={addMilestone}
           onMilestoneDelete={deleteMilestone}
           onMilestoneReorder={reorderMilestones}
-          readOnly={readOnly}
+          readOnly={readOnly || isSectionLocked('milestones')}
           projectDuration={projectDuration}
           allWpDrafts={wpDrafts}
         />
 
         {/* Risks */}
+        {populated.risks && (
+          <SectionLockBanner
+            label="Risks have been populated to Part B3.1 and are now locked here."
+            canOverride={isCoordinator}
+            overridden={overrideSections.has('risks')}
+            onToggle={() => toggleOverride('risks')}
+          />
+        )}
         <WPRisksTable
           wpNumber={wpDraft.number}
           risks={wpDraft.risks || []}
@@ -1328,7 +1344,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
           onRiskAdd={addRisk}
           onRiskDelete={deleteRisk}
           onRiskReorder={reorderRisks}
-          readOnly={readOnly}
+          readOnly={readOnly || isSectionLocked('risks')}
           allWpDrafts={wpDrafts}
         />
 
