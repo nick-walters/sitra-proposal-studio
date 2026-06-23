@@ -872,7 +872,7 @@ export function CaseManagementCard({
                           setPopulateDialogOpen(true);
                         }}
                       >
-                        <FileOutput className="w-4 h-4 mr-1" />
+                        
                         {populating ? 'Populating\u2026' : 'Populate Part B1.2'}
                       </Button>
                     </div>

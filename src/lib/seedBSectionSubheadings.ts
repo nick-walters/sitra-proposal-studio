@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
  * (marked data-default-subheading="true") are removed and replaced.
  * User-added headings are never touched.
  */
-const SEED_VERSION = 'v2';
+const SEED_VERSION = 'v3';
 
 const DEFAULT_SUBHEADINGS: Record<string, string[]> = {
   'b1-1': [
@@ -65,8 +65,19 @@ export async function seedBSectionSubheadings(
   const doc = parser.parseFromString(`<div id="r">${existingHtml || ''}</div>`, 'text/html');
   const root = doc.getElementById('r')!;
 
-  // Remove previously-seeded default subheadings (and any empty <p> directly following them)
-  root.querySelectorAll('[data-default-subheading="true"]').forEach((el) => {
+  const defaultsLower = new Set(subheadings.map((h) => h.toLowerCase()));
+
+  // Remove every existing heading that matches a default — either flagged or by
+  // text — so the canonical default order is enforced. (Headings the user has
+  // added that aren't in the defaults list are preserved.)
+  const toRemove: Element[] = [];
+  root.querySelectorAll('h1, h2, h3, h4').forEach((el) => {
+    const text = (el.textContent || '').trim().toLowerCase();
+    if (el.getAttribute('data-default-subheading') === 'true' || defaultsLower.has(text)) {
+      toRemove.push(el);
+    }
+  });
+  toRemove.forEach((el) => {
     const next = el.nextElementSibling;
     if (next && next.tagName === 'P' && (next.textContent || '').trim() === '') {
       next.remove();
@@ -74,22 +85,11 @@ export async function seedBSectionSubheadings(
     el.remove();
   });
 
-  // Determine which target subheadings are missing (case-insensitive text match)
-  const existingHeadingTexts = new Set(
-    Array.from(root.querySelectorAll('h1, h2, h3, h4'))
-      .map((h) => (h.textContent || '').trim().toLowerCase())
-      .filter(Boolean),
-  );
-  const missing = subheadings.filter((h) => !existingHeadingTexts.has(h.toLowerCase()));
-
-  // Build seeded block — insert at the very top of the section
-  let finalHtml = root.innerHTML;
-  if (missing.length > 0) {
-    const headingsHtml = missing
-      .map((h) => `<h3 data-default-subheading="true">${esc(h)}</h3><p></p>`)
-      .join('');
-    finalHtml = headingsHtml + finalHtml;
-  }
+  // Always prepend the full canonical list in the declared order
+  const headingsHtml = subheadings
+    .map((h) => `<h3 data-default-subheading="true">${esc(h)}</h3><p></p>`)
+    .join('');
+  const finalHtml = headingsHtml + root.innerHTML;
 
   // Persist content (if there were any changes — either removals or additions)
   if (finalHtml !== existingHtml) {

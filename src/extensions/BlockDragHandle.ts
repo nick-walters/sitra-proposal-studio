@@ -256,34 +256,35 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
                 currentHoveredBlockPos = blockRange.startPos;
                 currentHoveredBlockRange = { startPos: blockRange.startPos, endPos: blockRange.endPos };
 
-                // Hide delete button when the block contains a table —
-                // table deletion belongs to the formatting toolbar's Table dropdown.
                 const hasTable = blockContainsTable(view.state.doc, blockRange.startPos, blockRange.endPos);
                 const deleteBtn = dragContainer!.querySelector('.block-delete-btn') as HTMLElement;
-                if (deleteBtn) {
-                  deleteBtn.style.visibility = hasTable ? 'hidden' : 'visible';
-                }
-
-                // Position
-                const blockDom = view.nodeDOM(blockRange.startPos);
-                // For B1.2 case tables: hide the drag (reorder) handle, but
-                // keep the delete button visible — case reordering is done
-                // from the Case Manager. Detect via data attribute (preserved
-                // across editor reloads) or class.
                 const dragHandle = dragContainer!.querySelector('.block-drag-handle') as HTMLElement;
-                let suppressDrag = false;
+
+                // Detect B1.2 cases table (data attribute preserved across editor reloads,
+                // or class on freshly-inserted DOM, or ancestor wrapper).
+                const blockDom = view.nodeDOM(blockRange.startPos);
+                let isB12CaseTable = false;
                 if (blockDom instanceof HTMLElement) {
-                  const isB12CaseTable =
+                  isB12CaseTable =
                     blockDom.matches?.('table[data-b12-cases-table="true"]') ||
                     !!blockDom.querySelector?.('table[data-b12-cases-table="true"]') ||
                     blockDom.classList?.contains('b12-case-table') ||
                     !!blockDom.querySelector?.('.b12-case-table') ||
                     !!blockDom.closest?.('[data-b12-cases-block="true"]');
-                  suppressDrag = !!isB12CaseTable;
                 }
+
+                // Delete button: hidden for normal tables (toolbar handles row delete),
+                // but VISIBLE for the B1.2 cases table so the whole block can be removed.
+                if (deleteBtn) {
+                  if (isB12CaseTable) deleteBtn.style.visibility = 'visible';
+                  else deleteBtn.style.visibility = hasTable ? 'hidden' : 'visible';
+                }
+
+                // Drag handle: hidden for B1.2 cases (reordering is done in Case Manager).
                 if (dragHandle) {
-                  dragHandle.style.visibility = suppressDrag ? 'hidden' : 'visible';
+                  dragHandle.style.visibility = isB12CaseTable ? 'hidden' : 'visible';
                 }
+
                 if (blockDom && blockDom instanceof HTMLElement) {
                   const rect = blockDom.getBoundingClientRect();
                   const editorRect = view.dom.parentElement?.getBoundingClientRect();
