@@ -159,16 +159,22 @@ export async function syncCrossReferences(
   // wpReference atom nodes (post-Stage-1 pilot), skip the proposal-wide SQL
   // fetch and the full-document scan entirely. This keeps section open/click
   // cheap on documents with no references.
+  // Cheap preflight: skip the proposal-wide SQL fetch and the full-doc scan
+  // if the document contains no reference marks AND no reference atom nodes
+  // (wpReference / caseReference / participantReference — post Stage 1/2).
   const REF_MARK_NAMES = new Set([
     'inlineReference',
+    'figureTableReference',
+  ]);
+  const REF_NODE_NAMES = new Set([
+    'wpReference',
     'caseReference',
     'participantReference',
-    'figureTableReference',
   ]);
   let hasAnyRef = false;
   editor.state.doc.descendants((node) => {
     if (hasAnyRef) return false;
-    if (node.type.name === 'wpReference') {
+    if (REF_NODE_NAMES.has(node.type.name)) {
       hasAnyRef = true;
       return false;
     }
