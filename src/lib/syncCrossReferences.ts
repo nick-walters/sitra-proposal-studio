@@ -225,10 +225,8 @@ export async function syncCrossReferences(
         if (a.refType === 'deliverable' && a.deliverableId) return { markName: 'inlineReference', idKey: 'deliverableId', idValue: a.deliverableId };
         if (a.refType === 'milestone' && a.milestoneId) return { markName: 'inlineReference', idKey: 'milestoneId', idValue: a.milestoneId };
         return null;
-      case 'caseReference':
-        return a.caseId ? { markName: 'caseReference', idKey: 'caseId', idValue: a.caseId } : null;
-      case 'participantReference':
-        return a.participantId ? { markName: 'participantReference', idKey: 'participantId', idValue: a.participantId } : null;
+      // caseReference / participantReference are now inline atom NODES
+      // (Stage 2 migration) — handled by their own descendants pass below.
       case 'figureTableReference':
         return a.figureId ? { markName: 'figureTableReference', idKey: 'figureId', idValue: a.figureId } : null;
       default:
@@ -274,23 +272,8 @@ export async function syncCrossReferences(
         }
         return null;
       }
-      case 'caseReference': {
-        const c = data.caseById.get(a.caseId);
-        if (!c) return null;
-        const prefix = getCasePrefix(c.case_type);
-        return {
-          newAttrs: { ...a, caseNumber: c.number, caseColor: c.color, caseShortName: c.short_name || a.caseShortName, caseType: c.case_type },
-          newLabel: prefix ? `${prefix}${c.number}` : (c.short_name || `${c.number}`),
-        };
-      }
-      case 'participantReference': {
-        const p = data.participantById.get(a.participantId);
-        if (!p) return null;
-        return {
-          newAttrs: { ...a, participantNumber: p.participant_number, shortName: p.organisation_short_name },
-          newLabel: p.organisation_short_name || 'Partner',
-        };
-      }
+      // caseReference / participantReference are now inline atom NODES
+      // (Stage 2 migration) — handled by their own descendants pass below.
       case 'figureTableReference': {
         const f = data.figureById.get(a.figureId);
         if (!f) return null;
