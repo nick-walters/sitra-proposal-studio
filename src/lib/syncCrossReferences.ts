@@ -494,59 +494,38 @@ export async function syncCrossReferences(
     const refType = a.refType;
 
     if (refType === 'task') {
-      if (!a.taskId) {
-        console.log('[SYNC-INLINE] task node MISSING taskId', { attrs: a });
-        return;
-      }
+      if (!a.taskId) return;
       const t = data.taskById.get(a.taskId);
-      if (!t) {
-        console.log('[SYNC-INLINE] task lookup FAILED', { taskId: a.taskId, currentAttrs: { wpNumber: a.wpNumber, taskNumber: a.taskNumber } });
-        return;
-      }
+      if (!t) { deletions.push({ pos, end: pos + node.nodeSize, kind: 'task' }); return; }
       const newAttrs = { ...a, wpNumber: t.wp_number, taskNumber: t.number, wpColor: t.wp_color };
       const attrsDiffer =
         a.wpNumber !== newAttrs.wpNumber ||
         a.taskNumber !== newAttrs.taskNumber ||
         a.wpColor !== newAttrs.wpColor;
-      console.log('[SYNC-INLINE] task', { taskId: a.taskId, stored: { wpNumber: a.wpNumber, taskNumber: a.taskNumber, wpColor: a.wpColor }, fresh: { wpNumber: t.wp_number, taskNumber: t.number, wpColor: t.wp_color }, attrsDiffer });
       if (!attrsDiffer) return;
       inlineNodeChanges.push({ pos, newAttrs, refType, idKey: 'taskId', idValue: a.taskId });
       return;
     }
 
     if (refType === 'deliverable') {
-      if (!a.deliverableId) {
-        console.log('[SYNC-INLINE] deliverable node MISSING deliverableId', { attrs: a });
-        return;
-      }
+      if (!a.deliverableId) return;
       const d = data.deliverableById.get(a.deliverableId);
-      if (!d) {
-        console.log('[SYNC-INLINE] deliverable lookup FAILED', { deliverableId: a.deliverableId, currentAttrs: { deliverableNumber: a.deliverableNumber } });
-        return;
-      }
+      if (!d) { deletions.push({ pos, end: pos + node.nodeSize, kind: 'deliverable' }); return; }
       const newAttrs = { ...a, deliverableNumber: d.number, wpColor: d.wp_color };
       const attrsDiffer =
         a.deliverableNumber !== newAttrs.deliverableNumber ||
         a.wpColor !== newAttrs.wpColor;
-      console.log('[SYNC-INLINE] deliverable', { deliverableId: a.deliverableId, stored: { deliverableNumber: a.deliverableNumber, wpColor: a.wpColor }, fresh: { deliverableNumber: d.number, wpColor: d.wp_color }, attrsDiffer });
       if (!attrsDiffer) return;
       inlineNodeChanges.push({ pos, newAttrs, refType, idKey: 'deliverableId', idValue: a.deliverableId });
       return;
     }
 
     if (refType === 'milestone') {
-      if (!a.milestoneId) {
-        console.log('[SYNC-INLINE] milestone node MISSING milestoneId', { attrs: a });
-        return;
-      }
+      if (!a.milestoneId) return;
       const m = data.milestoneById.get(a.milestoneId);
-      if (!m) {
-        console.log('[SYNC-INLINE] milestone lookup FAILED', { milestoneId: a.milestoneId, currentAttrs: { milestoneNumber: a.milestoneNumber } });
-        return;
-      }
+      if (!m) { deletions.push({ pos, end: pos + node.nodeSize, kind: 'milestone' }); return; }
       const newAttrs = { ...a, milestoneNumber: m.number };
       const attrsDiffer = a.milestoneNumber !== newAttrs.milestoneNumber;
-      console.log('[SYNC-INLINE] milestone', { milestoneId: a.milestoneId, stored: { milestoneNumber: a.milestoneNumber }, fresh: { milestoneNumber: m.number }, attrsDiffer });
       if (!attrsDiffer) return;
       inlineNodeChanges.push({ pos, newAttrs, refType, idKey: 'milestoneId', idValue: a.milestoneId });
       return;
