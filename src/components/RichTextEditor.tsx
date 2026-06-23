@@ -32,6 +32,7 @@ import { AcronymReference } from '@/extensions/AcronymReference';
 import { FigureTableReferenceMark } from '@/extensions/FigureTableReferenceMark';
 import { ParenBadgeGlue } from '@/extensions/ParenBadgeGlue';
 import { BadgeTrailingCaret } from '@/extensions/BadgeTrailingCaret';
+import { BadgeCaretHost } from '@/extensions/BadgeCaretHost';
 
 import { CaptionLabel } from '@/extensions/CaptionLabel';
 import { HeadingNumberLabel } from '@/extensions/HeadingNumberLabel';
@@ -1286,6 +1287,7 @@ StarterKit.configure({
       FigureTableReferenceMark,
       ParenBadgeGlue,
       BadgeTrailingCaret,
+      BadgeCaretHost,
       CaptionLabel,
       HeadingNumberLabel,
       // Suppress heading input rules inside table cells: revert heading nodes back to paragraphs
@@ -1519,6 +1521,7 @@ StarterKit.configure({
       FigureTableReferenceMark,
       ParenBadgeGlue,
       BadgeTrailingCaret,
+      BadgeCaretHost,
       
       // Block drag-and-drop via drag handle
       BlockDragHandle.configure({
