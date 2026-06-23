@@ -21,7 +21,7 @@ import { createCitationTooltipPlugin, CitationMark, CitationNode } from './Citat
 import { BlockReordering } from '@/extensions/BlockReordering';
 import { ParagraphSpacing } from '@/extensions/ParagraphSpacing';
 
-import { InlineReferenceMark } from '@/extensions/InlineReferenceMark';
+import { InlineReferenceNode } from '@/extensions/InlineReferenceNode';
 import { BlockDragHandle } from '@/extensions/BlockDragHandle';
 import { TrackChanges, TrackChangesOptions } from '@/extensions/TrackChanges';
 import { TableFormula } from '@/extensions/TableFormula';
@@ -1280,7 +1280,7 @@ StarterKit.configure({
       }),
       HeadingExitOnEnter,
       BlockReordering,
-      InlineReferenceMark,
+      InlineReferenceNode,
       WPReferenceNode,
       CaseReferenceNode,
       ParticipantReferenceNode,
@@ -1507,7 +1507,7 @@ StarterKit.configure({
       HeadingExitOnEnter,
       BlockReordering,
       
-      InlineReferenceMark,
+      InlineReferenceNode,
       // WP reference: inline atom NODE (migrated from mark in Stage 1 pilot)
       WPReferenceNode,
       // Case reference: inline atom NODE (migrated from mark in Stage 2)
@@ -1564,11 +1564,11 @@ StarterKit.configure({
                   // Find the mark range at this position
                   const { doc } = view.state;
                   const $pos = doc.resolve(pos);
-                  // NOTE: wpReference, caseReference, and participantReference
-                  // are inline atom NODES — they handle their own
-                  // click-to-select via NodeSelection, so they are
+                  // NOTE: wpReference, caseReference, participantReference,
+                  // and inlineReference are inline atom NODES — they handle
+                  // their own click-to-select via NodeSelection, so they are
                   // intentionally excluded from this mark-based fallback.
-                  const markTypes = ['inlineReference', 'acronymReference', 'figureTableReference'];
+                  const markTypes = ['acronymReference', 'figureTableReference'];
                   
                   for (const markName of markTypes) {
                     const markType = view.state.schema.marks[markName];
@@ -1623,9 +1623,9 @@ StarterKit.configure({
                 handleTextInput(view, from, to, text) {
                   if (from === to) return false;
                   const { doc, schema } = view.state;
-                  // wpReference, caseReference, participantReference excluded —
-                  // atom nodes are non-editable by definition.
-                  const markNames = ['inlineReference', 'acronymReference', 'figureTableReference'];
+                  // wpReference, caseReference, participantReference, and
+                  // inlineReference excluded — atom nodes are non-editable.
+                  const markNames = ['acronymReference', 'figureTableReference'];
                   let coversRefMark = false;
                   doc.nodesBetween(from, to, (node) => {
                     if (!node.isText) return;

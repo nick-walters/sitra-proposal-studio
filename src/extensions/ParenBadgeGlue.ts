@@ -3,10 +3,16 @@ import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import type { Node as PMNode } from '@tiptap/pm/model';
 
-// Remaining badge MARK names (wpReference migrated to inline atom NODE in Stage 1).
-const REF_MARK_NAMES = ['caseReference', 'participantReference', 'inlineReference'];
+// Remaining badge MARK names (wpReference/caseReference/participantReference/
+// inlineReference all migrated to inline atom NODEs in Stages 1–3).
+const REF_MARK_NAMES: string[] = [];
 // Inline atom NODE names that should also get paren-glue.
-const REF_ATOM_NODE_NAMES = new Set(['wpReference']);
+const REF_ATOM_NODE_NAMES = new Set([
+  'wpReference',
+  'caseReference',
+  'participantReference',
+  'inlineReference',
+]);
 
 function buildGlueDecorations(doc: PMNode): DecorationSet {
   const schema = doc.type.schema;

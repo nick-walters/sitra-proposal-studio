@@ -163,13 +163,13 @@ export async function syncCrossReferences(
   // if the document contains no reference marks AND no reference atom nodes
   // (wpReference / caseReference / participantReference — post Stage 1/2).
   const REF_MARK_NAMES = new Set([
-    'inlineReference',
     'figureTableReference',
   ]);
   const REF_NODE_NAMES = new Set([
     'wpReference',
     'caseReference',
     'participantReference',
+    'inlineReference',
   ]);
   let hasAnyRef = false;
   editor.state.doc.descendants((node) => {
@@ -218,15 +218,9 @@ export async function syncCrossReferences(
   const getRefId = (mark: any): RefId | null => {
     const a = mark.attrs;
     switch (mark.type.name) {
-      case 'wpReference':
-        return a.wpId ? { markName: 'wpReference', idKey: 'wpId', idValue: a.wpId } : null;
-      case 'inlineReference':
-        if (a.refType === 'task' && a.taskId) return { markName: 'inlineReference', idKey: 'taskId', idValue: a.taskId };
-        if (a.refType === 'deliverable' && a.deliverableId) return { markName: 'inlineReference', idKey: 'deliverableId', idValue: a.deliverableId };
-        if (a.refType === 'milestone' && a.milestoneId) return { markName: 'inlineReference', idKey: 'milestoneId', idValue: a.milestoneId };
-        return null;
-      // caseReference / participantReference are now inline atom NODES
-      // (Stage 2 migration) — handled by their own descendants pass below.
+      // wpReference / caseReference / participantReference / inlineReference
+      // are now inline atom NODES (Stages 1–3) — handled by their own
+      // descendants passes below.
       case 'figureTableReference':
         return a.figureId ? { markName: 'figureTableReference', idKey: 'figureId', idValue: a.figureId } : null;
       default:
@@ -237,43 +231,9 @@ export async function syncCrossReferences(
   const computeTarget = (mark: any): { newAttrs: Record<string, any>; newLabel: string } | null => {
     const a = mark.attrs;
     switch (mark.type.name) {
-      case 'wpReference': {
-        const wp = data.wpById.get(a.wpId);
-        if (!wp) return null;
-        return {
-          newAttrs: { ...a, wpNumber: wp.number, wpColor: wp.color, wpShortName: wp.short_name || a.wpShortName },
-          newLabel: wp.short_name ? `WP${wp.number}: ${wp.short_name}` : `WP${wp.number}`,
-        };
-      }
-      case 'inlineReference': {
-        if (a.refType === 'task') {
-          const t = data.taskById.get(a.taskId);
-          if (!t) return null;
-          return {
-            newAttrs: { ...a, wpNumber: t.wp_number, taskNumber: t.number, wpColor: t.wp_color },
-            newLabel: `T${t.wp_number}.${t.number}`,
-          };
-        }
-        if (a.refType === 'deliverable') {
-          const d = data.deliverableById.get(a.deliverableId);
-          if (!d) return null;
-          return {
-            newAttrs: { ...a, deliverableNumber: d.number, wpColor: d.wp_color },
-            newLabel: d.number,
-          };
-        }
-        if (a.refType === 'milestone') {
-          const m = data.milestoneById.get(a.milestoneId);
-          if (!m) return null;
-          return {
-            newAttrs: { ...a, milestoneNumber: m.number },
-            newLabel: `${m.number}`,
-          };
-        }
-        return null;
-      }
-      // caseReference / participantReference are now inline atom NODES
-      // (Stage 2 migration) — handled by their own descendants pass below.
+      // wpReference / caseReference / participantReference / inlineReference
+      // are now inline atom NODES (Stages 1–3) — handled by their own
+      // descendants passes below.
       case 'figureTableReference': {
         const f = data.figureById.get(a.figureId);
         if (!f) return null;
@@ -503,6 +463,73 @@ export async function syncCrossReferences(
     tr.setNodeMarkup(c.pos, undefined, c.newAttrs);
     changed = true;
   }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // inlineReference is an inline atom NODE (Stage 3 migration). One node
+  // type with three variants behind the `refType` attribute:
+  //   - 'task'        -> refresh wpNumber/taskNumber/wpColor from taskById
+  //   - 'deliverable' -> refresh deliverableNumber/wpColor from deliverableById
+  //   - 'milestone'   -> refresh milestoneNumber from milestoneById
+  // The displayed label is recomputed from attrs at render time, so no text
+  // replacement is needed.
+  // ─────────────────────────────────────────────────────────────────────────
+  type InlineNodeChange = { pos: number; newAttrs: Record<string, any>; refType: string; idKey: string; idValue: string };
+  const inlineNodeChanges: InlineNodeChange[] = [];
+
+  doc.descendants((node, pos) => {
+    if (node.type.name !== 'inlineReference') return;
+    const a = node.attrs;
+    const refType = a.refType;
+
+    if (refType === 'task') {
+      if (!a.taskId) return;
+      const t = data.taskById.get(a.taskId);
+      if (!t) return;
+      const newAttrs = { ...a, wpNumber: t.wp_number, taskNumber: t.number, wpColor: t.wp_color };
+      const attrsDiffer =
+        a.wpNumber !== newAttrs.wpNumber ||
+        a.taskNumber !== newAttrs.taskNumber ||
+        a.wpColor !== newAttrs.wpColor;
+      if (!attrsDiffer) return;
+      inlineNodeChanges.push({ pos, newAttrs, refType, idKey: 'taskId', idValue: a.taskId });
+      return;
+    }
+
+    if (refType === 'deliverable') {
+      if (!a.deliverableId) return;
+      const d = data.deliverableById.get(a.deliverableId);
+      if (!d) return;
+      const newAttrs = { ...a, deliverableNumber: d.number, wpColor: d.wp_color };
+      const attrsDiffer =
+        a.deliverableNumber !== newAttrs.deliverableNumber ||
+        a.wpColor !== newAttrs.wpColor;
+      if (!attrsDiffer) return;
+      inlineNodeChanges.push({ pos, newAttrs, refType, idKey: 'deliverableId', idValue: a.deliverableId });
+      return;
+    }
+
+    if (refType === 'milestone') {
+      if (!a.milestoneId) return;
+      const m = data.milestoneById.get(a.milestoneId);
+      if (!m) return;
+      const newAttrs = { ...a, milestoneNumber: m.number };
+      const attrsDiffer = a.milestoneNumber !== newAttrs.milestoneNumber;
+      if (!attrsDiffer) return;
+      inlineNodeChanges.push({ pos, newAttrs, refType, idKey: 'milestoneId', idValue: a.milestoneId });
+      return;
+    }
+  });
+
+  inlineNodeChanges.sort((a, b) => b.pos - a.pos);
+  for (const c of inlineNodeChanges) {
+    const targetNode = tr.doc.nodeAt(c.pos);
+    if (!targetNode || targetNode.type.name !== 'inlineReference') continue;
+    if (targetNode.attrs.refType !== c.refType) continue;
+    if (targetNode.attrs[c.idKey] !== c.idValue) continue;
+    tr.setNodeMarkup(c.pos, undefined, c.newAttrs);
+    changed = true;
+  }
+
 
   if (changed) {
     tr.setMeta('addToHistory', false);
