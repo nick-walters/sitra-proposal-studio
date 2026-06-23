@@ -379,7 +379,7 @@ export async function syncCrossReferences(
     const a = node.attrs;
     if (!a.wpId) return;
     const wp = data.wpById.get(a.wpId);
-    if (!wp) return;
+    if (!wp) { deletions.push({ pos, end: pos + node.nodeSize, kind: 'wp' }); return; }
     const newAttrs = {
       ...a,
       wpNumber: wp.number,
