@@ -266,6 +266,19 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
 
                 // Position
                 const blockDom = view.nodeDOM(blockRange.startPos);
+                // Suppress the drag handle entirely for B1.2 case tables (they are not user-reorderable inline)
+                if (blockDom instanceof HTMLElement) {
+                  const isB12CaseTable =
+                    blockDom.classList?.contains('b12-case-table') ||
+                    !!blockDom.querySelector?.('.b12-case-table') ||
+                    !!blockDom.closest?.('[data-b12-cases-block="true"]');
+                  if (isB12CaseTable) {
+                    dragContainer!.style.display = 'none';
+                    currentHoveredBlockPos = null;
+                    currentHoveredBlockRange = null;
+                    return false;
+                  }
+                }
                 if (blockDom && blockDom instanceof HTMLElement) {
                   const rect = blockDom.getBoundingClientRect();
                   const editorRect = view.dom.parentElement?.getBoundingClientRect();

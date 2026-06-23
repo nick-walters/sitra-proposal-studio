@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 import { renumberAllCaptionsWithMapping, normalizeCaptionStyling } from '@/lib/captionRenumbering';
+import { seedBSectionSubheadings } from '@/lib/seedBSectionSubheadings';
 
 interface UseSectionContentProps {
   proposalId: string;
@@ -391,15 +392,23 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
       }
 
       if (data) {
+        // Attempt to seed default B-section subheadings (idempotent; no-op for already-seeded or non-B sections)
+        let seededContent = data.content || '';
+        try {
+          seededContent = await seedBSectionSubheadings(proposalId, sectionId, seededContent, data.id);
+        } catch (e) {
+          console.warn('[Seeding] subheadings seed failed', e);
+        }
+
         // If there's recovered content that differs from DB, prompt user
-        if (recoveredContent && recoveredContent !== data.content && recoveredContent.trim()) {
+        if (recoveredContent && recoveredContent !== seededContent && recoveredContent.trim()) {
           console.warn(`[AutoSave] Recovery buffer found for section=${sectionId}`);
           toast.info('Recovered unsaved changes from your last session. The recovered content has been applied.', {
             duration: 8000,
           });
           setContentState(recoveredContent);
           contentIdRef.current = data.id;
-          lastVersionContentRef.current = data.content || '';
+          lastVersionContentRef.current = seededContent;
           setIsPlaceholder(false);
           // Mark as dirty so it saves immediately
           pendingContentRef.current = recoveredContent;
@@ -407,9 +416,9 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
           // Clear recovery buffer
           try { localStorage.removeItem(recoveryKey(proposalId, sectionId)); } catch { /* */ }
         } else {
-          setContentState(normalizeCaptionStyling(data.content || ''));
+          setContentState(normalizeCaptionStyling(seededContent));
           contentIdRef.current = data.id;
-          lastVersionContentRef.current = data.content || '';
+          lastVersionContentRef.current = seededContent;
           setIsPlaceholder(false);
           // Clear recovery buffer if it matched DB content
           if (recoveredContent) {
@@ -443,14 +452,33 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
           }
         }
       } else {
-        if (placeholderContent) {
+        // No section_content row yet — try seeding default B-subheadings (creates the row)
+        let seededContent = '';
+        try {
+          seededContent = await seedBSectionSubheadings(proposalId, sectionId, '', null);
+        } catch (e) {
+          console.warn('[Seeding] subheadings seed failed', e);
+        }
+        if (seededContent) {
+          setContentState(normalizeCaptionStyling(seededContent));
+          // Re-fetch the new row id
+          const { data: row } = await supabase
+            .from('section_content')
+            .select('id')
+            .eq('proposal_id', proposalId)
+            .eq('section_id', sectionId)
+            .maybeSingle();
+          contentIdRef.current = row?.id || null;
+          setIsPlaceholder(false);
+        } else if (placeholderContent) {
           setContentState(placeholderContent);
           setIsPlaceholder(true);
+          contentIdRef.current = null;
         } else {
           setContentState('');
           setIsPlaceholder(false);
+          contentIdRef.current = null;
         }
-        contentIdRef.current = null;
         lastVersionContentRef.current = '';
       }
       setLoadedSectionId(sectionId);
