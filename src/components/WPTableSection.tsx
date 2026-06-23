@@ -196,6 +196,7 @@ export function WPTableSection({
 interface SortableTaskCardProps {
   task: WPDraftTask;
   wpNumber: number;
+  wpColor?: string;
   participants: ParticipantSummary[];
   monthOptions: number[];
   projectDuration: number;
