@@ -421,13 +421,10 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
     return false;
   }, [canEditProp, isLocked, isCoordinator, lockWarningDismissed]);
 
-  // Heading and guideline keys that should propagate across all cases
-  const PROPAGATED_KEYS = new Set([
-    'heading_background', 'heading_stakeholders', 'heading_solutions', 'heading_outcomes', 'heading_replicability',
-    'guideline_background', 'guideline_stakeholders', 'guideline_solutions', 'guideline_outcomes', 'guideline_replicability',
-  ]);
+  // Project-wide subsection templates
+  const { templates: subsectionTemplates } = useCaseSubsectionTemplates(proposalId);
 
-  // Update mutation
+  // Update mutation (writes go only to this case row; per-case heading/guideline propagation removed)
   const updateMutation = useMutation({
     mutationFn: async (updates: Record<string, any>) => {
       const { error } = await supabase
@@ -435,21 +432,6 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
         .update(updates)
         .eq('id', caseId);
       if (error) throw error;
-
-      // Propagate heading/guideline changes to ALL other cases in the proposal
-      const propagatedUpdates: Record<string, any> = {};
-      for (const [key, val] of Object.entries(updates)) {
-        if (PROPAGATED_KEYS.has(key)) {
-          propagatedUpdates[key] = val;
-        }
-      }
-      if (Object.keys(propagatedUpdates).length > 0) {
-        await supabase
-          .from('case_drafts')
-          .update(propagatedUpdates)
-          .eq('proposal_id', proposalId)
-          .neq('id', caseId);
-      }
     },
     onSuccess: () => {
       setLastSaved(new Date());
@@ -466,6 +448,15 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
   const updateField = useCallback((field: string, value: any) => {
     updateMutation.mutate({ [field]: value });
   }, [updateMutation]);
+
+  // Write a single subsection's content into the subsection_content jsonb
+  const updateSubsectionContent = useCallback(
+    (key: string, value: string) => {
+      const current = ((caseDraft as any)?.subsection_content as Record<string, string> | null) || {};
+      updateMutation.mutate({ subsection_content: { ...current, [key]: value } });
+    },
+    [caseDraft, updateMutation],
+  );
 
   const execCommand = (command: string, value?: string) => {
     document.execCommand(command, false, value);
