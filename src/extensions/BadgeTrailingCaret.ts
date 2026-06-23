@@ -39,13 +39,18 @@ import { Plugin, PluginKey, TextSelection } from '@tiptap/pm/state';
  */
 
 const BADGE_MARK_NAMES = [
-  'wpReference',
   'caseReference',
   'participantReference',
   'inlineReference',
   'figureTableReference',
   'headingNumberLabel',
 ];
+
+// Inline atom node names treated the same way at the trailing edge.
+// wpReference migrated from mark to inline atom NODE in Stage 1 pilot.
+const BADGE_ATOM_NODE_NAMES = new Set([
+  'wpReference',
+]);
 
 export const BadgeTrailingCaret = Extension.create({
   name: 'badgeTrailingCaret',
@@ -76,22 +81,42 @@ export const BadgeTrailingCaret = Extension.create({
 
             const $from = selection.$from;
             const nodeBefore = $from.nodeBefore;
-            if (!nodeBefore || !nodeBefore.isText) return false;
+            if (!nodeBefore) return false;
 
-            const badgeMark = nodeBefore.marks.find((m) =>
-              markTypes.includes(m.type)
-            );
-            if (!badgeMark) return false;
+            // Trailing-edge detection works for either:
+            //  (a) a text node carrying one of the remaining badge marks, or
+            //  (b) an inline atom badge node (wpReference, post-Stage-1).
+            let trailingBadge:
+              | { kind: 'mark'; markType: any }
+              | { kind: 'atom'; nodeType: any }
+              | null = null;
+
+            if (nodeBefore.isText) {
+              const markTypes = BADGE_MARK_NAMES
+                .map((n) => schema.marks[n])
+                .filter(Boolean);
+              const badgeMark = nodeBefore.marks.find((m) =>
+                markTypes.includes(m.type)
+              );
+              if (badgeMark) {
+                trailingBadge = { kind: 'mark', markType: badgeMark.type };
+              }
+            } else if (nodeBefore.isInline && BADGE_ATOM_NODE_NAMES.has(nodeBefore.type.name)) {
+              trailingBadge = { kind: 'atom', nodeType: nodeBefore.type };
+            }
+
+            if (!trailingBadge) return false;
 
             // If the node after continues the same badge run, the caret is
-            // logically INSIDE the badge — leave it to normal handling
-            // (typing inside a badge is blocked elsewhere by protectReferenceBadges
-            // / the badge's contenteditable=false rendering).
+            // logically INSIDE the badge — leave it to normal handling.
+            // (Atom badges can't have content "after" that continues them, so
+            // this only applies to the mark case.)
             const nodeAfter = $from.nodeAfter;
             if (
+              trailingBadge.kind === 'mark' &&
               nodeAfter &&
               nodeAfter.isText &&
-              nodeAfter.marks.some((m) => m.type === badgeMark.type)
+              nodeAfter.marks.some((m) => m.type === trailingBadge!.markType)
             ) {
               return false;
             }
