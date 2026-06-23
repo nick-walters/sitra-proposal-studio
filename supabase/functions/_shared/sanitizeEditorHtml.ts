@@ -82,6 +82,8 @@ export const STYLE_ALLOWLIST = new Set<string>([
   'height',
   'margin-left',
   'margin-right',
+  'margin-top',
+  'margin-bottom',
   'display',
   'border-color',
   'fill',
