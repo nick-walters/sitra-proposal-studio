@@ -1544,19 +1544,77 @@ StarterKit.configure({
           class: 'text-primary underline',
         },
       }),
-      Table.configure({
+      Table.extend({
+        addAttributes() {
+          return {
+            ...this.parent?.(),
+            'data-b12-cases-table': {
+              default: null,
+              parseHTML: (el) => el.getAttribute('data-b12-cases-table'),
+              renderHTML: (attrs) =>
+                attrs['data-b12-cases-table']
+                  ? { 'data-b12-cases-table': attrs['data-b12-cases-table'] }
+                  : {},
+            },
+          };
+        },
+      }).configure({
         resizable: true,
         HTMLAttributes: {
           class: 'he-table',
         },
       }),
-      TableRow,
+      TableRow.extend({
+        addAttributes() {
+          return {
+            ...this.parent?.(),
+            'data-case-id': {
+              default: null,
+              parseHTML: (el) => el.getAttribute('data-case-id'),
+              renderHTML: (attrs) =>
+                attrs['data-case-id'] ? { 'data-case-id': attrs['data-case-id'] } : {},
+            },
+            'data-role': {
+              default: null,
+              parseHTML: (el) => el.getAttribute('data-role'),
+              renderHTML: (attrs) =>
+                attrs['data-role'] ? { 'data-role': attrs['data-role'] } : {},
+            },
+          };
+        },
+      }),
       TableHeader.configure({
         HTMLAttributes: {
           class: 'he-table-header',
         },
       }),
-      TableCell.configure({
+      TableCell.extend({
+        addAttributes() {
+          return {
+            ...this.parent?.(),
+            'data-role': {
+              default: null,
+              parseHTML: (el) => el.getAttribute('data-role'),
+              renderHTML: (attrs) =>
+                attrs['data-role'] ? { 'data-role': attrs['data-role'] } : {},
+            },
+            'data-case-id': {
+              default: null,
+              parseHTML: (el) => el.getAttribute('data-case-id'),
+              renderHTML: (attrs) =>
+                attrs['data-case-id'] ? { 'data-case-id': attrs['data-case-id'] } : {},
+            },
+            'data-case-start': {
+              default: null,
+              parseHTML: (el) => el.getAttribute('data-case-start'),
+              renderHTML: (attrs) =>
+                attrs['data-case-start']
+                  ? { 'data-case-start': attrs['data-case-start'] }
+                  : {},
+            },
+          };
+        },
+      }).configure({
         HTMLAttributes: {
           class: 'he-table-cell',
         },
