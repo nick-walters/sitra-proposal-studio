@@ -1,6 +1,6 @@
 import { Extension } from '@tiptap/core';
-import { Plugin, PluginKey, TextSelection, Selection } from '@tiptap/pm/state';
-import type { Mark, ResolvedPos } from '@tiptap/pm/model';
+import { Plugin, PluginKey, Selection } from '@tiptap/pm/state';
+import type { Mark } from '@tiptap/pm/model';
 
 /**
  * BadgeArrowNav
