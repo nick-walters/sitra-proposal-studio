@@ -564,7 +564,22 @@ export async function syncCrossReferences(
     changed = true;
   }
 
-
+  // ─────────────────────────────────────────────────────────────────────────
+  // Deleted-ref placeholders — apply LAST, highest-pos first so earlier
+  // positions stay valid through any size changes (figureTable mark ranges
+  // can be multi-char; atom nodes are size 1). Each replacement collapses
+  // the original ref range into a single `inlineReference` atom with
+  // refType='deleted' which renders as yellow plain text.
+  // ─────────────────────────────────────────────────────────────────────────
+  const inlineRefNodeType = state.schema.nodes['inlineReference'];
+  if (inlineRefNodeType && deletions.length > 0) {
+    deletions.sort((a, b) => b.pos - a.pos);
+    for (const d of deletions) {
+      const node = inlineRefNodeType.create({ refType: 'deleted', deletedKind: d.kind });
+      tr.replaceWith(d.pos, d.end, node);
+      changed = true;
+    }
+  }
 
   if (changed) {
     tr.setMeta('addToHistory', false);
