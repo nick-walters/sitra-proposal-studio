@@ -112,7 +112,7 @@ function removeTrailingBreaks(el: Element) {
 }
 
 function cleanCaseContentRoot(root: HTMLElement) {
-  root.querySelectorAll('o\\:p, o\:p').forEach((el) => el.remove());
+  root.querySelectorAll('o\\:p').forEach((el) => el.remove());
   root.querySelectorAll('div').forEach((div) => {
     const parent = div.parentNode;
     if (!parent) return;
