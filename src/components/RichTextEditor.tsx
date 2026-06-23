@@ -1393,6 +1393,7 @@ StarterKit.configure({
       Color,
       ParagraphClass,
       HeadingDataAttributes,
+      B12CaseDeleteControl,
       ParagraphSpacing,
       TextAlign.configure({
         types: ['heading', 'paragraph'],
@@ -1677,6 +1678,7 @@ StarterKit.configure({
       Color,
       ParagraphClass,
       HeadingDataAttributes,
+      B12CaseDeleteControl,
       ParagraphSpacing,
       TextAlign.configure({
         types: ['heading', 'paragraph'],
