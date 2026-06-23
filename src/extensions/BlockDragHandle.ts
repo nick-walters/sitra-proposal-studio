@@ -268,6 +268,16 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
                 const isB12CaseTable = rangeContainsB12CasesTable(view.state.doc, blockRange.startPos, blockRange.endPos);
                 const isReorderable = isReorderableBlock(blockRange.node);
 
+                // The generated B1.2 table has its own per-case delete control
+                // inside each title row. Do not show the generic block controls
+                // beside the preceding subheading while hovering the table/caption.
+                if (nodeIsB12CasesTable(blockRange.node)) {
+                  dragContainer!.style.display = 'none';
+                  currentHoveredBlockPos = null;
+                  currentHoveredBlockRange = null;
+                  return false;
+                }
+
                 if (!isReorderable && !isB12CaseTable) {
                   dragContainer!.style.display = 'none';
                   currentHoveredBlockPos = null;
