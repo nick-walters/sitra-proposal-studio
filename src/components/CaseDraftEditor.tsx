@@ -715,47 +715,36 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
           </DialogContent>
         </Dialog>
 
-        {/* Subsections */}
-        {SUBSECTIONS.map((sub) => {
-          const heading = (caseDraft as any)[sub.headingKey] || sub.defaultHeading;
-          const guideline = (caseDraft as any)[sub.guidelineKey] || sub.defaultGuideline;
-          const content = (caseDraft as any)[sub.key] || '';
+        {/* Subsections — driven by project-wide template */}
+        {subsectionTemplates.length === 0 && (
+          <p className="text-sm text-muted-foreground italic px-1">
+            No subsections defined for this proposal yet. A coordinator can add them via the
+            &ldquo;Edit case subsections &amp; guidelines&rdquo; button in the case manager.
+          </p>
+        )}
+        {subsectionTemplates.map((sub) => {
+          const contentMap = ((caseDraft as any).subsection_content as Record<string, string> | null) || {};
+          const content = contentMap[sub.key] || '';
+          const guideline = sub.guideline || '';
 
           return (
-            <Card key={sub.key}>
+            <Card key={sub.id}>
               <CardHeader className="py-2 px-3">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <BookOpen className="h-4 w-4" />
-                  {isCoordinator ? (
-                    <DebouncedInput
-                      value={heading}
-                      onDebouncedChange={(v) => updateField(sub.headingKey, v)}
-                      className="h-7 text-base font-semibold border-dashed"
-                      disabled={!isCoordinator}
-                    />
-                  ) : (
-                    <span>{heading}</span>
-                  )}
+                  <span>{sub.heading}</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 px-3 pb-3 pt-0">
-                <div className="rounded-md border border-border bg-muted/30 p-2">
-                  {isCoordinator ? (
-                    <DebouncedInput
-                      value={guideline}
-                      onDebouncedChange={(v) => updateField(sub.guidelineKey, v)}
-                      className="h-auto text-xs text-muted-foreground italic border-dashed bg-transparent min-h-[1.5rem]"
-                    />
-                  ) : (
-                    <p className="text-xs text-muted-foreground italic">
-                      {guideline}
-                    </p>
-                  )}
-                </div>
+                {guideline && (
+                  <div className="rounded-md border border-border bg-muted/30 p-2">
+                    <p className="text-xs text-muted-foreground italic">{guideline}</p>
+                  </div>
+                )}
                 <WPSimpleEditor
                   value={content}
-                  onChange={(v) => updateField(sub.key, v)}
-                  placeholder={`Write about ${sub.defaultHeading.toLowerCase()}...`}
+                  onChange={(v) => updateSubsectionContent(sub.key, v)}
+                  placeholder={`Write about ${sub.heading.toLowerCase()}...`}
                   disabled={readOnly}
                   minHeight="150px"
                   hideToolbar={true}
