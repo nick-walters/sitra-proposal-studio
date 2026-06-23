@@ -616,7 +616,9 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
       queryClient.invalidateQueries({ queryKey: ['wp-drafts', proposalId] });
       queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
       queryClient.invalidateQueries({ queryKey: ['wp-drafts-gantt', proposalId] });
-      window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
+      console.log('[SYNC-EVENT] dispatching cross-ref-data-changed', { source: 'WPManagementCard.delete' }); /* TEMP-LOG */
+      window.dispatchEvent(new CustomEvent('cross-ref-data-changed', { detail: { source: 'WPManagementCard.delete' } }));
+
       onSaveEvent?.();
       toast.success('Work package deleted');
     },
