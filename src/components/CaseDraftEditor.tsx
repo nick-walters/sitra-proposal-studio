@@ -79,51 +79,8 @@ const SITRA_CASE_TIPS = [
   },
 ];
 
-interface SubsectionConfig {
-  key: 'background_context' | 'key_stakeholders' | 'proposed_solutions' | 'expected_outcomes' | 'replicability';
-  headingKey: 'heading_background' | 'heading_stakeholders' | 'heading_solutions' | 'heading_outcomes' | 'heading_replicability';
-  guidelineKey: 'guideline_background' | 'guideline_stakeholders' | 'guideline_solutions' | 'guideline_outcomes' | 'guideline_replicability';
-  defaultHeading: string;
-  defaultGuideline: string;
-}
-
-const SUBSECTIONS: SubsectionConfig[] = [
-  {
-    key: 'background_context',
-    headingKey: 'heading_background',
-    guidelineKey: 'guideline_background',
-    defaultHeading: 'Background context',
-    defaultGuideline: 'Describe the specific setting, stakeholders, and challenges that motivate this case. Explain what makes this context relevant to the project objectives.',
-  },
-  {
-    key: 'key_stakeholders',
-    headingKey: 'heading_stakeholders',
-    guidelineKey: 'guideline_stakeholders',
-    defaultHeading: 'Key stakeholders',
-    defaultGuideline: 'Summarise the key target groups involved in the case.',
-  },
-  {
-    key: 'proposed_solutions',
-    headingKey: 'heading_solutions',
-    guidelineKey: 'guideline_solutions',
-    defaultHeading: 'Proposed solutions',
-    defaultGuideline: 'Outline the solutions or interventions to be developed and tested in this case. Describe interactions with relevant WPs and how each contributes to this case.',
-  },
-  {
-    key: 'expected_outcomes',
-    headingKey: 'heading_outcomes',
-    guidelineKey: 'guideline_outcomes',
-    defaultHeading: 'Expected outcomes',
-    defaultGuideline: 'Specify the measurable results expected from this case, including KPIs and success criteria.',
-  },
-  {
-    key: 'replicability',
-    headingKey: 'heading_replicability',
-    guidelineKey: 'guideline_replicability',
-    defaultHeading: 'Replicability',
-    defaultGuideline: 'Explain how lessons and solutions from this case can be transferred to other contexts, sectors, or geographies.',
-  },
-];
+// Subsection templates are now project-wide; loaded via useCaseSubsectionTemplates.
+// Legacy per-case heading_*/guideline_* fields are no longer read or written.
 
 interface CaseDraftEditorProps {
   caseId: string;
