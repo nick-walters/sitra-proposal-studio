@@ -92,7 +92,7 @@ table[data-b12-cases-table="true"],
   border-collapse: collapse !important;
   table-layout: auto;
   width: 100% !important;
-  margin: 18px 0 0 0 !important;
+  margin: 0 0 6pt 0 !important;
   overflow: visible !important;
 }
 /* Force gap above first case even when directly after the caption */
@@ -100,7 +100,7 @@ table[data-b12-cases-table="true"],
 .ProseMirror p.table-caption + table[data-b12-cases-table="true"],
 .document-content .table-caption + table[data-b12-cases-table="true"],
 .document-content p.table-caption + table[data-b12-cases-table="true"] {
-  margin-top: 18px !important;
+  margin-top: 0 !important;
 }
 table[data-b12-cases-table="true"] td,
 .he-table[data-b12-cases-table="true"] td,
@@ -120,7 +120,7 @@ table[data-b12-cases-table="true"] td,
 .ProseMirror table[data-b12-cases-table="true"] td[data-role="title"],
 .ProseMirror tr[data-case-id] > td[data-role="title"] {
   text-align: left !important;
-  padding: 2px 8px 2px 0 !important;
+  padding: 2px 6px 2px 0 !important;
   width: auto !important;
 }
 .he-table[data-b12-cases-table="true"] .b12-case-title-badge,
