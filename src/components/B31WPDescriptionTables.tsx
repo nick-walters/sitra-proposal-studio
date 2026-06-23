@@ -680,8 +680,8 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
           .update({ number: i + 1, order_index: i })
           .eq('id', remaining[i].id);
       }
-      // Mirror the renumber onto linked wp_draft_tasks rows.
-      await mirrorTaskNumbersToWpDraftTasks(remaining.map(t => t.id));
+      // Mirror removed — B3.1 is authoritative.
+
     }
 
     queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
