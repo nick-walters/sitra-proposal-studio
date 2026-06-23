@@ -452,14 +452,33 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
           }
         }
       } else {
-        if (placeholderContent) {
+        // No section_content row yet — try seeding default B-subheadings (creates the row)
+        let seededContent = '';
+        try {
+          seededContent = await seedBSectionSubheadings(proposalId, sectionId, '', null);
+        } catch (e) {
+          console.warn('[Seeding] subheadings seed failed', e);
+        }
+        if (seededContent) {
+          setContentState(normalizeCaptionStyling(seededContent));
+          // Re-fetch the new row id
+          const { data: row } = await supabase
+            .from('section_content')
+            .select('id')
+            .eq('proposal_id', proposalId)
+            .eq('section_id', sectionId)
+            .maybeSingle();
+          contentIdRef.current = row?.id || null;
+          setIsPlaceholder(false);
+        } else if (placeholderContent) {
           setContentState(placeholderContent);
           setIsPlaceholder(true);
+          contentIdRef.current = null;
         } else {
           setContentState('');
           setIsPlaceholder(false);
+          contentIdRef.current = null;
         }
-        contentIdRef.current = null;
         lastVersionContentRef.current = '';
       }
       setLoadedSectionId(sectionId);
