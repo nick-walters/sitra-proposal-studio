@@ -45,6 +45,19 @@ function computeLabel(attrs: Record<string, any>): string {
       return `${attrs.deliverableNumber ?? ''}`;
     case 'milestone':
       return `MS${attrs.milestoneNumber ?? ''}`;
+    case 'deleted': {
+      const kindMap: Record<string, string> = {
+        task: 'task',
+        deliverable: 'deliverable',
+        milestone: 'milestone',
+        wp: 'WP',
+        case: 'case',
+        participant: 'participant',
+        figure: 'figure/table',
+      };
+      const kind = kindMap[attrs.deletedKind] || 'item';
+      return `[cross-reference to a deleted ${kind}]`;
+    }
     default:
       return '';
   }
