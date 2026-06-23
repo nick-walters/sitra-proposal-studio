@@ -119,7 +119,12 @@ function renderSubsectionCell(heading: string, content: string): string {
   return `<p>${prefix}</p>${root.innerHTML}`;
 }
 
-function removeGeneratedCaseBlocks(root: HTMLElement) {
+function removeGeneratedCaseBlocks(root: HTMLElement, extraHeadingTexts: string[] = []) {
+  const generatedHeadingTexts = new Set([
+    ...CASE_BLOCK_HEADING_TEXTS,
+    ...extraHeadingTexts.map((text) => text.trim().toLowerCase()).filter(Boolean),
+  ]);
+
   root.querySelectorAll('[data-b12-cases-block="true"]').forEach((n) => n.remove());
 
   root.querySelectorAll('table[data-b12-cases-table="true"]').forEach((tbl) => {
@@ -136,7 +141,7 @@ function removeGeneratedCaseBlocks(root: HTMLElement) {
 
   root.querySelectorAll('h1, h2, h3, h4').forEach((heading) => {
     const headingText = (heading.textContent || '').trim().toLowerCase();
-    if (!CASE_BLOCK_HEADING_TEXTS.has(headingText)) return;
+    if (!generatedHeadingTexts.has(headingText)) return;
 
     const caption = heading.nextElementSibling;
     const table = caption?.nextElementSibling;
@@ -295,7 +300,7 @@ export async function populateCasesToB12(
 
   // Remove all previously generated versions, including legacy untagged blocks
   // created before data-b12-cases-table was preserved by the editor.
-  removeGeneratedCaseBlocks(root);
+  removeGeneratedCaseBlocks(root, [subheadingText]);
 
   // Insert directly above the "Linked research & innovation activities" subheading;
   // fallback to the top only if that default heading is absent.
