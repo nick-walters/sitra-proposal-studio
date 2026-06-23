@@ -193,26 +193,28 @@ function buildCaseRows(args: {
   caseId: string;
   isFirst: boolean;
   badgeText: string;
+  caseTitle: string | null;
   leadName: string | null;
   subsections: { heading: string; content: string }[];
 }): string {
-  const { caseId, isFirst, badgeText, leadName, subsections } = args;
+  const { caseId, isFirst, badgeText, caseTitle, leadName, subsections } = args;
   const startAttr = isFirst ? '' : ' data-case-start="true"';
 
   const crownSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z" fill="#ffffff"/><path d="M5 21h14"/></svg>`;
   const leadInner = leadName ? `${crownSvg}<span>${esc(leadName)}</span>` : 'Lead not set';
 
-  const titleRow = `<tr data-case-id="${caseId}" data-role="title-row"><td data-role="title" data-case-id="${caseId}"${startAttr}><p class="b12-case-title-badge" data-case-id="${caseId}">${esc(badgeText)}</p></td></tr>`;
-  const leadRow = `<tr data-case-id="${caseId}" data-role="lead-row"><td data-role="lead" data-case-id="${caseId}"><p class="b12-lead-badge" data-case-id="${caseId}">${leadInner}</p></td></tr>`;
+  const titleRow = `<tr data-case-id="${caseId}" data-role="title-row"><td data-role="title" data-case-id="${caseId}"${startAttr}><p class="b12-case-title-badge" data-case-id="${caseId}">${esc(badgeText)}</p></td><td data-role="lead" data-case-id="${caseId}"${startAttr}><p class="b12-lead-badge" data-case-id="${caseId}">${leadInner}</p></td></tr>`;
+
+  const titleTextRow = `<tr data-case-id="${caseId}" data-role="case-title-row"><td data-role="case-title" data-case-id="${caseId}" colspan="2"><p class="b12-case-title-text" data-case-id="${caseId}"><strong><em>${esc(caseTitle || '')}</em></strong></p></td></tr>`;
 
   const subRows = subsections
     .map((s) => {
       const bodyHtml = renderSubsectionCell(s.heading, s.content);
-      return `<tr data-case-id="${caseId}" data-role="sub-row"><td data-role="sub" data-case-id="${caseId}">${bodyHtml}</td></tr>`;
+      return `<tr data-case-id="${caseId}" data-role="sub-row"><td data-role="sub" data-case-id="${caseId}" colspan="2">${bodyHtml}</td></tr>`;
     })
     .join('');
 
-  return titleRow + leadRow + subRows;
+  return titleRow + titleTextRow + subRows;
 }
 
 export interface PopulateB12Options {
