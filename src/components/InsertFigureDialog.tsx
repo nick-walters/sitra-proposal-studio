@@ -7,8 +7,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BarChart3, Network, Image, Check, Sparkles, Upload, Link2 } from 'lucide-react';
+import { BarChart3, Network, Image, Check, Sparkles, Upload } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
@@ -28,7 +27,9 @@ interface InsertFigureDialogProps {
   onClose: () => void;
   proposalId: string;
   currentSectionId: string;
-  onInsertFigure: (figure: Figure) => void;
+  // Callback to insert a figure image (with caption) at the cursor.
+  // Some callers pass this as `onInsertFigure` (legacy name); we accept either.
+  onInsertFigure?: (figure: Figure) => void;
   onInsertFigureImage?: (figure: Figure) => void;
 }
 
@@ -41,7 +42,6 @@ export function InsertFigureDialog({
   onInsertFigureImage,
 }: InsertFigureDialogProps) {
   const [selectedFigures, setSelectedFigures] = useState<Set<string>>(new Set());
-  const [insertMode, setInsertMode] = useState<'image' | 'reference'>('image');
 
   const { data: figures = [] } = useQuery({
     queryKey: ['figures', proposalId],
@@ -76,18 +76,16 @@ export function InsertFigureDialog({
     });
   };
 
+  const insertHandler = onInsertFigureImage ?? onInsertFigure;
+
   const handleInsert = () => {
-    if (selectedFigures.size === 0) return;
+    if (selectedFigures.size === 0 || !insertHandler) return;
 
     // Get selected figures in their original order
     const ordered = figures.filter(f => selectedFigures.has(f.id));
 
     for (const fig of ordered) {
-      if (insertMode === 'image' && onInsertFigureImage) {
-        onInsertFigureImage(fig);
-      } else {
-        onInsertFigure(fig);
-      }
+      insertHandler(fig);
     }
 
     setSelectedFigures(new Set());
@@ -104,52 +102,24 @@ export function InsertFigureDialog({
     }
   };
 
-  const imageFigures = figures.filter(f => f.content?.imageUrl);
-  const displayFigures = insertMode === 'image' ? imageFigures : figures;
+  const displayFigures = figures.filter(f => f.content?.imageUrl);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Insert figure</DialogTitle>
+          <DialogTitle>Insert figure image</DialogTitle>
           <DialogDescription>
-            Select one or more figures to insert at the cursor position.
+            Select one or more figure images to insert at the cursor position. To insert a text cross-reference instead, use the cross-reference dropdown.
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={insertMode} onValueChange={(v) => { setInsertMode(v as 'image' | 'reference'); setSelectedFigures(new Set()); }}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="image" className="gap-2">
-              <Image className="w-4 h-4" />
-              Insert Image
-            </TabsTrigger>
-            <TabsTrigger value="reference" className="gap-2">
-              <Link2 className="w-4 h-4" />
-              Insert Reference
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="image" className="mt-4">
-            <p className="text-sm text-muted-foreground mb-3">
-              Insert figure images with their captions into the document.
-            </p>
-          </TabsContent>
-
-          <TabsContent value="reference" className="mt-4">
-            <p className="text-sm text-muted-foreground mb-3">
-              Insert text references like "(see Figure 1.1.a)" that link to figures.
-            </p>
-          </TabsContent>
-        </Tabs>
-
-        <div className="space-y-2 max-h-[300px] overflow-y-auto">
+        <div className="space-y-2 max-h-[300px] overflow-y-auto mt-2">
           {displayFigures.length === 0 ? (
             <div className="text-center py-8">
               <Image className="w-12 h-12 mx-auto text-muted-foreground mb-2" />
               <p className="text-sm text-muted-foreground">
-                {insertMode === 'image'
-                  ? 'No image figures available. Upload or generate images from the Figures page.'
-                  : 'No figures created yet. Create figures from the Figures section.'}
+                No image figures available. Upload or generate images from the Figures page.
               </p>
             </div>
           ) : (
@@ -199,9 +169,7 @@ export function InsertFigureDialog({
             Cancel
           </Button>
           <Button onClick={handleInsert} disabled={selectedFigures.size === 0}>
-            {insertMode === 'image'
-              ? `Insert ${selectedFigures.size > 1 ? `${selectedFigures.size} Figures` : 'Figure'}`
-              : `Insert ${selectedFigures.size > 1 ? `${selectedFigures.size} References` : 'Reference'}`}
+            {`Insert ${selectedFigures.size > 1 ? `${selectedFigures.size} figure images` : 'figure image'}`}
           </Button>
         </div>
       </DialogContent>
