@@ -737,10 +737,9 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
               </CardHeader>
               <CardContent className="space-y-2 px-3 pb-3 pt-0">
                 {guideline && (
-                  <div className="rounded-md border border-border bg-muted/30 p-2">
-                    <p className="text-xs text-muted-foreground italic">{guideline}</p>
-                  </div>
+                  <p className="text-xs text-muted-foreground italic px-1">{guideline}</p>
                 )}
+
                 <WPSimpleEditor
                   value={content}
                   onChange={(v) => updateSubsectionContent(sub.key, v)}
