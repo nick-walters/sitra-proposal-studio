@@ -384,7 +384,7 @@ export function InsertTDMSReferenceDropdowns({
               </div>
             ) : tasks.length === 0 ? (
               <div className="text-center text-muted-foreground py-8">
-                No tasks found. Add tasks to your work packages first.
+                No tasks available. Populate a work package to Part B3.1 first, or add tasks directly in 3.1.b.
               </div>
             ) : (
               <div className="p-1">
