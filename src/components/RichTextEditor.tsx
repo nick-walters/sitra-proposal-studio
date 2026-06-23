@@ -129,6 +129,7 @@ interface RichTextEditorProps {
 
 
 const PART_B_ALIGNMENT_EXEMPT_PARAGRAPH_CLASSES = new Set(['figure-caption', 'table-caption']);
+const B12_CASE_PARAGRAPH_CLASSES = new Set(['b12-case-title-badge', 'b12-lead-badge']);
 
 const ParagraphClass = Extension.create({
   name: 'paragraphClass',
@@ -141,6 +142,11 @@ const ParagraphClass = Extension.create({
             default: null,
             parseHTML: (element) => element.getAttribute('class') || null,
             renderHTML: (attributes) => attributes.class ? { class: attributes.class } : {},
+          },
+          'data-case-id': {
+            default: null,
+            parseHTML: (element) => element.getAttribute('data-case-id'),
+            renderHTML: (attributes) => attributes['data-case-id'] ? { 'data-case-id': attributes['data-case-id'] } : {},
           },
         },
       },
@@ -325,6 +331,22 @@ function normalizePartBLoadedContent(html: string) {
     }
   });
 
+  // Repair generated B1.2 case rows that were saved before the editor preserved
+  // the badge structure. TipTap can unwrap spans directly inside table cells into
+  // plain paragraphs, so style the generated title/lead paragraphs themselves.
+  div.querySelectorAll('table[data-b12-cases-table="true"] td[data-role="title"]').forEach((cell) => {
+    const p = cell.querySelector('p') || cell;
+    p.classList.add('b12-case-title-badge');
+  });
+  div.querySelectorAll('table[data-b12-cases-table="true"] td[data-role="lead"]').forEach((cell) => {
+    const p = cell.querySelector('p') || cell;
+    p.classList.add('b12-lead-badge');
+  });
+  div.querySelectorAll('table[data-b12-cases-table="true"] td[data-role="sub"] p').forEach((p) => {
+    const html = p.innerHTML.replace(/<br\s*\/?>(\s*)/gi, '').replace(/&nbsp;/gi, '').trim();
+    if (!html) p.remove();
+  });
+
   div.querySelectorAll('*').forEach((el) => {
     const h = el as HTMLElement;
     if (h.style) {
@@ -340,16 +362,21 @@ function normalizePartBLoadedContent(html: string) {
       h.style.fontVariant = '';
       h.style.fontFeatureSettings = '';
       h.style.webkitTextStrokeWidth = '';
-      h.style.border = '';
-      h.style.borderTop = '';
-      h.style.borderBottom = '';
-      h.style.borderLeft = '';
-      h.style.borderRight = '';
-      h.style.borderColor = '';
-      h.style.borderStyle = '';
-      h.style.borderWidth = '';
-      h.style.background = '';
-      h.style.backgroundColor = '';
+      const keepGeneratedCaseStyling =
+        h.closest('table[data-b12-cases-table="true"]') ||
+        Array.from(h.classList || []).some((className) => B12_CASE_PARAGRAPH_CLASSES.has(className));
+      if (!keepGeneratedCaseStyling) {
+        h.style.border = '';
+        h.style.borderTop = '';
+        h.style.borderBottom = '';
+        h.style.borderLeft = '';
+        h.style.borderRight = '';
+        h.style.borderColor = '';
+        h.style.borderStyle = '';
+        h.style.borderWidth = '';
+        h.style.background = '';
+        h.style.backgroundColor = '';
+      }
     }
     if (el.tagName === 'FONT') {
       const span = document.createElement('span');
