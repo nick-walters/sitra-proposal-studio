@@ -266,18 +266,23 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
 
                 // Position
                 const blockDom = view.nodeDOM(blockRange.startPos);
-                // Suppress the drag handle entirely for B1.2 case tables (they are not user-reorderable inline)
+                // For B1.2 case tables: hide the drag (reorder) handle, but
+                // keep the delete button visible — case reordering is done
+                // from the Case Manager. Detect via data attribute (preserved
+                // across editor reloads) or class.
+                const dragHandle = dragContainer!.querySelector('.block-drag-handle') as HTMLElement;
+                let suppressDrag = false;
                 if (blockDom instanceof HTMLElement) {
                   const isB12CaseTable =
+                    blockDom.matches?.('table[data-b12-cases-table="true"]') ||
+                    !!blockDom.querySelector?.('table[data-b12-cases-table="true"]') ||
                     blockDom.classList?.contains('b12-case-table') ||
                     !!blockDom.querySelector?.('.b12-case-table') ||
                     !!blockDom.closest?.('[data-b12-cases-block="true"]');
-                  if (isB12CaseTable) {
-                    dragContainer!.style.display = 'none';
-                    currentHoveredBlockPos = null;
-                    currentHoveredBlockRange = null;
-                    return false;
-                  }
+                  suppressDrag = !!isB12CaseTable;
+                }
+                if (dragHandle) {
+                  dragHandle.style.visibility = suppressDrag ? 'hidden' : 'visible';
                 }
                 if (blockDom && blockDom instanceof HTMLElement) {
                   const rect = blockDom.getBoundingClientRect();
