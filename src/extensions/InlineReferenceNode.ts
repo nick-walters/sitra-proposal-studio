@@ -181,6 +181,12 @@ export const InlineReferenceNode = Node.create<InlineReferenceOptions>({
         renderHTML: (attrs) =>
           attrs.wpColor ? { 'data-wp-color': attrs.wpColor } : {},
       },
+      deletedKind: {
+        default: null,
+        parseHTML: (el) => el.getAttribute('data-deleted-kind'),
+        renderHTML: (attrs) =>
+          attrs.deletedKind ? { 'data-deleted-kind': attrs.deletedKind } : {},
+      },
     };
   },
 
