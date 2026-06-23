@@ -3,29 +3,31 @@ import { supabase } from '@/integrations/supabase/client';
 /**
  * Stage B – Populate selected case drafts into B1.2.
  *
- * Generates the cases block: an H3 type-derived subheading, a single editable
- * caption ("Table 1.2.x. {Cases}"), and one TipTap-compatible <table> per case.
- * Tables carry data-case-id so re-populates and reorder operations can locate
- * and update them in place. Tables are inserted directly above the
- * "Linked research & innovation activities" subheading (or top of section).
+ * Produces ONE combined table containing all selected cases. Each case
+ * occupies a group of rows (title pill, lead participant, then one row per
+ * subsection). Cases are separated by a thick black divider row.
+ *
+ * The table is tagged with data-b12-cases-table="true" so it can be located
+ * later (for reorders / re-populates). Each row carries data-case-id +
+ * data-role so styling and reorder logic can target them.
  */
 
-const CASE_TYPE_HEADINGS: Record<string, string> = {
+const CASE_TYPE_PLURAL: Record<string, string> = {
+  case_study: 'Case study',
+  use_case: 'Use case',
+  living_lab: 'Living lab',
+  pilot: 'Pilot',
+  demonstration: 'Demonstration',
+  challenge: 'Challenge',
+};
+
+const CASE_TYPE_HEADING: Record<string, string> = {
   case_study: 'Case study descriptions',
   use_case: 'Use case descriptions',
   living_lab: 'Living lab descriptions',
   pilot: 'Pilot descriptions',
   demonstration: 'Demonstration descriptions',
   challenge: 'Challenge descriptions',
-};
-
-const CASE_TYPE_PLURAL: Record<string, string> = {
-  case_study: 'Case studies',
-  use_case: 'Use cases',
-  living_lab: 'Living labs',
-  pilot: 'Pilots',
-  demonstration: 'Demonstrations',
-  challenge: 'Challenges',
 };
 
 const CASE_TYPE_PREFIX: Record<string, string> = {
@@ -54,14 +56,12 @@ function getCaseTypeHeading(caseType: string, customName: string | null): string
   if (caseType === 'other') {
     return customName ? `${customName} descriptions` : 'Case descriptions';
   }
-  return CASE_TYPE_HEADINGS[caseType] || 'Case descriptions';
+  return CASE_TYPE_HEADING[caseType] || 'Case descriptions';
 }
 
-function getCaseTypePlural(caseType: string, customName: string | null): string {
-  if (caseType === 'other') {
-    return customName ? `${customName}s` : 'Cases';
-  }
-  return CASE_TYPE_PLURAL[caseType] || 'Cases';
+function getCaseTypeCaption(caseType: string, customName: string | null): string {
+  // Caption text per user spec: "Case_type descriptions" e.g. "Challenge descriptions".
+  return getCaseTypeHeading(caseType, customName);
 }
 
 function caseLabel(opts: {
@@ -82,53 +82,41 @@ function caseLabel(opts: {
   return nameBit || title || `${number}`;
 }
 
-/** Crown SVG inline (lucide-style) so it renders inside ProseMirror as static HTML. */
-const CROWN_SVG = `<svg width="11" height="11" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:3px; vertical-align:-1px; display:inline-block;"><path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z"/><path d="M5 21h14"/></svg>`;
-
-function buildParticipantBubbleHTML(name: string, withCrown: boolean): string {
-  return `<span class="participant-bubble" style="display:inline-flex; align-items:center; padding:1px 8px; border-radius:9999px; background:#000000; color:#ffffff; font-family:'Times New Roman',serif; font-weight:700; font-size:11pt; line-height:1.2;">${withCrown ? CROWN_SVG : ''}${esc(name)}</span>`;
+function stripOuterParagraph(html: string): string {
+  const m = html.match(/^\s*<p[^>]*>([\s\S]*)<\/p>\s*$/i);
+  return m ? m[1] : html;
 }
 
-function buildCaseTableHTML(args: {
+/** Render one case as a sequence of <tr> rows inside the combined table. */
+function buildCaseRows(args: {
   caseId: string;
+  isFirst: boolean;
   badgeText: string;
   leadName: string | null;
   subsections: { heading: string; content: string }[];
 }): string {
-  const { caseId, badgeText, leadName, subsections } = args;
+  const { caseId, isFirst, badgeText, leadName, subsections } = args;
+  const startAttr = isFirst ? '' : ' data-case-start="true"';
 
-  // Title pill row — black border on the cell-bottom so adjacent rows are separated by the cell border, NOT by an under-pill divider
-  // Actually we want NO divider under the title pill. Achieve by making this cell borderless on all sides except continuing the table outer black border via collapse.
-  // Solution: table has 1px outer black border (border-collapse), all cells get 1px black border, BUT we override the title cell border-bottom to none.
-  const titleCell = `<tr><td class="he-table-cell" style="border:1px solid #000; border-bottom:none; padding:4px 6px; text-align:center;">
-    <span style="display:inline-block; width:100%; padding:2px 10px; border:1.5px solid #000; border-radius:9999px; background:#ffffff; color:#000000; font-family:'Times New Roman',serif; font-weight:700; font-size:11pt; text-align:center; box-sizing:border-box;">${esc(badgeText)}</span>
-  </td></tr>`;
+  const titleRow = `<tr data-case-id="${caseId}" data-role="title-row"><td data-role="title" data-case-id="${caseId}"${startAttr}>${esc(badgeText)}</td></tr>`;
 
-  const leadRow = `<tr><td class="he-table-cell" style="border:1px solid #000; border-top:none; padding:4px 6px; text-align:center;">
-    ${leadName ? buildParticipantBubbleHTML(leadName, true) : '<em style="color:#777;">Lead not set</em>'}
-  </td></tr>`;
+  const leadText = leadName ? `\u2654 ${esc(leadName)}` : 'Lead not set';
+  const leadRow = `<tr data-case-id="${caseId}" data-role="lead-row"><td data-role="lead" data-case-id="${caseId}">${leadText}</td></tr>`;
 
   const subRows = subsections
     .map((s) => {
-      const body = (s.content && s.content.replace(/<[^>]*>/g, '').trim())
-        ? s.content
+      const bodyHtml = (s.content && s.content.replace(/<[^>]*>/g, '').trim())
+        ? stripOuterParagraph(s.content)
         : '<em style="color:#999;">No content yet.</em>';
-      // Inline: bold-italic heading + colon, content follows on the same line
-      // s.content is HTML often wrapped in <p>…</p>; strip outermost <p> so inline flow works
-      let inlineBody = body;
-      const pMatch = inlineBody.match(/^\s*<p[^>]*>([\s\S]*)<\/p>\s*$/i);
-      if (pMatch) inlineBody = pMatch[1];
-      return `<tr><td class="he-table-cell" style="border:1px solid #000; padding:4px 6px; vertical-align:top; font-family:'Times New Roman',serif; font-size:11pt;">
-        <strong><em>${esc(s.heading)}:</em></strong> ${inlineBody}
-      </td></tr>`;
+      return `<tr data-case-id="${caseId}" data-role="sub-row"><td data-role="sub" data-case-id="${caseId}"><p><strong><em>${esc(s.heading)}:</em></strong> ${bodyHtml}</p></td></tr>`;
     })
     .join('');
 
-  return `<table class="he-table b12-case-table" data-case-id="${caseId}" style="width:100%; border-collapse:collapse;"><tbody>${titleCell}${leadRow}${subRows}</tbody></table>`;
+  return titleRow + leadRow + subRows;
 }
 
 export interface PopulateB12Options {
-  /** If provided, only populate these case IDs (others are removed from the block). If omitted, all cases. */
+  /** If provided, only populate these case IDs. If omitted, all cases. */
   caseIds?: string[];
 }
 
@@ -157,7 +145,7 @@ export async function populateCasesToB12(
     : allCases;
   if (cases.length === 0) return { insertedOrUpdated: 0, caseCount: 0 };
 
-  // 2. Fetch subsection templates
+  // 2. Subsection templates
   const { data: templates, error: tplError } = await supabase
     .from('case_subsection_templates')
     .select('key, heading, order_index')
@@ -166,7 +154,7 @@ export async function populateCasesToB12(
   if (tplError) throw tplError;
   const templateList = (templates || []) as { key: string; heading: string; order_index: number }[];
 
-  // 3. Fetch participants for lead names
+  // 3. Lead participant names
   const leadIds = Array.from(new Set(cases.map((c) => c.lead_participant_id).filter(Boolean) as string[]));
   const leadMap = new Map<string, string>();
   if (leadIds.length > 0) {
@@ -179,7 +167,7 @@ export async function populateCasesToB12(
     });
   }
 
-  // 4. Fetch proposal flags
+  // 4. Flags
   const { data: proposal } = await supabase
     .from('proposals')
     .select('case_include_number, case_include_abbreviation')
@@ -188,45 +176,52 @@ export async function populateCasesToB12(
   const includeNumber = (proposal as any)?.case_include_number !== false;
   const includeAbbreviation = (proposal as any)?.case_include_abbreviation !== false;
 
-  // 5. Heading / type derived from first selected case
+  // 5. Heading + caption text derived from first selected case
   const firstType = cases[0].case_type;
   const firstCustom = cases[0].custom_type_name;
   const subheadingText = getCaseTypeHeading(firstType, firstCustom);
-  const captionTypeWord = getCaseTypePlural(firstType, firstCustom);
+  const captionText = getCaseTypeCaption(firstType, firstCustom);
 
-  // 6. Build the cases block HTML
+  // 6. Build combined table
+  const allRows = cases
+    .map((c, idx) => {
+      const prefix = getCasePrefix(c.case_type, c.custom_type_name);
+      const badgeText = caseLabel({
+        prefix,
+        number: c.number,
+        shortName: c.short_name,
+        title: c.title,
+        includeNumber,
+        includeAbbreviation,
+      });
+      const leadName = c.lead_participant_id ? leadMap.get(c.lead_participant_id) || null : null;
+      const contentMap = (c.subsection_content as Record<string, string> | null) || {};
+      const subsections = templateList.map((t) => ({
+        heading: t.heading,
+        content: contentMap[t.key] || '',
+      }));
+      return buildCaseRows({
+        caseId: c.id,
+        isFirst: idx === 0,
+        badgeText,
+        leadName,
+        subsections,
+      });
+    })
+    .join('');
+
+  const tableHtml = `<table data-b12-cases-table="true"><tbody>${allRows}</tbody></table>`;
+
   const blocks: string[] = [];
   blocks.push(`<h3 data-b12-cases-heading="true">${esc(subheadingText)}</h3>`);
-
-  // Single caption above the whole cases block — letter is auto-renumbered by renumberCaptionsInEditor
   blocks.push(
-    `<p class="table-caption" data-b12-cases-caption="true" style="text-align:left;"><span data-caption-label="" contenteditable="false" style="user-select: none; font-weight: bold; font-style: italic;">Table 1.2.a. </span><em>${esc(captionTypeWord)}</em></p>`,
+    `<p class="table-caption" data-b12-cases-caption="true" style="text-align:left;"><span data-caption-label="" contenteditable="false" style="user-select: none; font-weight: bold; font-style: italic;">Table 1.2.a. </span><em>${esc(captionText)}</em></p>`,
   );
-
-  cases.forEach((c) => {
-    const prefix = getCasePrefix(c.case_type, c.custom_type_name);
-    const badgeText = caseLabel({
-      prefix,
-      number: c.number,
-      shortName: c.short_name,
-      title: c.title,
-      includeNumber,
-      includeAbbreviation,
-    });
-    const leadName = c.lead_participant_id ? leadMap.get(c.lead_participant_id) || null : null;
-    const contentMap = (c.subsection_content as Record<string, string> | null) || {};
-    const subsections = templateList.map((t) => ({
-      heading: t.heading,
-      content: contentMap[t.key] || '',
-    }));
-
-    blocks.push(buildCaseTableHTML({ caseId: c.id, badgeText, leadName, subsections }));
-    blocks.push('<p></p>');
-  });
+  blocks.push(tableHtml);
 
   const newBlockHTML = `<div data-b12-cases-block="true">${blocks.join('')}</div>`;
 
-  // 7. Load existing b1-2 section content
+  // 7. Load existing b1-2 content
   const { data: existing } = await supabase
     .from('section_content')
     .select('id, content')
@@ -239,10 +234,9 @@ export async function populateCasesToB12(
   const doc = parser.parseFromString(`<div id="root">${existingHtml}</div>`, 'text/html');
   const root = doc.getElementById('root')!;
 
-  // Remove any existing cases block(s)
   root.querySelectorAll('[data-b12-cases-block="true"]').forEach((n) => n.remove());
 
-  // Find insertion point: subheading containing "Linked research"
+  // Insert just before "Linked research" subheading; else top
   let inserted = false;
   const headings = Array.from(root.querySelectorAll('h1, h2, h3, h4'));
   for (const h of headings) {
@@ -263,7 +257,6 @@ export async function populateCasesToB12(
 
   const finalHtml = root.innerHTML;
 
-  // 8. Save
   if (existing?.id) {
     await supabase
       .from('section_content')
@@ -277,7 +270,7 @@ export async function populateCasesToB12(
     });
   }
 
-  // 9. Lock cases + mark b12_populated (only those just populated)
+  // 8. Lock populated cases
   const caseIdsToLock = cases.map((c) => c.id);
   const { data: userData } = await supabase.auth.getUser();
   const lockedBy = userData?.user?.id || null;
@@ -290,9 +283,8 @@ export async function populateCasesToB12(
 }
 
 /**
- * Reorder the case tables in the B1.2 section content to match the given case ID order.
- * Preserves all in-place edits (since it just shuffles the DOM nodes by data-case-id).
- * No-op if the cases block is not present.
+ * Reorder cases within the combined B1.2 cases table to match orderedCaseIds.
+ * Operates on rows tagged data-case-id; preserves in-place edits.
  */
 export async function reorderB12CaseTablesInSection(
   proposalId: string,
@@ -309,50 +301,41 @@ export async function reorderB12CaseTablesInSection(
   const parser = new DOMParser();
   const doc = parser.parseFromString(`<div id="root">${existing.content}</div>`, 'text/html');
   const root = doc.getElementById('root')!;
-  const block = root.querySelector('[data-b12-cases-block="true"]');
-  if (!block) return false;
 
-  const tables = Array.from(block.querySelectorAll('table.b12-case-table')) as HTMLTableElement[];
-  if (tables.length === 0) return false;
+  const table = root.querySelector('table[data-b12-cases-table="true"]');
+  if (!table) return false;
+  const tbody = table.querySelector('tbody');
+  if (!tbody) return false;
 
-  // Build a map by id, and capture each table's following spacer paragraph (if any)
-  const groups = new Map<string, HTMLElement[]>();
-  tables.forEach((t) => {
-    const id = t.getAttribute('data-case-id') || '';
-    const group: HTMLElement[] = [t];
-    let next = t.nextElementSibling;
-    if (next && next.tagName === 'P' && (next.textContent || '').trim() === '') {
-      group.push(next as HTMLElement);
-    }
-    groups.set(id, group);
+  const rows = Array.from(tbody.querySelectorAll('tr[data-case-id]')) as HTMLTableRowElement[];
+  if (rows.length === 0) return false;
+
+  const groups = new Map<string, HTMLTableRowElement[]>();
+  rows.forEach((r) => {
+    const id = r.getAttribute('data-case-id') || '';
+    if (!groups.has(id)) groups.set(id, []);
+    groups.get(id)!.push(r);
   });
 
-  // Find anchor: the element BEFORE the first table (which is the caption — kept in place)
-  const firstTable = tables[0];
-  const anchor = firstTable.previousElementSibling;
-  if (!anchor) return false;
+  rows.forEach((r) => r.remove());
 
-  // Detach all groups, then re-append in desired order after the anchor
-  groups.forEach((group) => group.forEach((el) => el.remove()));
+  const orderedKnown = orderedCaseIds.filter((id) => groups.has(id));
+  const trailing = Array.from(groups.keys()).filter((id) => !orderedKnown.includes(id));
+  const finalOrder = [...orderedKnown, ...trailing];
 
-  let cursor: Element = anchor;
-  orderedCaseIds.forEach((id) => {
-    const group = groups.get(id);
-    if (!group) return;
-    group.forEach((el) => {
-      cursor.after(el);
-      cursor = el;
+  finalOrder.forEach((id, idx) => {
+    const group = groups.get(id)!;
+    group.forEach((row, i) => {
+      // Refresh data-case-start on title cell so the divider is only between cases
+      if (i === 0) {
+        const titleCell = row.querySelector('td[data-role="title"]') as HTMLTableCellElement | null;
+        if (titleCell) {
+          if (idx === 0) titleCell.removeAttribute('data-case-start');
+          else titleCell.setAttribute('data-case-start', 'true');
+        }
+      }
+      tbody.appendChild(row);
     });
-  });
-
-  // Any tables for ids NOT in the orderedCaseIds list — append at the end (preserves them)
-  groups.forEach((group, id) => {
-    if (!orderedCaseIds.includes(id)) {
-      group.forEach((el) => {
-        cursor.after(el);
-        cursor = el;
-      });
-    }
   });
 
   const finalHtml = root.innerHTML;
