@@ -221,7 +221,7 @@ const B12CaseDeleteControl = Extension.create({
               event.clientX >= cellRect.left - 30 &&
               event.clientX <= cellRect.left - 2 &&
               event.clientY >= cellRect.top &&
-              event.clientY <= cellRect.top + 22;
+              event.clientY <= cellRect.bottom;
             if (!clickedDeleteIcon) return false;
 
             const { state } = view;
