@@ -48,9 +48,8 @@ const BADGE_MARK_NAMES = [
 
 // Inline atom node names treated the same way at the trailing edge.
 // wpReference migrated from mark to inline atom NODE in Stage 1 pilot.
-const BADGE_ATOM_NODE_NAMES = new Set([
-  'wpReference',
-]);
+// WP atom intentionally excluded: atom nodes handle trailing-edge caret natively.
+const BADGE_ATOM_NODE_NAMES = new Set<string>([]);
 
 export const BadgeTrailingCaret = Extension.create({
   name: 'badgeTrailingCaret',
