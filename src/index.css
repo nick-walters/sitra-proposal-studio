@@ -842,6 +842,113 @@ table.first-col-flush th:first-child,
 table.first-col-flush td:first-child {
   padding-left: 0 !important;
 }
+
+/* Authoritative B1.2 case-table layout. This block must live after the
+   generic ProseMirror table rules so the generated case rows keep page-width
+   alignment instead of inheriting table-layout column sizing. */
+.ProseMirror table[data-b12-cases-table="true"],
+.document-content table[data-b12-cases-table="true"],
+table[data-b12-cases-table="true"] {
+  display: block !important;
+  width: 100% !important;
+  max-width: 18cm !important;
+  margin: 0 0 6pt 0 !important;
+  table-layout: auto !important;
+  border-collapse: collapse !important;
+  overflow: visible !important;
+}
+
+.ProseMirror .table-caption[data-b12-cases-caption="true"] + table[data-b12-cases-table="true"],
+.ProseMirror p.table-caption[data-b12-cases-caption="true"] + table[data-b12-cases-table="true"],
+.document-content .table-caption[data-b12-cases-caption="true"] + table[data-b12-cases-table="true"],
+.document-content p.table-caption[data-b12-cases-caption="true"] + table[data-b12-cases-table="true"] {
+  margin-top: 0 !important;
+}
+
+.ProseMirror table[data-b12-cases-table="true"] tbody,
+.document-content table[data-b12-cases-table="true"] tbody,
+table[data-b12-cases-table="true"] tbody,
+.ProseMirror table[data-b12-cases-table="true"] tr[data-case-id],
+.document-content table[data-b12-cases-table="true"] tr[data-case-id],
+table[data-b12-cases-table="true"] tr[data-case-id] {
+  display: block !important;
+  width: 100% !important;
+}
+
+.ProseMirror table[data-b12-cases-table="true"] tr[data-role="title-row"],
+.document-content table[data-b12-cases-table="true"] tr[data-role="title-row"],
+table[data-b12-cases-table="true"] tr[data-role="title-row"] {
+  display: flex !important;
+  align-items: flex-start !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  padding-top: 18px !important;
+}
+
+.ProseMirror table[data-b12-cases-table="true"] tr[data-role="title-row"] > td[data-role="title"],
+.document-content table[data-b12-cases-table="true"] tr[data-role="title-row"] > td[data-role="title"],
+table[data-b12-cases-table="true"] tr[data-role="title-row"] > td[data-role="title"] {
+  display: block !important;
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  padding: 2px 6px 2px 0 !important;
+  box-sizing: border-box !important;
+}
+
+.ProseMirror table[data-b12-cases-table="true"] tr[data-role="title-row"] > td[data-role="lead"],
+.document-content table[data-b12-cases-table="true"] tr[data-role="title-row"] > td[data-role="lead"],
+table[data-b12-cases-table="true"] tr[data-role="title-row"] > td[data-role="lead"] {
+  display: flex !important;
+  flex: 1 1 auto !important;
+  justify-content: flex-end !important;
+  align-items: flex-start !important;
+  min-width: 0 !important;
+  width: auto !important;
+  padding: 2px 0 !important;
+  box-sizing: border-box !important;
+  text-align: right !important;
+  white-space: nowrap !important;
+}
+
+.ProseMirror table[data-b12-cases-table="true"] tr[data-role="title-row"] > td[data-role="lead"] > .b12-lead-badge,
+.ProseMirror table[data-b12-cases-table="true"] tr[data-role="title-row"] > td[data-role="lead"] > p,
+.document-content table[data-b12-cases-table="true"] tr[data-role="title-row"] > td[data-role="lead"] > .b12-lead-badge,
+.document-content table[data-b12-cases-table="true"] tr[data-role="title-row"] > td[data-role="lead"] > p,
+table[data-b12-cases-table="true"] tr[data-role="title-row"] > td[data-role="lead"] > .b12-lead-badge,
+table[data-b12-cases-table="true"] tr[data-role="title-row"] > td[data-role="lead"] > p {
+  display: inline-flex !important;
+  width: auto !important;
+  margin: 0 !important;
+  flex: 0 0 auto !important;
+}
+
+.ProseMirror table[data-b12-cases-table="true"] td[data-case-start="true"],
+.document-content table[data-b12-cases-table="true"] td[data-case-start="true"],
+table[data-b12-cases-table="true"] td[data-case-start="true"] {
+  padding-top: 2px !important;
+}
+
+.ProseMirror table[data-b12-cases-table="true"] tr[data-role="case-title-row"],
+.ProseMirror table[data-b12-cases-table="true"] tr[data-role="sub-row"],
+.document-content table[data-b12-cases-table="true"] tr[data-role="case-title-row"],
+.document-content table[data-b12-cases-table="true"] tr[data-role="sub-row"],
+table[data-b12-cases-table="true"] tr[data-role="case-title-row"],
+table[data-b12-cases-table="true"] tr[data-role="sub-row"] {
+  display: block !important;
+  width: 100% !important;
+}
+
+.ProseMirror table[data-b12-cases-table="true"] tr[data-role="case-title-row"] > td,
+.ProseMirror table[data-b12-cases-table="true"] tr[data-role="sub-row"] > td,
+.document-content table[data-b12-cases-table="true"] tr[data-role="case-title-row"] > td,
+.document-content table[data-b12-cases-table="true"] tr[data-role="sub-row"] > td,
+table[data-b12-cases-table="true"] tr[data-role="case-title-row"] > td,
+table[data-b12-cases-table="true"] tr[data-role="sub-row"] > td {
+  display: block !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
 /* B3.1.f matrix uses border-spacing; shift left so first col is flush */
 table.b31-effort-matrix.first-col-flush {
   margin-left: -5pt;
