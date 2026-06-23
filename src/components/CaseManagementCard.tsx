@@ -274,7 +274,7 @@ function SortableCaseRow({ caseItem, participants, casePrefix, includeNumber, in
                 >
                   <div className="w-24 shrink-0">
                     <ParticipantBubble
-                      style={{ fontSize: '12px', height: 'auto', padding: '2px 8px', fontStyle: 'italic' }}
+                      style={{ fontSize: '12px', height: 'auto', padding: '2px 8px' }}
                     >
                       {p.organisation_short_name || `P${p.participant_number}`}
                     </ParticipantBubble>
