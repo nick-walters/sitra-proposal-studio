@@ -1209,6 +1209,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
         {/* WP Table (Objectives & Tasks) */}
         <WPTableSection
           wpNumber={wpDraft.number}
+          wpColor={effectiveColor}
           objectives={wpDraft.objectives}
           descriptionBeforeTasks={wpDraft.description_before_tasks}
           tasks={wpDraft.tasks || []}

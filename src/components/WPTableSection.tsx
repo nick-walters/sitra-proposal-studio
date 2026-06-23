@@ -45,6 +45,7 @@ interface WPOption {
 
 interface WPTableSectionProps {
   wpNumber: number;
+  wpColor?: string;
   objectives: string | null;
   descriptionBeforeTasks: string | null;
   tasks: WPDraftTask[];
@@ -66,6 +67,7 @@ interface WPTableSectionProps {
 
 export function WPTableSection({
   wpNumber,
+  wpColor,
   objectives,
   descriptionBeforeTasks,
   tasks,
@@ -155,6 +157,7 @@ export function WPTableSection({
                     key={task.id}
                     task={task}
                     wpNumber={wpNumber}
+                    wpColor={wpColor}
                     participants={participants}
                     monthOptions={monthOptions}
                     projectDuration={projectDuration}
@@ -193,6 +196,7 @@ export function WPTableSection({
 interface SortableTaskCardProps {
   task: WPDraftTask;
   wpNumber: number;
+  wpColor?: string;
   participants: ParticipantSummary[];
   monthOptions: number[];
   projectDuration: number;
@@ -211,6 +215,7 @@ interface SortableTaskCardProps {
 function SortableTaskCard({
   task,
   wpNumber,
+  wpColor,
   participants,
   monthOptions,
   projectDuration,
@@ -276,8 +281,8 @@ function SortableTaskCard({
           className="inline-flex items-center justify-center rounded-full font-bold select-none flex-shrink-0"
           style={{
             backgroundColor: '#ffffff',
-            border: '1.5px solid #73C92D',
-            color: '#73C92D',
+            border: `1.5px solid ${wpColor || '#73C92D'}`,
+            color: wpColor || '#73C92D',
             height: '22px',
             fontFamily: "'Times New Roman', Times, serif",
             fontSize: '11pt',
