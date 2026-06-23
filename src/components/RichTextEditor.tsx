@@ -1564,11 +1564,11 @@ StarterKit.configure({
                   // Find the mark range at this position
                   const { doc } = view.state;
                   const $pos = doc.resolve(pos);
-                  // NOTE: wpReference, caseReference, and participantReference
-                  // are inline atom NODES — they handle their own
-                  // click-to-select via NodeSelection, so they are
+                  // NOTE: wpReference, caseReference, participantReference,
+                  // and inlineReference are inline atom NODES — they handle
+                  // their own click-to-select via NodeSelection, so they are
                   // intentionally excluded from this mark-based fallback.
-                  const markTypes = ['inlineReference', 'acronymReference', 'figureTableReference'];
+                  const markTypes = ['acronymReference', 'figureTableReference'];
                   
                   for (const markName of markTypes) {
                     const markType = view.state.schema.marks[markName];
