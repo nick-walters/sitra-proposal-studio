@@ -25,7 +25,7 @@ import { InlineReferenceMark } from '@/extensions/InlineReferenceMark';
 import { BlockDragHandle } from '@/extensions/BlockDragHandle';
 import { TrackChanges, TrackChangesOptions } from '@/extensions/TrackChanges';
 import { TableFormula } from '@/extensions/TableFormula';
-import { WPReferenceMark } from '@/extensions/WPReferenceMark';
+import { WPReferenceNode } from '@/extensions/WPReferenceNode';
 import { CaseReferenceMark } from '@/extensions/CaseReferenceMark';
 import { ParticipantReferenceMark } from '@/extensions/ParticipantReferenceMark';
 import { AcronymReference } from '@/extensions/AcronymReference';
@@ -1281,7 +1281,7 @@ StarterKit.configure({
       HeadingExitOnEnter,
       BlockReordering,
       InlineReferenceMark,
-      WPReferenceMark,
+      WPReferenceNode,
       CaseReferenceMark,
       AcronymReference,
       FigureTableReferenceMark,
@@ -1507,8 +1507,8 @@ StarterKit.configure({
       BlockReordering,
       
       InlineReferenceMark,
-      // WP reference marks for inline WP badges
-      WPReferenceMark,
+      // WP reference: inline atom NODE (migrated from mark in Stage 1 pilot)
+      WPReferenceNode,
       // Case reference marks for inline case badges
       CaseReferenceMark,
       // Participant reference marks for inline partner badges
@@ -1563,7 +1563,10 @@ StarterKit.configure({
                   // Find the mark range at this position
                   const { doc } = view.state;
                   const $pos = doc.resolve(pos);
-                  const markTypes = ['inlineReference', 'wpReference', 'caseReference', 'participantReference', 'acronymReference', 'figureTableReference'];
+                  // NOTE: wpReference is now an inline atom NODE — it handles
+                  // its own click-to-select via NodeSelection, so it is
+                  // intentionally excluded from this mark-based fallback.
+                  const markTypes = ['inlineReference', 'caseReference', 'participantReference', 'acronymReference', 'figureTableReference'];
                   
                   for (const markName of markTypes) {
                     const markType = view.state.schema.marks[markName];
@@ -1618,7 +1621,8 @@ StarterKit.configure({
                 handleTextInput(view, from, to, text) {
                   if (from === to) return false;
                   const { doc, schema } = view.state;
-                  const markNames = ['inlineReference', 'wpReference', 'caseReference', 'participantReference', 'acronymReference', 'figureTableReference'];
+                  // wpReference excluded — atom nodes are non-editable by definition.
+                  const markNames = ['inlineReference', 'caseReference', 'participantReference', 'acronymReference', 'figureTableReference'];
                   let coversRefMark = false;
                   doc.nodesBetween(from, to, (node) => {
                     if (!node.isText) return;
