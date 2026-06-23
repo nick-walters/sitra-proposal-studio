@@ -286,6 +286,17 @@ export async function syncCrossReferences(
     }
   });
 
+  // Detect figureTableReference marks whose figure has been deleted. Queue
+  // a deletion replacement for the marked text range so it becomes a
+  // yellow "[cross-reference to a deleted figure/table]" placeholder.
+  for (const e of entries) {
+    if (e.refMark.type.name !== 'figureTableReference') continue;
+    const figId = e.refMark.attrs.figureId;
+    if (figId && !data.figureById.get(figId)) {
+      deletions.push({ pos: e.pos, end: e.pos + e.node.nodeSize, kind: 'figure' });
+    }
+  }
+
   // (2) Detect adjacent same-mark/same-id runs (split badges) and queue merges.
   const changes: Change[] = [];
   const handled = new Set<number>(); // positions covered by a merge
