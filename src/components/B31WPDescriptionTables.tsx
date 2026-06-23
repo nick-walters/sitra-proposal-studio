@@ -731,9 +731,8 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
           return false;
         }
       }
-      // Mirror onto wp_draft_tasks via the wp_draft_task_id link so badges
-      // (which derive their label from wp_draft_tasks.number) update.
-      await mirrorTaskNumbersToWpDraftTasks(taskIds);
+      // Mirror removed — B3.1 is authoritative.
+
 
       await queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
       setTimeout(() => {
