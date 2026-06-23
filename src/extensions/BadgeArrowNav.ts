@@ -40,40 +40,6 @@ function sameBadgeMark(a: Mark, b: Mark): boolean {
   return a.eq(b);
 }
 
-/**
- * Walk forward from $pos, skipping over any contiguous run of text nodes
- * that all carry the given badge mark (eq). Returns the document position
- * immediately AFTER the last node in that run, within the same parent.
- */
-function endOfBadgeRunForward($pos: ResolvedPos, badge: Mark): number {
-  const parent = $pos.parent;
-  const offsetInParent = $pos.parentOffset;
-  let pos = $pos.pos;
-  let scanned = 0;
-  parent.forEach((child, offset) => {
-    if (offset < offsetInParent) {
-      scanned = offset + child.nodeSize;
-      return;
-    }
-    if (offset < scanned) return;
-    const hasBadge =
-      child.isText && child.marks.some((m) => sameBadgeMark(m, badge));
-    if (hasBadge) {
-      pos = $pos.start() + offset + child.nodeSize;
-      scanned = offset + child.nodeSize;
-    }
-  });
-  // Simpler: iterate manually starting at $pos.
-  return pos;
-}
-
-/**
- * Walk backward from $pos, skipping a contiguous run carrying the badge
- * mark, returning the position immediately BEFORE the first node in run.
- */
-function startOfBadgeRunBackward($pos: ResolvedPos, badge: Mark): number {
-  return $pos.pos; // placeholder; real logic below in plugin
-}
 
 export const BadgeArrowNav = Extension.create({
   name: 'badgeArrowNav',
