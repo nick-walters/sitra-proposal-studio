@@ -120,7 +120,6 @@ export const WPReferenceNode = Node.create<WPReferenceOptions>({
           display: inline-flex;
           align-items: center;
           background-color: ${color};
-          color: #ffffff;
           border: 1.5px solid ${color};
           padding: 0px 5px;
           border-radius: 9999px;
@@ -133,7 +132,7 @@ export const WPReferenceNode = Node.create<WPReferenceOptions>({
           cursor: pointer;
         `,
       }),
-      label,
+      ['span', { style: 'color: #ffffff;' }, label],
     ];
   },
 
