@@ -231,43 +231,9 @@ export async function syncCrossReferences(
   const computeTarget = (mark: any): { newAttrs: Record<string, any>; newLabel: string } | null => {
     const a = mark.attrs;
     switch (mark.type.name) {
-      case 'wpReference': {
-        const wp = data.wpById.get(a.wpId);
-        if (!wp) return null;
-        return {
-          newAttrs: { ...a, wpNumber: wp.number, wpColor: wp.color, wpShortName: wp.short_name || a.wpShortName },
-          newLabel: wp.short_name ? `WP${wp.number}: ${wp.short_name}` : `WP${wp.number}`,
-        };
-      }
-      case 'inlineReference': {
-        if (a.refType === 'task') {
-          const t = data.taskById.get(a.taskId);
-          if (!t) return null;
-          return {
-            newAttrs: { ...a, wpNumber: t.wp_number, taskNumber: t.number, wpColor: t.wp_color },
-            newLabel: `T${t.wp_number}.${t.number}`,
-          };
-        }
-        if (a.refType === 'deliverable') {
-          const d = data.deliverableById.get(a.deliverableId);
-          if (!d) return null;
-          return {
-            newAttrs: { ...a, deliverableNumber: d.number, wpColor: d.wp_color },
-            newLabel: d.number,
-          };
-        }
-        if (a.refType === 'milestone') {
-          const m = data.milestoneById.get(a.milestoneId);
-          if (!m) return null;
-          return {
-            newAttrs: { ...a, milestoneNumber: m.number },
-            newLabel: `${m.number}`,
-          };
-        }
-        return null;
-      }
-      // caseReference / participantReference are now inline atom NODES
-      // (Stage 2 migration) — handled by their own descendants pass below.
+      // wpReference / caseReference / participantReference / inlineReference
+      // are now inline atom NODES (Stages 1–3) — handled by their own
+      // descendants passes below.
       case 'figureTableReference': {
         const f = data.figureById.get(a.figureId);
         if (!f) return null;
