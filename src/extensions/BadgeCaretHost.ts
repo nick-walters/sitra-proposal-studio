@@ -22,17 +22,28 @@ import type { Node as PMNode } from '@tiptap/pm/model';
  */
 
 const BADGE_MARK_NAMES = new Set([
-  'wpReference',
   'caseReference',
   'participantReference',
   'inlineReference',
   'headingNumberLabel',
 ]);
 
-function getBadgeMarkName(node: PMNode): string | null {
-  if (!node.isText) return null;
-  for (const m of node.marks) {
-    if (BADGE_MARK_NAMES.has(m.type.name)) return m.type.name;
+// Inline atom node names that should also act as badge runs (1-node runs).
+// wpReference migrated from mark to inline atom NODE in Stage 1 pilot.
+const BADGE_ATOM_NODE_NAMES = new Set([
+  'wpReference',
+]);
+
+function getBadgeRunName(node: PMNode): string | null {
+  if (node.isText) {
+    for (const m of node.marks) {
+      if (BADGE_MARK_NAMES.has(m.type.name)) return m.type.name;
+    }
+    return null;
+  }
+  // Inline atom nodes acting as badges.
+  if (node.isInline && BADGE_ATOM_NODE_NAMES.has(node.type.name)) {
+    return node.type.name;
   }
   return null;
 }
@@ -80,14 +91,14 @@ function buildDecorations(doc: PMNode): DecorationSet {
     };
 
     node.forEach((child) => {
-      const markName = getBadgeMarkName(child);
-      if (markName && markName === runMarkName) {
+      const runName = getBadgeRunName(child);
+      if (runName && runName === runMarkName) {
         // continue run
       } else {
         flush(offset);
-        if (markName) {
+        if (runName) {
           runStartRelative = offset;
-          runMarkName = markName;
+          runMarkName = runName;
         }
       }
       offset += child.nodeSize;
