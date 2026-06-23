@@ -21,7 +21,7 @@ import { createCitationTooltipPlugin, CitationMark, CitationNode } from './Citat
 import { BlockReordering } from '@/extensions/BlockReordering';
 import { ParagraphSpacing } from '@/extensions/ParagraphSpacing';
 
-import { InlineReferenceMark } from '@/extensions/InlineReferenceMark';
+import { InlineReferenceNode } from '@/extensions/InlineReferenceNode';
 import { BlockDragHandle } from '@/extensions/BlockDragHandle';
 import { TrackChanges, TrackChangesOptions } from '@/extensions/TrackChanges';
 import { TableFormula } from '@/extensions/TableFormula';
