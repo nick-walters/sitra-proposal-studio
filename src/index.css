@@ -209,14 +209,16 @@ table[data-b12-cases-table="true"] .b12-lead-badge::before,
   line-height: 1.25 !important;
 }
 .he-table[data-b12-cases-table="true"] .b12-case-title-text em,
-.ProseMirror table[data-b12-cases-table="true"] .b12-case-title-text em {
+.ProseMirror table[data-b12-cases-table="true"] .b12-case-title-text em,
+.he-table[data-b12-cases-table="true"] .b12-case-title-text i,
+.ProseMirror table[data-b12-cases-table="true"] .b12-case-title-text i,
+.he-table[data-b12-cases-table="true"] td[data-role="case-title"] em,
+.he-table[data-b12-cases-table="true"] td[data-role="case-title"] i,
+.ProseMirror table[data-b12-cases-table="true"] td[data-role="case-title"] em,
+.ProseMirror table[data-b12-cases-table="true"] td[data-role="case-title"] i {
   font-style: normal !important;
 }
-/* Top gap above the first case, matching the inter-case gap */
-.he-table[data-b12-cases-table="true"] tr[data-case-id]:first-child > td,
-.ProseMirror table[data-b12-cases-table="true"] tr[data-case-id]:first-child > td {
-  padding-top: 18px !important;
-}
+
 
 
 
