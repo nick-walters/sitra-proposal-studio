@@ -40,7 +40,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { FlaskConical, GripVertical, Plus, Trash2, Lock, LockOpen, Eye, EyeOff, Settings, FileOutput } from 'lucide-react';
 import { CaseSubsectionTemplateDialog } from '@/components/CaseSubsectionTemplateDialog';
-import { populateCasesToB12 } from '@/lib/b12CasesPopulation';
+import { populateCasesToB12, reorderB12CaseTablesInSection } from '@/lib/b12CasesPopulation';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
