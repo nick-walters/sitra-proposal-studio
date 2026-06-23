@@ -873,7 +873,7 @@ export function CaseManagementCard({
                         }}
                       >
                         <FileOutput className="w-4 h-4 mr-1" />
-                        {populating ? 'Populating\u2026' : 'Populate to B1.2'}
+                        {populating ? 'Populating\u2026' : 'Populate Part B1.2'}
                       </Button>
                     </div>
                     <Button
