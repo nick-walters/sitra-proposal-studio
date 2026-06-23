@@ -720,8 +720,10 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
       }
       await queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
       setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
+        console.log('[SYNC-EVENT] dispatching cross-ref-data-changed', { source: 'B31WPDescriptionTables.taskReorder' }); /* TEMP-LOG */
+        window.dispatchEvent(new CustomEvent('cross-ref-data-changed', { detail: { source: 'B31WPDescriptionTables.taskReorder' } }));
       }, 100);
+
       return true;
     };
 

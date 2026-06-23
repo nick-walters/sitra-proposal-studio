@@ -560,7 +560,12 @@ export function DocumentEditor({
   const [syncTrigger, setSyncTrigger] = useState(0);
 
   useEffect(() => {
-    const handleCrossRefDataChanged = () => setSyncTrigger(prev => prev + 1);
+    const handleCrossRefDataChanged = (e: Event) => {
+      // TEMP-LOG
+      const detail = (e as CustomEvent).detail;
+      console.log('[SYNC-EVENT] received cross-ref-data-changed', { detail });
+      setSyncTrigger(prev => prev + 1);
+    };
     const handleBlockReordered = () => {
       // Renumber H3 headings first (synchronously, same handler invocation),
       // then captions, then trigger debounced cross-ref sync.
@@ -569,6 +574,8 @@ export function DocumentEditor({
         renumberH3Headings(editor, cleanNum);
         renumberCaptionsInEditor(editor, section.number, 0);
       }
+      // TEMP-LOG
+      console.log('[SYNC-EVENT] received block-reordered');
       setSyncTrigger(prev => prev + 1);
     };
     const handleB31TableFocus = (e: Event) => {
@@ -592,6 +599,7 @@ export function DocumentEditor({
       window.removeEventListener('caption-refresh-all', handleCaptionRefreshAll);
     };
   }, [editor, section?.number]);
+
 
   useEffect(() => {
     setB31TableFocus(null);

@@ -312,8 +312,11 @@ export function B31SortableTable<TRow extends { id: string; order_index: number 
       invalidateAll();
       if (reorderToastLabel) toast.success(reorderToastLabel);
       setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
+        // TEMP-LOG
+        console.log('[SYNC-EVENT] dispatching cross-ref-data-changed', { source: 'B31SortableTable', dbTable });
+        window.dispatchEvent(new CustomEvent('cross-ref-data-changed', { detail: { source: 'B31SortableTable', dbTable } }));
       }, 100);
+
     },
   });
 
