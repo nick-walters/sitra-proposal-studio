@@ -1871,3 +1871,16 @@ table.b31-effort-matrix.first-col-flush {
   padding-top: 4px !important;
   padding-bottom: 4px !important;
 }
+
+/* B1.2 cases table — cosmetic adjustments (additive overrides) */
+
+/* 1. Add a gap between the caption and the first case row, matching the gap between cases */
+.ProseMirror .table-caption[data-b12-cases-caption="true"] { margin-bottom: 18px !important; }
+
+/* 2. Reduce the vertical gap (~2px) between the pill+lead row and the bold case-title row below */
+.ProseMirror tr[data-role="title-row"] > td { padding-bottom: 0px !important; }
+.ProseMirror tr[data-role="case-title-row"] > td[data-role="case-title"] { padding-top: 0px !important; }
+
+/* 3. Pull the lead badge in so its right edge aligns with the body-text right margin, not the editor edge */
+.ProseMirror table[data-b12-cases-table="true"] { width: 100% !important; }
+.ProseMirror tr[data-role="title-row"] > td[data-role="lead"] { padding-right: 0 !important; }
