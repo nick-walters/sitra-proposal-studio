@@ -1,0 +1,2 @@
+ALTER TABLE public.b31_tasks ADD COLUMN wp_draft_task_id uuid REFERENCES public.wp_draft_tasks(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_b31_tasks_wp_draft_task_id ON public.b31_tasks(wp_draft_task_id);
