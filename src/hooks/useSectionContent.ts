@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 import { renumberAllCaptionsWithMapping, normalizeCaptionStyling } from '@/lib/captionRenumbering';
+import { seedBSectionSubheadings } from '@/lib/seedBSectionSubheadings';
 
 interface UseSectionContentProps {
   proposalId: string;
