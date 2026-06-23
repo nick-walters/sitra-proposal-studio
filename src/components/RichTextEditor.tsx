@@ -1623,9 +1623,9 @@ StarterKit.configure({
                 handleTextInput(view, from, to, text) {
                   if (from === to) return false;
                   const { doc, schema } = view.state;
-                  // wpReference, caseReference, participantReference excluded —
-                  // atom nodes are non-editable by definition.
-                  const markNames = ['inlineReference', 'acronymReference', 'figureTableReference'];
+                  // wpReference, caseReference, participantReference, and
+                  // inlineReference excluded — atom nodes are non-editable.
+                  const markNames = ['acronymReference', 'figureTableReference'];
                   let coversRefMark = false;
                   doc.nodesBetween(from, to, (node) => {
                     if (!node.isText) return;
