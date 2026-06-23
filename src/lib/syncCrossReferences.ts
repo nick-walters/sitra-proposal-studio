@@ -197,6 +197,15 @@ export async function syncCrossReferences(
   const { doc, tr } = state;
   let changed = false;
 
+  // Deleted-ref placeholder replacements. Each entry replaces the document
+  // range [pos, end) with a single `inlineReference` atom carrying
+  // refType='deleted' and a `deletedKind` so the editor renders a yellow
+  // "[cross-reference to a deleted X]" placeholder the user can manually
+  // remove. Applied AFTER all per-type attr/text refreshes, highest-pos
+  // first, so earlier positions stay valid through size changes.
+  type DeletionReplacement = { pos: number; end: number; kind: string };
+  const deletions: DeletionReplacement[] = [];
+
   // ─────────────────────────────────────────────────────────────────────────
   // Position-safe sync.
   //
