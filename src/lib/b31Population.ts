@@ -96,6 +96,21 @@ export async function populateB31(
 ): Promise<{ success: boolean; error?: string; counts: { objectives: number; tasks: number; deliverables: number; milestones: number; risks: number } }> {
   const counts = { objectives: 0, tasks: 0, deliverables: 0, milestones: 0, risks: 0 };
 
+  // Track which WPs had each section populated so we can flag b31_populated_* on wp_drafts
+  const populatedFlagsPerWp = new Map<string, {
+    objectives?: boolean;
+    description?: boolean;
+    tasks?: boolean;
+    deliverables?: boolean;
+    milestones?: boolean;
+    risks?: boolean;
+  }>();
+  const flag = (wpId: string, key: 'objectives' | 'description' | 'tasks' | 'deliverables' | 'milestones' | 'risks') => {
+    const cur = populatedFlagsPerWp.get(wpId) || {};
+    cur[key] = true;
+    populatedFlagsPerWp.set(wpId, cur);
+  };
+
   try {
     // 1. Copy objectives
     if (selections.objectives) {
