@@ -315,6 +315,7 @@ export async function populateB31(
       for (const wp of wpDrafts) {
         for (const risk of wp.risks) {
           if (!selections.risks[risk.id]) continue;
+          flag(wp.id, 'risks');
           riskIndex++;
 
           const wpsValue = risk.related_wps || `WP${wp.number}`;
