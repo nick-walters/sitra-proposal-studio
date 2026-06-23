@@ -949,6 +949,44 @@ table[data-b12-cases-table="true"] tr[data-role="sub-row"] > td {
   width: 100% !important;
   box-sizing: border-box !important;
 }
+
+/* Fallback for already-saved B1.2 tables whose row-level data-role attributes
+   were stripped before preservation was added. */
+.ProseMirror table[data-b12-cases-table="true"] tr[data-case-id]:has(> td[data-role="title"]),
+.document-content table[data-b12-cases-table="true"] tr[data-case-id]:has(> td[data-role="title"]),
+table[data-b12-cases-table="true"] tr[data-case-id]:has(> td[data-role="title"]) {
+  display: flex !important;
+  align-items: flex-start !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  padding-top: 18px !important;
+}
+
+.ProseMirror table[data-b12-cases-table="true"] tr[data-case-id]:has(> td[data-role="title"]) > td[data-role="title"],
+.document-content table[data-b12-cases-table="true"] tr[data-case-id]:has(> td[data-role="title"]) > td[data-role="title"],
+table[data-b12-cases-table="true"] tr[data-case-id]:has(> td[data-role="title"]) > td[data-role="title"] {
+  display: block !important;
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  padding: 2px 6px 2px 0 !important;
+  box-sizing: border-box !important;
+}
+
+.ProseMirror table[data-b12-cases-table="true"] tr[data-case-id]:has(> td[data-role="title"]) > td[data-role="lead"],
+.document-content table[data-b12-cases-table="true"] tr[data-case-id]:has(> td[data-role="title"]) > td[data-role="lead"],
+table[data-b12-cases-table="true"] tr[data-case-id]:has(> td[data-role="title"]) > td[data-role="lead"] {
+  display: flex !important;
+  flex: 1 1 auto !important;
+  justify-content: flex-end !important;
+  align-items: flex-start !important;
+  min-width: 0 !important;
+  width: auto !important;
+  padding: 2px 0 !important;
+  box-sizing: border-box !important;
+  text-align: right !important;
+  white-space: nowrap !important;
+}
 /* B3.1.f matrix uses border-spacing; shift left so first col is flush */
 table.b31-effort-matrix.first-col-flush {
   margin-left: -5pt;
