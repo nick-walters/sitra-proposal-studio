@@ -141,10 +141,7 @@ export async function populateB31(
       if (selectedTasks.length === 0) continue;
       flag(wp.id, 'tasks');
 
-    // 2. Copy tasks → b31_tasks (replace existing b31_tasks for selected WPs)
-    for (const wp of wpDrafts) {
-      const selectedTasks = wp.tasks.filter(t => selections.tasks[t.id]);
-      if (selectedTasks.length === 0) continue;
+
 
       // Delete existing b31_tasks for this WP
       await supabase.from('b31_tasks').delete().eq('wp_draft_id', wp.id);
