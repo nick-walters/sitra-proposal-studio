@@ -656,6 +656,31 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
     queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
   };
 
+  // Mirror new b31_tasks numbering onto the linked wp_draft_tasks rows so
+  // task cross-ref badges (which derive their label from wp_draft_tasks.number)
+  // stay in sync. Matches strictly by wp_draft_task_id; NULL links are skipped.
+  const mirrorTaskNumbersToWpDraftTasks = async (
+    orderedB31TaskIds: string[],
+  ) => {
+    if (orderedB31TaskIds.length === 0) return;
+    const { data: linkRows, error: linkErr } = await supabase
+      .from('b31_tasks')
+      .select('id, wp_draft_task_id')
+      .in('id', orderedB31TaskIds);
+    if (linkErr || !linkRows) return;
+    const linkById = new Map<string, string | null>(
+      linkRows.map((r: any) => [r.id as string, (r.wp_draft_task_id as string | null) ?? null]),
+    );
+    for (let i = 0; i < orderedB31TaskIds.length; i++) {
+      const wpDraftTaskId = linkById.get(orderedB31TaskIds[i]);
+      if (!wpDraftTaskId) continue; // skip unlinked rows
+      await supabase
+        .from('wp_draft_tasks')
+        .update({ number: i + 1, order_index: i })
+        .eq('id', wpDraftTaskId);
+    }
+  };
+
   const handleDeleteTask = async (taskId: string) => {
     const ownerWp = wpData.find(wp => wp.b31_tasks.some(t => t.id === taskId));
 
@@ -675,9 +700,14 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
           .update({ number: i + 1, order_index: i })
           .eq('id', remaining[i].id);
       }
+      // Mirror the renumber onto linked wp_draft_tasks rows.
+      await mirrorTaskNumbersToWpDraftTasks(remaining.map(t => t.id));
     }
 
     queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('cross-ref-data-changed', { detail: { source: 'B31WPDescriptionTables.taskDelete' } }));
+    }, 100);
     toast.success('Task deleted');
   };
 
@@ -693,6 +723,9 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
       toast.error('Failed to add task');
       return;
     }
+    // New row has no wp_draft_task_id by design (step 3 scope: do not invent
+    // a wp_draft_tasks link). Existing linked rows keep their current numbers
+    // since the new row is appended at the end and does not shift them.
     queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
   };
 
@@ -718,9 +751,12 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
           return false;
         }
       }
+      // Mirror onto wp_draft_tasks via the wp_draft_task_id link so badges
+      // (which derive their label from wp_draft_tasks.number) update.
+      await mirrorTaskNumbersToWpDraftTasks(taskIds);
+
       await queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
       setTimeout(() => {
-        console.log('[SYNC-EVENT] dispatching cross-ref-data-changed', { source: 'B31WPDescriptionTables.taskReorder' }); /* TEMP-LOG */
         window.dispatchEvent(new CustomEvent('cross-ref-data-changed', { detail: { source: 'B31WPDescriptionTables.taskReorder' } }));
       }, 100);
 
