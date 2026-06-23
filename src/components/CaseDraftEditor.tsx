@@ -21,6 +21,7 @@ import { InsertTDMSReferenceDropdowns } from '@/components/InsertTDMSReferenceDr
 import { CitationDialog } from '@/components/CitationDialog';
 import { InsertFigureDialog } from '@/components/InsertFigureDialog';
 import { useProposalReferences } from '@/hooks/useProposalReferences';
+import { useCaseSubsectionTemplates } from '@/hooks/useCaseSubsectionTemplates';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { ParticipantSummary } from '@/types/proposal';
@@ -79,51 +80,8 @@ const SITRA_CASE_TIPS = [
   },
 ];
 
-interface SubsectionConfig {
-  key: 'background_context' | 'key_stakeholders' | 'proposed_solutions' | 'expected_outcomes' | 'replicability';
-  headingKey: 'heading_background' | 'heading_stakeholders' | 'heading_solutions' | 'heading_outcomes' | 'heading_replicability';
-  guidelineKey: 'guideline_background' | 'guideline_stakeholders' | 'guideline_solutions' | 'guideline_outcomes' | 'guideline_replicability';
-  defaultHeading: string;
-  defaultGuideline: string;
-}
-
-const SUBSECTIONS: SubsectionConfig[] = [
-  {
-    key: 'background_context',
-    headingKey: 'heading_background',
-    guidelineKey: 'guideline_background',
-    defaultHeading: 'Background context',
-    defaultGuideline: 'Describe the specific setting, stakeholders, and challenges that motivate this case. Explain what makes this context relevant to the project objectives.',
-  },
-  {
-    key: 'key_stakeholders',
-    headingKey: 'heading_stakeholders',
-    guidelineKey: 'guideline_stakeholders',
-    defaultHeading: 'Key stakeholders',
-    defaultGuideline: 'Summarise the key target groups involved in the case.',
-  },
-  {
-    key: 'proposed_solutions',
-    headingKey: 'heading_solutions',
-    guidelineKey: 'guideline_solutions',
-    defaultHeading: 'Proposed solutions',
-    defaultGuideline: 'Outline the solutions or interventions to be developed and tested in this case. Describe interactions with relevant WPs and how each contributes to this case.',
-  },
-  {
-    key: 'expected_outcomes',
-    headingKey: 'heading_outcomes',
-    guidelineKey: 'guideline_outcomes',
-    defaultHeading: 'Expected outcomes',
-    defaultGuideline: 'Specify the measurable results expected from this case, including KPIs and success criteria.',
-  },
-  {
-    key: 'replicability',
-    headingKey: 'heading_replicability',
-    guidelineKey: 'guideline_replicability',
-    defaultHeading: 'Replicability',
-    defaultGuideline: 'Explain how lessons and solutions from this case can be transferred to other contexts, sectors, or geographies.',
-  },
-];
+// Subsection templates are now project-wide; loaded via useCaseSubsectionTemplates.
+// Legacy per-case heading_*/guideline_* fields are no longer read or written.
 
 interface CaseDraftEditorProps {
   caseId: string;
@@ -463,13 +421,10 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
     return false;
   }, [canEditProp, isLocked, isCoordinator, lockWarningDismissed]);
 
-  // Heading and guideline keys that should propagate across all cases
-  const PROPAGATED_KEYS = new Set([
-    'heading_background', 'heading_stakeholders', 'heading_solutions', 'heading_outcomes', 'heading_replicability',
-    'guideline_background', 'guideline_stakeholders', 'guideline_solutions', 'guideline_outcomes', 'guideline_replicability',
-  ]);
+  // Project-wide subsection templates
+  const { templates: subsectionTemplates } = useCaseSubsectionTemplates(proposalId);
 
-  // Update mutation
+  // Update mutation (writes go only to this case row; per-case heading/guideline propagation removed)
   const updateMutation = useMutation({
     mutationFn: async (updates: Record<string, any>) => {
       const { error } = await supabase
@@ -477,21 +432,6 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
         .update(updates)
         .eq('id', caseId);
       if (error) throw error;
-
-      // Propagate heading/guideline changes to ALL other cases in the proposal
-      const propagatedUpdates: Record<string, any> = {};
-      for (const [key, val] of Object.entries(updates)) {
-        if (PROPAGATED_KEYS.has(key)) {
-          propagatedUpdates[key] = val;
-        }
-      }
-      if (Object.keys(propagatedUpdates).length > 0) {
-        await supabase
-          .from('case_drafts')
-          .update(propagatedUpdates)
-          .eq('proposal_id', proposalId)
-          .neq('id', caseId);
-      }
     },
     onSuccess: () => {
       setLastSaved(new Date());
@@ -508,6 +448,15 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
   const updateField = useCallback((field: string, value: any) => {
     updateMutation.mutate({ [field]: value });
   }, [updateMutation]);
+
+  // Write a single subsection's content into the subsection_content jsonb
+  const updateSubsectionContent = useCallback(
+    (key: string, value: string) => {
+      const current = ((caseDraft as any)?.subsection_content as Record<string, string> | null) || {};
+      updateMutation.mutate({ subsection_content: { ...current, [key]: value } });
+    },
+    [caseDraft, updateMutation],
+  );
 
   const execCommand = (command: string, value?: string) => {
     document.execCommand(command, false, value);
@@ -766,47 +715,36 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
           </DialogContent>
         </Dialog>
 
-        {/* Subsections */}
-        {SUBSECTIONS.map((sub) => {
-          const heading = (caseDraft as any)[sub.headingKey] || sub.defaultHeading;
-          const guideline = (caseDraft as any)[sub.guidelineKey] || sub.defaultGuideline;
-          const content = (caseDraft as any)[sub.key] || '';
+        {/* Subsections — driven by project-wide template */}
+        {subsectionTemplates.length === 0 && (
+          <p className="text-sm text-muted-foreground italic px-1">
+            No subsections defined for this proposal yet. A coordinator can add them via the
+            &ldquo;Edit case subsections &amp; guidelines&rdquo; button in the case manager.
+          </p>
+        )}
+        {subsectionTemplates.map((sub) => {
+          const contentMap = ((caseDraft as any).subsection_content as Record<string, string> | null) || {};
+          const content = contentMap[sub.key] || '';
+          const guideline = sub.guideline || '';
 
           return (
-            <Card key={sub.key}>
+            <Card key={sub.id}>
               <CardHeader className="py-2 px-3">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <BookOpen className="h-4 w-4" />
-                  {isCoordinator ? (
-                    <DebouncedInput
-                      value={heading}
-                      onDebouncedChange={(v) => updateField(sub.headingKey, v)}
-                      className="h-7 text-base font-semibold border-dashed"
-                      disabled={!isCoordinator}
-                    />
-                  ) : (
-                    <span>{heading}</span>
-                  )}
+                  <span>{sub.heading}</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 px-3 pb-3 pt-0">
-                <div className="rounded-md border border-border bg-muted/30 p-2">
-                  {isCoordinator ? (
-                    <DebouncedInput
-                      value={guideline}
-                      onDebouncedChange={(v) => updateField(sub.guidelineKey, v)}
-                      className="h-auto text-xs text-muted-foreground italic border-dashed bg-transparent min-h-[1.5rem]"
-                    />
-                  ) : (
-                    <p className="text-xs text-muted-foreground italic">
-                      {guideline}
-                    </p>
-                  )}
-                </div>
+                {guideline && (
+                  <div className="rounded-md border border-border bg-muted/30 p-2">
+                    <p className="text-xs text-muted-foreground italic">{guideline}</p>
+                  </div>
+                )}
                 <WPSimpleEditor
                   value={content}
-                  onChange={(v) => updateField(sub.key, v)}
-                  placeholder={`Write about ${sub.defaultHeading.toLowerCase()}...`}
+                  onChange={(v) => updateSubsectionContent(sub.key, v)}
+                  placeholder={`Write about ${sub.heading.toLowerCase()}...`}
                   disabled={readOnly}
                   minHeight="150px"
                   hideToolbar={true}

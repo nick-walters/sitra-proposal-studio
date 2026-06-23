@@ -38,7 +38,8 @@ import {
 } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { FlaskConical, GripVertical, Plus, Trash2, Lock, LockOpen, Eye, EyeOff } from 'lucide-react';
+import { FlaskConical, GripVertical, Plus, Trash2, Lock, LockOpen, Eye, EyeOff, Settings } from 'lucide-react';
+import { CaseSubsectionTemplateDialog } from '@/components/CaseSubsectionTemplateDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
@@ -350,6 +351,7 @@ export function CaseManagementCard({
 }: CaseManagementCardProps) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const [subsectionsDialogOpen, setSubsectionsDialogOpen] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -833,9 +835,9 @@ export function CaseManagementCard({
                   </DndContext>
                 </div>
 
-                {/* Add button & visibility */}
+                {/* Add button & subsection-template editor */}
                 {isCoordinator && (
-                  <div className="pt-2 flex items-center justify-between">
+                  <div className="pt-2 flex items-center justify-between gap-2">
                     <Button
                       variant="outline"
                       size="sm"
@@ -844,12 +846,27 @@ export function CaseManagementCard({
                     >
                       <Plus className="w-4 h-4 mr-1" />
                     </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSubsectionsDialogOpen(true)}
+                    >
+                      <Settings className="w-4 h-4 mr-1" />
+                      Edit case subsections &amp; guidelines
+                    </Button>
                   </div>
                 )}
               </>
             )}
           </>
         )}
+
+        <CaseSubsectionTemplateDialog
+          open={subsectionsDialogOpen}
+          onOpenChange={setSubsectionsDialogOpen}
+          proposalId={proposalId}
+          canEdit={isCoordinator}
+        />
       </CardContent>
     </Card>
   );
