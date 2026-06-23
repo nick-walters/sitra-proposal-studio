@@ -120,7 +120,7 @@ table[data-b12-cases-table="true"] td,
 .ProseMirror table[data-b12-cases-table="true"] td[data-role="title"],
 .ProseMirror tr[data-case-id] > td[data-role="title"] {
   text-align: left !important;
-  padding: 2px 6px 2px 0 !important;
+  padding: 2px 4px 2px 0 !important;
   width: auto !important;
 }
 .he-table[data-b12-cases-table="true"] .b12-case-title-badge,
@@ -892,7 +892,7 @@ table[data-b12-cases-table="true"] tr[data-role="title-row"] > td[data-role="tit
   flex: 0 0 auto !important;
   width: auto !important;
   min-width: 0 !important;
-  padding: 2px 6px 2px 0 !important;
+  padding: 2px 4px 2px 0 !important;
   box-sizing: border-box !important;
 }
 
@@ -969,7 +969,7 @@ table[data-b12-cases-table="true"] tr[data-case-id]:has(> td[data-role="title"])
   flex: 0 0 auto !important;
   width: auto !important;
   min-width: 0 !important;
-  padding: 2px 6px 2px 0 !important;
+  padding: 2px 4px 2px 0 !important;
   box-sizing: border-box !important;
 }
 
