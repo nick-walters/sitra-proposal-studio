@@ -1884,3 +1884,18 @@ table.b31-effort-matrix.first-col-flush {
 /* 3. Pull the lead badge in so its right edge aligns with the body-text right margin, not the editor edge */
 .ProseMirror table[data-b12-cases-table="true"] { width: 100% !important; }
 .ProseMirror tr[data-role="title-row"] > td[data-role="lead"] { padding-right: 0 !important; }
+
+/* B1.2 cases table — Issue 1: caption-to-first-case gap (caption attr is stripped, so target by class only) */
+.ProseMirror p.table-caption + table[data-b12-cases-table="true"],
+.document-content p.table-caption + table[data-b12-cases-table="true"] {
+  margin-top: 21px !important;
+}
+
+/* B1.2 cases table — Issue 3: align table (and thus right-aligned lead badge) with body-paragraph width */
+.ProseMirror table[data-b12-cases-table="true"],
+.document-content table[data-b12-cases-table="true"] {
+  max-width: 100% !important;
+  width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
