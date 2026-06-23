@@ -197,7 +197,7 @@ function SortableCaseRow({ caseItem, participants, casePrefix, includeNumber, in
 
       {/* Case Bubble with inline-editable short name */}
       <Badge
-        className="rounded-full font-bold justify-center text-xs h-6 w-auto min-w-[1.5rem] border-[1.5px] border-black text-black bg-white whitespace-nowrap gap-0 px-1.5"
+        className="rounded-full font-bold justify-start text-xs h-6 w-auto min-w-[1.5rem] border-[1.5px] border-black text-black bg-white whitespace-nowrap gap-0 px-2"
       >
         {includeAbbreviation && casePrefix && <span>{casePrefix}</span>}
         {includeNumber && <span>{caseItem.number}</span>}
