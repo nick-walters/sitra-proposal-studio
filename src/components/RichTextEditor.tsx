@@ -129,7 +129,7 @@ interface RichTextEditorProps {
 
 
 const PART_B_ALIGNMENT_EXEMPT_PARAGRAPH_CLASSES = new Set(['figure-caption', 'table-caption']);
-const B12_CASE_PARAGRAPH_CLASSES = new Set(['b12-case-title-badge', 'b12-lead-badge']);
+const B12_CASE_PARAGRAPH_CLASSES = new Set(['b12-case-title-badge', 'b12-lead-badge', 'b12-case-title-text']);
 
 const ParagraphClass = Extension.create({
   name: 'paragraphClass',
