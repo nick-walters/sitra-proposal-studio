@@ -90,9 +90,9 @@ table[data-b12-cases-table="true"],
 .ProseMirror table[data-b12-cases-table="true"] {
   border: none !important;
   border-collapse: collapse !important;
-  table-layout: fixed;
+  table-layout: auto;
   width: 100% !important;
-  margin: 0 !important;
+  margin: 18px 0 0 0 !important;
   overflow: visible !important;
 }
 table[data-b12-cases-table="true"] td,
