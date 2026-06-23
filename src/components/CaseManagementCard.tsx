@@ -849,54 +849,41 @@ export function CaseManagementCard({
                   </DndContext>
                 </div>
 
-                {/* Add button & subsection-template editor */}
+                {/* Action buttons row: left = Add + Populate; right = Edit subsections */}
                 {isCoordinator && (
                   <div className="pt-2 flex items-center justify-between gap-2 flex-wrap">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => addCaseMutation.mutate(proposalCaseType)}
-                      disabled={addCaseMutation.isPending}
-                    >
-                      <Plus className="w-4 h-4 mr-1" />
-                    </Button>
                     <div className="flex items-center gap-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setSubsectionsDialogOpen(true)}
+                        onClick={() => addCaseMutation.mutate(proposalCaseType)}
+                        disabled={addCaseMutation.isPending}
                       >
-                        <Settings className="w-4 h-4 mr-1" />
-                        Edit case subsections &amp; guidelines
+                        <Plus className="w-4 h-4 mr-1" />
+                        Add case
                       </Button>
                       <Button
                         variant="default"
                         size="sm"
                         disabled={caseDrafts.length === 0 || populating}
-                        onClick={async () => {
+                        onClick={() => {
                           if (caseDrafts.length === 0) return;
-                          const ok = window.confirm(
-                            'Populate B1.2 with these cases? This will insert/overwrite the cases table in B1.2 and lock all case drafts. Coordinators can still override the lock.'
-                          );
-                          if (!ok) return;
-                          try {
-                            setPopulating(true);
-                            const res = await populateCasesToB12(proposalId);
-                            toast.success(`Populated ${res.insertedOrUpdated} case${res.insertedOrUpdated === 1 ? '' : 's'} into B1.2.`);
-                            invalidateCaseQueries();
-                            queryClient.invalidateQueries({ queryKey: ['section-content', proposalId, 'b1-2'] });
-                          } catch (e: any) {
-                            console.error(e);
-                            toast.error(`Populate failed: ${e?.message || 'unknown error'}`);
-                          } finally {
-                            setPopulating(false);
-                          }
+                          setSelectedPopulateIds(new Set(caseDrafts.map((c) => c.id)));
+                          setPopulateDialogOpen(true);
                         }}
                       >
                         <FileOutput className="w-4 h-4 mr-1" />
-                        {populating ? 'Populating…' : 'Populate to B1.2'}
+                        {populating ? 'Populating\u2026' : 'Populate to B1.2'}
                       </Button>
                     </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSubsectionsDialogOpen(true)}
+                    >
+                      <Settings className="w-4 h-4 mr-1" />
+                      Edit case subsections &amp; guidelines
+                    </Button>
                   </div>
                 )}
               </>
@@ -910,6 +897,82 @@ export function CaseManagementCard({
           proposalId={proposalId}
           canEdit={isCoordinator}
         />
+
+        {/* Populate to B1.2 dialog — choose which cases to include */}
+        <Dialog open={populateDialogOpen} onOpenChange={setPopulateDialogOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Populate B1.2 with cases</DialogTitle>
+              <DialogDescription>
+                Select the cases to insert into the B1.2 cases table. Selected cases will be locked from further editing in the case manager (coordinators can override).
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-1.5 max-h-[50vh] overflow-y-auto py-2">
+              <div className="flex items-center gap-2 pb-1 border-b mb-1">
+                <Checkbox
+                  id="populate-all"
+                  checked={caseDrafts.length > 0 && selectedPopulateIds.size === caseDrafts.length}
+                  onCheckedChange={(checked) => {
+                    setSelectedPopulateIds(
+                      checked ? new Set(caseDrafts.map((c) => c.id)) : new Set(),
+                    );
+                  }}
+                />
+                <Label htmlFor="populate-all" className="text-xs font-bold cursor-pointer">Select all</Label>
+              </div>
+              {caseDrafts.map((c) => {
+                const label = getCaseBubbleLabel(casePrefix, c.number, c.short_name);
+                const checked = selectedPopulateIds.has(c.id);
+                return (
+                  <div key={c.id} className="flex items-center gap-2">
+                    <Checkbox
+                      id={`populate-${c.id}`}
+                      checked={checked}
+                      onCheckedChange={(v) => {
+                        setSelectedPopulateIds((prev) => {
+                          const next = new Set(prev);
+                          if (v) next.add(c.id); else next.delete(c.id);
+                          return next;
+                        });
+                      }}
+                    />
+                    <Label htmlFor={`populate-${c.id}`} className="text-sm cursor-pointer flex-1">
+                      <span className="font-bold">{label}</span>
+                      {c.title && <span className="text-muted-foreground"> &mdash; {c.title}</span>}
+                    </Label>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" size="sm" onClick={() => setPopulateDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="default"
+                size="sm"
+                disabled={selectedPopulateIds.size === 0 || populating}
+                onClick={async () => {
+                  try {
+                    setPopulating(true);
+                    const res = await populateCasesToB12(proposalId, { caseIds: Array.from(selectedPopulateIds) });
+                    toast.success(`Populated ${res.insertedOrUpdated} case${res.insertedOrUpdated === 1 ? '' : 's'} into B1.2.`);
+                    invalidateCaseQueries();
+                    queryClient.invalidateQueries({ queryKey: ['section-content', proposalId, 'b1-2'] });
+                    setPopulateDialogOpen(false);
+                  } catch (e: any) {
+                    console.error(e);
+                    toast.error(`Populate failed: ${e?.message || 'unknown error'}`);
+                  } finally {
+                    setPopulating(false);
+                  }
+                }}
+              >
+                {populating ? 'Populating\u2026' : `Populate ${selectedPopulateIds.size} case${selectedPopulateIds.size === 1 ? '' : 's'}`}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );
