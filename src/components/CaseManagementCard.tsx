@@ -354,6 +354,8 @@ export function CaseManagementCard({
   const { user } = useAuth();
   const [subsectionsDialogOpen, setSubsectionsDialogOpen] = useState(false);
   const [populating, setPopulating] = useState(false);
+  const [populateDialogOpen, setPopulateDialogOpen] = useState(false);
+  const [selectedPopulateIds, setSelectedPopulateIds] = useState<Set<string>>(new Set());
 
   const sensors = useSensors(
     useSensor(PointerSensor),
