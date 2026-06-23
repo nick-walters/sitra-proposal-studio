@@ -1232,6 +1232,24 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
         />
 
         {/* WP Table (Objectives & Tasks) */}
+        {(populated.objectives || populated.description || populated.tasks) && (
+          <SectionLockBanner
+            label={
+              populated.tasks && populated.objectives
+                ? 'Objectives and tasks have been populated to Part B3.1 and are now locked here.'
+                : populated.tasks
+                  ? 'Tasks have been populated to Part B3.1 and are now locked here.'
+                  : 'Objectives have been populated to Part B3.1 and are now locked here.'
+            }
+            canOverride={isCoordinator}
+            overridden={overrideSections.has('tasks')}
+            onToggle={() => {
+              toggleOverride('tasks');
+              toggleOverride('objectives');
+              toggleOverride('description');
+            }}
+          />
+        )}
         <WPTableSection
           wpNumber={wpDraft.number}
           wpColor={effectiveColor}
@@ -1247,7 +1265,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
           onTaskParticipantsChange={setTaskParticipants}
           onTaskReorder={reorderTasks}
           onTaskMove={moveTaskToWP}
-          readOnly={readOnly}
+          readOnly={readOnly || ((isSectionLocked('tasks') || isSectionLocked('objectives') || isSectionLocked('description')))}
           projectDuration={projectDuration}
           hideToolbar={true}
           allWpDrafts={wpDrafts}
@@ -1255,6 +1273,14 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
         />
 
         {/* Deliverables */}
+        {populated.deliverables && (
+          <SectionLockBanner
+            label="Deliverables have been populated to Part B3.1 and are now locked here."
+            canOverride={isCoordinator}
+            overridden={overrideSections.has('deliverables')}
+            onToggle={() => toggleOverride('deliverables')}
+          />
+        )}
         <WPDeliverablesTable
           wpNumber={wpDraft.number}
           deliverables={wpDraft.deliverables || []}
