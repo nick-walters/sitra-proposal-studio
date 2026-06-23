@@ -87,38 +87,45 @@ export function useB31SectionData(proposalId: string) {
   // Fetch WP drafts with tasks, deliverables
   const wpQuery = useQuery({
     queryKey: ['b31-wp-data', proposalId],
+    enabled: !!proposalId,
     queryFn: async () => {
-      const [{ data: wps, error: wpErr }, { data: b31TasksData }] = await Promise.all([
-        supabase
-          .from('wp_drafts')
-          .select(`
-            id, number, title, short_name, lead_participant_id, color, objectives, b31_objectives, description_before_tasks, b31_description_before_tasks, methodology, manual_person_months, manual_duration,
-            tasks:wp_draft_tasks(
-              id, number, title, description, b31_description, lead_participant_id, start_month, end_month,
-              effort:wp_draft_task_effort(participant_id, person_months),
-              participants:wp_draft_task_participants(participant_id)
-            ),
-            deliverables:wp_draft_deliverables(
-              id, number, title, type, dissemination_level, responsible_participant_id, due_month, description
-            ),
-            wp_effort:wp_draft_effort(participant_id, person_months)
-          `)
-          .eq('proposal_id', proposalId)
-          .order('number'),
-        supabase
+      const { data: wps, error: wpErr } = await supabase
+        .from('wp_drafts')
+        .select(`
+          id, number, title, short_name, lead_participant_id, color, objectives, b31_objectives, description_before_tasks, b31_description_before_tasks, methodology, manual_person_months, manual_duration,
+          tasks:wp_draft_tasks(
+            id, number, title, description, b31_description, lead_participant_id, start_month, end_month,
+            effort:wp_draft_task_effort(participant_id, person_months),
+            participants:wp_draft_task_participants(participant_id)
+          ),
+          deliverables:wp_draft_deliverables(
+            id, number, title, type, dissemination_level, responsible_participant_id, due_month, description
+          ),
+          wp_effort:wp_draft_effort(participant_id, person_months)
+        `)
+        .eq('proposal_id', proposalId)
+        .order('number');
+      if (wpErr) throw wpErr;
+
+      const wpIds = (wps || []).map((w: any) => w.id);
+
+      let b31TasksData: any[] = [];
+      if (wpIds.length > 0) {
+        const { data, error: b31Err } = await supabase
           .from('b31_tasks')
           .select(`
             id, wp_draft_id, number, title, description, lead_participant_id, start_month, end_month, order_index,
             participants:b31_task_participants(participant_id)
           `)
-          .in('wp_draft_id', (await supabase.from('wp_drafts').select('id').eq('proposal_id', proposalId)).data?.map((w: any) => w.id) || [])
-          .order('number'),
-      ]);
-      if (wpErr) throw wpErr;
+          .in('wp_draft_id', wpIds)
+          .order('number');
+        if (b31Err) throw b31Err;
+        b31TasksData = data || [];
+      }
 
       // Group b31_tasks by wp_draft_id
       const b31TasksByWP = new Map<string, any[]>();
-      (b31TasksData || []).forEach((t: any) => {
+      b31TasksData.forEach((t: any) => {
         const arr = b31TasksByWP.get(t.wp_draft_id) || [];
         arr.push(t);
         b31TasksByWP.set(t.wp_draft_id, arr);
