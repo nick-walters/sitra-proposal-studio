@@ -365,6 +365,20 @@ export async function populateB31(
       }
     }
 
+    // Flush per-WP populated flags
+    for (const [wpId, flags] of populatedFlagsPerWp.entries()) {
+      const update: Record<string, boolean> = {};
+      if (flags.objectives) update.b31_populated_objectives = true;
+      if (flags.description) update.b31_populated_description = true;
+      if (flags.tasks) update.b31_populated_tasks = true;
+      if (flags.deliverables) update.b31_populated_deliverables = true;
+      if (flags.milestones) update.b31_populated_milestones = true;
+      if (flags.risks) update.b31_populated_risks = true;
+      if (Object.keys(update).length > 0) {
+        await supabase.from('wp_drafts').update(update as any).eq('id', wpId);
+      }
+    }
+
     return { success: true, counts };
   } catch (error) {
     console.error('Error populating B3.1:', error);
