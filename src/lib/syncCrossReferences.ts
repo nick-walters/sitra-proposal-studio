@@ -464,6 +464,73 @@ export async function syncCrossReferences(
     changed = true;
   }
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // inlineReference is an inline atom NODE (Stage 3 migration). One node
+  // type with three variants behind the `refType` attribute:
+  //   - 'task'        -> refresh wpNumber/taskNumber/wpColor from taskById
+  //   - 'deliverable' -> refresh deliverableNumber/wpColor from deliverableById
+  //   - 'milestone'   -> refresh milestoneNumber from milestoneById
+  // The displayed label is recomputed from attrs at render time, so no text
+  // replacement is needed.
+  // ─────────────────────────────────────────────────────────────────────────
+  type InlineNodeChange = { pos: number; newAttrs: Record<string, any>; refType: string; idKey: string; idValue: string };
+  const inlineNodeChanges: InlineNodeChange[] = [];
+
+  doc.descendants((node, pos) => {
+    if (node.type.name !== 'inlineReference') return;
+    const a = node.attrs;
+    const refType = a.refType;
+
+    if (refType === 'task') {
+      if (!a.taskId) return;
+      const t = data.taskById.get(a.taskId);
+      if (!t) return;
+      const newAttrs = { ...a, wpNumber: t.wp_number, taskNumber: t.number, wpColor: t.wp_color };
+      const attrsDiffer =
+        a.wpNumber !== newAttrs.wpNumber ||
+        a.taskNumber !== newAttrs.taskNumber ||
+        a.wpColor !== newAttrs.wpColor;
+      if (!attrsDiffer) return;
+      inlineNodeChanges.push({ pos, newAttrs, refType, idKey: 'taskId', idValue: a.taskId });
+      return;
+    }
+
+    if (refType === 'deliverable') {
+      if (!a.deliverableId) return;
+      const d = data.deliverableById.get(a.deliverableId);
+      if (!d) return;
+      const newAttrs = { ...a, deliverableNumber: d.number, wpColor: d.wp_color };
+      const attrsDiffer =
+        a.deliverableNumber !== newAttrs.deliverableNumber ||
+        a.wpColor !== newAttrs.wpColor;
+      if (!attrsDiffer) return;
+      inlineNodeChanges.push({ pos, newAttrs, refType, idKey: 'deliverableId', idValue: a.deliverableId });
+      return;
+    }
+
+    if (refType === 'milestone') {
+      if (!a.milestoneId) return;
+      const m = data.milestoneById.get(a.milestoneId);
+      if (!m) return;
+      const newAttrs = { ...a, milestoneNumber: m.number };
+      const attrsDiffer = a.milestoneNumber !== newAttrs.milestoneNumber;
+      if (!attrsDiffer) return;
+      inlineNodeChanges.push({ pos, newAttrs, refType, idKey: 'milestoneId', idValue: a.milestoneId });
+      return;
+    }
+  });
+
+  inlineNodeChanges.sort((a, b) => b.pos - a.pos);
+  for (const c of inlineNodeChanges) {
+    const targetNode = tr.doc.nodeAt(c.pos);
+    if (!targetNode || targetNode.type.name !== 'inlineReference') continue;
+    if (targetNode.attrs.refType !== c.refType) continue;
+    if (targetNode.attrs[c.idKey] !== c.idValue) continue;
+    tr.setNodeMarkup(c.pos, undefined, c.newAttrs);
+    changed = true;
+  }
+
+
   if (changed) {
     tr.setMeta('addToHistory', false);
     editor.view.dispatch(tr);
