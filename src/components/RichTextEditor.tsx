@@ -420,6 +420,12 @@ function normalizePartBLoadedContent(html: string) {
     const caseId = cell.getAttribute('data-case-id');
     if (caseId) p.setAttribute('data-case-id', caseId);
   });
+  div.querySelectorAll('table[data-b12-cases-table="true"] td[data-role="case-title"]').forEach((cell) => {
+    const p = cell.querySelector('p') || cell;
+    p.classList.add('b12-case-title-text');
+    const caseId = cell.getAttribute('data-case-id');
+    if (caseId) p.setAttribute('data-case-id', caseId);
+  });
   div.querySelectorAll('table[data-b12-cases-table="true"] td[data-role="sub"] p').forEach((p) => {
     p.querySelectorAll('o\\:p').forEach((el) => el.remove());
     let node = p.lastChild;
