@@ -39,8 +39,6 @@ import { Plugin, PluginKey, TextSelection } from '@tiptap/pm/state';
  */
 
 const BADGE_MARK_NAMES = [
-  'caseReference',
-  'participantReference',
   'inlineReference',
   'figureTableReference',
   'headingNumberLabel',

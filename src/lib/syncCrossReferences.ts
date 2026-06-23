@@ -159,16 +159,22 @@ export async function syncCrossReferences(
   // wpReference atom nodes (post-Stage-1 pilot), skip the proposal-wide SQL
   // fetch and the full-document scan entirely. This keeps section open/click
   // cheap on documents with no references.
+  // Cheap preflight: skip the proposal-wide SQL fetch and the full-doc scan
+  // if the document contains no reference marks AND no reference atom nodes
+  // (wpReference / caseReference / participantReference — post Stage 1/2).
   const REF_MARK_NAMES = new Set([
     'inlineReference',
+    'figureTableReference',
+  ]);
+  const REF_NODE_NAMES = new Set([
+    'wpReference',
     'caseReference',
     'participantReference',
-    'figureTableReference',
   ]);
   let hasAnyRef = false;
   editor.state.doc.descendants((node) => {
     if (hasAnyRef) return false;
-    if (node.type.name === 'wpReference') {
+    if (REF_NODE_NAMES.has(node.type.name)) {
       hasAnyRef = true;
       return false;
     }
@@ -219,10 +225,8 @@ export async function syncCrossReferences(
         if (a.refType === 'deliverable' && a.deliverableId) return { markName: 'inlineReference', idKey: 'deliverableId', idValue: a.deliverableId };
         if (a.refType === 'milestone' && a.milestoneId) return { markName: 'inlineReference', idKey: 'milestoneId', idValue: a.milestoneId };
         return null;
-      case 'caseReference':
-        return a.caseId ? { markName: 'caseReference', idKey: 'caseId', idValue: a.caseId } : null;
-      case 'participantReference':
-        return a.participantId ? { markName: 'participantReference', idKey: 'participantId', idValue: a.participantId } : null;
+      // caseReference / participantReference are now inline atom NODES
+      // (Stage 2 migration) — handled by their own descendants pass below.
       case 'figureTableReference':
         return a.figureId ? { markName: 'figureTableReference', idKey: 'figureId', idValue: a.figureId } : null;
       default:
@@ -268,23 +272,8 @@ export async function syncCrossReferences(
         }
         return null;
       }
-      case 'caseReference': {
-        const c = data.caseById.get(a.caseId);
-        if (!c) return null;
-        const prefix = getCasePrefix(c.case_type);
-        return {
-          newAttrs: { ...a, caseNumber: c.number, caseColor: c.color, caseShortName: c.short_name || a.caseShortName, caseType: c.case_type },
-          newLabel: prefix ? `${prefix}${c.number}` : (c.short_name || `${c.number}`),
-        };
-      }
-      case 'participantReference': {
-        const p = data.participantById.get(a.participantId);
-        if (!p) return null;
-        return {
-          newAttrs: { ...a, participantNumber: p.participant_number, shortName: p.organisation_short_name },
-          newLabel: p.organisation_short_name || 'Partner',
-        };
-      }
+      // caseReference / participantReference are now inline atom NODES
+      // (Stage 2 migration) — handled by their own descendants pass below.
       case 'figureTableReference': {
         const f = data.figureById.get(a.figureId);
         if (!f) return null;
@@ -441,6 +430,76 @@ export async function syncCrossReferences(
     const targetNode = tr.doc.nodeAt(c.pos);
     if (!targetNode || targetNode.type.name !== 'wpReference') continue;
     if (targetNode.attrs.wpId !== c.newAttrs.wpId) continue;
+    tr.setNodeMarkup(c.pos, undefined, c.newAttrs);
+    changed = true;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // caseReference is an inline atom NODE (Stage 2 migration).
+  // ─────────────────────────────────────────────────────────────────────────
+  type CaseNodeChange = { pos: number; newAttrs: Record<string, any> };
+  const caseNodeChanges: CaseNodeChange[] = [];
+
+  doc.descendants((node, pos) => {
+    if (node.type.name !== 'caseReference') return;
+    const a = node.attrs;
+    if (!a.caseId) return;
+    const c = data.caseById.get(a.caseId);
+    if (!c) return;
+    const newAttrs = {
+      ...a,
+      caseNumber: c.number,
+      caseColor: c.color,
+      caseShortName: c.short_name || a.caseShortName,
+      caseType: c.case_type,
+    };
+    const attrsDiffer =
+      a.caseNumber !== newAttrs.caseNumber ||
+      a.caseColor !== newAttrs.caseColor ||
+      a.caseShortName !== newAttrs.caseShortName ||
+      a.caseType !== newAttrs.caseType;
+    if (!attrsDiffer) return;
+    caseNodeChanges.push({ pos, newAttrs });
+  });
+
+  caseNodeChanges.sort((a, b) => b.pos - a.pos);
+  for (const c of caseNodeChanges) {
+    const targetNode = tr.doc.nodeAt(c.pos);
+    if (!targetNode || targetNode.type.name !== 'caseReference') continue;
+    if (targetNode.attrs.caseId !== c.newAttrs.caseId) continue;
+    tr.setNodeMarkup(c.pos, undefined, c.newAttrs);
+    changed = true;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // participantReference is an inline atom NODE (Stage 2 migration).
+  // ─────────────────────────────────────────────────────────────────────────
+  type ParticipantNodeChange = { pos: number; newAttrs: Record<string, any> };
+  const participantNodeChanges: ParticipantNodeChange[] = [];
+
+  doc.descendants((node, pos) => {
+    if (node.type.name !== 'participantReference') return;
+    const a = node.attrs;
+    if (!a.participantId) return;
+    const p = data.participantById.get(a.participantId);
+    if (!p) return;
+    const newAttrs = {
+      ...a,
+      participantNumber: p.participant_number,
+      shortName: p.organisation_short_name,
+    };
+    const attrsDiffer =
+      a.participantNumber !== newAttrs.participantNumber ||
+      a.shortName !== newAttrs.shortName;
+    if (!attrsDiffer) return;
+    participantNodeChanges.push({ pos, newAttrs });
+  });
+
+  participantNodeChanges.sort((a, b) => b.pos - a.pos);
+  for (const c of participantNodeChanges) {
+    const targetNode = tr.doc.nodeAt(c.pos);
+    if (!targetNode || targetNode.type.name !== 'participantReference') continue;
+    if (targetNode.attrs.participantId !== c.newAttrs.participantId) continue;
     tr.setNodeMarkup(c.pos, undefined, c.newAttrs);
     changed = true;
   }

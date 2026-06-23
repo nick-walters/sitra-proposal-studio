@@ -22,8 +22,6 @@ import type { Node as PMNode } from '@tiptap/pm/model';
  */
 
 const BADGE_MARK_NAMES = new Set([
-  'caseReference',
-  'participantReference',
   'inlineReference',
   'headingNumberLabel',
 ]);
