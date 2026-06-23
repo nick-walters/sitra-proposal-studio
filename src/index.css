@@ -85,13 +85,17 @@ html, body {
 }
 
 /* ===== B1.2 Cases combined table ===== */
-.he-table[data-b12-cases-table="true"] {
+table[data-b12-cases-table="true"],
+.he-table[data-b12-cases-table="true"],
+.ProseMirror table[data-b12-cases-table="true"] {
   border: 2px solid #000 !important;
   border-collapse: collapse !important;
   table-layout: fixed;
   width: 100% !important;
 }
-.he-table[data-b12-cases-table="true"] td {
+table[data-b12-cases-table="true"] td,
+.he-table[data-b12-cases-table="true"] td,
+.ProseMirror table[data-b12-cases-table="true"] td {
   border: 1px solid #000 !important;
   background: #ffffff !important;
   padding: 4px 8px !important;
@@ -100,34 +104,95 @@ html, body {
   vertical-align: top;
 }
 /* Title pill row */
-.he-table[data-b12-cases-table="true"] td[data-role="title"] {
+.he-table[data-b12-cases-table="true"] td[data-role="title"],
+.ProseMirror table[data-b12-cases-table="true"] td[data-role="title"] {
   text-align: center !important;
   font-weight: bold !important;
   background: #ffffff !important;
   color: #000 !important;
 }
-.he-table[data-b12-cases-table="true"] td[data-role="title"] p {
+.he-table[data-b12-cases-table="true"] td[data-role="title"] p,
+.ProseMirror table[data-b12-cases-table="true"] td[data-role="title"] p {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  background: #ffffff !important;
+  color: #000000 !important;
+  border: 1.5px solid #000000 !important;
+  border-radius: 9999px !important;
+  padding: 0 5px !important;
   text-align: center !important;
   margin: 0 !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+}
+.b12-case-title-badge,
+.ProseMirror table[data-b12-cases-table="true"] .b12-case-title-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  background: #ffffff !important;
+  color: #000000 !important;
+  border: 1.5px solid #000000 !important;
+  border-radius: 9999px !important;
+  padding: 0 5px !important;
+  font-family: "Times New Roman", Times, serif !important;
+  font-size: 11pt !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
 }
 /* Lead participant bubble row (black bg, white text) */
-.he-table[data-b12-cases-table="true"] td[data-role="lead"] {
+.he-table[data-b12-cases-table="true"] td[data-role="lead"],
+.ProseMirror table[data-b12-cases-table="true"] td[data-role="lead"] {
   text-align: center !important;
   font-weight: bold !important;
+  background: #ffffff !important;
+  color: #000000 !important;
+}
+.he-table[data-b12-cases-table="true"] td[data-role="lead"] p,
+.ProseMirror table[data-b12-cases-table="true"] td[data-role="lead"] p {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   background: #000000 !important;
   color: #ffffff !important;
-}
-.he-table[data-b12-cases-table="true"] td[data-role="lead"] p {
+  border: 1.5px solid #000000 !important;
+  border-radius: 9999px !important;
+  padding: 0 5px !important;
   text-align: center !important;
   margin: 0 !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+}
+.b12-lead-badge,
+.ProseMirror table[data-b12-cases-table="true"] .b12-lead-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #000000 !important;
   color: #ffffff !important;
+  border: 1.5px solid #000000 !important;
+  border-radius: 9999px !important;
+  padding: 0 5px !important;
+  font-family: "Times New Roman", Times, serif !important;
+  font-size: 11pt !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
 }
 /* Thick black divider between cases */
-.he-table[data-b12-cases-table="true"] td[data-case-start="true"] {
+.he-table[data-b12-cases-table="true"] td[data-case-start="true"],
+.ProseMirror table[data-b12-cases-table="true"] td[data-case-start="true"] {
   border-top: 3px solid #000 !important;
 }
-.he-table[data-b12-cases-table="true"] td[data-role="sub"] p {
-  margin: 0 !important;
+.he-table[data-b12-cases-table="true"] td[data-role="sub"] p,
+.ProseMirror table[data-b12-cases-table="true"] td[data-role="sub"] p {
+  margin: 0 0 3pt 0 !important;
 }
 
 /* Figure container styling */

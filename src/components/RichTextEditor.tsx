@@ -148,6 +148,49 @@ const ParagraphClass = Extension.create({
   },
 });
 
+const HeadingDataAttributes = Extension.create({
+  name: 'headingDataAttributes',
+  addGlobalAttributes() {
+    return [
+      {
+        types: ['heading'],
+        attributes: {
+          'data-default-subheading': {
+            default: null,
+            parseHTML: (element) => element.getAttribute('data-default-subheading'),
+            renderHTML: (attributes) =>
+              attributes['data-default-subheading']
+                ? { 'data-default-subheading': attributes['data-default-subheading'] }
+                : {},
+          },
+          'data-b12-cases-heading': {
+            default: null,
+            parseHTML: (element) => element.getAttribute('data-b12-cases-heading'),
+            renderHTML: (attributes) =>
+              attributes['data-b12-cases-heading']
+                ? { 'data-b12-cases-heading': attributes['data-b12-cases-heading'] }
+                : {},
+          },
+        },
+      },
+    ];
+  },
+});
+
+function isB12CasesTableActive(editor: Editor | null): boolean {
+  if (!editor) return false;
+  const { $from } = editor.state.selection;
+
+  for (let depth = $from.depth; depth > 0; depth--) {
+    const node = $from.node(depth);
+    if (node.type.name === 'table') {
+      return node.attrs?.['data-b12-cases-table'] === 'true';
+    }
+  }
+
+  return false;
+}
+
 /**
  * Strips text-align from pasted paragraphs so they adopt the default (justified).
  * Only used for transformPastedHTML — NOT for initial content load, so that
@@ -774,6 +817,7 @@ export function FormattingToolbar({
   }
 
   const isInTable = editor.isActive('table');
+  const isB12CasesTable = isB12CasesTableActive(editor);
   const isB31TableActive = Boolean(b31TableFocus);
   const showTableOptions = isInTable || isB31TableActive;
   const isAlignDisabled = editor.isActive('heading') || isInTable;
@@ -986,14 +1030,18 @@ export function FormattingToolbar({
                     Delete column
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => editor.chain().focus().addRowBefore().run()}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add row before
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => editor.chain().focus().addRowAfter().run()}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add row after
-                  </DropdownMenuItem>
+                  {!isB12CasesTable && (
+                    <>
+                      <DropdownMenuItem onClick={() => editor.chain().focus().addRowBefore().run()}>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add row before
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => editor.chain().focus().addRowAfter().run()}>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add row after
+                      </DropdownMenuItem>
+                    </>
+                  )}
                   <DropdownMenuItem onClick={() => editor.chain().focus().deleteRow().run()}>
                     <Minus className="w-4 h-4 mr-2" />
                     Delete row
@@ -1249,6 +1297,7 @@ StarterKit.configure({
       TextStyle,
       Color,
       ParagraphClass,
+      HeadingDataAttributes,
       ParagraphSpacing,
       TextAlign.configure({
         types: ['heading', 'paragraph'],
@@ -1532,6 +1581,7 @@ StarterKit.configure({
       TextStyle,
       Color,
       ParagraphClass,
+      HeadingDataAttributes,
       ParagraphSpacing,
       TextAlign.configure({
         types: ['heading', 'paragraph'],
