@@ -898,6 +898,10 @@ table[data-b12-cases-table="true"] td[data-role="sub"] li p {
   transition: opacity 0.15s, background-color 0.15s;
 }
 
+.ProseMirror table[data-b12-cases-table="true"] tr[data-role="title-row"]:not(:first-child) > td[data-role="title"]::before {
+  top: 19px;
+}
+
 .ProseMirror table[data-b12-cases-table="true"] tr[data-role="title-row"]:hover > td[data-role="title"]::before {
   opacity: 1;
 }
