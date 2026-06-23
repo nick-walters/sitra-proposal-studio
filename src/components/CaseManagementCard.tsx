@@ -920,26 +920,29 @@ export function CaseManagementCard({
                 />
                 <Label htmlFor="populate-all" className="text-xs font-bold cursor-pointer">Select all</Label>
               </div>
-              {caseDrafts.map((c) => {
+              {caseDrafts.map((c, idx) => {
                 const label = getCaseBubbleLabel(casePrefix, c.number, c.short_name);
                 const checked = selectedPopulateIds.has(c.id);
                 return (
-                  <div key={c.id} className="flex items-center gap-2">
-                    <Checkbox
-                      id={`populate-${c.id}`}
-                      checked={checked}
-                      onCheckedChange={(v) => {
-                        setSelectedPopulateIds((prev) => {
-                          const next = new Set(prev);
-                          if (v) next.add(c.id); else next.delete(c.id);
-                          return next;
-                        });
-                      }}
-                    />
-                    <Label htmlFor={`populate-${c.id}`} className="text-sm cursor-pointer flex-1">
-                      <span className="font-bold">{label}</span>
-                      {c.title && <span className="text-muted-foreground"> &mdash; {c.title}</span>}
-                    </Label>
+                  <div key={c.id}>
+                    {idx > 0 && <div className="border-t my-1" />}
+                    <div className="flex items-center gap-2 py-0.5">
+                      <Checkbox
+                        id={`populate-${c.id}`}
+                        checked={checked}
+                        onCheckedChange={(v) => {
+                          setSelectedPopulateIds((prev) => {
+                            const next = new Set(prev);
+                            if (v) next.add(c.id); else next.delete(c.id);
+                            return next;
+                          });
+                        }}
+                      />
+                      <Label htmlFor={`populate-${c.id}`} className="text-sm cursor-pointer flex-1">
+                        <span className="font-bold">{label}</span>
+                        {c.title && <span className="text-muted-foreground"> &mdash; {c.title}</span>}
+                      </Label>
+                    </div>
                   </div>
                 );
               })}
