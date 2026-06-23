@@ -1,79 +1,91 @@
-## Goal
+# Plan: Case drafts → B1.2, project-wide subsections, retroactive headings
 
-Make B3.1 the authoritative source for tasks/deliverables/milestones (T/D/MS). WP drafts become a workshop that only enters B3.1 via the **Populate** button. Cross-references resolve against B3.1 data, with granular locking and yellow placeholders for deleted refs.
+## 1. Project-wide case subsections & guidelines (new)
 
-## Behaviour model
+New table `case_subsection_templates` (per proposal): `id, proposal_id, key, heading, guideline, order_index, is_default, created_at, updated_at`. Seeded on proposal creation with the five defaults (background_context, key_stakeholders, proposed_solutions, expected_outcomes, replicability).
 
-1. **WP drafts → B3.1 only via Populate.** No auto-mirroring in either direction.
-2. **B3.1 content is fully editable** after populate; edits never flow back to the draft.
-3. **Re-populate** wholesale replaces the selected parts in B3.1 (per current `populateB31` behaviour) — coordinator+ must press Populate again to push further draft changes.
-4. **Granular lock** on the WP draft: lock only the parts that were populated.
-   - Objectives populated → lock objectives editor.
-   - Description-before-tasks populated → lock that editor.
-   - Tasks populated → lock tasks table (add/edit/delete/reorder).
-   - Deliverables populated → lock deliverables table.
-   - Milestones populated → lock milestones table.
-   - Risks populated → lock risks table.
-   - Coordinator+ can override per-section to keep editing; doing so does NOT unpopulate B3.1.
-5. **Cross-ref source = B3.1 only.** Pickers and badge resolution use `b31_tasks`, `b31_deliverables`, `b31_milestones` (+ `wp_drafts` shell for WP/colour). Items that exist only in a WP draft are not pickable and not resolved.
-6. **Reorder/renumber in B3.1** continues to update badges live (existing step-3 wiring, but now keyed off B3.1 rows directly — no `wp_draft_task_id` round-trip needed).
-7. **Deleted in B3.1** → cross-refs become the yellow italic `[cross-reference to a deleted task/deliverable/milestone]` placeholder (already implemented for all types).
-8. Participant refs → A2 (unchanged). Acronym → A1 (unchanged). Figure/table → Part B editors (unchanged). Case → deferred.
+- New button in case manager toolbar: **Edit case subsections & guidelines** → dialog listing rows with drag-handle, heading input, guideline textarea, add-row, delete-row.
+- Edits propagate live: every case-draft editor and the B1.2 Cases table read headings/guidelines from this table instead of per-case `heading_*` / `guideline_*` columns.
+- Per-case heading/guideline editing in `CaseDraftEditor` is removed (fields become read-only labels rendered from the template).
+- `case_drafts.heading_*` and `guideline_*` columns are kept for now (no destructive drop) but stop being written/read; content storage moves to a generic `case_drafts.subsection_content jsonb` keyed by template `key`. Existing per-case data migrated into that jsonb on the same migration.
 
-## Database changes
+## 2. B1.2 Cases table (auto-inserted placeholder)
 
-Add per-section populate flags on `wp_drafts` so the lock UI knows what to lock:
+When ≥1 case draft exists for the proposal, the B1.2 editor auto-inserts (idempotently, once) a new unnumbered subheading + caption + table block under the new section structure (see §4):
 
-```sql
-ALTER TABLE public.wp_drafts
-  ADD COLUMN IF NOT EXISTS b31_populated_objectives boolean NOT NULL DEFAULT false,
-  ADD COLUMN IF NOT EXISTS b31_populated_description boolean NOT NULL DEFAULT false,
-  ADD COLUMN IF NOT EXISTS b31_populated_tasks boolean NOT NULL DEFAULT false,
-  ADD COLUMN IF NOT EXISTS b31_populated_deliverables boolean NOT NULL DEFAULT false,
-  ADD COLUMN IF NOT EXISTS b31_populated_milestones boolean NOT NULL DEFAULT false,
-  ADD COLUMN IF NOT EXISTS b31_populated_risks boolean NOT NULL DEFAULT false;
+- Subheading text derives from case type: "Living lab descriptions", "Case descriptions", "Challenge descriptions", "Pilot descriptions", "Demonstration descriptions", "Use case descriptions", or the `custom_type_name` + " descriptions" for Other. If mixed types exist, fall back to "Case descriptions".
+- Positioned **directly above** the existing "Linked research & innovation activities" subheading (i.e. below Methodologies content).
+- Auto-generated `EditableCaption` above the table, participating in the existing B1.2 caption sequence so it gets the next free letter and is cross-referenceable like any other table.
+
+### Table style (mirrors 3.1.b, black-coloured)
+
+Per case, a block of rows:
+
+```
+┌────────────────────────────────────────────────────┐
+│  [ CS1 · Short name · Title ]   ← long white badge │  ← all black border/font
+│  Lead: Participant short name                       │
+├────────────────────────────────────────────────────┤
+│  ***Background context:*** content…                │
+├────────────────────────────────────────────────────┤
+│  ***Key stakeholders:*** content…                  │
+├────────────────────────────────────────────────────┤
+│  …(remaining template rows)                        │
+└────────────────────────────────────────────────────┘
 ```
 
-`populateB31` sets the relevant flag to true at the end of each section's copy block. No data backfill needed (disposable test proposal).
+- Long white badge spans full inner width, bold black text, black outline, case-badge typography.
+- Number prefix shown only when the existing case-number toggle is on.
+- Lead participant on its own line beneath the badge.
+- Each subsection in its own full-width cell, black 1px dividers, no inner column splits.
+- Headings rendered from project-wide template (bold italic + colon), the heading text itself is **not** editable in the table (edit via the dialog); the content after the colon is fully editable inline.
+- Rows fully reorderable and deletable in B1.2 (authority shift identical to 3.1.b — once populated, B1.2 is the source of truth).
 
-## Code changes
+## 3. Populate flow (case manager)
 
-### Populate flow (`src/lib/b31Population.ts`)
-- After each section is copied, write the matching `b31_populated_*` flag to `true` on each affected `wp_drafts` row.
-- Re-populate continues to wholesale replace the selected scope.
+- Add **Populate to B1.2** button in case manager toolbar. Dialog: confirm + list cases to include (all by default, like WP populate but only whole-case granularity).
+- On populate: overwrite/insert each selected case into the B1.2 Cases table, set `case_drafts.is_locked = true` and `locked_by/at`.
+- Lock banner on `CaseDraftEditor` (whole editor read-only) with coordinator **Override** session-local button, mirroring WP-draft pattern.
+- Cases deleted/added in case manager: row stays in B1.2 until next populate (B1.2 is authority). Placeholder rows for newly-added unpopulated cases still appear (badge + lead only, empty subsection cells), matching auto-insert behaviour.
 
-### WP draft editor lock UI
-- `WPDraftEditor.tsx` + `WPTableSection.tsx` (and the objectives/description/deliverables/milestones/risks editors): read the per-section flags and disable inputs / add/delete/reorder controls when locked. Show a small "Populated to B3.1 — coordinator+ can override" banner with an override toggle for coordinator+.
-- Override toggle is session-local (no DB write); refreshing re-locks. Keeps B3.1 as the source of truth.
+## 4. Retroactive B-section subheadings
 
-### Cross-reference picker
-- `useProposalReferences.ts` (and related picker components for T/D/MS) switch from `wp_draft_tasks/_deliverables/_milestones` to `b31_tasks/b31_deliverables/b31_milestones`. WP shell info (number, colour, short name) still comes from `wp_drafts`. Participant/acronym/figure/table sources unchanged.
+Idempotent inserter run once per proposal on first load of each affected section. For sections 1.1, 1.2, 2.1, 2.2, 3.2: inserts each listed subheading at the **top** of the section content (preserving everything below), skipping any subheading already present (case-insensitive match on heading text).
 
-### Sync / badge resolution
-- `syncCrossReferences.ts` lookup maps already use B3.1 rows for T/D/MS resolution. Confirm task lookup is by `b31_tasks.id` (not `wp_draft_task_id`). Remove obsolete `wp_draft_task_id`-based fallback paths if any remain.
-- Step-3 mirror writes in `B31WPDescriptionTables.tsx` (writes back to `wp_draft_tasks`) become obsolete — remove them so B3.1 reorders no longer touch the draft.
+Subheadings inserted per your spec:
+- 1.1 — Objectives; Ambition
+- 1.2 — Methodologies; Linked research & innovation activities; Ongoing projects table; Open science practices; Data management; Gender dimension; Case studies & open calls
+- 2.1 — Pathway to impact; Scale & significance of expected impacts; Key performance indicators
+- 2.2 — Key exploitable results; Draft plan for the dissemination & exploitation of results, including communication plan; Intellectual property management
+- 3.2 — Interdisciplinarity & complementarity of the consortium for addressing the project's objectives; Participants' capacity, contributions & resources; Value chain coverage & industrial involvement; Justification of the participation of international organisations & third countries
 
-### Initial B3.1 state for unpopulated WPs
-- `useB31SectionData` / `B31WPDescriptionTables`: when a WP has no `b31_tasks` rows, render only the placeholder bar (WP number, short name, title, leader, dynamic duration from A1). No objectives, no task rows, no D/MS rows. The auto-seed trigger `initialize_b31_tasks` is dropped so new WPs start empty in B3.1.
+Tracked via a `proposal_subsection_seeding` jsonb flag on `proposals` so it runs exactly once per (proposal, section).
 
-```sql
-DROP TRIGGER IF EXISTS initialize_b31_tasks_trigger ON public.wp_drafts;
--- function kept for now in case of rollback; safe to drop later
-```
+## Technical notes
 
-### Disposable proposal cleanup
-- One-off: for the test proposal, clear `b31_tasks`, `b31_deliverables`, `b31_milestones`, `b31_risks` rows that originated from auto-mirror (i.e. all of them, since nothing has been explicitly populated yet). User confirmed existing data is disposable.
+- New migration: `case_subsection_templates` table (with grants + RLS following proposal-edit pattern), `case_drafts.subsection_content jsonb default '{}'::jsonb`, `case_drafts.is_locked/locked_by/locked_at` already exist, data-copy from existing columns into jsonb + template seed per existing proposal.
+- New components: `CaseSubsectionTemplateDialog.tsx`, `B12CasesTable.tsx` (parallels `B31WPDescriptionTables`), `B12CasesTablePopulator.ts` (parallels `b31Population.ts`).
+- Caption integration: extend B1.2's existing tableOffset logic so the auto-inserted cases-table caption is counted before/after editor tables consistently with `renumberCaptionsInEditor`.
+- Hooks: extend `useCaseDrafts` (or create) to expose subsection_content + lock state; update `CaseDraftEditor` to render template-driven sections and respect lock.
+- No changes to participant/acronym/figure/WP cross-ref sources.
+
+## Files (high-level)
+
+- New: `supabase/migrations/<ts>_case_subsections_b12.sql`
+- New: `src/components/CaseSubsectionTemplateDialog.tsx`
+- New: `src/components/B12CasesTable.tsx`
+- New: `src/lib/b12CasesPopulation.ts`
+- New: `src/lib/seedBSectionSubheadings.ts`
+- Edit: `src/components/CaseDraftEditor.tsx` (template-driven, lock banner, override)
+- Edit: `src/pages/CaseManager.tsx` (toolbar buttons: edit subsections, populate)
+- Edit: `src/components/B12SectionContent.tsx` (or equivalent B1.2 renderer) to mount cases table + caption above "Linked research & innovation activities"
+- Edit: `src/lib/renumberCaptionsInEditor.ts` (offset handling for the cases table caption)
+- Edit: `src/hooks/useCaseDrafts.ts` (subsection_content, lock)
+- Edit: section loader (likely `useSectionContent.ts` or section page) to invoke `seedBSectionSubheadings` once
 
 ## Out of scope (deferred)
-- Case drafts → B1.2 populate flow (separate ticket).
-- Any change to participant/acronym/figure/table cross-ref sources.
 
-## Acceptance
+- Cross-ref menu changes for cases (already handled in earlier work — picker continues to source from `case_drafts`).
+- Dropping the legacy `heading_*` / `guideline_*` columns (kept until migration is verified in production).
 
-1. Fresh WP: B3.1 shows only the placeholder bar. T/D/MS pickers show no items for that WP.
-2. Populate tasks only → B3.1 gets the tasks; WP draft tasks table locks; WP objectives still editable.
-3. Edit a task title in B3.1 → WP draft task unchanged.
-4. Reorder tasks in B3.1 → cross-ref badges renumber.
-5. Delete a task in B3.1 → cross-refs to it become the yellow `[cross-reference to a deleted task]` placeholder.
-6. Coordinator+ override on a locked draft section → can edit, but B3.1 is unaffected until they press Populate again.
-7. TypeScript compiles.
+Want me to proceed with this scope, or adjust anything (especially §1's move to project-wide templates, since that's the biggest structural change)?
