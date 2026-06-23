@@ -152,7 +152,12 @@ table[data-b12-cases-table="true"] .b12-case-title-badge,
 .ProseMirror table[data-b12-cases-table="true"] .b12-lead-badge,
 table[data-b12-cases-table="true"] .b12-lead-badge,
 .ProseMirror tr[data-case-id] > td[data-role="lead"] > p {
-  display: inline-flex !important;
+  display: flex !important;
+  width: fit-content !important;
+  margin-left: auto !important;
+  margin-right: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
   align-items: center !important;
   justify-content: flex-start !important;
   background: #000000 !important;
@@ -161,14 +166,12 @@ table[data-b12-cases-table="true"] .b12-lead-badge,
   border-radius: 9999px !important;
   padding: 0 8px 0 6px !important;
   height: 17px !important;
-  margin: 0 !important;
   font-weight: 700 !important;
   line-height: 1 !important;
   font-family: "Times New Roman", Times, serif !important;
   font-size: 11pt !important;
   white-space: nowrap !important;
   gap: 4px !important;
-  vertical-align: baseline !important;
 }
 /* Crown icon (lucide Crown), injected via CSS because TipTap strips inline SVG */
 .he-table[data-b12-cases-table="true"] .b12-lead-badge::before,
