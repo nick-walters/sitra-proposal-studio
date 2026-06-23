@@ -68,6 +68,13 @@ export const ALLOWED_DATA_ATTRS = new Set<string>([
   'data-caption-label',
   'data-spacing-before',
   'data-spacing-after',
+  'data-role',
+  'data-case-start',
+  'data-b12-cases-table',
+  'data-b12-cases-block',
+  'data-b12-cases-heading',
+  'data-b12-cases-caption',
+  'data-default-subheading',
 ]);
 
 export const STYLE_ALLOWLIST = new Set<string>([
