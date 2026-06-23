@@ -454,7 +454,7 @@ export async function syncCrossReferences(
     const a = node.attrs;
     if (!a.participantId) return;
     const p = data.participantById.get(a.participantId);
-    if (!p) return;
+    if (!p) { deletions.push({ pos, end: pos + node.nodeSize, kind: 'participant' }); return; }
     const newAttrs = {
       ...a,
       participantNumber: p.participant_number,
