@@ -633,69 +633,109 @@ table.first-col-flush td:first-child {
 /* Authoritative B1.2 case-table layout. This block must live after the
    generic ProseMirror table rules so the generated case rows keep page-width
    alignment instead of inheriting table-layout column sizing. */
+.ProseMirror .table-caption[data-b12-cases-caption="true"],
+.ProseMirror p.table-caption[data-b12-cases-caption="true"],
+.document-content .table-caption[data-b12-cases-caption="true"],
+.document-content p.table-caption[data-b12-cases-caption="true"],
+.table-caption[data-b12-cases-caption="true"] {
+  margin-bottom: 18px !important;
+}
+
 .ProseMirror table[data-b12-cases-table="true"],
 .document-content table[data-b12-cases-table="true"],
 table[data-b12-cases-table="true"] {
-  display: block !important;
+  display: table !important;
   width: 100% !important;
-  max-width: 18cm !important;
+  max-width: none !important;
   margin: 0 0 6pt 0 !important;
   table-layout: auto !important;
   border-collapse: collapse !important;
   overflow: visible !important;
 }
 
-.ProseMirror .table-caption[data-b12-cases-caption="true"] + table[data-b12-cases-table="true"],
-.ProseMirror p.table-caption[data-b12-cases-caption="true"] + table[data-b12-cases-table="true"],
-.document-content .table-caption[data-b12-cases-caption="true"] + table[data-b12-cases-table="true"],
-.document-content p.table-caption[data-b12-cases-caption="true"] + table[data-b12-cases-table="true"] {
-  margin-top: 0 !important;
-}
-
 .ProseMirror table[data-b12-cases-table="true"] tbody,
 .document-content table[data-b12-cases-table="true"] tbody,
-table[data-b12-cases-table="true"] tbody,
-.ProseMirror table[data-b12-cases-table="true"] tr[data-case-id],
-.document-content table[data-b12-cases-table="true"] tr[data-case-id],
-table[data-b12-cases-table="true"] tr[data-case-id] {
-  display: block !important;
-  width: 100% !important;
+table[data-b12-cases-table="true"] tbody {
+  display: table-row-group !important;
+}
+
+.ProseMirror table[data-b12-cases-table="true"] td,
+.document-content table[data-b12-cases-table="true"] td,
+table[data-b12-cases-table="true"] td {
+  border: none !important;
+  background: transparent !important;
+  padding: 3px 0 !important;
+  font-family: "Times New Roman", Times, serif !important;
+  font-size: 11pt !important;
+  vertical-align: top !important;
+  position: relative;
 }
 
 .ProseMirror table[data-b12-cases-table="true"] tr[data-role="title-row"],
 .document-content table[data-b12-cases-table="true"] tr[data-role="title-row"],
 table[data-b12-cases-table="true"] tr[data-role="title-row"] {
-  display: flex !important;
-  align-items: flex-start !important;
-  width: 100% !important;
-  box-sizing: border-box !important;
+  display: table-row !important;
   padding-top: 18px !important;
+}
+
+.ProseMirror table[data-b12-cases-table="true"] tr[data-role="title-row"] > td,
+.document-content table[data-b12-cases-table="true"] tr[data-role="title-row"] > td,
+table[data-b12-cases-table="true"] tr[data-role="title-row"] > td {
+  padding-top: 18px !important;
+  padding-bottom: 0 !important;
+}
+
+.ProseMirror table[data-b12-cases-table="true"] tbody > tr[data-role="title-row"]:first-child > td,
+.document-content table[data-b12-cases-table="true"] tbody > tr[data-role="title-row"]:first-child > td,
+table[data-b12-cases-table="true"] tbody > tr[data-role="title-row"]:first-child > td {
+  padding-top: 0 !important;
 }
 
 .ProseMirror table[data-b12-cases-table="true"] tr[data-role="title-row"] > td[data-role="title"],
 .document-content table[data-b12-cases-table="true"] tr[data-role="title-row"] > td[data-role="title"],
 table[data-b12-cases-table="true"] tr[data-role="title-row"] > td[data-role="title"] {
-  display: block !important;
-  flex: 0 0 auto !important;
+  display: table-cell !important;
+  text-align: left !important;
   width: auto !important;
   min-width: 0 !important;
-  padding: 2px 4px 2px 0 !important;
+  padding-right: 4px !important;
   box-sizing: border-box !important;
 }
 
 .ProseMirror table[data-b12-cases-table="true"] tr[data-role="title-row"] > td[data-role="lead"],
 .document-content table[data-b12-cases-table="true"] tr[data-role="title-row"] > td[data-role="lead"],
 table[data-b12-cases-table="true"] tr[data-role="title-row"] > td[data-role="lead"] {
-  display: flex !important;
-  flex: 1 1 auto !important;
-  justify-content: flex-end !important;
-  align-items: flex-start !important;
+  display: table-cell !important;
   min-width: 0 !important;
-  width: auto !important;
-  padding: 2px 0 !important;
+  width: 1% !important;
   box-sizing: border-box !important;
   text-align: right !important;
   white-space: nowrap !important;
+}
+
+.ProseMirror table[data-b12-cases-table="true"] .b12-case-title-badge,
+.ProseMirror table[data-b12-cases-table="true"] tr[data-role="title-row"] > td[data-role="title"] > p,
+.document-content table[data-b12-cases-table="true"] .b12-case-title-badge,
+.document-content table[data-b12-cases-table="true"] tr[data-role="title-row"] > td[data-role="title"] > p,
+table[data-b12-cases-table="true"] .b12-case-title-badge,
+table[data-b12-cases-table="true"] tr[data-role="title-row"] > td[data-role="title"] > p {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  background: #ffffff !important;
+  color: #000000 !important;
+  border: 1.5px solid #000000 !important;
+  border-radius: 9999px !important;
+  padding: 0 10px !important;
+  height: 17px !important;
+  text-align: left !important;
+  margin: 0 !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  font-family: "Times New Roman", Times, serif !important;
+  font-size: 11pt !important;
+  white-space: nowrap !important;
+  vertical-align: baseline !important;
 }
 
 .ProseMirror table[data-b12-cases-table="true"] tr[data-role="title-row"] > td[data-role="lead"] > .b12-lead-badge,
@@ -707,13 +747,37 @@ table[data-b12-cases-table="true"] tr[data-role="title-row"] > td[data-role="lea
   display: inline-flex !important;
   width: auto !important;
   margin: 0 !important;
-  flex: 0 0 auto !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  background: #000000 !important;
+  color: #ffffff !important;
+  border: 1.5px solid #000000 !important;
+  border-radius: 9999px !important;
+  padding: 0 8px 0 6px !important;
+  height: 17px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  font-family: "Times New Roman", Times, serif !important;
+  font-size: 11pt !important;
+  white-space: nowrap !important;
+  gap: 4px !important;
 }
 
-.ProseMirror table[data-b12-cases-table="true"] td[data-case-start="true"],
-.document-content table[data-b12-cases-table="true"] td[data-case-start="true"],
-table[data-b12-cases-table="true"] td[data-case-start="true"] {
-  padding-top: 2px !important;
+.ProseMirror table[data-b12-cases-table="true"] tr[data-role="title-row"] > td[data-role="lead"] > .b12-lead-badge::before,
+.ProseMirror table[data-b12-cases-table="true"] tr[data-role="title-row"] > td[data-role="lead"] > p::before,
+.document-content table[data-b12-cases-table="true"] tr[data-role="title-row"] > td[data-role="lead"] > .b12-lead-badge::before,
+.document-content table[data-b12-cases-table="true"] tr[data-role="title-row"] > td[data-role="lead"] > p::before,
+table[data-b12-cases-table="true"] tr[data-role="title-row"] > td[data-role="lead"] > .b12-lead-badge::before,
+table[data-b12-cases-table="true"] tr[data-role="title-row"] > td[data-role="lead"] > p::before {
+  content: "";
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z'/%3E%3Cpath d='M5 21h14' fill='none'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 11px 11px;
+  flex-shrink: 0;
 }
 
 .ProseMirror table[data-b12-cases-table="true"] tr[data-role="case-title-row"],
@@ -722,8 +786,7 @@ table[data-b12-cases-table="true"] td[data-case-start="true"] {
 .document-content table[data-b12-cases-table="true"] tr[data-role="sub-row"],
 table[data-b12-cases-table="true"] tr[data-role="case-title-row"],
 table[data-b12-cases-table="true"] tr[data-role="sub-row"] {
-  display: block !important;
-  width: 100% !important;
+  display: table-row !important;
 }
 
 .ProseMirror table[data-b12-cases-table="true"] tr[data-role="case-title-row"] > td,
@@ -732,47 +795,115 @@ table[data-b12-cases-table="true"] tr[data-role="sub-row"] {
 .document-content table[data-b12-cases-table="true"] tr[data-role="sub-row"] > td,
 table[data-b12-cases-table="true"] tr[data-role="case-title-row"] > td,
 table[data-b12-cases-table="true"] tr[data-role="sub-row"] > td {
-  display: block !important;
+  display: table-cell !important;
   width: 100% !important;
   box-sizing: border-box !important;
 }
 
-/* Fallback for already-saved B1.2 tables whose row-level data-role attributes
-   were stripped before preservation was added. */
-.ProseMirror table[data-b12-cases-table="true"] tr[data-case-id]:has(> td[data-role="title"]),
-.document-content table[data-b12-cases-table="true"] tr[data-case-id]:has(> td[data-role="title"]),
-table[data-b12-cases-table="true"] tr[data-case-id]:has(> td[data-role="title"]) {
-  display: flex !important;
-  align-items: flex-start !important;
-  width: 100% !important;
-  box-sizing: border-box !important;
-  padding-top: 18px !important;
+.ProseMirror table[data-b12-cases-table="true"] tr[data-role="case-title-row"] > td[data-role="case-title"],
+.document-content table[data-b12-cases-table="true"] tr[data-role="case-title-row"] > td[data-role="case-title"],
+table[data-b12-cases-table="true"] tr[data-role="case-title-row"] > td[data-role="case-title"] {
+  padding-top: 2px !important;
+  padding-bottom: 6px !important;
+  text-align: left !important;
+  border-bottom: 1px solid #000000 !important;
 }
 
-.ProseMirror table[data-b12-cases-table="true"] tr[data-case-id]:has(> td[data-role="title"]) > td[data-role="title"],
-.document-content table[data-b12-cases-table="true"] tr[data-case-id]:has(> td[data-role="title"]) > td[data-role="title"],
-table[data-b12-cases-table="true"] tr[data-case-id]:has(> td[data-role="title"]) > td[data-role="title"] {
-  display: block !important;
-  flex: 0 0 auto !important;
-  width: auto !important;
-  min-width: 0 !important;
-  padding: 2px 4px 2px 0 !important;
-  box-sizing: border-box !important;
+.ProseMirror table[data-b12-cases-table="true"] .b12-case-title-text,
+.ProseMirror table[data-b12-cases-table="true"] tr[data-role="case-title-row"] > td[data-role="case-title"] > p,
+.document-content table[data-b12-cases-table="true"] .b12-case-title-text,
+.document-content table[data-b12-cases-table="true"] tr[data-role="case-title-row"] > td[data-role="case-title"] > p,
+table[data-b12-cases-table="true"] .b12-case-title-text,
+table[data-b12-cases-table="true"] tr[data-role="case-title-row"] > td[data-role="case-title"] > p {
+  margin: 0 !important;
+  font-family: "Times New Roman", Times, serif !important;
+  font-size: 11pt !important;
+  font-weight: 700 !important;
+  font-style: normal !important;
+  text-align: left !important;
+  line-height: 1.25 !important;
 }
 
-.ProseMirror table[data-b12-cases-table="true"] tr[data-case-id]:has(> td[data-role="title"]) > td[data-role="lead"],
-.document-content table[data-b12-cases-table="true"] tr[data-case-id]:has(> td[data-role="title"]) > td[data-role="lead"],
-table[data-b12-cases-table="true"] tr[data-case-id]:has(> td[data-role="title"]) > td[data-role="lead"] {
-  display: flex !important;
-  flex: 1 1 auto !important;
-  justify-content: flex-end !important;
-  align-items: flex-start !important;
-  min-width: 0 !important;
-  width: auto !important;
-  padding: 2px 0 !important;
-  box-sizing: border-box !important;
-  text-align: right !important;
-  white-space: nowrap !important;
+.ProseMirror table[data-b12-cases-table="true"] .b12-case-title-text em,
+.ProseMirror table[data-b12-cases-table="true"] .b12-case-title-text i,
+.ProseMirror table[data-b12-cases-table="true"] tr[data-role="case-title-row"] > td[data-role="case-title"] em,
+.ProseMirror table[data-b12-cases-table="true"] tr[data-role="case-title-row"] > td[data-role="case-title"] i,
+.document-content table[data-b12-cases-table="true"] .b12-case-title-text em,
+.document-content table[data-b12-cases-table="true"] .b12-case-title-text i,
+.document-content table[data-b12-cases-table="true"] tr[data-role="case-title-row"] > td[data-role="case-title"] em,
+.document-content table[data-b12-cases-table="true"] tr[data-role="case-title-row"] > td[data-role="case-title"] i,
+table[data-b12-cases-table="true"] .b12-case-title-text em,
+table[data-b12-cases-table="true"] .b12-case-title-text i,
+table[data-b12-cases-table="true"] tr[data-role="case-title-row"] > td[data-role="case-title"] em,
+table[data-b12-cases-table="true"] tr[data-role="case-title-row"] > td[data-role="case-title"] i {
+  font-style: normal !important;
+}
+
+.ProseMirror table[data-b12-cases-table="true"] tr[data-role="sub-row"] > td[data-role="sub"],
+.document-content table[data-b12-cases-table="true"] tr[data-role="sub-row"] > td[data-role="sub"],
+table[data-b12-cases-table="true"] tr[data-role="sub-row"] > td[data-role="sub"] {
+  padding: 4px 0 !important;
+  text-align: justify !important;
+  border-bottom: 1px solid #000000 !important;
+}
+
+.ProseMirror table[data-b12-cases-table="true"] td[data-role="sub"] p,
+.document-content table[data-b12-cases-table="true"] td[data-role="sub"] p,
+table[data-b12-cases-table="true"] td[data-role="sub"] p {
+  margin: 0 0 6pt 0 !important;
+  text-align: justify !important;
+}
+
+.ProseMirror table[data-b12-cases-table="true"] td[data-role="sub"] p:last-child,
+.document-content table[data-b12-cases-table="true"] td[data-role="sub"] p:last-child,
+table[data-b12-cases-table="true"] td[data-role="sub"] p:last-child {
+  margin-bottom: 0 !important;
+}
+
+.ProseMirror table[data-b12-cases-table="true"] td[data-role="sub"] p:empty,
+.document-content table[data-b12-cases-table="true"] td[data-role="sub"] p:empty,
+table[data-b12-cases-table="true"] td[data-role="sub"] p:empty {
+  display: none !important;
+}
+
+.ProseMirror table[data-b12-cases-table="true"] td[data-role="sub"] ul,
+.ProseMirror table[data-b12-cases-table="true"] td[data-role="sub"] ol,
+.ProseMirror table[data-b12-cases-table="true"] td[data-role="sub"] li,
+.ProseMirror table[data-b12-cases-table="true"] td[data-role="sub"] li p,
+.document-content table[data-b12-cases-table="true"] td[data-role="sub"] ul,
+.document-content table[data-b12-cases-table="true"] td[data-role="sub"] ol,
+.document-content table[data-b12-cases-table="true"] td[data-role="sub"] li,
+.document-content table[data-b12-cases-table="true"] td[data-role="sub"] li p,
+table[data-b12-cases-table="true"] td[data-role="sub"] ul,
+table[data-b12-cases-table="true"] td[data-role="sub"] ol,
+table[data-b12-cases-table="true"] td[data-role="sub"] li,
+table[data-b12-cases-table="true"] td[data-role="sub"] li p {
+  text-align: left !important;
+}
+
+.ProseMirror table[data-b12-cases-table="true"] tr[data-role="title-row"] > td[data-role="title"]::before {
+  content: "";
+  position: absolute;
+  top: 1px;
+  left: -26px;
+  width: 20px;
+  height: 17px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23dc2626' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 6h18'/%3E%3Cpath d='M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6'/%3E%3Cpath d='M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 16px 16px;
+  cursor: pointer;
+  opacity: 0;
+  border-radius: 4px;
+  transition: opacity 0.15s, background-color 0.15s;
+}
+
+.ProseMirror table[data-b12-cases-table="true"] tr[data-role="title-row"]:hover > td[data-role="title"]::before {
+  opacity: 1;
+}
+
+.ProseMirror table[data-b12-cases-table="true"] tr[data-role="title-row"] > td[data-role="title"]:hover::before {
+  background-color: hsl(var(--destructive) / 0.1);
 }
 /* B3.1.f matrix uses border-spacing; shift left so first col is flush */
 table.b31-effort-matrix.first-col-flush {
