@@ -485,43 +485,65 @@ export async function syncCrossReferences(
     const refType = a.refType;
 
     if (refType === 'task') {
-      if (!a.taskId) return;
+      if (!a.taskId) {
+        console.log('[SYNC-INLINE] task node MISSING taskId', { attrs: a });
+        return;
+      }
       const t = data.taskById.get(a.taskId);
-      if (!t) return;
+      if (!t) {
+        console.log('[SYNC-INLINE] task lookup FAILED', { taskId: a.taskId, currentAttrs: { wpNumber: a.wpNumber, taskNumber: a.taskNumber } });
+        return;
+      }
       const newAttrs = { ...a, wpNumber: t.wp_number, taskNumber: t.number, wpColor: t.wp_color };
       const attrsDiffer =
         a.wpNumber !== newAttrs.wpNumber ||
         a.taskNumber !== newAttrs.taskNumber ||
         a.wpColor !== newAttrs.wpColor;
+      console.log('[SYNC-INLINE] task', { taskId: a.taskId, stored: { wpNumber: a.wpNumber, taskNumber: a.taskNumber, wpColor: a.wpColor }, fresh: { wpNumber: t.wp_number, taskNumber: t.number, wpColor: t.wp_color }, attrsDiffer });
       if (!attrsDiffer) return;
       inlineNodeChanges.push({ pos, newAttrs, refType, idKey: 'taskId', idValue: a.taskId });
       return;
     }
 
     if (refType === 'deliverable') {
-      if (!a.deliverableId) return;
+      if (!a.deliverableId) {
+        console.log('[SYNC-INLINE] deliverable node MISSING deliverableId', { attrs: a });
+        return;
+      }
       const d = data.deliverableById.get(a.deliverableId);
-      if (!d) return;
+      if (!d) {
+        console.log('[SYNC-INLINE] deliverable lookup FAILED', { deliverableId: a.deliverableId, currentAttrs: { deliverableNumber: a.deliverableNumber } });
+        return;
+      }
       const newAttrs = { ...a, deliverableNumber: d.number, wpColor: d.wp_color };
       const attrsDiffer =
         a.deliverableNumber !== newAttrs.deliverableNumber ||
         a.wpColor !== newAttrs.wpColor;
+      console.log('[SYNC-INLINE] deliverable', { deliverableId: a.deliverableId, stored: { deliverableNumber: a.deliverableNumber, wpColor: a.wpColor }, fresh: { deliverableNumber: d.number, wpColor: d.wp_color }, attrsDiffer });
       if (!attrsDiffer) return;
       inlineNodeChanges.push({ pos, newAttrs, refType, idKey: 'deliverableId', idValue: a.deliverableId });
       return;
     }
 
     if (refType === 'milestone') {
-      if (!a.milestoneId) return;
+      if (!a.milestoneId) {
+        console.log('[SYNC-INLINE] milestone node MISSING milestoneId', { attrs: a });
+        return;
+      }
       const m = data.milestoneById.get(a.milestoneId);
-      if (!m) return;
+      if (!m) {
+        console.log('[SYNC-INLINE] milestone lookup FAILED', { milestoneId: a.milestoneId, currentAttrs: { milestoneNumber: a.milestoneNumber } });
+        return;
+      }
       const newAttrs = { ...a, milestoneNumber: m.number };
       const attrsDiffer = a.milestoneNumber !== newAttrs.milestoneNumber;
+      console.log('[SYNC-INLINE] milestone', { milestoneId: a.milestoneId, stored: { milestoneNumber: a.milestoneNumber }, fresh: { milestoneNumber: m.number }, attrsDiffer });
       if (!attrsDiffer) return;
       inlineNodeChanges.push({ pos, newAttrs, refType, idKey: 'milestoneId', idValue: a.milestoneId });
       return;
     }
   });
+
 
   inlineNodeChanges.sort((a, b) => b.pos - a.pos);
   for (const c of inlineNodeChanges) {
