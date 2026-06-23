@@ -154,6 +154,9 @@ export async function syncCrossReferences(
   proposalId: string
 ): Promise<boolean> {
   if (!editor || !proposalId) return false;
+  // TEMP-LOG
+  console.log('[SYNC-RUN] syncCrossReferences invoked', { proposalId });
+
 
   // Cheap preflight: if the document has no cross-reference marks AND no
   // wpReference atom nodes (post-Stage-1 pilot), skip the proposal-wide SQL
