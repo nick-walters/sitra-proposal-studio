@@ -575,8 +575,13 @@ export async function syncCrossReferences(
   if (inlineRefNodeType && deletions.length > 0) {
     deletions.sort((a, b) => b.pos - a.pos);
     for (const d of deletions) {
+      // Map through any prior tr steps (mark refreshes / atom setMarkup)
+      // so original-doc positions land at the right place in tr.doc.
+      const mappedPos = tr.mapping.map(d.pos);
+      const mappedEnd = tr.mapping.map(d.end);
+      if (mappedEnd <= mappedPos) continue;
       const node = inlineRefNodeType.create({ refType: 'deleted', deletedKind: d.kind });
-      tr.replaceWith(d.pos, d.end, node);
+      tr.replaceWith(mappedPos, mappedEnd, node);
       changed = true;
     }
   }
