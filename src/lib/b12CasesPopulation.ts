@@ -112,6 +112,13 @@ function removeTrailingBreaks(el: Element) {
 }
 
 function cleanCaseContentRoot(root: HTMLElement) {
+  root.querySelectorAll('o\\:p, o\:p').forEach((el) => el.remove());
+  root.querySelectorAll('div').forEach((div) => {
+    const parent = div.parentNode;
+    if (!parent) return;
+    while (div.firstChild) parent.insertBefore(div.firstChild, div);
+    div.remove();
+  });
   root.querySelectorAll('p').forEach((p) => {
     removeTrailingBreaks(p);
     if (isBlankElement(p)) p.remove();
@@ -192,10 +199,10 @@ function buildCaseRows(args: {
   const { caseId, isFirst, badgeText, leadName, subsections } = args;
   const startAttr = isFirst ? '' : ' data-case-start="true"';
 
-  const titleRow = `<tr data-case-id="${caseId}" data-role="title-row"><td data-role="title" data-case-id="${caseId}"${startAttr}><p class="b12-case-title-badge">${esc(badgeText)}</p></td></tr>`;
+  const titleRow = `<tr data-case-id="${caseId}" data-role="title-row"><td data-role="title" data-case-id="${caseId}"${startAttr}><p class="b12-case-title-badge" data-case-id="${caseId}">${esc(badgeText)}</p></td></tr>`;
 
   const leadText = leadName ? `\u2654 ${esc(leadName)}` : 'Lead not set';
-  const leadRow = `<tr data-case-id="${caseId}" data-role="lead-row"><td data-role="lead" data-case-id="${caseId}"><p class="b12-lead-badge">${leadText}</p></td></tr>`;
+  const leadRow = `<tr data-case-id="${caseId}" data-role="lead-row"><td data-role="lead" data-case-id="${caseId}"><p class="b12-lead-badge" data-case-id="${caseId}">${leadText}</p></td></tr>`;
 
   const subRows = subsections
     .map((s) => {
