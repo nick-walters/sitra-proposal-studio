@@ -13,6 +13,7 @@ export interface CaseSubsectionTemplate {
 }
 
 const QUERY_KEY = (proposalId: string) => ['case-subsection-templates', proposalId];
+const EMPTY_TEMPLATES: CaseSubsectionTemplate[] = [];
 
 export function useCaseSubsectionTemplates(proposalId: string) {
   const queryClient = useQueryClient();
@@ -113,7 +114,7 @@ export function useCaseSubsectionTemplates(proposalId: string) {
   });
 
   return {
-    templates: query.data || [],
+    templates: query.data ?? EMPTY_TEMPLATES,
     isLoading: query.isLoading,
     updateRow,
     addRow,

@@ -19,6 +19,34 @@ export function findBlockRange(
   let startPos = pos;
   let endPos = pos + node.nodeSize;
 
+  // Generated B1.2 case block: heading + caption + table should behave as one
+  // block for deletion, but not for reordering.
+  if (node.type.name === 'heading' && node.attrs?.['data-b12-cases-heading'] === 'true') {
+    let scanPos = endPos;
+    let sawCaption = false;
+    while (scanPos < doc.content.size) {
+      const $scan = doc.resolve(scanPos);
+      const nextNode = $scan.nodeAfter;
+      if (!nextNode) break;
+
+      const isCaption = nextNode.type.name === 'paragraph' && (
+        nextNode.textContent.toLowerCase().startsWith('table ') ||
+        nextNode.attrs?.class?.includes('table-caption')
+      );
+      if (isCaption && !sawCaption) {
+        sawCaption = true;
+        scanPos += nextNode.nodeSize;
+        endPos = scanPos;
+        continue;
+      }
+      if (nodeIsB12CasesTable(nextNode)) {
+        endPos = scanPos + nextNode.nodeSize;
+      }
+      break;
+    }
+    return { startPos, endPos, node };
+  }
+
   // For images, include caption after
   if (node.type.name === 'image') {
     const afterPos = pos + node.nodeSize;
@@ -45,6 +73,14 @@ export function findBlockRange(
         const textContent = beforeNode.textContent.toLowerCase();
         if (textContent.startsWith('table ') || beforeNode.attrs?.class?.includes('table-caption')) {
           startPos = pos - beforeNode.nodeSize;
+        }
+      }
+
+      if (nodeIsB12CasesTable(node) && startPos > 0) {
+        const $start = doc.resolve(startPos);
+        const headingBefore = $start.nodeBefore;
+        if (headingBefore?.type.name === 'heading' && headingBefore.attrs?.['data-b12-cases-heading'] === 'true') {
+          startPos -= headingBefore.nodeSize;
         }
       }
     }
@@ -80,8 +116,16 @@ export function findBlockRange(
         const afterNode = $afterPos.nodeAfter;
         
         if (afterNode && afterNode.type.name === 'table') {
+          let captionStartPos = pos;
+          if (nodeIsB12CasesTable(afterNode) && pos > 0) {
+            const $captionStart = doc.resolve(pos);
+            const headingBefore = $captionStart.nodeBefore;
+            if (headingBefore?.type.name === 'heading' && headingBefore.attrs?.['data-b12-cases-heading'] === 'true') {
+              captionStartPos = pos - headingBefore.nodeSize;
+            }
+          }
           return {
-            startPos: pos,
+            startPos: captionStartPos,
             endPos: afterPos + afterNode.nodeSize,
             node,
           };
@@ -93,11 +137,19 @@ export function findBlockRange(
   return { startPos, endPos, node };
 }
 
+export function nodeIsB12CasesTable(node: ProseMirrorNode | null | undefined): boolean {
+  return node?.type.name === 'table' && node.attrs?.['data-b12-cases-table'] === 'true';
+}
+
 /**
  * Checks if a node can be reordered (all blocks except H1 and H2).
  * Exported for use by BlockDragHandle extension.
  */
 export function isReorderableBlock(node: ProseMirrorNode): boolean {
+  // B1.2 generated cases table order is controlled from the Case Manager.
+  if (nodeIsB12CasesTable(node)) return false;
+  if (node.type.name === 'heading' && node.attrs?.['data-b12-cases-heading'] === 'true') return false;
+
   // H1 and H2 are locked - not reorderable
   if (node.type.name === 'heading') {
     const level = node.attrs?.level;

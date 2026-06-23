@@ -82,9 +82,75 @@ function caseLabel(opts: {
   return nameBit || title || `${number}`;
 }
 
-function stripOuterParagraph(html: string): string {
-  const m = html.match(/^\s*<p[^>]*>([\s\S]*)<\/p>\s*$/i);
-  return m ? m[1] : html;
+const CASE_BLOCK_HEADING_TEXTS = new Set([
+  'case descriptions',
+  ...Object.values(CASE_TYPE_HEADING).map((h) => h.toLowerCase()),
+]);
+
+function isBlankElement(el: Element): boolean {
+  const html = el.innerHTML.replace(/<br\s*\/?>(\s*)/gi, '').replace(/&nbsp;/gi, '').trim();
+  return html.length === 0;
+}
+
+function renderSubsectionCell(heading: string, content: string): string {
+  const prefix = `<strong><em>${esc(heading)}:</em></strong> `;
+  const hasMeaningfulContent = content && content.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, '').trim();
+
+  if (!hasMeaningfulContent) {
+    return `<p>${prefix}<em style="color:#999;">No content yet.</em></p>`;
+  }
+
+  const doc = new DOMParser().parseFromString(`<div id="case-content">${content}</div>`, 'text/html');
+  const root = doc.getElementById('case-content')!;
+
+  while (root.firstElementChild && root.firstElementChild.tagName === 'P' && isBlankElement(root.firstElementChild)) {
+    root.firstElementChild.remove();
+  }
+  while (root.lastElementChild && root.lastElementChild.tagName === 'P' && isBlankElement(root.lastElementChild)) {
+    root.lastElementChild.remove();
+  }
+
+  const firstElement = root.firstElementChild;
+  if (firstElement && firstElement.tagName === 'P') {
+    firstElement.insertAdjacentHTML('afterbegin', prefix);
+    return root.innerHTML;
+  }
+
+  return `<p>${prefix}</p>${root.innerHTML}`;
+}
+
+function removeGeneratedCaseBlocks(root: HTMLElement, extraHeadingTexts: string[] = []) {
+  const generatedHeadingTexts = new Set([
+    ...CASE_BLOCK_HEADING_TEXTS,
+    ...extraHeadingTexts.map((text) => text.trim().toLowerCase()).filter(Boolean),
+  ]);
+
+  root.querySelectorAll('[data-b12-cases-block="true"]').forEach((n) => n.remove());
+
+  root.querySelectorAll('table[data-b12-cases-table="true"]').forEach((tbl) => {
+    const prevCaption = tbl.previousElementSibling;
+    const prevHeading =
+      prevCaption?.previousElementSibling &&
+      /^H[1-6]$/.test(prevCaption.previousElementSibling.tagName)
+        ? prevCaption.previousElementSibling
+        : null;
+    tbl.remove();
+    if (prevCaption && prevCaption.classList?.contains('table-caption')) prevCaption.remove();
+    if (prevHeading) prevHeading.remove();
+  });
+
+  root.querySelectorAll('h1, h2, h3, h4').forEach((heading) => {
+    const headingText = (heading.textContent || '').trim().toLowerCase();
+    if (!generatedHeadingTexts.has(headingText)) return;
+
+    const caption = heading.nextElementSibling;
+    const table = caption?.nextElementSibling;
+    if (!caption?.classList?.contains('table-caption') || table?.tagName !== 'TABLE') return;
+
+    table.remove();
+    caption.remove();
+    heading.remove();
+  });
 }
 
 /** Render one case as a sequence of <tr> rows inside the combined table. */
@@ -98,17 +164,15 @@ function buildCaseRows(args: {
   const { caseId, isFirst, badgeText, leadName, subsections } = args;
   const startAttr = isFirst ? '' : ' data-case-start="true"';
 
-  const titleRow = `<tr data-case-id="${caseId}" data-role="title-row"><td data-role="title" data-case-id="${caseId}"${startAttr}>${esc(badgeText)}</td></tr>`;
+  const titleRow = `<tr data-case-id="${caseId}" data-role="title-row"><td data-role="title" data-case-id="${caseId}"${startAttr}><span class="case-reference-badge b12-case-title-badge">${esc(badgeText)}</span></td></tr>`;
 
   const leadText = leadName ? `\u2654 ${esc(leadName)}` : 'Lead not set';
-  const leadRow = `<tr data-case-id="${caseId}" data-role="lead-row"><td data-role="lead" data-case-id="${caseId}">${leadText}</td></tr>`;
+  const leadRow = `<tr data-case-id="${caseId}" data-role="lead-row"><td data-role="lead" data-case-id="${caseId}"><span class="participant-reference-badge b12-lead-badge">${leadText}</span></td></tr>`;
 
   const subRows = subsections
     .map((s) => {
-      const bodyHtml = (s.content && s.content.replace(/<[^>]*>/g, '').trim())
-        ? stripOuterParagraph(s.content)
-        : '<em style="color:#999;">No content yet.</em>';
-      return `<tr data-case-id="${caseId}" data-role="sub-row"><td data-role="sub" data-case-id="${caseId}"><p><strong><em>${esc(s.heading)}:</em></strong> ${bodyHtml}</p></td></tr>`;
+      const bodyHtml = renderSubsectionCell(s.heading, s.content);
+      return `<tr data-case-id="${caseId}" data-role="sub-row"><td data-role="sub" data-case-id="${caseId}">${bodyHtml}</td></tr>`;
     })
     .join('');
 
@@ -210,7 +274,7 @@ export async function populateCasesToB12(
     })
     .join('');
 
-  const tableHtml = `<table data-b12-cases-table="true"><tbody>${allRows}</tbody></table>`;
+  const tableHtml = `<table class="he-table" data-b12-cases-table="true"><tbody>${allRows}</tbody></table>`;
 
   const blocks: string[] = [];
   blocks.push(`<h3 data-b12-cases-heading="true">${esc(subheadingText)}</h3>`);
@@ -234,23 +298,12 @@ export async function populateCasesToB12(
   const doc = parser.parseFromString(`<div id="root">${existingHtml}</div>`, 'text/html');
   const root = doc.getElementById('root')!;
 
-  // Remove any previous cases block — match the wrapper div if present, OR
-  // (when the wrapper has been stripped by the editor) find the cases table
-  // and also remove the heading + caption sitting directly before it.
-  root.querySelectorAll('[data-b12-cases-block="true"]').forEach((n) => n.remove());
-  root.querySelectorAll('table[data-b12-cases-table="true"]').forEach((tbl) => {
-    const prevCaption = tbl.previousElementSibling;
-    const prevHeading =
-      prevCaption?.previousElementSibling &&
-      /^H[1-6]$/.test(prevCaption.previousElementSibling.tagName)
-        ? prevCaption.previousElementSibling
-        : null;
-    tbl.remove();
-    if (prevCaption && prevCaption.classList?.contains('table-caption')) prevCaption.remove();
-    if (prevHeading) prevHeading.remove();
-  });
+  // Remove all previously generated versions, including legacy untagged blocks
+  // created before data-b12-cases-table was preserved by the editor.
+  removeGeneratedCaseBlocks(root, [subheadingText]);
 
-  // Insert just before "Linked research" subheading; else top
+  // Insert directly above the "Linked research & innovation activities" subheading;
+  // fallback to the top only if that default heading is absent.
   const insertBlock = (beforeNode: Element | null) => {
     const tmp = doc.createElement('div');
     tmp.innerHTML = blockInnerHTML;
@@ -265,7 +318,8 @@ export async function populateCasesToB12(
   let inserted = false;
   const headings = Array.from(root.querySelectorAll('h1, h2, h3, h4'));
   for (const h of headings) {
-    if (/linked\s+research/i.test(h.textContent || '')) {
+    const text = (h.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
+    if (text === 'linked research & innovation activities' || /linked\s+research\s+&\s+innovation\s+activities/i.test(text)) {
       insertBlock(h);
       inserted = true;
       break;

@@ -23,6 +23,8 @@ export const ALLOWED_CLASSES = new Set<string>([
   'case-reference-badge',
   'participant-reference-badge',
   'formula-result',
+  'b12-case-title-badge',
+  'b12-lead-badge',
 ]);
 
 export const ALLOWED_DATA_ATTRS = new Set<string>([
