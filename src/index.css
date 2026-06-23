@@ -108,47 +108,45 @@ table[data-b12-cases-table="true"] td,
   position: relative;
 }
 
-/* Title pill — flush left, content width */
+/* Title pill — content width, flush left, no wrap */
 .he-table[data-b12-cases-table="true"] td[data-role="title"],
 .ProseMirror table[data-b12-cases-table="true"] td[data-role="title"],
 .ProseMirror tr[data-case-id] > td[data-role="title"] {
   text-align: left !important;
-  padding: 2px 0 !important;
+  padding: 2px 10px 2px 0 !important;
+  width: auto !important;
 }
 .he-table[data-b12-cases-table="true"] .b12-case-title-badge,
 .ProseMirror table[data-b12-cases-table="true"] .b12-case-title-badge,
 table[data-b12-cases-table="true"] .b12-case-title-badge,
 .ProseMirror tr[data-case-id] > td[data-role="title"] > p {
-  display: flex !important;
+  display: inline-flex !important;
   align-items: center !important;
   justify-content: flex-start !important;
   background: #ffffff !important;
   color: #000000 !important;
   border: 1.5px solid #000000 !important;
-  border-radius: 14px !important;
-  padding: 3px 12px !important;
-  width: 18cm !important;
-  max-width: 18cm !important;
-  min-height: 17px !important;
+  border-radius: 9999px !important;
+  padding: 0 10px !important;
+  height: 17px !important;
   text-align: left !important;
   margin: 0 !important;
   font-weight: 700 !important;
-  line-height: 1.25 !important;
+  line-height: 1 !important;
   font-family: "Times New Roman", Times, serif !important;
   font-size: 11pt !important;
-  white-space: normal !important;
-  overflow-wrap: break-word !important;
-  word-break: normal !important;
+  white-space: nowrap !important;
   vertical-align: baseline !important;
-  box-sizing: border-box !important;
 }
 
-/* Lead participant badge — below title, flush left, no divider */
+/* Lead participant cell — right-aligned on title row, auto width */
 .he-table[data-b12-cases-table="true"] td[data-role="lead"],
 .ProseMirror table[data-b12-cases-table="true"] td[data-role="lead"],
 .ProseMirror tr[data-case-id] > td[data-role="lead"] {
-  text-align: left !important;
+  text-align: right !important;
   padding: 2px 0 !important;
+  width: 1% !important;
+  white-space: nowrap !important;
 }
 .he-table[data-b12-cases-table="true"] .b12-lead-badge,
 .ProseMirror table[data-b12-cases-table="true"] .b12-lead-badge,
@@ -171,6 +169,26 @@ table[data-b12-cases-table="true"] .b12-lead-badge,
   white-space: nowrap !important;
   gap: 4px !important;
   vertical-align: baseline !important;
+}
+
+/* Case title text row — bold italic, divider below */
+.he-table[data-b12-cases-table="true"] td[data-role="case-title"],
+.ProseMirror table[data-b12-cases-table="true"] td[data-role="case-title"],
+.ProseMirror tr[data-case-id] > td[data-role="case-title"] {
+  text-align: left !important;
+  padding: 4px 0 6px 0 !important;
+  border-bottom: 1px solid #000 !important;
+}
+.he-table[data-b12-cases-table="true"] .b12-case-title-text,
+.ProseMirror table[data-b12-cases-table="true"] .b12-case-title-text,
+.ProseMirror tr[data-case-id] > td[data-role="case-title"] > p {
+  margin: 0 !important;
+  font-family: "Times New Roman", Times, serif !important;
+  font-size: 11pt !important;
+  font-weight: 700 !important;
+  font-style: italic !important;
+  text-align: left !important;
+  line-height: 1.25 !important;
 }
 .he-table[data-b12-cases-table="true"] .b12-lead-badge svg,
 .ProseMirror table[data-b12-cases-table="true"] .b12-lead-badge svg {
