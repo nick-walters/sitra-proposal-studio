@@ -163,13 +163,13 @@ export async function syncCrossReferences(
   // if the document contains no reference marks AND no reference atom nodes
   // (wpReference / caseReference / participantReference — post Stage 1/2).
   const REF_MARK_NAMES = new Set([
-    'inlineReference',
     'figureTableReference',
   ]);
   const REF_NODE_NAMES = new Set([
     'wpReference',
     'caseReference',
     'participantReference',
+    'inlineReference',
   ]);
   let hasAnyRef = false;
   editor.state.doc.descendants((node) => {
