@@ -341,6 +341,7 @@ export type Database = {
           title: string | null
           updated_at: string | null
           wp_draft_id: string
+          wp_draft_task_id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -354,6 +355,7 @@ export type Database = {
           title?: string | null
           updated_at?: string | null
           wp_draft_id: string
+          wp_draft_task_id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -367,6 +369,7 @@ export type Database = {
           title?: string | null
           updated_at?: string | null
           wp_draft_id?: string
+          wp_draft_task_id?: string | null
         }
         Relationships: [
           {
@@ -381,6 +384,13 @@ export type Database = {
             columns: ["wp_draft_id"]
             isOneToOne: false
             referencedRelation: "wp_drafts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "b31_tasks_wp_draft_task_id_fkey"
+            columns: ["wp_draft_task_id"]
+            isOneToOne: false
+            referencedRelation: "wp_draft_tasks"
             referencedColumns: ["id"]
           },
         ]
