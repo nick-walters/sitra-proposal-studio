@@ -96,6 +96,21 @@ export async function populateB31(
 ): Promise<{ success: boolean; error?: string; counts: { objectives: number; tasks: number; deliverables: number; milestones: number; risks: number } }> {
   const counts = { objectives: 0, tasks: 0, deliverables: 0, milestones: 0, risks: 0 };
 
+  // Track which WPs had each section populated so we can flag b31_populated_* on wp_drafts
+  const populatedFlagsPerWp = new Map<string, {
+    objectives?: boolean;
+    description?: boolean;
+    tasks?: boolean;
+    deliverables?: boolean;
+    milestones?: boolean;
+    risks?: boolean;
+  }>();
+  const flag = (wpId: string, key: 'objectives' | 'description' | 'tasks' | 'deliverables' | 'milestones' | 'risks') => {
+    const cur = populatedFlagsPerWp.get(wpId) || {};
+    cur[key] = true;
+    populatedFlagsPerWp.set(wpId, cur);
+  };
+
   try {
     // 1. Copy objectives
     if (selections.objectives) {
@@ -104,6 +119,7 @@ export async function populateB31(
           .from('wp_drafts')
           .update({ b31_objectives: wp.objectives || null })
           .eq('id', wp.id);
+        flag(wp.id, 'objectives');
         counts.objectives++;
       }
     }
@@ -115,6 +131,7 @@ export async function populateB31(
           .from('wp_drafts')
           .update({ b31_description_before_tasks: wp.description_before_tasks || null } as any)
           .eq('id', wp.id);
+        flag(wp.id, 'description');
       }
     }
 
@@ -122,6 +139,9 @@ export async function populateB31(
     for (const wp of wpDrafts) {
       const selectedTasks = wp.tasks.filter(t => selections.tasks[t.id]);
       if (selectedTasks.length === 0) continue;
+      flag(wp.id, 'tasks');
+
+
 
       // Delete existing b31_tasks for this WP
       await supabase.from('b31_tasks').delete().eq('wp_draft_id', wp.id);
@@ -168,6 +188,7 @@ export async function populateB31(
       for (const wp of wpDrafts) {
         for (const del of wp.deliverables) {
           if (!selections.deliverables[del.id]) continue;
+          flag(wp.id, 'deliverables');
 
           // Check if already exists by matching wp_number + number pattern
           const delNumber = `D${wp.number}.${del.number}`;
@@ -235,6 +256,7 @@ export async function populateB31(
       for (const wp of wpDrafts) {
         for (const ms of wp.milestones) {
           if (!selections.milestones[ms.id]) continue;
+          flag(wp.id, 'milestones');
           msIndex++;
 
           const wpsValue = ms.related_wps || `WP${wp.number}`;
@@ -293,6 +315,7 @@ export async function populateB31(
       for (const wp of wpDrafts) {
         for (const risk of wp.risks) {
           if (!selections.risks[risk.id]) continue;
+          flag(wp.id, 'risks');
           riskIndex++;
 
           const wpsValue = risk.related_wps || `WP${wp.number}`;
@@ -339,6 +362,20 @@ export async function populateB31(
           }
           counts.risks++;
         }
+      }
+    }
+
+    // Flush per-WP populated flags
+    for (const [wpId, flags] of populatedFlagsPerWp.entries()) {
+      const update: Record<string, boolean> = {};
+      if (flags.objectives) update.b31_populated_objectives = true;
+      if (flags.description) update.b31_populated_description = true;
+      if (flags.tasks) update.b31_populated_tasks = true;
+      if (flags.deliverables) update.b31_populated_deliverables = true;
+      if (flags.milestones) update.b31_populated_milestones = true;
+      if (flags.risks) update.b31_populated_risks = true;
+      if (Object.keys(update).length > 0) {
+        await supabase.from('wp_drafts').update(update as any).eq('id', wpId);
       }
     }
 

@@ -5322,6 +5322,12 @@ export type Database = {
           approach_summary: string | null
           b31_description_before_tasks: string | null
           b31_objectives: string | null
+          b31_populated_deliverables: boolean
+          b31_populated_description: boolean
+          b31_populated_milestones: boolean
+          b31_populated_objectives: boolean
+          b31_populated_risks: boolean
+          b31_populated_tasks: boolean
           background_knowledge: string | null
           bottlenecks_question: string | null
           color: string
@@ -5354,6 +5360,12 @@ export type Database = {
           approach_summary?: string | null
           b31_description_before_tasks?: string | null
           b31_objectives?: string | null
+          b31_populated_deliverables?: boolean
+          b31_populated_description?: boolean
+          b31_populated_milestones?: boolean
+          b31_populated_objectives?: boolean
+          b31_populated_risks?: boolean
+          b31_populated_tasks?: boolean
           background_knowledge?: string | null
           bottlenecks_question?: string | null
           color?: string
@@ -5386,6 +5398,12 @@ export type Database = {
           approach_summary?: string | null
           b31_description_before_tasks?: string | null
           b31_objectives?: string | null
+          b31_populated_deliverables?: boolean
+          b31_populated_description?: boolean
+          b31_populated_milestones?: boolean
+          b31_populated_objectives?: boolean
+          b31_populated_risks?: boolean
+          b31_populated_tasks?: boolean
           background_knowledge?: string | null
           bottlenecks_question?: string | null
           color?: string
