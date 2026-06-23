@@ -113,7 +113,7 @@ table[data-b12-cases-table="true"] td,
 .ProseMirror table[data-b12-cases-table="true"] td[data-role="title"],
 .ProseMirror tr[data-case-id] > td[data-role="title"] {
   text-align: left !important;
-  padding: 2px 10px 2px 0 !important;
+  padding: 2px 8px 2px 0 !important;
   width: auto !important;
 }
 .he-table[data-b12-cases-table="true"] .b12-case-title-badge,
@@ -139,7 +139,7 @@ table[data-b12-cases-table="true"] .b12-case-title-badge,
   vertical-align: baseline !important;
 }
 
-/* Lead participant cell — right-aligned on title row, auto width */
+/* Lead participant cell — right-aligned, badge flush with right edge */
 .he-table[data-b12-cases-table="true"] td[data-role="lead"],
 .ProseMirror table[data-b12-cases-table="true"] td[data-role="lead"],
 .ProseMirror tr[data-case-id] > td[data-role="lead"] {
@@ -170,8 +170,23 @@ table[data-b12-cases-table="true"] .b12-lead-badge,
   gap: 4px !important;
   vertical-align: baseline !important;
 }
+/* Crown icon (lucide Crown), injected via CSS because TipTap strips inline SVG */
+.he-table[data-b12-cases-table="true"] .b12-lead-badge::before,
+.ProseMirror table[data-b12-cases-table="true"] .b12-lead-badge::before,
+table[data-b12-cases-table="true"] .b12-lead-badge::before,
+.ProseMirror tr[data-case-id] > td[data-role="lead"] > p::before {
+  content: "";
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z'/%3E%3Cpath d='M5 21h14' fill='none'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 11px 11px;
+  flex-shrink: 0;
+}
 
-/* Case title text row — bold italic, divider below */
+/* Case title text row — bold (not italic), divider below */
 .he-table[data-b12-cases-table="true"] td[data-role="case-title"],
 .ProseMirror table[data-b12-cases-table="true"] td[data-role="case-title"],
 .ProseMirror tr[data-case-id] > td[data-role="case-title"] {
@@ -186,19 +201,21 @@ table[data-b12-cases-table="true"] .b12-lead-badge,
   font-family: "Times New Roman", Times, serif !important;
   font-size: 11pt !important;
   font-weight: 700 !important;
-  font-style: italic !important;
+  font-style: normal !important;
   text-align: left !important;
   line-height: 1.25 !important;
 }
-.he-table[data-b12-cases-table="true"] .b12-lead-badge svg,
-.ProseMirror table[data-b12-cases-table="true"] .b12-lead-badge svg {
-  width: 10px !important;
-  height: 10px !important;
-  fill: #ffffff !important;
-  stroke: #ffffff !important;
-  display: inline-block !important;
-  flex-shrink: 0 !important;
+.he-table[data-b12-cases-table="true"] .b12-case-title-text em,
+.ProseMirror table[data-b12-cases-table="true"] .b12-case-title-text em {
+  font-style: normal !important;
 }
+/* Top gap above the first case, matching the inter-case gap */
+.he-table[data-b12-cases-table="true"] tr[data-case-id]:first-child > td,
+.ProseMirror table[data-b12-cases-table="true"] tr[data-case-id]:first-child > td {
+  padding-top: 18px !important;
+}
+
+
 
 /* Subsection rows — same paragraph spacing as 3.1.b, thin divider below */
 .he-table[data-b12-cases-table="true"] td[data-role="sub"],
