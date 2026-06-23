@@ -32,6 +32,7 @@ import { AcronymReference } from '@/extensions/AcronymReference';
 import { FigureTableReferenceMark } from '@/extensions/FigureTableReferenceMark';
 import { ParenBadgeGlue } from '@/extensions/ParenBadgeGlue';
 import { BadgeTrailingCaret } from '@/extensions/BadgeTrailingCaret';
+import { BadgeArrowNav } from '@/extensions/BadgeArrowNav';
 import { CaptionLabel } from '@/extensions/CaptionLabel';
 import { HeadingNumberLabel } from '@/extensions/HeadingNumberLabel';
 import { OrderedListStyled } from '@/extensions/OrderedListStyled';
