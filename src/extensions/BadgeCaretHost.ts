@@ -30,9 +30,9 @@ const BADGE_MARK_NAMES = new Set([
 
 // Inline atom node names that should also act as badge runs (1-node runs).
 // wpReference migrated from mark to inline atom NODE in Stage 1 pilot.
-const BADGE_ATOM_NODE_NAMES = new Set([
-  'wpReference',
-]);
+// WP atom intentionally excluded: atomic nodes handle their own caret natively,
+// and the zero-width host caused invisible-typed-text at line starts.
+const BADGE_ATOM_NODE_NAMES = new Set<string>([]);
 
 function getBadgeRunName(node: PMNode): string | null {
   if (node.isText) {
