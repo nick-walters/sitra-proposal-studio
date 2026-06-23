@@ -96,7 +96,7 @@ table[data-b12-cases-table="true"],
 table[data-b12-cases-table="true"] td,
 .he-table[data-b12-cases-table="true"] td,
 .ProseMirror table[data-b12-cases-table="true"] td {
-  border: 1px solid #000 !important;
+  border: 1.5px solid #000 !important;
   background: #ffffff !important;
   padding: 4px 8px !important;
   font-family: "Times New Roman", Times, serif !important;
@@ -111,40 +111,50 @@ table[data-b12-cases-table="true"] td,
   background: #ffffff !important;
   color: #000 !important;
 }
-.he-table[data-b12-cases-table="true"] td[data-role="title"] p,
-.ProseMirror table[data-b12-cases-table="true"] td[data-role="title"] p {
+.he-table[data-b12-cases-table="true"] .b12-case-title-badge,
+.ProseMirror table[data-b12-cases-table="true"] .b12-case-title-badge,
+table[data-b12-cases-table="true"] .b12-case-title-badge {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  width: 100% !important;
+  position: relative !important;
+  width: calc(100% - 28px) !important;
   box-sizing: border-box !important;
   background: #ffffff !important;
   color: #000000 !important;
   border: 1.5px solid #000000 !important;
   border-radius: 9999px !important;
-  padding: 0 5px !important;
+  padding: 1px 7px !important;
   text-align: center !important;
   margin: 0 !important;
   font-weight: 700 !important;
   line-height: 1 !important;
-}
-.b12-case-title-badge,
-.ProseMirror table[data-b12-cases-table="true"] .b12-case-title-badge {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  width: 100% !important;
-  box-sizing: border-box !important;
-  background: #ffffff !important;
-  color: #000000 !important;
-  border: 1.5px solid #000000 !important;
-  border-radius: 9999px !important;
-  padding: 0 5px !important;
   font-family: "Times New Roman", Times, serif !important;
   font-size: 11pt !important;
-  font-weight: 700 !important;
-  line-height: 1 !important;
   white-space: nowrap !important;
+}
+.he-table[data-b12-cases-table="true"] .b12-case-title-badge::after,
+.ProseMirror table[data-b12-cases-table="true"] .b12-case-title-badge::after,
+table[data-b12-cases-table="true"] .b12-case-title-badge::after {
+  content: "×";
+  position: absolute;
+  right: -24px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  color: #dc2626;
+  border: 1.5px solid #dc2626;
+  background: #ffffff;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
 }
 /* Lead participant bubble row (black bg, white text) */
 .he-table[data-b12-cases-table="true"] td[data-role="lead"],
@@ -154,8 +164,9 @@ table[data-b12-cases-table="true"] td,
   background: #ffffff !important;
   color: #000000 !important;
 }
-.he-table[data-b12-cases-table="true"] td[data-role="lead"] p,
-.ProseMirror table[data-b12-cases-table="true"] td[data-role="lead"] p {
+.he-table[data-b12-cases-table="true"] .b12-lead-badge,
+.ProseMirror table[data-b12-cases-table="true"] .b12-lead-badge,
+table[data-b12-cases-table="true"] .b12-lead-badge {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -168,31 +179,22 @@ table[data-b12-cases-table="true"] td,
   margin: 0 !important;
   font-weight: 700 !important;
   line-height: 1 !important;
-}
-.b12-lead-badge,
-.ProseMirror table[data-b12-cases-table="true"] .b12-lead-badge {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  background: #000000 !important;
-  color: #ffffff !important;
-  border: 1.5px solid #000000 !important;
-  border-radius: 9999px !important;
-  padding: 0 5px !important;
   font-family: "Times New Roman", Times, serif !important;
   font-size: 11pt !important;
-  font-weight: 700 !important;
-  line-height: 1 !important;
   white-space: nowrap !important;
 }
 /* Thick black divider between cases */
 .he-table[data-b12-cases-table="true"] td[data-case-start="true"],
 .ProseMirror table[data-b12-cases-table="true"] td[data-case-start="true"] {
-  border-top: 3px solid #000 !important;
+  border-top: 4px solid #000 !important;
 }
 .he-table[data-b12-cases-table="true"] td[data-role="sub"] p,
 .ProseMirror table[data-b12-cases-table="true"] td[data-role="sub"] p {
   margin: 0 0 3pt 0 !important;
+}
+.he-table[data-b12-cases-table="true"] td[data-role="sub"] p:empty,
+.ProseMirror table[data-b12-cases-table="true"] td[data-role="sub"] p:empty {
+  display: none !important;
 }
 
 /* Figure container styling */
