@@ -129,7 +129,7 @@ interface RichTextEditorProps {
 
 
 const PART_B_ALIGNMENT_EXEMPT_PARAGRAPH_CLASSES = new Set(['figure-caption', 'table-caption']);
-const B12_CASE_PARAGRAPH_CLASSES = new Set(['b12-case-title-badge', 'b12-lead-badge']);
+const B12_CASE_PARAGRAPH_CLASSES = new Set(['b12-case-title-badge', 'b12-lead-badge', 'b12-case-title-text']);
 
 const ParagraphClass = Extension.create({
   name: 'paragraphClass',
@@ -417,6 +417,12 @@ function normalizePartBLoadedContent(html: string) {
   div.querySelectorAll('table[data-b12-cases-table="true"] td[data-role="lead"]').forEach((cell) => {
     const p = cell.querySelector('p') || cell;
     p.classList.add('b12-lead-badge');
+    const caseId = cell.getAttribute('data-case-id');
+    if (caseId) p.setAttribute('data-case-id', caseId);
+  });
+  div.querySelectorAll('table[data-b12-cases-table="true"] td[data-role="case-title"]').forEach((cell) => {
+    const p = cell.querySelector('p') || cell;
+    p.classList.add('b12-case-title-text');
     const caseId = cell.getAttribute('data-case-id');
     if (caseId) p.setAttribute('data-case-id', caseId);
   });
