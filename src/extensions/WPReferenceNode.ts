@@ -123,16 +123,19 @@ export const WPReferenceNode = Node.create<WPReferenceOptions>({
           border: 1.5px solid ${color};
           padding: 0px 5px;
           border-radius: 9999px;
-          font-family: 'Times New Roman', Times, serif;
-          font-size: 11pt;
-          font-weight: 700;
-          line-height: 1;
           white-space: nowrap;
           vertical-align: baseline;
           cursor: pointer;
         `,
       }),
-      ['span', { style: 'color: #ffffff;' }, label],
+      [
+        'span',
+        {
+          style:
+            "color: #ffffff; font-family: 'Times New Roman', Times, serif; font-size: 11pt; font-weight: 700; line-height: 1;",
+        },
+        label,
+      ],
     ];
   },
 
