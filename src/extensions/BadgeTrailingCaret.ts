@@ -92,9 +92,6 @@ export const BadgeTrailingCaret = Extension.create({
               | null = null;
 
             if (nodeBefore.isText) {
-              const markTypes = BADGE_MARK_NAMES
-                .map((n) => schema.marks[n])
-                .filter(Boolean);
               const badgeMark = nodeBefore.marks.find((m) =>
                 markTypes.includes(m.type)
               );

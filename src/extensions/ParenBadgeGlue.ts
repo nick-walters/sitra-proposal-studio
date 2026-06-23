@@ -3,18 +3,25 @@ import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import type { Node as PMNode } from '@tiptap/pm/model';
 
-const REF_MARK_NAMES = ['wpReference', 'caseReference', 'participantReference', 'inlineReference'];
+// Remaining badge MARK names (wpReference migrated to inline atom NODE in Stage 1).
+const REF_MARK_NAMES = ['caseReference', 'participantReference', 'inlineReference'];
+// Inline atom NODE names that should also get paren-glue.
+const REF_ATOM_NODE_NAMES = new Set(['wpReference']);
 
 function buildGlueDecorations(doc: PMNode): DecorationSet {
   const schema = doc.type.schema;
   const markTypes = REF_MARK_NAMES.map((n) => schema.marks[n]).filter(Boolean);
-  if (markTypes.length === 0) return DecorationSet.empty;
 
   const decorations: Decoration[] = [];
 
   doc.descendants((node, pos) => {
-    if (!node.isText) return;
-    const isBadge = node.marks.some((m) => markTypes.indexOf(m.type) !== -1);
+    // Detect badge: either a text node with a ref mark, or an inline atom ref node.
+    let isBadge = false;
+    if (node.isText) {
+      isBadge = node.marks.some((m) => markTypes.indexOf(m.type) !== -1);
+    } else if (node.isInline && REF_ATOM_NODE_NAMES.has(node.type.name)) {
+      isBadge = true;
+    }
     if (!isBadge) return;
 
     const badgeFrom = pos;
