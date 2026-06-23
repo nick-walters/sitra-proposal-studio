@@ -417,7 +417,7 @@ export async function syncCrossReferences(
     const a = node.attrs;
     if (!a.caseId) return;
     const c = data.caseById.get(a.caseId);
-    if (!c) return;
+    if (!c) { deletions.push({ pos, end: pos + node.nodeSize, kind: 'case' }); return; }
     const newAttrs = {
       ...a,
       caseNumber: c.number,
