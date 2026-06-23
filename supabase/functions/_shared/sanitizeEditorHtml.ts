@@ -25,6 +25,7 @@ export const ALLOWED_CLASSES = new Set<string>([
   'formula-result',
   'b12-case-title-badge',
   'b12-lead-badge',
+  'b12-case-title-text',
 ]);
 
 export const ALLOWED_DATA_ATTRS = new Set<string>([
