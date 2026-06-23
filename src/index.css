@@ -108,25 +108,27 @@ table[data-b12-cases-table="true"] td,
   position: relative;
 }
 
-/* Title pill row — flush left, no padding */
+/* Title cell — flexes to fill remaining width; pill spans full width */
 .he-table[data-b12-cases-table="true"] td[data-role="title"],
 .ProseMirror table[data-b12-cases-table="true"] td[data-role="title"],
 .ProseMirror tr[data-case-id] > td[data-role="title"] {
   text-align: left !important;
-  padding: 2px 0 !important;
+  padding: 2px 10px 2px 0 !important;
+  width: auto !important;
 }
 .he-table[data-b12-cases-table="true"] .b12-case-title-badge,
 .ProseMirror table[data-b12-cases-table="true"] .b12-case-title-badge,
 table[data-b12-cases-table="true"] .b12-case-title-badge,
 .ProseMirror tr[data-case-id] > td[data-role="title"] > p {
-  display: inline-flex !important;
+  display: flex !important;
   align-items: center !important;
   justify-content: flex-start !important;
+  width: 100% !important;
   background: #ffffff !important;
   color: #000000 !important;
   border: 1.5px solid #000000 !important;
   border-radius: 9999px !important;
-  padding: 0 8px !important;
+  padding: 0 10px !important;
   height: 17px !important;
   text-align: left !important;
   margin: 0 !important;
@@ -135,16 +137,20 @@ table[data-b12-cases-table="true"] .b12-case-title-badge,
   font-family: "Times New Roman", Times, serif !important;
   font-size: 11pt !important;
   white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
   vertical-align: baseline !important;
+  box-sizing: border-box !important;
 }
 
-/* Lead participant bubble (filled black, crown) — flush left, thin border below */
+/* Lead participant cell — auto width, right-aligned on the title row, no divider */
 .he-table[data-b12-cases-table="true"] td[data-role="lead"],
 .ProseMirror table[data-b12-cases-table="true"] td[data-role="lead"],
 .ProseMirror tr[data-case-id] > td[data-role="lead"] {
-  text-align: left !important;
-  padding: 2px 0 6px 0 !important;
-  border-bottom: 1px solid #000 !important;
+  text-align: right !important;
+  padding: 2px 0 !important;
+  width: 1% !important;
+  white-space: nowrap !important;
 }
 .he-table[data-b12-cases-table="true"] .b12-lead-badge,
 .ProseMirror table[data-b12-cases-table="true"] .b12-lead-badge,
@@ -157,7 +163,7 @@ table[data-b12-cases-table="true"] .b12-lead-badge,
   color: #ffffff !important;
   border: 1.5px solid #000000 !important;
   border-radius: 9999px !important;
-  padding: 0 6px !important;
+  padding: 0 8px 0 6px !important;
   height: 17px !important;
   margin: 0 !important;
   font-weight: 700 !important;
@@ -165,7 +171,7 @@ table[data-b12-cases-table="true"] .b12-lead-badge,
   font-family: "Times New Roman", Times, serif !important;
   font-size: 11pt !important;
   white-space: nowrap !important;
-  gap: 3px !important;
+  gap: 4px !important;
   vertical-align: baseline !important;
 }
 .he-table[data-b12-cases-table="true"] .b12-lead-badge svg,
@@ -212,7 +218,7 @@ table[data-b12-cases-table="true"] .b12-lead-badge,
 .ProseMirror tr[data-case-id] > td[data-role="title"]::before {
   content: "";
   position: absolute;
-  top: 4px;
+  top: 2px;
   left: -26px;
   width: 20px;
   height: 17px;
@@ -226,7 +232,7 @@ table[data-b12-cases-table="true"] .b12-lead-badge,
   transition: opacity 0.15s, background-color 0.15s;
 }
 .ProseMirror tr[data-case-id] > td[data-role="title"][data-case-start="true"]::before {
-  top: 22px;
+  top: 20px;
 }
 .ProseMirror tr[data-case-id]:hover > td[data-role="title"]::before {
   opacity: 1;
