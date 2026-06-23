@@ -157,6 +157,7 @@ export function WPTableSection({
                     key={task.id}
                     task={task}
                     wpNumber={wpNumber}
+                    wpColor={wpColor}
                     participants={participants}
                     monthOptions={monthOptions}
                     projectDuration={projectDuration}
