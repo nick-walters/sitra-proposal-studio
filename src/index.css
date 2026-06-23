@@ -84,6 +84,52 @@ html, body {
   font-style: italic !important;
 }
 
+/* ===== B1.2 Cases combined table ===== */
+.he-table[data-b12-cases-table="true"] {
+  border: 2px solid #000 !important;
+  border-collapse: collapse !important;
+  table-layout: fixed;
+  width: 100% !important;
+}
+.he-table[data-b12-cases-table="true"] td {
+  border: 1px solid #000 !important;
+  background: #ffffff !important;
+  padding: 4px 8px !important;
+  font-family: "Times New Roman", Times, serif !important;
+  font-size: 11pt !important;
+  vertical-align: top;
+}
+/* Title pill row */
+.he-table[data-b12-cases-table="true"] td[data-role="title"] {
+  text-align: center !important;
+  font-weight: bold !important;
+  background: #ffffff !important;
+  color: #000 !important;
+}
+.he-table[data-b12-cases-table="true"] td[data-role="title"] p {
+  text-align: center !important;
+  margin: 0 !important;
+}
+/* Lead participant bubble row (black bg, white text) */
+.he-table[data-b12-cases-table="true"] td[data-role="lead"] {
+  text-align: center !important;
+  font-weight: bold !important;
+  background: #000000 !important;
+  color: #ffffff !important;
+}
+.he-table[data-b12-cases-table="true"] td[data-role="lead"] p {
+  text-align: center !important;
+  margin: 0 !important;
+  color: #ffffff !important;
+}
+/* Thick black divider between cases */
+.he-table[data-b12-cases-table="true"] td[data-case-start="true"] {
+  border-top: 3px solid #000 !important;
+}
+.he-table[data-b12-cases-table="true"] td[data-role="sub"] p {
+  margin: 0 !important;
+}
+
 /* Figure container styling */
 
 /* Figure container styling */

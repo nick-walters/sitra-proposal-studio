@@ -925,7 +925,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
                 size="sm"
                 onClick={() => setPopulateDialogOpen(true)}
               >
-                Populate Part B3.1…
+                Populate Part B3.1
               </Button>
             )}
           </div>
