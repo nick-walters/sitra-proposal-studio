@@ -434,6 +434,76 @@ export async function syncCrossReferences(
     changed = true;
   }
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // caseReference is an inline atom NODE (Stage 2 migration).
+  // ─────────────────────────────────────────────────────────────────────────
+  type CaseNodeChange = { pos: number; newAttrs: Record<string, any> };
+  const caseNodeChanges: CaseNodeChange[] = [];
+
+  doc.descendants((node, pos) => {
+    if (node.type.name !== 'caseReference') return;
+    const a = node.attrs;
+    if (!a.caseId) return;
+    const c = data.caseById.get(a.caseId);
+    if (!c) return;
+    const newAttrs = {
+      ...a,
+      caseNumber: c.number,
+      caseColor: c.color,
+      caseShortName: c.short_name || a.caseShortName,
+      caseType: c.case_type,
+    };
+    const attrsDiffer =
+      a.caseNumber !== newAttrs.caseNumber ||
+      a.caseColor !== newAttrs.caseColor ||
+      a.caseShortName !== newAttrs.caseShortName ||
+      a.caseType !== newAttrs.caseType;
+    if (!attrsDiffer) return;
+    caseNodeChanges.push({ pos, newAttrs });
+  });
+
+  caseNodeChanges.sort((a, b) => b.pos - a.pos);
+  for (const c of caseNodeChanges) {
+    const targetNode = tr.doc.nodeAt(c.pos);
+    if (!targetNode || targetNode.type.name !== 'caseReference') continue;
+    if (targetNode.attrs.caseId !== c.newAttrs.caseId) continue;
+    tr.setNodeMarkup(c.pos, undefined, c.newAttrs);
+    changed = true;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // participantReference is an inline atom NODE (Stage 2 migration).
+  // ─────────────────────────────────────────────────────────────────────────
+  type ParticipantNodeChange = { pos: number; newAttrs: Record<string, any> };
+  const participantNodeChanges: ParticipantNodeChange[] = [];
+
+  doc.descendants((node, pos) => {
+    if (node.type.name !== 'participantReference') return;
+    const a = node.attrs;
+    if (!a.participantId) return;
+    const p = data.participantById.get(a.participantId);
+    if (!p) return;
+    const newAttrs = {
+      ...a,
+      participantNumber: p.participant_number,
+      shortName: p.organisation_short_name,
+    };
+    const attrsDiffer =
+      a.participantNumber !== newAttrs.participantNumber ||
+      a.shortName !== newAttrs.shortName;
+    if (!attrsDiffer) return;
+    participantNodeChanges.push({ pos, newAttrs });
+  });
+
+  participantNodeChanges.sort((a, b) => b.pos - a.pos);
+  for (const c of participantNodeChanges) {
+    const targetNode = tr.doc.nodeAt(c.pos);
+    if (!targetNode || targetNode.type.name !== 'participantReference') continue;
+    if (targetNode.attrs.participantId !== c.newAttrs.participantId) continue;
+    tr.setNodeMarkup(c.pos, undefined, c.newAttrs);
+    changed = true;
+  }
+
   if (changed) {
     tr.setMeta('addToHistory', false);
     editor.view.dispatch(tr);
