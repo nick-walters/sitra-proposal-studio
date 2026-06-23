@@ -353,6 +353,7 @@ export function CaseManagementCard({
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [subsectionsDialogOpen, setSubsectionsDialogOpen] = useState(false);
+  const [populating, setPopulating] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
