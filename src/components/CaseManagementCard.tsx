@@ -834,93 +834,10 @@ export function CaseManagementCard({
           canEdit={isCoordinator}
         />
 
-        {/* Populate to B1.2 dialog — choose which cases to include */}
-        <Dialog open={populateDialogOpen} onOpenChange={setPopulateDialogOpen}>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Populate B1.2 with cases</DialogTitle>
-              <DialogDescription>
-                Select the cases to insert into the B1.2 cases table. Selected cases will be locked from further editing in the case manager (coordinators can override).
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-1.5 max-h-[50vh] overflow-y-auto py-2">
-              <div className="flex items-center gap-2 pb-1 border-b mb-1">
-                <Checkbox
-                  id="populate-all"
-                  checked={caseDrafts.length > 0 && selectedPopulateIds.size === caseDrafts.length}
-                  onCheckedChange={(checked) => {
-                    setSelectedPopulateIds(
-                      checked ? new Set(caseDrafts.map((c) => c.id)) : new Set(),
-                    );
-                  }}
-                />
-                <Label htmlFor="populate-all" className="text-xs font-bold cursor-pointer">Select all</Label>
-              </div>
-              {caseDrafts.map((c, idx) => {
-                const label = getCaseBubbleLabel(casePrefix, c.number, c.short_name);
-                const checked = selectedPopulateIds.has(c.id);
-                return (
-                  <div key={c.id}>
-                    {idx > 0 && <div className="border-t my-1" />}
-                    <div className="flex items-center gap-2 py-0.5">
-                      <Checkbox
-                        id={`populate-${c.id}`}
-                        checked={checked}
-                        onCheckedChange={(v) => {
-                          setSelectedPopulateIds((prev) => {
-                            const next = new Set(prev);
-                            if (v) next.add(c.id); else next.delete(c.id);
-                            return next;
-                          });
-                        }}
-                      />
-                      <Label htmlFor={`populate-${c.id}`} className="text-sm cursor-pointer flex-1">
-                        <span className="font-bold">{label}</span>
-                        {c.title && <span className="text-muted-foreground"> &mdash; {c.title}</span>}
-                      </Label>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" size="sm" onClick={() => setPopulateDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button
-                variant="default"
-                size="sm"
-                disabled={selectedPopulateIds.size === 0 || populating}
-                onClick={handlePopulateClick}
-              >
-                {populating ? 'Populating\u2026' : `Populate ${selectedPopulateIds.size} case${selectedPopulateIds.size === 1 ? '' : 's'}`}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        <AlertDialog open={replaceWarningOpen} onOpenChange={setReplaceWarningOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Replace cases in B1.2?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Re-populating will replace the cases in B1.2 with the current case drafts. Any edits made to the cases in B1.2 will be lost. Continue?
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                onClick={() => {
-                  setReplaceWarningOpen(false);
-                  runPopulate(Array.from(selectedPopulateIds));
-                }}
-              >
-                Replace
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+      </CardContent>
+    </Card>
+  );
+}
       </CardContent>
     </Card>
   );
