@@ -440,7 +440,7 @@ export function EditableText({
 }
 
 /* ── Inline editable plain text (for headers) ── */
-function EditableHeaderText({
+export function EditableHeaderText({
   value,
   onSave,
   className,
