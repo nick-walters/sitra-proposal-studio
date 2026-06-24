@@ -885,36 +885,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
               <Plus className="w-4 h-4 mr-1" />
               Add WP
             </Button>
-            {/* Populate button next to palette button */}
-            {isFullProposal && isCoordinator && (
-              <Button
-                variant="default"
-                size="sm"
-                onClick={() => setPopulateDialogOpen(true)}
-              >
-                Populate Part B3.1
-              </Button>
-            )}
           </div>
-        )}
-
-        {/* Populate explanation */}
-        {isFullProposal && isCoordinator && (
-          <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/50 p-2 rounded">
-            <AlertTriangle className="w-4 h-4 text-warning shrink-0 mt-0.5" />
-            <span>
-              The populate function copies selected content from WP drafts to Part B3.1 tables. Existing entries in Part B3.1 will be replaced.
-            </span>
-          </div>
-        )}
-        
-
-        {isFullProposal && isCoordinator && (
-          <PopulateB31Dialog
-            open={populateDialogOpen}
-            onOpenChange={setPopulateDialogOpen}
-            proposalId={proposalId}
-          />
         )}
       </CardContent>
     </Card>
