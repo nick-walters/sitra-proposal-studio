@@ -276,17 +276,17 @@ async function loadEvaluationContext(serviceClient: any, evaluationId: string): 
       .eq("proposal_id", evaluation.proposal_id)
       .order("number"),
     serviceClient
-      .from("b31_deliverables")
-      .select("number, name, description, due_month, type, dissemination_level")
-      .eq("proposal_id", evaluation.proposal_id),
+      .from("wp_draft_deliverables")
+      .select("number, title, description, due_month, type, dissemination_level, wp_draft_id")
+      .in("wp_draft_id", []), // populated below — placeholder, will refetch using wp ids
     serviceClient
-      .from("b31_milestones")
-      .select("number, name, due_month, means_of_verification, wps")
-      .eq("proposal_id", evaluation.proposal_id),
+      .from("wp_draft_milestones")
+      .select("number, title, due_month, means_of_verification, related_wps, wp_draft_id")
+      .in("wp_draft_id", []),
     serviceClient
-      .from("b31_risks")
-      .select("number, description, mitigation, likelihood, severity, wps")
-      .eq("proposal_id", evaluation.proposal_id),
+      .from("wp_draft_risks")
+      .select("number, description, mitigation, likelihood, severity, related_wps, wp_draft_id")
+      .in("wp_draft_id", []),
     serviceClient
       .from("budget_rows")
       .select("participant_id, personnel_costs, subcontracting_costs, purchase_equipment, purchase_other_goods, purchase_travel, requested_eu_contribution")
