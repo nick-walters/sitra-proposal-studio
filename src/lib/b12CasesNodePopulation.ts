@@ -60,6 +60,98 @@ export interface PopulateCasesNodeResult {
  * snapshot rows for this proposal whose case_draft_id is in the selection,
  * then insert fresh rows.
  */
+/**
+ * Stage 3c — clean Word/Office cruft and excess whitespace from a snapshot body.
+ *
+ * Rules:
+ *  - remove leading/trailing whitespace and leading/trailing empty paragraphs
+ *    (empty = no text and only <br>/&nbsp;/whitespace children)
+ *  - strip class names beginning with "Mso" (Word-paste cruft); remove the
+ *    `class` attribute entirely if nothing else remains
+ *  - strip inline `color:` and `background-color:` declarations, keep the rest
+ *    of the style attribute (text-align, font-weight, etc.)
+ *  - collapse runs of whitespace (incl. newlines, NBSP) in text nodes to a
+ *    single space
+ *  - do NOT delete non-empty paragraphs even if short — legitimate content
+ */
+function cleanSnapshotBodyHtml(html: string): string {
+  if (!html) return '';
+  if (typeof DOMParser === 'undefined') {
+    return html;
+  }
+  const doc = new DOMParser().parseFromString(`<div id="r">${html}</div>`, 'text/html');
+  const root = doc.getElementById('r');
+  if (!root) return html;
+
+  // 1. Strip Mso* classes and color/background-color inline styles.
+  const elements = Array.from(root.querySelectorAll<HTMLElement>('*'));
+  for (const el of elements) {
+    const cls = el.getAttribute('class');
+    if (cls) {
+      const kept = cls
+        .split(/\s+/)
+        .filter((c) => c && !/^Mso/i.test(c))
+        .join(' ')
+        .trim();
+      if (kept) el.setAttribute('class', kept);
+      else el.removeAttribute('class');
+    }
+    const style = el.getAttribute('style');
+    if (style) {
+      const kept = style
+        .split(';')
+        .map((d) => d.trim())
+        .filter((d) => d && !/^(color|background-color)\s*:/i.test(d))
+        .join('; ');
+      if (kept) el.setAttribute('style', kept);
+      else el.removeAttribute('style');
+    }
+  }
+
+  // 2. Collapse whitespace runs in every text node to a single space.
+  const walker = doc.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const textNodes: Text[] = [];
+  let cur = walker.nextNode();
+  while (cur) {
+    textNodes.push(cur as Text);
+    cur = walker.nextNode();
+  }
+  for (const t of textNodes) {
+    if (!t.nodeValue) continue;
+    t.nodeValue = t.nodeValue.replace(/[\s\u00A0]+/g, ' ');
+  }
+
+  // 3. Drop leading/trailing empty block children (and whitespace text nodes).
+  const isEmptyBlock = (node: Node | null): boolean => {
+    if (!node) return false;
+    if (node.nodeType === 3) return !(node.nodeValue || '').trim();
+    if (node.nodeType !== 1) return false;
+    const el = node as Element;
+    if (!/^(P|DIV)$/.test(el.tagName)) return false;
+    const text = (el.textContent || '').replace(/\u00A0/g, '').trim();
+    if (text) return false;
+    if (el.querySelector('img, svg, [data-case-reference], [data-wp-reference], [data-participant-reference], [data-figure-reference]')) {
+      return false;
+    }
+    return true;
+  };
+
+  while (root.firstChild && isEmptyBlock(root.firstChild)) {
+    root.removeChild(root.firstChild);
+  }
+  while (root.lastChild && isEmptyBlock(root.lastChild)) {
+    root.removeChild(root.lastChild);
+  }
+
+  return root.innerHTML.trim();
+}
+
+/**
+ * Stage 3a — snapshot the selected case drafts into b12_cases + b12_case_subsections.
+ * Replace strategy (mirrors b31Population for tasks): delete existing snapshot
+ * rows for the selected drafts then insert fresh ones. Bodies are cleaned
+ * (Stage 3c) on every write; the source case_drafts row is never modified.
+ */
 async function writeCasesSnapshot(proposalId: string, caseIds: string[]): Promise<void> {
   if (caseIds.length === 0) return;
 
@@ -111,7 +203,7 @@ async function writeCasesSnapshot(proposalId: string, caseIds: string[]): Promis
       b12_case_id: inserted.id,
       subsection_key: t.key,
       heading: t.heading,
-      body: subContent[t.key] || '',
+      body: cleanSnapshotBodyHtml(subContent[t.key] || ''),
       order_index: i,
     }));
     if (subRows.length > 0) {
