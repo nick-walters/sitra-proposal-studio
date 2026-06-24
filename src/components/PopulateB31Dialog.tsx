@@ -68,6 +68,9 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
   // Per-WP item selections (step 2)
   const [wpSelections, setWpSelections] = useState<Record<string, WPSelections>>({});
   const [currentWpIndex, setCurrentWpIndex] = useState(0);
+  const [replaceWarningOpen, setReplaceWarningOpen] = useState(false);
+  const [editedSections, setEditedSections] = useState<string[]>([]);
+  const [pendingSelections, setPendingSelections] = useState<PopulateSelections | null>(null);
 
   useEffect(() => {
     if (!open) return;
