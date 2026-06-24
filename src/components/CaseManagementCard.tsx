@@ -403,7 +403,7 @@ export function CaseManagementCard({
     queryFn: async () => {
       const { data, error } = await supabase
         .from('case_drafts')
-        .select('id, number, case_type, custom_type_name, short_name, title, lead_participant_id, color, order_index, is_locked, locked_by, is_hidden')
+        .select('id, number, case_type, custom_type_name, short_name, title, lead_participant_id, color, order_index, is_locked, locked_by')
         .eq('proposal_id', proposalId)
         .order('order_index');
       if (error) throw error;
