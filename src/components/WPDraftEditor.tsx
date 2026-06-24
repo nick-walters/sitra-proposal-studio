@@ -316,29 +316,8 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
     return false;
   }, [canEditProp, isLocked, isCoordinator, lockWarningDismissed]);
 
-  // Per-section B3.1 populate locks. Each `b31_populated_*` flag set to true
-  // means that section has been pushed to B3.1 and the WP draft is the workshop
-  // copy — locked by default. Coordinators+ can override per section for the
-  // current session only (no DB write); a refresh re-locks.
-  type SectionKey = 'objectives' | 'description' | 'tasks' | 'deliverables' | 'milestones' | 'risks';
-  const populated = {
-    objectives: (wpDraft as any)?.b31_populated_objectives === true,
-    description: (wpDraft as any)?.b31_populated_description === true,
-    tasks: (wpDraft as any)?.b31_populated_tasks === true,
-    deliverables: (wpDraft as any)?.b31_populated_deliverables === true,
-    milestones: (wpDraft as any)?.b31_populated_milestones === true,
-    risks: (wpDraft as any)?.b31_populated_risks === true,
-  } as Record<SectionKey, boolean>;
-  const [overrideSections, setOverrideSections] = useState<Set<SectionKey>>(new Set());
-  useEffect(() => { setOverrideSections(new Set()); }, [wpId]);
-  const isSectionLocked = (key: SectionKey) => populated[key] && !overrideSections.has(key);
-  const toggleOverride = (key: SectionKey) => {
-    setOverrideSections(prev => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key); else next.add(key);
-      return next;
-    });
-  };
+  // Populate/snapshot system removed — WP draft sections are no longer locked
+  // by populate flags. B3.1 reads live from the source tables.
 
 
   const [participants, setParticipants] = useState<ParticipantSummary[]>([]);
