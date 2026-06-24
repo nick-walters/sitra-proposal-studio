@@ -50,7 +50,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { FlaskConical, GripVertical, Plus, Trash2, Lock, LockOpen, Eye, EyeOff, Settings, FileOutput } from 'lucide-react';
 import { CaseSubsectionTemplateDialog } from '@/components/CaseSubsectionTemplateDialog';
-import { populateCasesToB12, reorderB12CaseTablesInSection } from '@/lib/b12CasesPopulation';
+
 import { populateCasesNodeToB12, hasSnapshotEdits } from '@/lib/b12CasesNodePopulation';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -553,13 +553,6 @@ export function CaseManagementCard({
       invalidateCaseQueries();
       window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
       onSaveEvent?.();
-      // Mirror the new order into the B1.2 cases block (no-op if not populated)
-      try {
-        await reorderB12CaseTablesInSection(proposalId, reorderedCases.map((c) => c.id));
-        queryClient.invalidateQueries({ queryKey: ['section-content', proposalId, 'b1-2'] });
-      } catch (e) {
-        console.warn('[CaseManager] B1.2 reorder sync failed', e);
-      }
     },
   });
 
