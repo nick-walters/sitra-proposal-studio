@@ -64,7 +64,7 @@ export function LeaderPicker({
   placeholder,
 }: {
   entityId: string;
-  entityTable: 'wp_drafts' | 'wp_draft_tasks' | 'b31_tasks' | 'case_drafts';
+  entityTable: 'wp_drafts' | 'wp_draft_tasks' | 'b31_tasks' | 'case_drafts' | 'b12_cases';
   currentLeaderId: string | null;
   participants: B31Participant[];
   proposalId: string;
@@ -378,7 +378,7 @@ function SpacerRow({ color }: { color?: string }) {
 }
 
 /* ── Inline editable text cell ── */
-function EditableText({
+export function EditableText({
   value,
   onSave,
   placeholder,
@@ -440,7 +440,7 @@ function EditableText({
 }
 
 /* ── Inline editable plain text (for headers) ── */
-function EditableHeaderText({
+export function EditableHeaderText({
   value,
   onSave,
   className,

@@ -1,48 +1,46 @@
 import { NodeViewWrapper, NodeViewProps } from '@tiptap/react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { LeaderPicker } from './B31WPDescriptionTables';
+import { LeaderPicker, EditableText, EditableHeaderText } from './B31WPDescriptionTables';
 import type { B31Participant } from '@/hooks/useB31SectionData';
-import DOMPurify from 'dompurify';
-import { RICH_TEXT_CONFIG } from '@/lib/sanitizePresets';
 
 /**
- * CasesTableNodeView — Stage 2.
+ * CasesTableNodeView — Stage 3b.
  *
- * Renders the selected cases live from `case_drafts`. Per case:
- *   - header row: case cross-reference chip (left) + LeaderPicker (right)
- *   - bold full title
- *   - one block per subsection: bold-italic "Heading:" + body html
+ * Renders the B1.2 cases from the b12_cases / b12_case_subsections snapshot
+ * (populated by populateCasesNodeToB12). Edits write to the snapshot tables
+ * only — never back to case_drafts.
  *
- * Title chip = visual replica of CaseReferenceNode's pill (same markup/style),
- * NOT an interactive tiptap cross-ref atom (would require a child editor
- * inside the NodeView). It is visually identical, click-through wiring can
- * be added later.
- *
- * Styling is scoped to this component via inline styles + a unique
- * `data-cases-table-nodeview` data-attribute root, so it does not depend on
- * the three legacy index.css cases blocks (which stage 4 retires).
+ * Per case:
+ *   - header row: case cross-ref chip (left) + LeaderPicker on b12_cases (right)
+ *   - editable bold full title bound to b12_cases.title
+ *   - editable bold-italic heading + rich body per b12_case_subsections row
  */
 
-interface CaseRow {
+interface SnapshotSub {
   id: string;
-  number: number;
+  subsection_key: string;
+  heading: string | null;
+  body: string | null;
+  order_index: number | null;
+}
+
+interface SnapshotCase {
+  id: string;
+  case_draft_id: string | null;
+  proposal_id: string;
+  number: number | null;
   short_name: string | null;
   title: string | null;
-  case_type: string;
+  case_type: string | null;
   custom_type_name: string | null;
+  color: string | null;
   lead_participant_id: string | null;
-  subsection_content: Record<string, string> | null;
-  order_index: number;
+  order_index: number | null;
+  b12_case_subsections: SnapshotSub[];
 }
 
-interface SubsectionTemplate {
-  key: string;
-  heading: string;
-  order_index: number;
-}
-
-function casePrefix(caseType: string): string {
+function casePrefix(caseType: string | null): string {
   switch (caseType) {
     case 'case_study': return 'CS';
     case 'use_case': return 'UC';
@@ -55,7 +53,7 @@ function casePrefix(caseType: string): string {
 
 function caseChipLabel(opts: {
   prefix: string;
-  number: number;
+  number: number | null;
   shortName: string | null;
   includeNumber: boolean;
   includeAbbreviation: boolean;
@@ -63,14 +61,13 @@ function caseChipLabel(opts: {
   const { prefix, number, shortName, includeNumber, includeAbbreviation } = opts;
   if (prefix && (includeNumber || includeAbbreviation)) {
     const ab = includeAbbreviation ? prefix : '';
-    const nm = includeNumber ? number : '';
-    return `${ab}${nm}` || shortName || `${number}`;
+    const nm = includeNumber ? (number ?? '') : '';
+    return `${ab}${nm}` || shortName || `${number ?? ''}`;
   }
-  return shortName || `${number}`;
+  return shortName || `${number ?? ''}`;
 }
 
 function CaseChip({ label }: { label: string }) {
-  // Visual replica of CaseReferenceNode pill.
   return (
     <span
       data-case-reference=""
@@ -108,32 +105,27 @@ export function CasesTableNodeView(props: NodeViewProps) {
   const caseIds: string[] = Array.isArray(props.node.attrs.caseIds)
     ? props.node.attrs.caseIds
     : [];
-
-  // Extractor needs a stable proposalId — pull from the editor storage / URL.
-  // The editor itself is bound to a proposalId via the page route; the
-  // NodeView doesn't receive props directly, so fetch the case rows by id
-  // (they carry proposal_id) and derive the rest.
+  const queryClient = useQueryClient();
   const idsKey = caseIds.join(',');
 
   const { data } = useQuery({
     queryKey: ['b12-cases-node', idsKey],
     enabled: caseIds.length > 0,
     queryFn: async () => {
-      const { data: cases } = await supabase
-        .from('case_drafts')
+      const { data: snap } = await supabase
+        .from('b12_cases')
         .select(
-          'id, number, short_name, title, case_type, custom_type_name, lead_participant_id, subsection_content, order_index, proposal_id',
+          'id, case_draft_id, proposal_id, number, short_name, title, case_type, custom_type_name, color, lead_participant_id, order_index, b12_case_subsections(id, subsection_key, heading, body, order_index)',
         )
-        .in('id', caseIds);
-      const rows = (cases || []) as any as (CaseRow & { proposal_id: string })[];
-      if (!rows.length) return { rows: [], templates: [], participants: [], flags: { num: true, ab: true }, proposalId: '' };
+        .in('case_draft_id', caseIds);
+
+      const rows = (snap || []) as any as SnapshotCase[];
+      if (!rows.length) {
+        return { rows: [], participants: [] as B31Participant[], flags: { num: true, ab: true }, proposalId: '' };
+      }
       const proposalId = rows[0].proposal_id;
-      const [{ data: tpls }, { data: parts }, { data: prop }] = await Promise.all([
-        supabase
-          .from('case_subsection_templates')
-          .select('key, heading, order_index')
-          .eq('proposal_id', proposalId)
-          .order('order_index', { ascending: true }),
+
+      const [{ data: parts }, { data: prop }] = await Promise.all([
         supabase
           .from('participants')
           .select('id, participant_number, organisation_short_name, organisation_name')
@@ -145,9 +137,22 @@ export function CasesTableNodeView(props: NodeViewProps) {
           .eq('id', proposalId)
           .maybeSingle(),
       ]);
+
+      // Order: by b12_cases.order_index first, then fall back to the node's caseIds order.
+      const ordered = rows.slice().sort((a, b) => {
+        const ai = a.order_index ?? Number.MAX_SAFE_INTEGER;
+        const bi = b.order_index ?? Number.MAX_SAFE_INTEGER;
+        if (ai !== bi) return ai - bi;
+        return caseIds.indexOf(a.case_draft_id || '') - caseIds.indexOf(b.case_draft_id || '');
+      });
+      ordered.forEach((r) => {
+        (r.b12_case_subsections || []).sort(
+          (a, b) => (a.order_index ?? 0) - (b.order_index ?? 0),
+        );
+      });
+
       return {
-        rows: rows.sort((a, b) => caseIds.indexOf(a.id) - caseIds.indexOf(b.id)),
-        templates: (tpls || []) as SubsectionTemplate[],
+        rows: ordered,
         participants: (parts || []) as any as B31Participant[],
         flags: {
           num: (prop as any)?.case_include_number !== false,
@@ -157,6 +162,18 @@ export function CasesTableNodeView(props: NodeViewProps) {
       };
     },
   });
+
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['b12-cases-node', idsKey] });
+
+  const saveCaseField = async (id: string, field: 'title' | 'short_name', value: string) => {
+    await supabase.from('b12_cases').update({ [field]: value || null }).eq('id', id);
+    invalidate();
+  };
+
+  const saveSubField = async (id: string, field: 'heading' | 'body', value: string) => {
+    await supabase.from('b12_case_subsections').update({ [field]: value || null }).eq('id', id);
+    invalidate();
+  };
 
   return (
     <NodeViewWrapper
@@ -182,7 +199,7 @@ export function CasesTableNodeView(props: NodeViewProps) {
             fontSize: 12,
           }}
         >
-          No cases selected. Use the case manager to populate this table.
+          No cases populated. Use the case manager to populate this table.
         </div>
       )}
 
@@ -195,7 +212,6 @@ export function CasesTableNodeView(props: NodeViewProps) {
           includeNumber: data.flags.num,
           includeAbbreviation: data.flags.ab,
         });
-        const contentMap = c.subsection_content || {};
         return (
           <div
             key={c.id}
@@ -222,37 +238,41 @@ export function CasesTableNodeView(props: NodeViewProps) {
               <CaseChip label={label} />
               <LeaderPicker
                 entityId={c.id}
-                entityTable="case_drafts"
+                entityTable="b12_cases"
                 currentLeaderId={c.lead_participant_id}
                 participants={data.participants}
                 proposalId={data.proposalId}
                 showCrown
                 arrowPosition="right"
                 placeholder="Select case lead"
-                invalidateKeys={[['b12-cases-node', idsKey]]}
+                invalidateKeys={[['b12-cases-node', idsKey], ['b12-cases', data.proposalId]]}
               />
             </div>
 
-            {/* Full title (bold, not italic) */}
-            {c.title && (
-              <div style={{ fontWeight: 700, marginBottom: 8 }}>{c.title}</div>
-            )}
+            {/* Editable full title (bold) */}
+            <div style={{ marginBottom: 8, fontWeight: 700 }}>
+              <EditableHeaderText
+                value={c.title || ''}
+                onSave={(val) => saveCaseField(c.id, 'title', val)}
+              />
+            </div>
 
-            {/* Subsections */}
-            {data.templates.map((t) => {
-              const html = (contentMap[t.key] || '').trim();
-              const clean = html
-                ? DOMPurify.sanitize(html, RICH_TEXT_CONFIG as any)
-                : '<em style="color:#999;">No content yet.</em>';
-              return (
-                <div key={t.key} style={{ marginBottom: 6 }}>
-                  <strong>
-                    <em>{t.heading}:</em>
-                  </strong>{' '}
-                  <span dangerouslySetInnerHTML={{ __html: clean }} />
+            {/* Editable subsections */}
+            {(c.b12_case_subsections || []).map((s) => (
+              <div key={s.id} style={{ marginBottom: 6 }}>
+                <div style={{ fontWeight: 700, fontStyle: 'italic' }}>
+                  <EditableHeaderText
+                    value={s.heading || ''}
+                    onSave={(val) => saveSubField(s.id, 'heading', val)}
+                  />
                 </div>
-              );
-            })}
+                <EditableText
+                  value={s.body || ''}
+                  onSave={(val) => saveSubField(s.id, 'body', val)}
+                  placeholder="Click to add content…"
+                />
+              </div>
+            ))}
           </div>
         );
       })}
