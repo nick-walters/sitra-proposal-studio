@@ -82,6 +82,7 @@ export const ALLOWED_DATA_ATTRS = new Set<string>([
   'data-case-ids',
   'data-caption',
   'data-b12-cases-node-caption',
+  'data-b12-cases-subheading',
 ]);
 
 export const STYLE_ALLOWLIST = new Set<string>([
