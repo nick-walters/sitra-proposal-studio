@@ -814,7 +814,13 @@ export function ProposalEditor() {
           </div>
         );
       },
+      'milestones-risks': () => (
+        <div className="flex-1 overflow-y-auto">
+          <ProposalMilestonesRisksManager proposalId={id || ''} canEdit={canEdit} />
+        </div>
+      ),
     };
+
 
     // ── Prefix dispatch: ID startsWith → component (returning null falls through) ─
     type PrefixHandler = { prefix: string; render: (sectionId: string) => React.ReactNode };
