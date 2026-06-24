@@ -18,6 +18,7 @@ import { WPManagementCard } from "@/components/WPManagementCard";
 import { SaveIndicator } from "@/components/SaveIndicator";
 
 import { CaseManagementCard } from "@/components/CaseManagementCard";
+import { ProposalMilestonesRisksManager } from "@/components/ProposalMilestonesRisksManager";
 import { CaseDraftEditor } from "@/components/CaseDraftEditor";
 import { WPProgressTracker } from "@/components/WPProgressTracker";
 import { AvailabilityGantt } from "@/components/AvailabilityGantt";
