@@ -451,43 +451,10 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
         if (error) throw error;
       }
 
-      // Third pass: update b31_deliverables.wp_number for deliverables linked via tasks
-      // Fetch all tasks for these WPs to build wp_draft_id → new number map
-      const wpIdToNumber = new Map(updates.map(u => [u.id, u.number]));
-      const { data: tasks } = await supabase
-        .from('wp_draft_tasks')
-        .select('id, wp_draft_id')
-        .in('wp_draft_id', updates.map(u => u.id));
-      
-      if (tasks && tasks.length > 0) {
-        // Build task_id → new wp_number map
-        const taskWpMap = new Map(tasks.map(t => [t.id, wpIdToNumber.get(t.wp_draft_id)!]));
-        
-        // Fetch deliverables linked to these tasks
-        const { data: deliverables } = await supabase
-          .from('b31_deliverables')
-          .select('id, task_id, wp_number, number')
-          .eq('proposal_id', proposalId)
-          .not('task_id', 'is', null);
-        
-        if (deliverables) {
-          for (const del of deliverables) {
-            const newWpNum = del.task_id ? taskWpMap.get(del.task_id) : undefined;
-            if (newWpNum != null && newWpNum !== del.wp_number) {
-              // Update wp_number and also the display number string (e.g., "D2.1" → "D3.1")
-              const currentNumber = del.number || '';
-              const dotIndex = currentNumber.indexOf('.');
-              const suffix = dotIndex >= 0 ? currentNumber.substring(dotIndex) : '.X';
-              const newNumber = `D${newWpNum}${suffix}`;
-              await supabase
-                .from('b31_deliverables')
-                .update({ wp_number: newWpNum, number: newNumber })
-                .eq('id', del.id);
-            }
-          }
-        }
-      }
-    },
+      // Note: previously a third pass updated b31_deliverables.wp_number for
+      // deliverables linked via tasks. Snapshot tables have been removed, and
+      // wp_draft_deliverables.number is per-WP (display "D{wpNum}.{n}" is
+      // derived live from wp_draft_id), so no rewrite is needed.
     onMutate: async (reorderedWPs) => {
       await queryClient.cancelQueries({ queryKey: ['wp-drafts-management', proposalId] });
       const previousWPs = queryClient.getQueryData<WPDraft[]>(['wp-drafts-management', proposalId]);
