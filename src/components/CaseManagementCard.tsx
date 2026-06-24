@@ -838,7 +838,3 @@ export function CaseManagementCard({
     </Card>
   );
 }
-      </CardContent>
-    </Card>
-  );
-}
