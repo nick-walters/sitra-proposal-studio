@@ -323,7 +323,7 @@ interface WPManagementCardProps {
 export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = true, onDraftVisibilityChange, onSaveEvent }: WPManagementCardProps) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const [populateDialogOpen, setPopulateDialogOpen] = useState(false);
+  
   
   
   
