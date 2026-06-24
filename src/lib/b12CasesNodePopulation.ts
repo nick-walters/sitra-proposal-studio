@@ -130,6 +130,16 @@ export async function populateCasesNodeToB12(
     }
     let subheadingEl: Element | null = isSubheading(probe) ? probe : null;
 
+    // Fallback: marker may have been lost (e.g. user converted heading to
+    // numbered via the heading-number extension and the data-attr was
+    // stripped). If the element immediately above the caption/spacer is any
+    // heading, treat it as the case-type subheading and re-apply the marker.
+    if (!subheadingEl && probe && /^H[1-6]$/.test(probe.tagName)) {
+      probe.setAttribute('data-b12-cases-subheading', 'true');
+      subheadingEl = probe;
+    }
+
+
     if (subheadingEl) {
       // Update ONLY the text label — preserve any number-label child the
       // numbering extension may have injected (e.g. span[data-heading-number]).
