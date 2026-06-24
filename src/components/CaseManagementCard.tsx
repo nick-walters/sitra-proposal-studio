@@ -189,9 +189,10 @@ function SortableCaseRow({ caseItem, participants, casePrefix, includeNumber, in
     <div
       ref={setNodeRef}
       style={style}
-      className={`col-span-7 grid grid-cols-subgrid gap-x-1.5 items-center py-1 border-b mb-[4px] ${
+      className={`col-span-6 grid grid-cols-subgrid gap-x-1.5 items-center py-1 border-b mb-[4px] ${
         isDragging ? 'bg-muted shadow-lg' : ''
       }`}
+
     >
       {/* Drag Handle */}
       <div className="flex justify-center">
