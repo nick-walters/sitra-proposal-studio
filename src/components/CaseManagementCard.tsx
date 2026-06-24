@@ -354,42 +354,6 @@ export function CaseManagementCard({
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [subsectionsDialogOpen, setSubsectionsDialogOpen] = useState(false);
-  const [populating, setPopulating] = useState(false);
-  const [populateDialogOpen, setPopulateDialogOpen] = useState(false);
-  const [selectedPopulateIds, setSelectedPopulateIds] = useState<Set<string>>(new Set());
-  const [replaceWarningOpen, setReplaceWarningOpen] = useState(false);
-
-  const runPopulate = async (ids: string[]) => {
-    try {
-      setPopulating(true);
-      const res = await populateCasesNodeToB12(proposalId, { caseIds: ids });
-      toast.success(`Populated ${res.insertedOrUpdated} case${res.insertedOrUpdated === 1 ? '' : 's'} into B1.2.`);
-      invalidateCaseQueries();
-      queryClient.invalidateQueries({ queryKey: ['section-content', proposalId, 'b1-2'] });
-      queryClient.invalidateQueries({ queryKey: ['b12-cases', proposalId] });
-      setPopulateDialogOpen(false);
-    } catch (e: any) {
-      console.error(e);
-      toast.error(`Populate failed: ${e?.message || 'unknown error'}`);
-    } finally {
-      setPopulating(false);
-    }
-  };
-
-  const handlePopulateClick = async () => {
-    const ids = Array.from(selectedPopulateIds);
-    if (ids.length === 0) return;
-    try {
-      const dirty = await hasSnapshotEdits(proposalId, ids);
-      if (dirty) {
-        setReplaceWarningOpen(true);
-        return;
-      }
-    } catch (e) {
-      console.warn('Snapshot diff check failed; proceeding without warning', e);
-    }
-    runPopulate(ids);
-  };
 
   const sensors = useSensors(
     useSensor(PointerSensor),
