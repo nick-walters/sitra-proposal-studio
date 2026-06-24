@@ -1527,6 +1527,7 @@ StarterKit.configure({
       WPReferenceNode,
       CaseReferenceNode,
       ParticipantReferenceNode,
+      CasesTableNode,
       AcronymReference,
       FigureTableReferenceMark,
       ParenBadgeGlue,
