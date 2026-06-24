@@ -24,11 +24,8 @@ interface Props {
 }
 
 export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
-  const queryClient = useQueryClient();
   const { isAdminOrOwner } = useUserRole();
   const { colWidths, setColWidths, tableRef, handleColResizeStart, saveWidths } = useColumnResize({ proposalId, tableKey: 'effort-matrix', canResize: isAdminOrOwner });
-  const [editingCell, setEditingCell] = useState<{ participantId: string; wpId: string } | null>(null);
-  const [editValue, setEditValue] = useState('');
   const defaultParticipantWidth = '22%';
   const defaultTotalWidth = '8%';
   const defaultWpWidth = `${(70 / Math.max(wpData.length, 1)).toFixed(2)}%`;
@@ -52,35 +49,6 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
   let hasData = false;
   matrix.forEach(pMap => { if (pMap.size > 0) hasData = true; });
 
-  const startEdit = (participantId: string, wpId: string, currentValue: number) => {
-    setEditingCell({ participantId, wpId });
-    setEditValue(currentValue > 0 ? String(currentValue) : '');
-  };
-
-  const saveEdit = useCallback(async () => {
-    if (!editingCell || !proposalId) return;
-    const { participantId, wpId } = editingCell;
-    const parsed = parseFloat(editValue) || 0;
-    const newTotal = Math.round(parsed * 10) / 10;
-
-    await supabase
-      .from('wp_draft_effort')
-      .upsert({
-        wp_draft_id: wpId,
-        participant_id: participantId,
-        person_months: newTotal,
-      }, {
-        onConflict: 'wp_draft_id,participant_id',
-      });
-
-    queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
-    setEditingCell(null);
-  }, [editingCell, editValue, proposalId, queryClient]);
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') { e.preventDefault(); saveEdit(); }
-    if (e.key === 'Escape') setEditingCell(null);
-  };
 
   const autoFitColumns = useCallback(() => {
     const table = tableRef.current;
