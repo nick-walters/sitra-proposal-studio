@@ -450,6 +450,31 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
           )}
         </DialogFooter>
       </DialogContent>
+
+      <AlertDialog open={replaceWarningOpen} onOpenChange={setReplaceWarningOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Replace edited content in Table 3.1.b?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Re-populating will replace {editedSections.join(', ')} in Table 3.1.b with the current WP draft. Any edits made to {editedSections.length === 1 ? 'this section' : 'these sections'} in Table 3.1.b will be lost. Continue?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={populating}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async (e) => {
+                e.preventDefault();
+                const sel = pendingSelections;
+                setReplaceWarningOpen(false);
+                setPendingSelections(null);
+                if (sel) await runPopulate(sel);
+              }}
+            >
+              Replace
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
