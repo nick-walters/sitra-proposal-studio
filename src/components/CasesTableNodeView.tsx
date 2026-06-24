@@ -216,20 +216,7 @@ export function CasesTableNodeView(_props: NodeViewProps) {
           .maybeSingle(),
       ]);
 
-      // [CASES-DEBUG] raw query results
-      // eslint-disable-next-line no-console
-      console.log('[CASES-DEBUG] case_drafts query', {
-        queriedProposalId: proposalId,
-        error: casesRes.error,
-        rawCount: casesRes.data?.length ?? 0,
-        rawRows: (casesRes.data || []).map((c: any) => ({
-          id: c.id, proposal_id: c.proposal_id, is_hidden: c.is_hidden, short_name: c.short_name,
-        })),
-      });
-
       const cases = (casesRes.data || []) as CaseRow[];
-
-
 
       const templates = (tplRes.data || []) as SubsectionTemplate[];
       const participants = (partsRes.data || []) as Participant[];
@@ -241,11 +228,7 @@ export function CasesTableNodeView(_props: NodeViewProps) {
     },
   });
 
-  // [CASES-DEBUG] query error surface
-  if (error) {
-    // eslint-disable-next-line no-console
-    console.log('[CASES-DEBUG] useQuery error', error);
-  }
+
 
 
   return (
