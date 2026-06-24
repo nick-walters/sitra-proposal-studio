@@ -959,7 +959,7 @@ export function CaseManagementCard({
                 onClick={async () => {
                   try {
                     setPopulating(true);
-                    const res = await populateCasesToB12(proposalId, { caseIds: Array.from(selectedPopulateIds) });
+                    const res = await populateCasesNodeToB12(proposalId, { caseIds: Array.from(selectedPopulateIds) });
                     toast.success(`Populated ${res.insertedOrUpdated} case${res.insertedOrUpdated === 1 ? '' : 's'} into B1.2.`);
                     invalidateCaseQueries();
                     queryClient.invalidateQueries({ queryKey: ['section-content', proposalId, 'b1-2'] });
