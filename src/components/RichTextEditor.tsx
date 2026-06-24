@@ -1858,6 +1858,8 @@ StarterKit.configure({
       CaseReferenceNode,
       // Participant reference: inline atom NODE (migrated from mark in Stage 2)
       ParticipantReferenceNode,
+      // B1.2 cases-table block node (Stage 1 skeleton)
+      CasesTableNode,
       // Acronym reference for colored acronym insertion
       AcronymReference,
       CaptionLabel,
