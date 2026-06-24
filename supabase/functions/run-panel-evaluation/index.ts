@@ -421,13 +421,13 @@ WORK PACKAGES:
 ${wpDrafts.map((wp: any) => `WP${wp.number} ${wp.short_name || ""} ${wp.title || ""}\nObjectives: ${stripHtml(wp.objectives).slice(0, 600)}\nMethodology: ${stripHtml(wp.methodology).slice(0, 800)}`).join("\n\n")}
 
 DELIVERABLES:
-${deliverables.map((deliverable: any) => `- D${deliverable.number} ${deliverable.name} (M${deliverable.due_month}, ${deliverable.type || "?"}, ${deliverable.dissemination_level || "?"})`).join("\n")}
+${deliverables.map((deliverable: any) => `- D${deliverable.number} ${deliverable.title || ""} (M${deliverable.due_month}, ${deliverable.type || "?"}, ${deliverable.dissemination_level || "?"})`).join("\n")}
 
 MILESTONES:
-${milestones.map((milestone: any) => `- MS${milestone.number} ${milestone.name} (M${milestone.due_month}, WPs: ${milestone.wps})`).join("\n")}
+${milestones.map((milestone: any) => `- MS${milestone.number} ${milestone.title || ""} (M${milestone.due_month}, WPs: ${milestone.related_wps || ""})`).join("\n")}
 
 RISKS:
-${risks.map((risk: any) => `- R${risk.number} ${stripHtml(risk.description)} | Mitigation: ${stripHtml(risk.mitigation)} | L:${risk.likelihood} S:${risk.severity}`).join("\n")}
+${risks.map((risk: any) => `- R${risk.number} ${stripHtml(risk.title)} | Mitigation: ${stripHtml(risk.mitigation)} | L:${risk.likelihood} S:${risk.severity}`).join("\n")}
 
 BUDGET (sum requested EU contribution): €${budget.reduce((sum: number, row: any) => sum + Number(row.requested_eu_contribution || 0), 0).toLocaleString()}
 `;
