@@ -227,17 +227,16 @@ export function InsertTDMSReferenceDropdowns({
         }
       }
 
-      // Tasks: B3.1 only (b31_tasks). Items only in wp_draft_tasks are not pickable
-      // until their WP has been populated to B3.1.
+      // Tasks: live source = wp_draft_tasks.
       const allTasks: Task[] = [];
       if (wpDrafts && wpDrafts.length > 0) {
-        const { data: b31Tasks } = await supabase
-          .from('b31_tasks')
+        const { data: srcTasks } = await supabase
+          .from('wp_draft_tasks')
           .select('id, number, title, wp_draft_id, order_index')
           .in('wp_draft_id', wpDrafts.map(wp => wp.id))
           .order('order_index');
-        if (b31Tasks) {
-          for (const t of b31Tasks) {
+        if (srcTasks) {
+          for (const t of srcTasks) {
             const wpNum = wpIdToNumber.get(t.wp_draft_id) || 0;
             allTasks.push({
               id: t.id,
@@ -249,39 +248,56 @@ export function InsertTDMSReferenceDropdowns({
             });
           }
           allTasks.sort((a, b) =>
-            a.wp_number !== b.wp_number ? a.wp_number - b.wp_number : a.number - b.number
+            a.wp_number !== b.wp_number ? a.wp_number - b.wp_number : a.number - b.number,
           );
         }
       }
       setTasks(allTasks);
 
-      // Deliverables: B3.1 only
-      const { data: dels } = await supabase
-        .from('b31_deliverables')
-        .select('id, number, name, wp_number')
-        .eq('proposal_id', proposalId)
-        .order('number');
-
-      const allDeliverables: Deliverable[] = (dels || []).map(d => ({
-        ...d,
-        wp_color: d.wp_number ? wpColorMap.get(d.wp_number) || '#000000' : '#000000',
-      })).sort((a, b) => {
-        const parseDelNum = (n: string) => {
-          const match = n.match(/D?(\d+)\.(\d+)/);
-          return match ? [parseInt(match[1]), parseInt(match[2])] : [0, 0];
-        };
-        const [aWp, aNum] = parseDelNum(a.number);
-        const [bWp, bNum] = parseDelNum(b.number);
-        return aWp !== bWp ? aWp - bWp : aNum - bNum;
-      });
+      // Deliverables: live source = wp_draft_deliverables, synthesise D{wp}.{n}.
+      const allDeliverables: Deliverable[] = [];
+      if (wpDrafts && wpDrafts.length > 0) {
+        const { data: srcDels } = await supabase
+          .from('wp_draft_deliverables')
+          .select('id, number, title, wp_draft_id')
+          .in('wp_draft_id', wpDrafts.map(wp => wp.id))
+          .order('number');
+        if (srcDels) {
+          for (const d of srcDels) {
+            const wpNum = wpIdToNumber.get(d.wp_draft_id) || null;
+            allDeliverables.push({
+              id: d.id,
+              number: `D${wpNum ?? '?'}.${d.number}`,
+              name: d.title || '',
+              wp_number: wpNum,
+              wp_color: wpNum ? wpColorMap.get(wpNum) || '#000000' : '#000000',
+            });
+          }
+          allDeliverables.sort((a, b) => {
+            const wa = a.wp_number ?? 999;
+            const wb = b.wp_number ?? 999;
+            if (wa !== wb) return wa - wb;
+            return a.number.localeCompare(b.number);
+          });
+        }
+      }
       setDeliverables(allDeliverables);
 
-      const { data: mss } = await supabase
-        .from('b31_milestones')
-        .select('id, number, name')
-        .eq('proposal_id', proposalId)
-        .order('number');
-      if (mss) setMilestones(mss);
+      // Milestones: live source = wp_draft_milestones (proposal-wide).
+      const allMilestones: Milestone[] = [];
+      if (wpDrafts && wpDrafts.length > 0) {
+        const { data: srcMs } = await supabase
+          .from('wp_draft_milestones')
+          .select('id, number, title, wp_draft_id')
+          .in('wp_draft_id', wpDrafts.map(wp => wp.id))
+          .order('number');
+        if (srcMs) {
+          for (const m of srcMs) {
+            allMilestones.push({ id: m.id, number: m.number, name: m.title || '' });
+          }
+        }
+      }
+      setMilestones(allMilestones);
       setLoading(false);
     };
 

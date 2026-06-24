@@ -74,13 +74,13 @@ async function fetchReferenceData(proposalId: string) {
       .select('id, number, wp_draft_id')
       .order('number'),
     supabase
-      .from('b31_deliverables')
-      .select('id, number, wp_number')
-      .eq('proposal_id', proposalId),
+      .from('wp_draft_deliverables')
+      .select('id, number, wp_draft_id')
+      .order('number'),
     supabase
-      .from('b31_milestones')
-      .select('id, number')
-      .eq('proposal_id', proposalId),
+      .from('wp_draft_milestones')
+      .select('id, number, wp_draft_id')
+      .order('number'),
     supabase
       .from('case_drafts')
       .select('id, number, case_type, short_name, color')
@@ -112,14 +112,24 @@ async function fetchReferenceData(proposalId: string) {
       return { id: t.id, number: t.number, wp_number: wp.number, wp_color: wp.color || '#000000' };
     });
 
-  // Build WP number-to-color map for deliverables
-  const wpNumberColorMap = new Map(wps.map(wp => [wp.number, wp.color || '#000000']));
+  // Deliverables: synthesise "D{wp}.{n}" from source, only for deliverables
+  // whose WP is in this proposal.
+  const deliverables: DeliverableData[] = (delRes.data || [])
+    .filter(d => wpMap.has(d.wp_draft_id))
+    .map(d => {
+      const wp = wpMap.get(d.wp_draft_id)!;
+      return {
+        id: d.id,
+        number: `D${wp.number}.${d.number}`,
+        wp_number: wp.number,
+        wp_color: wp.color || '#000000',
+      };
+    });
 
-  const deliverables: DeliverableData[] = (delRes.data || []).map(d => ({
-    ...d,
-    wp_color: d.wp_number ? wpNumberColorMap.get(d.wp_number) || '#000000' : '#000000',
-  }));
-  const milestones: MilestoneData[] = msRes.data || [];
+  // Milestones: only those belonging to this proposal's WPs.
+  const milestones: MilestoneData[] = (msRes.data || [])
+    .filter(m => wpMap.has(m.wp_draft_id))
+    .map(m => ({ id: m.id, number: m.number }));
   const cases: CaseData[] = caseRes.data || [];
   const participants: ParticipantData[] = participantRes.data || [];
   const figures: FigureData[] = figureRes.data || [];
