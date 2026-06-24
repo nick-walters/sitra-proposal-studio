@@ -187,25 +187,15 @@ export function CasesTableNodeView(_props: NodeViewProps) {
   // return empty. Fall back to parsing the proposal id from the URL.
   const proposalId = params.proposalId || params.id || pathFallback;
 
-  // [CASES-DEBUG] resolved ids
-  // eslint-disable-next-line no-console
-  console.log('[CASES-DEBUG] proposalId resolution', {
-    'params.proposalId': params.proposalId,
-    'params.id': params.id,
-    pathFallback,
-    pathname: typeof window !== 'undefined' ? window.location.pathname : '(ssr)',
-    finalProposalId: proposalId,
-    enabled: !!proposalId,
-  });
-
-  const { data, error } = useQuery({
+  const { data } = useQuery({
     queryKey: ['b12-cases-live', proposalId],
     enabled: !!proposalId,
     queryFn: async () => {
       const [casesRes, tplRes, partsRes, propRes] = await Promise.all([
         supabase
           .from('case_drafts')
-          .select('id, number, short_name, title, case_type, custom_type_name, color, lead_participant_id, order_index, subsection_content, background_context, proposed_solutions, expected_outcomes, replicability, key_stakeholders, heading_background, heading_solutions, heading_outcomes, heading_replicability, heading_stakeholders, is_hidden')
+          .select('id, number, short_name, title, case_type, custom_type_name, color, lead_participant_id, order_index, subsection_content, background_context, proposed_solutions, expected_outcomes, replicability, key_stakeholders, heading_background, heading_solutions, heading_outcomes, heading_replicability, heading_stakeholders')
+
           .eq('proposal_id', proposalId)
           .order('order_index', { ascending: true, nullsFirst: false })
           .order('number', { ascending: true }),
