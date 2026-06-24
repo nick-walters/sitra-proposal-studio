@@ -89,7 +89,7 @@ export function LeaderPicker({
   const content = leader ? (
     <ParticipantBubble shortName={leader.organisation_short_name || leader.organisation_name} showCrown={showCrown} style={{ fontStyle: 'normal' }} />
   ) : (
-    <span className="text-muted-foreground text-[9pt] italic">{entityTable === 'wp_drafts' ? 'Select WP leader' : 'Select task leader'}</span>
+    <span className="text-muted-foreground text-[9pt] italic">{placeholder || (entityTable === 'wp_drafts' ? 'Select WP leader' : 'Select task leader')}</span>
   );
 
   return (
