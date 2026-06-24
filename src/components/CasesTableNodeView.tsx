@@ -212,18 +212,18 @@ export function CasesTableNodeView(props: NodeViewProps) {
           includeNumber: data.flags.num,
           includeAbbreviation: data.flags.ab,
         });
+        const subs = c.b12_case_subsections || [];
         return (
           <div
             key={c.id}
             data-case-block=""
             data-case-id={c.id}
             style={{
-              paddingTop: idx === 0 ? 0 : 14,
-              marginTop: idx === 0 ? 0 : 14,
-              borderTop: idx === 0 ? 'none' : '1px solid #d1d5db',
+              paddingTop: idx === 0 ? 0 : 0,
+              marginTop: idx === 0 ? 0 : 18,
             }}
           >
-            {/* Header row: chip left, leader pill right */}
+            {/* Header row: chip left, leader pill right (arrows on LEFT of pill) */}
             <div
               contentEditable={false}
               style={{
@@ -232,7 +232,7 @@ export function CasesTableNodeView(props: NodeViewProps) {
                 justifyContent: 'space-between',
                 gap: 12,
                 width: '100%',
-                marginBottom: 8,
+                marginBottom: 4,
               }}
             >
               <CaseChip label={label} />
@@ -243,39 +243,58 @@ export function CasesTableNodeView(props: NodeViewProps) {
                 participants={data.participants}
                 proposalId={data.proposalId}
                 showCrown
-                arrowPosition="right"
+                arrowPosition="left"
                 placeholder="Select case lead"
                 invalidateKeys={[['b12-cases-node', idsKey], ['b12-cases', data.proposalId]]}
               />
             </div>
 
             {/* Editable full title (bold) */}
-            <div style={{ marginBottom: 8, fontWeight: 700 }}>
+            <div style={{ marginBottom: 4, fontWeight: 700 }}>
               <EditableHeaderText
                 value={c.title || ''}
                 onSave={(val) => saveCaseField(c.id, 'title', val)}
               />
             </div>
 
-            {/* Editable subsections */}
-            {(c.b12_case_subsections || []).map((s) => (
-              <div key={s.id} style={{ marginBottom: 6 }}>
-                <div style={{ fontWeight: 700, fontStyle: 'italic' }}>
-                  <EditableHeaderText
-                    value={s.heading || ''}
-                    onSave={(val) => saveSubField(s.id, 'heading', val)}
-                  />
+            {/* Divider below title / above first subsection (matches 3.1.b 1px black) */}
+            <div
+              contentEditable={false}
+              style={{ height: 1, backgroundColor: '#000000', width: '100%', margin: '6px 0' }}
+            />
+
+            {/* Editable subsections, separated by black 1px dividers */}
+            {subs.map((s, si) => (
+              <div key={s.id}>
+                <div style={{ marginTop: si === 0 ? 0 : 0 }}>
+                  <span style={{ fontWeight: 700, fontStyle: 'italic' }}>
+                    <EditableHeaderText
+                      value={s.heading || ''}
+                      onSave={(val) => saveSubField(s.id, 'heading', val)}
+                    />
+                    {(s.heading || '').trim() && <span contentEditable={false}>:</span>}
+                  </span>
+                  <div style={{ marginTop: 2 }}>
+                    <EditableText
+                      value={s.body || ''}
+                      onSave={(val) => saveSubField(s.id, 'body', val)}
+                      placeholder="Click to add content…"
+                    />
+                  </div>
                 </div>
-                <EditableText
-                  value={s.body || ''}
-                  onSave={(val) => saveSubField(s.id, 'body', val)}
-                  placeholder="Click to add content…"
+                <div
+                  contentEditable={false}
+                  style={{ height: 1, backgroundColor: '#000000', width: '100%', margin: '6px 0' }}
                 />
               </div>
             ))}
           </div>
         );
       })}
+
+      {/* Trailing spacer matching between-cases gap, so text typed below the
+          node still sits a comfortable distance from the last case. */}
+      {data && data.rows.length > 0 && <div contentEditable={false} style={{ height: 18 }} />}
     </NodeViewWrapper>
   );
 }
