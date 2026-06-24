@@ -41,6 +41,7 @@ import { Badge } from '@/components/ui/badge';
 import { FlaskConical, GripVertical, Plus, Trash2, Lock, LockOpen, Eye, EyeOff, Settings, FileOutput } from 'lucide-react';
 import { CaseSubsectionTemplateDialog } from '@/components/CaseSubsectionTemplateDialog';
 import { populateCasesToB12, reorderB12CaseTablesInSection } from '@/lib/b12CasesPopulation';
+import { populateCasesNodeToB12 } from '@/lib/b12CasesNodePopulation';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
@@ -958,7 +959,7 @@ export function CaseManagementCard({
                 onClick={async () => {
                   try {
                     setPopulating(true);
-                    const res = await populateCasesToB12(proposalId, { caseIds: Array.from(selectedPopulateIds) });
+                    const res = await populateCasesNodeToB12(proposalId, { caseIds: Array.from(selectedPopulateIds) });
                     toast.success(`Populated ${res.insertedOrUpdated} case${res.insertedOrUpdated === 1 ? '' : 's'} into B1.2.`);
                     invalidateCaseQueries();
                     queryClient.invalidateQueries({ queryKey: ['section-content', proposalId, 'b1-2'] });

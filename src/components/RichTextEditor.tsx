@@ -27,6 +27,7 @@ import { TrackChanges, TrackChangesOptions } from '@/extensions/TrackChanges';
 import { TableFormula } from '@/extensions/TableFormula';
 import { WPReferenceNode } from '@/extensions/WPReferenceNode';
 import { CaseReferenceNode } from '@/extensions/CaseReferenceNode';
+import { CasesTableNode } from '@/extensions/CasesTableNode';
 import { ParticipantReferenceNode } from '@/extensions/ParticipantReferenceNode';
 import { AcronymReference } from '@/extensions/AcronymReference';
 import { FigureTableReferenceMark } from '@/extensions/FigureTableReferenceMark';
@@ -1526,6 +1527,7 @@ StarterKit.configure({
       WPReferenceNode,
       CaseReferenceNode,
       ParticipantReferenceNode,
+      CasesTableNode,
       AcronymReference,
       FigureTableReferenceMark,
       ParenBadgeGlue,
@@ -1856,6 +1858,8 @@ StarterKit.configure({
       CaseReferenceNode,
       // Participant reference: inline atom NODE (migrated from mark in Stage 2)
       ParticipantReferenceNode,
+      // B1.2 cases-table block node (Stage 1 skeleton)
+      CasesTableNode,
       // Acronym reference for colored acronym insertion
       AcronymReference,
       CaptionLabel,

@@ -78,6 +78,9 @@ export const ALLOWED_DATA_ATTRS = new Set<string>([
   'data-b12-cases-heading',
   'data-b12-cases-caption',
   'data-default-subheading',
+  'data-cases-table-node',
+  'data-case-ids',
+  'data-caption',
 ]);
 
 export const STYLE_ALLOWLIST = new Set<string>([
@@ -109,6 +112,8 @@ export const ALLOWED_TAGS = [
   'h1', 'h2', 'h3', 'h4', 'sub', 'sup',
   'table', 'thead', 'tbody', 'tr', 'th', 'td',
   'img', 'blockquote',
+  // Wrapper for the casesTable NodeView (B1.2)
+  'div',
   // SVG (chevrons, diamonds, future inline icons)
   'svg', 'g', 'path', 'circle', 'rect', 'line', 'polyline', 'polygon',
   'ellipse', 'defs', 'use', 'title', 'desc', 'text', 'tspan',
