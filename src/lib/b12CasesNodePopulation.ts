@@ -1,19 +1,37 @@
 import { supabase } from '@/integrations/supabase/client';
 
 /**
- * Stage 1 — insert a `casesTable` NodeView placeholder into B1.2.
+ * Stage 1b — insert a `casesTable` NodeView placeholder into B1.2,
+ * preceded by a "Table 1.2.a. <Case-type> descriptions" caption paragraph.
  *
- * Writes a tiny wrapper div (data-cases-table-node + data-case-ids) into
- * the b1-2 section_content. When the editor loads, TipTap parses the
- * wrapper into the `casesTable` block node, which renders the real cases
- * via its React NodeView.
- *
- * Position: directly above the "Linked research & innovation activities"
- * subheading; fallback = top of the section.
- *
- * Locking behaviour mirrors the legacy populate path so users can still
- * unlock/edit case drafts via the existing UI.
+ * The caption is a normal <p class="table-caption"> directly above the
+ * node placeholder so existing caption styling applies and the NodeView
+ * itself stays caption-free.
  */
+
+const CASE_TYPE_HEADING: Record<string, string> = {
+  case_study: 'Case study descriptions',
+  use_case: 'Use case descriptions',
+  living_lab: 'Living lab descriptions',
+  pilot: 'Pilot descriptions',
+  demonstration: 'Demonstration descriptions',
+  challenge: 'Challenge descriptions',
+};
+
+function esc(str: string | null | undefined): string {
+  return (str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function getCaseTypeHeading(caseType: string, customName: string | null): string {
+  if (caseType === 'other') {
+    return customName ? `${customName} descriptions` : 'Case descriptions';
+  }
+  return CASE_TYPE_HEADING[caseType] || 'Case descriptions';
+}
 
 export interface PopulateCasesNodeOptions {
   caseIds: string[];
@@ -31,6 +49,19 @@ export async function populateCasesNodeToB12(
   const caseIds = (options.caseIds || []).filter(Boolean);
   if (caseIds.length === 0) return { insertedOrUpdated: 0, caseCount: 0 };
 
+  // Fetch case types so caption text matches the established format.
+  const { data: caseRows } = await supabase
+    .from('case_drafts')
+    .select('id, case_type, custom_type_name, number')
+    .in('id', caseIds);
+  const ordered = caseIds
+    .map((id) => (caseRows || []).find((c: any) => c.id === id))
+    .filter(Boolean) as any[];
+  const first = ordered[0];
+  const captionText = first
+    ? getCaseTypeHeading(first.case_type, first.custom_type_name)
+    : 'Case descriptions';
+
   const { data: existing } = await supabase
     .from('section_content')
     .select('id, content')
@@ -43,29 +74,48 @@ export async function populateCasesNodeToB12(
   const doc = parser.parseFromString(`<div id="root">${existingHtml}</div>`, 'text/html');
   const root = doc.getElementById('root')!;
 
-  // Remove any previous casesTable nodes so we don't stack duplicates.
-  root.querySelectorAll('div[data-cases-table-node]').forEach((n) => n.remove());
+  // Remove any previous casesTable nodes AND their preceding caption paragraphs
+  // so re-populating doesn't accumulate captions or nodes.
+  root.querySelectorAll('div[data-cases-table-node]').forEach((n) => {
+    const prev = n.previousElementSibling;
+    if (
+      prev &&
+      prev.tagName === 'P' &&
+      (prev.getAttribute('data-b12-cases-node-caption') === 'true' ||
+        prev.classList.contains('table-caption'))
+    ) {
+      prev.remove();
+    }
+    n.remove();
+  });
 
-  const wrapper = doc.createElement('div');
-  wrapper.setAttribute('data-cases-table-node', '');
-  wrapper.setAttribute('data-case-ids', caseIds.join(','));
+  const captionHtml =
+    `<p class="table-caption" data-b12-cases-node-caption="true" style="text-align:left;">` +
+    `<span data-caption-label="" contenteditable="false" style="user-select: none; font-weight: bold; font-style: italic;">Table 1.2.a. </span>` +
+    `<em>${esc(captionText)}</em>` +
+    `</p>`;
+  const nodeHtml = `<div data-cases-table-node="" data-case-ids="${esc(caseIds.join(','))}"></div>`;
+
+  const fragment = parser.parseFromString(`<div id="frag">${captionHtml}${nodeHtml}</div>`, 'text/html');
+  const fragRoot = fragment.getElementById('frag')!;
+  const captionEl = fragRoot.children[0];
+  const nodeEl = fragRoot.children[1];
 
   const headings = Array.from(root.querySelectorAll('h1, h2, h3, h4'));
   let target: Element | null = null;
   for (const h of headings) {
     const text = (h.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
-    if (
-      text === 'linked research & innovation activities' ||
-      /linked\s+research\s+&\s+innovation\s+activities/i.test(text)
-    ) {
+    if (/linked\s+research\s+&\s+innovation\s+activities/i.test(text)) {
       target = h;
       break;
     }
   }
   if (target) {
-    target.parentNode!.insertBefore(wrapper, target);
+    target.parentNode!.insertBefore(captionEl, target);
+    target.parentNode!.insertBefore(nodeEl, target);
   } else {
-    root.insertBefore(wrapper, root.firstChild);
+    root.insertBefore(nodeEl, root.firstChild);
+    root.insertBefore(captionEl, nodeEl);
   }
 
   const finalHtml = root.innerHTML;
@@ -83,7 +133,6 @@ export async function populateCasesNodeToB12(
     });
   }
 
-  // Lock the selected drafts (mirrors legacy populate behaviour).
   const { data: userData } = await supabase.auth.getUser();
   const lockedBy = userData?.user?.id || null;
   await supabase
