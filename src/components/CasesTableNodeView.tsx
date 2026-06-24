@@ -36,8 +36,8 @@ interface CaseRow {
   heading_outcomes: string | null;
   heading_replicability: string | null;
   heading_stakeholders: string | null;
-  is_hidden: boolean | null;
 }
+
 
 interface SubsectionTemplate {
   id: string;
@@ -187,25 +187,15 @@ export function CasesTableNodeView(_props: NodeViewProps) {
   // return empty. Fall back to parsing the proposal id from the URL.
   const proposalId = params.proposalId || params.id || pathFallback;
 
-  // [CASES-DEBUG] resolved ids
-  // eslint-disable-next-line no-console
-  console.log('[CASES-DEBUG] proposalId resolution', {
-    'params.proposalId': params.proposalId,
-    'params.id': params.id,
-    pathFallback,
-    pathname: typeof window !== 'undefined' ? window.location.pathname : '(ssr)',
-    finalProposalId: proposalId,
-    enabled: !!proposalId,
-  });
-
-  const { data, error } = useQuery({
+  const { data } = useQuery({
     queryKey: ['b12-cases-live', proposalId],
     enabled: !!proposalId,
     queryFn: async () => {
       const [casesRes, tplRes, partsRes, propRes] = await Promise.all([
         supabase
           .from('case_drafts')
-          .select('id, number, short_name, title, case_type, custom_type_name, color, lead_participant_id, order_index, subsection_content, background_context, proposed_solutions, expected_outcomes, replicability, key_stakeholders, heading_background, heading_solutions, heading_outcomes, heading_replicability, heading_stakeholders, is_hidden')
+          .select('id, number, short_name, title, case_type, custom_type_name, color, lead_participant_id, order_index, subsection_content, background_context, proposed_solutions, expected_outcomes, replicability, key_stakeholders, heading_background, heading_solutions, heading_outcomes, heading_replicability, heading_stakeholders')
+
           .eq('proposal_id', proposalId)
           .order('order_index', { ascending: true, nullsFirst: false })
           .order('number', { ascending: true }),
@@ -226,25 +216,7 @@ export function CasesTableNodeView(_props: NodeViewProps) {
           .maybeSingle(),
       ]);
 
-      // [CASES-DEBUG] raw query results
-      // eslint-disable-next-line no-console
-      console.log('[CASES-DEBUG] case_drafts query', {
-        queriedProposalId: proposalId,
-        error: casesRes.error,
-        rawCount: casesRes.data?.length ?? 0,
-        rawRows: (casesRes.data || []).map((c: any) => ({
-          id: c.id, proposal_id: c.proposal_id, is_hidden: c.is_hidden, short_name: c.short_name,
-        })),
-      });
-
-      const cases = (casesRes.data || []).filter((c: any) => !c.is_hidden) as CaseRow[];
-
-      // [CASES-DEBUG] post client-side filter
-      // eslint-disable-next-line no-console
-      console.log('[CASES-DEBUG] after client-side is_hidden filter', {
-        filter: '!c.is_hidden',
-        countAfterFilter: cases.length,
-      });
+      const cases = (casesRes.data || []) as CaseRow[];
 
       const templates = (tplRes.data || []) as SubsectionTemplate[];
       const participants = (partsRes.data || []) as Participant[];
@@ -256,11 +228,7 @@ export function CasesTableNodeView(_props: NodeViewProps) {
     },
   });
 
-  // [CASES-DEBUG] query error surface
-  if (error) {
-    // eslint-disable-next-line no-console
-    console.log('[CASES-DEBUG] useQuery error', error);
-  }
+
 
 
   return (

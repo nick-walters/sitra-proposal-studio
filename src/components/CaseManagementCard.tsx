@@ -48,7 +48,7 @@ import {
 } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { FlaskConical, GripVertical, Plus, Trash2, Lock, LockOpen, Eye, EyeOff, Settings, FileOutput } from 'lucide-react';
+import { FlaskConical, GripVertical, Plus, Trash2, Lock, LockOpen, Settings, FileOutput } from 'lucide-react';
 import { CaseSubsectionTemplateDialog } from '@/components/CaseSubsectionTemplateDialog';
 
 import { populateCasesNodeToB12, hasSnapshotEdits } from '@/lib/b12CasesNodePopulation';
@@ -70,7 +70,7 @@ interface CaseDraft {
   order_index: number;
   is_locked: boolean;
   locked_by: string | null;
-  is_hidden: boolean;
+  
 }
 
 const CASE_TYPES = [
@@ -145,11 +145,11 @@ interface SortableCaseRowProps {
   onUpdate: (id: string, updates: Partial<CaseDraft>) => void;
   onDelete: (id: string) => void;
   onToggleLock: (id: string, locked: boolean) => void;
-  onToggleVisibility: (id: string, hidden: boolean) => void;
   canEdit: boolean;
 }
 
-function SortableCaseRow({ caseItem, participants, casePrefix, includeNumber, includeAbbreviation, onUpdate, onDelete, onToggleLock, onToggleVisibility, canEdit }: SortableCaseRowProps) {
+function SortableCaseRow({ caseItem, participants, casePrefix, includeNumber, includeAbbreviation, onUpdate, onDelete, onToggleLock, canEdit }: SortableCaseRowProps) {
+
   const [leadOpen, setLeadOpen] = useState(false);
   const [localShortName, setLocalShortName] = useState(caseItem.short_name || '');
   const [localTitle, setLocalTitle] = useState(caseItem.title || '');
@@ -189,9 +189,10 @@ function SortableCaseRow({ caseItem, participants, casePrefix, includeNumber, in
     <div
       ref={setNodeRef}
       style={style}
-      className={`col-span-7 grid grid-cols-subgrid gap-x-1.5 items-center py-1 border-b mb-[4px] ${
+      className={`col-span-6 grid grid-cols-subgrid gap-x-1.5 items-center py-1 border-b mb-[4px] ${
         isDragging ? 'bg-muted shadow-lg' : ''
       }`}
+
     >
       {/* Drag Handle */}
       <div className="flex justify-center">
@@ -307,17 +308,7 @@ function SortableCaseRow({ caseItem, participants, casePrefix, includeNumber, in
         </DialogContent>
       </Dialog>
 
-      {/* Visibility Button */}
-      {canEdit && (
-        <button
-          onClick={() => onToggleVisibility(caseItem.id, !caseItem.is_hidden)}
-          className={`p-1 rounded transition-colors ${caseItem.is_hidden ? 'text-destructive hover:bg-destructive/10' : 'text-[#2563EB] hover:bg-blue-100'}`}
-          title={caseItem.is_hidden ? 'Show case' : 'Hide case'}
-        >
-          {caseItem.is_hidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-        </button>
-      )}
-      {!canEdit && <div />}
+
 
       {/* Lock Button */}
       {canEdit && (
@@ -412,7 +403,7 @@ export function CaseManagementCard({
     queryFn: async () => {
       const { data, error } = await supabase
         .from('case_drafts')
-        .select('id, number, case_type, custom_type_name, short_name, title, lead_participant_id, color, order_index, is_locked, locked_by, is_hidden')
+        .select('id, number, case_type, custom_type_name, short_name, title, lead_participant_id, color, order_index, is_locked, locked_by')
         .eq('proposal_id', proposalId)
         .order('order_index');
       if (error) throw error;
@@ -702,42 +693,8 @@ export function CaseManagementCard({
     toast.success(newLocked ? 'All cases locked' : 'All cases unlocked');
   }, [user, proposalId, queryClient, caseDrafts, invalidateCaseQueries]);
 
-  const handleToggleVisibility = useCallback(async (id: string, hidden: boolean) => {
-    await queryClient.cancelQueries({ queryKey: ['case-drafts-management', proposalId] });
-    queryClient.setQueryData<CaseDraft[]>(['case-drafts-management', proposalId], old =>
-      (old || []).map(c => c.id === id ? { ...c, is_hidden: hidden } : c)
-    );
-    const { error } = await supabase
-      .from('case_drafts')
-      .update({ is_hidden: hidden } as any)
-      .eq('id', id);
-    if (error) {
-      toast.error('Failed to update visibility');
-    }
-    invalidateCaseQueries();
-    if (!error) toast.success(hidden ? 'Case hidden' : 'Case visible');
-  }, [proposalId, queryClient, invalidateCaseQueries]);
 
-  const handleToggleVisibilityAll = useCallback(async () => {
-    const allHidden = caseDrafts.every(c => c.is_hidden);
-    const newHidden = !allHidden;
-    await queryClient.cancelQueries({ queryKey: ['case-drafts-management', proposalId] });
-    // Optimistic update
-    queryClient.setQueryData<CaseDraft[]>(['case-drafts-management', proposalId], old =>
-      (old || []).map(c => ({ ...c, is_hidden: newHidden }))
-    );
-    const { error } = await supabase
-      .from('case_drafts')
-      .update({ is_hidden: newHidden } as any)
-      .eq('proposal_id', proposalId);
-    if (error) {
-      toast.error('Failed to update visibility');
-      invalidateCaseQueries();
-      return;
-    }
-    invalidateCaseQueries();
-    toast.success(newHidden ? 'All cases hidden' : 'All cases visible');
-  }, [proposalId, queryClient, caseDrafts, invalidateCaseQueries]);
+
 
   const handleCheckboxChange = (checked: boolean) => {
     onToggleCases(checked);
@@ -832,22 +789,13 @@ export function CaseManagementCard({
                 </div>
 
                 {/* Table Header */}
-                <div className="grid grid-cols-[24px_140px_1fr_80px_20px_20px_20px] gap-x-1.5">
+                <div className="grid grid-cols-[24px_140px_1fr_80px_20px_20px] gap-x-1.5">
                   {/* Header row */}
-                  <div className="col-span-7 grid grid-cols-subgrid gap-x-1.5 text-xs font-bold text-muted-foreground border-b pb-1">
+                  <div className="col-span-6 grid grid-cols-subgrid gap-x-1.5 text-xs font-bold text-muted-foreground border-b pb-1">
                     <div />
                     <div />
                     <div>Title</div>
                     <div>{getCaseTypeLabel(proposalCaseType, proposalCustomName)} Leader</div>
-                    {isCoordinator ? (
-                      <button
-                        onClick={handleToggleVisibilityAll}
-                        className={`p-1 rounded transition-colors ${caseDrafts.length > 0 && caseDrafts.every(c => c.is_hidden) ? 'text-destructive hover:bg-destructive/10' : 'text-[#2563EB] hover:bg-blue-100'}`}
-                        title={caseDrafts.length > 0 && caseDrafts.every(c => c.is_hidden) ? 'Show all' : 'Hide all'}
-                      >
-                        {caseDrafts.length > 0 && caseDrafts.every(c => c.is_hidden) ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    ) : <div />}
                     {isCoordinator ? (
                       <button
                         onClick={handleToggleLockAll}
@@ -859,6 +807,7 @@ export function CaseManagementCard({
                     ) : <div />}
                     <div />
                   </div>
+
 
                   {/* Sortable Case List */}
                   <DndContext
@@ -878,7 +827,7 @@ export function CaseManagementCard({
                           onUpdate={handleUpdateCase}
                           onDelete={handleDeleteCase}
                           onToggleLock={handleToggleLock}
-                          onToggleVisibility={handleToggleVisibility}
+                          
                           canEdit={isCoordinator}
                         />
                       ))}
