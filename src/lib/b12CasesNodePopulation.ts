@@ -54,6 +54,124 @@ export interface PopulateCasesNodeResult {
   caseCount: number;
 }
 
+/**
+ * Stage 3a — snapshot the selected case drafts into b12_cases + b12_case_subsections.
+ * Replace strategy (mirrors b31Population for tasks): delete any existing
+ * snapshot rows for this proposal whose case_draft_id is in the selection,
+ * then insert fresh rows.
+ */
+async function writeCasesSnapshot(proposalId: string, caseIds: string[]): Promise<void> {
+  if (caseIds.length === 0) return;
+
+  const [{ data: caseRows }, { data: templates }] = await Promise.all([
+    supabase
+      .from('case_drafts')
+      .select(
+        'id, number, case_type, custom_type_name, short_name, title, color, lead_participant_id, order_index, subsection_content',
+      )
+      .in('id', caseIds),
+    supabase
+      .from('case_subsection_templates')
+      .select('key, heading, order_index')
+      .eq('proposal_id', proposalId)
+      .order('order_index'),
+  ]);
+
+  const drafts = (caseRows || []) as any[];
+  const tmpls = (templates || []) as { key: string; heading: string; order_index: number }[];
+
+  // Replace existing snapshot rows for the selected drafts.
+  await supabase
+    .from('b12_cases')
+    .delete()
+    .eq('proposal_id', proposalId)
+    .in('case_draft_id', caseIds);
+
+  for (const d of drafts) {
+    const { data: inserted, error: insErr } = await supabase
+      .from('b12_cases')
+      .insert({
+        proposal_id: proposalId,
+        case_draft_id: d.id,
+        number: d.number,
+        case_type: d.case_type,
+        custom_type_name: d.custom_type_name,
+        short_name: d.short_name,
+        title: d.title,
+        color: d.color,
+        lead_participant_id: d.lead_participant_id,
+        order_index: d.order_index,
+      })
+      .select('id')
+      .single();
+    if (insErr || !inserted) continue;
+
+    const subContent: Record<string, string> = (d.subsection_content || {}) as any;
+    const subRows = tmpls.map((t, i) => ({
+      b12_case_id: inserted.id,
+      subsection_key: t.key,
+      heading: t.heading,
+      body: subContent[t.key] || '',
+      order_index: i,
+    }));
+    if (subRows.length > 0) {
+      await supabase.from('b12_case_subsections').insert(subRows);
+    }
+  }
+}
+
+/**
+ * Stage 3a — return true if the snapshot for the given case ids differs from
+ * what a fresh populate would produce (i.e. the user has edited B1.2 since
+ * last populate). If no snapshot exists yet for a selected id, that counts
+ * as "no edits to lose" for that id (fresh populate is silent).
+ */
+export async function hasSnapshotEdits(proposalId: string, caseIds: string[]): Promise<boolean> {
+  if (caseIds.length === 0) return false;
+
+  const [{ data: snapRows }, { data: caseRows }, { data: templates }] = await Promise.all([
+    supabase
+      .from('b12_cases')
+      .select(
+        'id, case_draft_id, title, short_name, lead_participant_id, b12_case_subsections(subsection_key, body)',
+      )
+      .eq('proposal_id', proposalId)
+      .in('case_draft_id', caseIds),
+    supabase
+      .from('case_drafts')
+      .select('id, title, short_name, lead_participant_id, subsection_content')
+      .in('id', caseIds),
+    supabase
+      .from('case_subsection_templates')
+      .select('key')
+      .eq('proposal_id', proposalId),
+  ]);
+
+  const snapshots = (snapRows || []) as any[];
+  if (snapshots.length === 0) return false; // nothing to overwrite
+
+  const draftsById = new Map<string, any>((caseRows || []).map((c: any) => [c.id, c]));
+  const tmplKeys = ((templates || []) as any[]).map((t) => t.key);
+
+  for (const snap of snapshots) {
+    const draft = draftsById.get(snap.case_draft_id);
+    if (!draft) return true; // draft gone but snapshot exists → user-visible mismatch
+    if ((snap.title || '') !== (draft.title || '')) return true;
+    if ((snap.short_name || '') !== (draft.short_name || '')) return true;
+    if ((snap.lead_participant_id || null) !== (draft.lead_participant_id || null)) return true;
+
+    const snapSubs: Record<string, string> = {};
+    for (const s of snap.b12_case_subsections || []) snapSubs[s.subsection_key] = s.body || '';
+    const draftSubs: Record<string, string> = (draft.subsection_content || {}) as any;
+
+    for (const k of tmplKeys) {
+      if ((snapSubs[k] || '') !== (draftSubs[k] || '')) return true;
+    }
+  }
+  return false;
+}
+
+
 export async function populateCasesNodeToB12(
   proposalId: string,
   options: PopulateCasesNodeOptions,
