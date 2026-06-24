@@ -145,11 +145,11 @@ interface SortableCaseRowProps {
   onUpdate: (id: string, updates: Partial<CaseDraft>) => void;
   onDelete: (id: string) => void;
   onToggleLock: (id: string, locked: boolean) => void;
-  onToggleVisibility: (id: string, hidden: boolean) => void;
   canEdit: boolean;
 }
 
-function SortableCaseRow({ caseItem, participants, casePrefix, includeNumber, includeAbbreviation, onUpdate, onDelete, onToggleLock, onToggleVisibility, canEdit }: SortableCaseRowProps) {
+function SortableCaseRow({ caseItem, participants, casePrefix, includeNumber, includeAbbreviation, onUpdate, onDelete, onToggleLock, canEdit }: SortableCaseRowProps) {
+
   const [leadOpen, setLeadOpen] = useState(false);
   const [localShortName, setLocalShortName] = useState(caseItem.short_name || '');
   const [localTitle, setLocalTitle] = useState(caseItem.title || '');
