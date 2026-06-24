@@ -861,7 +861,7 @@ export function CaseManagementCard({
                           onUpdate={handleUpdateCase}
                           onDelete={handleDeleteCase}
                           onToggleLock={handleToggleLock}
-                          onToggleVisibility={handleToggleVisibility}
+                          
                           canEdit={isCoordinator}
                         />
                       ))}
