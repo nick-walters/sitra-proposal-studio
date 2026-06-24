@@ -693,42 +693,8 @@ export function CaseManagementCard({
     toast.success(newLocked ? 'All cases locked' : 'All cases unlocked');
   }, [user, proposalId, queryClient, caseDrafts, invalidateCaseQueries]);
 
-  const handleToggleVisibility = useCallback(async (id: string, hidden: boolean) => {
-    await queryClient.cancelQueries({ queryKey: ['case-drafts-management', proposalId] });
-    queryClient.setQueryData<CaseDraft[]>(['case-drafts-management', proposalId], old =>
-      (old || []).map(c => c.id === id ? { ...c, is_hidden: hidden } : c)
-    );
-    const { error } = await supabase
-      .from('case_drafts')
-      .update({ is_hidden: hidden } as any)
-      .eq('id', id);
-    if (error) {
-      toast.error('Failed to update visibility');
-    }
-    invalidateCaseQueries();
-    if (!error) toast.success(hidden ? 'Case hidden' : 'Case visible');
-  }, [proposalId, queryClient, invalidateCaseQueries]);
 
-  const handleToggleVisibilityAll = useCallback(async () => {
-    const allHidden = caseDrafts.every(c => c.is_hidden);
-    const newHidden = !allHidden;
-    await queryClient.cancelQueries({ queryKey: ['case-drafts-management', proposalId] });
-    // Optimistic update
-    queryClient.setQueryData<CaseDraft[]>(['case-drafts-management', proposalId], old =>
-      (old || []).map(c => ({ ...c, is_hidden: newHidden }))
-    );
-    const { error } = await supabase
-      .from('case_drafts')
-      .update({ is_hidden: newHidden } as any)
-      .eq('proposal_id', proposalId);
-    if (error) {
-      toast.error('Failed to update visibility');
-      invalidateCaseQueries();
-      return;
-    }
-    invalidateCaseQueries();
-    toast.success(newHidden ? 'All cases hidden' : 'All cases visible');
-  }, [proposalId, queryClient, caseDrafts, invalidateCaseQueries]);
+
 
   const handleCheckboxChange = (checked: boolean) => {
     onToggleCases(checked);
