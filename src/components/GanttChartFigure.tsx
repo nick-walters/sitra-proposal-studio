@@ -98,6 +98,7 @@ export function GanttChartFigure({
   });
 
   // Fetch wp_drafts with their tasks, deliverables, and milestones dynamically
+  // (live from source tables — no snapshot layer).
   const { data: wpDraftsData } = useQuery({
     queryKey: ['wp-drafts-gantt', proposalId],
     queryFn: async () => {
@@ -118,14 +119,11 @@ export function GanttChartFigure({
           .select('id, wp_draft_id, number, title, start_month, end_month')
           .order('order_index'),
         supabase
-          .from('b31_deliverables')
-          .select('id, wp_number, number, name, due_month, task_id, type, dissemination_level, lead_participant_id')
-          .eq('proposal_id', proposalId),
+          .from('wp_draft_deliverables')
+          .select('id, wp_draft_id, number, title, due_month, task_id, type, dissemination_level, responsible_participant_id'),
         supabase
-          .from('b31_milestones')
-          .select('id, number, name, due_month, task_id, wps')
-          .eq('proposal_id', proposalId)
-          .order('number'),
+          .from('wp_draft_milestones')
+          .select('id, wp_draft_id, number, title, due_month, related_wps'),
         supabase
           .from('participants')
           .select('id, organisation_short_name, participant_number')
@@ -137,10 +135,12 @@ export function GanttChartFigure({
       if (msError) throw msError;
       if (partError) throw partError;
 
-      const wpIds = new Set(wps!.map(wp => wp.id));
+      const wpIds = new Set((wps || []).map(wp => wp.id));
       const filteredTasks = (tasks || []).filter(t => wpIds.has(t.wp_draft_id));
+      const filteredDels = (deliverables || []).filter(d => wpIds.has(d.wp_draft_id));
+      const filteredMs = (msData || []).filter(m => wpIds.has(m.wp_draft_id));
 
-      return { wps: wps!, tasks: filteredTasks, deliverables: deliverables || [], milestones: msData || [], participants: participants || [] };
+      return { wps: wps || [], tasks: filteredTasks, deliverables: filteredDels, milestones: filteredMs, participants: participants || [] };
     },
   });
 
@@ -150,16 +150,16 @@ export function GanttChartFigure({
     const { wps, tasks, deliverables, milestones: msRows, participants } = wpDraftsData;
 
     const partMap = new Map(participants.map(p => [p.id, p.organisation_short_name || `P${p.participant_number}`]));
+    const wpNumberById = new Map(wps.map(wp => [wp.id, wp.number]));
 
     const workPackages: WorkPackage[] = wps.map((wp) => {
       const wpTasks = tasks.filter(t => t.wp_draft_id === wp.id);
-      const wpDeliverables = deliverables.filter(d => d.wp_number === wp.number);
+      const wpDeliverables = deliverables.filter(d => d.wp_draft_id === wp.id);
       const wpMilestones = msRows.filter(m => {
-        // Milestones linked to tasks in this WP
-        if (m.task_id && wpTasks.some(t => t.id === m.task_id)) return true;
-        // Milestones with WPs field containing this WP number
-        if (!m.task_id && m.wps) {
-          const wpNums = String(m.wps).split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
+        // Source has no task_id linkage; rely on wp_draft_id or related_wps.
+        if (m.wp_draft_id === wp.id) return true;
+        if (m.related_wps) {
+          const wpNums = String(m.related_wps).split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
           return wpNums.includes(wp.number);
         }
         return false;
@@ -169,6 +169,11 @@ export function GanttChartFigure({
       const taskEndMonths = wpTasks.filter(t => t.end_month != null).map(t => t.end_month!);
       const startMonth = taskStartMonths.length > 0 ? Math.min(...taskStartMonths) : null;
       const endMonth = taskEndMonths.length > 0 ? Math.max(...taskEndMonths) : null;
+
+      const formatDelNumber = (d: { wp_draft_id: string; number: number }) => {
+        const wpNum = wpNumberById.get(d.wp_draft_id) ?? wp.number;
+        return `D${wpNum}.${d.number}`;
+      };
 
       const mappedTasks = wpTasks
         .filter(t => t.start_month != null && t.end_month != null)
@@ -181,32 +186,24 @@ export function GanttChartFigure({
           endMonth: t.end_month!,
           deliverables: wpDeliverables
             .filter(d => d.task_id === t.id && d.due_month != null)
-            .map(d => ({ number: d.number, name: d.name, month: d.due_month!, type: d.type || undefined, disseminationLevel: d.dissemination_level || undefined, leadShortName: d.lead_participant_id ? partMap.get(d.lead_participant_id) : undefined })),
+            .map(d => ({ number: formatDelNumber(d), name: d.title || '', month: d.due_month!, type: d.type || undefined, disseminationLevel: d.dissemination_level || undefined, leadShortName: d.responsible_participant_id ? partMap.get(d.responsible_participant_id) : undefined })),
           milestones: wpMilestones
-            .filter(m => m.task_id === t.id && m.due_month != null)
-            .map(m => {
-              const taskDel = wpDeliverables.find(d => d.task_id === t.id && d.lead_participant_id);
-              const leadName = taskDel?.lead_participant_id ? partMap.get(taskDel.lead_participant_id) : undefined;
-              return { number: m.number, name: m.name, month: m.due_month!, leadShortName: leadName };
-            }),
+            .filter(m => m.wp_draft_id === wp.id && m.due_month != null)
+            .map(m => ({ number: m.number, name: m.title || '', month: m.due_month!, leadShortName: undefined as string | undefined })),
         }));
 
-      // Attach unassigned deliverables/milestones (no task_id) to the last task, or create a virtual task
+      // Attach unassigned deliverables/milestones to the last task, or a virtual task
       const unassignedDels = wpDeliverables
         .filter(d => !d.task_id && d.due_month != null)
-        .map(d => ({ number: d.number, name: d.name, month: d.due_month!, type: d.type || undefined, disseminationLevel: d.dissemination_level || undefined, leadShortName: d.lead_participant_id ? partMap.get(d.lead_participant_id) : undefined }));
-      const unassignedMs = wpMilestones
-        .filter(m => !m.task_id && m.due_month != null)
-        .map(m => ({ number: m.number, name: m.name, month: m.due_month!, leadShortName: undefined as string | undefined }));
+        .map(d => ({ number: formatDelNumber(d), name: d.title || '', month: d.due_month!, type: d.type || undefined, disseminationLevel: d.dissemination_level || undefined, leadShortName: d.responsible_participant_id ? partMap.get(d.responsible_participant_id) : undefined }));
+      const unassignedMs: { number: number; name: string; month: number; leadShortName: string | undefined }[] = [];
 
       if (unassignedDels.length > 0 || unassignedMs.length > 0) {
         if (mappedTasks.length > 0) {
-          // Attach to last task
           const lastTask = mappedTasks[mappedTasks.length - 1];
           lastTask.deliverables = [...(lastTask.deliverables || []), ...unassignedDels];
           lastTask.milestones = [...(lastTask.milestones || []), ...unassignedMs];
         } else {
-          // Create a virtual task spanning the WP to hold the bubbles
           const wpStart = startMonth ?? 1;
           const wpEnd = endMonth ?? (startMonth ?? 1);
           mappedTasks.push({
@@ -235,7 +232,7 @@ export function GanttChartFigure({
 
     const msMapped: Milestone[] = msRows
       .filter(m => m.due_month != null)
-      .map(m => ({ id: m.id, number: m.number, name: m.name, month: m.due_month! }));
+      .map(m => ({ id: m.id, number: m.number, name: m.title || '', month: m.due_month! }));
 
     return { workPackages, milestones: msMapped };
   }, [wpDraftsData]);

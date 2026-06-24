@@ -153,21 +153,8 @@ function parseGuidelineContent(content: string): React.ReactNode {
   );
 }
 
-function SectionLockBanner({
-  label, canOverride, overridden, onToggle,
-}: { label: string; canOverride: boolean; overridden: boolean; onToggle: () => void }) {
-  return (
-    <div className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-amber-200 bg-amber-50 text-amber-900 text-xs my-2">
-      <Lock className="w-3.5 h-3.5 shrink-0" />
-      <span className="flex-1">{label}{overridden && ' Editing temporarily enabled — changes will not flow to B3.1 until you press Populate again.'}</span>
-      {canOverride && (
-        <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={onToggle}>
-          {overridden ? 'Re-lock' : 'Override'}
-        </Button>
-      )}
-    </div>
-  );
-}
+
+
 
 export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordinator = false, projectDuration = 36 }: WPDraftEditorProps) {
   const {
@@ -316,29 +303,8 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
     return false;
   }, [canEditProp, isLocked, isCoordinator, lockWarningDismissed]);
 
-  // Per-section B3.1 populate locks. Each `b31_populated_*` flag set to true
-  // means that section has been pushed to B3.1 and the WP draft is the workshop
-  // copy — locked by default. Coordinators+ can override per section for the
-  // current session only (no DB write); a refresh re-locks.
-  type SectionKey = 'objectives' | 'description' | 'tasks' | 'deliverables' | 'milestones' | 'risks';
-  const populated = {
-    objectives: (wpDraft as any)?.b31_populated_objectives === true,
-    description: (wpDraft as any)?.b31_populated_description === true,
-    tasks: (wpDraft as any)?.b31_populated_tasks === true,
-    deliverables: (wpDraft as any)?.b31_populated_deliverables === true,
-    milestones: (wpDraft as any)?.b31_populated_milestones === true,
-    risks: (wpDraft as any)?.b31_populated_risks === true,
-  } as Record<SectionKey, boolean>;
-  const [overrideSections, setOverrideSections] = useState<Set<SectionKey>>(new Set());
-  useEffect(() => { setOverrideSections(new Set()); }, [wpId]);
-  const isSectionLocked = (key: SectionKey) => populated[key] && !overrideSections.has(key);
-  const toggleOverride = (key: SectionKey) => {
-    setOverrideSections(prev => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key); else next.add(key);
-      return next;
-    });
-  };
+  // Populate/snapshot system removed — WP draft sections are no longer locked
+  // by populate flags. B3.1 reads live from the source tables.
 
 
   const [participants, setParticipants] = useState<ParticipantSummary[]>([]);
@@ -781,10 +747,10 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
     }
 
     const recolorInContainer = async () => {
-      // Build taskId → wpColor map
+      // Build taskId → wpColor map (live from source: wp_draft_tasks)
       const { data: tasks } = await supabase
-        .from('b31_tasks')
-        .select('id, number, wp_draft_id')
+        .from('wp_draft_tasks')
+        .select('id, wp_draft_id')
         .in('wp_draft_id', wpDrafts.map(w => w.id));
 
       const taskColorMap = new Map<string, string>();
@@ -795,16 +761,17 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
         }
       }
 
-      // Build deliverableId → wpColor map
+      // Build deliverableId → wpColor map (live from source: wp_draft_deliverables)
       const { data: deliverables } = await supabase
-        .from('b31_deliverables')
-        .select('id, wp_number')
-        .eq('proposal_id', proposalId);
+        .from('wp_draft_deliverables')
+        .select('id, wp_draft_id')
+        .in('wp_draft_id', wpDrafts.map(w => w.id));
 
       const delColorMap = new Map<string, string>();
       if (deliverables) {
         for (const d of deliverables) {
-          if (d.wp_number) delColorMap.set(d.id, wpColorByNumber.get(d.wp_number) || '#73C92D');
+          const wp = wpDrafts.find(w => w.id === d.wp_draft_id);
+          if (wp) delColorMap.set(d.id, wp.color || '#73C92D');
         }
       }
 
@@ -1248,24 +1215,6 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
         />
 
         {/* WP Table (Objectives & Tasks) */}
-        {(populated.objectives || populated.description || populated.tasks) && (
-          <SectionLockBanner
-            label={
-              populated.tasks && populated.objectives
-                ? 'Objectives and tasks have been populated to Part B3.1 and are now locked here.'
-                : populated.tasks
-                  ? 'Tasks have been populated to Part B3.1 and are now locked here.'
-                  : 'Objectives have been populated to Part B3.1 and are now locked here.'
-            }
-            canOverride={isCoordinator}
-            overridden={overrideSections.has('tasks')}
-            onToggle={() => {
-              toggleOverride('tasks');
-              toggleOverride('objectives');
-              toggleOverride('description');
-            }}
-          />
-        )}
         <WPTableSection
           wpNumber={wpDraft.number}
           wpColor={effectiveColor}
@@ -1281,7 +1230,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
           onTaskParticipantsChange={setTaskParticipants}
           onTaskReorder={reorderTasks}
           onTaskMove={moveTaskToWP}
-          readOnly={readOnly || ((isSectionLocked('tasks') || isSectionLocked('objectives') || isSectionLocked('description')))}
+          readOnly={readOnly}
           projectDuration={projectDuration}
           hideToolbar={true}
           allWpDrafts={wpDrafts}
@@ -1289,14 +1238,6 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
         />
 
         {/* Deliverables */}
-        {populated.deliverables && (
-          <SectionLockBanner
-            label="Deliverables have been populated to Part B3.1 and are now locked here."
-            canOverride={isCoordinator}
-            overridden={overrideSections.has('deliverables')}
-            onToggle={() => toggleOverride('deliverables')}
-          />
-        )}
         <WPDeliverablesTable
           wpNumber={wpDraft.number}
           deliverables={wpDraft.deliverables || []}
@@ -1306,7 +1247,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
           onDeliverableDelete={deleteDeliverable}
           onDeliverableReorder={reorderDeliverables}
           onDeliverableMove={moveDeliverableToWP}
-          readOnly={readOnly || isSectionLocked('deliverables')}
+          readOnly={readOnly}
           projectDuration={projectDuration}
           allWpDrafts={wpDrafts}
           currentWpDraftId={wpDraft.id}
@@ -1324,14 +1265,6 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
         />
 
         {/* Milestones */}
-        {populated.milestones && (
-          <SectionLockBanner
-            label="Milestones have been populated to Part B3.1 and are now locked here."
-            canOverride={isCoordinator}
-            overridden={overrideSections.has('milestones')}
-            onToggle={() => toggleOverride('milestones')}
-          />
-        )}
         <WPMilestonesTable
           wpNumber={wpDraft.number}
           milestones={wpDraft.milestones || []}
@@ -1339,20 +1272,12 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
           onMilestoneAdd={addMilestone}
           onMilestoneDelete={deleteMilestone}
           onMilestoneReorder={reorderMilestones}
-          readOnly={readOnly || isSectionLocked('milestones')}
+          readOnly={readOnly}
           projectDuration={projectDuration}
           allWpDrafts={wpDrafts}
         />
 
         {/* Risks */}
-        {populated.risks && (
-          <SectionLockBanner
-            label="Risks have been populated to Part B3.1 and are now locked here."
-            canOverride={isCoordinator}
-            overridden={overrideSections.has('risks')}
-            onToggle={() => toggleOverride('risks')}
-          />
-        )}
         <WPRisksTable
           wpNumber={wpDraft.number}
           risks={wpDraft.risks || []}
@@ -1360,7 +1285,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
           onRiskAdd={addRisk}
           onRiskDelete={deleteRisk}
           onRiskReorder={reorderRisks}
-          readOnly={readOnly || isSectionLocked('risks')}
+          readOnly={readOnly}
           allWpDrafts={wpDrafts}
         />
 

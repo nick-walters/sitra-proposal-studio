@@ -276,17 +276,17 @@ async function loadEvaluationContext(serviceClient: any, evaluationId: string): 
       .eq("proposal_id", evaluation.proposal_id)
       .order("number"),
     serviceClient
-      .from("b31_deliverables")
-      .select("number, name, description, due_month, type, dissemination_level")
-      .eq("proposal_id", evaluation.proposal_id),
+      .from("wp_draft_deliverables")
+      .select("number, title, description, due_month, type, dissemination_level, wp_drafts!inner(proposal_id)")
+      .eq("wp_drafts.proposal_id", evaluation.proposal_id),
     serviceClient
-      .from("b31_milestones")
-      .select("number, name, due_month, means_of_verification, wps")
-      .eq("proposal_id", evaluation.proposal_id),
+      .from("wp_draft_milestones")
+      .select("number, title, due_month, means_of_verification, related_wps, wp_drafts!inner(proposal_id)")
+      .eq("wp_drafts.proposal_id", evaluation.proposal_id),
     serviceClient
-      .from("b31_risks")
-      .select("number, description, mitigation, likelihood, severity, wps")
-      .eq("proposal_id", evaluation.proposal_id),
+      .from("wp_draft_risks")
+      .select("number, title, mitigation, likelihood, severity, related_wps, wp_drafts!inner(proposal_id)")
+      .eq("wp_drafts.proposal_id", evaluation.proposal_id),
     serviceClient
       .from("budget_rows")
       .select("participant_id, personnel_costs, subcontracting_costs, purchase_equipment, purchase_other_goods, purchase_travel, requested_eu_contribution")
@@ -421,13 +421,13 @@ WORK PACKAGES:
 ${wpDrafts.map((wp: any) => `WP${wp.number} ${wp.short_name || ""} ${wp.title || ""}\nObjectives: ${stripHtml(wp.objectives).slice(0, 600)}\nMethodology: ${stripHtml(wp.methodology).slice(0, 800)}`).join("\n\n")}
 
 DELIVERABLES:
-${deliverables.map((deliverable: any) => `- D${deliverable.number} ${deliverable.name} (M${deliverable.due_month}, ${deliverable.type || "?"}, ${deliverable.dissemination_level || "?"})`).join("\n")}
+${deliverables.map((deliverable: any) => `- D${deliverable.number} ${deliverable.title || ""} (M${deliverable.due_month}, ${deliverable.type || "?"}, ${deliverable.dissemination_level || "?"})`).join("\n")}
 
 MILESTONES:
-${milestones.map((milestone: any) => `- MS${milestone.number} ${milestone.name} (M${milestone.due_month}, WPs: ${milestone.wps})`).join("\n")}
+${milestones.map((milestone: any) => `- MS${milestone.number} ${milestone.title || ""} (M${milestone.due_month}, WPs: ${milestone.related_wps || ""})`).join("\n")}
 
 RISKS:
-${risks.map((risk: any) => `- R${risk.number} ${stripHtml(risk.description)} | Mitigation: ${stripHtml(risk.mitigation)} | L:${risk.likelihood} S:${risk.severity}`).join("\n")}
+${risks.map((risk: any) => `- R${risk.number} ${stripHtml(risk.title)} | Mitigation: ${stripHtml(risk.mitigation)} | L:${risk.likelihood} S:${risk.severity}`).join("\n")}
 
 BUDGET (sum requested EU contribution): €${budget.reduce((sum: number, row: any) => sum + Number(row.requested_eu_contribution || 0), 0).toLocaleString()}
 `;

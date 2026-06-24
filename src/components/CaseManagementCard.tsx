@@ -48,10 +48,9 @@ import {
 } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { FlaskConical, GripVertical, Plus, Trash2, Lock, LockOpen, Settings, FileOutput } from 'lucide-react';
+import { FlaskConical, GripVertical, Plus, Trash2, Lock, LockOpen, Settings } from 'lucide-react';
 import { CaseSubsectionTemplateDialog } from '@/components/CaseSubsectionTemplateDialog';
 
-import { populateCasesNodeToB12, hasSnapshotEdits } from '@/lib/b12CasesNodePopulation';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
@@ -355,42 +354,6 @@ export function CaseManagementCard({
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [subsectionsDialogOpen, setSubsectionsDialogOpen] = useState(false);
-  const [populating, setPopulating] = useState(false);
-  const [populateDialogOpen, setPopulateDialogOpen] = useState(false);
-  const [selectedPopulateIds, setSelectedPopulateIds] = useState<Set<string>>(new Set());
-  const [replaceWarningOpen, setReplaceWarningOpen] = useState(false);
-
-  const runPopulate = async (ids: string[]) => {
-    try {
-      setPopulating(true);
-      const res = await populateCasesNodeToB12(proposalId, { caseIds: ids });
-      toast.success(`Populated ${res.insertedOrUpdated} case${res.insertedOrUpdated === 1 ? '' : 's'} into B1.2.`);
-      invalidateCaseQueries();
-      queryClient.invalidateQueries({ queryKey: ['section-content', proposalId, 'b1-2'] });
-      queryClient.invalidateQueries({ queryKey: ['b12-cases', proposalId] });
-      setPopulateDialogOpen(false);
-    } catch (e: any) {
-      console.error(e);
-      toast.error(`Populate failed: ${e?.message || 'unknown error'}`);
-    } finally {
-      setPopulating(false);
-    }
-  };
-
-  const handlePopulateClick = async () => {
-    const ids = Array.from(selectedPopulateIds);
-    if (ids.length === 0) return;
-    try {
-      const dirty = await hasSnapshotEdits(proposalId, ids);
-      if (dirty) {
-        setReplaceWarningOpen(true);
-        return;
-      }
-    } catch (e) {
-      console.warn('Snapshot diff check failed; proceeding without warning', e);
-    }
-    runPopulate(ids);
-  };
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -835,7 +798,7 @@ export function CaseManagementCard({
                   </DndContext>
                 </div>
 
-                {/* Action buttons row: left = Add + Populate; right = Edit subsections */}
+                {/* Action buttons row: left = Add; right = Edit subsections */}
                 {isCoordinator && (
                   <div className="pt-2 flex items-center justify-between gap-2 flex-wrap">
                     <div className="flex items-center gap-2">
@@ -847,19 +810,6 @@ export function CaseManagementCard({
                       >
                         <Plus className="w-4 h-4 mr-1" />
                         Add case
-                      </Button>
-                      <Button
-                        variant="default"
-                        size="sm"
-                        disabled={caseDrafts.length === 0 || populating}
-                        onClick={() => {
-                          if (caseDrafts.length === 0) return;
-                          setSelectedPopulateIds(new Set(caseDrafts.map((c) => c.id)));
-                          setPopulateDialogOpen(true);
-                        }}
-                      >
-                        
-                        {populating ? 'Populating\u2026' : 'Populate Part B1.2'}
                       </Button>
                     </div>
                     <Button
@@ -884,93 +834,6 @@ export function CaseManagementCard({
           canEdit={isCoordinator}
         />
 
-        {/* Populate to B1.2 dialog — choose which cases to include */}
-        <Dialog open={populateDialogOpen} onOpenChange={setPopulateDialogOpen}>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Populate B1.2 with cases</DialogTitle>
-              <DialogDescription>
-                Select the cases to insert into the B1.2 cases table. Selected cases will be locked from further editing in the case manager (coordinators can override).
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-1.5 max-h-[50vh] overflow-y-auto py-2">
-              <div className="flex items-center gap-2 pb-1 border-b mb-1">
-                <Checkbox
-                  id="populate-all"
-                  checked={caseDrafts.length > 0 && selectedPopulateIds.size === caseDrafts.length}
-                  onCheckedChange={(checked) => {
-                    setSelectedPopulateIds(
-                      checked ? new Set(caseDrafts.map((c) => c.id)) : new Set(),
-                    );
-                  }}
-                />
-                <Label htmlFor="populate-all" className="text-xs font-bold cursor-pointer">Select all</Label>
-              </div>
-              {caseDrafts.map((c, idx) => {
-                const label = getCaseBubbleLabel(casePrefix, c.number, c.short_name);
-                const checked = selectedPopulateIds.has(c.id);
-                return (
-                  <div key={c.id}>
-                    {idx > 0 && <div className="border-t my-1" />}
-                    <div className="flex items-center gap-2 py-0.5">
-                      <Checkbox
-                        id={`populate-${c.id}`}
-                        checked={checked}
-                        onCheckedChange={(v) => {
-                          setSelectedPopulateIds((prev) => {
-                            const next = new Set(prev);
-                            if (v) next.add(c.id); else next.delete(c.id);
-                            return next;
-                          });
-                        }}
-                      />
-                      <Label htmlFor={`populate-${c.id}`} className="text-sm cursor-pointer flex-1">
-                        <span className="font-bold">{label}</span>
-                        {c.title && <span className="text-muted-foreground"> &mdash; {c.title}</span>}
-                      </Label>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" size="sm" onClick={() => setPopulateDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button
-                variant="default"
-                size="sm"
-                disabled={selectedPopulateIds.size === 0 || populating}
-                onClick={handlePopulateClick}
-              >
-                {populating ? 'Populating\u2026' : `Populate ${selectedPopulateIds.size} case${selectedPopulateIds.size === 1 ? '' : 's'}`}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        <AlertDialog open={replaceWarningOpen} onOpenChange={setReplaceWarningOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Replace cases in B1.2?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Re-populating will replace the cases in B1.2 with the current case drafts. Any edits made to the cases in B1.2 will be lost. Continue?
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                onClick={() => {
-                  setReplaceWarningOpen(false);
-                  runPopulate(Array.from(selectedPopulateIds));
-                }}
-              >
-                Replace
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
       </CardContent>
     </Card>
   );

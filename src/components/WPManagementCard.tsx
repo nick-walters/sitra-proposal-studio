@@ -35,13 +35,12 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { WPColorPicker } from '@/components/WPColorPicker';
 
-import { Layers, GripVertical, Plus, AlertTriangle, Trash2, Paintbrush, Lock, LockOpen, Eye, EyeOff } from 'lucide-react';
+import { Layers, GripVertical, Plus, Trash2, Paintbrush, Lock, LockOpen, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useWPColorPalette } from '@/hooks/useWPColorPalette';
 import { useWPThemes, WPTheme } from '@/hooks/useWPThemes';
-import { PopulateB31Dialog } from '@/components/PopulateB31Dialog';
 import { toast } from 'sonner';
 import type { ParticipantSummary } from '@/types/proposal';
 
@@ -324,7 +323,7 @@ interface WPManagementCardProps {
 export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = true, onDraftVisibilityChange, onSaveEvent }: WPManagementCardProps) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const [populateDialogOpen, setPopulateDialogOpen] = useState(false);
+  
   
   
   
@@ -452,42 +451,10 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
         if (error) throw error;
       }
 
-      // Third pass: update b31_deliverables.wp_number for deliverables linked via tasks
-      // Fetch all tasks for these WPs to build wp_draft_id → new number map
-      const wpIdToNumber = new Map(updates.map(u => [u.id, u.number]));
-      const { data: tasks } = await supabase
-        .from('wp_draft_tasks')
-        .select('id, wp_draft_id')
-        .in('wp_draft_id', updates.map(u => u.id));
-      
-      if (tasks && tasks.length > 0) {
-        // Build task_id → new wp_number map
-        const taskWpMap = new Map(tasks.map(t => [t.id, wpIdToNumber.get(t.wp_draft_id)!]));
-        
-        // Fetch deliverables linked to these tasks
-        const { data: deliverables } = await supabase
-          .from('b31_deliverables')
-          .select('id, task_id, wp_number, number')
-          .eq('proposal_id', proposalId)
-          .not('task_id', 'is', null);
-        
-        if (deliverables) {
-          for (const del of deliverables) {
-            const newWpNum = del.task_id ? taskWpMap.get(del.task_id) : undefined;
-            if (newWpNum != null && newWpNum !== del.wp_number) {
-              // Update wp_number and also the display number string (e.g., "D2.1" → "D3.1")
-              const currentNumber = del.number || '';
-              const dotIndex = currentNumber.indexOf('.');
-              const suffix = dotIndex >= 0 ? currentNumber.substring(dotIndex) : '.X';
-              const newNumber = `D${newWpNum}${suffix}`;
-              await supabase
-                .from('b31_deliverables')
-                .update({ wp_number: newWpNum, number: newNumber })
-                .eq('id', del.id);
-            }
-          }
-        }
-      }
+      // Note: previously a third pass updated b31_deliverables.wp_number for
+      // deliverables linked via tasks. Snapshot tables have been removed, and
+      // wp_draft_deliverables.number is per-WP (display "D{wpNum}.{n}" is
+      // derived live from wp_draft_id), so no rewrite is needed.
     },
     onMutate: async (reorderedWPs) => {
       await queryClient.cancelQueries({ queryKey: ['wp-drafts-management', proposalId] });
@@ -918,36 +885,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
               <Plus className="w-4 h-4 mr-1" />
               Add WP
             </Button>
-            {/* Populate button next to palette button */}
-            {isFullProposal && isCoordinator && (
-              <Button
-                variant="default"
-                size="sm"
-                onClick={() => setPopulateDialogOpen(true)}
-              >
-                Populate Part B3.1
-              </Button>
-            )}
           </div>
-        )}
-
-        {/* Populate explanation */}
-        {isFullProposal && isCoordinator && (
-          <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/50 p-2 rounded">
-            <AlertTriangle className="w-4 h-4 text-warning shrink-0 mt-0.5" />
-            <span>
-              The populate function copies selected content from WP drafts to Part B3.1 tables. Existing entries in Part B3.1 will be replaced.
-            </span>
-          </div>
-        )}
-        
-
-        {isFullProposal && isCoordinator && (
-          <PopulateB31Dialog
-            open={populateDialogOpen}
-            onOpenChange={setPopulateDialogOpen}
-            proposalId={proposalId}
-          />
         )}
       </CardContent>
     </Card>
