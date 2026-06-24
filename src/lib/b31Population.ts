@@ -135,49 +135,115 @@ export async function populateB31(
       }
     }
 
-    // 2. Copy tasks → b31_tasks (replace existing b31_tasks for selected WPs)
+    // 2. Copy tasks → b31_tasks
+    //    Per-task upsert keyed by wp_draft_task_id. Untouched/unticked
+    //    b31_tasks rows for the WP are preserved (no per-WP wipe).
+    //    After upsert, renumber ALL b31_tasks for the WP in place,
+    //    ordered by the draft's task order, using a two-phase negative
+    //    swap to avoid any (wp_draft_id, number) uniqueness conflicts.
     for (const wp of wpDrafts) {
       const selectedTasks = wp.tasks.filter(t => selections.tasks[t.id]);
       if (selectedTasks.length === 0) continue;
       flag(wp.id, 'tasks');
 
+      // Existing rows for this WP, keyed by their draft back-link
+      const { data: existingRows } = await supabase
+        .from('b31_tasks')
+        .select('id, wp_draft_task_id')
+        .eq('wp_draft_id', wp.id);
+      const existingByDraftTask = new Map<string, string>();
+      for (const r of ((existingRows as any[]) || [])) {
+        if (r.wp_draft_task_id) existingByDraftTask.set(r.wp_draft_task_id, r.id);
+      }
 
+      for (const task of selectedTasks) {
+        const existingId = existingByDraftTask.get(task.id);
+        let rowId: string | null = null;
 
-      // Delete existing b31_tasks for this WP
-      await supabase.from('b31_tasks').delete().eq('wp_draft_id', wp.id);
-
-      // Insert new b31_tasks from draft tasks
-      for (let i = 0; i < selectedTasks.length; i++) {
-        const task = selectedTasks[i];
-        const { data: inserted } = await supabase
-          .from('b31_tasks')
-          .insert({
-            wp_draft_id: wp.id,
-            wp_draft_task_id: task.id,
-            number: i + 1,
-            title: task.title,
-            description: task.description,
-            lead_participant_id: task.lead_participant_id,
-            start_month: task.start_month,
-            end_month: task.end_month,
-            order_index: i,
-          } as any)
-          .select('id')
-          .single();
-
-        // Copy task participants
-        if (inserted && task.participants && task.participants.length > 0) {
+        if (existingId) {
           await supabase
-            .from('b31_task_participants')
-            .insert(task.participants.map(p => ({
-              task_id: inserted.id,
-              participant_id: p.participant_id,
-            })));
+            .from('b31_tasks')
+            .update({
+              title: task.title,
+              description: task.description,
+              lead_participant_id: task.lead_participant_id,
+              start_month: task.start_month,
+              end_month: task.end_month,
+            } as any)
+            .eq('id', existingId);
+          rowId = existingId;
+        } else {
+          const { data: inserted } = await supabase
+            .from('b31_tasks')
+            .insert({
+              wp_draft_id: wp.id,
+              wp_draft_task_id: task.id,
+              // Temporary negative number to avoid unique conflict before
+              // the renumber pass below. Final value assigned afterwards.
+              number: -(Date.now() % 100000) - Math.floor(Math.random() * 1000),
+              title: task.title,
+              description: task.description,
+              lead_participant_id: task.lead_participant_id,
+              start_month: task.start_month,
+              end_month: task.end_month,
+              order_index: 0,
+            } as any)
+            .select('id')
+            .single();
+          rowId = inserted?.id || null;
+        }
+
+        if (rowId) {
+          // Replace this task's participants (delete + insert)
+          await supabase.from('b31_task_participants').delete().eq('task_id', rowId);
+          if (task.participants && task.participants.length > 0) {
+            await supabase
+              .from('b31_task_participants')
+              .insert(task.participants.map(p => ({
+                task_id: rowId,
+                participant_id: p.participant_id,
+              })));
+          }
         }
 
         counts.tasks++;
       }
+
+      // Renumber all b31_tasks for this WP in place by draft order.
+      // Rows whose draft task no longer exists (orphans) go to the end,
+      // keeping their relative order stable.
+      const { data: allAfter } = await supabase
+        .from('b31_tasks')
+        .select('id, wp_draft_task_id, number')
+        .eq('wp_draft_id', wp.id);
+      const draftOrder = new Map<string, number>();
+      wp.tasks.forEach((t, i) => draftOrder.set(t.id, i));
+      const sorted = ((allAfter as any[]) || []).slice().sort((a, b) => {
+        const ai = a.wp_draft_task_id && draftOrder.has(a.wp_draft_task_id)
+          ? (draftOrder.get(a.wp_draft_task_id) as number)
+          : 10_000 + (a.number ?? 0);
+        const bi = b.wp_draft_task_id && draftOrder.has(b.wp_draft_task_id)
+          ? (draftOrder.get(b.wp_draft_task_id) as number)
+          : 10_000 + (b.number ?? 0);
+        return ai - bi;
+      });
+
+      // Phase 1: park every row at a unique negative number
+      for (let i = 0; i < sorted.length; i++) {
+        await supabase
+          .from('b31_tasks')
+          .update({ number: -(i + 1), order_index: i } as any)
+          .eq('id', sorted[i].id);
+      }
+      // Phase 2: set final positive numbers
+      for (let i = 0; i < sorted.length; i++) {
+        await supabase
+          .from('b31_tasks')
+          .update({ number: i + 1 } as any)
+          .eq('id', sorted[i].id);
+      }
     }
+
 
     // 3. Copy deliverables → b31_deliverables
     const selectedDeliverableIds = Object.entries(selections.deliverables)
