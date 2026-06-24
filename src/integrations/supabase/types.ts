@@ -3003,6 +3003,122 @@ export type Database = {
           },
         ]
       }
+      proposal_milestone_tasks: {
+        Row: {
+          created_at: string
+          id: string
+          milestone_id: string
+          wp_draft_task_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          milestone_id: string
+          wp_draft_task_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          milestone_id?: string
+          wp_draft_task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_milestone_tasks_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "proposal_milestones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_milestone_tasks_wp_draft_task_id_fkey"
+            columns: ["wp_draft_task_id"]
+            isOneToOne: false
+            referencedRelation: "wp_draft_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposal_milestone_wps: {
+        Row: {
+          created_at: string
+          id: string
+          milestone_id: string
+          wp_draft_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          milestone_id: string
+          wp_draft_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          milestone_id?: string
+          wp_draft_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_milestone_wps_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "proposal_milestones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_milestone_wps_wp_draft_id_fkey"
+            columns: ["wp_draft_id"]
+            isOneToOne: false
+            referencedRelation: "wp_drafts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposal_milestones: {
+        Row: {
+          created_at: string
+          due_month: number | null
+          id: string
+          means_of_verification: string | null
+          number: number
+          order_index: number
+          proposal_id: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          due_month?: number | null
+          id?: string
+          means_of_verification?: string | null
+          number?: number
+          order_index?: number
+          proposal_id: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          due_month?: number | null
+          id?: string
+          means_of_verification?: string | null
+          number?: number
+          order_index?: number
+          proposal_id?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_milestones_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proposal_progress: {
         Row: {
           id: string
@@ -3037,6 +3153,89 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "proposal_progress_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposal_risk_wps: {
+        Row: {
+          created_at: string
+          id: string
+          risk_id: string
+          wp_draft_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          risk_id: string
+          wp_draft_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          risk_id?: string
+          wp_draft_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_risk_wps_risk_id_fkey"
+            columns: ["risk_id"]
+            isOneToOne: false
+            referencedRelation: "proposal_risks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_risk_wps_wp_draft_id_fkey"
+            columns: ["wp_draft_id"]
+            isOneToOne: false
+            referencedRelation: "wp_drafts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposal_risks: {
+        Row: {
+          created_at: string
+          id: string
+          likelihood: string | null
+          mitigation: string | null
+          number: number
+          order_index: number
+          proposal_id: string
+          severity: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          likelihood?: string | null
+          mitigation?: string | null
+          number?: number
+          order_index?: number
+          proposal_id: string
+          severity?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          likelihood?: string | null
+          mitigation?: string | null
+          number?: number
+          order_index?: number
+          proposal_id?: string
+          severity?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_risks_proposal_id_fkey"
             columns: ["proposal_id"]
             isOneToOne: false
             referencedRelation: "proposals"
