@@ -176,15 +176,11 @@ export function GanttChartFigure({
     const workPackages: WorkPackage[] = wps.map((wp) => {
       const wpTasks = tasks.filter(t => t.wp_draft_id === wp.id);
       const wpDeliverables = deliverables.filter(d => d.wp_draft_id === wp.id);
-      const wpMilestones = msRows.filter(m => {
-        // Source has no task_id linkage; rely on wp_draft_id or related_wps.
-        if (m.wp_draft_id === wp.id) return true;
-        if (m.related_wps) {
-          const wpNums = String(m.related_wps).split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
-          return wpNums.includes(wp.number);
-        }
-        return false;
+      const wpMilestones = msRows.filter((m: any) => {
+        const ids: string[] = m._wpIds || [];
+        return ids.includes(wp.id);
       });
+
 
       const taskStartMonths = wpTasks.filter(t => t.start_month != null).map(t => t.start_month!);
       const taskEndMonths = wpTasks.filter(t => t.end_month != null).map(t => t.end_month!);
