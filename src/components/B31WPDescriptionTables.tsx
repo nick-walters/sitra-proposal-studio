@@ -378,7 +378,7 @@ function SpacerRow({ color }: { color?: string }) {
 }
 
 /* ── Inline editable text cell ── */
-function EditableText({
+export function EditableText({
   value,
   onSave,
   placeholder,
