@@ -36,8 +36,8 @@ interface CaseRow {
   heading_outcomes: string | null;
   heading_replicability: string | null;
   heading_stakeholders: string | null;
-  is_hidden: boolean | null;
 }
+
 
 interface SubsectionTemplate {
   id: string;
