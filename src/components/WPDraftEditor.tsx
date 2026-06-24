@@ -153,21 +153,8 @@ function parseGuidelineContent(content: string): React.ReactNode {
   );
 }
 
-function SectionLockBanner({
-  label, canOverride, overridden, onToggle,
-}: { label: string; canOverride: boolean; overridden: boolean; onToggle: () => void }) {
-  return (
-    <div className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-amber-200 bg-amber-50 text-amber-900 text-xs my-2">
-      <Lock className="w-3.5 h-3.5 shrink-0" />
-      <span className="flex-1">{label}{overridden && ' Editing temporarily enabled — changes will not flow to B3.1 until you press Populate again.'}</span>
-      {canOverride && (
-        <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={onToggle}>
-          {overridden ? 'Re-lock' : 'Override'}
-        </Button>
-      )}
-    </div>
-  );
-}
+
+
 
 export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordinator = false, projectDuration = 36 }: WPDraftEditorProps) {
   const {
