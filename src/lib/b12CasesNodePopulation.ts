@@ -347,5 +347,9 @@ export async function populateCasesNodeToB12(
     .update({ is_locked: true, locked_by: lockedBy, b12_populated: true } as any)
     .in('id', caseIds);
 
+  // Stage 3a: snapshot the selected case drafts into the b12_cases tables.
+  await writeCasesSnapshot(proposalId, caseIds);
+
   return { insertedOrUpdated: caseIds.length, caseCount: caseIds.length };
 }
+
