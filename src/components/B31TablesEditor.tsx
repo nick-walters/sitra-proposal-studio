@@ -1,1071 +1,389 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import DOMPurify from 'dompurify';
+import React from 'react';
 import { useQuery } from '@tanstack/react-query';
+import DOMPurify from 'dompurify';
 import { supabase } from '@/integrations/supabase/client';
-
-const B31_CELL_SANITIZE_CONFIG = {
-  ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'ul', 'ol', 'li', 'span', 'a', 'sub', 'sup'],
-  ALLOWED_ATTR: ['class', 'style', 'href', 'target', 'rel', 'data-type', 'data-id', 'data-wp-number', 'data-wp-short-name', 'data-wp-color', 'data-task-number', 'data-deliverable-number', 'data-milestone-number', 'data-participant-number', 'data-short-name', 'data-case-number', 'data-case-short-name', 'data-case-color', 'data-case-type', 'data-figure-id', 'data-table-key', 'data-ref-type', 'data-ref-id', 'data-citation-id', 'contenteditable'],
-};
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, ArrowUpDown, Settings2, Hash, CalendarDays } from 'lucide-react';
+import { EditableCaption } from '@/components/EditableCaption';
 import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
-import { useUserRole } from '@/hooks/useUserRole';
-import { DeliverableTaskMappingDialog } from './DeliverableTaskMappingDialog';
-import { MilestoneTaskMappingDialog } from './MilestoneTaskMappingDialog';
-import {
-  B31SortableTable,
-  B31Column,
-  CaptionIconButton,
-  cellStyles,
-  bubbleCellStyles,
-} from './B31SortableTable';
-import { WPBubble, RiskBadge, ParticipantBubble } from './B31Pill';
+import { RICH_TEXT_CONFIG } from '@/lib/sanitizePresets';
+import { WPBubble, ParticipantBubble, RiskBadge } from './B31Pill';
 
-interface B31TablesEditorProps {
+/**
+ * B31TablesEditor — Stage 1 read-only mirrors.
+ *
+ * The three exported tables (3.1.c deliverables, 3.1.d milestones, 3.1.e risks)
+ * are pure read-only displays of the LIVE source data in
+ * wp_draft_deliverables / wp_draft_milestones / wp_draft_risks. There are no
+ * inline edits, no dropdowns, no drag handles, no add/delete row controls.
+ */
+
+interface Props {
   proposalId: string;
 }
 
-interface WorkPackage {
-  id: string;
-  number: number;
-  title: string;
-  short_name: string;
-  color: string;
-}
+const tableCls = "w-full border-collapse font-['Times_New_Roman',Times,serif] text-[11pt]";
+const thCls = "text-left font-bold border-b border-black/30 px-2 py-1 text-[10pt] align-bottom";
+const tdCls = "border-b border-black/10 px-2 py-1 align-top";
 
-interface Participant {
-  id: string;
-  organisation_short_name: string | null;
-  organisation_name: string;
-  participant_number: number | null;
-}
-
-interface Deliverable {
-  id: string;
-  number: string;
-  name: string;
-  description: string;
-  wp_number: number | null;
-  lead_participant_id: string | null;
-  type: string | null;
-  dissemination_level: string | null;
-  due_month: number | null;
-  order_index: number;
-}
-
-interface Milestone {
-  id: string;
-  number: number;
-  name: string;
-  wps: string;
-  due_month: number | null;
-  means_of_verification: string;
-  order_index: number;
-}
-
-interface Risk {
-  id: string;
-  number: number;
-  description: string;
-  wps: string;
-  likelihood: 'L' | 'M' | 'H' | null;
-  severity: 'L' | 'M' | 'H' | null;
-  mitigation: string;
-  order_index: number;
-}
-
-// Generate month options dynamically based on project duration
-function getMonthOptions(projectDuration: number) {
-  return Array.from({ length: projectDuration }, (_, i) => ({
-    value: i + 1,
-    label: `M${String(i + 1).padStart(2, '0')}`,
-  }));
-}
-
-// Hook to fetch project duration
-function useProjectDuration(proposalId: string) {
-  const { data } = useQuery({
-    queryKey: ['proposal-duration', proposalId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('proposals')
-        .select('duration')
-        .eq('id', proposalId)
-        .single();
-      if (error) throw error;
-      return data?.duration || 36;
-    },
-  });
-  return data || 36;
-}
-
-// Risk level options with colors and sort order
-const riskLevelOptions = [
-  { value: 'H', label: 'High', borderColor: 'border-red-500', textColor: 'text-red-500', order: 0 },
-  { value: 'M', label: 'Medium', borderColor: 'border-amber-500', textColor: 'text-amber-500', order: 1 },
-  { value: 'L', label: 'Low', borderColor: 'border-green-500', textColor: 'text-green-500', order: 2 },
-];
-
-// Deliverable types
-const deliverableTypes = [
-  { value: 'R', label: 'Report' },
-  { value: 'DEM', label: 'Demonstrator' },
-  { value: 'DEC', label: 'Websites' },
-  { value: 'DATA', label: 'Data sets' },
-  { value: 'DMP', label: 'Data Management Plan' },
-  { value: 'ETHICS', label: 'Ethics' },
-  { value: 'SECURITY', label: 'Security' },
-  { value: 'OTHER', label: 'Other' },
-];
-
-// Dissemination levels
-const disseminationLevels = [
-  { value: 'PU', label: 'Public' },
-  { value: 'SEN', label: 'Sensitive' },
-  { value: 'EU-RES', label: 'EU Restricted' },
-  { value: 'EU-CON', label: 'EU Confidential' },
-  { value: 'EU-SEC', label: 'EU Secret' },
-];
-
-// Unified inline-editable cell. Replaces EditableHtml / EditableText / EditableTextInline.
-// - format='html' reads/writes innerHTML (preserves embedded chips); 'text' uses textContent.
-// - as='div' is a block cell with pre-wrap; as='span' flows inline.
-// - inheritFont skips the Times New Roman 11pt override (used inside styled chips).
-// - 500ms debounce on input; blur flushes pending edit only if value changed since last write.
-// - Prop value re-syncs only when not focused AND value differs from lastValueRef.
-interface EditableCellProps {
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  /** 'html' preserves innerHTML (for rich content like WP chips). 'text' uses textContent. Default: 'text' */
-  format?: 'html' | 'text';
-  /** 'div' for block-level cells, 'span' for inline. Default: 'div' */
-  as?: 'div' | 'span';
-  /** Pass through extra className */
-  className?: string;
-  /** Inherit font from parent instead of applying Times New Roman 11pt */
-  inheritFont?: boolean;
-}
-
-function EditableCell({
-  value,
-  onChange,
-  placeholder,
-  format = 'text',
-  as = 'div',
-  className = '',
-  inheritFont = false,
-}: EditableCellProps) {
-  const elRef = useRef<HTMLElement | null>(null);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const isFocused = useRef(false);
-  const lastValueRef = useRef(value);
-
-  const readValue = useCallback((): string => {
-    const el = elRef.current;
-    if (!el) return '';
-    return format === 'html' ? el.innerHTML : (el.textContent || '');
-  }, [format]);
-
-  const writeValue = useCallback((val: string) => {
-    const el = elRef.current;
-    if (!el) return;
-    if (format === 'html') el.innerHTML = DOMPurify.sanitize(val || '', B31_CELL_SANITIZE_CONFIG);
-    else el.textContent = val || '';
-  }, [format]);
-
-  // Mount: seed contents once.
-  useEffect(() => {
-    writeValue(value);
-    lastValueRef.current = value;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Re-sync from prop updates only when not focused and value diverged from last write.
-  useEffect(() => {
-    if (!isFocused.current && elRef.current && value !== lastValueRef.current) {
-      writeValue(value);
-      lastValueRef.current = value;
-    }
-  }, [value, writeValue]);
-
-  // Cleanup pending debounce on unmount.
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    };
-  }, []);
-
-  const handleInput = () => {
-    const next = readValue();
-    lastValueRef.current = next;
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(() => {
-      onChange(next);
-    }, 500);
-  };
-
-  const handleFocus = () => {
-    isFocused.current = true;
-  };
-
-  const handleBlur = () => {
-    isFocused.current = false;
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-      const current = readValue();
-      if (current !== lastValueRef.current) {
-        lastValueRef.current = current;
-        onChange(current);
-      } else {
-        // Pending debounce existed; flush latest in case it differed from last write.
-        onChange(current);
-      }
-    }
-  };
-
-  const fontClasses = inheritFont
-    ? ''
-    : "font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight";
-
-  if (as === 'span') {
-    return (
-      <span
-        ref={(el) => { elRef.current = el; }}
-        contentEditable
-        suppressContentEditableWarning
-        onInput={handleInput}
-        onFocus={handleFocus}
-        onBlur={handleBlur}
-        data-placeholder={placeholder}
-        className={`outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground ${fontClasses} ${className}`}
-        style={{
-          display: 'inline',
-          lineHeight: inheritFont ? 1 : 1.2,
-          ...(inheritFont ? { fontFamily: 'inherit', fontSize: 'inherit' } : {}),
-        }}
-      />
-    );
-  }
-
-  return (
-    <div
-      ref={(el) => { elRef.current = el; }}
-      contentEditable
-      suppressContentEditableWarning
-      onInput={handleInput}
-      onFocus={handleFocus}
-      onBlur={handleBlur}
-      data-placeholder={placeholder}
-      className={`bg-transparent border-0 p-0 m-0 resize-none focus:outline-none focus:ring-0 w-full empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground empty:before:pointer-events-none ${fontClasses} ${className}`}
-      style={{
-        minHeight: '1em',
-        lineHeight: 1.2,
-        whiteSpace: 'pre-wrap',
-        wordBreak: 'break-word',
-      }}
-    />
-  );
-}
-
-// Compact month selector
-function MonthSelect({
-  value,
-  onChange,
-  projectDuration = 36,
-}: {
-  value: number | null;
-  onChange: (val: number | null) => void;
-  projectDuration?: number;
-}) {
-  const options = getMonthOptions(projectDuration);
-  return (
-    <Select
-      value={value?.toString() || ''}
-      onValueChange={(v) => onChange(v ? parseInt(v) : null)}
-    >
-      <SelectTrigger hideArrow className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex font-['Times_New_Roman',Times,serif] text-[11pt]">
-        <SelectValue placeholder="-">
-          <span className="font-['Times_New_Roman',Times,serif] text-[11pt]">{value ? `M${String(value).padStart(2, '0')}` : '-'}</span>
-        </SelectValue>
-      </SelectTrigger>
-      <SelectContent className="bg-background z-50 max-h-60">
-        {options.map(opt => (
-          <SelectItem key={opt.value} value={opt.value.toString()}>
-            {opt.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
-}
-
-// WPBubble and RiskBadge are imported from './B31Pill'
-
-function SingleWPSelector({
-  value,
-  onChange,
-  workPackages,
-}: {
-  value: number | null;
-  onChange: (val: number | null) => void;
-  workPackages: WorkPackage[];
-}) {
-  const selectedWP = workPackages.find(wp => wp.number === value);
-
-  return (
-    <Select
-      value={value?.toString() || ''}
-      onValueChange={(v) => onChange(v ? parseInt(v) : null)}
-    >
-      <SelectTrigger hideArrow className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex items-center overflow-visible">
-        <SelectValue placeholder="-">
-          {selectedWP ? <WPBubble wpNumber={selectedWP.number} wpColor={selectedWP.color || '#666'} style={{ position: 'relative', top: '-1px' }} /> : <span className="font-['Times_New_Roman',Times,serif] text-[11pt]">-</span>}
-        </SelectValue>
-      </SelectTrigger>
-      <SelectContent className="bg-background z-50">
-        {workPackages.length === 0 ? (
-          <div className="p-2 text-sm text-muted-foreground">No WPs defined yet</div>
-        ) : (
-          workPackages.map(wp => (
-            <SelectItem key={wp.id} value={wp.number.toString()}>
-              <div className="flex items-center gap-2">
-                <WPBubble wpNumber={wp.number} wpColor={wp.color || '#666'} style={{ position: 'relative', top: '-1px' }} />
-                <span className="text-sm">{wp.short_name || wp.title}</span>
-              </div>
-            </SelectItem>
-          ))
-        )}
-      </SelectContent>
-    </Select>
-  );
-}
-
-function MultiWPSelector({
-  value,
-  onChange,
-  workPackages,
-}: {
-  value: string;
-  onChange: (val: string) => void;
-  workPackages: WorkPackage[];
-}) {
-  const selectedNumbers = value ? value.split(',').map(n => parseInt(n.trim().replace(/^WP/i, ''))).filter(n => !isNaN(n)) : [];
-  const selectedWPs = workPackages.filter(wp => selectedNumbers.includes(wp.number));
-  const [open, setOpen] = useState(false);
-
-  const toggleWP = (wpNumber: number) => {
-    if (selectedNumbers.includes(wpNumber)) {
-      onChange(selectedNumbers.filter(n => n !== wpNumber).join(', '));
-    } else {
-      onChange([...selectedNumbers, wpNumber].sort((a, b) => a - b).join(', '));
-    }
-  };
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button className="flex flex-wrap gap-0.5 items-center min-h-[1.2em] text-left">
-          {selectedWPs.length > 0 ? (
-            selectedWPs.map(wp => (
-              <WPBubble key={wp.id} wpNumber={wp.number} wpColor={wp.color || '#666'} style={{ position: 'relative', top: '-1px' }} />
-            ))
-          ) : (
-            <span className="font-['Times_New_Roman',Times,serif] text-[11pt] text-muted-foreground">-</span>
-          )}
-        </button>
-      </PopoverTrigger>
-      <PopoverContent className="w-56 p-2 bg-background z-50" align="start">
-        {workPackages.length === 0 ? (
-          <div className="p-2 text-sm text-muted-foreground">No WPs defined yet</div>
-        ) : (
-          <div className="space-y-1">
-            {workPackages.map(wp => (
-              <label key={wp.id} className="flex items-center gap-2 cursor-pointer p-1 hover:bg-muted rounded">
-                <Checkbox
-                  checked={selectedNumbers.includes(wp.number)}
-                  onCheckedChange={() => toggleWP(wp.number)}
-                />
-                <WPBubble wpNumber={wp.number} wpColor={wp.color || '#666'} style={{ position: 'relative', top: '-1px' }} />
-                <span className="text-sm truncate">{wp.short_name || wp.title}</span>
-              </label>
-            ))}
-          </div>
-        )}
-      </PopoverContent>
-    </Popover>
-  );
-}
-
-// RiskBadge is imported from './B31Pill'
-
-function useWorkPackages(proposalId: string) {
+function useWPLookup(proposalId: string) {
   return useQuery({
-    queryKey: ['wp-drafts-for-b31', proposalId],
+    queryKey: ['wp-drafts-for-b31-mirror', proposalId],
+    enabled: !!proposalId,
     queryFn: async () => {
-      const { data: wps, error: wpError } = await supabase
+      const { data } = await supabase
         .from('wp_drafts')
-        .select('id, number, title, color')
+        .select('id, number, title, short_name, color')
         .eq('proposal_id', proposalId)
         .order('number');
-      if (wpError) throw wpError;
-
-      return (wps || []).map(wp => ({
-        id: wp.id,
-        number: wp.number,
-        title: wp.title || `WP${wp.number}`,
-        short_name: wp.title?.split(':')[0]?.trim() || wp.title || `WP${wp.number}`,
+      const list = (data || []).map((wp: any) => ({
+        ...wp,
         color: wp.color || DEFAULT_WP_COLORS[(wp.number - 1) % DEFAULT_WP_COLORS.length],
-      })) as WorkPackage[];
+      }));
+      const byId = new Map(list.map((wp: any) => [wp.id, wp]));
+      const byNumber = new Map(list.map((wp: any) => [wp.number, wp]));
+      return { list, byId, byNumber };
     },
   });
 }
 
-function useParticipants(proposalId: string) {
+function useParticipantLookup(proposalId: string) {
   return useQuery({
-    queryKey: ['participants', proposalId],
+    queryKey: ['b31-participants-mirror', proposalId],
+    enabled: !!proposalId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('participants')
-        .select('id, organisation_short_name, organisation_name, participant_number')
+        .select('id, participant_number, organisation_short_name, organisation_name')
         .eq('proposal_id', proposalId)
         .order('participant_number');
-      if (error) throw error;
-      return data as Participant[];
+      const list = data || [];
+      return { list, byId: new Map(list.map((p: any) => [p.id, p])) };
     },
   });
 }
 
-// ========== DELIVERABLES TABLE (3.1c) ==========
-export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
-  const projectDuration = useProjectDuration(proposalId);
-  const { data: workPackages = [] } = useWorkPackages(proposalId);
-  const { data: participants = [] } = useParticipants(proposalId);
-  const { isAdminOrOwner } = useUserRole();
-
-  const [deliverableOrderMode, setDeliverableOrderMode] = useState<'number' | 'month'>('number');
-
-  const columns: B31Column<Deliverable>[] = [
-    {
-      key: 'no',
-      header: 'No.',
-      defaultHeaderStyle: { width: '48px', whiteSpace: 'nowrap' },
-      minWidth: 48,
-      cellClassName: bubbleCellStyles,
-      cellStyle: { whiteSpace: 'nowrap', width: '48px', position: 'relative', zIndex: 2 },
-      renderCell: (del, updateRow) => {
-        const wpColor = del.wp_number != null
-          ? workPackages.find(wp => wp.number === del.wp_number)?.color || '#000'
-          : '#000';
-        return (
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              position: 'relative',
-              height: '17px',
-              padding: '0 10px 0 5px',
-              fontFamily: "'Times New Roman', Times, serif",
-              fontSize: '11pt',
-              fontWeight: 700,
-              lineHeight: 1,
-              color: wpColor,
-              whiteSpace: 'nowrap',
-              verticalAlign: 'baseline',
-            }}
-          >
-            <span
-              style={{
-                position: 'absolute',
-                inset: 0,
-                backgroundColor: wpColor,
-                clipPath: 'polygon(0% 0%, calc(100% - 8px) 0%, 100% 50%, calc(100% - 8px) 100%, 0% 100%)',
-              }}
-            />
-            <span
-              style={{
-                position: 'absolute',
-                top: '1.5px',
-                bottom: '1.5px',
-                left: '1.5px',
-                right: '2.5px',
-                backgroundColor: '#ffffff',
-                clipPath: 'polygon(0% 0%, calc(100% - 7px) 0%, 100% 50%, calc(100% - 7px) 100%, 0% 100%)',
-              }}
-            />
-            <span style={{ position: 'relative', zIndex: 1 }}>
-              <EditableCell
-                as="span"
-                value={del.number}
-                onChange={(val) => updateRow(del.id, { number: val })}
-                placeholder="D#.#"
-                inheritFont
-              />
-            </span>
-          </span>
-        );
-      },
-    },
-    {
-      key: 'title',
-      header: 'Deliverable title',
-      cellClassName: cellStyles,
-      cellStyle: { lineHeight: 1.2 },
-      renderCell: (del, updateRow) => (
-        <span className="font-['Times_New_Roman',Times,serif] text-[11pt]" style={{ lineHeight: 1.2 }}>
-          <EditableCell
-            as="span"
-            inheritFont
-            value={del.name}
-            onChange={(val) => updateRow(del.id, { name: val })}
-            placeholder="Deliverable name"
-          />
-        </span>
-      ),
-    },
-    {
-      key: 'wp',
-      header: 'WP',
-      defaultHeaderStyle: { width: '40px' },
-      cellClassName: bubbleCellStyles,
-      renderCell: (del, updateRow, allRows) => (
-        <SingleWPSelector
-          value={del.wp_number}
-          onChange={(val) => {
-            const wpNum = val != null ? val : 'X';
-            const existingInWP = allRows.filter(d => d.wp_number === val && d.id !== del.id);
-            const subNum = existingInWP.length + 1;
-            updateRow(del.id, { wp_number: val, number: `D${wpNum}.${subNum}` });
-          }}
-          workPackages={workPackages}
-        />
-      ),
-    },
-    {
-      key: 'lead',
-      header: 'Lead',
-      defaultHeaderStyle: { width: '60px' },
-      cellClassName: bubbleCellStyles,
-      renderCell: (del, updateRow) => (
-        <Select
-          value={del.lead_participant_id || ''}
-          onValueChange={(v) => updateRow(del.id, { lead_participant_id: v || null })}
-        >
-          <SelectTrigger hideArrow className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex items-center overflow-visible">
-            <SelectValue placeholder="-">
-              {del.lead_participant_id ? (
-                <ParticipantBubble
-                  shortName={participants.find(p => p.id === del.lead_participant_id)?.organisation_short_name || '-'}
-                  style={{ position: 'relative', top: '-1px' }}
-                />
-              ) : (
-                <span className="font-['Times_New_Roman',Times,serif] text-[11pt]">-</span>
-              )}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent className="bg-background z-50">
-            {participants.map(p => (
-              <SelectItem key={p.id} value={p.id}>
-                <ParticipantBubble shortName={p.organisation_short_name || p.organisation_name} />
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      ),
-    },
-    {
-      key: 'type',
-      header: 'Type',
-      defaultHeaderStyle: { width: '40px' },
-      cellClassName: cellStyles,
-      renderCell: (del, updateRow) => (
-        <Select
-          value={del.type || ''}
-          onValueChange={(v) => updateRow(del.id, { type: v || null })}
-        >
-          <SelectTrigger hideArrow className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto font-['Times_New_Roman',Times,serif] text-[11pt]">
-            <SelectValue placeholder="-">
-              <span className="font-['Times_New_Roman',Times,serif] text-[11pt]">{del.type || '-'}</span>
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent className="bg-background z-50">
-            {deliverableTypes.map(t => (
-              <SelectItem key={t.value} value={t.value}>
-                {t.value} - {t.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      ),
-    },
-    {
-      key: 'diss',
-      header: 'Diss.',
-      defaultHeaderStyle: { width: '50px' },
-      cellClassName: cellStyles,
-      renderCell: (del, updateRow) => (
-        <Select
-          value={del.dissemination_level || ''}
-          onValueChange={(v) => updateRow(del.id, { dissemination_level: v || null })}
-        >
-          <SelectTrigger hideArrow className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto font-['Times_New_Roman',Times,serif] text-[11pt]">
-            <SelectValue placeholder="-">
-              <span className="font-['Times_New_Roman',Times,serif] text-[11pt]">{del.dissemination_level || '-'}</span>
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent className="bg-background z-50">
-            {disseminationLevels.map(l => (
-              <SelectItem key={l.value} value={l.value}>
-                {l.value} - {l.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      ),
-    },
-    {
-      key: 'due',
-      header: 'Due',
-      defaultHeaderStyle: { width: '40px' },
-      cellClassName: cellStyles,
-      renderCell: (del, updateRow) => (
-        <MonthSelect
-          value={del.due_month}
-          onChange={(val) => updateRow(del.id, { due_month: val })}
-          projectDuration={projectDuration}
-        />
-      ),
-    },
-  ];
-
-  const recomputeNumbers = (dels: Deliverable[]) => {
-    const byWP = new Map<number | null, Deliverable[]>();
-    dels.forEach(d => {
-      const key = d.wp_number;
-      if (!byWP.has(key)) byWP.set(key, []);
-      byWP.get(key)!.push(d);
-    });
-
-    return dels.map((del, index) => {
-      const wpGroup = byWP.get(del.wp_number) || [];
-      const sortedGroup = [...wpGroup].sort((a, b) => (a.due_month ?? 999) - (b.due_month ?? 999));
-      const subIndex = sortedGroup.findIndex(d => d.id === del.id) + 1;
-      const wpNum = del.wp_number != null ? del.wp_number : 'X';
-      return { id: del.id, updates: { order_index: index, number: `D${wpNum}.${subIndex}` } };
-    });
-  };
-
+function ReadOnlyHtmlCell({ html }: { html: string | null | undefined }) {
+  const raw = (html ?? '').toString();
+  if (!raw || raw.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, '').trim() === '') {
+    return <span className="text-muted-foreground italic">—</span>;
+  }
   return (
-    <B31SortableTable<Deliverable>
-      proposalId={proposalId}
-      dbTable="b31_deliverables"
-      queryKey="b31-deliverables"
-      columnResizeKey="deliverables"
-      columns={columns}
-      captionTableKey="table-3.1.c"
-      captionLabel="Table 3.1.c."
-      captionDefaultText="Deliverables, including the partner responsible, type, dissemination level & month due"
-      createDefaultRow={(rows) => ({
-        number: 'DX.X',
-        name: '',
-        description: '',
-        order_index: rows.length,
-      })}
-      recomputeNumbers={recomputeNumbers}
-      reorderToastLabel="Deliverables reordered"
-      invalidateGantt
-      tableWidthMode="sum"
-      captionLeftButtons={(api) => {
-        const orderByNumber = () => {
-          const sorted = [...api.rows].sort((a, b) => {
-            const wpA = a.wp_number ?? 999;
-            const wpB = b.wp_number ?? 999;
-            if (wpA !== wpB) return wpA - wpB;
-            const subA = parseInt(a.number.replace(/^D?\d+\./, '')) || 0;
-            const subB = parseInt(b.number.replace(/^D?\d+\./, '')) || 0;
-            return subA - subB;
-          });
-          setDeliverableOrderMode('number');
-          api.reorder(sorted);
-        };
-        const orderByMonth = () => {
-          const sorted = [...api.rows].sort((a, b) => {
-            const monthA = a.due_month ?? 999;
-            const monthB = b.due_month ?? 999;
-            if (monthA !== monthB) return monthA - monthB;
-            const wpA = a.wp_number ?? 999;
-            const wpB = b.wp_number ?? 999;
-            return wpA - wpB;
-          });
-          setDeliverableOrderMode('month');
-          api.reorder(sorted);
-        };
-        const toggleOrder = () => {
-          if (deliverableOrderMode === 'month') orderByNumber();
-          else orderByMonth();
-        };
-        return (
-          <>
-            <CaptionIconButton tooltip="Add deliverable" onClick={api.add}>
-              <Plus className="h-3 w-3" />
-            </CaptionIconButton>
-            <DeliverableTaskMappingDialog
-              proposalId={proposalId}
-              trigger={
-                <CaptionIconButton tooltip="Assign deliverables to tasks">
-                  <Settings2 className="h-3 w-3" />
-                </CaptionIconButton>
-              }
-            />
-            {isAdminOrOwner && (
-              <CaptionIconButton
-                tooltip={deliverableOrderMode === 'month' ? 'Order by deliverable number' : 'Order by month due'}
-                onClick={toggleOrder}
-              >
-                {deliverableOrderMode === 'month' ? <Hash className="h-3 w-3" /> : <CalendarDays className="h-3 w-3" />}
-              </CaptionIconButton>
-            )}
-          </>
-        );
-      }}
+    <div
+      className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight"
+      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(raw, RICH_TEXT_CONFIG) }}
     />
   );
 }
 
-// ========== MILESTONES TABLE (3.1d) ==========
-export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
-  const projectDuration = useProjectDuration(proposalId);
-  const { data: workPackages = [] } = useWorkPackages(proposalId);
-  const { isAdminOrOwner } = useUserRole();
+function ReadOnlyTextCell({ text }: { text: string | null | undefined }) {
+  const v = (text ?? '').toString();
+  if (!v.trim()) return <span className="text-muted-foreground italic">—</span>;
+  return <span>{v}</span>;
+}
 
-  const columns: B31Column<Milestone>[] = [
-    {
-      key: 'no',
-      header: 'No.',
-      defaultHeaderStyle: { width: '50px', whiteSpace: 'nowrap' },
-      minWidth: 50,
-      cellClassName: bubbleCellStyles,
-      cellStyle: { lineHeight: 1.2, whiteSpace: 'nowrap', width: '50px' },
-      renderCell: (ms) => (
-        <span
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: '#000',
-            color: '#fff',
-            fontFamily: "'Times New Roman', Times, serif",
-            fontSize: '11pt',
-            fontWeight: 700,
-            lineHeight: '18px',
-            height: '18px',
-            padding: '0 4px',
-            clipPath: 'polygon(12% 0%, 88% 0%, 100% 50%, 88% 100%, 12% 100%, 0% 50%)',
-            verticalAlign: 'baseline',
-          }}
-        >
-          MS{ms.number}
-        </span>
-      ),
-    },
-    {
-      key: 'name',
-      header: 'Milestone name',
-      cellClassName: cellStyles,
-      cellStyle: { lineHeight: 1.2 },
-      renderCell: (ms, updateRow) => (
-        <EditableCell
-          as="span"
-          inheritFont
-          value={ms.name}
-          onChange={(val) => updateRow(ms.id, { name: val })}
-          placeholder="Milestone name"
-        />
-      ),
-    },
-    {
-      key: 'wps',
-      header: 'WPs',
-      defaultHeaderStyle: { width: '40px', whiteSpace: 'nowrap' },
-      cellClassName: bubbleCellStyles,
-      renderCell: (ms, updateRow) => (
-        <MultiWPSelector
-          value={ms.wps}
-          onChange={(val) => updateRow(ms.id, { wps: val })}
-          workPackages={workPackages}
-        />
-      ),
-    },
-    {
-      key: 'due',
-      header: 'Due',
-      defaultHeaderStyle: { width: '40px', whiteSpace: 'nowrap' },
-      cellClassName: cellStyles,
-      renderCell: (ms, updateRow) => (
-        <MonthSelect
-          value={ms.due_month}
-          onChange={(val) => updateRow(ms.id, { due_month: val })}
-          projectDuration={projectDuration}
-        />
-      ),
-    },
-    {
-      key: 'mov',
-      header: 'Means of verification',
-      cellClassName: cellStyles,
-      renderCell: (ms, updateRow) => (
-        <EditableCell
-          format="html"
-          value={ms.means_of_verification}
-          onChange={(val) => updateRow(ms.id, { means_of_verification: val })}
-          placeholder="How will this be verified?"
-        />
-      ),
-    },
-  ];
+function MonthLabel({ m }: { m: number | null | undefined }) {
+  if (m == null) return <span className="text-muted-foreground italic">—</span>;
+  return <span>M{String(m).padStart(2, '0')}</span>;
+}
 
+function DeliverablePentagon({ label, color }: { label: string; color?: string }) {
+  const stroke = color || '#000';
   return (
-    <B31SortableTable<Milestone>
-      proposalId={proposalId}
-      dbTable="b31_milestones"
-      queryKey="b31-milestones"
-      columnResizeKey="milestones"
-      columns={columns}
-      captionTableKey="table-3.1.d"
-      captionLabel="Table 3.1.d."
-      captionDefaultText="Milestones"
-      createDefaultRow={(rows) => ({
-        number: rows.length + 1,
-        name: '',
-        wps: '',
-        means_of_verification: '',
-        order_index: rows.length,
-      })}
-      recomputeNumbers={(items) =>
-        items.map((m, i) => ({ id: m.id, updates: { order_index: i, number: i + 1 } }))
-      }
-      reorderToastLabel="Milestones reordered"
-      invalidateGantt
-      autoFitFullWidth
-      tableWidthMode="sum"
-      captionLeftButtons={(api) => {
-        const autoReorder = () => {
-          const sorted = [...api.rows].sort((a, b) => {
-            const monthA = a.due_month ?? 999;
-            const monthB = b.due_month ?? 999;
-            if (monthA !== monthB) return monthA - monthB;
-            const wpA = a.wps ? parseInt(a.wps.split(',')[0].trim()) || 999 : 999;
-            const wpB = b.wps ? parseInt(b.wps.split(',')[0].trim()) || 999 : 999;
-            return wpA - wpB;
-          });
-          api.reorder(sorted);
-        };
-        return (
-          <>
-            <CaptionIconButton tooltip="Add milestone" onClick={api.add}>
-              <Plus className="h-3 w-3" />
-            </CaptionIconButton>
-            <MilestoneTaskMappingDialog
-              proposalId={proposalId}
-              trigger={
-                <CaptionIconButton tooltip="Assign milestones to tasks">
-                  <Settings2 className="h-3 w-3" />
-                </CaptionIconButton>
-              }
-            />
-            {isAdminOrOwner && (
-              <CaptionIconButton tooltip="Auto-reorder" onClick={autoReorder}>
-                <ArrowUpDown className="h-3 w-3" />
-              </CaptionIconButton>
-            )}
-          </>
-        );
-      }}
-    />
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', position: 'relative',
+      height: '17px', padding: '0 10px 0 5px', fontFamily: "'Times New Roman', Times, serif",
+      fontSize: '11pt', fontWeight: 700, lineHeight: 1, color: stroke, whiteSpace: 'nowrap',
+    }}>
+      <span style={{
+        position: 'absolute', inset: 0, backgroundColor: stroke,
+        clipPath: 'polygon(0% 0%, calc(100% - 8px) 0%, 100% 50%, calc(100% - 8px) 100%, 0% 100%)',
+      }} />
+      <span style={{
+        position: 'absolute', top: '1.5px', bottom: '1.5px', left: '1.5px', right: '2.5px',
+        backgroundColor: '#ffffff',
+        clipPath: 'polygon(0% 0%, calc(100% - 7px) 0%, 100% 50%, calc(100% - 7px) 100%, 0% 100%)',
+      }} />
+      <span style={{ position: 'relative', zIndex: 1 }}>{label}</span>
+    </span>
   );
 }
 
-// ========== RISKS TABLE (3.1e) ==========
-export function B31RisksTable({ proposalId }: { proposalId: string }) {
-  const { data: workPackages = [] } = useWorkPackages(proposalId);
-  const { isAdminOrOwner } = useUserRole();
-
-  const columns: B31Column<Risk>[] = [
-    {
-      key: 'risk',
-      header: 'Risk',
-      defaultHeaderStyle: { width: '25%' },
-      cellClassName: cellStyles,
-      renderCell: (risk, updateRow) => (
-        <EditableCell
-          value={risk.description}
-          onChange={(val) => updateRow(risk.id, { description: val })}
-          placeholder="Description of risk"
-        />
-      ),
-    },
-    {
-      key: 'likelihood',
-      header: 'i.',
-      headerClassName: 'text-center',
-      defaultHeaderStyle: { width: '24px' },
-      cellClassName: `${cellStyles} text-center`,
-      renderCell: (risk, updateRow) => (
-        <Select
-          value={risk.likelihood || ''}
-          onValueChange={(v) => updateRow(risk.id, { likelihood: (v as 'L' | 'M' | 'H') || null })}
-        >
-          <SelectTrigger hideArrow className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex justify-center">
-            <SelectValue>
-              {risk.likelihood ? <RiskBadge level={risk.likelihood} /> : <span className="text-muted-foreground">-</span>}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent className="bg-background z-50">
-            {riskLevelOptions.map(opt => (
-              <SelectItem key={opt.value} value={opt.value}>
-                <div className="flex items-center gap-2">
-                  <RiskBadge level={opt.value as 'L' | 'M' | 'H'} />
-                  <span>{opt.label}</span>
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      ),
-    },
-    {
-      key: 'severity',
-      header: 'ii.',
-      headerClassName: 'text-center',
-      defaultHeaderStyle: { width: '24px' },
-      cellClassName: `${cellStyles} text-center`,
-      renderCell: (risk, updateRow) => (
-        <Select
-          value={risk.severity || ''}
-          onValueChange={(v) => updateRow(risk.id, { severity: (v as 'L' | 'M' | 'H') || null })}
-        >
-          <SelectTrigger hideArrow className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex justify-center">
-            <SelectValue>
-              {risk.severity ? <RiskBadge level={risk.severity} /> : <span className="text-muted-foreground">-</span>}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent className="bg-background z-50">
-            {riskLevelOptions.map(opt => (
-              <SelectItem key={opt.value} value={opt.value}>
-                <div className="flex items-center gap-2">
-                  <RiskBadge level={opt.value as 'L' | 'M' | 'H'} />
-                  <span>{opt.label}</span>
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      ),
-    },
-    {
-      key: 'wps',
-      header: 'WPs',
-      defaultHeaderStyle: { width: '84px' },
-      cellClassName: cellStyles,
-      renderCell: (risk, updateRow) => (
-        <MultiWPSelector
-          value={risk.wps}
-          onChange={(val) => updateRow(risk.id, { wps: val })}
-          workPackages={workPackages}
-        />
-      ),
-    },
-    {
-      key: 'mitigation',
-      header: 'Mitigation & adaptation measures',
-      cellClassName: cellStyles,
-      renderCell: (risk, updateRow) => (
-        <EditableCell
-          value={risk.mitigation}
-          onChange={(val) => updateRow(risk.id, { mitigation: val })}
-          placeholder="Proposed mitigation measures"
-        />
-      ),
-    },
-  ];
-
-  const getRiskOrder = (level: string | null): number => {
-    const opt = riskLevelOptions.find(o => o.value === level);
-    return opt?.order ?? 3;
-  };
-
+function MilestoneBadge({ number }: { number: number | null | undefined }) {
   return (
-    <B31SortableTable<Risk>
-      proposalId={proposalId}
-      dbTable="b31_risks"
-      queryKey="b31-risks"
-      columnResizeKey="risks"
-      columns={columns}
-      captionTableKey="table-3.1.e"
-      captionLabel="Table 3.1.e."
-      captionDefaultText="Critical risks"
-      captionSuffix={
-        <>(<span className="font-bold">i.</span> likelihood; <span className="font-bold">ii.</span> severity; <RiskBadge level="L" /> = low, <RiskBadge level="M" /> = medium, <RiskBadge level="H" /> = high)</>
-      }
-      captionClassName="flex items-center gap-1 flex-wrap"
-      createDefaultRow={(rows) => ({
-        number: rows.length + 1,
-        description: '',
-        wps: '',
-        mitigation: '',
-        order_index: rows.length,
-      })}
-      recomputeNumbers={(items) =>
-        items.map((r, i) => ({ id: r.id, updates: { order_index: i, number: i + 1 } }))
-      }
-      reorderToastLabel="Risks reordered"
-      tableWidthMode="maxFull"
-      captionLeftButtons={(api) => {
-        const autoReorder = () => {
-          const sorted = [...api.rows].sort((a, b) => {
-            const likelihoodA = getRiskOrder(a.likelihood);
-            const likelihoodB = getRiskOrder(b.likelihood);
-            if (likelihoodA !== likelihoodB) return likelihoodA - likelihoodB;
-            const severityA = getRiskOrder(a.severity);
-            const severityB = getRiskOrder(b.severity);
-            return severityA - severityB;
-          });
-          api.reorder(sorted);
-        };
-        return (
-          <>
-            <CaptionIconButton tooltip="Add risk" onClick={api.add}>
-              <Plus className="h-3 w-3" />
-            </CaptionIconButton>
-            {isAdminOrOwner && (
-              <CaptionIconButton tooltip="Auto-reorder" onClick={autoReorder}>
-                <ArrowUpDown className="h-3 w-3" />
-              </CaptionIconButton>
-            )}
-          </>
-        );
-      }}
-    />
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      background: '#000', color: '#fff', fontFamily: "'Times New Roman', Times, serif",
+      fontSize: '11pt', fontWeight: 700, lineHeight: '18px', height: '18px', padding: '0 4px',
+      clipPath: 'polygon(12% 0%, 88% 0%, 100% 50%, 88% 100%, 12% 100%, 0% 50%)',
+    }}>
+      MS{number ?? ''}
+    </span>
   );
 }
 
-// ========== MAIN COMPONENT ==========
-export function B31TablesEditor({ proposalId }: B31TablesEditorProps) {
+/** Parse a comma/space list of WP numbers (e.g. "1, 3, WP5") into number[]. */
+function parseWPList(s: string | null | undefined): number[] {
+  if (!s) return [];
+  return s.split(/[,;\s]+/)
+    .map((t) => t.replace(/^WP/i, '').trim())
+    .filter(Boolean)
+    .map((t) => parseInt(t, 10))
+    .filter((n) => Number.isFinite(n));
+}
+
+// ============================================================
+// Table 3.1.c — Deliverables (read-only mirror)
+// ============================================================
+export function B31DeliverablesTable({ proposalId }: Props) {
+  const { data: wpInfo } = useWPLookup(proposalId);
+  const { data: partInfo } = useParticipantLookup(proposalId);
+
+  const { data: deliverables = [] } = useQuery({
+    queryKey: ['b31-deliverables-live', proposalId],
+    enabled: !!proposalId && !!wpInfo,
+    queryFn: async () => {
+      const wpIds = wpInfo!.list.map((wp: any) => wp.id);
+      if (wpIds.length === 0) return [];
+      const { data } = await supabase
+        .from('wp_draft_deliverables')
+        .select('id, wp_draft_id, number, title, type, dissemination_level, responsible_participant_id, due_month, description, order_index')
+        .in('wp_draft_id', wpIds);
+      return (data || []).map((d: any) => {
+        const wp = wpInfo!.byId.get(d.wp_draft_id);
+        return { ...d, wp };
+      }).sort((a: any, b: any) => {
+        const wa = a.wp?.number ?? 999;
+        const wb = b.wp?.number ?? 999;
+        if (wa !== wb) return wa - wb;
+        return (a.number ?? 0) - (b.number ?? 0);
+      });
+    },
+  });
+
+  return (
+    <div>
+      <EditableCaption
+        proposalId={proposalId}
+        tableKey="table-3.1.c"
+        label="Table 3.1.c."
+        defaultCaption="Deliverables, including the partner responsible, type, dissemination level & month due"
+        className="mb-0"
+      />
+      <table className={tableCls}>
+        <thead>
+          <tr>
+            <th className={thCls} style={{ width: 60 }}>No.</th>
+            <th className={thCls}>Deliverable title</th>
+            <th className={thCls} style={{ width: 50 }}>WP</th>
+            <th className={thCls} style={{ width: 90 }}>Lead</th>
+            <th className={thCls} style={{ width: 60 }}>Type</th>
+            <th className={thCls} style={{ width: 60 }}>Diss.</th>
+            <th className={thCls} style={{ width: 50 }}>Due</th>
+          </tr>
+        </thead>
+        <tbody>
+          {deliverables.length === 0 && (
+            <tr>
+              <td colSpan={7} className={tdCls + ' text-muted-foreground italic'}>
+                No deliverables in WP drafts yet.
+              </td>
+            </tr>
+          )}
+          {deliverables.map((d: any) => {
+            const lead = d.responsible_participant_id ? partInfo?.byId.get(d.responsible_participant_id) : undefined;
+            const wp = d.wp;
+            const delLabel = wp ? `D${wp.number}.${d.number}` : `D?.${d.number}`;
+            return (
+              <tr key={d.id}>
+                <td className={tdCls} style={{ whiteSpace: 'nowrap' }}>
+                  <DeliverablePentagon label={delLabel} color={wp?.color} />
+                </td>
+                <td className={tdCls}><ReadOnlyTextCell text={d.title} /></td>
+                <td className={tdCls}>
+                  {wp ? <WPBubble wpNumber={wp.number} wpColor={wp.color} /> : <span className="text-muted-foreground italic">—</span>}
+                </td>
+                <td className={tdCls}>
+                  {lead ? (
+                    <ParticipantBubble shortName={lead.organisation_short_name || lead.organisation_name} />
+                  ) : (
+                    <span className="text-muted-foreground italic">—</span>
+                  )}
+                </td>
+                <td className={tdCls}><ReadOnlyTextCell text={d.type} /></td>
+                <td className={tdCls}><ReadOnlyTextCell text={d.dissemination_level} /></td>
+                <td className={tdCls}><MonthLabel m={d.due_month} /></td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ============================================================
+// Table 3.1.d — Milestones (read-only mirror, wp_draft_milestones)
+// ============================================================
+export function B31MilestonesTable({ proposalId }: Props) {
+  const { data: wpInfo } = useWPLookup(proposalId);
+
+  const { data: milestones = [] } = useQuery({
+    queryKey: ['b31-milestones-live', proposalId],
+    enabled: !!proposalId && !!wpInfo,
+    queryFn: async () => {
+      const wpIds = wpInfo!.list.map((wp: any) => wp.id);
+      if (wpIds.length === 0) return [];
+      const { data } = await supabase
+        .from('wp_draft_milestones')
+        .select('id, wp_draft_id, number, title, related_wps, due_month, means_of_verification, order_index')
+        .in('wp_draft_id', wpIds);
+      // Order by global number then due_month
+      return (data || []).slice().sort(
+        (a: any, b: any) => (a.number ?? 0) - (b.number ?? 0),
+      );
+    },
+  });
+
+  return (
+    <div>
+      <EditableCaption
+        proposalId={proposalId}
+        tableKey="table-3.1.d"
+        label="Table 3.1.d."
+        defaultCaption="Milestones"
+        className="mb-0"
+      />
+      <table className={tableCls}>
+        <thead>
+          <tr>
+            <th className={thCls} style={{ width: 60 }}>No.</th>
+            <th className={thCls}>Milestone name</th>
+            <th className={thCls} style={{ width: 80 }}>WPs</th>
+            <th className={thCls} style={{ width: 50 }}>Due</th>
+            <th className={thCls}>Means of verification</th>
+          </tr>
+        </thead>
+        <tbody>
+          {milestones.length === 0 && (
+            <tr>
+              <td colSpan={5} className={tdCls + ' text-muted-foreground italic'}>
+                No milestones in WP drafts yet.
+              </td>
+            </tr>
+          )}
+          {milestones.map((m: any) => {
+            const wpNumbers = parseWPList(m.related_wps);
+            return (
+              <tr key={m.id}>
+                <td className={tdCls}><MilestoneBadge number={m.number} /></td>
+                <td className={tdCls}><ReadOnlyTextCell text={m.title} /></td>
+                <td className={tdCls}>
+                  <div className="flex flex-wrap gap-0.5">
+                    {wpNumbers.length === 0 && <span className="text-muted-foreground italic">—</span>}
+                    {wpNumbers.map((n) => {
+                      const wp = wpInfo?.byNumber.get(n);
+                      return wp
+                        ? <WPBubble key={n} wpNumber={wp.number} wpColor={wp.color} />
+                        : <span key={n}>WP{n}</span>;
+                    })}
+                  </div>
+                </td>
+                <td className={tdCls}><MonthLabel m={m.due_month} /></td>
+                <td className={tdCls}><ReadOnlyHtmlCell html={m.means_of_verification} /></td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ============================================================
+// Table 3.1.e — Critical risks (read-only mirror, wp_draft_risks)
+// ============================================================
+export function B31RisksTable({ proposalId }: Props) {
+  const { data: wpInfo } = useWPLookup(proposalId);
+
+  const { data: risks = [] } = useQuery({
+    queryKey: ['b31-risks-live', proposalId],
+    enabled: !!proposalId && !!wpInfo,
+    queryFn: async () => {
+      const wpIds = wpInfo!.list.map((wp: any) => wp.id);
+      if (wpIds.length === 0) return [];
+      const { data } = await supabase
+        .from('wp_draft_risks')
+        .select('id, wp_draft_id, number, title, related_wps, likelihood, severity, mitigation, order_index')
+        .in('wp_draft_id', wpIds);
+      return (data || []).slice().sort(
+        (a: any, b: any) => (a.number ?? 0) - (b.number ?? 0),
+      );
+    },
+  });
+
+  return (
+    <div>
+      <EditableCaption
+        proposalId={proposalId}
+        tableKey="table-3.1.e"
+        label="Table 3.1.e."
+        defaultCaption="Critical risks"
+        captionSuffix={
+          <> (<span className="font-bold">i.</span> likelihood; <span className="font-bold">ii.</span> severity; <RiskBadge level="L" /> = low, <RiskBadge level="M" /> = medium, <RiskBadge level="H" /> = high)</>
+        }
+        className="mb-0"
+      />
+      <table className={tableCls}>
+        <thead>
+          <tr>
+            <th className={thCls} style={{ width: '25%' }}>Risk</th>
+            <th className={thCls + ' text-center'} style={{ width: 30 }}>i.</th>
+            <th className={thCls + ' text-center'} style={{ width: 30 }}>ii.</th>
+            <th className={thCls} style={{ width: 100 }}>WPs</th>
+            <th className={thCls}>Mitigation & adaptation measures</th>
+          </tr>
+        </thead>
+        <tbody>
+          {risks.length === 0 && (
+            <tr>
+              <td colSpan={5} className={tdCls + ' text-muted-foreground italic'}>
+                No risks in WP drafts yet.
+              </td>
+            </tr>
+          )}
+          {risks.map((r: any) => {
+            const wpNumbers = parseWPList(r.related_wps);
+            return (
+              <tr key={r.id}>
+                <td className={tdCls}><ReadOnlyHtmlCell html={r.title} /></td>
+                <td className={tdCls + ' text-center'}>
+                  {r.likelihood ? <RiskBadge level={r.likelihood as 'L' | 'M' | 'H'} /> : <span className="text-muted-foreground">—</span>}
+                </td>
+                <td className={tdCls + ' text-center'}>
+                  {r.severity ? <RiskBadge level={r.severity as 'L' | 'M' | 'H'} /> : <span className="text-muted-foreground">—</span>}
+                </td>
+                <td className={tdCls}>
+                  <div className="flex flex-wrap gap-0.5">
+                    {wpNumbers.length === 0 && <span className="text-muted-foreground italic">—</span>}
+                    {wpNumbers.map((n) => {
+                      const wp = wpInfo?.byNumber.get(n);
+                      return wp
+                        ? <WPBubble key={n} wpNumber={wp.number} wpColor={wp.color} />
+                        : <span key={n}>WP{n}</span>;
+                    })}
+                  </div>
+                </td>
+                <td className={tdCls}><ReadOnlyHtmlCell html={r.mitigation} /></td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// Wrapper kept for backward compatibility.
+export function B31TablesEditor({ proposalId }: Props) {
   return (
     <div className="space-y-8">
       <B31DeliverablesTable proposalId={proposalId} />

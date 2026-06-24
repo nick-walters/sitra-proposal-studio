@@ -1,34 +1,22 @@
 import { NodeViewWrapper, NodeViewProps } from '@tiptap/react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
+import { useParams } from 'react-router-dom';
+import DOMPurify from 'dompurify';
+import { Crown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { LeaderPicker, EditableText, EditableHeaderText } from './B31WPDescriptionTables';
-import type { B31Participant } from '@/hooks/useB31SectionData';
+import { RICH_TEXT_CONFIG } from '@/lib/sanitizePresets';
+import { ParticipantBubble } from './B31Pill';
 
 /**
- * CasesTableNodeView — Stage 3b.
+ * CasesTableNodeView — Stage 1 (live read-only mirror).
  *
- * Renders the B1.2 cases from the b12_cases / b12_case_subsections snapshot
- * (populated by populateCasesNodeToB12). Edits write to the snapshot tables
- * only — never back to case_drafts.
- *
- * Per case:
- *   - header row: case cross-ref chip (left) + LeaderPicker on b12_cases (right)
- *   - editable bold full title bound to b12_cases.title
- *   - editable bold-italic heading + rich body per b12_case_subsections row
+ * Renders the B1.2 cases LIVE from case_drafts + case_subsection_templates
+ * (no snapshot, no in-place editing). The node attribute caseIds is ignored;
+ * we always show all visible cases for the proposal.
  */
 
-interface SnapshotSub {
+interface CaseRow {
   id: string;
-  subsection_key: string;
-  heading: string | null;
-  body: string | null;
-  order_index: number | null;
-}
-
-interface SnapshotCase {
-  id: string;
-  case_draft_id: string | null;
-  proposal_id: string;
   number: number | null;
   short_name: string | null;
   title: string | null;
@@ -37,7 +25,33 @@ interface SnapshotCase {
   color: string | null;
   lead_participant_id: string | null;
   order_index: number | null;
-  b12_case_subsections: SnapshotSub[];
+  subsection_content: any;
+  background_context: string | null;
+  proposed_solutions: string | null;
+  expected_outcomes: string | null;
+  replicability: string | null;
+  key_stakeholders: string | null;
+  heading_background: string | null;
+  heading_solutions: string | null;
+  heading_outcomes: string | null;
+  heading_replicability: string | null;
+  heading_stakeholders: string | null;
+  is_hidden: boolean | null;
+}
+
+interface SubsectionTemplate {
+  id: string;
+  key: string;
+  heading: string | null;
+  order_index: number | null;
+  is_default: boolean | null;
+}
+
+interface Participant {
+  id: string;
+  participant_number: number | null;
+  organisation_short_name: string | null;
+  organisation_name: string | null;
 }
 
 function casePrefix(caseType: string | null): string {
@@ -82,55 +96,109 @@ function CaseChip({ label }: { label: string }) {
         borderRadius: 9999,
         whiteSpace: 'nowrap',
         verticalAlign: 'baseline',
-        cursor: 'pointer',
       }}
     >
-      <span
-        style={{
-          color: '#000000',
-          fontFamily: "'Times New Roman', Times, serif",
-          fontSize: '11pt',
-          fontWeight: 700,
-          fontStyle: 'normal',
-          lineHeight: 1,
-        }}
-      >
+      <span style={{ color: '#000000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1 }}>
         {label}
       </span>
     </span>
   );
 }
 
-export function CasesTableNodeView(props: NodeViewProps) {
-  const caseIds: string[] = Array.isArray(props.node.attrs.caseIds)
-    ? props.node.attrs.caseIds
-    : [];
-  const queryClient = useQueryClient();
-  const idsKey = caseIds.join(',');
+function ReadOnlyRichBody({ html }: { html: string | null | undefined }) {
+  const raw = (html ?? '').toString();
+  const isEmpty = !raw || raw.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, '').trim() === '';
+  if (isEmpty) return null;
+  return (
+    <div
+      className="font-['Times_New_Roman',Times,serif] text-[11pt] text-justify [&_p]:mt-[6pt] [&_p]:mb-[6pt]"
+      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(raw, RICH_TEXT_CONFIG) }}
+    />
+  );
+}
+
+function extractSubsections(row: CaseRow, templates: SubsectionTemplate[]) {
+  // Source priority: per-case subsection_content jsonb (richest) → known columns.
+  const out: { key: string; heading: string; body: string }[] = [];
+  const seen = new Set<string>();
+
+  // Known column-based subsections (fallback display order)
+  const builtins: { key: string; heading: string | null; defaultHeading: string; body: string | null }[] = [
+    { key: 'background', heading: row.heading_background, defaultHeading: 'Background', body: row.background_context },
+    { key: 'stakeholders', heading: row.heading_stakeholders, defaultHeading: 'Key stakeholders', body: row.key_stakeholders },
+    { key: 'solutions', heading: row.heading_solutions, defaultHeading: 'Proposed solutions', body: row.proposed_solutions },
+    { key: 'outcomes', heading: row.heading_outcomes, defaultHeading: 'Expected outcomes', body: row.expected_outcomes },
+    { key: 'replicability', heading: row.heading_replicability, defaultHeading: 'Replicability', body: row.replicability },
+  ];
+
+  // Drive order from case_subsection_templates if present, falling back to builtin order.
+  const orderedKeys = templates
+    .slice()
+    .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
+    .map((t) => t.key);
+
+  const pushSub = (key: string, heading: string, body: string | null | undefined) => {
+    if (seen.has(key)) return;
+    if (!body || !body.toString().replace(/<[^>]*>/g, '').replace(/&nbsp;/g, '').trim()) return;
+    out.push({ key, heading, body: body.toString() });
+    seen.add(key);
+  };
+
+  const jsonContent = row.subsection_content as Record<string, { heading?: string; body?: string }> | null;
+
+  for (const k of orderedKeys) {
+    const tpl = templates.find((t) => t.key === k);
+    const tplHeading = tpl?.heading || '';
+    if (jsonContent && jsonContent[k]) {
+      pushSub(k, jsonContent[k].heading || tplHeading || k, jsonContent[k].body || '');
+      continue;
+    }
+    const builtin = builtins.find((b) => b.key === k);
+    if (builtin) {
+      pushSub(k, builtin.heading || tplHeading || builtin.defaultHeading, builtin.body);
+    }
+  }
+
+  // Remaining builtins not covered by templates
+  for (const b of builtins) {
+    pushSub(b.key, b.heading || b.defaultHeading, b.body);
+  }
+
+  // Any remaining JSON keys
+  if (jsonContent) {
+    for (const k of Object.keys(jsonContent)) {
+      pushSub(k, jsonContent[k]?.heading || k, jsonContent[k]?.body || '');
+    }
+  }
+
+  return out;
+}
+
+export function CasesTableNodeView(_props: NodeViewProps) {
+  const params = useParams<{ proposalId?: string; id?: string }>();
+  const proposalId = params.proposalId || params.id || '';
 
   const { data } = useQuery({
-    queryKey: ['b12-cases-node', idsKey],
-    enabled: caseIds.length > 0,
+    queryKey: ['b12-cases-live', proposalId],
+    enabled: !!proposalId,
     queryFn: async () => {
-      const { data: snap } = await supabase
-        .from('b12_cases')
-        .select(
-          'id, case_draft_id, proposal_id, number, short_name, title, case_type, custom_type_name, color, lead_participant_id, order_index, b12_case_subsections(id, subsection_key, heading, body, order_index)',
-        )
-        .in('case_draft_id', caseIds);
-
-      const rows = (snap || []) as any as SnapshotCase[];
-      if (!rows.length) {
-        return { rows: [], participants: [] as B31Participant[], flags: { num: true, ab: true }, proposalId: '' };
-      }
-      const proposalId = rows[0].proposal_id;
-
-      const [{ data: parts }, { data: prop }] = await Promise.all([
+      const [casesRes, tplRes, partsRes, propRes] = await Promise.all([
+        supabase
+          .from('case_drafts')
+          .select('id, number, short_name, title, case_type, custom_type_name, color, lead_participant_id, order_index, subsection_content, background_context, proposed_solutions, expected_outcomes, replicability, key_stakeholders, heading_background, heading_solutions, heading_outcomes, heading_replicability, heading_stakeholders, is_hidden')
+          .eq('proposal_id', proposalId)
+          .order('order_index', { ascending: true, nullsFirst: false })
+          .order('number', { ascending: true }),
+        supabase
+          .from('case_subsection_templates')
+          .select('id, key, heading, order_index, is_default')
+          .eq('proposal_id', proposalId)
+          .order('order_index'),
         supabase
           .from('participants')
           .select('id, participant_number, organisation_short_name, organisation_name')
           .eq('proposal_id', proposalId)
-          .order('participant_number', { ascending: true }),
+          .order('participant_number'),
         supabase
           .from('proposals')
           .select('case_include_number, case_include_abbreviation')
@@ -138,58 +206,33 @@ export function CasesTableNodeView(props: NodeViewProps) {
           .maybeSingle(),
       ]);
 
-      // Order: by b12_cases.order_index first, then fall back to the node's caseIds order.
-      const ordered = rows.slice().sort((a, b) => {
-        const ai = a.order_index ?? Number.MAX_SAFE_INTEGER;
-        const bi = b.order_index ?? Number.MAX_SAFE_INTEGER;
-        if (ai !== bi) return ai - bi;
-        return caseIds.indexOf(a.case_draft_id || '') - caseIds.indexOf(b.case_draft_id || '');
-      });
-      ordered.forEach((r) => {
-        (r.b12_case_subsections || []).sort(
-          (a, b) => (a.order_index ?? 0) - (b.order_index ?? 0),
-        );
-      });
-
-      return {
-        rows: ordered,
-        participants: (parts || []) as any as B31Participant[],
-        flags: {
-          num: (prop as any)?.case_include_number !== false,
-          ab: (prop as any)?.case_include_abbreviation !== false,
-        },
-        proposalId,
+      const cases = (casesRes.data || []).filter((c: any) => !c.is_hidden) as CaseRow[];
+      const templates = (tplRes.data || []) as SubsectionTemplate[];
+      const participants = (partsRes.data || []) as Participant[];
+      const flags = {
+        num: (propRes.data as any)?.case_include_number !== false,
+        ab: (propRes.data as any)?.case_include_abbreviation !== false,
       };
+      return { cases, templates, participants, flags };
     },
   });
-
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['b12-cases-node', idsKey] });
-
-  const saveCaseField = async (id: string, field: 'title' | 'short_name', value: string) => {
-    await supabase.from('b12_cases').update({ [field]: value || null }).eq('id', id);
-    invalidate();
-  };
-
-  const saveSubField = async (id: string, field: 'heading' | 'body', value: string) => {
-    await supabase.from('b12_case_subsections').update({ [field]: value || null }).eq('id', id);
-    invalidate();
-  };
 
   return (
     <NodeViewWrapper
       as="div"
       data-cases-table-nodeview=""
+      contentEditable={false}
       style={{
         margin: '0',
         fontFamily: "'Times New Roman', Times, serif",
         fontSize: '11pt',
         color: '#000',
         width: '100%',
+        userSelect: 'text',
       }}
     >
-      {(!data || data.rows.length === 0) && (
+      {(!data || data.cases.length === 0) && (
         <div
-          contentEditable={false}
           style={{
             padding: '8px 10px',
             border: '1px dashed #9ca3af',
@@ -199,11 +242,11 @@ export function CasesTableNodeView(props: NodeViewProps) {
             fontSize: 12,
           }}
         >
-          No cases populated. Use the case manager to populate this table.
+          No cases yet. Add cases in the Case manager — they will appear here automatically.
         </div>
       )}
 
-      {data && data.rows.map((c, idx) => {
+      {data && data.cases.map((c, idx) => {
         const prefix = casePrefix(c.case_type);
         const label = caseChipLabel({
           prefix,
@@ -212,89 +255,61 @@ export function CasesTableNodeView(props: NodeViewProps) {
           includeNumber: data.flags.num,
           includeAbbreviation: data.flags.ab,
         });
-        const subs = c.b12_case_subsections || [];
+        const leader = data.participants.find((p) => p.id === c.lead_participant_id);
+        const subs = extractSubsections(c, data.templates);
+
         return (
           <div
             key={c.id}
             data-case-block=""
             data-case-id={c.id}
-            style={{
-              paddingTop: idx === 0 ? 0 : 0,
-              marginTop: idx === 0 ? 0 : 18,
-            }}
+            style={{ marginTop: idx === 0 ? 0 : 18 }}
           >
-            {/* Header row: chip left, leader pill right (arrows on LEFT of pill) */}
-            <div
-              contentEditable={false}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 12,
-                width: '100%',
-                marginBottom: 4,
-              }}
-            >
+            {/* Header: chip left, leader pill right */}
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              gap: 12, width: '100%', marginBottom: 4,
+            }}>
               <CaseChip label={label} />
-              <LeaderPicker
-                entityId={c.id}
-                entityTable="b12_cases"
-                currentLeaderId={c.lead_participant_id}
-                participants={data.participants}
-                proposalId={data.proposalId}
-                showCrown
-                arrowPosition="left"
-                placeholder="Select case lead"
-                invalidateKeys={[['b12-cases-node', idsKey], ['b12-cases', data.proposalId]]}
-              />
+              {leader ? (
+                <span className="inline-flex items-center gap-1">
+                  <Crown className="h-3 w-3" style={{ color: '#000' }} />
+                  <ParticipantBubble
+                    shortName={leader.organisation_short_name || leader.organisation_name || ''}
+                    style={{ fontStyle: 'normal' }}
+                  />
+                </span>
+              ) : (
+                <span className="text-muted-foreground text-[9pt] italic">No case lead</span>
+              )}
             </div>
 
-            {/* Editable full title (bold) */}
+            {/* Title */}
             <div style={{ marginBottom: 4, fontWeight: 700 }}>
-              <EditableHeaderText
-                value={c.title || ''}
-                onSave={(val) => saveCaseField(c.id, 'title', val)}
-              />
+              {(c.title || '').trim() ? c.title : <span className="text-muted-foreground italic font-normal">Untitled case</span>}
             </div>
 
-            {/* Divider below title / above first subsection (matches 3.1.b 1px black) */}
-            <div
-              contentEditable={false}
-              style={{ height: 1, backgroundColor: '#000000', width: '100%', margin: '6px 0' }}
-            />
+            <div style={{ height: 1, backgroundColor: '#000000', width: '100%', margin: '6px 0' }} />
 
-            {/* Editable subsections, separated by black 1px dividers */}
-            {subs.map((s, si) => (
-              <div key={s.id}>
-                <div style={{ marginTop: si === 0 ? 0 : 0 }}>
+            {subs.map((s) => (
+              <div key={s.key}>
+                <div>
                   <span style={{ fontWeight: 700, fontStyle: 'italic' }}>
-                    <EditableHeaderText
-                      value={s.heading || ''}
-                      onSave={(val) => saveSubField(s.id, 'heading', val)}
-                    />
-                    {(s.heading || '').trim() && <span contentEditable={false}>:</span>}
+                    {s.heading}
+                    {s.heading.trim() && <span>:</span>}
                   </span>
                   <div style={{ marginTop: 2 }}>
-                    <EditableText
-                      value={s.body || ''}
-                      onSave={(val) => saveSubField(s.id, 'body', val)}
-                      placeholder="Click to add content…"
-                    />
+                    <ReadOnlyRichBody html={s.body} />
                   </div>
                 </div>
-                <div
-                  contentEditable={false}
-                  style={{ height: 1, backgroundColor: '#000000', width: '100%', margin: '6px 0' }}
-                />
+                <div style={{ height: 1, backgroundColor: '#000000', width: '100%', margin: '6px 0' }} />
               </div>
             ))}
           </div>
         );
       })}
 
-      {/* Trailing spacer matching between-cases gap, so text typed below the
-          node still sits a comfortable distance from the last case. */}
-      {data && data.rows.length > 0 && <div contentEditable={false} style={{ height: 18 }} />}
+      {data && data.cases.length > 0 && <div style={{ height: 18 }} />}
     </NodeViewWrapper>
   );
 }
