@@ -28,6 +28,16 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { ParticipantBubble } from '@/components/B31Pill';
 import {
   Select,
@@ -41,7 +51,7 @@ import { Badge } from '@/components/ui/badge';
 import { FlaskConical, GripVertical, Plus, Trash2, Lock, LockOpen, Eye, EyeOff, Settings, FileOutput } from 'lucide-react';
 import { CaseSubsectionTemplateDialog } from '@/components/CaseSubsectionTemplateDialog';
 import { populateCasesToB12, reorderB12CaseTablesInSection } from '@/lib/b12CasesPopulation';
-import { populateCasesNodeToB12 } from '@/lib/b12CasesNodePopulation';
+import { populateCasesNodeToB12, hasSnapshotEdits } from '@/lib/b12CasesNodePopulation';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
@@ -357,6 +367,39 @@ export function CaseManagementCard({
   const [populating, setPopulating] = useState(false);
   const [populateDialogOpen, setPopulateDialogOpen] = useState(false);
   const [selectedPopulateIds, setSelectedPopulateIds] = useState<Set<string>>(new Set());
+  const [replaceWarningOpen, setReplaceWarningOpen] = useState(false);
+
+  const runPopulate = async (ids: string[]) => {
+    try {
+      setPopulating(true);
+      const res = await populateCasesNodeToB12(proposalId, { caseIds: ids });
+      toast.success(`Populated ${res.insertedOrUpdated} case${res.insertedOrUpdated === 1 ? '' : 's'} into B1.2.`);
+      invalidateCaseQueries();
+      queryClient.invalidateQueries({ queryKey: ['section-content', proposalId, 'b1-2'] });
+      queryClient.invalidateQueries({ queryKey: ['b12-cases', proposalId] });
+      setPopulateDialogOpen(false);
+    } catch (e: any) {
+      console.error(e);
+      toast.error(`Populate failed: ${e?.message || 'unknown error'}`);
+    } finally {
+      setPopulating(false);
+    }
+  };
+
+  const handlePopulateClick = async () => {
+    const ids = Array.from(selectedPopulateIds);
+    if (ids.length === 0) return;
+    try {
+      const dirty = await hasSnapshotEdits(proposalId, ids);
+      if (dirty) {
+        setReplaceWarningOpen(true);
+        return;
+      }
+    } catch (e) {
+      console.warn('Snapshot diff check failed; proceeding without warning', e);
+    }
+    runPopulate(ids);
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -956,27 +999,36 @@ export function CaseManagementCard({
                 variant="default"
                 size="sm"
                 disabled={selectedPopulateIds.size === 0 || populating}
-                onClick={async () => {
-                  try {
-                    setPopulating(true);
-                    const res = await populateCasesNodeToB12(proposalId, { caseIds: Array.from(selectedPopulateIds) });
-                    toast.success(`Populated ${res.insertedOrUpdated} case${res.insertedOrUpdated === 1 ? '' : 's'} into B1.2.`);
-                    invalidateCaseQueries();
-                    queryClient.invalidateQueries({ queryKey: ['section-content', proposalId, 'b1-2'] });
-                    setPopulateDialogOpen(false);
-                  } catch (e: any) {
-                    console.error(e);
-                    toast.error(`Populate failed: ${e?.message || 'unknown error'}`);
-                  } finally {
-                    setPopulating(false);
-                  }
-                }}
+                onClick={handlePopulateClick}
               >
                 {populating ? 'Populating\u2026' : `Populate ${selectedPopulateIds.size} case${selectedPopulateIds.size === 1 ? '' : 's'}`}
               </Button>
             </div>
           </DialogContent>
         </Dialog>
+
+        <AlertDialog open={replaceWarningOpen} onOpenChange={setReplaceWarningOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Replace cases in B1.2?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Re-populating will replace the cases in B1.2 with the current case drafts. Any edits made to the cases in B1.2 will be lost. Continue?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={() => {
+                  setReplaceWarningOpen(false);
+                  runPopulate(Array.from(selectedPopulateIds));
+                }}
+              >
+                Replace
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </CardContent>
     </Card>
   );
