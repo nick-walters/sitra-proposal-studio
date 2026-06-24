@@ -70,7 +70,7 @@ interface CaseDraft {
   order_index: number;
   is_locked: boolean;
   locked_by: string | null;
-  is_hidden: boolean;
+  
 }
 
 const CASE_TYPES = [
