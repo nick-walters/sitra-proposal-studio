@@ -283,21 +283,20 @@ export function InsertTDMSReferenceDropdowns({
       }
       setDeliverables(allDeliverables);
 
-      // Milestones: live source = wp_draft_milestones (proposal-wide).
+      // Milestones: live source = proposal_milestones (proposal-wide).
       const allMilestones: Milestone[] = [];
-      if (wpDrafts && wpDrafts.length > 0) {
-        const { data: srcMs } = await supabase
-          .from('wp_draft_milestones')
-          .select('id, number, title, wp_draft_id')
-          .in('wp_draft_id', wpDrafts.map(wp => wp.id))
-          .order('number');
-        if (srcMs) {
-          for (const m of srcMs) {
-            allMilestones.push({ id: m.id, number: m.number, name: m.title || '' });
-          }
+      const { data: srcMs } = await supabase
+        .from('proposal_milestones')
+        .select('id, number, title')
+        .eq('proposal_id', proposalId)
+        .order('number');
+      if (srcMs) {
+        for (const m of srcMs) {
+          allMilestones.push({ id: m.id, number: m.number, name: m.title || '' });
         }
       }
       setMilestones(allMilestones);
+
       setLoading(false);
     };
 
