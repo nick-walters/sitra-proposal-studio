@@ -144,39 +144,37 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
     return next;
   };
 
-  const handlePopulate = async () => {
+  const buildSelections = (): PopulateSelections => {
+    const allTaskChecks: Record<string, boolean> = {};
+    const allDeliverableChecks: Record<string, boolean> = {};
+    const allMilestoneChecks: Record<string, boolean> = {};
+    const allRiskChecks: Record<string, boolean> = {};
+    let anyObjectives = false;
+    let anyDescBefore = false;
+    for (const wp of selectedWpDrafts) {
+      const sel = wpSelections[wp.id];
+      if (!sel) continue;
+      if (sel.objectives) anyObjectives = true;
+      if (sel.descriptionBeforeTasks) anyDescBefore = true;
+      if (sel.tasksEnabled) Object.assign(allTaskChecks, sel.taskChecks);
+      if (sel.deliverablesEnabled) Object.assign(allDeliverableChecks, sel.deliverableChecks);
+      if (sel.milestonesEnabled) Object.assign(allMilestoneChecks, sel.milestoneChecks);
+      if (sel.risksEnabled) Object.assign(allRiskChecks, sel.riskChecks);
+    }
+    return {
+      objectives: anyObjectives,
+      descriptionBeforeTasks: anyDescBefore,
+      tasks: allTaskChecks,
+      deliverables: allDeliverableChecks,
+      milestones: allMilestoneChecks,
+      risks: allRiskChecks,
+    };
+  };
+
+  const runPopulate = async (selections: PopulateSelections) => {
     setPopulating(true);
     try {
-      // Merge per-WP selections into a single PopulateSelections
-      const allTaskChecks: Record<string, boolean> = {};
-      const allDeliverableChecks: Record<string, boolean> = {};
-      const allMilestoneChecks: Record<string, boolean> = {};
-      const allRiskChecks: Record<string, boolean> = {};
-      let anyObjectives = false;
-      let anyDescBefore = false;
-
-      for (const wp of selectedWpDrafts) {
-        const sel = wpSelections[wp.id];
-        if (!sel) continue;
-        if (sel.objectives) anyObjectives = true;
-        if (sel.descriptionBeforeTasks) anyDescBefore = true;
-        if (sel.tasksEnabled) Object.assign(allTaskChecks, sel.taskChecks);
-        if (sel.deliverablesEnabled) Object.assign(allDeliverableChecks, sel.deliverableChecks);
-        if (sel.milestonesEnabled) Object.assign(allMilestoneChecks, sel.milestoneChecks);
-        if (sel.risksEnabled) Object.assign(allRiskChecks, sel.riskChecks);
-      }
-
-      const selections: PopulateSelections = {
-        objectives: anyObjectives,
-        descriptionBeforeTasks: anyDescBefore,
-        tasks: allTaskChecks,
-        deliverables: allDeliverableChecks,
-        milestones: allMilestoneChecks,
-        risks: allRiskChecks,
-      };
-
       const result = await populateB31(proposalId, selectedWpDrafts, selections);
-
       if (result.success) {
         const parts: string[] = [];
         if (result.counts.objectives > 0) parts.push(`${result.counts.objectives} objectives`);
@@ -199,6 +197,25 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
     } finally {
       setPopulating(false);
     }
+  };
+
+  const handlePopulate = async () => {
+    const selections = buildSelections();
+    setPopulating(true);
+    let edited: string[] = [];
+    try {
+      edited = await detectB31EditedSections(proposalId, selectedWpDrafts, selections);
+    } catch {
+      edited = [];
+    }
+    setPopulating(false);
+    if (edited.length > 0) {
+      setEditedSections(edited);
+      setPendingSelections(selections);
+      setReplaceWarningOpen(true);
+      return;
+    }
+    await runPopulate(selections);
   };
 
   const allWpsSelected = wpDrafts.length > 0 && wpDrafts.every((wp) => wpChecks[wp.id]);
