@@ -389,3 +389,223 @@ export async function populateB31(
     };
   }
 }
+
+/**
+ * Per-section edit detection for the B3.1 populate overwrite warning.
+ *
+ * Returns the human-readable labels of sections that, if populated now, would
+ * overwrite edits the user has made in Table 3.1.b since the last populate.
+ *
+ * Semantics per section:
+ *  - Objectives / Optional description: compare wp_drafts.b31_* vs current draft
+ *    value (only if previously populated).
+ *  - Tasks: full delete+replace per WP — compare each selected draft task to its
+ *    matching b31_tasks row (by wp_draft_task_id) including participants.
+ *  - Deliverables: upsert-by-number "D{wp}.{n}" — compare matching row fields.
+ *  - Milestones / Risks: upsert by globally renumbered index following the same
+ *    order populate uses — compare matching row fields.
+ *
+ * A section is reported only if at least one selected WP has the matching
+ * b31_populated_* flag set (i.e. it has been populated before). First-time
+ * populate is silent.
+ */
+export async function detectB31EditedSections(
+  proposalId: string,
+  wpDrafts: WPDraftForPopulate[],
+  selections: PopulateSelections,
+): Promise<string[]> {
+  const wpIds = wpDrafts.map((w) => w.id);
+  if (wpIds.length === 0) return [];
+  const dirty = new Set<string>();
+
+  const { data: wpRows } = await supabase
+    .from('wp_drafts')
+    .select(
+      'id, b31_objectives, b31_description_before_tasks, b31_populated_objectives, b31_populated_description, b31_populated_tasks, b31_populated_deliverables, b31_populated_milestones, b31_populated_risks',
+    )
+    .in('id', wpIds);
+  const wpById = new Map<string, any>(((wpRows as any[]) || []).map((r: any) => [r.id, r]));
+
+  // Objectives
+  if (selections.objectives) {
+    for (const wp of wpDrafts) {
+      const row = wpById.get(wp.id);
+      if (!row?.b31_populated_objectives) continue;
+      if ((row.b31_objectives || '') !== (wp.objectives || '')) {
+        dirty.add('Objectives');
+        break;
+      }
+    }
+  }
+
+  // Optional description before tasks
+  if (selections.descriptionBeforeTasks) {
+    for (const wp of wpDrafts) {
+      const row = wpById.get(wp.id);
+      if (!row?.b31_populated_description) continue;
+      if ((row.b31_description_before_tasks || '') !== (wp.description_before_tasks || '')) {
+        dirty.add('Optional description before tasks');
+        break;
+      }
+    }
+  }
+
+  // Tasks — delete+insert per WP
+  const tWps = wpDrafts.filter((wp) => wp.tasks.some((t) => selections.tasks[t.id]));
+  if (tWps.length > 0) {
+    const ids = tWps.map((w) => w.id);
+    const { data: existingTasks } = await supabase
+      .from('b31_tasks')
+      .select(
+        'id, wp_draft_id, wp_draft_task_id, title, description, lead_participant_id, start_month, end_month, participants:b31_task_participants(participant_id)',
+      )
+      .in('wp_draft_id', ids);
+    const byWp = new Map<string, any[]>();
+    for (const t of ((existingTasks as any[]) || [])) {
+      const arr = byWp.get(t.wp_draft_id) || [];
+      arr.push(t);
+      byWp.set(t.wp_draft_id, arr);
+    }
+    let flagged = false;
+    for (const wp of tWps) {
+      if (flagged) break;
+      const row = wpById.get(wp.id);
+      if (!row?.b31_populated_tasks) continue;
+      const exById = new Map<string, any>((byWp.get(wp.id) || []).map((e) => [e.wp_draft_task_id, e]));
+      if (exById.size === 0) continue;
+      for (const t of wp.tasks) {
+        if (!selections.tasks[t.id]) continue;
+        const ex = exById.get(t.id);
+        if (!ex) continue; // not previously populated → no edit to lose for this row
+        if (
+          (ex.title || '') !== (t.title || '') ||
+          (ex.description || '') !== (t.description || '') ||
+          (ex.lead_participant_id || null) !== (t.lead_participant_id || null) ||
+          (ex.start_month ?? null) !== (t.start_month ?? null) ||
+          (ex.end_month ?? null) !== (t.end_month ?? null)
+        ) {
+          dirty.add('Tasks');
+          flagged = true;
+          break;
+        }
+        const exP = new Set<string>(((ex.participants || []) as any[]).map((p) => p.participant_id));
+        const drP = new Set<string>((t.participants || []).map((p) => p.participant_id));
+        if (exP.size !== drP.size || [...exP].some((p) => !drP.has(p))) {
+          dirty.add('Tasks');
+          flagged = true;
+          break;
+        }
+      }
+    }
+  }
+
+  // Deliverables — upsert by number
+  const dWps = wpDrafts.filter((wp) => wp.deliverables.some((d) => selections.deliverables[d.id]));
+  if (dWps.length > 0) {
+    const numbers = dWps.flatMap((wp) =>
+      wp.deliverables.filter((d) => selections.deliverables[d.id]).map((d) => `D${wp.number}.${d.number}`),
+    );
+    const { data: existingDels } = await supabase
+      .from('b31_deliverables')
+      .select('number, name, description, type, dissemination_level, lead_participant_id, due_month, wp_number, task_id')
+      .eq('proposal_id', proposalId)
+      .in('number', numbers);
+    const byNumber = new Map<string, any>(((existingDels as any[]) || []).map((d: any) => [d.number, d]));
+    let flagged = false;
+    for (const wp of dWps) {
+      if (flagged) break;
+      const row = wpById.get(wp.id);
+      if (!row?.b31_populated_deliverables) continue;
+      for (const d of wp.deliverables) {
+        if (!selections.deliverables[d.id]) continue;
+        const ex = byNumber.get(`D${wp.number}.${d.number}`);
+        if (!ex) continue;
+        if (
+          (ex.name || '') !== (d.title || '') ||
+          (ex.description || '') !== (d.description || '') ||
+          (ex.type || null) !== (d.type || null) ||
+          (ex.dissemination_level || null) !== (d.dissemination_level || null) ||
+          (ex.lead_participant_id || null) !== (d.responsible_participant_id || null) ||
+          (ex.due_month ?? null) !== (d.due_month ?? null) ||
+          (ex.wp_number ?? null) !== (wp.number ?? null) ||
+          (ex.task_id || null) !== (d.task_id || null)
+        ) {
+          dirty.add('Deliverables');
+          flagged = true;
+          break;
+        }
+      }
+    }
+  }
+
+  // Milestones — upsert by global renumbered index
+  if (Object.values(selections.milestones).some(Boolean)) {
+    const anyPop = wpDrafts.some((wp) => wpById.get(wp.id)?.b31_populated_milestones);
+    if (anyPop) {
+      const { data: existing } = await supabase
+        .from('b31_milestones')
+        .select('number, name, wps, due_month, means_of_verification')
+        .eq('proposal_id', proposalId);
+      const byNum = new Map<number, any>(((existing as any[]) || []).map((m: any) => [m.number, m]));
+      let idx = 0;
+      let flagged = false;
+      for (const wp of wpDrafts) {
+        if (flagged) break;
+        for (const ms of wp.milestones) {
+          if (!selections.milestones[ms.id]) continue;
+          idx++;
+          const ex = byNum.get(idx);
+          if (!ex) continue;
+          const wpsValue = ms.related_wps || `WP${wp.number}`;
+          if (
+            (ex.name || '') !== (ms.title || '') ||
+            (ex.wps || '') !== wpsValue ||
+            (ex.due_month ?? null) !== (ms.due_month ?? null) ||
+            (ex.means_of_verification || '') !== (ms.means_of_verification || '')
+          ) {
+            dirty.add('Milestones');
+            flagged = true;
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  // Risks — upsert by global renumbered index
+  if (Object.values(selections.risks).some(Boolean)) {
+    const anyPop = wpDrafts.some((wp) => wpById.get(wp.id)?.b31_populated_risks);
+    if (anyPop) {
+      const { data: existing } = await supabase
+        .from('b31_risks')
+        .select('number, description, wps, likelihood, severity, mitigation')
+        .eq('proposal_id', proposalId);
+      const byNum = new Map<number, any>(((existing as any[]) || []).map((r: any) => [r.number, r]));
+      let idx = 0;
+      let flagged = false;
+      for (const wp of wpDrafts) {
+        if (flagged) break;
+        for (const r of wp.risks) {
+          if (!selections.risks[r.id]) continue;
+          idx++;
+          const ex = byNum.get(idx);
+          if (!ex) continue;
+          const wpsValue = r.related_wps || `WP${wp.number}`;
+          if (
+            (ex.description || '') !== (r.title || '') ||
+            (ex.wps || '') !== wpsValue ||
+            (ex.likelihood || null) !== (r.likelihood || null) ||
+            (ex.severity || null) !== (r.severity || null) ||
+            (ex.mitigation || '') !== (r.mitigation || '')
+          ) {
+            dirty.add('Risks');
+            flagged = true;
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  return Array.from(dirty);
+}
