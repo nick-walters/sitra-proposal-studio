@@ -78,9 +78,11 @@ async function fetchReferenceData(proposalId: string) {
       .select('id, number, wp_draft_id')
       .order('number'),
     supabase
-      .from('wp_draft_milestones')
-      .select('id, number, wp_draft_id')
+      .from('proposal_milestones')
+      .select('id, number, proposal_id')
+      .eq('proposal_id', proposalId)
       .order('number'),
+
     supabase
       .from('case_drafts')
       .select('id, number, case_type, short_name, color')
@@ -126,10 +128,10 @@ async function fetchReferenceData(proposalId: string) {
       };
     });
 
-  // Milestones: only those belonging to this proposal's WPs.
+  // Milestones: proposal-scoped (proposal_milestones).
   const milestones: MilestoneData[] = (msRes.data || [])
-    .filter(m => wpMap.has(m.wp_draft_id))
     .map(m => ({ id: m.id, number: m.number }));
+
   const cases: CaseData[] = caseRes.data || [];
   const participants: ParticipantData[] = participantRes.data || [];
   const figures: FigureData[] = figureRes.data || [];

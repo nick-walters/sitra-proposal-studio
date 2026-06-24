@@ -221,25 +221,34 @@ export function B31DeliverablesTable({ proposalId }: Props) {
 }
 
 // ============================================================
-// Table 3.1.d — Milestones (read-only mirror, wp_draft_milestones)
+// Table 3.1.d — Milestones (read-only mirror, proposal_milestones)
 // ============================================================
 export function B31MilestonesTable({ proposalId }: Props) {
   const { data: wpInfo } = useWPLookup(proposalId);
 
   const { data: milestones = [] } = useQuery({
     queryKey: ['b31-milestones-live', proposalId],
-    enabled: !!proposalId && !!wpInfo,
+    enabled: !!proposalId,
     queryFn: async () => {
-      const wpIds = wpInfo!.list.map((wp: any) => wp.id);
-      if (wpIds.length === 0) return [];
-      const { data } = await supabase
-        .from('wp_draft_milestones')
-        .select('id, wp_draft_id, number, title, related_wps, due_month, means_of_verification, order_index')
-        .in('wp_draft_id', wpIds);
-      // Order by global number then due_month
-      return (data || []).slice().sort(
-        (a: any, b: any) => (a.number ?? 0) - (b.number ?? 0),
-      );
+      const { data: rows } = await supabase
+        .from('proposal_milestones')
+        .select('id, number, title, due_month, means_of_verification, order_index')
+        .eq('proposal_id', proposalId)
+        .order('number');
+      const ids = (rows || []).map((m: any) => m.id);
+      let linkMap = new Map<string, string[]>();
+      if (ids.length > 0) {
+        const { data: links } = await supabase
+          .from('proposal_milestone_wps')
+          .select('milestone_id, wp_draft_id')
+          .in('milestone_id', ids);
+        for (const l of links || []) {
+          const arr = linkMap.get(l.milestone_id) || [];
+          arr.push(l.wp_draft_id);
+          linkMap.set(l.milestone_id, arr);
+        }
+      }
+      return (rows || []).map((m: any) => ({ ...m, _wpIds: linkMap.get(m.id) || [] }));
     },
   });
 
@@ -266,25 +275,25 @@ export function B31MilestonesTable({ proposalId }: Props) {
           {milestones.length === 0 && (
             <tr>
               <td colSpan={5} className={tdCls + ' text-muted-foreground italic'}>
-                No milestones in WP drafts yet.
+                No milestones yet.
               </td>
             </tr>
           )}
           {milestones.map((m: any) => {
-            const wpNumbers = parseWPList(m.related_wps);
+            const wps = (m._wpIds as string[])
+              .map((id) => wpInfo?.byId.get(id))
+              .filter(Boolean)
+              .sort((a: any, b: any) => a.number - b.number);
             return (
               <tr key={m.id}>
                 <td className={tdCls}><MilestoneBadge number={m.number} /></td>
                 <td className={tdCls}><ReadOnlyTextCell text={m.title} /></td>
                 <td className={tdCls}>
                   <div className="flex flex-wrap gap-0.5">
-                    {wpNumbers.length === 0 && <span className="text-muted-foreground italic">—</span>}
-                    {wpNumbers.map((n) => {
-                      const wp = wpInfo?.byNumber.get(n);
-                      return wp
-                        ? <WPBubble key={n} wpNumber={wp.number} wpColor={wp.color} />
-                        : <span key={n}>WP{n}</span>;
-                    })}
+                    {wps.length === 0 && <span className="text-muted-foreground italic">—</span>}
+                    {wps.map((wp: any) => (
+                      <WPBubble key={wp.id} wpNumber={wp.number} wpColor={wp.color} />
+                    ))}
                   </div>
                 </td>
                 <td className={tdCls}><MonthLabel m={m.due_month} /></td>
@@ -298,25 +307,36 @@ export function B31MilestonesTable({ proposalId }: Props) {
   );
 }
 
+
 // ============================================================
-// Table 3.1.e — Critical risks (read-only mirror, wp_draft_risks)
+// Table 3.1.e — Critical risks (read-only mirror, proposal_risks)
 // ============================================================
 export function B31RisksTable({ proposalId }: Props) {
   const { data: wpInfo } = useWPLookup(proposalId);
 
   const { data: risks = [] } = useQuery({
     queryKey: ['b31-risks-live', proposalId],
-    enabled: !!proposalId && !!wpInfo,
+    enabled: !!proposalId,
     queryFn: async () => {
-      const wpIds = wpInfo!.list.map((wp: any) => wp.id);
-      if (wpIds.length === 0) return [];
-      const { data } = await supabase
-        .from('wp_draft_risks')
-        .select('id, wp_draft_id, number, title, related_wps, likelihood, severity, mitigation, order_index')
-        .in('wp_draft_id', wpIds);
-      return (data || []).slice().sort(
-        (a: any, b: any) => (a.number ?? 0) - (b.number ?? 0),
-      );
+      const { data: rows } = await supabase
+        .from('proposal_risks')
+        .select('id, number, title, likelihood, severity, mitigation, order_index')
+        .eq('proposal_id', proposalId)
+        .order('number');
+      const ids = (rows || []).map((r: any) => r.id);
+      let linkMap = new Map<string, string[]>();
+      if (ids.length > 0) {
+        const { data: links } = await supabase
+          .from('proposal_risk_wps')
+          .select('risk_id, wp_draft_id')
+          .in('risk_id', ids);
+        for (const l of links || []) {
+          const arr = linkMap.get(l.risk_id) || [];
+          arr.push(l.wp_draft_id);
+          linkMap.set(l.risk_id, arr);
+        }
+      }
+      return (rows || []).map((r: any) => ({ ...r, _wpIds: linkMap.get(r.id) || [] }));
     },
   });
 
@@ -343,12 +363,15 @@ export function B31RisksTable({ proposalId }: Props) {
           {risks.length === 0 && (
             <tr>
               <td colSpan={5} className={tdCls + ' text-muted-foreground italic'}>
-                No risks in WP drafts yet.
+                No risks yet.
               </td>
             </tr>
           )}
           {risks.map((r: any) => {
-            const wpNumbers = parseWPList(r.related_wps);
+            const wps = (r._wpIds as string[])
+              .map((id) => wpInfo?.byId.get(id))
+              .filter(Boolean)
+              .sort((a: any, b: any) => a.number - b.number);
             return (
               <tr key={r.id}>
                 <td className={tdCls}><ReadOnlyHtmlCell html={r.title} /></td>
@@ -360,13 +383,10 @@ export function B31RisksTable({ proposalId }: Props) {
                 </td>
                 <td className={tdCls}>
                   <div className="flex flex-wrap gap-0.5">
-                    {wpNumbers.length === 0 && <span className="text-muted-foreground italic">—</span>}
-                    {wpNumbers.map((n) => {
-                      const wp = wpInfo?.byNumber.get(n);
-                      return wp
-                        ? <WPBubble key={n} wpNumber={wp.number} wpColor={wp.color} />
-                        : <span key={n}>WP{n}</span>;
-                    })}
+                    {wps.length === 0 && <span className="text-muted-foreground italic">—</span>}
+                    {wps.map((wp: any) => (
+                      <WPBubble key={wp.id} wpNumber={wp.number} wpColor={wp.color} />
+                    ))}
                   </div>
                 </td>
                 <td className={tdCls}><ReadOnlyHtmlCell html={r.mitigation} /></td>
@@ -378,6 +398,7 @@ export function B31RisksTable({ proposalId }: Props) {
     </div>
   );
 }
+
 
 // Wrapper kept for backward compatibility.
 export function B31TablesEditor({ proposalId }: Props) {

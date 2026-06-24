@@ -107,6 +107,7 @@ export function GanttChartFigure({
         { data: tasks, error: taskError },
         { data: deliverables, error: delError },
         { data: msData, error: msError },
+        { data: msLinks, error: msLinkError },
         { data: participants, error: partError },
       ] = await Promise.all([
         supabase
@@ -122,8 +123,12 @@ export function GanttChartFigure({
           .from('wp_draft_deliverables')
           .select('id, wp_draft_id, number, title, due_month, task_id, type, dissemination_level, responsible_participant_id'),
         supabase
-          .from('wp_draft_milestones')
-          .select('id, wp_draft_id, number, title, due_month, related_wps'),
+          .from('proposal_milestones')
+          .select('id, number, title, due_month')
+          .eq('proposal_id', proposalId),
+        supabase
+          .from('proposal_milestone_wps')
+          .select('milestone_id, wp_draft_id'),
         supabase
           .from('participants')
           .select('id, organisation_short_name, participant_number')
@@ -133,16 +138,32 @@ export function GanttChartFigure({
       if (taskError) throw taskError;
       if (delError) throw delError;
       if (msError) throw msError;
+      if (msLinkError) throw msLinkError;
       if (partError) throw partError;
 
       const wpIds = new Set((wps || []).map(wp => wp.id));
       const filteredTasks = (tasks || []).filter(t => wpIds.has(t.wp_draft_id));
       const filteredDels = (deliverables || []).filter(d => wpIds.has(d.wp_draft_id));
-      const filteredMs = (msData || []).filter(m => wpIds.has(m.wp_draft_id));
 
-      return { wps: wps || [], tasks: filteredTasks, deliverables: filteredDels, milestones: filteredMs, participants: participants || [] };
+      // Build milestone → wp_draft_id[] map (filtered to this proposal's WPs).
+      const msToWpIds = new Map<string, string[]>();
+      for (const l of msLinks || []) {
+        if (!wpIds.has(l.wp_draft_id)) continue;
+        const arr = msToWpIds.get(l.milestone_id) || [];
+        arr.push(l.wp_draft_id);
+        msToWpIds.set(l.milestone_id, arr);
+      }
+      // Adapt milestones to legacy shape consumed below: { id, number, title,
+      // due_month, wp_draft_id (first linked WP, for back-compat), _wpIds }.
+      const adaptedMs = (msData || []).map((m: any) => {
+        const linked = msToWpIds.get(m.id) || [];
+        return { ...m, wp_draft_id: linked[0] ?? null, _wpIds: linked };
+      });
+
+      return { wps: wps || [], tasks: filteredTasks, deliverables: filteredDels, milestones: adaptedMs, participants: participants || [] };
     },
   });
+
 
   const dynamicData = useMemo(() => {
     if (!wpDraftsData) return { workPackages: [] as WorkPackage[], milestones: [] as Milestone[] };
@@ -155,15 +176,11 @@ export function GanttChartFigure({
     const workPackages: WorkPackage[] = wps.map((wp) => {
       const wpTasks = tasks.filter(t => t.wp_draft_id === wp.id);
       const wpDeliverables = deliverables.filter(d => d.wp_draft_id === wp.id);
-      const wpMilestones = msRows.filter(m => {
-        // Source has no task_id linkage; rely on wp_draft_id or related_wps.
-        if (m.wp_draft_id === wp.id) return true;
-        if (m.related_wps) {
-          const wpNums = String(m.related_wps).split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
-          return wpNums.includes(wp.number);
-        }
-        return false;
+      const wpMilestones = msRows.filter((m: any) => {
+        const ids: string[] = m._wpIds || [];
+        return ids.includes(wp.id);
       });
+
 
       const taskStartMonths = wpTasks.filter(t => t.start_month != null).map(t => t.start_month!);
       const taskEndMonths = wpTasks.filter(t => t.end_month != null).map(t => t.end_month!);

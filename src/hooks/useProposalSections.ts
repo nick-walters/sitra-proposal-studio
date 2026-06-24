@@ -474,6 +474,13 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
       },
     };
 
+    // Milestones & risks (proposal-level managers)
+    const milestonesRisksSection: Section = {
+      id: 'milestones-risks',
+      number: '',
+      title: 'Milestones & risks',
+    };
+
     // Combined WPs & cases section
     const wpAndCasesSection: Section = {
       id: 'wp-drafts',
@@ -493,11 +500,14 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
         partBRoot.subsections = partBRoot.subsections.filter(s => s.id !== 'figures' && s.title !== 'Figures');
       }
       
-      // Build result: Proposal Management, Topic Info, Part A, Part B, then Figures, then WP Drafts
+      // Build result: Proposal Management, Topic Info, Part A, Part B, then Figures, Milestones & risks, then WP Drafts
       const result = [proposalManagementSection, topicInfoSection, ...partASections, ...partBSections];
       
       // Add Figures as standalone top-level section (before WP Drafts)
       result.push(figuresSection);
+
+      // Add Milestones & risks manager (always shown)
+      result.push(milestonesRisksSection);
       
       // Add combined WPs & cases section if there are any WP or case drafts
       if (wpDraftSections.length > 0 || caseDraftSections.length > 0) {
@@ -512,6 +522,9 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
     
     // Add Figures before WP Drafts
     fallbackSections.push(figuresSection);
+
+    // Add Milestones & risks manager
+    fallbackSections.push(milestonesRisksSection);
     
     // Add combined WPs & cases section
     if (wpDraftSections.length > 0 || caseDraftSections.length > 0) {
@@ -519,6 +532,7 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
     }
     
     return fallbackSections;
+
   }, [templateSections, hasTemplateSections, wpDraftSections, caseDraftSections]);
 
   // Create a refetch function that can be called externally

@@ -18,6 +18,7 @@ import { WPManagementCard } from "@/components/WPManagementCard";
 import { SaveIndicator } from "@/components/SaveIndicator";
 
 import { CaseManagementCard } from "@/components/CaseManagementCard";
+import { ProposalMilestonesRisksManager } from "@/components/ProposalMilestonesRisksManager";
 import { CaseDraftEditor } from "@/components/CaseDraftEditor";
 import { WPProgressTracker } from "@/components/WPProgressTracker";
 import { AvailabilityGantt } from "@/components/AvailabilityGantt";
@@ -813,7 +814,13 @@ export function ProposalEditor() {
           </div>
         );
       },
+      'milestones-risks': () => (
+        <div className="flex-1 overflow-y-auto">
+          <ProposalMilestonesRisksManager proposalId={id || ''} canEdit={canEdit} />
+        </div>
+      ),
     };
+
 
     // ── Prefix dispatch: ID startsWith → component (returning null falls through) ─
     type PrefixHandler = { prefix: string; render: (sectionId: string) => React.ReactNode };
