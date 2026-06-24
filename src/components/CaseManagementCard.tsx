@@ -307,17 +307,7 @@ function SortableCaseRow({ caseItem, participants, casePrefix, includeNumber, in
         </DialogContent>
       </Dialog>
 
-      {/* Visibility Button */}
-      {canEdit && (
-        <button
-          onClick={() => onToggleVisibility(caseItem.id, !caseItem.is_hidden)}
-          className={`p-1 rounded transition-colors ${caseItem.is_hidden ? 'text-destructive hover:bg-destructive/10' : 'text-[#2563EB] hover:bg-blue-100'}`}
-          title={caseItem.is_hidden ? 'Show case' : 'Hide case'}
-        >
-          {caseItem.is_hidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-        </button>
-      )}
-      {!canEdit && <div />}
+
 
       {/* Lock Button */}
       {canEdit && (
