@@ -822,22 +822,13 @@ export function CaseManagementCard({
                 </div>
 
                 {/* Table Header */}
-                <div className="grid grid-cols-[24px_140px_1fr_80px_20px_20px_20px] gap-x-1.5">
+                <div className="grid grid-cols-[24px_140px_1fr_80px_20px_20px] gap-x-1.5">
                   {/* Header row */}
-                  <div className="col-span-7 grid grid-cols-subgrid gap-x-1.5 text-xs font-bold text-muted-foreground border-b pb-1">
+                  <div className="col-span-6 grid grid-cols-subgrid gap-x-1.5 text-xs font-bold text-muted-foreground border-b pb-1">
                     <div />
                     <div />
                     <div>Title</div>
                     <div>{getCaseTypeLabel(proposalCaseType, proposalCustomName)} Leader</div>
-                    {isCoordinator ? (
-                      <button
-                        onClick={handleToggleVisibilityAll}
-                        className={`p-1 rounded transition-colors ${caseDrafts.length > 0 && caseDrafts.every(c => c.is_hidden) ? 'text-destructive hover:bg-destructive/10' : 'text-[#2563EB] hover:bg-blue-100'}`}
-                        title={caseDrafts.length > 0 && caseDrafts.every(c => c.is_hidden) ? 'Show all' : 'Hide all'}
-                      >
-                        {caseDrafts.length > 0 && caseDrafts.every(c => c.is_hidden) ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    ) : <div />}
                     {isCoordinator ? (
                       <button
                         onClick={handleToggleLockAll}
@@ -849,6 +840,7 @@ export function CaseManagementCard({
                     ) : <div />}
                     <div />
                   </div>
+
 
                   {/* Sortable Case List */}
                   <DndContext
