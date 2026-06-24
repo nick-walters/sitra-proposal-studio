@@ -237,14 +237,9 @@ export function CasesTableNodeView(_props: NodeViewProps) {
         })),
       });
 
-      const cases = (casesRes.data || []).filter((c: any) => !c.is_hidden) as CaseRow[];
+      const cases = (casesRes.data || []) as CaseRow[];
 
-      // [CASES-DEBUG] post client-side filter
-      // eslint-disable-next-line no-console
-      console.log('[CASES-DEBUG] after client-side is_hidden filter', {
-        filter: '!c.is_hidden',
-        countAfterFilter: cases.length,
-      });
+
 
       const templates = (tplRes.data || []) as SubsectionTemplate[];
       const participants = (partsRes.data || []) as Participant[];
