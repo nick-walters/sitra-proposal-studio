@@ -798,7 +798,7 @@ export function CaseManagementCard({
                   </DndContext>
                 </div>
 
-                {/* Action buttons row: left = Add + Populate; right = Edit subsections */}
+                {/* Action buttons row: left = Add; right = Edit subsections */}
                 {isCoordinator && (
                   <div className="pt-2 flex items-center justify-between gap-2 flex-wrap">
                     <div className="flex items-center gap-2">
@@ -810,19 +810,6 @@ export function CaseManagementCard({
                       >
                         <Plus className="w-4 h-4 mr-1" />
                         Add case
-                      </Button>
-                      <Button
-                        variant="default"
-                        size="sm"
-                        disabled={caseDrafts.length === 0 || populating}
-                        onClick={() => {
-                          if (caseDrafts.length === 0) return;
-                          setSelectedPopulateIds(new Set(caseDrafts.map((c) => c.id)));
-                          setPopulateDialogOpen(true);
-                        }}
-                      >
-                        
-                        {populating ? 'Populating\u2026' : 'Populate Part B1.2'}
                       </Button>
                     </div>
                     <Button
