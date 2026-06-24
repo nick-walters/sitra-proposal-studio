@@ -999,27 +999,36 @@ export function CaseManagementCard({
                 variant="default"
                 size="sm"
                 disabled={selectedPopulateIds.size === 0 || populating}
-                onClick={async () => {
-                  try {
-                    setPopulating(true);
-                    const res = await populateCasesNodeToB12(proposalId, { caseIds: Array.from(selectedPopulateIds) });
-                    toast.success(`Populated ${res.insertedOrUpdated} case${res.insertedOrUpdated === 1 ? '' : 's'} into B1.2.`);
-                    invalidateCaseQueries();
-                    queryClient.invalidateQueries({ queryKey: ['section-content', proposalId, 'b1-2'] });
-                    setPopulateDialogOpen(false);
-                  } catch (e: any) {
-                    console.error(e);
-                    toast.error(`Populate failed: ${e?.message || 'unknown error'}`);
-                  } finally {
-                    setPopulating(false);
-                  }
-                }}
+                onClick={handlePopulateClick}
               >
                 {populating ? 'Populating\u2026' : `Populate ${selectedPopulateIds.size} case${selectedPopulateIds.size === 1 ? '' : 's'}`}
               </Button>
             </div>
           </DialogContent>
         </Dialog>
+
+        <AlertDialog open={replaceWarningOpen} onOpenChange={setReplaceWarningOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Replace cases in B1.2?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Re-populating will replace the cases in B1.2 with the current case drafts. Any edits made to the cases in B1.2 will be lost. Continue?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={() => {
+                  setReplaceWarningOpen(false);
+                  runPopulate(Array.from(selectedPopulateIds));
+                }}
+              >
+                Replace
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </CardContent>
     </Card>
   );
