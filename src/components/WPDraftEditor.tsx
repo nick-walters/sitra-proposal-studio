@@ -781,10 +781,10 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
     }
 
     const recolorInContainer = async () => {
-      // Build taskId → wpColor map
+      // Build taskId → wpColor map (live from source: wp_draft_tasks)
       const { data: tasks } = await supabase
-        .from('b31_tasks')
-        .select('id, number, wp_draft_id')
+        .from('wp_draft_tasks')
+        .select('id, wp_draft_id')
         .in('wp_draft_id', wpDrafts.map(w => w.id));
 
       const taskColorMap = new Map<string, string>();
@@ -795,16 +795,17 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
         }
       }
 
-      // Build deliverableId → wpColor map
+      // Build deliverableId → wpColor map (live from source: wp_draft_deliverables)
       const { data: deliverables } = await supabase
-        .from('b31_deliverables')
-        .select('id, wp_number')
-        .eq('proposal_id', proposalId);
+        .from('wp_draft_deliverables')
+        .select('id, wp_draft_id')
+        .in('wp_draft_id', wpDrafts.map(w => w.id));
 
       const delColorMap = new Map<string, string>();
       if (deliverables) {
         for (const d of deliverables) {
-          if (d.wp_number) delColorMap.set(d.id, wpColorByNumber.get(d.wp_number) || '#73C92D');
+          const wp = wpDrafts.find(w => w.id === d.wp_draft_id);
+          if (wp) delColorMap.set(d.id, wp.color || '#73C92D');
         }
       }
 
