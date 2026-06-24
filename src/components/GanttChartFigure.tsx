@@ -196,7 +196,7 @@ export function GanttChartFigure({
       const unassignedDels = wpDeliverables
         .filter(d => !d.task_id && d.due_month != null)
         .map(d => ({ number: formatDelNumber(d), name: d.title || '', month: d.due_month!, type: d.type || undefined, disseminationLevel: d.dissemination_level || undefined, leadShortName: d.responsible_participant_id ? partMap.get(d.responsible_participant_id) : undefined }));
-      const unassignedMs: { number: number; name: string; month: number; leadShortName?: string }[] = [];
+      const unassignedMs: { number: number; name: string; month: number; leadShortName: string | undefined }[] = [];
 
       if (unassignedDels.length > 0 || unassignedMs.length > 0) {
         if (mappedTasks.length > 0) {
