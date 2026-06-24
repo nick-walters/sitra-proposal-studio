@@ -78,9 +78,11 @@ async function fetchReferenceData(proposalId: string) {
       .select('id, number, wp_draft_id')
       .order('number'),
     supabase
-      .from('wp_draft_milestones')
-      .select('id, number, wp_draft_id')
+      .from('proposal_milestones')
+      .select('id, number, proposal_id')
+      .eq('proposal_id', proposalId)
       .order('number'),
+
     supabase
       .from('case_drafts')
       .select('id, number, case_type, short_name, color')
