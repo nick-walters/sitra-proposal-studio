@@ -1228,24 +1228,6 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
         />
 
         {/* WP Table (Objectives & Tasks) */}
-        {(populated.objectives || populated.description || populated.tasks) && (
-          <SectionLockBanner
-            label={
-              populated.tasks && populated.objectives
-                ? 'Objectives and tasks have been populated to Part B3.1 and are now locked here.'
-                : populated.tasks
-                  ? 'Tasks have been populated to Part B3.1 and are now locked here.'
-                  : 'Objectives have been populated to Part B3.1 and are now locked here.'
-            }
-            canOverride={isCoordinator}
-            overridden={overrideSections.has('tasks')}
-            onToggle={() => {
-              toggleOverride('tasks');
-              toggleOverride('objectives');
-              toggleOverride('description');
-            }}
-          />
-        )}
         <WPTableSection
           wpNumber={wpDraft.number}
           wpColor={effectiveColor}
@@ -1261,7 +1243,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
           onTaskParticipantsChange={setTaskParticipants}
           onTaskReorder={reorderTasks}
           onTaskMove={moveTaskToWP}
-          readOnly={readOnly || ((isSectionLocked('tasks') || isSectionLocked('objectives') || isSectionLocked('description')))}
+          readOnly={readOnly}
           projectDuration={projectDuration}
           hideToolbar={true}
           allWpDrafts={wpDrafts}
@@ -1269,14 +1251,6 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
         />
 
         {/* Deliverables */}
-        {populated.deliverables && (
-          <SectionLockBanner
-            label="Deliverables have been populated to Part B3.1 and are now locked here."
-            canOverride={isCoordinator}
-            overridden={overrideSections.has('deliverables')}
-            onToggle={() => toggleOverride('deliverables')}
-          />
-        )}
         <WPDeliverablesTable
           wpNumber={wpDraft.number}
           deliverables={wpDraft.deliverables || []}
@@ -1286,7 +1260,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
           onDeliverableDelete={deleteDeliverable}
           onDeliverableReorder={reorderDeliverables}
           onDeliverableMove={moveDeliverableToWP}
-          readOnly={readOnly || isSectionLocked('deliverables')}
+          readOnly={readOnly}
           projectDuration={projectDuration}
           allWpDrafts={wpDrafts}
           currentWpDraftId={wpDraft.id}
@@ -1304,14 +1278,6 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
         />
 
         {/* Milestones */}
-        {populated.milestones && (
-          <SectionLockBanner
-            label="Milestones have been populated to Part B3.1 and are now locked here."
-            canOverride={isCoordinator}
-            overridden={overrideSections.has('milestones')}
-            onToggle={() => toggleOverride('milestones')}
-          />
-        )}
         <WPMilestonesTable
           wpNumber={wpDraft.number}
           milestones={wpDraft.milestones || []}
@@ -1319,20 +1285,12 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
           onMilestoneAdd={addMilestone}
           onMilestoneDelete={deleteMilestone}
           onMilestoneReorder={reorderMilestones}
-          readOnly={readOnly || isSectionLocked('milestones')}
+          readOnly={readOnly}
           projectDuration={projectDuration}
           allWpDrafts={wpDrafts}
         />
 
         {/* Risks */}
-        {populated.risks && (
-          <SectionLockBanner
-            label="Risks have been populated to Part B3.1 and are now locked here."
-            canOverride={isCoordinator}
-            overridden={overrideSections.has('risks')}
-            onToggle={() => toggleOverride('risks')}
-          />
-        )}
         <WPRisksTable
           wpNumber={wpDraft.number}
           risks={wpDraft.risks || []}
@@ -1340,7 +1298,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
           onRiskAdd={addRisk}
           onRiskDelete={deleteRisk}
           onRiskReorder={reorderRisks}
-          readOnly={readOnly || isSectionLocked('risks')}
+          readOnly={readOnly}
           allWpDrafts={wpDrafts}
         />
 
