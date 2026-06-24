@@ -17,9 +17,20 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
   fetchWPDraftsForPopulate,
   populateB31,
+  detectB31EditedSections,
   type WPDraftForPopulate,
   type PopulateSelections,
 } from '@/lib/b31Population';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { WPBubble } from '@/components/B31Pill';
 
 interface PopulateB31DialogProps {
