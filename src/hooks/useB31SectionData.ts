@@ -11,6 +11,7 @@ export interface B31Task {
   start_month: number | null;
   end_month: number | null;
   participants: { participant_id: string }[];
+  effort?: { participant_id: string; person_months: number }[];
 }
 
 export interface B31WPData {
@@ -83,7 +84,8 @@ export function useB31SectionData(proposalId: string) {
           manual_person_months, manual_duration,
           tasks:wp_draft_tasks(
             id, number, title, description, lead_participant_id, start_month, end_month, order_index,
-            participants:wp_draft_task_participants(participant_id)
+            participants:wp_draft_task_participants(participant_id),
+            effort:wp_draft_task_effort(participant_id, person_months)
           ),
           deliverables:wp_draft_deliverables(
             id, number, title, type, dissemination_level, responsible_participant_id, due_month, description, order_index
