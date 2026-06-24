@@ -52,7 +52,7 @@ interface Props {
 // ParticipantBubble is imported from './B31Pill'
 
 /* ── Single-select participant picker (with deselect support) ── */
-function LeaderPicker({
+export function LeaderPicker({
   entityId,
   entityTable,
   currentLeaderId,
@@ -60,14 +60,18 @@ function LeaderPicker({
   proposalId,
   showCrown = false,
   arrowPosition = 'right',
+  invalidateKeys,
+  placeholder,
 }: {
   entityId: string;
-  entityTable: 'wp_drafts' | 'wp_draft_tasks' | 'b31_tasks';
+  entityTable: 'wp_drafts' | 'wp_draft_tasks' | 'b31_tasks' | 'case_drafts';
   currentLeaderId: string | null;
   participants: B31Participant[];
   proposalId: string;
   showCrown?: boolean;
   arrowPosition?: 'left' | 'right';
+  invalidateKeys?: (string | number)[][];
+  placeholder?: string;
 }) {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
@@ -77,13 +81,15 @@ function LeaderPicker({
     setOpen(false);
     await supabase.from(entityTable).update({ lead_participant_id: pid }).eq('id', entityId);
     queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
+    (invalidateKeys || []).forEach((k) => queryClient.invalidateQueries({ queryKey: k }));
   };
+
 
   const arrow = <ChevronsUpDown className="h-3 w-3 opacity-50 shrink-0" />;
   const content = leader ? (
     <ParticipantBubble shortName={leader.organisation_short_name || leader.organisation_name} showCrown={showCrown} style={{ fontStyle: 'normal' }} />
   ) : (
-    <span className="text-muted-foreground text-[9pt] italic">{entityTable === 'wp_drafts' ? 'Select WP leader' : 'Select task leader'}</span>
+    <span className="text-muted-foreground text-[9pt] italic">{placeholder || (entityTable === 'wp_drafts' ? 'Select WP leader' : 'Select task leader')}</span>
   );
 
   return (
