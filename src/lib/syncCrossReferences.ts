@@ -128,10 +128,10 @@ async function fetchReferenceData(proposalId: string) {
       };
     });
 
-  // Milestones: only those belonging to this proposal's WPs.
+  // Milestones: proposal-scoped (proposal_milestones).
   const milestones: MilestoneData[] = (msRes.data || [])
-    .filter(m => wpMap.has(m.wp_draft_id))
     .map(m => ({ id: m.id, number: m.number }));
+
   const cases: CaseData[] = caseRes.data || [];
   const participants: ParticipantData[] = participantRes.data || [];
   const figures: FigureData[] = figureRes.data || [];
