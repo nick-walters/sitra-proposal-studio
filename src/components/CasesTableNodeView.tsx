@@ -182,11 +182,23 @@ function proposalIdFromUrl(): string {
 
 export function CasesTableNodeView(_props: NodeViewProps) {
   const params = useParams<{ proposalId?: string; id?: string }>();
+  const pathFallback = proposalIdFromUrl();
   // Tiptap NodeViews may render in a detached React tree, so useParams can
   // return empty. Fall back to parsing the proposal id from the URL.
-  const proposalId = params.proposalId || params.id || proposalIdFromUrl();
+  const proposalId = params.proposalId || params.id || pathFallback;
 
-  const { data } = useQuery({
+  // [CASES-DEBUG] resolved ids
+  // eslint-disable-next-line no-console
+  console.log('[CASES-DEBUG] proposalId resolution', {
+    'params.proposalId': params.proposalId,
+    'params.id': params.id,
+    pathFallback,
+    pathname: typeof window !== 'undefined' ? window.location.pathname : '(ssr)',
+    finalProposalId: proposalId,
+    enabled: !!proposalId,
+  });
+
+  const { data, error } = useQuery({
     queryKey: ['b12-cases-live', proposalId],
     enabled: !!proposalId,
     queryFn: async () => {
@@ -214,7 +226,26 @@ export function CasesTableNodeView(_props: NodeViewProps) {
           .maybeSingle(),
       ]);
 
+      // [CASES-DEBUG] raw query results
+      // eslint-disable-next-line no-console
+      console.log('[CASES-DEBUG] case_drafts query', {
+        queriedProposalId: proposalId,
+        error: casesRes.error,
+        rawCount: casesRes.data?.length ?? 0,
+        rawRows: (casesRes.data || []).map((c: any) => ({
+          id: c.id, proposal_id: c.proposal_id, is_hidden: c.is_hidden, short_name: c.short_name,
+        })),
+      });
+
       const cases = (casesRes.data || []).filter((c: any) => !c.is_hidden) as CaseRow[];
+
+      // [CASES-DEBUG] post client-side filter
+      // eslint-disable-next-line no-console
+      console.log('[CASES-DEBUG] after client-side is_hidden filter', {
+        filter: '!c.is_hidden',
+        countAfterFilter: cases.length,
+      });
+
       const templates = (tplRes.data || []) as SubsectionTemplate[];
       const participants = (partsRes.data || []) as Participant[];
       const flags = {
@@ -224,6 +255,13 @@ export function CasesTableNodeView(_props: NodeViewProps) {
       return { cases, templates, participants, flags };
     },
   });
+
+  // [CASES-DEBUG] query error surface
+  if (error) {
+    // eslint-disable-next-line no-console
+    console.log('[CASES-DEBUG] useQuery error', error);
+  }
+
 
   return (
     <NodeViewWrapper
