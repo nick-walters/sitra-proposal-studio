@@ -327,9 +327,6 @@ export function B31RisksTable({ proposalId }: Props) {
         tableKey="table-3.1.e"
         label="Table 3.1.e."
         defaultCaption="Critical risks"
-        captionSuffix={
-          <> (<span className="font-bold">i.</span> likelihood; <span className="font-bold">ii.</span> severity; <RiskBadge level="L" /> = low, <RiskBadge level="M" /> = medium, <RiskBadge level="H" /> = high)</>
-        }
         className="mb-0"
       />
       <table className={tableCls}>
