@@ -21,25 +21,11 @@ export interface B31WPData {
   lead_participant_id: string | null;
   color: string;
   objectives: string | null;
-  b31_objectives: string | null;
   description_before_tasks: string | null;
-  b31_description_before_tasks: string | null;
   methodology: string | null;
   manual_person_months: number | null;
   manual_duration: string | null;
-  b31_tasks: B31Task[];
-  tasks: {
-    id: string;
-    number: number;
-    title: string | null;
-    description: string | null;
-    b31_description: string | null;
-    lead_participant_id: string | null;
-    start_month: number | null;
-    end_month: number | null;
-    effort: { participant_id: string; person_months: number }[];
-    participants: { participant_id: string }[];
-  }[];
+  tasks: B31Task[];
   deliverables: {
     id: string;
     number: number;
@@ -84,7 +70,7 @@ export interface B31EquipmentParticipant {
 }
 
 export function useB31SectionData(proposalId: string) {
-  // Fetch WP drafts with tasks, deliverables
+  // Live source of truth: wp_drafts + wp_draft_tasks + wp_draft_deliverables.
   const wpQuery = useQuery({
     queryKey: ['b31-wp-data', proposalId],
     enabled: !!proposalId,
@@ -92,14 +78,15 @@ export function useB31SectionData(proposalId: string) {
       const { data: wps, error: wpErr } = await supabase
         .from('wp_drafts')
         .select(`
-          id, number, title, short_name, lead_participant_id, color, objectives, b31_objectives, description_before_tasks, b31_description_before_tasks, methodology, manual_person_months, manual_duration,
+          id, number, title, short_name, lead_participant_id, color,
+          objectives, description_before_tasks, methodology,
+          manual_person_months, manual_duration,
           tasks:wp_draft_tasks(
-            id, number, title, description, b31_description, lead_participant_id, start_month, end_month,
-            effort:wp_draft_task_effort(participant_id, person_months),
+            id, number, title, description, lead_participant_id, start_month, end_month, order_index,
             participants:wp_draft_task_participants(participant_id)
           ),
           deliverables:wp_draft_deliverables(
-            id, number, title, type, dissemination_level, responsible_participant_id, due_month, description
+            id, number, title, type, dissemination_level, responsible_participant_id, due_month, description, order_index
           ),
           wp_effort:wp_draft_effort(participant_id, person_months)
         `)
@@ -107,41 +94,19 @@ export function useB31SectionData(proposalId: string) {
         .order('number');
       if (wpErr) throw wpErr;
 
-      const wpIds = (wps || []).map((w: any) => w.id);
-
-      let b31TasksData: any[] = [];
-      if (wpIds.length > 0) {
-        const { data, error: b31Err } = await supabase
-          .from('b31_tasks')
-          .select(`
-            id, wp_draft_id, number, title, description, lead_participant_id, start_month, end_month, order_index,
-            participants:b31_task_participants(participant_id)
-          `)
-          .in('wp_draft_id', wpIds)
-          .order('number');
-        if (b31Err) throw b31Err;
-        b31TasksData = data || [];
-      }
-
-      // Group b31_tasks by wp_draft_id
-      const b31TasksByWP = new Map<string, any[]>();
-      b31TasksData.forEach((t: any) => {
-        const arr = b31TasksByWP.get(t.wp_draft_id) || [];
-        arr.push(t);
-        b31TasksByWP.set(t.wp_draft_id, arr);
-      });
-
       return (wps || []).map((wp: any) => ({
         ...wp,
         color: wp.color || DEFAULT_WP_COLORS[(wp.number - 1) % DEFAULT_WP_COLORS.length],
-        tasks: (wp.tasks || []).sort((a: any, b: any) => a.number - b.number),
-        b31_tasks: (b31TasksByWP.get(wp.id) || []).sort((a: any, b: any) => a.number - b.number),
-        deliverables: (wp.deliverables || []).sort((a: any, b: any) => a.number - b.number),
+        tasks: (wp.tasks || []).slice().sort(
+          (a: any, b: any) => (a.order_index ?? a.number) - (b.order_index ?? b.number),
+        ),
+        deliverables: (wp.deliverables || []).slice().sort(
+          (a: any, b: any) => (a.order_index ?? a.number) - (b.order_index ?? b.number),
+        ),
       })) as B31WPData[];
     },
   });
 
-  // Fetch participants
   const participantsQuery = useQuery({
     queryKey: ['b31-participants', proposalId],
     queryFn: async () => {
@@ -155,7 +120,6 @@ export function useB31SectionData(proposalId: string) {
     },
   });
 
-  // Fetch PERT and Gantt figures
   const figuresQuery = useQuery({
     queryKey: ['b31-figures', proposalId],
     queryFn: async () => {
@@ -169,7 +133,6 @@ export function useB31SectionData(proposalId: string) {
     },
   });
 
-  // Fetch budget rows with subcontracting items for tables 3.1.g and 3.1.h
   const budgetRowsQuery = useQuery({
     queryKey: ['b31-budget-rows', proposalId],
     queryFn: async () => {
@@ -179,7 +142,6 @@ export function useB31SectionData(proposalId: string) {
         .eq('proposal_id', proposalId);
       if (brError) throw brError;
 
-      // Fetch effort totals for PM-based personnel cost calc
       const { data: effortData } = await supabase
         .from('wp_draft_effort')
         .select('participant_id, person_months, wp_drafts!inner(proposal_id)')
@@ -190,22 +152,13 @@ export function useB31SectionData(proposalId: string) {
         pmTotals.set(e.participant_id, (pmTotals.get(e.participant_id) || 0) + Number(e.person_months || 0));
       });
 
-      // Fetch subcontracting line items
       const rowIds = (budgetRows || []).map((r: any) => r.id);
       let subItems: any[] = [];
       let equipItems: any[] = [];
       if (rowIds.length > 0) {
         const [{ data: subData }, { data: equipData }] = await Promise.all([
-          supabase
-            .from('budget_subcontracting_items')
-            .select('*')
-            .in('budget_row_id', rowIds)
-            .order('order_index'),
-          supabase
-            .from('budget_equipment_items')
-            .select('*')
-            .in('budget_row_id', rowIds)
-            .order('order_index'),
+          supabase.from('budget_subcontracting_items').select('*').in('budget_row_id', rowIds).order('order_index'),
+          supabase.from('budget_equipment_items').select('*').in('budget_row_id', rowIds).order('order_index'),
         ]);
         subItems = subData || [];
         equipItems = equipData || [];
@@ -218,7 +171,6 @@ export function useB31SectionData(proposalId: string) {
   const pertFigure = figuresQuery.data?.find(f => f.figure_type === 'pert') || null;
   const ganttFigure = figuresQuery.data?.find(f => f.figure_type === 'gantt') || null;
 
-  // Aggregate subcontracting by participant (single cost + justification)
   const subcontractingByParticipant: B31SubcontractingParticipant[] = (() => {
     const br = budgetRowsQuery.data;
     if (!br) return [];
@@ -229,16 +181,11 @@ export function useB31SectionData(proposalId: string) {
       if (totalCost <= 0) continue;
       const subItem = br.subItems.find((i: any) => i.budget_row_id === r.id);
       const justification = subItem?.justification || '';
-      result.push({
-        participantId: r.participant_id,
-        items: [{ description: '', amount: totalCost, justification }],
-        totalCost,
-      });
+      result.push({ participantId: r.participant_id, items: [{ description: '', amount: totalCost, justification }], totalCost });
     }
     return result;
   })();
 
-  // Equipment items exceeding 15% of personnel costs (single cost + justification)
   const equipmentByParticipant: B31EquipmentParticipant[] = (() => {
     const br = budgetRowsQuery.data;
     if (!br) return [];
