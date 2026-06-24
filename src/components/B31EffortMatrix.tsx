@@ -155,37 +155,21 @@ borderTopLeftRadius: '12px',
                       {p.participant_number}. {p.organisation_short_name || p.organisation_name}
                     </ParticipantBubble>
                   </td>
-                  {/* Data cells — WP column color behind */}
+                  {/* Data cells — read-only display in B3.1 mirror */}
                   {wpData.map((wp) => {
                     const val = pMap.get(wp.id) || 0;
                     const wpColor = wp.color || '#73C92D';
-                    const isEditing = editingCell?.participantId === p.id && editingCell?.wpId === wp.id;
 
                     return (
                       <td
                         key={wp.id}
-                        className={`${cellStyles}`}
+                        className={cellStyles}
                         style={{
-                          padding: 0,
                           backgroundColor: wpColor,
+                          color: '#FFFFFF',
                         }}
                       >
-                        <input
-                          type="text"
-                          className="w-full bg-transparent outline-none border-none p-0 m-0 font-['Times_New_Roman',Times,serif] text-[11pt] text-center"
-                          style={{ minWidth: '30px', color: '#FFFFFF' }}
-                          value={isEditing ? editValue : (val ? formatPM(val) : '')}
-                          onChange={e => {
-                            if (!isEditing) startEdit(p.id, wp.id, val);
-                            setEditValue(e.target.value);
-                          }}
-                          onFocus={() => {
-                            if (!isEditing) startEdit(p.id, wp.id, val);
-                          }}
-                          onBlur={saveEdit}
-                          onKeyDown={handleKeyDown}
-                          placeholder="—"
-                        />
+                        {val ? formatPM(val) : '—'}
                       </td>
                     );
                   })}
