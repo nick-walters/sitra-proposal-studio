@@ -174,9 +174,17 @@ function extractSubsections(row: CaseRow, templates: SubsectionTemplate[]) {
   return out;
 }
 
+function proposalIdFromUrl(): string {
+  if (typeof window === 'undefined') return '';
+  const m = window.location.pathname.match(/\/proposal\/([0-9a-f-]{36})/i);
+  return m ? m[1] : '';
+}
+
 export function CasesTableNodeView(_props: NodeViewProps) {
   const params = useParams<{ proposalId?: string; id?: string }>();
-  const proposalId = params.proposalId || params.id || '';
+  // Tiptap NodeViews may render in a detached React tree, so useParams can
+  // return empty. Fall back to parsing the proposal id from the URL.
+  const proposalId = params.proposalId || params.id || proposalIdFromUrl();
 
   const { data } = useQuery({
     queryKey: ['b12-cases-live', proposalId],

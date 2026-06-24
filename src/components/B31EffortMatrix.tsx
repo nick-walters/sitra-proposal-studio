@@ -1,13 +1,9 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { computeAutoFitSmart } from '@/lib/autoFitColumns';
-import { useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { getContrastingTextColor } from '@/lib/wpColors';
 import type { B31WPData, B31Participant } from '@/hooks/useB31SectionData';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useColumnResize } from '@/hooks/useColumnResize';
 import { ColumnResizer } from '@/components/ColumnResizer';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { EditableCaption } from '@/components/EditableCaption';
 import { ParticipantBubble } from '@/components/B31Pill';
 
@@ -28,11 +24,8 @@ interface Props {
 }
 
 export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
-  const queryClient = useQueryClient();
   const { isAdminOrOwner } = useUserRole();
   const { colWidths, setColWidths, tableRef, handleColResizeStart, saveWidths } = useColumnResize({ proposalId, tableKey: 'effort-matrix', canResize: isAdminOrOwner });
-  const [editingCell, setEditingCell] = useState<{ participantId: string; wpId: string } | null>(null);
-  const [editValue, setEditValue] = useState('');
   const defaultParticipantWidth = '22%';
   const defaultTotalWidth = '8%';
   const defaultWpWidth = `${(70 / Math.max(wpData.length, 1)).toFixed(2)}%`;
@@ -56,35 +49,6 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
   let hasData = false;
   matrix.forEach(pMap => { if (pMap.size > 0) hasData = true; });
 
-  const startEdit = (participantId: string, wpId: string, currentValue: number) => {
-    setEditingCell({ participantId, wpId });
-    setEditValue(currentValue > 0 ? String(currentValue) : '');
-  };
-
-  const saveEdit = useCallback(async () => {
-    if (!editingCell || !proposalId) return;
-    const { participantId, wpId } = editingCell;
-    const parsed = parseFloat(editValue) || 0;
-    const newTotal = Math.round(parsed * 10) / 10;
-
-    await supabase
-      .from('wp_draft_effort')
-      .upsert({
-        wp_draft_id: wpId,
-        participant_id: participantId,
-        person_months: newTotal,
-      }, {
-        onConflict: 'wp_draft_id,participant_id',
-      });
-
-    queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
-    setEditingCell(null);
-  }, [editingCell, editValue, proposalId, queryClient]);
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') { e.preventDefault(); saveEdit(); }
-    if (e.key === 'Escape') setEditingCell(null);
-  };
 
   const autoFitColumns = useCallback(() => {
     const table = tableRef.current;
@@ -191,37 +155,21 @@ borderTopLeftRadius: '12px',
                       {p.participant_number}. {p.organisation_short_name || p.organisation_name}
                     </ParticipantBubble>
                   </td>
-                  {/* Data cells — WP column color behind */}
+                  {/* Data cells — read-only display in B3.1 mirror */}
                   {wpData.map((wp) => {
                     const val = pMap.get(wp.id) || 0;
                     const wpColor = wp.color || '#73C92D';
-                    const isEditing = editingCell?.participantId === p.id && editingCell?.wpId === wp.id;
 
                     return (
                       <td
                         key={wp.id}
-                        className={`${cellStyles}`}
+                        className={cellStyles}
                         style={{
-                          padding: 0,
                           backgroundColor: wpColor,
+                          color: '#FFFFFF',
                         }}
                       >
-                        <input
-                          type="text"
-                          className="w-full bg-transparent outline-none border-none p-0 m-0 font-['Times_New_Roman',Times,serif] text-[11pt] text-center"
-                          style={{ minWidth: '30px', color: '#FFFFFF' }}
-                          value={isEditing ? editValue : (val ? formatPM(val) : '')}
-                          onChange={e => {
-                            if (!isEditing) startEdit(p.id, wp.id, val);
-                            setEditValue(e.target.value);
-                          }}
-                          onFocus={() => {
-                            if (!isEditing) startEdit(p.id, wp.id, val);
-                          }}
-                          onBlur={saveEdit}
-                          onKeyDown={handleKeyDown}
-                          placeholder="—"
-                        />
+                        {val ? formatPM(val) : '—'}
                       </td>
                     );
                   })}
