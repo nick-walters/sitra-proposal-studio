@@ -455,6 +455,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
       // deliverables linked via tasks. Snapshot tables have been removed, and
       // wp_draft_deliverables.number is per-WP (display "D{wpNum}.{n}" is
       // derived live from wp_draft_id), so no rewrite is needed.
+    },
     onMutate: async (reorderedWPs) => {
       await queryClient.cancelQueries({ queryKey: ['wp-drafts-management', proposalId] });
       const previousWPs = queryClient.getQueryData<WPDraft[]>(['wp-drafts-management', proposalId]);
