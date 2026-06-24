@@ -112,6 +112,8 @@ export const ALLOWED_TAGS = [
   'h1', 'h2', 'h3', 'h4', 'sub', 'sup',
   'table', 'thead', 'tbody', 'tr', 'th', 'td',
   'img', 'blockquote',
+  // Wrapper for the casesTable NodeView (B1.2)
+  'div',
   // SVG (chevrons, diamonds, future inline icons)
   'svg', 'g', 'path', 'circle', 'rect', 'line', 'polyline', 'polygon',
   'ellipse', 'defs', 'use', 'title', 'desc', 'text', 'tspan',
