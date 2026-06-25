@@ -9,9 +9,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { WPBubble, B31Pill } from '@/components/B31Pill';
+import { WPBubble, B31Pill, RiskBadge } from '@/components/B31Pill';
 import { SingleMonthPicker } from '@/components/SingleMonthPicker';
-import { Plus, Trash2, ArrowUp, ArrowDown, ChevronsUpDown, ChevronDown, ChevronRight } from 'lucide-react';
+import { Plus, Trash2, ChevronsUpDown, ChevronDown, ChevronRight, BookOpen } from 'lucide-react';
 import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
 import { toast } from 'sonner';
 
