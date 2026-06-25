@@ -621,60 +621,66 @@ function RiskLevelSelect({
     </Select>
   );
 }
-
-// ── Guidelines dialog (red button at top of page opens this) ──
-function MilestonesRisksGuidelinesDialog({
-  open, onOpenChange,
-}: { open: boolean; onOpenChange: (v: boolean) => void }) {
-  const LMHBadges = (
+// ── Inline guidelines rendered under each card title ──
+function LMHBadgesInline() {
+  return (
     <span className="inline-flex items-center gap-1 align-middle mx-1">
       <RiskBadge level="L" />
       <RiskBadge level="M" />
       <RiskBadge level="H" />
     </span>
   );
+}
+
+function MilestonesGuidelinesInline() {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Guidelines — Milestones &amp; risks</DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-5 text-sm">
-          <section className="space-y-2">
-            <h3 className="font-semibold text-base">Risks</h3>
-            <ul className="list-disc pl-5 space-y-2">
-              <li>
-                <span className="font-medium">Critical risk:</span> A plausible event or issue that could have a high adverse impact on the ability of the project to achieve its objectives.
-              </li>
-              <li>
-                <span className="font-medium">Level of likelihood to occur</span>{LMHBadges}: The estimated probability that the risk will materialise, even after taking account of the mitigating measures put in place.
-              </li>
-              <li>
-                <span className="font-medium">Level of severity</span>{LMHBadges}: The relative seriousness of the risk and the significance of its effect.
-              </li>
-            </ul>
-          </section>
-
-          <section className="space-y-2">
-            <h3 className="font-semibold text-base">Milestones</h3>
-            <ul className="list-disc pl-5 space-y-2">
-              <li>
-                <span className="font-medium">Milestone:</span> Control points in the project that help to chart progress. Milestones may correspond to the achievement of a key result, allowing the next phase of the work to begin. They may also be needed at intermediary points so that, if problems have arisen, corrective measures can be taken. A milestone may be a critical decision point in the project where, for example, the consortium must decide which of several technologies to adopt for further development. The achievement of a milestone should be verifiable.
-              </li>
-              <li>
-                <span className="font-medium">Due date:</span> Measured in months from the project start date.
-              </li>
-              <li>
-                <span className="font-medium">Means of verification:</span> Show how you will confirm that the milestone has been attained. Refer to indicators if appropriate. For example: a laboratory prototype that is &lsquo;up and running&rsquo;; software released and validated by a user group; field survey complete and data quality validated.
-              </li>
-            </ul>
-          </section>
-        </div>
-      </DialogContent>
-    </Dialog>
+    <div className="text-xs text-muted-foreground space-y-1.5 pt-1">
+      <p>
+        This list is mirrored to Table 3.1.d (List of milestones). Milestones are automatically ordered by due month,
+        then by related WP(s).
+      </p>
+      <p>
+        <span className="font-medium text-foreground">Milestone:</span> control points in the project that help to
+        chart progress. Milestones may correspond to the achievement of a key result, allowing the next phase of the
+        work to begin. They may also be needed at intermediary points so that, if problems have arisen, corrective
+        measures can be taken. The achievement of a milestone should be verifiable.
+      </p>
+      <p>
+        <span className="font-medium text-foreground">Due date:</span> measured in months from the project start date.
+      </p>
+      <p>
+        <span className="font-medium text-foreground">Means of verification:</span> show how you will confirm that the
+        milestone has been attained. Refer to indicators if appropriate (e.g. a laboratory prototype that is
+        &lsquo;up and running&rsquo;; software released and validated by a user group; field survey complete and data
+        quality validated).
+      </p>
+    </div>
   );
 }
+
+function RisksGuidelinesInline() {
+  return (
+    <div className="text-xs text-muted-foreground space-y-1.5 pt-1">
+      <p>
+        This list is mirrored to Table 3.1.e (Risk table). Risks are automatically ordered by related WP(s).
+      </p>
+      <p>
+        <span className="font-medium text-foreground">Critical risk:</span> a plausible event or issue that could have
+        a high adverse impact on the ability of the project to achieve its objectives.
+      </p>
+      <p>
+        <span className="font-medium text-foreground">Level of likelihood to occur</span><LMHBadgesInline />: the
+        estimated probability that the risk will materialise, even after taking account of the mitigating measures put
+        in place.
+      </p>
+      <p>
+        <span className="font-medium text-foreground">Level of severity</span><LMHBadgesInline />: the relative
+        seriousness of the risk and the significance of its effect.
+      </p>
+    </div>
+  );
+}
+
 
 // ── WP multi-select (used by risks — UNCHANGED) ─────────────────
 function WPMultiSelect({
