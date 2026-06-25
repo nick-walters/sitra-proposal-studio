@@ -368,21 +368,21 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
     onSuccess: () => qc.invalidateQueries({ queryKey: RISK_KEY(proposalId) }),
   });
 
-  const reorderRisk = useMutation({
-    mutationFn: async ({ id, dir }: { id: string; dir: -1 | 1 }) => {
-      const ordered = [...risks].sort((a, b) => a.order_index - b.order_index);
-      const idx = ordered.findIndex(r => r.id === id);
-      const j = idx + dir;
-      if (idx < 0 || j < 0 || j >= ordered.length) return;
-      const a = ordered[idx], b = ordered[j];
-      await supabase.from('proposal_risks').update({ order_index: -1 }).eq('id', a.id);
-      await supabase.from('proposal_risks').update({ order_index: a.order_index }).eq('id', b.id);
-      await supabase.from('proposal_risks').update({ order_index: b.order_index }).eq('id', a.id);
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: RISK_KEY(proposalId) }),
-  });
+  // Auto-order risks by min related WP number (matches B31RisksTable mirror)
+  const orderedRisks = useMemo(() => {
+    const minWpNum = (r: Risk) => {
+      const nums = r.wp_ids.map(id => wpsById.get(id)?.number).filter((n): n is number => typeof n === 'number');
+      return nums.length ? Math.min(...nums) : Number.POSITIVE_INFINITY;
+    };
+    return [...risks].sort((a, b) => {
+      const wa = minWpNum(a);
+      const wb = minWpNum(b);
+      if (wa !== wb) return wa - wb;
+      return a.id.localeCompare(b.id);
+    });
+  }, [risks, wpsById]);
 
-  const orderedRisks = useMemo(() => [...risks].sort((a, b) => a.order_index - b.order_index), [risks]);
+  const [guidelinesOpen, setGuidelinesOpen] = useState(false);
 
   return (
     <div className="p-6 space-y-6">
