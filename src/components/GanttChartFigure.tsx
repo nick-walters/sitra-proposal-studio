@@ -192,6 +192,63 @@ function layoutWpBadges(args: {
   return out;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Chart-wide milestone layout.
+// Each milestone renders EXACTLY ONCE across the whole chart.
+// Target row = median of all linked global rows (tasks + WP-band fallbacks).
+// Nudge to nearest free slot to avoid overlapping other milestone bodies.
+// Hexagon LEFT TIP sits on the centre of its due-month column; body extends right.
+// ─────────────────────────────────────────────────────────────────────────────
+type ChartMsIn = {
+  key: string;
+  label: string;
+  dueMonth: number;
+  linkedGlobalRows: number[];
+  origins: Array<{ globalRow: number; x: number }>;
+  tooltipTitle: string;
+};
+type ChartMsOut = ChartMsIn & {
+  tipX: number; leftX: number; shapeW: number; shapeH: number; globalRow: number;
+};
+function layoutChartMilestones(items: ChartMsIn[], totalRows: number, cellWidth: number): ChartMsOut[] {
+  const estimateW = (l: string) => Math.max(32, l.length * 7 + 10);
+  const shapeH = 12;
+  const occupied: Array<Array<[number, number]>> = Array.from({ length: Math.max(1, totalRows) }, () => []);
+  const isFree = (s: number, lx: number, rx: number) => {
+    if (s < 0 || s >= totalRows) return false;
+    return occupied[s].every(([a, b]) => rx + 2 <= a || lx - 2 >= b);
+  };
+  const mark = (s: number, lx: number, rx: number) => {
+    if (s >= 0 && s < totalRows) occupied[s].push([lx, rx]);
+  };
+  const sorted = items.slice().sort((a, b) => a.dueMonth - b.dueMonth);
+  const out: ChartMsOut[] = [];
+  for (const m of sorted) {
+    const shapeW = estimateW(m.label);
+    const tipX = (m.dueMonth - 0.5) * cellWidth;
+    const leftX = tipX;
+    let target = 0;
+    if (m.linkedGlobalRows.length) {
+      const s = [...m.linkedGlobalRows].sort((x, y) => x - y);
+      target = s[Math.floor(s.length / 2)];
+    }
+    let chosen = Number.NaN;
+    for (let step = 0; step <= totalRows + 2; step++) {
+      const cands = step === 0 ? [target] : [target + step, target - step];
+      for (const s of cands) {
+        if (isFree(s, leftX, leftX + shapeW)) { chosen = s; break; }
+      }
+      if (!Number.isNaN(chosen)) break;
+    }
+    if (Number.isNaN(chosen)) chosen = target;
+    mark(chosen, leftX, leftX + shapeW);
+    out.push({ ...m, tipX, leftX, shapeW, shapeH, globalRow: chosen });
+  }
+  return out;
+}
+
+
+
 
 export function GanttChartFigure({
   figureId,
