@@ -3,9 +3,7 @@ import { SaveIndicator } from '@/components/SaveIndicator';
 import { DraftFormattingToolbar } from '@/components/DraftFormattingToolbar';
 import { useWPDraftEditor } from '@/hooks/useWPDrafts';
 import { useWPDraftUndoRedo } from '@/hooks/useWPDraftUndoRedo';
-import { WPMethodologySection } from '@/components/WPMethodologySection';
 import { WPTableSection } from '@/components/WPTableSection';
-import { WPPlanningQuestions } from '@/components/WPPlanningQuestions';
 import { ParagraphSpacingExecPopover } from '@/components/ParagraphSpacingExecPopover';
 
 import { WPDeliverablesTable } from '@/components/WPDeliverablesTable';
@@ -1200,19 +1198,6 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
           </DialogContent>
         </Dialog>
 
-        {/* Objectives & Ambition + Methodologies Sections */}
-        <WPMethodologySection
-          backgroundKnowledge={wpDraft.background_knowledge}
-          onBackgroundKnowledgeChange={(value) => updateField('background_knowledge', value)}
-          approachSummary={wpDraft.approach_summary}
-          onApproachSummaryChange={(value) => updateField('approach_summary', value)}
-          methodologiesList={wpDraft.methodologies_list}
-          onMethodologiesListChange={(value) => updateField('methodologies_list', value)}
-          foreseenChallenges={wpDraft.foreseen_challenges}
-          onForeseenChallengesChange={(value) => updateField('foreseen_challenges', value)}
-          readOnly={readOnly}
-          hideToolbar={true}
-        />
 
         {/* WP Table (Objectives & Tasks) */}
         <WPTableSection
@@ -1255,16 +1240,6 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
           allWpDrafts={wpDrafts}
         />
 
-        {/* Task Interactions & Bottlenecks */}
-        <WPPlanningQuestions
-          inputs={wpDraft.inputs_question}
-          outputs={wpDraft.outputs_question}
-          bottlenecks={wpDraft.bottlenecks_question}
-          onInputsChange={(value) => updateField('inputs_question', value)}
-          onOutputsChange={(value) => updateField('outputs_question', value)}
-          onBottlenecksChange={(value) => updateField('bottlenecks_question', value)}
-          readOnly={readOnly}
-        />
 
         {/* Milestones */}
         <WPMilestonesTable
