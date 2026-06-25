@@ -512,113 +512,184 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
         </CardContent>
       </Card>
 
-      {/* Risks — UNCHANGED in this stage */}
+      {/* Risks */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-          <CardTitle className="text-base">Critical risks</CardTitle>
-          {canEdit && (
-            <Button size="sm" onClick={() => addRisk.mutate()}>
-              <Plus className="h-4 w-4 mr-1" /> Add risk
-            </Button>
-          )}
+        <CardHeader className="space-y-1 pb-3">
+          <div className="flex flex-row items-center justify-between">
+            <CardTitle className="text-base">Critical risks</CardTitle>
+            {canEdit && (
+              <Button size="sm" onClick={() => addRisk.mutate()}>
+                <Plus className="h-4 w-4 mr-1" /> Add risk
+              </Button>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            This list is mirrored to Table 3.1.e (Risk table). Risks are automatically ordered by related WP(s).
+          </p>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
             <table className="w-full text-sm border-collapse">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left font-medium py-2 px-2 w-12">No.</th>
-                  <th className="text-left font-medium py-2 px-2">Description</th>
-                  <th className="text-left font-medium py-2 px-2 w-28">Likelihood</th>
-                  <th className="text-left font-medium py-2 px-2 w-28">Severity</th>
-                  <th className="text-left font-medium py-2 px-2 w-40">Related WPs</th>
-                  <th className="text-left font-medium py-2 px-2">Mitigation</th>
-                  <th className="w-24"></th>
+              <thead className="bg-muted/40">
+                <tr className="border-b text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  <th className="text-left py-2 px-1">Risk description</th>
+                  <th className="text-left py-2 px-1" style={{ width: '70px' }}>Likelihood</th>
+                  <th className="text-left py-2 px-1" style={{ width: '70px' }}>Severity</th>
+                  <th className="text-left py-2 px-1" style={{ width: '113px' }}>WP(s)</th>
+                  <th className="text-left py-2 px-1">Mitigation &amp; adaptation measures</th>
+                  <th className="px-0" style={{ width: '28px' }}></th>
                 </tr>
               </thead>
               <tbody>
                 {orderedRisks.length === 0 && (
-                  <tr><td colSpan={7} className="py-4 text-center text-muted-foreground italic">No risks yet.</td></tr>
+                  <tr><td colSpan={6} className="py-4 text-center text-muted-foreground italic">No risks yet.</td></tr>
                 )}
-                {orderedRisks.map((r, i) => (
-                  <tr key={r.id} className="border-b align-top">
-                    <td className="py-2 px-2">
-                      <Input
-                        type="number"
-                        className="h-8 w-14"
-                        value={r.number}
-                        disabled={!canEdit}
-                        onChange={(e) => updateRisk.mutate({ id: r.id, patch: { number: parseInt(e.target.value || '0', 10) } })}
-                      />
-                    </td>
-                    <td className="py-2 px-2">
-                      <Textarea
-                        rows={2}
-                        className="text-sm"
-                        value={r.title || ''}
-                        disabled={!canEdit}
-                        placeholder="Risk description"
-                        onChange={(e) => updateRisk.mutate({ id: r.id, patch: { title: e.target.value } })}
-                      />
-                    </td>
-                    <td className="py-2 px-2">
-                      <Select value={r.likelihood || ''} onValueChange={(v) => updateRisk.mutate({ id: r.id, patch: { likelihood: v || null } })} disabled={!canEdit}>
-                        <SelectTrigger className="h-8"><SelectValue placeholder="—" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="L">Low</SelectItem>
-                          <SelectItem value="M">Medium</SelectItem>
-                          <SelectItem value="H">High</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </td>
-                    <td className="py-2 px-2">
-                      <Select value={r.severity || ''} onValueChange={(v) => updateRisk.mutate({ id: r.id, patch: { severity: v || null } })} disabled={!canEdit}>
-                        <SelectTrigger className="h-8"><SelectValue placeholder="—" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="L">Low</SelectItem>
-                          <SelectItem value="M">Medium</SelectItem>
-                          <SelectItem value="H">High</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </td>
-                    <td className="py-2 px-2">
-                      <WPMultiSelect
-                        allWps={wps}
-                        selectedIds={r.wp_ids}
-                        disabled={!canEdit}
-                        onChange={(ids) => setRiskWps.mutate({ id: r.id, wpIds: ids })}
-                      />
-                    </td>
-                    <td className="py-2 px-2">
-                      <Textarea
-                        rows={2}
-                        className="text-sm"
-                        value={r.mitigation || ''}
-                        disabled={!canEdit}
-                        onChange={(e) => updateRisk.mutate({ id: r.id, patch: { mitigation: e.target.value } })}
-                      />
-                    </td>
-                    <td className="py-2 px-2">
-                      <div className="flex items-center gap-1 justify-end">
-                        <Button size="icon" variant="ghost" className="h-7 w-7" disabled={!canEdit || i === 0} onClick={() => reorderRisk.mutate({ id: r.id, dir: -1 })}>
-                          <ArrowUp className="h-4 w-4" />
-                        </Button>
-                        <Button size="icon" variant="ghost" className="h-7 w-7" disabled={!canEdit || i === orderedRisks.length - 1} onClick={() => reorderRisk.mutate({ id: r.id, dir: 1 })}>
-                          <ArrowDown className="h-4 w-4" />
-                        </Button>
-                        <Button size="icon" variant="ghost" className="h-7 w-7 text-red-600 hover:text-red-700" disabled={!canEdit} onClick={() => deleteRisk.mutate(r.id)}>
+                {orderedRisks.map((r) => {
+                  const selectedWps = r.wp_ids
+                    .map(id => wpsById.get(id))
+                    .filter((w): w is WPRow => !!w)
+                    .sort((a, b) => a.number - b.number);
+                  return (
+                    <tr key={r.id} className="border-b align-top">
+                      <td className="py-1.5 px-1">
+                        <AutoTextarea
+                          value={r.title || ''}
+                          disabled={!canEdit}
+                          placeholder="Risk description"
+                          onChange={(e) => updateRisk.mutate({ id: r.id, patch: { title: e.target.value } })}
+                        />
+                      </td>
+                      <td className="py-1.5 px-1">
+                        <RiskLevelSelect
+                          value={(r.likelihood as 'L' | 'M' | 'H' | null) || null}
+                          disabled={!canEdit}
+                          onChange={(v) => updateRisk.mutate({ id: r.id, patch: { likelihood: v } })}
+                        />
+                      </td>
+                      <td className="py-1.5 px-1">
+                        <RiskLevelSelect
+                          value={(r.severity as 'L' | 'M' | 'H' | null) || null}
+                          disabled={!canEdit}
+                          onChange={(v) => updateRisk.mutate({ id: r.id, patch: { severity: v } })}
+                        />
+                      </td>
+                      <td className="py-1.5 px-1">
+                        <WPMultiSelect
+                          allWps={wps}
+                          selectedIds={r.wp_ids}
+                          disabled={!canEdit}
+                          onChange={(ids) => setRiskWps.mutate({ id: r.id, wpIds: ids })}
+                        />
+                      </td>
+                      <td className="py-1.5 px-1">
+                        <AutoTextarea
+                          value={r.mitigation || ''}
+                          disabled={!canEdit}
+                          placeholder="Mitigation & adaptation measures"
+                          onChange={(e) => updateRisk.mutate({ id: r.id, patch: { mitigation: e.target.value } })}
+                        />
+                      </td>
+                      <td className="py-1.5 px-0 text-center">
+                        <Button
+                          size="icon" variant="ghost" className="h-7 w-7 text-red-600 hover:text-red-700"
+                          disabled={!canEdit}
+                          onClick={() => deleteRisk.mutate(r.id)}
+                        >
                           <Trash2 className="h-4 w-4" />
                         </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+// ── L/M/H badge dropdown (uses the same RiskBadge as Table 3.1.e) ──
+function RiskLevelSelect({
+  value, onChange, disabled,
+}: {
+  value: 'L' | 'M' | 'H' | null;
+  onChange: (v: 'L' | 'M' | 'H' | null) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <Select
+      value={value ?? '__none__'}
+      onValueChange={(v) => onChange(v === '__none__' ? null : (v as 'L' | 'M' | 'H'))}
+      disabled={disabled}
+    >
+      <SelectTrigger className="h-8 w-full justify-between px-2">
+        <span className="flex items-center">
+          {value ? <RiskBadge level={value} /> : <span className="text-muted-foreground">—</span>}
+        </span>
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="__none__"><span className="text-muted-foreground">—</span></SelectItem>
+        <SelectItem value="L"><RiskBadge level="L" /></SelectItem>
+        <SelectItem value="M"><RiskBadge level="M" /></SelectItem>
+        <SelectItem value="H"><RiskBadge level="H" /></SelectItem>
+      </SelectContent>
+    </Select>
+  );
+}
+
+// ── Guidelines dialog (red button at top of page opens this) ──
+function MilestonesRisksGuidelinesDialog({
+  open, onOpenChange,
+}: { open: boolean; onOpenChange: (v: boolean) => void }) {
+  const LMHBadges = (
+    <span className="inline-flex items-center gap-1 align-middle mx-1">
+      <RiskBadge level="L" />
+      <RiskBadge level="M" />
+      <RiskBadge level="H" />
+    </span>
+  );
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Guidelines — Milestones &amp; risks</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-5 text-sm">
+          <section className="space-y-2">
+            <h3 className="font-semibold text-base">Risks</h3>
+            <ul className="list-disc pl-5 space-y-2">
+              <li>
+                <span className="font-medium">Critical risk:</span> A plausible event or issue that could have a high adverse impact on the ability of the project to achieve its objectives.
+              </li>
+              <li>
+                <span className="font-medium">Level of likelihood to occur</span>{LMHBadges}: The estimated probability that the risk will materialise, even after taking account of the mitigating measures put in place.
+              </li>
+              <li>
+                <span className="font-medium">Level of severity</span>{LMHBadges}: The relative seriousness of the risk and the significance of its effect.
+              </li>
+            </ul>
+          </section>
+
+          <section className="space-y-2">
+            <h3 className="font-semibold text-base">Milestones</h3>
+            <ul className="list-disc pl-5 space-y-2">
+              <li>
+                <span className="font-medium">Milestone:</span> Control points in the project that help to chart progress. Milestones may correspond to the achievement of a key result, allowing the next phase of the work to begin. They may also be needed at intermediary points so that, if problems have arisen, corrective measures can be taken. A milestone may be a critical decision point in the project where, for example, the consortium must decide which of several technologies to adopt for further development. The achievement of a milestone should be verifiable.
+              </li>
+              <li>
+                <span className="font-medium">Due date:</span> Measured in months from the project start date.
+              </li>
+              <li>
+                <span className="font-medium">Means of verification:</span> Show how you will confirm that the milestone has been attained. Refer to indicators if appropriate. For example: a laboratory prototype that is &lsquo;up and running&rsquo;; software released and validated by a user group; field survey complete and data quality validated.
+              </li>
+            </ul>
+          </section>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
