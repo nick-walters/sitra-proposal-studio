@@ -640,9 +640,19 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
           </div>
         </CardContent>
       </Card>
+
+      <MsSameMonthReorderDialog
+        open={msReorderOpen}
+        onOpenChange={setMsReorderOpen}
+        sorted={orderedMs}
+        wpsById={wpsById}
+        onPersist={persistMsGroupOrder}
+      />
     </div>
+    </TooltipProvider>
   );
 }
+
 
 // ── L/M/H badge dropdown (uses the same RiskBadge as Table 3.1.e) ──
 function RiskLevelSelect({
