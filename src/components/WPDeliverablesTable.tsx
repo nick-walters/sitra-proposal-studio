@@ -733,10 +733,8 @@ function ReorderRow({ d, wpNumber, wpColor }: { d: WPDraftDeliverable; wpNumber:
   );
 }
 
-// ── Guidelines dialog ──
-function DeliverablesGuidelinesDialog({
-  open, onOpenChange,
-}: { open: boolean; onOpenChange: (v: boolean) => void }) {
+// ── Inline guidelines (rendered under the card title) ──
+function DeliverablesGuidelinesInline() {
   const CD = () => (
     <a
       href="https://eur-lex.europa.eu/eli/dec/2015/444/oj/eng"
@@ -748,56 +746,37 @@ function DeliverablesGuidelinesDialog({
     </a>
   );
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Guidelines — Deliverables</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-5 text-sm">
-          <section className="space-y-2">
-            <h3 className="font-semibold text-base">Deliverable</h3>
-            <p>
-              A report that is sent to the European Commission to ensure effective monitoring of the project.
-              There are different types of deliverables (e.g. a report on specific activities or results, data
-              management plans, ethics or security requirements). Deliverables are automatically reordered based
-              on their delivery dates and use the numbering convention &ldquo;WP_№.D_№&rdquo;, i.e. the first
-              deliverable in WP1 is D1.1.
-            </p>
-          </section>
-
-          <section className="space-y-2">
-            <h3 className="font-semibold text-base">Type</h3>
-            <p>Use one of the following codes:</p>
-            <ul className="list-disc pl-5 space-y-1">
-              <li><span className="font-medium">R</span>: Document, report (excluding the periodic and final reports).</li>
-              <li><span className="font-medium">DEM</span>: Demonstrator, pilot, prototype, plan designs.</li>
-              <li><span className="font-medium">DEC</span>: Websites, patents filing, press &amp; media actions, videos, etc.</li>
-              <li><span className="font-medium">DATA</span>: Data sets, microdata, etc.</li>
-              <li><span className="font-medium">DMP</span>: Data management plan.</li>
-              <li><span className="font-medium">ETHICS</span>: Deliverables related to ethics issues.</li>
-              <li><span className="font-medium">SECURITY</span>: Deliverables related to security issues.</li>
-              <li><span className="font-medium">OTHER</span>: Software, technical diagram, algorithms, models, etc.</li>
-            </ul>
-          </section>
-
-          <section className="space-y-2">
-            <h3 className="font-semibold text-base">Dissemination level</h3>
-            <p>Use one of the following codes:</p>
-            <ul className="list-disc pl-5 space-y-1">
-              <li><span className="font-medium">PU</span> – Public, fully open, e.g. web (Deliverables flagged as public will be automatically published in CORDIS project&apos;s page)</li>
-              <li><span className="font-medium">SEN</span> – Sensitive, limited under the conditions of the Grant Agreement</li>
-              <li><span className="font-medium">Classified R-UE/EU-R</span> – EU RESTRICTED under the <CD /></li>
-              <li><span className="font-medium">Classified C-UE/EU-C</span> – EU CONFIDENTIAL under the <CD /></li>
-              <li><span className="font-medium">Classified S-UE/EU-S</span> – EU SECRET under the <CD /></li>
-            </ul>
-          </section>
-
-          <section className="space-y-2">
-            <h3 className="font-semibold text-base">Delivery date</h3>
-            <p>Measured in months from the project&apos;s start date.</p>
-          </section>
-        </div>
-      </DialogContent>
-    </Dialog>
+    <div className="text-xs text-muted-foreground space-y-2 pt-1">
+      <p>
+        This list is mirrored to Table 3.1.c (List of deliverables). A deliverable is a report sent to the European
+        Commission to ensure effective monitoring of the project. Deliverables are automatically reordered by delivery
+        date and numbered &ldquo;D&lt;WP&gt;.&lt;n&gt;&rdquo; (e.g. the first deliverable in WP1 is D1.1).
+      </p>
+      <div>
+        <span className="font-medium text-foreground">Type</span> — use one of:
+        <ul className="list-disc pl-5 mt-1 space-y-0.5">
+          <li><span className="font-medium">R</span>: Document, report (excluding the periodic and final reports).</li>
+          <li><span className="font-medium">DEM</span>: Demonstrator, pilot, prototype, plan designs.</li>
+          <li><span className="font-medium">DEC</span>: Websites, patents filing, press &amp; media actions, videos, etc.</li>
+          <li><span className="font-medium">DATA</span>: Data sets, microdata, etc.</li>
+          <li><span className="font-medium">DMP</span>: Data management plan.</li>
+          <li><span className="font-medium">ETHICS</span>: Deliverables related to ethics issues.</li>
+          <li><span className="font-medium">SECURITY</span>: Deliverables related to security issues.</li>
+          <li><span className="font-medium">OTHER</span>: Software, technical diagram, algorithms, models, etc.</li>
+        </ul>
+      </div>
+      <div>
+        <span className="font-medium text-foreground">Dissemination level</span> — use one of:
+        <ul className="list-disc pl-5 mt-1 space-y-0.5">
+          <li><span className="font-medium">PU</span> – Public, fully open, e.g. web (deliverables flagged as public will be automatically published in CORDIS project&apos;s page).</li>
+          <li><span className="font-medium">SEN</span> – Sensitive, limited under the conditions of the Grant Agreement.</li>
+          <li><span className="font-medium">Classified R-UE/EU-R</span> – EU RESTRICTED under the <CD />.</li>
+          <li><span className="font-medium">Classified C-UE/EU-C</span> – EU CONFIDENTIAL under the <CD />.</li>
+          <li><span className="font-medium">Classified S-UE/EU-S</span> – EU SECRET under the <CD />.</li>
+        </ul>
+      </div>
+      <p><span className="font-medium text-foreground">Delivery date</span> — measured in months from the project&apos;s start date.</p>
+    </div>
   );
 }
+
