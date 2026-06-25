@@ -749,7 +749,7 @@ function MilestoneWpTaskDialog({
                     <span className="text-sm truncate">{wp.short_name || `WP${wp.number}`}</span>
                   </label>
                   {wpChecked && (
-                    <div className="pr-2 pb-1.5 space-y-0.5" style={{ paddingLeft: '52px' }}>
+                    <div className="pr-2 pb-1.5 space-y-0.5" style={{ paddingLeft: '57px' }}>
                       {wpTasks.length === 0 && (
                         <div className="text-xs text-muted-foreground italic py-1">No tasks in this WP.</div>
                       )}
