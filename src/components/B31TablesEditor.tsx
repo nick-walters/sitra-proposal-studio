@@ -372,7 +372,7 @@ export function B31RisksTable({ proposalId }: Props) {
     if (wa !== wb) return wa - wb;
     return String(a.id).localeCompare(String(b.id));
   });
-  const _unusedSink = null;
+  
 
   return (
     <div>
