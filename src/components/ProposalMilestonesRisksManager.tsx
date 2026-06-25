@@ -409,11 +409,11 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
               <thead>
                 <tr className="border-b">
                   <th className="text-left font-medium py-2 px-1 w-14">No.</th>
-                  <th className="text-left font-medium py-2 px-1">Milestone name</th>
+                  <th className="text-left font-medium py-2 px-1" style={{ width: '280px' }}>Milestone name</th>
                   <th className="text-left font-medium py-2 px-1" style={{ width: '113px' }}>WP(s)</th>
-                  <th className="text-left font-medium py-2 px-1" style={{ width: '88px' }}>Due month</th>
+                  <th className="text-left font-medium py-2 px-1" style={{ width: '83px' }}>Due month</th>
                   <th className="text-left font-medium py-2 px-1">Means of verification</th>
-                  <th className="px-0" style={{ width: '32px' }}></th>
+                  <th className="px-0" style={{ width: '28px' }}></th>
                 </tr>
               </thead>
               <tbody>
@@ -727,9 +727,10 @@ function MilestoneWpTaskDialog({
           <DialogHeader>
             <DialogTitle>Related WPs &amp; tasks</DialogTitle>
           </DialogHeader>
-          <p className="text-xs text-muted-foreground -mt-1">
-            The related WPs are shown in Table 3.1.d (List of milestones). The related tasks illustrate task interactions/bottlenecks in Figure 3.1.b (Gantt chart).
-          </p>
+          <div className="text-xs text-muted-foreground -mt-1 space-y-2">
+            <p>The related WPs are shown in Table 3.1.d (List of milestones).</p>
+            <p>The related tasks illustrate task interactions/bottlenecks in Figure 3.1.b (Gantt chart).</p>
+          </div>
           <div className="max-h-[60vh] overflow-y-auto space-y-1 pr-1">
             {orderedWps.length === 0 && (
               <div className="text-sm text-muted-foreground italic py-2">No work packages defined yet.</div>
@@ -748,7 +749,7 @@ function MilestoneWpTaskDialog({
                     <span className="text-sm truncate">{wp.short_name || `WP${wp.number}`}</span>
                   </label>
                   {wpChecked && (
-                    <div className="pr-2 pb-1.5 space-y-0.5" style={{ paddingLeft: '52px' }}>
+                    <div className="pr-2 pb-1.5 space-y-0.5" style={{ paddingLeft: '57px' }}>
                       {wpTasks.length === 0 && (
                         <div className="text-xs text-muted-foreground italic py-1">No tasks in this WP.</div>
                       )}
