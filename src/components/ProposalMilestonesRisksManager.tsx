@@ -629,6 +629,13 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
               </tbody>
             </table>
           </div>
+          {canEdit && (
+            <div className="flex items-center justify-end gap-2 pt-3">
+              <Button size="sm" onClick={() => addRisk.mutate()}>
+                <Plus className="h-4 w-4 mr-1" /> Add risk
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
