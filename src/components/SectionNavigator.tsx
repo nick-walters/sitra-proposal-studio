@@ -239,6 +239,7 @@ function SectionItem({
     section.title === 'Figures' ||
     section.id === 'wp-progress-tracker' ||
     section.id === 'wp-drafts' ||
+    section.id === 'milestones-risks' ||
     section.id === 'proposal-management';
   
   // Note: Guideline icons removed from navigation hover to reduce visual clutter
