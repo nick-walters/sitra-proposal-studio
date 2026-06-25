@@ -481,7 +481,7 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
                           onChange={(e) => updateMilestone.mutate({ id: m.id, patch: { means_of_verification: e.target.value } })}
                         />
                       </td>
-                      <td className="py-1.5 px-1">
+                      <td className="py-1.5 px-0 text-center">
                         <Button
                           size="icon" variant="ghost" className="h-7 w-7 text-red-600 hover:text-red-700"
                           disabled={!canEdit}
