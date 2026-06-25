@@ -66,6 +66,133 @@ const MIN_CELL_WIDTH = 7;
 const MARGIN_GAP = 42;
 const ROW_HEIGHT = 20;
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Per-WP badge layout (deliverables + milestones).
+//
+// Inputs are already partitioned per WP. Each badge declares:
+//   • dueMonth         → tipX = centre of due-month cell
+//   • linkedTaskIds    → tasks in this WP (rowIdx[]) for origins/median
+//   • useWpBand (ms)   → milestone falls back to the WP band (rowIdx = -1)
+//
+// Output:
+//   • badges with absolute geometry (tipX, leftX, shapeW, shapeH, rowIdx)
+//   • drawLines flag (single-task deliverable = no lines, no dot)
+//   • origins[] in {rowIdx, x} form — the renderer resolves Y from rowIdx.
+//
+// Slot search = median row, then ±1, ±2 outward, refusing collisions with
+// already-placed badge bodies. Pragmatic v1 (no full pathfinding).
+// ─────────────────────────────────────────────────────────────────────────────
+type WpBadgeIn = {
+  key: string;
+  kind: 'del' | 'ms';
+  label: string;
+  color: string;
+  dueMonth: number;
+  linkedRows: number[];
+  linkedTaskIds: string[];
+  useWpBand?: boolean;
+  tooltipTitle: string;
+};
+type WpBadgeOut = WpBadgeIn & {
+  tipX: number;
+  leftX: number;
+  shapeW: number;
+  shapeH: number;
+  bodyW: number;
+  pointDepth: number;
+  rowIdx: number;          // -1 = WP band
+  drawLines: boolean;
+  origins: Array<{ rowIdx: number; x: number }>;
+};
+
+function layoutWpBadges(args: {
+  delBadges: WpBadgeIn[];
+  msBadges: WpBadgeIn[];
+  tasks: { id: string; startMonth: number; endMonth: number }[];
+  wpEndMonth: number;
+  cellWidth: number;
+}): WpBadgeOut[] {
+  const { delBadges, msBadges, tasks, wpEndMonth, cellWidth } = args;
+  const numTasks = tasks.length;
+  const pointDepth = 4;
+  const estimateMsW = (label: string) => Math.max(32, label.length * 7 + 10);
+  const estimateDelW = (label: string) => Math.max(25, label.length * 5 + 5);
+
+  const taskById = new Map(tasks.map((t, i) => [t.id, { ...t, rowIdx: i }]));
+
+  const occupied = new Map<number, Array<[number, number]>>();
+  const isFree = (slot: number, lx: number, rx: number) => {
+    const list = occupied.get(slot);
+    if (!list) return true;
+    return list.every(([a, b]) => rx + 2 <= a || lx - 2 >= b);
+  };
+  const mark = (slot: number, lx: number, rx: number) => {
+    const list = occupied.get(slot) || [];
+    list.push([lx, rx]);
+    occupied.set(slot, list);
+  };
+
+  // Place earlier-due first; deliverables before milestones at same month.
+  const all = [...delBadges, ...msBadges].sort((a, b) => {
+    if (a.dueMonth !== b.dueMonth) return a.dueMonth - b.dueMonth;
+    return a.kind === 'del' ? -1 : 1;
+  });
+
+  const out: WpBadgeOut[] = [];
+  for (const b of all) {
+    const isDel = b.kind === 'del';
+    const bodyW = isDel ? estimateDelW(b.label) : estimateMsW(b.label);
+    const shapeW = isDel ? bodyW + pointDepth : bodyW;
+    const shapeH = isDel ? 10 : 12;
+    const tipX = (b.dueMonth - 0.5) * cellWidth;
+    const leftX = isDel ? tipX - shapeW : tipX;
+
+    // Median row (or wp-band fallback for MS, or row 0 if unlinked)
+    let target: number;
+    if (!isDel && b.useWpBand) target = -1;
+    else if (b.linkedRows.length === 0) target = 0;
+    else {
+      const sorted = [...b.linkedRows].sort((x, y) => x - y);
+      target = sorted[Math.floor(sorted.length / 2)];
+    }
+
+    const minSlot = isDel ? 0 : -1;
+    const maxSlot = Math.max(0, numTasks - 1);
+    let chosen = Number.NaN;
+    for (let step = 0; step <= numTasks + 2; step++) {
+      const candidates = step === 0 ? [target] : [target + step, target - step];
+      for (const s of candidates) {
+        if (s < minSlot || s > maxSlot) continue;
+        if (isFree(s, leftX, leftX + shapeW)) { chosen = s; break; }
+      }
+      if (!Number.isNaN(chosen)) break;
+    }
+    if (Number.isNaN(chosen)) chosen = target;
+    mark(chosen, leftX, leftX + shapeW);
+
+    // Single-task deliverable → no dot/line per spec.
+    const drawLines = !(isDel && b.linkedTaskIds.length === 1);
+
+    const origins: Array<{ rowIdx: number; x: number }> = [];
+    if (drawLines) {
+      if (!isDel && b.useWpBand) {
+        origins.push({ rowIdx: -1, x: Math.max(0, (wpEndMonth - 1) * cellWidth) });
+      } else {
+        for (const tid of b.linkedTaskIds) {
+          const t = taskById.get(tid);
+          if (!t) continue;
+          const x = isDel ? t.endMonth * cellWidth : (t.endMonth - 1) * cellWidth;
+          origins.push({ rowIdx: t.rowIdx, x });
+        }
+      }
+    }
+
+    out.push({ ...b, tipX, leftX, shapeW, shapeH, bodyW, pointDepth, rowIdx: chosen, drawLines, origins });
+  }
+  return out;
+}
+
+
 export function GanttChartFigure({
   figureId,
   figureNumber,
@@ -97,8 +224,12 @@ export function GanttChartFigure({
     },
   });
 
-  // Fetch wp_drafts with their tasks, deliverables, and milestones dynamically
-  // (live from source tables — no snapshot layer).
+  // Fetch wp_drafts with tasks, deliverables, and milestones — fully live from
+  // source tables. Includes the new link tables:
+  //   * wp_draft_deliverable_tasks  (deliverable → task[])
+  //   * proposal_milestone_tasks    (milestone   → task[])
+  //   * proposal_milestone_wps      (milestone   → wp[])
+  // No legacy / degraded / snapshot source is used anywhere below.
   const { data: wpDraftsData } = useQuery({
     queryKey: ['wp-drafts-gantt', proposalId],
     queryFn: async () => {
@@ -106,8 +237,10 @@ export function GanttChartFigure({
         { data: wps, error: wpError },
         { data: tasks, error: taskError },
         { data: deliverables, error: delError },
+        { data: delTaskLinks, error: dtlError },
         { data: msData, error: msError },
-        { data: msLinks, error: msLinkError },
+        { data: msWpLinks, error: mwlError },
+        { data: msTaskLinks, error: mtlError },
         { data: participants, error: partError },
       ] = await Promise.all([
         supabase
@@ -121,7 +254,10 @@ export function GanttChartFigure({
           .order('order_index'),
         supabase
           .from('wp_draft_deliverables')
-          .select('id, wp_draft_id, number, title, due_month, task_id, type, dissemination_level, responsible_participant_id'),
+          .select('id, wp_draft_id, number, title, due_month, type, dissemination_level, responsible_participant_id'),
+        supabase
+          .from('wp_draft_deliverable_tasks')
+          .select('deliverable_id, wp_draft_task_id'),
         supabase
           .from('proposal_milestones')
           .select('id, number, title, due_month')
@@ -130,6 +266,9 @@ export function GanttChartFigure({
           .from('proposal_milestone_wps')
           .select('milestone_id, wp_draft_id'),
         supabase
+          .from('proposal_milestone_tasks')
+          .select('milestone_id, wp_draft_task_id'),
+        supabase
           .from('participants')
           .select('id, organisation_short_name, participant_number')
           .eq('proposal_id', proposalId),
@@ -137,113 +276,158 @@ export function GanttChartFigure({
       if (wpError) throw wpError;
       if (taskError) throw taskError;
       if (delError) throw delError;
+      if (dtlError) throw dtlError;
       if (msError) throw msError;
-      if (msLinkError) throw msLinkError;
+      if (mwlError) throw mwlError;
+      if (mtlError) throw mtlError;
       if (partError) throw partError;
 
       const wpIds = new Set((wps || []).map(wp => wp.id));
       const filteredTasks = (tasks || []).filter(t => wpIds.has(t.wp_draft_id));
+      const taskIds = new Set(filteredTasks.map(t => t.id));
       const filteredDels = (deliverables || []).filter(d => wpIds.has(d.wp_draft_id));
+      const delIds = new Set(filteredDels.map(d => d.id));
+      const msIds = new Set((msData || []).map(m => m.id));
 
-      // Build milestone → wp_draft_id[] map (filtered to this proposal's WPs).
+      const delToTaskIds = new Map<string, string[]>();
+      for (const l of delTaskLinks || []) {
+        if (!delIds.has(l.deliverable_id) || !taskIds.has(l.wp_draft_task_id)) continue;
+        const arr = delToTaskIds.get(l.deliverable_id) || [];
+        arr.push(l.wp_draft_task_id);
+        delToTaskIds.set(l.deliverable_id, arr);
+      }
+
       const msToWpIds = new Map<string, string[]>();
-      for (const l of msLinks || []) {
-        if (!wpIds.has(l.wp_draft_id)) continue;
+      for (const l of msWpLinks || []) {
+        if (!msIds.has(l.milestone_id) || !wpIds.has(l.wp_draft_id)) continue;
         const arr = msToWpIds.get(l.milestone_id) || [];
         arr.push(l.wp_draft_id);
         msToWpIds.set(l.milestone_id, arr);
       }
-      // Adapt milestones to legacy shape consumed below: { id, number, title,
-      // due_month, wp_draft_id (first linked WP, for back-compat), _wpIds }.
-      const adaptedMs = (msData || []).map((m: any) => {
-        const linked = msToWpIds.get(m.id) || [];
-        return { ...m, wp_draft_id: linked[0] ?? null, _wpIds: linked };
-      });
 
-      return { wps: wps || [], tasks: filteredTasks, deliverables: filteredDels, milestones: adaptedMs, participants: participants || [] };
+      const msToTaskIds = new Map<string, string[]>();
+      for (const l of msTaskLinks || []) {
+        if (!msIds.has(l.milestone_id) || !taskIds.has(l.wp_draft_task_id)) continue;
+        const arr = msToTaskIds.get(l.milestone_id) || [];
+        arr.push(l.wp_draft_task_id);
+        msToTaskIds.set(l.milestone_id, arr);
+      }
+
+      return {
+        wps: wps || [],
+        tasks: filteredTasks,
+        deliverables: filteredDels,
+        milestones: msData || [],
+        participants: participants || [],
+        delToTaskIds,
+        msToWpIds,
+        msToTaskIds,
+      };
     },
   });
 
 
-  const dynamicData = useMemo(() => {
-    if (!wpDraftsData) return { workPackages: [] as WorkPackage[], milestones: [] as Milestone[] };
 
-    const { wps, tasks, deliverables, milestones: msRows, participants } = wpDraftsData;
+  // Build a typed structure per WP with: tasks (timed only), the WP's active
+  // span, and the badges to render in the overlay. Each badge carries the
+  // task-row indices it links to (within the WP), so layout & connector lines
+  // can be computed below from a single source.
+  const dynamicData = useMemo(() => {
+    if (!wpDraftsData) return { workPackages: [] as any[], milestones: [] as Milestone[] };
+
+    const { wps, tasks, deliverables, milestones: msRows, participants, delToTaskIds, msToWpIds, msToTaskIds } = wpDraftsData;
 
     const partMap = new Map(participants.map(p => [p.id, p.organisation_short_name || `P${p.participant_number}`]));
     const wpNumberById = new Map(wps.map(wp => [wp.id, wp.number]));
 
-    const workPackages: WorkPackage[] = wps.map((wp) => {
+    const workPackages = wps.map((wp) => {
       const wpTasks = tasks.filter(t => t.wp_draft_id === wp.id);
-      const wpDeliverables = deliverables.filter(d => d.wp_draft_id === wp.id);
-      const wpMilestones = msRows.filter((m: any) => {
-        const ids: string[] = m._wpIds || [];
-        return ids.includes(wp.id);
+      const timedTasks = wpTasks.filter(t => t.start_month != null && t.end_month != null);
+
+      // Stable per-WP task ordering (matches what we render). rowIdx = position.
+      const taskRowIdxById = new Map<string, number>();
+      timedTasks.forEach((t, i) => taskRowIdxById.set(t.id, i));
+      const taskById = new Map(timedTasks.map(t => [t.id, t]));
+
+      const taskStartMonths = timedTasks.map(t => t.start_month!);
+      const taskEndMonths = timedTasks.map(t => t.end_month!);
+      const wpStart = taskStartMonths.length ? Math.min(...taskStartMonths) : null;
+      const wpEnd = taskEndMonths.length ? Math.max(...taskEndMonths) : null;
+
+      const mappedTasks = timedTasks.map(t => ({
+        id: t.id,
+        wpNumber: wp.number,
+        taskNumber: t.number,
+        name: t.title || '',
+        startMonth: t.start_month!,
+        endMonth: t.end_month!,
+      }));
+
+      // ── Deliverable badges (one per deliverable). Links: wp_draft_deliverable_tasks.
+      const wpDeliverables = deliverables.filter(d => d.wp_draft_id === wp.id && d.due_month != null);
+      const delBadges = wpDeliverables.map(d => {
+        const linkedTaskIds = (delToTaskIds.get(d.id) || []).filter(id => taskRowIdxById.has(id));
+        const linkedRows = linkedTaskIds.map(id => taskRowIdxById.get(id)!);
+        const wpNum = wpNumberById.get(d.wp_draft_id) ?? wp.number;
+        const tooltipParts = [`D${wpNum}.${d.number}: ${d.title || ''}`];
+        if (d.type) tooltipParts.push(`Type: ${d.type}`);
+        if (d.dissemination_level) tooltipParts.push(`Dissemination: ${d.dissemination_level}`);
+        if (d.responsible_participant_id) {
+          const lead = partMap.get(d.responsible_participant_id);
+          if (lead) tooltipParts.push(`Lead: ${lead}`);
+        }
+        return {
+          key: `del-${d.id}`,
+          kind: 'del' as const,
+          label: `D${wpNum}.${d.number}`,
+          color: wp.color,
+          dueMonth: d.due_month!,
+          linkedRows,
+          // Origin x is computed in layout (right edge of each linked task's end month).
+          linkedTaskIds,
+          tooltipTitle: tooltipParts.join(' | '),
+        };
       });
 
+      // ── Milestone badges (one INSTANCE per related WP). Links: proposal_milestone_tasks (filtered to this WP).
+      const msBadges: any[] = [];
+      for (const m of msRows) {
+        if (m.due_month == null) continue;
+        const wpIdsForM = msToWpIds.get(m.id) || [];
+        if (!wpIdsForM.includes(wp.id)) continue;
 
-      const taskStartMonths = wpTasks.filter(t => t.start_month != null).map(t => t.start_month!);
-      const taskEndMonths = wpTasks.filter(t => t.end_month != null).map(t => t.end_month!);
-      const startMonth = taskStartMonths.length > 0 ? Math.min(...taskStartMonths) : null;
-      const endMonth = taskEndMonths.length > 0 ? Math.max(...taskEndMonths) : null;
-
-      const formatDelNumber = (d: { wp_draft_id: string; number: number }) => {
-        const wpNum = wpNumberById.get(d.wp_draft_id) ?? wp.number;
-        return `D${wpNum}.${d.number}`;
-      };
-
-      const mappedTasks = wpTasks
-        .filter(t => t.start_month != null && t.end_month != null)
-        .map(t => ({
-          id: t.id,
-          wpNumber: wp.number,
-          taskNumber: t.number,
-          name: t.title || '',
-          startMonth: t.start_month!,
-          endMonth: t.end_month!,
-          deliverables: wpDeliverables
-            .filter(d => d.task_id === t.id && d.due_month != null)
-            .map(d => ({ number: formatDelNumber(d), name: d.title || '', month: d.due_month!, type: d.type || undefined, disseminationLevel: d.dissemination_level || undefined, leadShortName: d.responsible_participant_id ? partMap.get(d.responsible_participant_id) : undefined })),
-          milestones: wpMilestones
-            .filter(m => m.wp_draft_id === wp.id && m.due_month != null)
-            .map(m => ({ number: m.number, name: m.title || '', month: m.due_month!, leadShortName: undefined as string | undefined })),
-        }));
-
-      // Attach unassigned deliverables/milestones to the last task, or a virtual task
-      const unassignedDels = wpDeliverables
-        .filter(d => !d.task_id && d.due_month != null)
-        .map(d => ({ number: formatDelNumber(d), name: d.title || '', month: d.due_month!, type: d.type || undefined, disseminationLevel: d.dissemination_level || undefined, leadShortName: d.responsible_participant_id ? partMap.get(d.responsible_participant_id) : undefined }));
-      const unassignedMs: { number: number; name: string; month: number; leadShortName: string | undefined }[] = [];
-
-      if (unassignedDels.length > 0 || unassignedMs.length > 0) {
-        if (mappedTasks.length > 0) {
-          const lastTask = mappedTasks[mappedTasks.length - 1];
-          lastTask.deliverables = [...(lastTask.deliverables || []), ...unassignedDels];
-          lastTask.milestones = [...(lastTask.milestones || []), ...unassignedMs];
-        } else {
-          const wpStart = startMonth ?? 1;
-          const wpEnd = endMonth ?? (startMonth ?? 1);
-          mappedTasks.push({
-            id: `virtual-${wp.id}`,
-            wpNumber: wp.number,
-            taskNumber: 0,
-            name: '',
-            startMonth: wpStart,
-            endMonth: wpEnd,
-            deliverables: unassignedDels,
-            milestones: unassignedMs,
-          });
-        }
+        const allLinkedTaskIds = msToTaskIds.get(m.id) || [];
+        const linkedInThisWp = allLinkedTaskIds.filter(id => {
+          const t = taskById.get(id);
+          return !!t;
+        });
+        const useWpBand = linkedInThisWp.length === 0;
+        const linkedRows = useWpBand ? [] : linkedInThisWp.map(id => taskRowIdxById.get(id)!);
+        msBadges.push({
+          key: `ms-${m.id}-${wp.id}`,
+          kind: 'ms' as const,
+          label: `MS${m.number}`,
+          color: '#000000',
+          dueMonth: m.due_month!,
+          linkedRows,
+          linkedTaskIds: linkedInThisWp,
+          useWpBand,
+          tooltipTitle: `MS${m.number}: ${m.title || ''}`,
+        });
       }
 
       return {
+        id: wp.id,
         number: wp.number,
         shortName: wp.short_name || '',
         title: wp.title || '',
-        startMonth: startMonth ?? 1,
-        endMonth: endMonth ?? 1,
+        startMonth: wpStart ?? 1,
+        endMonth: wpEnd ?? 1,
         color: wp.color,
         tasks: mappedTasks,
+        taskById,
+        delBadges,
+        msBadges,
       };
     });
 
@@ -253,6 +437,8 @@ export function GanttChartFigure({
 
     return { workPackages, milestones: msMapped };
   }, [wpDraftsData]);
+
+
 
   const projectDuration = proposalData?.duration || content?.projectDuration || 36;
   const workPackages = dynamicData.workPackages;
@@ -453,327 +639,95 @@ export function GanttChartFigure({
           {workPackages.map((wp, wpIdx) => {
             const wpColor = wp.color || '#73C92D';
             const taskColor = '#d4d4d4';
-            
-            const wpId = wpDraftsData?.wps.find(w => w.number === wp.number)?.id;
+            const titleWidth = labelWidth - 38 - 6;
+
             const untimedTasks = (wpDraftsData?.tasks || [])
-              .filter(t => t.wp_draft_id === wpId)
+              .filter(t => t.wp_draft_id === wp.id)
               .filter(t => t.start_month == null || t.end_month == null);
-            
+
+            // Compute badge layout (rebuilt every render — cheap)
+            const laidOut = layoutWpBadges({
+              delBadges: wp.delBadges,
+              msBadges: wp.msBadges,
+              tasks: wp.tasks.map((t: any) => ({ id: t.id, startMonth: t.startMonth, endMonth: t.endMonth })),
+              wpEndMonth: wp.endMonth,
+              cellWidth,
+            });
+
+            // Y coordinates relative to the per-WP overlay container.
+            // Overlay top = top of WP band; band centre = ROW/2;
+            // task row i centre = ROW + i*ROW + ROW/2.
+            const yOfWpBand = ROW_HEIGHT / 2;
+            const yOfTaskRow = (i: number) => ROW_HEIGHT + i * ROW_HEIGHT + ROW_HEIGHT / 2;
+            const yOfRow = (rowIdx: number) => (rowIdx === -1 ? yOfWpBand : yOfTaskRow(rowIdx));
+            const overlayHeight = ROW_HEIGHT + wp.tasks.length * ROW_HEIGHT + untimedTasks.length * ROW_HEIGHT;
+            const overlayWidth = timelineWidth + MARGIN_GAP;
+
             return (
               <div key={wp.number}>
-                {/* Slim spacer between WPs - non-editable */}
-                {wpIdx > 0 && (
-                  <div style={{ height: 2 }} aria-hidden="true" />
-                )}
+                {wpIdx > 0 && <div style={{ height: 2 }} aria-hidden="true" />}
 
-                {/* WP Header Row - full width bubble with left rounded, right triangle */}
-                <div className="flex relative" style={{ height: ROW_HEIGHT }}>
-                  <div 
-                    className="absolute flex items-center font-bold text-white truncate"
-                    style={{
-                      backgroundColor: wpColor,
-                      fontFamily: "'Times New Roman', Times, serif",
-                      fontSize: '11pt',
-                      fontWeight: 700,
-                      padding: '0 12px 0 6px',
-                      pointerEvents: 'none',
-                      top: 0,
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      borderRadius: `${ROW_HEIGHT / 2}px 0 0 ${ROW_HEIGHT / 2}px`,
-                      clipPath: `polygon(0% 0%, calc(100% - 12.5px) 0%, 100% 50%, calc(100% - 12.5px) 100%, 0% 100%)`,
-                    }}
-                  >
-                    WP{wp.number}: {wp.shortName || ''}{wp.shortName && wp.title ? ' – ' : ''}{wp.title || ''}
+                <div style={{ position: 'relative' }}>
+                  {/* WP Header Row - full width bubble */}
+                  <div className="flex relative" style={{ height: ROW_HEIGHT }}>
+                    <div
+                      className="absolute flex items-center font-bold text-white truncate"
+                      style={{
+                        backgroundColor: wpColor,
+                        fontFamily: "'Times New Roman', Times, serif",
+                        fontSize: '11pt',
+                        fontWeight: 700,
+                        padding: '0 12px 0 6px',
+                        pointerEvents: 'none',
+                        top: 0, bottom: 0, left: 0, right: 0,
+                        borderRadius: `${ROW_HEIGHT / 2}px 0 0 ${ROW_HEIGHT / 2}px`,
+                        clipPath: `polygon(0% 0%, calc(100% - 12.5px) 0%, 100% 50%, calc(100% - 12.5px) 100%, 0% 100%)`,
+                      }}
+                    >
+                      WP{wp.number}: {wp.shortName || ''}{wp.shortName && wp.title ? ' – ' : ''}{wp.title || ''}
+                    </div>
                   </div>
-                </div>
 
-                {/* Task Rows */}
-                {wp.tasks.map((task, taskIdx) => {
-                  // Pre-compute bubble positions for this task
-                  const taskBubbles: { month: number; label: string; color: string; tooltipTitle: string; type: 'del' | 'ms'; sortNum: string }[] = [];
-                  task.deliverables?.forEach(d => {
-                    const parts = [`D${d.number.replace(/^D/, '')}: ${d.name}`];
-                    if (d.type) parts.push(`Type: ${d.type}`);
-                    if (d.disseminationLevel) parts.push(`Dissemination: ${d.disseminationLevel}`);
-                    if (d.leadShortName) parts.push(`Lead: ${d.leadShortName}`);
-                    taskBubbles.push({ month: d.month, label: `D${d.number.replace(/^D/, '')}`, color: wpColor, tooltipTitle: parts.join(' | '), type: 'del', sortNum: d.number });
-                  });
-                  task.milestones?.forEach(ms => {
-                    const parts = [`MS${ms.number}: ${ms.name}`];
-                    if (ms.leadShortName) parts.push(`Lead: ${ms.leadShortName}`);
-                    taskBubbles.push({ month: ms.month, label: `MS${ms.number}`, color: '#000000', tooltipTitle: parts.join(' | '), type: 'ms', sortNum: String(ms.number) });
-                  });
-
-                  // Sort: by month, D before MS at same month, then numerically
-                  taskBubbles.sort((a, b) => {
-                    if (a.month !== b.month) return a.month - b.month;
-                    if (a.type !== b.type) return a.type === 'del' ? -1 : 1;
-                    return a.sortNum.localeCompare(b.sortNum, undefined, { numeric: true });
-                  });
-
-                  const pointDepth = 4;
-                  const estimateMsW = (label: string) => Math.max(32, label.length * 7 + 10);
-                  const estimateDelW = (label: string) => Math.max(25, label.length * 5 + 5);
-
-                  type PBubble = typeof taskBubbles[0] & { leftX: number; width: number; bodyW: number; triSide: 'right' | 'left' };
-                  const positioned: PBubble[] = taskBubbles.map(b => {
-                    if (b.type === 'ms') {
-                      const bodyW = estimateMsW(b.label);
-                      return {
-                        ...b,
-                        bodyW,
-                        width: bodyW,
-                        leftX: 0,
-                        triSide: 'left' as const,
-                      };
-                    }
-                    const bodyW = estimateDelW(b.label);
-                    return {
-                      ...b,
-                      bodyW,
-                      width: bodyW + pointDepth,
-                      leftX: 0,
-                      triSide: 'right' as const,
-                    };
-                  });
-
-                  // targetX = right border of the month cell (end of month)
-                  // Subtract 0.5 to align tip with the center of the 1px cell border
-                  const getTargetX = (month: number) => month * cellWidth - 0.5;
-
-                  // Group by month and position
-                  const monthGroups = new Map<number, number[]>();
-                  positioned.forEach((b, idx) => {
-                    if (!monthGroups.has(b.month)) monthGroups.set(b.month, []);
-                    monthGroups.get(b.month)!.push(idx);
-                  });
-
-                  monthGroups.forEach((indices) => {
-                    const tX = getTargetX(positioned[indices[0]].month);
-                    if (indices.length === 1) {
-                      const b = positioned[indices[0]];
-                      if (b.type === 'ms') {
-                        // MS: right of month boundary, triangle points left
-                        b.leftX = tX;
-                        b.triSide = 'left';
-                      } else {
-                        // D: left of month boundary, triangle points right
-                        b.leftX = tX - b.width;
-                        b.triSide = 'right';
-                      }
-                    } else {
-                      // Two at same month: first left-aligns to tX, second right-aligns from tX
-                      const left = positioned[indices[0]];
-                      const right = positioned[indices[1]];
-                      left.leftX = tX - left.width;
-                      left.triSide = 'right';
-                      right.leftX = tX;
-                      right.triSide = 'left';
-                      // Any extras just stack to the right
-                      let nextX = right.leftX + right.width + 1;
-                      for (let i = 2; i < indices.length; i++) {
-                        positioned[indices[i]].leftX = nextX;
-                        positioned[indices[i]].triSide = 'left';
-                        nextX += positioned[indices[i]].width + 1;
-                      }
-                    }
-                  });
-
-                  // Resolve overlaps between different-month bubbles
-                  for (let ni = 1; ni < positioned.length; ni++) {
-                    const prev = positioned[ni - 1];
-                    const curr = positioned[ni];
-                    if (prev.month === curr.month) continue;
-                    const overlap = (prev.leftX + prev.width + 1) - curr.leftX;
-                    if (overlap > 0) {
-                      if (prev.type === 'ms' && curr.type === 'del') {
-                        // D has priority: keep D in default position (pointing right, left of boundary)
-                        // MS flips to point right, pushed left of D
-                        const currTX = getTargetX(curr.month);
-                        curr.leftX = currTX - curr.width;
-                        curr.triSide = 'right';
-                        const prevTX = getTargetX(prev.month);
-                        const proposedLeftX = Math.min(prevTX - prev.width, curr.leftX - prev.width - 1);
-                        if (proposedLeftX < -20) {
-                          // MS would be pushed too far left; anchor MS at its target pointing right, push D right of MS
-                          prev.leftX = prevTX - prev.width;
-                          prev.triSide = 'right';
-                          curr.leftX = prev.leftX + prev.width + 1;
-                          curr.triSide = 'right';
-                        } else {
-                          prev.leftX = proposedLeftX;
-                          prev.triSide = 'right';
-                        }
-                      } else if (prev.type === 'del' && curr.type === 'ms') {
-                        // D has priority: keep D in default position (pointing right, left of boundary)
-                        // MS flips to point left, pushed right of D
-                        const prevTX = getTargetX(prev.month);
-                        prev.leftX = prevTX - prev.width;
-                        prev.triSide = 'right';
-                        const currTX = getTargetX(curr.month);
-                        const proposedLeftX = Math.max(currTX, prev.leftX + prev.width + 1);
-                        const timelineEnd = projectDuration * cellWidth;
-                        if (proposedLeftX + curr.width > timelineEnd + 20) {
-                          // MS would be pushed too far right; anchor MS at its target pointing left, push D left of MS
-                          curr.leftX = currTX;
-                          curr.triSide = 'left';
-                          prev.leftX = curr.leftX - prev.width - 1;
-                          prev.triSide = 'right';
-                        } else {
-                          curr.leftX = proposedLeftX;
-                          curr.triSide = 'left';
-                        }
-                      } else {
-                        // Same type: earlier points right, later points left (existing behavior)
-                        const prevTX = getTargetX(prev.month);
-                        prev.leftX = prevTX - prev.width;
-                        prev.triSide = 'right';
-                        const currTX = getTargetX(curr.month);
-                        curr.leftX = currTX;
-                        curr.triSide = 'left';
-                      }
-                    }
-                  }
-
-                  // Allow bubbles to extend left of timeline (negative leftX is OK)
-
-                  const rowHeight = ROW_HEIGHT;
-                  const titleWidth = labelWidth - 38 - 6;
-
-                  return (
-                    <div key={task.id} className="flex" style={{ position: 'relative' }}>
-                      {/* Task number bubble */}
-                      <div 
+                  {/* Task Rows (no inline badges — badges live in the overlay below) */}
+                  {wp.tasks.map((task: any) => (
+                    <div key={task.id} className="flex">
+                      <div
                         className="shrink-0 flex items-center justify-center"
-                        style={{ width: 38, height: rowHeight, marginLeft: 6 }}
+                        style={{ width: 38, height: ROW_HEIGHT, marginLeft: 6 }}
                       >
                         <B31Pill variant="outline" color={wpColor} style={{ padding: '0px 4px' }}>
                           T{task.wpNumber}.{task.taskNumber}
                         </B31Pill>
                       </div>
-                      {/* Task title - use clip to allow bubbles to visually overlap */}
-                      <div 
+                      <div
                         className="shrink-0 flex items-center"
-                        style={{ width: titleWidth, height: rowHeight, padding: '0 2px', borderRight: `1px solid ${wpColor}`, overflow: 'visible', position: 'relative' }}
+                        style={{ width: titleWidth, height: ROW_HEIGHT, padding: '0 2px', borderRight: `1px solid ${wpColor}`, overflow: 'hidden' }}
                       >
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', maxWidth: '100%' }}>{task.name}</span>
                       </div>
-                      <div className="flex" style={{ position: 'relative', marginRight: MARGIN_GAP }}>
-                        {/* Render month cells */}
+                      <div className="flex" style={{ marginRight: MARGIN_GAP }}>
                         {months.map(m => {
                           const isInTask = m >= task.startMonth && m <= task.endMonth;
                           return (
                             <div
                               key={m}
-                              style={{ 
-                                width: cellWidth, 
-                                height: rowHeight,
+                              style={{
+                                width: cellWidth,
+                                height: ROW_HEIGHT,
                                 backgroundColor: isInTask ? taskColor : undefined,
                                 borderRight: isInTask ? getFilledCellRightBorder(m, wpColor) : `1px solid ${getMonthRightBorder(m, wpColor)}`,
                               }}
                             />
                           );
                         })}
-                        {/* Render positioned bubbles */}
-                        {positioned.map((b, idx) => {
-                          const topPos = rowHeight / 2;
-                          const bH = 10;
-                          const r = bH / 2;
-                          const isRight = b.triSide === 'right';
-
-                          const isDel = b.type === 'del';
-                          const isMs = b.type === 'ms';
-                          let svgPath: string;
-                          let shapeW: number;
-                          let shapeH: number;
-                          if (isMs) {
-                            // Milestone: elongated hexagon
-                            shapeW = b.width;
-                            shapeH = 12;
-                            const x1 = shapeW * 0.12;
-                            const x2 = shapeW * 0.88;
-                            svgPath = `M ${x1},0 L ${x2},0 L ${shapeW},${shapeH / 2} L ${x2},${shapeH} L ${x1},${shapeH} L 0,${shapeH / 2} Z`;
-                          } else {
-                            shapeW = b.width;
-                            shapeH = bH;
-                            // Deliverable: square on non-arrow side, pointed on arrow side
-                            svgPath = isRight
-                              ? `M 0,0 L ${shapeW - pointDepth},0 L ${shapeW},${shapeH / 2} L ${shapeW - pointDepth},${shapeH} L 0,${shapeH} Z`
-                              : `M ${pointDepth},0 L ${shapeW},0 L ${shapeW},${shapeH} L ${pointDepth},${shapeH} L 0,${shapeH / 2} Z`;
-                          }
-
-                          return (
-                            <Tooltip key={`${b.type}-${idx}`}>
-                              <TooltipTrigger asChild>
-                                <span
-                                  style={{
-                                    position: 'absolute',
-                                    top: topPos,
-                                    left: b.leftX - (isDel ? 1 : 0),
-                                    transform: 'translateY(-50%)',
-                                    width: shapeW,
-                                    height: shapeH,
-                                    zIndex: 10,
-                                  }}
-                                >
-                                  <svg
-                                    width={shapeW}
-                                    height={shapeH}
-                                    viewBox={`0 0 ${shapeW} ${shapeH}`}
-                                    style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}
-                                  >
-                                    <path
-                                      d={svgPath}
-                                      fill={isMs ? '#000000' : '#ffffff'}
-                                      stroke={isMs ? 'none' : b.color}
-                                      strokeWidth={isMs ? 0 : 1.5}
-                                      strokeLinejoin={isMs ? 'miter' : 'round'}
-                                    />
-                                  </svg>
-                                  <span
-                                    style={{
-                                      position: 'absolute',
-                                      top: isMs ? 0 : -0.5,
-                                      left: isMs ? 0 : (isRight ? (isDel ? 1 : 0) : pointDepth),
-                                      width: isMs ? shapeW : b.bodyW,
-                                      height: shapeH,
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      fontFamily: "'Times New Roman', Times, serif",
-                                      fontSize: '8pt',
-                                      fontWeight: 700,
-                                      lineHeight: 1,
-                                      color: isMs ? '#ffffff' : b.color,
-                                      whiteSpace: 'nowrap',
-                                      padding: isMs ? '0 4px' : undefined,
-                                      boxSizing: 'border-box',
-                                    }}
-                                  >
-                                    {b.label}
-                                  </span>
-                                </span>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="text-xs font-medium">{b.tooltipTitle}</p>
-                                <p className="text-xs text-muted-foreground">Month {b.month}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          );
-                        })}
                       </div>
                     </div>
-                  );
-                })}
+                  ))}
 
-                {/* Untimed task rows */}
-                {untimedTasks.map((task, utIdx) => {
-                  return (
+                  {/* Untimed task rows */}
+                  {untimedTasks.map((task) => (
                     <div key={task.id} className="flex">
-                      {/* Task number bubble */}
-                      <div 
+                      <div
                         className="shrink-0 flex items-center justify-center"
                         style={{ width: 38, height: ROW_HEIGHT, marginLeft: 6 }}
                       >
@@ -781,10 +735,9 @@ export function GanttChartFigure({
                           T{wp.number}.{task.number}
                         </B31Pill>
                       </div>
-                      {/* Task title */}
-                      <div 
+                      <div
                         className="shrink-0 flex items-center overflow-hidden"
-                        style={{ width: labelWidth - 38 - 6, height: ROW_HEIGHT, padding: '0 2px', borderRight: `1px solid ${wpColor}` }}
+                        style={{ width: titleWidth, height: ROW_HEIGHT, padding: '0 2px', borderRight: `1px solid ${wpColor}` }}
                       >
                         <span className="text-muted-foreground" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.title}</span>
                       </div>
@@ -792,17 +745,125 @@ export function GanttChartFigure({
                         {months.map(m => (
                           <div
                             key={m}
-                            style={{ 
-                              width: cellWidth, 
-                              height: ROW_HEIGHT,
-                              borderRight: `1px solid ${getMonthRightBorder(m, wpColor)}`,
-                            }}
+                            style={{ width: cellWidth, height: ROW_HEIGHT, borderRight: `1px solid ${getMonthRightBorder(m, wpColor)}` }}
                           />
                         ))}
                       </div>
                     </div>
-                  );
-                })}
+                  ))}
+
+                  {/* ── Overlay: connector lines (SVG) + badges, anchored at timeline top-left ── */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: labelWidth,
+                      width: overlayWidth,
+                      height: overlayHeight,
+                      pointerEvents: 'none',
+                    }}
+                  >
+                    {/* Connector lines */}
+                    <svg
+                      width={overlayWidth}
+                      height={overlayHeight}
+                      style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}
+                    >
+                      {laidOut.flatMap((b) => {
+                        if (!b.drawLines) return [];
+                        const ty = yOfRow(b.rowIdx);
+                        return b.origins.map((o, oi) => {
+                          const oy = yOfRow(o.rowIdx);
+                          // Orthogonal: origin → (tipX, oy) → (tipX, ty). Approaches vertically.
+                          const d = `M ${o.x} ${oy} L ${b.tipX} ${oy} L ${b.tipX} ${ty}`;
+                          return (
+                            <g key={`${b.key}-l${oi}`}>
+                              <path d={d} stroke="#777" strokeWidth={0.75} fill="none" strokeLinecap="square" strokeLinejoin="miter" />
+                              <circle cx={o.x} cy={oy} r={1} fill="#777" />
+                            </g>
+                          );
+                        });
+                      })}
+                    </svg>
+
+                    {/* Badges */}
+                    {laidOut.map((b) => {
+                      const isMs = b.kind === 'ms';
+                      const isDel = !isMs;
+                      const ty = yOfRow(b.rowIdx);
+                      const shapeW = b.shapeW;
+                      const shapeH = b.shapeH;
+                      let svgPath: string;
+                      if (isMs) {
+                        const x1 = shapeW * 0.12;
+                        const x2 = shapeW * 0.88;
+                        svgPath = `M ${x1},0 L ${x2},0 L ${shapeW},${shapeH / 2} L ${x2},${shapeH} L ${x1},${shapeH} L 0,${shapeH / 2} Z`;
+                      } else {
+                        // Deliverable: right-pointing chevron (tip on the right edge)
+                        svgPath = `M 0,0 L ${shapeW - b.pointDepth},0 L ${shapeW},${shapeH / 2} L ${shapeW - b.pointDepth},${shapeH} L 0,${shapeH} Z`;
+                      }
+                      return (
+                        <Tooltip key={b.key}>
+                          <TooltipTrigger asChild>
+                            <span
+                              style={{
+                                position: 'absolute',
+                                top: ty,
+                                left: b.leftX,
+                                transform: 'translateY(-50%)',
+                                width: shapeW,
+                                height: shapeH,
+                                zIndex: 10,
+                                pointerEvents: 'auto',
+                              }}
+                            >
+                              <svg
+                                width={shapeW}
+                                height={shapeH}
+                                viewBox={`0 0 ${shapeW} ${shapeH}`}
+                                style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}
+                              >
+                                <path
+                                  d={svgPath}
+                                  fill={isMs ? '#000000' : '#ffffff'}
+                                  stroke={isMs ? 'none' : b.color}
+                                  strokeWidth={isMs ? 0 : 1.5}
+                                  strokeLinejoin={isMs ? 'miter' : 'round'}
+                                />
+                              </svg>
+                              <span
+                                style={{
+                                  position: 'absolute',
+                                  top: isMs ? 0 : -0.5,
+                                  left: isMs ? 0 : 0,
+                                  width: isMs ? shapeW : b.bodyW,
+                                  height: shapeH,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontFamily: "'Times New Roman', Times, serif",
+                                  fontSize: '8pt',
+                                  fontWeight: 700,
+                                  lineHeight: 1,
+                                  color: isMs ? '#ffffff' : b.color,
+                                  whiteSpace: 'nowrap',
+                                  padding: isMs ? '0 4px' : undefined,
+                                  boxSizing: 'border-box',
+                                }}
+                              >
+                                {b.label}
+                              </span>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="text-xs font-medium">{b.tooltipTitle}</p>
+                            <p className="text-xs text-muted-foreground">Month {b.dueMonth}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      );
+                    })}
+                  </div>
+                </div>
 
                 {/* Bottom border under months columns only */}
                 <div className="flex">
@@ -812,6 +873,7 @@ export function GanttChartFigure({
               </div>
             );
           })}
+
 
 
         </div>
