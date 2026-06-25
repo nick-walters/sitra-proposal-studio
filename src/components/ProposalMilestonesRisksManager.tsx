@@ -721,13 +721,12 @@ function WPMultiSelect({
   return (
     <Popover open={open} onOpenChange={commit}>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="h-8 w-full justify-between font-normal" disabled={disabled}>
-          <span className="flex flex-wrap gap-0.5">
+        <Button variant="outline" size="sm" className="h-auto min-h-8 w-full justify-start font-normal py-1 px-1.5 whitespace-normal" disabled={disabled}>
+          <span className="flex flex-wrap gap-0.5 w-full">
             {selectedWps.length === 0
               ? <span className="text-muted-foreground">Select…</span>
               : selectedWps.map(wp => <WPBubble key={wp.id} wpNumber={wp.number} wpColor={wp.color} />)}
           </span>
-          <ChevronsUpDown className="h-3.5 w-3.5 opacity-50 ml-1 shrink-0" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-56 p-2" align="start">
