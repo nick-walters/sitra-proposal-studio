@@ -9,7 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { WPBubble } from '@/components/B31Pill';
+import { WPBubble, B31Pill } from '@/components/B31Pill';
 import { SingleMonthPicker } from '@/components/SingleMonthPicker';
 import { Plus, Trash2, ArrowUp, ArrowDown, ChevronsUpDown, ChevronDown, ChevronRight } from 'lucide-react';
 import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
@@ -410,10 +410,10 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
                 <tr className="border-b">
                   <th className="text-left font-medium py-2 px-1 w-14">No.</th>
                   <th className="text-left font-medium py-2 px-1">Milestone name</th>
-                  <th className="text-left font-medium py-2 px-1 w-44">WP(s)</th>
+                  <th className="text-left font-medium py-2 px-1" style={{ width: '110px' }}>WP(s)</th>
                   <th className="text-left font-medium py-2 px-1 w-32">Due month</th>
                   <th className="text-left font-medium py-2 px-1">Means of verification</th>
-                  <th className="w-10"></th>
+                  <th className="px-0" style={{ width: '32px' }}></th>
                 </tr>
               </thead>
               <tbody>
@@ -481,7 +481,7 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
                           onChange={(e) => updateMilestone.mutate({ id: m.id, patch: { means_of_verification: e.target.value } })}
                         />
                       </td>
-                      <td className="py-1.5 px-1">
+                      <td className="py-1.5 px-0 text-center">
                         <Button
                           size="icon" variant="ghost" className="h-7 w-7 text-red-600 hover:text-red-700"
                           disabled={!canEdit}
@@ -755,7 +755,9 @@ function MilestoneWpTaskDialog({
                             checked={draftTasks.includes(t.id)}
                             onCheckedChange={() => toggleTask(t.id)}
                           />
-                          <span className="text-xs font-mono shrink-0">T{wp.number}.{t.number}</span>
+                          <B31Pill variant="outline" color={wp.color}>
+                            T{wp.number}.{t.number}
+                          </B31Pill>
                           <span className="text-sm truncate">{t.title || ''}</span>
                         </label>
                       ))}
