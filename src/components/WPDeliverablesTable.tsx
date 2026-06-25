@@ -240,7 +240,6 @@ export function WPDeliverablesTable({
   const otherWpDrafts = allWpDrafts.filter(wp => wp.id !== wpDraftId);
 
   const [reorderOpen, setReorderOpen] = useState(false);
-  const [guidelinesOpen, setGuidelinesOpen] = useState(false);
 
   return (
     <TooltipProvider>
@@ -252,15 +251,6 @@ export function WPDeliverablesTable({
               Deliverables
             </CardTitle>
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setGuidelinesOpen(true)}
-                className="h-7 px-2 text-xs gap-1 text-destructive border-destructive/50 hover:bg-destructive/10 hover:text-destructive"
-              >
-                <BookOpen className="h-3.5 w-3.5" />
-                Guidelines
-              </Button>
               {!readOnly && (
                 <>
                   <Tooltip>
@@ -283,6 +273,7 @@ export function WPDeliverablesTable({
               )}
             </div>
           </div>
+          <DeliverablesGuidelinesInline />
         </CardHeader>
         <CardContent className="px-3 pb-3 pt-0">
           <div className="overflow-x-auto">
@@ -291,12 +282,12 @@ export function WPDeliverablesTable({
                 <tr className="h-12">
                   <th style={{ width: '64px' }} className="whitespace-normal align-bottom">No.</th>
                   <th className="whitespace-normal align-bottom">Deliverable title &amp; short description</th>
-                  <th style={{ width: '88px' }} className="whitespace-normal align-bottom">Type</th>
-                  <th style={{ width: '92px' }} className="whitespace-normal align-bottom">Dissemination level</th>
-                  <th style={{ width: '100px' }} className="whitespace-normal align-bottom">Partner</th>
+                  <th style={{ width: '84px' }} className="whitespace-normal align-bottom">Type</th>
+                  <th style={{ width: '84px' }} className="whitespace-normal align-bottom">Dissemination level</th>
+                  <th style={{ width: '85px' }} className="whitespace-normal align-bottom">Partner</th>
                   <th style={{ width: '140px' }} className="whitespace-normal align-bottom">Assign to task(s)</th>
                   <th style={{ width: '77px' }} className="whitespace-normal align-bottom">Due month</th>
-                  <th style={{ width: '40px' }} className="align-bottom"></th>
+                  <th style={{ width: '25px' }} className="align-bottom"></th>
                 </tr>
               </thead>
               <tbody>
