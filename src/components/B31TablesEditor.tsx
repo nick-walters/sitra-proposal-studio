@@ -291,14 +291,14 @@ export function B31MilestonesTable({ proposalId }: Props) {
           </tr>
         </thead>
         <tbody>
-          {milestones.length === 0 && (
+          {sortedMilestones.length === 0 && (
             <tr>
               <td colSpan={5} className={tdCls + ' text-muted-foreground italic'}>
                 No milestones yet.
               </td>
             </tr>
           )}
-          {milestones.map((m: any) => {
+          {sortedMilestones.map((m: any) => {
             const wps = (m._wpIds as string[])
               .map((id) => wpInfo?.byId.get(id))
               .filter(Boolean)
