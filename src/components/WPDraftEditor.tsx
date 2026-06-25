@@ -1241,30 +1241,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
         />
 
 
-        {/* Milestones */}
-        <WPMilestonesTable
-          wpNumber={wpDraft.number}
-          milestones={wpDraft.milestones || []}
-          onMilestoneUpdate={updateMilestone}
-          onMilestoneAdd={addMilestone}
-          onMilestoneDelete={deleteMilestone}
-          onMilestoneReorder={reorderMilestones}
-          readOnly={readOnly}
-          projectDuration={projectDuration}
-          allWpDrafts={wpDrafts}
-        />
 
-        {/* Risks */}
-        <WPRisksTable
-          wpNumber={wpDraft.number}
-          risks={wpDraft.risks || []}
-          onRiskUpdate={updateRisk}
-          onRiskAdd={addRisk}
-          onRiskDelete={deleteRisk}
-          onRiskReorder={reorderRisks}
-          readOnly={readOnly}
-          allWpDrafts={wpDrafts}
-        />
 
       </div>
       
