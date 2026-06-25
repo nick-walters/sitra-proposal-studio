@@ -912,3 +912,121 @@ function MilestoneWpTaskDialog({
     </>
   );
 }
+
+// ── Same-month reorder dialog for milestones (mirrors the deliverables one) ──
+function MsSameMonthReorderDialog({
+  open, onOpenChange, sorted, wpsById, onPersist,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  sorted: Milestone[];
+  wpsById: Map<string, WPRow>;
+  onPersist: (newSorted: Milestone[]) => Promise<void>;
+}) {
+  const [working, setWorking] = useState<Milestone[]>(sorted);
+  useEffect(() => { if (open) setWorking(sorted); }, [open, sorted]);
+
+  const groups = useMemo(() => {
+    const map = new Map<string, { key: string; label: string; items: Milestone[] }>();
+    for (const m of working) {
+      const key = m.due_month == null ? '∅' : String(m.due_month);
+      const label = m.due_month == null ? 'No due month set' : `Month ${m.due_month}`;
+      if (!map.has(key)) map.set(key, { key, label, items: [] });
+      map.get(key)!.items.push(m);
+    }
+    return Array.from(map.values());
+  }, [working]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const handleDragEnd = (groupKey: string) => (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    setWorking(prev => {
+      const g = prev.filter(m => (m.due_month == null ? '∅' : String(m.due_month)) === groupKey);
+      const oldIdx = g.findIndex(m => m.id === active.id);
+      const newIdx = g.findIndex(m => m.id === over.id);
+      if (oldIdx === -1 || newIdx === -1) return prev;
+      const reordered = arrayMove(g, oldIdx, newIdx);
+      const it = reordered[Symbol.iterator]();
+      return prev.map(m => {
+        const k = m.due_month == null ? '∅' : String(m.due_month);
+        return k === groupKey ? it.next().value! : m;
+      });
+    });
+  };
+
+  const onSave = async () => {
+    await onPersist(working);
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Reorder milestones sharing a due month</DialogTitle>
+        </DialogHeader>
+        <p className="text-xs text-muted-foreground -mt-1">
+          Drag within a group to reorder. A milestone can only move above or below other milestones with the same
+          due month. MS numbers are recomputed automatically when you save.
+        </p>
+        <div className="space-y-4">
+          {groups.map(g => (
+            <div key={g.key} className="rounded border border-border/40">
+              <div className="px-2 py-1 text-xs font-semibold bg-muted/50">{g.label}</div>
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd(g.key)}>
+                <SortableContext items={g.items.map(m => m.id)} strategy={verticalListSortingStrategy}>
+                  <div className="divide-y divide-border/40">
+                    {g.items.map(m => (
+                      <MsReorderRow key={m.id} m={m} wpsById={wpsById} />
+                    ))}
+                    {g.items.length === 0 && (
+                      <div className="px-2 py-2 text-xs italic text-muted-foreground">No items.</div>
+                    )}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            </div>
+          ))}
+          {groups.length === 0 && (
+            <div className="text-xs italic text-muted-foreground">No milestones yet.</div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={onSave}>Save order</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function MsReorderRow({ m, wpsById }: { m: Milestone; wpsById: Map<string, WPRow> }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: m.id });
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
+  const selectedWps = m.wp_ids
+    .map(id => wpsById.get(id))
+    .filter((w): w is WPRow => !!w)
+    .sort((a, b) => a.number - b.number);
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-center gap-2 px-2 py-1.5 bg-background">
+      <button
+        {...attributes}
+        {...listeners}
+        className="cursor-grab active:cursor-grabbing p-0.5 hover:bg-muted rounded touch-none"
+        aria-label="Reorder within month"
+      >
+        <GripVertical className="w-4 h-4 text-blue-500" />
+      </button>
+      <MilestoneBadge number={m.number} />
+      <span className="text-sm truncate flex-1">{m.title || <span className="italic text-muted-foreground">Untitled</span>}</span>
+      <span className="flex flex-wrap gap-0.5">
+        {selectedWps.map(wp => <WPBubble key={wp.id} wpNumber={wp.number} wpColor={wp.color} />)}
+      </span>
+    </div>
+  );
+}
