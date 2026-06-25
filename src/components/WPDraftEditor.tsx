@@ -7,8 +7,6 @@ import { WPTableSection } from '@/components/WPTableSection';
 import { ParagraphSpacingExecPopover } from '@/components/ParagraphSpacingExecPopover';
 
 import { WPDeliverablesTable } from '@/components/WPDeliverablesTable';
-import { WPRisksTable } from '@/components/WPRisksTable';
-import { WPMilestonesTable } from '@/components/WPMilestonesTable';
 import { CitationDialog } from '@/components/CitationDialog';
 import { InsertCrossReferenceDialog } from '@/components/InsertCrossReferenceDialog';
 import { InsertWPReferenceDialog } from '@/components/InsertWPReferenceDialog';
