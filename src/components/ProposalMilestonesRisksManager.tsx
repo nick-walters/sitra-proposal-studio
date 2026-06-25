@@ -529,15 +529,15 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
+            <table className="platform-table text-sm">
               <thead>
                 <tr>
-                  <th className="text-left font-bold text-black py-[1px] px-1" style={{ borderBottom: '1.5px solid #000' }}>Risk description</th>
-                  <th className="text-left font-bold text-black py-[1px] px-1" style={{ width: '44px', borderBottom: '1.5px solid #000' }}>Likelihood</th>
-                  <th className="text-left font-bold text-black py-[1px] px-1" style={{ width: '44px', borderBottom: '1.5px solid #000' }}>Severity</th>
-                  <th className="text-left font-bold text-black py-[1px] px-1" style={{ width: '113px', borderBottom: '1.5px solid #000' }}>WP(s)</th>
-                  <th className="text-left font-bold text-black py-[1px] px-1" style={{ borderBottom: '1.5px solid #000' }}>Mitigation &amp; adaptation measures</th>
-                  <th className="px-0" style={{ width: '28px', borderBottom: '1.5px solid #000' }}></th>
+                  <th>Risk description</th>
+                  <th style={{ width: '44px' }}>Likelihood</th>
+                  <th style={{ width: '44px' }}>Severity</th>
+                  <th style={{ width: '113px' }}>WP(s)</th>
+                  <th>Mitigation &amp; adaptation measures</th>
+                  <th style={{ width: '28px' }}></th>
                 </tr>
               </thead>
               <tbody>
