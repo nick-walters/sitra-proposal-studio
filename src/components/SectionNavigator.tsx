@@ -1,5 +1,5 @@
 import { Section, Participant } from "@/types/proposal";
-import { ChevronRight, ChevronDown, FileText, User, Clock, AlertTriangle, BarChart3, Layers, Building2, Info, Euro, Lightbulb, Target, Settings, FlaskConical, ShieldCheck, HelpCircle, MessageSquare, ListTodo, Briefcase, Lock, Unlock, CalendarDays, Download } from "lucide-react";
+import { ChevronRight, ChevronDown, FileText, User, Clock, AlertTriangle, BarChart3, Layers, Building2, Info, Euro, Lightbulb, Target, Settings, FlaskConical, ShieldCheck, HelpCircle, MessageSquare, ListTodo, Briefcase, Lock, Unlock, CalendarDays, Download, Flag, PencilRuler } from "lucide-react";
 import { useState, useMemo, useRef, useLayoutEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -239,6 +239,7 @@ function SectionItem({
     section.title === 'Figures' ||
     section.id === 'wp-progress-tracker' ||
     section.id === 'wp-drafts' ||
+    section.id === 'milestones-risks' ||
     section.id === 'proposal-management';
   
   // Note: Guideline icons removed from navigation hover to reduce visual clutter
@@ -331,7 +332,9 @@ function SectionItem({
           section.id === 'wp-progress-tracker' ? (
             <BarChart3 className="w-4 h-4 text-muted-foreground shrink-0" />
           ) : section.id === 'wp-drafts' ? (
-            <Layers className="w-4 h-4 text-muted-foreground shrink-0" />
+            <PencilRuler className="w-4 h-4 text-muted-foreground shrink-0" />
+          ) : section.id === 'milestones-risks' ? (
+            <Flag className="w-4 h-4 text-muted-foreground shrink-0" />
           ) : section.id === 'figures' || section.title === 'Figures' ? (
             null
           ) : isWPSection && wpColor ? (

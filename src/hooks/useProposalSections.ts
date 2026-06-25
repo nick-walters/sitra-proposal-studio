@@ -500,36 +500,36 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
         partBRoot.subsections = partBRoot.subsections.filter(s => s.id !== 'figures' && s.title !== 'Figures');
       }
       
-      // Build result: Proposal Management, Topic Info, Part A, Part B, then Figures, Milestones & risks, then WP Drafts
+      // Build result: Proposal Management, Topic Info, Part A, Part B, then WP/case manager & drafts, Milestones & risks, then Figures
       const result = [proposalManagementSection, topicInfoSection, ...partASections, ...partBSections];
-      
-      // Add Figures as standalone top-level section (before WP Drafts)
-      result.push(figuresSection);
 
-      // Add Milestones & risks manager (always shown)
-      result.push(milestonesRisksSection);
-      
       // Add combined WPs & cases section if there are any WP or case drafts
       if (wpDraftSections.length > 0 || caseDraftSections.length > 0) {
         result.push(wpAndCasesSection);
       }
-      
+
+      // Add Milestones & risks manager (always shown)
+      result.push(milestonesRisksSection);
+
+      // Add Figures as standalone top-level section (after Milestones & risks)
+      result.push(figuresSection);
+
       return result;
     }
     
     // Fallback to hardcoded sections
     const fallbackSections = [proposalManagementSection, topicInfoSection, ...PART_A_SECTIONS, ...HORIZON_EUROPE_SECTIONS];
-    
-    // Add Figures before WP Drafts
-    fallbackSections.push(figuresSection);
 
-    // Add Milestones & risks manager
-    fallbackSections.push(milestonesRisksSection);
-    
     // Add combined WPs & cases section
     if (wpDraftSections.length > 0 || caseDraftSections.length > 0) {
       fallbackSections.push(wpAndCasesSection);
     }
+
+    // Add Milestones & risks manager
+    fallbackSections.push(milestonesRisksSection);
+
+    // Add Figures after Milestones & risks
+    fallbackSections.push(figuresSection);
     
     return fallbackSections;
 

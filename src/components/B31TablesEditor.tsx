@@ -355,9 +355,24 @@ export function B31RisksTable({ proposalId }: Props) {
           linkMap.set(l.risk_id, arr);
         }
       }
-      return (rows || []).map((r: any) => ({ ...r, _wpIds: linkMap.get(r.id) || [] }));
+      const enriched = (rows || []).map((r: any) => ({ ...r, _wpIds: linkMap.get(r.id) || [] }));
+      return enriched;
     },
   });
+
+  // Sort by min related WP number, then by id (matches manager auto-ordering)
+  const orderedRisks = (risks as any[]).slice().sort((a: any, b: any) => {
+    const minWp = (r: any) => {
+      const nums = (r._wpIds as string[])
+        .map((id) => wpInfo?.byId.get(id)?.number)
+        .filter((n: any): n is number => typeof n === 'number');
+      return nums.length ? Math.min(...nums) : Number.POSITIVE_INFINITY;
+    };
+    const wa = minWp(a), wb = minWp(b);
+    if (wa !== wb) return wa - wb;
+    return String(a.id).localeCompare(String(b.id));
+  });
+  
 
   return (
     <div>
@@ -379,14 +394,14 @@ export function B31RisksTable({ proposalId }: Props) {
           </tr>
         </thead>
         <tbody>
-          {risks.length === 0 && (
+          {orderedRisks.length === 0 && (
             <tr>
               <td colSpan={5} className={tdCls + ' text-muted-foreground italic'}>
                 No risks yet.
               </td>
             </tr>
           )}
-          {risks.map((r: any) => {
+          {orderedRisks.map((r: any) => {
             const wps = (r._wpIds as string[])
               .map((id) => wpInfo?.byId.get(id))
               .filter(Boolean)
