@@ -326,8 +326,6 @@ export function WPDeliverablesTable({
         wpColor={resolvedWpColor}
         onPersist={persistGroupOrder}
       />
-
-      <DeliverablesGuidelinesDialog open={guidelinesOpen} onOpenChange={setGuidelinesOpen} />
     </TooltipProvider>
   );
 }
