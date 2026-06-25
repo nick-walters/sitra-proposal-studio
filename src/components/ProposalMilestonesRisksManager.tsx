@@ -523,6 +523,26 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
               </tbody>
             </table>
           </div>
+          {canEdit && (
+            <div className="flex items-center justify-end gap-2 pt-3">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="bg-muted hover:bg-muted/80 text-foreground"
+                    onClick={() => setMsReorderOpen(true)}
+                  >
+                    <ArrowUpDown className="h-4 w-4 mr-1" /> Reorder same-month
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Manually reorder milestones that share the same due month</TooltipContent>
+              </Tooltip>
+              <Button size="sm" onClick={() => addMilestone.mutate()}>
+                <Plus className="h-4 w-4 mr-1" /> Add milestone
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
