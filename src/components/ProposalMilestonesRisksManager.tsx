@@ -415,7 +415,10 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
     });
   }, [risks, wpsById]);
 
+  const [msReorderOpen, setMsReorderOpen] = useState(false);
+
   return (
+    <TooltipProvider>
     <div className="p-6 space-y-6">
       <div className="space-y-2">
         <h1 className="text-xl font-bold text-foreground">Milestones &amp; risks</h1>
@@ -427,9 +430,24 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
           <div className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Milestones</CardTitle>
             {canEdit && (
-              <Button size="sm" onClick={() => addMilestone.mutate()}>
-                <Plus className="h-4 w-4 mr-1" /> Add milestone
-              </Button>
+              <div className="flex items-center gap-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="bg-muted hover:bg-muted/80 text-foreground"
+                      onClick={() => setMsReorderOpen(true)}
+                    >
+                      <ArrowUpDown className="h-4 w-4 mr-1" /> Reorder same-month
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Manually reorder milestones that share the same due month</TooltipContent>
+                </Tooltip>
+                <Button size="sm" onClick={() => addMilestone.mutate()}>
+                  <Plus className="h-4 w-4 mr-1" /> Add milestone
+                </Button>
+              </div>
             )}
           </div>
           <MilestonesGuidelinesInline />
