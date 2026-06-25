@@ -386,7 +386,20 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-xl font-bold text-foreground">Milestones &amp; risks</h1>
+      <div className="space-y-2">
+        <h1 className="text-xl font-bold text-foreground">Milestones &amp; risks</h1>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setGuidelinesOpen(true)}
+          className="h-7 px-2 text-xs gap-1 text-destructive border-destructive/50 hover:bg-destructive/10 hover:text-destructive"
+        >
+          <BookOpen className="h-3.5 w-3.5" />
+          Guidelines
+        </Button>
+      </div>
+
+      <MilestonesRisksGuidelinesDialog open={guidelinesOpen} onOpenChange={setGuidelinesOpen} />
 
       {/* Milestones */}
       <Card>
@@ -406,8 +419,8 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
         <CardContent>
           <div className="overflow-x-auto">
             <table className="w-full text-sm border-collapse">
-              <thead>
-                <tr className="border-b">
+              <thead className="bg-muted/40">
+                <tr className="border-b text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                   <th className="text-left font-medium py-2 px-1 w-14">No.</th>
                   <th className="text-left font-medium py-2 px-1" style={{ width: '280px' }}>Milestone name</th>
                   <th className="text-left font-medium py-2 px-1" style={{ width: '113px' }}>WP(s)</th>
