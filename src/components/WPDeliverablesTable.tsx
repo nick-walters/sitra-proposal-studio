@@ -495,11 +495,8 @@ function SortableDeliverableRow({
             <DeleteConfirmDialog
               itemLabel="this deliverable"
               onConfirm={() => onDelete(deliverable.id)}
-              trigger={
-                <Button size="icon" variant="ghost" className="h-7 w-7 text-red-600 hover:text-red-700" aria-label="Delete deliverable">
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              }
+              buttonClassName="h-7 w-7 text-red-600 hover:text-red-700"
+              iconSize="h-4 w-4"
             />
           )}
         </div>
