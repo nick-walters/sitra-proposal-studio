@@ -273,7 +273,7 @@ export function WPDeliverablesTable({
               )}
             </div>
           </div>
-          <DeliverablesGuidelinesInline />
+          <DeliverablesShortNoteInline />
         </CardHeader>
         <CardContent className="px-3 pb-3 pt-0">
           <div className="overflow-x-auto">
@@ -282,11 +282,11 @@ export function WPDeliverablesTable({
                 <tr className="h-12">
                   <th style={{ width: '64px' }} className="whitespace-normal align-bottom">No.</th>
                   <th className="whitespace-normal align-bottom">Deliverable title &amp; short description</th>
-                  <th style={{ width: '84px' }} className="whitespace-normal align-bottom">Type</th>
-                  <th style={{ width: '84px' }} className="whitespace-normal align-bottom">Dissemination level</th>
-                  <th style={{ width: '85px' }} className="whitespace-normal align-bottom">Partner</th>
+                  <th style={{ width: '80px' }} className="whitespace-normal align-bottom">Type</th>
+                  <th style={{ width: '76px' }} className="whitespace-normal align-bottom">Dissemination level</th>
+                  <th style={{ width: '70px' }} className="whitespace-normal align-bottom">Partner</th>
                   <th style={{ width: '140px' }} className="whitespace-normal align-bottom">Assign to task(s)</th>
-                  <th style={{ width: '77px' }} className="whitespace-normal align-bottom">Due month</th>
+                  <th style={{ width: '62px' }} className="whitespace-normal align-bottom">Due month</th>
                   <th style={{ width: '25px' }} className="align-bottom"></th>
                 </tr>
               </thead>
