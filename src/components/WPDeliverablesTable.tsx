@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Package, Plus, GripVertical, ArrowRight, BookOpen, ArrowUpDown } from 'lucide-react';
+import { Package, Plus, GripVertical, ArrowRight, ArrowUpDown } from 'lucide-react';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { SingleMonthPicker } from '@/components/SingleMonthPicker';
 import {
