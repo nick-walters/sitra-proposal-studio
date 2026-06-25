@@ -513,6 +513,85 @@ export function GanttChartFigure({
   const cellWidth = Math.max(MIN_CELL_WIDTH, Math.ceil(minQuarterWidth / 3));
   const timelineWidth = cellWidth * projectDuration;
   const labelWidth = TOTAL_WIDTH_PX - timelineWidth - MARGIN_GAP;
+  const overlayWidth = timelineWidth + MARGIN_GAP;
+
+  // Global per-chart row layout. Each WP contributes: 1 header row + N task rows
+  // + M untimed task rows. A 2px spacer sits BETWEEN WPs. Slot indices are a
+  // continuous integer space; slotCenterY[slot] holds the centre Y in pixels
+  // measured from the top of the first WP block.
+  const rowLayout = useMemo(() => {
+    const wpBandSlot: number[] = [];
+    const taskSlotByTaskId = new Map<string, number>();
+    const slotCenterY: number[] = [];
+    let nextSlot = 0;
+    let y = 0;
+    workPackages.forEach((wp: any, idx: number) => {
+      if (idx > 0) y += 2;
+      wpBandSlot[idx] = nextSlot;
+      slotCenterY[nextSlot] = y + ROW_HEIGHT / 2;
+      nextSlot += 1;
+      y += ROW_HEIGHT;
+      wp.tasks.forEach((t: any) => {
+        taskSlotByTaskId.set(t.id, nextSlot);
+        slotCenterY[nextSlot] = y + ROW_HEIGHT / 2;
+        nextSlot += 1;
+        y += ROW_HEIGHT;
+      });
+      const untimed = (wpDraftsData?.tasks || []).filter(
+        (t: any) => t.wp_draft_id === wp.id && (t.start_month == null || t.end_month == null),
+      );
+      untimed.forEach(() => {
+        slotCenterY[nextSlot] = y + ROW_HEIGHT / 2;
+        nextSlot += 1;
+        y += ROW_HEIGHT;
+      });
+    });
+    return { wpBandSlot, taskSlotByTaskId, slotCenterY, totalSlots: nextSlot, totalHeight: y };
+  }, [workPackages, wpDraftsData]);
+
+  // Chart-wide milestone items (one per milestone).
+  const chartMilestones = useMemo(() => {
+    if (!wpDraftsData) return [] as ChartMsOut[];
+    const { milestones: msRows, msToWpIds, msToTaskIds, tasks: allTasks } = wpDraftsData;
+    const taskMap = new Map(allTasks.map((t: any) => [t.id, t]));
+    const items: ChartMsIn[] = [];
+    for (const m of msRows) {
+      if (m.due_month == null) continue;
+      const linkedTaskIds = msToTaskIds.get(m.id) || [];
+      const linkedWpIds = msToWpIds.get(m.id) || [];
+      const linkedGlobalRows: number[] = [];
+      const origins: Array<{ globalRow: number; x: number }> = [];
+      const wpIdsCoveredByTasks = new Set<string>();
+      for (const tid of linkedTaskIds) {
+        const slot = rowLayout.taskSlotByTaskId.get(tid);
+        const task: any = taskMap.get(tid);
+        if (slot == null || !task || task.start_month == null || task.end_month == null) continue;
+        linkedGlobalRows.push(slot);
+        origins.push({ globalRow: slot, x: Math.max(0, (task.end_month - 1) * cellWidth) });
+        wpIdsCoveredByTasks.add(task.wp_draft_id);
+      }
+      for (const wpid of linkedWpIds) {
+        if (wpIdsCoveredByTasks.has(wpid)) continue;
+        const idx = workPackages.findIndex((wp: any) => wp.id === wpid);
+        if (idx < 0) continue;
+        const slot = rowLayout.wpBandSlot[idx];
+        const wp: any = workPackages[idx];
+        linkedGlobalRows.push(slot);
+        origins.push({ globalRow: slot, x: Math.max(0, (wp.endMonth - 1) * cellWidth) });
+      }
+      items.push({
+        key: `ms-${m.id}`,
+        label: `MS${m.number}`,
+        dueMonth: m.due_month,
+        linkedGlobalRows,
+        origins,
+        tooltipTitle: `MS${m.number}: ${m.title || ''}`,
+      });
+    }
+    return layoutChartMilestones(items, rowLayout.totalSlots, cellWidth);
+  }, [wpDraftsData, rowLayout, workPackages, cellWidth]);
+
+
 
   // Border colors - lighter greys
   const borderLight = '#e5e5e5';
