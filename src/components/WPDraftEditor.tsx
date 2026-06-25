@@ -1239,7 +1239,10 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
 
         {/* Deliverables */}
         <WPDeliverablesTable
+          wpDraftId={wpDraft.id}
           wpNumber={wpDraft.number}
+          wpColor={wpDraft.color}
+          wpTasks={wpDraft.tasks || []}
           deliverables={wpDraft.deliverables || []}
           participants={participants}
           onDeliverableUpdate={updateDeliverable}
@@ -1250,7 +1253,6 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
           readOnly={readOnly}
           projectDuration={projectDuration}
           allWpDrafts={wpDrafts}
-          currentWpDraftId={wpDraft.id}
         />
 
         {/* Task Interactions & Bottlenecks */}

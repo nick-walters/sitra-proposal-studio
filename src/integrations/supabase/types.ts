@@ -4903,6 +4903,42 @@ export type Database = {
           },
         ]
       }
+      wp_draft_deliverable_tasks: {
+        Row: {
+          created_at: string
+          deliverable_id: string
+          id: string
+          wp_draft_task_id: string
+        }
+        Insert: {
+          created_at?: string
+          deliverable_id: string
+          id?: string
+          wp_draft_task_id: string
+        }
+        Update: {
+          created_at?: string
+          deliverable_id?: string
+          id?: string
+          wp_draft_task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wp_draft_deliverable_tasks_deliverable_id_fkey"
+            columns: ["deliverable_id"]
+            isOneToOne: false
+            referencedRelation: "wp_draft_deliverables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wp_draft_deliverable_tasks_wp_draft_task_id_fkey"
+            columns: ["wp_draft_task_id"]
+            isOneToOne: false
+            referencedRelation: "wp_draft_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wp_draft_deliverables: {
         Row: {
           created_at: string

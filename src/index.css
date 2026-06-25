@@ -622,6 +622,23 @@ html, body {
   margin-top: 0 !important;
 }
 
+/* Shared platform header style for manager/editor tables (milestones, risks, deliverables, etc.) */
+.platform-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.platform-table > thead > tr > th {
+  background-color: transparent;
+  color: #000;
+  font-weight: 700;
+  text-align: left;
+  padding: 1px 4px;
+  border-bottom: 1.5px solid #000;
+  white-space: normal;
+  word-wrap: break-word;
+}
+
+
 
 /* Tables that should have first-column content flush with the page margin */
 .ProseMirror table.first-col-flush th:first-child,
