@@ -394,14 +394,14 @@ export function B31RisksTable({ proposalId }: Props) {
           </tr>
         </thead>
         <tbody>
-          {risks.length === 0 && (
+          {orderedRisks.length === 0 && (
             <tr>
               <td colSpan={5} className={tdCls + ' text-muted-foreground italic'}>
                 No risks yet.
               </td>
             </tr>
           )}
-          {risks.map((r: any) => {
+          {orderedRisks.map((r: any) => {
             const wps = (r._wpIds as string[])
               .map((id) => wpInfo?.byId.get(id))
               .filter(Boolean)
