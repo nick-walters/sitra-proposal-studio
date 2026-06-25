@@ -7,8 +7,6 @@ import { WPTableSection } from '@/components/WPTableSection';
 import { ParagraphSpacingExecPopover } from '@/components/ParagraphSpacingExecPopover';
 
 import { WPDeliverablesTable } from '@/components/WPDeliverablesTable';
-import { WPRisksTable } from '@/components/WPRisksTable';
-import { WPMilestonesTable } from '@/components/WPMilestonesTable';
 import { CitationDialog } from '@/components/CitationDialog';
 import { InsertCrossReferenceDialog } from '@/components/InsertCrossReferenceDialog';
 import { InsertWPReferenceDialog } from '@/components/InsertWPReferenceDialog';
@@ -1241,30 +1239,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
         />
 
 
-        {/* Milestones */}
-        <WPMilestonesTable
-          wpNumber={wpDraft.number}
-          milestones={wpDraft.milestones || []}
-          onMilestoneUpdate={updateMilestone}
-          onMilestoneAdd={addMilestone}
-          onMilestoneDelete={deleteMilestone}
-          onMilestoneReorder={reorderMilestones}
-          readOnly={readOnly}
-          projectDuration={projectDuration}
-          allWpDrafts={wpDrafts}
-        />
 
-        {/* Risks */}
-        <WPRisksTable
-          wpNumber={wpDraft.number}
-          risks={wpDraft.risks || []}
-          onRiskUpdate={updateRisk}
-          onRiskAdd={addRisk}
-          onRiskDelete={deleteRisk}
-          onRiskReorder={reorderRisks}
-          readOnly={readOnly}
-          allWpDrafts={wpDrafts}
-        />
 
       </div>
       

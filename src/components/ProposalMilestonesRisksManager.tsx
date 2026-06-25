@@ -427,29 +427,7 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
       {/* Milestones */}
       <Card>
         <CardHeader className="space-y-1 pb-3">
-          <div className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base">Milestones</CardTitle>
-            {canEdit && (
-              <div className="flex items-center gap-2">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      className="bg-muted hover:bg-muted/80 text-foreground"
-                      onClick={() => setMsReorderOpen(true)}
-                    >
-                      <ArrowUpDown className="h-4 w-4 mr-1" /> Reorder same-month
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Manually reorder milestones that share the same due month</TooltipContent>
-                </Tooltip>
-                <Button size="sm" onClick={() => addMilestone.mutate()}>
-                  <Plus className="h-4 w-4 mr-1" /> Add milestone
-                </Button>
-              </div>
-            )}
-          </div>
+          <CardTitle className="text-base">Milestones</CardTitle>
           <MilestonesGuidelinesInline />
         </CardHeader>
         <CardContent>
@@ -545,20 +523,33 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
               </tbody>
             </table>
           </div>
+          {canEdit && (
+            <div className="flex items-center justify-end gap-2 pt-3">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="bg-muted hover:bg-muted/80 text-foreground"
+                    onClick={() => setMsReorderOpen(true)}
+                  >
+                    <ArrowUpDown className="h-4 w-4 mr-1" /> Reorder same-month
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Manually reorder milestones that share the same due month</TooltipContent>
+              </Tooltip>
+              <Button size="sm" onClick={() => addMilestone.mutate()}>
+                <Plus className="h-4 w-4 mr-1" /> Add milestone
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
       {/* Risks */}
       <Card>
         <CardHeader className="space-y-1 pb-3">
-          <div className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base">Critical risks</CardTitle>
-            {canEdit && (
-              <Button size="sm" onClick={() => addRisk.mutate()}>
-                <Plus className="h-4 w-4 mr-1" /> Add risk
-              </Button>
-            )}
-          </div>
+          <CardTitle className="text-base">Critical risks</CardTitle>
           <RisksGuidelinesInline />
         </CardHeader>
         <CardContent>
@@ -638,6 +629,13 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
               </tbody>
             </table>
           </div>
+          {canEdit && (
+            <div className="flex items-center justify-end gap-2 pt-3">
+              <Button size="sm" onClick={() => addRisk.mutate()}>
+                <Plus className="h-4 w-4 mr-1" /> Add risk
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
