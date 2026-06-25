@@ -227,24 +227,18 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
 
   const wpsById = useMemo(() => new Map(wps.map(wp => [wp.id, wp])), [wps]);
 
-  // ── Auto-order milestones: due_month asc (nulls last), then min(WP number), then id ──
+  // ── Auto-order milestones: due_month asc (nulls last), then intra-month order_index, then id ──
   const orderedMs = useMemo(() => {
-    const minWpNum = (m: Milestone) => {
-      const nums = m.wp_ids.map(id => wpsById.get(id)?.number).filter((n): n is number => typeof n === 'number');
-      return nums.length ? Math.min(...nums) : Number.POSITIVE_INFINITY;
-    };
     return [...milestones].sort((a, b) => {
       const da = a.due_month ?? Number.POSITIVE_INFINITY;
       const db = b.due_month ?? Number.POSITIVE_INFINITY;
       if (da !== db) return da - db;
-      const wa = minWpNum(a);
-      const wb = minWpNum(b);
-      if (wa !== wb) return wa - wb;
+      if (a.order_index !== b.order_index) return a.order_index - b.order_index;
       return a.id.localeCompare(b.id);
     });
-  }, [milestones, wpsById]);
+  }, [milestones]);
 
-  // ── Persist sequential numbers 1..N matching auto-order ──
+  // ── Persist sequential numbers 1..N matching auto-order (does NOT touch order_index) ──
   const renumberInFlight = useRef(false);
   useEffect(() => {
     if (!orderedMs.length || renumberInFlight.current) return;
@@ -255,12 +249,12 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
     renumberInFlight.current = true;
     (async () => {
       try {
-        // Two-phase to avoid any future unique-collision; not strictly required today.
+        // Two-phase to avoid unique-collision on number
         for (const { id } of mismatches) {
           await supabase.from('proposal_milestones').update({ number: -1 - Math.floor(Math.random() * 1e6) }).eq('id', id);
         }
         for (const { id, want } of mismatches) {
-          await supabase.from('proposal_milestones').update({ number: want, order_index: want - 1 }).eq('id', id);
+          await supabase.from('proposal_milestones').update({ number: want }).eq('id', id);
         }
         qc.invalidateQueries({ queryKey: MS_KEY(proposalId) });
         notifyRefs();
@@ -269,6 +263,26 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
       }
     })();
   }, [orderedMs, proposalId, qc]);
+
+  // ── Persist same-month manual order_index (called by reorder dialog) ──
+  const persistMsGroupOrder = useCallback(async (newSorted: Milestone[]) => {
+    const groups = new Map<string, Milestone[]>();
+    for (const m of newSorted) {
+      const key = String(m.due_month ?? '∅');
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(m);
+    }
+    for (const group of groups.values()) {
+      for (let i = 0; i < group.length; i++) {
+        if (group[i].order_index !== i) {
+          await supabase.from('proposal_milestones').update({ order_index: i }).eq('id', group[i].id);
+        }
+      }
+    }
+    qc.invalidateQueries({ queryKey: MS_KEY(proposalId) });
+    notifyRefs();
+  }, [proposalId, qc]);
+
 
   // ── One-shot: strip HTML from existing means_of_verification rows ──
   const cleanedRef = useRef(new Set<string>());
