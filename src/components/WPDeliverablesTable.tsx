@@ -368,11 +368,11 @@ function DeliverableRow({
     <tr className="border-b align-top">
       {/* D-badge pennant */}
       <td className="py-1.5 px-1 whitespace-nowrap">
-        <span style={{ display: 'inline-block', position: 'relative', width: 52, height: 20 }}>
-          <svg width={52} height={20} viewBox="0 0 52 20" style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}>
+        <span style={{ display: 'inline-block', position: 'relative', width: 52, height: 21 }}>
+          <svg width={52} height={20} viewBox="0 0 52 20" style={{ position: 'absolute', top: 1, left: 0, overflow: 'visible' }}>
             <path d="M 0,0 L 42,0 L 52,10 L 42,20 L 0,20 Z" fill="#ffffff" stroke="#73C92D" strokeWidth={1.5} strokeLinejoin="round" />
           </svg>
-          <span style={{ position: 'absolute', top: 0, left: 0, width: 42, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, color: '#73C92D', whiteSpace: 'nowrap' }}>
+          <span style={{ position: 'absolute', top: 1, left: 0, width: 42, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, color: '#73C92D', whiteSpace: 'nowrap' }}>
             {number}
           </span>
         </span>
