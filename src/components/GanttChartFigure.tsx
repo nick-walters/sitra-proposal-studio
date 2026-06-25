@@ -66,6 +66,133 @@ const MIN_CELL_WIDTH = 7;
 const MARGIN_GAP = 42;
 const ROW_HEIGHT = 20;
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Per-WP badge layout (deliverables + milestones).
+//
+// Inputs are already partitioned per WP. Each badge declares:
+//   • dueMonth         → tipX = centre of due-month cell
+//   • linkedTaskIds    → tasks in this WP (rowIdx[]) for origins/median
+//   • useWpBand (ms)   → milestone falls back to the WP band (rowIdx = -1)
+//
+// Output:
+//   • badges with absolute geometry (tipX, leftX, shapeW, shapeH, rowIdx)
+//   • drawLines flag (single-task deliverable = no lines, no dot)
+//   • origins[] in {rowIdx, x} form — the renderer resolves Y from rowIdx.
+//
+// Slot search = median row, then ±1, ±2 outward, refusing collisions with
+// already-placed badge bodies. Pragmatic v1 (no full pathfinding).
+// ─────────────────────────────────────────────────────────────────────────────
+type WpBadgeIn = {
+  key: string;
+  kind: 'del' | 'ms';
+  label: string;
+  color: string;
+  dueMonth: number;
+  linkedRows: number[];
+  linkedTaskIds: string[];
+  useWpBand?: boolean;
+  tooltipTitle: string;
+};
+type WpBadgeOut = WpBadgeIn & {
+  tipX: number;
+  leftX: number;
+  shapeW: number;
+  shapeH: number;
+  bodyW: number;
+  pointDepth: number;
+  rowIdx: number;          // -1 = WP band
+  drawLines: boolean;
+  origins: Array<{ rowIdx: number; x: number }>;
+};
+
+function layoutWpBadges(args: {
+  delBadges: WpBadgeIn[];
+  msBadges: WpBadgeIn[];
+  tasks: { id: string; startMonth: number; endMonth: number }[];
+  wpEndMonth: number;
+  cellWidth: number;
+}): WpBadgeOut[] {
+  const { delBadges, msBadges, tasks, wpEndMonth, cellWidth } = args;
+  const numTasks = tasks.length;
+  const pointDepth = 4;
+  const estimateMsW = (label: string) => Math.max(32, label.length * 7 + 10);
+  const estimateDelW = (label: string) => Math.max(25, label.length * 5 + 5);
+
+  const taskById = new Map(tasks.map((t, i) => [t.id, { ...t, rowIdx: i }]));
+
+  const occupied = new Map<number, Array<[number, number]>>();
+  const isFree = (slot: number, lx: number, rx: number) => {
+    const list = occupied.get(slot);
+    if (!list) return true;
+    return list.every(([a, b]) => rx + 2 <= a || lx - 2 >= b);
+  };
+  const mark = (slot: number, lx: number, rx: number) => {
+    const list = occupied.get(slot) || [];
+    list.push([lx, rx]);
+    occupied.set(slot, list);
+  };
+
+  // Place earlier-due first; deliverables before milestones at same month.
+  const all = [...delBadges, ...msBadges].sort((a, b) => {
+    if (a.dueMonth !== b.dueMonth) return a.dueMonth - b.dueMonth;
+    return a.kind === 'del' ? -1 : 1;
+  });
+
+  const out: WpBadgeOut[] = [];
+  for (const b of all) {
+    const isDel = b.kind === 'del';
+    const bodyW = isDel ? estimateDelW(b.label) : estimateMsW(b.label);
+    const shapeW = isDel ? bodyW + pointDepth : bodyW;
+    const shapeH = isDel ? 10 : 12;
+    const tipX = (b.dueMonth - 0.5) * cellWidth;
+    const leftX = isDel ? tipX - shapeW : tipX;
+
+    // Median row (or wp-band fallback for MS, or row 0 if unlinked)
+    let target: number;
+    if (!isDel && b.useWpBand) target = -1;
+    else if (b.linkedRows.length === 0) target = 0;
+    else {
+      const sorted = [...b.linkedRows].sort((x, y) => x - y);
+      target = sorted[Math.floor(sorted.length / 2)];
+    }
+
+    const minSlot = isDel ? 0 : -1;
+    const maxSlot = Math.max(0, numTasks - 1);
+    let chosen = Number.NaN;
+    for (let step = 0; step <= numTasks + 2; step++) {
+      const candidates = step === 0 ? [target] : [target + step, target - step];
+      for (const s of candidates) {
+        if (s < minSlot || s > maxSlot) continue;
+        if (isFree(s, leftX, leftX + shapeW)) { chosen = s; break; }
+      }
+      if (!Number.isNaN(chosen)) break;
+    }
+    if (Number.isNaN(chosen)) chosen = target;
+    mark(chosen, leftX, leftX + shapeW);
+
+    // Single-task deliverable → no dot/line per spec.
+    const drawLines = !(isDel && b.linkedTaskIds.length === 1);
+
+    const origins: Array<{ rowIdx: number; x: number }> = [];
+    if (drawLines) {
+      if (!isDel && b.useWpBand) {
+        origins.push({ rowIdx: -1, x: Math.max(0, (wpEndMonth - 1) * cellWidth) });
+      } else {
+        for (const tid of b.linkedTaskIds) {
+          const t = taskById.get(tid);
+          if (!t) continue;
+          const x = isDel ? t.endMonth * cellWidth : (t.endMonth - 1) * cellWidth;
+          origins.push({ rowIdx: t.rowIdx, x });
+        }
+      }
+    }
+
+    out.push({ ...b, tipX, leftX, shapeW, shapeH, bodyW, pointDepth, rowIdx: chosen, drawLines, origins });
+  }
+  return out;
+}
+
+
 export function GanttChartFigure({
   figureId,
   figureNumber,
