@@ -332,7 +332,9 @@ function SectionItem({
           section.id === 'wp-progress-tracker' ? (
             <BarChart3 className="w-4 h-4 text-muted-foreground shrink-0" />
           ) : section.id === 'wp-drafts' ? (
-            <Layers className="w-4 h-4 text-muted-foreground shrink-0" />
+            <PencilRuler className="w-4 h-4 text-muted-foreground shrink-0" />
+          ) : section.id === 'milestones-risks' ? (
+            <Flag className="w-4 h-4 text-muted-foreground shrink-0" />
           ) : section.id === 'figures' || section.title === 'Figures' ? (
             null
           ) : isWPSection && wpColor ? (
