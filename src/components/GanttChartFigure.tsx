@@ -746,8 +746,10 @@ export function GanttChartFigure({
           {/* Slim spacer after header - non-editable */}
           <div style={{ height: 2 }} aria-hidden="true" />
 
-          {/* Work packages and Tasks */}
+          {/* Work packages and Tasks — wrapped so chart-wide milestone overlay can span all WPs */}
+          <div style={{ position: 'relative' }}>
           {workPackages.map((wp, wpIdx) => {
+
             const wpColor = wp.color || '#73C92D';
             const taskColor = '#d4d4d4';
             const titleWidth = labelWidth - 38 - 6;
