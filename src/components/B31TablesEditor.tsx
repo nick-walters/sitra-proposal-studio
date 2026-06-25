@@ -148,15 +148,30 @@ export function B31DeliverablesTable({ proposalId }: Props) {
         .from('wp_draft_deliverables')
         .select('id, wp_draft_id, number, title, type, dissemination_level, responsible_participant_id, due_month, description, order_index')
         .in('wp_draft_id', wpIds);
-      return (data || []).map((d: any) => {
-        const wp = wpInfo!.byId.get(d.wp_draft_id);
-        return { ...d, wp };
-      }).sort((a: any, b: any) => {
-        const wa = a.wp?.number ?? 999;
-        const wb = b.wp?.number ?? 999;
-        if (wa !== wb) return wa - wb;
-        return (a.number ?? 0) - (b.number ?? 0);
-      });
+
+      // Suppress untouched seed rows: no title, no type, no dissemination, no lead, no due month.
+      const isEmpty = (d: any) =>
+        !(d.title ?? '').toString().trim() &&
+        !(d.type ?? '').toString().trim() &&
+        !(d.dissemination_level ?? '').toString().trim() &&
+        !d.responsible_participant_id &&
+        d.due_month == null;
+
+      return (data || [])
+        .filter((d: any) => !isEmpty(d))
+        .map((d: any) => ({ ...d, wp: wpInfo!.byId.get(d.wp_draft_id) }))
+        .sort((a: any, b: any) => {
+          const wa = a.wp?.number ?? 999;
+          const wb = b.wp?.number ?? 999;
+          if (wa !== wb) return wa - wb;
+          const da = a.due_month ?? Number.POSITIVE_INFINITY;
+          const db = b.due_month ?? Number.POSITIVE_INFINITY;
+          if (da !== db) return da - db;
+          const oa = a.order_index ?? a.number ?? 0;
+          const ob = b.order_index ?? b.number ?? 0;
+          if (oa !== ob) return oa - ob;
+          return (a.number ?? 0) - (b.number ?? 0);
+        });
     },
   });
 
