@@ -624,8 +624,8 @@ function RiskLevelSelect({
       onValueChange={(v) => onChange(v === '__none__' ? null : (v as 'L' | 'M' | 'H'))}
       disabled={disabled}
     >
-      <SelectTrigger className="h-8 w-full justify-between px-2">
-        <span className="flex items-center">
+      <SelectTrigger hideArrow className="h-8 w-auto inline-flex px-1 border-0 bg-transparent focus:ring-0">
+        <span className="inline-flex items-center">
           {value ? <RiskBadge level={value} /> : <span className="text-muted-foreground">—</span>}
         </span>
       </SelectTrigger>
