@@ -727,9 +727,10 @@ function MilestoneWpTaskDialog({
           <DialogHeader>
             <DialogTitle>Related WPs &amp; tasks</DialogTitle>
           </DialogHeader>
-          <p className="text-xs text-muted-foreground -mt-1">
-            The related WPs are shown in Table 3.1.d (List of milestones). The related tasks illustrate task interactions/bottlenecks in Figure 3.1.b (Gantt chart).
-          </p>
+          <div className="text-xs text-muted-foreground -mt-1 space-y-2">
+            <p>The related WPs are shown in Table 3.1.d (List of milestones).</p>
+            <p>The related tasks illustrate task interactions/bottlenecks in Figure 3.1.b (Gantt chart).</p>
+          </div>
           <div className="max-h-[60vh] overflow-y-auto space-y-1 pr-1">
             {orderedWps.length === 0 && (
               <div className="text-sm text-muted-foreground italic py-2">No work packages defined yet.</div>
