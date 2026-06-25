@@ -252,6 +252,25 @@ export function B31MilestonesTable({ proposalId }: Props) {
     },
   });
 
+  // Auto-order: due_month asc (nulls last), then min related WP number, then id.
+  const sortedMilestones = useMemo(() => {
+    const minWpNum = (m: any) => {
+      const nums = (m._wpIds as string[])
+        .map(id => wpInfo?.byId.get(id)?.number)
+        .filter((n: any) => typeof n === 'number') as number[];
+      return nums.length ? Math.min(...nums) : Number.POSITIVE_INFINITY;
+    };
+    return [...milestones].sort((a: any, b: any) => {
+      const da = a.due_month ?? Number.POSITIVE_INFINITY;
+      const db = b.due_month ?? Number.POSITIVE_INFINITY;
+      if (da !== db) return da - db;
+      const wa = minWpNum(a);
+      const wb = minWpNum(b);
+      if (wa !== wb) return wa - wb;
+      return String(a.id).localeCompare(String(b.id));
+    });
+  }, [milestones, wpInfo]);
+
   return (
     <div>
       <EditableCaption
