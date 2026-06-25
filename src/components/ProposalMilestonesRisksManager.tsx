@@ -508,9 +508,7 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
               </Button>
             )}
           </div>
-          <p className="text-xs text-muted-foreground">
-            This list is mirrored to Table 3.1.e (Risk table). Risks are automatically ordered by related WP(s).
-          </p>
+          <RisksGuidelinesInline />
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
