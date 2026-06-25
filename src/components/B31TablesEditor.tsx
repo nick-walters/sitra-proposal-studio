@@ -12,7 +12,8 @@ import { WPBubble, ParticipantBubble, RiskBadge } from './B31Pill';
  *
  * The three exported tables (3.1.c deliverables, 3.1.d milestones, 3.1.e risks)
  * are pure read-only displays of the LIVE source data in
- * wp_draft_deliverables / wp_draft_milestones / wp_draft_risks. There are no
+ * wp_draft_deliverables (3.1.c) and the proposal-level proposal_milestones /
+ * proposal_risks tables (3.1.d / 3.1.e). There are no
  * inline edits, no dropdowns, no drag handles, no add/delete row controls.
  */
 
