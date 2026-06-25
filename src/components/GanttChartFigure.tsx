@@ -201,85 +201,106 @@ export function GanttChartFigure({
 
 
 
+  // Build a typed structure per WP with: tasks (timed only), the WP's active
+  // span, and the badges to render in the overlay. Each badge carries the
+  // task-row indices it links to (within the WP), so layout & connector lines
+  // can be computed below from a single source.
   const dynamicData = useMemo(() => {
-    if (!wpDraftsData) return { workPackages: [] as WorkPackage[], milestones: [] as Milestone[] };
+    if (!wpDraftsData) return { workPackages: [] as any[], milestones: [] as Milestone[] };
 
-    const { wps, tasks, deliverables, milestones: msRows, participants } = wpDraftsData;
+    const { wps, tasks, deliverables, milestones: msRows, participants, delToTaskIds, msToWpIds, msToTaskIds } = wpDraftsData;
 
     const partMap = new Map(participants.map(p => [p.id, p.organisation_short_name || `P${p.participant_number}`]));
     const wpNumberById = new Map(wps.map(wp => [wp.id, wp.number]));
 
-    const workPackages: WorkPackage[] = wps.map((wp) => {
+    const workPackages = wps.map((wp) => {
       const wpTasks = tasks.filter(t => t.wp_draft_id === wp.id);
-      const wpDeliverables = deliverables.filter(d => d.wp_draft_id === wp.id);
-      const wpMilestones = msRows.filter((m: any) => {
-        const ids: string[] = m._wpIds || [];
-        return ids.includes(wp.id);
+      const timedTasks = wpTasks.filter(t => t.start_month != null && t.end_month != null);
+
+      // Stable per-WP task ordering (matches what we render). rowIdx = position.
+      const taskRowIdxById = new Map<string, number>();
+      timedTasks.forEach((t, i) => taskRowIdxById.set(t.id, i));
+      const taskById = new Map(timedTasks.map(t => [t.id, t]));
+
+      const taskStartMonths = timedTasks.map(t => t.start_month!);
+      const taskEndMonths = timedTasks.map(t => t.end_month!);
+      const wpStart = taskStartMonths.length ? Math.min(...taskStartMonths) : null;
+      const wpEnd = taskEndMonths.length ? Math.max(...taskEndMonths) : null;
+
+      const mappedTasks = timedTasks.map(t => ({
+        id: t.id,
+        wpNumber: wp.number,
+        taskNumber: t.number,
+        name: t.title || '',
+        startMonth: t.start_month!,
+        endMonth: t.end_month!,
+      }));
+
+      // ── Deliverable badges (one per deliverable). Links: wp_draft_deliverable_tasks.
+      const wpDeliverables = deliverables.filter(d => d.wp_draft_id === wp.id && d.due_month != null);
+      const delBadges = wpDeliverables.map(d => {
+        const linkedTaskIds = (delToTaskIds.get(d.id) || []).filter(id => taskRowIdxById.has(id));
+        const linkedRows = linkedTaskIds.map(id => taskRowIdxById.get(id)!);
+        const wpNum = wpNumberById.get(d.wp_draft_id) ?? wp.number;
+        const tooltipParts = [`D${wpNum}.${d.number}: ${d.title || ''}`];
+        if (d.type) tooltipParts.push(`Type: ${d.type}`);
+        if (d.dissemination_level) tooltipParts.push(`Dissemination: ${d.dissemination_level}`);
+        if (d.responsible_participant_id) {
+          const lead = partMap.get(d.responsible_participant_id);
+          if (lead) tooltipParts.push(`Lead: ${lead}`);
+        }
+        return {
+          key: `del-${d.id}`,
+          kind: 'del' as const,
+          label: `D${wpNum}.${d.number}`,
+          color: wp.color,
+          dueMonth: d.due_month!,
+          linkedRows,
+          // Origin x is computed in layout (right edge of each linked task's end month).
+          linkedTaskIds,
+          tooltipTitle: tooltipParts.join(' | '),
+        };
       });
 
+      // ── Milestone badges (one INSTANCE per related WP). Links: proposal_milestone_tasks (filtered to this WP).
+      const msBadges: any[] = [];
+      for (const m of msRows) {
+        if (m.due_month == null) continue;
+        const wpIdsForM = msToWpIds.get(m.id) || [];
+        if (!wpIdsForM.includes(wp.id)) continue;
 
-      const taskStartMonths = wpTasks.filter(t => t.start_month != null).map(t => t.start_month!);
-      const taskEndMonths = wpTasks.filter(t => t.end_month != null).map(t => t.end_month!);
-      const startMonth = taskStartMonths.length > 0 ? Math.min(...taskStartMonths) : null;
-      const endMonth = taskEndMonths.length > 0 ? Math.max(...taskEndMonths) : null;
-
-      const formatDelNumber = (d: { wp_draft_id: string; number: number }) => {
-        const wpNum = wpNumberById.get(d.wp_draft_id) ?? wp.number;
-        return `D${wpNum}.${d.number}`;
-      };
-
-      const mappedTasks = wpTasks
-        .filter(t => t.start_month != null && t.end_month != null)
-        .map(t => ({
-          id: t.id,
-          wpNumber: wp.number,
-          taskNumber: t.number,
-          name: t.title || '',
-          startMonth: t.start_month!,
-          endMonth: t.end_month!,
-          deliverables: wpDeliverables
-            .filter(d => d.task_id === t.id && d.due_month != null)
-            .map(d => ({ number: formatDelNumber(d), name: d.title || '', month: d.due_month!, type: d.type || undefined, disseminationLevel: d.dissemination_level || undefined, leadShortName: d.responsible_participant_id ? partMap.get(d.responsible_participant_id) : undefined })),
-          milestones: wpMilestones
-            .filter(m => m.wp_draft_id === wp.id && m.due_month != null)
-            .map(m => ({ number: m.number, name: m.title || '', month: m.due_month!, leadShortName: undefined as string | undefined })),
-        }));
-
-      // Attach unassigned deliverables/milestones to the last task, or a virtual task
-      const unassignedDels = wpDeliverables
-        .filter(d => !d.task_id && d.due_month != null)
-        .map(d => ({ number: formatDelNumber(d), name: d.title || '', month: d.due_month!, type: d.type || undefined, disseminationLevel: d.dissemination_level || undefined, leadShortName: d.responsible_participant_id ? partMap.get(d.responsible_participant_id) : undefined }));
-      const unassignedMs: { number: number; name: string; month: number; leadShortName: string | undefined }[] = [];
-
-      if (unassignedDels.length > 0 || unassignedMs.length > 0) {
-        if (mappedTasks.length > 0) {
-          const lastTask = mappedTasks[mappedTasks.length - 1];
-          lastTask.deliverables = [...(lastTask.deliverables || []), ...unassignedDels];
-          lastTask.milestones = [...(lastTask.milestones || []), ...unassignedMs];
-        } else {
-          const wpStart = startMonth ?? 1;
-          const wpEnd = endMonth ?? (startMonth ?? 1);
-          mappedTasks.push({
-            id: `virtual-${wp.id}`,
-            wpNumber: wp.number,
-            taskNumber: 0,
-            name: '',
-            startMonth: wpStart,
-            endMonth: wpEnd,
-            deliverables: unassignedDels,
-            milestones: unassignedMs,
-          });
-        }
+        const allLinkedTaskIds = msToTaskIds.get(m.id) || [];
+        const linkedInThisWp = allLinkedTaskIds.filter(id => {
+          const t = taskById.get(id);
+          return !!t;
+        });
+        const useWpBand = linkedInThisWp.length === 0;
+        const linkedRows = useWpBand ? [] : linkedInThisWp.map(id => taskRowIdxById.get(id)!);
+        msBadges.push({
+          key: `ms-${m.id}-${wp.id}`,
+          kind: 'ms' as const,
+          label: `MS${m.number}`,
+          color: '#000000',
+          dueMonth: m.due_month!,
+          linkedRows,
+          linkedTaskIds: linkedInThisWp,
+          useWpBand,
+          tooltipTitle: `MS${m.number}: ${m.title || ''}`,
+        });
       }
 
       return {
+        id: wp.id,
         number: wp.number,
         shortName: wp.short_name || '',
         title: wp.title || '',
-        startMonth: startMonth ?? 1,
-        endMonth: endMonth ?? 1,
+        startMonth: wpStart ?? 1,
+        endMonth: wpEnd ?? 1,
         color: wp.color,
         tasks: mappedTasks,
+        taskById,
+        delBadges,
+        msBadges,
       };
     });
 
@@ -289,6 +310,8 @@ export function GanttChartFigure({
 
     return { workPackages, milestones: msMapped };
   }, [wpDraftsData]);
+
+
 
   const projectDuration = proposalData?.duration || content?.projectDuration || 36;
   const workPackages = dynamicData.workPackages;
