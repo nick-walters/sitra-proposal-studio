@@ -97,8 +97,12 @@ export function GanttChartFigure({
     },
   });
 
-  // Fetch wp_drafts with their tasks, deliverables, and milestones dynamically
-  // (live from source tables — no snapshot layer).
+  // Fetch wp_drafts with tasks, deliverables, and milestones — fully live from
+  // source tables. Includes the new link tables:
+  //   * wp_draft_deliverable_tasks  (deliverable → task[])
+  //   * proposal_milestone_tasks    (milestone   → task[])
+  //   * proposal_milestone_wps      (milestone   → wp[])
+  // No legacy / degraded / snapshot source is used anywhere below.
   const { data: wpDraftsData } = useQuery({
     queryKey: ['wp-drafts-gantt', proposalId],
     queryFn: async () => {
@@ -106,8 +110,10 @@ export function GanttChartFigure({
         { data: wps, error: wpError },
         { data: tasks, error: taskError },
         { data: deliverables, error: delError },
+        { data: delTaskLinks, error: dtlError },
         { data: msData, error: msError },
-        { data: msLinks, error: msLinkError },
+        { data: msWpLinks, error: mwlError },
+        { data: msTaskLinks, error: mtlError },
         { data: participants, error: partError },
       ] = await Promise.all([
         supabase
@@ -121,7 +127,10 @@ export function GanttChartFigure({
           .order('order_index'),
         supabase
           .from('wp_draft_deliverables')
-          .select('id, wp_draft_id, number, title, due_month, task_id, type, dissemination_level, responsible_participant_id'),
+          .select('id, wp_draft_id, number, title, due_month, type, dissemination_level, responsible_participant_id'),
+        supabase
+          .from('wp_draft_deliverable_tasks')
+          .select('deliverable_id, wp_draft_task_id'),
         supabase
           .from('proposal_milestones')
           .select('id, number, title, due_month')
@@ -130,6 +139,9 @@ export function GanttChartFigure({
           .from('proposal_milestone_wps')
           .select('milestone_id, wp_draft_id'),
         supabase
+          .from('proposal_milestone_tasks')
+          .select('milestone_id, wp_draft_task_id'),
+        supabase
           .from('participants')
           .select('id, organisation_short_name, participant_number')
           .eq('proposal_id', proposalId),
@@ -137,32 +149,56 @@ export function GanttChartFigure({
       if (wpError) throw wpError;
       if (taskError) throw taskError;
       if (delError) throw delError;
+      if (dtlError) throw dtlError;
       if (msError) throw msError;
-      if (msLinkError) throw msLinkError;
+      if (mwlError) throw mwlError;
+      if (mtlError) throw mtlError;
       if (partError) throw partError;
 
       const wpIds = new Set((wps || []).map(wp => wp.id));
       const filteredTasks = (tasks || []).filter(t => wpIds.has(t.wp_draft_id));
+      const taskIds = new Set(filteredTasks.map(t => t.id));
       const filteredDels = (deliverables || []).filter(d => wpIds.has(d.wp_draft_id));
+      const delIds = new Set(filteredDels.map(d => d.id));
+      const msIds = new Set((msData || []).map(m => m.id));
 
-      // Build milestone → wp_draft_id[] map (filtered to this proposal's WPs).
+      const delToTaskIds = new Map<string, string[]>();
+      for (const l of delTaskLinks || []) {
+        if (!delIds.has(l.deliverable_id) || !taskIds.has(l.wp_draft_task_id)) continue;
+        const arr = delToTaskIds.get(l.deliverable_id) || [];
+        arr.push(l.wp_draft_task_id);
+        delToTaskIds.set(l.deliverable_id, arr);
+      }
+
       const msToWpIds = new Map<string, string[]>();
-      for (const l of msLinks || []) {
-        if (!wpIds.has(l.wp_draft_id)) continue;
+      for (const l of msWpLinks || []) {
+        if (!msIds.has(l.milestone_id) || !wpIds.has(l.wp_draft_id)) continue;
         const arr = msToWpIds.get(l.milestone_id) || [];
         arr.push(l.wp_draft_id);
         msToWpIds.set(l.milestone_id, arr);
       }
-      // Adapt milestones to legacy shape consumed below: { id, number, title,
-      // due_month, wp_draft_id (first linked WP, for back-compat), _wpIds }.
-      const adaptedMs = (msData || []).map((m: any) => {
-        const linked = msToWpIds.get(m.id) || [];
-        return { ...m, wp_draft_id: linked[0] ?? null, _wpIds: linked };
-      });
 
-      return { wps: wps || [], tasks: filteredTasks, deliverables: filteredDels, milestones: adaptedMs, participants: participants || [] };
+      const msToTaskIds = new Map<string, string[]>();
+      for (const l of msTaskLinks || []) {
+        if (!msIds.has(l.milestone_id) || !taskIds.has(l.wp_draft_task_id)) continue;
+        const arr = msToTaskIds.get(l.milestone_id) || [];
+        arr.push(l.wp_draft_task_id);
+        msToTaskIds.set(l.milestone_id, arr);
+      }
+
+      return {
+        wps: wps || [],
+        tasks: filteredTasks,
+        deliverables: filteredDels,
+        milestones: msData || [],
+        participants: participants || [],
+        delToTaskIds,
+        msToWpIds,
+        msToTaskIds,
+      };
     },
   });
+
 
 
   const dynamicData = useMemo(() => {
