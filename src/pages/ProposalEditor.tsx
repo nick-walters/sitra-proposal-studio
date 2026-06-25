@@ -816,7 +816,7 @@ export function ProposalEditor() {
       },
       'milestones-risks': () => (
         <div className="flex-1 overflow-y-auto">
-          <ProposalMilestonesRisksManager proposalId={id || ''} canEdit={canEdit} />
+          <ProposalMilestonesRisksManager proposalId={id || ''} canEdit={canEdit} projectDuration={proposal?.duration || 36} />
         </div>
       ),
     };
