@@ -755,7 +755,9 @@ function MilestoneWpTaskDialog({
                             checked={draftTasks.includes(t.id)}
                             onCheckedChange={() => toggleTask(t.id)}
                           />
-                          <span className="text-xs font-mono shrink-0">T{wp.number}.{t.number}</span>
+                          <B31Pill variant="outline" color={wp.color}>
+                            T{wp.number}.{t.number}
+                          </B31Pill>
                           <span className="text-sm truncate">{t.title || ''}</span>
                         </label>
                       ))}
