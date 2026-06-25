@@ -639,327 +639,95 @@ export function GanttChartFigure({
           {workPackages.map((wp, wpIdx) => {
             const wpColor = wp.color || '#73C92D';
             const taskColor = '#d4d4d4';
-            
-            const wpId = wpDraftsData?.wps.find(w => w.number === wp.number)?.id;
+            const titleWidth = labelWidth - 38 - 6;
+
             const untimedTasks = (wpDraftsData?.tasks || [])
-              .filter(t => t.wp_draft_id === wpId)
+              .filter(t => t.wp_draft_id === wp.id)
               .filter(t => t.start_month == null || t.end_month == null);
-            
+
+            // Compute badge layout (rebuilt every render — cheap)
+            const laidOut = layoutWpBadges({
+              delBadges: wp.delBadges,
+              msBadges: wp.msBadges,
+              tasks: wp.tasks.map((t: any) => ({ id: t.id, startMonth: t.startMonth, endMonth: t.endMonth })),
+              wpEndMonth: wp.endMonth,
+              cellWidth,
+            });
+
+            // Y coordinates relative to the per-WP overlay container.
+            // Overlay top = top of WP band; band centre = ROW/2;
+            // task row i centre = ROW + i*ROW + ROW/2.
+            const yOfWpBand = ROW_HEIGHT / 2;
+            const yOfTaskRow = (i: number) => ROW_HEIGHT + i * ROW_HEIGHT + ROW_HEIGHT / 2;
+            const yOfRow = (rowIdx: number) => (rowIdx === -1 ? yOfWpBand : yOfTaskRow(rowIdx));
+            const overlayHeight = ROW_HEIGHT + wp.tasks.length * ROW_HEIGHT + untimedTasks.length * ROW_HEIGHT;
+            const overlayWidth = timelineWidth + MARGIN_GAP;
+
             return (
               <div key={wp.number}>
-                {/* Slim spacer between WPs - non-editable */}
-                {wpIdx > 0 && (
-                  <div style={{ height: 2 }} aria-hidden="true" />
-                )}
+                {wpIdx > 0 && <div style={{ height: 2 }} aria-hidden="true" />}
 
-                {/* WP Header Row - full width bubble with left rounded, right triangle */}
-                <div className="flex relative" style={{ height: ROW_HEIGHT }}>
-                  <div 
-                    className="absolute flex items-center font-bold text-white truncate"
-                    style={{
-                      backgroundColor: wpColor,
-                      fontFamily: "'Times New Roman', Times, serif",
-                      fontSize: '11pt',
-                      fontWeight: 700,
-                      padding: '0 12px 0 6px',
-                      pointerEvents: 'none',
-                      top: 0,
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      borderRadius: `${ROW_HEIGHT / 2}px 0 0 ${ROW_HEIGHT / 2}px`,
-                      clipPath: `polygon(0% 0%, calc(100% - 12.5px) 0%, 100% 50%, calc(100% - 12.5px) 100%, 0% 100%)`,
-                    }}
-                  >
-                    WP{wp.number}: {wp.shortName || ''}{wp.shortName && wp.title ? ' – ' : ''}{wp.title || ''}
+                <div style={{ position: 'relative' }}>
+                  {/* WP Header Row - full width bubble */}
+                  <div className="flex relative" style={{ height: ROW_HEIGHT }}>
+                    <div
+                      className="absolute flex items-center font-bold text-white truncate"
+                      style={{
+                        backgroundColor: wpColor,
+                        fontFamily: "'Times New Roman', Times, serif",
+                        fontSize: '11pt',
+                        fontWeight: 700,
+                        padding: '0 12px 0 6px',
+                        pointerEvents: 'none',
+                        top: 0, bottom: 0, left: 0, right: 0,
+                        borderRadius: `${ROW_HEIGHT / 2}px 0 0 ${ROW_HEIGHT / 2}px`,
+                        clipPath: `polygon(0% 0%, calc(100% - 12.5px) 0%, 100% 50%, calc(100% - 12.5px) 100%, 0% 100%)`,
+                      }}
+                    >
+                      WP{wp.number}: {wp.shortName || ''}{wp.shortName && wp.title ? ' – ' : ''}{wp.title || ''}
+                    </div>
                   </div>
-                </div>
 
-                {/* Task Rows */}
-                {wp.tasks.map((task, taskIdx) => {
-                  // Pre-compute bubble positions for this task
-                  const taskBubbles: { month: number; label: string; color: string; tooltipTitle: string; type: 'del' | 'ms'; sortNum: string }[] = [];
-                  task.deliverables?.forEach(d => {
-                    const parts = [`D${d.number.replace(/^D/, '')}: ${d.name}`];
-                    if (d.type) parts.push(`Type: ${d.type}`);
-                    if (d.disseminationLevel) parts.push(`Dissemination: ${d.disseminationLevel}`);
-                    if (d.leadShortName) parts.push(`Lead: ${d.leadShortName}`);
-                    taskBubbles.push({ month: d.month, label: `D${d.number.replace(/^D/, '')}`, color: wpColor, tooltipTitle: parts.join(' | '), type: 'del', sortNum: d.number });
-                  });
-                  task.milestones?.forEach(ms => {
-                    const parts = [`MS${ms.number}: ${ms.name}`];
-                    if (ms.leadShortName) parts.push(`Lead: ${ms.leadShortName}`);
-                    taskBubbles.push({ month: ms.month, label: `MS${ms.number}`, color: '#000000', tooltipTitle: parts.join(' | '), type: 'ms', sortNum: String(ms.number) });
-                  });
-
-                  // Sort: by month, D before MS at same month, then numerically
-                  taskBubbles.sort((a, b) => {
-                    if (a.month !== b.month) return a.month - b.month;
-                    if (a.type !== b.type) return a.type === 'del' ? -1 : 1;
-                    return a.sortNum.localeCompare(b.sortNum, undefined, { numeric: true });
-                  });
-
-                  const pointDepth = 4;
-                  const estimateMsW = (label: string) => Math.max(32, label.length * 7 + 10);
-                  const estimateDelW = (label: string) => Math.max(25, label.length * 5 + 5);
-
-                  type PBubble = typeof taskBubbles[0] & { leftX: number; width: number; bodyW: number; triSide: 'right' | 'left' };
-                  const positioned: PBubble[] = taskBubbles.map(b => {
-                    if (b.type === 'ms') {
-                      const bodyW = estimateMsW(b.label);
-                      return {
-                        ...b,
-                        bodyW,
-                        width: bodyW,
-                        leftX: 0,
-                        triSide: 'left' as const,
-                      };
-                    }
-                    const bodyW = estimateDelW(b.label);
-                    return {
-                      ...b,
-                      bodyW,
-                      width: bodyW + pointDepth,
-                      leftX: 0,
-                      triSide: 'right' as const,
-                    };
-                  });
-
-                  // targetX = right border of the month cell (end of month)
-                  // Subtract 0.5 to align tip with the center of the 1px cell border
-                  const getTargetX = (month: number) => month * cellWidth - 0.5;
-
-                  // Group by month and position
-                  const monthGroups = new Map<number, number[]>();
-                  positioned.forEach((b, idx) => {
-                    if (!monthGroups.has(b.month)) monthGroups.set(b.month, []);
-                    monthGroups.get(b.month)!.push(idx);
-                  });
-
-                  monthGroups.forEach((indices) => {
-                    const tX = getTargetX(positioned[indices[0]].month);
-                    if (indices.length === 1) {
-                      const b = positioned[indices[0]];
-                      if (b.type === 'ms') {
-                        // MS: right of month boundary, triangle points left
-                        b.leftX = tX;
-                        b.triSide = 'left';
-                      } else {
-                        // D: left of month boundary, triangle points right
-                        b.leftX = tX - b.width;
-                        b.triSide = 'right';
-                      }
-                    } else {
-                      // Two at same month: first left-aligns to tX, second right-aligns from tX
-                      const left = positioned[indices[0]];
-                      const right = positioned[indices[1]];
-                      left.leftX = tX - left.width;
-                      left.triSide = 'right';
-                      right.leftX = tX;
-                      right.triSide = 'left';
-                      // Any extras just stack to the right
-                      let nextX = right.leftX + right.width + 1;
-                      for (let i = 2; i < indices.length; i++) {
-                        positioned[indices[i]].leftX = nextX;
-                        positioned[indices[i]].triSide = 'left';
-                        nextX += positioned[indices[i]].width + 1;
-                      }
-                    }
-                  });
-
-                  // Resolve overlaps between different-month bubbles
-                  for (let ni = 1; ni < positioned.length; ni++) {
-                    const prev = positioned[ni - 1];
-                    const curr = positioned[ni];
-                    if (prev.month === curr.month) continue;
-                    const overlap = (prev.leftX + prev.width + 1) - curr.leftX;
-                    if (overlap > 0) {
-                      if (prev.type === 'ms' && curr.type === 'del') {
-                        // D has priority: keep D in default position (pointing right, left of boundary)
-                        // MS flips to point right, pushed left of D
-                        const currTX = getTargetX(curr.month);
-                        curr.leftX = currTX - curr.width;
-                        curr.triSide = 'right';
-                        const prevTX = getTargetX(prev.month);
-                        const proposedLeftX = Math.min(prevTX - prev.width, curr.leftX - prev.width - 1);
-                        if (proposedLeftX < -20) {
-                          // MS would be pushed too far left; anchor MS at its target pointing right, push D right of MS
-                          prev.leftX = prevTX - prev.width;
-                          prev.triSide = 'right';
-                          curr.leftX = prev.leftX + prev.width + 1;
-                          curr.triSide = 'right';
-                        } else {
-                          prev.leftX = proposedLeftX;
-                          prev.triSide = 'right';
-                        }
-                      } else if (prev.type === 'del' && curr.type === 'ms') {
-                        // D has priority: keep D in default position (pointing right, left of boundary)
-                        // MS flips to point left, pushed right of D
-                        const prevTX = getTargetX(prev.month);
-                        prev.leftX = prevTX - prev.width;
-                        prev.triSide = 'right';
-                        const currTX = getTargetX(curr.month);
-                        const proposedLeftX = Math.max(currTX, prev.leftX + prev.width + 1);
-                        const timelineEnd = projectDuration * cellWidth;
-                        if (proposedLeftX + curr.width > timelineEnd + 20) {
-                          // MS would be pushed too far right; anchor MS at its target pointing left, push D left of MS
-                          curr.leftX = currTX;
-                          curr.triSide = 'left';
-                          prev.leftX = curr.leftX - prev.width - 1;
-                          prev.triSide = 'right';
-                        } else {
-                          curr.leftX = proposedLeftX;
-                          curr.triSide = 'left';
-                        }
-                      } else {
-                        // Same type: earlier points right, later points left (existing behavior)
-                        const prevTX = getTargetX(prev.month);
-                        prev.leftX = prevTX - prev.width;
-                        prev.triSide = 'right';
-                        const currTX = getTargetX(curr.month);
-                        curr.leftX = currTX;
-                        curr.triSide = 'left';
-                      }
-                    }
-                  }
-
-                  // Allow bubbles to extend left of timeline (negative leftX is OK)
-
-                  const rowHeight = ROW_HEIGHT;
-                  const titleWidth = labelWidth - 38 - 6;
-
-                  return (
-                    <div key={task.id} className="flex" style={{ position: 'relative' }}>
-                      {/* Task number bubble */}
-                      <div 
+                  {/* Task Rows (no inline badges — badges live in the overlay below) */}
+                  {wp.tasks.map((task: any) => (
+                    <div key={task.id} className="flex">
+                      <div
                         className="shrink-0 flex items-center justify-center"
-                        style={{ width: 38, height: rowHeight, marginLeft: 6 }}
+                        style={{ width: 38, height: ROW_HEIGHT, marginLeft: 6 }}
                       >
                         <B31Pill variant="outline" color={wpColor} style={{ padding: '0px 4px' }}>
                           T{task.wpNumber}.{task.taskNumber}
                         </B31Pill>
                       </div>
-                      {/* Task title - use clip to allow bubbles to visually overlap */}
-                      <div 
+                      <div
                         className="shrink-0 flex items-center"
-                        style={{ width: titleWidth, height: rowHeight, padding: '0 2px', borderRight: `1px solid ${wpColor}`, overflow: 'visible', position: 'relative' }}
+                        style={{ width: titleWidth, height: ROW_HEIGHT, padding: '0 2px', borderRight: `1px solid ${wpColor}`, overflow: 'hidden' }}
                       >
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', maxWidth: '100%' }}>{task.name}</span>
                       </div>
-                      <div className="flex" style={{ position: 'relative', marginRight: MARGIN_GAP }}>
-                        {/* Render month cells */}
+                      <div className="flex" style={{ marginRight: MARGIN_GAP }}>
                         {months.map(m => {
                           const isInTask = m >= task.startMonth && m <= task.endMonth;
                           return (
                             <div
                               key={m}
-                              style={{ 
-                                width: cellWidth, 
-                                height: rowHeight,
+                              style={{
+                                width: cellWidth,
+                                height: ROW_HEIGHT,
                                 backgroundColor: isInTask ? taskColor : undefined,
                                 borderRight: isInTask ? getFilledCellRightBorder(m, wpColor) : `1px solid ${getMonthRightBorder(m, wpColor)}`,
                               }}
                             />
                           );
                         })}
-                        {/* Render positioned bubbles */}
-                        {positioned.map((b, idx) => {
-                          const topPos = rowHeight / 2;
-                          const bH = 10;
-                          const r = bH / 2;
-                          const isRight = b.triSide === 'right';
-
-                          const isDel = b.type === 'del';
-                          const isMs = b.type === 'ms';
-                          let svgPath: string;
-                          let shapeW: number;
-                          let shapeH: number;
-                          if (isMs) {
-                            // Milestone: elongated hexagon
-                            shapeW = b.width;
-                            shapeH = 12;
-                            const x1 = shapeW * 0.12;
-                            const x2 = shapeW * 0.88;
-                            svgPath = `M ${x1},0 L ${x2},0 L ${shapeW},${shapeH / 2} L ${x2},${shapeH} L ${x1},${shapeH} L 0,${shapeH / 2} Z`;
-                          } else {
-                            shapeW = b.width;
-                            shapeH = bH;
-                            // Deliverable: square on non-arrow side, pointed on arrow side
-                            svgPath = isRight
-                              ? `M 0,0 L ${shapeW - pointDepth},0 L ${shapeW},${shapeH / 2} L ${shapeW - pointDepth},${shapeH} L 0,${shapeH} Z`
-                              : `M ${pointDepth},0 L ${shapeW},0 L ${shapeW},${shapeH} L ${pointDepth},${shapeH} L 0,${shapeH / 2} Z`;
-                          }
-
-                          return (
-                            <Tooltip key={`${b.type}-${idx}`}>
-                              <TooltipTrigger asChild>
-                                <span
-                                  style={{
-                                    position: 'absolute',
-                                    top: topPos,
-                                    left: b.leftX - (isDel ? 1 : 0),
-                                    transform: 'translateY(-50%)',
-                                    width: shapeW,
-                                    height: shapeH,
-                                    zIndex: 10,
-                                  }}
-                                >
-                                  <svg
-                                    width={shapeW}
-                                    height={shapeH}
-                                    viewBox={`0 0 ${shapeW} ${shapeH}`}
-                                    style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}
-                                  >
-                                    <path
-                                      d={svgPath}
-                                      fill={isMs ? '#000000' : '#ffffff'}
-                                      stroke={isMs ? 'none' : b.color}
-                                      strokeWidth={isMs ? 0 : 1.5}
-                                      strokeLinejoin={isMs ? 'miter' : 'round'}
-                                    />
-                                  </svg>
-                                  <span
-                                    style={{
-                                      position: 'absolute',
-                                      top: isMs ? 0 : -0.5,
-                                      left: isMs ? 0 : (isRight ? (isDel ? 1 : 0) : pointDepth),
-                                      width: isMs ? shapeW : b.bodyW,
-                                      height: shapeH,
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      fontFamily: "'Times New Roman', Times, serif",
-                                      fontSize: '8pt',
-                                      fontWeight: 700,
-                                      lineHeight: 1,
-                                      color: isMs ? '#ffffff' : b.color,
-                                      whiteSpace: 'nowrap',
-                                      padding: isMs ? '0 4px' : undefined,
-                                      boxSizing: 'border-box',
-                                    }}
-                                  >
-                                    {b.label}
-                                  </span>
-                                </span>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="text-xs font-medium">{b.tooltipTitle}</p>
-                                <p className="text-xs text-muted-foreground">Month {b.month}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          );
-                        })}
                       </div>
                     </div>
-                  );
-                })}
+                  ))}
 
-                {/* Untimed task rows */}
-                {untimedTasks.map((task, utIdx) => {
-                  return (
+                  {/* Untimed task rows */}
+                  {untimedTasks.map((task) => (
                     <div key={task.id} className="flex">
-                      {/* Task number bubble */}
-                      <div 
+                      <div
                         className="shrink-0 flex items-center justify-center"
                         style={{ width: 38, height: ROW_HEIGHT, marginLeft: 6 }}
                       >
@@ -967,10 +735,9 @@ export function GanttChartFigure({
                           T{wp.number}.{task.number}
                         </B31Pill>
                       </div>
-                      {/* Task title */}
-                      <div 
+                      <div
                         className="shrink-0 flex items-center overflow-hidden"
-                        style={{ width: labelWidth - 38 - 6, height: ROW_HEIGHT, padding: '0 2px', borderRight: `1px solid ${wpColor}` }}
+                        style={{ width: titleWidth, height: ROW_HEIGHT, padding: '0 2px', borderRight: `1px solid ${wpColor}` }}
                       >
                         <span className="text-muted-foreground" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.title}</span>
                       </div>
@@ -978,17 +745,125 @@ export function GanttChartFigure({
                         {months.map(m => (
                           <div
                             key={m}
-                            style={{ 
-                              width: cellWidth, 
-                              height: ROW_HEIGHT,
-                              borderRight: `1px solid ${getMonthRightBorder(m, wpColor)}`,
-                            }}
+                            style={{ width: cellWidth, height: ROW_HEIGHT, borderRight: `1px solid ${getMonthRightBorder(m, wpColor)}` }}
                           />
                         ))}
                       </div>
                     </div>
-                  );
-                })}
+                  ))}
+
+                  {/* ── Overlay: connector lines (SVG) + badges, anchored at timeline top-left ── */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: labelWidth,
+                      width: overlayWidth,
+                      height: overlayHeight,
+                      pointerEvents: 'none',
+                    }}
+                  >
+                    {/* Connector lines */}
+                    <svg
+                      width={overlayWidth}
+                      height={overlayHeight}
+                      style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}
+                    >
+                      {laidOut.flatMap((b) => {
+                        if (!b.drawLines) return [];
+                        const ty = yOfRow(b.rowIdx);
+                        return b.origins.map((o, oi) => {
+                          const oy = yOfRow(o.rowIdx);
+                          // Orthogonal: origin → (tipX, oy) → (tipX, ty). Approaches vertically.
+                          const d = `M ${o.x} ${oy} L ${b.tipX} ${oy} L ${b.tipX} ${ty}`;
+                          return (
+                            <g key={`${b.key}-l${oi}`}>
+                              <path d={d} stroke="#777" strokeWidth={0.75} fill="none" strokeLinecap="square" strokeLinejoin="miter" />
+                              <circle cx={o.x} cy={oy} r={1} fill="#777" />
+                            </g>
+                          );
+                        });
+                      })}
+                    </svg>
+
+                    {/* Badges */}
+                    {laidOut.map((b) => {
+                      const isMs = b.kind === 'ms';
+                      const isDel = !isMs;
+                      const ty = yOfRow(b.rowIdx);
+                      const shapeW = b.shapeW;
+                      const shapeH = b.shapeH;
+                      let svgPath: string;
+                      if (isMs) {
+                        const x1 = shapeW * 0.12;
+                        const x2 = shapeW * 0.88;
+                        svgPath = `M ${x1},0 L ${x2},0 L ${shapeW},${shapeH / 2} L ${x2},${shapeH} L ${x1},${shapeH} L 0,${shapeH / 2} Z`;
+                      } else {
+                        // Deliverable: right-pointing chevron (tip on the right edge)
+                        svgPath = `M 0,0 L ${shapeW - b.pointDepth},0 L ${shapeW},${shapeH / 2} L ${shapeW - b.pointDepth},${shapeH} L 0,${shapeH} Z`;
+                      }
+                      return (
+                        <Tooltip key={b.key}>
+                          <TooltipTrigger asChild>
+                            <span
+                              style={{
+                                position: 'absolute',
+                                top: ty,
+                                left: b.leftX,
+                                transform: 'translateY(-50%)',
+                                width: shapeW,
+                                height: shapeH,
+                                zIndex: 10,
+                                pointerEvents: 'auto',
+                              }}
+                            >
+                              <svg
+                                width={shapeW}
+                                height={shapeH}
+                                viewBox={`0 0 ${shapeW} ${shapeH}`}
+                                style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}
+                              >
+                                <path
+                                  d={svgPath}
+                                  fill={isMs ? '#000000' : '#ffffff'}
+                                  stroke={isMs ? 'none' : b.color}
+                                  strokeWidth={isMs ? 0 : 1.5}
+                                  strokeLinejoin={isMs ? 'miter' : 'round'}
+                                />
+                              </svg>
+                              <span
+                                style={{
+                                  position: 'absolute',
+                                  top: isMs ? 0 : -0.5,
+                                  left: isMs ? 0 : 0,
+                                  width: isMs ? shapeW : b.bodyW,
+                                  height: shapeH,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontFamily: "'Times New Roman', Times, serif",
+                                  fontSize: '8pt',
+                                  fontWeight: 700,
+                                  lineHeight: 1,
+                                  color: isMs ? '#ffffff' : b.color,
+                                  whiteSpace: 'nowrap',
+                                  padding: isMs ? '0 4px' : undefined,
+                                  boxSizing: 'border-box',
+                                }}
+                              >
+                                {b.label}
+                              </span>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="text-xs font-medium">{b.tooltipTitle}</p>
+                            <p className="text-xs text-muted-foreground">Month {b.dueMonth}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      );
+                    })}
+                  </div>
+                </div>
 
                 {/* Bottom border under months columns only */}
                 <div className="flex">
@@ -998,6 +873,7 @@ export function GanttChartFigure({
               </div>
             );
           })}
+
 
 
         </div>
