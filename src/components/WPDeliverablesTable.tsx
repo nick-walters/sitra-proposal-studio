@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Package, Plus, GripVertical, ArrowRight, BookOpen, ArrowUpDown } from 'lucide-react';
+import { Package, Plus, GripVertical, ArrowRight, ArrowUpDown } from 'lucide-react';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { SingleMonthPicker } from '@/components/SingleMonthPicker';
 import {
@@ -240,7 +240,6 @@ export function WPDeliverablesTable({
   const otherWpDrafts = allWpDrafts.filter(wp => wp.id !== wpDraftId);
 
   const [reorderOpen, setReorderOpen] = useState(false);
-  const [guidelinesOpen, setGuidelinesOpen] = useState(false);
 
   return (
     <TooltipProvider>
@@ -252,15 +251,6 @@ export function WPDeliverablesTable({
               Deliverables
             </CardTitle>
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setGuidelinesOpen(true)}
-                className="h-7 px-2 text-xs gap-1 text-destructive border-destructive/50 hover:bg-destructive/10 hover:text-destructive"
-              >
-                <BookOpen className="h-3.5 w-3.5" />
-                Guidelines
-              </Button>
               {!readOnly && (
                 <>
                   <Tooltip>
@@ -283,6 +273,7 @@ export function WPDeliverablesTable({
               )}
             </div>
           </div>
+          <DeliverablesGuidelinesInline />
         </CardHeader>
         <CardContent className="px-3 pb-3 pt-0">
           <div className="overflow-x-auto">
@@ -291,12 +282,12 @@ export function WPDeliverablesTable({
                 <tr className="h-12">
                   <th style={{ width: '64px' }} className="whitespace-normal align-bottom">No.</th>
                   <th className="whitespace-normal align-bottom">Deliverable title &amp; short description</th>
-                  <th style={{ width: '88px' }} className="whitespace-normal align-bottom">Type</th>
-                  <th style={{ width: '92px' }} className="whitespace-normal align-bottom">Dissemination level</th>
-                  <th style={{ width: '100px' }} className="whitespace-normal align-bottom">Partner</th>
+                  <th style={{ width: '84px' }} className="whitespace-normal align-bottom">Type</th>
+                  <th style={{ width: '84px' }} className="whitespace-normal align-bottom">Dissemination level</th>
+                  <th style={{ width: '85px' }} className="whitespace-normal align-bottom">Partner</th>
                   <th style={{ width: '140px' }} className="whitespace-normal align-bottom">Assign to task(s)</th>
                   <th style={{ width: '77px' }} className="whitespace-normal align-bottom">Due month</th>
-                  <th style={{ width: '40px' }} className="align-bottom"></th>
+                  <th style={{ width: '25px' }} className="align-bottom"></th>
                 </tr>
               </thead>
               <tbody>
@@ -335,8 +326,6 @@ export function WPDeliverablesTable({
         wpColor={resolvedWpColor}
         onPersist={persistGroupOrder}
       />
-
-      <DeliverablesGuidelinesDialog open={guidelinesOpen} onOpenChange={setGuidelinesOpen} />
     </TooltipProvider>
   );
 }
@@ -379,11 +368,11 @@ function DeliverableRow({
     <tr className="border-b align-top">
       {/* D-badge pennant */}
       <td className="py-1.5 px-1 whitespace-nowrap">
-        <span style={{ display: 'inline-block', position: 'relative', width: 52, height: 20 }}>
-          <svg width={52} height={20} viewBox="0 0 52 20" style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}>
+        <span style={{ display: 'inline-block', position: 'relative', width: 52, height: 21 }}>
+          <svg width={52} height={20} viewBox="0 0 52 20" style={{ position: 'absolute', top: 1, left: 0, overflow: 'visible' }}>
             <path d="M 0,0 L 42,0 L 52,10 L 42,20 L 0,20 Z" fill="#ffffff" stroke="#73C92D" strokeWidth={1.5} strokeLinejoin="round" />
           </svg>
-          <span style={{ position: 'absolute', top: 0, left: 0, width: 42, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, color: '#73C92D', whiteSpace: 'nowrap' }}>
+          <span style={{ position: 'absolute', top: 1, left: 0, width: 42, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, color: '#73C92D', whiteSpace: 'nowrap' }}>
             {number}
           </span>
         </span>
@@ -686,7 +675,7 @@ function SameMonthReorderDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Reorder deliverables sharing a due month</DialogTitle>
         </DialogHeader>
@@ -744,10 +733,8 @@ function ReorderRow({ d, wpNumber, wpColor }: { d: WPDraftDeliverable; wpNumber:
   );
 }
 
-// ── Guidelines dialog ──
-function DeliverablesGuidelinesDialog({
-  open, onOpenChange,
-}: { open: boolean; onOpenChange: (v: boolean) => void }) {
+// ── Inline guidelines (rendered under the card title) ──
+function DeliverablesGuidelinesInline() {
   const CD = () => (
     <a
       href="https://eur-lex.europa.eu/eli/dec/2015/444/oj/eng"
@@ -759,56 +746,37 @@ function DeliverablesGuidelinesDialog({
     </a>
   );
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Guidelines — Deliverables</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-5 text-sm">
-          <section className="space-y-2">
-            <h3 className="font-semibold text-base">Deliverable</h3>
-            <p>
-              A report that is sent to the European Commission to ensure effective monitoring of the project.
-              There are different types of deliverables (e.g. a report on specific activities or results, data
-              management plans, ethics or security requirements). Deliverables are automatically reordered based
-              on their delivery dates and use the numbering convention &ldquo;WP_№.D_№&rdquo;, i.e. the first
-              deliverable in WP1 is D1.1.
-            </p>
-          </section>
-
-          <section className="space-y-2">
-            <h3 className="font-semibold text-base">Type</h3>
-            <p>Use one of the following codes:</p>
-            <ul className="list-disc pl-5 space-y-1">
-              <li><span className="font-medium">R</span>: Document, report (excluding the periodic and final reports).</li>
-              <li><span className="font-medium">DEM</span>: Demonstrator, pilot, prototype, plan designs.</li>
-              <li><span className="font-medium">DEC</span>: Websites, patents filing, press &amp; media actions, videos, etc.</li>
-              <li><span className="font-medium">DATA</span>: Data sets, microdata, etc.</li>
-              <li><span className="font-medium">DMP</span>: Data management plan.</li>
-              <li><span className="font-medium">ETHICS</span>: Deliverables related to ethics issues.</li>
-              <li><span className="font-medium">SECURITY</span>: Deliverables related to security issues.</li>
-              <li><span className="font-medium">OTHER</span>: Software, technical diagram, algorithms, models, etc.</li>
-            </ul>
-          </section>
-
-          <section className="space-y-2">
-            <h3 className="font-semibold text-base">Dissemination level</h3>
-            <p>Use one of the following codes:</p>
-            <ul className="list-disc pl-5 space-y-1">
-              <li><span className="font-medium">PU</span> – Public, fully open, e.g. web (Deliverables flagged as public will be automatically published in CORDIS project&apos;s page)</li>
-              <li><span className="font-medium">SEN</span> – Sensitive, limited under the conditions of the Grant Agreement</li>
-              <li><span className="font-medium">Classified R-UE/EU-R</span> – EU RESTRICTED under the <CD /></li>
-              <li><span className="font-medium">Classified C-UE/EU-C</span> – EU CONFIDENTIAL under the <CD /></li>
-              <li><span className="font-medium">Classified S-UE/EU-S</span> – EU SECRET under the <CD /></li>
-            </ul>
-          </section>
-
-          <section className="space-y-2">
-            <h3 className="font-semibold text-base">Delivery date</h3>
-            <p>Measured in months from the project&apos;s start date.</p>
-          </section>
-        </div>
-      </DialogContent>
-    </Dialog>
+    <div className="text-xs text-muted-foreground space-y-2 pt-1">
+      <p>
+        This list is mirrored to Table 3.1.c (List of deliverables). A deliverable is a report sent to the European
+        Commission to ensure effective monitoring of the project. Deliverables are automatically reordered by delivery
+        date and numbered &ldquo;D&lt;WP&gt;.&lt;n&gt;&rdquo; (e.g. the first deliverable in WP1 is D1.1).
+      </p>
+      <div>
+        <span className="font-medium text-foreground">Type</span> — use one of:
+        <ul className="list-disc pl-5 mt-1 space-y-0.5">
+          <li><span className="font-medium">R</span>: Document, report (excluding the periodic and final reports).</li>
+          <li><span className="font-medium">DEM</span>: Demonstrator, pilot, prototype, plan designs.</li>
+          <li><span className="font-medium">DEC</span>: Websites, patents filing, press &amp; media actions, videos, etc.</li>
+          <li><span className="font-medium">DATA</span>: Data sets, microdata, etc.</li>
+          <li><span className="font-medium">DMP</span>: Data management plan.</li>
+          <li><span className="font-medium">ETHICS</span>: Deliverables related to ethics issues.</li>
+          <li><span className="font-medium">SECURITY</span>: Deliverables related to security issues.</li>
+          <li><span className="font-medium">OTHER</span>: Software, technical diagram, algorithms, models, etc.</li>
+        </ul>
+      </div>
+      <div>
+        <span className="font-medium text-foreground">Dissemination level</span> — use one of:
+        <ul className="list-disc pl-5 mt-1 space-y-0.5">
+          <li><span className="font-medium">PU</span> – Public, fully open, e.g. web (deliverables flagged as public will be automatically published in CORDIS project&apos;s page).</li>
+          <li><span className="font-medium">SEN</span> – Sensitive, limited under the conditions of the Grant Agreement.</li>
+          <li><span className="font-medium">Classified R-UE/EU-R</span> – EU RESTRICTED under the <CD />.</li>
+          <li><span className="font-medium">Classified C-UE/EU-C</span> – EU CONFIDENTIAL under the <CD />.</li>
+          <li><span className="font-medium">Classified S-UE/EU-S</span> – EU SECRET under the <CD />.</li>
+        </ul>
+      </div>
+      <p><span className="font-medium text-foreground">Delivery date</span> — measured in months from the project&apos;s start date.</p>
+    </div>
   );
 }
+
