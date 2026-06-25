@@ -697,8 +697,7 @@ function MilestonesGuidelinesInline() {
   return (
     <div className="text-xs text-muted-foreground space-y-1.5 pt-1">
       <p>
-        This list is mirrored to Table 3.1.d (List of milestones). Milestones are automatically ordered by due month,
-        then by related WP(s).
+        This list is mirrored to Table 3.1.d (List of milestones). Milestones are automatically ordered by due month.
       </p>
       <p>
         <span className="font-medium text-foreground">Milestone:</span> control points in the project that help to
