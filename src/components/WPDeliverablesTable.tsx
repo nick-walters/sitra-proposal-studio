@@ -315,6 +315,7 @@ export function WPDeliverablesTable({
               </tbody>
             </table>
           </div>
+          <DeliverablesDetailedGuidelinesInline />
         </CardContent>
       </Card>
 
@@ -733,8 +734,22 @@ function ReorderRow({ d, wpNumber, wpColor }: { d: WPDraftDeliverable; wpNumber:
   );
 }
 
-// ── Inline guidelines (rendered under the card title) ──
-function DeliverablesGuidelinesInline() {
+// ── Short note rendered under the card title ──
+function DeliverablesShortNoteInline() {
+  return (
+    <div className="text-xs text-muted-foreground pt-1">
+      <p>
+        This list is mirrored to Table 3.1.c (List of deliverables). A deliverable is a report sent to the European
+        Commission to ensure effective monitoring of the project. Deliverables are automatically reordered by
+        delivery date and numbered &ldquo;D&lt;WP&gt;.&lt;n&gt;&rdquo; (e.g. the first deliverable in WP1 is D1.1).
+        Detailed guidelines are below the table.
+      </p>
+    </div>
+  );
+}
+
+// ── Detailed guidelines rendered below the deliverables table ──
+function DeliverablesDetailedGuidelinesInline() {
   const CD = () => (
     <a
       href="https://eur-lex.europa.eu/eli/dec/2015/444/oj/eng"
@@ -746,12 +761,7 @@ function DeliverablesGuidelinesInline() {
     </a>
   );
   return (
-    <div className="text-xs text-muted-foreground space-y-2 pt-1">
-      <p>
-        This list is mirrored to Table 3.1.c (List of deliverables). A deliverable is a report sent to the European
-        Commission to ensure effective monitoring of the project. Deliverables are automatically reordered by delivery
-        date and numbered &ldquo;D&lt;WP&gt;.&lt;n&gt;&rdquo; (e.g. the first deliverable in WP1 is D1.1).
-      </p>
+    <div className="text-xs text-muted-foreground space-y-2 pt-3 mt-2 border-t border-border/40">
       <div>
         <span className="font-medium text-foreground">Type</span> — use one of:
         <ul className="list-disc pl-5 mt-1 space-y-0.5">
@@ -779,4 +789,5 @@ function DeliverablesGuidelinesInline() {
     </div>
   );
 }
+
 
