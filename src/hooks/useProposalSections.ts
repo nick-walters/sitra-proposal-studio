@@ -519,17 +519,17 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
     
     // Fallback to hardcoded sections
     const fallbackSections = [proposalManagementSection, topicInfoSection, ...PART_A_SECTIONS, ...HORIZON_EUROPE_SECTIONS];
-    
-    // Add Figures before WP Drafts
-    fallbackSections.push(figuresSection);
 
-    // Add Milestones & risks manager
-    fallbackSections.push(milestonesRisksSection);
-    
     // Add combined WPs & cases section
     if (wpDraftSections.length > 0 || caseDraftSections.length > 0) {
       fallbackSections.push(wpAndCasesSection);
     }
+
+    // Add Milestones & risks manager
+    fallbackSections.push(milestonesRisksSection);
+
+    // Add Figures after Milestones & risks
+    fallbackSections.push(figuresSection);
     
     return fallbackSections;
 
