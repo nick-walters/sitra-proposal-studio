@@ -530,14 +530,14 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
         <CardContent>
           <div className="overflow-x-auto">
             <table className="w-full text-sm border-collapse">
-              <thead className="bg-muted/40">
-                <tr className="border-b text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  <th className="text-left py-2 px-1">Risk description</th>
-                  <th className="text-left py-2 px-1" style={{ width: '70px' }}>Likelihood</th>
-                  <th className="text-left py-2 px-1" style={{ width: '70px' }}>Severity</th>
-                  <th className="text-left py-2 px-1" style={{ width: '113px' }}>WP(s)</th>
-                  <th className="text-left py-2 px-1">Mitigation &amp; adaptation measures</th>
-                  <th className="px-0" style={{ width: '28px' }}></th>
+              <thead>
+                <tr>
+                  <th className="text-left font-bold text-black py-[1px] px-1" style={{ borderBottom: '1.5px solid #000' }}>Risk description</th>
+                  <th className="text-left font-bold text-black py-[1px] px-1" style={{ width: '44px', borderBottom: '1.5px solid #000' }}>Likelihood</th>
+                  <th className="text-left font-bold text-black py-[1px] px-1" style={{ width: '44px', borderBottom: '1.5px solid #000' }}>Severity</th>
+                  <th className="text-left font-bold text-black py-[1px] px-1" style={{ width: '113px', borderBottom: '1.5px solid #000' }}>WP(s)</th>
+                  <th className="text-left font-bold text-black py-[1px] px-1" style={{ borderBottom: '1.5px solid #000' }}>Mitigation &amp; adaptation measures</th>
+                  <th className="px-0" style={{ width: '28px', borderBottom: '1.5px solid #000' }}></th>
                 </tr>
               </thead>
               <tbody>
