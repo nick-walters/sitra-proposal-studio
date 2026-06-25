@@ -382,24 +382,11 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
     });
   }, [risks, wpsById]);
 
-  const [guidelinesOpen, setGuidelinesOpen] = useState(false);
-
   return (
     <div className="p-6 space-y-6">
       <div className="space-y-2">
         <h1 className="text-xl font-bold text-foreground">Milestones &amp; risks</h1>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setGuidelinesOpen(true)}
-          className="h-7 px-2 text-xs gap-1 text-destructive border-destructive/50 hover:bg-destructive/10 hover:text-destructive"
-        >
-          <BookOpen className="h-3.5 w-3.5" />
-          Guidelines
-        </Button>
       </div>
-
-      <MilestonesRisksGuidelinesDialog open={guidelinesOpen} onOpenChange={setGuidelinesOpen} />
 
       {/* Milestones */}
       <Card>
@@ -412,9 +399,7 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
               </Button>
             )}
           </div>
-          <p className="text-xs text-muted-foreground">
-            This list is mirrored to Table 3.1.d (List of milestones). Milestones are automatically ordered by due month, then by related WP(s).
-          </p>
+          <MilestonesGuidelinesInline />
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
