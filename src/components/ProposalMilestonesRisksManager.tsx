@@ -419,14 +419,14 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
         <CardContent>
           <div className="overflow-x-auto">
             <table className="w-full text-sm border-collapse">
-              <thead className="bg-muted/40">
-                <tr className="border-b text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  <th className="text-left font-medium py-2 px-1 w-14">No.</th>
-                  <th className="text-left font-medium py-2 px-1" style={{ width: '280px' }}>Milestone name</th>
-                  <th className="text-left font-medium py-2 px-1" style={{ width: '113px' }}>WP(s)</th>
-                  <th className="text-left font-medium py-2 px-1" style={{ width: '83px' }}>Due month</th>
-                  <th className="text-left font-medium py-2 px-1">Means of verification</th>
-                  <th className="px-0" style={{ width: '28px' }}></th>
+              <thead>
+                <tr>
+                  <th className="text-left font-bold text-black py-[1px] px-1 w-14" style={{ borderBottom: '1.5px solid #000' }}>No.</th>
+                  <th className="text-left font-bold text-black py-[1px] px-1" style={{ width: '280px', borderBottom: '1.5px solid #000' }}>Milestone name</th>
+                  <th className="text-left font-bold text-black py-[1px] px-1" style={{ width: '113px', borderBottom: '1.5px solid #000' }}>WP(s)</th>
+                  <th className="text-left font-bold text-black py-[1px] px-1" style={{ width: '83px', borderBottom: '1.5px solid #000' }}>Due month</th>
+                  <th className="text-left font-bold text-black py-[1px] px-1" style={{ borderBottom: '1.5px solid #000' }}>Means of verification</th>
+                  <th className="px-0" style={{ width: '28px', borderBottom: '1.5px solid #000' }}></th>
                 </tr>
               </thead>
               <tbody>
@@ -530,14 +530,14 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
         <CardContent>
           <div className="overflow-x-auto">
             <table className="w-full text-sm border-collapse">
-              <thead className="bg-muted/40">
-                <tr className="border-b text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  <th className="text-left py-2 px-1">Risk description</th>
-                  <th className="text-left py-2 px-1" style={{ width: '70px' }}>Likelihood</th>
-                  <th className="text-left py-2 px-1" style={{ width: '70px' }}>Severity</th>
-                  <th className="text-left py-2 px-1" style={{ width: '113px' }}>WP(s)</th>
-                  <th className="text-left py-2 px-1">Mitigation &amp; adaptation measures</th>
-                  <th className="px-0" style={{ width: '28px' }}></th>
+              <thead>
+                <tr>
+                  <th className="text-left font-bold text-black py-[1px] px-1" style={{ borderBottom: '1.5px solid #000' }}>Risk description</th>
+                  <th className="text-left font-bold text-black py-[1px] px-1" style={{ width: '44px', borderBottom: '1.5px solid #000' }}>Likelihood</th>
+                  <th className="text-left font-bold text-black py-[1px] px-1" style={{ width: '44px', borderBottom: '1.5px solid #000' }}>Severity</th>
+                  <th className="text-left font-bold text-black py-[1px] px-1" style={{ width: '113px', borderBottom: '1.5px solid #000' }}>WP(s)</th>
+                  <th className="text-left font-bold text-black py-[1px] px-1" style={{ borderBottom: '1.5px solid #000' }}>Mitigation &amp; adaptation measures</th>
+                  <th className="px-0" style={{ width: '28px', borderBottom: '1.5px solid #000' }}></th>
                 </tr>
               </thead>
               <tbody>
@@ -624,8 +624,8 @@ function RiskLevelSelect({
       onValueChange={(v) => onChange(v === '__none__' ? null : (v as 'L' | 'M' | 'H'))}
       disabled={disabled}
     >
-      <SelectTrigger className="h-8 w-full justify-between px-2">
-        <span className="flex items-center">
+      <SelectTrigger hideArrow className="h-8 w-auto inline-flex px-1 border-0 bg-transparent focus:ring-0">
+        <span className="inline-flex items-center">
           {value ? <RiskBadge level={value} /> : <span className="text-muted-foreground">—</span>}
         </span>
       </SelectTrigger>
@@ -721,13 +721,12 @@ function WPMultiSelect({
   return (
     <Popover open={open} onOpenChange={commit}>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="h-8 w-full justify-between font-normal" disabled={disabled}>
-          <span className="flex flex-wrap gap-0.5">
+        <Button variant="outline" size="sm" className="h-auto min-h-8 w-full justify-start font-normal py-1 px-1.5 whitespace-normal" disabled={disabled}>
+          <span className="flex flex-wrap gap-0.5 w-full">
             {selectedWps.length === 0
               ? <span className="text-muted-foreground">Select…</span>
               : selectedWps.map(wp => <WPBubble key={wp.id} wpNumber={wp.number} wpColor={wp.color} />)}
           </span>
-          <ChevronsUpDown className="h-3.5 w-3.5 opacity-50 ml-1 shrink-0" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-56 p-2" align="start">

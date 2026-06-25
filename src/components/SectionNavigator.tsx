@@ -334,7 +334,7 @@ function SectionItem({
           ) : section.id === 'wp-drafts' ? (
             <PencilRuler className="w-4 h-4 text-muted-foreground shrink-0" />
           ) : section.id === 'milestones-risks' ? (
-            <Flag className="w-4 h-4 text-muted-foreground shrink-0" />
+            null
           ) : section.id === 'figures' || section.title === 'Figures' ? (
             null
           ) : isWPSection && wpColor ? (
