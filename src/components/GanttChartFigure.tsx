@@ -446,33 +446,7 @@ export function GanttChartFigure({
         };
       });
 
-      // ── Milestone badges (one INSTANCE per related WP). Links: proposal_milestone_tasks (filtered to this WP).
-      const msBadges: any[] = [];
-      for (const m of msRows) {
-        if (m.due_month == null) continue;
-        const wpIdsForM = msToWpIds.get(m.id) || [];
-        if (!wpIdsForM.includes(wp.id)) continue;
-
-        const allLinkedTaskIds = msToTaskIds.get(m.id) || [];
-        const linkedInThisWp = allLinkedTaskIds.filter(id => {
-          const t = taskById.get(id);
-          return !!t;
-        });
-        const useWpBand = linkedInThisWp.length === 0;
-        const linkedRows = useWpBand ? [] : linkedInThisWp.map(id => taskRowIdxById.get(id)!);
-        msBadges.push({
-          key: `ms-${m.id}-${wp.id}`,
-          kind: 'ms' as const,
-          label: `MS${m.number}`,
-          color: '#000000',
-          dueMonth: m.due_month!,
-          linkedRows,
-          linkedTaskIds: linkedInThisWp,
-          useWpBand,
-          tooltipTitle: `MS${m.number}: ${m.title || ''}`,
-        });
-      }
-
+      // Milestones are no longer rendered per-WP; the chart-wide overlay owns them.
       return {
         id: wp.id,
         number: wp.number,
@@ -484,9 +458,10 @@ export function GanttChartFigure({
         tasks: mappedTasks,
         taskById,
         delBadges,
-        msBadges,
+        msBadges: [] as any[],
       };
     });
+
 
     const msMapped: Milestone[] = msRows
       .filter(m => m.due_month != null)
