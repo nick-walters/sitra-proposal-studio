@@ -192,6 +192,63 @@ function layoutWpBadges(args: {
   return out;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Chart-wide milestone layout.
+// Each milestone renders EXACTLY ONCE across the whole chart.
+// Target row = median of all linked global rows (tasks + WP-band fallbacks).
+// Nudge to nearest free slot to avoid overlapping other milestone bodies.
+// Hexagon LEFT TIP sits on the centre of its due-month column; body extends right.
+// ─────────────────────────────────────────────────────────────────────────────
+type ChartMsIn = {
+  key: string;
+  label: string;
+  dueMonth: number;
+  linkedGlobalRows: number[];
+  origins: Array<{ globalRow: number; x: number }>;
+  tooltipTitle: string;
+};
+type ChartMsOut = ChartMsIn & {
+  tipX: number; leftX: number; shapeW: number; shapeH: number; globalRow: number;
+};
+function layoutChartMilestones(items: ChartMsIn[], totalRows: number, cellWidth: number): ChartMsOut[] {
+  const estimateW = (l: string) => Math.max(32, l.length * 7 + 10);
+  const shapeH = 12;
+  const occupied: Array<Array<[number, number]>> = Array.from({ length: Math.max(1, totalRows) }, () => []);
+  const isFree = (s: number, lx: number, rx: number) => {
+    if (s < 0 || s >= totalRows) return false;
+    return occupied[s].every(([a, b]) => rx + 2 <= a || lx - 2 >= b);
+  };
+  const mark = (s: number, lx: number, rx: number) => {
+    if (s >= 0 && s < totalRows) occupied[s].push([lx, rx]);
+  };
+  const sorted = items.slice().sort((a, b) => a.dueMonth - b.dueMonth);
+  const out: ChartMsOut[] = [];
+  for (const m of sorted) {
+    const shapeW = estimateW(m.label);
+    const tipX = (m.dueMonth - 0.5) * cellWidth;
+    const leftX = tipX;
+    let target = 0;
+    if (m.linkedGlobalRows.length) {
+      const s = [...m.linkedGlobalRows].sort((x, y) => x - y);
+      target = s[Math.floor(s.length / 2)];
+    }
+    let chosen = Number.NaN;
+    for (let step = 0; step <= totalRows + 2; step++) {
+      const cands = step === 0 ? [target] : [target + step, target - step];
+      for (const s of cands) {
+        if (isFree(s, leftX, leftX + shapeW)) { chosen = s; break; }
+      }
+      if (!Number.isNaN(chosen)) break;
+    }
+    if (Number.isNaN(chosen)) chosen = target;
+    mark(chosen, leftX, leftX + shapeW);
+    out.push({ ...m, tipX, leftX, shapeW, shapeH, globalRow: chosen });
+  }
+  return out;
+}
+
+
+
 
 export function GanttChartFigure({
   figureId,
@@ -389,33 +446,7 @@ export function GanttChartFigure({
         };
       });
 
-      // ── Milestone badges (one INSTANCE per related WP). Links: proposal_milestone_tasks (filtered to this WP).
-      const msBadges: any[] = [];
-      for (const m of msRows) {
-        if (m.due_month == null) continue;
-        const wpIdsForM = msToWpIds.get(m.id) || [];
-        if (!wpIdsForM.includes(wp.id)) continue;
-
-        const allLinkedTaskIds = msToTaskIds.get(m.id) || [];
-        const linkedInThisWp = allLinkedTaskIds.filter(id => {
-          const t = taskById.get(id);
-          return !!t;
-        });
-        const useWpBand = linkedInThisWp.length === 0;
-        const linkedRows = useWpBand ? [] : linkedInThisWp.map(id => taskRowIdxById.get(id)!);
-        msBadges.push({
-          key: `ms-${m.id}-${wp.id}`,
-          kind: 'ms' as const,
-          label: `MS${m.number}`,
-          color: '#000000',
-          dueMonth: m.due_month!,
-          linkedRows,
-          linkedTaskIds: linkedInThisWp,
-          useWpBand,
-          tooltipTitle: `MS${m.number}: ${m.title || ''}`,
-        });
-      }
-
+      // Milestones are no longer rendered per-WP; the chart-wide overlay owns them.
       return {
         id: wp.id,
         number: wp.number,
@@ -427,9 +458,10 @@ export function GanttChartFigure({
         tasks: mappedTasks,
         taskById,
         delBadges,
-        msBadges,
+        msBadges: [] as any[],
       };
     });
+
 
     const msMapped: Milestone[] = msRows
       .filter(m => m.due_month != null)
@@ -481,6 +513,85 @@ export function GanttChartFigure({
   const cellWidth = Math.max(MIN_CELL_WIDTH, Math.ceil(minQuarterWidth / 3));
   const timelineWidth = cellWidth * projectDuration;
   const labelWidth = TOTAL_WIDTH_PX - timelineWidth - MARGIN_GAP;
+  const overlayWidth = timelineWidth + MARGIN_GAP;
+
+  // Global per-chart row layout. Each WP contributes: 1 header row + N task rows
+  // + M untimed task rows. A 2px spacer sits BETWEEN WPs. Slot indices are a
+  // continuous integer space; slotCenterY[slot] holds the centre Y in pixels
+  // measured from the top of the first WP block.
+  const rowLayout = useMemo(() => {
+    const wpBandSlot: number[] = [];
+    const taskSlotByTaskId = new Map<string, number>();
+    const slotCenterY: number[] = [];
+    let nextSlot = 0;
+    let y = 0;
+    workPackages.forEach((wp: any, idx: number) => {
+      if (idx > 0) y += 2;
+      wpBandSlot[idx] = nextSlot;
+      slotCenterY[nextSlot] = y + ROW_HEIGHT / 2;
+      nextSlot += 1;
+      y += ROW_HEIGHT;
+      wp.tasks.forEach((t: any) => {
+        taskSlotByTaskId.set(t.id, nextSlot);
+        slotCenterY[nextSlot] = y + ROW_HEIGHT / 2;
+        nextSlot += 1;
+        y += ROW_HEIGHT;
+      });
+      const untimed = (wpDraftsData?.tasks || []).filter(
+        (t: any) => t.wp_draft_id === wp.id && (t.start_month == null || t.end_month == null),
+      );
+      untimed.forEach(() => {
+        slotCenterY[nextSlot] = y + ROW_HEIGHT / 2;
+        nextSlot += 1;
+        y += ROW_HEIGHT;
+      });
+    });
+    return { wpBandSlot, taskSlotByTaskId, slotCenterY, totalSlots: nextSlot, totalHeight: y };
+  }, [workPackages, wpDraftsData]);
+
+  // Chart-wide milestone items (one per milestone).
+  const chartMilestones = useMemo(() => {
+    if (!wpDraftsData) return [] as ChartMsOut[];
+    const { milestones: msRows, msToWpIds, msToTaskIds, tasks: allTasks } = wpDraftsData;
+    const taskMap = new Map(allTasks.map((t: any) => [t.id, t]));
+    const items: ChartMsIn[] = [];
+    for (const m of msRows) {
+      if (m.due_month == null) continue;
+      const linkedTaskIds = msToTaskIds.get(m.id) || [];
+      const linkedWpIds = msToWpIds.get(m.id) || [];
+      const linkedGlobalRows: number[] = [];
+      const origins: Array<{ globalRow: number; x: number }> = [];
+      const wpIdsCoveredByTasks = new Set<string>();
+      for (const tid of linkedTaskIds) {
+        const slot = rowLayout.taskSlotByTaskId.get(tid);
+        const task: any = taskMap.get(tid);
+        if (slot == null || !task || task.start_month == null || task.end_month == null) continue;
+        linkedGlobalRows.push(slot);
+        origins.push({ globalRow: slot, x: Math.max(0, (task.end_month - 1) * cellWidth) });
+        wpIdsCoveredByTasks.add(task.wp_draft_id);
+      }
+      for (const wpid of linkedWpIds) {
+        if (wpIdsCoveredByTasks.has(wpid)) continue;
+        const idx = workPackages.findIndex((wp: any) => wp.id === wpid);
+        if (idx < 0) continue;
+        const slot = rowLayout.wpBandSlot[idx];
+        const wp: any = workPackages[idx];
+        linkedGlobalRows.push(slot);
+        origins.push({ globalRow: slot, x: Math.max(0, (wp.endMonth - 1) * cellWidth) });
+      }
+      items.push({
+        key: `ms-${m.id}`,
+        label: `MS${m.number}`,
+        dueMonth: m.due_month,
+        linkedGlobalRows,
+        origins,
+        tooltipTitle: `MS${m.number}: ${m.title || ''}`,
+      });
+    }
+    return layoutChartMilestones(items, rowLayout.totalSlots, cellWidth);
+  }, [wpDraftsData, rowLayout, workPackages, cellWidth]);
+
+
 
   // Border colors - lighter greys
   const borderLight = '#e5e5e5';
@@ -635,8 +746,10 @@ export function GanttChartFigure({
           {/* Slim spacer after header - non-editable */}
           <div style={{ height: 2 }} aria-hidden="true" />
 
-          {/* Work packages and Tasks */}
+          {/* Work packages and Tasks — wrapped so chart-wide milestone overlay can span all WPs */}
+          <div style={{ position: 'relative' }}>
           {workPackages.map((wp, wpIdx) => {
+
             const wpColor = wp.color || '#73C92D';
             const taskColor = '#d4d4d4';
             const titleWidth = labelWidth - 38 - 6;
@@ -778,8 +891,9 @@ export function GanttChartFigure({
                           const d = `M ${o.x} ${oy} L ${b.tipX} ${oy} L ${b.tipX} ${ty}`;
                           return (
                             <g key={`${b.key}-l${oi}`}>
-                              <path d={d} stroke="#777" strokeWidth={0.75} fill="none" strokeLinecap="square" strokeLinejoin="miter" />
-                              <circle cx={o.x} cy={oy} r={1} fill="#777" />
+                              <path d={d} stroke="#555" strokeWidth={1} fill="none" strokeLinecap="square" strokeLinejoin="miter" />
+                              <circle cx={o.x} cy={oy} r={1.5} fill="#555" />
+
                             </g>
                           );
                         });
@@ -873,6 +987,104 @@ export function GanttChartFigure({
               </div>
             );
           })}
+
+          {/* Chart-wide milestone overlay — one badge per milestone */}
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: labelWidth,
+              width: overlayWidth,
+              height: rowLayout.totalHeight,
+              pointerEvents: 'none',
+              zIndex: 5,
+            }}
+          >
+            <svg
+              width={overlayWidth}
+              height={rowLayout.totalHeight}
+              style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}
+            >
+              {chartMilestones.flatMap((m) => {
+                const ty = rowLayout.slotCenterY[m.globalRow];
+                if (ty == null) return [];
+                return m.origins.map((o, oi) => {
+                  const oy = rowLayout.slotCenterY[o.globalRow];
+                  if (oy == null) return null;
+                  const d = `M ${o.x} ${oy} L ${m.tipX} ${oy} L ${m.tipX} ${ty}`;
+                  return (
+                    <g key={`${m.key}-l${oi}`}>
+                      <path d={d} stroke="#555" strokeWidth={1} fill="none" strokeLinecap="square" strokeLinejoin="miter" />
+                      <circle cx={o.x} cy={oy} r={1.5} fill="#555" />
+                    </g>
+                  );
+                });
+              })}
+            </svg>
+            {chartMilestones.map((m) => {
+              const ty = rowLayout.slotCenterY[m.globalRow];
+              if (ty == null) return null;
+              const x1 = m.shapeW * 0.12;
+              const x2 = m.shapeW * 0.88;
+              const path = `M ${x1},0 L ${x2},0 L ${m.shapeW},${m.shapeH / 2} L ${x2},${m.shapeH} L ${x1},${m.shapeH} L 0,${m.shapeH / 2} Z`;
+              return (
+                <Tooltip key={m.key}>
+                  <TooltipTrigger asChild>
+                    <span
+                      style={{
+                        position: 'absolute',
+                        top: ty,
+                        left: m.leftX,
+                        transform: 'translateY(-50%)',
+                        width: m.shapeW,
+                        height: m.shapeH,
+                        zIndex: 10,
+                        pointerEvents: 'auto',
+                      }}
+                    >
+                      <svg
+                        width={m.shapeW}
+                        height={m.shapeH}
+                        viewBox={`0 0 ${m.shapeW} ${m.shapeH}`}
+                        style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}
+                      >
+                        <path d={path} fill="#000000" />
+                      </svg>
+                      <span
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          width: m.shapeW,
+                          height: m.shapeH,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontFamily: "'Times New Roman', Times, serif",
+                          fontSize: '8pt',
+                          fontWeight: 700,
+                          lineHeight: 1,
+                          color: '#ffffff',
+                          whiteSpace: 'nowrap',
+                          padding: '0 4px',
+                          boxSizing: 'border-box',
+                        }}
+                      >
+                        {m.label}
+                      </span>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs font-medium">{m.tooltipTitle}</p>
+                    <p className="text-xs text-muted-foreground">Month {m.dueMonth}</p>
+                  </TooltipContent>
+                </Tooltip>
+              );
+            })}
+          </div>
+          </div>
+
+
 
 
 
