@@ -723,10 +723,13 @@ function MilestoneWpTaskDialog({
     <>
       {renderTrigger(() => !disabled && setOpen(true))}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Related WPs &amp; tasks</DialogTitle>
           </DialogHeader>
+          <p className="text-xs text-muted-foreground -mt-1">
+            The related WPs are shown in Table 3.1.d (List of milestones). The related tasks illustrate task interactions/bottlenecks in Figure 3.1.b (Gantt chart).
+          </p>
           <div className="max-h-[60vh] overflow-y-auto space-y-1 pr-1">
             {orderedWps.length === 0 && (
               <div className="text-sm text-muted-foreground italic py-2">No work packages defined yet.</div>
@@ -745,12 +748,12 @@ function MilestoneWpTaskDialog({
                     <span className="text-sm truncate">{wp.short_name || `WP${wp.number}`}</span>
                   </label>
                   {wpChecked && (
-                    <div className="pl-8 pr-2 pb-1.5 space-y-0.5">
+                    <div className="pr-2 pb-1.5 space-y-0.5" style={{ paddingLeft: '52px' }}>
                       {wpTasks.length === 0 && (
                         <div className="text-xs text-muted-foreground italic py-1">No tasks in this WP.</div>
                       )}
                       {wpTasks.map(t => (
-                        <label key={t.id} className="flex items-center gap-2 px-1 py-1 rounded hover:bg-accent cursor-pointer">
+                        <label key={t.id} className="flex items-center gap-2 py-1 rounded hover:bg-accent cursor-pointer">
                           <Checkbox
                             checked={draftTasks.includes(t.id)}
                             onCheckedChange={() => toggleTask(t.id)}
