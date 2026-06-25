@@ -410,10 +410,10 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
                 <tr className="border-b">
                   <th className="text-left font-medium py-2 px-1 w-14">No.</th>
                   <th className="text-left font-medium py-2 px-1">Milestone name</th>
-                  <th className="text-left font-medium py-2 px-1 w-44">WP(s)</th>
+                  <th className="text-left font-medium py-2 px-1" style={{ width: '110px' }}>WP(s)</th>
                   <th className="text-left font-medium py-2 px-1 w-32">Due month</th>
                   <th className="text-left font-medium py-2 px-1">Means of verification</th>
-                  <th className="w-10"></th>
+                  <th className="px-0" style={{ width: '32px' }}></th>
                 </tr>
               </thead>
               <tbody>
