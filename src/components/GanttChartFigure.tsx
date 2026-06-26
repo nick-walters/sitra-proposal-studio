@@ -90,6 +90,7 @@ type WpBadgeIn = {
   dueMonth: number;
   linkedRows: number[];
   linkedTaskIds: string[];
+  anchorRow?: number; // deliverables: row of highest-numbered linked task
   useWpBand?: boolean;
   tooltipTitle: string;
 };
@@ -153,15 +154,22 @@ function layoutWpBadges(args: {
     const leftX = isDel ? tipX - shapeW : tipX;
 
 
-    // Median row (or wp-band fallback for MS, or row 0 if unlinked)
+    // Target row:
+    //  • milestone with useWpBand → -1 (WP band)
+    //  • deliverable → anchor row = highest-numbered linked task (NEVER band)
+    //  • else → median of linked rows
     let target: number;
     if (!isDel && b.useWpBand) target = -1;
+    else if (isDel) {
+      target = b.anchorRow ?? (b.linkedRows.length ? b.linkedRows[b.linkedRows.length - 1] : 0);
+    }
     else if (b.linkedRows.length === 0) target = 0;
     else {
       const sorted = [...b.linkedRows].sort((x, y) => x - y);
       target = sorted[Math.floor(sorted.length / 2)];
     }
 
+    // Deliverables must never land on the WP band row (slot -1).
     const minSlot = isDel ? 0 : -1;
     const maxSlot = Math.max(0, numTasks - 1);
     let chosen = Number.NaN;
@@ -173,7 +181,7 @@ function layoutWpBadges(args: {
       }
       if (!Number.isNaN(chosen)) break;
     }
-    if (Number.isNaN(chosen)) chosen = target;
+    if (Number.isNaN(chosen)) chosen = Math.max(minSlot, target);
     mark(chosen, leftX, leftX + shapeW);
 
     // Single-task deliverable → no dot/line per spec.
@@ -293,9 +301,11 @@ function layoutWpBadges(args: {
       const cur = slots[i];
       if (!overlapsAt(i, cur, lx, rx)) continue;
       let found: number | null = null;
+      // Deliverables are clamped to slot ≥ 0 (never the WP band row).
+      const bMin = b.kind === 'del' ? 0 : minS;
       for (let step = 1; step <= range; step++) {
         for (const cand of [cur + step, cur - step]) {
-          if (cand < minS || cand > maxS) continue;
+          if (cand < bMin || cand > maxS) continue;
           if (!overlapsAt(i, cand, lx, rx)) { found = cand; break; }
         }
         if (found != null) break;
@@ -592,9 +602,24 @@ export function GanttChartFigure({
 
       // ── Deliverable badges (one per deliverable). Links: wp_draft_deliverable_tasks.
       const wpDeliverables = deliverables.filter(d => d.wp_draft_id === wp.id && d.due_month != null);
+      const taskNumOf = (id: string) => {
+        const t = taskById.get(id) as any;
+        if (!t) return -Infinity;
+        // task.number may be number or string like "1.5" — use trailing segment.
+        const raw = String(t.number ?? '');
+        const tail = raw.includes('.') ? raw.split('.').pop() : raw;
+        const n = parseInt(tail || '0', 10);
+        return Number.isFinite(n) ? n : -Infinity;
+      };
       const delBadges = wpDeliverables.map(d => {
         const linkedTaskIds = (delToTaskIds.get(d.id) || []).filter(id => taskRowIdxById.has(id));
         const linkedRows = linkedTaskIds.map(id => taskRowIdxById.get(id)!);
+        // Anchor row = row of HIGHEST-NUMBERED linked task within this WP.
+        let anchorRow: number | undefined = undefined;
+        if (linkedTaskIds.length > 0) {
+          const sortedIds = [...linkedTaskIds].sort((a, b) => taskNumOf(b) - taskNumOf(a));
+          anchorRow = taskRowIdxById.get(sortedIds[0]);
+        }
         const wpNum = wpNumberById.get(d.wp_draft_id) ?? wp.number;
         const tooltipParts = [`D${wpNum}.${d.number}: ${d.title || ''}`];
         if (d.type) tooltipParts.push(`Type: ${d.type}`);
@@ -612,6 +637,7 @@ export function GanttChartFigure({
           linkedRows,
           // Origin x is computed in layout (right edge of each linked task's end month).
           linkedTaskIds,
+          anchorRow,
           tooltipTitle: tooltipParts.join(' | '),
         };
       });
