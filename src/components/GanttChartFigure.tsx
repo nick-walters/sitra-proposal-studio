@@ -102,6 +102,7 @@ type WpBadgeOut = WpBadgeIn & {
   pointDepth: number;
   rowIdx: number;          // -1 = WP band
   drawLines: boolean;
+  flipped: boolean;        // deliverable chevron mirrored (tip on left, body extends right)
   origins: Array<{ rowIdx: number; x: number }>;
 };
 
