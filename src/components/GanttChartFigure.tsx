@@ -148,8 +148,9 @@ function layoutWpBadges(args: {
     const bodyW = isDel ? estimateDelW(b.label) : estimateMsW(b.label);
     const shapeW = isDel ? bodyW + pointDepth : bodyW;
     const shapeH = isDel ? 10 : 12;
-    const tipX = (b.dueMonth - 0.5) * cellWidth;
+    const tipX = (b.dueMonth - 0.5) * cellWidth - (isDel ? 5 : 0);
     const leftX = isDel ? tipX - shapeW : tipX;
+
 
     // Median row (or wp-band fallback for MS, or row 0 if unlinked)
     let target: number;
@@ -716,20 +717,19 @@ export function GanttChartFigure({
           continue;
         }
 
-        // Connector origins: every related WP (including primary). Origin x =
-        // LEFT edge of the clamped due-month cell on that WP's band row.
+        // Connector origins: PRIMARY WP ONLY. Origin x = LEFT edge of the
+        // clamped due-month cell on the primary WP's band row.
         const origins: Array<{ globalRow: number; x: number }> = [];
         const linkedGlobalRows: number[] = [];
-        for (const idx of linkedWpIdxs) {
-          const wp: any = workPackages[idx];
-          const slot = rowLayout.wpBandSlot[idx];
-          if (slot == null) continue;
+        {
+          const wp: any = workPackages[primaryIdx];
           const wpEnd = wp.endMonth ?? m.due_month;
           const originMonth = Math.min(wpEnd, m.due_month);
           const x = Math.max(0, (originMonth - 1) * cellWidth);
-          origins.push({ globalRow: slot, x });
-          linkedGlobalRows.push(slot);
+          origins.push({ globalRow: primarySlot, x });
+          linkedGlobalRows.push(primarySlot);
         }
+
 
         items.push({
           key: `ms-${m.id}`,
