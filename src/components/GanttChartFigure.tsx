@@ -107,345 +107,69 @@ type WpBadgeOut = WpBadgeIn & {
   origins: Array<{ rowIdx: number; x: number }>;
 };
 
+// Simplified per-WP deliverable layout (milestones removed from the Gantt).
+//
+//   • Each deliverable is anchored on its SINGLE assigned task's row.
+//   • A dot sits at the horizontal centre of the due-month column.
+//   • The chevron tip sits 5px to the LEFT of the dot (right-pointing).
+//   • If a second deliverable lands on the SAME task, it is FLIPPED:
+//     left-pointing chevron, tip 5px to the RIGHT of the dot.
+//   • Up to two deliverables per task are supported.
 function layoutWpBadges(args: {
   delBadges: WpBadgeIn[];
-  msBadges: WpBadgeIn[];
   tasks: { id: string; startMonth: number; endMonth: number }[];
-  wpEndMonth: number;
   cellWidth: number;
-  preOccupied?: Array<{ slot: number; lx: number; rx: number }>;
 }): WpBadgeOut[] {
-  const { delBadges, msBadges, tasks, wpEndMonth, cellWidth, preOccupied } = args;
-  const numTasks = tasks.length;
+  const { delBadges, tasks, cellWidth } = args;
   const pointDepth = 4;
-  const estimateMsW = (label: string) => Math.max(32, label.length * 7 + 10);
   const estimateDelW = (label: string) => Math.max(25, label.length * 5 + 5);
-
-  const taskById = new Map(tasks.map((t, i) => [t.id, { ...t, rowIdx: i }]));
-
-  const occupied = new Map<number, Array<[number, number]>>();
-  const isFree = (slot: number, lx: number, rx: number) => {
-    const list = occupied.get(slot);
-    if (!list) return true;
-    return list.every(([a, b]) => rx + 2 <= a || lx - 2 >= b);
-  };
-  const mark = (slot: number, lx: number, rx: number) => {
-    const list = occupied.get(slot) || [];
-    list.push([lx, rx]);
-    occupied.set(slot, list);
-  };
-  // Pre-mark slots occupied by badges placed in an earlier pass (e.g. chart-wide milestones).
-  if (preOccupied) for (const p of preOccupied) mark(p.slot, p.lx, p.rx);
-
-
-  // Place earlier-due first; deliverables before milestones at same month.
-  const all = [...delBadges, ...msBadges].sort((a, b) => {
-    if (a.dueMonth !== b.dueMonth) return a.dueMonth - b.dueMonth;
-    return a.kind === 'del' ? -1 : 1;
-  });
-
-  const out: WpBadgeOut[] = [];
-  for (const b of all) {
-    const isDel = b.kind === 'del';
-    const bodyW = isDel ? estimateDelW(b.label) : estimateMsW(b.label);
-    const shapeW = isDel ? bodyW + pointDepth : bodyW;
-    const shapeH = isDel ? 10 : 12;
-    const tipX = (b.dueMonth - 0.5) * cellWidth - (isDel ? 5 : 0);
-    const leftX = isDel ? tipX - shapeW : tipX;
-
-
-    // Target row:
-    //  • milestone with useWpBand → -1 (WP band)
-    //  • deliverable → anchor row = highest-numbered linked task (NEVER band)
-    //  • else → median of linked rows
-    let target: number;
-    if (!isDel && b.useWpBand) target = -1;
-    else if (isDel) {
-      target = b.anchorRow ?? (b.linkedRows.length ? b.linkedRows[b.linkedRows.length - 1] : 0);
-    }
-    else if (b.linkedRows.length === 0) target = 0;
-    else {
-      const sorted = [...b.linkedRows].sort((x, y) => x - y);
-      target = sorted[Math.floor(sorted.length / 2)];
-    }
-
-    // Deliverables must never land on the WP band row (slot -1).
-    const minSlot = isDel ? 0 : -1;
-    const maxSlot = Math.max(0, numTasks - 1);
-    let chosen: number;
-    if (isDel) {
-      // Place deliverables on their anchor row UNCONDITIONALLY here. Same-row
-      // deliverable collisions are resolved by the flip pre-pass below; any
-      // residual conflicts are handled by the vertical-nudge fallback.
-      chosen = Math.min(maxSlot, Math.max(minSlot, target));
-    } else {
-      chosen = Number.NaN;
-      for (let step = 0; step <= numTasks + 2; step++) {
-        const candidates = step === 0 ? [target] : [target + step, target - step];
-        for (const s of candidates) {
-          if (s < minSlot || s > maxSlot) continue;
-          if (isFree(s, leftX, leftX + shapeW)) { chosen = s; break; }
-        }
-        if (!Number.isNaN(chosen)) break;
-      }
-      if (Number.isNaN(chosen)) chosen = Math.max(minSlot, target);
-    }
-    mark(chosen, leftX, leftX + shapeW);
-
-    // Every deliverable draws a straight diagonal line to each linked task's dot.
-    const drawLines = true;
-
-    const origins: Array<{ rowIdx: number; x: number }> = [];
-    if (drawLines) {
-      if (!isDel && b.useWpBand) {
-        // Clamp: origin can't extend past badge's due month.
-        const originMonth = Math.min(wpEndMonth, b.dueMonth);
-        origins.push({ rowIdx: -1, x: Math.max(0, (originMonth - 1) * cellWidth) });
-      } else {
-        for (const tid of b.linkedTaskIds) {
-          const t = taskById.get(tid);
-          if (!t) continue;
-          // originMonth = min(task end month, badge due month) — never past the badge.
-          const originMonth = Math.min(t.endMonth, b.dueMonth);
-          const x = isDel ? originMonth * cellWidth : (originMonth - 1) * cellWidth;
-          origins.push({ rowIdx: t.rowIdx, x });
-        }
-      }
-    }
-
-    out.push({ ...b, tipX, leftX, shapeW, shapeH, bodyW, pointDepth, rowIdx: chosen, drawLines, flipped: false, origins });
-  }
-
-  // ── Flip pre-pass: when two deliverables on the SAME row would overlap at the
-  // same/adjacent time-point, FLIP the higher-numbered one (chevron mirrored,
-  // tip 5px to the RIGHT of the time-point, body extending right). This is the
-  // FIRST resort before the vertical-nudge fallback below.
+  const taskRowById = new Map(tasks.map((t, i) => [t.id, i]));
   const parseDelNum = (s: string) => {
     const m = s.match(/(\d+)(?:\.(\d+))?/);
     if (!m) return 0;
     return (parseInt(m[1], 10) || 0) * 10000 + (parseInt(m[2] || '0', 10) || 0);
   };
-  const rectsOverlap = (a: WpBadgeOut, b2: WpBadgeOut) =>
-    !(a.leftX + a.shapeW + 2 <= b2.leftX || a.leftX >= b2.leftX + b2.shapeW + 2);
-  for (let pass = 0; pass < 10; pass++) {
-    let flipped = false;
-    for (let i = 0; i < out.length; i++) {
-      for (let j = i + 1; j < out.length; j++) {
-        const a = out[i], c = out[j];
-        if (a.kind !== 'del' || c.kind !== 'del') continue;
-        if (a.rowIdx !== c.rowIdx) continue;
-        if (!rectsOverlap(a, c)) continue;
-        // Pick the higher-numbered to flip (if not already flipped).
-        const aN = parseDelNum(a.label), cN = parseDelNum(c.label);
-        const target = aN >= cN ? a : c;
-        if (target.flipped) continue;
-        const newTipX = (target.dueMonth - 0.5) * cellWidth + 5;
-        target.tipX = newTipX;
-        target.leftX = newTipX; // body extends right from tip
-        target.flipped = true;
-        flipped = true;
-      }
+  // Process in numbering order so the lower-numbered deliverable wins the
+  // right-pointing slot and higher-numbered ones flip.
+  const sorted = [...delBadges].sort((a, b) => parseDelNum(a.label) - parseDelNum(b.label));
+  const placedOnTask = new Map<string, number>();
+  const out: WpBadgeOut[] = [];
+  for (const b of sorted) {
+    const bodyW = estimateDelW(b.label);
+    const shapeW = bodyW + pointDepth;
+    const shapeH = 10;
+    const taskId = b.linkedTaskIds[0] ?? null;
+    const rowIdx = taskId != null ? (taskRowById.get(taskId) ?? 0) : 0;
+    const dotX = (b.dueMonth - 0.5) * cellWidth;
+    const count = taskId != null ? (placedOnTask.get(taskId) || 0) : 0;
+    const flipped = count >= 1;
+    let tipX: number;
+    let leftX: number;
+    if (!flipped) {
+      tipX = dotX - 5;
+      leftX = tipX - shapeW;
+    } else {
+      tipX = dotX + 5;
+      leftX = tipX;
     }
-    if (!flipped) break;
+    if (taskId != null) placedOnTask.set(taskId, count + 1);
+    out.push({
+      ...b,
+      tipX,
+      leftX,
+      shapeW,
+      shapeH,
+      bodyW,
+      pointDepth,
+      rowIdx,
+      drawLines: true,
+      flipped,
+      origins: [{ rowIdx, x: dotX }],
+    });
   }
-
-  // Repeat-until-stable overlap resolver, extended so that a deliverable
-  // badge also avoids OTHER deliverables' connector LINES and origin DOTS
-  // (not just other badges). Each iteration recomputes connector obstacles
-  // from current slot positions (connector row-span depends on slot), then
-  // nudges any badge that overlaps a badge, a pre-occupied (cross-type)
-  // slot, or another deliverable's line/dot. Up to 20 iterations.
-  const slots = out.map(b => b.rowIdx);
-  const pre = preOccupied || [];
-  const minS = -1;
-  const maxS = Math.max(0, numTasks - 1);
-  const range = Math.max(1, maxS - minS) + 2;
-  const computeObstacles = () => {
-    const list: Array<{ owner: number; slot: number; lx: number; rx: number }> = [];
-    for (let j = 0; j < out.length; j++) {
-      const bj = out[j];
-      if (bj.kind !== 'del' || !bj.drawLines) continue;
-      const sj = slots[j];
-      for (const o of bj.origins) {
-        // Origin DOT (radius ~2 → ±2px obstacle).
-        list.push({ owner: j, slot: o.rowIdx, lx: o.x - 2, rx: o.x + 2 });
-        // Vertical line segments at originX and tipX span every row
-        // between the origin row and the badge's current slot.
-        const lo = Math.min(o.rowIdx, sj);
-        const hi = Math.max(o.rowIdx, sj);
-        for (let r = lo; r <= hi; r++) {
-          list.push({ owner: j, slot: r, lx: o.x - 1.5, rx: o.x + 1.5 });
-          list.push({ owner: j, slot: r, lx: bj.tipX - 1.5, rx: bj.tipX + 1.5 });
-        }
-      }
-    }
-    return list;
-  };
-  for (let iter = 0; iter < 20; iter++) {
-    const obstacles = computeObstacles();
-    const overlapsAt = (i: number, slot: number, lx: number, rx: number) => {
-      for (let j = 0; j < out.length; j++) {
-        if (j === i) continue;
-        if (slots[j] !== slot) continue;
-        const bj = out[j];
-        if (!(rx + 2 <= bj.leftX || lx - 2 >= bj.leftX + bj.shapeW)) return true;
-      }
-      for (const p of pre) {
-        if (p.slot !== slot) continue;
-        if (!(rx + 2 <= p.lx || lx - 2 >= p.rx)) return true;
-      }
-      for (const o of obstacles) {
-        if (o.owner === i) continue; // a badge may sit on its OWN connector
-        if (o.slot !== slot) continue;
-        if (!(rx + 2 <= o.lx || lx - 2 >= o.rx)) return true;
-      }
-      return false;
-    };
-    let moved = false;
-    for (let i = 0; i < out.length; i++) {
-      const b = out[i];
-      const lx = b.leftX;
-      const rx = b.leftX + b.shapeW;
-      const cur = slots[i];
-      if (!overlapsAt(i, cur, lx, rx)) continue;
-      let found: number | null = null;
-      // Deliverables are clamped to slot ≥ 0 (never the WP band row).
-      const bMin = b.kind === 'del' ? 0 : minS;
-      for (let step = 1; step <= range; step++) {
-        for (const cand of [cur + step, cur - step]) {
-          if (cand < bMin || cand > maxS) continue;
-          if (!overlapsAt(i, cand, lx, rx)) { found = cand; break; }
-        }
-        if (found != null) break;
-      }
-      if (found != null && found !== cur) {
-        slots[i] = found;
-        moved = true;
-      }
-    }
-    if (!moved) break;
-  }
-  out.forEach((b, i) => { b.rowIdx = slots[i]; });
-
   return out;
 }
 
-// Generic repeat-until-stable overlap resolver. Treats each `items[i]` as a
-// placed rectangle in (slot, [lx, rx]) space. Repeatedly nudges any item that
-// overlaps another item OR a `preOccupied` rect (cross-type awareness). Returns
-// the final slot for each item in the same order.
-function iterateOverlapResolution(
-  items: Array<{ slot: number; lx: number; rx: number }>,
-  preOccupied: Array<{ slot: number; lx: number; rx: number }>,
-  minSlot: number,
-  maxSlot: number,
-  maxIter = 20,
-): number[] {
-  const slots = items.map(i => i.slot);
-  const overlaps = (slot: number, lx: number, rx: number, ignoreIdx: number) => {
-    for (let j = 0; j < items.length; j++) {
-      if (j === ignoreIdx) continue;
-      if (slots[j] !== slot) continue;
-      const b = items[j];
-      if (!(rx + 2 <= b.lx || lx - 2 >= b.rx)) return true;
-    }
-    for (const p of preOccupied) {
-      if (p.slot !== slot) continue;
-      if (!(rx + 2 <= p.lx || lx - 2 >= p.rx)) return true;
-    }
-    return false;
-  };
-  const range = Math.max(1, maxSlot - minSlot) + 2;
-  for (let iter = 0; iter < maxIter; iter++) {
-    let moved = false;
-    for (let i = 0; i < items.length; i++) {
-      const { lx, rx } = items[i];
-      const cur = slots[i];
-      if (!overlaps(cur, lx, rx, i)) continue;
-      // Search outward from current slot for the nearest non-colliding row.
-      let found: number | null = null;
-      for (let step = 1; step <= range; step++) {
-        for (const cand of [cur + step, cur - step]) {
-          if (cand < minSlot || cand > maxSlot) continue;
-          if (!overlaps(cand, lx, rx, i)) { found = cand; break; }
-        }
-        if (found != null) break;
-      }
-      if (found != null && found !== cur) {
-        slots[i] = found;
-        moved = true;
-      }
-    }
-    if (!moved) break;
-  }
-  return slots;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Chart-wide milestone layout.
-// Each milestone renders EXACTLY ONCE across the whole chart.
-// Anchor row = the milestone's PRIMARY WP band slot (no median calculation).
-// Hexagon left tip sits 5px to the right of the right edge of the due-month cell
-// (so the primary WP's own connector line is visible as a short horizontal run).
-// Nudge vertically only when needed to avoid overlapping another milestone body.
-// ─────────────────────────────────────────────────────────────────────────────
-type ChartMsIn = {
-  key: string;
-  label: string;
-  dueMonth: number;
-  primaryGlobalRow: number;
-  linkedGlobalRows: number[];
-  origins: Array<{ globalRow: number; x: number }>;
-  tooltipTitle: string;
-};
-type ChartMsOut = ChartMsIn & {
-  tipX: number; leftX: number; shapeW: number; shapeH: number; globalRow: number;
-};
-function layoutChartMilestones(items: ChartMsIn[], totalRows: number, cellWidth: number): ChartMsOut[] {
-  const estimateW = (l: string) => Math.max(32, l.length * 7 + 10);
-  const shapeH = 12;
-  const HEX_GAP = 5; // px to the right of the due-month cell's right edge
-  const occupied: Array<Array<[number, number]>> = Array.from({ length: Math.max(1, totalRows) }, () => []);
-  const isFree = (s: number, lx: number, rx: number) => {
-    if (s < 0 || s >= totalRows) return false;
-    return occupied[s].every(([a, b]) => rx + 2 <= a || lx - 2 >= b);
-  };
-  const mark = (s: number, lx: number, rx: number) => {
-    if (s >= 0 && s < totalRows) occupied[s].push([lx, rx]);
-  };
-  const sorted = items.slice().sort((a, b) => a.dueMonth - b.dueMonth);
-  const out: ChartMsOut[] = [];
-  for (const m of sorted) {
-    const shapeW = estimateW(m.label);
-    const leftX = m.dueMonth * cellWidth + HEX_GAP; // right edge of due cell + gap
-    const tipX = leftX;
-    const target = m.primaryGlobalRow;
-    let chosen = Number.NaN;
-    for (let step = 0; step <= totalRows + 2; step++) {
-      const cands = step === 0 ? [target] : [target + step, target - step];
-      for (const s of cands) {
-        if (isFree(s, leftX, leftX + shapeW)) { chosen = s; break; }
-      }
-      if (!Number.isNaN(chosen)) break;
-    }
-    if (Number.isNaN(chosen)) chosen = target;
-    mark(chosen, leftX, leftX + shapeW);
-    out.push({ ...m, tipX, leftX, shapeW, shapeH, globalRow: chosen });
-  }
-
-  // Repeat-until-stable resolver — same approach as per-WP layout, applied to
-  // the chart-wide MS pass. MS is the first pass overall, so there is nothing
-  // pre-occupied at this stage; deliverables (second pass) avoid the resulting
-  // MS positions via their own preOccupied list and iterate again themselves.
-  iterateOverlapResolution(
-    out.map(m => ({ slot: m.globalRow, lx: m.leftX, rx: m.leftX + m.shapeW })),
-    [],
-    /*minSlot*/ 0,
-    /*maxSlot*/ Math.max(0, totalRows - 1),
-  ).forEach((slot, i) => { out[i].globalRow = slot; });
-
-  return out;
-}
 
 
 
@@ -753,69 +477,8 @@ export function GanttChartFigure({
     return { wpBandSlot, taskSlotByTaskId, slotCenterY, totalSlots: nextSlot, totalHeight: y };
   }, [workPackages, wpDraftsData]);
 
-  // Chart-wide milestone items (one per milestone).
-  const chartMilestones = useMemo(() => {
-    if (!wpDraftsData) return [] as ChartMsOut[];
-    const { milestones: msRows, msToWpIds, msPrimaryWpId } = wpDraftsData;
-    const items: ChartMsIn[] = [];
-    for (const m of msRows) {
-      try {
-        if (m.due_month == null) continue;
-        const linkedWpIds = msToWpIds.get(m.id) || [];
-        if (linkedWpIds.length === 0) continue;
+  // Milestones are no longer rendered on the Gantt.
 
-        // Resolve the primary WP; fall back to the lowest-numbered related WP.
-        const primaryFromDb = msPrimaryWpId.get(m.id);
-        const linkedWpIdxs = linkedWpIds
-          .map(id => workPackages.findIndex((wp: any) => wp.id === id))
-          .filter(i => i >= 0);
-        if (linkedWpIdxs.length === 0) continue;
-        let primaryIdx = primaryFromDb
-          ? workPackages.findIndex((wp: any) => wp.id === primaryFromDb)
-          : -1;
-        if (primaryIdx < 0 || !linkedWpIdxs.includes(primaryIdx)) {
-          primaryIdx = linkedWpIdxs
-            .slice()
-            .sort((a, b) => (workPackages[a].number ?? 0) - (workPackages[b].number ?? 0))[0];
-        }
-        const primarySlot = rowLayout.wpBandSlot[primaryIdx];
-        if (primarySlot == null) {
-          // No band slot resolved for the primary WP — skip gracefully rather
-          // than crashing the whole figure.
-          continue;
-        }
-
-        // Connector origins: PRIMARY WP ONLY. Origin x = LEFT edge of the
-        // clamped due-month cell on the primary WP's band row.
-        const origins: Array<{ globalRow: number; x: number }> = [];
-        const linkedGlobalRows: number[] = [];
-        {
-          const wp: any = workPackages[primaryIdx];
-          const wpEnd = wp.endMonth ?? m.due_month;
-          const originMonth = Math.min(wpEnd, m.due_month);
-          const x = Math.max(0, (originMonth - 1) * cellWidth);
-          origins.push({ globalRow: primarySlot, x });
-          linkedGlobalRows.push(primarySlot);
-        }
-
-
-        items.push({
-          key: `ms-${m.id}`,
-          label: `MS${m.number}`,
-          dueMonth: m.due_month,
-          primaryGlobalRow: primarySlot,
-          linkedGlobalRows,
-          origins,
-          tooltipTitle: `MS${m.number}: ${m.title || ''}`,
-        });
-      } catch (err) {
-        // Defensive: never let a single malformed milestone crash the Gantt.
-        // eslint-disable-next-line no-console
-        console.warn('[Gantt] Skipping milestone due to error:', m?.id, err);
-      }
-    }
-    return layoutChartMilestones(items, rowLayout.totalSlots, cellWidth);
-  }, [wpDraftsData, rowLayout, workPackages, cellWidth]);
 
 
 
@@ -984,27 +647,13 @@ export function GanttChartFigure({
               .filter(t => t.wp_draft_id === wp.id)
               .filter(t => t.start_month == null || t.end_month == null);
 
-            // Cross-type collision: chart-wide milestones are laid out first; this
-            // per-WP deliverable pass must avoid any milestone that landed on this
-            // WP's band or one of its task rows. Convert global slots → local rowIdx.
-            const bandSlot = rowLayout.wpBandSlot[wpIdx];
-            const taskSlotsLocal = wp.tasks.map((t: any) => rowLayout.taskSlotByTaskId.get(t.id));
-            const preOccupied = chartMilestones.flatMap((m) => {
-              if (m.globalRow === bandSlot) return [{ slot: -1, lx: m.leftX, rx: m.leftX + m.shapeW }];
-              const i = taskSlotsLocal.indexOf(m.globalRow);
-              if (i >= 0) return [{ slot: i, lx: m.leftX, rx: m.leftX + m.shapeW }];
-              return [];
-            });
-
             // Compute badge layout (rebuilt every render — cheap)
             const laidOut = layoutWpBadges({
               delBadges: wp.delBadges,
-              msBadges: wp.msBadges,
               tasks: wp.tasks.map((t: any) => ({ id: t.id, startMonth: t.startMonth, endMonth: t.endMonth })),
-              wpEndMonth: wp.endMonth,
               cellWidth,
-              preOccupied,
             });
+
 
             // Y coordinates relative to the per-WP overlay container.
             // Overlay top = top of WP band; band centre = ROW/2;
@@ -1057,21 +706,32 @@ export function GanttChartFigure({
                       >
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', maxWidth: '100%' }}>{task.name}</span>
                       </div>
-                      <div className="flex" style={{ marginRight: MARGIN_GAP }}>
-                        {months.map(m => {
-                          const isInTask = m >= task.startMonth && m <= task.endMonth;
-                          return (
-                            <div
-                              key={m}
-                              style={{
-                                width: cellWidth,
-                                height: ROW_HEIGHT,
-                                backgroundColor: isInTask ? taskColor : undefined,
-                                borderRight: isInTask ? getFilledCellRightBorder(m, wpColor) : `1px solid ${getMonthRightBorder(m, wpColor)}`,
-                              }}
-                            />
-                          );
-                        })}
+                      <div className="relative flex" style={{ marginRight: MARGIN_GAP }}>
+                        {months.map(m => (
+                          <div
+                            key={m}
+                            style={{
+                              width: cellWidth,
+                              height: ROW_HEIGHT,
+                              borderRight: `1px solid ${getMonthRightBorder(m, wpColor)}`,
+                            }}
+                          />
+                        ))}
+                        {task.startMonth != null && task.endMonth != null && task.endMonth >= task.startMonth && (
+                          <div
+                            aria-hidden="true"
+                            style={{
+                              position: 'absolute',
+                              top: '5%',
+                              height: '90%',
+                              left: (task.startMonth - 1) * cellWidth,
+                              width: (task.endMonth - task.startMonth + 1) * cellWidth,
+                              backgroundColor: taskColor,
+                              borderRadius: 9999,
+                              pointerEvents: 'none',
+                            }}
+                          />
+                        )}
                       </div>
                     </div>
                   ))}
@@ -1133,8 +793,8 @@ export function GanttChartFigure({
                           const d = `M ${o.x} ${oy} L ${b.tipX} ${ty}`;
                           return (
                             <g key={`${b.key}-l${oi}`}>
-                              <path d={d} stroke={lineColor} strokeWidth={1} fill="none" strokeLinecap="square" strokeLinejoin="miter" />
-                              <circle cx={o.x} cy={oy} r={2} fill={lineColor} stroke={lineColor} strokeWidth={0.5} />
+                              <path d={d} stroke={lineColor} strokeWidth={0.33} fill="none" strokeLinecap="square" strokeLinejoin="miter" />
+                              <circle cx={o.x} cy={oy} r={2} fill={lineColor} stroke="none" />
 
                             </g>
                           );
@@ -1233,102 +893,8 @@ export function GanttChartFigure({
             );
           })}
 
-          {/* Chart-wide milestone overlay — one badge per milestone */}
-          <div
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: labelWidth,
-              width: overlayWidth,
-              height: rowLayout.totalHeight,
-              pointerEvents: 'none',
-              zIndex: 5,
-            }}
-          >
-            <svg
-              width={overlayWidth}
-              height={rowLayout.totalHeight}
-              style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}
-            >
-              {chartMilestones.flatMap((m) => {
-                const ty = rowLayout.slotCenterY[m.globalRow];
-                if (ty == null) return [];
-                return m.origins.map((o, oi) => {
-                  const oy = rowLayout.slotCenterY[o.globalRow];
-                  if (oy == null) return null;
-                  // Straight diagonal line from diamond origin to hexagon tip.
-                  const d = `M ${o.x} ${oy} L ${m.tipX} ${ty}`;
-                  return (
-                    <g key={`${m.key}-l${oi}`}>
-                      <path d={d} stroke="#000000" strokeWidth={1} fill="none" strokeLinecap="square" strokeLinejoin="miter" />
-                      {/* Milestone origin marker: diamond (rotated square), 50% larger than prior dot (1.5 → 2.25). */}
-                      <path d={`M ${o.x - 2.25} ${oy} L ${o.x} ${oy - 2.25} L ${o.x + 2.25} ${oy} L ${o.x} ${oy + 2.25} Z`} fill="#000000" />
-                    </g>
-                  );
-                });
-              })}
-            </svg>
-            {chartMilestones.map((m) => {
-              const ty = rowLayout.slotCenterY[m.globalRow];
-              if (ty == null) return null;
-              const x1 = m.shapeW * 0.12;
-              const x2 = m.shapeW * 0.88;
-              const path = `M ${x1},0 L ${x2},0 L ${m.shapeW},${m.shapeH / 2} L ${x2},${m.shapeH} L ${x1},${m.shapeH} L 0,${m.shapeH / 2} Z`;
-              return (
-                <Tooltip key={m.key}>
-                  <TooltipTrigger asChild>
-                    <span
-                      style={{
-                        position: 'absolute',
-                        top: ty,
-                        left: m.leftX,
-                        transform: 'translateY(-50%)',
-                        width: m.shapeW,
-                        height: m.shapeH,
-                        zIndex: 10,
-                        pointerEvents: 'auto',
-                      }}
-                    >
-                      <svg
-                        width={m.shapeW}
-                        height={m.shapeH}
-                        viewBox={`0 0 ${m.shapeW} ${m.shapeH}`}
-                        style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}
-                      >
-                        <path d={path} fill="#000000" />
-                      </svg>
-                      <span
-                        style={{
-                          position: 'absolute',
-                          top: 0,
-                          left: 0,
-                          width: m.shapeW,
-                          height: m.shapeH,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontFamily: "'Times New Roman', Times, serif",
-                          fontSize: '8pt',
-                          fontWeight: 700,
-                          lineHeight: 1,
-                          color: '#ffffff',
-                          whiteSpace: 'nowrap',
-                          padding: '0 4px',
-                          boxSizing: 'border-box',
-                        }}
-                      >
-                        {m.label}
-                      </span>
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="text-xs font-medium">{m.tooltipTitle}</p>
-                    <p className="text-xs text-muted-foreground">Month {m.dueMonth}</p>
-                  </TooltipContent>
-                </Tooltip>
-              );
-            })}
-          </div>
+          {/* Milestones are intentionally not rendered on the Gantt. */}
+
           </div>
 
 

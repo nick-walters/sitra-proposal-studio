@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Package, Plus, GripVertical, ArrowRight, ArrowUpDown } from 'lucide-react';
@@ -285,7 +285,7 @@ export function WPDeliverablesTable({
                   <th style={{ width: '80px' }} className="whitespace-normal align-bottom">Type</th>
                   <th style={{ width: '76px' }} className="whitespace-normal align-bottom">Dissemination level</th>
                   <th style={{ width: '70px' }} className="whitespace-normal align-bottom">Partner</th>
-                  <th style={{ width: '140px' }} className="whitespace-normal align-bottom">Assign to task(s)</th>
+                  <th style={{ width: '140px' }} className="whitespace-normal align-bottom">Assign to task</th>
                   <th style={{ width: '62px' }} className="whitespace-normal align-bottom">Due month</th>
                   <th style={{ width: '25px' }} className="align-bottom"></th>
                 </tr>
@@ -466,7 +466,7 @@ function DeliverableRow({
         </Select>
       </td>
 
-      {/* Related task(s) */}
+      {/* Related task */}
       <td className="py-1.5 px-1">
         <DeliverableTaskDialog
           wpNumber={wpNumber}
@@ -483,10 +483,10 @@ function DeliverableRow({
               className="w-full min-h-7 px-1.5 py-1 border border-input rounded-md bg-background text-left hover:bg-accent disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {selectedTasks.length === 0 ? (
-                <span className="text-muted-foreground italic">Select task(s)…</span>
+                <span className="text-muted-foreground italic">Select task…</span>
               ) : (
                 <span className="flex flex-wrap gap-0.5">
-                  {selectedTasks.map(t => (
+                  {selectedTasks.slice(0, 1).map(t => (
                     <B31Pill key={t.id} variant="outline" color={wpColor}>
                       T{wpNumber}.{t.number}
                     </B31Pill>
@@ -548,7 +548,7 @@ function DeliverableRow({
   );
 }
 
-// ── Task-assignment dialog: only THIS WP shown, checked & disabled ──
+// ── Task-assignment dialog: single-select (radio) within THIS WP ──
 function DeliverableTaskDialog({
   wpNumber, wpColor, wpTasks, selectedTaskIds, disabled, onSave, renderTrigger,
 }: {
@@ -561,15 +561,13 @@ function DeliverableTaskDialog({
   renderTrigger: (open: () => void) => React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState<string[]>(selectedTaskIds);
+  const [draft, setDraft] = useState<string | null>(selectedTaskIds[0] ?? null);
 
   useEffect(() => {
-    if (open) setDraft(selectedTaskIds);
+    if (open) setDraft(selectedTaskIds[0] ?? null);
   }, [open, selectedTaskIds]);
 
-  const toggle = (id: string) => {
-    setDraft(prev => prev.includes(id) ? prev.filter(t => t !== id) : [...prev, id]);
-  };
+  const radioName = `del-task-${wpNumber}`;
 
   return (
     <>
@@ -577,15 +575,14 @@ function DeliverableTaskDialog({
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Related task(s)</DialogTitle>
+            <DialogTitle>Related task</DialogTitle>
           </DialogHeader>
           <p className="text-xs text-muted-foreground -mt-1">
-            Pick the tasks this deliverable depends on. Selections are stored for the future Gantt chart.
+            Pick the single task this deliverable depends on.
           </p>
           <div className="max-h-[60vh] overflow-y-auto space-y-1 pr-1">
             <div className="rounded border border-border/40">
               <label className="flex items-center gap-2 px-2 py-1.5 opacity-90">
-                <Checkbox checked disabled />
                 <WPBubble wpNumber={wpNumber} wpColor={wpColor} />
                 <span className="text-xs text-muted-foreground italic">(this deliverable's WP)</span>
               </label>
@@ -595,9 +592,11 @@ function DeliverableTaskDialog({
                 )}
                 {wpTasks.map(t => (
                   <label key={t.id} className="flex items-center gap-2 py-1 rounded hover:bg-accent cursor-pointer">
-                    <Checkbox
-                      checked={draft.includes(t.id)}
-                      onCheckedChange={() => toggle(t.id)}
+                    <input
+                      type="radio"
+                      name={radioName}
+                      checked={draft === t.id}
+                      onChange={() => setDraft(t.id)}
                     />
                     <B31Pill variant="outline" color={wpColor}>
                       T{wpNumber}.{t.number}
@@ -606,17 +605,29 @@ function DeliverableTaskDialog({
                   </label>
                 ))}
               </div>
+              {draft !== null && (
+                <div className="px-2 pb-2">
+                  <button
+                    type="button"
+                    className="text-xs text-muted-foreground underline hover:text-foreground"
+                    onClick={() => setDraft(null)}
+                  >
+                    Clear selection
+                  </button>
+                </div>
+              )}
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={() => { onSave(draft); setOpen(false); }}>Save</Button>
+            <Button onClick={() => { onSave(draft ? [draft] : []); setOpen(false); }}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
   );
 }
+
 
 // ── Same-month reorder dialog ──
 function SameMonthReorderDialog({
