@@ -172,16 +172,24 @@ function layoutWpBadges(args: {
     // Deliverables must never land on the WP band row (slot -1).
     const minSlot = isDel ? 0 : -1;
     const maxSlot = Math.max(0, numTasks - 1);
-    let chosen = Number.NaN;
-    for (let step = 0; step <= numTasks + 2; step++) {
-      const candidates = step === 0 ? [target] : [target + step, target - step];
-      for (const s of candidates) {
-        if (s < minSlot || s > maxSlot) continue;
-        if (isFree(s, leftX, leftX + shapeW)) { chosen = s; break; }
+    let chosen: number;
+    if (isDel) {
+      // Place deliverables on their anchor row UNCONDITIONALLY here. Same-row
+      // deliverable collisions are resolved by the flip pre-pass below; any
+      // residual conflicts are handled by the vertical-nudge fallback.
+      chosen = Math.min(maxSlot, Math.max(minSlot, target));
+    } else {
+      chosen = Number.NaN;
+      for (let step = 0; step <= numTasks + 2; step++) {
+        const candidates = step === 0 ? [target] : [target + step, target - step];
+        for (const s of candidates) {
+          if (s < minSlot || s > maxSlot) continue;
+          if (isFree(s, leftX, leftX + shapeW)) { chosen = s; break; }
+        }
+        if (!Number.isNaN(chosen)) break;
       }
-      if (!Number.isNaN(chosen)) break;
+      if (Number.isNaN(chosen)) chosen = Math.max(minSlot, target);
     }
-    if (Number.isNaN(chosen)) chosen = Math.max(minSlot, target);
     mark(chosen, leftX, leftX + shapeW);
 
     // Single-task deliverable → no dot/line per spec.
