@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { WPBubble, B31Pill, RiskBadge } from '@/components/B31Pill';
 import { SingleMonthPicker } from '@/components/SingleMonthPicker';
-import { Plus, Trash2, ChevronsUpDown, ChevronDown, ChevronRight, GripVertical, ArrowUpDown } from 'lucide-react';
+import { Plus, Trash2, ChevronsUpDown, ChevronDown, ChevronRight, GripVertical, ArrowUpDown, Check, Star } from 'lucide-react';
 import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
 import {
   DndContext,
