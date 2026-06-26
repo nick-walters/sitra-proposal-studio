@@ -1041,8 +1041,9 @@ export function GanttChartFigure({
                   const d = `M ${o.x} ${oy} L ${m.tipX} ${oy} L ${m.tipX} ${ty}`;
                   return (
                     <g key={`${m.key}-l${oi}`}>
-                      <path d={d} stroke="#555" strokeWidth={1} fill="none" strokeLinecap="square" strokeLinejoin="miter" />
-                      <circle cx={o.x} cy={oy} r={1.5} fill="#555" />
+                      <path d={d} stroke="#000000" strokeWidth={1} fill="none" strokeLinecap="square" strokeLinejoin="miter" />
+                      {/* Milestone origin marker: diamond (rotated square) sized to match the prior dot. */}
+                      <path d={`M ${o.x - 1.5} ${oy} L ${o.x} ${oy - 1.5} L ${o.x + 1.5} ${oy} L ${o.x} ${oy + 1.5} Z`} fill="#000000" />
                     </g>
                   );
                 });
