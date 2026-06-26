@@ -529,7 +529,7 @@ export function GanttChartFigure({
   const dynamicData = useMemo(() => {
     if (!wpDraftsData) return { workPackages: [] as any[], milestones: [] as Milestone[] };
 
-    const { wps, tasks, deliverables, milestones: msRows, participants, delToTaskIds, msToWpIds, msToTaskIds } = wpDraftsData;
+    const { wps, tasks, deliverables, milestones: msRows, participants, delToTaskIds, msToWpIds } = wpDraftsData;
 
     const partMap = new Map(participants.map(p => [p.id, p.organisation_short_name || `P${p.participant_number}`]));
     const wpNumberById = new Map(wps.map(wp => [wp.id, wp.number]));
