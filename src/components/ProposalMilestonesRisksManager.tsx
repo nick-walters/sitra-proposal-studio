@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { WPBubble, B31Pill, RiskBadge } from '@/components/B31Pill';
 import { SingleMonthPicker } from '@/components/SingleMonthPicker';
-import { Plus, Trash2, ChevronsUpDown, ChevronDown, ChevronRight, GripVertical, ArrowUpDown } from 'lucide-react';
+import { Plus, Trash2, ChevronsUpDown, ChevronDown, ChevronRight, GripVertical, ArrowUpDown, Check, Star } from 'lucide-react';
 import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
 import {
   DndContext,
@@ -60,7 +60,7 @@ interface Milestone {
   means_of_verification: string | null;
   order_index: number;
   wp_ids: string[];
-  task_ids: string[];
+  primary_wp_id: string | null;
 }
 interface Risk {
   id: string;
@@ -169,30 +169,21 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
         .order('order_index')
         .order('number');
       const ids = (rows || []).map((r: any) => r.id);
-      const [wpLinksRes, taskLinksRes] = await Promise.all([
-        ids.length
-          ? supabase.from('proposal_milestone_wps').select('milestone_id, wp_draft_id').in('milestone_id', ids)
-          : Promise.resolve({ data: [] as any[] }),
-        ids.length
-          ? supabase.from('proposal_milestone_tasks').select('milestone_id, wp_draft_task_id').in('milestone_id', ids)
-          : Promise.resolve({ data: [] as any[] }),
-      ]);
+      const wpLinksRes = ids.length
+        ? await supabase.from('proposal_milestone_wps').select('milestone_id, wp_draft_id, is_primary').in('milestone_id', ids)
+        : { data: [] as any[] };
       const wpMap = new Map<string, string[]>();
-      for (const l of wpLinksRes.data || []) {
+      const primaryMap = new Map<string, string | null>();
+      for (const l of (wpLinksRes.data || []) as any[]) {
         const a = wpMap.get(l.milestone_id) || [];
         a.push(l.wp_draft_id);
         wpMap.set(l.milestone_id, a);
-      }
-      const taskMap = new Map<string, string[]>();
-      for (const l of taskLinksRes.data || []) {
-        const a = taskMap.get(l.milestone_id) || [];
-        a.push(l.wp_draft_task_id);
-        taskMap.set(l.milestone_id, a);
+        if (l.is_primary) primaryMap.set(l.milestone_id, l.wp_draft_id);
       }
       return (rows || []).map((r: any) => ({
         ...r,
         wp_ids: wpMap.get(r.id) || [],
-        task_ids: taskMap.get(r.id) || [],
+        primary_wp_id: primaryMap.get(r.id) ?? null,
       }));
     },
   });
@@ -334,23 +325,14 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
     onSuccess: () => { qc.invalidateQueries({ queryKey: MS_KEY(proposalId) }); notifyRefs(); },
   });
 
-  const setMsWpsAndTasks = useMutation({
-    mutationFn: async ({ id, wpIds, taskIds }: { id: string; wpIds: string[]; taskIds: string[] }) => {
+  const setMsWps = useMutation({
+    mutationFn: async ({ id, wpIds, primaryWpId }: { id: string; wpIds: string[]; primaryWpId: string | null }) => {
       await supabase.from('proposal_milestone_wps').delete().eq('milestone_id', id);
       if (wpIds.length > 0) {
+        const effectivePrimary = primaryWpId && wpIds.includes(primaryWpId) ? primaryWpId : wpIds[0];
         const { error } = await supabase
           .from('proposal_milestone_wps')
-          .insert(wpIds.map(w => ({ milestone_id: id, wp_draft_id: w })));
-        if (error) throw error;
-      }
-      await supabase.from('proposal_milestone_tasks').delete().eq('milestone_id', id);
-      // Only keep tasks whose WP is checked
-      const allowed = new Set(tasks.filter(t => wpIds.includes(t.wp_draft_id)).map(t => t.id));
-      const kept = taskIds.filter(t => allowed.has(t));
-      if (kept.length > 0) {
-        const { error } = await supabase
-          .from('proposal_milestone_tasks')
-          .insert(kept.map(t => ({ milestone_id: id, wp_draft_task_id: t })));
+          .insert(wpIds.map(w => ({ milestone_id: id, wp_draft_id: w, is_primary: w === effectivePrimary })));
         if (error) throw error;
       }
     },
@@ -466,13 +448,12 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
                         />
                       </td>
                       <td className="py-1.5 px-1">
-                        <MilestoneWpTaskDialog
+                        <MilestoneWpDialog
                           wps={wps}
-                          tasks={tasks}
                           selectedWpIds={m.wp_ids}
-                          selectedTaskIds={m.task_ids}
+                          primaryWpId={m.primary_wp_id}
                           disabled={!canEdit}
-                          onSave={(wpIds, taskIds) => setMsWpsAndTasks.mutate({ id: m.id, wpIds, taskIds })}
+                          onSave={(wpIds, primaryWpId) => setMsWps.mutate({ id: m.id, wpIds, primaryWpId })}
                           renderTrigger={(open) => (
                             <button
                               type="button"
@@ -483,8 +464,15 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
                               {selectedWps.length === 0 ? (
                                 <span className="text-muted-foreground italic">Select WP(s)…</span>
                               ) : (
-                                <span className="flex flex-wrap gap-0.5">
-                                  {selectedWps.map(wp => <WPBubble key={wp.id} wpNumber={wp.number} wpColor={wp.color} />)}
+                                <span className="flex flex-wrap gap-0.5 items-center">
+                                  {selectedWps.map(wp => (
+                                    <span key={wp.id} className="inline-flex items-center gap-0.5">
+                                      <WPBubble wpNumber={wp.number} wpColor={wp.color} />
+                                      {wp.id === m.primary_wp_id && (
+                                        <Star className="h-3 w-3 text-amber-500 fill-amber-400" aria-label="Primary WP" />
+                                      )}
+                                    </span>
+                                  ))}
                                 </span>
                               )}
                             </button>
@@ -696,6 +684,8 @@ function MilestonesGuidelinesInline() {
     <div className="text-xs text-muted-foreground space-y-1.5 pt-1">
       <p>
         This list is mirrored to Table 3.1.d (List of milestones). Milestones are automatically ordered by due month.
+        Each milestone is linked to one or more work packages (no tasks); one of those WPs is marked the
+        <strong> primary WP</strong>, which is the row the milestone sits on in the Gantt chart.
       </p>
       <p>
         <span className="font-medium text-foreground">Milestone:</span> control points in the project that help to
@@ -791,61 +781,58 @@ function WPMultiSelect({
   );
 }
 
-// ── Combined WP + Tasks dialog for milestones ───────────────────
-function MilestoneWpTaskDialog({
-  wps, tasks, selectedWpIds, selectedTaskIds, disabled, onSave, renderTrigger,
+// ── WP-only dialog for milestones (related + primary) ───────────
+function MilestoneWpDialog({
+  wps, selectedWpIds, primaryWpId, disabled, onSave, renderTrigger,
 }: {
   wps: WPRow[];
-  tasks: TaskRow[];
   selectedWpIds: string[];
-  selectedTaskIds: string[];
+  primaryWpId: string | null;
   disabled?: boolean;
-  onSave: (wpIds: string[], taskIds: string[]) => void;
+  onSave: (wpIds: string[], primaryWpId: string | null) => void;
   renderTrigger: (open: () => void) => React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const [draftWps, setDraftWps] = useState<string[]>(selectedWpIds);
-  const [draftTasks, setDraftTasks] = useState<string[]>(selectedTaskIds);
+  const [draftPrimary, setDraftPrimary] = useState<string | null>(primaryWpId);
 
-  // Reset draft when reopening
   useEffect(() => {
     if (open) {
       setDraftWps(selectedWpIds);
-      setDraftTasks(selectedTaskIds);
+      setDraftPrimary(primaryWpId);
     }
-  }, [open, selectedWpIds, selectedTaskIds]);
+  }, [open, selectedWpIds, primaryWpId]);
 
   const orderedWps = useMemo(() => [...wps].sort((a, b) => a.number - b.number), [wps]);
-  const tasksByWp = useMemo(() => {
-    const m = new Map<string, TaskRow[]>();
-    for (const t of tasks) {
-      const arr = m.get(t.wp_draft_id) || [];
-      arr.push(t);
-      m.set(t.wp_draft_id, arr);
-    }
-    for (const arr of m.values()) arr.sort((a, b) => a.number - b.number);
-    return m;
-  }, [tasks]);
 
   const toggleWp = (wp: WPRow) => {
     if (draftWps.includes(wp.id)) {
-      setDraftWps(draftWps.filter(x => x !== wp.id));
-      // Clear that WP's tasks
-      const taskIds = new Set((tasksByWp.get(wp.id) || []).map(t => t.id));
-      setDraftTasks(draftTasks.filter(t => !taskIds.has(t)));
+      const next = draftWps.filter(x => x !== wp.id);
+      setDraftWps(next);
+      // Unchecked WP clears primary if it was the primary;
+      // auto-pick the lowest remaining checked WP as the new primary.
+      if (draftPrimary === wp.id) {
+        const fallback = orderedWps.find(w => next.includes(w.id));
+        setDraftPrimary(fallback ? fallback.id : null);
+      }
     } else {
-      setDraftWps([...draftWps, wp.id]);
+      const next = [...draftWps, wp.id];
+      setDraftWps(next);
+      // First-checked WP becomes primary by default.
+      if (!draftPrimary) setDraftPrimary(wp.id);
     }
   };
 
-  const toggleTask = (taskId: string) => {
-    setDraftTasks(draftTasks.includes(taskId)
-      ? draftTasks.filter(t => t !== taskId)
-      : [...draftTasks, taskId]);
+  const setPrimary = (wpId: string) => {
+    if (!draftWps.includes(wpId)) return; // only checked WPs can be primary
+    setDraftPrimary(wpId);
   };
 
   const save = () => {
-    onSave(draftWps, draftTasks);
+    const effective = draftPrimary && draftWps.includes(draftPrimary)
+      ? draftPrimary
+      : (draftWps[0] ?? null);
+    onSave(draftWps, effective);
     setOpen(false);
   };
 
@@ -853,53 +840,57 @@ function MilestoneWpTaskDialog({
     <>
       {renderTrigger(() => !disabled && setOpen(true))}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-xl">
           <DialogHeader>
-            <DialogTitle>Related WPs &amp; tasks</DialogTitle>
+            <DialogTitle>Related work packages</DialogTitle>
           </DialogHeader>
-          <div className="text-xs text-muted-foreground -mt-1 space-y-2">
-            <p>The related WPs are shown in Table 3.1.d (List of milestones).</p>
-            <p>The related tasks illustrate task interactions/bottlenecks in Figure 3.1.b (Gantt chart).</p>
+          <div className="text-xs text-muted-foreground -mt-1 space-y-1">
+            <p>Tick the WPs related to this milestone, then mark one as the <strong>primary</strong> WP.</p>
+            <p>The primary WP determines which row the milestone sits on in the Gantt chart.</p>
           </div>
-          <div className="max-h-[60vh] overflow-y-auto space-y-1 pr-1">
-            {orderedWps.length === 0 && (
+          <div className="max-h-[60vh] overflow-y-auto pr-1">
+            {orderedWps.length === 0 ? (
               <div className="text-sm text-muted-foreground italic py-2">No work packages defined yet.</div>
-            )}
-            {orderedWps.map(wp => {
-              const wpChecked = draftWps.includes(wp.id);
-              const wpTasks = tasksByWp.get(wp.id) || [];
-              return (
-                <div key={wp.id} className="rounded border border-border/40">
-                  <label className="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-accent">
-                    <span className="w-4 flex justify-center text-muted-foreground">
-                      {wpChecked ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-                    </span>
-                    <Checkbox checked={wpChecked} onCheckedChange={() => toggleWp(wp)} />
-                    <WPBubble wpNumber={wp.number} wpColor={wp.color} />
-                    <span className="text-sm truncate">{wp.short_name || `WP${wp.number}`}</span>
-                  </label>
-                  {wpChecked && (
-                    <div className="pr-2 pb-1.5 space-y-0.5" style={{ paddingLeft: '57px' }}>
-                      {wpTasks.length === 0 && (
-                        <div className="text-xs text-muted-foreground italic py-1">No tasks in this WP.</div>
-                      )}
-                      {wpTasks.map(t => (
-                        <label key={t.id} className="flex items-center gap-2 py-1 rounded hover:bg-accent cursor-pointer">
-                          <Checkbox
-                            checked={draftTasks.includes(t.id)}
-                            onCheckedChange={() => toggleTask(t.id)}
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b">
+                    <th className="w-10 py-1.5 text-center" title="Related"><Check className="h-4 w-4 inline" /></th>
+                    <th className="w-10 py-1.5 text-center" title="Primary"><Star className="h-4 w-4 inline" /></th>
+                    <th className="py-1.5 px-2 text-left">Work package</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {orderedWps.map(wp => {
+                    const checked = draftWps.includes(wp.id);
+                    const isPrimary = draftPrimary === wp.id;
+                    return (
+                      <tr key={wp.id} className="border-b last:border-b-0 hover:bg-accent/40">
+                        <td className="py-1.5 text-center">
+                          <Checkbox checked={checked} onCheckedChange={() => toggleWp(wp)} />
+                        </td>
+                        <td className="py-1.5 text-center">
+                          <input
+                            type="radio"
+                            name="ms-primary-wp"
+                            checked={isPrimary}
+                            disabled={!checked}
+                            onChange={() => setPrimary(wp.id)}
+                            className="cursor-pointer disabled:cursor-not-allowed"
                           />
-                          <B31Pill variant="outline" color={wp.color}>
-                            T{wp.number}.{t.number}
-                          </B31Pill>
-                          <span className="text-sm truncate">{t.title || ''}</span>
-                        </label>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+                        </td>
+                        <td className="py-1.5 px-2">
+                          <span className="inline-flex items-center gap-2">
+                            <WPBubble wpNumber={wp.number} wpColor={wp.color} />
+                            <span className="truncate">{wp.short_name || `WP${wp.number}`}</span>
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>

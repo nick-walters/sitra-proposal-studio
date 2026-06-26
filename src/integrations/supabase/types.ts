@@ -3003,58 +3003,25 @@ export type Database = {
           },
         ]
       }
-      proposal_milestone_tasks: {
-        Row: {
-          created_at: string
-          id: string
-          milestone_id: string
-          wp_draft_task_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          milestone_id: string
-          wp_draft_task_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          milestone_id?: string
-          wp_draft_task_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "proposal_milestone_tasks_milestone_id_fkey"
-            columns: ["milestone_id"]
-            isOneToOne: false
-            referencedRelation: "proposal_milestones"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "proposal_milestone_tasks_wp_draft_task_id_fkey"
-            columns: ["wp_draft_task_id"]
-            isOneToOne: false
-            referencedRelation: "wp_draft_tasks"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       proposal_milestone_wps: {
         Row: {
           created_at: string
           id: string
+          is_primary: boolean
           milestone_id: string
           wp_draft_id: string
         }
         Insert: {
           created_at?: string
           id?: string
+          is_primary?: boolean
           milestone_id: string
           wp_draft_id: string
         }
         Update: {
           created_at?: string
           id?: string
+          is_primary?: boolean
           milestone_id?: string
           wp_draft_id?: string
         }
