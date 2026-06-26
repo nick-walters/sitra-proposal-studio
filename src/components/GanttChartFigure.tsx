@@ -849,7 +849,21 @@ export function GanttChartFigure({
                           );
                         });
                       })}
+                      {/* Milestone connector lines: dot at due-month cell centre on WP band → nearest hex tip */}
+                      {msLaidOut.map((m) => (
+                        <g key={`ms-line-${m.id}`}>
+                          <path
+                            d={`M ${m.dotX} ${yOfWpBand} L ${m.tipX} ${yOfWpBand}`}
+                            stroke="#000000"
+                            strokeWidth={1.333}
+                            fill="none"
+                            strokeLinecap="square"
+                          />
+                          <circle cx={m.dotX} cy={yOfWpBand} r={2} fill="#000000" stroke="none" />
+                        </g>
+                      ))}
                     </svg>
+
 
                     {/* Badges */}
                     {laidOut.map((b) => {
