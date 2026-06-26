@@ -60,7 +60,7 @@ interface Milestone {
   means_of_verification: string | null;
   order_index: number;
   wp_ids: string[];
-  task_ids: string[];
+  primary_wp_id: string | null;
 }
 interface Risk {
   id: string;
