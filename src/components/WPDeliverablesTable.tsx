@@ -285,7 +285,7 @@ export function WPDeliverablesTable({
                   <th style={{ width: '80px' }} className="whitespace-normal align-bottom">Type</th>
                   <th style={{ width: '76px' }} className="whitespace-normal align-bottom">Dissemination level</th>
                   <th style={{ width: '70px' }} className="whitespace-normal align-bottom">Partner</th>
-                  <th style={{ width: '140px' }} className="whitespace-normal align-bottom">Assign to task(s)</th>
+                  <th style={{ width: '140px' }} className="whitespace-normal align-bottom">Assign to task</th>
                   <th style={{ width: '62px' }} className="whitespace-normal align-bottom">Due month</th>
                   <th style={{ width: '25px' }} className="align-bottom"></th>
                 </tr>
