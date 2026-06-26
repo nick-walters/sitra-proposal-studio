@@ -198,18 +198,81 @@ function layoutWpBadges(args: {
     out.push({ ...b, tipX, leftX, shapeW, shapeH, bodyW, pointDepth, rowIdx: chosen, drawLines, origins });
   }
 
-  // Repeat-until-stable overlap resolver. The single greedy pass above can
-  // leave overlaps when the search hit a boundary and fell back to `target`,
-  // OR when later badges nudged into a slot a previous badge already widened
-  // beyond the search window. We re-scan, treating every other placed badge
-  // AND every pre-occupied (cross-type) slot as occupied, and nudge any badge
-  // still in a colliding slot. Up to 20 iterations; bail when nothing moves.
-  iterateOverlapResolution(
-    out.map(b => ({ slot: b.rowIdx, lx: b.leftX, rx: b.leftX + b.shapeW })),
-    preOccupied || [],
-    /*minSlot*/ -1,
-    /*maxSlot*/ Math.max(0, numTasks - 1),
-  ).forEach((slot, i) => { out[i].rowIdx = slot; });
+  // Repeat-until-stable overlap resolver, extended so that a deliverable
+  // badge also avoids OTHER deliverables' connector LINES and origin DOTS
+  // (not just other badges). Each iteration recomputes connector obstacles
+  // from current slot positions (connector row-span depends on slot), then
+  // nudges any badge that overlaps a badge, a pre-occupied (cross-type)
+  // slot, or another deliverable's line/dot. Up to 20 iterations.
+  const slots = out.map(b => b.rowIdx);
+  const pre = preOccupied || [];
+  const minS = -1;
+  const maxS = Math.max(0, numTasks - 1);
+  const range = Math.max(1, maxS - minS) + 2;
+  const computeObstacles = () => {
+    const list: Array<{ owner: number; slot: number; lx: number; rx: number }> = [];
+    for (let j = 0; j < out.length; j++) {
+      const bj = out[j];
+      if (bj.kind !== 'del' || !bj.drawLines) continue;
+      const sj = slots[j];
+      for (const o of bj.origins) {
+        // Origin DOT (radius ~2 → ±2px obstacle).
+        list.push({ owner: j, slot: o.rowIdx, lx: o.x - 2, rx: o.x + 2 });
+        // Vertical line segments at originX and tipX span every row
+        // between the origin row and the badge's current slot.
+        const lo = Math.min(o.rowIdx, sj);
+        const hi = Math.max(o.rowIdx, sj);
+        for (let r = lo; r <= hi; r++) {
+          list.push({ owner: j, slot: r, lx: o.x - 1.5, rx: o.x + 1.5 });
+          list.push({ owner: j, slot: r, lx: bj.tipX - 1.5, rx: bj.tipX + 1.5 });
+        }
+      }
+    }
+    return list;
+  };
+  for (let iter = 0; iter < 20; iter++) {
+    const obstacles = computeObstacles();
+    const overlapsAt = (i: number, slot: number, lx: number, rx: number) => {
+      for (let j = 0; j < out.length; j++) {
+        if (j === i) continue;
+        if (slots[j] !== slot) continue;
+        const bj = out[j];
+        if (!(rx + 2 <= bj.leftX || lx - 2 >= bj.leftX + bj.shapeW)) return true;
+      }
+      for (const p of pre) {
+        if (p.slot !== slot) continue;
+        if (!(rx + 2 <= p.lx || lx - 2 >= p.rx)) return true;
+      }
+      for (const o of obstacles) {
+        if (o.owner === i) continue; // a badge may sit on its OWN connector
+        if (o.slot !== slot) continue;
+        if (!(rx + 2 <= o.lx || lx - 2 >= o.rx)) return true;
+      }
+      return false;
+    };
+    let moved = false;
+    for (let i = 0; i < out.length; i++) {
+      const b = out[i];
+      const lx = b.leftX;
+      const rx = b.leftX + b.shapeW;
+      const cur = slots[i];
+      if (!overlapsAt(i, cur, lx, rx)) continue;
+      let found: number | null = null;
+      for (let step = 1; step <= range; step++) {
+        for (const cand of [cur + step, cur - step]) {
+          if (cand < minS || cand > maxS) continue;
+          if (!overlapsAt(i, cand, lx, rx)) { found = cand; break; }
+        }
+        if (found != null) break;
+      }
+      if (found != null && found !== cur) {
+        slots[i] = found;
+        moved = true;
+      }
+    }
+    if (!moved) break;
+  }
+  out.forEach((b, i) => { b.rowIdx = slots[i]; });
 
   return out;
 }
