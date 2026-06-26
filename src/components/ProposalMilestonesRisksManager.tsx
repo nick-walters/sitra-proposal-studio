@@ -684,6 +684,8 @@ function MilestonesGuidelinesInline() {
     <div className="text-xs text-muted-foreground space-y-1.5 pt-1">
       <p>
         This list is mirrored to Table 3.1.d (List of milestones). Milestones are automatically ordered by due month.
+        Each milestone is linked to one or more work packages (no tasks); one of those WPs is marked the
+        <strong> primary WP</strong>, which is the row the milestone sits on in the Gantt chart.
       </p>
       <p>
         <span className="font-medium text-foreground">Milestone:</span> control points in the project that help to
