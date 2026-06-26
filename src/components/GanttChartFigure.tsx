@@ -996,7 +996,7 @@ export function GanttChartFigure({
                           return (
                             <g key={`${b.key}-l${oi}`}>
                               <path d={d} stroke={lineColor} strokeWidth={1} fill="none" strokeLinecap="square" strokeLinejoin="miter" />
-                              <circle cx={o.x} cy={oy} r={1.5} fill={lineColor} />
+                              <circle cx={o.x} cy={oy} r={2} fill={lineColor} stroke={lineColor} strokeWidth={0.5} />
 
                             </g>
                           );
