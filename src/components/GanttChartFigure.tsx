@@ -690,49 +690,61 @@ export function GanttChartFigure({
     const { milestones: msRows, msToWpIds, msPrimaryWpId } = wpDraftsData;
     const items: ChartMsIn[] = [];
     for (const m of msRows) {
-      if (m.due_month == null) continue;
-      const linkedWpIds = msToWpIds.get(m.id) || [];
-      if (linkedWpIds.length === 0) continue;
+      try {
+        if (m.due_month == null) continue;
+        const linkedWpIds = msToWpIds.get(m.id) || [];
+        if (linkedWpIds.length === 0) continue;
 
-      // Resolve the primary WP; fall back to the lowest-numbered related WP.
-      const primaryFromDb = msPrimaryWpId.get(m.id);
-      const linkedWpIdxs = linkedWpIds
-        .map(id => workPackages.findIndex((wp: any) => wp.id === id))
-        .filter(i => i >= 0);
-      if (linkedWpIdxs.length === 0) continue;
-      let primaryIdx = primaryFromDb
-        ? workPackages.findIndex((wp: any) => wp.id === primaryFromDb)
-        : -1;
-      if (primaryIdx < 0 || !linkedWpIdxs.includes(primaryIdx)) {
-        primaryIdx = linkedWpIdxs
-          .slice()
-          .sort((a, b) => (workPackages[a].number ?? 0) - (workPackages[b].number ?? 0))[0];
+        // Resolve the primary WP; fall back to the lowest-numbered related WP.
+        const primaryFromDb = msPrimaryWpId.get(m.id);
+        const linkedWpIdxs = linkedWpIds
+          .map(id => workPackages.findIndex((wp: any) => wp.id === id))
+          .filter(i => i >= 0);
+        if (linkedWpIdxs.length === 0) continue;
+        let primaryIdx = primaryFromDb
+          ? workPackages.findIndex((wp: any) => wp.id === primaryFromDb)
+          : -1;
+        if (primaryIdx < 0 || !linkedWpIdxs.includes(primaryIdx)) {
+          primaryIdx = linkedWpIdxs
+            .slice()
+            .sort((a, b) => (workPackages[a].number ?? 0) - (workPackages[b].number ?? 0))[0];
+        }
+        const primarySlot = rowLayout.wpBandSlot[primaryIdx];
+        if (primarySlot == null) {
+          // No band slot resolved for the primary WP — skip gracefully rather
+          // than crashing the whole figure.
+          continue;
+        }
+
+        // Connector origins: every related WP (including primary). Origin x =
+        // LEFT edge of the clamped due-month cell on that WP's band row.
+        const origins: Array<{ globalRow: number; x: number }> = [];
+        const linkedGlobalRows: number[] = [];
+        for (const idx of linkedWpIdxs) {
+          const wp: any = workPackages[idx];
+          const slot = rowLayout.wpBandSlot[idx];
+          if (slot == null) continue;
+          const wpEnd = wp.endMonth ?? m.due_month;
+          const originMonth = Math.min(wpEnd, m.due_month);
+          const x = Math.max(0, (originMonth - 1) * cellWidth);
+          origins.push({ globalRow: slot, x });
+          linkedGlobalRows.push(slot);
+        }
+
+        items.push({
+          key: `ms-${m.id}`,
+          label: `MS${m.number}`,
+          dueMonth: m.due_month,
+          primaryGlobalRow: primarySlot,
+          linkedGlobalRows,
+          origins,
+          tooltipTitle: `MS${m.number}: ${m.title || ''}`,
+        });
+      } catch (err) {
+        // Defensive: never let a single malformed milestone crash the Gantt.
+        // eslint-disable-next-line no-console
+        console.warn('[Gantt] Skipping milestone due to error:', m?.id, err);
       }
-      const primarySlot = rowLayout.wpBandSlot[primaryIdx];
-
-      // Connector origins: every related WP (including primary). Origin x =
-      // LEFT edge of the clamped due-month cell on that WP's band row.
-      const origins: Array<{ globalRow: number; x: number }> = [];
-      const linkedGlobalRows: number[] = [];
-      for (const idx of linkedWpIdxs) {
-        const wp: any = workPackages[idx];
-        const slot = rowLayout.wpBandSlot[idx];
-        const wpEnd = wp.endMonth ?? m.due_month;
-        const originMonth = Math.min(wpEnd, m.due_month);
-        const x = Math.max(0, (originMonth - 1) * cellWidth);
-        origins.push({ globalRow: slot, x });
-        linkedGlobalRows.push(slot);
-      }
-
-      items.push({
-        key: `ms-${m.id}`,
-        label: `MS${m.number}`,
-        dueMonth: m.due_month,
-        primaryGlobalRow: primarySlot,
-        linkedGlobalRows,
-        origins,
-        tooltipTitle: `MS${m.number}: ${m.title || ''}`,
-      });
     }
     return layoutChartMilestones(items, rowLayout.totalSlots, cellWidth);
   }, [wpDraftsData, rowLayout, workPackages, cellWidth]);
