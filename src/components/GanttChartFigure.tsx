@@ -1162,7 +1162,7 @@ export function GanttChartFigure({
                                 style={{
                                   position: 'absolute',
                                   top: isMs ? 0 : -0.5,
-                                  left: isMs ? 0 : 0,
+                                  left: isMs ? 0 : (b.flipped ? b.pointDepth : 0),
                                   width: isMs ? shapeW : b.bodyW,
                                   height: shapeH,
                                   display: 'flex',
