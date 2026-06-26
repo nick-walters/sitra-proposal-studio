@@ -689,40 +689,48 @@ export function GanttChartFigure({
   // Chart-wide milestone items (one per milestone).
   const chartMilestones = useMemo(() => {
     if (!wpDraftsData) return [] as ChartMsOut[];
-    const { milestones: msRows, msToWpIds, msToTaskIds, tasks: allTasks } = wpDraftsData;
-    const taskMap = new Map(allTasks.map((t: any) => [t.id, t]));
+    const { milestones: msRows, msToWpIds, msPrimaryWpId } = wpDraftsData;
     const items: ChartMsIn[] = [];
     for (const m of msRows) {
       if (m.due_month == null) continue;
-      const linkedTaskIds = msToTaskIds.get(m.id) || [];
       const linkedWpIds = msToWpIds.get(m.id) || [];
-      const linkedGlobalRows: number[] = [];
+      if (linkedWpIds.length === 0) continue;
+
+      // Resolve the primary WP; fall back to the lowest-numbered related WP.
+      const primaryFromDb = msPrimaryWpId.get(m.id);
+      const linkedWpIdxs = linkedWpIds
+        .map(id => workPackages.findIndex((wp: any) => wp.id === id))
+        .filter(i => i >= 0);
+      if (linkedWpIdxs.length === 0) continue;
+      let primaryIdx = primaryFromDb
+        ? workPackages.findIndex((wp: any) => wp.id === primaryFromDb)
+        : -1;
+      if (primaryIdx < 0 || !linkedWpIdxs.includes(primaryIdx)) {
+        primaryIdx = linkedWpIdxs
+          .slice()
+          .sort((a, b) => (workPackages[a].number ?? 0) - (workPackages[b].number ?? 0))[0];
+      }
+      const primarySlot = rowLayout.wpBandSlot[primaryIdx];
+
+      // Connector origins: every related WP (including primary). Origin x =
+      // LEFT edge of the clamped due-month cell on that WP's band row.
       const origins: Array<{ globalRow: number; x: number }> = [];
-      const wpIdsCoveredByTasks = new Set<string>();
-      for (const tid of linkedTaskIds) {
-        const slot = rowLayout.taskSlotByTaskId.get(tid);
-        const task: any = taskMap.get(tid);
-        if (slot == null || !task || task.start_month == null || task.end_month == null) continue;
-        linkedGlobalRows.push(slot);
-        // MS uses left edge of originMonth; clamp so line never extends past due month.
-        const originMonth = Math.min(task.end_month, m.due_month);
-        origins.push({ globalRow: slot, x: Math.max(0, (originMonth - 1) * cellWidth) });
-        wpIdsCoveredByTasks.add(task.wp_draft_id);
-      }
-      for (const wpid of linkedWpIds) {
-        if (wpIdsCoveredByTasks.has(wpid)) continue;
-        const idx = workPackages.findIndex((wp: any) => wp.id === wpid);
-        if (idx < 0) continue;
-        const slot = rowLayout.wpBandSlot[idx];
+      const linkedGlobalRows: number[] = [];
+      for (const idx of linkedWpIdxs) {
         const wp: any = workPackages[idx];
+        const slot = rowLayout.wpBandSlot[idx];
+        const wpEnd = wp.endMonth ?? m.due_month;
+        const originMonth = Math.min(wpEnd, m.due_month);
+        const x = Math.max(0, (originMonth - 1) * cellWidth);
+        origins.push({ globalRow: slot, x });
         linkedGlobalRows.push(slot);
-        const originMonth = Math.min(wp.endMonth, m.due_month);
-        origins.push({ globalRow: slot, x: Math.max(0, (originMonth - 1) * cellWidth) });
       }
+
       items.push({
         key: `ms-${m.id}`,
         label: `MS${m.number}`,
         dueMonth: m.due_month,
+        primaryGlobalRow: primarySlot,
         linkedGlobalRows,
         origins,
         tooltipTitle: `MS${m.number}: ${m.title || ''}`,
