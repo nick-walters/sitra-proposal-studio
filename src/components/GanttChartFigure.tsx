@@ -331,14 +331,16 @@ function iterateOverlapResolution(
 // ─────────────────────────────────────────────────────────────────────────────
 // Chart-wide milestone layout.
 // Each milestone renders EXACTLY ONCE across the whole chart.
-// Target row = median of all linked global rows (tasks + WP-band fallbacks).
-// Nudge to nearest free slot to avoid overlapping other milestone bodies.
-// Hexagon LEFT TIP sits on the centre of its due-month column; body extends right.
+// Anchor row = the milestone's PRIMARY WP band slot (no median calculation).
+// Hexagon left tip sits 5px to the right of the right edge of the due-month cell
+// (so the primary WP's own connector line is visible as a short horizontal run).
+// Nudge vertically only when needed to avoid overlapping another milestone body.
 // ─────────────────────────────────────────────────────────────────────────────
 type ChartMsIn = {
   key: string;
   label: string;
   dueMonth: number;
+  primaryGlobalRow: number;
   linkedGlobalRows: number[];
   origins: Array<{ globalRow: number; x: number }>;
   tooltipTitle: string;
@@ -349,6 +351,7 @@ type ChartMsOut = ChartMsIn & {
 function layoutChartMilestones(items: ChartMsIn[], totalRows: number, cellWidth: number): ChartMsOut[] {
   const estimateW = (l: string) => Math.max(32, l.length * 7 + 10);
   const shapeH = 12;
+  const HEX_GAP = 5; // px to the right of the due-month cell's right edge
   const occupied: Array<Array<[number, number]>> = Array.from({ length: Math.max(1, totalRows) }, () => []);
   const isFree = (s: number, lx: number, rx: number) => {
     if (s < 0 || s >= totalRows) return false;
@@ -361,13 +364,9 @@ function layoutChartMilestones(items: ChartMsIn[], totalRows: number, cellWidth:
   const out: ChartMsOut[] = [];
   for (const m of sorted) {
     const shapeW = estimateW(m.label);
-    const tipX = (m.dueMonth - 0.5) * cellWidth;
-    const leftX = tipX;
-    let target = 0;
-    if (m.linkedGlobalRows.length) {
-      const s = [...m.linkedGlobalRows].sort((x, y) => x - y);
-      target = s[Math.floor(s.length / 2)];
-    }
+    const leftX = m.dueMonth * cellWidth + HEX_GAP; // right edge of due cell + gap
+    const tipX = leftX;
+    const target = m.primaryGlobalRow;
     let chosen = Number.NaN;
     for (let step = 0; step <= totalRows + 2; step++) {
       const cands = step === 0 ? [target] : [target + step, target - step];
