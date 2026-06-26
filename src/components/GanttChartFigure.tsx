@@ -571,7 +571,9 @@ export function GanttChartFigure({
         const task: any = taskMap.get(tid);
         if (slot == null || !task || task.start_month == null || task.end_month == null) continue;
         linkedGlobalRows.push(slot);
-        origins.push({ globalRow: slot, x: Math.max(0, (task.end_month - 1) * cellWidth) });
+        // MS uses left edge of originMonth; clamp so line never extends past due month.
+        const originMonth = Math.min(task.end_month, m.due_month);
+        origins.push({ globalRow: slot, x: Math.max(0, (originMonth - 1) * cellWidth) });
         wpIdsCoveredByTasks.add(task.wp_draft_id);
       }
       for (const wpid of linkedWpIds) {
@@ -581,7 +583,8 @@ export function GanttChartFigure({
         const slot = rowLayout.wpBandSlot[idx];
         const wp: any = workPackages[idx];
         linkedGlobalRows.push(slot);
-        origins.push({ globalRow: slot, x: Math.max(0, (wp.endMonth - 1) * cellWidth) });
+        const originMonth = Math.min(wp.endMonth, m.due_month);
+        origins.push({ globalRow: slot, x: Math.max(0, (originMonth - 1) * cellWidth) });
       }
       items.push({
         key: `ms-${m.id}`,
