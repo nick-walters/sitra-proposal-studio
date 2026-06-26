@@ -431,8 +431,7 @@ export function GanttChartFigure({
   // Fetch wp_drafts with tasks, deliverables, and milestones — fully live from
   // source tables. Includes the new link tables:
   //   * wp_draft_deliverable_tasks  (deliverable → task[])
-  //   * proposal_milestone_tasks    (milestone   → task[])
-  //   * proposal_milestone_wps      (milestone   → wp[])
+  //   * proposal_milestone_wps      (milestone → wp[], with is_primary flag)
   // No legacy / degraded / snapshot source is used anywhere below.
   const { data: wpDraftsData } = useQuery({
     queryKey: ['wp-drafts-gantt', proposalId],
