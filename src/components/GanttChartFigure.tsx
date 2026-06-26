@@ -602,9 +602,24 @@ export function GanttChartFigure({
 
       // ── Deliverable badges (one per deliverable). Links: wp_draft_deliverable_tasks.
       const wpDeliverables = deliverables.filter(d => d.wp_draft_id === wp.id && d.due_month != null);
+      const taskNumOf = (id: string) => {
+        const t = taskById.get(id) as any;
+        if (!t) return -Infinity;
+        // task.number may be number or string like "1.5" — use trailing segment.
+        const raw = String(t.number ?? '');
+        const tail = raw.includes('.') ? raw.split('.').pop() : raw;
+        const n = parseInt(tail || '0', 10);
+        return Number.isFinite(n) ? n : -Infinity;
+      };
       const delBadges = wpDeliverables.map(d => {
         const linkedTaskIds = (delToTaskIds.get(d.id) || []).filter(id => taskRowIdxById.has(id));
         const linkedRows = linkedTaskIds.map(id => taskRowIdxById.get(id)!);
+        // Anchor row = row of HIGHEST-NUMBERED linked task within this WP.
+        let anchorRow: number | undefined = undefined;
+        if (linkedTaskIds.length > 0) {
+          const sortedIds = [...linkedTaskIds].sort((a, b) => taskNumOf(b) - taskNumOf(a));
+          anchorRow = taskRowIdxById.get(sortedIds[0]);
+        }
         const wpNum = wpNumberById.get(d.wp_draft_id) ?? wp.number;
         const tooltipParts = [`D${wpNum}.${d.number}: ${d.title || ''}`];
         if (d.type) tooltipParts.push(`Type: ${d.type}`);
@@ -622,6 +637,7 @@ export function GanttChartFigure({
           linkedRows,
           // Origin x is computed in layout (right edge of each linked task's end month).
           linkedTaskIds,
+          anchorRow,
           tooltipTitle: tooltipParts.join(' | '),
         };
       });
