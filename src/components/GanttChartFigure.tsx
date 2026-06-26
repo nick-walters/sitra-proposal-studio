@@ -317,6 +317,18 @@ function layoutChartMilestones(items: ChartMsIn[], totalRows: number, cellWidth:
     mark(chosen, leftX, leftX + shapeW);
     out.push({ ...m, tipX, leftX, shapeW, shapeH, globalRow: chosen });
   }
+
+  // Repeat-until-stable resolver — same approach as per-WP layout, applied to
+  // the chart-wide MS pass. MS is the first pass overall, so there is nothing
+  // pre-occupied at this stage; deliverables (second pass) avoid the resulting
+  // MS positions via their own preOccupied list and iterate again themselves.
+  iterateOverlapResolution(
+    out.map(m => ({ slot: m.globalRow, lx: m.leftX, rx: m.leftX + m.shapeW })),
+    [],
+    /*minSlot*/ 0,
+    /*maxSlot*/ Math.max(0, totalRows - 1),
+  ).forEach((slot, i) => { out[i].globalRow = slot; });
+
   return out;
 }
 
