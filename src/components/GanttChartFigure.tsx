@@ -909,14 +909,17 @@ export function GanttChartFigure({
                       {laidOut.flatMap((b) => {
                         if (!b.drawLines) return [];
                         const ty = yOfRow(b.rowIdx);
+                        // Deliverable connectors take the badge's WP colour so they
+                        // always match the chevron. Any future per-WP MS would stay black.
+                        const lineColor = b.kind === 'del' ? b.color : '#000000';
                         return b.origins.map((o, oi) => {
                           const oy = yOfRow(o.rowIdx);
                           // Orthogonal: origin → (tipX, oy) → (tipX, ty). Approaches vertically.
                           const d = `M ${o.x} ${oy} L ${b.tipX} ${oy} L ${b.tipX} ${ty}`;
                           return (
                             <g key={`${b.key}-l${oi}`}>
-                              <path d={d} stroke="#555" strokeWidth={1} fill="none" strokeLinecap="square" strokeLinejoin="miter" />
-                              <circle cx={o.x} cy={oy} r={1.5} fill="#555" />
+                              <path d={d} stroke={lineColor} strokeWidth={1} fill="none" strokeLinecap="square" strokeLinejoin="miter" />
+                              <circle cx={o.x} cy={oy} r={1.5} fill={lineColor} />
 
                             </g>
                           );
