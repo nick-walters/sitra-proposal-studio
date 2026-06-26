@@ -793,8 +793,8 @@ export function GanttChartFigure({
                           const d = `M ${o.x} ${oy} L ${b.tipX} ${ty}`;
                           return (
                             <g key={`${b.key}-l${oi}`}>
-                              <path d={d} stroke={lineColor} strokeWidth={1} fill="none" strokeLinecap="square" strokeLinejoin="miter" />
-                              <circle cx={o.x} cy={oy} r={2} fill={lineColor} stroke={lineColor} strokeWidth={0.5} />
+                              <path d={d} stroke={lineColor} strokeWidth={0.33} fill="none" strokeLinecap="square" strokeLinejoin="miter" />
+                              <circle cx={o.x} cy={oy} r={2} fill={lineColor} stroke="none" />
 
                             </g>
                           );
