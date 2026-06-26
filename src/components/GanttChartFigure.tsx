@@ -331,14 +331,16 @@ function iterateOverlapResolution(
 // ─────────────────────────────────────────────────────────────────────────────
 // Chart-wide milestone layout.
 // Each milestone renders EXACTLY ONCE across the whole chart.
-// Target row = median of all linked global rows (tasks + WP-band fallbacks).
-// Nudge to nearest free slot to avoid overlapping other milestone bodies.
-// Hexagon LEFT TIP sits on the centre of its due-month column; body extends right.
+// Anchor row = the milestone's PRIMARY WP band slot (no median calculation).
+// Hexagon left tip sits 5px to the right of the right edge of the due-month cell
+// (so the primary WP's own connector line is visible as a short horizontal run).
+// Nudge vertically only when needed to avoid overlapping another milestone body.
 // ─────────────────────────────────────────────────────────────────────────────
 type ChartMsIn = {
   key: string;
   label: string;
   dueMonth: number;
+  primaryGlobalRow: number;
   linkedGlobalRows: number[];
   origins: Array<{ globalRow: number; x: number }>;
   tooltipTitle: string;
@@ -349,6 +351,7 @@ type ChartMsOut = ChartMsIn & {
 function layoutChartMilestones(items: ChartMsIn[], totalRows: number, cellWidth: number): ChartMsOut[] {
   const estimateW = (l: string) => Math.max(32, l.length * 7 + 10);
   const shapeH = 12;
+  const HEX_GAP = 5; // px to the right of the due-month cell's right edge
   const occupied: Array<Array<[number, number]>> = Array.from({ length: Math.max(1, totalRows) }, () => []);
   const isFree = (s: number, lx: number, rx: number) => {
     if (s < 0 || s >= totalRows) return false;
@@ -361,13 +364,9 @@ function layoutChartMilestones(items: ChartMsIn[], totalRows: number, cellWidth:
   const out: ChartMsOut[] = [];
   for (const m of sorted) {
     const shapeW = estimateW(m.label);
-    const tipX = (m.dueMonth - 0.5) * cellWidth;
-    const leftX = tipX;
-    let target = 0;
-    if (m.linkedGlobalRows.length) {
-      const s = [...m.linkedGlobalRows].sort((x, y) => x - y);
-      target = s[Math.floor(s.length / 2)];
-    }
+    const leftX = m.dueMonth * cellWidth + HEX_GAP; // right edge of due cell + gap
+    const tipX = leftX;
+    const target = m.primaryGlobalRow;
     let chosen = Number.NaN;
     for (let step = 0; step <= totalRows + 2; step++) {
       const cands = step === 0 ? [target] : [target + step, target - step];
@@ -432,8 +431,7 @@ export function GanttChartFigure({
   // Fetch wp_drafts with tasks, deliverables, and milestones — fully live from
   // source tables. Includes the new link tables:
   //   * wp_draft_deliverable_tasks  (deliverable → task[])
-  //   * proposal_milestone_tasks    (milestone   → task[])
-  //   * proposal_milestone_wps      (milestone   → wp[])
+  //   * proposal_milestone_wps      (milestone → wp[], with is_primary flag)
   // No legacy / degraded / snapshot source is used anywhere below.
   const { data: wpDraftsData } = useQuery({
     queryKey: ['wp-drafts-gantt', proposalId],
@@ -445,7 +443,6 @@ export function GanttChartFigure({
         { data: delTaskLinks, error: dtlError },
         { data: msData, error: msError },
         { data: msWpLinks, error: mwlError },
-        { data: msTaskLinks, error: mtlError },
         { data: participants, error: partError },
       ] = await Promise.all([
         supabase
@@ -469,10 +466,7 @@ export function GanttChartFigure({
           .eq('proposal_id', proposalId),
         supabase
           .from('proposal_milestone_wps')
-          .select('milestone_id, wp_draft_id'),
-        supabase
-          .from('proposal_milestone_tasks')
-          .select('milestone_id, wp_draft_task_id'),
+          .select('milestone_id, wp_draft_id, is_primary'),
         supabase
           .from('participants')
           .select('id, organisation_short_name, participant_number')
@@ -484,7 +478,6 @@ export function GanttChartFigure({
       if (dtlError) throw dtlError;
       if (msError) throw msError;
       if (mwlError) throw mwlError;
-      if (mtlError) throw mtlError;
       if (partError) throw partError;
 
       const wpIds = new Set((wps || []).map(wp => wp.id));
@@ -503,19 +496,13 @@ export function GanttChartFigure({
       }
 
       const msToWpIds = new Map<string, string[]>();
+      const msPrimaryWpId = new Map<string, string>();
       for (const l of msWpLinks || []) {
         if (!msIds.has(l.milestone_id) || !wpIds.has(l.wp_draft_id)) continue;
         const arr = msToWpIds.get(l.milestone_id) || [];
         arr.push(l.wp_draft_id);
         msToWpIds.set(l.milestone_id, arr);
-      }
-
-      const msToTaskIds = new Map<string, string[]>();
-      for (const l of msTaskLinks || []) {
-        if (!msIds.has(l.milestone_id) || !taskIds.has(l.wp_draft_task_id)) continue;
-        const arr = msToTaskIds.get(l.milestone_id) || [];
-        arr.push(l.wp_draft_task_id);
-        msToTaskIds.set(l.milestone_id, arr);
+        if (l.is_primary) msPrimaryWpId.set(l.milestone_id, l.wp_draft_id);
       }
 
       return {
@@ -526,7 +513,7 @@ export function GanttChartFigure({
         participants: participants || [],
         delToTaskIds,
         msToWpIds,
-        msToTaskIds,
+        msPrimaryWpId,
       };
     },
   });
@@ -540,7 +527,7 @@ export function GanttChartFigure({
   const dynamicData = useMemo(() => {
     if (!wpDraftsData) return { workPackages: [] as any[], milestones: [] as Milestone[] };
 
-    const { wps, tasks, deliverables, milestones: msRows, participants, delToTaskIds, msToWpIds, msToTaskIds } = wpDraftsData;
+    const { wps, tasks, deliverables, milestones: msRows, participants, delToTaskIds, msToWpIds } = wpDraftsData;
 
     const partMap = new Map(participants.map(p => [p.id, p.organisation_short_name || `P${p.participant_number}`]));
     const wpNumberById = new Map(wps.map(wp => [wp.id, wp.number]));
@@ -700,40 +687,48 @@ export function GanttChartFigure({
   // Chart-wide milestone items (one per milestone).
   const chartMilestones = useMemo(() => {
     if (!wpDraftsData) return [] as ChartMsOut[];
-    const { milestones: msRows, msToWpIds, msToTaskIds, tasks: allTasks } = wpDraftsData;
-    const taskMap = new Map(allTasks.map((t: any) => [t.id, t]));
+    const { milestones: msRows, msToWpIds, msPrimaryWpId } = wpDraftsData;
     const items: ChartMsIn[] = [];
     for (const m of msRows) {
       if (m.due_month == null) continue;
-      const linkedTaskIds = msToTaskIds.get(m.id) || [];
       const linkedWpIds = msToWpIds.get(m.id) || [];
-      const linkedGlobalRows: number[] = [];
+      if (linkedWpIds.length === 0) continue;
+
+      // Resolve the primary WP; fall back to the lowest-numbered related WP.
+      const primaryFromDb = msPrimaryWpId.get(m.id);
+      const linkedWpIdxs = linkedWpIds
+        .map(id => workPackages.findIndex((wp: any) => wp.id === id))
+        .filter(i => i >= 0);
+      if (linkedWpIdxs.length === 0) continue;
+      let primaryIdx = primaryFromDb
+        ? workPackages.findIndex((wp: any) => wp.id === primaryFromDb)
+        : -1;
+      if (primaryIdx < 0 || !linkedWpIdxs.includes(primaryIdx)) {
+        primaryIdx = linkedWpIdxs
+          .slice()
+          .sort((a, b) => (workPackages[a].number ?? 0) - (workPackages[b].number ?? 0))[0];
+      }
+      const primarySlot = rowLayout.wpBandSlot[primaryIdx];
+
+      // Connector origins: every related WP (including primary). Origin x =
+      // LEFT edge of the clamped due-month cell on that WP's band row.
       const origins: Array<{ globalRow: number; x: number }> = [];
-      const wpIdsCoveredByTasks = new Set<string>();
-      for (const tid of linkedTaskIds) {
-        const slot = rowLayout.taskSlotByTaskId.get(tid);
-        const task: any = taskMap.get(tid);
-        if (slot == null || !task || task.start_month == null || task.end_month == null) continue;
-        linkedGlobalRows.push(slot);
-        // MS uses left edge of originMonth; clamp so line never extends past due month.
-        const originMonth = Math.min(task.end_month, m.due_month);
-        origins.push({ globalRow: slot, x: Math.max(0, (originMonth - 1) * cellWidth) });
-        wpIdsCoveredByTasks.add(task.wp_draft_id);
-      }
-      for (const wpid of linkedWpIds) {
-        if (wpIdsCoveredByTasks.has(wpid)) continue;
-        const idx = workPackages.findIndex((wp: any) => wp.id === wpid);
-        if (idx < 0) continue;
-        const slot = rowLayout.wpBandSlot[idx];
+      const linkedGlobalRows: number[] = [];
+      for (const idx of linkedWpIdxs) {
         const wp: any = workPackages[idx];
+        const slot = rowLayout.wpBandSlot[idx];
+        const wpEnd = wp.endMonth ?? m.due_month;
+        const originMonth = Math.min(wpEnd, m.due_month);
+        const x = Math.max(0, (originMonth - 1) * cellWidth);
+        origins.push({ globalRow: slot, x });
         linkedGlobalRows.push(slot);
-        const originMonth = Math.min(wp.endMonth, m.due_month);
-        origins.push({ globalRow: slot, x: Math.max(0, (originMonth - 1) * cellWidth) });
       }
+
       items.push({
         key: `ms-${m.id}`,
         label: `MS${m.number}`,
         dueMonth: m.due_month,
+        primaryGlobalRow: primarySlot,
         linkedGlobalRows,
         origins,
         tooltipTitle: `MS${m.number}: ${m.title || ''}`,
