@@ -301,9 +301,11 @@ function layoutWpBadges(args: {
       const cur = slots[i];
       if (!overlapsAt(i, cur, lx, rx)) continue;
       let found: number | null = null;
+      // Deliverables are clamped to slot ≥ 0 (never the WP band row).
+      const bMin = b.kind === 'del' ? 0 : minS;
       for (let step = 1; step <= range; step++) {
         for (const cand of [cur + step, cur - step]) {
-          if (cand < minS || cand > maxS) continue;
+          if (cand < bMin || cand > maxS) continue;
           if (!overlapsAt(i, cand, lx, rx)) { found = cand; break; }
         }
         if (found != null) break;
