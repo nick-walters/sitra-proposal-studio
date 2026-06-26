@@ -192,8 +192,8 @@ function layoutWpBadges(args: {
     }
     mark(chosen, leftX, leftX + shapeW);
 
-    // Single-task deliverable → no dot/line per spec.
-    const drawLines = !(isDel && b.linkedTaskIds.length === 1);
+    // Every deliverable draws a straight diagonal line to each linked task's dot.
+    const drawLines = true;
 
     const origins: Array<{ rowIdx: number; x: number }> = [];
     if (drawLines) {
