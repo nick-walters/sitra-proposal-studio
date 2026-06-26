@@ -325,23 +325,14 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
     onSuccess: () => { qc.invalidateQueries({ queryKey: MS_KEY(proposalId) }); notifyRefs(); },
   });
 
-  const setMsWpsAndTasks = useMutation({
-    mutationFn: async ({ id, wpIds, taskIds }: { id: string; wpIds: string[]; taskIds: string[] }) => {
+  const setMsWps = useMutation({
+    mutationFn: async ({ id, wpIds, primaryWpId }: { id: string; wpIds: string[]; primaryWpId: string | null }) => {
       await supabase.from('proposal_milestone_wps').delete().eq('milestone_id', id);
       if (wpIds.length > 0) {
+        const effectivePrimary = primaryWpId && wpIds.includes(primaryWpId) ? primaryWpId : wpIds[0];
         const { error } = await supabase
           .from('proposal_milestone_wps')
-          .insert(wpIds.map(w => ({ milestone_id: id, wp_draft_id: w })));
-        if (error) throw error;
-      }
-      await supabase.from('proposal_milestone_tasks').delete().eq('milestone_id', id);
-      // Only keep tasks whose WP is checked
-      const allowed = new Set(tasks.filter(t => wpIds.includes(t.wp_draft_id)).map(t => t.id));
-      const kept = taskIds.filter(t => allowed.has(t));
-      if (kept.length > 0) {
-        const { error } = await supabase
-          .from('proposal_milestone_tasks')
-          .insert(kept.map(t => ({ milestone_id: id, wp_draft_task_id: t })));
+          .insert(wpIds.map(w => ({ milestone_id: id, wp_draft_id: w, is_primary: w === effectivePrimary })));
         if (error) throw error;
       }
     },
