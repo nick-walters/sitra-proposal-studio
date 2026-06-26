@@ -469,10 +469,7 @@ export function GanttChartFigure({
           .eq('proposal_id', proposalId),
         supabase
           .from('proposal_milestone_wps')
-          .select('milestone_id, wp_draft_id'),
-        supabase
-          .from('proposal_milestone_tasks')
-          .select('milestone_id, wp_draft_task_id'),
+          .select('milestone_id, wp_draft_id, is_primary'),
         supabase
           .from('participants')
           .select('id, organisation_short_name, participant_number')
@@ -484,7 +481,6 @@ export function GanttChartFigure({
       if (dtlError) throw dtlError;
       if (msError) throw msError;
       if (mwlError) throw mwlError;
-      if (mtlError) throw mtlError;
       if (partError) throw partError;
 
       const wpIds = new Set((wps || []).map(wp => wp.id));
@@ -503,19 +499,13 @@ export function GanttChartFigure({
       }
 
       const msToWpIds = new Map<string, string[]>();
+      const msPrimaryWpId = new Map<string, string>();
       for (const l of msWpLinks || []) {
         if (!msIds.has(l.milestone_id) || !wpIds.has(l.wp_draft_id)) continue;
         const arr = msToWpIds.get(l.milestone_id) || [];
         arr.push(l.wp_draft_id);
         msToWpIds.set(l.milestone_id, arr);
-      }
-
-      const msToTaskIds = new Map<string, string[]>();
-      for (const l of msTaskLinks || []) {
-        if (!msIds.has(l.milestone_id) || !taskIds.has(l.wp_draft_task_id)) continue;
-        const arr = msToTaskIds.get(l.milestone_id) || [];
-        arr.push(l.wp_draft_task_id);
-        msToTaskIds.set(l.milestone_id, arr);
+        if (l.is_primary) msPrimaryWpId.set(l.milestone_id, l.wp_draft_id);
       }
 
       return {
@@ -526,7 +516,7 @@ export function GanttChartFigure({
         participants: participants || [],
         delToTaskIds,
         msToWpIds,
-        msToTaskIds,
+        msPrimaryWpId,
       };
     },
   });
