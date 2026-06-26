@@ -102,6 +102,7 @@ type WpBadgeOut = WpBadgeIn & {
   pointDepth: number;
   rowIdx: number;          // -1 = WP band
   drawLines: boolean;
+  flipped: boolean;        // deliverable chevron mirrored (tip on left, body extends right)
   origins: Array<{ rowIdx: number; x: number }>;
 };
 
@@ -196,7 +197,40 @@ function layoutWpBadges(args: {
       }
     }
 
-    out.push({ ...b, tipX, leftX, shapeW, shapeH, bodyW, pointDepth, rowIdx: chosen, drawLines, origins });
+    out.push({ ...b, tipX, leftX, shapeW, shapeH, bodyW, pointDepth, rowIdx: chosen, drawLines, flipped: false, origins });
+  }
+
+  // ── Flip pre-pass: when two deliverables on the SAME row would overlap at the
+  // same/adjacent time-point, FLIP the higher-numbered one (chevron mirrored,
+  // tip 5px to the RIGHT of the time-point, body extending right). This is the
+  // FIRST resort before the vertical-nudge fallback below.
+  const parseDelNum = (s: string) => {
+    const m = s.match(/(\d+)(?:\.(\d+))?/);
+    if (!m) return 0;
+    return (parseInt(m[1], 10) || 0) * 10000 + (parseInt(m[2] || '0', 10) || 0);
+  };
+  const rectsOverlap = (a: WpBadgeOut, b2: WpBadgeOut) =>
+    !(a.leftX + a.shapeW + 2 <= b2.leftX || a.leftX >= b2.leftX + b2.shapeW + 2);
+  for (let pass = 0; pass < 10; pass++) {
+    let flipped = false;
+    for (let i = 0; i < out.length; i++) {
+      for (let j = i + 1; j < out.length; j++) {
+        const a = out[i], c = out[j];
+        if (a.kind !== 'del' || c.kind !== 'del') continue;
+        if (a.rowIdx !== c.rowIdx) continue;
+        if (!rectsOverlap(a, c)) continue;
+        // Pick the higher-numbered to flip (if not already flipped).
+        const aN = parseDelNum(a.label), cN = parseDelNum(c.label);
+        const target = aN >= cN ? a : c;
+        if (target.flipped) continue;
+        const newTipX = (target.dueMonth - 0.5) * cellWidth + 5;
+        target.tipX = newTipX;
+        target.leftX = newTipX; // body extends right from tip
+        target.flipped = true;
+        flipped = true;
+      }
+    }
+    if (!flipped) break;
   }
 
   // Repeat-until-stable overlap resolver, extended so that a deliverable
@@ -1088,6 +1122,9 @@ export function GanttChartFigure({
                         const x1 = shapeW * 0.12;
                         const x2 = shapeW * 0.88;
                         svgPath = `M ${x1},0 L ${x2},0 L ${shapeW},${shapeH / 2} L ${x2},${shapeH} L ${x1},${shapeH} L 0,${shapeH / 2} Z`;
+                      } else if (b.flipped) {
+                        // Deliverable flipped: left-pointing chevron (tip on left edge)
+                        svgPath = `M ${b.pointDepth},0 L ${shapeW},0 L ${shapeW},${shapeH} L ${b.pointDepth},${shapeH} L 0,${shapeH / 2} Z`;
                       } else {
                         // Deliverable: right-pointing chevron (tip on the right edge)
                         svgPath = `M 0,0 L ${shapeW - b.pointDepth},0 L ${shapeW},${shapeH / 2} L ${shapeW - b.pointDepth},${shapeH} L 0,${shapeH} Z`;
@@ -1125,7 +1162,7 @@ export function GanttChartFigure({
                                 style={{
                                   position: 'absolute',
                                   top: isMs ? 0 : -0.5,
-                                  left: isMs ? 0 : 0,
+                                  left: isMs ? 0 : (b.flipped ? b.pointDepth : 0),
                                   width: isMs ? shapeW : b.bodyW,
                                   height: shapeH,
                                   display: 'flex',
