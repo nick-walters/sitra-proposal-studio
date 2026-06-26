@@ -90,6 +90,7 @@ type WpBadgeIn = {
   dueMonth: number;
   linkedRows: number[];
   linkedTaskIds: string[];
+  anchorRow?: number; // deliverables: row of highest-numbered linked task
   useWpBand?: boolean;
   tooltipTitle: string;
 };
