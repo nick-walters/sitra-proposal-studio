@@ -706,21 +706,32 @@ export function GanttChartFigure({
                       >
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', maxWidth: '100%' }}>{task.name}</span>
                       </div>
-                      <div className="flex" style={{ marginRight: MARGIN_GAP }}>
-                        {months.map(m => {
-                          const isInTask = m >= task.startMonth && m <= task.endMonth;
-                          return (
-                            <div
-                              key={m}
-                              style={{
-                                width: cellWidth,
-                                height: ROW_HEIGHT,
-                                backgroundColor: isInTask ? taskColor : undefined,
-                                borderRight: isInTask ? getFilledCellRightBorder(m, wpColor) : `1px solid ${getMonthRightBorder(m, wpColor)}`,
-                              }}
-                            />
-                          );
-                        })}
+                      <div className="relative flex" style={{ marginRight: MARGIN_GAP }}>
+                        {months.map(m => (
+                          <div
+                            key={m}
+                            style={{
+                              width: cellWidth,
+                              height: ROW_HEIGHT,
+                              borderRight: `1px solid ${getMonthRightBorder(m, wpColor)}`,
+                            }}
+                          />
+                        ))}
+                        {task.startMonth != null && task.endMonth != null && task.endMonth >= task.startMonth && (
+                          <div
+                            aria-hidden="true"
+                            style={{
+                              position: 'absolute',
+                              top: '5%',
+                              height: '90%',
+                              left: (task.startMonth - 1) * cellWidth,
+                              width: (task.endMonth - task.startMonth + 1) * cellWidth,
+                              backgroundColor: taskColor,
+                              borderRadius: 9999,
+                              pointerEvents: 'none',
+                            }}
+                          />
+                        )}
                       </div>
                     </div>
                   ))}
