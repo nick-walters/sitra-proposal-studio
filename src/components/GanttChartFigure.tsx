@@ -445,7 +445,6 @@ export function GanttChartFigure({
         { data: delTaskLinks, error: dtlError },
         { data: msData, error: msError },
         { data: msWpLinks, error: mwlError },
-        { data: msTaskLinks, error: mtlError },
         { data: participants, error: partError },
       ] = await Promise.all([
         supabase
