@@ -944,7 +944,68 @@ export function GanttChartFigure({
                         </Tooltip>
                       );
                     })}
+
+                    {/* Milestone hexagons on the WP band row (primary WP only) */}
+                    {msLaidOut.map((m) => {
+                      const x1 = m.shapeW * 0.12;
+                      const x2 = m.shapeW * 0.88;
+                      const path = `M ${x1},0 L ${x2},0 L ${m.shapeW},${m.shapeH / 2} L ${x2},${m.shapeH} L ${x1},${m.shapeH} L 0,${m.shapeH / 2} Z`;
+                      return (
+                        <Tooltip key={`ms-badge-${m.id}`}>
+                          <TooltipTrigger asChild>
+                            <span
+                              style={{
+                                position: 'absolute',
+                                top: yOfWpBand,
+                                left: m.hexLeft,
+                                transform: 'translateY(-50%)',
+                                width: m.shapeW,
+                                height: m.shapeH,
+                                zIndex: 10,
+                                pointerEvents: 'auto',
+                              }}
+                            >
+                              <svg
+                                width={m.shapeW}
+                                height={m.shapeH}
+                                viewBox={`0 0 ${m.shapeW} ${m.shapeH}`}
+                                style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}
+                              >
+                                <path d={path} fill="#000000" stroke="none" />
+                              </svg>
+                              <span
+                                style={{
+                                  position: 'absolute',
+                                  top: 0,
+                                  left: 0,
+                                  width: m.shapeW,
+                                  height: m.shapeH,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontFamily: "'Times New Roman', Times, serif",
+                                  fontSize: '8pt',
+                                  fontWeight: 700,
+                                  lineHeight: 1,
+                                  color: '#ffffff',
+                                  whiteSpace: 'nowrap',
+                                  padding: '0 4px',
+                                  boxSizing: 'border-box',
+                                }}
+                              >
+                                {m.label}
+                              </span>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="text-xs font-medium">{m.label}{m.title ? `: ${m.title}` : ''}</p>
+                            <p className="text-xs text-muted-foreground">Month {m.dueMonth}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      );
+                    })}
                   </div>
+
                 </div>
 
                 {/* Bottom border under months columns only */}
