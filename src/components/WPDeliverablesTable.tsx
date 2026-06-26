@@ -466,7 +466,7 @@ function DeliverableRow({
         </Select>
       </td>
 
-      {/* Related task(s) */}
+      {/* Related task */}
       <td className="py-1.5 px-1">
         <DeliverableTaskDialog
           wpNumber={wpNumber}
@@ -483,10 +483,10 @@ function DeliverableRow({
               className="w-full min-h-7 px-1.5 py-1 border border-input rounded-md bg-background text-left hover:bg-accent disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {selectedTasks.length === 0 ? (
-                <span className="text-muted-foreground italic">Select task(s)…</span>
+                <span className="text-muted-foreground italic">Select task…</span>
               ) : (
                 <span className="flex flex-wrap gap-0.5">
-                  {selectedTasks.map(t => (
+                  {selectedTasks.slice(0, 1).map(t => (
                     <B31Pill key={t.id} variant="outline" color={wpColor}>
                       T{wpNumber}.{t.number}
                     </B31Pill>
