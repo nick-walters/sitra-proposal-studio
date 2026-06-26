@@ -111,8 +111,9 @@ function layoutWpBadges(args: {
   tasks: { id: string; startMonth: number; endMonth: number }[];
   wpEndMonth: number;
   cellWidth: number;
+  preOccupied?: Array<{ slot: number; lx: number; rx: number }>;
 }): WpBadgeOut[] {
-  const { delBadges, msBadges, tasks, wpEndMonth, cellWidth } = args;
+  const { delBadges, msBadges, tasks, wpEndMonth, cellWidth, preOccupied } = args;
   const numTasks = tasks.length;
   const pointDepth = 4;
   const estimateMsW = (label: string) => Math.max(32, label.length * 7 + 10);
@@ -131,6 +132,9 @@ function layoutWpBadges(args: {
     list.push([lx, rx]);
     occupied.set(slot, list);
   };
+  // Pre-mark slots occupied by badges placed in an earlier pass (e.g. chart-wide milestones).
+  if (preOccupied) for (const p of preOccupied) mark(p.slot, p.lx, p.rx);
+
 
   // Place earlier-due first; deliverables before milestones at same month.
   const all = [...delBadges, ...msBadges].sort((a, b) => {
@@ -765,6 +769,18 @@ export function GanttChartFigure({
               .filter(t => t.wp_draft_id === wp.id)
               .filter(t => t.start_month == null || t.end_month == null);
 
+            // Cross-type collision: chart-wide milestones are laid out first; this
+            // per-WP deliverable pass must avoid any milestone that landed on this
+            // WP's band or one of its task rows. Convert global slots → local rowIdx.
+            const bandSlot = rowLayout.wpBandSlot[wpIdx];
+            const taskSlotsLocal = wp.tasks.map((t: any) => rowLayout.taskSlotByTaskId.get(t.id));
+            const preOccupied = chartMilestones.flatMap((m) => {
+              if (m.globalRow === bandSlot) return [{ slot: -1, lx: m.leftX, rx: m.leftX + m.shapeW }];
+              const i = taskSlotsLocal.indexOf(m.globalRow);
+              if (i >= 0) return [{ slot: i, lx: m.leftX, rx: m.leftX + m.shapeW }];
+              return [];
+            });
+
             // Compute badge layout (rebuilt every render — cheap)
             const laidOut = layoutWpBadges({
               delBadges: wp.delBadges,
@@ -772,6 +788,7 @@ export function GanttChartFigure({
               tasks: wp.tasks.map((t: any) => ({ id: t.id, startMonth: t.startMonth, endMonth: t.endMonth })),
               wpEndMonth: wp.endMonth,
               cellWidth,
+              preOccupied,
             });
 
             // Y coordinates relative to the per-WP overlay container.
@@ -892,14 +909,17 @@ export function GanttChartFigure({
                       {laidOut.flatMap((b) => {
                         if (!b.drawLines) return [];
                         const ty = yOfRow(b.rowIdx);
+                        // Deliverable connectors take the badge's WP colour so they
+                        // always match the chevron. Any future per-WP MS would stay black.
+                        const lineColor = b.kind === 'del' ? b.color : '#000000';
                         return b.origins.map((o, oi) => {
                           const oy = yOfRow(o.rowIdx);
                           // Orthogonal: origin → (tipX, oy) → (tipX, ty). Approaches vertically.
                           const d = `M ${o.x} ${oy} L ${b.tipX} ${oy} L ${b.tipX} ${ty}`;
                           return (
                             <g key={`${b.key}-l${oi}`}>
-                              <path d={d} stroke="#555" strokeWidth={1} fill="none" strokeLinecap="square" strokeLinejoin="miter" />
-                              <circle cx={o.x} cy={oy} r={1.5} fill="#555" />
+                              <path d={d} stroke={lineColor} strokeWidth={1} fill="none" strokeLinecap="square" strokeLinejoin="miter" />
+                              <circle cx={o.x} cy={oy} r={1.5} fill={lineColor} />
 
                             </g>
                           );
@@ -1021,8 +1041,9 @@ export function GanttChartFigure({
                   const d = `M ${o.x} ${oy} L ${m.tipX} ${oy} L ${m.tipX} ${ty}`;
                   return (
                     <g key={`${m.key}-l${oi}`}>
-                      <path d={d} stroke="#555" strokeWidth={1} fill="none" strokeLinecap="square" strokeLinejoin="miter" />
-                      <circle cx={o.x} cy={oy} r={1.5} fill="#555" />
+                      <path d={d} stroke="#000000" strokeWidth={1} fill="none" strokeLinecap="square" strokeLinejoin="miter" />
+                      {/* Milestone origin marker: diamond (rotated square) sized to match the prior dot. */}
+                      <path d={`M ${o.x - 1.5} ${oy} L ${o.x} ${oy - 1.5} L ${o.x + 1.5} ${oy} L ${o.x} ${oy + 1.5} Z`} fill="#000000" />
                     </g>
                   );
                 });
