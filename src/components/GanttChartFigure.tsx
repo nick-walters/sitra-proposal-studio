@@ -1256,9 +1256,8 @@ export function GanttChartFigure({
                 return m.origins.map((o, oi) => {
                   const oy = rowLayout.slotCenterY[o.globalRow];
                   if (oy == null) return null;
-                  const d = oy === ty
-                    ? `M ${o.x} ${oy} L ${m.tipX} ${ty}`
-                    : `M ${o.x} ${oy} L ${o.x} ${(oy + ty) / 2} L ${m.tipX} ${(oy + ty) / 2} L ${m.tipX} ${ty}`;
+                  // Straight diagonal line from diamond origin to hexagon tip.
+                  const d = `M ${o.x} ${oy} L ${m.tipX} ${ty}`;
                   return (
                     <g key={`${m.key}-l${oi}`}>
                       <path d={d} stroke="#000000" strokeWidth={1} fill="none" strokeLinecap="square" strokeLinejoin="miter" />
