@@ -722,8 +722,6 @@ export function GanttChartFigure({
                       >
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', maxWidth: taskTitleMaxWidth.get(task.id) ?? '100%' }}>{task.name}</span>
                       </div>
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', maxWidth: '100%' }}>{task.name}</span>
-                      </div>
                       <div className="relative flex" style={{ marginRight: MARGIN_GAP }}>
                         {months.map(m => (
                           <div
