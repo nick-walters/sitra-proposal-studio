@@ -389,6 +389,35 @@ function DeliverableRow({
         />
       </td>
 
+      {/* Partner */}
+      <td className="py-1.5 px-1">
+        <Select
+          value={deliverable.responsible_participant_id || ''}
+          onValueChange={(v) => onUpdate(deliverable.id, { responsible_participant_id: v === '__clear__' ? null : v || null })}
+          disabled={readOnly}
+        >
+          <SelectTrigger
+            hideArrow
+            className={cn('h-auto border-0 shadow-none p-0 w-auto gap-0', deliverable.responsible_participant_id ? 'font-bold' : 'font-normal')}
+            style={deliverable.responsible_participant_id ? {
+              backgroundColor: '#000', color: '#fff', height: '17px',
+              fontFamily: 'Times New Roman, serif', fontSize: '11pt', lineHeight: '17px',
+              borderRadius: '9999px', paddingLeft: '6px', paddingRight: '6px',
+            } : undefined}
+          >
+            <SelectValue placeholder="—" className="font-normal" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__clear__"><span className="text-muted-foreground italic">Clear selection</span></SelectItem>
+            {participants.map(p => (
+              <SelectItem key={p.id} value={p.id}>
+                <ParticipantBubble>{p.organisation_short_name || p.organisation_name}</ParticipantBubble>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </td>
+
       {/* Type */}
       <td className="py-1.5 px-1">
         <Select
@@ -437,33 +466,15 @@ function DeliverableRow({
         </Select>
       </td>
 
-      {/* Partner */}
+      {/* Due month */}
       <td className="py-1.5 px-1">
-        <Select
-          value={deliverable.responsible_participant_id || ''}
-          onValueChange={(v) => onUpdate(deliverable.id, { responsible_participant_id: v === '__clear__' ? null : v || null })}
-          disabled={readOnly}
-        >
-          <SelectTrigger
-            hideArrow
-            className={cn('h-auto border-0 shadow-none p-0 w-auto gap-0', deliverable.responsible_participant_id ? 'font-bold' : 'font-normal')}
-            style={deliverable.responsible_participant_id ? {
-              backgroundColor: '#000', color: '#fff', height: '17px',
-              fontFamily: 'Times New Roman, serif', fontSize: '11pt', lineHeight: '17px',
-              borderRadius: '9999px', paddingLeft: '6px', paddingRight: '6px',
-            } : undefined}
-          >
-            <SelectValue placeholder="—" className="font-normal" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__clear__"><span className="text-muted-foreground italic">Clear selection</span></SelectItem>
-            {participants.map(p => (
-              <SelectItem key={p.id} value={p.id}>
-                <ParticipantBubble>{p.organisation_short_name || p.organisation_name}</ParticipantBubble>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <SingleMonthPicker
+          value={deliverable.due_month}
+          projectDuration={projectDuration}
+          readOnly={readOnly}
+          label=""
+          onChange={(m) => onUpdate(deliverable.id, { due_month: m })}
+        />
       </td>
 
       {/* Related task */}
@@ -498,16 +509,6 @@ function DeliverableRow({
         />
       </td>
 
-      {/* Due month */}
-      <td className="py-1.5 px-1">
-        <SingleMonthPicker
-          value={deliverable.due_month}
-          projectDuration={projectDuration}
-          readOnly={readOnly}
-          label=""
-          onChange={(m) => onUpdate(deliverable.id, { due_month: m })}
-        />
-      </td>
 
       {/* Move (above) + Delete (below) — stacked */}
       <td className="py-1.5 px-0">
