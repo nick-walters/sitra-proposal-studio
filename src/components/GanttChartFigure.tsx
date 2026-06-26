@@ -111,8 +111,9 @@ function layoutWpBadges(args: {
   tasks: { id: string; startMonth: number; endMonth: number }[];
   wpEndMonth: number;
   cellWidth: number;
+  preOccupied?: Array<{ slot: number; lx: number; rx: number }>;
 }): WpBadgeOut[] {
-  const { delBadges, msBadges, tasks, wpEndMonth, cellWidth } = args;
+  const { delBadges, msBadges, tasks, wpEndMonth, cellWidth, preOccupied } = args;
   const numTasks = tasks.length;
   const pointDepth = 4;
   const estimateMsW = (label: string) => Math.max(32, label.length * 7 + 10);
