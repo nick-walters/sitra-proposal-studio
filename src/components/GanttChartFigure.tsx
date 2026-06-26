@@ -192,8 +192,8 @@ function layoutWpBadges(args: {
     }
     mark(chosen, leftX, leftX + shapeW);
 
-    // Single-task deliverable → no dot/line per spec.
-    const drawLines = !(isDel && b.linkedTaskIds.length === 1);
+    // Every deliverable draws a straight diagonal line to each linked task's dot.
+    const drawLines = true;
 
     const origins: Array<{ rowIdx: number; x: number }> = [];
     if (drawLines) {
@@ -1129,10 +1129,8 @@ export function GanttChartFigure({
                         const lineColor = b.kind === 'del' ? b.color : '#000000';
                         return b.origins.map((o, oi) => {
                           const oy = yOfRow(o.rowIdx);
-                          // Vertical-first step: origin → midY → tipX → tip. Same-row = straight horizontal.
-                          const d = oy === ty
-                            ? `M ${o.x} ${oy} L ${b.tipX} ${ty}`
-                            : `M ${o.x} ${oy} L ${o.x} ${(oy + ty) / 2} L ${b.tipX} ${(oy + ty) / 2} L ${b.tipX} ${ty}`;
+                          // Straight diagonal line from origin dot to chevron tip.
+                          const d = `M ${o.x} ${oy} L ${b.tipX} ${ty}`;
                           return (
                             <g key={`${b.key}-l${oi}`}>
                               <path d={d} stroke={lineColor} strokeWidth={1} fill="none" strokeLinecap="square" strokeLinejoin="miter" />
@@ -1258,9 +1256,8 @@ export function GanttChartFigure({
                 return m.origins.map((o, oi) => {
                   const oy = rowLayout.slotCenterY[o.globalRow];
                   if (oy == null) return null;
-                  const d = oy === ty
-                    ? `M ${o.x} ${oy} L ${m.tipX} ${ty}`
-                    : `M ${o.x} ${oy} L ${o.x} ${(oy + ty) / 2} L ${m.tipX} ${(oy + ty) / 2} L ${m.tipX} ${ty}`;
+                  // Straight diagonal line from diamond origin to hexagon tip.
+                  const d = `M ${o.x} ${oy} L ${m.tipX} ${ty}`;
                   return (
                     <g key={`${m.key}-l${oi}`}>
                       <path d={d} stroke="#000000" strokeWidth={1} fill="none" strokeLinecap="square" strokeLinejoin="miter" />
