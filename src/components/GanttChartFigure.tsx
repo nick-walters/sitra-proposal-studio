@@ -647,27 +647,13 @@ export function GanttChartFigure({
               .filter(t => t.wp_draft_id === wp.id)
               .filter(t => t.start_month == null || t.end_month == null);
 
-            // Cross-type collision: chart-wide milestones are laid out first; this
-            // per-WP deliverable pass must avoid any milestone that landed on this
-            // WP's band or one of its task rows. Convert global slots → local rowIdx.
-            const bandSlot = rowLayout.wpBandSlot[wpIdx];
-            const taskSlotsLocal = wp.tasks.map((t: any) => rowLayout.taskSlotByTaskId.get(t.id));
-            const preOccupied = chartMilestones.flatMap((m) => {
-              if (m.globalRow === bandSlot) return [{ slot: -1, lx: m.leftX, rx: m.leftX + m.shapeW }];
-              const i = taskSlotsLocal.indexOf(m.globalRow);
-              if (i >= 0) return [{ slot: i, lx: m.leftX, rx: m.leftX + m.shapeW }];
-              return [];
-            });
-
             // Compute badge layout (rebuilt every render — cheap)
             const laidOut = layoutWpBadges({
               delBadges: wp.delBadges,
-              msBadges: wp.msBadges,
               tasks: wp.tasks.map((t: any) => ({ id: t.id, startMonth: t.startMonth, endMonth: t.endMonth })),
-              wpEndMonth: wp.endMonth,
               cellWidth,
-              preOccupied,
             });
+
 
             // Y coordinates relative to the per-WP overlay container.
             // Overlay top = top of WP band; band centre = ROW/2;
