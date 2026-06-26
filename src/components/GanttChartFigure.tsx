@@ -132,6 +132,9 @@ function layoutWpBadges(args: {
     list.push([lx, rx]);
     occupied.set(slot, list);
   };
+  // Pre-mark slots occupied by badges placed in an earlier pass (e.g. chart-wide milestones).
+  if (preOccupied) for (const p of preOccupied) mark(p.slot, p.lx, p.rx);
+
 
   // Place earlier-due first; deliverables before milestones at same month.
   const all = [...delBadges, ...msBadges].sort((a, b) => {
