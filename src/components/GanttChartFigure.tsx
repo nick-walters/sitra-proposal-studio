@@ -107,345 +107,69 @@ type WpBadgeOut = WpBadgeIn & {
   origins: Array<{ rowIdx: number; x: number }>;
 };
 
+// Simplified per-WP deliverable layout (milestones removed from the Gantt).
+//
+//   • Each deliverable is anchored on its SINGLE assigned task's row.
+//   • A dot sits at the horizontal centre of the due-month column.
+//   • The chevron tip sits 5px to the LEFT of the dot (right-pointing).
+//   • If a second deliverable lands on the SAME task, it is FLIPPED:
+//     left-pointing chevron, tip 5px to the RIGHT of the dot.
+//   • Up to two deliverables per task are supported.
 function layoutWpBadges(args: {
   delBadges: WpBadgeIn[];
-  msBadges: WpBadgeIn[];
   tasks: { id: string; startMonth: number; endMonth: number }[];
-  wpEndMonth: number;
   cellWidth: number;
-  preOccupied?: Array<{ slot: number; lx: number; rx: number }>;
 }): WpBadgeOut[] {
-  const { delBadges, msBadges, tasks, wpEndMonth, cellWidth, preOccupied } = args;
-  const numTasks = tasks.length;
+  const { delBadges, tasks, cellWidth } = args;
   const pointDepth = 4;
-  const estimateMsW = (label: string) => Math.max(32, label.length * 7 + 10);
   const estimateDelW = (label: string) => Math.max(25, label.length * 5 + 5);
-
-  const taskById = new Map(tasks.map((t, i) => [t.id, { ...t, rowIdx: i }]));
-
-  const occupied = new Map<number, Array<[number, number]>>();
-  const isFree = (slot: number, lx: number, rx: number) => {
-    const list = occupied.get(slot);
-    if (!list) return true;
-    return list.every(([a, b]) => rx + 2 <= a || lx - 2 >= b);
-  };
-  const mark = (slot: number, lx: number, rx: number) => {
-    const list = occupied.get(slot) || [];
-    list.push([lx, rx]);
-    occupied.set(slot, list);
-  };
-  // Pre-mark slots occupied by badges placed in an earlier pass (e.g. chart-wide milestones).
-  if (preOccupied) for (const p of preOccupied) mark(p.slot, p.lx, p.rx);
-
-
-  // Place earlier-due first; deliverables before milestones at same month.
-  const all = [...delBadges, ...msBadges].sort((a, b) => {
-    if (a.dueMonth !== b.dueMonth) return a.dueMonth - b.dueMonth;
-    return a.kind === 'del' ? -1 : 1;
-  });
-
-  const out: WpBadgeOut[] = [];
-  for (const b of all) {
-    const isDel = b.kind === 'del';
-    const bodyW = isDel ? estimateDelW(b.label) : estimateMsW(b.label);
-    const shapeW = isDel ? bodyW + pointDepth : bodyW;
-    const shapeH = isDel ? 10 : 12;
-    const tipX = (b.dueMonth - 0.5) * cellWidth - (isDel ? 5 : 0);
-    const leftX = isDel ? tipX - shapeW : tipX;
-
-
-    // Target row:
-    //  • milestone with useWpBand → -1 (WP band)
-    //  • deliverable → anchor row = highest-numbered linked task (NEVER band)
-    //  • else → median of linked rows
-    let target: number;
-    if (!isDel && b.useWpBand) target = -1;
-    else if (isDel) {
-      target = b.anchorRow ?? (b.linkedRows.length ? b.linkedRows[b.linkedRows.length - 1] : 0);
-    }
-    else if (b.linkedRows.length === 0) target = 0;
-    else {
-      const sorted = [...b.linkedRows].sort((x, y) => x - y);
-      target = sorted[Math.floor(sorted.length / 2)];
-    }
-
-    // Deliverables must never land on the WP band row (slot -1).
-    const minSlot = isDel ? 0 : -1;
-    const maxSlot = Math.max(0, numTasks - 1);
-    let chosen: number;
-    if (isDel) {
-      // Place deliverables on their anchor row UNCONDITIONALLY here. Same-row
-      // deliverable collisions are resolved by the flip pre-pass below; any
-      // residual conflicts are handled by the vertical-nudge fallback.
-      chosen = Math.min(maxSlot, Math.max(minSlot, target));
-    } else {
-      chosen = Number.NaN;
-      for (let step = 0; step <= numTasks + 2; step++) {
-        const candidates = step === 0 ? [target] : [target + step, target - step];
-        for (const s of candidates) {
-          if (s < minSlot || s > maxSlot) continue;
-          if (isFree(s, leftX, leftX + shapeW)) { chosen = s; break; }
-        }
-        if (!Number.isNaN(chosen)) break;
-      }
-      if (Number.isNaN(chosen)) chosen = Math.max(minSlot, target);
-    }
-    mark(chosen, leftX, leftX + shapeW);
-
-    // Every deliverable draws a straight diagonal line to each linked task's dot.
-    const drawLines = true;
-
-    const origins: Array<{ rowIdx: number; x: number }> = [];
-    if (drawLines) {
-      if (!isDel && b.useWpBand) {
-        // Clamp: origin can't extend past badge's due month.
-        const originMonth = Math.min(wpEndMonth, b.dueMonth);
-        origins.push({ rowIdx: -1, x: Math.max(0, (originMonth - 1) * cellWidth) });
-      } else {
-        for (const tid of b.linkedTaskIds) {
-          const t = taskById.get(tid);
-          if (!t) continue;
-          // originMonth = min(task end month, badge due month) — never past the badge.
-          const originMonth = Math.min(t.endMonth, b.dueMonth);
-          const x = isDel ? originMonth * cellWidth : (originMonth - 1) * cellWidth;
-          origins.push({ rowIdx: t.rowIdx, x });
-        }
-      }
-    }
-
-    out.push({ ...b, tipX, leftX, shapeW, shapeH, bodyW, pointDepth, rowIdx: chosen, drawLines, flipped: false, origins });
-  }
-
-  // ── Flip pre-pass: when two deliverables on the SAME row would overlap at the
-  // same/adjacent time-point, FLIP the higher-numbered one (chevron mirrored,
-  // tip 5px to the RIGHT of the time-point, body extending right). This is the
-  // FIRST resort before the vertical-nudge fallback below.
+  const taskRowById = new Map(tasks.map((t, i) => [t.id, i]));
   const parseDelNum = (s: string) => {
     const m = s.match(/(\d+)(?:\.(\d+))?/);
     if (!m) return 0;
     return (parseInt(m[1], 10) || 0) * 10000 + (parseInt(m[2] || '0', 10) || 0);
   };
-  const rectsOverlap = (a: WpBadgeOut, b2: WpBadgeOut) =>
-    !(a.leftX + a.shapeW + 2 <= b2.leftX || a.leftX >= b2.leftX + b2.shapeW + 2);
-  for (let pass = 0; pass < 10; pass++) {
-    let flipped = false;
-    for (let i = 0; i < out.length; i++) {
-      for (let j = i + 1; j < out.length; j++) {
-        const a = out[i], c = out[j];
-        if (a.kind !== 'del' || c.kind !== 'del') continue;
-        if (a.rowIdx !== c.rowIdx) continue;
-        if (!rectsOverlap(a, c)) continue;
-        // Pick the higher-numbered to flip (if not already flipped).
-        const aN = parseDelNum(a.label), cN = parseDelNum(c.label);
-        const target = aN >= cN ? a : c;
-        if (target.flipped) continue;
-        const newTipX = (target.dueMonth - 0.5) * cellWidth + 5;
-        target.tipX = newTipX;
-        target.leftX = newTipX; // body extends right from tip
-        target.flipped = true;
-        flipped = true;
-      }
+  // Process in numbering order so the lower-numbered deliverable wins the
+  // right-pointing slot and higher-numbered ones flip.
+  const sorted = [...delBadges].sort((a, b) => parseDelNum(a.label) - parseDelNum(b.label));
+  const placedOnTask = new Map<string, number>();
+  const out: WpBadgeOut[] = [];
+  for (const b of sorted) {
+    const bodyW = estimateDelW(b.label);
+    const shapeW = bodyW + pointDepth;
+    const shapeH = 10;
+    const taskId = b.linkedTaskIds[0] ?? null;
+    const rowIdx = taskId != null ? (taskRowById.get(taskId) ?? 0) : 0;
+    const dotX = (b.dueMonth - 0.5) * cellWidth;
+    const count = taskId != null ? (placedOnTask.get(taskId) || 0) : 0;
+    const flipped = count >= 1;
+    let tipX: number;
+    let leftX: number;
+    if (!flipped) {
+      tipX = dotX - 5;
+      leftX = tipX - shapeW;
+    } else {
+      tipX = dotX + 5;
+      leftX = tipX;
     }
-    if (!flipped) break;
+    if (taskId != null) placedOnTask.set(taskId, count + 1);
+    out.push({
+      ...b,
+      tipX,
+      leftX,
+      shapeW,
+      shapeH,
+      bodyW,
+      pointDepth,
+      rowIdx,
+      drawLines: true,
+      flipped,
+      origins: [{ rowIdx, x: dotX }],
+    });
   }
-
-  // Repeat-until-stable overlap resolver, extended so that a deliverable
-  // badge also avoids OTHER deliverables' connector LINES and origin DOTS
-  // (not just other badges). Each iteration recomputes connector obstacles
-  // from current slot positions (connector row-span depends on slot), then
-  // nudges any badge that overlaps a badge, a pre-occupied (cross-type)
-  // slot, or another deliverable's line/dot. Up to 20 iterations.
-  const slots = out.map(b => b.rowIdx);
-  const pre = preOccupied || [];
-  const minS = -1;
-  const maxS = Math.max(0, numTasks - 1);
-  const range = Math.max(1, maxS - minS) + 2;
-  const computeObstacles = () => {
-    const list: Array<{ owner: number; slot: number; lx: number; rx: number }> = [];
-    for (let j = 0; j < out.length; j++) {
-      const bj = out[j];
-      if (bj.kind !== 'del' || !bj.drawLines) continue;
-      const sj = slots[j];
-      for (const o of bj.origins) {
-        // Origin DOT (radius ~2 → ±2px obstacle).
-        list.push({ owner: j, slot: o.rowIdx, lx: o.x - 2, rx: o.x + 2 });
-        // Vertical line segments at originX and tipX span every row
-        // between the origin row and the badge's current slot.
-        const lo = Math.min(o.rowIdx, sj);
-        const hi = Math.max(o.rowIdx, sj);
-        for (let r = lo; r <= hi; r++) {
-          list.push({ owner: j, slot: r, lx: o.x - 1.5, rx: o.x + 1.5 });
-          list.push({ owner: j, slot: r, lx: bj.tipX - 1.5, rx: bj.tipX + 1.5 });
-        }
-      }
-    }
-    return list;
-  };
-  for (let iter = 0; iter < 20; iter++) {
-    const obstacles = computeObstacles();
-    const overlapsAt = (i: number, slot: number, lx: number, rx: number) => {
-      for (let j = 0; j < out.length; j++) {
-        if (j === i) continue;
-        if (slots[j] !== slot) continue;
-        const bj = out[j];
-        if (!(rx + 2 <= bj.leftX || lx - 2 >= bj.leftX + bj.shapeW)) return true;
-      }
-      for (const p of pre) {
-        if (p.slot !== slot) continue;
-        if (!(rx + 2 <= p.lx || lx - 2 >= p.rx)) return true;
-      }
-      for (const o of obstacles) {
-        if (o.owner === i) continue; // a badge may sit on its OWN connector
-        if (o.slot !== slot) continue;
-        if (!(rx + 2 <= o.lx || lx - 2 >= o.rx)) return true;
-      }
-      return false;
-    };
-    let moved = false;
-    for (let i = 0; i < out.length; i++) {
-      const b = out[i];
-      const lx = b.leftX;
-      const rx = b.leftX + b.shapeW;
-      const cur = slots[i];
-      if (!overlapsAt(i, cur, lx, rx)) continue;
-      let found: number | null = null;
-      // Deliverables are clamped to slot ≥ 0 (never the WP band row).
-      const bMin = b.kind === 'del' ? 0 : minS;
-      for (let step = 1; step <= range; step++) {
-        for (const cand of [cur + step, cur - step]) {
-          if (cand < bMin || cand > maxS) continue;
-          if (!overlapsAt(i, cand, lx, rx)) { found = cand; break; }
-        }
-        if (found != null) break;
-      }
-      if (found != null && found !== cur) {
-        slots[i] = found;
-        moved = true;
-      }
-    }
-    if (!moved) break;
-  }
-  out.forEach((b, i) => { b.rowIdx = slots[i]; });
-
   return out;
 }
 
-// Generic repeat-until-stable overlap resolver. Treats each `items[i]` as a
-// placed rectangle in (slot, [lx, rx]) space. Repeatedly nudges any item that
-// overlaps another item OR a `preOccupied` rect (cross-type awareness). Returns
-// the final slot for each item in the same order.
-function iterateOverlapResolution(
-  items: Array<{ slot: number; lx: number; rx: number }>,
-  preOccupied: Array<{ slot: number; lx: number; rx: number }>,
-  minSlot: number,
-  maxSlot: number,
-  maxIter = 20,
-): number[] {
-  const slots = items.map(i => i.slot);
-  const overlaps = (slot: number, lx: number, rx: number, ignoreIdx: number) => {
-    for (let j = 0; j < items.length; j++) {
-      if (j === ignoreIdx) continue;
-      if (slots[j] !== slot) continue;
-      const b = items[j];
-      if (!(rx + 2 <= b.lx || lx - 2 >= b.rx)) return true;
-    }
-    for (const p of preOccupied) {
-      if (p.slot !== slot) continue;
-      if (!(rx + 2 <= p.lx || lx - 2 >= p.rx)) return true;
-    }
-    return false;
-  };
-  const range = Math.max(1, maxSlot - minSlot) + 2;
-  for (let iter = 0; iter < maxIter; iter++) {
-    let moved = false;
-    for (let i = 0; i < items.length; i++) {
-      const { lx, rx } = items[i];
-      const cur = slots[i];
-      if (!overlaps(cur, lx, rx, i)) continue;
-      // Search outward from current slot for the nearest non-colliding row.
-      let found: number | null = null;
-      for (let step = 1; step <= range; step++) {
-        for (const cand of [cur + step, cur - step]) {
-          if (cand < minSlot || cand > maxSlot) continue;
-          if (!overlaps(cand, lx, rx, i)) { found = cand; break; }
-        }
-        if (found != null) break;
-      }
-      if (found != null && found !== cur) {
-        slots[i] = found;
-        moved = true;
-      }
-    }
-    if (!moved) break;
-  }
-  return slots;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Chart-wide milestone layout.
-// Each milestone renders EXACTLY ONCE across the whole chart.
-// Anchor row = the milestone's PRIMARY WP band slot (no median calculation).
-// Hexagon left tip sits 5px to the right of the right edge of the due-month cell
-// (so the primary WP's own connector line is visible as a short horizontal run).
-// Nudge vertically only when needed to avoid overlapping another milestone body.
-// ─────────────────────────────────────────────────────────────────────────────
-type ChartMsIn = {
-  key: string;
-  label: string;
-  dueMonth: number;
-  primaryGlobalRow: number;
-  linkedGlobalRows: number[];
-  origins: Array<{ globalRow: number; x: number }>;
-  tooltipTitle: string;
-};
-type ChartMsOut = ChartMsIn & {
-  tipX: number; leftX: number; shapeW: number; shapeH: number; globalRow: number;
-};
-function layoutChartMilestones(items: ChartMsIn[], totalRows: number, cellWidth: number): ChartMsOut[] {
-  const estimateW = (l: string) => Math.max(32, l.length * 7 + 10);
-  const shapeH = 12;
-  const HEX_GAP = 5; // px to the right of the due-month cell's right edge
-  const occupied: Array<Array<[number, number]>> = Array.from({ length: Math.max(1, totalRows) }, () => []);
-  const isFree = (s: number, lx: number, rx: number) => {
-    if (s < 0 || s >= totalRows) return false;
-    return occupied[s].every(([a, b]) => rx + 2 <= a || lx - 2 >= b);
-  };
-  const mark = (s: number, lx: number, rx: number) => {
-    if (s >= 0 && s < totalRows) occupied[s].push([lx, rx]);
-  };
-  const sorted = items.slice().sort((a, b) => a.dueMonth - b.dueMonth);
-  const out: ChartMsOut[] = [];
-  for (const m of sorted) {
-    const shapeW = estimateW(m.label);
-    const leftX = m.dueMonth * cellWidth + HEX_GAP; // right edge of due cell + gap
-    const tipX = leftX;
-    const target = m.primaryGlobalRow;
-    let chosen = Number.NaN;
-    for (let step = 0; step <= totalRows + 2; step++) {
-      const cands = step === 0 ? [target] : [target + step, target - step];
-      for (const s of cands) {
-        if (isFree(s, leftX, leftX + shapeW)) { chosen = s; break; }
-      }
-      if (!Number.isNaN(chosen)) break;
-    }
-    if (Number.isNaN(chosen)) chosen = target;
-    mark(chosen, leftX, leftX + shapeW);
-    out.push({ ...m, tipX, leftX, shapeW, shapeH, globalRow: chosen });
-  }
-
-  // Repeat-until-stable resolver — same approach as per-WP layout, applied to
-  // the chart-wide MS pass. MS is the first pass overall, so there is nothing
-  // pre-occupied at this stage; deliverables (second pass) avoid the resulting
-  // MS positions via their own preOccupied list and iterate again themselves.
-  iterateOverlapResolution(
-    out.map(m => ({ slot: m.globalRow, lx: m.leftX, rx: m.leftX + m.shapeW })),
-    [],
-    /*minSlot*/ 0,
-    /*maxSlot*/ Math.max(0, totalRows - 1),
-  ).forEach((slot, i) => { out[i].globalRow = slot; });
-
-  return out;
-}
 
 
 
