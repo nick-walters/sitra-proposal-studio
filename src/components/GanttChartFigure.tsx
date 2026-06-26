@@ -991,8 +991,10 @@ export function GanttChartFigure({
                         const lineColor = b.kind === 'del' ? b.color : '#000000';
                         return b.origins.map((o, oi) => {
                           const oy = yOfRow(o.rowIdx);
-                          // Orthogonal: origin → (tipX, oy) → (tipX, ty). Approaches vertically.
-                          const d = `M ${o.x} ${oy} L ${b.tipX} ${oy} L ${b.tipX} ${ty}`;
+                          // Vertical-first step: origin → midY → tipX → tip. Same-row = straight horizontal.
+                          const d = oy === ty
+                            ? `M ${o.x} ${oy} L ${b.tipX} ${ty}`
+                            : `M ${o.x} ${oy} L ${o.x} ${(oy + ty) / 2} L ${b.tipX} ${(oy + ty) / 2} L ${b.tipX} ${ty}`;
                           return (
                             <g key={`${b.key}-l${oi}`}>
                               <path d={d} stroke={lineColor} strokeWidth={1} fill="none" strokeLinecap="square" strokeLinejoin="miter" />
