@@ -654,6 +654,22 @@ export function GanttChartFigure({
               cellWidth,
             });
 
+            // Per-task title max-width based on the leftmost chevron on that row.
+            // The title cell sits immediately left of the timeline, so a chevron with
+            // leftX < 0 (in overlay coordinates) extends into the title area.
+            // Run AFTER chevron placement so cutoff reflects actual geometry.
+            const titleGapPx = 4;
+            const taskTitleMaxWidth = new Map<string, number>();
+            wp.tasks.forEach((t: any, i: number) => {
+              const onRow = laidOut.filter(b => b.rowIdx === i);
+              if (onRow.length === 0) return;
+              const minLeftX = Math.min(...onRow.map(b => b.leftX));
+              if (minLeftX < 0) {
+                const constrained = Math.max(20, titleWidth + minLeftX - titleGapPx);
+                taskTitleMaxWidth.set(t.id, constrained);
+              }
+            });
+
 
             // Y coordinates relative to the per-WP overlay container.
             // Overlay top = top of WP band; band centre = ROW/2;
