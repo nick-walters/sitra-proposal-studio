@@ -548,7 +548,7 @@ function DeliverableRow({
   );
 }
 
-// ── Task-assignment dialog: only THIS WP shown, checked & disabled ──
+// ── Task-assignment dialog: single-select (radio) within THIS WP ──
 function DeliverableTaskDialog({
   wpNumber, wpColor, wpTasks, selectedTaskIds, disabled, onSave, renderTrigger,
 }: {
@@ -561,15 +561,13 @@ function DeliverableTaskDialog({
   renderTrigger: (open: () => void) => React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState<string[]>(selectedTaskIds);
+  const [draft, setDraft] = useState<string | null>(selectedTaskIds[0] ?? null);
 
   useEffect(() => {
-    if (open) setDraft(selectedTaskIds);
+    if (open) setDraft(selectedTaskIds[0] ?? null);
   }, [open, selectedTaskIds]);
 
-  const toggle = (id: string) => {
-    setDraft(prev => prev.includes(id) ? prev.filter(t => t !== id) : [...prev, id]);
-  };
+  const radioName = `del-task-${wpNumber}`;
 
   return (
     <>
@@ -577,15 +575,14 @@ function DeliverableTaskDialog({
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Related task(s)</DialogTitle>
+            <DialogTitle>Related task</DialogTitle>
           </DialogHeader>
           <p className="text-xs text-muted-foreground -mt-1">
-            Pick the tasks this deliverable depends on. Selections are stored for the future Gantt chart.
+            Pick the single task this deliverable depends on.
           </p>
           <div className="max-h-[60vh] overflow-y-auto space-y-1 pr-1">
             <div className="rounded border border-border/40">
               <label className="flex items-center gap-2 px-2 py-1.5 opacity-90">
-                <Checkbox checked disabled />
                 <WPBubble wpNumber={wpNumber} wpColor={wpColor} />
                 <span className="text-xs text-muted-foreground italic">(this deliverable's WP)</span>
               </label>
@@ -595,9 +592,11 @@ function DeliverableTaskDialog({
                 )}
                 {wpTasks.map(t => (
                   <label key={t.id} className="flex items-center gap-2 py-1 rounded hover:bg-accent cursor-pointer">
-                    <Checkbox
-                      checked={draft.includes(t.id)}
-                      onCheckedChange={() => toggle(t.id)}
+                    <input
+                      type="radio"
+                      name={radioName}
+                      checked={draft === t.id}
+                      onChange={() => setDraft(t.id)}
                     />
                     <B31Pill variant="outline" color={wpColor}>
                       T{wpNumber}.{t.number}
@@ -606,17 +605,29 @@ function DeliverableTaskDialog({
                   </label>
                 ))}
               </div>
+              {draft !== null && (
+                <div className="px-2 pb-2">
+                  <button
+                    type="button"
+                    className="text-xs text-muted-foreground underline hover:text-foreground"
+                    onClick={() => setDraft(null)}
+                  >
+                    Clear selection
+                  </button>
+                </div>
+              )}
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={() => { onSave(draft); setOpen(false); }}>Save</Button>
+            <Button onClick={() => { onSave(draft ? [draft] : []); setOpen(false); }}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
   );
 }
+
 
 // ── Same-month reorder dialog ──
 function SameMonthReorderDialog({
