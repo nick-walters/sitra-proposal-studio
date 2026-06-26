@@ -176,12 +176,16 @@ function layoutWpBadges(args: {
     const origins: Array<{ rowIdx: number; x: number }> = [];
     if (drawLines) {
       if (!isDel && b.useWpBand) {
-        origins.push({ rowIdx: -1, x: Math.max(0, (wpEndMonth - 1) * cellWidth) });
+        // Clamp: origin can't extend past badge's due month.
+        const originMonth = Math.min(wpEndMonth, b.dueMonth);
+        origins.push({ rowIdx: -1, x: Math.max(0, (originMonth - 1) * cellWidth) });
       } else {
         for (const tid of b.linkedTaskIds) {
           const t = taskById.get(tid);
           if (!t) continue;
-          const x = isDel ? t.endMonth * cellWidth : (t.endMonth - 1) * cellWidth;
+          // originMonth = min(task end month, badge due month) — never past the badge.
+          const originMonth = Math.min(t.endMonth, b.dueMonth);
+          const x = isDel ? originMonth * cellWidth : (originMonth - 1) * cellWidth;
           origins.push({ rowIdx: t.rowIdx, x });
         }
       }
