@@ -197,7 +197,72 @@ function layoutWpBadges(args: {
 
     out.push({ ...b, tipX, leftX, shapeW, shapeH, bodyW, pointDepth, rowIdx: chosen, drawLines, origins });
   }
+
+  // Repeat-until-stable overlap resolver. The single greedy pass above can
+  // leave overlaps when the search hit a boundary and fell back to `target`,
+  // OR when later badges nudged into a slot a previous badge already widened
+  // beyond the search window. We re-scan, treating every other placed badge
+  // AND every pre-occupied (cross-type) slot as occupied, and nudge any badge
+  // still in a colliding slot. Up to 20 iterations; bail when nothing moves.
+  iterateOverlapResolution(
+    out.map(b => ({ slot: b.rowIdx, lx: b.leftX, rx: b.leftX + b.shapeW })),
+    preOccupied || [],
+    /*minSlot*/ -1,
+    /*maxSlot*/ Math.max(0, numTasks - 1),
+  ).forEach((slot, i) => { out[i].rowIdx = slot; });
+
   return out;
+}
+
+// Generic repeat-until-stable overlap resolver. Treats each `items[i]` as a
+// placed rectangle in (slot, [lx, rx]) space. Repeatedly nudges any item that
+// overlaps another item OR a `preOccupied` rect (cross-type awareness). Returns
+// the final slot for each item in the same order.
+function iterateOverlapResolution(
+  items: Array<{ slot: number; lx: number; rx: number }>,
+  preOccupied: Array<{ slot: number; lx: number; rx: number }>,
+  minSlot: number,
+  maxSlot: number,
+  maxIter = 20,
+): number[] {
+  const slots = items.map(i => i.slot);
+  const overlaps = (slot: number, lx: number, rx: number, ignoreIdx: number) => {
+    for (let j = 0; j < items.length; j++) {
+      if (j === ignoreIdx) continue;
+      if (slots[j] !== slot) continue;
+      const b = items[j];
+      if (!(rx + 2 <= b.lx || lx - 2 >= b.rx)) return true;
+    }
+    for (const p of preOccupied) {
+      if (p.slot !== slot) continue;
+      if (!(rx + 2 <= p.lx || lx - 2 >= p.rx)) return true;
+    }
+    return false;
+  };
+  const range = Math.max(1, maxSlot - minSlot) + 2;
+  for (let iter = 0; iter < maxIter; iter++) {
+    let moved = false;
+    for (let i = 0; i < items.length; i++) {
+      const { lx, rx } = items[i];
+      const cur = slots[i];
+      if (!overlaps(cur, lx, rx, i)) continue;
+      // Search outward from current slot for the nearest non-colliding row.
+      let found: number | null = null;
+      for (let step = 1; step <= range; step++) {
+        for (const cand of [cur + step, cur - step]) {
+          if (cand < minSlot || cand > maxSlot) continue;
+          if (!overlaps(cand, lx, rx, i)) { found = cand; break; }
+        }
+        if (found != null) break;
+      }
+      if (found != null && found !== cur) {
+        slots[i] = found;
+        moved = true;
+      }
+    }
+    if (!moved) break;
+  }
+  return slots;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -252,6 +317,18 @@ function layoutChartMilestones(items: ChartMsIn[], totalRows: number, cellWidth:
     mark(chosen, leftX, leftX + shapeW);
     out.push({ ...m, tipX, leftX, shapeW, shapeH, globalRow: chosen });
   }
+
+  // Repeat-until-stable resolver — same approach as per-WP layout, applied to
+  // the chart-wide MS pass. MS is the first pass overall, so there is nothing
+  // pre-occupied at this stage; deliverables (second pass) avoid the resulting
+  // MS positions via their own preOccupied list and iterate again themselves.
+  iterateOverlapResolution(
+    out.map(m => ({ slot: m.globalRow, lx: m.leftX, rx: m.leftX + m.shapeW })),
+    [],
+    /*minSlot*/ 0,
+    /*maxSlot*/ Math.max(0, totalRows - 1),
+  ).forEach((slot, i) => { out[i].globalRow = slot; });
+
   return out;
 }
 
@@ -919,7 +996,7 @@ export function GanttChartFigure({
                           return (
                             <g key={`${b.key}-l${oi}`}>
                               <path d={d} stroke={lineColor} strokeWidth={1} fill="none" strokeLinecap="square" strokeLinejoin="miter" />
-                              <circle cx={o.x} cy={oy} r={1.5} fill={lineColor} />
+                              <circle cx={o.x} cy={oy} r={2} fill={lineColor} stroke={lineColor} strokeWidth={0.5} />
 
                             </g>
                           );
