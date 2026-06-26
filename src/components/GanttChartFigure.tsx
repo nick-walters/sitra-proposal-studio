@@ -722,8 +722,8 @@ export function GanttChartFigure({
                             aria-hidden="true"
                             style={{
                               position: 'absolute',
-                              top: '5%',
-                              height: '90%',
+                              top: '10%',
+                              height: '80%',
                               left: (task.startMonth - 1) * cellWidth,
                               width: (task.endMonth - task.startMonth + 1) * cellWidth,
                               backgroundColor: taskColor,
