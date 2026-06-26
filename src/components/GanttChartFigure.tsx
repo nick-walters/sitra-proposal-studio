@@ -654,6 +654,39 @@ export function GanttChartFigure({
               cellWidth,
             });
 
+            // ── Milestones on this WP's BAND row (primary WP only).
+            // Up to two per due-month cell: first goes LEFT of the dot, second flips RIGHT.
+            const msForThisWp = (wpDraftsData?.milestones || [])
+              .filter((m: any) => m.due_month != null && wpDraftsData?.msPrimaryWpId.get(m.id) === wp.id)
+              .slice()
+              .sort((a: any, b: any) => (a.due_month - b.due_month) || (a.number - b.number));
+            const msPlacedByMonth = new Map<number, number>();
+            const estimateMsW = (label: string) => Math.max(26, label.length * 5 + 8);
+            const msLaidOut = msForThisWp.map((m: any) => {
+              const label = `MS${m.number}`;
+              const shapeW = estimateMsW(label);
+              const shapeH = 10;
+              const dotX = (m.due_month - 0.5) * cellWidth;
+              const placed = msPlacedByMonth.get(m.due_month) || 0;
+              const onRight = placed >= 1;
+              msPlacedByMonth.set(m.due_month, placed + 1);
+              // Line connects dot → nearest hex tip.
+              // Hex tips are at x=0 (left tip) and x=shapeW (right tip), at midY.
+              let hexLeft: number;
+              let tipX: number; // line endpoint (nearest tip of hex)
+              if (!onRight) {
+                // Hex on LEFT of dot: right tip at (dotX - 5).
+                hexLeft = dotX - 5 - shapeW;
+                tipX = dotX - 5;
+              } else {
+                // Hex on RIGHT of dot: left tip at (dotX + 5).
+                hexLeft = dotX + 5;
+                tipX = dotX + 5;
+              }
+              return { id: m.id, label, shapeW, shapeH, hexLeft, dotX, tipX, dueMonth: m.due_month, title: m.title || '' };
+            });
+
+
             // Per-task title max-width based on the leftmost chevron on that row.
             // The title cell sits immediately left of the timeline, so a chevron with
             // leftX < 0 (in overlay coordinates) extends into the title area.
