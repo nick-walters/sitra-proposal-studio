@@ -169,30 +169,21 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
         .order('order_index')
         .order('number');
       const ids = (rows || []).map((r: any) => r.id);
-      const [wpLinksRes, taskLinksRes] = await Promise.all([
-        ids.length
-          ? supabase.from('proposal_milestone_wps').select('milestone_id, wp_draft_id').in('milestone_id', ids)
-          : Promise.resolve({ data: [] as any[] }),
-        ids.length
-          ? supabase.from('proposal_milestone_tasks').select('milestone_id, wp_draft_task_id').in('milestone_id', ids)
-          : Promise.resolve({ data: [] as any[] }),
-      ]);
+      const wpLinksRes = ids.length
+        ? await supabase.from('proposal_milestone_wps').select('milestone_id, wp_draft_id, is_primary').in('milestone_id', ids)
+        : { data: [] as any[] };
       const wpMap = new Map<string, string[]>();
-      for (const l of wpLinksRes.data || []) {
+      const primaryMap = new Map<string, string | null>();
+      for (const l of (wpLinksRes.data || []) as any[]) {
         const a = wpMap.get(l.milestone_id) || [];
         a.push(l.wp_draft_id);
         wpMap.set(l.milestone_id, a);
-      }
-      const taskMap = new Map<string, string[]>();
-      for (const l of taskLinksRes.data || []) {
-        const a = taskMap.get(l.milestone_id) || [];
-        a.push(l.wp_draft_task_id);
-        taskMap.set(l.milestone_id, a);
+        if (l.is_primary) primaryMap.set(l.milestone_id, l.wp_draft_id);
       }
       return (rows || []).map((r: any) => ({
         ...r,
         wp_ids: wpMap.get(r.id) || [],
-        task_ids: taskMap.get(r.id) || [],
+        primary_wp_id: primaryMap.get(r.id) ?? null,
       }));
     },
   });
