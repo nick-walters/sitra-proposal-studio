@@ -654,6 +654,39 @@ export function GanttChartFigure({
               cellWidth,
             });
 
+            // ── Milestones on this WP's BAND row (primary WP only).
+            // Up to two per due-month cell: first goes LEFT of the dot, second flips RIGHT.
+            const msForThisWp = (wpDraftsData?.milestones || [])
+              .filter((m: any) => m.due_month != null && wpDraftsData?.msPrimaryWpId.get(m.id) === wp.id)
+              .slice()
+              .sort((a: any, b: any) => (a.due_month - b.due_month) || (a.number - b.number));
+            const msPlacedByMonth = new Map<number, number>();
+            const estimateMsW = (label: string) => Math.max(26, label.length * 5 + 8);
+            const msLaidOut = msForThisWp.map((m: any) => {
+              const label = `MS${m.number}`;
+              const shapeW = estimateMsW(label);
+              const shapeH = 10;
+              const dotX = (m.due_month - 0.5) * cellWidth;
+              const placed = msPlacedByMonth.get(m.due_month) || 0;
+              const onRight = placed >= 1;
+              msPlacedByMonth.set(m.due_month, placed + 1);
+              // Line connects dot → nearest hex tip.
+              // Hex tips are at x=0 (left tip) and x=shapeW (right tip), at midY.
+              let hexLeft: number;
+              let tipX: number; // line endpoint (nearest tip of hex)
+              if (!onRight) {
+                // Hex on LEFT of dot: right tip at (dotX - 5).
+                hexLeft = dotX - 5 - shapeW;
+                tipX = dotX - 5;
+              } else {
+                // Hex on RIGHT of dot: left tip at (dotX + 5).
+                hexLeft = dotX + 5;
+                tipX = dotX + 5;
+              }
+              return { id: m.id, label, shapeW, shapeH, hexLeft, dotX, tipX, dueMonth: m.due_month, title: m.title || '' };
+            });
+
+
             // Per-task title max-width based on the leftmost chevron on that row.
             // The title cell sits immediately left of the timeline, so a chevron with
             // leftX < 0 (in overlay coordinates) extends into the title area.
@@ -816,7 +849,21 @@ export function GanttChartFigure({
                           );
                         });
                       })}
+                      {/* Milestone connector lines: dot at due-month cell centre on WP band → nearest hex tip */}
+                      {msLaidOut.map((m) => (
+                        <g key={`ms-line-${m.id}`}>
+                          <path
+                            d={`M ${m.dotX} ${yOfWpBand} L ${m.tipX} ${yOfWpBand}`}
+                            stroke="#000000"
+                            strokeWidth={1.333}
+                            fill="none"
+                            strokeLinecap="square"
+                          />
+                          <circle cx={m.dotX} cy={yOfWpBand} r={2} fill="#000000" stroke="none" />
+                        </g>
+                      ))}
                     </svg>
+
 
                     {/* Badges */}
                     {laidOut.map((b) => {
@@ -869,7 +916,7 @@ export function GanttChartFigure({
                               <span
                                 style={{
                                   position: 'absolute',
-                                  top: isMs ? 0 : 0.833,
+                                  top: isMs ? 0 : 0.166,
                                   left: isMs ? 0 : (b.flipped ? b.pointDepth : 0),
                                   width: isMs ? shapeW : b.bodyW,
                                   height: shapeH,
@@ -897,7 +944,68 @@ export function GanttChartFigure({
                         </Tooltip>
                       );
                     })}
+
+                    {/* Milestone hexagons on the WP band row (primary WP only) */}
+                    {msLaidOut.map((m) => {
+                      const x1 = m.shapeW * 0.12;
+                      const x2 = m.shapeW * 0.88;
+                      const path = `M ${x1},0 L ${x2},0 L ${m.shapeW},${m.shapeH / 2} L ${x2},${m.shapeH} L ${x1},${m.shapeH} L 0,${m.shapeH / 2} Z`;
+                      return (
+                        <Tooltip key={`ms-badge-${m.id}`}>
+                          <TooltipTrigger asChild>
+                            <span
+                              style={{
+                                position: 'absolute',
+                                top: yOfWpBand,
+                                left: m.hexLeft,
+                                transform: 'translateY(-50%)',
+                                width: m.shapeW,
+                                height: m.shapeH,
+                                zIndex: 10,
+                                pointerEvents: 'auto',
+                              }}
+                            >
+                              <svg
+                                width={m.shapeW}
+                                height={m.shapeH}
+                                viewBox={`0 0 ${m.shapeW} ${m.shapeH}`}
+                                style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}
+                              >
+                                <path d={path} fill="#000000" stroke="none" />
+                              </svg>
+                              <span
+                                style={{
+                                  position: 'absolute',
+                                  top: 0,
+                                  left: 0,
+                                  width: m.shapeW,
+                                  height: m.shapeH,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontFamily: "'Times New Roman', Times, serif",
+                                  fontSize: '8pt',
+                                  fontWeight: 700,
+                                  lineHeight: 1,
+                                  color: '#ffffff',
+                                  whiteSpace: 'nowrap',
+                                  padding: '0 4px',
+                                  boxSizing: 'border-box',
+                                }}
+                              >
+                                {m.label}
+                              </span>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="text-xs font-medium">{m.label}{m.title ? `: ${m.title}` : ''}</p>
+                            <p className="text-xs text-muted-foreground">Month {m.dueMonth}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      );
+                    })}
                   </div>
+
                 </div>
 
                 {/* Bottom border under months columns only */}
