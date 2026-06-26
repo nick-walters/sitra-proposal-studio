@@ -991,8 +991,10 @@ export function GanttChartFigure({
                         const lineColor = b.kind === 'del' ? b.color : '#000000';
                         return b.origins.map((o, oi) => {
                           const oy = yOfRow(o.rowIdx);
-                          // Orthogonal: origin → (tipX, oy) → (tipX, ty). Approaches vertically.
-                          const d = `M ${o.x} ${oy} L ${b.tipX} ${oy} L ${b.tipX} ${ty}`;
+                          // Vertical-first step: origin → midY → tipX → tip. Same-row = straight horizontal.
+                          const d = oy === ty
+                            ? `M ${o.x} ${oy} L ${b.tipX} ${ty}`
+                            : `M ${o.x} ${oy} L ${o.x} ${(oy + ty) / 2} L ${b.tipX} ${(oy + ty) / 2} L ${b.tipX} ${ty}`;
                           return (
                             <g key={`${b.key}-l${oi}`}>
                               <path d={d} stroke={lineColor} strokeWidth={1} fill="none" strokeLinecap="square" strokeLinejoin="miter" />
@@ -1115,12 +1117,14 @@ export function GanttChartFigure({
                 return m.origins.map((o, oi) => {
                   const oy = rowLayout.slotCenterY[o.globalRow];
                   if (oy == null) return null;
-                  const d = `M ${o.x} ${oy} L ${m.tipX} ${oy} L ${m.tipX} ${ty}`;
+                  const d = oy === ty
+                    ? `M ${o.x} ${oy} L ${m.tipX} ${ty}`
+                    : `M ${o.x} ${oy} L ${o.x} ${(oy + ty) / 2} L ${m.tipX} ${(oy + ty) / 2} L ${m.tipX} ${ty}`;
                   return (
                     <g key={`${m.key}-l${oi}`}>
                       <path d={d} stroke="#000000" strokeWidth={1} fill="none" strokeLinecap="square" strokeLinejoin="miter" />
-                      {/* Milestone origin marker: diamond (rotated square) sized to match the prior dot. */}
-                      <path d={`M ${o.x - 1.5} ${oy} L ${o.x} ${oy - 1.5} L ${o.x + 1.5} ${oy} L ${o.x} ${oy + 1.5} Z`} fill="#000000" />
+                      {/* Milestone origin marker: diamond (rotated square), 50% larger than prior dot (1.5 → 2.25). */}
+                      <path d={`M ${o.x - 2.25} ${oy} L ${o.x} ${oy - 2.25} L ${o.x + 2.25} ${oy} L ${o.x} ${oy + 2.25} Z`} fill="#000000" />
                     </g>
                   );
                 });
