@@ -1122,6 +1122,9 @@ export function GanttChartFigure({
                         const x1 = shapeW * 0.12;
                         const x2 = shapeW * 0.88;
                         svgPath = `M ${x1},0 L ${x2},0 L ${shapeW},${shapeH / 2} L ${x2},${shapeH} L ${x1},${shapeH} L 0,${shapeH / 2} Z`;
+                      } else if (b.flipped) {
+                        // Deliverable flipped: left-pointing chevron (tip on left edge)
+                        svgPath = `M ${b.pointDepth},0 L ${shapeW},0 L ${shapeW},${shapeH} L ${b.pointDepth},${shapeH} L 0,${shapeH / 2} Z`;
                       } else {
                         // Deliverable: right-pointing chevron (tip on the right edge)
                         svgPath = `M 0,0 L ${shapeW - b.pointDepth},0 L ${shapeW},${shapeH / 2} L ${shapeW - b.pointDepth},${shapeH} L 0,${shapeH} Z`;
