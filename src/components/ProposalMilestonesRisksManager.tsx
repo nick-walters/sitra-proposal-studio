@@ -448,13 +448,12 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
                         />
                       </td>
                       <td className="py-1.5 px-1">
-                        <MilestoneWpTaskDialog
+                        <MilestoneWpDialog
                           wps={wps}
-                          tasks={tasks}
                           selectedWpIds={m.wp_ids}
-                          selectedTaskIds={m.task_ids}
+                          primaryWpId={m.primary_wp_id}
                           disabled={!canEdit}
-                          onSave={(wpIds, taskIds) => setMsWpsAndTasks.mutate({ id: m.id, wpIds, taskIds })}
+                          onSave={(wpIds, primaryWpId) => setMsWps.mutate({ id: m.id, wpIds, primaryWpId })}
                           renderTrigger={(open) => (
                             <button
                               type="button"
@@ -465,8 +464,15 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
                               {selectedWps.length === 0 ? (
                                 <span className="text-muted-foreground italic">Select WP(s)…</span>
                               ) : (
-                                <span className="flex flex-wrap gap-0.5">
-                                  {selectedWps.map(wp => <WPBubble key={wp.id} wpNumber={wp.number} wpColor={wp.color} />)}
+                                <span className="flex flex-wrap gap-0.5 items-center">
+                                  {selectedWps.map(wp => (
+                                    <span key={wp.id} className="inline-flex items-center gap-0.5">
+                                      <WPBubble wpNumber={wp.number} wpColor={wp.color} />
+                                      {wp.id === m.primary_wp_id && (
+                                        <Star className="h-3 w-3 text-amber-500 fill-amber-400" aria-label="Primary WP" />
+                                      )}
+                                    </span>
+                                  ))}
                                 </span>
                               )}
                             </button>
