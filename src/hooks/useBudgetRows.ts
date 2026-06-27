@@ -82,6 +82,31 @@ export interface EquipmentItem {
   orderIndex: number;
 }
 
+export type JustificationCategory = 'subcontracting' | 'travel' | 'equipment' | 'other_goods';
+
+export interface JustificationItem {
+  id: string;
+  budgetRowId: string;
+  category: JustificationCategory;
+  amount: number;
+  justification: string;
+  orderIndex: number;
+}
+
+const CATEGORY_TO_COLUMN: Record<JustificationCategory, 'subcontracting_costs' | 'purchase_travel' | 'purchase_equipment' | 'purchase_other_goods'> = {
+  subcontracting: 'subcontracting_costs',
+  travel: 'purchase_travel',
+  equipment: 'purchase_equipment',
+  other_goods: 'purchase_other_goods',
+};
+
+const CATEGORY_TO_ROW_FIELD: Record<JustificationCategory, 'subcontractingCosts' | 'purchaseTravel' | 'purchaseEquipment' | 'purchaseOtherGoods'> = {
+  subcontracting: 'subcontractingCosts',
+  travel: 'purchaseTravel',
+  equipment: 'purchaseEquipment',
+  other_goods: 'purchaseOtherGoods',
+};
+
 export interface PersonnelBreakdownItem {
   id: string;
   budgetRowId: string;
