@@ -286,13 +286,11 @@ export function CasesTableNodeView(_props: NodeViewProps) {
             }}>
               <CaseChip label={label} />
               {leader ? (
-                <span className="inline-flex items-center gap-1">
-                  <Crown className="h-3 w-3" style={{ color: '#000' }} />
-                  <ParticipantBubble
-                    shortName={leader.organisation_short_name || leader.organisation_name || ''}
-                    style={{ fontStyle: 'normal' }}
-                  />
-                </span>
+                <ParticipantBubble
+                  showCrown
+                  shortName={leader.organisation_short_name || leader.organisation_name || ''}
+                  style={{ fontStyle: 'normal' }}
+                />
               ) : (
                 <span className="text-muted-foreground text-[9pt] italic">No case lead</span>
               )}
