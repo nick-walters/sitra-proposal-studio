@@ -655,34 +655,57 @@ export function GanttChartFigure({
             });
 
             // ── Milestones on this WP's BAND row (primary WP only).
-            // Up to two per due-month cell: first goes LEFT of the dot, second flips RIGHT.
+            // Placement order: LEFT of dot → if blocked by WP title text or another
+            // milestone, flip RIGHT; if RIGHT is also blocked, keep nudging further
+            // right until a clear slot is found. The WP title is never abbreviated.
             const msForThisWp = (wpDraftsData?.milestones || [])
               .filter((m: any) => m.due_month != null && wpDraftsData?.msPrimaryWpId.get(m.id) === wp.id)
               .slice()
               .sort((a: any, b: any) => (a.due_month - b.due_month) || (a.number - b.number));
-            const msPlacedByMonth = new Map<number, number>();
             const estimateMsW = (label: string) => Math.max(26, label.length * 5 + 8);
+            // Estimate the WP title text's right edge in OVERLAY coordinates
+            // (overlay origin = labelWidth from the row's left edge).
+            // Title sits in the WP band row with padding-left: 6px, at 11pt bold
+            // Times New Roman (~6.2px/char average — buffered a touch).
+            const wpTitleStr = `WP${wp.number}: ${wp.shortName || ''}${wp.shortName && wp.title ? ' – ' : ''}${wp.title || ''}`;
+            const wpTitleTextPx = wpTitleStr.length * 6.4;
+            const titleBuffer = 4;
+            const titleRightInOverlay = (6 + wpTitleTextPx) - labelWidth + titleBuffer;
+            const msGap = 4;
+            const placedHexIntervals: Array<{ left: number; right: number }> = [];
+            const overlapsAny = (left: number, right: number) => {
+              if (left < titleRightInOverlay) return true;
+              for (const p of placedHexIntervals) {
+                if (left < p.right + msGap && right + msGap > p.left) return true;
+              }
+              return false;
+            };
             const msLaidOut = msForThisWp.map((m: any) => {
               const label = `MS${m.number}`;
               const shapeW = estimateMsW(label);
               const shapeH = 10;
               const dotX = (m.due_month - 0.5) * cellWidth;
-              const placed = msPlacedByMonth.get(m.due_month) || 0;
-              const onRight = placed >= 1;
-              msPlacedByMonth.set(m.due_month, placed + 1);
               // Line connects dot → nearest hex tip.
               // Hex tips are at x=0 (left tip) and x=shapeW (right tip), at midY.
               let hexLeft: number;
-              let tipX: number; // line endpoint (nearest tip of hex)
-              if (!onRight) {
-                // Hex on LEFT of dot: right tip at (dotX - 5).
-                hexLeft = dotX - 5 - shapeW;
-                tipX = dotX - 5;
+              let tipX: number;
+              // 1) Try LEFT of dot.
+              const leftCandidate = dotX - 5 - shapeW;
+              if (!overlapsAny(leftCandidate, leftCandidate + shapeW)) {
+                hexLeft = leftCandidate;
+                tipX = leftCandidate + shapeW; // right tip
               } else {
-                // Hex on RIGHT of dot: left tip at (dotX + 5).
-                hexLeft = dotX + 5;
-                tipX = dotX + 5;
+                // 2) Try RIGHT of dot, nudging further right until clear.
+                let candidate = dotX + 5;
+                let guard = 0;
+                while (overlapsAny(candidate, candidate + shapeW) && guard < 50) {
+                  candidate += shapeW + msGap;
+                  guard++;
+                }
+                hexLeft = candidate;
+                tipX = candidate; // left tip (nearest to dot)
               }
+              placedHexIntervals.push({ left: hexLeft, right: hexLeft + shapeW });
               return { id: m.id, label, shapeW, shapeH, hexLeft, dotX, tipX, dueMonth: m.due_month, title: m.title || '' };
             });
 
