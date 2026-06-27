@@ -2,7 +2,7 @@ import { NodeViewWrapper, NodeViewProps } from '@tiptap/react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import DOMPurify from 'dompurify';
-import { Crown } from 'lucide-react';
+
 import { supabase } from '@/integrations/supabase/client';
 import { RICH_TEXT_CONFIG } from '@/lib/sanitizePresets';
 import { ParticipantBubble } from './B31Pill';
@@ -286,13 +286,11 @@ export function CasesTableNodeView(_props: NodeViewProps) {
             }}>
               <CaseChip label={label} />
               {leader ? (
-                <span className="inline-flex items-center gap-1">
-                  <Crown className="h-3 w-3" style={{ color: '#000' }} />
-                  <ParticipantBubble
-                    shortName={leader.organisation_short_name || leader.organisation_name || ''}
-                    style={{ fontStyle: 'normal' }}
-                  />
-                </span>
+                <ParticipantBubble
+                  showCrown
+                  shortName={leader.organisation_short_name || leader.organisation_name || ''}
+                  style={{ fontStyle: 'normal' }}
+                />
               ) : (
                 <span className="text-muted-foreground text-[9pt] italic">No case lead</span>
               )}
