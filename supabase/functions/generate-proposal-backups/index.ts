@@ -1317,7 +1317,35 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
   const equipItemsAll = (justItemsRaw ?? []).filter((it: any) => it.category === "equipment");
 
   const brToPart = new Map<string, string>();
-  for (const br of budgetRows ?? []) brToPart.set(br.id, br.participant_id);
+  const brById = new Map<string, any>();
+  for (const br of budgetRows ?? []) { brToPart.set(br.id, br.participant_id); brById.set(br.id, br); }
+  // Per-participant personnel cost for 15% major-equipment rule.
+  const pmByPart = new Map<string, number>();
+  for (const e of effortRows ?? []) {
+    pmByPart.set(e.participant_id, (pmByPart.get(e.participant_id) || 0) + Number(e.person_months ?? 0));
+  }
+  const personnelCostFor = (partId: string): number => {
+    const br = (budgetRows ?? []).find((r: any) => r.participant_id === partId);
+    if (!br) return 0;
+    const pmRate = br.pm_rate != null ? Number(br.pm_rate) : null;
+    if (pmRate != null && pmRate > 0) return Math.round(pmRate * (pmByPart.get(partId) || 0));
+    return Number(br.personnel_costs || 0);
+  };
+  // Apply 15% major-equipment rule per participant: include all items only if total > 15% of personnel.
+  const equipTotalsByPart = new Map<string, number>();
+  for (const it of equipItemsAll) {
+    const partId = brToPart.get(it.budget_row_id);
+    if (!partId) continue;
+    equipTotalsByPart.set(partId, (equipTotalsByPart.get(partId) || 0) + Number(it.amount || 0));
+  }
+  const equipItems = equipItemsAll.filter((it: any) => {
+    const partId = brToPart.get(it.budget_row_id);
+    if (!partId) return false;
+    const pers = personnelCostFor(partId);
+    const total = equipTotalsByPart.get(partId) || 0;
+    return pers > 0 ? total > 0.15 * pers : total > 0;
+  });
+
 
   const taskIds = (b31Tasks ?? []).map((t: any) => t.id);
   const { data: b31TaskParts } = taskIds.length
