@@ -334,7 +334,7 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
         caseShortName: shortName,
       };
     });
-  }, [caseDraftsData, isCoordinator, caseIncludeNumber, caseIncludeAbbreviation]);
+  }, [caseDraftsData, caseIncludeNumber, caseIncludeAbbreviation]);
 
 
   // Subscribe to realtime updates for WP drafts and invalidate react-query cache
