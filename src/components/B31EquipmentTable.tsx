@@ -43,7 +43,7 @@ export function B31EquipmentTable({ items, participants, proposalId }: Props) {
         className="mb-0"
       />
       <table
-        className={`${tableStyles} border-collapse [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b [&_th]:border-black [&_td]:border-x-0`}
+        className={`${tableStyles} border-collapse [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b-2 [&_th]:border-black [&_td]:border-x-0`}
         style={{
           tableLayout: colWidths.length > 0 ? 'fixed' : 'auto',
           width: colWidths.length > 0 ? `${colWidths.reduce((s: number, w: number) => s + w, 0)}px` : '100%',
@@ -57,11 +57,17 @@ export function B31EquipmentTable({ items, participants, proposalId }: Props) {
         </colgroup>
         <thead>
           <tr>
-            <th className={`${headerCellStyles} text-left relative`}>
+            <th
+              className={`${headerCellStyles} text-left relative`}
+              style={colWidths.length === 0 ? { width: '1%', whiteSpace: 'nowrap' } : undefined}
+            >
               Participant
               {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(0)} />}
             </th>
-            <th className={`${headerCellStyles} text-left relative`}>
+            <th
+              className={`${headerCellStyles} text-left relative`}
+              style={colWidths.length === 0 ? { width: '1%', whiteSpace: 'nowrap' } : undefined}
+            >
               Cost (€)
               {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(1)} />}
             </th>
