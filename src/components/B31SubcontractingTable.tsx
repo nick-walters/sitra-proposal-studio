@@ -82,9 +82,8 @@ export function B31SubcontractingTable({ items, participants, proposalId }: Prop
             const p = getParticipant(entry.participantId);
             const label = p ? `${p.participant_number}. ${p.organisation_short_name || p.organisation_name}` : 'Unknown';
             const isFirstBlock = entryIdx === 0;
-            // Each item row + a subtotal row. Top border on the first row of each block (except the very first)
-            // gives the stronger divider between participants.
-            const topBorder = isFirstBlock ? '' : 'border-t-2 border-black';
+            // Thin divider between participant blocks (header & grand total use the thick lines).
+            const topBorder = isFirstBlock ? '' : 'border-t border-black';
             const itemRows = entry.items.map((item, itemIdx) => {
               const isFirstItem = itemIdx === 0;
               return (
