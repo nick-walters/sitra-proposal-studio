@@ -113,7 +113,7 @@ export function B31EquipmentTable({ items, participants, proposalId }: Props) {
           })}
           {/* Grand total */}
           <tr>
-            <td colSpan={3} className="p-0 border-0" style={{ height: '1px', backgroundColor: 'hsl(var(--foreground))' }} />
+            <td colSpan={3} className="p-0 border-0" style={{ height: '2px', backgroundColor: 'hsl(var(--foreground))' }} />
           </tr>
           <tr>
             <td className={`${cellStyles} font-bold`}>Total</td>
