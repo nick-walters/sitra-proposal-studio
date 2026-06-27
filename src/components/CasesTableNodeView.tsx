@@ -2,7 +2,7 @@ import { NodeViewWrapper, NodeViewProps } from '@tiptap/react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import DOMPurify from 'dompurify';
-import { Crown } from 'lucide-react';
+
 import { supabase } from '@/integrations/supabase/client';
 import { RICH_TEXT_CONFIG } from '@/lib/sanitizePresets';
 import { ParticipantBubble } from './B31Pill';

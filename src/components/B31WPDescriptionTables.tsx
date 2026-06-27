@@ -2,7 +2,7 @@ import React from 'react';
 import DOMPurify from 'dompurify';
 import { RICH_TEXT_CONFIG } from '@/lib/sanitizePresets';
 import { EditableCaption } from '@/components/EditableCaption';
-import { Crown } from 'lucide-react';
+
 import type { B31WPData, B31Participant, B31Task } from '@/hooks/useB31SectionData';
 import { B31Pill, WPBubble, ParticipantBubble } from './B31Pill';
 
