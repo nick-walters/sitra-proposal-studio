@@ -207,85 +207,6 @@ export type Database = {
           },
         ]
       }
-      budget_cost_justifications: {
-        Row: {
-          budget_row_id: string
-          category: string
-          created_at: string
-          id: string
-          justification_text: string
-          updated_at: string
-          updated_by: string | null
-        }
-        Insert: {
-          budget_row_id: string
-          category: string
-          created_at?: string
-          id?: string
-          justification_text?: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Update: {
-          budget_row_id?: string
-          category?: string
-          created_at?: string
-          id?: string
-          justification_text?: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "budget_cost_justifications_budget_row_id_fkey"
-            columns: ["budget_row_id"]
-            isOneToOne: false
-            referencedRelation: "budget_rows"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      budget_equipment_items: {
-        Row: {
-          amount: number
-          budget_row_id: string
-          created_at: string
-          description: string
-          id: string
-          justification: string
-          order_index: number
-          updated_at: string
-        }
-        Insert: {
-          amount?: number
-          budget_row_id: string
-          created_at?: string
-          description?: string
-          id?: string
-          justification?: string
-          order_index?: number
-          updated_at?: string
-        }
-        Update: {
-          amount?: number
-          budget_row_id?: string
-          created_at?: string
-          description?: string
-          id?: string
-          justification?: string
-          order_index?: number
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "budget_equipment_items_budget_row_id_fkey"
-            columns: ["budget_row_id"]
-            isOneToOne: false
-            referencedRelation: "budget_rows"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       budget_items: {
         Row: {
           amount: number
@@ -518,47 +439,6 @@ export type Database = {
             columns: ["proposal_id"]
             isOneToOne: false
             referencedRelation: "proposals"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      budget_subcontracting_items: {
-        Row: {
-          amount: number
-          budget_row_id: string
-          created_at: string
-          description: string
-          id: string
-          justification: string
-          order_index: number
-          updated_at: string
-        }
-        Insert: {
-          amount?: number
-          budget_row_id: string
-          created_at?: string
-          description?: string
-          id?: string
-          justification?: string
-          order_index?: number
-          updated_at?: string
-        }
-        Update: {
-          amount?: number
-          budget_row_id?: string
-          created_at?: string
-          description?: string
-          id?: string
-          justification?: string
-          order_index?: number
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "budget_subcontracting_items_budget_row_id_fkey"
-            columns: ["budget_row_id"]
-            isOneToOne: false
-            referencedRelation: "budget_rows"
             referencedColumns: ["id"]
           },
         ]
