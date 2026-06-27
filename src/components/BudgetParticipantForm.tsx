@@ -290,15 +290,11 @@ export function BudgetParticipantForm({
         <CardContent className="space-y-3">
           <div className="flex items-center gap-2">
             <label className="text-sm text-muted-foreground w-[220px] shrink-0">Total subcontracting costs</label>
-            <FormattedNumberInput
-              value={row.subcontractingCosts}
-              onChange={(v) => updateRow(row.id, 'subcontractingCosts', v)}
-              disabled={!editable}
-              decimals={2}
-              className="h-8 text-sm text-right flex-1"
-            />
-            <span className="text-xs text-muted-foreground w-4">€</span>
-            <CopyButton value={row.subcontractingCosts} />
+            <div className="flex items-center gap-1 flex-1 justify-end">
+              <span className="text-sm font-medium tabular-nums">{formatCurrency(row.subcontractingCosts)}</span>
+              <span className="text-xs text-muted-foreground">(sum of rows)</span>
+              <CopyButton value={row.subcontractingCosts} />
+            </div>
             {showReq && (
               <>
                 <FormattedNumberInput
@@ -314,26 +310,17 @@ export function BudgetParticipantForm({
               </>
             )}
           </div>
-          {row.subcontractingCosts > 0 && (
-            <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">Justification *</label>
-              <p className="text-xs text-muted-foreground italic">
-                Subcontracting cost justifications will be automatically copied to Table 3.1.g. Provide concise descriptions of each cost and what they cover, e.g. Platform development (€25,000); legal advice (€15,000).
-              </p>
-              <Textarea
-                value={rowSubItems[0]?.justification ?? ''}
-                onChange={(e) => {
-                  if (rowSubItems[0]) {
-                    updateSubcontractingItem(rowSubItems[0].id, 'justification', e.target.value);
-                  } else {
-                    addSubcontractingItem(row.id).then(() => {});
-                  }
-                }}
-                disabled={!editable}
-                className="text-sm min-h-[60px]"
-              />
-            </div>
-          )}
+          <JustificationItemsEditor
+            budgetRowId={row.id}
+            category="subcontracting"
+            items={justificationItems}
+            editable={editable}
+            helpText="Subcontracting cost justifications will be automatically copied to Table 3.1.g. Provide concise descriptions of each cost and what they cover, e.g. Platform development; legal advice."
+            onAdd={addJustificationItem}
+            onUpdate={updateJustificationItem}
+            onDelete={deleteJustificationItem}
+            onReorder={reorderJustificationItems}
+          />
         </CardContent>
       </Card>
 
@@ -342,96 +329,130 @@ export function BudgetParticipantForm({
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-semibold">C. Purchase Costs</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-4">
           <p className="text-xs text-muted-foreground italic">
-            Sitra collects cost justifications for all cost categories, even though not all are required in Part B, so that we have an understanding of the costs associated with the project. Please complete all fields. Equipment costs exceeding 15% of your organisation's personnel costs will be automatically copied to Table 3.1.h.
+            Sitra collects cost justifications for all cost categories, even though not all are required in Part B, so that we have an understanding of the costs associated with the project. Equipment costs exceeding 15% of your organisation's personnel costs will be automatically copied to Table 3.1.h.
           </p>
-          <CostInputRow
-            label="C.1. Travel & subsistence"
-            totalValue={row.purchaseTravel}
-            requestedValue={row.requestedTravel}
-            defaultRequested={row.purchaseTravel}
-            showRequested={showReq}
-            editable={editable}
-            onTotalChange={(v) => updateRow(row.id, 'purchaseTravel', v)}
-            onRequestedChange={(v) => updateRow(row.id, 'requestedTravel', v)}
-          />
-          {row.purchaseTravel > 0 && (
-            <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">Justification *</label>
-              <p className="text-xs text-muted-foreground italic">
-                Provide concise descriptions of each cost and what they cover, e.g. Consortium meetings (€5,000); conference attendance (€3,000).
-              </p>
-              <DebouncedTextarea
-                value={justifications.find(j => j.budgetRowId === row.id && j.category === 'travel')?.justificationText ?? ''}
-                onDebouncedChange={(v) => saveJustification(row.id, 'travel', v)}
-                disabled={!editable}
-                className="text-sm min-h-[60px]"
-              />
-            </div>
-          )}
-          <CostInputRow
-            label="C.2. Equipment"
-            totalValue={row.purchaseEquipment}
-            requestedValue={row.requestedEquipment}
-            defaultRequested={row.purchaseEquipment}
-            showRequested={showReq}
-            editable={editable}
-            onTotalChange={(v) => updateRow(row.id, 'purchaseEquipment', v)}
-            onRequestedChange={(v) => updateRow(row.id, 'requestedEquipment', v)}
-          />
-          {row.purchaseEquipment > 0 && (
-            <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">Justification *</label>
-              <p className="text-xs text-muted-foreground italic">
-                Provide concise descriptions of each cost and what they cover, e.g. Sensors and IoT devices (€12,000); server hardware (€8,000).
-              </p>
-              {equipmentJustificationRequired && (
-                <div className="flex items-center gap-1 text-xs text-amber-600">
-                  <AlertTriangle className="w-3.5 h-3.5" />
-                  <span>Equipment costs exceed 15% of personnel costs — justification will appear in Table 3.1.h</span>
-                </div>
+
+          {/* C.1 Travel */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium w-[220px] shrink-0">C.1. Travel & subsistence</label>
+              <div className="flex items-center gap-1 flex-1 justify-end">
+                <span className="text-sm font-medium tabular-nums">{formatCurrency(row.purchaseTravel)}</span>
+                <span className="text-xs text-muted-foreground">(sum)</span>
+                <CopyButton value={row.purchaseTravel} />
+              </div>
+              {showReq && (
+                <>
+                  <FormattedNumberInput
+                    value={row.requestedTravel ?? row.purchaseTravel}
+                    onChange={(v) => updateRow(row.id, 'requestedTravel', v)}
+                    disabled={!editable}
+                    allowZero
+                    decimals={2}
+                    className="h-8 text-sm text-right flex-1"
+                  />
+                  <span className="text-xs text-muted-foreground w-4">€</span>
+                  <CopyButton value={row.requestedTravel ?? row.purchaseTravel} />
+                </>
               )}
-              <Textarea
-                value={rowEquipItems[0]?.justification ?? ''}
-                onChange={(e) => {
-                  if (rowEquipItems[0]) {
-                    updateEquipmentItem(rowEquipItems[0].id, 'justification', e.target.value);
-                  } else {
-                    addEquipmentItem(row.id);
-                  }
-                }}
-                disabled={!editable}
-                className="text-sm min-h-[60px]"
-              />
             </div>
-          )}
-          <CostInputRow
-            label="C.3. Other goods, works & services"
-            totalValue={row.purchaseOtherGoods}
-            requestedValue={row.requestedOtherGoods}
-            defaultRequested={row.purchaseOtherGoods}
-            showRequested={showReq}
-            editable={editable}
-            onTotalChange={(v) => updateRow(row.id, 'purchaseOtherGoods', v)}
-            onRequestedChange={(v) => updateRow(row.id, 'requestedOtherGoods', v)}
-          />
-          {row.purchaseOtherGoods > 0 && (
-            <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">Justification *</label>
-              <p className="text-xs text-muted-foreground italic">
-                Provide concise descriptions of each cost and what they cover, e.g. Software licences (€4,000); cloud hosting (€6,000).
-              </p>
-              <DebouncedTextarea
-                value={justifications.find(j => j.budgetRowId === row.id && j.category === 'other_goods')?.justificationText ?? ''}
-                onDebouncedChange={(v) => saveJustification(row.id, 'other_goods', v)}
-                disabled={!editable}
-                className="text-sm min-h-[60px]"
-              />
+            <JustificationItemsEditor
+              budgetRowId={row.id}
+              category="travel"
+              items={justificationItems}
+              editable={editable}
+              helpText="Provide concise descriptions of each cost and what they cover, e.g. Consortium meetings; conference attendance."
+              onAdd={addJustificationItem}
+              onUpdate={updateJustificationItem}
+              onDelete={deleteJustificationItem}
+              onReorder={reorderJustificationItems}
+            />
+          </div>
+
+          {/* C.2 Equipment */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium w-[220px] shrink-0">C.2. Equipment</label>
+              <div className="flex items-center gap-1 flex-1 justify-end">
+                <span className="text-sm font-medium tabular-nums">{formatCurrency(row.purchaseEquipment)}</span>
+                <span className="text-xs text-muted-foreground">(sum)</span>
+                <CopyButton value={row.purchaseEquipment} />
+              </div>
+              {showReq && (
+                <>
+                  <FormattedNumberInput
+                    value={row.requestedEquipment ?? row.purchaseEquipment}
+                    onChange={(v) => updateRow(row.id, 'requestedEquipment', v)}
+                    disabled={!editable}
+                    allowZero
+                    decimals={2}
+                    className="h-8 text-sm text-right flex-1"
+                  />
+                  <span className="text-xs text-muted-foreground w-4">€</span>
+                  <CopyButton value={row.requestedEquipment ?? row.purchaseEquipment} />
+                </>
+              )}
             </div>
-          )}
+            {equipmentJustificationRequired && (
+              <div className="flex items-center gap-1 text-xs text-amber-600">
+                <AlertTriangle className="w-3.5 h-3.5" />
+                <span>Equipment costs exceed 15% of personnel costs — justification will appear in Table 3.1.h</span>
+              </div>
+            )}
+            <JustificationItemsEditor
+              budgetRowId={row.id}
+              category="equipment"
+              items={justificationItems}
+              editable={editable}
+              helpText="Provide concise descriptions of each cost and what they cover, e.g. Sensors and IoT devices; server hardware."
+              onAdd={addJustificationItem}
+              onUpdate={updateJustificationItem}
+              onDelete={deleteJustificationItem}
+              onReorder={reorderJustificationItems}
+            />
+          </div>
+
+          {/* C.3 Other goods */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium w-[220px] shrink-0">C.3. Other goods, works & services</label>
+              <div className="flex items-center gap-1 flex-1 justify-end">
+                <span className="text-sm font-medium tabular-nums">{formatCurrency(row.purchaseOtherGoods)}</span>
+                <span className="text-xs text-muted-foreground">(sum)</span>
+                <CopyButton value={row.purchaseOtherGoods} />
+              </div>
+              {showReq && (
+                <>
+                  <FormattedNumberInput
+                    value={row.requestedOtherGoods ?? row.purchaseOtherGoods}
+                    onChange={(v) => updateRow(row.id, 'requestedOtherGoods', v)}
+                    disabled={!editable}
+                    allowZero
+                    decimals={2}
+                    className="h-8 text-sm text-right flex-1"
+                  />
+                  <span className="text-xs text-muted-foreground w-4">€</span>
+                  <CopyButton value={row.requestedOtherGoods ?? row.purchaseOtherGoods} />
+                </>
+              )}
+            </div>
+            <JustificationItemsEditor
+              budgetRowId={row.id}
+              category="other_goods"
+              items={justificationItems}
+              editable={editable}
+              helpText="Provide concise descriptions of each cost and what they cover, e.g. Software licences; cloud hosting."
+              onAdd={addJustificationItem}
+              onUpdate={updateJustificationItem}
+              onDelete={deleteJustificationItem}
+              onReorder={reorderJustificationItems}
+            />
+          </div>
         </CardContent>
       </Card>
+
 
       {/* D. Other Direct Cost Categories */}
       <Card>
