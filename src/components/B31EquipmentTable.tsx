@@ -82,7 +82,7 @@ export function B31EquipmentTable({ items, participants, proposalId }: Props) {
             const p = getParticipant(entry.participantId);
             const label = p ? `${p.participant_number}. ${p.organisation_short_name || p.organisation_name}` : 'Unknown';
             const isFirstBlock = entryIdx === 0;
-            const topBorder = isFirstBlock ? '' : 'border-t-2 border-black';
+            const topBorder = isFirstBlock ? '' : 'border-t border-black';
             const itemRows = entry.items.map((item, itemIdx) => {
               const isFirstItem = itemIdx === 0;
               return (
