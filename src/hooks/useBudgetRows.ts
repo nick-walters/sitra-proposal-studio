@@ -526,6 +526,88 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
     }
   }, [rows.length > 0, fetchJustifications, fetchSubcontractingItems, fetchPersonnelBreakdown]);
 
+  // ─── Multi-row cost justifications (new model) ───
+  const syncCategoryTotalFromItems = useCallback(async (budgetRowId: string, category: JustificationCategory, items: JustificationItem[]) => {
+    const total = items
+      .filter(i => i.budgetRowId === budgetRowId && i.category === category)
+      .reduce((s, i) => s + (Number(i.amount) || 0), 0);
+    const column = CATEGORY_TO_COLUMN[category];
+    const rowField = CATEGORY_TO_ROW_FIELD[category];
+    setRows(prev => prev.map(r => r.id === budgetRowId ? { ...r, [rowField]: total } : r));
+    await supabase.from('budget_rows').update({ [column]: total }).eq('id', budgetRowId);
+  }, []);
+
+  const addJustificationItem = useCallback(async (budgetRowId: string, category: JustificationCategory) => {
+    const existing = justificationItems.filter(i => i.budgetRowId === budgetRowId && i.category === category);
+    const nextIndex = existing.length;
+    const { data, error } = await supabase
+      .from('budget_cost_justification_items')
+      .insert({ budget_row_id: budgetRowId, category, amount: 0, justification: '', order_index: nextIndex })
+      .select().single();
+    if (error || !data) { toast.error('Failed to add justification row'); return; }
+    const item: JustificationItem = {
+      id: data.id,
+      budgetRowId: data.budget_row_id,
+      category: data.category as JustificationCategory,
+      amount: Number(data.amount) || 0,
+      justification: data.justification || '',
+      orderIndex: data.order_index,
+    };
+    let next: JustificationItem[] = [];
+    setJustificationItems(prev => { next = [...prev, item]; return next; });
+    // No total change (amount=0) but keep behaviour consistent
+    await syncCategoryTotalFromItems(budgetRowId, category, next);
+  }, [justificationItems, syncCategoryTotalFromItems]);
+
+  const updateJustificationItem = useCallback((itemId: string, field: 'amount' | 'justification', value: number | string) => {
+    let snapshot: JustificationItem[] = [];
+    setJustificationItems(prev => {
+      snapshot = prev.map(i => i.id === itemId ? { ...i, [field]: field === 'amount' ? (Number(value) || 0) : String(value) } : i);
+      return snapshot;
+    });
+    if (debounceTimers.current[`bcji-${itemId}`]) clearTimeout(debounceTimers.current[`bcji-${itemId}`]);
+    debounceTimers.current[`bcji-${itemId}`] = setTimeout(async () => {
+      setSaving(true);
+      const dbField = field === 'amount' ? 'amount' : 'justification';
+      const { error } = await supabase
+        .from('budget_cost_justification_items')
+        .update({ [dbField]: field === 'amount' ? Number(value) || 0 : value })
+        .eq('id', itemId);
+      if (error) toast.error('Failed to save justification row');
+      if (field === 'amount') {
+        const it = snapshot.find(i => i.id === itemId);
+        if (it) await syncCategoryTotalFromItems(it.budgetRowId, it.category, snapshot);
+      }
+      setSaving(false);
+    }, 300);
+  }, [syncCategoryTotalFromItems]);
+
+  const deleteJustificationItem = useCallback(async (itemId: string) => {
+    const item = justificationItems.find(i => i.id === itemId);
+    if (!item) return;
+    const { error } = await supabase.from('budget_cost_justification_items').delete().eq('id', itemId);
+    if (error) { toast.error('Failed to delete justification row'); return; }
+    let next: JustificationItem[] = [];
+    setJustificationItems(prev => { next = prev.filter(i => i.id !== itemId); return next; });
+    await syncCategoryTotalFromItems(item.budgetRowId, item.category, next);
+  }, [justificationItems, syncCategoryTotalFromItems]);
+
+  const reorderJustificationItems = useCallback(async (budgetRowId: string, category: JustificationCategory, orderedIds: string[]) => {
+    let next: JustificationItem[] = [];
+    setJustificationItems(prev => {
+      next = prev.map(i => {
+        if (i.budgetRowId !== budgetRowId || i.category !== category) return i;
+        const idx = orderedIds.indexOf(i.id);
+        return idx >= 0 ? { ...i, orderIndex: idx } : i;
+      });
+      return next;
+    });
+    await Promise.all(orderedIds.map((id, idx) =>
+      supabase.from('budget_cost_justification_items').update({ order_index: idx }).eq('id', id)
+    ));
+  }, []);
+
+
   // Sync subcontracting_costs on budget_rows from line items
   const syncSubcontractingTotal = useCallback(async (budgetRowId: string) => {
     const items = subcontractingItems.filter(i => i.budgetRowId === budgetRowId);
