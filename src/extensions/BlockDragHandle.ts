@@ -3,7 +3,7 @@ import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import { TextSelection, NodeSelection } from '@tiptap/pm/state';
-import { findBlockRange, isReorderableBlock, nodeIsB12CasesTable } from './BlockReordering';
+import { findBlockRange, isReorderableBlock } from './BlockReordering';
 
 export interface BlockLockForDrag {
   userId: string;
@@ -81,14 +81,6 @@ function blockContainsTable(doc: ProseMirrorNode, startPos: number, endPos: numb
   return found;
 }
 
-function rangeContainsB12CasesTable(doc: ProseMirrorNode, startPos: number, endPos: number): boolean {
-  let found = false;
-  doc.nodesBetween(startPos, endPos, (node) => {
-    if (nodeIsB12CasesTable(node)) found = true;
-    return !found;
-  });
-  return found;
-}
 
 export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
   name: 'blockDragHandle',
