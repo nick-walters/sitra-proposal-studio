@@ -287,7 +287,7 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
       if (!proposalId) return [];
       const { data, error } = await supabase
         .from('case_drafts')
-        .select('id, number, short_name, title, color, order_index, case_type, is_hidden')
+        .select('id, number, short_name, title, color, order_index, case_type')
         .eq('proposal_id', proposalId)
         .order('order_index');
       if (error) throw error;
@@ -311,10 +311,9 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
   const caseIncludeNumber = (proposalData as any)?.case_include_number !== false;
   const caseIncludeAbbreviation = (proposalData as any)?.case_include_abbreviation !== false;
 
-  // Convert Case drafts to sections (filter hidden for non-coordinators)
+  // Convert Case drafts to sections (cases are never hidden anymore — show all)
   const caseDraftSections: CaseSection[] = useMemo(() => {
-    const visibleCases = isCoordinator ? caseDraftsData : caseDraftsData.filter(c => !c.is_hidden);
-    return visibleCases.map(c => {
+    return caseDraftsData.map(c => {
       const prefix = getCasePrefix(c.case_type);
       const shortName = c.short_name || '';
       const showAbbrev = (caseIncludeNumber || caseIncludeAbbreviation) && !!prefix;
@@ -335,7 +334,7 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
         caseShortName: shortName,
       };
     });
-  }, [caseDraftsData, isCoordinator, caseIncludeNumber, caseIncludeAbbreviation]);
+  }, [caseDraftsData, caseIncludeNumber, caseIncludeAbbreviation]);
 
 
   // Subscribe to realtime updates for WP drafts and invalidate react-query cache
