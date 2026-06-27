@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,61 +6,26 @@ import { EditableCaption } from '@/components/EditableCaption';
 import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
 import { RICH_TEXT_CONFIG } from '@/lib/sanitizePresets';
 import { WPBubble, ParticipantBubble, RiskBadge } from './B31Pill';
+import { useColumnResize } from '@/hooks/useColumnResize';
+import { ColumnResizer } from '@/components/ColumnResizer';
 
 /**
  * B31TablesEditor — Stage 1 read-only mirrors.
  *
- * The three exported tables (3.1.c deliverables, 3.1.d milestones, 3.1.e risks)
- * are pure read-only displays of the LIVE source data in
- * wp_draft_deliverables (3.1.c) and the proposal-level proposal_milestones /
- * proposal_risks tables (3.1.d / 3.1.e). There are no
- * inline edits, no dropdowns, no drag handles, no add/delete row controls.
+ * Tables 3.1.c / 3.1.d / 3.1.e are read-only views of live source data.
+ * Column widths are user-resizable and persisted per proposal via the
+ * shared `table_column_widths` table (useColumnResize hook).
+ *
+ * Spacing: 0pt padding above/below rows, 0pt outer padding on the leftmost
+ * cell's left edge and the rightmost cell's right edge, minimal row height.
  */
 
 interface Props {
   proposalId: string;
 }
 
-const tableCls = "w-full border-collapse font-['Times_New_Roman',Times,serif] text-[11pt]";
-const thCls = "text-left font-bold border-b border-black/30 px-2 py-1 text-[10pt] align-bottom";
-const tdCls = "border-b border-black/10 px-2 py-1 align-top";
-
-function useWPLookup(proposalId: string) {
-  return useQuery({
-    queryKey: ['wp-drafts-for-b31-mirror', proposalId],
-    enabled: !!proposalId,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('wp_drafts')
-        .select('id, number, title, short_name, color')
-        .eq('proposal_id', proposalId)
-        .order('number');
-      const list = (data || []).map((wp: any) => ({
-        ...wp,
-        color: wp.color || DEFAULT_WP_COLORS[(wp.number - 1) % DEFAULT_WP_COLORS.length],
-      }));
-      const byId = new Map(list.map((wp: any) => [wp.id, wp]));
-      const byNumber = new Map(list.map((wp: any) => [wp.number, wp]));
-      return { list, byId, byNumber };
-    },
-  });
-}
-
-function useParticipantLookup(proposalId: string) {
-  return useQuery({
-    queryKey: ['b31-participants-mirror', proposalId],
-    enabled: !!proposalId,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('participants')
-        .select('id, participant_number, organisation_short_name, organisation_name')
-        .eq('proposal_id', proposalId)
-        .order('participant_number');
-      const list = data || [];
-      return { list, byId: new Map(list.map((p: any) => [p.id, p])) };
-    },
-  });
-}
+const tableFont = "font-['Times_New_Roman',Times,serif] text-[11pt]";
+const cellBase = "align-middle px-2 py-0 leading-tight";
 
 function ReadOnlyHtmlCell({ html }: { html: string | null | undefined }) {
   const raw = (html ?? '').toString();
@@ -69,7 +34,7 @@ function ReadOnlyHtmlCell({ html }: { html: string | null | undefined }) {
   }
   return (
     <div
-      className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight"
+      className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight [&_p]:my-0"
       dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(raw, RICH_TEXT_CONFIG) }}
     />
   );
@@ -121,6 +86,163 @@ function MilestoneBadge({ number }: { number: number | null | undefined }) {
   );
 }
 
+function useWPLookup(proposalId: string) {
+  return useQuery({
+    queryKey: ['wp-drafts-for-b31-mirror', proposalId],
+    enabled: !!proposalId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('wp_drafts')
+        .select('id, number, title, short_name, color')
+        .eq('proposal_id', proposalId)
+        .order('number');
+      const list = (data || []).map((wp: any) => ({
+        ...wp,
+        color: wp.color || DEFAULT_WP_COLORS[(wp.number - 1) % DEFAULT_WP_COLORS.length],
+      }));
+      const byId = new Map(list.map((wp: any) => [wp.id, wp]));
+      const byNumber = new Map(list.map((wp: any) => [wp.number, wp]));
+      return { list, byId, byNumber };
+    },
+  });
+}
+
+function useParticipantLookup(proposalId: string) {
+  return useQuery({
+    queryKey: ['b31-participants-mirror', proposalId],
+    enabled: !!proposalId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('participants')
+        .select('id, participant_number, organisation_short_name, organisation_name')
+        .eq('proposal_id', proposalId)
+        .order('participant_number');
+      const list = data || [];
+      return { list, byId: new Map(list.map((p: any) => [p.id, p])) };
+    },
+  });
+}
+
+/**
+ * Mirror table column descriptor.
+ * - `defaultWidth`: fallback width in px when no saved widths exist.
+ * - `flex: true`: this column absorbs leftover width (no default px width).
+ */
+type Col = {
+  label: React.ReactNode;
+  defaultWidth?: number;
+  flex?: boolean;
+  align?: 'left' | 'center';
+};
+
+function MirrorTable({
+  proposalId,
+  tableKey,
+  columns,
+  children,
+  emptyColSpan,
+  emptyLabel,
+  isEmpty,
+}: {
+  proposalId: string;
+  tableKey: string;
+  columns: Col[];
+  children: React.ReactNode;
+  emptyColSpan: number;
+  emptyLabel: string;
+  isEmpty: boolean;
+}) {
+  const { colWidths, tableRef, handleColResizeStart } = useColumnResize({
+    proposalId,
+    tableKey,
+    canResize: true,
+    minWidth: 24,
+  });
+  const hasSaved = colWidths.length === columns.length;
+  const lastIdx = columns.length - 1;
+
+  const colStyle = useCallback(
+    (i: number): React.CSSProperties => {
+      if (hasSaved) return { width: colWidths[i] };
+      const c = columns[i];
+      if (c.flex) return {};
+      return c.defaultWidth ? { width: c.defaultWidth } : {};
+    },
+    [hasSaved, colWidths, columns],
+  );
+
+  const cellPad = (i: number) => {
+    const left = i === 0 ? 'pl-0' : 'pl-2';
+    const right = i === lastIdx ? 'pr-0' : 'pr-2';
+    return `${left} ${right}`;
+  };
+
+  return (
+    <table
+      ref={tableRef}
+      className={`platform-table ${tableFont}`}
+      style={{ tableLayout: 'fixed', width: '100%', borderCollapse: 'collapse' }}
+    >
+      <colgroup>
+        {columns.map((_, i) => <col key={i} style={colStyle(i)} />)}
+      </colgroup>
+      <thead>
+        <tr>
+          {columns.map((c, i) => (
+            <th
+              key={i}
+              className={`${cellPad(i)} py-0 text-[10pt] align-bottom relative ${c.align === 'center' ? 'text-center' : 'text-left'}`}
+            >
+              {c.label}
+              {i < lastIdx && <ColumnResizer onMouseDown={handleColResizeStart(i)} />}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody className="[&_tr]:border-b [&_tr]:border-black/10 [&_tr:last-child]:border-0">
+        {isEmpty ? (
+          <tr>
+            <td colSpan={emptyColSpan} className={`${cellBase} ${cellPad(0)} text-muted-foreground italic`}>
+              {emptyLabel}
+            </td>
+          </tr>
+        ) : (
+          React.Children.map(children, (child) => {
+            if (!React.isValidElement(child)) return child;
+            // Inject cell padding helpers via context-less wrapper: rely on consumer using <MirrorRow/>
+            return child;
+          })
+        )}
+      </tbody>
+    </table>
+  );
+}
+
+/** Standardised cell for mirror tables — minimal padding, edge-flush on first/last column. */
+function MCell({
+  index,
+  last,
+  className = '',
+  style,
+  children,
+  colSpan,
+}: {
+  index: number;
+  last: number;
+  className?: string;
+  style?: React.CSSProperties;
+  children?: React.ReactNode;
+  colSpan?: number;
+}) {
+  const pl = index === 0 ? 'pl-0' : 'pl-2';
+  const pr = index === last ? 'pr-0' : 'pr-2';
+  return (
+    <td colSpan={colSpan} className={`${cellBase} ${pl} ${pr} ${className}`} style={style}>
+      {children}
+    </td>
+  );
+}
+
 /** Parse a comma/space list of WP numbers (e.g. "1, 3, WP5") into number[]. */
 function parseWPList(s: string | null | undefined): number[] {
   if (!s) return [];
@@ -149,7 +271,6 @@ export function B31DeliverablesTable({ proposalId }: Props) {
         .select('id, wp_draft_id, number, title, type, dissemination_level, responsible_participant_id, due_month, description, order_index')
         .in('wp_draft_id', wpIds);
 
-      // Suppress untouched seed rows: no title, no type, no dissemination, no lead, no due month.
       const isEmpty = (d: any) =>
         !(d.title ?? '').toString().trim() &&
         !(d.type ?? '').toString().trim() &&
@@ -175,6 +296,17 @@ export function B31DeliverablesTable({ proposalId }: Props) {
     },
   });
 
+  const columns: Col[] = [
+    { label: 'No.', defaultWidth: 44 },
+    { label: 'Deliverable title', flex: true },
+    { label: 'WP', defaultWidth: 44 },
+    { label: 'Lead', defaultWidth: 90 },
+    { label: 'Type', defaultWidth: 60 },
+    { label: 'Diss.', defaultWidth: 60 },
+    { label: 'Due', defaultWidth: 50 },
+  ];
+  const last = columns.length - 1;
+
   return (
     <div>
       <EditableCaption
@@ -184,54 +316,41 @@ export function B31DeliverablesTable({ proposalId }: Props) {
         defaultCaption="Deliverables, including the partner responsible, type, dissemination level & month due"
         className="mb-0"
       />
-      <table className={tableCls}>
-        <thead>
-          <tr>
-            <th className={thCls} style={{ width: 60 }}>No.</th>
-            <th className={thCls}>Deliverable title</th>
-            <th className={thCls} style={{ width: 50 }}>WP</th>
-            <th className={thCls} style={{ width: 90 }}>Lead</th>
-            <th className={thCls} style={{ width: 60 }}>Type</th>
-            <th className={thCls} style={{ width: 60 }}>Diss.</th>
-            <th className={thCls} style={{ width: 50 }}>Due</th>
-          </tr>
-        </thead>
-        <tbody>
-          {deliverables.length === 0 && (
-            <tr>
-              <td colSpan={7} className={tdCls + ' text-muted-foreground italic'}>
-                No deliverables in WP drafts yet.
-              </td>
+      <MirrorTable
+        proposalId={proposalId}
+        tableKey="b31-3-1-c-deliverables"
+        columns={columns}
+        emptyColSpan={7}
+        emptyLabel="No deliverables in WP drafts yet."
+        isEmpty={deliverables.length === 0}
+      >
+        {deliverables.map((d: any) => {
+          const lead = d.responsible_participant_id ? partInfo?.byId.get(d.responsible_participant_id) : undefined;
+          const wp = d.wp;
+          const delLabel = wp ? `D${wp.number}.${d.number}` : `D?.${d.number}`;
+          return (
+            <tr key={d.id}>
+              <MCell index={0} last={last} style={{ whiteSpace: 'nowrap' }}>
+                <DeliverablePentagon label={delLabel} color={wp?.color} />
+              </MCell>
+              <MCell index={1} last={last}><ReadOnlyTextCell text={d.title} /></MCell>
+              <MCell index={2} last={last}>
+                {wp ? <WPBubble wpNumber={wp.number} wpColor={wp.color} /> : <span className="text-muted-foreground italic">—</span>}
+              </MCell>
+              <MCell index={3} last={last}>
+                {lead ? (
+                  <ParticipantBubble shortName={lead.organisation_short_name || lead.organisation_name} />
+                ) : (
+                  <span className="text-muted-foreground italic">—</span>
+                )}
+              </MCell>
+              <MCell index={4} last={last}><ReadOnlyTextCell text={d.type} /></MCell>
+              <MCell index={5} last={last}><ReadOnlyTextCell text={d.dissemination_level} /></MCell>
+              <MCell index={6} last={last}><MonthLabel m={d.due_month} /></MCell>
             </tr>
-          )}
-          {deliverables.map((d: any) => {
-            const lead = d.responsible_participant_id ? partInfo?.byId.get(d.responsible_participant_id) : undefined;
-            const wp = d.wp;
-            const delLabel = wp ? `D${wp.number}.${d.number}` : `D?.${d.number}`;
-            return (
-              <tr key={d.id}>
-                <td className={tdCls} style={{ whiteSpace: 'nowrap' }}>
-                  <DeliverablePentagon label={delLabel} color={wp?.color} />
-                </td>
-                <td className={tdCls}><ReadOnlyTextCell text={d.title} /></td>
-                <td className={tdCls}>
-                  {wp ? <WPBubble wpNumber={wp.number} wpColor={wp.color} /> : <span className="text-muted-foreground italic">—</span>}
-                </td>
-                <td className={tdCls}>
-                  {lead ? (
-                    <ParticipantBubble shortName={lead.organisation_short_name || lead.organisation_name} />
-                  ) : (
-                    <span className="text-muted-foreground italic">—</span>
-                  )}
-                </td>
-                <td className={tdCls}><ReadOnlyTextCell text={d.type} /></td>
-                <td className={tdCls}><ReadOnlyTextCell text={d.dissemination_level} /></td>
-                <td className={tdCls}><MonthLabel m={d.due_month} /></td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+          );
+        })}
+      </MirrorTable>
     </div>
   );
 }
@@ -268,7 +387,6 @@ export function B31MilestonesTable({ proposalId }: Props) {
     },
   });
 
-  // Auto-order: due_month asc (nulls last), then min related WP number, then id.
   const sortedMilestones = useMemo(() => {
     const minWpNum = (m: any) => {
       const nums = (m._wpIds as string[])
@@ -287,6 +405,15 @@ export function B31MilestonesTable({ proposalId }: Props) {
     });
   }, [milestones, wpInfo]);
 
+  const columns: Col[] = [
+    { label: 'No.', defaultWidth: 48 },
+    { label: 'Milestone name', defaultWidth: 220 },
+    { label: 'WP(s)', defaultWidth: 113 },
+    { label: 'Due', defaultWidth: 50 },
+    { label: 'Means of verification', flex: true },
+  ];
+  const last = columns.length - 1;
+
   return (
     <div>
       <EditableCaption
@@ -296,48 +423,37 @@ export function B31MilestonesTable({ proposalId }: Props) {
         defaultCaption="Milestones"
         className="mb-0"
       />
-      <table className={tableCls}>
-        <thead>
-          <tr>
-            <th className={thCls} style={{ width: 60 }}>No.</th>
-            <th className={thCls}>Milestone name</th>
-            <th className={thCls} style={{ width: 80 }}>WPs</th>
-            <th className={thCls} style={{ width: 50 }}>Due</th>
-            <th className={thCls}>Means of verification</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sortedMilestones.length === 0 && (
-            <tr>
-              <td colSpan={5} className={tdCls + ' text-muted-foreground italic'}>
-                No milestones yet.
-              </td>
+      <MirrorTable
+        proposalId={proposalId}
+        tableKey="b31-3-1-d-milestones"
+        columns={columns}
+        emptyColSpan={5}
+        emptyLabel="No milestones yet."
+        isEmpty={sortedMilestones.length === 0}
+      >
+        {sortedMilestones.map((m: any) => {
+          const wps = (m._wpIds as string[])
+            .map((id) => wpInfo?.byId.get(id))
+            .filter(Boolean)
+            .sort((a: any, b: any) => a.number - b.number);
+          return (
+            <tr key={m.id}>
+              <MCell index={0} last={last}><MilestoneBadge number={m.number} /></MCell>
+              <MCell index={1} last={last}><ReadOnlyTextCell text={m.title} /></MCell>
+              <MCell index={2} last={last}>
+                <div className="flex flex-wrap gap-0.5">
+                  {wps.length === 0 && <span className="text-muted-foreground italic">—</span>}
+                  {wps.map((wp: any) => (
+                    <WPBubble key={wp.id} wpNumber={wp.number} wpColor={wp.color} />
+                  ))}
+                </div>
+              </MCell>
+              <MCell index={3} last={last}><MonthLabel m={m.due_month} /></MCell>
+              <MCell index={4} last={last}><ReadOnlyHtmlCell html={m.means_of_verification} /></MCell>
             </tr>
-          )}
-          {sortedMilestones.map((m: any) => {
-            const wps = (m._wpIds as string[])
-              .map((id) => wpInfo?.byId.get(id))
-              .filter(Boolean)
-              .sort((a: any, b: any) => a.number - b.number);
-            return (
-              <tr key={m.id}>
-                <td className={tdCls}><MilestoneBadge number={m.number} /></td>
-                <td className={tdCls}><ReadOnlyTextCell text={m.title} /></td>
-                <td className={tdCls}>
-                  <div className="flex flex-wrap gap-0.5">
-                    {wps.length === 0 && <span className="text-muted-foreground italic">—</span>}
-                    {wps.map((wp: any) => (
-                      <WPBubble key={wp.id} wpNumber={wp.number} wpColor={wp.color} />
-                    ))}
-                  </div>
-                </td>
-                <td className={tdCls}><MonthLabel m={m.due_month} /></td>
-                <td className={tdCls}><ReadOnlyHtmlCell html={m.means_of_verification} /></td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+          );
+        })}
+      </MirrorTable>
     </div>
   );
 }
@@ -371,12 +487,10 @@ export function B31RisksTable({ proposalId }: Props) {
           linkMap.set(l.risk_id, arr);
         }
       }
-      const enriched = (rows || []).map((r: any) => ({ ...r, _wpIds: linkMap.get(r.id) || [] }));
-      return enriched;
+      return (rows || []).map((r: any) => ({ ...r, _wpIds: linkMap.get(r.id) || [] }));
     },
   });
 
-  // Sort by min related WP number, then by id (matches manager auto-ordering)
   const orderedRisks = (risks as any[]).slice().sort((a: any, b: any) => {
     const minWp = (r: any) => {
       const nums = (r._wpIds as string[])
@@ -388,7 +502,15 @@ export function B31RisksTable({ proposalId }: Props) {
     if (wa !== wb) return wa - wb;
     return String(a.id).localeCompare(String(b.id));
   });
-  
+
+  const columns: Col[] = [
+    { label: 'Risk', defaultWidth: 240 },
+    { label: 'i.', defaultWidth: 30, align: 'center' },
+    { label: 'ii.', defaultWidth: 30, align: 'center' },
+    { label: 'WP(s)', defaultWidth: 113 },
+    { label: 'Mitigation & adaptation measures', flex: true },
+  ];
+  const last = columns.length - 1;
 
   return (
     <div>
@@ -399,64 +521,41 @@ export function B31RisksTable({ proposalId }: Props) {
         defaultCaption="Critical risks"
         className="mb-0"
       />
-      <table className={tableCls}>
-        <thead>
-          <tr>
-            <th className={thCls} style={{ width: '25%' }}>Risk</th>
-            <th className={thCls + ' text-center'} style={{ width: 30 }}>i.</th>
-            <th className={thCls + ' text-center'} style={{ width: 30 }}>ii.</th>
-            <th className={thCls} style={{ width: 100 }}>WPs</th>
-            <th className={thCls}>Mitigation & adaptation measures</th>
-          </tr>
-        </thead>
-        <tbody>
-          {orderedRisks.length === 0 && (
-            <tr>
-              <td colSpan={5} className={tdCls + ' text-muted-foreground italic'}>
-                No risks yet.
-              </td>
+      <MirrorTable
+        proposalId={proposalId}
+        tableKey="b31-3-1-e-risks"
+        columns={columns}
+        emptyColSpan={5}
+        emptyLabel="No risks yet."
+        isEmpty={orderedRisks.length === 0}
+      >
+        {orderedRisks.map((r: any) => {
+          const wps = (r._wpIds as string[])
+            .map((id) => wpInfo?.byId.get(id))
+            .filter(Boolean)
+            .sort((a: any, b: any) => a.number - b.number);
+          return (
+            <tr key={r.id}>
+              <MCell index={0} last={last}><ReadOnlyHtmlCell html={r.title} /></MCell>
+              <MCell index={1} last={last} className="text-center">
+                {r.likelihood ? <RiskBadge level={r.likelihood as 'L' | 'M' | 'H'} /> : <span className="text-muted-foreground">—</span>}
+              </MCell>
+              <MCell index={2} last={last} className="text-center">
+                {r.severity ? <RiskBadge level={r.severity as 'L' | 'M' | 'H'} /> : <span className="text-muted-foreground">—</span>}
+              </MCell>
+              <MCell index={3} last={last}>
+                <div className="flex flex-wrap gap-0.5">
+                  {wps.length === 0 && <span className="text-muted-foreground italic">—</span>}
+                  {wps.map((wp: any) => (
+                    <WPBubble key={wp.id} wpNumber={wp.number} wpColor={wp.color} />
+                  ))}
+                </div>
+              </MCell>
+              <MCell index={4} last={last}><ReadOnlyHtmlCell html={r.mitigation} /></MCell>
             </tr>
-          )}
-          {orderedRisks.map((r: any) => {
-            const wps = (r._wpIds as string[])
-              .map((id) => wpInfo?.byId.get(id))
-              .filter(Boolean)
-              .sort((a: any, b: any) => a.number - b.number);
-            return (
-              <tr key={r.id}>
-                <td className={tdCls}><ReadOnlyHtmlCell html={r.title} /></td>
-                <td className={tdCls + ' text-center'}>
-                  {r.likelihood ? <RiskBadge level={r.likelihood as 'L' | 'M' | 'H'} /> : <span className="text-muted-foreground">—</span>}
-                </td>
-                <td className={tdCls + ' text-center'}>
-                  {r.severity ? <RiskBadge level={r.severity as 'L' | 'M' | 'H'} /> : <span className="text-muted-foreground">—</span>}
-                </td>
-                <td className={tdCls}>
-                  <div className="flex flex-wrap gap-0.5">
-                    {wps.length === 0 && <span className="text-muted-foreground italic">—</span>}
-                    {wps.map((wp: any) => (
-                      <WPBubble key={wp.id} wpNumber={wp.number} wpColor={wp.color} />
-                    ))}
-                  </div>
-                </td>
-                <td className={tdCls}><ReadOnlyHtmlCell html={r.mitigation} /></td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-
-// Wrapper kept for backward compatibility.
-export function B31TablesEditor({ proposalId }: Props) {
-  return (
-    <div className="space-y-8">
-      <B31DeliverablesTable proposalId={proposalId} />
-      <B31MilestonesTable proposalId={proposalId} />
-      <B31RisksTable proposalId={proposalId} />
+          );
+        })}
+      </MirrorTable>
     </div>
   );
 }
