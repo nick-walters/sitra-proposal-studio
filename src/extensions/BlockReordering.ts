@@ -46,6 +46,7 @@ export function findBlockRange(
         if (textContent.startsWith('table ') || beforeNode.attrs?.class?.includes('table-caption')) {
           startPos = pos - beforeNode.nodeSize;
         }
+      }
     }
     return { startPos, endPos, node };
   }
