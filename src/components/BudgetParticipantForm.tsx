@@ -100,20 +100,15 @@ export function BudgetParticipantForm({
 }: BudgetParticipantFormProps) {
   const {
     rows,
-    justifications,
-    subcontractingItems,
-    equipmentItems,
+    justificationItems,
     personnelBreakdown,
     loading,
     saving,
     updateRow,
-    saveJustification,
-    addSubcontractingItem,
-    updateSubcontractingItem,
-    deleteSubcontractingItem,
-    addEquipmentItem,
-    updateEquipmentItem,
-    deleteEquipmentItem,
+    addJustificationItem,
+    updateJustificationItem,
+    deleteJustificationItem,
+    reorderJustificationItems,
     addPersonnelBreakdownItem,
     updatePersonnelBreakdownItem,
     deletePersonnelBreakdownItem,
@@ -130,25 +125,6 @@ export function BudgetParticipantForm({
     return true;
   }, [canEdit, row, isAdmin]);
 
-  const rowSubItems = useMemo(
-    () => (row ? subcontractingItems.filter(i => i.budgetRowId === row.id) : []),
-    [subcontractingItems, row]
-  );
-
-  const subTotal = useMemo(
-    () => rowSubItems.reduce((sum, i) => sum + i.amount, 0),
-    [rowSubItems]
-  );
-
-  const rowEquipItems = useMemo(
-    () => (row ? equipmentItems.filter(i => i.budgetRowId === row.id) : []),
-    [equipmentItems, row]
-  );
-
-  const equipTotal = useMemo(
-    () => rowEquipItems.reduce((sum, i) => sum + i.amount, 0),
-    [rowEquipItems]
-  );
 
   // 15% threshold for equipment justification
   const equipmentJustificationRequired = useMemo(() => {
