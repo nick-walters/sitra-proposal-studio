@@ -93,18 +93,11 @@ export function findBlockRange(
   return { startPos, endPos, node };
 }
 
-export function nodeIsB12CasesTable(node: ProseMirrorNode | null | undefined): boolean {
-  return node?.type.name === 'table' && node.attrs?.['data-b12-cases-table'] === 'true';
-}
-
 /**
  * Checks if a node can be reordered (all blocks except H1 and H2).
  * Exported for use by BlockDragHandle extension.
  */
 export function isReorderableBlock(node: ProseMirrorNode): boolean {
-  // B1.2 generated cases table order is controlled from the Case Manager.
-  if (nodeIsB12CasesTable(node)) return false;
-
   // H1 and H2 are locked - not reorderable
   if (node.type.name === 'heading') {
     const level = node.attrs?.level;
