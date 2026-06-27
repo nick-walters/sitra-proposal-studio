@@ -333,6 +333,25 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
     })));
   }, [proposalId, rows.map(r => r.id).join(',')]);
 
+  const fetchJustificationItems = useCallback(async () => {
+    if (!proposalId || rows.length === 0) return;
+    const rowIds = rows.map(r => r.id);
+    const { data, error } = await supabase
+      .from('budget_cost_justification_items')
+      .select('*')
+      .in('budget_row_id', rowIds)
+      .order('order_index');
+    if (error) { console.error('Error fetching justification items:', error); return; }
+    setJustificationItems((data || []).map((it: any) => ({
+      id: it.id,
+      budgetRowId: it.budget_row_id,
+      category: it.category as JustificationCategory,
+      amount: Number(it.amount) || 0,
+      justification: it.justification || '',
+      orderIndex: it.order_index,
+    })));
+  }, [proposalId, rows.map(r => r.id).join(',')]);
+
   const fetchPersonnelBreakdown = useCallback(async () => {
     if (!proposalId || rows.length === 0) return;
     const rowIds = rows.map(r => r.id);
