@@ -166,6 +166,47 @@ export type Database = {
           },
         ]
       }
+      budget_cost_justification_items: {
+        Row: {
+          amount: number
+          budget_row_id: string
+          category: string
+          created_at: string
+          id: string
+          justification: string
+          order_index: number
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          budget_row_id: string
+          category: string
+          created_at?: string
+          id?: string
+          justification?: string
+          order_index?: number
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          budget_row_id?: string
+          category?: string
+          created_at?: string
+          id?: string
+          justification?: string
+          order_index?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_cost_justification_items_budget_row_id_fkey"
+            columns: ["budget_row_id"]
+            isOneToOne: false
+            referencedRelation: "budget_rows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       budget_cost_justifications: {
         Row: {
           budget_row_id: string

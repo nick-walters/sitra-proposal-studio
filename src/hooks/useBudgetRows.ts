@@ -82,6 +82,31 @@ export interface EquipmentItem {
   orderIndex: number;
 }
 
+export type JustificationCategory = 'subcontracting' | 'travel' | 'equipment' | 'other_goods';
+
+export interface JustificationItem {
+  id: string;
+  budgetRowId: string;
+  category: JustificationCategory;
+  amount: number;
+  justification: string;
+  orderIndex: number;
+}
+
+const CATEGORY_TO_COLUMN: Record<JustificationCategory, 'subcontracting_costs' | 'purchase_travel' | 'purchase_equipment' | 'purchase_other_goods'> = {
+  subcontracting: 'subcontracting_costs',
+  travel: 'purchase_travel',
+  equipment: 'purchase_equipment',
+  other_goods: 'purchase_other_goods',
+};
+
+const CATEGORY_TO_ROW_FIELD: Record<JustificationCategory, 'subcontractingCosts' | 'purchaseTravel' | 'purchaseEquipment' | 'purchaseOtherGoods'> = {
+  subcontracting: 'subcontractingCosts',
+  travel: 'purchaseTravel',
+  equipment: 'purchaseEquipment',
+  other_goods: 'purchaseOtherGoods',
+};
+
 export interface PersonnelBreakdownItem {
   id: string;
   budgetRowId: string;
@@ -161,6 +186,7 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
   const [justifications, setJustifications] = useState<BudgetJustification[]>([]);
   const [subcontractingItems, setSubcontractingItems] = useState<SubcontractingItem[]>([]);
   const [equipmentItems, setEquipmentItems] = useState<EquipmentItem[]>([]);
+  const [justificationItems, setJustificationItems] = useState<JustificationItem[]>([]);
   const [personnelBreakdown, setPersonnelBreakdown] = useState<PersonnelBreakdownItem[]>([]);
   const [personnelLoaded, setPersonnelLoaded] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -304,6 +330,25 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
       amount: Number(item.amount) || 0,
       justification: item.justification,
       orderIndex: item.order_index,
+    })));
+  }, [proposalId, rows.map(r => r.id).join(',')]);
+
+  const fetchJustificationItems = useCallback(async () => {
+    if (!proposalId || rows.length === 0) return;
+    const rowIds = rows.map(r => r.id);
+    const { data, error } = await supabase
+      .from('budget_cost_justification_items')
+      .select('*')
+      .in('budget_row_id', rowIds)
+      .order('order_index');
+    if (error) { console.error('Error fetching justification items:', error); return; }
+    setJustificationItems((data || []).map((it: any) => ({
+      id: it.id,
+      budgetRowId: it.budget_row_id,
+      category: it.category as JustificationCategory,
+      amount: Number(it.amount) || 0,
+      justification: it.justification || '',
+      orderIndex: it.order_index,
     })));
   }, [proposalId, rows.map(r => r.id).join(',')]);
 
@@ -476,9 +521,92 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
       fetchJustifications();
       fetchSubcontractingItems();
       fetchEquipmentItems();
+      fetchJustificationItems();
       fetchPersonnelBreakdown();
     }
   }, [rows.length > 0, fetchJustifications, fetchSubcontractingItems, fetchPersonnelBreakdown]);
+
+  // ─── Multi-row cost justifications (new model) ───
+  const syncCategoryTotalFromItems = useCallback(async (budgetRowId: string, category: JustificationCategory, items: JustificationItem[]) => {
+    const total = items
+      .filter(i => i.budgetRowId === budgetRowId && i.category === category)
+      .reduce((s, i) => s + (Number(i.amount) || 0), 0);
+    const column = CATEGORY_TO_COLUMN[category];
+    const rowField = CATEGORY_TO_ROW_FIELD[category];
+    setRows(prev => prev.map(r => r.id === budgetRowId ? { ...r, [rowField]: total } : r));
+    await supabase.from('budget_rows').update({ [column]: total }).eq('id', budgetRowId);
+  }, []);
+
+  const addJustificationItem = useCallback(async (budgetRowId: string, category: JustificationCategory) => {
+    const existing = justificationItems.filter(i => i.budgetRowId === budgetRowId && i.category === category);
+    const nextIndex = existing.length;
+    const { data, error } = await supabase
+      .from('budget_cost_justification_items')
+      .insert({ budget_row_id: budgetRowId, category, amount: 0, justification: '', order_index: nextIndex })
+      .select().single();
+    if (error || !data) { toast.error('Failed to add justification row'); return; }
+    const item: JustificationItem = {
+      id: data.id,
+      budgetRowId: data.budget_row_id,
+      category: data.category as JustificationCategory,
+      amount: Number(data.amount) || 0,
+      justification: data.justification || '',
+      orderIndex: data.order_index,
+    };
+    let next: JustificationItem[] = [];
+    setJustificationItems(prev => { next = [...prev, item]; return next; });
+    // No total change (amount=0) but keep behaviour consistent
+    await syncCategoryTotalFromItems(budgetRowId, category, next);
+  }, [justificationItems, syncCategoryTotalFromItems]);
+
+  const updateJustificationItem = useCallback((itemId: string, field: 'amount' | 'justification', value: number | string) => {
+    let snapshot: JustificationItem[] = [];
+    setJustificationItems(prev => {
+      snapshot = prev.map(i => i.id === itemId ? { ...i, [field]: field === 'amount' ? (Number(value) || 0) : String(value) } : i);
+      return snapshot;
+    });
+    if (debounceTimers.current[`bcji-${itemId}`]) clearTimeout(debounceTimers.current[`bcji-${itemId}`]);
+    debounceTimers.current[`bcji-${itemId}`] = setTimeout(async () => {
+      setSaving(true);
+      const dbField = field === 'amount' ? 'amount' : 'justification';
+      const { error } = await supabase
+        .from('budget_cost_justification_items')
+        .update({ [dbField]: field === 'amount' ? Number(value) || 0 : value })
+        .eq('id', itemId);
+      if (error) toast.error('Failed to save justification row');
+      if (field === 'amount') {
+        const it = snapshot.find(i => i.id === itemId);
+        if (it) await syncCategoryTotalFromItems(it.budgetRowId, it.category, snapshot);
+      }
+      setSaving(false);
+    }, 300);
+  }, [syncCategoryTotalFromItems]);
+
+  const deleteJustificationItem = useCallback(async (itemId: string) => {
+    const item = justificationItems.find(i => i.id === itemId);
+    if (!item) return;
+    const { error } = await supabase.from('budget_cost_justification_items').delete().eq('id', itemId);
+    if (error) { toast.error('Failed to delete justification row'); return; }
+    let next: JustificationItem[] = [];
+    setJustificationItems(prev => { next = prev.filter(i => i.id !== itemId); return next; });
+    await syncCategoryTotalFromItems(item.budgetRowId, item.category, next);
+  }, [justificationItems, syncCategoryTotalFromItems]);
+
+  const reorderJustificationItems = useCallback(async (budgetRowId: string, category: JustificationCategory, orderedIds: string[]) => {
+    let next: JustificationItem[] = [];
+    setJustificationItems(prev => {
+      next = prev.map(i => {
+        if (i.budgetRowId !== budgetRowId || i.category !== category) return i;
+        const idx = orderedIds.indexOf(i.id);
+        return idx >= 0 ? { ...i, orderIndex: idx } : i;
+      });
+      return next;
+    });
+    await Promise.all(orderedIds.map((id, idx) =>
+      supabase.from('budget_cost_justification_items').update({ order_index: idx }).eq('id', id)
+    ));
+  }, []);
+
 
   // Sync subcontracting_costs on budget_rows from line items
   const syncSubcontractingTotal = useCallback(async (budgetRowId: string) => {
@@ -918,6 +1046,11 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
     subcontractingItems,
     equipmentItems,
     personnelBreakdown,
+    justificationItems,
+    addJustificationItem,
+    updateJustificationItem,
+    deleteJustificationItem,
+    reorderJustificationItems,
     personnelLoaded,
     grandTotals,
     loading,
