@@ -46,15 +46,6 @@ export function findBlockRange(
         if (textContent.startsWith('table ') || beforeNode.attrs?.class?.includes('table-caption')) {
           startPos = pos - beforeNode.nodeSize;
         }
-      }
-
-      if (nodeIsB12CasesTable(node) && startPos > 0) {
-        const $start = doc.resolve(startPos);
-        const headingBefore = $start.nodeBefore;
-        if (headingBefore?.type.name === 'heading' && headingBefore.attrs?.['data-b12-cases-heading'] === 'true') {
-          startPos -= headingBefore.nodeSize;
-        }
-      }
     }
     return { startPos, endPos, node };
   }
