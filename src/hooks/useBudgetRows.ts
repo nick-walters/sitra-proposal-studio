@@ -186,6 +186,7 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
   const [justifications, setJustifications] = useState<BudgetJustification[]>([]);
   const [subcontractingItems, setSubcontractingItems] = useState<SubcontractingItem[]>([]);
   const [equipmentItems, setEquipmentItems] = useState<EquipmentItem[]>([]);
+  const [justificationItems, setJustificationItems] = useState<JustificationItem[]>([]);
   const [personnelBreakdown, setPersonnelBreakdown] = useState<PersonnelBreakdownItem[]>([]);
   const [personnelLoaded, setPersonnelLoaded] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
