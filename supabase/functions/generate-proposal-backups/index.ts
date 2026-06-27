@@ -637,18 +637,25 @@ async function buildA3Xlsx(supabase: any, proposal: any): Promise<Uint8Array> {
     wp_draft_id: e.wp_draft_id, participant_id: e.participant_id, person_months: Number(e.person_months ?? 0),
   }));
 
-  // Sub-items + justifications for note attachment (currently informational only here).
+  // Justification items (unified model) for note attachment on the budget summary sheet.
   const budgetRowIds = (budgetRowsRaw ?? []).map((r: any) => r.id);
-  const [{ data: subItemsRaw }, { data: justsRaw }] = await Promise.all([
-    budgetRowIds.length
-      ? supabase.from("budget_subcontracting_items").select("*").in("budget_row_id", budgetRowIds).order("order_index")
-      : Promise.resolve({ data: [] }),
-    budgetRowIds.length
-      ? supabase.from("budget_cost_justifications").select("*").in("budget_row_id", budgetRowIds)
-      : Promise.resolve({ data: [] }),
-  ]);
-  const subItems = subItemsRaw ?? [];
-  const justifications = justsRaw ?? [];
+  const { data: justItemsRaw } = budgetRowIds.length
+    ? await supabase
+        .from("budget_cost_justification_items")
+        .select("*")
+        .in("budget_row_id", budgetRowIds)
+        .order("order_index")
+    : { data: [] };
+  const justificationItems = justItemsRaw ?? [];
+  // Build a concatenated justification text per (row, category).
+  const justByRowCat = new Map<string, string>();
+  for (const it of justificationItems) {
+    const key = `${it.budget_row_id}::${it.category}`;
+    const piece = [it.description, it.justification].filter((s: any) => s && String(s).trim()).join(" — ");
+    if (!piece) continue;
+    justByRowCat.set(key, justByRowCat.has(key) ? `${justByRowCat.get(key)}\n${piece}` : piece);
+  }
+
 
   // PM totals per participant (sum across all WPs)
   const pmTotals = new Map<string, number>();
@@ -914,21 +921,24 @@ async function buildA3Xlsx(supabase: any, proposal: any): Promise<Uint8Array> {
       (ws2[ref].c as any).hidden = true;
     };
     if (row.subcontractingCosts > 0) {
-      const subItem = subItems.find((s: any) => s.budget_row_id === row.id);
-      if (subItem?.justification) addComment(4, subItem.justification);
+      const t = justByRowCat.get(`${row.id}::subcontracting`);
+      if (t) addComment(4, t);
     }
     if (row.purchaseTravel > 0) {
-      const j = justifications.find((x: any) => x.budget_row_id === row.id && x.category === "travel");
-      if (j?.justification_text) addComment(5, j.justification_text);
+      const t = justByRowCat.get(`${row.id}::travel`);
+      if (t) addComment(5, t);
     }
-    if (row.purchaseEquipment > 0 && row.purchaseEquipmentJustification) {
-      addComment(6, row.purchaseEquipmentJustification);
+    if (row.purchaseEquipment > 0) {
+      const t = justByRowCat.get(`${row.id}::equipment`);
+      if (t) addComment(6, t);
+      else if (row.purchaseEquipmentJustification) addComment(6, row.purchaseEquipmentJustification);
     }
     if (row.purchaseOtherGoods > 0) {
-      const j = justifications.find((x: any) => x.budget_row_id === row.id && x.category === "other_goods");
-      if (j?.justification_text) addComment(7, j.justification_text);
+      const t = justByRowCat.get(`${row.id}::other_goods`);
+      if (t) addComment(7, t);
     }
   });
+
   XLSX.utils.book_append_sheet(wb, ws2, "Summary by Participant");
 
   // ─── Sheet 3: Budget Overview ───
@@ -1289,22 +1299,53 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
     wpIds.length ? supabase.from("wp_draft_effort").select("wp_draft_id, participant_id, person_months").in("wp_draft_id", wpIds) : { data: [] },
   ]);
 
-  // Subcontracting & equipment for 3.1.g/3.1.h via budget_rows joined to participants
+  // Subcontracting & equipment justification items for 3.1.g/3.1.h via budget_rows joined to participants
   const { data: budgetRows } = await supabase
     .from("budget_rows")
-    .select("id, participant_id")
+    .select("id, participant_id, pm_rate, personnel_costs")
     .eq("proposal_id", proposal.id);
   const brIds = (budgetRows ?? []).map((r: any) => r.id);
-  const [{ data: subItems }, { data: equipItems }] = await Promise.all([
-    brIds.length
-      ? supabase.from("budget_subcontracting_items").select("*").in("budget_row_id", brIds).order("order_index")
-      : Promise.resolve({ data: [] }),
-    brIds.length
-      ? supabase.from("budget_equipment_items").select("*").in("budget_row_id", brIds).order("order_index")
-      : Promise.resolve({ data: [] }),
-  ]);
+  const { data: justItemsRaw } = brIds.length
+    ? await supabase
+        .from("budget_cost_justification_items")
+        .select("*")
+        .in("budget_row_id", brIds)
+        .in("category", ["subcontracting", "equipment"])
+        .order("order_index")
+    : { data: [] };
+  const subItems = (justItemsRaw ?? []).filter((it: any) => it.category === "subcontracting");
+  const equipItemsAll = (justItemsRaw ?? []).filter((it: any) => it.category === "equipment");
+
   const brToPart = new Map<string, string>();
-  for (const br of budgetRows ?? []) brToPart.set(br.id, br.participant_id);
+  const brById = new Map<string, any>();
+  for (const br of budgetRows ?? []) { brToPart.set(br.id, br.participant_id); brById.set(br.id, br); }
+  // Per-participant personnel cost for 15% major-equipment rule.
+  const pmByPart = new Map<string, number>();
+  for (const e of effortRows ?? []) {
+    pmByPart.set(e.participant_id, (pmByPart.get(e.participant_id) || 0) + Number(e.person_months ?? 0));
+  }
+  const personnelCostFor = (partId: string): number => {
+    const br = (budgetRows ?? []).find((r: any) => r.participant_id === partId);
+    if (!br) return 0;
+    const pmRate = br.pm_rate != null ? Number(br.pm_rate) : null;
+    if (pmRate != null && pmRate > 0) return Math.round(pmRate * (pmByPart.get(partId) || 0));
+    return Number(br.personnel_costs || 0);
+  };
+  // Apply 15% major-equipment rule per participant: include all items only if total > 15% of personnel.
+  const equipTotalsByPart = new Map<string, number>();
+  for (const it of equipItemsAll) {
+    const partId = brToPart.get(it.budget_row_id);
+    if (!partId) continue;
+    equipTotalsByPart.set(partId, (equipTotalsByPart.get(partId) || 0) + Number(it.amount || 0));
+  }
+  const equipItems = equipItemsAll.filter((it: any) => {
+    const partId = brToPart.get(it.budget_row_id);
+    if (!partId) return false;
+    const pers = personnelCostFor(partId);
+    const total = equipTotalsByPart.get(partId) || 0;
+    return pers > 0 ? total > 0.15 * pers : total > 0;
+  });
+
 
   const taskIds = (b31Tasks ?? []).map((t: any) => t.id);
   const { data: b31TaskParts } = taskIds.length
@@ -1439,33 +1480,54 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
     children.push(simpleTable(headers, matrixRows));
   }
 
+  // Helper: render a justification-items table grouped by participant with subtotals + grand total.
+  const renderJustItemsTable = (items: any[]) => {
+    const rowsOut: any[][] = [];
+    const byPart = new Map<string, any[]>();
+    for (const it of items) {
+      const partId = brToPart.get(it.budget_row_id) ?? null;
+      if (!partId) continue;
+      const arr = byPart.get(partId) ?? [];
+      arr.push(it);
+      byPart.set(partId, arr);
+    }
+    const partIdsSorted = Array.from(byPart.keys()).sort((a, b) => {
+      const pa = (participants ?? []).find((p: any) => p.id === a)?.participant_number ?? 999;
+      const pb = (participants ?? []).find((p: any) => p.id === b)?.participant_number ?? 999;
+      return pa - pb;
+    });
+    let grand = 0;
+    for (const partId of partIdsSorted) {
+      const its = byPart.get(partId) ?? [];
+      let subtotal = 0;
+      its.forEach((it: any, idx: number) => {
+        const amt = Number(it.amount || 0);
+        subtotal += amt;
+        rowsOut.push([
+          idx === 0 ? partLabel(partId) : "",
+          eur(amt),
+          [it.description, it.justification].filter((s: any) => s && String(s).trim()).join(" — "),
+        ]);
+      });
+      rowsOut.push(["", eur(subtotal), "Subtotal"]);
+      grand += subtotal;
+    }
+    rowsOut.push(["", eur(grand), "Total"]);
+    return simpleTable(["Participant", "Cost (€)", "Justification"], rowsOut);
+  };
+
   // ─── Table 3.1.g — Subcontracting ───
   if ((subItems ?? []).length) {
     children.push(H(HeadingLevel.HEADING_2, "Table 3.1.g — Subcontracting"));
-    children.push(simpleTable(
-      ["Participant", "Description", "Cost (€)", "Justification"],
-      (subItems ?? []).map((s: any) => [
-        partLabel(brToPart.get(s.budget_row_id) ?? null),
-        s.description ?? "",
-        eur(s.amount),
-        s.justification ?? "",
-      ]),
-    ));
+    children.push(renderJustItemsTable(subItems));
   }
 
-  // ─── Table 3.1.h — Purchase costs / equipment ───
+  // ─── Table 3.1.h — Purchase costs / equipment (15% major-equipment rule applied above) ───
   if ((equipItems ?? []).length) {
     children.push(H(HeadingLevel.HEADING_2, "Table 3.1.h — Purchase costs (equipment, infrastructure or other assets)"));
-    children.push(simpleTable(
-      ["Participant", "Description", "Cost (€)", "Justification"],
-      (equipItems ?? []).map((e: any) => [
-        partLabel(brToPart.get(e.budget_row_id) ?? null),
-        e.description ?? "",
-        eur(e.amount),
-        e.justification ?? "",
-      ]),
-    ));
+    children.push(renderJustItemsTable(equipItems));
   }
+
 
   return await packDocx(children);
 }

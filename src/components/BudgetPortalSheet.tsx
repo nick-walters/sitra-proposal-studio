@@ -90,8 +90,7 @@ export function BudgetPortalSheet({
 }: BudgetPortalSheetProps) {
   const {
     rows,
-    justifications,
-    subcontractingItems,
+    justificationItems,
     grandTotals,
     loading,
     saving,
@@ -458,27 +457,31 @@ export function BudgetPortalSheet({
         ws2[ref].c.hidden = true;
       };
 
+      const concatJustifications = (cat: 'subcontracting' | 'travel' | 'equipment' | 'other_goods') =>
+        justificationItems
+          .filter(i => i.budgetRowId === row.id && i.category === cat)
+          .map(i => i.justification?.trim())
+          .filter((s): s is string => !!s)
+          .join('\n');
+
       // B. Subcontracting (col E = index 4)
       if (row.subcontractingCosts > 0) {
-        const subItem = subcontractingItems.find(s => s.budgetRowId === row.id);
-        if (subItem?.justification) addComment(4, subItem.justification);
+        addComment(4, concatJustifications('subcontracting'));
       }
 
       // C.1 Travel (col F = index 5)
       if (row.purchaseTravel > 0) {
-        const j = justifications.find(j => j.budgetRowId === row.id && j.category === 'travel');
-        if (j?.justificationText) addComment(5, j.justificationText);
+        addComment(5, concatJustifications('travel'));
       }
 
       // C.2 Equipment (col G = index 6)
       if (row.purchaseEquipment > 0) {
-        if (row.purchaseEquipmentJustification) addComment(6, row.purchaseEquipmentJustification);
+        addComment(6, concatJustifications('equipment'));
       }
 
       // C.3 Other goods (col H = index 7)
       if (row.purchaseOtherGoods > 0) {
-        const j = justifications.find(j => j.budgetRowId === row.id && j.category === 'other_goods');
-        if (j?.justificationText) addComment(7, j.justificationText);
+        addComment(7, concatJustifications('other_goods'));
       }
     });
 
