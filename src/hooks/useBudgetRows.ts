@@ -521,6 +521,7 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
       fetchJustifications();
       fetchSubcontractingItems();
       fetchEquipmentItems();
+      fetchJustificationItems();
       fetchPersonnelBreakdown();
     }
   }, [rows.length > 0, fetchJustifications, fetchSubcontractingItems, fetchPersonnelBreakdown]);
