@@ -1480,33 +1480,54 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
     children.push(simpleTable(headers, matrixRows));
   }
 
+  // Helper: render a justification-items table grouped by participant with subtotals + grand total.
+  const renderJustItemsTable = (items: any[]) => {
+    const rowsOut: any[][] = [];
+    const byPart = new Map<string, any[]>();
+    for (const it of items) {
+      const partId = brToPart.get(it.budget_row_id) ?? null;
+      if (!partId) continue;
+      const arr = byPart.get(partId) ?? [];
+      arr.push(it);
+      byPart.set(partId, arr);
+    }
+    const partIdsSorted = Array.from(byPart.keys()).sort((a, b) => {
+      const pa = (participants ?? []).find((p: any) => p.id === a)?.participant_number ?? 999;
+      const pb = (participants ?? []).find((p: any) => p.id === b)?.participant_number ?? 999;
+      return pa - pb;
+    });
+    let grand = 0;
+    for (const partId of partIdsSorted) {
+      const its = byPart.get(partId) ?? [];
+      let subtotal = 0;
+      its.forEach((it: any, idx: number) => {
+        const amt = Number(it.amount || 0);
+        subtotal += amt;
+        rowsOut.push([
+          idx === 0 ? partLabel(partId) : "",
+          eur(amt),
+          [it.description, it.justification].filter((s: any) => s && String(s).trim()).join(" — "),
+        ]);
+      });
+      rowsOut.push(["", eur(subtotal), "Subtotal"]);
+      grand += subtotal;
+    }
+    rowsOut.push(["", eur(grand), "Total"]);
+    return simpleTable(["Participant", "Cost (€)", "Justification"], rowsOut);
+  };
+
   // ─── Table 3.1.g — Subcontracting ───
   if ((subItems ?? []).length) {
     children.push(H(HeadingLevel.HEADING_2, "Table 3.1.g — Subcontracting"));
-    children.push(simpleTable(
-      ["Participant", "Description", "Cost (€)", "Justification"],
-      (subItems ?? []).map((s: any) => [
-        partLabel(brToPart.get(s.budget_row_id) ?? null),
-        s.description ?? "",
-        eur(s.amount),
-        s.justification ?? "",
-      ]),
-    ));
+    children.push(renderJustItemsTable(subItems));
   }
 
-  // ─── Table 3.1.h — Purchase costs / equipment ───
+  // ─── Table 3.1.h — Purchase costs / equipment (15% major-equipment rule applied above) ───
   if ((equipItems ?? []).length) {
     children.push(H(HeadingLevel.HEADING_2, "Table 3.1.h — Purchase costs (equipment, infrastructure or other assets)"));
-    children.push(simpleTable(
-      ["Participant", "Description", "Cost (€)", "Justification"],
-      (equipItems ?? []).map((e: any) => [
-        partLabel(brToPart.get(e.budget_row_id) ?? null),
-        e.description ?? "",
-        eur(e.amount),
-        e.justification ?? "",
-      ]),
-    ));
+    children.push(renderJustItemsTable(equipItems));
   }
+
 
   return await packDocx(children);
 }
