@@ -55,32 +55,8 @@ export interface ComputedBudgetRow extends BudgetRowData {
   totalEstimatedIncome: number;
 }
 
-export interface BudgetJustification {
-  id: string;
-  budgetRowId: string;
-  category: string;
-  justificationText: string;
-  updatedBy: string | null;
-  updatedAt: string;
-}
-
-export interface SubcontractingItem {
-  id: string;
-  budgetRowId: string;
-  description: string;
-  amount: number;
-  justification: string;
-  orderIndex: number;
-}
-
-export interface EquipmentItem {
-  id: string;
-  budgetRowId: string;
-  description: string;
-  amount: number;
-  justification: string;
-  orderIndex: number;
-}
+// Legacy single-text justifications and per-category item tables removed in Stage 2.
+// All cost-category justifications now live in `budget_cost_justification_items`.
 
 export type JustificationCategory = 'subcontracting' | 'travel' | 'equipment' | 'other_goods';
 
@@ -183,9 +159,7 @@ function computeRow(row: BudgetRowData, proposalType: string | null): ComputedBu
 export function useBudgetRows(proposalId: string, proposalType: string | null) {
   const { user } = useAuth();
   const [rows, setRows] = useState<BudgetRowData[]>([]);
-  const [justifications, setJustifications] = useState<BudgetJustification[]>([]);
-  const [subcontractingItems, setSubcontractingItems] = useState<SubcontractingItem[]>([]);
-  const [equipmentItems, setEquipmentItems] = useState<EquipmentItem[]>([]);
+  const [justificationItemsLegacyRemoved] = useState<undefined>(undefined);
   const [justificationItems, setJustificationItems] = useState<JustificationItem[]>([]);
   const [personnelBreakdown, setPersonnelBreakdown] = useState<PersonnelBreakdownItem[]>([]);
   const [personnelLoaded, setPersonnelLoaded] = useState<Set<string>>(new Set());
@@ -285,53 +259,6 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
     setLoading(false);
   }, [proposalId]);
 
-  const fetchSubcontractingItems = useCallback(async () => {
-    if (!proposalId || rows.length === 0) return;
-    const rowIds = rows.map(r => r.id);
-    const { data, error } = await supabase
-      .from('budget_subcontracting_items')
-      .select('*')
-      .in('budget_row_id', rowIds)
-      .order('order_index');
-
-    if (error) {
-      console.error('Error fetching subcontracting items:', error);
-      return;
-    }
-
-    setSubcontractingItems((data || []).map((item: any) => ({
-      id: item.id,
-      budgetRowId: item.budget_row_id,
-      description: item.description,
-      amount: Number(item.amount) || 0,
-      justification: item.justification,
-      orderIndex: item.order_index,
-    })));
-  }, [proposalId, rows.map(r => r.id).join(',')]);
-
-  const fetchEquipmentItems = useCallback(async () => {
-    if (!proposalId || rows.length === 0) return;
-    const rowIds = rows.map(r => r.id);
-    const { data, error } = await supabase
-      .from('budget_equipment_items')
-      .select('*')
-      .in('budget_row_id', rowIds)
-      .order('order_index');
-
-    if (error) {
-      console.error('Error fetching equipment items:', error);
-      return;
-    }
-
-    setEquipmentItems((data || []).map((item: any) => ({
-      id: item.id,
-      budgetRowId: item.budget_row_id,
-      description: item.description,
-      amount: Number(item.amount) || 0,
-      justification: item.justification,
-      orderIndex: item.order_index,
-    })));
-  }, [proposalId, rows.map(r => r.id).join(',')]);
 
   const fetchJustificationItems = useCallback(async () => {
     if (!proposalId || rows.length === 0) return;
@@ -437,27 +364,6 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
     setPersonnelLoaded(new Set(rowIds));
   }, [proposalId, rows.map(r => r.id).join(','), user?.id]);
 
-  const fetchJustifications = useCallback(async () => {
-    if (!proposalId) return;
-    const { data, error } = await supabase
-      .from('budget_cost_justifications')
-      .select('*')
-      .in('budget_row_id', rows.map(r => r.id));
-
-    if (error) {
-      console.error('Error fetching justifications:', error);
-      return;
-    }
-
-    setJustifications((data || []).map((j: any) => ({
-      id: j.id,
-      budgetRowId: j.budget_row_id,
-      category: j.category,
-      justificationText: j.justification_text,
-      updatedBy: j.updated_by,
-      updatedAt: j.updated_at,
-    })));
-  }, [proposalId, rows.map(r => r.id).join(',')]);
 
   const initializeRows = useCallback(async () => {
     if (!proposalId) return;
@@ -518,13 +424,10 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
 
   useEffect(() => {
     if (rows.length > 0) {
-      fetchJustifications();
-      fetchSubcontractingItems();
-      fetchEquipmentItems();
       fetchJustificationItems();
       fetchPersonnelBreakdown();
     }
-  }, [rows.length > 0, fetchJustifications, fetchSubcontractingItems, fetchPersonnelBreakdown]);
+  }, [rows.length > 0, fetchJustificationItems, fetchPersonnelBreakdown]);
 
   // ─── Multi-row cost justifications (new model) ───
   const syncCategoryTotalFromItems = useCallback(async (budgetRowId: string, category: JustificationCategory, items: JustificationItem[]) => {
@@ -608,190 +511,10 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
   }, []);
 
 
-  // Sync subcontracting_costs on budget_rows from line items
-  const syncSubcontractingTotal = useCallback(async (budgetRowId: string) => {
-    const items = subcontractingItems.filter(i => i.budgetRowId === budgetRowId);
-    const total = items.reduce((sum, i) => sum + i.amount, 0);
-    
-    setRows(prev => prev.map(r => r.id === budgetRowId ? { ...r, subcontractingCosts: total } : r));
-    
-    await supabase.from('budget_rows').update({ subcontracting_costs: total }).eq('id', budgetRowId);
-  }, [subcontractingItems]);
+  // ─── Legacy subcontracting/equipment item CRUD removed (Stage 2 cleanup) ───
+  // All justification items now live in budget_cost_justification_items
+  // and are managed by the unified JustificationItem CRUD above.
 
-  const addSubcontractingItem = useCallback(async (budgetRowId: string) => {
-    const existing = subcontractingItems.filter(i => i.budgetRowId === budgetRowId);
-    const nextIndex = existing.length;
-
-    const { data, error } = await supabase
-      .from('budget_subcontracting_items')
-      .insert({
-        budget_row_id: budgetRowId,
-        description: '',
-        amount: 0,
-        justification: '',
-        order_index: nextIndex,
-      })
-      .select()
-      .single();
-
-    if (error) {
-      toast.error('Failed to add subcontracting item');
-      return;
-    }
-
-    setSubcontractingItems(prev => [...prev, {
-      id: data.id,
-      budgetRowId: data.budget_row_id,
-      description: data.description,
-      amount: Number(data.amount) || 0,
-      justification: data.justification,
-      orderIndex: data.order_index,
-    }]);
-  }, [subcontractingItems]);
-
-  const updateSubcontractingItem = useCallback((itemId: string, field: string, value: string | number) => {
-    setSubcontractingItems(prev => prev.map(i => i.id === itemId ? { ...i, [field]: value } : i));
-
-    if (debounceTimers.current[`sub-${itemId}`]) {
-      clearTimeout(debounceTimers.current[`sub-${itemId}`]);
-    }
-
-    debounceTimers.current[`sub-${itemId}`] = setTimeout(async () => {
-      setSaving(true);
-      const { error } = await supabase
-        .from('budget_subcontracting_items')
-        .update({ [field]: value })
-        .eq('id', itemId);
-
-      if (error) {
-        toast.error('Failed to save subcontracting item');
-      }
-
-      // If amount changed, sync total
-      if (field === 'amount') {
-        const item = subcontractingItems.find(i => i.id === itemId);
-        if (item) {
-          const budgetRowId = item.budgetRowId;
-          const otherItems = subcontractingItems.filter(i => i.budgetRowId === budgetRowId && i.id !== itemId);
-          const total = otherItems.reduce((sum, i) => sum + i.amount, 0) + Number(value);
-          setRows(prev => prev.map(r => r.id === budgetRowId ? { ...r, subcontractingCosts: total } : r));
-          await supabase.from('budget_rows').update({ subcontracting_costs: total }).eq('id', budgetRowId);
-        }
-      }
-
-      setSaving(false);
-    }, 300);
-  }, [subcontractingItems]);
-
-  const deleteSubcontractingItem = useCallback(async (itemId: string) => {
-    const item = subcontractingItems.find(i => i.id === itemId);
-    if (!item) return;
-
-    const { error } = await supabase.from('budget_subcontracting_items').delete().eq('id', itemId);
-    if (error) {
-      toast.error('Failed to delete subcontracting item');
-      return;
-    }
-
-    const remaining = subcontractingItems.filter(i => i.id !== itemId);
-    setSubcontractingItems(remaining);
-
-    // Sync total
-    const budgetRowId = item.budgetRowId;
-    const total = remaining.filter(i => i.budgetRowId === budgetRowId).reduce((sum, i) => sum + i.amount, 0);
-    setRows(prev => prev.map(r => r.id === budgetRowId ? { ...r, subcontractingCosts: total } : r));
-    await supabase.from('budget_rows').update({ subcontracting_costs: total }).eq('id', budgetRowId);
-  }, [subcontractingItems]);
-
-  // Equipment item CRUD
-  const syncEquipmentTotal = useCallback(async (budgetRowId: string, items: EquipmentItem[]) => {
-    const total = items.filter(i => i.budgetRowId === budgetRowId).reduce((sum, i) => sum + i.amount, 0);
-    setRows(prev => prev.map(r => r.id === budgetRowId ? { ...r, purchaseEquipment: total } : r));
-    await supabase.from('budget_rows').update({ purchase_equipment: total }).eq('id', budgetRowId);
-  }, []);
-
-  const addEquipmentItem = useCallback(async (budgetRowId: string) => {
-    const existing = equipmentItems.filter(i => i.budgetRowId === budgetRowId);
-    const nextIndex = existing.length;
-
-    const { data, error } = await supabase
-      .from('budget_equipment_items')
-      .insert({
-        budget_row_id: budgetRowId,
-        description: '',
-        amount: 0,
-        justification: '',
-        order_index: nextIndex,
-      })
-      .select()
-      .single();
-
-    if (error) {
-      toast.error('Failed to add equipment item');
-      return;
-    }
-
-    setEquipmentItems(prev => [...prev, {
-      id: data.id,
-      budgetRowId: data.budget_row_id,
-      description: data.description,
-      amount: Number(data.amount) || 0,
-      justification: data.justification,
-      orderIndex: data.order_index,
-    }]);
-  }, [equipmentItems]);
-
-  const updateEquipmentItem = useCallback((itemId: string, field: string, value: string | number) => {
-    setEquipmentItems(prev => prev.map(i => i.id === itemId ? { ...i, [field]: value } : i));
-
-    if (debounceTimers.current[`equip-${itemId}`]) {
-      clearTimeout(debounceTimers.current[`equip-${itemId}`]);
-    }
-
-    debounceTimers.current[`equip-${itemId}`] = setTimeout(async () => {
-      setSaving(true);
-      const { error } = await supabase
-        .from('budget_equipment_items')
-        .update({ [field]: value })
-        .eq('id', itemId);
-
-      if (error) {
-        toast.error('Failed to save equipment item');
-      }
-
-      if (field === 'amount') {
-        const item = equipmentItems.find(i => i.id === itemId);
-        if (item) {
-          const budgetRowId = item.budgetRowId;
-          const otherItems = equipmentItems.filter(i => i.budgetRowId === budgetRowId && i.id !== itemId);
-          const total = otherItems.reduce((sum, i) => sum + i.amount, 0) + Number(value);
-          setRows(prev => prev.map(r => r.id === budgetRowId ? { ...r, purchaseEquipment: total } : r));
-          await supabase.from('budget_rows').update({ purchase_equipment: total }).eq('id', budgetRowId);
-        }
-      }
-
-      setSaving(false);
-    }, 300);
-  }, [equipmentItems]);
-
-  const deleteEquipmentItem = useCallback(async (itemId: string) => {
-    const item = equipmentItems.find(i => i.id === itemId);
-    if (!item) return;
-
-    const { error } = await supabase.from('budget_equipment_items').delete().eq('id', itemId);
-    if (error) {
-      toast.error('Failed to delete equipment item');
-      return;
-    }
-
-    const remaining = equipmentItems.filter(i => i.id !== itemId);
-    setEquipmentItems(remaining);
-
-    const budgetRowId = item.budgetRowId;
-    const total = remaining.filter(i => i.budgetRowId === budgetRowId).reduce((sum, i) => sum + i.amount, 0);
-    setRows(prev => prev.map(r => r.id === budgetRowId ? { ...r, purchaseEquipment: total } : r));
-    await supabase.from('budget_rows').update({ purchase_equipment: total }).eq('id', budgetRowId);
-  }, [equipmentItems]);
 
   // Personnel breakdown CRUD with weighted PM rate sync
   const syncWeightedPmRate = useCallback(async (budgetRowId: string, items: PersonnelBreakdownItem[]) => {
@@ -970,25 +693,6 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
     toast.success('All participant budgets unlocked');
   }, [rows, proposalId]);
 
-  const saveJustification = useCallback(async (budgetRowId: string, category: string, text: string) => {
-    if (!user) return;
-    const { error } = await supabase
-      .from('budget_cost_justifications')
-      .upsert({
-        budget_row_id: budgetRowId,
-        category,
-        justification_text: text,
-        updated_by: user.id,
-      }, { onConflict: 'budget_row_id,category' });
-
-    if (error) {
-      toast.error('Failed to save justification');
-      console.error(error);
-      return;
-    }
-
-    await fetchJustifications();
-  }, [user, fetchJustifications]);
 
   const computedRows = useMemo(() => {
     return rows.map(r => computeRow(r, proposalType));
@@ -1042,9 +746,6 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
 
   return {
     rows: computedRows,
-    justifications,
-    subcontractingItems,
-    equipmentItems,
     personnelBreakdown,
     justificationItems,
     addJustificationItem,
@@ -1061,13 +762,6 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
     unlockRow,
     lockAllRows,
     unlockAllRows,
-    saveJustification,
-    addSubcontractingItem,
-    updateSubcontractingItem,
-    deleteSubcontractingItem,
-    addEquipmentItem,
-    updateEquipmentItem,
-    deleteEquipmentItem,
     addPersonnelBreakdownItem,
     updatePersonnelBreakdownItem,
     deletePersonnelBreakdownItem,

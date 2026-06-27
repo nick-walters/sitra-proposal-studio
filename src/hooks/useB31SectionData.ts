@@ -57,15 +57,20 @@ export interface B31Figure {
   content: any;
 }
 
+export interface B31JustificationItem {
+  amount: number;
+  justification: string;
+}
+
 export interface B31SubcontractingParticipant {
   participantId: string;
-  items: { description: string; amount: number; justification: string }[];
+  items: B31JustificationItem[];
   totalCost: number;
 }
 
 export interface B31EquipmentParticipant {
   participantId: string;
-  items: { description: string; amount: number; justification: string }[];
+  items: B31JustificationItem[];
   totalCost: number;
   personnelCosts: number;
 }
@@ -140,7 +145,7 @@ export function useB31SectionData(proposalId: string) {
     queryFn: async () => {
       const { data: budgetRows, error: brError } = await supabase
         .from('budget_rows')
-        .select('id, participant_id, subcontracting_costs, purchase_equipment, purchase_equipment_justification, personnel_costs, pm_rate, participants!inner(participant_number)')
+        .select('id, participant_id, subcontracting_costs, purchase_equipment, personnel_costs, pm_rate')
         .eq('proposal_id', proposalId);
       if (brError) throw brError;
 
@@ -155,18 +160,18 @@ export function useB31SectionData(proposalId: string) {
       });
 
       const rowIds = (budgetRows || []).map((r: any) => r.id);
-      let subItems: any[] = [];
-      let equipItems: any[] = [];
+      let justItems: any[] = [];
       if (rowIds.length > 0) {
-        const [{ data: subData }, { data: equipData }] = await Promise.all([
-          supabase.from('budget_subcontracting_items').select('*').in('budget_row_id', rowIds).order('order_index'),
-          supabase.from('budget_equipment_items').select('*').in('budget_row_id', rowIds).order('order_index'),
-        ]);
-        subItems = subData || [];
-        equipItems = equipData || [];
+        const { data } = await supabase
+          .from('budget_cost_justification_items')
+          .select('*')
+          .in('budget_row_id', rowIds)
+          .in('category', ['subcontracting', 'equipment'])
+          .order('order_index');
+        justItems = data || [];
       }
 
-      return { budgetRows: budgetRows || [], subItems, equipItems, pmTotals };
+      return { budgetRows: budgetRows || [], justItems, pmTotals };
     },
   });
 
@@ -179,11 +184,12 @@ export function useB31SectionData(proposalId: string) {
     const result: B31SubcontractingParticipant[] = [];
     for (const row of br.budgetRows) {
       const r = row as any;
-      const totalCost = Number(r.subcontracting_costs) || 0;
-      if (totalCost <= 0) continue;
-      const subItem = br.subItems.find((i: any) => i.budget_row_id === r.id);
-      const justification = subItem?.justification || '';
-      result.push({ participantId: r.participant_id, items: [{ description: '', amount: totalCost, justification }], totalCost });
+      const items = br.justItems
+        .filter((i: any) => i.budget_row_id === r.id && i.category === 'subcontracting')
+        .map((i: any) => ({ amount: Number(i.amount) || 0, justification: i.justification || '' }));
+      const totalCost = items.reduce((s, i) => s + i.amount, 0);
+      if (totalCost <= 0 || items.length === 0) continue;
+      result.push({ participantId: r.participant_id, items, totalCost });
     }
     return result;
   })();
@@ -194,17 +200,19 @@ export function useB31SectionData(proposalId: string) {
     const result: B31EquipmentParticipant[] = [];
     for (const row of br.budgetRows) {
       const r = row as any;
-      const totalEquipCost = Number(r.purchase_equipment) || 0;
-      if (totalEquipCost <= 0) continue;
+      const items = br.justItems
+        .filter((i: any) => i.budget_row_id === r.id && i.category === 'equipment')
+        .map((i: any) => ({ amount: Number(i.amount) || 0, justification: i.justification || '' }));
+      const totalEquipCost = items.reduce((s, i) => s + i.amount, 0);
+      if (totalEquipCost <= 0 || items.length === 0) continue;
       const pmRate = r.pm_rate != null ? Number(r.pm_rate) : 0;
       const totalPMs = br.pmTotals.get(r.participant_id) || 0;
       const personnelCosts = pmRate > 0 ? Math.round(pmRate * totalPMs) : Number(r.personnel_costs) || 0;
+      // 15%-of-personnel "major equipment" rule applied per participant
       if (personnelCosts <= 0 || totalEquipCost <= personnelCosts * 0.15) continue;
-      const equipItem = br.equipItems.find((i: any) => i.budget_row_id === r.id);
-      const justification = equipItem?.justification || '';
       result.push({
         participantId: r.participant_id,
-        items: [{ description: '', amount: totalEquipCost, justification }],
+        items,
         totalCost: totalEquipCost,
         personnelCosts,
       });
