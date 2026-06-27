@@ -107,14 +107,13 @@ type WpBadgeOut = WpBadgeIn & {
   origins: Array<{ rowIdx: number; x: number }>;
 };
 
-// Simplified per-WP deliverable layout (milestones removed from the Gantt).
+// Simplified per-WP deliverable layout.
 //
 //   • Each deliverable is anchored on its SINGLE assigned task's row.
 //   • A dot sits at the horizontal centre of the due-month column.
 //   • The chevron tip sits 5px to the LEFT of the dot (right-pointing).
-//   • If a second deliverable lands on the SAME task, it is FLIPPED:
-//     left-pointing chevron, tip 5px to the RIGHT of the dot.
-//   • Up to two deliverables per task are supported.
+//   • It flips right only if that left-position rectangle genuinely overlaps
+//     an already-placed deliverable rectangle on the same task row.
 function layoutWpBadges(args: {
   delBadges: WpBadgeIn[];
   tasks: { id: string; startMonth: number; endMonth: number }[];
@@ -132,7 +131,12 @@ function layoutWpBadges(args: {
   // Process in numbering order so the lower-numbered deliverable wins the
   // right-pointing slot and higher-numbered ones flip.
   const sorted = [...delBadges].sort((a, b) => parseDelNum(a.label) - parseDelNum(b.label));
-  const placedOnTask = new Map<string, number>();
+  const placedRectsByRow = new Map<number, Array<{ left: number; right: number }>>();
+  const rectGap = 4;
+  const overlapsPlacedOnRow = (rowIdx: number, left: number, right: number) => {
+    const placedRects = placedRectsByRow.get(rowIdx) || [];
+    return placedRects.some((rect) => left < rect.right + rectGap && right + rectGap > rect.left);
+  };
   const out: WpBadgeOut[] = [];
   for (const b of sorted) {
     const bodyW = estimateDelW(b.label);
@@ -141,18 +145,15 @@ function layoutWpBadges(args: {
     const taskId = b.linkedTaskIds[0] ?? null;
     const rowIdx = taskId != null ? (taskRowById.get(taskId) ?? 0) : 0;
     const dotX = (b.dueMonth - 0.5) * cellWidth;
-    const count = taskId != null ? (placedOnTask.get(taskId) || 0) : 0;
-    const flipped = count >= 1;
-    let tipX: number;
-    let leftX: number;
-    if (!flipped) {
-      tipX = dotX - 5;
-      leftX = tipX - shapeW;
-    } else {
-      tipX = dotX + 5;
-      leftX = tipX;
-    }
-    if (taskId != null) placedOnTask.set(taskId, count + 1);
+    const leftTipX = dotX - 5;
+    const leftCandidateX = leftTipX - shapeW;
+    const leftBlocked = overlapsPlacedOnRow(rowIdx, leftCandidateX, leftCandidateX + shapeW);
+    const flipped = leftBlocked;
+    const tipX = flipped ? dotX + 5 : leftTipX;
+    const leftX = flipped ? tipX : leftCandidateX;
+    const rowRects = placedRectsByRow.get(rowIdx) || [];
+    rowRects.push({ left: leftX, right: leftX + shapeW });
+    placedRectsByRow.set(rowIdx, rowRects);
     out.push({
       ...b,
       tipX,
