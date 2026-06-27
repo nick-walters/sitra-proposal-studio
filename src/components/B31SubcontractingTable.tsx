@@ -43,7 +43,7 @@ export function B31SubcontractingTable({ items, participants, proposalId }: Prop
         className="mb-0"
       />
       <table
-        className={`${tableStyles} border-collapse [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b [&_th]:border-black [&_td]:border-x-0`}
+        className={`${tableStyles} border-collapse [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b-2 [&_th]:border-black [&_td]:border-x-0`}
         style={{
           tableLayout: colWidths.length > 0 ? 'fixed' : 'auto',
           width: colWidths.length > 0 ? `${colWidths.reduce((s: number, w: number) => s + w, 0)}px` : '100%',
@@ -57,11 +57,17 @@ export function B31SubcontractingTable({ items, participants, proposalId }: Prop
         </colgroup>
         <thead>
           <tr>
-            <th className={`${headerCellStyles} text-left relative`}>
+            <th
+              className={`${headerCellStyles} text-left relative`}
+              style={colWidths.length === 0 ? { width: '1%', whiteSpace: 'nowrap' } : undefined}
+            >
               Participant
               {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(0)} />}
             </th>
-            <th className={`${headerCellStyles} text-left relative`}>
+            <th
+              className={`${headerCellStyles} text-left relative`}
+              style={colWidths.length === 0 ? { width: '1%', whiteSpace: 'nowrap' } : undefined}
+            >
               Cost (€)
               {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(1)} />}
             </th>
@@ -76,9 +82,8 @@ export function B31SubcontractingTable({ items, participants, proposalId }: Prop
             const p = getParticipant(entry.participantId);
             const label = p ? `${p.participant_number}. ${p.organisation_short_name || p.organisation_name}` : 'Unknown';
             const isFirstBlock = entryIdx === 0;
-            // Each item row + a subtotal row. Top border on the first row of each block (except the very first)
-            // gives the stronger divider between participants.
-            const topBorder = isFirstBlock ? '' : 'border-t-2 border-black';
+            // Thin divider between participant blocks (header & grand total use the thick lines).
+            const topBorder = isFirstBlock ? '' : 'border-t border-black';
             const itemRows = entry.items.map((item, itemIdx) => {
               const isFirstItem = itemIdx === 0;
               return (
@@ -110,7 +115,7 @@ export function B31SubcontractingTable({ items, participants, proposalId }: Prop
           })}
           {/* Grand total */}
           <tr>
-            <td colSpan={3} className="p-0 border-0" style={{ height: '1px', backgroundColor: 'hsl(var(--foreground))' }} />
+            <td colSpan={3} className="p-0 border-0" style={{ height: '2px', backgroundColor: 'hsl(var(--foreground))' }} />
           </tr>
           <tr>
             <td className={`${cellStyles} font-bold`}>Total</td>
