@@ -569,17 +569,21 @@ export function CaseManagementCard({
   // Change a card's type: update proposal_case_types row + sync legacy
   // case_type/custom_type_name on every case in that group.
   const changeTypeMutation = useMutation({
-    mutationFn: async ({ typeRowId, type_code, custom_type_name }: { typeRowId: string; type_code: string; custom_type_name: string | null }) => {
+    mutationFn: async ({ typeRowId, type_code, custom_type_name, caption_text }: { typeRowId: string; type_code: string | null; custom_type_name: string | null; caption_text?: string | null }) => {
+      const patch: Record<string, unknown> = { type_code, custom_type_name };
+      if (caption_text !== undefined) patch.caption_text = caption_text;
       const { error: e1 } = await supabase
         .from('proposal_case_types')
-        .update({ type_code, custom_type_name })
+        .update(patch)
         .eq('id', typeRowId);
       if (e1) throw e1;
-      const { error: e2 } = await supabase
-        .from('case_drafts')
-        .update({ case_type: type_code, custom_type_name })
-        .eq('case_type_id', typeRowId);
-      if (e2) throw e2;
+      if (type_code) {
+        const { error: e2 } = await supabase
+          .from('case_drafts')
+          .update({ case_type: type_code, custom_type_name })
+          .eq('case_type_id', typeRowId);
+        if (e2) throw e2;
+      }
     },
     onSuccess: () => {
       invalidateCaseQueries();
