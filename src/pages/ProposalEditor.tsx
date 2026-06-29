@@ -225,20 +225,7 @@ export function ProposalEditor() {
     enabled: !!id && !!proposal?.casesEnabled,
   });
 
-  // Helper to get case prefix
-  const getCasePrefix = (caseType: string, customTypeName: string | null): string => {
-    if (caseType === 'other') {
-      return customTypeName ? customTypeName.toUpperCase() : '';
-    }
-    switch (caseType) {
-      case 'case_study': return 'CS';
-      case 'use_case': return 'UC';
-      case 'living_lab': return 'LL';
-      case 'pilot': return 'P';
-      case 'demonstration': return 'D';
-      default: return '';
-    }
-  };
+  // Case prefix resolution lives in @/lib/caseTypeLabels.
 
   // Compute Case leadership mapping: participantId -> Cases they lead
   const caseLeadership = useMemo(() => {
