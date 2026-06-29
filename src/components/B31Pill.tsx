@@ -1,5 +1,5 @@
 import React from 'react';
-import { Crown } from 'lucide-react';
+import { Crown, Star } from 'lucide-react';
 import { RISK_COLORS } from '@/lib/constants';
 
 export type B31PillSize = 'document' | 'caption' | 'role' | 'toolbar';
