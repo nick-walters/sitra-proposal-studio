@@ -51,8 +51,13 @@ export function useB12CasesTableReconciler({
     },
   });
 
+  // NOTE: distinct queryKey from the nav's ['case-drafts', proposalId] —
+  // they select different column shapes and must NOT share a cache entry,
+  // otherwise whichever fetch settles last overwrites the other's shape
+  // (the nav loses `number`/`short_name`/`color`/`case_type` and starts
+  // rendering "undefined" black badges).
   const { data: cases } = useQuery({
-    queryKey: ['case-drafts', proposalId],
+    queryKey: ['case-drafts-reconciler', proposalId],
     enabled: active,
     queryFn: async () => {
       const { data } = await supabase

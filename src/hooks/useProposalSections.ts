@@ -331,18 +331,25 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
   const caseDraftSections: CaseSection[] = useMemo(() => {
     const flagsById = new Map(caseTypeFlags.map((t: any) => [t.id, t]));
     return caseDraftsData.map(c => {
-      const prefix = getCaseTypePrefix(c.case_type);
       const flags = (c as any).case_type_id ? flagsById.get((c as any).case_type_id) : undefined;
+      // Prefer the type's code (from proposal_case_types) over the
+      // denormalised case_drafts.case_type — keeps prefix resolution
+      // working even if the row's case_type column is stale/missing.
+      const typeCode = (flags as any)?.type_code ?? c.case_type ?? null;
+      const customName = (flags as any)?.custom_type_name ?? null;
+      const prefix = getCaseTypePrefix(typeCode, customName);
       const includeNumber = flags?.include_number !== false;
       const includeAbbreviation = flags?.include_abbreviation !== false;
       const outlineColor = flags?.outline_color || c.color || '#000000';
       const shortName = c.short_name || '';
+      const numberStr = c.number != null ? String(c.number) : '';
       const label = buildCaseLabel({
         prefix, number: c.number, shortName: shortName || c.title || '',
         includeNumber, includeAbbreviation,
       });
+      // chip — prefix portion only; never inject the string "undefined".
       const chip = buildCaseLabel({
-        prefix, number: c.number, shortName: shortName || `${c.number}`,
+        prefix, number: c.number, shortName: shortName || numberStr,
         includeNumber, includeAbbreviation, withShortName: false,
       });
       return {
