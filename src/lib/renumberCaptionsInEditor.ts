@@ -216,6 +216,12 @@ export function updateCaptionForTableAtCursor(editor: Editor, sectionNumber: str
   let tableLetterIdx = tableOffset;
   doc.forEach((node, offset) => {
     if (offset >= tablePos) return; // only count captions before this table
+    // casesTable atoms render their caption in a NodeView (not a paragraph),
+    // but they still occupy a slot in the global table-caption sequence.
+    if (node.type.name === 'casesTable') {
+      tableLetterIdx++;
+      return;
+    }
     if (node.type.name === 'paragraph') {
       const cls = (node.attrs?.class || '') as string;
       const text = node.textContent;
@@ -224,6 +230,7 @@ export function updateCaptionForTableAtCursor(editor: Editor, sectionNumber: str
       }
     }
   });
+
 
   // Check if there's a paragraph immediately before the table
   const $tablePos = doc.resolve(tablePos);
