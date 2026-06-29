@@ -39,7 +39,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { FlaskConical, GripVertical, Plus, Trash2, Lock, LockOpen, Settings, X } from 'lucide-react';
+import { FlaskConical, GripVertical, Plus, Trash2, Lock, LockOpen, Settings, ArrowUp, ArrowDown } from 'lucide-react';
 import { CaseSubsectionTemplateDialog } from '@/components/CaseSubsectionTemplateDialog';
 
 import { supabase } from '@/integrations/supabase/client';
@@ -187,8 +187,8 @@ function SortableCaseRow({ caseItem, participants, casePrefix, caseTypeLabel, in
       </div>
 
       <Badge
-        className="rounded-full font-bold justify-start text-xs h-6 w-auto min-w-[1.5rem] border-[1.5px] text-black bg-white whitespace-nowrap gap-0 px-2"
-        style={{ borderColor: outlineColor || '#000000' }}
+        className="rounded-full font-bold justify-start text-xs h-6 w-auto min-w-[1.5rem] border-[1.5px] bg-white whitespace-nowrap gap-0 px-2"
+        style={{ borderColor: outlineColor || '#000000', color: outlineColor || '#000000' }}
       >
         {includeAbbreviation && casePrefix && <span>{casePrefix}</span>}
         {includeNumber && <span>{caseItem.number}</span>}
@@ -202,8 +202,8 @@ function SortableCaseRow({ caseItem, participants, casePrefix, caseTypeLabel, in
           onFocus={() => { isFocused.current = true; }}
           onBlur={() => { isFocused.current = false; }}
           placeholder={casePrefix ? 'name' : 'Short name'}
-          className="bg-transparent outline-none font-bold text-xs text-black min-w-[2rem]"
-          style={{ width: `${Math.max(2, (localShortName || '').length * 0.6)}em` }}
+          className="bg-transparent outline-none font-bold text-xs min-w-[2rem]"
+          style={{ width: `${Math.max(2, (localShortName || '').length * 0.6)}em`, color: outlineColor || '#000000' }}
           disabled={!canEdit}
         />
       </Badge>
@@ -594,6 +594,25 @@ export function CaseManagementCard({
     onError: () => toast.error('Failed to remove case type'),
   });
 
+  // Swap two type cards' order_index (one-step move).
+  const swapTypeOrderMutation = useMutation({
+    mutationFn: async ({ a, b }: { a: CaseTypeRow; b: CaseTypeRow }) => {
+      // Two-phase swap to avoid any potential unique conflicts.
+      const { error: e1 } = await supabase.from('proposal_case_types').update({ order_index: -1 - a.order_index }).eq('id', a.id);
+      if (e1) throw e1;
+      const { error: e2 } = await supabase.from('proposal_case_types').update({ order_index: a.order_index }).eq('id', b.id);
+      if (e2) throw e2;
+      const { error: e3 } = await supabase.from('proposal_case_types').update({ order_index: b.order_index }).eq('id', a.id);
+      if (e3) throw e3;
+    },
+    onSuccess: () => {
+      invalidateCaseQueries();
+      window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
+      onSaveEvent?.();
+    },
+    onError: () => toast.error('Failed to reorder case types'),
+  });
+
   const handleUpdateCase = useCallback((id: string, updates: Partial<CaseDraft>) => {
     updateCaseMutation.mutate({ id, updates });
   }, [updateCaseMutation]);
@@ -716,10 +735,12 @@ export function CaseManagementCard({
                 )}
 
                 {/* One card per case type */}
-                {caseTypeRows.map((typeRow) => {
+                {caseTypeRows.map((typeRow, typeIdx) => {
                   const typeLabel = getCaseTypeLabel(typeRow.type_code, typeRow.custom_type_name);
                   const prefix = getCasePrefix(typeRow.type_code, typeRow.custom_type_name);
                   const cases = casesByType.get(typeRow.id) ?? [];
+                  const isFirst = typeIdx === 0;
+                  const isLast = typeIdx === caseTypeRows.length - 1;
 
                   const onDragEnd = (event: DragEndEvent) => {
                     const { active, over } = event;
@@ -781,19 +802,43 @@ export function CaseManagementCard({
                           )}
                         </div>
                         {isCoordinator && (
-                          <button
-                            onClick={() => {
-                              const n = cases.length;
-                              const msg = n === 0
-                                ? 'Remove this case type?'
-                                : `This will permanently delete ${n} case${n === 1 ? '' : 's'} of this type. Continue?`;
-                              if (confirm(msg)) deleteTypeMutation.mutate(typeRow.id);
-                            }}
-                            className="p-1 text-destructive hover:bg-destructive/10 rounded transition-colors"
-                            title="Remove case type"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => {
+                                if (isFirst) return;
+                                swapTypeOrderMutation.mutate({ a: typeRow, b: caseTypeRows[typeIdx - 1] });
+                              }}
+                              disabled={isFirst || swapTypeOrderMutation.isPending}
+                              className="p-1 text-[#2563EB] hover:bg-muted rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                              title="Move up"
+                            >
+                              <ArrowUp className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (isLast) return;
+                                swapTypeOrderMutation.mutate({ a: typeRow, b: caseTypeRows[typeIdx + 1] });
+                              }}
+                              disabled={isLast || swapTypeOrderMutation.isPending}
+                              className="p-1 text-[#2563EB] hover:bg-muted rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                              title="Move down"
+                            >
+                              <ArrowDown className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                const n = cases.length;
+                                const msg = n === 0
+                                  ? 'Remove this case type?'
+                                  : `This will permanently delete ${n} case${n === 1 ? '' : 's'} of this type. Continue?`;
+                                if (confirm(msg)) deleteTypeMutation.mutate(typeRow.id);
+                              }}
+                              className="p-1 text-destructive hover:bg-destructive/10 rounded transition-colors"
+                              title="Remove case type"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         )}
                       </div>
 
