@@ -272,18 +272,6 @@ function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete
         </DialogContent>
       </Dialog>
 
-      {/* Visibility Button */}
-      {canEdit && (
-        <button
-          onClick={() => onToggleVisibility(wp.id, !wp.is_hidden)}
-          className={`p-1 rounded transition-colors ${wp.is_hidden ? 'text-destructive hover:bg-destructive/10' : 'text-[#2563EB] hover:bg-blue-100'}`}
-          title={wp.is_hidden ? 'Show work package' : 'Hide work package'}
-        >
-          {wp.is_hidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-        </button>
-      )}
-      {!canEdit && <div />}
-
       {/* Lock Button */}
       {canEdit && (
         <button
