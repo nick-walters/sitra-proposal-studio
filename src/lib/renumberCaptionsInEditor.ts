@@ -106,6 +106,10 @@ export function renumberCaptionsInEditor(editor: Editor, sectionNumber: string, 
   figureIdx = 0;
   tableIdx = tableOffset;
   for (const cap of captions) {
+    if (cap.type === 'caseTable') {
+      tableIdx++;
+      continue;
+    }
     const idx = cap.type === 'figure' ? figureIdx++ : tableIdx++;
     const newLetter = String.fromCharCode('a'.charCodeAt(0) + idx);
     const prefix = cap.type === 'figure' ? 'Figure' : 'Table';
@@ -117,6 +121,7 @@ export function renumberCaptionsInEditor(editor: Editor, sectionNumber: string, 
       labelRemap.set(oldLabel, newLabel);
     }
   }
+
 
   // Apply caption text updates in reverse order to preserve positions
   const tr = state.tr;
