@@ -2850,6 +2850,8 @@ export type Database = {
           created_at: string
           custom_type_name: string | null
           id: string
+          include_abbreviation: boolean
+          include_number: boolean
           order_index: number
           outline_color: string
           proposal_id: string
@@ -2860,6 +2862,8 @@ export type Database = {
           created_at?: string
           custom_type_name?: string | null
           id?: string
+          include_abbreviation?: boolean
+          include_number?: boolean
           order_index?: number
           outline_color?: string
           proposal_id: string
@@ -2870,6 +2874,8 @@ export type Database = {
           created_at?: string
           custom_type_name?: string | null
           id?: string
+          include_abbreviation?: boolean
+          include_number?: boolean
           order_index?: number
           outline_color?: string
           proposal_id?: string

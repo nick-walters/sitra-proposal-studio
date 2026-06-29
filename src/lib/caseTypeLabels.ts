@@ -114,3 +114,36 @@ export function getCaseTypePrefix(
   const def = code ? DEF_BY_CODE[code] : undefined;
   return def?.prefix ?? '';
 }
+
+/**
+ * Build a case label from its parts.
+ *
+ *  includeAbbreviation && prefix && includeNumber  → "CS3 Short name"  (chip-only: "CS3")
+ *  includeAbbreviation && prefix && !includeNumber → "CS Short name"   (chip-only: "CS")
+ *  !includeAbbreviation && includeNumber           → "3 Short name"    (chip-only: "3")
+ *  neither                                          → "Short name"     (chip-only: "Short name")
+ *
+ * `withShortName=false` returns the prefix portion only (for cross-ref chips,
+ * nav dots, badge labels that do not include the case's short name).
+ */
+export function buildCaseLabel(opts: {
+  prefix: string;
+  number: number | null | undefined;
+  shortName: string | null | undefined;
+  includeNumber: boolean;
+  includeAbbreviation: boolean;
+  withShortName?: boolean;
+}): string {
+  const { prefix, number, shortName, includeNumber, includeAbbreviation } = opts;
+  const withShortName = opts.withShortName !== false;
+  const ab = includeAbbreviation && prefix ? prefix : '';
+  const nm = includeNumber && number !== null && number !== undefined ? String(number) : '';
+  const prefixPart = `${ab}${nm}`;
+  const sn = (shortName ?? '').trim();
+  if (!withShortName) {
+    return prefixPart || sn || (number !== null && number !== undefined ? String(number) : '');
+  }
+  if (prefixPart && sn) return `${prefixPart} ${sn}`;
+  return prefixPart || sn || (number !== null && number !== undefined ? String(number) : '');
+}
+

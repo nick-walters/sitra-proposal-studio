@@ -2,7 +2,7 @@ import { NodeViewWrapper, NodeViewProps } from '@tiptap/react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import DOMPurify from 'dompurify';
-import { getCaseTypePrefix } from '@/lib/caseTypeLabels';
+import { getCaseTypePrefix, buildCaseLabel } from '@/lib/caseTypeLabels';
 
 import { supabase } from '@/integrations/supabase/client';
 import { RICH_TEXT_CONFIG } from '@/lib/sanitizePresets';
@@ -22,6 +22,7 @@ interface CaseRow {
   short_name: string | null;
   title: string | null;
   case_type: string | null;
+  case_type_id: string | null;
   custom_type_name: string | null;
   color: string | null;
   lead_participant_id: string | null;
@@ -38,6 +39,14 @@ interface CaseRow {
   heading_replicability: string | null;
   heading_stakeholders: string | null;
 }
+
+interface CaseTypeRow {
+  id: string;
+  include_number: boolean;
+  include_abbreviation: boolean;
+  outline_color: string;
+}
+
 
 
 interface SubsectionTemplate {
@@ -59,23 +68,17 @@ function casePrefix(caseType: string | null): string {
   return getCaseTypePrefix(caseType);
 }
 
-function caseChipLabel(opts: {
+// Chip label = abbreviation+number only (no short name), respects per-type flags.
+const caseChipLabel = (opts: {
   prefix: string;
   number: number | null;
   shortName: string | null;
   includeNumber: boolean;
   includeAbbreviation: boolean;
-}): string {
-  const { prefix, number, shortName, includeNumber, includeAbbreviation } = opts;
-  if (prefix && (includeNumber || includeAbbreviation)) {
-    const ab = includeAbbreviation ? prefix : '';
-    const nm = includeNumber ? (number ?? '') : '';
-    return `${ab}${nm}` || shortName || `${number ?? ''}`;
-  }
-  return shortName || `${number ?? ''}`;
-}
+}): string => buildCaseLabel({ ...opts, withShortName: false });
 
-function CaseChip({ label }: { label: string }) {
+
+function CaseChip({ label, color }: { label: string; color: string }) {
   return (
     <span
       data-case-reference=""
@@ -85,13 +88,14 @@ function CaseChip({ label }: { label: string }) {
         display: 'inline-flex',
         alignItems: 'center',
         backgroundColor: '#ffffff',
-        border: '1.5px solid #000000',
+        border: `1.5px solid ${color || '#000000'}`,
         padding: '0 0.4rem',
         borderRadius: 9999,
         whiteSpace: 'nowrap',
         verticalAlign: 'baseline',
       }}
     >
+
       <span style={{ color: '#000000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1 }}>
         {label}
       </span>
@@ -185,11 +189,10 @@ export function CasesTableNodeView(_props: NodeViewProps) {
     queryKey: ['b12-cases-live', proposalId],
     enabled: !!proposalId,
     queryFn: async () => {
-      const [casesRes, tplRes, partsRes, propRes] = await Promise.all([
+      const [casesRes, tplRes, partsRes, typesRes] = await Promise.all([
         supabase
           .from('case_drafts')
-          .select('id, number, short_name, title, case_type, custom_type_name, color, lead_participant_id, order_index, subsection_content, background_context, proposed_solutions, expected_outcomes, replicability, key_stakeholders, heading_background, heading_solutions, heading_outcomes, heading_replicability, heading_stakeholders')
-
+          .select('id, number, short_name, title, case_type, case_type_id, custom_type_name, color, lead_participant_id, order_index, subsection_content, background_context, proposed_solutions, expected_outcomes, replicability, key_stakeholders, heading_background, heading_solutions, heading_outcomes, heading_replicability, heading_stakeholders')
           .eq('proposal_id', proposalId)
           .order('order_index', { ascending: true, nullsFirst: false })
           .order('number', { ascending: true }),
@@ -204,23 +207,20 @@ export function CasesTableNodeView(_props: NodeViewProps) {
           .eq('proposal_id', proposalId)
           .order('participant_number'),
         supabase
-          .from('proposals')
-          .select('case_include_number, case_include_abbreviation')
-          .eq('id', proposalId)
-          .maybeSingle(),
+          .from('proposal_case_types')
+          .select('id, include_number, include_abbreviation, outline_color')
+          .eq('proposal_id', proposalId),
       ]);
 
       const cases = (casesRes.data || []) as CaseRow[];
-
       const templates = (tplRes.data || []) as SubsectionTemplate[];
       const participants = (partsRes.data || []) as Participant[];
-      const flags = {
-        num: (propRes.data as any)?.case_include_number !== false,
-        ab: (propRes.data as any)?.case_include_abbreviation !== false,
-      };
-      return { cases, templates, participants, flags };
+      const types = (typesRes.data || []) as CaseTypeRow[];
+      const typeById = new Map(types.map((t) => [t.id, t]));
+      return { cases, templates, participants, typeById };
     },
   });
+
 
 
 
@@ -256,12 +256,16 @@ export function CasesTableNodeView(_props: NodeViewProps) {
 
       {data && data.cases.map((c, idx) => {
         const prefix = casePrefix(c.case_type);
+        const typeRow = c.case_type_id ? data.typeById.get(c.case_type_id) : undefined;
+        const includeNumber = typeRow?.include_number !== false;
+        const includeAbbreviation = typeRow?.include_abbreviation !== false;
+        const outlineColor = typeRow?.outline_color || c.color || '#000000';
         const label = caseChipLabel({
           prefix,
           number: c.number,
           shortName: c.short_name,
-          includeNumber: data.flags.num,
-          includeAbbreviation: data.flags.ab,
+          includeNumber,
+          includeAbbreviation,
         });
         const leader = data.participants.find((p) => p.id === c.lead_participant_id);
         const subs = extractSubsections(c, data.templates);
@@ -278,7 +282,8 @@ export function CasesTableNodeView(_props: NodeViewProps) {
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               gap: 12, width: '100%', marginBottom: 4,
             }}>
-              <CaseChip label={label} />
+              <CaseChip label={label} color={outlineColor} />
+
               {leader ? (
                 <ParticipantBubble
                   showCrown

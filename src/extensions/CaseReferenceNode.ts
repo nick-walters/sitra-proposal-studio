@@ -18,12 +18,15 @@ declare module '@tiptap/core' {
         caseColor: string;
         caseId: string;
         caseType: string;
+        includeNumber?: boolean;
+        includeAbbreviation?: boolean;
       }) => ReturnType;
     };
   }
 }
 
-import { getCaseTypePrefix } from '@/lib/caseTypeLabels';
+import { getCaseTypePrefix, buildCaseLabel } from '@/lib/caseTypeLabels';
+
 
 /**
  * CaseReferenceNode (Stage 2 migration)
@@ -108,8 +111,23 @@ export const CaseReferenceNode = Node.create<CaseReferenceOptions>({
           return { 'data-case-type': attributes.caseType || 'case_study' };
         },
       },
+      includeNumber: {
+        default: true,
+        parseHTML: (element) => element.getAttribute('data-include-number') !== 'false',
+        renderHTML: (attributes) => ({
+          'data-include-number': attributes.includeNumber === false ? 'false' : 'true',
+        }),
+      },
+      includeAbbreviation: {
+        default: true,
+        parseHTML: (element) => element.getAttribute('data-include-abbreviation') !== 'false',
+        renderHTML: (attributes) => ({
+          'data-include-abbreviation': attributes.includeAbbreviation === false ? 'false' : 'true',
+        }),
+      },
     };
   },
+
 
   parseHTML() {
     return [
@@ -123,10 +141,18 @@ export const CaseReferenceNode = Node.create<CaseReferenceOptions>({
     const caseNumber = node.attrs.caseNumber;
     const caseShortName = node.attrs.caseShortName;
     const caseType = node.attrs.caseType;
+    const caseColor = node.attrs.caseColor || '#000000';
+    const includeNumber = node.attrs.includeNumber !== false;
+    const includeAbbreviation = node.attrs.includeAbbreviation !== false;
     const prefix = getCaseTypePrefix(caseType);
-    const label = prefix
-      ? `${prefix}${caseNumber}`
-      : (caseShortName || `${caseNumber}`);
+    const label = buildCaseLabel({
+      prefix,
+      number: caseNumber,
+      shortName: caseShortName,
+      includeNumber,
+      includeAbbreviation,
+      withShortName: false,
+    });
 
     return [
       'span',
@@ -138,7 +164,7 @@ export const CaseReferenceNode = Node.create<CaseReferenceOptions>({
           display: inline-flex;
           align-items: center;
           background-color: #ffffff;
-          border: 1.5px solid #000000;
+          border: 1.5px solid ${caseColor};
           padding: 0 0.4rem;
           border-radius: 9999px;
           white-space: nowrap;
@@ -156,6 +182,7 @@ export const CaseReferenceNode = Node.create<CaseReferenceOptions>({
       ],
     ];
   },
+
 
   addCommands() {
     return {
