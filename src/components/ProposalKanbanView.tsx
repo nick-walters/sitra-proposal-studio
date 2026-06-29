@@ -202,7 +202,7 @@ export function ProposalKanbanView({ proposals, onProposalClick }: ProposalKanba
                         className="h-5 px-1.5 text-[9px] gap-0.5"
                         onClick={(e) => {
                           e.stopPropagation();
-                          window.open(proposal.topicUrl, '_blank');
+                          safeOpenUrl(proposal.topicUrl);
                         }}
                       >
                         Topic
