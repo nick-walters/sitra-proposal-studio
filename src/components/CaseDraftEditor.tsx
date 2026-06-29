@@ -34,6 +34,7 @@ import {
   caseWord,
 } from '@/lib/caseTypeLabels';
 import { useProposalCaseTypes } from '@/hooks/useProposalCaseTypes';
+import { stripWordHtml } from '@/lib/stripWordHtml';
 
 
 
