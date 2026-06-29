@@ -3470,6 +3470,7 @@ export type Database = {
           acronym: string
           acronym_segments: Json | null
           b_subheadings_seeded: Json
+          b31_banner_dismissed: boolean
           banner_title_override: string | null
           banner_topic_line_override: string | null
           budget_template_id: string | null
@@ -3530,6 +3531,7 @@ export type Database = {
           acronym: string
           acronym_segments?: Json | null
           b_subheadings_seeded?: Json
+          b31_banner_dismissed?: boolean
           banner_title_override?: string | null
           banner_topic_line_override?: string | null
           budget_template_id?: string | null
@@ -3590,6 +3592,7 @@ export type Database = {
           acronym?: string
           acronym_segments?: Json | null
           b_subheadings_seeded?: Json
+          b31_banner_dismissed?: boolean
           banner_title_override?: string | null
           banner_topic_line_override?: string | null
           budget_template_id?: string | null
