@@ -1,31 +1,16 @@
-// Dry-run cost justification recovery: downloads backup files, parses, returns JSON report.
+// Returns per-proposal map: participant_number -> { subcontracting, travel, other_goods } full text from A3 xlsx comments.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import JSZip from "https://esm.sh/jszip@3.10.1";
 
-const cors = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
-const supa = createClient(
-  Deno.env.get("SUPABASE_URL")!,
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-);
+const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "*", "Access-Control-Allow-Methods": "POST, OPTIONS" };
+const supa = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
 const PROPOSALS = [
-  { id: "dd66432e-dccb-4303-9db3-dcba9e16bfc9", acronym: "ADDGenAI", folder: "dd66432e-dccb-4303-9db3-dcba9e16bfc9/2026-06-26 06-00-09" },
-  { id: "af325ea2-ae8c-4f59-8625-283d5437efba", acronym: "SUSIE-Q", folder: "af325ea2-ae8c-4f59-8625-283d5437efba/2026-06-26 06-00-09" },
+  { id: "dd66432e-dccb-4303-9db3-dcba9e16bfc9", acronym: "ADDGenAI" },
+  { id: "af325ea2-ae8c-4f59-8625-283d5437efba", acronym: "SUSIE-Q" },
 ];
+const FOLDER_TS = "2026-06-26 06-00-09";
 
-async function dl(path: string) {
-  const { data, error } = await supa.storage.from("proposal-backups").download(path);
-  if (error) throw new Error(`${path}: ${error.message}`);
-  return new Uint8Array(await data.arrayBuffer());
-}
-
-// crude XML helpers
-function stripTags(s: string) { return s.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim(); }
 function decode(s: string) {
   return s.replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&#x?\w+;/g, m => {
     const n = m.startsWith("&#x") ? parseInt(m.slice(3,-1),16) : parseInt(m.slice(2,-1),10);
@@ -33,113 +18,42 @@ function decode(s: string) {
   });
 }
 
-// Extract all <w:tbl>...</w:tbl> blocks AND surrounding paragraph text (for captions)
-function parseDocxBody(xml: string) {
-  // Split by paragraphs and tables, keeping order
-  const parts: { type: "p" | "t"; xml: string }[] = [];
-  const re = /<w:p\b[\s\S]*?<\/w:p>|<w:tbl\b[\s\S]*?<\/w:tbl>/g;
-  let m;
-  while ((m = re.exec(xml)) !== null) {
-    parts.push({ type: m[0].startsWith("<w:p") ? "p" : "t", xml: m[0] });
-  }
-  return parts;
-}
-function tableToRows(tblXml: string): string[][] {
-  const rows: string[][] = [];
-  const rowRe = /<w:tr\b[\s\S]*?<\/w:tr>/g;
-  let rm;
-  while ((rm = rowRe.exec(tblXml)) !== null) {
-    const cells: string[] = [];
-    const cellRe = /<w:tc\b[\s\S]*?<\/w:tc>/g;
-    let cm;
-    while ((cm = cellRe.exec(rm[0])) !== null) {
-      // collect text from <w:t> only (not <w:tcPr> etc.)
-      const text = [...cm[0].matchAll(/<w:t(?:\s[^>]*)?>([\s\S]*?)<\/w:t>/g)].map(x => decode(x[1])).join("");
-      // paragraph breaks
-      const paraJoined = cm[0].split(/<w:p\b[^>]*>/).map(seg => {
-        return [...seg.matchAll(/<w:t(?:\s[^>]*)?>([\s\S]*?)<\/w:t>/g)].map(x => decode(x[1])).join("");
-      }).filter(Boolean).join("\n").trim();
-      cells.push(paraJoined || text.trim());
-    }
-    rows.push(cells);
-  }
-  return rows;
+async function dl(path: string) {
+  const { data, error } = await supa.storage.from("proposal-backups").download(path);
+  if (error) throw new Error(`${path}: ${error.message}`);
+  return new Uint8Array(await data.arrayBuffer());
 }
 
-async function parseB31(zipBytes: Uint8Array) {
+async function parseXlsx(zipBytes: Uint8Array) {
   const zip = await JSZip.loadAsync(zipBytes);
-  const doc = await zip.file("word/document.xml")!.async("string");
-  const parts = parseDocxBody(doc);
-  // Walk parts; track "current label" from any caption paragraph seen
-  const result: { g?: string[][]; h?: string[][]; debug: string[] } = { debug: [] };
-  let pendingLabel = "";
-  for (let i = 0; i < parts.length; i++) {
-    if (parts[i].type === "p") {
-      const t = [...parts[i].xml.matchAll(/<w:t(?:\s[^>]*)?>([\s\S]*?)<\/w:t>/g)].map(x => decode(x[1])).join("").toLowerCase();
-      if (t.includes("table 3.1.g")) pendingLabel = "g";
-      else if (t.includes("table 3.1.h")) pendingLabel = "h";
-      if (t.trim()) result.debug.push(`P: ${t.slice(0,80)}`);
-    } else {
-      result.debug.push(`TABLE (pendingLabel=${pendingLabel})`);
-      if (pendingLabel === "g") result.g = tableToRows(parts[i].xml);
-      if (pendingLabel === "h") result.h = tableToRows(parts[i].xml);
-      pendingLabel = "";
-    }
-  }
-  return result;
-}
-
-// Parse xlsx: find comments per sheet, return {sheetName: {cellRef: text}}
-async function parseXlsxComments(zipBytes: Uint8Array) {
-  const zip = await JSZip.loadAsync(zipBytes);
-  // workbook.xml -> sheet name->id
   const wb = await zip.file("xl/workbook.xml")!.async("string");
-  const sheets: { name: string; rId: string; sheetId: string }[] = [];
-  for (const m of wb.matchAll(/<sheet [^>]*name="([^"]+)"[^>]*sheetId="(\d+)"[^>]*r:id="([^"]+)"/g)) {
-    sheets.push({ name: decode(m[1]), sheetId: m[2], rId: m[3] });
-  }
+  const sheets: { name: string; rId: string }[] = [];
+  for (const m of wb.matchAll(/<sheet [^>]*name="([^"]+)"[^>]*r:id="([^"]+)"/g)) sheets.push({ name: decode(m[1]), rId: m[2] });
   const rels = await zip.file("xl/_rels/workbook.xml.rels")!.async("string");
   const relMap: Record<string,string> = {};
   for (const m of rels.matchAll(/<Relationship [^>]*Id="([^"]+)"[^>]*Target="([^"]+)"/g)) relMap[m[1]] = m[2];
-
-  // For each sheet, look at its rels for comments file
-  const result: Record<string, { values: Record<string,string>; comments: Record<string,string>; rows: Record<number, Record<string,string>> }> = {};
-  // shared strings
   let sst: string[] = [];
   const sstFile = zip.file("xl/sharedStrings.xml");
   if (sstFile) {
     const sx = await sstFile.async("string");
-    sst = [...sx.matchAll(/<si\b[\s\S]*?<\/si>/g)].map(m => {
-      const tparts = [...m[0].matchAll(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g)].map(x => decode(x[1]));
-      return tparts.join("");
-    });
+    sst = [...sx.matchAll(/<si\b[\s\S]*?<\/si>/g)].map(m => [...m[0].matchAll(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g)].map(x => decode(x[1])).join(""));
   }
-
+  const result: Record<string, { values: Record<string,string>; comments: Record<string,string> }> = {};
   for (const sh of sheets) {
-    const target = relMap[sh.rId]; // e.g. worksheets/sheet1.xml
+    const target = relMap[sh.rId]; if (!target) continue;
     const sheetPath = "xl/" + target;
     const sheetXml = await zip.file(sheetPath)!.async("string");
-    // values
     const cells: Record<string,string> = {};
-    const rows: Record<number, Record<string,string>> = {};
-    for (const cm of sheetXml.matchAll(/<c r="([A-Z]+)(\d+)"([^>]*)(?:\/>|>([\s\S]*?)<\/c>)/g)) {
-      const col = cm[1], row = parseInt(cm[2]), attrs = cm[3] || "", body = cm[4] || "";
-      const typeMatch = attrs.match(/t="([^"]+)"/);
-      const t = typeMatch ? typeMatch[1] : "n";
-      const vMatch = body.match(/<v>([\s\S]*?)<\/v>/);
-      const isMatch = body.match(/<is>([\s\S]*?)<\/is>/);
+    for (const cm of sheetXml.matchAll(/<c r="([A-Z]+\d+)"([^>]*)(?:\/>|>([\s\S]*?)<\/c>)/g)) {
+      const ref = cm[1], attrs = cm[2] || "", body = cm[3] || "";
+      const t = (attrs.match(/t="([^"]+)"/) || [])[1] || "n";
+      const v = (body.match(/<v>([\s\S]*?)<\/v>/) || [])[1];
+      const is = body.match(/<is>([\s\S]*?)<\/is>/);
       let val = "";
-      if (vMatch) {
-        val = vMatch[1];
-        if (t === "s") val = sst[parseInt(val)] || "";
-      } else if (isMatch) {
-        val = [...isMatch[0].matchAll(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g)].map(x => decode(x[1])).join("");
-      }
-      cells[`${col}${row}`] = val;
-      if (!rows[row]) rows[row] = {};
-      rows[row][col] = val;
+      if (v !== undefined) { val = v; if (t === "s") val = sst[parseInt(val)] || ""; }
+      else if (is) val = [...is[0].matchAll(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g)].map(x => decode(x[1])).join("");
+      cells[ref] = val;
     }
-    // comments
     const sheetRelsPath = sheetPath.replace(/([^/]+)$/, "_rels/$1.rels");
     const sheetRelsFile = zip.file(sheetRelsPath);
     const comments: Record<string,string> = {};
@@ -150,12 +64,13 @@ async function parseXlsxComments(zipBytes: Uint8Array) {
         const cpath = "xl/" + commentsRel[1].replace(/^\.\.\//, "");
         const cxml = await zip.file(cpath)!.async("string");
         for (const cm of cxml.matchAll(/<comment ref="([^"]+)"[^>]*>([\s\S]*?)<\/comment>/g)) {
+          // Preserve paragraph breaks: each <r> in text often has its own run; join with newlines where <br/> or new <r> starts after newline
           const txt = [...cm[2].matchAll(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g)].map(x => decode(x[1])).join("");
           comments[cm[1]] = txt.trim();
         }
       }
     }
-    result[sh.name] = { values: cells, comments, rows };
+    result[sh.name] = { values: cells, comments };
   }
   return result;
 }
@@ -163,32 +78,19 @@ async function parseXlsxComments(zipBytes: Uint8Array) {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
-    const report: any = { proposals: [] };
+    const out: any = {};
     for (const p of PROPOSALS) {
-      const entry: any = { proposal: p.acronym, proposal_id: p.id, snapshot: p.folder, files_used: [], parsed: {} };
-      // B3.1 docx
-      const b31path = `${p.folder}/${p.acronym} Part B3.1 2026-06-26 06-00-09.docx`;
-      try {
-        const b31 = await dl(b31path);
-        entry.files_used.push({ path: b31path, size: b31.length });
-        entry.parsed.b31 = await parseB31(b31);
-      } catch (e) { entry.parsed.b31_error = String(e); }
-      // A3 xlsx
-      const a3path = `${p.folder}/${p.acronym} Part A3 2026-06-26 06-00-09.xlsx`;
-      try {
-        const a3 = await dl(a3path);
-        entry.files_used.push({ path: a3path, size: a3.length });
-        entry.parsed.a3 = await parseXlsxComments(a3);
-      } catch (e) { entry.parsed.a3_error = String(e); }
-
-      // Resolve participants + budget_rows
-      const { data: parts } = await supa.from("participants").select("id,participant_number,organisation_short_name,organisation_name,english_name").eq("proposal_id", p.id).order("participant_number");
-      const { data: brows } = await supa.from("budget_rows").select("id,participant_id,subcontracting_costs,purchase_travel,purchase_equipment,purchase_other_goods").eq("proposal_id", p.id);
-      entry.participants = parts;
-      entry.budget_rows = brows;
-      report.proposals.push(entry);
+      const path = `${p.id}/${FOLDER_TS}/${p.acronym} Part A3 ${FOLDER_TS}.xlsx`;
+      const bytes = await dl(path);
+      const parsed = await parseXlsx(bytes);
+      // Find the budget sheet — try first sheet that has comments in col E/F/H
+      const sheets: any = {};
+      for (const [name, sh] of Object.entries(parsed)) {
+        sheets[name] = { comments: sh.comments, sampleA: Object.entries(sh.values).filter(([k]) => k.startsWith("A")).slice(0, 30) };
+      }
+      out[p.acronym] = { path, sheets };
     }
-    return new Response(JSON.stringify(report, null, 2), { headers: { ...cors, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify(out, null, 2), { headers: { ...cors, "Content-Type": "application/json" } });
   } catch (e) {
     return new Response(JSON.stringify({ error: String(e), stack: (e as any).stack }), { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
   }
