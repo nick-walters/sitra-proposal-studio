@@ -1386,6 +1386,7 @@ StarterKit.configure({
     content: initialEditorContentRef.current,
     enableExtensionDispatchTransaction: true,
     onUpdate: ({ editor }) => {
+      if (editor.isDestroyed || !editor.schema) return;
       onChange(editor.getHTML());
     },
     editorProps: {
@@ -1830,6 +1831,7 @@ StarterKit.configure({
     
     onUpdate: ({ editor }) => {
       if (!readyRef.current) return;
+      if (editor.isDestroyed || !editor.schema) return;
       const html = editor.getHTML();
       lastSetContentRef.current = normalizePartBLoadedContent(html);
       onChange(html);
@@ -1855,7 +1857,8 @@ StarterKit.configure({
   //    transient parent re-renders wiping the document during section switch)
   // Normalisation only runs when we actually replace content.
   useEffect(() => {
-    if (!editor || !isReady) return;
+    if (!editor || editor.isDestroyed || !editor.schema) return;
+    if (!isReady) return;
     if (!content && editor.state.doc.content.size > 2) return;
     const nextContent = normalizePartBLoadedContent(content);
     if (nextContent === lastSetContentRef.current) return;
@@ -1874,10 +1877,11 @@ StarterKit.configure({
     if (storage) storage.enabled = wasEnabled;
   }, [editor, content, isReady]);
 
+
   // Sync track changes enabled state — use direct storage assignment to avoid
   // toggle race conditions and double-toggles
   useEffect(() => {
-    if (!editor) return;
+    if (!editor || editor.isDestroyed || !editor.schema) return;
     trackChangesRef.current = trackChanges;
     const storage = (editor.storage as any).trackChanges;
     if (storage) {
@@ -1930,9 +1934,10 @@ StarterKit.configure({
   // Also triggers a one-time re-save if marks had missing attributes (to flush corrected HTML to DB)
   const hasReserializedRef = useRef(false);
   useEffect(() => {
-    if (!editor || !isReady || !trackChanges?.onChangesUpdate) return;
+    if (!editor || editor.isDestroyed || !editor.schema || !isReady || !trackChanges?.onChangesUpdate) return;
     // Wait a tick for content to be fully set
     const timer = setTimeout(() => {
+      if (!editor || editor.isDestroyed || !editor.schema) return;
       const doc = editor.state.doc;
       const schema = editor.state.schema;
       const insertionType = schema.marks.trackInsertion;
