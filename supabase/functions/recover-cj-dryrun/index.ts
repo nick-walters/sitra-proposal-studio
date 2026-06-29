@@ -122,7 +122,7 @@ async function parseXlsxComments(zipBytes: Uint8Array) {
     // values
     const cells: Record<string,string> = {};
     const rows: Record<number, Record<string,string>> = {};
-    for (const cm of sheetXml.matchAll(/<c r="([A-Z]+)(\d+)"([^/>]*)(?:\/>|>([\s\S]*?)<\/c>)/g)) {
+    for (const cm of sheetXml.matchAll(/<c r="([A-Z]+)(\d+)"([^>]*)(?:\/>|>([\s\S]*?)<\/c>)/g)) {
       const col = cm[1], row = parseInt(cm[2]), attrs = cm[3] || "", body = cm[4] || "";
       const typeMatch = attrs.match(/t="([^"]+)"/);
       const t = typeMatch ? typeMatch[1] : "n";
