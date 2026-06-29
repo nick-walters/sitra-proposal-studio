@@ -233,7 +233,7 @@ export function WPProgressTracker({ proposalId, onNavigateToWP }: WPProgressTrac
           <CardTitle className="text-base">Proposal Totals</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <StatCard
               icon={<ListChecks className="h-4 w-4" />}
               label="Total tasks"
@@ -244,11 +244,6 @@ export function WPProgressTracker({ proposalId, onNavigateToWP }: WPProgressTrac
               icon={<Package className="h-4 w-4" />}
               label="Total deliverables"
               value={totals.totalDeliverables}
-            />
-            <StatCard
-              icon={<AlertTriangle className="h-4 w-4" />}
-              label="Total risks"
-              value={totals.totalRisks}
             />
             <StatCard
               icon={<Users className="h-4 w-4" />}
