@@ -632,6 +632,7 @@ html, body {
   color: #000;
   font-weight: 700;
   text-align: left;
+  vertical-align: middle;
   padding: 1px 4px;
   border-bottom: 1.5px solid #000;
   white-space: normal;
