@@ -470,6 +470,17 @@ export function BudgetParticipantForm({
             onTotalChange={(v) => updateRow(row.id, 'financialSupportThirdParties', v)}
             onRequestedChange={(v) => updateRow(row.id, 'requestedFstp', v)}
           />
+          <JustificationItemsEditor
+            budgetRowId={row.id}
+            category="fstp"
+            items={justificationItems}
+            editable={editable}
+            helpText="Optional. Used only if the coordinator opts to include the D.1 justification table in B3.1."
+            onAdd={addJustificationItem}
+            onUpdate={updateJustificationItem}
+            onDelete={deleteJustificationItem}
+            onReorder={reorderJustificationItems}
+          />
           <CostInputRow
             label="D.2. Internally invoiced goods & services"
             totalValue={row.internallyInvoiced}
@@ -479,6 +490,17 @@ export function BudgetParticipantForm({
             editable={editable}
             onTotalChange={(v) => updateRow(row.id, 'internallyInvoiced', v)}
             onRequestedChange={(v) => updateRow(row.id, 'requestedInternallyInvoiced', v)}
+          />
+          <JustificationItemsEditor
+            budgetRowId={row.id}
+            category="internally_invoiced"
+            items={justificationItems}
+            editable={editable}
+            helpText="Optional. Used only if the coordinator opts to include the D.2 justification table in B3.1."
+            onAdd={addJustificationItem}
+            onUpdate={updateJustificationItem}
+            onDelete={deleteJustificationItem}
+            onReorder={reorderJustificationItems}
           />
         </CardContent>
       </Card>
