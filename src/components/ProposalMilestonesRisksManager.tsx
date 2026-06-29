@@ -774,7 +774,9 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
       />
     </div>
     </TooltipProvider>
+    </SaveTrackerContext.Provider>
   );
+
 }
 
 
