@@ -1881,7 +1881,7 @@ StarterKit.configure({
   // Sync track changes enabled state — use direct storage assignment to avoid
   // toggle race conditions and double-toggles
   useEffect(() => {
-    if (!editor) return;
+    if (!editor || editor.isDestroyed || !editor.schema) return;
     trackChangesRef.current = trackChanges;
     const storage = (editor.storage as any).trackChanges;
     if (storage) {
