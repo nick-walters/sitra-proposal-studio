@@ -272,7 +272,7 @@ async function loadEvaluationContext(serviceClient: any, evaluationId: string): 
       .eq("proposal_id", evaluation.proposal_id),
     serviceClient
       .from("wp_drafts")
-      .select("id, number, short_name, title, lead_participant_id, methodology, objectives")
+      .select("id, number, short_name, title, lead_participant_id, objectives")
       .eq("proposal_id", evaluation.proposal_id)
       .order("number"),
     serviceClient
@@ -280,13 +280,15 @@ async function loadEvaluationContext(serviceClient: any, evaluationId: string): 
       .select("number, title, description, due_month, type, dissemination_level, wp_drafts!inner(proposal_id)")
       .eq("wp_drafts.proposal_id", evaluation.proposal_id),
     serviceClient
-      .from("wp_draft_milestones")
-      .select("number, title, due_month, means_of_verification, related_wps, wp_drafts!inner(proposal_id)")
-      .eq("wp_drafts.proposal_id", evaluation.proposal_id),
+      .from("proposal_milestones")
+      .select("number, title, due_month, means_of_verification, proposal_milestone_wps(wp_draft_id, is_primary)")
+      .eq("proposal_id", evaluation.proposal_id)
+      .order("number"),
     serviceClient
-      .from("wp_draft_risks")
-      .select("number, title, mitigation, likelihood, severity, related_wps, wp_drafts!inner(proposal_id)")
-      .eq("wp_drafts.proposal_id", evaluation.proposal_id),
+      .from("proposal_risks")
+      .select("number, title, mitigation, likelihood, severity, proposal_risk_wps(wp_draft_id)")
+      .eq("proposal_id", evaluation.proposal_id)
+      .order("number"),
     serviceClient
       .from("budget_rows")
       .select("participant_id, personnel_costs, subcontracting_costs, purchase_equipment, purchase_other_goods, purchase_travel, requested_eu_contribution")
