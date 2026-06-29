@@ -6,6 +6,7 @@ import { format, differenceInDays } from "date-fns";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { StorageImage } from "@/components/StorageImage";
 import { ColoredAcronym } from "@/components/AcronymColorEditor";
+import { safeOpenUrl } from "@/lib/safeUrl";
 
 interface ProposalCardProps {
   proposal: Proposal;
