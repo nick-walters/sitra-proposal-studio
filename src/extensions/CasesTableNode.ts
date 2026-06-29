@@ -43,7 +43,11 @@ export const CasesTableNode = Node.create({
   group: 'block',
   atom: true,
   selectable: true,
-  draggable: true,
+  // Native HTML5 drag is disabled — direct dragging the node's DOM can
+  // trigger a clone-on-drop because the wrapper is contentEditable=false
+  // and ProseMirror loses the source range. Reordering is exclusively via
+  // the block grip handle (which dispatches a proper move transaction).
+  draggable: false,
   defining: true,
 
   addAttributes() {

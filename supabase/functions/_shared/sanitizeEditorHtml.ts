@@ -83,6 +83,10 @@ export const ALLOWED_DATA_ATTRS = new Set<string>([
   'data-caption',
   'data-b12-cases-node-caption',
   'data-b12-cases-subheading',
+  // Per-type B1.2 binding IDs — must survive save→sanitise→reload so the
+  // reconciler can match existing units instead of re-inserting duplicates.
+  'data-case-type-id',
+  'data-case-type-heading-id',
 ]);
 
 export const STYLE_ALLOWLIST = new Set<string>([
