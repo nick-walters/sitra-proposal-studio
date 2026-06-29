@@ -32,6 +32,16 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { toast } from 'sonner';
+import { SaveIndicator } from '@/components/SaveIndicator';
+
+// ── Save tracker context: lets AutoTextarea report pending/flush to the page header ──
+interface SaveTrackerCtx {
+  bumpPending: (delta: number) => void;
+  registerFlush: (flush: () => void) => () => void;
+}
+const SaveTrackerContext = createContext<SaveTrackerCtx | null>(null);
+
+
 
 
 interface Props {
