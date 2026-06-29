@@ -70,27 +70,21 @@ async function parseB31(zipBytes: Uint8Array) {
   const zip = await JSZip.loadAsync(zipBytes);
   const doc = await zip.file("word/document.xml")!.async("string");
   const parts = parseDocxBody(doc);
-  // find tables 3.1.g and 3.1.h via preceding caption (search backwards)
-  const result: { g?: string[][]; h?: string[][] } = {};
+  // Walk parts; track "current label" from any caption paragraph seen
+  const result: { g?: string[][]; h?: string[][]; debug: string[] } = { debug: [] };
+  let pendingLabel = "";
   for (let i = 0; i < parts.length; i++) {
-    if (parts[i].type !== "t") continue;
-    // look at preceding ~6 paragraphs for "Table 3.1.g" or "Table 3.1.h"
-    let label = "";
-    for (let j = i - 1; j >= Math.max(0, i - 8); j--) {
-      if (parts[j].type !== "p") continue;
-      const t = stripTags(parts[j].xml).toLowerCase();
-      if (t.includes("table 3.1.g") || t.includes("table 3.1.h")) { label = t.includes("3.1.g") ? "g" : "h"; break; }
+    if (parts[i].type === "p") {
+      const t = [...parts[i].xml.matchAll(/<w:t(?:\s[^>]*)?>([\s\S]*?)<\/w:t>/g)].map(x => decode(x[1])).join("").toLowerCase();
+      if (t.includes("table 3.1.g")) pendingLabel = "g";
+      else if (t.includes("table 3.1.h")) pendingLabel = "h";
+      if (t.trim()) result.debug.push(`P: ${t.slice(0,80)}`);
+    } else {
+      result.debug.push(`TABLE (pendingLabel=${pendingLabel})`);
+      if (pendingLabel === "g") result.g = tableToRows(parts[i].xml);
+      if (pendingLabel === "h") result.h = tableToRows(parts[i].xml);
+      pendingLabel = "";
     }
-    if (!label) {
-      // also check FOLLOWING paragraph (caption may follow table)
-      for (let j = i + 1; j <= Math.min(parts.length - 1, i + 4); j++) {
-        if (parts[j].type !== "p") continue;
-        const t = stripTags(parts[j].xml).toLowerCase();
-        if (t.includes("table 3.1.g") || t.includes("table 3.1.h")) { label = t.includes("3.1.g") ? "g" : "h"; break; }
-      }
-    }
-    if (label === "g") result.g = tableToRows(parts[i].xml);
-    if (label === "h") result.h = tableToRows(parts[i].xml);
   }
   return result;
 }
