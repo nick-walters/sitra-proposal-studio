@@ -1,4 +1,5 @@
 import { Header } from "@/components/Header";
+import { getCaseTypePrefix } from "@/lib/caseTypeLabels";
 import { StorageImage } from "@/components/StorageImage";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SectionNavigator } from "@/components/SectionNavigator";
