@@ -7,6 +7,7 @@ import { Loader2 } from "lucide-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ScrollToTop } from "@/components/ScrollToTop";
+import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -79,34 +80,45 @@ const App = () => {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <Sonner />
-          <BrowserRouter>
-            <ScrollToTop />
-            <Suspense fallback={<RouteFallback />}>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-                <Route path="/proposal/:id" element={<ProtectedRoute><ProposalEditor /></ProtectedRoute>} />
-                <Route path="/admin" element={<ProtectedRoute><BackendAdmin /></ProtectedRoute>} />
-                <Route path="/admin/templates" element={<ProtectedRoute><TemplateAdmin /></ProtectedRoute>} />
-                <Route path="/admin/user-rights" element={<ProtectedRoute><UserRightsAdmin /></ProtectedRoute>} />
-                <Route path="/admin/setup" element={<ProtectedRoute><InitialSetup /></ProtectedRoute>} />
-                <Route path="/admin/feedback" element={<ProtectedRoute><FeedbackAdmin /></ProtectedRoute>} />
-                <Route path="/admin/evaluation-config" element={<ProtectedRoute><EvaluationConfigAdmin /></ProtectedRoute>} />
-                <Route path="/admin/ai-config" element={<ProtectedRoute><AIConfigAdmin /></ProtectedRoute>} />
-                <Route path="/admin/backups" element={<ProtectedRoute><BackupsAdmin /></ProtectedRoute>} />
-                <Route path="/admin/organisations" element={<ProtectedRoute><OrganisationRegistryAdmin /></ProtectedRoute>} />
-
-                <Route path="/feedback" element={<ProtectedRoute><Feedback /></ProtectedRoute>} />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
-          </BrowserRouter>
-
+          <AuthProvider>
+            <BrowserRouter>
+              <ScrollToTop />
+              <AppRoutes />
+            </BrowserRouter>
+          </AuthProvider>
         </TooltipProvider>
       </QueryClientProvider>
     </ErrorBoundary>
+  );
+};
+
+// Gate the entire route tree on the single AuthProvider resolution.
+// While the initial getSession()/getUser() round-trip is in flight we
+// render exactly one loader — no flash, no remount, no dead-click window.
+const AppRoutes = () => {
+  const { loading } = useAuth();
+  if (loading) return <RouteFallback />;
+  return (
+    <Suspense fallback={<RouteFallback />}>
+      <Routes>
+        <Route path="/" element={<Index />} />
+        <Route path="/auth" element={<Auth />} />
+        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/proposal/:id" element={<ProtectedRoute><ProposalEditor /></ProtectedRoute>} />
+        <Route path="/admin" element={<ProtectedRoute><BackendAdmin /></ProtectedRoute>} />
+        <Route path="/admin/templates" element={<ProtectedRoute><TemplateAdmin /></ProtectedRoute>} />
+        <Route path="/admin/user-rights" element={<ProtectedRoute><UserRightsAdmin /></ProtectedRoute>} />
+        <Route path="/admin/setup" element={<ProtectedRoute><InitialSetup /></ProtectedRoute>} />
+        <Route path="/admin/feedback" element={<ProtectedRoute><FeedbackAdmin /></ProtectedRoute>} />
+        <Route path="/admin/evaluation-config" element={<ProtectedRoute><EvaluationConfigAdmin /></ProtectedRoute>} />
+        <Route path="/admin/ai-config" element={<ProtectedRoute><AIConfigAdmin /></ProtectedRoute>} />
+        <Route path="/admin/backups" element={<ProtectedRoute><BackupsAdmin /></ProtectedRoute>} />
+        <Route path="/admin/organisations" element={<ProtectedRoute><OrganisationRegistryAdmin /></ProtectedRoute>} />
+        <Route path="/feedback" element={<ProtectedRoute><Feedback /></ProtectedRoute>} />
+        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </Suspense>
   );
 };
 
