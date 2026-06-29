@@ -640,35 +640,6 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
     toast.success(newLocked ? 'All work packages locked' : 'All work packages unlocked');
   }, [user, proposalId, queryClient, wpDrafts]);
 
-  const handleToggleVisibility = useCallback(async (id: string, hidden: boolean) => {
-    const { error } = await supabase
-      .from('wp_drafts')
-      .update({ is_hidden: hidden } as any)
-      .eq('id', id);
-    if (error) {
-      toast.error('Failed to update visibility');
-      return;
-    }
-    queryClient.invalidateQueries({ queryKey: ['wp-drafts-management', proposalId] });
-    queryClient.invalidateQueries({ queryKey: ['wp-drafts', proposalId] });
-    toast.success(hidden ? 'Work package hidden' : 'Work package visible');
-  }, [proposalId, queryClient]);
-
-  const handleToggleVisibilityAll = useCallback(async () => {
-    const allHidden = wpDrafts.every(wp => wp.is_hidden);
-    const newHidden = !allHidden;
-    const { error } = await supabase
-      .from('wp_drafts')
-      .update({ is_hidden: newHidden } as any)
-      .eq('proposal_id', proposalId);
-    if (error) {
-      toast.error('Failed to update visibility');
-      return;
-    }
-    queryClient.invalidateQueries({ queryKey: ['wp-drafts-management', proposalId] });
-    queryClient.invalidateQueries({ queryKey: ['wp-drafts', proposalId] });
-    toast.success(newHidden ? 'All work packages hidden' : 'All work packages visible');
-  }, [proposalId, queryClient, wpDrafts]);
 
   if (wpsLoading) {
     return (
