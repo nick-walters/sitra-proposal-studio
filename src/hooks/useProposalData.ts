@@ -285,7 +285,7 @@ export function useProposalData(proposalId: string) {
 
     const { error } = await supabase
       .from('proposals')
-      .update(dbUpdates)
+      .update(dbUpdates as any)
       .eq('id', proposalId);
 
     if (error) {
@@ -392,7 +392,7 @@ export function useProposalData(proposalId: string) {
     // Handle logoUrl - use null check to allow clearing (null means delete, undefined means no change)
     if ('logoUrl' in updates) dbUpdates.logo_url = updates.logoUrl || null;
 
-    const { error } = await supabase.from('participants').update(dbUpdates).eq('id', id);
+    const { error } = await supabase.from('participants').update(dbUpdates as any).eq('id', id);
 
     if (error) {
       toast.error('Failed to update participant');
@@ -500,7 +500,7 @@ export function useProposalData(proposalId: string) {
     if (updates.accessGrantedBy !== undefined) dbUpdates.access_granted_by = updates.accessGrantedBy;
     if (updates.accessGrantedAt !== undefined) dbUpdates.access_granted_at = updates.accessGrantedAt;
 
-    const { error } = await supabase.from('participant_members').update(dbUpdates).eq('id', id);
+    const { error } = await supabase.from('participant_members').update(dbUpdates as any).eq('id', id);
 
     if (error) {
       toast.error('Failed to update team member');
@@ -536,7 +536,7 @@ export function useProposalData(proposalId: string) {
     }
 
     if (ethics?.id) {
-      const { error } = await supabase.from('ethics_assessment').update(dbUpdates).eq('id', ethics.id);
+      const { error } = await supabase.from('ethics_assessment').update(dbUpdates as any).eq('id', ethics.id);
       if (error) {
         toast.error('Failed to update ethics assessment');
         logError('useProposalData', error);

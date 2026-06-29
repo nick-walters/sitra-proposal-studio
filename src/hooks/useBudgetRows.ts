@@ -565,7 +565,7 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
       const dbField = field === 'pmCount' ? 'pm_count' : field === 'pmRate' ? 'pm_rate' : 'category';
       const { error } = await supabase
         .from('budget_personnel_breakdown')
-        .update({ [dbField]: value })
+        .update({ [dbField]: value } as any)
         .eq('id', itemId);
       if (error) toast.error('Failed to save personnel row');
       if (field === 'pmCount' || field === 'pmRate') {
@@ -618,7 +618,7 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
       setSaving(true);
       const { error } = await supabase
         .from('budget_rows')
-        .update({ [dbField]: dbValue })
+        .update({ [dbField]: dbValue } as any)
         .eq('id', rowId);
 
       if (error) {

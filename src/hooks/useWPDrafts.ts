@@ -129,7 +129,7 @@ export function useWPDrafts(proposalId: string | null) {
     try {
       const { error } = await supabase
         .from('wp_drafts')
-        .update(updates)
+        .update(updates as any)
         .eq('id', wpId);
 
       if (error) throw error;
@@ -405,7 +405,7 @@ export function useWPDraftEditor(wpId: string | null) {
     try {
       const { error } = await supabase
         .from('wp_draft_tasks')
-        .update(updates)
+        .update(updates as any)
         .eq('id', taskId);
 
       if (error) throw error;
@@ -572,7 +572,7 @@ export function useWPDraftEditor(wpId: string | null) {
     try {
       const { error } = await supabase
         .from('wp_draft_deliverables')
-        .update(updates)
+        .update(updates as any)
         .eq('id', deliverableId);
 
       if (error) throw error;
