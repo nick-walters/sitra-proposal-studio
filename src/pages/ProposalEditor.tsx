@@ -799,7 +799,7 @@ export function ProposalEditor() {
             </div>
             <WPManagementCard
               proposalId={id || ''}
-              isCoordinator={canEdit}
+              isCoordinator={canEdit && isCoordinator}
               isFullProposal={proposal?.submissionStage !== 'stage_1'}
               onDraftVisibilityChange={refreshProposal}
               onSaveEvent={handleManagerSaveEvent}
