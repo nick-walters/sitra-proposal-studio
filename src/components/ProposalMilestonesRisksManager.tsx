@@ -125,15 +125,45 @@ function AutoTextarea({ value, onChange, debounceMs = 500, onBlur, onFocus, ...r
   const [local, setLocal] = useState(value ?? '');
   const focused = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isPending = useRef(false);
+  const localRef = useRef(local);
+  localRef.current = local;
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
+  const tracker = useContext(SaveTrackerContext);
+
+  const markPending = (p: boolean) => {
+    if (p === isPending.current) return;
+    isPending.current = p;
+    tracker?.bumpPending(p ? 1 : -1);
+  };
 
   // Sync from props only when not focused (avoids mid-typing overwrite from refetch).
   useEffect(() => {
     if (!focused.current) setLocal(value ?? '');
   }, [value]);
 
-  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+  useEffect(() => () => {
+    if (timer.current) clearTimeout(timer.current);
+    if (isPending.current) {
+      isPending.current = false;
+      tracker?.bumpPending(-1);
+    }
+  }, [tracker]);
+
+  // Register flush handler so the page-level "Save" button can force-persist.
+  useEffect(() => {
+    if (!tracker) return;
+    const flush = () => {
+      if (timer.current) {
+        clearTimeout(timer.current);
+        timer.current = null;
+        markPending(false);
+        onChangeRef.current({ target: { value: localRef.current } });
+      }
+    };
+    return tracker.registerFlush(flush);
+  }, [tracker]);
 
   const resize = () => {
     const el = ref.current;
@@ -152,8 +182,10 @@ function AutoTextarea({ value, onChange, debounceMs = 500, onBlur, onFocus, ...r
         const v = e.target.value;
         setLocal(v);
         if (timer.current) clearTimeout(timer.current);
+        markPending(true);
         timer.current = setTimeout(() => {
           timer.current = null;
+          markPending(false);
           onChangeRef.current({ target: { value: v } });
         }, debounceMs);
       }}
@@ -163,6 +195,7 @@ function AutoTextarea({ value, onChange, debounceMs = 500, onBlur, onFocus, ...r
         if (timer.current) {
           clearTimeout(timer.current);
           timer.current = null;
+          markPending(false);
           onChangeRef.current({ target: { value: local } });
         }
         onBlur?.(e);
@@ -172,6 +205,7 @@ function AutoTextarea({ value, onChange, debounceMs = 500, onBlur, onFocus, ...r
     />
   );
 }
+
 
 export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDuration = 36 }: Props) {
   const qc = useQueryClient();
