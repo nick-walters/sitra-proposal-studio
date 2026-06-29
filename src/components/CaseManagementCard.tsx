@@ -72,6 +72,7 @@ interface CaseTypeRow {
   include_number: boolean;
   include_abbreviation: boolean;
   order_index: number;
+  caption_text: string | null;
 }
 
 import {
