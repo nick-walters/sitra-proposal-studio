@@ -116,6 +116,48 @@ export function B31SectionContent({ proposalId }: Props) {
         participants={participants}
         proposalId={proposalId}
       />
+
+      {/* Optional cost-justification tables (coordinator-toggled in A3). */}
+      {toggles.travel && (
+        <B31JustificationTable
+          items={travelByParticipant}
+          participants={participants}
+          proposalId={proposalId}
+          tableKey="travel-justification"
+          tableLabel="Table 3.1.i."
+          defaultCaption="Travel and subsistence cost items"
+        />
+      )}
+      {toggles.other_goods && (
+        <B31JustificationTable
+          items={otherGoodsByParticipant}
+          participants={participants}
+          proposalId={proposalId}
+          tableKey="other-goods-justification"
+          tableLabel="Table 3.1.j."
+          defaultCaption="Other goods, works and services cost items"
+        />
+      )}
+      {toggles.fstp && (
+        <B31JustificationTable
+          items={fstpByParticipant}
+          participants={participants}
+          proposalId={proposalId}
+          tableKey="fstp-justification"
+          tableLabel="Table 3.1.k."
+          defaultCaption="Financial support to third parties cost items"
+        />
+      )}
+      {toggles.internally_invoiced && (
+        <B31JustificationTable
+          items={internallyInvoicedByParticipant}
+          participants={participants}
+          proposalId={proposalId}
+          tableKey="internally-invoiced-justification"
+          tableLabel="Table 3.1.l."
+          defaultCaption="Internally invoiced goods and services cost items"
+        />
+      )}
     </div>
   );
 }
