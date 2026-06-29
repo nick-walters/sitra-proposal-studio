@@ -557,7 +557,7 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
                 <tr>
                   <th className="w-14">No.</th>
                   <th style={{ width: '280px' }}>Milestone name</th>
-                  <th style={{ width: '129px' }}>WP(s)</th>
+                  <th style={{ width: '113px' }}>WP(s)</th>
                   <th style={{ width: '83px' }}>Due month</th>
                   <th>Means of verification</th>
                   <th style={{ width: '28px' }}></th>
@@ -604,12 +604,12 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
                               ) : (
                                 <span className="flex flex-wrap gap-0.5 items-center">
                                   {selectedWps.map(wp => (
-                                    <span key={wp.id} className="inline-flex items-center gap-0.5">
-                                      <WPBubble wpNumber={wp.number} wpColor={wp.color} />
-                                      {wp.id === m.primary_wp_id && (
-                                        <Star className="h-3 w-3 text-amber-500 fill-amber-400" aria-label="Primary WP" />
-                                      )}
-                                    </span>
+                                    <WPBubble
+                                      key={wp.id}
+                                      wpNumber={wp.number}
+                                      wpColor={wp.color}
+                                      showStar={wp.id === m.primary_wp_id}
+                                    />
                                   ))}
                                 </span>
                               )}
