@@ -67,12 +67,11 @@ interface SortableWPRowProps {
   onUpdate: (id: string, updates: Partial<WPDraft>) => void;
   onDelete: (id: string) => void;
   onToggleLock: (id: string, locked: boolean) => void;
-  onToggleVisibility: (id: string, hidden: boolean) => void;
   canEdit: boolean;
   isCoordinator: boolean;
 }
 
-function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete, onToggleLock, onToggleVisibility, canEdit, isCoordinator }: SortableWPRowProps) {
+function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete, onToggleLock, canEdit, isCoordinator }: SortableWPRowProps) {
   const [leadOpen, setLeadOpen] = useState(false);
   const {
     attributes,
@@ -93,10 +92,10 @@ function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete
   const selectedTheme = themes.find((t) => t.id === wp.theme_id);
   const effectiveColor = useThemes && selectedTheme ? selectedTheme.color : wp.color;
 
-  // Grid columns change based on whether themes are enabled (added visibility column)
+  // Grid columns change based on whether themes are enabled
   const gridCols = useThemes 
-    ? 'grid-cols-[24px_50px_100px_90px_1fr_80px_20px_20px_20px]' 
-    : 'grid-cols-[24px_50px_90px_1fr_80px_20px_20px_20px]';
+    ? 'grid-cols-[24px_50px_100px_90px_1fr_80px_20px_20px]' 
+    : 'grid-cols-[24px_50px_90px_1fr_80px_20px_20px]';
 
   return (
     <div
