@@ -31,7 +31,10 @@ import {
   getCaseTypeLabel,
   getCaseTypePrefix as getCasePrefix,
   buildCaseLabel,
+  caseWord,
 } from '@/lib/caseTypeLabels';
+import { useProposalCaseTypes } from '@/hooks/useProposalCaseTypes';
+
 
 
 const SITRA_CASE_TIPS = [
@@ -113,6 +116,8 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
   });
   const acronymSegments = proposalMeta?.acronymSegments || [];
   const hasCases = !!proposalMeta?.hasCases;
+  const { data: caseTypes = [] } = useProposalCaseTypes(proposalId);
+
 
   // Save/restore selection across multiple WPSimpleEditor subsections
   const savedRangeRef = useRef<Range | null>(null);
@@ -310,8 +315,9 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
       cursor: 'pointer', userSelect: 'none',
     });
     insertNodeAtCursor(span);
-    toast.success('Case reference inserted');
-  }, [insertNodeAtCursor]);
+    toast.success(`${caseWord(caseTypes, { capitalize: true })} reference inserted`);
+  }, [insertNodeAtCursor, caseTypes]);
+
 
   const insertCitationAtCursor = useCallback((citationNumber: number) => {
     const sup = document.createElement('sup');
@@ -490,7 +496,7 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
   if (!caseDraft) {
     return (
       <div className="flex items-center justify-center h-64 text-muted-foreground">
-        Case not found
+        {caseWord(caseTypes, { capitalize: true })} not found
       </div>
     );
   }
@@ -516,7 +522,7 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
         {isLocked && !canEdit && (
           <div className="flex items-center gap-2 p-3 rounded-md bg-destructive/10 border border-destructive/30 text-sm">
             <Lock className="w-4 h-4 text-destructive shrink-0" />
-            <span>This case has been locked by <strong>{lockerName}</strong>. Editing is disabled.</span>
+            <span>This {caseWord(caseTypes, { capitalize: false })} has been locked by <strong>{lockerName}</strong>. Editing is disabled.</span>
             {isCoordinator && (
               <Button variant="outline" size="sm" className="ml-auto shrink-0 h-7 text-xs" onClick={() => setShowLockWarning(true)}>
                 Edit anyway
@@ -535,7 +541,7 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
               </DialogTitle>
             </DialogHeader>
             <p className="text-sm text-muted-foreground">
-              This case has been locked by <strong>{lockerName}</strong>. As you are a coordinator, you can still edit it, but doing so may result in differences between the draft and Part B. It is recommended to therefore work on Part B instead.
+              This {caseWord(caseTypes, { capitalize: false })} has been locked by <strong>{lockerName}</strong>. As you are a coordinator, you can still edit it, but doing so may result in differences between the draft and Part B. It is recommended to therefore work on Part B instead.
             </p>
             <p className="text-sm font-medium">Do you wish to continue editing the draft?</p>
             <div className="flex justify-end gap-2 mt-2">
@@ -626,7 +632,7 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
                   <span className="w-16 flex justify-start shrink-0">
                     <span style={{ display: 'inline-block', width: '22px', height: '14px', border: '1.5px solid #000000', borderRadius: '9999px', background: '#ffffff' }} />
                   </span>
-                  <span>Case</span>
+                  <span>{caseWord(caseTypes, { capitalize: true })}</span>
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem onClick={() => setIsParticipantRefOpen(true)} className="flex items-center gap-2">
@@ -700,7 +706,7 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
             <DebouncedInput
               value={caseDraft.title || ''}
               onDebouncedChange={(v) => updateField('title', v)}
-              placeholder="Full case title"
+              placeholder={`Full ${caseWord(caseTypes, { capitalize: false })} title`}
               className="flex-1 text-base font-bold"
               disabled={readOnly}
             />
@@ -716,7 +722,7 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
             <ScrollArea className="max-h-[75vh] pr-4">
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">
-                  There are no official EC guidelines for case descriptions. Use the Sitra tips below for guidance.
+                  There are no official EC guidelines for {caseWord(caseTypes, { plural: true, capitalize: false })} descriptions. Use the Sitra tips below for guidance.
                 </p>
                 <SitraTipsBox tips={SITRA_CASE_TIPS} />
               </div>
@@ -728,7 +734,7 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
         {subsectionTemplates.length === 0 && (
           <p className="text-sm text-muted-foreground italic px-1">
             No subsections defined for this proposal yet. A coordinator can add them via the
-            &ldquo;Edit case subsections &amp; guidelines&rdquo; button in the case manager.
+            &ldquo;Edit {caseWord(caseTypes, { capitalize: false })} subsections &amp; guidelines&rdquo; button in the case manager.
           </p>
         )}
         {subsectionTemplates.map((sub) => {

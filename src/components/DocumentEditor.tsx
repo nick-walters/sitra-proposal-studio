@@ -1,6 +1,9 @@
 import { TextSelection } from '@tiptap/pm/state';
 import { Section } from "@/types/proposal";
 import { supabase } from "@/integrations/supabase/client";
+import { caseWord } from "@/lib/caseTypeLabels";
+import { useProposalCaseTypes } from "@/hooks/useProposalCaseTypes";
+
 import DOMPurify from "dompurify";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -137,6 +140,8 @@ export function DocumentEditor({
 }: DocumentEditorProps) {
   const { user } = useAuth();
   const { roleTier } = useProposalRole(proposalId);
+  const { data: caseTypes = [] } = useProposalCaseTypes(proposalId);
+
 
   // Fetch profile full_name from DB for reliable author name in track changes
   const [profileFullName, setProfileFullName] = useState<string | null>(null);
@@ -1387,7 +1392,7 @@ export function DocumentEditor({
                     <span className="w-16 flex justify-start shrink-0">
                       <span style={{ display: 'inline-block', width: '22px', height: '14px', border: '1.5px solid #000000', borderRadius: '9999px', background: '#ffffff' }} />
                     </span>
-                    <span>Case</span>
+                    <span>{caseWord(caseTypes, { capitalize: true })}</span>
                   </DropdownMenuItem>
                   )}
                   <DropdownMenuItem onClick={() => setIsParticipantRefOpen(true)} className="flex items-center gap-2">

@@ -7,6 +7,9 @@ import {
 import { cn } from '@/lib/utils';
 import { InsertTDMSReferenceDropdowns } from '@/components/InsertTDMSReferenceDropdowns';
 import { DraftFormattingToolbar } from '@/components/DraftFormattingToolbar';
+import { caseWord } from '@/lib/caseTypeLabels';
+import { useProposalCaseTypes } from '@/hooks/useProposalCaseTypes';
+
 
 const SIMPLE_SANITIZE_CONFIG = {
   ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'ul', 'ol', 'li', 'span', 'a', 'h1', 'h2', 'h3', 'h4', 'sub', 'sup', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'img', 'figure', 'figcaption', 'div'],

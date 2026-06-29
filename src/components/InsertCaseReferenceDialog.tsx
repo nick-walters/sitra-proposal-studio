@@ -11,7 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { FlaskConical } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
-import { getCaseTypePrefix, buildCaseLabel, getCaseTypeLabel } from '@/lib/caseTypeLabels';
+import { getCaseTypePrefix, buildCaseLabel, getCaseTypeLabel, caseWord } from '@/lib/caseTypeLabels';
 
 interface CaseDraft {
   id: string;
@@ -161,10 +161,10 @@ export function InsertCaseReferenceDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FlaskConical className="w-5 h-5" />
-            Insert Case Reference
+            Insert {caseWord(typeRows, { capitalize: true })} Reference
           </DialogTitle>
           <DialogDescription>
-            Select a case to insert as an inline reference badge.
+            Select a {caseWord(typeRows, { capitalize: false })} to insert as an inline reference badge.
           </DialogDescription>
         </DialogHeader>
 
@@ -177,8 +177,9 @@ export function InsertCaseReferenceDialog({
             </div>
           ) : caseDrafts.length === 0 ? (
             <div className="text-center text-muted-foreground py-8">
-              No cases found. Enable cases and add some first.
+              No {caseWord(typeRows, { plural: true, capitalize: false })} found. Enable {caseWord(typeRows, { plural: true, capitalize: false })} and add some first.
             </div>
+
           ) : showSections ? (
             <div className="p-1">
               {typeRows.map((t) => {

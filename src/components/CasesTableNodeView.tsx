@@ -2,7 +2,7 @@ import { NodeViewWrapper, NodeViewProps } from '@tiptap/react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import DOMPurify from 'dompurify';
-import { getCaseTypePrefix, buildCaseLabel } from '@/lib/caseTypeLabels';
+import { getCaseTypePrefix, buildCaseLabel, caseWord } from '@/lib/caseTypeLabels';
 
 import { supabase } from '@/integrations/supabase/client';
 import { RICH_TEXT_CONFIG } from '@/lib/sanitizePresets';
@@ -45,7 +45,10 @@ interface CaseTypeRow {
   include_number: boolean;
   include_abbreviation: boolean;
   outline_color: string;
+  type_code: string | null;
+  custom_type_name: string | null;
 }
+
 
 
 
@@ -208,7 +211,7 @@ export function CasesTableNodeView(_props: NodeViewProps) {
           .order('participant_number'),
         supabase
           .from('proposal_case_types')
-          .select('id, include_number, include_abbreviation, outline_color')
+          .select('id, include_number, include_abbreviation, outline_color, type_code, custom_type_name')
           .eq('proposal_id', proposalId),
       ]);
 
@@ -217,9 +220,10 @@ export function CasesTableNodeView(_props: NodeViewProps) {
       const participants = (partsRes.data || []) as Participant[];
       const types = (typesRes.data || []) as CaseTypeRow[];
       const typeById = new Map(types.map((t) => [t.id, t]));
-      return { cases, templates, participants, typeById };
+      return { cases, templates, participants, typeById, types };
     },
   });
+
 
 
 
@@ -250,7 +254,7 @@ export function CasesTableNodeView(_props: NodeViewProps) {
             fontSize: 12,
           }}
         >
-          No cases yet. Add cases in the Case manager — they will appear here automatically.
+          No {caseWord(data?.types ?? [], { plural: true, capitalize: false })} yet. Add {caseWord(data?.types ?? [], { plural: true, capitalize: false })} in the Case manager — they will appear here automatically.
         </div>
       )}
 
@@ -291,13 +295,13 @@ export function CasesTableNodeView(_props: NodeViewProps) {
                   style={{ fontStyle: 'normal' }}
                 />
               ) : (
-                <span className="text-muted-foreground text-[9pt] italic">No case lead</span>
+                <span className="text-muted-foreground text-[9pt] italic">No {caseWord(data?.types ?? [], { capitalize: false })} lead</span>
               )}
             </div>
 
             {/* Title */}
             <div style={{ marginBottom: 4, fontWeight: 700 }}>
-              {(c.title || '').trim() ? c.title : <span className="text-muted-foreground italic font-normal">Untitled case</span>}
+              {(c.title || '').trim() ? c.title : <span className="text-muted-foreground italic font-normal">Untitled {caseWord(data?.types ?? [], { capitalize: false })}</span>}
             </div>
 
             <div style={{ height: 1, backgroundColor: '#000000', width: '100%', margin: '6px 0' }} />

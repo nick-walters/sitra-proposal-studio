@@ -172,4 +172,35 @@ export function buildWpCaseManagerTitle(opts: {
   return 'Work packages & cases';
 }
 
+/**
+ * caseWord — type-aware generic "case"/"cases" replacement.
+ *
+ * When the proposal has exactly ONE case type, returns that type's
+ * singular/plural label (honouring 'other' custom_type_name). When
+ * zero or multiple types exist, falls back to the generic "case"/"cases".
+ *
+ * `capitalize` controls the first character: true → "Case"/"Challenges",
+ * false → "case"/"challenges". Defaults to true to match the original
+ * sentence-initial usage in most strings.
+ */
+export function caseWord(
+  types: ReadonlyArray<{ type_code?: string | null; custom_type_name?: string | null }> | null | undefined,
+  opts?: { plural?: boolean; capitalize?: boolean },
+): string {
+  const plural = !!opts?.plural;
+  const capitalize = opts?.capitalize !== false;
+  let word: string;
+  if (types && types.length === 1) {
+    const t = types[0];
+    word = getCaseTypeLabel(t.type_code ?? null, t.custom_type_name ?? null, { plural });
+  } else {
+    word = plural ? 'Cases' : 'Case';
+  }
+  if (!word) word = plural ? 'Cases' : 'Case';
+  return capitalize
+    ? word.charAt(0).toUpperCase() + word.slice(1)
+    : word.charAt(0).toLowerCase() + word.slice(1);
+}
+
+
 

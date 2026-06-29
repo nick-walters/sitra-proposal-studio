@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { SaveIndicator } from '@/components/SaveIndicator';
-import { getCaseTypePrefix } from '@/lib/caseTypeLabels';
+import { getCaseTypePrefix, caseWord } from '@/lib/caseTypeLabels';
+import { useProposalCaseTypes } from '@/hooks/useProposalCaseTypes';
+
 import { DraftFormattingToolbar } from '@/components/DraftFormattingToolbar';
 import { useWPDraftEditor } from '@/hooks/useWPDrafts';
 import { useWPDraftUndoRedo } from '@/hooks/useWPDraftUndoRedo';
@@ -221,6 +223,9 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
     },
     enabled: !!proposalId,
   });
+
+  const { data: caseTypes = [] } = useProposalCaseTypes(proposalId);
+
 
   // Fetch theme if WP has a theme_id
   const { data: themeData } = useQuery({
@@ -673,8 +678,9 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
       selection.addRange(range);
       notifyEditorInput(editorEl);
     }
-    toast.success('Case reference inserted');
-  }, [notifyEditorInput, restoreSelection]);
+    toast.success(`${caseWord(caseTypes, { capitalize: true })} reference inserted`);
+  }, [notifyEditorInput, restoreSelection, caseTypes]);
+
 
 
   // Fetch participants, figures, and WP drafts for the proposal
@@ -956,7 +962,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
                   <span className="w-16 flex justify-start shrink-0">
                     <span style={{ display: 'inline-block', width: '22px', height: '14px', border: '1.5px solid #000000', borderRadius: '9999px', background: '#ffffff' }} />
                   </span>
-                  <span>Case</span>
+                  <span>{caseWord(caseTypes, { capitalize: true })}</span>
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem onClick={() => setIsParticipantRefOpen(true)} className="flex items-center gap-2">

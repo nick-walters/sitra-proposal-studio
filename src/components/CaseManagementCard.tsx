@@ -79,6 +79,7 @@ import {
   getCaseTypeLabel,
   getCaseTypePrefix as getCasePrefix,
   buildCaseLabel,
+  caseWord,
 } from '@/lib/caseTypeLabels';
 
 const CASE_TYPES = CASE_TYPE_DEFS.map((d) => ({
@@ -86,6 +87,7 @@ const CASE_TYPES = CASE_TYPE_DEFS.map((d) => ({
   label: d.singular,
   prefix: d.prefix,
 }));
+
 
 
 // Local-state abbreviation input to avoid typing lag
@@ -119,6 +121,7 @@ interface SortableCaseRowProps {
   participants: ParticipantSummary[];
   casePrefix: string;
   caseTypeLabel: string;
+  caseWordSingular: string;
   includeNumber: boolean;
   includeAbbreviation: boolean;
   outlineColor: string;
@@ -128,7 +131,8 @@ interface SortableCaseRowProps {
   canEdit: boolean;
 }
 
-function SortableCaseRow({ caseItem, participants, casePrefix, caseTypeLabel, includeNumber, includeAbbreviation, outlineColor, onUpdate, onDelete, onToggleLock, canEdit }: SortableCaseRowProps) {
+function SortableCaseRow({ caseItem, participants, casePrefix, caseTypeLabel, caseWordSingular, includeNumber, includeAbbreviation, outlineColor, onUpdate, onDelete, onToggleLock, canEdit }: SortableCaseRowProps) {
+
 
 
   const [leadOpen, setLeadOpen] = useState(false);
@@ -217,7 +221,7 @@ function SortableCaseRow({ caseItem, participants, casePrefix, caseTypeLabel, in
         }}
         onFocus={() => { isFocused.current = true; }}
         onBlur={() => { isFocused.current = false; }}
-        placeholder="Case title"
+        placeholder={`${caseWordSingular} title`}
         className="h-7 text-sm"
         disabled={!canEdit}
       />
@@ -248,9 +252,10 @@ function SortableCaseRow({ caseItem, participants, casePrefix, caseTypeLabel, in
           <DialogHeader>
             <DialogTitle>Select {caseTypeLabel} Leader</DialogTitle>
             <DialogDescription>
-              Choose a partner organisation to lead this case.
+              Choose a partner organisation to lead this {caseWordSingular.toLowerCase()}.
             </DialogDescription>
           </DialogHeader>
+
           <ScrollArea className="max-h-[400px]">
             <div className="space-y-1 p-1">
               {participants.map((p) => (
@@ -290,7 +295,7 @@ function SortableCaseRow({ caseItem, participants, casePrefix, caseTypeLabel, in
         <button
           onClick={() => onToggleLock(caseItem.id, !caseItem.is_locked)}
           className={`p-1 rounded transition-colors ${caseItem.is_locked ? 'text-destructive hover:bg-destructive/10' : 'text-green-600 hover:bg-green-100'}`}
-          title={caseItem.is_locked ? 'Unlock case' : 'Lock case'}
+          title={caseItem.is_locked ? `Unlock ${caseWordSingular.toLowerCase()}` : `Lock ${caseWordSingular.toLowerCase()}`}
         >
           {caseItem.is_locked ? <Lock className="w-4 h-4" /> : <LockOpen className="w-4 h-4" />}
         </button>
@@ -301,11 +306,12 @@ function SortableCaseRow({ caseItem, participants, casePrefix, caseTypeLabel, in
         <button
           onClick={() => onDelete(caseItem.id)}
           className="p-1 text-destructive hover:bg-destructive/10 rounded transition-colors"
-          title="Delete case"
+          title={`Delete ${caseWordSingular.toLowerCase()}`}
         >
           <Trash2 className="w-4 h-4" />
         </button>
       )}
+
       {!canEdit && <div />}
     </div>
   );
@@ -415,9 +421,10 @@ export function CaseManagementCard({
     },
     onError: (_e, _v, context) => {
       if (context?.previous) queryClient.setQueryData(['case-drafts-management', proposalId], context.previous);
-      toast.error('Failed to update case');
+      toast.error(`Failed to update ${caseWord(caseTypeRows, { capitalize: false })}`);
     },
     onSettled: () => { invalidateCaseQueries(); onSaveEvent?.(); },
+
   });
 
   // Per-type reorder: renumber 1..n within a case_type_id (two-phase to dodge unique constraint).
@@ -446,7 +453,7 @@ export function CaseManagementCard({
       window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
       onSaveEvent?.();
     },
-    onError: () => toast.error('Failed to reorder cases'),
+    onError: () => toast.error(`Failed to reorder ${caseWord(caseTypeRows, { plural: true, capitalize: false })}`),
   });
 
   // Add a case to a specific type card.
@@ -486,8 +493,9 @@ export function CaseManagementCard({
       });
       if (error) throw error;
     },
-    onSuccess: () => { invalidateCaseQueries(); onSaveEvent?.(); toast.success('Case added'); },
-    onError: () => toast.error('Failed to add case'),
+    onSuccess: () => { invalidateCaseQueries(); onSaveEvent?.(); toast.success(`${caseWord(caseTypeRows, { capitalize: true })} added`); },
+    onError: () => toast.error(`Failed to add ${caseWord(caseTypeRows, { capitalize: false })}`),
+
   });
 
   // Delete a case (renumber its type group afterwards).
@@ -513,9 +521,10 @@ export function CaseManagementCard({
       invalidateCaseQueries();
       window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
       onSaveEvent?.();
-      toast.success('Case deleted');
+      toast.success(`${caseWord(caseTypeRows, { capitalize: true })} deleted`);
     },
-    onError: () => toast.error('Failed to delete case'),
+    onError: () => toast.error(`Failed to delete ${caseWord(caseTypeRows, { capitalize: false })}`),
+
   });
 
   // Change a card's type: update proposal_case_types row + sync legacy
@@ -618,10 +627,11 @@ export function CaseManagementCard({
   }, [updateCaseMutation]);
 
   const handleDeleteCase = useCallback((id: string) => {
-    if (confirm('Are you sure you want to delete this case?')) {
+    if (confirm(`Are you sure you want to delete this ${caseWord(caseTypeRows, { capitalize: false })}?`)) {
       deleteCaseMutation.mutate(id);
     }
-  }, [deleteCaseMutation]);
+  }, [deleteCaseMutation, caseTypeRows]);
+
 
   const handleToggleLock = useCallback(async (id: string, locked: boolean) => {
     await queryClient.cancelQueries({ queryKey: ['case-drafts-management', proposalId] });
@@ -638,7 +648,7 @@ export function CaseManagementCard({
       .eq('id', id);
     if (error) toast.error('Failed to update lock status');
     invalidateCaseQueries();
-    if (!error) toast.success(locked ? 'Case locked' : 'Case unlocked');
+    if (!error) toast.success(locked ? `${caseWord(caseTypeRows, { capitalize: true })} locked` : `${caseWord(caseTypeRows, { capitalize: true })} unlocked`);
   }, [user, proposalId, queryClient, invalidateCaseQueries]);
 
   const handleToggleLockAll = useCallback(async () => {
@@ -658,7 +668,7 @@ export function CaseManagementCard({
       .eq('proposal_id', proposalId);
     if (error) { toast.error('Failed to update lock status'); invalidateCaseQueries(); return; }
     invalidateCaseQueries();
-    toast.success(newLocked ? 'All cases locked' : 'All cases unlocked');
+    toast.success(newLocked ? `All ${caseWord(caseTypeRows, { plural: true, capitalize: false })} locked` : `All ${caseWord(caseTypeRows, { plural: true, capitalize: false })} unlocked`);
   }, [user, proposalId, queryClient, caseDrafts, invalidateCaseQueries]);
 
   const handleCheckboxChange = (checked: boolean) => onToggleCases(checked);
@@ -828,11 +838,13 @@ export function CaseManagementCard({
                             <button
                               onClick={() => {
                                 const n = cases.length;
+                                const wordForN = caseWord(caseTypeRows, { plural: n !== 1, capitalize: false });
                                 const msg = n === 0
                                   ? 'Remove this case type?'
-                                  : `This will permanently delete ${n} case${n === 1 ? '' : 's'} of this type. Continue?`;
+                                  : `This will permanently delete ${n} ${wordForN} of this type. Continue?`;
                                 if (confirm(msg)) deleteTypeMutation.mutate(typeRow.id);
                               }}
+
                               className="p-1 text-destructive hover:bg-destructive/10 rounded transition-colors"
                               title="Remove case type"
                             >
@@ -891,6 +903,8 @@ export function CaseManagementCard({
                                 caseItem={caseItem}
                                 participants={participants}
                                 casePrefix={prefix}
+                                caseWordSingular={caseWord(caseTypeRows, { capitalize: true })}
+
                                 caseTypeLabel={typeLabel}
                                 includeNumber={typeRow.include_number}
                                 includeAbbreviation={typeRow.include_abbreviation}
@@ -941,7 +955,8 @@ export function CaseManagementCard({
                       onClick={() => setSubsectionsDialogOpen(true)}
                     >
                       <Settings className="w-4 h-4 mr-1" />
-                      Edit case subsections &amp; guidelines
+                      Edit {caseWord(caseTypeRows, { capitalize: false })} subsections &amp; guidelines
+
                     </Button>
                   </div>
                 )}
@@ -955,7 +970,7 @@ export function CaseManagementCard({
                       onClick={() => setSubsectionsDialogOpen(true)}
                     >
                       <Settings className="w-4 h-4 mr-1" />
-                      Edit case subsections &amp; guidelines
+                      Edit {caseWord(caseTypeRows, { capitalize: false })} subsections &amp; guidelines
                     </Button>
                   </div>
                 )}
