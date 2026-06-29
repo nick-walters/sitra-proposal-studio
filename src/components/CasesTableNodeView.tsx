@@ -2,13 +2,32 @@ import { NodeViewWrapper, NodeViewProps } from '@tiptap/react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import DOMPurify from 'dompurify';
-import { getCaseTypePrefix, buildCaseLabel, caseWord } from '@/lib/caseTypeLabels';
+import {
+  getCaseTypePrefix,
+  buildCaseLabel,
+  caseWord,
+  getCaseTypeLabel,
+} from '@/lib/caseTypeLabels';
 
 import { supabase } from '@/integrations/supabase/client';
 import { RICH_TEXT_CONFIG } from '@/lib/sanitizePresets';
 import { stripWordHtml } from '@/lib/stripWordHtml';
 import { B31Pill, ParticipantBubble } from './B31Pill';
 import { Crown } from 'lucide-react';
+
+// B1.2 cases tables are always in section 1.2.
+const SECTION_NUMBER_BASE = '1.2';
+
+function letterFor(index: number): string {
+  // 0 → 'a', 1 → 'b', ... 25 → 'z', 26 → 'aa', etc.
+  let n = index;
+  let out = '';
+  do {
+    out = String.fromCharCode(97 + (n % 26)) + out;
+    n = Math.floor(n / 26) - 1;
+  } while (n >= 0);
+  return out;
+}
 
 /**
  * CasesTableNodeView — Stage 1 (live read-only mirror).
