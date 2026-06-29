@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import DOMPurify from 'dompurify';
+import { stripWordHtml } from '@/lib/stripWordHtml';
 import { Image as ImageLucide, Table2 } from 'lucide-react';
 import {
   DropdownMenuItem,
@@ -307,8 +308,16 @@ export function WPSimpleEditor({
           onInput={handleInput}
           onPaste={(e: React.ClipboardEvent) => {
             e.preventDefault();
-            const text = e.clipboardData.getData('text/plain');
-            document.execCommand('insertText', false, text);
+            const html = e.clipboardData.getData('text/html');
+            if (html) {
+              // Keep basic formatting (bold/italic/lists/links) but strip
+              // Word/MSO junk and preserve any custom cross-ref nodes.
+              const cleaned = stripWordHtml(html);
+              document.execCommand('insertHTML', false, cleaned);
+            } else {
+              const text = e.clipboardData.getData('text/plain');
+              document.execCommand('insertText', false, text);
+            }
           }}
           onFocus={() => setIsFocused(true)}
           onBlur={() => {

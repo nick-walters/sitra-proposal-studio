@@ -34,6 +34,7 @@ import {
   caseWord,
 } from '@/lib/caseTypeLabels';
 import { useProposalCaseTypes } from '@/hooks/useProposalCaseTypes';
+import { stripWordHtml } from '@/lib/stripWordHtml';
 
 
 
@@ -450,14 +451,22 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
   });
 
   const updateField = useCallback((field: string, value: any) => {
-    updateMutation.mutate({ [field]: value });
+    // Save-time guard: if the value looks like HTML, run it through the
+    // shared Word-cleaner so any MSO junk that slipped past paste-time
+    // (or arrived via a programmatic insert) is stripped before write.
+    const safe =
+      typeof value === 'string' && value.indexOf('<') !== -1
+        ? stripWordHtml(value)
+        : value;
+    updateMutation.mutate({ [field]: safe });
   }, [updateMutation]);
 
   // Write a single subsection's content into the subsection_content jsonb
   const updateSubsectionContent = useCallback(
     (key: string, value: string) => {
       const current = ((caseDraft as any)?.subsection_content as Record<string, string> | null) || {};
-      updateMutation.mutate({ subsection_content: { ...current, [key]: value } });
+      const safe = typeof value === 'string' ? stripWordHtml(value) : value;
+      updateMutation.mutate({ subsection_content: { ...current, [key]: safe } });
     },
     [caseDraft, updateMutation],
   );

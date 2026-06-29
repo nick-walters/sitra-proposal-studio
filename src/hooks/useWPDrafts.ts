@@ -1,32 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { stripWordHtml } from '@/lib/stripWordHtml';
 
-/**
- * Strip legacy Word/XML artifacts from HTML content.
- * Removes xmlns attributes, MsoNormal classes, mso-* style properties,
- * XML processing instructions, and empty spans left behind.
- */
+// Legacy name retained for call-site stability — delegates to the shared
+// DOM-based cleaner. Preserves custom cross-ref nodes and keeps basic
+// formatting; strips Word/MSO junk.
 function stripWordXml(html: string): string {
   if (!html || typeof html !== 'string') return html;
-  if (!/xmlns|MsoNormal|mso-|<o:|<w:|<m:|class="Mso/i.test(html)) return html;
-
-  let clean = html;
-  clean = clean.replace(/<\?xml[^>]*\?>/gi, '');
-  clean = clean.replace(/<\/?[owm]:[^>]*>/gi, '');
-  clean = clean.replace(/\s+xmlns(?::[a-z]+)?="[^"]*"/gi, '');
-  clean = clean.replace(/\s+class="Mso[^"]*"/gi, '');
-  clean = clean.replace(/style="([^"]*)"/gi, (match, styles: string) => {
-    const cleaned = styles
-      .split(';')
-      .filter((s: string) => !/^\s*mso-/i.test(s.trim()))
-      .join(';')
-      .trim();
-    return cleaned ? `style="${cleaned}"` : '';
-  });
-  clean = clean.replace(/<span\s*>\s*<\/span>/gi, '');
-  clean = clean.replace(/\s+style=""/g, '');
-  return clean;
+  return stripWordHtml(html);
 }
 
 export interface WPDraftTask {
