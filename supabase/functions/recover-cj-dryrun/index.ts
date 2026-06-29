@@ -110,7 +110,7 @@ async function parseXlsxComments(zipBytes: Uint8Array) {
   if (sstFile) {
     const sx = await sstFile.async("string");
     sst = [...sx.matchAll(/<si\b[\s\S]*?<\/si>/g)].map(m => {
-      const tparts = [...m[0].matchAll(/<t(?:\\s[^>]*)?>([\s\S]*?)<\/t>/g)].map(x => decode(x[1]));
+      const tparts = [...m[0].matchAll(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g)].map(x => decode(x[1]));
       return tparts.join("");
     });
   }
@@ -133,7 +133,7 @@ async function parseXlsxComments(zipBytes: Uint8Array) {
         val = vMatch[1];
         if (t === "s") val = sst[parseInt(val)] || "";
       } else if (isMatch) {
-        val = [...isMatch[0].matchAll(/<t(?:\\s[^>]*)?>([\s\S]*?)<\/t>/g)].map(x => decode(x[1])).join("");
+        val = [...isMatch[0].matchAll(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g)].map(x => decode(x[1])).join("");
       }
       cells[`${col}${row}`] = val;
       if (!rows[row]) rows[row] = {};
@@ -150,7 +150,7 @@ async function parseXlsxComments(zipBytes: Uint8Array) {
         const cpath = "xl/" + commentsRel[1].replace(/^\.\.\//, "");
         const cxml = await zip.file(cpath)!.async("string");
         for (const cm of cxml.matchAll(/<comment ref="([^"]+)"[^>]*>([\s\S]*?)<\/comment>/g)) {
-          const txt = [...cm[2].matchAll(/<t(?:\\s[^>]*)?>([\s\S]*?)<\/t>/g)].map(x => decode(x[1])).join("");
+          const txt = [...cm[2].matchAll(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g)].map(x => decode(x[1])).join("");
           comments[cm[1]] = txt.trim();
         }
       }
