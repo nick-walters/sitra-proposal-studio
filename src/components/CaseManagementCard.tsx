@@ -574,7 +574,7 @@ export function CaseManagementCard({
       if (caption_text !== undefined) patch.caption_text = caption_text;
       const { error: e1 } = await supabase
         .from('proposal_case_types')
-        .update(patch)
+        .update(patch as never)
         .eq('id', typeRowId);
       if (e1) throw e1;
       if (type_code) {
