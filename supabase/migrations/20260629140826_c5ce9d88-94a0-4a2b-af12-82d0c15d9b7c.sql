@@ -1,0 +1,1 @@
+ALTER TABLE public.proposal_case_types ALTER COLUMN type_code DROP NOT NULL;
