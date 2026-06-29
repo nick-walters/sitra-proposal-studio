@@ -575,10 +575,12 @@ export function CaseManagementCard({
       const used = new Set(caseTypeRows.filter(t => t.type_code !== 'other').map(t => t.type_code));
       const firstFree = CASE_TYPE_DEFS.find(d => d.code !== 'other' && !used.has(d.code))?.code ?? 'other';
       const nextOrder = caseTypeRows.length > 0 ? Math.max(...caseTypeRows.map(t => t.order_index)) + 1 : 0;
+      const defaultSingular = getCaseTypeLabel(firstFree, null);
       const { error } = await supabase.from('proposal_case_types').insert({
         proposal_id: proposalId,
         type_code: firstFree,
         order_index: nextOrder,
+        caption_text: `${defaultSingular} descriptions`,
       });
       if (error) throw error;
     },
