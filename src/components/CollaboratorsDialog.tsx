@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Mail, Building2, Search, Users, UserPlus, Phone, Crown, ShieldCheck, Pencil, Eye, Loader2, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useCollaborativeCursors } from "@/hooks/useCollaborativeCursors";
 import { supabase } from "@/integrations/supabase/client";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -86,7 +87,6 @@ export function CollaboratorsDialog({ open, onOpenChange }: CollaboratorsDialogP
   const [canManageProposal, setCanManageProposal] = useState(false);
   const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
   const [loadingCollaborators, setLoadingCollaborators] = useState(true);
-  const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
 
   // Proposal access management state
   const [proposalCollaborators, setProposalCollaborators] = useState<ProposalCollaborator[]>([]);
@@ -99,39 +99,17 @@ export function CollaboratorsDialog({ open, onOpenChange }: CollaboratorsDialogP
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteRole, setInviteRole] = useState<'coordinator' | 'editor' | 'viewer'>('editor');
 
-  // Subscribe to realtime presence for the current proposal
-  useEffect(() => {
-    if (!open || !proposalId || !user) {
-      setOnlineUsers([]);
-      return;
-    }
+  // Consume the shared cursors/presence channel only while the dialog is open.
+  // The ref-counted hook reuses the single subscription owned by the editor.
+  const { collaborators: presenceCollaborators } = useCollaborativeCursors({
+    proposalId: proposalId || '',
+    currentSectionId: null,
+    enabled: !!open && !!proposalId && !!user,
+  });
+  const onlineUsers: OnlineUser[] = presenceCollaborators.map((c) => ({ id: c.id, name: c.name }));
+  const onlineUserIds = new Set(onlineUsers.map((u) => u.id));
 
-    const channel = supabase.channel(`proposal:${proposalId}:cursors`, {
-      config: {
-        presence: {},
-      },
-    });
 
-    channel
-      .on('presence', { event: 'sync' }, () => {
-        const state = channel.presenceState();
-        const users: OnlineUser[] = [];
-        for (const [, presences] of Object.entries(state)) {
-          const presence = presences[0] as unknown as { id: string; name: string };
-          if (presence.id && presence.id !== user.id) {
-            users.push({ id: presence.id, name: presence.name });
-          }
-        }
-        setOnlineUsers(users);
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [open, proposalId, user]);
-
-  const onlineUserIds = new Set(onlineUsers.map(u => u.id));
 
   // Fetch real collaborators from profiles table
   useEffect(() => {
