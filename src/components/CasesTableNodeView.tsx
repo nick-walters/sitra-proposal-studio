@@ -68,6 +68,7 @@ interface CaseTypeRow {
   outline_color: string;
   type_code: string | null;
   custom_type_name: string | null;
+  caption_text: string | null;
 }
 
 
