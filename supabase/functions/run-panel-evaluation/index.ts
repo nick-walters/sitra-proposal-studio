@@ -420,16 +420,26 @@ PARTICIPANTS:
 ${participants.map((participant: any) => `- #${participant.participant_number} ${participant.organisation_short_name || participant.organisation_name} (${participant.country}, ${participant.organisation_category || "?"})`).join("\n")}
 
 WORK PACKAGES:
-${wpDrafts.map((wp: any) => `WP${wp.number} ${wp.short_name || ""} ${wp.title || ""}\nObjectives: ${stripHtml(wp.objectives).slice(0, 600)}\nMethodology: ${stripHtml(wp.methodology).slice(0, 800)}`).join("\n\n")}
+${wpDrafts.map((wp: any) => `WP${wp.number} ${wp.short_name || ""} ${wp.title || ""}\nObjectives: ${stripHtml(wp.objectives).slice(0, 600)}`).join("\n\n")}
 
 DELIVERABLES:
 ${deliverables.map((deliverable: any) => `- D${deliverable.number} ${deliverable.title || ""} (M${deliverable.due_month}, ${deliverable.type || "?"}, ${deliverable.dissemination_level || "?"})`).join("\n")}
 
 MILESTONES:
-${milestones.map((milestone: any) => `- MS${milestone.number} ${milestone.title || ""} (M${milestone.due_month}, WPs: ${milestone.related_wps || ""})`).join("\n")}
+${milestones.map((milestone: any) => {
+  const wpNums = (milestone.proposal_milestone_wps || [])
+    .map((l: any) => wpDrafts.find((w: any) => w.id === l.wp_draft_id)?.number)
+    .filter((n: any) => n != null);
+  return `- MS${milestone.number} ${milestone.title || ""} (M${milestone.due_month}, WPs: ${wpNums.map((n: number) => `WP${n}`).join(", ")})`;
+}).join("\n")}
 
 RISKS:
-${risks.map((risk: any) => `- R${risk.number} ${stripHtml(risk.title)} | Mitigation: ${stripHtml(risk.mitigation)} | L:${risk.likelihood} S:${risk.severity}`).join("\n")}
+${risks.map((risk: any) => {
+  const wpNums = (risk.proposal_risk_wps || [])
+    .map((l: any) => wpDrafts.find((w: any) => w.id === l.wp_draft_id)?.number)
+    .filter((n: any) => n != null);
+  return `- R${risk.number} ${stripHtml(risk.title)} | WPs: ${wpNums.map((n: number) => `WP${n}`).join(", ")} | Mitigation: ${stripHtml(risk.mitigation)} | L:${risk.likelihood} S:${risk.severity}`;
+}).join("\n")}
 
 BUDGET (sum requested EU contribution): €${budget.reduce((sum: number, row: any) => sum + Number(row.requested_eu_contribution || 0), 0).toLocaleString()}
 `;
