@@ -437,7 +437,7 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
     const column = CATEGORY_TO_COLUMN[category];
     const rowField = CATEGORY_TO_ROW_FIELD[category];
     setRows(prev => prev.map(r => r.id === budgetRowId ? { ...r, [rowField]: total } : r));
-    await supabase.from('budget_rows').update({ [column]: total }).eq('id', budgetRowId);
+    await supabase.from('budget_rows').update({ [column]: total } as any).eq('id', budgetRowId);
   }, []);
 
   const addJustificationItem = useCallback(async (budgetRowId: string, category: JustificationCategory) => {

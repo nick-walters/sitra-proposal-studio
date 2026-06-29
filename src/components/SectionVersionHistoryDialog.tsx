@@ -438,7 +438,7 @@ export function SectionVersionHistoryDialog({
 
       const { error } = await supabase
         .from('section_versions')
-        .update(updateData)
+        .update(updateData as any)
         .eq('id', version.id);
       if (error) throw error;
 
@@ -471,7 +471,7 @@ export function SectionVersionHistoryDialog({
 
       const { error } = await supabase
         .from('section_versions')
-        .update(updateData)
+        .update(updateData as any)
         .eq('id', version.id);
       if (error) throw error;
 
