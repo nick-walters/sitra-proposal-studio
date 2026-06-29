@@ -428,6 +428,7 @@ export function CasesTableNodeView(props: NodeViewProps) {
         userSelect: 'text',
       }}
     >
+      {captionEl}
       {(!data || data.cases.length === 0) && (
         <div
           style={{
