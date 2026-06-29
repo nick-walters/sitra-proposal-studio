@@ -210,6 +210,42 @@ function AutoTextarea({ value, onChange, debounceMs = 500, onBlur, onFocus, ...r
 export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDuration = 36 }: Props) {
   const qc = useQueryClient();
 
+  // ── Save-state tracking for the page-header SaveIndicator ────
+  const pendingTextareasRef = useRef(0);
+  const [pendingTextareas, setPendingTextareas] = useState(0);
+  const flushers = useRef(new Set<() => void>());
+  const [activeSaves, setActiveSaves] = useState(0);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const tracker = useMemo<SaveTrackerCtx>(() => ({
+    bumpPending: (delta: number) => {
+      pendingTextareasRef.current = Math.max(0, pendingTextareasRef.current + delta);
+      setPendingTextareas(pendingTextareasRef.current);
+    },
+    registerFlush: (flush: () => void) => {
+      flushers.current.add(flush);
+      return () => { flushers.current.delete(flush); };
+    },
+  }), []);
+
+  // Apply to every mutation to track saving/lastSaved/saveError.
+  const saveHooks = useMemo(() => ({
+    onMutate: () => { setActiveSaves(s => s + 1); },
+    onSettled: (_data: unknown, err: unknown) => {
+      setActiveSaves(s => Math.max(0, s - 1));
+      if (err) setSaveError((err as any)?.message || String(err));
+      else { setLastSaved(new Date()); setSaveError(null); }
+    },
+  }), []);
+
+  const saveNow = useCallback(() => {
+    // Flush every armed AutoTextarea timer — their onChange fires the mutation immediately.
+    Array.from(flushers.current).forEach(f => { try { f(); } catch { /* noop */ } });
+  }, []);
+
+
+
   // ── WP + task lookups ────────────────────────────────────────
   const { data: wps = [] } = useQuery<WPRow[]>({
     queryKey: ['wp-drafts-mr-mgr', proposalId],
