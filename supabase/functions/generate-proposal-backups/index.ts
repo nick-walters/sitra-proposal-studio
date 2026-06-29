@@ -1278,7 +1278,7 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
 
   const { data: wps } = await supabase
     .from("wp_drafts")
-    .select("id, number, short_name, title, color, lead_participant_id, manual_duration, b31_objectives, background_knowledge, approach_summary, methodologies_list, foreseen_challenges, b31_description_before_tasks")
+    .select("id, number, short_name, title, color, lead_participant_id, manual_duration, b31_objectives, b31_description_before_tasks")
     .eq("proposal_id", proposal.id)
     .order("number", { ascending: true });
 
@@ -1413,7 +1413,6 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
       duration: w.manual_duration ? String(w.manual_duration) : null,
       objectives: w.b31_objectives,
       description: w.b31_description_before_tasks,
-      methodology: w.approach_summary,
       tasks: wpTasks.map((t: any) => {
         const ids = (b31TaskParts ?? []).filter((tp: any) => tp.task_id === t.id).map((tp: any) => tp.participant_id);
         return {
@@ -1425,11 +1424,6 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
           description: t.description,
         };
       }),
-      extras: [
-        ["Background knowledge", w.background_knowledge],
-        ["Methodologies", w.methodologies_list],
-        ["Foreseen challenges", w.foreseen_challenges],
-      ],
     }));
     children.push(P("")); // spacer between WP tables
   }
@@ -1542,15 +1536,31 @@ async function buildWpDraft(supabase: any, proposal: any, wp: any, participants:
 
   const { data: tasks } = await supabase.from("wp_draft_tasks").select("*").eq("wp_draft_id", wp.id).order("number", { ascending: true });
   const taskIds = (tasks ?? []).map((t: any) => t.id);
-  const [{ data: deliverables }, { data: milestones }, { data: risks }, { data: effort }, { data: taskParts }] = await Promise.all([
+  const [{ data: deliverables }, { data: msLinks }, { data: riskLinks }, { data: effort }, { data: taskParts }] = await Promise.all([
     supabase.from("wp_draft_deliverables").select("*").eq("wp_draft_id", wp.id).order("number", { ascending: true }),
-    supabase.from("wp_draft_milestones").select("*").eq("wp_draft_id", wp.id).order("number", { ascending: true }),
-    supabase.from("wp_draft_risks").select("*").eq("wp_draft_id", wp.id).order("number", { ascending: true }),
+    supabase
+      .from("proposal_milestone_wps")
+      .select("is_primary, milestone:milestone_id(number, title, due_month, means_of_verification, proposal_id)")
+      .eq("wp_draft_id", wp.id),
+    supabase
+      .from("proposal_risk_wps")
+      .select("risk:risk_id(number, title, mitigation, likelihood, severity, proposal_id)")
+      .eq("wp_draft_id", wp.id),
     supabase.from("wp_draft_effort").select("*, participant:participant_id(participant_number, organisation_short_name)").eq("wp_draft_id", wp.id),
     taskIds.length
       ? supabase.from("wp_draft_task_participants").select("task_id, participant_id").in("task_id", taskIds)
       : Promise.resolve({ data: [] }),
   ]);
+
+  // Filter to this proposal and dedupe by number.
+  const milestones = (msLinks ?? [])
+    .map((l: any) => l.milestone ? { ...l.milestone, is_primary: l.is_primary } : null)
+    .filter((m: any) => m && m.proposal_id === wp.proposal_id)
+    .sort((a: any, b: any) => (a.number ?? 0) - (b.number ?? 0));
+  const risks = (riskLinks ?? [])
+    .map((l: any) => l.risk)
+    .filter((r: any) => r && r.proposal_id === wp.proposal_id)
+    .sort((a: any, b: any) => (a.number ?? 0) - (b.number ?? 0));
 
   const wpTable = buildWpDescriptionTable({
     wpNumber: wp.number,
@@ -1560,7 +1570,6 @@ async function buildWpDraft(supabase: any, proposal: any, wp: any, participants:
     duration: wp.manual_duration ? String(wp.manual_duration) : null,
     objectives: wp.objectives,
     description: wp.description_before_tasks,
-    methodology: wp.methodology,
     tasks: (tasks ?? []).map((t: any) => {
       const ids = (taskParts ?? []).filter((tp: any) => tp.task_id === t.id).map((tp: any) => tp.participant_id);
       return {
@@ -1572,11 +1581,6 @@ async function buildWpDraft(supabase: any, proposal: any, wp: any, participants:
         description: t.description ?? t.b31_description ?? "",
       };
     }),
-    extras: [
-      ["Inputs", wp.inputs_question],
-      ["Outputs", wp.outputs_question],
-      ["Bottlenecks", wp.bottlenecks_question],
-    ],
   });
 
 
@@ -1592,18 +1596,18 @@ async function buildWpDraft(supabase: any, proposal: any, wp: any, participants:
       deliverables.map((d: any) => [d.number, d.title ?? "", d.type ?? "", d.dissemination_level ?? "", partLabel(d.responsible_participant_id), d.due_month ?? "", d.description ?? ""]),
     ));
   }
-  if (milestones?.length) {
+  if (milestones.length) {
     children.push(H(HeadingLevel.HEADING_2, "Milestones"));
     children.push(simpleTable(
-      ["#", "Title", "Related WPs", "Due month", "Means of verification"],
-      milestones.map((m: any) => [m.number, m.title ?? "", m.related_wps ?? "", m.due_month ?? "", m.means_of_verification ?? ""]),
+      ["#", "Title", "Primary WP?", "Due month", "Means of verification"],
+      milestones.map((m: any) => [m.number, m.title ?? "", m.is_primary ? "Yes" : "No", m.due_month ?? "", m.means_of_verification ?? ""]),
     ));
   }
-  if (risks?.length) {
+  if (risks.length) {
     children.push(H(HeadingLevel.HEADING_2, "Risks"));
     children.push(simpleTable(
-      ["#", "Title", "Related WPs", "Likelihood", "Severity", "Mitigation"],
-      risks.map((r: any) => [r.number, r.title ?? "", r.related_wps ?? "", r.likelihood ?? "", r.severity ?? "", r.mitigation ?? ""]),
+      ["#", "Title", "Likelihood", "Severity", "Mitigation"],
+      risks.map((r: any) => [r.number, r.title ?? "", r.likelihood ?? "", r.severity ?? "", r.mitigation ?? ""]),
     ));
   }
   if (effort?.length) {
