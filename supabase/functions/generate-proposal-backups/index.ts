@@ -422,10 +422,6 @@ function buildWpDescriptionTable(opts: WpTableOpts): Table {
     rows.push(new TableRow({ children: [txtCell("Description", { span: 6, shading: SHADE, bold: true })] }));
     rows.push(new TableRow({ children: [htmlCell(opts.description, { span: 6 })] }));
   }
-  if (opts.methodology && String(opts.methodology).trim()) {
-    rows.push(new TableRow({ children: [txtCell("Methodology", { span: 6, shading: SHADE, bold: true })] }));
-    rows.push(new TableRow({ children: [htmlCell(opts.methodology, { span: 6 })] }));
-  }
   for (const t of opts.tasks) {
     rows.push(new TableRow({
       children: [txtCell(`Task ${opts.wpNumber}.${t.number}: ${t.title ?? ""}`, { span: 6, shading: SHADE, bold: true })],
