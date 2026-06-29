@@ -60,7 +60,11 @@ export interface CaseLeadershipInfo {
   color: string;
   shortName?: string;
   prefix: string; // CS, UC, LL, P, D, C
+  includeNumber?: boolean;
+  includeAbbreviation?: boolean;
+  outlineColor?: string;
 }
+
 
 interface ParticipantListViewProps {
   participants: Participant[];
