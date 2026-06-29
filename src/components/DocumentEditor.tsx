@@ -3,6 +3,7 @@ import { Section } from "@/types/proposal";
 import { supabase } from "@/integrations/supabase/client";
 import { caseWord } from "@/lib/caseTypeLabels";
 import { useProposalCaseTypes } from "@/hooks/useProposalCaseTypes";
+import { useB12CasesTableReconciler } from "@/hooks/useB12CasesTableReconciler";
 
 import DOMPurify from "dompurify";
 import { toast } from "sonner";
