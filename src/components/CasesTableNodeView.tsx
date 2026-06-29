@@ -6,7 +6,7 @@ import { getCaseTypePrefix, buildCaseLabel, caseWord } from '@/lib/caseTypeLabel
 
 import { supabase } from '@/integrations/supabase/client';
 import { RICH_TEXT_CONFIG } from '@/lib/sanitizePresets';
-import { B31Pill } from './B31Pill';
+import { B31Pill, ParticipantBubble } from './B31Pill';
 import { Crown } from 'lucide-react';
 
 /**
@@ -115,25 +115,35 @@ function bodyStartsWithList(html: string | null | undefined): boolean {
   return /^<(ul|ol)\b/i.test(stripped);
 }
 
-function ReadOnlyRichBody({ html, inline }: { html: string | null | undefined; inline?: boolean }) {
+function ReadOnlyRichBody({ html, headingPrefixHtml }: { html: string | null | undefined; headingPrefixHtml?: string }) {
   const raw = (html ?? '').toString();
   const isEmpty = !raw || raw.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, '').trim() === '';
-  if (isEmpty) return null;
-  if (inline) {
-    // Strip the outer <p> wrappers so the first paragraph flows inline after the heading.
-    // Subsequent paragraphs (if any) still render via <p> tags inside the span.
-    const inlined = raw.replace(/^\s*<p[^>]*>/i, '').replace(/<\/p>\s*$/i, '');
-    return (
-      <span
-        className="font-['Times_New_Roman',Times,serif] text-[11pt] [&_p]:mt-[6pt] [&_p]:mb-[6pt]"
-        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(inlined, RICH_TEXT_CONFIG) }}
-      />
-    );
+  if (isEmpty) {
+    if (headingPrefixHtml) {
+      // No body — still render the heading as its own paragraph so the divider/spacing is consistent.
+      return (
+        <div
+          className="font-['Times_New_Roman',Times,serif] text-[11pt] text-justify [&_p]:mt-[6pt] [&_p]:mb-[6pt]"
+          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(`<p>${headingPrefixHtml}</p>`, RICH_TEXT_CONFIG) }}
+        />
+      );
+    }
+    return null;
+  }
+  let finalHtml = raw;
+  if (headingPrefixHtml) {
+    // Inject the heading INSIDE the first <p> so heading + first paragraph render as
+    // one single block (truly inline). If no leading <p>, wrap the whole thing.
+    if (/^\s*<p\b[^>]*>/i.test(raw)) {
+      finalHtml = raw.replace(/^(\s*<p\b[^>]*>)/i, `$1${headingPrefixHtml} `);
+    } else {
+      finalHtml = `<p>${headingPrefixHtml} </p>${raw}`;
+    }
   }
   return (
     <div
       className="font-['Times_New_Roman',Times,serif] text-[11pt] text-justify [&_p]:mt-[6pt] [&_p]:mb-[6pt]"
-      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(raw, RICH_TEXT_CONFIG) }}
+      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(finalHtml, RICH_TEXT_CONFIG) }}
     />
   );
 }
@@ -309,20 +319,11 @@ export function CasesTableNodeView(_props: NodeViewProps) {
               <CaseChip label={label} color={outlineColor} />
 
               {leader ? (
-                <B31Pill
-                  variant="outline"
-                  color={outlineColor}
-                  icon={
-                    <Crown
-                      className="h-2.5 w-2.5 mr-0.5"
-                      style={{ color: outlineColor, fill: outlineColor }}
-                      strokeWidth={0}
-                    />
-                  }
+                <ParticipantBubble
+                  showCrown
+                  shortName={leader.organisation_short_name || leader.organisation_name || ''}
                   style={{ fontStyle: 'normal' }}
-                >
-                  {leader.organisation_short_name || leader.organisation_name || ''}
-                </B31Pill>
+                />
               ) : (
                 <span className="text-muted-foreground text-[9pt] italic">No {caseWord(data?.types ?? [], { capitalize: false })} lead</span>
               )}
@@ -339,25 +340,36 @@ export function CasesTableNodeView(_props: NodeViewProps) {
             {subs.map((s, sIdx) => {
               const isLast = sIdx === subs.length - 1;
               const startsWithList = bodyStartsWithList(s.body);
-              const inline = !startsWithList;
+              const headingText = s.heading || '';
+              const colon = headingText.trim() ? ':' : '';
+              // Build the heading prefix HTML once, escape angle brackets in the heading text.
+              const escapedHeading = headingText
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+              const headingPrefixHtml = headingText
+                ? `<strong><em>${escapedHeading}${colon}</em></strong>`
+                : '';
               return (
                 <div key={s.key}>
-                  <div>
-                    <span style={{ fontWeight: 700, fontStyle: 'italic' }}>
-                      {s.heading}
-                      {s.heading.trim() && <span>:</span>}
-                    </span>
-                    {inline ? (
-                      <>
-                        {' '}
-                        <ReadOnlyRichBody html={s.body} inline />
-                      </>
-                    ) : (
+                  {startsWithList ? (
+                    // List-first: heading on its own line, list below.
+                    <div>
+                      <div>
+                        <span style={{ fontWeight: 700, fontStyle: 'italic' }}>
+                          {headingText}
+                          {colon}
+                        </span>
+                      </div>
                       <div style={{ marginTop: 2 }}>
                         <ReadOnlyRichBody html={s.body} />
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  ) : (
+                    // Paragraph-first: heading is merged INSIDE the first <p> of the body
+                    // so they render as one single block (truly inline).
+                    <ReadOnlyRichBody html={s.body} headingPrefixHtml={headingPrefixHtml} />
+                  )}
                   <div
                     style={{
                       height: isLast ? 2 : 1,
