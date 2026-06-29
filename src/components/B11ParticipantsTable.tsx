@@ -7,6 +7,7 @@ import { useColumnResize } from '@/hooks/useColumnResize';
 import { useProposalRole } from '@/hooks/useProposalRole';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { B31Pill, WPBubble, ParticipantBubble } from './B31Pill';
+import { getCaseTypePrefix } from '@/lib/caseTypeLabels';
 
 interface Props {
   proposalId: string;
@@ -39,17 +40,7 @@ interface CaseLeadRow {
   custom_type_name: string | null;
 }
 
-function getCasePrefix(caseType: string, customTypeName: string | null): string {
-  if (caseType === 'other') return customTypeName ? customTypeName.toUpperCase() : '';
-  switch (caseType) {
-    case 'case_study': return 'CS';
-    case 'use_case': return 'UC';
-    case 'living_lab': return 'LL';
-    case 'pilot': return 'P';
-    case 'demonstration': return 'D';
-    default: return '';
-  }
-}
+// Case prefix resolution lives in @/lib/caseTypeLabels.
 
 function ParticipantLogo({ src }: { src: string | null }) {
   const url = useStorageUrl(src);
@@ -175,7 +166,7 @@ export function B11ParticipantsTable({ proposalId }: Props) {
       if (!c.lead_participant_id) continue;
       (m[c.lead_participant_id] ||= []).push({
         number: c.number, shortName: c.short_name, color: c.color,
-        prefix: getCasePrefix(c.case_type, c.custom_type_name),
+        prefix: getCaseTypePrefix(c.case_type, c.custom_type_name),
       });
     }
     return m;

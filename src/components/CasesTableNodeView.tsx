@@ -2,6 +2,7 @@ import { NodeViewWrapper, NodeViewProps } from '@tiptap/react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import DOMPurify from 'dompurify';
+import { getCaseTypePrefix } from '@/lib/caseTypeLabels';
 
 import { supabase } from '@/integrations/supabase/client';
 import { RICH_TEXT_CONFIG } from '@/lib/sanitizePresets';
@@ -55,14 +56,7 @@ interface Participant {
 }
 
 function casePrefix(caseType: string | null): string {
-  switch (caseType) {
-    case 'case_study': return 'CS';
-    case 'use_case': return 'UC';
-    case 'living_lab': return 'LL';
-    case 'pilot': return 'P';
-    case 'demonstration': return 'D';
-    default: return '';
-  }
+  return getCaseTypePrefix(caseType);
 }
 
 function caseChipLabel(opts: {

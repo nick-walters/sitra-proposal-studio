@@ -72,34 +72,23 @@ interface CaseDraft {
   
 }
 
-const CASE_TYPES = [
-  { value: 'case_study', label: 'Case Study', prefix: 'CS' },
-  { value: 'use_case', label: 'Use Case', prefix: 'UC' },
-  { value: 'living_lab', label: 'Living Lab', prefix: 'LL' },
-  { value: 'pilot', label: 'Pilot', prefix: 'P' },
-  { value: 'demonstration', label: 'Demonstration', prefix: 'D' },
-  { value: 'challenge', label: 'Challenge', prefix: 'CH' },
-  { value: 'other', label: 'Other', prefix: '' },
-];
+import {
+  CASE_TYPE_DEFS,
+  getCaseTypeLabel,
+  getCaseTypePrefix as getCasePrefix,
+} from '@/lib/caseTypeLabels';
 
-function getCaseTypeLabel(caseType: string, customTypeName: string | null): string {
-  if (caseType === 'other') return customTypeName || 'Case';
-  const type = CASE_TYPES.find(t => t.value === caseType);
-  return type?.label || 'Case';
-}
+// Type-selector options derived from the single source of truth.
+const CASE_TYPES = CASE_TYPE_DEFS.map((d) => ({
+  value: d.code,
+  label: d.singular,
+  prefix: d.prefix,
+}));
 
 const CASE_COLORS = [
-  '#DC2626', '#B91C1C', '#EF4444', '#F87171', '#991B1B', 
+  '#DC2626', '#B91C1C', '#EF4444', '#F87171', '#991B1B',
   '#C53030', '#E53E3E', '#FC8181', '#9B2C2C', '#F56565',
 ];
-
-function getCasePrefix(caseType: string, customTypeName: string | null): string {
-  if (caseType === 'other') {
-    return customTypeName || '';
-  }
-  const type = CASE_TYPES.find(t => t.value === caseType);
-  return type?.prefix || '';
-}
 
 function getCaseBubbleLabel(casePrefix: string, caseNumber: number, shortName: string | null): string {
   if (casePrefix) {

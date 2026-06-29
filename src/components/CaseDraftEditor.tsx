@@ -27,35 +27,10 @@ import { toast } from 'sonner';
 import type { ParticipantSummary } from '@/types/proposal';
 import { ParticipantBubble } from '@/components/B31Pill';
 
-const CASE_TYPES: Record<string, string> = {
-  case_study: 'CS',
-  use_case: 'UC',
-  living_lab: 'LL',
-  pilot: 'P',
-  demonstration: 'D',
-  challenge: 'CH',
-  other: '',
-};
-
-const CASE_TYPE_LABELS: Record<string, string> = {
-  case_study: 'Case Study',
-  use_case: 'Use Case',
-  living_lab: 'Living Lab',
-  pilot: 'Pilot',
-  demonstration: 'Demonstration',
-  challenge: 'Challenge',
-  other: 'Case',
-};
-
-function getCaseTypeLabel(caseType: string, customTypeName?: string | null): string {
-  if (caseType === 'other') return customTypeName || 'Case';
-  return CASE_TYPE_LABELS[caseType] || 'Case';
-}
-
-function getCasePrefix(caseType: string, customTypeName?: string | null): string {
-  if (caseType === 'other') return customTypeName ? customTypeName.toUpperCase() : '';
-  return CASE_TYPES[caseType] || '';
-}
+import {
+  getCaseTypeLabel,
+  getCaseTypePrefix as getCasePrefix,
+} from '@/lib/caseTypeLabels';
 
 const SITRA_CASE_TIPS = [
   {
@@ -308,8 +283,7 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
   }, [acronymSegments, insertNodeAtCursor]);
 
   const insertCaseRefAtCursor = useCallback((caseItem: { id: string; number: number; short_name: string | null; case_type: string }) => {
-    const CASE_PREFIXES: Record<string, string> = { case_study: 'CS', use_case: 'UC', living_lab: 'LL', pilot: 'P', demonstration: 'D', challenge: 'CH' };
-    const prefix = CASE_PREFIXES[caseItem.case_type] || '';
+    const prefix = getCasePrefix(caseItem.case_type);
     const label = prefix ? `${prefix}${caseItem.number}` : (caseItem.short_name || String(caseItem.number));
     const span = document.createElement('span');
     span.textContent = label;

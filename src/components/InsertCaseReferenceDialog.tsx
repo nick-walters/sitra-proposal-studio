@@ -28,18 +28,7 @@ interface InsertCaseReferenceDialogProps {
   onSelect: (caseItem: CaseDraft) => void;
 }
 
-// Get display prefix based on case type
-function getCasePrefix(caseType: string): string {
-  switch (caseType) {
-    case 'case_study': return 'CS';
-    case 'use_case': return 'UC';
-    case 'living_lab': return 'LL';
-    case 'pilot': return 'P';
-    case 'demonstration': return 'D';
-    case 'challenge': return 'CH';
-    default: return '';
-  }
-}
+import { getCaseTypePrefix } from '@/lib/caseTypeLabels';
 
 export function InsertCaseReferenceDialog({
   open,
@@ -104,7 +93,7 @@ export function InsertCaseReferenceDialog({
           ) : (
             <div className="space-y-1 p-1">
               {caseDrafts.map((caseItem) => {
-                const prefix = getCasePrefix(caseItem.case_type);
+                const prefix = getCaseTypePrefix(caseItem.case_type);
                 return (
                   <button
                     key={caseItem.id}

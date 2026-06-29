@@ -48,16 +48,7 @@ interface FigureData {
   title: string;
 }
 
-function getCasePrefix(caseType: string): string {
-  switch (caseType) {
-    case 'case_study': return 'CS';
-    case 'use_case': return 'UC';
-    case 'living_lab': return 'LL';
-    case 'pilot': return 'P';
-    case 'demonstration': return 'D';
-    default: return '';
-  }
-}
+import { getCaseTypePrefix } from '@/lib/caseTypeLabels';
 
 /**
  * Fetches current numbering data for all cross-referenceable items in a proposal

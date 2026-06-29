@@ -1,4 +1,5 @@
 import { Header } from "@/components/Header";
+import { getCaseTypePrefix } from "@/lib/caseTypeLabels";
 import { StorageImage } from "@/components/StorageImage";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SectionNavigator } from "@/components/SectionNavigator";
@@ -225,20 +226,7 @@ export function ProposalEditor() {
     enabled: !!id && !!proposal?.casesEnabled,
   });
 
-  // Helper to get case prefix
-  const getCasePrefix = (caseType: string, customTypeName: string | null): string => {
-    if (caseType === 'other') {
-      return customTypeName ? customTypeName.toUpperCase() : '';
-    }
-    switch (caseType) {
-      case 'case_study': return 'CS';
-      case 'use_case': return 'UC';
-      case 'living_lab': return 'LL';
-      case 'pilot': return 'P';
-      case 'demonstration': return 'D';
-      default: return '';
-    }
-  };
+  // Case prefix resolution lives in @/lib/caseTypeLabels.
 
   // Compute Case leadership mapping: participantId -> Cases they lead
   const caseLeadership = useMemo(() => {
@@ -252,7 +240,7 @@ export function ProposalEditor() {
           caseNumber: c.number,
           color: c.color,
           shortName: c.short_name || undefined,
-          prefix: getCasePrefix(c.case_type, c.custom_type_name),
+          prefix: getCaseTypePrefix(c.case_type, c.custom_type_name),
         });
       }
     }

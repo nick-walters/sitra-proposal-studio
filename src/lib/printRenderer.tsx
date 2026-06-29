@@ -10,6 +10,7 @@ import DOMPurify from 'dompurify';
 import { Participant, Section } from '@/types/proposal';
 import { supabase } from '@/integrations/supabase/client';
 import { resolveStorageUrl } from '@/hooks/useStorageUrl';
+import { getCaseTypePrefix } from '@/lib/caseTypeLabels';
 import { extractFilePathFromUrl } from '@/lib/proposalStorage';
 import { SITRA_LOGO_BASE64 } from '@/lib/sitraLogo';
 
@@ -182,16 +183,13 @@ async function buildParticipantListHtml(
     wpLeadership.get(wp.lead_participant_id)!.push({ num: wp.number, color: wp.color });
   }
 
-  const getCasePrefix = (t: string, c: string | null) => {
-    if (t === 'other') return c ? c.toUpperCase() : '';
-    return { case_study: 'CS', use_case: 'UC', living_lab: 'LL', pilot: 'P', demonstration: 'D' }[t] || '';
-  };
+  // Case prefix resolution lives in @/lib/caseTypeLabels.
 
   const caseLeadership = new Map<string, { label: string; color: string }[]>();
   for (const c of caseData || []) {
     if (!c.lead_participant_id) continue;
     if (!caseLeadership.has(c.lead_participant_id)) caseLeadership.set(c.lead_participant_id, []);
-    const prefix = getCasePrefix(c.case_type, c.custom_type_name);
+    const prefix = getCaseTypePrefix(c.case_type, c.custom_type_name);
     caseLeadership.get(c.lead_participant_id)!.push({
       label: prefix ? `${prefix}${c.number}` : (c.short_name || `${c.number}`),
       color: c.color,

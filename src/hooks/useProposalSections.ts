@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Section } from '@/types/proposal';
 import { PART_A_SECTIONS, HORIZON_EUROPE_SECTIONS } from '@/types/proposal';
+import { getCaseTypePrefix } from '@/lib/caseTypeLabels';
 
 interface WPTheme {
   id: string;
@@ -296,17 +297,7 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
     enabled: !!proposalId,
   });
 
-  // Get case prefix based on type
-  const getCasePrefix = (caseType: string): string => {
-    switch (caseType) {
-      case 'case_study': return 'CS';
-      case 'use_case': return 'UC';
-      case 'living_lab': return 'LL';
-      case 'pilot': return 'P';
-      case 'demonstration': return 'D';
-      default: return '';
-    }
-  };
+  // Case prefix resolution lives in @/lib/caseTypeLabels.
 
   const caseIncludeNumber = (proposalData as any)?.case_include_number !== false;
   const caseIncludeAbbreviation = (proposalData as any)?.case_include_abbreviation !== false;
@@ -314,7 +305,7 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
   // Convert Case drafts to sections (cases are never hidden anymore — show all)
   const caseDraftSections: CaseSection[] = useMemo(() => {
     return caseDraftsData.map(c => {
-      const prefix = getCasePrefix(c.case_type);
+      const prefix = getCaseTypePrefix(c.case_type);
       const shortName = c.short_name || '';
       const showAbbrev = (caseIncludeNumber || caseIncludeAbbreviation) && !!prefix;
       const showNumber = caseIncludeNumber;
