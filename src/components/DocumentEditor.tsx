@@ -1131,7 +1131,37 @@ export function DocumentEditor({
   const isImpactSection = section?.id === 'b2-1' || section?.number === '2.1';
   // Check if this is the B3.1 section — must match the exact condition used to
   // render B31SectionContent below, so the compact editor and tables never disagree.
-  const isB31Section = section?.id === 'b3-1' || section?.number === 'B3.1' || section?.number === '3.1';
+  // Robust to load order: also matches the canonical section_tag from the DB,
+  // which is populated before section_number on a clean refresh.
+  const isB31Section = !!section && (
+    section.id === 'b3-1' ||
+    section.number === 'B3.1' ||
+    section.number === '3.1' ||
+    section.sectionTag === 'b3_1'
+  );
+
+  // Per-proposal permanent dismiss for the B3.1 informational banner.
+  const [b31BannerDismissed, setB31BannerDismissed] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (!proposalId) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from('proposals')
+        .select('b31_banner_dismissed')
+        .eq('id', proposalId)
+        .maybeSingle();
+      if (!cancelled) setB31BannerDismissed(!!(data as any)?.b31_banner_dismissed);
+    })();
+    return () => { cancelled = true; };
+  }, [proposalId]);
+  const dismissB31Banner = useCallback(async () => {
+    setB31BannerDismissed(true);
+    await supabase
+      .from('proposals')
+      .update({ b31_banner_dismissed: true } as any)
+      .eq('id', proposalId);
+  }, [proposalId]);
   // Strip HTML for grammar checking
   const plainText = content.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim();
 
