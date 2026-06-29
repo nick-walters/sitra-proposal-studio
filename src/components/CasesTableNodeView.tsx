@@ -340,25 +340,36 @@ export function CasesTableNodeView(_props: NodeViewProps) {
             {subs.map((s, sIdx) => {
               const isLast = sIdx === subs.length - 1;
               const startsWithList = bodyStartsWithList(s.body);
-              const inline = !startsWithList;
+              const headingText = s.heading || '';
+              const colon = headingText.trim() ? ':' : '';
+              // Build the heading prefix HTML once, escape angle brackets in the heading text.
+              const escapedHeading = headingText
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+              const headingPrefixHtml = headingText
+                ? `<strong><em>${escapedHeading}${colon}</em></strong>`
+                : '';
               return (
                 <div key={s.key}>
-                  <div>
-                    <span style={{ fontWeight: 700, fontStyle: 'italic' }}>
-                      {s.heading}
-                      {s.heading.trim() && <span>:</span>}
-                    </span>
-                    {inline ? (
-                      <>
-                        {' '}
-                        <ReadOnlyRichBody html={s.body} inline />
-                      </>
-                    ) : (
+                  {startsWithList ? (
+                    // List-first: heading on its own line, list below.
+                    <div>
+                      <div>
+                        <span style={{ fontWeight: 700, fontStyle: 'italic' }}>
+                          {headingText}
+                          {colon}
+                        </span>
+                      </div>
                       <div style={{ marginTop: 2 }}>
                         <ReadOnlyRichBody html={s.body} />
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  ) : (
+                    // Paragraph-first: heading is merged INSIDE the first <p> of the body
+                    // so they render as one single block (truly inline).
+                    <ReadOnlyRichBody html={s.body} headingPrefixHtml={headingPrefixHtml} />
+                  )}
                   <div
                     style={{
                       height: isLast ? 2 : 1,
