@@ -492,6 +492,7 @@ export type Database = {
           b12_populated: boolean
           background_context: string | null
           case_type: string
+          case_type_id: string | null
           color: string
           created_at: string
           custom_type_name: string | null
@@ -528,6 +529,7 @@ export type Database = {
           b12_populated?: boolean
           background_context?: string | null
           case_type?: string
+          case_type_id?: string | null
           color?: string
           created_at?: string
           custom_type_name?: string | null
@@ -564,6 +566,7 @@ export type Database = {
           b12_populated?: boolean
           background_context?: string | null
           case_type?: string
+          case_type_id?: string | null
           color?: string
           created_at?: string
           custom_type_name?: string | null
@@ -597,6 +600,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "case_drafts_case_type_id_fkey"
+            columns: ["case_type_id"]
+            isOneToOne: false
+            referencedRelation: "proposal_case_types"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "case_drafts_lead_participant_id_fkey"
             columns: ["lead_participant_id"]
@@ -2828,6 +2838,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "proposal_backups_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposal_case_types: {
+        Row: {
+          created_at: string
+          custom_type_name: string | null
+          id: string
+          order_index: number
+          outline_color: string
+          proposal_id: string
+          type_code: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          custom_type_name?: string | null
+          id?: string
+          order_index?: number
+          outline_color?: string
+          proposal_id: string
+          type_code: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          custom_type_name?: string | null
+          id?: string
+          order_index?: number
+          outline_color?: string
+          proposal_id?: string
+          type_code?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_case_types_proposal_id_fkey"
             columns: ["proposal_id"]
             isOneToOne: false
             referencedRelation: "proposals"
