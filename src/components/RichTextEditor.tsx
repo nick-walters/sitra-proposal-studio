@@ -1830,6 +1830,7 @@ StarterKit.configure({
     
     onUpdate: ({ editor }) => {
       if (!readyRef.current) return;
+      if (editor.isDestroyed || !editor.schema) return;
       const html = editor.getHTML();
       lastSetContentRef.current = normalizePartBLoadedContent(html);
       onChange(html);
