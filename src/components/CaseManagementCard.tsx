@@ -39,7 +39,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { FlaskConical, GripVertical, Plus, Trash2, Lock, LockOpen, Settings, X } from 'lucide-react';
+import { FlaskConical, GripVertical, Plus, Trash2, Lock, LockOpen, Settings, ArrowUp, ArrowDown } from 'lucide-react';
 import { CaseSubsectionTemplateDialog } from '@/components/CaseSubsectionTemplateDialog';
 
 import { supabase } from '@/integrations/supabase/client';
