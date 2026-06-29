@@ -165,6 +165,14 @@ const HeadingDataAttributes = Extension.create({
                 ? { 'data-default-subheading': attributes['data-default-subheading'] }
                 : {},
           },
+          'data-case-type-heading-id': {
+            default: null,
+            parseHTML: (element) => element.getAttribute('data-case-type-heading-id'),
+            renderHTML: (attributes) =>
+              attributes['data-case-type-heading-id']
+                ? { 'data-case-type-heading-id': attributes['data-case-type-heading-id'] }
+                : {},
+          },
         },
       },
     ];
