@@ -183,7 +183,7 @@ Deno.serve(async (req) => {
 
       // Resolve participants + budget_rows
       const { data: parts } = await supa.from("participants").select("id,participant_number,organisation_short_name,organisation_name,english_name").eq("proposal_id", p.id).order("participant_number");
-      const { data: brows } = await supa.from("budget_rows").select("id,participant_id,subcontracting,purchase_travel,purchase_equipment,purchase_other_goods").eq("proposal_id", p.id);
+      const { data: brows } = await supa.from("budget_rows").select("id,participant_id,subcontracting_costs,purchase_travel,purchase_equipment,purchase_other_goods").eq("proposal_id", p.id);
       entry.participants = parts;
       entry.budget_rows = brows;
       report.proposals.push(entry);
