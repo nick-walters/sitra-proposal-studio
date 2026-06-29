@@ -1,4 +1,5 @@
 import { useEditor, EditorContent } from '@tiptap/react';
+import { wordCleanPasteProps } from '@/lib/tiptapPasteProps';
 import DOMPurify from 'dompurify';
 import { RICH_TEXT_WITH_DIV_CONFIG } from '@/lib/sanitizePresets';
 import StarterKit from '@tiptap/starter-kit';
@@ -84,6 +85,7 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, f
         updateResponse(e.getHTML());
       }
     },
+    editorProps: wordCleanPasteProps,
   });
 
   // Reset init flag when fstpType changes so content re-syncs

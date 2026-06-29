@@ -41,6 +41,7 @@ import { OrderedListStyled } from '@/extensions/OrderedListStyled';
 import { renumberH3Headings } from '@/lib/renumberH3Headings';
 import { updateCaptionForTableAtCursor } from '@/lib/renumberCaptionsInEditor';
 import { sanitizeEditorHtml } from '@/lib/editorContentSanitizer';
+import { stripWordHtml } from '@/lib/stripWordHtml';
 import { OrderedListDropdown } from './OrderedListDropdown';
 import { autoFitEditorTableAtPos } from '@/lib/editorTableAutoFit';
 import { ParagraphSpacingPopover } from './ParagraphSpacingPopover';
@@ -187,7 +188,8 @@ const HeadingDataAttributes = Extension.create({
  */
 function normalizePartBPastedAlignment(html: string) {
   if (!html || typeof document === 'undefined') return html;
-  html = sanitizeEditorHtml(html);
+  // NOTE: callers run stripWordHtml() as a pre-pass (which already invokes
+  // sanitizeEditorHtml internally), so we skip the redundant sanitize here.
 
   // Strip mso-* properties from raw HTML
   html = html.replace(/mso-[^;:"']+:[^;:"']+;?/gi, '');
@@ -1403,7 +1405,7 @@ StarterKit.configure({
         style: 'font-family: "Times New Roman", Times, serif',
       },
       transformPastedHTML(html) {
-        return normalizePartBPastedAlignment(html);
+        return normalizePartBPastedAlignment(stripWordHtml(html));
       },
       transformPasted(slice) {
         return stripPastedAlignment(slice);
@@ -1850,7 +1852,7 @@ StarterKit.configure({
         style: 'font-family: "Times New Roman", Times, serif',
       },
       transformPastedHTML(html) {
-        return normalizePartBPastedAlignment(html);
+        return normalizePartBPastedAlignment(stripWordHtml(html));
       },
       transformPasted(slice) {
         return stripPastedAlignment(slice);

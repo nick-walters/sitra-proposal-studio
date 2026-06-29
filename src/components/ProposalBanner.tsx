@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { SITRA_LOGO_BASE64 } from '@/lib/sitraLogo';
 import { supabase } from '@/integrations/supabase/client';
 import { useProposalRole } from '@/hooks/useProposalRole';
+import { handlePlainTextPaste } from '@/lib/pasteWordHtmlHandler';
 
 interface ProposalBannerProps {
   acronym: string;
@@ -188,6 +189,7 @@ function EditableLine({ value, canEdit, onSave, style }: EditableLineProps) {
       suppressContentEditableWarning
       spellCheck={false}
       onFocus={() => setEditing(true)}
+      onPaste={handlePlainTextPaste}
       onBlur={(e) => {
         setEditing(false);
         if (canEdit) {

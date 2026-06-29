@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { handlePlainTextPaste } from '@/lib/pasteWordHtmlHandler';
 
 const NUMBER_WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
 
@@ -147,6 +148,7 @@ export function B31IntroText({ proposalId, acronymSegments, proposalAcronym }: P
       contentEditable
       suppressContentEditableWarning
       className="outline-none"
+      onPaste={handlePlainTextPaste}
       style={{ textAlign: 'justify', margin: 0, fontFamily: '"Times New Roman", Times, serif', fontSize: '11pt', lineHeight: 1.15 }}
       onBlur={(e) => {
         const text = e.currentTarget.textContent || '';
