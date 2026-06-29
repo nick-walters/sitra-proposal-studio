@@ -352,6 +352,21 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
     },
   });
 
+  // Fetch case type flags (include_number / include_abbreviation / outline_color)
+  const { data: caseTypeRow } = useQuery({
+    queryKey: ['proposal-case-type', (caseDraft as any)?.case_type_id],
+    enabled: !!(caseDraft as any)?.case_type_id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('proposal_case_types')
+        .select('include_number, include_abbreviation, outline_color')
+        .eq('id', (caseDraft as any).case_type_id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
   // Fetch participants
   const { data: participants = [] } = useQuery({
     queryKey: ['participants-for-case-editor', proposalId],
