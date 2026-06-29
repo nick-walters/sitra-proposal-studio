@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Check, Circle, BarChart3, Users, Package, AlertTriangle, ListChecks } from 'lucide-react';
+import { Check, Circle, BarChart3, Users, Package, ListChecks } from 'lucide-react';
 import { WPColorSwatch } from '@/components/WPColorPicker';
 import { useWPDrafts } from '@/hooks/useWPDrafts';
 import { useWPProgress } from '@/hooks/useWPProgress';
