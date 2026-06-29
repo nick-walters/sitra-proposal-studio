@@ -8,6 +8,8 @@ import { B31DeliverablesTable, B31MilestonesTable, B31RisksTable } from './B31Ta
 import { B31EffortMatrix } from './B31EffortMatrix';
 import { B31SubcontractingTable } from './B31SubcontractingTable';
 import { B31EquipmentTable } from './B31EquipmentTable';
+import { B31JustificationTable } from './B31JustificationTable';
+import { useB31JustificationToggles } from '@/hooks/useB31JustificationToggles';
 import { PERTChartFigure } from './PERTChartFigure';
 import { GanttChartFigure } from './GanttChartFigure';
 
@@ -16,7 +18,13 @@ interface Props {
 }
 
 export function B31SectionContent({ proposalId }: Props) {
-  const { wpData, participants, pertFigure, ganttFigure, subcontractingByParticipant, equipmentByParticipant, loading } = useB31SectionData(proposalId);
+  const {
+    wpData, participants, pertFigure, ganttFigure,
+    subcontractingByParticipant, equipmentByParticipant,
+    travelByParticipant, otherGoodsByParticipant, fstpByParticipant, internallyInvoicedByParticipant,
+    loading,
+  } = useB31SectionData(proposalId);
+  const { toggles } = useB31JustificationToggles(proposalId);
   const { data: proposalDuration } = useQuery({
     queryKey: ['proposal-duration', proposalId],
     queryFn: async () => {
