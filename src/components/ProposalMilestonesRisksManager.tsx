@@ -103,23 +103,62 @@ function MilestoneBadge({ number }: { number: number | null | undefined }) {
   );
 }
 
-// ── Auto-textarea that grows with content ──
-function AutoTextarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+// ── Auto-textarea: local state + debounced save + flush on blur ──
+// Prevents typing lag/dropped chars caused by per-keystroke DB writes + refetch overwrites.
+interface AutoTextareaProps extends Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, 'onChange' | 'value'> {
+  value: string;
+  onChange: (e: { target: { value: string } }) => void;
+  debounceMs?: number;
+}
+function AutoTextarea({ value, onChange, debounceMs = 500, onBlur, onFocus, ...rest }: AutoTextareaProps) {
   const ref = useRef<HTMLTextAreaElement>(null);
+  const [local, setLocal] = useState(value ?? '');
+  const focused = useRef(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+
+  // Sync from props only when not focused (avoids mid-typing overwrite from refetch).
+  useEffect(() => {
+    if (!focused.current) setLocal(value ?? '');
+  }, [value]);
+
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+
   const resize = () => {
     const el = ref.current;
     if (!el) return;
     el.style.height = 'auto';
     el.style.height = el.scrollHeight + 'px';
   };
-  useEffect(() => { resize(); }, [props.value]);
+  useEffect(() => { resize(); }, [local]);
+
   return (
     <textarea
       ref={ref}
-      {...props}
-      onInput={(e) => { resize(); props.onInput?.(e as any); }}
-      className={(props.className || '') + ' w-full resize-none overflow-hidden bg-transparent border border-input rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-ring'}
-      style={{ minHeight: 28, ...(props.style || {}) }}
+      {...rest}
+      value={local}
+      onChange={(e) => {
+        const v = e.target.value;
+        setLocal(v);
+        if (timer.current) clearTimeout(timer.current);
+        timer.current = setTimeout(() => {
+          timer.current = null;
+          onChangeRef.current({ target: { value: v } });
+        }, debounceMs);
+      }}
+      onFocus={(e) => { focused.current = true; onFocus?.(e); }}
+      onBlur={(e) => {
+        focused.current = false;
+        if (timer.current) {
+          clearTimeout(timer.current);
+          timer.current = null;
+          onChangeRef.current({ target: { value: local } });
+        }
+        onBlur?.(e);
+      }}
+      className={(rest.className || '') + ' w-full resize-none overflow-hidden bg-transparent border border-input rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-ring'}
+      style={{ minHeight: 28, ...(rest.style || {}) }}
     />
   );
 }
