@@ -314,7 +314,7 @@ export function ProposalCard({ proposal, onClick, compact = false, isPinned, can
                 className="h-6 w-full px-1.5 gap-0.5 text-[10px]"
                 onClick={(e) => {
                   e.stopPropagation();
-                  window.open(proposal.topicUrl, '_blank');
+                  safeOpenUrl(proposal.topicUrl);
                 }}
               >
                 Topic
