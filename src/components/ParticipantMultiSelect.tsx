@@ -77,6 +77,39 @@ export function ParticipantMultiSelect({
       </PopoverTrigger>
       <PopoverContent className="w-[200px] p-0" align="start">
         <div className="max-h-[200px] overflow-y-auto">
+          {participants.length > 0 && (() => {
+            const displayedIds = participants.map(p => p.id);
+            const selectedDisplayed = displayedIds.filter(id => selectedIds.includes(id));
+            const allSelected = selectedDisplayed.length === displayedIds.length;
+            const someSelected = selectedDisplayed.length > 0 && !allSelected;
+            const toggleAll = () => {
+              if (allSelected) {
+                onChange(selectedIds.filter(id => !displayedIds.includes(id)));
+              } else {
+                const merged = Array.from(new Set([...selectedIds, ...displayedIds]));
+                onChange(merged);
+              }
+            };
+            return (
+              <button
+                className={cn(
+                  "flex items-center gap-2 w-full px-2 py-1.5 text-sm hover:bg-accent cursor-pointer border-b font-medium",
+                )}
+                onClick={toggleAll}
+              >
+                <div className={cn(
+                  "flex h-4 w-4 items-center justify-center rounded-sm border",
+                  (allSelected || someSelected) ? "bg-primary border-primary" : "border-primary"
+                )}>
+                  {allSelected && <Check className="h-3 w-3 text-primary-foreground" />}
+                  {someSelected && <div className="h-0.5 w-2 bg-primary-foreground" />}
+                </div>
+                <span className="truncate">
+                  {allSelected ? 'Deselect all' : 'Select all'}
+                </span>
+              </button>
+            );
+          })()}
           {participants.map((participant) => {
             const isSelected = selectedIds.includes(participant.id);
             return (
