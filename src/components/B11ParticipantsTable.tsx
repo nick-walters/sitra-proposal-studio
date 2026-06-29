@@ -7,7 +7,7 @@ import { useColumnResize } from '@/hooks/useColumnResize';
 import { useProposalRole } from '@/hooks/useProposalRole';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { B31Pill, WPBubble, ParticipantBubble } from './B31Pill';
-import { getCaseTypePrefix } from '@/lib/caseTypeLabels';
+import { getCaseTypePrefix, buildCaseLabel } from '@/lib/caseTypeLabels';
 
 interface Props {
   proposalId: string;
@@ -37,8 +37,10 @@ interface CaseLeadRow {
   lead_participant_id: string | null;
   color: string;
   case_type: string;
+  case_type_id: string | null;
   custom_type_name: string | null;
 }
+
 
 // Case prefix resolution lives in @/lib/caseTypeLabels.
 
@@ -102,7 +104,7 @@ export function B11ParticipantsTable({ proposalId }: Props) {
     queryFn: async (): Promise<CaseLeadRow[]> => {
       const { data, error } = await supabase
         .from('case_drafts')
-        .select('number, short_name, lead_participant_id, color, case_type, custom_type_name')
+        .select('number, short_name, lead_participant_id, color, case_type, case_type_id, custom_type_name')
         .eq('proposal_id', proposalId)
         .order('number');
       if (error) throw error;
@@ -110,19 +112,22 @@ export function B11ParticipantsTable({ proposalId }: Props) {
     },
   });
 
-  const { data: caseIncludeNumberRaw } = useQuery({
-    queryKey: caseSettingsKey,
+  const { data: caseTypeFlags = [] } = useQuery({
+    queryKey: ['proposal-case-types', proposalId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('proposals')
-        .select('case_include_number')
-        .eq('id', proposalId)
-        .single();
+        .from('proposal_case_types')
+        .select('id, include_number, include_abbreviation, outline_color')
+        .eq('proposal_id', proposalId);
       if (error) throw error;
-      return data?.case_include_number ?? true;
+      return data || [];
     },
   });
-  const caseIncludeNumber = caseIncludeNumberRaw ?? true;
+  const caseTypeById = useMemo(
+    () => new Map(caseTypeFlags.map((t: any) => [t.id, t])),
+    [caseTypeFlags],
+  );
+
 
   useEffect(() => {
     const handleCrossRefChange = (e: Event) => {
@@ -161,16 +166,22 @@ export function B11ParticipantsTable({ proposalId }: Props) {
   }, [wpLeads]);
 
   const caseByPart = useMemo(() => {
-    const m: Record<string, { number: number; shortName: string | null; color: string; prefix: string }[]> = {};
+    const m: Record<string, { number: number; shortName: string | null; color: string; prefix: string; includeNumber: boolean; includeAbbreviation: boolean }[]> = {};
     for (const c of caseLeads) {
       if (!c.lead_participant_id) continue;
+      const t = c.case_type_id ? (caseTypeById.get(c.case_type_id) as any) : null;
       (m[c.lead_participant_id] ||= []).push({
-        number: c.number, shortName: c.short_name, color: c.color,
+        number: c.number,
+        shortName: c.short_name,
+        color: t?.outline_color || c.color || '#000000',
         prefix: getCaseTypePrefix(c.case_type, c.custom_type_name),
+        includeNumber: t?.include_number !== false,
+        includeAbbreviation: t?.include_abbreviation !== false,
       });
     }
     return m;
-  }, [caseLeads]);
+  }, [caseLeads, caseTypeById]);
+
 
   const { colWidths, tableRef, handleColResizeStart } = useColumnResize({
     proposalId,
@@ -245,12 +256,12 @@ export function B11ParticipantsTable({ proposalId }: Props) {
                   isCoord={isCoord}
                   wpLed={wpLed}
                   caseLed={caseLed}
-                  caseIncludeNumber={caseIncludeNumber}
                   canResize={canResize}
                   onResize={handleColResizeStart}
                 />
               );
             })}
+
             {participants.length === 0 && (
               <tr>
                 <td colSpan={NUM_COLS} style={{ fontStyle: 'italic', color: '#666' }}>
@@ -289,13 +300,13 @@ interface RowProps {
   p: ParticipantRow;
   isCoord: boolean;
   wpLed: { number: number; shortName: string | null; color: string }[];
-  caseLed: { number: number; shortName: string | null; color: string; prefix: string }[];
-  caseIncludeNumber: boolean;
+  caseLed: { number: number; shortName: string | null; color: string; prefix: string; includeNumber: boolean; includeAbbreviation: boolean }[];
   canResize: boolean;
   onResize: (i: number) => (e: React.MouseEvent) => void;
 }
 
-function ParticipantRowView({ p, isCoord, wpLed, caseLed, caseIncludeNumber, canResize, onResize }: RowProps) {
+function ParticipantRowView({ p, isCoord, wpLed, caseLed, canResize, onResize }: RowProps) {
+
   const legalName = p.organisation_name || '';
   const englishName =
     p.english_name && p.english_name.trim().toLowerCase() !== legalName.trim().toLowerCase()
@@ -322,16 +333,23 @@ function ParticipantRowView({ p, isCoord, wpLed, caseLed, caseIncludeNumber, can
     </Tooltip>
   ));
   const caseBadges = caseLed.map((c) => {
-    const numberLabel = c.prefix ? `${c.prefix}${c.number}` : String(c.number);
-    const displayLabel = caseIncludeNumber ? numberLabel : (c.shortName || numberLabel);
+    const displayLabel = buildCaseLabel({
+      prefix: c.prefix,
+      number: c.number,
+      shortName: c.shortName,
+      includeNumber: c.includeNumber,
+      includeAbbreviation: c.includeAbbreviation,
+      withShortName: false,
+    });
     return (
       <Tooltip key={`case-${c.number}`}>
         <TooltipTrigger asChild>
-          <B31Pill variant="outline" color="#000" size="document" style={{ lineHeight: 1.2 }}>
+          <B31Pill variant="outline" color={c.color || '#000'} size="document" style={{ lineHeight: 1.2 }}>
             {displayLabel}
           </B31Pill>
         </TooltipTrigger>
         <TooltipContent>{c.shortName ? `${c.shortName} (Lead)` : `Lead`}</TooltipContent>
+
       </Tooltip>
     );
   });

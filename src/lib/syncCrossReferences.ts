@@ -31,9 +31,13 @@ interface CaseData {
   id: string;
   number: number;
   case_type: string;
+  case_type_id: string | null;
   short_name: string | null;
   color: string;
+  include_number: boolean;
+  include_abbreviation: boolean;
 }
+
 
 interface ParticipantData {
   id: string;
@@ -54,7 +58,7 @@ import { getCaseTypePrefix } from '@/lib/caseTypeLabels';
  * Fetches current numbering data for all cross-referenceable items in a proposal
  */
 async function fetchReferenceData(proposalId: string) {
-  const [wpRes, taskRes, delRes, msRes, caseRes, participantRes, figureRes, tableCaptionRes] = await Promise.all([
+  const [wpRes, taskRes, delRes, msRes, caseRes, caseTypeRes, participantRes, figureRes, tableCaptionRes] = await Promise.all([
     supabase
       .from('wp_drafts')
       .select('id, number, color, short_name')
@@ -76,9 +80,14 @@ async function fetchReferenceData(proposalId: string) {
 
     supabase
       .from('case_drafts')
-      .select('id, number, case_type, short_name, color')
+      .select('id, number, case_type, case_type_id, short_name, color')
       .eq('proposal_id', proposalId)
       .order('number'),
+    supabase
+      .from('proposal_case_types')
+      .select('id, include_number, include_abbreviation, outline_color')
+      .eq('proposal_id', proposalId),
+
     supabase
       .from('participants')
       .select('id, participant_number, organisation_short_name')
@@ -123,7 +132,19 @@ async function fetchReferenceData(proposalId: string) {
   const milestones: MilestoneData[] = (msRes.data || [])
     .map(m => ({ id: m.id, number: m.number }));
 
-  const cases: CaseData[] = caseRes.data || [];
+  const caseTypeFlagsById = new Map(
+    (caseTypeRes.data || []).map((t: any) => [t.id, t]),
+  );
+  const cases: CaseData[] = (caseRes.data || []).map((c: any) => {
+    const t = c.case_type_id ? caseTypeFlagsById.get(c.case_type_id) : null;
+    return {
+      ...c,
+      color: t?.outline_color || c.color || '#000000',
+      include_number: t?.include_number !== false,
+      include_abbreviation: t?.include_abbreviation !== false,
+    } as CaseData;
+  });
+
   const participants: ParticipantData[] = participantRes.data || [];
   const figures: FigureData[] = figureRes.data || [];
 
@@ -438,15 +459,20 @@ export async function syncCrossReferences(
       caseColor: c.color,
       caseShortName: c.short_name || a.caseShortName,
       caseType: c.case_type,
+      includeNumber: c.include_number,
+      includeAbbreviation: c.include_abbreviation,
     };
     const attrsDiffer =
       a.caseNumber !== newAttrs.caseNumber ||
       a.caseColor !== newAttrs.caseColor ||
       a.caseShortName !== newAttrs.caseShortName ||
-      a.caseType !== newAttrs.caseType;
+      a.caseType !== newAttrs.caseType ||
+      a.includeNumber !== newAttrs.includeNumber ||
+      a.includeAbbreviation !== newAttrs.includeAbbreviation;
     if (!attrsDiffer) return;
     caseNodeChanges.push({ pos, newAttrs });
   });
+
 
   caseNodeChanges.sort((a, b) => b.pos - a.pos);
   for (const c of caseNodeChanges) {

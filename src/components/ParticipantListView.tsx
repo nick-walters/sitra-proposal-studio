@@ -24,6 +24,8 @@ import { InviteToProposalDialog } from './InviteToProposalDialog';
 import { AddParticipantDialog } from './AddParticipantDialog';
 import { B31Pill, WPBubble, ParticipantBubble } from './B31Pill';
 import { getContrastingTextColor } from '@/lib/wpColors';
+import { buildCaseLabel } from '@/lib/caseTypeLabels';
+
 import { supabase } from '@/integrations/supabase/client';
 import { useProposalRole } from '@/hooks/useProposalRole';
 import { useOCD } from '@/hooks/useOCD';
@@ -60,7 +62,11 @@ export interface CaseLeadershipInfo {
   color: string;
   shortName?: string;
   prefix: string; // CS, UC, LL, P, D, C
+  includeNumber?: boolean;
+  includeAbbreviation?: boolean;
+  outlineColor?: string;
 }
+
 
 interface ParticipantListViewProps {
   participants: Participant[];
@@ -358,16 +364,23 @@ function ParticipantCard({
             )}
             {caseLeadership && caseLeadership.length > 0 && (
               caseLeadership.map((c) => {
+                const inclNum = c.includeNumber ?? caseIncludeNumber;
+                const inclAbbr = c.includeAbbreviation ?? true;
+                const displayLabel = buildCaseLabel({
+                  prefix: c.prefix,
+                  number: c.caseNumber,
+                  shortName: c.shortName ?? null,
+                  includeNumber: inclNum,
+                  includeAbbreviation: inclAbbr,
+                  withShortName: false,
+                });
                 const numberLabel = c.prefix ? `${c.prefix}${c.caseNumber}` : String(c.caseNumber);
-                const displayLabel = caseIncludeNumber
-                  ? numberLabel
-                  : (c.shortName || numberLabel);
                 return (
                   <Tooltip key={`case-${c.caseNumber}`}>
                     <TooltipTrigger asChild>
                       <B31Pill
                         variant="outline"
-                        color="#000000"
+                        color={c.outlineColor || '#000000'}
                         style={{ fontSize: '12px', height: 'auto', padding: '1.5px 6px' }}
                       >
                         {displayLabel}
@@ -378,6 +391,7 @@ function ParticipantCard({
                     </TooltipContent>
                   </Tooltip>
                 );
+
               })
             )}
           </div>

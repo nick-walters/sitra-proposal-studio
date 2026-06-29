@@ -11,6 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { FlaskConical } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { getCaseTypePrefix, buildCaseLabel } from '@/lib/caseTypeLabels';
 
 interface CaseDraft {
   id: string;
@@ -19,6 +20,14 @@ interface CaseDraft {
   title: string | null;
   color: string;
   case_type: string;
+  case_type_id: string | null;
+}
+
+interface TypeRow {
+  id: string;
+  include_number: boolean;
+  include_abbreviation: boolean;
+  outline_color: string | null;
 }
 
 interface InsertCaseReferenceDialogProps {
@@ -28,8 +37,6 @@ interface InsertCaseReferenceDialogProps {
   onSelect: (caseItem: CaseDraft) => void;
 }
 
-import { getCaseTypePrefix } from '@/lib/caseTypeLabels';
-
 export function InsertCaseReferenceDialog({
   open,
   onOpenChange,
@@ -37,6 +44,7 @@ export function InsertCaseReferenceDialog({
   onSelect,
 }: InsertCaseReferenceDialogProps) {
   const [caseDrafts, setCaseDrafts] = useState<CaseDraft[]>([]);
+  const [typesById, setTypesById] = useState<Map<string, TypeRow>>(new Map());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -47,17 +55,21 @@ export function InsertCaseReferenceDialog({
 
   const fetchCaseDrafts = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('case_drafts')
-      .select('id, number, short_name, title, color, case_type')
-      .eq('proposal_id', proposalId)
-      .order('order_index');
+    const [cases, types] = await Promise.all([
+      supabase
+        .from('case_drafts')
+        .select('id, number, short_name, title, color, case_type, case_type_id')
+        .eq('proposal_id', proposalId)
+        .order('order_index'),
+      supabase
+        .from('proposal_case_types')
+        .select('id, include_number, include_abbreviation, outline_color')
+        .eq('proposal_id', proposalId),
+    ]);
 
-    if (error) {
-      console.error('Error fetching case drafts:', error);
-    } else {
-      setCaseDrafts(data || []);
-    }
+    if (cases.error) console.error('Error fetching case drafts:', cases.error);
+    setCaseDrafts((cases.data || []) as CaseDraft[]);
+    setTypesById(new Map(((types.data as TypeRow[]) || []).map((t) => [t.id, t])));
     setLoading(false);
   };
 
@@ -94,6 +106,18 @@ export function InsertCaseReferenceDialog({
             <div className="space-y-1 p-1">
               {caseDrafts.map((caseItem) => {
                 const prefix = getCaseTypePrefix(caseItem.case_type);
+                const t = caseItem.case_type_id ? typesById.get(caseItem.case_type_id) : null;
+                const includeNumber = t?.include_number !== false;
+                const includeAbbreviation = t?.include_abbreviation !== false;
+                const outline = t?.outline_color || '#000000';
+                const label = buildCaseLabel({
+                  prefix,
+                  number: caseItem.number,
+                  shortName: caseItem.short_name,
+                  includeNumber,
+                  includeAbbreviation,
+                  withShortName: false,
+                });
                 return (
                   <button
                     key={caseItem.id}
@@ -104,9 +128,10 @@ export function InsertCaseReferenceDialog({
                     )}
                   >
                     <span
-                      className="shrink-0 rounded-full font-bold text-center border-[1.5px] border-black text-black bg-white text-xs px-1.5 py-0.5 whitespace-nowrap"
+                      className="shrink-0 rounded-full font-bold text-center border-[1.5px] text-black bg-white text-xs px-1.5 py-0.5 whitespace-nowrap"
+                      style={{ borderColor: outline }}
                     >
-                      {prefix ? `${prefix}${caseItem.number}` : (caseItem.short_name || caseItem.number)}
+                      {label}
                     </span>
                     <div className="flex-1 min-w-0 ml-3">
                       <div className="font-medium text-sm truncate">

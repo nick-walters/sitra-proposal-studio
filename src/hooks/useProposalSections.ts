@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Section } from '@/types/proposal';
 import { PART_A_SECTIONS, HORIZON_EUROPE_SECTIONS } from '@/types/proposal';
-import { getCaseTypePrefix } from '@/lib/caseTypeLabels';
+import { getCaseTypePrefix, buildCaseLabel } from '@/lib/caseTypeLabels';
 
 interface WPTheme {
   id: string;
@@ -281,14 +281,13 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
     });
   }, [wpDraftsData, useWpThemes, themesMap, isCoordinator]);
 
-  // Fetch Case drafts using react-query
   const { data: caseDraftsData = [] } = useQuery({
     queryKey: ['case-drafts', proposalId],
     queryFn: async () => {
       if (!proposalId) return [];
       const { data, error } = await supabase
         .from('case_drafts')
-        .select('id, number, short_name, title, color, order_index, case_type')
+        .select('id, number, short_name, title, color, order_index, case_type, case_type_id')
         .eq('proposal_id', proposalId)
         .order('order_index');
       if (error) throw error;
@@ -297,35 +296,52 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
     enabled: !!proposalId,
   });
 
-  // Case prefix resolution lives in @/lib/caseTypeLabels.
+  // Per-type display flags + outline colour live on proposal_case_types.
+  const { data: caseTypeFlags = [] } = useQuery({
+    queryKey: ['proposal-case-types', proposalId],
+    queryFn: async () => {
+      if (!proposalId) return [];
+      const { data, error } = await supabase
+        .from('proposal_case_types')
+        .select('id, include_number, include_abbreviation, outline_color')
+        .eq('proposal_id', proposalId);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!proposalId,
+  });
 
-  const caseIncludeNumber = (proposalData as any)?.case_include_number !== false;
-  const caseIncludeAbbreviation = (proposalData as any)?.case_include_abbreviation !== false;
-
-  // Convert Case drafts to sections (cases are never hidden anymore — show all)
   const caseDraftSections: CaseSection[] = useMemo(() => {
+    const flagsById = new Map(caseTypeFlags.map((t: any) => [t.id, t]));
     return caseDraftsData.map(c => {
       const prefix = getCaseTypePrefix(c.case_type);
+      const flags = (c as any).case_type_id ? flagsById.get((c as any).case_type_id) : undefined;
+      const includeNumber = flags?.include_number !== false;
+      const includeAbbreviation = flags?.include_abbreviation !== false;
+      const outlineColor = flags?.outline_color || c.color || '#000000';
       const shortName = c.short_name || '';
-      const showAbbrev = (caseIncludeNumber || caseIncludeAbbreviation) && !!prefix;
-      const showNumber = caseIncludeNumber;
-      const prefixPart = `${showAbbrev ? prefix : ''}${showNumber ? c.number : ''}`;
-      const label = prefixPart
-        ? `${prefixPart}: ${shortName || c.title || ''}`
-        : (shortName || c.title || `${c.number}`);
+      const label = buildCaseLabel({
+        prefix, number: c.number, shortName: shortName || c.title || '',
+        includeNumber, includeAbbreviation,
+      });
+      const chip = buildCaseLabel({
+        prefix, number: c.number, shortName: shortName || `${c.number}`,
+        includeNumber, includeAbbreviation, withShortName: false,
+      });
       return {
         id: `case-${c.id}`,
-        number: prefix ? `${prefix}${c.number}` : (shortName || `${c.number}`),
-        title: prefix ? (shortName || c.title || '') : (c.title || ''),
+        number: chip,
+        title: includeAbbreviation && prefix ? (shortName || c.title || '') : (c.title || ''),
         caseId: c.id,
         caseNumber: c.number,
-        caseColor: c.color,
+        caseColor: outlineColor,
         caseType: c.case_type,
         caseLabel: label,
         caseShortName: shortName,
       };
     });
-  }, [caseDraftsData, caseIncludeNumber, caseIncludeAbbreviation]);
+  }, [caseDraftsData, caseTypeFlags]);
+
 
 
   // Subscribe to realtime updates for WP drafts and invalidate react-query cache

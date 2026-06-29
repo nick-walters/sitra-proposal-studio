@@ -30,7 +30,9 @@ import { ParticipantBubble } from '@/components/B31Pill';
 import {
   getCaseTypeLabel,
   getCaseTypePrefix as getCasePrefix,
+  buildCaseLabel,
 } from '@/lib/caseTypeLabels';
+
 
 const SITRA_CASE_TIPS = [
   {
@@ -352,6 +354,21 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
     },
   });
 
+  // Fetch case type flags (include_number / include_abbreviation / outline_color)
+  const { data: caseTypeRow } = useQuery({
+    queryKey: ['proposal-case-type', (caseDraft as any)?.case_type_id],
+    enabled: !!(caseDraft as any)?.case_type_id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('proposal_case_types')
+        .select('include_number, include_abbreviation, outline_color')
+        .eq('id', (caseDraft as any).case_type_id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
   // Fetch participants
   const { data: participants = [] } = useQuery({
     queryKey: ['participants-for-case-editor', proposalId],
@@ -473,6 +490,17 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
 
   const readOnly = !canEdit;
   const prefix = getCasePrefix(caseDraft.case_type, caseDraft.custom_type_name);
+  const includeNumber = caseTypeRow?.include_number !== false;
+  const includeAbbreviation = caseTypeRow?.include_abbreviation !== false;
+  const headingLabel = buildCaseLabel({
+    prefix,
+    number: caseDraft.number,
+    shortName: caseDraft.short_name,
+    includeNumber,
+    includeAbbreviation,
+    withShortName: false,
+  });
+
 
   return (
     <ScrollArea className="h-full">
@@ -661,7 +689,7 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
           </div>
           {/* Row 2: Badge + Title */}
           <div className="flex items-center gap-2">
-            <span className="text-base font-bold text-black">{prefix ? `${prefix}${caseDraft.number}` : (caseDraft.short_name || caseDraft.number)}:</span>
+            <span className="text-base font-bold text-black">{headingLabel}:</span>
             <DebouncedInput
               value={caseDraft.title || ''}
               onDebouncedChange={(v) => updateField('title', v)}
@@ -676,7 +704,7 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
         <Dialog open={guidelinesOpen} onOpenChange={setGuidelinesOpen}>
           <DialogContent className="max-w-3xl max-h-[90vh] w-[90vw]">
             <DialogHeader>
-              <DialogTitle>Guidelines for {prefix ? `${prefix}${caseDraft.number}` : (caseDraft.short_name || caseDraft.number)}: {caseDraft.title || caseDraft.short_name || 'Case'}</DialogTitle>
+              <DialogTitle>Guidelines for {headingLabel}: {caseDraft.title || caseDraft.short_name || 'Case'}</DialogTitle>
             </DialogHeader>
             <ScrollArea className="max-h-[75vh] pr-4">
               <div className="space-y-4">

@@ -606,7 +606,8 @@ function SectionItem({
                         ) : (
                           <B31Pill
                             variant="outline"
-                            color="#000000"
+                            color={caseSub.caseColor || '#000000'}
+
                             onClick={() => onSectionClick(subsection)}
                             className={cn(
                               "max-w-full transition-all cursor-pointer",

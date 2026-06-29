@@ -38,6 +38,7 @@ import {
 } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { FlaskConical, GripVertical, Plus, Trash2, Lock, LockOpen, Settings, X } from 'lucide-react';
 import { CaseSubsectionTemplateDialog } from '@/components/CaseSubsectionTemplateDialog';
 
@@ -68,6 +69,8 @@ interface CaseTypeRow {
   type_code: string;
   custom_type_name: string | null;
   outline_color: string;
+  include_number: boolean;
+  include_abbreviation: boolean;
   order_index: number;
 }
 
@@ -75,6 +78,7 @@ import {
   CASE_TYPE_DEFS,
   getCaseTypeLabel,
   getCaseTypePrefix as getCasePrefix,
+  buildCaseLabel,
 } from '@/lib/caseTypeLabels';
 
 const CASE_TYPES = CASE_TYPE_DEFS.map((d) => ({
@@ -83,10 +87,6 @@ const CASE_TYPES = CASE_TYPE_DEFS.map((d) => ({
   prefix: d.prefix,
 }));
 
-const CASE_COLORS = [
-  '#DC2626', '#B91C1C', '#EF4444', '#F87171', '#991B1B',
-  '#C53030', '#E53E3E', '#FC8181', '#9B2C2C', '#F56565',
-];
 
 // Local-state abbreviation input to avoid typing lag
 function AbbreviationInput({ value, onChange, disabled }: { value: string; onChange: (v: string) => void; disabled: boolean }) {
@@ -121,13 +121,15 @@ interface SortableCaseRowProps {
   caseTypeLabel: string;
   includeNumber: boolean;
   includeAbbreviation: boolean;
+  outlineColor: string;
   onUpdate: (id: string, updates: Partial<CaseDraft>) => void;
   onDelete: (id: string) => void;
   onToggleLock: (id: string, locked: boolean) => void;
   canEdit: boolean;
 }
 
-function SortableCaseRow({ caseItem, participants, casePrefix, caseTypeLabel, includeNumber, includeAbbreviation, onUpdate, onDelete, onToggleLock, canEdit }: SortableCaseRowProps) {
+function SortableCaseRow({ caseItem, participants, casePrefix, caseTypeLabel, includeNumber, includeAbbreviation, outlineColor, onUpdate, onDelete, onToggleLock, canEdit }: SortableCaseRowProps) {
+
 
   const [leadOpen, setLeadOpen] = useState(false);
   const [localShortName, setLocalShortName] = useState(caseItem.short_name || '');
@@ -185,11 +187,12 @@ function SortableCaseRow({ caseItem, participants, casePrefix, caseTypeLabel, in
       </div>
 
       <Badge
-        className="rounded-full font-bold justify-start text-xs h-6 w-auto min-w-[1.5rem] border-[1.5px] border-black text-black bg-white whitespace-nowrap gap-0 px-2"
+        className="rounded-full font-bold justify-start text-xs h-6 w-auto min-w-[1.5rem] border-[1.5px] text-black bg-white whitespace-nowrap gap-0 px-2"
+        style={{ borderColor: outlineColor || '#000000' }}
       >
         {includeAbbreviation && casePrefix && <span>{casePrefix}</span>}
         {includeNumber && <span>{caseItem.number}</span>}
-        {(includeAbbreviation && casePrefix || includeNumber) && <span>:&nbsp;</span>}
+        {((includeAbbreviation && casePrefix) || includeNumber) && <span>:&nbsp;</span>}
         <input
           value={localShortName}
           onChange={(e) => {
@@ -204,6 +207,7 @@ function SortableCaseRow({ caseItem, participants, casePrefix, caseTypeLabel, in
           disabled={!canEdit}
         />
       </Badge>
+
 
       <Input
         value={localTitle}
@@ -337,7 +341,7 @@ export function CaseManagementCard({
     queryFn: async () => {
       const { data, error } = await supabase
         .from('proposal_case_types')
-        .select('id, proposal_id, type_code, custom_type_name, outline_color, order_index')
+        .select('id, proposal_id, type_code, custom_type_name, outline_color, include_number, include_abbreviation, order_index')
         .eq('proposal_id', proposalId)
         .order('order_index');
       if (error) throw error;
@@ -345,6 +349,7 @@ export function CaseManagementCard({
     },
     enabled: casesEnabled,
   });
+
 
   const { data: caseDrafts = [], isLoading: casesLoading } = useQuery({
     queryKey: ['case-drafts-management', proposalId],
@@ -379,14 +384,12 @@ export function CaseManagementCard({
     queryFn: async () => {
       const { data } = await supabase
         .from('proposals')
-        .select('case_drafts_visible, case_include_number, case_include_abbreviation')
+        .select('case_drafts_visible')
         .eq('id', proposalId)
         .single();
       return data as any;
     },
   });
-  const caseIncludeNumber: boolean = caseSettingsData?.case_include_number !== false;
-  const caseIncludeAbbreviation: boolean = caseSettingsData?.case_include_abbreviation !== false;
 
   const invalidateCaseQueries = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: ['case-drafts-management', proposalId] });
@@ -395,17 +398,6 @@ export function CaseManagementCard({
     void queryClient.invalidateQueries({ queryKey: ['case-leadership', proposalId] });
   }, [proposalId, queryClient]);
 
-  const handleIncludeNumberChange = async (checked: boolean) => {
-    await supabase.from('proposals').update({ case_include_number: checked } as any).eq('id', proposalId);
-    queryClient.invalidateQueries({ queryKey: ['case-settings', proposalId] });
-    queryClient.invalidateQueries({ queryKey: ['proposal-themes-flag', proposalId] });
-  };
-
-  const handleIncludeAbbreviationChange = async (checked: boolean) => {
-    await supabase.from('proposals').update({ case_include_abbreviation: checked } as any).eq('id', proposalId);
-    queryClient.invalidateQueries({ queryKey: ['case-settings', proposalId] });
-    queryClient.invalidateQueries({ queryKey: ['proposal-themes-flag', proposalId] });
-  };
 
   // Update a case row (debounced from inputs).
   const updateCaseMutation = useMutation({
@@ -462,7 +454,7 @@ export function CaseManagementCard({
     mutationFn: async (typeRow: CaseTypeRow) => {
       const existing = caseDrafts.filter(c => c.case_type_id === typeRow.id);
       const newNumber = existing.length + 1;
-      const color = CASE_COLORS[(caseDrafts.length) % CASE_COLORS.length];
+      const color = typeRow.outline_color || '#000000';
 
       // Copy shared headings/guidelines from an existing case (any) so subsection
       // customisations propagate to new cases.
@@ -547,6 +539,24 @@ export function CaseManagementCard({
       onSaveEvent?.();
     },
     onError: () => toast.error('Failed to change case type'),
+  });
+
+  // Per-type settings: outline colour, include_number, include_abbreviation.
+  const updateTypeMutation = useMutation({
+    mutationFn: async ({ typeRowId, patch }: { typeRowId: string; patch: Partial<Pick<CaseTypeRow, 'outline_color' | 'include_number' | 'include_abbreviation'>> }) => {
+      const { error } = await supabase.from('proposal_case_types').update(patch).eq('id', typeRowId);
+      if (error) throw error;
+      // If colour changed, mirror onto child cases so legacy `color`-based UI stays in sync.
+      if (patch.outline_color !== undefined) {
+        await supabase.from('case_drafts').update({ color: patch.outline_color }).eq('case_type_id', typeRowId);
+      }
+    },
+    onSuccess: () => {
+      invalidateCaseQueries();
+      window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
+      onSaveEvent?.();
+    },
+    onError: () => toast.error('Failed to update case type'),
   });
 
   // Add another case type row (next order_index, picks first unused non-other type, or 'other').
@@ -690,29 +700,8 @@ export function CaseManagementCard({
               </div>
             ) : (
               <>
-                {/* Proposal-level numbering/abbreviation settings */}
-                <div className="flex items-center gap-3 flex-wrap">
-                  <div className="flex items-center gap-1.5">
-                    <Checkbox
-                      id="include-number"
-                      checked={caseIncludeNumber}
-                      onCheckedChange={(checked) => handleIncludeNumberChange(!!checked)}
-                      disabled={!isCoordinator}
-                    />
-                    <Label htmlFor="include-number" className="text-xs cursor-pointer">Include number</Label>
-                  </div>
-                  {!caseIncludeNumber && (
-                    <div className="flex items-center gap-1.5">
-                      <Checkbox
-                        id="include-abbreviation"
-                        checked={caseIncludeAbbreviation}
-                        onCheckedChange={(checked) => handleIncludeAbbreviationChange(!!checked)}
-                        disabled={!isCoordinator}
-                      />
-                      <Label htmlFor="include-abbreviation" className="text-xs cursor-pointer">Include abbreviation</Label>
-                    </div>
-                  )}
-                </div>
+                {/* (Per-type number/abbreviation toggles live on each case-type card below.) */}
+
 
                 {/* First-run prompt: cases enabled but no type yet */}
                 {caseTypeRows.length === 0 && (
@@ -808,6 +797,36 @@ export function CaseManagementCard({
                         )}
                       </div>
 
+                      {/* Per-type display settings */}
+                      {isCoordinator && (
+                        <div className="flex items-center gap-4 flex-wrap text-xs pt-1">
+                          <label className="flex items-center gap-1.5">
+                            <span className="text-muted-foreground">Outline:</span>
+                            <input
+                              type="color"
+                              value={typeRow.outline_color || '#000000'}
+                              onChange={(e) => updateTypeMutation.mutate({ typeRowId: typeRow.id, patch: { outline_color: e.target.value } })}
+                              className="w-7 h-6 rounded border cursor-pointer p-0"
+                              aria-label="Outline colour"
+                            />
+                          </label>
+                          <label className="flex items-center gap-1.5">
+                            <Switch
+                              checked={typeRow.include_number}
+                              onCheckedChange={(v) => updateTypeMutation.mutate({ typeRowId: typeRow.id, patch: { include_number: v } })}
+                            />
+                            <span>Include number</span>
+                          </label>
+                          <label className="flex items-center gap-1.5">
+                            <Switch
+                              checked={typeRow.include_abbreviation}
+                              onCheckedChange={(v) => updateTypeMutation.mutate({ typeRowId: typeRow.id, patch: { include_abbreviation: v } })}
+                            />
+                            <span>Include abbreviation</span>
+                          </label>
+                        </div>
+                      )}
+
                       {/* Cases grid */}
                       <div className="grid grid-cols-[24px_140px_1fr_80px_20px_20px] gap-x-1.5">
                         <div className="col-span-6 grid grid-cols-subgrid gap-x-1.5 text-xs font-bold text-muted-foreground border-b pb-1">
@@ -828,12 +847,14 @@ export function CaseManagementCard({
                                 participants={participants}
                                 casePrefix={prefix}
                                 caseTypeLabel={typeLabel}
-                                includeNumber={caseIncludeNumber}
-                                includeAbbreviation={caseIncludeNumber || caseIncludeAbbreviation}
+                                includeNumber={typeRow.include_number}
+                                includeAbbreviation={typeRow.include_abbreviation}
+                                outlineColor={typeRow.outline_color || '#000000'}
                                 onUpdate={handleUpdateCase}
                                 onDelete={handleDeleteCase}
                                 onToggleLock={handleToggleLock}
                                 canEdit={isCoordinator}
+
                               />
                             ))}
                           </SortableContext>

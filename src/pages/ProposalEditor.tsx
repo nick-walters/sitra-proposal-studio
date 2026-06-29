@@ -217,7 +217,7 @@ export function ProposalEditor() {
       if (!id) return [];
       const { data, error } = await supabase
         .from('case_drafts')
-        .select('id, number, short_name, lead_participant_id, color, case_type, custom_type_name')
+        .select('id, number, short_name, lead_participant_id, color, case_type, case_type_id, custom_type_name')
         .eq('proposal_id', id)
         .order('number');
       if (error) throw error;
@@ -226,26 +226,46 @@ export function ProposalEditor() {
     enabled: !!id && !!proposal?.casesEnabled,
   });
 
+  const { data: caseTypeFlagsData = [] } = useQuery({
+    queryKey: ['proposal-case-types-flags', id],
+    queryFn: async () => {
+      if (!id) return [];
+      const { data, error } = await supabase
+        .from('proposal_case_types')
+        .select('id, include_number, include_abbreviation, outline_color')
+        .eq('proposal_id', id);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!id,
+  });
+
   // Case prefix resolution lives in @/lib/caseTypeLabels.
 
   // Compute Case leadership mapping: participantId -> Cases they lead
   const caseLeadership = useMemo(() => {
+    const typeById = new Map(caseTypeFlagsData.map((t: any) => [t.id, t]));
     const mapping: Record<string, CaseLeadershipInfo[]> = {};
-    for (const c of caseLeadershipData) {
+    for (const c of caseLeadershipData as any[]) {
       if (c.lead_participant_id) {
         if (!mapping[c.lead_participant_id]) {
           mapping[c.lead_participant_id] = [];
         }
+        const t = c.case_type_id ? (typeById.get(c.case_type_id) as any) : null;
         mapping[c.lead_participant_id].push({
           caseNumber: c.number,
-          color: c.color,
+          color: t?.outline_color || c.color,
           shortName: c.short_name || undefined,
           prefix: getCaseTypePrefix(c.case_type, c.custom_type_name),
+          includeNumber: t?.include_number !== false,
+          includeAbbreviation: t?.include_abbreviation !== false,
+          outlineColor: t?.outline_color || '#000000',
         });
       }
     }
     return mapping;
-  }, [caseLeadershipData]);
+  }, [caseLeadershipData, caseTypeFlagsData]);
+
 
   // Helper to find section by id
   const findSectionById = useCallback((sections: Section[], targetId: string): Section | undefined => {
