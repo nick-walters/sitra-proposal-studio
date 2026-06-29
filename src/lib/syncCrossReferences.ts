@@ -48,7 +48,7 @@ interface FigureData {
   title: string;
 }
 
-function getCasePrefix(caseType: string): string {
+function getCaseTypePrefix(caseType: string): string {
   switch (caseType) {
     case 'case_study': return 'CS';
     case 'use_case': return 'UC';

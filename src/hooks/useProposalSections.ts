@@ -314,7 +314,7 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
   // Convert Case drafts to sections (cases are never hidden anymore — show all)
   const caseDraftSections: CaseSection[] = useMemo(() => {
     return caseDraftsData.map(c => {
-      const prefix = getCasePrefix(c.case_type);
+      const prefix = getCaseTypePrefix(c.case_type);
       const shortName = c.short_name || '';
       const showAbbrev = (caseIncludeNumber || caseIncludeAbbreviation) && !!prefix;
       const showNumber = caseIncludeNumber;

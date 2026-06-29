@@ -191,7 +191,7 @@ async function buildParticipantListHtml(
   for (const c of caseData || []) {
     if (!c.lead_participant_id) continue;
     if (!caseLeadership.has(c.lead_participant_id)) caseLeadership.set(c.lead_participant_id, []);
-    const prefix = getCasePrefix(c.case_type, c.custom_type_name);
+    const prefix = getCaseTypePrefix(c.case_type, c.custom_type_name);
     caseLeadership.get(c.lead_participant_id)!.push({
       label: prefix ? `${prefix}${c.number}` : (c.short_name || `${c.number}`),
       color: c.color,

@@ -39,7 +39,7 @@ interface CaseLeadRow {
   custom_type_name: string | null;
 }
 
-function getCasePrefix(caseType: string, customTypeName: string | null): string {
+function getCaseTypePrefix(caseType: string, customTypeName: string | null): string {
   if (caseType === 'other') return customTypeName ? customTypeName.toUpperCase() : '';
   switch (caseType) {
     case 'case_study': return 'CS';
@@ -175,7 +175,7 @@ export function B11ParticipantsTable({ proposalId }: Props) {
       if (!c.lead_participant_id) continue;
       (m[c.lead_participant_id] ||= []).push({
         number: c.number, shortName: c.short_name, color: c.color,
-        prefix: getCasePrefix(c.case_type, c.custom_type_name),
+        prefix: getCaseTypePrefix(c.case_type, c.custom_type_name),
       });
     }
     return m;

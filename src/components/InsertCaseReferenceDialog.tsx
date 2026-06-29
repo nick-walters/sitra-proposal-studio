@@ -93,7 +93,7 @@ export function InsertCaseReferenceDialog({
           ) : (
             <div className="space-y-1 p-1">
               {caseDrafts.map((caseItem) => {
-                const prefix = getCasePrefix(caseItem.case_type);
+                const prefix = getCaseTypePrefix(caseItem.case_type);
                 return (
                   <button
                     key={caseItem.id}

@@ -252,7 +252,7 @@ export function ProposalEditor() {
           caseNumber: c.number,
           color: c.color,
           shortName: c.short_name || undefined,
-          prefix: getCasePrefix(c.case_type, c.custom_type_name),
+          prefix: getCaseTypePrefix(c.case_type, c.custom_type_name),
         });
       }
     }
