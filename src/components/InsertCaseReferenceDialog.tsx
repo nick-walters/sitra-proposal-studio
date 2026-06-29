@@ -47,7 +47,7 @@ export function InsertCaseReferenceDialog({
   onSelect,
 }: InsertCaseReferenceDialogProps) {
   const [caseDrafts, setCaseDrafts] = useState<CaseDraft[]>([]);
-  const [typesById, setTypesById] = useState<Map<string, TypeRow>>(new Map());
+  const [typeRows, setTypeRows] = useState<TypeRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -66,20 +66,69 @@ export function InsertCaseReferenceDialog({
         .order('order_index'),
       supabase
         .from('proposal_case_types')
-        .select('id, include_number, include_abbreviation, outline_color')
-        .eq('proposal_id', proposalId),
+        .select('id, type_code, custom_type_name, include_number, include_abbreviation, outline_color, order_index')
+        .eq('proposal_id', proposalId)
+        .order('order_index'),
     ]);
 
     if (cases.error) console.error('Error fetching case drafts:', cases.error);
     setCaseDrafts((cases.data || []) as CaseDraft[]);
-    setTypesById(new Map(((types.data as TypeRow[]) || []).map((t) => [t.id, t])));
+    setTypeRows((types.data as TypeRow[]) || []);
     setLoading(false);
   };
+
+  const typesById = useMemo(
+    () => new Map(typeRows.map((t) => [t.id, t])),
+    [typeRows],
+  );
 
   const handleSelect = (caseItem: CaseDraft) => {
     onSelect(caseItem);
     onOpenChange(false);
   };
+
+  const renderCaseButton = (caseItem: CaseDraft) => {
+    const prefix = getCaseTypePrefix(caseItem.case_type);
+    const t = caseItem.case_type_id ? typesById.get(caseItem.case_type_id) : null;
+    const includeNumber = t?.include_number !== false;
+    const includeAbbreviation = t?.include_abbreviation !== false;
+    const outline = t?.outline_color || '#000000';
+    const label = buildCaseLabel({
+      prefix,
+      number: caseItem.number,
+      shortName: caseItem.short_name,
+      includeNumber,
+      includeAbbreviation,
+      withShortName: false,
+    });
+    return (
+      <button
+        key={caseItem.id}
+        onClick={() => handleSelect(caseItem)}
+        className={cn(
+          'w-full flex items-center p-3 rounded-md text-left cursor-pointer',
+          'hover:bg-muted/80 transition-colors',
+        )}
+      >
+        <span
+          className="shrink-0 rounded-full font-bold text-center border-[1.5px] bg-white text-xs px-1.5 py-0.5 whitespace-nowrap"
+          style={{ borderColor: outline, color: outline }}
+        >
+          {label}
+        </span>
+        <div className="flex-1 min-w-0 ml-3">
+          <div className="font-medium text-sm truncate">
+            {caseItem.short_name || '—'}
+          </div>
+          <div className="text-xs text-muted-foreground truncate">
+            {caseItem.title || '—'}
+          </div>
+        </div>
+      </button>
+    );
+  };
+
+  const showSections = typeRows.length > 1;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -105,49 +154,33 @@ export function InsertCaseReferenceDialog({
             <div className="text-center text-muted-foreground py-8">
               No cases found. Enable cases and add some first.
             </div>
-          ) : (
-            <div className="space-y-1 p-1">
-              {caseDrafts.map((caseItem) => {
-                const prefix = getCaseTypePrefix(caseItem.case_type);
-                const t = caseItem.case_type_id ? typesById.get(caseItem.case_type_id) : null;
-                const includeNumber = t?.include_number !== false;
-                const includeAbbreviation = t?.include_abbreviation !== false;
-                const outline = t?.outline_color || '#000000';
-                const label = buildCaseLabel({
-                  prefix,
-                  number: caseItem.number,
-                  shortName: caseItem.short_name,
-                  includeNumber,
-                  includeAbbreviation,
-                  withShortName: false,
-                });
+          ) : showSections ? (
+            <div className="p-1">
+              {typeRows.map((t) => {
+                const items = caseDrafts.filter((c) => c.case_type_id === t.id);
+                if (items.length === 0) return null;
+                const heading = getCaseTypeLabel(t.type_code, t.custom_type_name);
                 return (
-                  <button
-                    key={caseItem.id}
-                    onClick={() => handleSelect(caseItem)}
-                    className={cn(
-                      "w-full flex items-center p-3 rounded-md text-left cursor-pointer",
-                      "hover:bg-muted/80 transition-colors"
-                    )}
-                  >
-                    <span
-                      className="shrink-0 rounded-full font-bold text-center border-[1.5px] text-black bg-white text-xs px-1.5 py-0.5 whitespace-nowrap"
-                      style={{ borderColor: outline }}
-                    >
-                      {label}
-                    </span>
-                    <div className="flex-1 min-w-0 ml-3">
-                      <div className="font-medium text-sm truncate">
-                        {caseItem.short_name || '—'}
-                      </div>
-                      <div className="text-xs text-muted-foreground truncate">
-                        {caseItem.title || '—'}
-                      </div>
+                  <div key={t.id} className="mb-2">
+                    <div className="px-2 pt-2 pb-1 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                      {heading}
                     </div>
-                  </button>
+                    <div className="space-y-1">{items.map(renderCaseButton)}</div>
+                    <div className="border-b mt-1" />
+                  </div>
                 );
               })}
+              {/* Orphaned (no matching type row) */}
+              {(() => {
+                const orphans = caseDrafts.filter(
+                  (c) => !c.case_type_id || !typesById.has(c.case_type_id),
+                );
+                if (orphans.length === 0) return null;
+                return <div className="space-y-1">{orphans.map(renderCaseButton)}</div>;
+              })()}
             </div>
+          ) : (
+            <div className="space-y-1 p-1">{caseDrafts.map(renderCaseButton)}</div>
           )}
         </ScrollArea>
       </DialogContent>
