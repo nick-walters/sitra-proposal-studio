@@ -149,7 +149,7 @@ export function ProposalEditor() {
   // Budget data
   const {
     budgetItems,
-    budgetChanges,
+    
     saving: budgetSaving,
     addBudgetItem,
     updateBudgetItem,
