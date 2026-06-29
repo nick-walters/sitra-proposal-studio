@@ -594,6 +594,25 @@ export function CaseManagementCard({
     onError: () => toast.error('Failed to remove case type'),
   });
 
+  // Swap two type cards' order_index (one-step move).
+  const swapTypeOrderMutation = useMutation({
+    mutationFn: async ({ a, b }: { a: CaseTypeRow; b: CaseTypeRow }) => {
+      // Two-phase swap to avoid any potential unique conflicts.
+      const { error: e1 } = await supabase.from('proposal_case_types').update({ order_index: -1 - a.order_index }).eq('id', a.id);
+      if (e1) throw e1;
+      const { error: e2 } = await supabase.from('proposal_case_types').update({ order_index: a.order_index }).eq('id', b.id);
+      if (e2) throw e2;
+      const { error: e3 } = await supabase.from('proposal_case_types').update({ order_index: b.order_index }).eq('id', a.id);
+      if (e3) throw e3;
+    },
+    onSuccess: () => {
+      invalidateCaseQueries();
+      window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
+      onSaveEvent?.();
+    },
+    onError: () => toast.error('Failed to reorder case types'),
+  });
+
   const handleUpdateCase = useCallback((id: string, updates: Partial<CaseDraft>) => {
     updateCaseMutation.mutate({ id, updates });
   }, [updateCaseMutation]);
