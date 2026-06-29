@@ -58,7 +58,13 @@ export interface ComputedBudgetRow extends BudgetRowData {
 // Legacy single-text justifications and per-category item tables removed in Stage 2.
 // All cost-category justifications now live in `budget_cost_justification_items`.
 
-export type JustificationCategory = 'subcontracting' | 'travel' | 'equipment' | 'other_goods';
+export type JustificationCategory =
+  | 'subcontracting'
+  | 'travel'
+  | 'equipment'
+  | 'other_goods'
+  | 'fstp'
+  | 'internally_invoiced';
 
 export interface JustificationItem {
   id: string;
@@ -69,18 +75,38 @@ export interface JustificationItem {
   orderIndex: number;
 }
 
-const CATEGORY_TO_COLUMN: Record<JustificationCategory, 'subcontracting_costs' | 'purchase_travel' | 'purchase_equipment' | 'purchase_other_goods'> = {
+const CATEGORY_TO_COLUMN: Record<
+  JustificationCategory,
+  | 'subcontracting_costs'
+  | 'purchase_travel'
+  | 'purchase_equipment'
+  | 'purchase_other_goods'
+  | 'financial_support_third_parties'
+  | 'internally_invoiced'
+> = {
   subcontracting: 'subcontracting_costs',
   travel: 'purchase_travel',
   equipment: 'purchase_equipment',
   other_goods: 'purchase_other_goods',
+  fstp: 'financial_support_third_parties',
+  internally_invoiced: 'internally_invoiced',
 };
 
-const CATEGORY_TO_ROW_FIELD: Record<JustificationCategory, 'subcontractingCosts' | 'purchaseTravel' | 'purchaseEquipment' | 'purchaseOtherGoods'> = {
+const CATEGORY_TO_ROW_FIELD: Record<
+  JustificationCategory,
+  | 'subcontractingCosts'
+  | 'purchaseTravel'
+  | 'purchaseEquipment'
+  | 'purchaseOtherGoods'
+  | 'financialSupportThirdParties'
+  | 'internallyInvoiced'
+> = {
   subcontracting: 'subcontractingCosts',
   travel: 'purchaseTravel',
   equipment: 'purchaseEquipment',
   other_goods: 'purchaseOtherGoods',
+  fstp: 'financialSupportThirdParties',
+  internally_invoiced: 'internallyInvoiced',
 };
 
 export interface PersonnelBreakdownItem {
