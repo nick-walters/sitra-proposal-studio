@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Section } from '@/types/proposal';
 import { PART_A_SECTIONS, HORIZON_EUROPE_SECTIONS } from '@/types/proposal';
-import { getCaseTypePrefix, buildCaseLabel } from '@/lib/caseTypeLabels';
+import { getCaseTypePrefix, buildCaseLabel, buildWpCaseManagerTitle } from '@/lib/caseTypeLabels';
 
 interface WPTheme {
   id: string;
