@@ -85,7 +85,7 @@ export function useB31SectionData(proposalId: string) {
         .from('wp_drafts')
         .select(`
           id, number, title, short_name, lead_participant_id, color,
-          objectives, description_before_tasks, methodology,
+          objectives, description_before_tasks,
           manual_person_months, manual_duration,
           tasks:wp_draft_tasks(
             id, number, title, description, lead_participant_id, start_month, end_month, order_index,
