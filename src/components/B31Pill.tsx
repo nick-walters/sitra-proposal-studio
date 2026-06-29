@@ -107,6 +107,7 @@ export function WPBubble({
   wpNumber,
   wpColor,
   shortName,
+  showStar,
   children,
   onRemove,
   ...rest
@@ -114,11 +115,22 @@ export function WPBubble({
   wpNumber?: number;
   wpColor: string;
   shortName?: string;
+  showStar?: boolean;
   children?: React.ReactNode;
   onRemove?: () => void;
 } & Omit<B31PillProps, 'variant' | 'color' | 'children'>) {
   return (
-    <B31Pill variant="filled" color={wpColor} onRemove={onRemove} {...rest}>
+    <B31Pill
+      variant="filled"
+      color={wpColor}
+      onRemove={onRemove}
+      icon={
+        showStar ? (
+          <Star className="h-2.5 w-2.5 mr-0.5 fill-white" strokeWidth={0} aria-label="Primary WP" />
+        ) : undefined
+      }
+      {...rest}
+    >
       {children ?? `WP${wpNumber}${shortName ? `: ${shortName}` : ''}`}
     </B31Pill>
   );
