@@ -1426,9 +1426,17 @@ export function DocumentEditor({
         />
       </div>
 
-      {isB31Section && (
-        <div className="bg-red-500/15 border-b border-red-500/30 px-6 py-2 text-xs text-red-600">
+      {isB31Section && b31BannerDismissed === false && (
+        <div className="relative bg-red-500/15 border-b border-red-500/30 px-4 py-1 pr-9 text-xs text-red-600">
           Part B3.1 consists mostly of compulsory tables and figures. The text field before Table 3.1.a is editable, but the remainder of the content is filled via the work packages and milestones and risks pages in the left panel and mirrored to Part B3.1, where it cannot be edited.
+          <button
+            type="button"
+            onClick={dismissB31Banner}
+            aria-label="Dismiss banner"
+            className="absolute top-1 right-2 p-0.5 rounded hover:bg-red-500/20 text-red-600"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
         </div>
       )}
 
