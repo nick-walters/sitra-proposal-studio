@@ -735,10 +735,12 @@ export function CaseManagementCard({
                 )}
 
                 {/* One card per case type */}
-                {caseTypeRows.map((typeRow) => {
+                {caseTypeRows.map((typeRow, typeIdx) => {
                   const typeLabel = getCaseTypeLabel(typeRow.type_code, typeRow.custom_type_name);
                   const prefix = getCasePrefix(typeRow.type_code, typeRow.custom_type_name);
                   const cases = casesByType.get(typeRow.id) ?? [];
+                  const isFirst = typeIdx === 0;
+                  const isLast = typeIdx === caseTypeRows.length - 1;
 
                   const onDragEnd = (event: DragEndEvent) => {
                     const { active, over } = event;
