@@ -30,7 +30,9 @@ import { ParticipantBubble } from '@/components/B31Pill';
 import {
   getCaseTypeLabel,
   getCaseTypePrefix as getCasePrefix,
+  buildCaseLabel,
 } from '@/lib/caseTypeLabels';
+
 
 const SITRA_CASE_TIPS = [
   {
