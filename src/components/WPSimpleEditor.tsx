@@ -72,6 +72,8 @@ export function WPSimpleEditor({
   onSaveSelection,
 }: WPSimpleEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
+  const { data: caseTypes = [] } = useProposalCaseTypes(proposalId);
+
   const [isFocused, setIsFocused] = useState(false);
   const [isTaskRefOpen, setIsTaskRefOpen] = useState(false);
   const [isDeliverableRefOpen, setIsDeliverableRefOpen] = useState(false);
@@ -247,7 +249,7 @@ export function WPSimpleEditor({
           <span className="w-16 flex justify-start shrink-0">
             <span style={{ display: 'inline-block', width: '22px', height: '14px', border: '1.5px solid #000000', borderRadius: '9999px', background: '#ffffff' }} />
           </span>
-          <span>Case</span>
+          <span>{caseWord(caseTypes, { capitalize: true })}</span>
         </DropdownMenuItem>
       )}
       {onOpenParticipantRefDialog && (
