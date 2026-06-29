@@ -866,11 +866,18 @@ export function CaseManagementCard({
                           {typeRow.type_code === 'other' && (
                             <AbbreviationInput
                               value={typeRow.custom_type_name || ''}
-                              onChange={(name) => changeTypeMutation.mutate({
-                                typeRowId: typeRow.id,
-                                type_code: 'other',
-                                custom_type_name: name,
-                              })}
+                              onChange={(name) => {
+                                const prevDefault = `${getCaseTypeLabel('other', typeRow.custom_type_name)} descriptions`;
+                                const currentCaption = (typeRow.caption_text ?? '').trim();
+                                const isUntouched = currentCaption === '' || currentCaption === prevDefault;
+                                const newDefault = `${getCaseTypeLabel('other', name)} descriptions`;
+                                changeTypeMutation.mutate({
+                                  typeRowId: typeRow.id,
+                                  type_code: 'other',
+                                  custom_type_name: name,
+                                  ...(isUntouched ? { caption_text: newDefault } : {}),
+                                });
+                              }}
                               disabled={!isCoordinator}
                             />
                           )}
