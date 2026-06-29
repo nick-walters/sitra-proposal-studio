@@ -130,14 +130,18 @@ function ReadOnlyRichBody({ html, headingPrefixHtml }: { html: string | null | u
     }
     return null;
   }
-  let finalHtml = raw;
+  // Drop leading empty paragraphs (e.g. <p><br></p> or <p>&nbsp;</p>) so the
+  // heading prefix lands inside the FIRST REAL paragraph, not a blank one above it.
+  let body = raw.replace(/^(?:\s*<p\b[^>]*>(?:\s|&nbsp;|<br\s*\/?>)*<\/p>)+/i, '');
+  // Also drop trailing empty paragraphs so spacing below stays tight.
+  body = body.replace(/(?:<p\b[^>]*>(?:\s|&nbsp;|<br\s*\/?>)*<\/p>\s*)+$/i, '');
+  let finalHtml = body;
   if (headingPrefixHtml) {
-    // Inject the heading INSIDE the first <p> so heading + first paragraph render as
-    // one single block (truly inline). If no leading <p>, wrap the whole thing.
-    if (/^\s*<p\b[^>]*>/i.test(raw)) {
-      finalHtml = raw.replace(/^(\s*<p\b[^>]*>)/i, `$1${headingPrefixHtml} `);
+    if (/^\s*<p\b[^>]*>/i.test(body)) {
+      finalHtml = body.replace(/^(\s*<p\b[^>]*>)/i, `$1${headingPrefixHtml} `);
     } else {
-      finalHtml = `<p>${headingPrefixHtml} </p>${raw}`;
+      // Body doesn't start with <p> (e.g. raw text or inline tag) — wrap together in one <p>.
+      finalHtml = `<p>${headingPrefixHtml} ${body}</p>`;
     }
   }
   return (
