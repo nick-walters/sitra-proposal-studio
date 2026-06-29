@@ -318,7 +318,7 @@ export function ProposalTableView({ proposals, onProposalClick, pinnedIds = [], 
               className="h-6 px-2 gap-1 text-[10px]"
               onClick={(e) => {
                 e.stopPropagation();
-                window.open(proposal.topicUrl, '_blank');
+                safeOpenUrl(proposal.topicUrl);
               }}
             >
               <ExternalLink className="w-2.5 h-2.5" />
