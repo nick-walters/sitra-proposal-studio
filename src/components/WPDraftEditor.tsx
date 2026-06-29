@@ -641,8 +641,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
-      const CASE_PREFIXES: Record<string, string> = { case_study: 'CS', use_case: 'UC', living_lab: 'LL', pilot: 'P', demonstration: 'D', challenge: 'CH' };
-      const prefix = CASE_PREFIXES[caseItem.case_type] || '';
+      const prefix = getCaseTypePrefix(caseItem.case_type);
       const label = prefix ? `${prefix}${caseItem.number}` : (caseItem.short_name || String(caseItem.number));
       const span = document.createElement('span');
       span.textContent = label;
