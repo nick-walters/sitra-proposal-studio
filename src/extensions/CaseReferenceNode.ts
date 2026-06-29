@@ -123,7 +123,7 @@ export const CaseReferenceNode = Node.create<CaseReferenceOptions>({
     const caseNumber = node.attrs.caseNumber;
     const caseShortName = node.attrs.caseShortName;
     const caseType = node.attrs.caseType;
-    const prefix = getCasePrefix(caseType);
+    const prefix = getCaseTypePrefix(caseType);
     const label = prefix
       ? `${prefix}${caseNumber}`
       : (caseShortName || `${caseNumber}`);
