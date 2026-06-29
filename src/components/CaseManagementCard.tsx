@@ -187,8 +187,8 @@ function SortableCaseRow({ caseItem, participants, casePrefix, caseTypeLabel, in
       </div>
 
       <Badge
-        className="rounded-full font-bold justify-start text-xs h-6 w-auto min-w-[1.5rem] border-[1.5px] text-black bg-white whitespace-nowrap gap-0 px-2"
-        style={{ borderColor: outlineColor || '#000000' }}
+        className="rounded-full font-bold justify-start text-xs h-6 w-auto min-w-[1.5rem] border-[1.5px] bg-white whitespace-nowrap gap-0 px-2"
+        style={{ borderColor: outlineColor || '#000000', color: outlineColor || '#000000' }}
       >
         {includeAbbreviation && casePrefix && <span>{casePrefix}</span>}
         {includeNumber && <span>{caseItem.number}</span>}
@@ -202,8 +202,8 @@ function SortableCaseRow({ caseItem, participants, casePrefix, caseTypeLabel, in
           onFocus={() => { isFocused.current = true; }}
           onBlur={() => { isFocused.current = false; }}
           placeholder={casePrefix ? 'name' : 'Short name'}
-          className="bg-transparent outline-none font-bold text-xs text-black min-w-[2rem]"
-          style={{ width: `${Math.max(2, (localShortName || '').length * 0.6)}em` }}
+          className="bg-transparent outline-none font-bold text-xs min-w-[2rem]"
+          style={{ width: `${Math.max(2, (localShortName || '').length * 0.6)}em`, color: outlineColor || '#000000' }}
           disabled={!canEdit}
         />
       </Badge>
