@@ -1386,6 +1386,7 @@ StarterKit.configure({
     content: initialEditorContentRef.current,
     enableExtensionDispatchTransaction: true,
     onUpdate: ({ editor }) => {
+      if (editor.isDestroyed || !editor.schema) return;
       onChange(editor.getHTML());
     },
     editorProps: {
