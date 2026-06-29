@@ -6,6 +6,7 @@ import { getCaseTypePrefix, buildCaseLabel, caseWord } from '@/lib/caseTypeLabel
 
 import { supabase } from '@/integrations/supabase/client';
 import { RICH_TEXT_CONFIG } from '@/lib/sanitizePresets';
+import { stripWordHtml } from '@/lib/stripWordHtml';
 import { B31Pill, ParticipantBubble } from './B31Pill';
 import { Crown } from 'lucide-react';
 
@@ -107,20 +108,67 @@ function CaseChip({ label, color }: { label: string; color: string }) {
   );
 }
 
+const BLOCK_TAGS = new Set([
+  'P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6',
+  'UL', 'OL', 'LI', 'BLOCKQUOTE', 'PRE', 'TABLE',
+  'SECTION', 'ARTICLE',
+]);
+
+/**
+ * Walk into the parsed body and return the first block-level element that
+ * actually has visible content. Skips empty/whitespace-only wrappers and
+ * descends into wrapper <div>s that only contain another single block.
+ */
+function findFirstContentBlock(root: ParentNode): Element | null {
+  const children = Array.from(root.children) as Element[];
+  for (const child of children) {
+    if (!BLOCK_TAGS.has(child.tagName)) {
+      // Inline element at the top level — treat the root as inline-first by
+      // returning null so the caller wraps the whole thing.
+      const text = (child.textContent || '').replace(/\u00a0/g, ' ').trim();
+      if (text) return null;
+      continue;
+    }
+    const text = (child.textContent || '').replace(/\u00a0/g, ' ').trim();
+    if (!text) continue; // skip empty <p>/<div>
+    // Descend through pure wrapper divs.
+    if (child.tagName === 'DIV' && child.children.length === 1 && !child.childNodes[0].nodeValue?.trim()) {
+      const inner = findFirstContentBlock(child);
+      if (inner) return inner;
+    }
+    return child;
+  }
+  return null;
+}
+
+/**
+ * Parse the body, find the first real block, and decide whether the
+ * heading must render on its own line (list-first) or can be inlined
+ * inside the first block (paragraph-first). Operates on the DOM, so it's
+ * robust to leading MSO/Word junk and non-<p> first blocks.
+ */
 function bodyStartsWithList(html: string | null | undefined): boolean {
-  const raw = (html ?? '').toString().trim();
-  if (!raw) return false;
-  // Strip leading empty paragraphs / whitespace-only wrappers, then check first real tag.
-  const stripped = raw.replace(/^(?:<p[^>]*>(?:\s|&nbsp;|<br\s*\/?>)*<\/p>\s*)+/i, '').trim();
-  return /^<(ul|ol)\b/i.test(stripped);
+  const cleaned = stripWordHtml((html ?? '').toString());
+  if (!cleaned) return false;
+  if (typeof document === 'undefined') {
+    return /^\s*<(ul|ol)\b/i.test(cleaned);
+  }
+  const tpl = document.createElement('template');
+  tpl.innerHTML = cleaned;
+  const first = findFirstContentBlock(tpl.content);
+  return !!first && (first.tagName === 'UL' || first.tagName === 'OL');
 }
 
 function ReadOnlyRichBody({ html, headingPrefixHtml }: { html: string | null | undefined; headingPrefixHtml?: string }) {
   const raw = (html ?? '').toString();
-  const isEmpty = !raw || raw.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, '').trim() === '';
+
+  // 1. Sanitize first — strips MSO comments / <o:p> / MsoNormal etc.
+  //    while leaving custom cross-ref nodes intact.
+  const cleaned = stripWordHtml(raw);
+
+  const isEmpty = !cleaned || cleaned.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, '').trim() === '';
   if (isEmpty) {
     if (headingPrefixHtml) {
-      // No body — still render the heading as its own paragraph so the divider/spacing is consistent.
       return (
         <div
           className="font-['Times_New_Roman',Times,serif] text-[11pt] text-justify [&_p]:mt-[6pt] [&_p]:mb-[6pt]"
@@ -130,20 +178,39 @@ function ReadOnlyRichBody({ html, headingPrefixHtml }: { html: string | null | u
     }
     return null;
   }
-  // Drop leading empty paragraphs (e.g. <p><br></p> or <p>&nbsp;</p>) so the
-  // heading prefix lands inside the FIRST REAL paragraph, not a blank one above it.
-  let body = raw.replace(/^(?:\s*<p\b[^>]*>(?:\s|&nbsp;|<br\s*\/?>)*<\/p>)+/i, '');
-  // Also drop trailing empty paragraphs so spacing below stays tight.
-  body = body.replace(/(?:<p\b[^>]*>(?:\s|&nbsp;|<br\s*\/?>)*<\/p>\s*)+$/i, '');
-  let finalHtml = body;
-  if (headingPrefixHtml) {
-    if (/^\s*<p\b[^>]*>/i.test(body)) {
-      finalHtml = body.replace(/^(\s*<p\b[^>]*>)/i, `$1${headingPrefixHtml} `);
+
+  let finalHtml = cleaned;
+
+  if (headingPrefixHtml && typeof document !== 'undefined') {
+    // 2. Parse into a detached fragment.
+    const tpl = document.createElement('template');
+    tpl.innerHTML = cleaned;
+
+    // 3. Find the first real block element.
+    const firstBlock = findFirstContentBlock(tpl.content);
+
+    if (firstBlock && firstBlock.tagName !== 'UL' && firstBlock.tagName !== 'OL' && firstBlock.tagName !== 'LI') {
+      // 5. Prepend the heading prefix as inline children INSIDE the first
+      //    real block — so heading + first block text render as one block
+      //    on one line.
+      const prefixTpl = document.createElement('template');
+      prefixTpl.innerHTML = `${headingPrefixHtml} `;
+      // Insert in reverse so order is preserved when each insertBefore
+      // pushes the existing first child further right.
+      const nodes = Array.from(prefixTpl.content.childNodes);
+      for (let i = nodes.length - 1; i >= 0; i--) {
+        firstBlock.insertBefore(nodes[i], firstBlock.firstChild);
+      }
+      finalHtml = tpl.innerHTML;
+    } else if (firstBlock) {
+      // 4. List-first (or LI-first) — keep heading on its own line above.
+      finalHtml = `<p>${headingPrefixHtml}</p>${cleaned}`;
     } else {
-      // Body doesn't start with <p> (e.g. raw text or inline tag) — wrap together in one <p>.
-      finalHtml = `<p>${headingPrefixHtml} ${body}</p>`;
+      // No block at all — wrap heading + body into a single <p>.
+      finalHtml = `<p>${headingPrefixHtml} ${cleaned}</p>`;
     }
   }
+
   return (
     <div
       className="font-['Times_New_Roman',Times,serif] text-[11pt] text-justify [&_p]:mt-[6pt] [&_p]:mb-[6pt]"
