@@ -311,26 +311,38 @@ export function CasesTableNodeView(props: NodeViewProps) {
 
   const caseTypeId: string | null = (props.node?.attrs?.caseTypeId as string | null) || null;
 
-  // Letter for the caption — index of THIS casesTable node among all
-  // casesTable nodes in document order. Recomputed every render so it stays
-  // accurate as nodes are added / removed / reordered.
+  // Letter for the caption — count ALL table-caption slots before this node
+  // in document order (other casesTable atoms AND ordinary <p class="table-caption">
+  // paragraphs that match "Table X.X.x."). This keeps the case-table caption
+  // in the same global sequence the renumberCaptionsInEditor walker uses for
+  // manually-inserted tables, so 1.2.a, 1.2.b, 1.2.c… are assigned
+  // consistently no matter how the tables are interleaved.
   let nodeLetterIndex = 0;
   try {
     const doc = props.editor?.state?.doc;
     const myPos = typeof props.getPos === 'function' ? props.getPos() : null;
     if (doc && typeof myPos === 'number') {
+      const tableCaptionPattern = /^(Table)\s+\d+\.\d+\.[a-z]\./i;
       let count = 0;
-      doc.descendants((n, pos) => {
+      doc.forEach((n, pos) => {
+        if (pos >= myPos) return;
         if (n.type?.name === 'casesTable') {
-          if (pos < myPos) count++;
+          count++;
+          return;
         }
-        return true;
+        if (n.type?.name === 'paragraph') {
+          const cls = (n.attrs?.class || '') as string;
+          if (cls.includes('table-caption') && tableCaptionPattern.test(n.textContent)) {
+            count++;
+          }
+        }
       });
       nodeLetterIndex = count;
     }
   } catch {
     // best-effort — fall back to 0
   }
+
 
   const { data } = useQuery({
     queryKey: ['b12-cases-live', proposalId, caseTypeId],
@@ -385,7 +397,10 @@ export function CasesTableNodeView(props: NodeViewProps) {
       boundType.custom_type_name,
       { plural: false },
     );
-    const trailing = (boundType.caption_text ?? '').trim()
+    // Caption text is the verbatim caption_text from proposal_case_types.
+    // The plural type name already appears as the subheading above — do NOT
+    // re-prepend it here.
+    const captionBody = (boundType.caption_text ?? '').trim()
       || `${typeSingular} descriptions`;
     const letter = letterFor(nodeLetterIndex);
     captionEl = (
@@ -401,12 +416,11 @@ export function CasesTableNodeView(props: NodeViewProps) {
         }}
       >
         <strong><em>Table {SECTION_NUMBER_BASE}.{letter}.</em></strong>{' '}
-        <em>
-          {boundType.caption_text?.trim() ? `${typeSingular} ${boundType.caption_text.trim()}` : trailing}
-        </em>
+        <em>{captionBody}</em>
       </p>
     );
   }
+
 
 
 
