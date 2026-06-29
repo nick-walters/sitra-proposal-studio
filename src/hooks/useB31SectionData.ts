@@ -166,7 +166,7 @@ export function useB31SectionData(proposalId: string) {
           .from('budget_cost_justification_items')
           .select('*')
           .in('budget_row_id', rowIds)
-          .in('category', ['subcontracting', 'equipment'])
+          .in('category', ['subcontracting', 'equipment', 'travel', 'other_goods', 'fstp', 'internally_invoiced'])
           .order('order_index');
         justItems = data || [];
       }
