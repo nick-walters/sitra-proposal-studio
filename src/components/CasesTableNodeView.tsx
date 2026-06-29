@@ -378,7 +378,7 @@ export function CasesTableNodeView(props: NodeViewProps) {
 
   // Caption — only rendered for typed tables. Legacy untyped placeholders
   // keep their externally-authored caption paragraph (stage 1 back-compat).
-  let captionEl: React.ReactNode = null;
+  let captionEl: JSX.Element | null = null;
   if (caseTypeId && boundType) {
     const typeSingular = getCaseTypeLabel(
       boundType.type_code,
