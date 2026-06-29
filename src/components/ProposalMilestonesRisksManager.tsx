@@ -602,7 +602,7 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
                               {selectedWps.length === 0 ? (
                                 <span className="text-muted-foreground italic">Select WP(s)…</span>
                               ) : (
-                                <span className="flex flex-nowrap gap-0.5 items-center whitespace-nowrap">
+                                <span className="flex flex-wrap gap-0.5 items-center">
                                   {selectedWps.map(wp => (
                                     <WPBubble
                                       key={wp.id}
