@@ -2,13 +2,32 @@ import { NodeViewWrapper, NodeViewProps } from '@tiptap/react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import DOMPurify from 'dompurify';
-import { getCaseTypePrefix, buildCaseLabel, caseWord } from '@/lib/caseTypeLabels';
+import {
+  getCaseTypePrefix,
+  buildCaseLabel,
+  caseWord,
+  getCaseTypeLabel,
+} from '@/lib/caseTypeLabels';
 
 import { supabase } from '@/integrations/supabase/client';
 import { RICH_TEXT_CONFIG } from '@/lib/sanitizePresets';
 import { stripWordHtml } from '@/lib/stripWordHtml';
 import { B31Pill, ParticipantBubble } from './B31Pill';
 import { Crown } from 'lucide-react';
+
+// B1.2 cases tables are always in section 1.2.
+const SECTION_NUMBER_BASE = '1.2';
+
+function letterFor(index: number): string {
+  // 0 → 'a', 1 → 'b', ... 25 → 'z', 26 → 'aa', etc.
+  let n = index;
+  let out = '';
+  do {
+    out = String.fromCharCode(97 + (n % 26)) + out;
+    n = Math.floor(n / 26) - 1;
+  } while (n >= 0);
+  return out;
+}
 
 /**
  * CasesTableNodeView — Stage 1 (live read-only mirror).
@@ -49,6 +68,7 @@ interface CaseTypeRow {
   outline_color: string;
   type_code: string | null;
   custom_type_name: string | null;
+  caption_text: string | null;
 }
 
 
@@ -282,24 +302,50 @@ function proposalIdFromUrl(): string {
   return m ? m[1] : '';
 }
 
-export function CasesTableNodeView(_props: NodeViewProps) {
+export function CasesTableNodeView(props: NodeViewProps) {
   const params = useParams<{ proposalId?: string; id?: string }>();
   const pathFallback = proposalIdFromUrl();
   // Tiptap NodeViews may render in a detached React tree, so useParams can
   // return empty. Fall back to parsing the proposal id from the URL.
   const proposalId = params.proposalId || params.id || pathFallback;
 
+  const caseTypeId: string | null = (props.node?.attrs?.caseTypeId as string | null) || null;
+
+  // Letter for the caption — index of THIS casesTable node among all
+  // casesTable nodes in document order. Recomputed every render so it stays
+  // accurate as nodes are added / removed / reordered.
+  let nodeLetterIndex = 0;
+  try {
+    const doc = props.editor?.state?.doc;
+    const myPos = typeof props.getPos === 'function' ? props.getPos() : null;
+    if (doc && typeof myPos === 'number') {
+      let count = 0;
+      doc.descendants((n, pos) => {
+        if (n.type?.name === 'casesTable') {
+          if (pos < myPos) count++;
+        }
+        return true;
+      });
+      nodeLetterIndex = count;
+    }
+  } catch {
+    // best-effort — fall back to 0
+  }
+
   const { data } = useQuery({
-    queryKey: ['b12-cases-live', proposalId],
+    queryKey: ['b12-cases-live', proposalId, caseTypeId],
     enabled: !!proposalId,
     queryFn: async () => {
+      const casesQuery = supabase
+        .from('case_drafts')
+        .select('id, number, short_name, title, case_type, case_type_id, custom_type_name, color, lead_participant_id, order_index, subsection_content, background_context, proposed_solutions, expected_outcomes, replicability, key_stakeholders, heading_background, heading_solutions, heading_outcomes, heading_replicability, heading_stakeholders')
+        .eq('proposal_id', proposalId)
+        .order('order_index', { ascending: true, nullsFirst: false })
+        .order('number', { ascending: true });
+      if (caseTypeId) casesQuery.eq('case_type_id', caseTypeId);
+
       const [casesRes, tplRes, partsRes, typesRes] = await Promise.all([
-        supabase
-          .from('case_drafts')
-          .select('id, number, short_name, title, case_type, case_type_id, custom_type_name, color, lead_participant_id, order_index, subsection_content, background_context, proposed_solutions, expected_outcomes, replicability, key_stakeholders, heading_background, heading_solutions, heading_outcomes, heading_replicability, heading_stakeholders')
-          .eq('proposal_id', proposalId)
-          .order('order_index', { ascending: true, nullsFirst: false })
-          .order('number', { ascending: true }),
+        casesQuery,
         supabase
           .from('case_subsection_templates')
           .select('id, key, heading, order_index, is_default')
@@ -312,7 +358,7 @@ export function CasesTableNodeView(_props: NodeViewProps) {
           .order('participant_number'),
         supabase
           .from('proposal_case_types')
-          .select('id, include_number, include_abbreviation, outline_color, type_code, custom_type_name')
+          .select('id, include_number, include_abbreviation, outline_color, type_code, custom_type_name, caption_text')
           .eq('proposal_id', proposalId),
       ]);
 
@@ -324,6 +370,44 @@ export function CasesTableNodeView(_props: NodeViewProps) {
       return { cases, templates, participants, typeById, types };
     },
   });
+
+  // Resolve the type row this table is bound to (if any) for caption + scoping.
+  const boundType: CaseTypeRow | undefined = caseTypeId
+    ? data?.typeById.get(caseTypeId)
+    : undefined;
+
+  // Caption — only rendered for typed tables. Legacy untyped placeholders
+  // keep their externally-authored caption paragraph (stage 1 back-compat).
+  let captionEl: JSX.Element | null = null;
+  if (caseTypeId && boundType) {
+    const typeSingular = getCaseTypeLabel(
+      boundType.type_code,
+      boundType.custom_type_name,
+      { plural: false },
+    );
+    const trailing = (boundType.caption_text ?? '').trim()
+      || `${typeSingular} descriptions`;
+    const letter = letterFor(nodeLetterIndex);
+    captionEl = (
+      <p
+        className="table-caption"
+        data-cases-table-caption=""
+        contentEditable={false}
+        style={{
+          textAlign: 'left',
+          margin: '0 0 4px 0',
+          fontFamily: "'Times New Roman', Times, serif",
+          fontSize: '11pt',
+        }}
+      >
+        <strong><em>Table {SECTION_NUMBER_BASE}.{letter}.</em></strong>{' '}
+        <em>
+          {boundType.caption_text?.trim() ? `${typeSingular} ${boundType.caption_text.trim()}` : trailing}
+        </em>
+      </p>
+    );
+  }
+
 
 
 
@@ -344,6 +428,7 @@ export function CasesTableNodeView(_props: NodeViewProps) {
         userSelect: 'text',
       }}
     >
+      {captionEl}
       {(!data || data.cases.length === 0) && (
         <div
           style={{

@@ -5,18 +5,27 @@ import { CasesTableNodeView } from '@/components/CasesTableNodeView';
 /**
  * casesTable — block atom node holding the B1.2 cases-table.
  *
- * Stage 1: skeleton only. The node stores ONLY which case_draft ids to
- * render (and their order) plus an optional caption. The actual case
- * content is fetched live by the React NodeView (stage 2).
+ * Persisted DOM shape:
+ *   <div
+ *     data-cases-table-node
+ *     data-case-type-id="<proposal_case_types.id>"   (new — per-type table)
+ *     data-case-ids="id1,id2,..."                    (legacy, unused)
+ *     data-caption="..."                              (legacy, unused)
+ *   ></div>
  *
- * Persisted DOM shape (small placeholder, not the full table):
- *   <div data-cases-table-node data-case-ids="id1,id2,..." data-caption="..."></div>
+ * When data-case-type-id is set the NodeView shows ONLY that type's cases
+ * and renders its own caption. When absent (legacy placeholder) it falls
+ * back to showing every case for the proposal.
  */
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     casesTable: {
-      insertCasesTable: (attributes: { caseIds: string[]; caption?: string | null }) => ReturnType;
+      insertCasesTable: (attributes: {
+        caseIds?: string[];
+        caption?: string | null;
+        caseTypeId?: string | null;
+      }) => ReturnType;
     };
   }
 }
@@ -44,13 +53,18 @@ export const CasesTableNode = Node.create({
         parseHTML: (el) => parseIds(el.getAttribute('data-case-ids')),
         renderHTML: (attrs) => {
           const ids: string[] = Array.isArray(attrs.caseIds) ? attrs.caseIds : [];
-          return { 'data-case-ids': ids.join(',') };
+          return ids.length ? { 'data-case-ids': ids.join(',') } : {};
         },
       },
       caption: {
         default: null as string | null,
         parseHTML: (el) => el.getAttribute('data-caption'),
         renderHTML: (attrs) => (attrs.caption ? { 'data-caption': attrs.caption } : {}),
+      },
+      caseTypeId: {
+        default: null as string | null,
+        parseHTML: (el) => el.getAttribute('data-case-type-id'),
+        renderHTML: (attrs) => (attrs.caseTypeId ? { 'data-case-type-id': attrs.caseTypeId } : {}),
       },
     };
   },
@@ -74,7 +88,11 @@ export const CasesTableNode = Node.create({
         ({ commands }) =>
           commands.insertContent({
             type: this.name,
-            attrs: { caseIds: attributes.caseIds || [], caption: attributes.caption ?? null },
+            attrs: {
+              caseIds: attributes.caseIds || [],
+              caption: attributes.caption ?? null,
+              caseTypeId: attributes.caseTypeId ?? null,
+            },
           }),
     };
   },

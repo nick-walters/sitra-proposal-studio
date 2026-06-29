@@ -72,6 +72,7 @@ interface CaseTypeRow {
   include_number: boolean;
   include_abbreviation: boolean;
   order_index: number;
+  caption_text: string | null;
 }
 
 import {
@@ -347,7 +348,7 @@ export function CaseManagementCard({
     queryFn: async () => {
       const { data, error } = await supabase
         .from('proposal_case_types')
-        .select('id, proposal_id, type_code, custom_type_name, outline_color, include_number, include_abbreviation, order_index')
+        .select('id, proposal_id, type_code, custom_type_name, outline_color, include_number, include_abbreviation, order_index, caption_text')
         .eq('proposal_id', proposalId)
         .order('order_index');
       if (error) throw error;
@@ -552,7 +553,7 @@ export function CaseManagementCard({
 
   // Per-type settings: outline colour, include_number, include_abbreviation.
   const updateTypeMutation = useMutation({
-    mutationFn: async ({ typeRowId, patch }: { typeRowId: string; patch: Partial<Pick<CaseTypeRow, 'outline_color' | 'include_number' | 'include_abbreviation'>> }) => {
+    mutationFn: async ({ typeRowId, patch }: { typeRowId: string; patch: Partial<Pick<CaseTypeRow, 'outline_color' | 'include_number' | 'include_abbreviation' | 'caption_text'>> }) => {
       const { error } = await supabase.from('proposal_case_types').update(patch).eq('id', typeRowId);
       if (error) throw error;
       // If colour changed, mirror onto child cases so legacy `color`-based UI stays in sync.
@@ -883,6 +884,31 @@ export function CaseManagementCard({
                           </label>
                         </div>
                       )}
+
+                      {/* Caption text for the B1.2 table for this type */}
+                      {isCoordinator && (() => {
+                        const trailing = (typeRow.caption_text ?? '').trim() || `${typeLabel} descriptions`;
+                        const preview = typeRow.caption_text?.trim()
+                          ? `${typeLabel} ${typeRow.caption_text.trim()}`
+                          : trailing;
+                        return (
+                          <div className="flex items-start gap-2 flex-wrap text-xs pt-1">
+                            <label className="flex items-center gap-1.5 flex-1 min-w-[260px]">
+                              <span className="text-muted-foreground whitespace-nowrap">Caption text:</span>
+                              <Input
+                                value={typeRow.caption_text ?? ''}
+                                placeholder={`descriptions   →   ${typeLabel} descriptions`}
+                                onChange={(e) => updateTypeMutation.mutate({ typeRowId: typeRow.id, patch: { caption_text: e.target.value } })}
+                                className="h-7 text-xs"
+                              />
+                            </label>
+                            <div className="text-muted-foreground italic pt-1">
+                              Preview: <span className="not-italic font-medium">Table 1.2.x.</span> <em>{preview}</em>
+                            </div>
+                          </div>
+                        );
+                      })()}
+
 
                       {/* Cases grid */}
                       <div className="grid grid-cols-[24px_140px_1fr_80px_20px_20px] gap-x-1.5">

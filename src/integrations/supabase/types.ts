@@ -2796,6 +2796,7 @@ export type Database = {
       }
       proposal_case_types: {
         Row: {
+          caption_text: string | null
           created_at: string
           custom_type_name: string | null
           id: string
@@ -2808,6 +2809,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          caption_text?: string | null
           created_at?: string
           custom_type_name?: string | null
           id?: string
@@ -2820,6 +2822,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          caption_text?: string | null
           created_at?: string
           custom_type_name?: string | null
           id?: string
