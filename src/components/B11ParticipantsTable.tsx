@@ -7,6 +7,7 @@ import { useColumnResize } from '@/hooks/useColumnResize';
 import { useProposalRole } from '@/hooks/useProposalRole';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { B31Pill, WPBubble, ParticipantBubble } from './B31Pill';
+import { getCaseTypePrefix } from '@/lib/caseTypeLabels';
 
 interface Props {
   proposalId: string;
