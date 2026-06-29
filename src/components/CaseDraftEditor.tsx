@@ -488,6 +488,17 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
 
   const readOnly = !canEdit;
   const prefix = getCasePrefix(caseDraft.case_type, caseDraft.custom_type_name);
+  const includeNumber = caseTypeRow?.include_number !== false;
+  const includeAbbreviation = caseTypeRow?.include_abbreviation !== false;
+  const headingLabel = buildCaseLabel({
+    prefix,
+    number: caseDraft.number,
+    shortName: caseDraft.short_name,
+    includeNumber,
+    includeAbbreviation,
+    withShortName: false,
+  });
+
 
   return (
     <ScrollArea className="h-full">
