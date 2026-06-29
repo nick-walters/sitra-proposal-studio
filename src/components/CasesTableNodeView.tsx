@@ -106,10 +106,29 @@ function CaseChip({ label, color }: { label: string; color: string }) {
   );
 }
 
-function ReadOnlyRichBody({ html }: { html: string | null | undefined }) {
+function bodyStartsWithList(html: string | null | undefined): boolean {
+  const raw = (html ?? '').toString().trim();
+  if (!raw) return false;
+  // Strip leading empty paragraphs / whitespace-only wrappers, then check first real tag.
+  const stripped = raw.replace(/^(?:<p[^>]*>(?:\s|&nbsp;|<br\s*\/?>)*<\/p>\s*)+/i, '').trim();
+  return /^<(ul|ol)\b/i.test(stripped);
+}
+
+function ReadOnlyRichBody({ html, inline }: { html: string | null | undefined; inline?: boolean }) {
   const raw = (html ?? '').toString();
   const isEmpty = !raw || raw.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, '').trim() === '';
   if (isEmpty) return null;
+  if (inline) {
+    // Strip the outer <p> wrappers so the first paragraph flows inline after the heading.
+    // Subsequent paragraphs (if any) still render via <p> tags inside the span.
+    const inlined = raw.replace(/^\s*<p[^>]*>/i, '').replace(/<\/p>\s*$/i, '');
+    return (
+      <span
+        className="font-['Times_New_Roman',Times,serif] text-[11pt] [&_p]:mt-[6pt] [&_p]:mb-[6pt]"
+        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(inlined, RICH_TEXT_CONFIG) }}
+      />
+    );
+  }
   return (
     <div
       className="font-['Times_New_Roman',Times,serif] text-[11pt] text-justify [&_p]:mt-[6pt] [&_p]:mb-[6pt]"
