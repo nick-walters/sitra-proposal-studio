@@ -348,7 +348,7 @@ export function CaseManagementCard({
     queryFn: async () => {
       const { data, error } = await supabase
         .from('proposal_case_types')
-        .select('id, proposal_id, type_code, custom_type_name, outline_color, include_number, include_abbreviation, order_index')
+        .select('id, proposal_id, type_code, custom_type_name, outline_color, include_number, include_abbreviation, order_index, caption_text')
         .eq('proposal_id', proposalId)
         .order('order_index');
       if (error) throw error;
