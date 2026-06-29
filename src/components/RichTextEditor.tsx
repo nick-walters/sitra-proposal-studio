@@ -41,6 +41,7 @@ import { OrderedListStyled } from '@/extensions/OrderedListStyled';
 import { renumberH3Headings } from '@/lib/renumberH3Headings';
 import { updateCaptionForTableAtCursor } from '@/lib/renumberCaptionsInEditor';
 import { sanitizeEditorHtml } from '@/lib/editorContentSanitizer';
+import { stripWordHtml } from '@/lib/stripWordHtml';
 import { OrderedListDropdown } from './OrderedListDropdown';
 import { autoFitEditorTableAtPos } from '@/lib/editorTableAutoFit';
 import { ParagraphSpacingPopover } from './ParagraphSpacingPopover';
