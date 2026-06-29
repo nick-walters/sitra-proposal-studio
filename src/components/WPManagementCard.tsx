@@ -843,7 +843,6 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
                 onUpdate={handleUpdateWP}
                 onDelete={handleDeleteWP}
                 onToggleLock={handleToggleLock}
-                onToggleVisibility={handleToggleVisibility}
                 canEdit={isCoordinator}
                 isCoordinator={isCoordinator}
               />
