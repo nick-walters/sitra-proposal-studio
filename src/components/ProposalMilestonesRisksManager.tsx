@@ -425,6 +425,7 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: MS_KEY(proposalId) }); notifyRefs(); },
     onError: (e: any) => toast.error(e.message),
+    ...saveHooks,
   });
 
   const updateMilestone = useMutation({
@@ -434,6 +435,7 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
       if (error) throw error;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: MS_KEY(proposalId) }); notifyRefs(); },
+    ...saveHooks,
   });
 
   const deleteMilestone = useMutation({
@@ -442,6 +444,7 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
       if (error) throw error;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: MS_KEY(proposalId) }); notifyRefs(); },
+    ...saveHooks,
   });
 
   const setMsWps = useMutation({
@@ -456,6 +459,7 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
       }
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: MS_KEY(proposalId) }); notifyRefs(); },
+    ...saveHooks,
   });
 
   // ── Mutations: risks (UNCHANGED — part 2 will revisit) ───────
@@ -470,6 +474,7 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: RISK_KEY(proposalId) }),
     onError: (e: any) => toast.error(e.message),
+    ...saveHooks,
   });
 
   const updateRisk = useMutation({
@@ -479,6 +484,7 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: RISK_KEY(proposalId) }),
+    ...saveHooks,
   });
 
   const deleteRisk = useMutation({
@@ -487,6 +493,7 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: RISK_KEY(proposalId) }),
+    ...saveHooks,
   });
 
   const setRiskWps = useMutation({
@@ -500,6 +507,7 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
       }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: RISK_KEY(proposalId) }),
+    ...saveHooks,
   });
 
   // Auto-order risks by min related WP number (matches B31RisksTable mirror)
