@@ -1,0 +1,29 @@
+name: Security audit
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Daily at 05:00 UTC — catches newly-disclosed advisories on existing locked deps
+    - cron: "0 5 * * *"
+  workflow_dispatch:
+
+jobs:
+  audit:
+    name: npm audit (high & critical)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # Run against the committed lockfile. Fails the job if any
+      # high or critical advisory is present (direct or transitive).
+      - name: Run npm audit
+        run: npm audit --omit=dev --audit-level=high
