@@ -66,7 +66,7 @@ interface CaseDraft {
 interface CaseTypeRow {
   id: string;
   proposal_id: string;
-  type_code: string;
+  type_code: string | null;
   custom_type_name: string | null;
   outline_color: string;
   include_number: boolean;
