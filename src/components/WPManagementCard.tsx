@@ -56,7 +56,7 @@ interface WPDraft {
   theme_id: string | null;
   is_locked: boolean;
   locked_by: string | null;
-  is_hidden: boolean;
+  is_hidden?: boolean;
 }
 
 interface SortableWPRowProps {
