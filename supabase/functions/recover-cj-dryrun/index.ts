@@ -53,9 +53,13 @@ function tableToRows(tblXml: string): string[][] {
     const cellRe = /<w:tc\b[\s\S]*?<\/w:tc>/g;
     let cm;
     while ((cm = cellRe.exec(rm[0])) !== null) {
-      // collect text from <w:t>
-      const text = [...cm[0].matchAll(/<w:t[^>]*>([\s\S]*?)<\/w:t>/g)].map(x => decode(x[1])).join("");
-      cells.push(text.trim());
+      // collect text from <w:t> only (not <w:tcPr> etc.)
+      const text = [...cm[0].matchAll(/<w:t(?:\s[^>]*)?>([\s\S]*?)<\/w:t>/g)].map(x => decode(x[1])).join("");
+      // paragraph breaks
+      const paraJoined = cm[0].split(/<w:p\b[^>]*>/).map(seg => {
+        return [...seg.matchAll(/<w:t(?:\s[^>]*)?>([\s\S]*?)<\/w:t>/g)].map(x => decode(x[1])).join("");
+      }).filter(Boolean).join("\n").trim();
+      cells.push(paraJoined || text.trim());
     }
     rows.push(cells);
   }
