@@ -904,7 +904,7 @@ export function CaseManagementCard({
 
                       {/* Cases grid */}
                       <div className="grid grid-cols-[24px_140px_1fr_80px_20px_20px] gap-x-1.5">
-                        <div className="col-span-6 grid grid-cols-subgrid gap-x-1.5 text-xs font-bold text-muted-foreground border-b pb-1">
+                        <div className="col-span-6 grid grid-cols-subgrid gap-x-1.5 items-center text-xs font-bold text-muted-foreground border-b pb-1 min-h-[28px]">
                           <div />
                           <div />
                           <div>Title</div>
