@@ -106,7 +106,7 @@ export function InsertCaseReferenceDialog({
         key={caseItem.id}
         onClick={() => handleSelect(caseItem)}
         className={cn(
-          'w-full flex items-center p-3 rounded-md text-left cursor-pointer',
+          'w-full flex items-center px-3 py-1 rounded-md text-left cursor-pointer',
           'hover:bg-muted/80 transition-colors',
         )}
       >
