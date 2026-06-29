@@ -10,6 +10,7 @@ import DOMPurify from 'dompurify';
 import { Participant, Section } from '@/types/proposal';
 import { supabase } from '@/integrations/supabase/client';
 import { resolveStorageUrl } from '@/hooks/useStorageUrl';
+import { getCaseTypePrefix } from '@/lib/caseTypeLabels';
 import { extractFilePathFromUrl } from '@/lib/proposalStorage';
 import { SITRA_LOGO_BASE64 } from '@/lib/sitraLogo';
 
