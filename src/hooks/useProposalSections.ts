@@ -257,9 +257,9 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
     return new Map(themesData.map((t: WPTheme) => [t.id, t]));
   }, [themesData]);
 
-  // Convert WP drafts to sections (filter hidden for non-coordinators)
+  // Convert WP drafts to sections (all WPs always visible)
   const wpDraftSections: WPSection[] = useMemo(() => {
-    const visibleWPs = isCoordinator ? wpDraftsData : wpDraftsData.filter(wp => !wp.is_hidden);
+    const visibleWPs = wpDraftsData;
     return visibleWPs.map(wp => {
       // Resolve effective color: use theme color if themes are enabled and WP has a theme
       let effectiveColor = wp.color;
