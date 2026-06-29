@@ -1413,7 +1413,6 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
       duration: w.manual_duration ? String(w.manual_duration) : null,
       objectives: w.b31_objectives,
       description: w.b31_description_before_tasks,
-      methodology: w.approach_summary,
       tasks: wpTasks.map((t: any) => {
         const ids = (b31TaskParts ?? []).filter((tp: any) => tp.task_id === t.id).map((tp: any) => tp.participant_id);
         return {
@@ -1425,11 +1424,6 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
           description: t.description,
         };
       }),
-      extras: [
-        ["Background knowledge", w.background_knowledge],
-        ["Methodologies", w.methodologies_list],
-        ["Foreseen challenges", w.foreseen_challenges],
-      ],
     }));
     children.push(P("")); // spacer between WP tables
   }
