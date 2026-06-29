@@ -164,6 +164,20 @@ export type Database = {
             referencedRelation: "proposals"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "budget_changes_user_id_profiles_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_changes_user_id_profiles_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_basic"
+            referencedColumns: ["id"]
+          },
         ]
       }
       budget_cost_justification_items: {
