@@ -6,7 +6,8 @@ import { getCaseTypePrefix, buildCaseLabel, caseWord } from '@/lib/caseTypeLabel
 
 import { supabase } from '@/integrations/supabase/client';
 import { RICH_TEXT_CONFIG } from '@/lib/sanitizePresets';
-import { ParticipantBubble } from './B31Pill';
+import { B31Pill } from './B31Pill';
+import { Crown } from 'lucide-react';
 
 /**
  * CasesTableNodeView — Stage 1 (live read-only mirror).
@@ -99,17 +100,36 @@ function CaseChip({ label, color }: { label: string; color: string }) {
       }}
     >
 
-      <span style={{ color: '#000000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1 }}>
+      <span style={{ color: color || '#000000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1 }}>
         {label}
       </span>
     </span>
   );
 }
 
-function ReadOnlyRichBody({ html }: { html: string | null | undefined }) {
+function bodyStartsWithList(html: string | null | undefined): boolean {
+  const raw = (html ?? '').toString().trim();
+  if (!raw) return false;
+  // Strip leading empty paragraphs / whitespace-only wrappers, then check first real tag.
+  const stripped = raw.replace(/^(?:<p[^>]*>(?:\s|&nbsp;|<br\s*\/?>)*<\/p>\s*)+/i, '').trim();
+  return /^<(ul|ol)\b/i.test(stripped);
+}
+
+function ReadOnlyRichBody({ html, inline }: { html: string | null | undefined; inline?: boolean }) {
   const raw = (html ?? '').toString();
   const isEmpty = !raw || raw.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, '').trim() === '';
   if (isEmpty) return null;
+  if (inline) {
+    // Strip the outer <p> wrappers so the first paragraph flows inline after the heading.
+    // Subsequent paragraphs (if any) still render via <p> tags inside the span.
+    const inlined = raw.replace(/^\s*<p[^>]*>/i, '').replace(/<\/p>\s*$/i, '');
+    return (
+      <span
+        className="font-['Times_New_Roman',Times,serif] text-[11pt] [&_p]:mt-[6pt] [&_p]:mb-[6pt]"
+        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(inlined, RICH_TEXT_CONFIG) }}
+      />
+    );
+  }
   return (
     <div
       className="font-['Times_New_Roman',Times,serif] text-[11pt] text-justify [&_p]:mt-[6pt] [&_p]:mb-[6pt]"
@@ -279,7 +299,7 @@ export function CasesTableNodeView(_props: NodeViewProps) {
             key={c.id}
             data-case-block=""
             data-case-id={c.id}
-            style={{ marginTop: idx === 0 ? 0 : 18 }}
+            style={{ marginTop: idx === 0 ? 18 : 24 }}
           >
             {/* Header: chip left, leader pill right */}
             <div style={{
@@ -289,11 +309,20 @@ export function CasesTableNodeView(_props: NodeViewProps) {
               <CaseChip label={label} color={outlineColor} />
 
               {leader ? (
-                <ParticipantBubble
-                  showCrown
-                  shortName={leader.organisation_short_name || leader.organisation_name || ''}
+                <B31Pill
+                  variant="outline"
+                  color={outlineColor}
+                  icon={
+                    <Crown
+                      className="h-2.5 w-2.5 mr-0.5"
+                      style={{ color: outlineColor, fill: outlineColor }}
+                      strokeWidth={0}
+                    />
+                  }
                   style={{ fontStyle: 'normal' }}
-                />
+                >
+                  {leader.organisation_short_name || leader.organisation_name || ''}
+                </B31Pill>
               ) : (
                 <span className="text-muted-foreground text-[9pt] italic">No {caseWord(data?.types ?? [], { capitalize: false })} lead</span>
               )}
@@ -304,22 +333,42 @@ export function CasesTableNodeView(_props: NodeViewProps) {
               {(c.title || '').trim() ? c.title : <span className="text-muted-foreground italic font-normal">Untitled {caseWord(data?.types ?? [], { capitalize: false })}</span>}
             </div>
 
-            <div style={{ height: 1, backgroundColor: '#000000', width: '100%', margin: '6px 0' }} />
+            {/* Thick top divider — brackets the case */}
+            <div style={{ height: 2, backgroundColor: '#000000', width: '100%', margin: '6px 0' }} />
 
-            {subs.map((s) => (
-              <div key={s.key}>
-                <div>
-                  <span style={{ fontWeight: 700, fontStyle: 'italic' }}>
-                    {s.heading}
-                    {s.heading.trim() && <span>:</span>}
-                  </span>
-                  <div style={{ marginTop: 2 }}>
-                    <ReadOnlyRichBody html={s.body} />
+            {subs.map((s, sIdx) => {
+              const isLast = sIdx === subs.length - 1;
+              const startsWithList = bodyStartsWithList(s.body);
+              const inline = !startsWithList;
+              return (
+                <div key={s.key}>
+                  <div>
+                    <span style={{ fontWeight: 700, fontStyle: 'italic' }}>
+                      {s.heading}
+                      {s.heading.trim() && <span>:</span>}
+                    </span>
+                    {inline ? (
+                      <>
+                        {' '}
+                        <ReadOnlyRichBody html={s.body} inline />
+                      </>
+                    ) : (
+                      <div style={{ marginTop: 2 }}>
+                        <ReadOnlyRichBody html={s.body} />
+                      </div>
+                    )}
                   </div>
+                  <div
+                    style={{
+                      height: isLast ? 2 : 1,
+                      backgroundColor: '#000000',
+                      width: '100%',
+                      margin: '6px 0',
+                    }}
+                  />
                 </div>
-                <div style={{ height: 1, backgroundColor: '#000000', width: '100%', margin: '6px 0' }} />
-              </div>
-            ))}
+              );
+            })}
           </div>
         );
       })}
