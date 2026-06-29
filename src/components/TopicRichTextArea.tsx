@@ -2,6 +2,7 @@ import { useRef, useEffect, useCallback, useState } from 'react';
 import DOMPurify from 'dompurify';
 import { cn } from '@/lib/utils';
 import { RICH_TEXT_CONFIG as SANITIZE_CONFIG, FOOTNOTE_CONFIG } from '@/lib/sanitizePresets';
+import { handleWordPaste } from '@/lib/pasteWordHtmlHandler';
 
 /** Strip Word/XML artifacts (mso-*, borders, backgrounds) from HTML */
 function stripXmlArtifacts(html: string): string {
