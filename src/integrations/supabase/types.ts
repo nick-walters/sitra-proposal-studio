@@ -4939,103 +4939,6 @@ export type Database = {
           },
         ]
       }
-      wp_draft_milestones: {
-        Row: {
-          created_at: string
-          due_month: number | null
-          id: string
-          means_of_verification: string | null
-          number: number
-          order_index: number
-          related_wps: string | null
-          title: string | null
-          updated_at: string
-          wp_draft_id: string
-        }
-        Insert: {
-          created_at?: string
-          due_month?: number | null
-          id?: string
-          means_of_verification?: string | null
-          number?: number
-          order_index?: number
-          related_wps?: string | null
-          title?: string | null
-          updated_at?: string
-          wp_draft_id: string
-        }
-        Update: {
-          created_at?: string
-          due_month?: number | null
-          id?: string
-          means_of_verification?: string | null
-          number?: number
-          order_index?: number
-          related_wps?: string | null
-          title?: string | null
-          updated_at?: string
-          wp_draft_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "wp_draft_milestones_wp_draft_id_fkey"
-            columns: ["wp_draft_id"]
-            isOneToOne: false
-            referencedRelation: "wp_drafts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      wp_draft_risks: {
-        Row: {
-          created_at: string
-          id: string
-          likelihood: string | null
-          mitigation: string | null
-          number: number
-          order_index: number
-          related_wps: string
-          severity: string | null
-          title: string | null
-          updated_at: string
-          wp_draft_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          likelihood?: string | null
-          mitigation?: string | null
-          number: number
-          order_index?: number
-          related_wps?: string
-          severity?: string | null
-          title?: string | null
-          updated_at?: string
-          wp_draft_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          likelihood?: string | null
-          mitigation?: string | null
-          number?: number
-          order_index?: number
-          related_wps?: string
-          severity?: string | null
-          title?: string | null
-          updated_at?: string
-          wp_draft_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "wp_draft_risks_wp_draft_id_fkey"
-            columns: ["wp_draft_id"]
-            isOneToOne: false
-            referencedRelation: "wp_drafts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       wp_draft_task_effort: {
         Row: {
           created_at: string
@@ -5215,18 +5118,13 @@ export type Database = {
       }
       wp_drafts: {
         Row: {
-          approach_summary: string | null
           b31_description_before_tasks: string | null
           b31_objectives: string | null
-          background_knowledge: string | null
-          bottlenecks_question: string | null
           color: string
           color_locked: boolean
           created_at: string
           description_before_tasks: string | null
-          foreseen_challenges: string | null
           id: string
-          inputs_question: string | null
           is_hidden: boolean
           is_locked: boolean
           lead_participant_id: string | null
@@ -5234,12 +5132,9 @@ export type Database = {
           locked_by: string | null
           manual_duration: string | null
           manual_person_months: number | null
-          methodologies_list: Json | null
-          methodology: string | null
           number: number
           objectives: string | null
           order_index: number
-          outputs_question: string | null
           proposal_id: string
           short_name: string | null
           theme_id: string | null
@@ -5247,18 +5142,13 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          approach_summary?: string | null
           b31_description_before_tasks?: string | null
           b31_objectives?: string | null
-          background_knowledge?: string | null
-          bottlenecks_question?: string | null
           color?: string
           color_locked?: boolean
           created_at?: string
           description_before_tasks?: string | null
-          foreseen_challenges?: string | null
           id?: string
-          inputs_question?: string | null
           is_hidden?: boolean
           is_locked?: boolean
           lead_participant_id?: string | null
@@ -5266,12 +5156,9 @@ export type Database = {
           locked_by?: string | null
           manual_duration?: string | null
           manual_person_months?: number | null
-          methodologies_list?: Json | null
-          methodology?: string | null
           number: number
           objectives?: string | null
           order_index?: number
-          outputs_question?: string | null
           proposal_id: string
           short_name?: string | null
           theme_id?: string | null
@@ -5279,18 +5166,13 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          approach_summary?: string | null
           b31_description_before_tasks?: string | null
           b31_objectives?: string | null
-          background_knowledge?: string | null
-          bottlenecks_question?: string | null
           color?: string
           color_locked?: boolean
           created_at?: string
           description_before_tasks?: string | null
-          foreseen_challenges?: string | null
           id?: string
-          inputs_question?: string | null
           is_hidden?: boolean
           is_locked?: boolean
           lead_participant_id?: string | null
@@ -5298,12 +5180,9 @@ export type Database = {
           locked_by?: string | null
           manual_duration?: string | null
           manual_person_months?: number | null
-          methodologies_list?: Json | null
-          methodology?: string | null
           number?: number
           objectives?: string | null
           order_index?: number
-          outputs_question?: string | null
           proposal_id?: string
           short_name?: string | null
           theme_id?: string | null
