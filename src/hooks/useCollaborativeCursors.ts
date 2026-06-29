@@ -49,6 +49,16 @@ export function useCollaborativeCursors({ proposalId, currentSectionId }: UseCol
   useEffect(() => {
     if (!proposalId || !user) return;
 
+    // Defensive teardown: if a prior channel is still attached (e.g. due to
+    // a rapid re-run before async cleanup completed), remove it first so
+    // the Realtime client doesn't hand us back an already-subscribed
+    // channel for the same topic (which would throw
+    // "cannot add `presence` callbacks ... after subscribe()" below).
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
+
     const channel = supabase.channel(`proposal:${proposalId}:cursors`, {
       config: {
         presence: {
@@ -59,11 +69,14 @@ export function useCollaborativeCursors({ proposalId, currentSectionId }: UseCol
 
     channelRef.current = channel;
 
+    // IMPORTANT: register presence callbacks BEFORE subscribe(). track()
+    // is called inside the subscribe status callback (post-SUBSCRIBED),
+    // which is the correct place to push initial presence state.
     channel
       .on('presence', { event: 'sync' }, () => {
         const state = channel.presenceState();
         const users: CollaboratorCursor[] = [];
-        
+
         for (const [, presences] of Object.entries(state)) {
           const presence = presences[0] as unknown as CollaboratorCursor;
           if (presence.id !== user.id) {
@@ -73,13 +86,13 @@ export function useCollaborativeCursors({ proposalId, currentSectionId }: UseCol
             });
           }
         }
-        
+
         setCollaborators(users);
       })
-      .on('presence', { event: 'join' }, ({ key, newPresences }) => {
+      .on('presence', { event: 'join' }, () => {
         // User joined presence channel
       })
-      .on('presence', { event: 'leave' }, ({ key }) => {
+      .on('presence', { event: 'leave' }, () => {
         // User left presence channel
       })
       .subscribe(async (status) => {
@@ -99,9 +112,15 @@ export function useCollaborativeCursors({ proposalId, currentSectionId }: UseCol
 
     return () => {
       supabase.removeChannel(channel);
-      channelRef.current = null;
+      if (channelRef.current === channel) {
+        channelRef.current = null;
+      }
     };
-  }, [proposalId, user]);
+    // Depend on user?.id (stable string) rather than the whole user object
+    // to avoid spurious re-runs from new auth-object references.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [proposalId, user?.id]);
+
 
   // Update cursor position with throttling
   const updateCursorPosition = useCallback(async (
