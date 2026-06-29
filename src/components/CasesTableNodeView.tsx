@@ -54,15 +54,10 @@ interface Participant {
   organisation_name: string | null;
 }
 
+import { getCaseTypePrefix } from '@/lib/caseTypeLabels';
+
 function casePrefix(caseType: string | null): string {
-  switch (caseType) {
-    case 'case_study': return 'CS';
-    case 'use_case': return 'UC';
-    case 'living_lab': return 'LL';
-    case 'pilot': return 'P';
-    case 'demonstration': return 'D';
-    default: return '';
-  }
+  return getCaseTypePrefix(caseType);
 }
 
 function caseChipLabel(opts: {
