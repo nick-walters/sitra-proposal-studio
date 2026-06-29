@@ -133,10 +133,22 @@ export function stripWordHtml(html: string): string {
       continue;
     }
 
-    // Strip xmlns / xmlns:* attributes.
+    // Strip xmlns / xmlns:* and lang / xml:lang attributes (Word residue
+    // like lang="EN-GB" carries no formatting meaning).
     for (let i = el.attributes.length - 1; i >= 0; i--) {
       const attr = el.attributes[i];
+      const name = attr.name.toLowerCase();
       if (/^xmlns(:|$)/i.test(attr.name)) el.removeAttribute(attr.name);
+      else if (name === 'lang' || name === 'xml:lang') el.removeAttribute(attr.name);
+    }
+
+    // Unwrap Word OLE bookmark anchors: <a name="…"> with no href (typically
+    // name="OLE_LINK…" or name="_…"). Keep child content; just drop the
+    // anchor wrapper. Real <a href> links and platform reference spans
+    // (caught earlier by isPreservedElement) are unaffected.
+    if (tag === 'A' && el.hasAttribute('name') && !el.hasAttribute('href')) {
+      unwrap(el);
+      continue;
     }
 
     // Filter Mso* class tokens. Drop class if empty afterwards.
