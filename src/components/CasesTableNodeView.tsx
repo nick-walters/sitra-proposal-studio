@@ -115,25 +115,35 @@ function bodyStartsWithList(html: string | null | undefined): boolean {
   return /^<(ul|ol)\b/i.test(stripped);
 }
 
-function ReadOnlyRichBody({ html, inline }: { html: string | null | undefined; inline?: boolean }) {
+function ReadOnlyRichBody({ html, headingPrefixHtml }: { html: string | null | undefined; headingPrefixHtml?: string }) {
   const raw = (html ?? '').toString();
   const isEmpty = !raw || raw.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, '').trim() === '';
-  if (isEmpty) return null;
-  if (inline) {
-    // Strip the outer <p> wrappers so the first paragraph flows inline after the heading.
-    // Subsequent paragraphs (if any) still render via <p> tags inside the span.
-    const inlined = raw.replace(/^\s*<p[^>]*>/i, '').replace(/<\/p>\s*$/i, '');
-    return (
-      <span
-        className="font-['Times_New_Roman',Times,serif] text-[11pt] [&_p]:mt-[6pt] [&_p]:mb-[6pt]"
-        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(inlined, RICH_TEXT_CONFIG) }}
-      />
-    );
+  if (isEmpty) {
+    if (headingPrefixHtml) {
+      // No body — still render the heading as its own paragraph so the divider/spacing is consistent.
+      return (
+        <div
+          className="font-['Times_New_Roman',Times,serif] text-[11pt] text-justify [&_p]:mt-[6pt] [&_p]:mb-[6pt]"
+          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(`<p>${headingPrefixHtml}</p>`, RICH_TEXT_CONFIG) }}
+        />
+      );
+    }
+    return null;
+  }
+  let finalHtml = raw;
+  if (headingPrefixHtml) {
+    // Inject the heading INSIDE the first <p> so heading + first paragraph render as
+    // one single block (truly inline). If no leading <p>, wrap the whole thing.
+    if (/^\s*<p\b[^>]*>/i.test(raw)) {
+      finalHtml = raw.replace(/^(\s*<p\b[^>]*>)/i, `$1${headingPrefixHtml} `);
+    } else {
+      finalHtml = `<p>${headingPrefixHtml} </p>${raw}`;
+    }
   }
   return (
     <div
       className="font-['Times_New_Roman',Times,serif] text-[11pt] text-justify [&_p]:mt-[6pt] [&_p]:mb-[6pt]"
-      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(raw, RICH_TEXT_CONFIG) }}
+      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(finalHtml, RICH_TEXT_CONFIG) }}
     />
   );
 }
