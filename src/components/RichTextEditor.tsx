@@ -1937,6 +1937,7 @@ StarterKit.configure({
     if (!editor || editor.isDestroyed || !editor.schema || !isReady || !trackChanges?.onChangesUpdate) return;
     // Wait a tick for content to be fully set
     const timer = setTimeout(() => {
+      if (!editor || editor.isDestroyed || !editor.schema) return;
       const doc = editor.state.doc;
       const schema = editor.state.schema;
       const insertionType = schema.marks.trackInsertion;
