@@ -25,9 +25,12 @@ interface CaseDraft {
 
 interface TypeRow {
   id: string;
+  type_code: string;
+  custom_type_name: string | null;
   include_number: boolean;
   include_abbreviation: boolean;
   outline_color: string | null;
+  order_index: number;
 }
 
 interface InsertCaseReferenceDialogProps {
