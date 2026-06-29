@@ -504,11 +504,15 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
       title: 'Milestones & risks',
     };
 
-    // Combined WPs & cases section
+    // Combined WPs & cases section — dynamic title based on cases_enabled + case types.
+    const wpCaseManagerTitle = buildWpCaseManagerTitle({
+      casesEnabled,
+      types: caseTypeFlags as any,
+    });
     const wpAndCasesSection: Section = {
       id: 'wp-drafts',
       number: '',
-      title: 'WP/case manager & drafts',
+      title: wpCaseManagerTitle,
       subsections: [...wpDraftSections, ...caseDraftSections],
     };
 
