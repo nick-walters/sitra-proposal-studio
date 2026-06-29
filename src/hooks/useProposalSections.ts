@@ -296,17 +296,7 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
     enabled: !!proposalId,
   });
 
-  // Get case prefix based on type
-  const getCasePrefix = (caseType: string): string => {
-    switch (caseType) {
-      case 'case_study': return 'CS';
-      case 'use_case': return 'UC';
-      case 'living_lab': return 'LL';
-      case 'pilot': return 'P';
-      case 'demonstration': return 'D';
-      default: return '';
-    }
-  };
+  // Case prefix resolution lives in @/lib/caseTypeLabels.
 
   const caseIncludeNumber = (proposalData as any)?.case_include_number !== false;
   const caseIncludeAbbreviation = (proposalData as any)?.case_include_abbreviation !== false;
