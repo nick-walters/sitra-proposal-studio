@@ -182,10 +182,7 @@ async function buildParticipantListHtml(
     wpLeadership.get(wp.lead_participant_id)!.push({ num: wp.number, color: wp.color });
   }
 
-  const getCasePrefix = (t: string, c: string | null) => {
-    if (t === 'other') return c ? c.toUpperCase() : '';
-    return { case_study: 'CS', use_case: 'UC', living_lab: 'LL', pilot: 'P', demonstration: 'D' }[t] || '';
-  };
+  // Case prefix resolution lives in @/lib/caseTypeLabels.
 
   const caseLeadership = new Map<string, { label: string; color: string }[]>();
   for (const c of caseData || []) {
