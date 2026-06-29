@@ -164,12 +164,11 @@ export function WPProgressTracker({ proposalId, onNavigateToWP }: WPProgressTrac
               <TableHeader>
                 <TableRow>
                   <TableHead className="font-bold">Work package</TableHead>
-                  <TableHead className="text-center font-bold">Methodology</TableHead>
+                  <TableHead className="text-center font-bold">Lead</TableHead>
                   <TableHead className="text-center font-bold">Objectives</TableHead>
+                  <TableHead className="text-center font-bold">Description</TableHead>
                   <TableHead className="text-center font-bold">Tasks</TableHead>
                   <TableHead className="text-center font-bold">Deliverables</TableHead>
-                  <TableHead className="text-center font-bold">Risks</TableHead>
-                  <TableHead className="text-center font-bold">Interactions</TableHead>
                   <TableHead className="text-center font-bold">Status</TableHead>
                 </TableRow>
               </TableHeader>
@@ -189,22 +188,19 @@ export function WPProgressTracker({ proposalId, onNavigateToWP }: WPProgressTrac
                       </span>
                     </TableCell>
                     <TableCell className="text-center py-1.5">
-                      <CompletionIcon complete={wp.completion.methodology} />
+                      <CompletionIcon complete={wp.completion.lead} />
                     </TableCell>
                     <TableCell className="text-center py-1.5">
                       <CompletionIcon complete={wp.completion.objectives} />
+                    </TableCell>
+                    <TableCell className="text-center py-1.5">
+                      <CompletionIcon complete={wp.completion.description} />
                     </TableCell>
                     <TableCell className="text-center py-1.5">
                       <CompletionIcon complete={wp.completion.tasks} />
                     </TableCell>
                     <TableCell className="text-center py-1.5">
                       <CompletionIcon complete={wp.completion.deliverables} />
-                    </TableCell>
-                    <TableCell className="text-center py-1.5">
-                      <CompletionIcon complete={wp.completion.risks} />
-                    </TableCell>
-                    <TableCell className="text-center py-1.5">
-                      <CompletionIcon complete={wp.completion.interactions} />
                     </TableCell>
                     <TableCell className="text-center py-1.5">
                       {wp.completion.overall ? (
