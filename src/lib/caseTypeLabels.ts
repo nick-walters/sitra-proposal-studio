@@ -147,3 +147,29 @@ export function buildCaseLabel(opts: {
   return prefixPart || sn || (number !== null && number !== undefined ? String(number) : '');
 }
 
+/**
+ * Build the dynamic title for the WP / case manager (used in both the
+ * left-nav entry and the page header).
+ *
+ *   cases disabled                       → "Work packages"
+ *   cases enabled, exactly one type      → "Work packages & {plural type}" (lowercase)
+ *   cases enabled, multiple types        → "Work packages & cases"
+ *   cases enabled, zero types (edge)     → "Work packages & cases"
+ *     (Chosen over plain "Work packages" so the title stays stable as
+ *     the user adds their first type — less jarring than a flip.)
+ */
+export function buildWpCaseManagerTitle(opts: {
+  casesEnabled: boolean;
+  types: ReadonlyArray<{ type_code: string | null; custom_type_name?: string | null; order_index?: number | null }>;
+}): string {
+  if (!opts.casesEnabled) return 'Work packages';
+  const types = opts.types ?? [];
+  if (types.length === 1) {
+    const t = types[0];
+    const plural = getCaseTypeLabel(t.type_code, t.custom_type_name, { plural: true }).toLowerCase();
+    return `Work packages & ${plural}`;
+  }
+  return 'Work packages & cases';
+}
+
+

@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Section } from '@/types/proposal';
 import { PART_A_SECTIONS, HORIZON_EUROPE_SECTIONS } from '@/types/proposal';
-import { getCaseTypePrefix, buildCaseLabel } from '@/lib/caseTypeLabels';
+import { getCaseTypePrefix, buildCaseLabel, buildWpCaseManagerTitle } from '@/lib/caseTypeLabels';
 
 interface WPTheme {
   id: string;
@@ -303,10 +303,27 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
       if (!proposalId) return [];
       const { data, error } = await supabase
         .from('proposal_case_types')
-        .select('id, include_number, include_abbreviation, outline_color')
-        .eq('proposal_id', proposalId);
+        .select('id, include_number, include_abbreviation, outline_color, type_code, custom_type_name, order_index')
+        .eq('proposal_id', proposalId)
+        .order('order_index');
       if (error) throw error;
       return data || [];
+    },
+    enabled: !!proposalId,
+  });
+
+  // cases_enabled flag — drives the WP/case manager title.
+  const { data: casesEnabled = false } = useQuery({
+    queryKey: ['proposal-cases-enabled', proposalId],
+    queryFn: async () => {
+      if (!proposalId) return false;
+      const { data, error } = await supabase
+        .from('proposals')
+        .select('cases_enabled')
+        .eq('id', proposalId)
+        .maybeSingle();
+      if (error) throw error;
+      return !!data?.cases_enabled;
     },
     enabled: !!proposalId,
   });
@@ -487,11 +504,15 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
       title: 'Milestones & risks',
     };
 
-    // Combined WPs & cases section
+    // Combined WPs & cases section — dynamic title based on cases_enabled + case types.
+    const wpCaseManagerTitle = buildWpCaseManagerTitle({
+      casesEnabled,
+      types: caseTypeFlags as any,
+    });
     const wpAndCasesSection: Section = {
       id: 'wp-drafts',
       number: '',
-      title: 'WP/case manager & drafts',
+      title: wpCaseManagerTitle,
       subsections: [...wpDraftSections, ...caseDraftSections],
     };
 
@@ -539,7 +560,7 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
     
     return fallbackSections;
 
-  }, [templateSections, hasTemplateSections, wpDraftSections, caseDraftSections]);
+  }, [templateSections, hasTemplateSections, wpDraftSections, caseDraftSections, casesEnabled, caseTypeFlags]);
 
   // Create a refetch function that can be called externally
   const refetch = useCallback(async () => {
