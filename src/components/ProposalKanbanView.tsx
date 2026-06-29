@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FileText, ArrowRight, Send, CheckCircle2, XCircle, Clock, ExternalLink, AlertTriangle, Trophy, Calendar } from "lucide-react";
 import { format, differenceInDays, addMonths } from "date-fns";
+import { safeOpenUrl } from "@/lib/safeUrl";
 
 // Calculate estimated decision date based on submission stage
 // Full proposals: ~5 months after deadline
