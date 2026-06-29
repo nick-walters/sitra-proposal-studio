@@ -580,7 +580,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
     toast.success(`${del.number} reference inserted`);
   }, [notifyEditorInput, restoreSelection]);
 
-  // Handle Milestone reference insertion - triangle bubble matching 3.1.d
+  // Handle Milestone reference insertion - elongated hexagon matching the rest of the app
   const insertMilestoneRefAtCursor = useCallback((ms: { id: string; number: number; name: string }) => {
     const { editorEl } = restoreSelection();
     const selection = window.getSelection();
@@ -589,8 +589,15 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
       const wrapper = document.createElement('span');
       wrapper.setAttribute('contenteditable', 'false');
       wrapper.setAttribute('data-milestone-id', ms.id);
-      Object.assign(wrapper.style, { display: 'inline-block', verticalAlign: 'baseline', position: 'relative', width: '21px', height: '21px', userSelect: 'none' });
-      wrapper.innerHTML = `<svg width="21" height="21" viewBox="0 0 21 21" style="position:absolute;top:0;left:0;overflow:visible;"><path d="M 0,0 L 21,10.5 L 0,21 Z" fill="#000000"/></svg><span style="position:absolute;top:0;left:-1px;width:15px;height:21px;display:flex;align-items:center;justify-content:center;font-family:'Times New Roman',Times,serif;font-size:11pt;font-weight:700;line-height:1;color:#ffffff;letter-spacing:-0.7px;white-space:nowrap;">${Number(ms.number) || 0}</span>`;
+      Object.assign(wrapper.style, {
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        background: '#000', color: '#ffffff',
+        fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: '700',
+        lineHeight: '18px', height: '18px', padding: '0 4px',
+        clipPath: 'polygon(12% 0%, 88% 0%, 100% 50%, 88% 100%, 12% 100%, 0% 50%)',
+        verticalAlign: 'baseline', whiteSpace: 'nowrap', userSelect: 'none',
+      });
+      wrapper.textContent = `MS${Number(ms.number) || 0}`;
       range.insertNode(wrapper);
       range.setStartAfter(wrapper);
       range.collapse(true);

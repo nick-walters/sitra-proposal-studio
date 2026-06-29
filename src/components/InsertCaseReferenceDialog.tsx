@@ -87,6 +87,29 @@ export function InsertCaseReferenceDialog({
     onOpenChange(false);
   };
 
+  // Compute the widest badge label across ALL cases so every row's badge
+  // column is the same width and titles line up vertically.
+  const badgeColCh = useMemo(() => {
+    let max = 2;
+    for (const c of caseDrafts) {
+      const t = c.case_type_id ? typesById.get(c.case_type_id) : null;
+      const includeNumber = t?.include_number !== false;
+      const includeAbbreviation = t?.include_abbreviation !== false;
+      const label = buildCaseLabel({
+        prefix: getCaseTypePrefix(c.case_type),
+        number: c.number,
+        shortName: c.short_name,
+        includeNumber,
+        includeAbbreviation,
+        withShortName: false,
+      });
+      if (label.length > max) max = label.length;
+    }
+    return max;
+  }, [caseDrafts, typesById]);
+
+  const badgeColStyle = { width: `calc(${badgeColCh}ch + 1.25rem)` } as const;
+
   const renderCaseButton = (caseItem: CaseDraft) => {
     const prefix = getCaseTypePrefix(caseItem.case_type);
     const t = caseItem.case_type_id ? typesById.get(caseItem.case_type_id) : null;
@@ -110,13 +133,15 @@ export function InsertCaseReferenceDialog({
           'hover:bg-muted/80 transition-colors',
         )}
       >
-        <span
-          className="shrink-0 rounded-full font-bold text-center border-[1.5px] bg-white text-xs px-1.5 py-0.5 whitespace-nowrap"
-          style={{ borderColor: outline, color: outline }}
-        >
-          {label}
+        <span className="shrink-0 flex items-center" style={badgeColStyle}>
+          <span
+            className="rounded-full font-bold text-center border-[1.5px] bg-white text-xs px-1.5 py-0.5 whitespace-nowrap"
+            style={{ borderColor: outline, color: outline }}
+          >
+            {label}
+          </span>
         </span>
-        <div className="flex-1 min-w-0 ml-3">
+        <div className="flex-1 min-w-0">
           <div className="font-medium text-sm truncate">
             {caseItem.short_name || '—'}
           </div>
