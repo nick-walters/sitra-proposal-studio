@@ -30,7 +30,7 @@ export function useB31JustificationToggles(proposalId: string) {
     queryKey,
     enabled: !!proposalId,
     queryFn: async (): Promise<B31JustificationToggles> => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('proposals')
         .select(
           'b31_show_travel_justification, b31_show_other_goods_justification, b31_show_fstp_justification, b31_show_internally_invoiced_justification',
