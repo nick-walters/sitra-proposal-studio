@@ -176,7 +176,7 @@ export const CaseReferenceNode = Node.create<CaseReferenceOptions>({
         'span',
         {
           style:
-            "color: #000000; font-family: 'Times New Roman', Times, serif; font-size: 11pt; font-weight: 700; font-style: normal; line-height: 1;",
+            `color: ${caseColor}; font-family: 'Times New Roman', Times, serif; font-size: 11pt; font-weight: 700; font-style: normal; line-height: 1;`,
         },
         label,
       ],
