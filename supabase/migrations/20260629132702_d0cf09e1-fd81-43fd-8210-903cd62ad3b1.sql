@@ -1,0 +1,1 @@
+ALTER TABLE public.proposal_case_types ADD COLUMN IF NOT EXISTS caption_text text;
