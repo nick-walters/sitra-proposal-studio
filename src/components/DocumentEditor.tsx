@@ -471,6 +471,14 @@ export function DocumentEditor({
     },
   });
 
+  // Stage 2 — auto-insert/remove one casesTable per case type with >=1 case (B1.2 only).
+  useB12CasesTableReconciler({
+    editor,
+    proposalId,
+    sectionNumber: section?.number,
+    isReady: !loading,
+  });
+
   // Note: trackChangesEnabled sync is handled by useRichTextEditor's own effect
 
   // Re-run the citation display patcher after every editor transaction so
