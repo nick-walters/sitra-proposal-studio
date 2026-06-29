@@ -33,6 +33,9 @@ import {
   useCaseSubsectionTemplates,
   type CaseSubsectionTemplate,
 } from '@/hooks/useCaseSubsectionTemplates';
+import { useProposalCaseTypes } from '@/hooks/useProposalCaseTypes';
+import { caseWord } from '@/lib/caseTypeLabels';
+
 
 interface Props {
   open: boolean;
@@ -126,7 +129,9 @@ function SortableRow({
 export function CaseSubsectionTemplateDialog({ open, onOpenChange, proposalId, canEdit }: Props) {
   const { templates, isLoading, updateRow, addRow, deleteRow, reorder } =
     useCaseSubsectionTemplates(proposalId);
+  const { data: types = [] } = useProposalCaseTypes(proposalId);
   const [localOrder, setLocalOrder] = useState<CaseSubsectionTemplate[]>([]);
+
 
   useEffect(() => {
     setLocalOrder(templates);
@@ -150,8 +155,8 @@ export function CaseSubsectionTemplateDialog({ open, onOpenChange, proposalId, c
   const handleDelete = (id: string, isDefault: boolean) => {
     const ok = confirm(
       isDefault
-        ? 'Delete this default subsection? Existing case content for it will remain in the database but will no longer be shown unless the subsection is re-added.'
-        : 'Delete this subsection? Existing case content for it will remain in the database but will no longer be shown.',
+        ? `Delete this default subsection? Existing ${caseWord(types, { capitalize: false })} content for it will remain in the database but will no longer be shown unless the subsection is re-added.`
+        : `Delete this subsection? Existing ${caseWord(types, { capitalize: false })} content for it will remain in the database but will no longer be shown.`,
     );
     if (ok) deleteRow.mutate(id);
   };
@@ -160,13 +165,14 @@ export function CaseSubsectionTemplateDialog({ open, onOpenChange, proposalId, c
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] w-[90vw]">
         <DialogHeader>
-          <DialogTitle>Edit case subsections &amp; guidelines</DialogTitle>
+          <DialogTitle>Edit {caseWord(types, { capitalize: false })} subsections &amp; guidelines</DialogTitle>
           <DialogDescription>
-            These subsections apply to every case in this proposal. Reorder, rename, edit the
+            These subsections apply to every {caseWord(types, { capitalize: false })} in this proposal. Reorder, rename, edit the
             guideline text, add new subsections, or delete ones you don&rsquo;t need. Changes apply
-            immediately to all case drafts and the B1.2 cases table.
+            immediately to all {caseWord(types, { plural: true, capitalize: false })} drafts and the B1.2 cases table.
           </DialogDescription>
         </DialogHeader>
+
 
         <ScrollArea className="max-h-[60vh] pr-3">
           {isLoading ? (
