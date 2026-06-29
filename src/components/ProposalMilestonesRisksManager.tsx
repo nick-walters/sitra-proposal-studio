@@ -527,11 +527,22 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
   const [msReorderOpen, setMsReorderOpen] = useState(false);
 
   return (
+    <SaveTrackerContext.Provider value={tracker}>
     <TooltipProvider>
     <div className="p-6 space-y-6">
-      <div className="space-y-2">
+      <div className="flex items-start justify-between gap-4">
         <h1 className="text-xl font-bold text-foreground">Milestones &amp; risks</h1>
+        {canEdit && (
+          <SaveIndicator
+            saving={activeSaves > 0}
+            lastSaved={lastSaved}
+            hasUnsavedChanges={pendingTextareas > 0}
+            saveError={saveError}
+            onSaveNow={saveNow}
+          />
+        )}
       </div>
+
 
       {/* Milestones */}
       <Card>
