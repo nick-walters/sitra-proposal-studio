@@ -220,6 +220,28 @@ export function useB31SectionData(proposalId: string) {
     return result;
   })();
 
+  // Generic per-participant accumulator for optional categories (travel / other_goods / fstp / internally_invoiced).
+  const buildOptionalCategory = (category: string): B31SubcontractingParticipant[] => {
+    const br = budgetRowsQuery.data;
+    if (!br) return [];
+    const result: B31SubcontractingParticipant[] = [];
+    for (const row of br.budgetRows) {
+      const r = row as any;
+      const items = br.justItems
+        .filter((i: any) => i.budget_row_id === r.id && i.category === category)
+        .map((i: any) => ({ amount: Number(i.amount) || 0, justification: i.justification || '' }));
+      const totalCost = items.reduce((s, i) => s + i.amount, 0);
+      if (totalCost <= 0 || items.length === 0) continue;
+      result.push({ participantId: r.participant_id, items, totalCost });
+    }
+    return result;
+  };
+
+  const travelByParticipant = buildOptionalCategory('travel');
+  const otherGoodsByParticipant = buildOptionalCategory('other_goods');
+  const fstpByParticipant = buildOptionalCategory('fstp');
+  const internallyInvoicedByParticipant = buildOptionalCategory('internally_invoiced');
+
   return {
     wpData: wpQuery.data || [],
     participants: participantsQuery.data || [],
@@ -227,6 +249,10 @@ export function useB31SectionData(proposalId: string) {
     ganttFigure,
     subcontractingByParticipant,
     equipmentByParticipant,
+    travelByParticipant,
+    otherGoodsByParticipant,
+    fstpByParticipant,
+    internallyInvoicedByParticipant,
     loading: wpQuery.isLoading || participantsQuery.isLoading || figuresQuery.isLoading || budgetRowsQuery.isLoading,
   };
 }
