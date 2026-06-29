@@ -553,7 +553,7 @@ export function CaseManagementCard({
 
   // Per-type settings: outline colour, include_number, include_abbreviation.
   const updateTypeMutation = useMutation({
-    mutationFn: async ({ typeRowId, patch }: { typeRowId: string; patch: Partial<Pick<CaseTypeRow, 'outline_color' | 'include_number' | 'include_abbreviation'>> }) => {
+    mutationFn: async ({ typeRowId, patch }: { typeRowId: string; patch: Partial<Pick<CaseTypeRow, 'outline_color' | 'include_number' | 'include_abbreviation' | 'caption_text'>> }) => {
       const { error } = await supabase.from('proposal_case_types').update(patch).eq('id', typeRowId);
       if (error) throw error;
       // If colour changed, mirror onto child cases so legacy `color`-based UI stays in sync.
