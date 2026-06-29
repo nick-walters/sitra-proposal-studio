@@ -319,20 +319,11 @@ export function CasesTableNodeView(_props: NodeViewProps) {
               <CaseChip label={label} color={outlineColor} />
 
               {leader ? (
-                <B31Pill
-                  variant="outline"
-                  color={outlineColor}
-                  icon={
-                    <Crown
-                      className="h-2.5 w-2.5 mr-0.5"
-                      style={{ color: outlineColor, fill: outlineColor }}
-                      strokeWidth={0}
-                    />
-                  }
+                <ParticipantBubble
+                  showCrown
+                  shortName={leader.organisation_short_name || leader.organisation_name || ''}
                   style={{ fontStyle: 'normal' }}
-                >
-                  {leader.organisation_short_name || leader.organisation_name || ''}
-                </B31Pill>
+                />
               ) : (
                 <span className="text-muted-foreground text-[9pt] italic">No {caseWord(data?.types ?? [], { capitalize: false })} lead</span>
               )}
