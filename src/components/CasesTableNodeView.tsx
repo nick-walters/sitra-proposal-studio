@@ -54,8 +54,6 @@ interface Participant {
   organisation_name: string | null;
 }
 
-import { getCaseTypePrefix } from '@/lib/caseTypeLabels';
-
 function casePrefix(caseType: string | null): string {
   return getCaseTypePrefix(caseType);
 }
