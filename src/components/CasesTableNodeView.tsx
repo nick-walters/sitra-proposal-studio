@@ -397,7 +397,10 @@ export function CasesTableNodeView(props: NodeViewProps) {
       boundType.custom_type_name,
       { plural: false },
     );
-    const trailing = (boundType.caption_text ?? '').trim()
+    // Caption text is the verbatim caption_text from proposal_case_types.
+    // The plural type name already appears as the subheading above — do NOT
+    // re-prepend it here.
+    const captionBody = (boundType.caption_text ?? '').trim()
       || `${typeSingular} descriptions`;
     const letter = letterFor(nodeLetterIndex);
     captionEl = (
@@ -413,12 +416,11 @@ export function CasesTableNodeView(props: NodeViewProps) {
         }}
       >
         <strong><em>Table {SECTION_NUMBER_BASE}.{letter}.</em></strong>{' '}
-        <em>
-          {boundType.caption_text?.trim() ? `${typeSingular} ${boundType.caption_text.trim()}` : trailing}
-        </em>
+        <em>{captionBody}</em>
       </p>
     );
   }
+
 
 
 
