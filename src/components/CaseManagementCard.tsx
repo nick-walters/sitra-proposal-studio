@@ -1013,10 +1013,11 @@ export function CaseManagementCard({
                             variant="outline"
                             size="sm"
                             onClick={() => addCaseMutation.mutate(typeRow)}
-                            disabled={addCaseMutation.isPending}
+                            disabled={addCaseMutation.isPending || !typeRow.type_code}
+                            title={!typeRow.type_code ? 'Select a case type first' : undefined}
                           >
                             <Plus className="w-4 h-4 mr-1" />
-                            Add {typeLabel.toLowerCase()}
+                            Add {typeRow.type_code ? typeLabel.toLowerCase() : 'case'}
                           </Button>
                         </div>
                       )}
