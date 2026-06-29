@@ -802,19 +802,43 @@ export function CaseManagementCard({
                           )}
                         </div>
                         {isCoordinator && (
-                          <button
-                            onClick={() => {
-                              const n = cases.length;
-                              const msg = n === 0
-                                ? 'Remove this case type?'
-                                : `This will permanently delete ${n} case${n === 1 ? '' : 's'} of this type. Continue?`;
-                              if (confirm(msg)) deleteTypeMutation.mutate(typeRow.id);
-                            }}
-                            className="p-1 text-destructive hover:bg-destructive/10 rounded transition-colors"
-                            title="Remove case type"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => {
+                                if (isFirst) return;
+                                swapTypeOrderMutation.mutate({ a: typeRow, b: caseTypeRows[typeIdx - 1] });
+                              }}
+                              disabled={isFirst || swapTypeOrderMutation.isPending}
+                              className="p-1 text-[#2563EB] hover:bg-muted rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                              title="Move up"
+                            >
+                              <ArrowUp className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (isLast) return;
+                                swapTypeOrderMutation.mutate({ a: typeRow, b: caseTypeRows[typeIdx + 1] });
+                              }}
+                              disabled={isLast || swapTypeOrderMutation.isPending}
+                              className="p-1 text-[#2563EB] hover:bg-muted rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                              title="Move down"
+                            >
+                              <ArrowDown className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                const n = cases.length;
+                                const msg = n === 0
+                                  ? 'Remove this case type?'
+                                  : `This will permanently delete ${n} case${n === 1 ? '' : 's'} of this type. Continue?`;
+                                if (confirm(msg)) deleteTypeMutation.mutate(typeRow.id);
+                              }}
+                              className="p-1 text-destructive hover:bg-destructive/10 rounded transition-colors"
+                              title="Remove case type"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         )}
                       </div>
 
