@@ -734,7 +734,11 @@ export function CaseManagementCard({
   }, [caseDrafts]);
 
   const usedNonOtherTypes = useMemo(
-    () => new Set(caseTypeRows.filter(t => t.type_code !== 'other').map(t => t.type_code)),
+    () => new Set(
+      caseTypeRows
+        .filter(t => !!t.type_code && t.type_code !== 'other')
+        .map(t => t.type_code as string)
+    ),
     [caseTypeRows]
   );
 
