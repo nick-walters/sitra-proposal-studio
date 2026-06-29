@@ -349,7 +349,7 @@ export function useWPDraftEditor(wpId: string | null) {
     try {
       const { error } = await supabase
         .from('wp_drafts')
-        .update({ [field]: cleanValue })
+        .update({ [field]: cleanValue } as any)
         .eq('id', wpId);
 
       if (error) throw error;
