@@ -3480,6 +3480,10 @@ export type Database = {
           acronym_segments: Json | null
           b_subheadings_seeded: Json
           b31_banner_dismissed: boolean
+          b31_show_fstp_justification: boolean
+          b31_show_internally_invoiced_justification: boolean
+          b31_show_other_goods_justification: boolean
+          b31_show_travel_justification: boolean
           banner_title_override: string | null
           banner_topic_line_override: string | null
           budget_template_id: string | null
@@ -3541,6 +3545,10 @@ export type Database = {
           acronym_segments?: Json | null
           b_subheadings_seeded?: Json
           b31_banner_dismissed?: boolean
+          b31_show_fstp_justification?: boolean
+          b31_show_internally_invoiced_justification?: boolean
+          b31_show_other_goods_justification?: boolean
+          b31_show_travel_justification?: boolean
           banner_title_override?: string | null
           banner_topic_line_override?: string | null
           budget_template_id?: string | null
@@ -3602,6 +3610,10 @@ export type Database = {
           acronym_segments?: Json | null
           b_subheadings_seeded?: Json
           b31_banner_dismissed?: boolean
+          b31_show_fstp_justification?: boolean
+          b31_show_internally_invoiced_justification?: boolean
+          b31_show_other_goods_justification?: boolean
+          b31_show_travel_justification?: boolean
           banner_title_override?: string | null
           banner_topic_line_override?: string | null
           budget_template_id?: string | null
