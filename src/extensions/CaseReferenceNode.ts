@@ -23,17 +23,7 @@ declare module '@tiptap/core' {
   }
 }
 
-// Get display prefix based on case type (mirrors legacy mark + syncCrossReferences).
-function getCasePrefix(caseType: string): string {
-  switch (caseType) {
-    case 'case_study': return 'CS';
-    case 'use_case': return 'UC';
-    case 'living_lab': return 'LL';
-    case 'pilot': return 'P';
-    case 'demonstration': return 'D';
-    default: return '';
-  }
-}
+import { getCaseTypePrefix } from '@/lib/caseTypeLabels';
 
 /**
  * CaseReferenceNode (Stage 2 migration)
