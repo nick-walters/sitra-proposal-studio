@@ -23,7 +23,7 @@ export interface B31WPData {
   color: string;
   objectives: string | null;
   description_before_tasks: string | null;
-  methodology: string | null;
+  
   manual_person_months: number | null;
   manual_duration: string | null;
   tasks: B31Task[];
