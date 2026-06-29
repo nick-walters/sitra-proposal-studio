@@ -94,15 +94,22 @@ const CASE_TYPES = CASE_TYPE_DEFS.map((d) => ({
 // Local-state abbreviation input to avoid typing lag
 function AbbreviationInput({ value, onChange, disabled }: { value: string; onChange: (v: string) => void; disabled: boolean }) {
   const [local, setLocal] = useState(value);
+  const focusedRef = useRef(false);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    setLocal(value);
+    if (!focusedRef.current) setLocal(value);
   }, [value]);
 
   return (
     <Input
       value={local}
+      onFocus={() => { focusedRef.current = true; }}
+      onBlur={() => {
+        focusedRef.current = false;
+        if (debounceRef.current) { clearTimeout(debounceRef.current); debounceRef.current = null; }
+        if (local !== value) onChange(local);
+      }}
       onChange={(e) => {
         const v = e.target.value.slice(0, 4);
         setLocal(v);
@@ -113,6 +120,37 @@ function AbbreviationInput({ value, onChange, disabled }: { value: string; onCha
       className="h-7 text-xs w-20"
       maxLength={4}
       disabled={disabled}
+    />
+  );
+}
+
+// Local-state caption input — debounced save, ignores prop while focused so the
+// query refetch triggered by our own mutation can't overwrite mid-type.
+function CaptionInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [local, setLocal] = useState(value);
+  const focusedRef = useRef(false);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (!focusedRef.current) setLocal(value);
+  }, [value]);
+
+  return (
+    <Input
+      value={local}
+      onFocus={() => { focusedRef.current = true; }}
+      onBlur={() => {
+        focusedRef.current = false;
+        if (debounceRef.current) { clearTimeout(debounceRef.current); debounceRef.current = null; }
+        if (local !== value) onChange(local);
+      }}
+      onChange={(e) => {
+        const v = e.target.value;
+        setLocal(v);
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => onChange(v), 500);
+      }}
+      className="h-7 text-xs"
     />
   );
 }
@@ -894,10 +932,9 @@ export function CaseManagementCard({
                         <div className="flex items-center gap-2 text-xs pt-1">
                           <label className="flex items-center gap-1.5 flex-1">
                             <span className="text-muted-foreground whitespace-nowrap">Caption text:</span>
-                            <Input
+                            <CaptionInput
                               value={typeRow.caption_text ?? ''}
-                              onChange={(e) => updateTypeMutation.mutate({ typeRowId: typeRow.id, patch: { caption_text: e.target.value } })}
-                              className="h-7 text-xs"
+                              onChange={(v) => updateTypeMutation.mutate({ typeRowId: typeRow.id, patch: { caption_text: v } })}
                             />
                           </label>
                         </div>
