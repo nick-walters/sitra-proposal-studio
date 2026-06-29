@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Mail, Building2, Search, Users, UserPlus, Phone, Crown, ShieldCheck, Pencil, Eye, Loader2, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useCollaborativeCursors } from "@/hooks/useCollaborativeCursors";
 import { supabase } from "@/integrations/supabase/client";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
