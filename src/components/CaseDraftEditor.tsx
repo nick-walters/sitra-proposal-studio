@@ -283,8 +283,7 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
   }, [acronymSegments, insertNodeAtCursor]);
 
   const insertCaseRefAtCursor = useCallback((caseItem: { id: string; number: number; short_name: string | null; case_type: string }) => {
-    const CASE_PREFIXES: Record<string, string> = { case_study: 'CS', use_case: 'UC', living_lab: 'LL', pilot: 'P', demonstration: 'D', challenge: 'CH' };
-    const prefix = CASE_PREFIXES[caseItem.case_type] || '';
+    const prefix = getCasePrefix(caseItem.case_type);
     const label = prefix ? `${prefix}${caseItem.number}` : (caseItem.short_name || String(caseItem.number));
     const span = document.createElement('span');
     span.textContent = label;
