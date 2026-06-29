@@ -172,14 +172,6 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
     deleteDeliverable: rawDeleteDeliverable,
     reorderDeliverables,
     moveDeliverableToWP,
-    addRisk,
-    updateRisk,
-    deleteRisk: rawDeleteRisk,
-    reorderRisks,
-    addMilestone,
-    updateMilestone,
-    deleteMilestone: rawDeleteMilestone,
-    reorderMilestones,
     refetch: refetchDraft,
   } = useWPDraftEditor(wpId);
 
@@ -203,18 +195,6 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
     if (d) recordDelete('deliverable', d);
     return rawDeleteDeliverable(deliverableId);
   }, [rawDeleteDeliverable, wpDraft, recordDelete]);
-
-  const deleteRisk = useCallback(async (riskId: string) => {
-    const r = wpDraft?.risks?.find(r => r.id === riskId);
-    if (r) recordDelete('risk', r);
-    return rawDeleteRisk(riskId);
-  }, [rawDeleteRisk, wpDraft, recordDelete]);
-
-  const deleteMilestone = useCallback(async (milestoneId: string) => {
-    const m = wpDraft?.milestones?.find(m => m.id === milestoneId);
-    if (m) recordDelete('milestone', m);
-    return rawDeleteMilestone(milestoneId);
-  }, [rawDeleteMilestone, wpDraft, recordDelete]);
 
   const handleUndo = useCallback(async () => {
     const result = await undo();

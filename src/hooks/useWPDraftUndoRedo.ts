@@ -1,14 +1,14 @@
 import { useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import type { WPDraftTask, WPDraftDeliverable, WPDraftRisk, WPDraftMilestone } from './useWPDrafts';
+import type { WPDraftTask, WPDraftDeliverable } from './useWPDrafts';
 
-type ItemType = 'task' | 'deliverable' | 'risk' | 'milestone';
+type ItemType = 'task' | 'deliverable';
 
 interface DeleteAction {
   type: 'delete';
   itemType: ItemType;
-  item: WPDraftTask | WPDraftDeliverable | WPDraftRisk | WPDraftMilestone;
+  item: WPDraftTask | WPDraftDeliverable;
   taskParticipants?: { participant_id: string }[];
   taskEffort?: { participant_id: string; person_months: number }[];
 }
@@ -30,8 +30,6 @@ export function useWPDraftUndoRedo(wpDraftId: string | null) {
     const map = {
       task: 'wp_draft_tasks' as const,
       deliverable: 'wp_draft_deliverables' as const,
-      risk: 'wp_draft_risks' as const,
-      milestone: 'wp_draft_milestones' as const,
     };
     return map[itemType];
   };

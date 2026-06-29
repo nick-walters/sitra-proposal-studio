@@ -375,7 +375,7 @@ interface WpTableOpts {
   duration?: string | null;
   objectives?: string | null;
   description?: string | null;
-  methodology?: string | null;
+  
   tasks: WpTableTask[];
   extras?: [string, string | null | undefined][];
 }
@@ -421,10 +421,6 @@ function buildWpDescriptionTable(opts: WpTableOpts): Table {
   if (opts.description && String(opts.description).trim()) {
     rows.push(new TableRow({ children: [txtCell("Description", { span: 6, shading: SHADE, bold: true })] }));
     rows.push(new TableRow({ children: [htmlCell(opts.description, { span: 6 })] }));
-  }
-  if (opts.methodology && String(opts.methodology).trim()) {
-    rows.push(new TableRow({ children: [txtCell("Methodology", { span: 6, shading: SHADE, bold: true })] }));
-    rows.push(new TableRow({ children: [htmlCell(opts.methodology, { span: 6 })] }));
   }
   for (const t of opts.tasks) {
     rows.push(new TableRow({
