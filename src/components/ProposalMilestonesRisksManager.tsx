@@ -1010,14 +1010,19 @@ function MilestoneWpDialog({
                           <Checkbox checked={checked} onCheckedChange={() => toggleWp(wp)} />
                         </td>
                         <td className="py-1.5 text-center">
-                          <input
-                            type="radio"
-                            name="ms-primary-wp"
-                            checked={isPrimary}
+                          <button
+                            type="button"
+                            role="radio"
+                            aria-checked={isPrimary}
+                            aria-label={isPrimary ? 'Primary WP' : 'Set as primary WP'}
                             disabled={!checked}
-                            onChange={() => setPrimary(wp.id)}
-                            className="cursor-pointer disabled:cursor-not-allowed"
-                          />
+                            onClick={() => setPrimary(wp.id)}
+                            className="inline-flex items-center justify-center p-0.5 rounded-sm cursor-pointer disabled:cursor-not-allowed disabled:opacity-40 focus:outline-none focus:ring-2 focus:ring-ring"
+                          >
+                            <Star
+                              className={`h-4 w-4 ${isPrimary ? 'text-amber-500 fill-amber-400' : 'text-muted-foreground'}`}
+                            />
+                          </button>
                         </td>
                         <td className="py-1.5 px-2">
                           <span className="inline-flex items-center gap-2">
