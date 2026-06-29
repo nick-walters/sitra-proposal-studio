@@ -1,0 +1,1 @@
+ALTER TABLE public.proposals ADD COLUMN IF NOT EXISTS b31_banner_dismissed boolean NOT NULL DEFAULT false;
