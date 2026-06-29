@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { SaveIndicator } from '@/components/SaveIndicator';
+import { getCaseTypePrefix } from '@/lib/caseTypeLabels';
 import { DraftFormattingToolbar } from '@/components/DraftFormattingToolbar';
 import { useWPDraftEditor } from '@/hooks/useWPDrafts';
 import { useWPDraftUndoRedo } from '@/hooks/useWPDraftUndoRedo';
