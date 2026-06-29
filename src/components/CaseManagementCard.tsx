@@ -816,16 +816,32 @@ export function CaseManagementCard({
                         <div className="flex items-center gap-2 flex-wrap">
                           <Label className="text-sm text-muted-foreground shrink-0">Type:</Label>
                           <Select
-                            value={typeRow.type_code}
-                            onValueChange={(newType) => changeTypeMutation.mutate({
-                              typeRowId: typeRow.id,
-                              type_code: newType,
-                              custom_type_name: newType === 'other' ? typeRow.custom_type_name : null,
-                            })}
+                            value={typeRow.type_code ?? ''}
+                            onValueChange={(newType) => {
+                              const newCustom = newType === 'other' ? typeRow.custom_type_name : null;
+                              // Caption auto-fill rule: overwrite caption_text with the new
+                              // default IFF the current caption is empty OR still matches
+                              // the previous type's default ("{prev singular} descriptions").
+                              // Otherwise leave the user's custom caption alone.
+                              const prevDefault = typeRow.type_code
+                                ? `${getCaseTypeLabel(typeRow.type_code, typeRow.custom_type_name)} descriptions`
+                                : null;
+                              const currentCaption = (typeRow.caption_text ?? '').trim();
+                              const isUntouched =
+                                currentCaption === '' ||
+                                (prevDefault !== null && currentCaption === prevDefault);
+                              const newDefault = `${getCaseTypeLabel(newType, newCustom)} descriptions`;
+                              changeTypeMutation.mutate({
+                                typeRowId: typeRow.id,
+                                type_code: newType,
+                                custom_type_name: newCustom,
+                                ...(isUntouched ? { caption_text: newDefault } : {}),
+                              });
+                            }}
                             disabled={!isCoordinator}
                           >
                             <SelectTrigger className="h-7 text-xs w-44">
-                              <SelectValue />
+                              <SelectValue placeholder="Select a case type…" />
                             </SelectTrigger>
                             <SelectContent>
                               {CASE_TYPES.map((t) => {
