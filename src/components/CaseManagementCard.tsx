@@ -885,6 +885,31 @@ export function CaseManagementCard({
                         </div>
                       )}
 
+                      {/* Caption text for the B1.2 table for this type */}
+                      {isCoordinator && (() => {
+                        const trailing = (typeRow.caption_text ?? '').trim() || `${typeLabel} descriptions`;
+                        const preview = typeRow.caption_text?.trim()
+                          ? `${typeLabel} ${typeRow.caption_text.trim()}`
+                          : trailing;
+                        return (
+                          <div className="flex items-start gap-2 flex-wrap text-xs pt-1">
+                            <label className="flex items-center gap-1.5 flex-1 min-w-[260px]">
+                              <span className="text-muted-foreground whitespace-nowrap">Caption text:</span>
+                              <Input
+                                value={typeRow.caption_text ?? ''}
+                                placeholder={`descriptions   →   ${typeLabel} descriptions`}
+                                onChange={(e) => updateTypeMutation.mutate({ typeRowId: typeRow.id, patch: { caption_text: e.target.value } })}
+                                className="h-7 text-xs"
+                              />
+                            </label>
+                            <div className="text-muted-foreground italic pt-1">
+                              Preview: <span className="not-italic font-medium">Table 1.2.x.</span> <em>{preview}</em>
+                            </div>
+                          </div>
+                        );
+                      })()}
+
+
                       {/* Cases grid */}
                       <div className="grid grid-cols-[24px_140px_1fr_80px_20px_20px] gap-x-1.5">
                         <div className="col-span-6 grid grid-cols-subgrid gap-x-1.5 text-xs font-bold text-muted-foreground border-b pb-1">
