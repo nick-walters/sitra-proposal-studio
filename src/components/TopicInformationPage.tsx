@@ -571,7 +571,7 @@ export function TopicInformationPage({
                     variant="outline"
                     size="sm"
                     className="gap-1.5 h-7 text-xs"
-                    onClick={() => window.open(proposal.topicUrl, '_blank')}
+                    onClick={() => safeOpenUrl(proposal.topicUrl)}
                   >
                     <ExternalLink className="w-3 h-3" />
                     View on portal
