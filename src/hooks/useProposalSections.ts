@@ -303,10 +303,27 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
       if (!proposalId) return [];
       const { data, error } = await supabase
         .from('proposal_case_types')
-        .select('id, include_number, include_abbreviation, outline_color')
-        .eq('proposal_id', proposalId);
+        .select('id, include_number, include_abbreviation, outline_color, type_code, custom_type_name, order_index')
+        .eq('proposal_id', proposalId)
+        .order('order_index');
       if (error) throw error;
       return data || [];
+    },
+    enabled: !!proposalId,
+  });
+
+  // cases_enabled flag — drives the WP/case manager title.
+  const { data: casesEnabled = false } = useQuery({
+    queryKey: ['proposal-cases-enabled', proposalId],
+    queryFn: async () => {
+      if (!proposalId) return false;
+      const { data, error } = await supabase
+        .from('proposals')
+        .select('cases_enabled')
+        .eq('id', proposalId)
+        .maybeSingle();
+      if (error) throw error;
+      return !!data?.cases_enabled;
     },
     enabled: !!proposalId,
   });
