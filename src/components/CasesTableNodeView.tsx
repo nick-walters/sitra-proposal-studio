@@ -99,7 +99,7 @@ function CaseChip({ label, color }: { label: string; color: string }) {
       }}
     >
 
-      <span style={{ color: '#000000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1 }}>
+      <span style={{ color: color || '#000000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1 }}>
         {label}
       </span>
     </span>
