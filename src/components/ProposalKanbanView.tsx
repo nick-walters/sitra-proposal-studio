@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FileText, ArrowRight, Send, CheckCircle2, XCircle, Clock, ExternalLink, AlertTriangle, Trophy, Calendar } from "lucide-react";
 import { format, differenceInDays, addMonths } from "date-fns";
+import { safeOpenUrl } from "@/lib/safeUrl";
 
 // Calculate estimated decision date based on submission stage
 // Full proposals: ~5 months after deadline
@@ -201,7 +202,7 @@ export function ProposalKanbanView({ proposals, onProposalClick }: ProposalKanba
                         className="h-5 px-1.5 text-[9px] gap-0.5"
                         onClick={(e) => {
                           e.stopPropagation();
-                          window.open(proposal.topicUrl, '_blank');
+                          safeOpenUrl(proposal.topicUrl);
                         }}
                       >
                         Topic

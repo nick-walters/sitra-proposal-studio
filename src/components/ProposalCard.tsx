@@ -6,6 +6,7 @@ import { format, differenceInDays } from "date-fns";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { StorageImage } from "@/components/StorageImage";
 import { ColoredAcronym } from "@/components/AcronymColorEditor";
+import { safeOpenUrl } from "@/lib/safeUrl";
 
 interface ProposalCardProps {
   proposal: Proposal;
@@ -215,7 +216,7 @@ export function ProposalCard({ proposal, onClick, compact = false, isPinned, can
                 className="h-5 w-full px-1.5 gap-0.5 text-[9px]"
                 onClick={(e) => {
                   e.stopPropagation();
-                  window.open(proposal.topicUrl, '_blank');
+                  safeOpenUrl(proposal.topicUrl);
                 }}
               >
                 Topic
@@ -313,7 +314,7 @@ export function ProposalCard({ proposal, onClick, compact = false, isPinned, can
                 className="h-6 w-full px-1.5 gap-0.5 text-[10px]"
                 onClick={(e) => {
                   e.stopPropagation();
-                  window.open(proposal.topicUrl, '_blank');
+                  safeOpenUrl(proposal.topicUrl);
                 }}
               >
                 Topic

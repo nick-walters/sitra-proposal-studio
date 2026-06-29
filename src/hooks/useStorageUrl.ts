@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getProposalFileSignedUrl } from '@/lib/proposalStorage';
 
-type StorageBucket = 'proposal-files' | 'participant-logos';
+type StorageBucket = 'proposal-files' | 'participant-logos' | 'profile-avatars' | 'proposal-logos';
 
 interface ResolvedPath {
   bucket: StorageBucket;
@@ -19,6 +19,8 @@ export function isStoragePath(value: string): boolean {
   // Any URL referencing a private bucket (or one we now treat as private) needs resolution.
   if (value.includes('/proposal-files/')) return true;
   if (value.includes('/participant-logos/')) return true;
+  if (value.includes('/profile-avatars/')) return true;
+  if (value.includes('/proposal-logos/')) return true;
   return false;
 }
 
@@ -39,6 +41,10 @@ function resolveStoragePath(value: string): ResolvedPath | null {
   if (partMatch) return { bucket: 'participant-logos', path: partMatch[1] };
   const propMatch = noQuery.match(/\/proposal-files\/(.+)$/);
   if (propMatch) return { bucket: 'proposal-files', path: propMatch[1] };
+  const avatarMatch = noQuery.match(/\/profile-avatars\/(.+)$/);
+  if (avatarMatch) return { bucket: 'profile-avatars', path: avatarMatch[1] };
+  const logoMatch = noQuery.match(/\/proposal-logos\/(.+)$/);
+  if (logoMatch) return { bucket: 'proposal-logos', path: logoMatch[1] };
   return null;
 }
 
