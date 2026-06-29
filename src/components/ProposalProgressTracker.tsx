@@ -94,7 +94,7 @@ export function ProposalProgressTracker({ proposalId, isCoordinator, sections, o
         if (notes !== undefined) updateData.notes = notes;
         const { error } = await supabase
           .from('proposal_progress')
-          .update(updateData)
+          .update(updateData as any)
           .eq('id', existing.id);
         if (error) throw error;
       } else {

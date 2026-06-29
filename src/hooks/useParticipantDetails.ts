@@ -263,7 +263,7 @@ export function useParticipantDetails(participantId: string | undefined) {
 
     const { error } = await supabase
       .from('participant_achievements')
-      .update(updateData)
+      .update(updateData as any)
       .eq('id', id);
 
     if (error) {
@@ -331,7 +331,7 @@ export function useParticipantDetails(participantId: string | undefined) {
 
     const { error } = await supabase
       .from('participant_previous_projects')
-      .update(updateData)
+      .update(updateData as any)
       .eq('id', id);
 
     if (error) {
@@ -395,7 +395,7 @@ export function useParticipantDetails(participantId: string | undefined) {
 
     const { error } = await supabase
       .from('participant_infrastructure')
-      .update(updateData)
+      .update(updateData as any)
       .eq('id', id);
 
     if (error) {
@@ -459,7 +459,7 @@ export function useParticipantDetails(participantId: string | undefined) {
 
     const { error } = await supabase
       .from('participant_dependencies')
-      .update(updateData)
+      .update(updateData as any)
       .eq('id', id);
 
     if (error) {

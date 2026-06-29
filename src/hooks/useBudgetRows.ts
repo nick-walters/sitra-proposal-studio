@@ -437,7 +437,7 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
     const column = CATEGORY_TO_COLUMN[category];
     const rowField = CATEGORY_TO_ROW_FIELD[category];
     setRows(prev => prev.map(r => r.id === budgetRowId ? { ...r, [rowField]: total } : r));
-    await supabase.from('budget_rows').update({ [column]: total }).eq('id', budgetRowId);
+    await supabase.from('budget_rows').update({ [column]: total } as any).eq('id', budgetRowId);
   }, []);
 
   const addJustificationItem = useCallback(async (budgetRowId: string, category: JustificationCategory) => {
@@ -474,7 +474,7 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
       const dbField = field === 'amount' ? 'amount' : 'justification';
       const { error } = await supabase
         .from('budget_cost_justification_items')
-        .update({ [dbField]: field === 'amount' ? Number(value) || 0 : value })
+        .update({ [dbField]: field === 'amount' ? Number(value) || 0 : value } as any)
         .eq('id', itemId);
       if (error) toast.error('Failed to save justification row');
       if (field === 'amount') {
@@ -565,7 +565,7 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
       const dbField = field === 'pmCount' ? 'pm_count' : field === 'pmRate' ? 'pm_rate' : 'category';
       const { error } = await supabase
         .from('budget_personnel_breakdown')
-        .update({ [dbField]: value })
+        .update({ [dbField]: value } as any)
         .eq('id', itemId);
       if (error) toast.error('Failed to save personnel row');
       if (field === 'pmCount' || field === 'pmRate') {
@@ -618,7 +618,7 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
       setSaving(true);
       const { error } = await supabase
         .from('budget_rows')
-        .update({ [dbField]: dbValue })
+        .update({ [dbField]: dbValue } as any)
         .eq('id', rowId);
 
       if (error) {

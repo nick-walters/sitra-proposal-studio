@@ -420,7 +420,7 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
     mutationFn: async (updates: Record<string, any>) => {
       const { error } = await supabase
         .from('case_drafts')
-        .update(updates)
+        .update(updates as any)
         .eq('id', caseId);
       if (error) throw error;
     },

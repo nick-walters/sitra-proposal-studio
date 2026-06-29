@@ -79,7 +79,7 @@ export function useTemplates() {
   const updateFundingProgramme = async (id: string, data: Partial<FundingProgramme>) => {
     const { data: result, error } = await supabase
       .from('funding_programmes')
-      .update(data)
+      .update(data as any)
       .eq('id', id)
       .select()
       .single();
@@ -131,7 +131,7 @@ export function useTemplates() {
   const updateTemplateType = async (id: string, data: Partial<TemplateType>) => {
     const { data: result, error } = await supabase
       .from('template_types')
-      .update(data)
+      .update(data as any)
       .eq('id', id)
       .select('*, funding_programme:funding_programmes(*)')
       .single();
@@ -408,7 +408,7 @@ export function useTemplateSections(templateTypeId: string | null) {
   const updateSection = async (id: string, data: Partial<TemplateSection>) => {
     const { data: result, error } = await supabase
       .from('template_sections')
-      .update(data)
+      .update(data as any)
       .eq('id', id)
       .select()
       .single();
@@ -465,7 +465,7 @@ export function useTemplateSections(templateTypeId: string | null) {
   const updateGuideline = async (id: string, data: Partial<SectionGuideline>) => {
     const { error } = await supabase
       .from('section_guidelines')
-      .update(data)
+      .update(data as any)
       .eq('id', id);
     
     if (error) {
@@ -526,7 +526,7 @@ export function useTemplateSections(templateTypeId: string | null) {
   const updateFormField = async (id: string, data: Partial<TemplateFormField>) => {
     const { error } = await supabase
       .from('template_form_fields')
-      .update(data)
+      .update(data as any)
       .eq('id', id);
     
     if (error) {
