@@ -8,6 +8,8 @@ import { B31DeliverablesTable, B31MilestonesTable, B31RisksTable } from './B31Ta
 import { B31EffortMatrix } from './B31EffortMatrix';
 import { B31SubcontractingTable } from './B31SubcontractingTable';
 import { B31EquipmentTable } from './B31EquipmentTable';
+import { B31JustificationTable } from './B31JustificationTable';
+import { useB31JustificationToggles } from '@/hooks/useB31JustificationToggles';
 import { PERTChartFigure } from './PERTChartFigure';
 import { GanttChartFigure } from './GanttChartFigure';
 
@@ -16,7 +18,13 @@ interface Props {
 }
 
 export function B31SectionContent({ proposalId }: Props) {
-  const { wpData, participants, pertFigure, ganttFigure, subcontractingByParticipant, equipmentByParticipant, loading } = useB31SectionData(proposalId);
+  const {
+    wpData, participants, pertFigure, ganttFigure,
+    subcontractingByParticipant, equipmentByParticipant,
+    travelByParticipant, otherGoodsByParticipant, fstpByParticipant, internallyInvoicedByParticipant,
+    loading,
+  } = useB31SectionData(proposalId);
+  const { toggles } = useB31JustificationToggles(proposalId);
   const { data: proposalDuration } = useQuery({
     queryKey: ['proposal-duration', proposalId],
     queryFn: async () => {
@@ -108,6 +116,48 @@ export function B31SectionContent({ proposalId }: Props) {
         participants={participants}
         proposalId={proposalId}
       />
+
+      {/* Optional cost-justification tables (coordinator-toggled in A3). */}
+      {toggles.travel && (
+        <B31JustificationTable
+          items={travelByParticipant}
+          participants={participants}
+          proposalId={proposalId}
+          tableKey="travel-justification"
+          tableLabel="Table 3.1.i."
+          defaultCaption="Travel and subsistence cost items"
+        />
+      )}
+      {toggles.other_goods && (
+        <B31JustificationTable
+          items={otherGoodsByParticipant}
+          participants={participants}
+          proposalId={proposalId}
+          tableKey="other-goods-justification"
+          tableLabel="Table 3.1.j."
+          defaultCaption="Other goods, works and services cost items"
+        />
+      )}
+      {toggles.fstp && (
+        <B31JustificationTable
+          items={fstpByParticipant}
+          participants={participants}
+          proposalId={proposalId}
+          tableKey="fstp-justification"
+          tableLabel="Table 3.1.k."
+          defaultCaption="Financial support to third parties cost items"
+        />
+      )}
+      {toggles.internally_invoiced && (
+        <B31JustificationTable
+          items={internallyInvoicedByParticipant}
+          participants={participants}
+          proposalId={proposalId}
+          tableKey="internally-invoiced-justification"
+          tableLabel="Table 3.1.l."
+          defaultCaption="Internally invoiced goods and services cost items"
+        />
+      )}
     </div>
   );
 }
