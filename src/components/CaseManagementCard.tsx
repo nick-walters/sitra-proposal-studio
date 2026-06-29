@@ -66,7 +66,7 @@ interface CaseDraft {
 interface CaseTypeRow {
   id: string;
   proposal_id: string;
-  type_code: string;
+  type_code: string | null;
   custom_type_name: string | null;
   outline_color: string;
   include_number: boolean;
@@ -569,17 +569,21 @@ export function CaseManagementCard({
   // Change a card's type: update proposal_case_types row + sync legacy
   // case_type/custom_type_name on every case in that group.
   const changeTypeMutation = useMutation({
-    mutationFn: async ({ typeRowId, type_code, custom_type_name }: { typeRowId: string; type_code: string; custom_type_name: string | null }) => {
+    mutationFn: async ({ typeRowId, type_code, custom_type_name, caption_text }: { typeRowId: string; type_code: string | null; custom_type_name: string | null; caption_text?: string | null }) => {
+      const patch: Record<string, unknown> = { type_code, custom_type_name };
+      if (caption_text !== undefined) patch.caption_text = caption_text;
       const { error: e1 } = await supabase
         .from('proposal_case_types')
-        .update({ type_code, custom_type_name })
+        .update(patch as never)
         .eq('id', typeRowId);
       if (e1) throw e1;
-      const { error: e2 } = await supabase
-        .from('case_drafts')
-        .update({ case_type: type_code, custom_type_name })
-        .eq('case_type_id', typeRowId);
-      if (e2) throw e2;
+      if (type_code) {
+        const { error: e2 } = await supabase
+          .from('case_drafts')
+          .update({ case_type: type_code, custom_type_name })
+          .eq('case_type_id', typeRowId);
+        if (e2) throw e2;
+      }
     },
     onSuccess: () => {
       invalidateCaseQueries();
@@ -607,18 +611,17 @@ export function CaseManagementCard({
     onError: () => toast.error('Failed to update case type'),
   });
 
-  // Add another case type row (next order_index, picks first unused non-other type, or 'other').
+  // Add another case type row. Starts with NO type selected and no caption —
+  // the user picks a type via the dropdown, at which point caption_text is
+  // auto-filled with the default "{Singular} descriptions".
   const addTypeMutation = useMutation({
     mutationFn: async () => {
-      const used = new Set(caseTypeRows.filter(t => t.type_code !== 'other').map(t => t.type_code));
-      const firstFree = CASE_TYPE_DEFS.find(d => d.code !== 'other' && !used.has(d.code))?.code ?? 'other';
       const nextOrder = caseTypeRows.length > 0 ? Math.max(...caseTypeRows.map(t => t.order_index)) + 1 : 0;
-      const defaultSingular = getCaseTypeLabel(firstFree, null);
       const { error } = await supabase.from('proposal_case_types').insert({
         proposal_id: proposalId,
-        type_code: firstFree,
+        type_code: null as unknown as string,
         order_index: nextOrder,
-        caption_text: `${defaultSingular} descriptions`,
+        caption_text: null,
       });
       if (error) throw error;
     },
@@ -731,7 +734,11 @@ export function CaseManagementCard({
   }, [caseDrafts]);
 
   const usedNonOtherTypes = useMemo(
-    () => new Set(caseTypeRows.filter(t => t.type_code !== 'other').map(t => t.type_code)),
+    () => new Set(
+      caseTypeRows
+        .filter(t => !!t.type_code && t.type_code !== 'other')
+        .map(t => t.type_code as string)
+    ),
     [caseTypeRows]
   );
 
@@ -809,16 +816,32 @@ export function CaseManagementCard({
                         <div className="flex items-center gap-2 flex-wrap">
                           <Label className="text-sm text-muted-foreground shrink-0">Type:</Label>
                           <Select
-                            value={typeRow.type_code}
-                            onValueChange={(newType) => changeTypeMutation.mutate({
-                              typeRowId: typeRow.id,
-                              type_code: newType,
-                              custom_type_name: newType === 'other' ? typeRow.custom_type_name : null,
-                            })}
+                            value={typeRow.type_code ?? ''}
+                            onValueChange={(newType) => {
+                              const newCustom = newType === 'other' ? typeRow.custom_type_name : null;
+                              // Caption auto-fill rule: overwrite caption_text with the new
+                              // default IFF the current caption is empty OR still matches
+                              // the previous type's default ("{prev singular} descriptions").
+                              // Otherwise leave the user's custom caption alone.
+                              const prevDefault = typeRow.type_code
+                                ? `${getCaseTypeLabel(typeRow.type_code, typeRow.custom_type_name)} descriptions`
+                                : null;
+                              const currentCaption = (typeRow.caption_text ?? '').trim();
+                              const isUntouched =
+                                currentCaption === '' ||
+                                (prevDefault !== null && currentCaption === prevDefault);
+                              const newDefault = `${getCaseTypeLabel(newType, newCustom)} descriptions`;
+                              changeTypeMutation.mutate({
+                                typeRowId: typeRow.id,
+                                type_code: newType,
+                                custom_type_name: newCustom,
+                                ...(isUntouched ? { caption_text: newDefault } : {}),
+                              });
+                            }}
                             disabled={!isCoordinator}
                           >
                             <SelectTrigger className="h-7 text-xs w-44">
-                              <SelectValue />
+                              <SelectValue placeholder="Select a case type…" />
                             </SelectTrigger>
                             <SelectContent>
                               {CASE_TYPES.map((t) => {
@@ -843,11 +866,18 @@ export function CaseManagementCard({
                           {typeRow.type_code === 'other' && (
                             <AbbreviationInput
                               value={typeRow.custom_type_name || ''}
-                              onChange={(name) => changeTypeMutation.mutate({
-                                typeRowId: typeRow.id,
-                                type_code: 'other',
-                                custom_type_name: name,
-                              })}
+                              onChange={(name) => {
+                                const prevDefault = `${getCaseTypeLabel('other', typeRow.custom_type_name)} descriptions`;
+                                const currentCaption = (typeRow.caption_text ?? '').trim();
+                                const isUntouched = currentCaption === '' || currentCaption === prevDefault;
+                                const newDefault = `${getCaseTypeLabel('other', name)} descriptions`;
+                                changeTypeMutation.mutate({
+                                  typeRowId: typeRow.id,
+                                  type_code: 'other',
+                                  custom_type_name: name,
+                                  ...(isUntouched ? { caption_text: newDefault } : {}),
+                                });
+                              }}
                               disabled={!isCoordinator}
                             />
                           )}
@@ -983,10 +1013,11 @@ export function CaseManagementCard({
                             variant="outline"
                             size="sm"
                             onClick={() => addCaseMutation.mutate(typeRow)}
-                            disabled={addCaseMutation.isPending}
+                            disabled={addCaseMutation.isPending || !typeRow.type_code}
+                            title={!typeRow.type_code ? 'Select a case type first' : undefined}
                           >
                             <Plus className="w-4 h-4 mr-1" />
-                            Add {typeLabel.toLowerCase()}
+                            Add {typeRow.type_code ? typeLabel.toLowerCase() : 'case'}
                           </Button>
                         </div>
                       )}

@@ -2805,7 +2805,7 @@ export type Database = {
           order_index: number
           outline_color: string
           proposal_id: string
-          type_code: string
+          type_code: string | null
           updated_at: string
         }
         Insert: {
@@ -2818,7 +2818,7 @@ export type Database = {
           order_index?: number
           outline_color?: string
           proposal_id: string
-          type_code: string
+          type_code?: string | null
           updated_at?: string
         }
         Update: {
@@ -2831,7 +2831,7 @@ export type Database = {
           order_index?: number
           outline_color?: string
           proposal_id?: string
-          type_code?: string
+          type_code?: string | null
           updated_at?: string
         }
         Relationships: [
