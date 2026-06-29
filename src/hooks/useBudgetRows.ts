@@ -474,7 +474,7 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
       const dbField = field === 'amount' ? 'amount' : 'justification';
       const { error } = await supabase
         .from('budget_cost_justification_items')
-        .update({ [dbField]: field === 'amount' ? Number(value) || 0 : value })
+        .update({ [dbField]: field === 'amount' ? Number(value) || 0 : value } as any)
         .eq('id', itemId);
       if (error) toast.error('Failed to save justification row');
       if (field === 'amount') {
