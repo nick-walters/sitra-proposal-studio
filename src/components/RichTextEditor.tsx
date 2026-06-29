@@ -1855,7 +1855,8 @@ StarterKit.configure({
   //    transient parent re-renders wiping the document during section switch)
   // Normalisation only runs when we actually replace content.
   useEffect(() => {
-    if (!editor || !isReady) return;
+    if (!editor || editor.isDestroyed || !editor.schema) return;
+    if (!isReady) return;
     if (!content && editor.state.doc.content.size > 2) return;
     const nextContent = normalizePartBLoadedContent(content);
     if (nextContent === lastSetContentRef.current) return;
@@ -1873,6 +1874,7 @@ StarterKit.configure({
     editor.commands.setContent(nextContent, { emitUpdate: false });
     if (storage) storage.enabled = wasEnabled;
   }, [editor, content, isReady]);
+
 
   // Sync track changes enabled state — use direct storage assignment to avoid
   // toggle race conditions and double-toggles
