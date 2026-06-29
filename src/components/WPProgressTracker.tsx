@@ -100,21 +100,21 @@ export function WPProgressTracker({ proposalId, onNavigateToWP }: WPProgressTrac
               </div>
               <h3 className="text-lg font-medium mb-2">No Work packages Yet</h3>
               <p className="text-sm text-muted-foreground max-w-sm mb-4">
-                Create work packages in the "Proposal overview" page to start tracking progress. 
-                Each WP tracks methodology, objectives, tasks, deliverables, risks, and interactions.
+                Create work packages in the "Proposal overview" page to start tracking progress.
+                Each WP tracks lead, objectives, description, tasks, and deliverables.
               </p>
               <div className="flex flex-col gap-2 text-xs text-muted-foreground">
                 <div className="flex items-center gap-2">
                   <Check className="h-3 w-3 text-green-600" />
-                  <span>Methodology (50+ words)</span>
+                  <span>Lead participant assigned</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-3 w-3 text-green-600" />
-                  <span>Objectives (30+ words)</span>
+                  <span>Objectives & description (30+ words each)</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-3 w-3 text-green-600" />
-                  <span>At least one task, deliverable, risk, and interaction</span>
+                  <span>At least one task and deliverable with timing</span>
                 </div>
               </div>
             </div>
