@@ -932,10 +932,9 @@ export function CaseManagementCard({
                         <div className="flex items-center gap-2 text-xs pt-1">
                           <label className="flex items-center gap-1.5 flex-1">
                             <span className="text-muted-foreground whitespace-nowrap">Caption text:</span>
-                            <Input
+                            <CaptionInput
                               value={typeRow.caption_text ?? ''}
-                              onChange={(e) => updateTypeMutation.mutate({ typeRowId: typeRow.id, patch: { caption_text: e.target.value } })}
-                              className="h-7 text-xs"
+                              onChange={(v) => updateTypeMutation.mutate({ typeRowId: typeRow.id, patch: { caption_text: v } })}
                             />
                           </label>
                         </div>
