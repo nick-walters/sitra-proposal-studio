@@ -24,6 +24,8 @@ import { InviteToProposalDialog } from './InviteToProposalDialog';
 import { AddParticipantDialog } from './AddParticipantDialog';
 import { B31Pill, WPBubble, ParticipantBubble } from './B31Pill';
 import { getContrastingTextColor } from '@/lib/wpColors';
+import { buildCaseLabel } from '@/lib/caseTypeLabels';
+
 import { supabase } from '@/integrations/supabase/client';
 import { useProposalRole } from '@/hooks/useProposalRole';
 import { useOCD } from '@/hooks/useOCD';
