@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback, createContext, useContext } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,6 +32,16 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { toast } from 'sonner';
+import { SaveIndicator } from '@/components/SaveIndicator';
+
+// ── Save tracker context: lets AutoTextarea report pending/flush to the page header ──
+interface SaveTrackerCtx {
+  bumpPending: (delta: number) => void;
+  registerFlush: (flush: () => void) => () => void;
+}
+const SaveTrackerContext = createContext<SaveTrackerCtx | null>(null);
+
+
 
 
 interface Props {
@@ -115,15 +125,45 @@ function AutoTextarea({ value, onChange, debounceMs = 500, onBlur, onFocus, ...r
   const [local, setLocal] = useState(value ?? '');
   const focused = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isPending = useRef(false);
+  const localRef = useRef(local);
+  localRef.current = local;
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
+  const tracker = useContext(SaveTrackerContext);
+
+  const markPending = (p: boolean) => {
+    if (p === isPending.current) return;
+    isPending.current = p;
+    tracker?.bumpPending(p ? 1 : -1);
+  };
 
   // Sync from props only when not focused (avoids mid-typing overwrite from refetch).
   useEffect(() => {
     if (!focused.current) setLocal(value ?? '');
   }, [value]);
 
-  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+  useEffect(() => () => {
+    if (timer.current) clearTimeout(timer.current);
+    if (isPending.current) {
+      isPending.current = false;
+      tracker?.bumpPending(-1);
+    }
+  }, [tracker]);
+
+  // Register flush handler so the page-level "Save" button can force-persist.
+  useEffect(() => {
+    if (!tracker) return;
+    const flush = () => {
+      if (timer.current) {
+        clearTimeout(timer.current);
+        timer.current = null;
+        markPending(false);
+        onChangeRef.current({ target: { value: localRef.current } });
+      }
+    };
+    return tracker.registerFlush(flush);
+  }, [tracker]);
 
   const resize = () => {
     const el = ref.current;
@@ -142,8 +182,10 @@ function AutoTextarea({ value, onChange, debounceMs = 500, onBlur, onFocus, ...r
         const v = e.target.value;
         setLocal(v);
         if (timer.current) clearTimeout(timer.current);
+        markPending(true);
         timer.current = setTimeout(() => {
           timer.current = null;
+          markPending(false);
           onChangeRef.current({ target: { value: v } });
         }, debounceMs);
       }}
@@ -153,6 +195,7 @@ function AutoTextarea({ value, onChange, debounceMs = 500, onBlur, onFocus, ...r
         if (timer.current) {
           clearTimeout(timer.current);
           timer.current = null;
+          markPending(false);
           onChangeRef.current({ target: { value: local } });
         }
         onBlur?.(e);
@@ -163,8 +206,45 @@ function AutoTextarea({ value, onChange, debounceMs = 500, onBlur, onFocus, ...r
   );
 }
 
+
 export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDuration = 36 }: Props) {
   const qc = useQueryClient();
+
+  // ── Save-state tracking for the page-header SaveIndicator ────
+  const pendingTextareasRef = useRef(0);
+  const [pendingTextareas, setPendingTextareas] = useState(0);
+  const flushers = useRef(new Set<() => void>());
+  const [activeSaves, setActiveSaves] = useState(0);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const tracker = useMemo<SaveTrackerCtx>(() => ({
+    bumpPending: (delta: number) => {
+      pendingTextareasRef.current = Math.max(0, pendingTextareasRef.current + delta);
+      setPendingTextareas(pendingTextareasRef.current);
+    },
+    registerFlush: (flush: () => void) => {
+      flushers.current.add(flush);
+      return () => { flushers.current.delete(flush); };
+    },
+  }), []);
+
+  // Apply to every mutation to track saving/lastSaved/saveError.
+  const saveHooks = useMemo(() => ({
+    onMutate: () => { setActiveSaves(s => s + 1); },
+    onSettled: (_data: unknown, err: unknown) => {
+      setActiveSaves(s => Math.max(0, s - 1));
+      if (err) setSaveError((err as any)?.message || String(err));
+      else { setLastSaved(new Date()); setSaveError(null); }
+    },
+  }), []);
+
+  const saveNow = useCallback(() => {
+    // Flush every armed AutoTextarea timer — their onChange fires the mutation immediately.
+    Array.from(flushers.current).forEach(f => { try { f(); } catch { /* noop */ } });
+  }, []);
+
+
 
   // ── WP + task lookups ────────────────────────────────────────
   const { data: wps = [] } = useQuery<WPRow[]>({
@@ -345,6 +425,7 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: MS_KEY(proposalId) }); notifyRefs(); },
     onError: (e: any) => toast.error(e.message),
+    ...saveHooks,
   });
 
   const updateMilestone = useMutation({
@@ -354,6 +435,7 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
       if (error) throw error;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: MS_KEY(proposalId) }); notifyRefs(); },
+    ...saveHooks,
   });
 
   const deleteMilestone = useMutation({
@@ -362,6 +444,7 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
       if (error) throw error;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: MS_KEY(proposalId) }); notifyRefs(); },
+    ...saveHooks,
   });
 
   const setMsWps = useMutation({
@@ -376,6 +459,7 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
       }
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: MS_KEY(proposalId) }); notifyRefs(); },
+    ...saveHooks,
   });
 
   // ── Mutations: risks (UNCHANGED — part 2 will revisit) ───────
@@ -390,6 +474,7 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: RISK_KEY(proposalId) }),
     onError: (e: any) => toast.error(e.message),
+    ...saveHooks,
   });
 
   const updateRisk = useMutation({
@@ -399,6 +484,7 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: RISK_KEY(proposalId) }),
+    ...saveHooks,
   });
 
   const deleteRisk = useMutation({
@@ -407,6 +493,7 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: RISK_KEY(proposalId) }),
+    ...saveHooks,
   });
 
   const setRiskWps = useMutation({
@@ -420,6 +507,7 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
       }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: RISK_KEY(proposalId) }),
+    ...saveHooks,
   });
 
   // Auto-order risks by min related WP number (matches B31RisksTable mirror)
@@ -439,11 +527,22 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
   const [msReorderOpen, setMsReorderOpen] = useState(false);
 
   return (
+    <SaveTrackerContext.Provider value={tracker}>
     <TooltipProvider>
     <div className="p-6 space-y-6">
-      <div className="space-y-2">
+      <div className="flex items-start justify-between gap-4">
         <h1 className="text-xl font-bold text-foreground">Milestones &amp; risks</h1>
+        {canEdit && (
+          <SaveIndicator
+            saving={activeSaves > 0}
+            lastSaved={lastSaved}
+            hasUnsavedChanges={pendingTextareas > 0}
+            saveError={saveError}
+            onSaveNow={saveNow}
+          />
+        )}
       </div>
+
 
       {/* Milestones */}
       <Card>
@@ -675,7 +774,9 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
       />
     </div>
     </TooltipProvider>
+    </SaveTrackerContext.Provider>
   );
+
 }
 
 

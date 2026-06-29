@@ -1396,6 +1396,14 @@ export function DocumentEditor({
         />
       </div>
 
+      {isB31Section && (
+        <div className="bg-red-500/15 border-b border-red-500/30 px-6 py-2 text-xs text-red-600">
+          Part B3.1 consists mostly of compulsory tables and figures. The text field before Table 3.1.a is editable, but the remainder of the content is filled via the work packages and milestones and risks pages in the left panel and mirrored to Part B3.1, where it cannot be edited.
+        </div>
+      )}
+
+
+
       <div className="flex-1 flex min-w-0 min-h-0">
         <div className="flex-1 flex min-w-0 min-h-0 overflow-hidden">
         {/* Main content area */}
