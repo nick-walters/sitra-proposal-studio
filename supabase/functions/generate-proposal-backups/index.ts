@@ -375,7 +375,7 @@ interface WpTableOpts {
   duration?: string | null;
   objectives?: string | null;
   description?: string | null;
-  methodology?: string | null;
+  
   tasks: WpTableTask[];
   extras?: [string, string | null | undefined][];
 }
