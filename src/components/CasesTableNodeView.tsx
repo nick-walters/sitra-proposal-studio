@@ -6,7 +6,8 @@ import { getCaseTypePrefix, buildCaseLabel, caseWord } from '@/lib/caseTypeLabel
 
 import { supabase } from '@/integrations/supabase/client';
 import { RICH_TEXT_CONFIG } from '@/lib/sanitizePresets';
-import { ParticipantBubble } from './B31Pill';
+import { B31Pill, ParticipantBubble } from './B31Pill';
+import { Crown } from 'lucide-react';
 
 /**
  * CasesTableNodeView — Stage 1 (live read-only mirror).
