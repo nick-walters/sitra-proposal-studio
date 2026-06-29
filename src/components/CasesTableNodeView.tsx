@@ -433,6 +433,13 @@ export function CasesTableNodeView(props: NodeViewProps) {
       as="div"
       data-cases-table-nodeview=""
       contentEditable={false}
+      draggable={false}
+      onDragStart={(e) => {
+        // Block native HTML5 drag — any direct drag of the wrapper or its
+        // children would otherwise clone-on-drop. Reorder via the grip only.
+        e.preventDefault();
+        e.stopPropagation();
+      }}
       style={{
         margin: '0',
         fontFamily: "'Times New Roman', Times, serif",
