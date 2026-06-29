@@ -1278,7 +1278,7 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
 
   const { data: wps } = await supabase
     .from("wp_drafts")
-    .select("id, number, short_name, title, color, lead_participant_id, manual_duration, b31_objectives, background_knowledge, approach_summary, methodologies_list, foreseen_challenges, b31_description_before_tasks")
+    .select("id, number, short_name, title, color, lead_participant_id, manual_duration, b31_objectives, b31_description_before_tasks")
     .eq("proposal_id", proposal.id)
     .order("number", { ascending: true });
 
