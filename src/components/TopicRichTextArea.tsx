@@ -60,51 +60,9 @@ export function TopicRichTextArea({
     }
   }, [value, isFocused]);
 
-  // Handle paste: strip font sizes, keep structure
-  const handlePaste = useCallback((e: React.ClipboardEvent) => {
-    e.preventDefault();
-    const html = e.clipboardData.getData('text/html');
-    const text = e.clipboardData.getData('text/plain');
-
-    if (html) {
-      // Parse HTML, strip font-size and font-family styles but keep structure
-      const temp = document.createElement('div');
-      temp.innerHTML = html;
-      // Remove font-size and font-family from all elements
-      temp.querySelectorAll('*').forEach(el => {
-        const htmlEl = el as HTMLElement;
-        if (htmlEl.style) {
-          htmlEl.style.fontSize = '';
-          htmlEl.style.fontFamily = '';
-          htmlEl.style.lineHeight = '';
-          htmlEl.style.border = '';
-          htmlEl.style.borderTop = '';
-          htmlEl.style.borderBottom = '';
-          htmlEl.style.borderLeft = '';
-          htmlEl.style.borderRight = '';
-          htmlEl.style.borderColor = '';
-          htmlEl.style.borderStyle = '';
-          htmlEl.style.borderWidth = '';
-          htmlEl.style.background = '';
-          htmlEl.style.backgroundColor = '';
-        }
-        // Remove font tags
-        if (el.tagName === 'FONT') {
-          const span = document.createElement('span');
-          span.innerHTML = el.innerHTML;
-          el.replaceWith(span);
-        }
-      });
-      document.execCommand('insertHTML', false, DOMPurify.sanitize(temp.innerHTML, SANITIZE_CONFIG));
-    } else {
-      // Plain text: convert line breaks to paragraphs
-      const paragraphs = text.split(/\n\n|\r\n\r\n/).map(p => {
-        const lines = p.split(/\n|\r\n/).join('<br>');
-        return `<p>${lines}</p>`;
-      }).join('');
-      document.execCommand('insertHTML', false, paragraphs || text);
-    }
-  }, []);
+  // Handle paste: delegate to the shared Word-cleaning handler so MSO/<o:p>/
+  // namespace junk is fully stripped while custom badges survive.
+  const handlePaste = handleWordPaste;
 
   // Sync footnotes: remove orphaned footnotes whose markers were deleted from HTML
   const syncFootnotesWithContent = useCallback(() => {

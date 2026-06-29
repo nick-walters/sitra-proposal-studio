@@ -188,6 +188,7 @@ function EditableLine({ value, canEdit, onSave, style }: EditableLineProps) {
       suppressContentEditableWarning
       spellCheck={false}
       onFocus={() => setEditing(true)}
+      onPaste={handlePlainTextPaste}
       onBlur={(e) => {
         setEditing(false);
         if (canEdit) {

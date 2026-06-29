@@ -84,6 +84,7 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, f
         updateResponse(e.getHTML());
       }
     },
+    editorProps: wordCleanPasteProps,
   });
 
   // Reset init flag when fstpType changes so content re-syncs
