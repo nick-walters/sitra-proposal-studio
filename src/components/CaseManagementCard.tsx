@@ -764,9 +764,9 @@ export function CaseManagementCard({
 
                   return (
                     <div key={typeRow.id} className="border rounded-md p-3 space-y-2">
-                      {/* Card header: type selector + delete-type */}
+                      {/* Card header: type selector + per-type controls + delete-type */}
                       <div className="flex items-center justify-between gap-2 flex-wrap">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <Label className="text-sm text-muted-foreground shrink-0">Type:</Label>
                           <Select
                             value={typeRow.type_code}
@@ -810,6 +810,38 @@ export function CaseManagementCard({
                               })}
                               disabled={!isCoordinator}
                             />
+                          )}
+
+                          {/* Per-type display settings — inline with the type selector */}
+                          {isCoordinator && (
+                            <>
+                              <label className="flex items-center gap-1.5 text-xs ml-2">
+                                <span className="text-muted-foreground">Outline:</span>
+                                <input
+                                  type="color"
+                                  value={typeRow.outline_color || '#000000'}
+                                  onChange={(e) => updateTypeMutation.mutate({ typeRowId: typeRow.id, patch: { outline_color: e.target.value } })}
+                                  className="w-7 h-6 rounded border cursor-pointer p-0"
+                                  aria-label="Outline colour"
+                                />
+                              </label>
+                              <label className="flex items-center gap-1 text-xs">
+                                <Switch
+                                  checked={typeRow.include_number}
+                                  onCheckedChange={(v) => updateTypeMutation.mutate({ typeRowId: typeRow.id, patch: { include_number: v } })}
+                                  className="h-4 w-7 [&>span]:h-3 [&>span]:w-3 [&>span]:data-[state=checked]:translate-x-3"
+                                />
+                                <span>Include number</span>
+                              </label>
+                              <label className="flex items-center gap-1 text-xs">
+                                <Switch
+                                  checked={typeRow.include_abbreviation}
+                                  onCheckedChange={(v) => updateTypeMutation.mutate({ typeRowId: typeRow.id, patch: { include_abbreviation: v } })}
+                                  className="h-4 w-7 [&>span]:h-3 [&>span]:w-3 [&>span]:data-[state=checked]:translate-x-3"
+                                />
+                                <span>Include abbreviation</span>
+                              </label>
+                            </>
                           )}
                         </div>
                         {isCoordinator && (
@@ -855,59 +887,19 @@ export function CaseManagementCard({
                         )}
                       </div>
 
-                      {/* Per-type display settings */}
+                      {/* Caption text for the B1.2 table for this type */}
                       {isCoordinator && (
-                        <div className="flex items-center gap-4 flex-wrap text-xs pt-1">
-                          <label className="flex items-center gap-1.5">
-                            <span className="text-muted-foreground">Outline:</span>
-                            <input
-                              type="color"
-                              value={typeRow.outline_color || '#000000'}
-                              onChange={(e) => updateTypeMutation.mutate({ typeRowId: typeRow.id, patch: { outline_color: e.target.value } })}
-                              className="w-7 h-6 rounded border cursor-pointer p-0"
-                              aria-label="Outline colour"
+                        <div className="flex items-center gap-2 text-xs pt-1">
+                          <label className="flex items-center gap-1.5 flex-1">
+                            <span className="text-muted-foreground whitespace-nowrap">Caption text:</span>
+                            <Input
+                              value={typeRow.caption_text ?? ''}
+                              onChange={(e) => updateTypeMutation.mutate({ typeRowId: typeRow.id, patch: { caption_text: e.target.value } })}
+                              className="h-7 text-xs"
                             />
-                          </label>
-                          <label className="flex items-center gap-1.5">
-                            <Switch
-                              checked={typeRow.include_number}
-                              onCheckedChange={(v) => updateTypeMutation.mutate({ typeRowId: typeRow.id, patch: { include_number: v } })}
-                            />
-                            <span>Include number</span>
-                          </label>
-                          <label className="flex items-center gap-1.5">
-                            <Switch
-                              checked={typeRow.include_abbreviation}
-                              onCheckedChange={(v) => updateTypeMutation.mutate({ typeRowId: typeRow.id, patch: { include_abbreviation: v } })}
-                            />
-                            <span>Include abbreviation</span>
                           </label>
                         </div>
                       )}
-
-                      {/* Caption text for the B1.2 table for this type */}
-                      {isCoordinator && (() => {
-                        const trailing = (typeRow.caption_text ?? '').trim() || `${typeLabel} descriptions`;
-                        const preview = typeRow.caption_text?.trim()
-                          ? `${typeLabel} ${typeRow.caption_text.trim()}`
-                          : trailing;
-                        return (
-                          <div className="flex items-start gap-2 flex-wrap text-xs pt-1">
-                            <label className="flex items-center gap-1.5 flex-1 min-w-[260px]">
-                              <span className="text-muted-foreground whitespace-nowrap">Caption text:</span>
-                              <Input
-                                value={typeRow.caption_text ?? ''}
-                                placeholder={`descriptions   →   ${typeLabel} descriptions`}
-                                onChange={(e) => updateTypeMutation.mutate({ typeRowId: typeRow.id, patch: { caption_text: e.target.value } })}
-                                className="h-7 text-xs"
-                              />
-                            </label>
-                            <div className="text-muted-foreground italic pt-1">
-                              Preview: <span className="not-italic font-medium">Table 1.2.x.</span> <em>{preview}</em>
-                            </div>
-                          </div>
-                        );
-                      })()}
 
 
                       {/* Cases grid */}
