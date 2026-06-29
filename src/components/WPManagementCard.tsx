@@ -693,7 +693,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
             </h4>
             
             {/* Theme Table Header */}
-            <div className="grid grid-cols-[24px_50px_100px_1fr_20px] gap-1.5 text-xs font-bold text-muted-foreground border-b pb-1">
+            <div className="grid grid-cols-[24px_50px_100px_1fr_20px] gap-1.5 items-center text-xs font-bold text-muted-foreground border-b pb-1 min-h-[28px]">
               <div />
               <div className="text-center">Theme</div>
               <div>Short name</div>
