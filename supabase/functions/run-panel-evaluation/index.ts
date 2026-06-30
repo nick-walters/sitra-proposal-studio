@@ -405,51 +405,47 @@ async function runEvaluatorPhase(serviceClient: any, evaluationId: string) {
 
   const WORDS_PER_PAGE = 500;
   const FRONT_MATTER_PAGES = 1;
-  const allText = sections.map((section: any) => stripHtml(section.content)).join(" ");
-  const totalWords = allText.split(/\s+/).filter((word: string) => word.length > 0).length;
+
+  // Consume the client-rendered proposal markdown — the same DOM the editor
+  // displays (Part A + Part B, tables, B1.2 cases, B3.2 expertise matrix,
+  // figure text summaries, cross-ref labels). The raw section_content rows
+  // are no longer fed to the evaluator.
+  const renderedProposal = typeof baseAnalysisData.rendered_proposal === "string"
+    ? baseAnalysisData.rendered_proposal
+    : "";
+
+  if (!renderedProposal || renderedProposal.trim().length < 200) {
+    const msg = "Evaluation payload is missing the rendered proposal markdown. Please restart the evaluation from the Panel Evaluator.";
+    await serviceClient
+      .from("proposal_analyses")
+      .update({
+        status: "failed",
+        error_message: msg,
+        analysis_data: {
+          ...baseAnalysisData,
+          eligibility_flags: eligibilityFlags,
+          instrument_code: instrument.code,
+          active_step_started_at: null,
+          progress_message: msg,
+        },
+      })
+      .eq("id", evaluationId);
+    return { evaluationId, status: "failed", error: msg };
+  }
+
+  const totalWords = renderedProposal.split(/\s+/).filter((w: string) => w.length > 0).length;
   const estimatedPages = Math.ceil(totalWords / WORDS_PER_PAGE) + FRONT_MATTER_PAGES;
 
-  const partA = `PROPOSAL TITLE: ${proposal.title}
+  const proposalHeader = `PROPOSAL TITLE: ${proposal.title}
 ACRONYM: ${proposal.acronym}
 INSTRUMENT: ${instrument.name}
 DURATION: ${proposal.duration ?? "?"} months
 TOPIC: ${proposal.topic_id || "?"}
 WORK PROGRAMME: ${proposal.work_programme || "?"}
-ESTIMATED PAGES: ${estimatedPages} (~${totalWords} words at 500 words/page + 1 front-matter)
+ESTIMATED PAGES: ${estimatedPages} (~${totalWords} words at 500 words/page + 1 front-matter)`;
 
-PARTICIPANTS:
-${participants.map((participant: any) => `- #${participant.participant_number} ${participant.organisation_short_name || participant.organisation_name} (${participant.country}, ${participant.organisation_category || "?"})`).join("\n")}
+  const proposalContentBlock = `${proposalHeader}\n\n=== RENDERED PROPOSAL (Part A + Part B, as displayed in the editor) ===\n${renderedProposal}`;
 
-WORK PACKAGES:
-${wpDrafts.map((wp: any) => `WP${wp.number} ${wp.short_name || ""} ${wp.title || ""}\nObjectives: ${stripHtml(wp.objectives).slice(0, 600)}`).join("\n\n")}
-
-DELIVERABLES:
-${deliverables.map((deliverable: any) => `- D${deliverable.number} ${deliverable.title || ""} (M${deliverable.due_month}, ${deliverable.type || "?"}, ${deliverable.dissemination_level || "?"})`).join("\n")}
-
-MILESTONES:
-${milestones.map((milestone: any) => {
-  const wpNums = (milestone.proposal_milestone_wps || [])
-    .map((l: any) => wpDrafts.find((w: any) => w.id === l.wp_draft_id)?.number)
-    .filter((n: any) => n != null);
-  return `- MS${milestone.number} ${milestone.title || ""} (M${milestone.due_month}, WPs: ${wpNums.map((n: number) => `WP${n}`).join(", ")})`;
-}).join("\n")}
-
-RISKS:
-${risks.map((risk: any) => {
-  const wpNums = (risk.proposal_risk_wps || [])
-    .map((l: any) => wpDrafts.find((w: any) => w.id === l.wp_draft_id)?.number)
-    .filter((n: any) => n != null);
-  const wpsLabel = wpNums.length ? wpNums.map((n: number) => `WP${n}`).join(", ") : "—";
-  const title = stripHtml(risk.title) || "(untitled risk)";
-  return `- "${title}" [${wpsLabel}] | Mitigation: ${stripHtml(risk.mitigation)} | L:${risk.likelihood} S:${risk.severity}`;
-}).join("\n")}
-
-
-BUDGET (sum requested EU contribution): €${budget.reduce((sum: number, row: any) => sum + Number(row.requested_eu_contribution || 0), 0).toLocaleString()}
-`;
-
-  const partB = buildSectionDigest(sections);
-  const proposalContentBlock = `=== PART A: ADMINISTRATIVE ===\n${partA}\n\n=== PART B: TECHNICAL ===\n${partB}`;
 
   const criteriaText = criteriaForRun
     .map((criterion: any) => {
@@ -1115,7 +1111,7 @@ serve(async (req) => {
     const action = body?.action || "start";
 
     if (action === "start") {
-      const { proposalId, selectedEvaluators, instrumentCode, proposalStage, budgetType, eligibilityFlags } = body || {};
+      const { proposalId, selectedEvaluators, instrumentCode, proposalStage, budgetType, eligibilityFlags, renderedProposal } = body || {};
       if (
         !proposalId ||
         !Array.isArray(selectedEvaluators) ||
@@ -1126,6 +1122,13 @@ serve(async (req) => {
       ) {
         return new Response(
           JSON.stringify({ error: "Invalid input: need 3–8 evaluators and instrument/stage info" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      if (typeof renderedProposal !== "string" || renderedProposal.trim().length < 200) {
+        return new Response(
+          JSON.stringify({ error: "Missing or too-short renderedProposal markdown payload" }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
@@ -1152,6 +1155,7 @@ serve(async (req) => {
           analysis_data: {
             eligibility_flags: eligibilityFlags ?? [],
             instrument_code: instrumentCode,
+            rendered_proposal: renderedProposal,
             progress_message: "Queued for evaluator run",
           },
         })
@@ -1171,6 +1175,7 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
 
   if (action === "evaluate") {
       const evaluationId = body?.evaluationId;

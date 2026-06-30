@@ -263,7 +263,168 @@ async function buildParticipantListHtml(
     </table>`;
 }
 
+// ── Build Part A (A1 general info + A3 budget summary) HTML ──────────────────
+
+/**
+ * Parses the A1 JSON blob (shape: { abstract, fixedKeywords, freeKeywords,
+ * previousSubmission, declarations }) and emits a readable abstract +
+ * keywords block. Falls back to treating legacy plain-text content as the
+ * abstract. The `declarations` object is intentionally excluded — it is not
+ * evaluative content.
+ */
+function buildA1Html(content: string): string {
+  if (!content || !content.trim()) return '';
+  let abstract = '';
+  let fixedKeywords: string[] = [];
+  let freeKeywords = '';
+  let previousSubmission: 'yes' | 'no' | '' = '';
+  let previousReference = '';
+  try {
+    const parsed = JSON.parse(content);
+    if (parsed && typeof parsed === 'object') {
+      abstract = String(parsed.abstract || '').trim();
+      if (Array.isArray(parsed.fixedKeywords)) {
+        fixedKeywords = parsed.fixedKeywords.filter((k: unknown) => typeof k === 'string');
+      } else if (Array.isArray(parsed.keywords)) {
+        fixedKeywords = parsed.keywords.filter((k: unknown) => typeof k === 'string');
+      }
+      freeKeywords = String(parsed.freeKeywords || '').trim();
+      previousSubmission = parsed.previousSubmission === 'yes' || parsed.previousSubmission === 'no'
+        ? parsed.previousSubmission
+        : '';
+      previousReference = String(parsed.previousSubmissionReference || '').trim();
+    }
+  } catch {
+    // Legacy plain text → treat as the abstract directly.
+    abstract = stripTags(content).trim();
+  }
+
+  const parts: string[] = [];
+  parts.push(
+    `<h2 class="print-h2" data-section-name="A1. General information" style="font-size:12pt;font-weight:bold;margin-top:9pt;margin-bottom:0;">A1. General information</h2>`,
+  );
+  if (abstract) {
+    parts.push(`<h3 class="print-h3" style="font-size:11pt;font-weight:bold;margin-top:6pt;margin-bottom:0;">Abstract</h3>`);
+    parts.push(`<div class="print-section-content">${escHtml(abstract).replace(/\n+/g, '<br/>')}</div>`);
+  }
+  const kw: string[] = [];
+  if (fixedKeywords.length) kw.push(fixedKeywords.join(', '));
+  if (freeKeywords) kw.push(freeKeywords);
+  if (kw.length) {
+    parts.push(`<p style="margin:6pt 0 0 0;"><strong>Keywords:</strong> ${escHtml(kw.join(' · '))}</p>`);
+  }
+  if (previousSubmission) {
+    const label = previousSubmission === 'yes'
+      ? `Previously submitted${previousReference ? `: ${previousReference}` : ''}`
+      : 'Not previously submitted';
+    parts.push(`<p style="margin:3pt 0 0 0;"><strong>Previous submission:</strong> ${escHtml(label)}</p>`);
+  }
+  return parts.join('\n');
+}
+
+function stripTags(html: string): string {
+  return String(html || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ');
+}
+
+/**
+ * Build the A3 budget summary table from `budget_rows`. Read-only mirror —
+ * one row per participant + a totals row. Kept intentionally compact so the
+ * eval payload stays focused on structural budget facts.
+ */
+async function buildA3BudgetHtml(
+  proposalId: string,
+  participants: Participant[],
+): Promise<string> {
+  const { data: rows } = await supabase
+    .from('budget_rows')
+    .select('participant_id, personnel_costs, subcontracting_costs, purchase_equipment, purchase_other_goods, purchase_travel, requested_eu_contribution, indirect_costs')
+    .eq('proposal_id', proposalId);
+
+  if (!rows || rows.length === 0) return '';
+
+  const partById = new Map(participants.map((p) => [p.id, p]));
+  const fmt = (n: number) =>
+    n.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const numericCols = [
+    'personnel_costs',
+    'subcontracting_costs',
+    'purchase_equipment',
+    'purchase_other_goods',
+    'purchase_travel',
+    'indirect_costs',
+    'requested_eu_contribution',
+  ];
+  const totals: Record<string, number> = Object.fromEntries(numericCols.map((c) => [c, 0]));
+
+  const sorted = [...rows].sort((a: any, b: any) => {
+    const pa = partById.get(a.participant_id);
+    const pb = partById.get(b.participant_id);
+    return (pa?.participantNumber || 999) - (pb?.participantNumber || 999);
+  });
+
+  let body = '';
+  for (const r of sorted as any[]) {
+    const p = partById.get(r.participant_id);
+    const label = p
+      ? `${p.participantNumber}. ${p.organisationShortName || p.organisationName || ''}`
+      : '—';
+    for (const c of numericCols) totals[c] += Number(r[c] || 0);
+    body += `<tr>
+      <td class="print-td">${escHtml(label)}</td>
+      <td class="print-td" style="text-align:right;">${fmt(Number(r.personnel_costs || 0))}</td>
+      <td class="print-td" style="text-align:right;">${fmt(Number(r.subcontracting_costs || 0))}</td>
+      <td class="print-td" style="text-align:right;">${fmt(Number(r.purchase_equipment || 0))}</td>
+      <td class="print-td" style="text-align:right;">${fmt(Number(r.purchase_other_goods || 0))}</td>
+      <td class="print-td" style="text-align:right;">${fmt(Number(r.purchase_travel || 0))}</td>
+      <td class="print-td" style="text-align:right;">${fmt(Number(r.indirect_costs || 0))}</td>
+      <td class="print-td" style="text-align:right;"><strong>${fmt(Number(r.requested_eu_contribution || 0))}</strong></td>
+    </tr>`;
+  }
+
+  body += `<tr>
+    <td class="print-td"><strong>Total</strong></td>
+    <td class="print-td" style="text-align:right;"><strong>${fmt(totals.personnel_costs)}</strong></td>
+    <td class="print-td" style="text-align:right;"><strong>${fmt(totals.subcontracting_costs)}</strong></td>
+    <td class="print-td" style="text-align:right;"><strong>${fmt(totals.purchase_equipment)}</strong></td>
+    <td class="print-td" style="text-align:right;"><strong>${fmt(totals.purchase_other_goods)}</strong></td>
+    <td class="print-td" style="text-align:right;"><strong>${fmt(totals.purchase_travel)}</strong></td>
+    <td class="print-td" style="text-align:right;"><strong>${fmt(totals.indirect_costs)}</strong></td>
+    <td class="print-td" style="text-align:right;"><strong>${fmt(totals.requested_eu_contribution)}</strong></td>
+  </tr>`;
+
+  return `
+    <h2 class="print-h2" data-section-name="A3. Budget" style="font-size:12pt;font-weight:bold;margin-top:9pt;margin-bottom:0;">A3. Budget</h2>
+    <table class="print-table" style="width:100%;border-collapse:collapse;">
+      <thead><tr>
+        <th class="print-th">Participant</th>
+        <th class="print-th">Personnel</th>
+        <th class="print-th">Subcontracting</th>
+        <th class="print-th">Equipment</th>
+        <th class="print-th">Other goods</th>
+        <th class="print-th">Travel</th>
+        <th class="print-th">Indirect</th>
+        <th class="print-th">Requested EU</th>
+      </tr></thead>
+      <tbody>${body}</tbody>
+    </table>`;
+}
+
+async function buildPartAHtml(
+  proposalId: string,
+  sectionContents: SectionContent[],
+  participants: Participant[],
+): Promise<string> {
+  const a1 = sectionContents.find((sc) => sc.sectionId === 'a1');
+  const a1Html = a1 ? buildA1Html(a1.content) : '';
+  const a3Html = await buildA3BudgetHtml(proposalId, participants);
+  // A2 (participants list + expertise matrix) is already covered by the
+  // participant list table above and the B3.2 expertise-matrix mount.
+  return [a1Html, a3Html].filter(Boolean).join('\n');
+}
+
 // ── Build the full print container HTML ──────────────────────────────────────
+
 
 export async function buildPrintContainer(
   options: PrintRenderOptions,
@@ -346,6 +507,15 @@ export async function buildPrintContainer(
   const partListDiv = document.createElement('div');
   partListDiv.innerHTML = partListHtml;
   container.appendChild(partListDiv);
+
+  // ── Part A (A1 general info + A3 budget summary) ──
+  const partAHtml = await buildPartAHtml(proposal.id, sectionContents, participants);
+  if (partAHtml) {
+    const partADiv = document.createElement('div');
+    partADiv.setAttribute('data-part-a-mirror', 'true');
+    partADiv.innerHTML = partAHtml;
+    container.appendChild(partADiv);
+  }
 
   // ── Sections ──
   for (const section of partBSections) {
