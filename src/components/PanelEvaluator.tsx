@@ -697,7 +697,10 @@ export function PanelEvaluator({ proposalId }: Props) {
             eligibilityFlags,
             renderedProposal,
             modelOverride: modelChoice,
+            haikuUsage,
+            haikuModel,
           },
+
         });
 
         if (error) throw error;
