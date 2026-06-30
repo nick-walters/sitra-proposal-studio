@@ -41,6 +41,42 @@ class RateLimitError extends Error {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// Resolve per-MTok USD pricing for a given model id, using configMap values.
+// Sonnet has intro vs standard pricing — pick by sonnet_pricing_standard_effective_date.
+function resolveModelPricing(
+  model: string,
+  configMap: Record<string, string>,
+): { inPrice: number; outPrice: number } {
+  const m = String(model || "").toLowerCase();
+  if (m.includes("sonnet")) {
+    const effectiveDateStr = configMap.sonnet_pricing_standard_effective_date || "2026-09-01";
+    const effective = new Date(`${effectiveDateStr}T00:00:00Z`);
+    const isStandard = Date.now() >= effective.getTime();
+    if (isStandard) {
+      return {
+        inPrice: parseFloat(configMap.sonnet_price_input_standard_per_mtok || "3.00"),
+        outPrice: parseFloat(configMap.sonnet_price_output_standard_per_mtok || "15.00"),
+      };
+    }
+    return {
+      inPrice: parseFloat(configMap.sonnet_price_input_intro_per_mtok || "2.00"),
+      outPrice: parseFloat(configMap.sonnet_price_output_intro_per_mtok || "10.00"),
+    };
+  }
+  if (m.includes("haiku")) {
+    return {
+      inPrice: parseFloat(configMap.haiku_price_input_per_mtok || "0.80"),
+      outPrice: parseFloat(configMap.haiku_price_output_per_mtok || "4.00"),
+    };
+  }
+  // Default: Opus
+  return {
+    inPrice: parseFloat(configMap.opus_price_input_per_mtok || "5.00"),
+    outPrice: parseFloat(configMap.opus_price_output_per_mtok || "25.00"),
+  };
+}
+
+
 async function callAnthropicWithCache(
   apiKey: string,
   model: string,
@@ -379,7 +415,9 @@ async function runEvaluatorPhase(serviceClient: any, evaluationId: string) {
     evaluator_cache_write_tokens: Number(savedUsage.evaluator_cache_write_tokens || 0),
   };
 
-  const evaluationModel = configMap.evaluation_model || "claude-opus-4-8";
+  const modelOverride = typeof baseAnalysisData.model_override === "string" ? baseAnalysisData.model_override : null;
+  const evaluationModel = modelOverride || configMap.evaluation_model || "claude-sonnet-5";
+
 
   const WORDS_PER_PAGE = 500;
   const FRONT_MATTER_PAGES = 1;
@@ -859,12 +897,13 @@ async function runSynthesisPhase(serviceClient: any, evaluationId: string) {
   const totalThresholdSuffix =
     totalThreshold !== null ? ` (threshold: ${totalThreshold} / ${maxPoints})` : "";
 
-  const evaluationModel = synthesisContext.evaluation_model || configMap.evaluation_model || "claude-opus-4-8";
-  const synthesisModel = configMap.synthesis_model || evaluationModel;
-  const opusInPrice = parseFloat(configMap.opus_price_input_per_mtok || "15.00");
-  const opusOutPrice = parseFloat(configMap.opus_price_output_per_mtok || "75.00");
+  const modelOverride = typeof analysisData.model_override === "string" ? analysisData.model_override : null;
+  const evaluationModel = modelOverride || synthesisContext.evaluation_model || configMap.evaluation_model || "claude-sonnet-5";
+  const synthesisModel = modelOverride || configMap.synthesis_model || evaluationModel;
+  const { inPrice: opusInPrice, outPrice: opusOutPrice } = resolveModelPricing(evaluationModel, configMap);
   const cacheReadMul = parseFloat(configMap.cache_read_multiplier || "0.10");
   const cacheWriteMul = parseFloat(configMap.cache_write_multiplier || "1.25");
+
   const usdEurRate = await fetchUsdEurRate(serviceClient);
 
   const topicSpecificContext = (proposal.evaluation_criteria_notes || "").trim()
@@ -1095,7 +1134,7 @@ serve(async (req) => {
     const action = body?.action || "start";
 
     if (action === "start") {
-      const { proposalId, selectedEvaluators, instrumentCode, proposalStage, budgetType, eligibilityFlags, renderedProposal } = body || {};
+      const { proposalId, selectedEvaluators, instrumentCode, proposalStage, budgetType, eligibilityFlags, renderedProposal, modelOverride } = body || {};
       if (
         !proposalId ||
         !Array.isArray(selectedEvaluators) ||
@@ -1116,6 +1155,9 @@ serve(async (req) => {
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
+
+      const normalizedOverride =
+        typeof modelOverride === "string" && modelOverride.trim() ? modelOverride.trim() : null;
 
       await ensureProposalAdmin(supabase, userId, proposalId);
 
@@ -1140,11 +1182,13 @@ serve(async (req) => {
             eligibility_flags: eligibilityFlags ?? [],
             instrument_code: instrumentCode,
             rendered_proposal: renderedProposal,
+            model_override: normalizedOverride,
             progress_message: "Queued for evaluator run",
           },
         })
         .select("id")
         .single();
+
 
       if (insertError || !evalRecord) {
         console.error("Failed to create evaluation record:", insertError);
