@@ -84,7 +84,6 @@ export function B32SectionContent({ proposalId }: Props) {
     },
   });
 
-  // Listen for A2 edits to refetch
   useEffect(() => {
     const handler = () => {
       qc.invalidateQueries({ queryKey: ['expertise-matrix-mirror', proposalId] });
@@ -100,7 +99,6 @@ export function B32SectionContent({ proposalId }: Props) {
   const { rows, cols, cells, participants } = dataQ.data;
   const partById = new Map(participants.map((p) => [p.id, p]));
 
-  // Order: participants first (by participant_number), then customs (by order_index)
   const partCols = cols
     .filter((c) => c.kind === 'participant')
     .sort((a, b) => {
@@ -114,14 +112,40 @@ export function B32SectionContent({ proposalId }: Props) {
   const cellMap = new Map<string, boolean>();
   for (const c of cells) cellMap.set(`${c.row_id}::${c.column_id}`, c.checked);
 
-  // Uniform check-column width: widest participant badge label "N. shortName".
-  // Bubble: 11pt Times, bold, padding 0 5px, border 1.5px → estimate ~7.5px/char + 16px chrome.
-  const maxLabelLen = partCols.reduce((m, c) => {
-    const p = c.participant_id ? partById.get(c.participant_id) : undefined;
-    const label = `${p?.participant_number ?? ''}. ${p?.organisation_short_name ?? ''}`;
-    return Math.max(m, label.length);
-  }, 0);
-  const checkColWidthPx = Math.max(36, Math.ceil(maxLabelLen * 7.5) + 16);
+  // Heuristic content lengths for the rotated headers (px when rendered horizontally,
+  // which becomes the column's vertical clearance after a -90° rotation).
+  const headerContentPx = orderedCols.map((c) => {
+    if (c.kind === 'participant') {
+      const p = c.participant_id ? partById.get(c.participant_id) : undefined;
+      const label = `${p?.participant_number ?? ''}. ${p?.organisation_short_name ?? ''}`;
+      // 11pt Times bold ≈ 7.5px/char + 16px pill chrome.
+      return Math.ceil(label.length * 7.5) + 16;
+    }
+    // Custom header: 10pt regular ≈ 6px/char, allow some min.
+    const t = (c.header_text || '').trim();
+    return Math.max(28, Math.ceil(t.length * 6) + 8);
+  });
+
+  // Header row height = tallest rotated header (its horizontal length) + breathing room.
+  const headerRowHeightPx = (headerContentPx.length ? Math.max(...headerContentPx) : 24) + 8;
+
+  // Rotated badge thickness defines the natural column width.
+  // Participant pill: ~17px tall + chrome → 22px. Custom text: ~16px tall.
+  const ROTATED_COL_MIN_PX = 22;
+
+  // Expertise column: size to its widest label (≈ 6.5px/char, 11pt Times regular).
+  const maxExpertiseChars = rows.reduce((m, r) => Math.max(m, (r.label || '').length), 'Expertise'.length);
+  const expertiseColPx = Math.min(420, Math.max(80, Math.ceil(maxExpertiseChars * 6.5) + 16));
+
+  // Width division logic:
+  // Container assumed 18cm ≈ 680px. After expertise, share remainder equally among check cols.
+  // Each check col gets max(ROTATED_COL_MIN_PX, equalShare). If any single col needs more than its
+  // share (it doesn't here — min is fixed), it would take its min and the rest re-divide leftover.
+  const ASSUMED_CONTAINER_PX = 680;
+  const numChecks = orderedCols.length;
+  const remainingPx = Math.max(numChecks * ROTATED_COL_MIN_PX, ASSUMED_CONTAINER_PX - expertiseColPx);
+  const equalShare = numChecks > 0 ? Math.floor(remainingPx / numChecks) : 0;
+  const checkColWidthPx = Math.max(ROTATED_COL_MIN_PX, equalShare);
 
   return (
     <div className="b31-tables-container space-y-1 [&_p]:!my-0 mt-[2px]">
@@ -136,35 +160,63 @@ export function B32SectionContent({ proposalId }: Props) {
         style={{ tableLayout: 'fixed', width: '100%', borderCollapse: 'collapse' }}
       >
         <colgroup>
-          <col />
+          <col style={{ width: `${expertiseColPx}px` }} />
           {orderedCols.map((c) => (
             <col key={c.id} style={{ width: `${checkColWidthPx}px` }} />
           ))}
         </colgroup>
         <thead>
-          <tr>
+          <tr style={{ height: `${headerRowHeightPx}px` }}>
             <th className="cell-pl-0 py-0 text-[10pt] text-left align-bottom">Expertise</th>
-            {orderedCols.map((c) => (
-              <th
-                key={c.id}
-                className="cell-p0 text-[10pt] align-bottom text-center"
-                style={{ whiteSpace: 'normal', overflowWrap: 'break-word', wordBreak: 'break-word' }}
-              >
-                {c.kind === 'participant'
-                  ? (() => {
-                      const p = c.participant_id ? partById.get(c.participant_id) : undefined;
-                      return (
-                        <div className="flex justify-center">
-                          <ParticipantBubble
-                            number={p?.participant_number ?? undefined}
-                            shortName={p?.organisation_short_name || ''}
-                          />
-                        </div>
-                      );
-                    })()
-                  : (c.header_text || '')}
-              </th>
-            ))}
+            {orderedCols.map((c, idx) => {
+              const contentPx = headerContentPx[idx];
+              return (
+                <th
+                  key={c.id}
+                  className="cell-p0 align-bottom"
+                  style={{ height: `${headerRowHeightPx}px`, padding: 0, verticalAlign: 'bottom' }}
+                >
+                  <div
+                    style={{
+                      position: 'relative',
+                      width: '100%',
+                      height: `${headerRowHeightPx}px`,
+                    }}
+                  >
+                    <div
+                      style={{
+                        position: 'absolute',
+                        bottom: 4,
+                        left: '50%',
+                        transform: 'translateX(-50%) rotate(-90deg)',
+                        transformOrigin: 'center center',
+                        whiteSpace: 'nowrap',
+                        // After rotation, this element's visual height = its width.
+                        // Reserve content width so the rotated element stays inside the row.
+                        width: `${contentPx}px`,
+                        textAlign: 'center',
+                      }}
+                    >
+                      {c.kind === 'participant'
+                        ? (() => {
+                            const p = c.participant_id ? partById.get(c.participant_id) : undefined;
+                            return (
+                              <ParticipantBubble
+                                number={p?.participant_number ?? undefined}
+                                shortName={p?.organisation_short_name || ''}
+                              />
+                            );
+                          })()
+                        : (
+                          <span className="text-[10pt] leading-tight">
+                            {c.header_text || ''}
+                          </span>
+                        )}
+                    </div>
+                  </div>
+                </th>
+              );
+            })}
           </tr>
         </thead>
         <tbody className="[&_tr]:border-b [&_tr]:border-black/10 [&_tr:last-child]:border-0">
@@ -196,4 +248,3 @@ export function B32SectionContent({ proposalId }: Props) {
     </div>
   );
 }
-
