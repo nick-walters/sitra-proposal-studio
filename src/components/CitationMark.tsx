@@ -29,17 +29,12 @@ function createCitationAdjacencyPlugin() {
     const decorations: Decoration[] = [];
     doc.descendants((node: any, pos: number) => {
       if (node.isText) return;
-      let offset = 0;
-      for (let i = 0; i < node.childCount; i++) {
-        const child = node.child(i);
-        const childStart = pos + (node.isTextblock || node.type.name === 'doc' ? 1 : 1) + offset - (node.type.name === 'doc' ? 1 : 0);
-        // Simpler: compute using PM positions
-        if (i > 0 && isCitationChild(child) && isCitationChild(node.child(i - 1))) {
-          // childStart needs to be the start of this child inside parent
-          let cStart = pos + (node.isTextblock ? 1 : 1);
-          let acc = 0;
-          for (let j = 0; j < i; j++) acc += node.child(j).nodeSize;
-          cStart = pos + 1 + acc;
+      const innerStart = node.type.name === 'doc' ? pos : pos + 1;
+      let prev: any = null;
+      let acc = 0;
+      node.forEach((child: any) => {
+        const cStart = innerStart + acc;
+        if (isCitationChild(child) && isCitationChild(prev)) {
           if (child.type.name === 'citation') {
             decorations.push(
               Decoration.node(cStart, cStart + child.nodeSize, { class: 'citation-adjacent' })
@@ -50,11 +45,13 @@ function createCitationAdjacencyPlugin() {
             );
           }
         }
-        offset += child.nodeSize;
-      }
+        prev = child;
+        acc += child.nodeSize;
+      });
     });
     return DecorationSet.create(doc, decorations);
   };
+
 
 
 
