@@ -521,6 +521,13 @@ html, body {
   line-height: 1;
 }
 
+/* Separate two adjacent citations with a superscript comma */
+.ProseMirror sup[data-citation] + sup[data-citation]::before,
+.document-content sup[data-citation] + sup[data-citation]::before {
+  content: ",";
+  margin-right: 0.1em;
+}
+
 /* TipTap/ProseMirror table styles - OUTSIDE @layer for higher specificity */
 .ProseMirror table {
   border-collapse: collapse !important;
