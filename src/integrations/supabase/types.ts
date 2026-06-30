@@ -1247,6 +1247,7 @@ export type Database = {
       evaluation_cost_log: {
         Row: {
           budget_type: string | null
+          cache_write_tokens: number | null
           cost_eur: number | null
           cost_usd: number | null
           created_at: string | null
@@ -1257,6 +1258,7 @@ export type Database = {
         }
         Insert: {
           budget_type?: string | null
+          cache_write_tokens?: number | null
           cost_eur?: number | null
           cost_usd?: number | null
           created_at?: string | null
@@ -1267,6 +1269,7 @@ export type Database = {
         }
         Update: {
           budget_type?: string | null
+          cache_write_tokens?: number | null
           cost_eur?: number | null
           cost_usd?: number | null
           created_at?: string | null

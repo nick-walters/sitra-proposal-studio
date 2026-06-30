@@ -1108,8 +1108,11 @@ export function PanelEvaluator({ proposalId }: Props) {
                             <TooltipProvider delayDuration={150}>
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <Badge variant="outline" className="cursor-help">
-                                    {formatCurrency(Number(h.cost_eur))}
+                                  <Badge
+                                    variant="outline"
+                                    className="cursor-help border-green-600 text-green-700 font-semibold"
+                                  >
+                                    Actual: {formatCurrency(Number(h.cost_eur))}
                                   </Badge>
                                 </TooltipTrigger>
                                 <TooltipContent side="top" className="max-w-xs">

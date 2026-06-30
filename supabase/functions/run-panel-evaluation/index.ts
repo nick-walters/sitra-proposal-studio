@@ -1049,10 +1049,16 @@ Produce the full ESR markdown using the four-section structure defined in your s
     Number(evaluatorUsage.evaluator_cache_write_tokens || 0) +
     Number(synthesisUsage?.cache_creation_input_tokens || 0);
 
-  const effectiveInput =
-    totalInputTokens + totalCachedTokens * cacheReadMul + totalCacheWriteTokens * cacheWriteMul;
-  const costUsd =
-    (effectiveInput * opusInPrice) / 1_000_000 + (totalOutputTokens * opusOutPrice) / 1_000_000;
+  // Anthropic cost formula — REPLACEMENT terms (not additive). Each token bucket is mutually
+  // exclusive: usage.input_tokens excludes cache_read and cache_creation tokens. Bill each at its
+  // own rate (cache read at 0.10×, cache write at 1.25× input). Same formula across evaluator
+  // calls and synthesis (totals here cover both phases).
+  const uncachedInputTokens = totalInputTokens;
+  const costUncachedInput = (uncachedInputTokens * opusInPrice) / 1_000_000;
+  const costCacheRead = (totalCachedTokens * opusInPrice * cacheReadMul) / 1_000_000;
+  const costCacheWrite = (totalCacheWriteTokens * opusInPrice * cacheWriteMul) / 1_000_000;
+  const costOutput = (totalOutputTokens * opusOutPrice) / 1_000_000;
+  const costUsd = costUncachedInput + costCacheRead + costCacheWrite + costOutput;
   const costEur = costUsd * usdEurRate;
 
   const costBreakdown = {
@@ -1098,6 +1104,7 @@ Produce the full ESR markdown using the four-section structure defined in your s
     budget_type: budgetType || null,
     cost_usd: costUsd,
     cost_eur: costEur,
+    cache_write_tokens: totalCacheWriteTokens,
   });
 
   console.log(`Evaluation ${evaluationId} complete.`);
