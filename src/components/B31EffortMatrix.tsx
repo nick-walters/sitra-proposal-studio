@@ -93,6 +93,7 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
       />
       <div className="relative">
          <table
+            data-table-key="effort-matrix"
             className={`${tableStyles} b31-effort-matrix first-col-flush`}
             style={{
              tableLayout: 'fixed',
