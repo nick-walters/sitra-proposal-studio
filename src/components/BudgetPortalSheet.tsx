@@ -1011,7 +1011,7 @@ export function BudgetPortalSheet({
               </CardContent>
             </Card>
 
-            <B31OptionalJustificationsCard proposalId={proposalId} canEdit={isAdmin} />
+            {isAdmin && <B31OptionalJustificationsCard proposalId={proposalId} canEdit={isAdmin} />}
           </TabsContent>
 
 

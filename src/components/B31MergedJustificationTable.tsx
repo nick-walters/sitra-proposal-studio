@@ -73,26 +73,21 @@ export function B31MergedJustificationTable({
         <colgroup>
           <col style={{ width: colWidths.length > 0 ? `${colWidths[0]}px` : undefined }} />
           <col style={{ width: colWidths.length > 0 ? `${colWidths[1]}px` : undefined }} />
-          <col style={{ width: colWidths.length > 0 ? `${colWidths[2]}px` : undefined }} />
           <col />
         </colgroup>
         <thead>
           <tr>
             <th className={`${headerCellStyles} text-left relative`} style={colWidths.length === 0 ? { width: '1%', whiteSpace: 'nowrap' } : undefined}>
-              Category
+              Participant
               {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(0)} />}
             </th>
             <th className={`${headerCellStyles} text-left relative`} style={colWidths.length === 0 ? { width: '1%', whiteSpace: 'nowrap' } : undefined}>
-              Participant
-              {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(1)} />}
-            </th>
-            <th className={`${headerCellStyles} text-left relative`} style={colWidths.length === 0 ? { width: '1%', whiteSpace: 'nowrap' } : undefined}>
               Cost (€)
-              {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(2)} />}
+              {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(1)} />}
             </th>
             <th className={`${headerCellStyles} text-left relative`}>
               Justification
-              {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(3)} />}
+              {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(2)} />}
             </th>
           </tr>
         </thead>
@@ -100,15 +95,10 @@ export function B31MergedJustificationTable({
           {sortedBlocks.map((block, blockIdx) => {
             const isFirstBlock = blockIdx === 0;
             const blockTopBorder = isFirstBlock ? '' : 'border-t border-black';
-            // total rows for category rowSpan: sum over participants of (items + subtotal)
-            const totalCategoryRows = block.participants.reduce(
-              (s, p) => s + p.items.length + 1,
-              0,
-            );
             const blockTotal = block.participants.reduce((s, p) => s + p.totalCost, 0);
 
             const rendered: React.ReactNode[] = [];
-            let categoryCellPlaced = false;
+            let firstItemOfBlockPlaced = false;
 
             block.participants.forEach((entry, entryIdx) => {
               const p = getParticipant(entry.participantId);
@@ -122,20 +112,9 @@ export function B31MergedJustificationTable({
 
               entry.items.forEach((item, itemIdx) => {
                 const isFirstItem = itemIdx === 0;
+                const isVeryFirst = !firstItemOfBlockPlaced;
+                firstItemOfBlockPlaced = true;
                 const cells: React.ReactNode[] = [];
-                if (!categoryCellPlaced) {
-                  cells.push(
-                    <td
-                      key="cat"
-                      className={`${cellStyles} ${blockTopBorder} font-bold`}
-                      style={{ whiteSpace: 'nowrap', verticalAlign: 'top' }}
-                      rowSpan={totalCategoryRows}
-                    >
-                      {block.categoryLabel}
-                    </td>,
-                  );
-                  categoryCellPlaced = true;
-                }
                 if (isFirstItem) {
                   cells.push(
                     <td
@@ -155,7 +134,8 @@ export function B31MergedJustificationTable({
                 );
                 cells.push(
                   <td key="just" className={`${cellStyles} ${isFirstItem ? participantTopBorder : ''}`}>
-                    {item.justification || '—'}
+                    {isVeryFirst && <strong>{block.categoryLabel}: </strong>}
+                    {item.justification || (isVeryFirst ? '' : '—')}
                   </td>,
                 );
                 rendered.push(<tr key={`${block.categoryLabel}-${entry.participantId}-${itemIdx}`}>{cells}</tr>);
@@ -170,11 +150,11 @@ export function B31MergedJustificationTable({
               );
             });
 
-            // Category subtotal (spans Participant + Cost + Justification)
+            // Category subtotal
             rendered.push(
               <tr key={`${block.categoryLabel}-cat-subtotal`}>
                 <td className={`${cellStyles} text-right font-bold border-t border-black`} style={{ whiteSpace: 'nowrap' }}>
-                  {block.categoryLabel} subtotal
+                  <strong>{block.categoryLabel}</strong> subtotal
                 </td>
                 <td className={`${cellStyles} text-right font-bold border-t border-black`}>{formatCurrency(blockTotal)}</td>
                 <td className={`${cellStyles} border-t border-black`} />
@@ -184,10 +164,10 @@ export function B31MergedJustificationTable({
             return <React.Fragment key={block.categoryLabel}>{rendered}</React.Fragment>;
           })}
           <tr>
-            <td colSpan={4} className="p-0 border-0" style={{ height: '2px', backgroundColor: 'hsl(var(--foreground))' }} />
+            <td colSpan={3} className="p-0 border-0" style={{ height: '2px', backgroundColor: 'hsl(var(--foreground))' }} />
           </tr>
           <tr>
-            <td className={`${cellStyles} font-bold`} colSpan={2}>Total</td>
+            <td className={`${cellStyles} font-bold`}>Total</td>
             <td className={`${cellStyles} text-right font-bold`}>{formatCurrency(grandTotal)}</td>
             <td className={`${cellStyles}`} />
           </tr>
