@@ -299,56 +299,52 @@ export function B32SectionContent({ proposalId }: Props) {
               )}
             </th>
             {orderedCols.map((c, idx) => {
-              const contentPx = headerContentPx[idx];
               const colIdx = idx + 1;
               return (
                 <th
                   key={c.id}
-                  className="cell-p0 align-bottom relative"
-                  style={{ height: `${effectiveHeaderHeightPx}px`, padding: 0, verticalAlign: 'bottom' }}
+                  className="align-top relative"
+                  style={{
+                    height: `${effectiveHeaderHeightPx}px`,
+                    padding: 0,
+                    paddingTop: 0,
+                    verticalAlign: 'top',
+                  }}
                 >
-                  {/* Wrapper pinned to the cell bottom; its bottom edge = (cell bottom − 4px gap).
-                      Inner rotated content is centered inside this wrapper, so the wrapper's
-                      bottom edge IS the visual bottom of the rotated badge — independent of
-                      header height. Growing the header only adds empty space ABOVE. */}
+                  {/* Bottom-anchored badge wrapper. `writing-mode: sideways-lr`
+                      makes the element's intrinsic CSS height equal to the
+                      rotated text length — so its CSS bottom IS the visual
+                      bottom of the rotated badge. Pinning `bottom: 4px` puts
+                      every badge's lowest point on the SAME shared line, 3pt
+                      above the cell bottom border, regardless of label length. */}
                   <div
+                    ref={(el) => { badgeRefs.current[idx] = el; }}
                     style={{
                       position: 'absolute',
                       left: '50%',
                       bottom: `${HEADER_BOTTOM_GAP_PX}px`,
                       transform: 'translateX(-50%)',
-                      width: `${ROTATED_BADGE_THICKNESS_PX}px`,
-                      height: `${contentPx}px`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      overflow: 'visible',
+                      writingMode: 'sideways-lr',
+                      whiteSpace: 'nowrap',
+                      lineHeight: 1,
+                      display: 'inline-block',
                     }}
                   >
-                    <div
-                      style={{
-                        transform: 'rotate(-90deg)',
-                        transformOrigin: 'center center',
-                        whiteSpace: 'nowrap',
-                        lineHeight: 1,
-                      }}
-                    >
-                      {c.kind === 'participant'
-                        ? (() => {
-                            const p = c.participant_id ? partById.get(c.participant_id) : undefined;
-                            return (
-                              <ParticipantBubble
-                                number={p?.participant_number ?? undefined}
-                                shortName={p?.organisation_short_name || ''}
-                              />
-                            );
-                          })()
-                        : (
-                          <span className="text-[10pt] leading-tight">
-                            {c.header_text || ''}
-                          </span>
-                        )}
-                    </div>
+                    {c.kind === 'participant'
+                      ? (() => {
+                          const p = c.participant_id ? partById.get(c.participant_id) : undefined;
+                          return (
+                            <ParticipantBubble
+                              number={p?.participant_number ?? undefined}
+                              shortName={p?.organisation_short_name || ''}
+                            />
+                          );
+                        })()
+                      : (
+                        <span className="text-[10pt] leading-tight">
+                          {c.header_text || ''}
+                        </span>
+                      )}
                   </div>
                   {canResize && colIdx < lastColIdx && (
                     <ColumnResizer onMouseDown={handleColResizeStart(colIdx)} />
