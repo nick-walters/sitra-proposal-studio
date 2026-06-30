@@ -5,8 +5,9 @@ import { corsHeaders } from "../_shared/cors.ts";
 import { requireAuth } from "../_shared/auth.ts";
 
 
-const stripHtml = (s: string | null | undefined) =>
-  (s || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+// (stripHtml + section digest removed — the evaluator now consumes
+// `analysis_data.rendered_proposal` produced by the client export pipeline.)
+
 
 function extractJson(text: string): any {
   const cleaned = text.replace(/```json\s*|```/g, "").trim();
@@ -150,8 +151,6 @@ const round05 = (n: number) => Math.round(n * 2) / 2;
 const mean = (values: number[]) => values.reduce((sum, value) => sum + value, 0) / Math.max(values.length, 1);
 const EVALUATOR_MAX_TOKENS = 3200;
 const SYNTHESIS_MAX_TOKENS = 4200;
-const MAX_SECTION_CHARS = 2200;
-const MAX_TOTAL_SECTION_CHARS = 32000;
 const ACTIVE_STEP_STALE_MS = 180_000;
 const EVALUATOR_TIMEOUT_MS = 120_000;
 const MIN_SUCCESSFUL_EVALUATORS = 3;
@@ -163,25 +162,6 @@ function formatRetryDelay(retryAfterSeconds?: number) {
   return { seconds, retryAt, label: minutes };
 }
 
-function buildSectionDigest(sections: any[]) {
-  let consumed = 0;
-
-  return sections
-    .map((section: any) => {
-      const text = stripHtml(section.content);
-      if (!text) return `### ${section.section_id}\n[No content provided]`;
-
-      const remaining = MAX_TOTAL_SECTION_CHARS - consumed;
-      if (remaining <= 0) return `### ${section.section_id}\n[Additional content omitted to stay within model limits]`;
-
-      const excerptLength = Math.min(MAX_SECTION_CHARS, remaining);
-      const excerpt = text.slice(0, excerptLength);
-      consumed += excerpt.length;
-      const truncated = text.length > excerpt.length ? "\n[Section excerpt truncated for model budget]" : "";
-      return `### ${section.section_id}\n${excerpt}${truncated}`;
-    })
-    .join("\n\n");
-}
 
 function isRecentStepStart(value: unknown) {
   if (typeof value !== "string") return false;
@@ -362,13 +342,6 @@ async function runEvaluatorPhase(serviceClient: any, evaluationId: string) {
   const {
     evaluation,
     proposal,
-    sections,
-    participants,
-    wpDrafts,
-    deliverables,
-    milestones,
-    risks,
-    budget,
     instrument,
     criteriaForRun,
     configMap,
@@ -378,6 +351,7 @@ async function runEvaluatorPhase(serviceClient: any, evaluationId: string) {
     budgetTypeLabel,
     eligibilityFlags,
   } = context;
+
 
   if (!["queued", "running", "processing", "failed"].includes(evaluation.status || "queued")) {
     return { evaluationId, status: evaluation.status || "unknown" };
