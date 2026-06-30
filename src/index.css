@@ -345,6 +345,24 @@ html, body {
     text-align: left;
   }
 
+  /* Force line-height 1 for all table cell content in Part B (overrides Tailwind leading-tight) */
+  .document-content table td,
+  .document-content table th,
+  .document-content table td p,
+  .document-content table th p,
+  .document-content table td div,
+  .document-content table th div {
+    line-height: 1 !important;
+  }
+  /* Preserve badge/pill internal line-heights */
+  .document-content table .wp-reference-badge,
+  .document-content table .participant-reference-badge,
+  .document-content table .proposal-badge {
+    line-height: inherit !important;
+  }
+
+
+
   .document-h1 {
     font-family: 'Times New Roman', Times, serif;
     font-size: 12pt;
