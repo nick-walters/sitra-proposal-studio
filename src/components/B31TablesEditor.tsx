@@ -174,6 +174,8 @@ function MirrorTable({
   );
 
   const cellPad = (i: number) => {
+    const c = columns[i];
+    if (c.padX) return c.padX;
     const left = i === 0 ? 'pl-0' : 'pl-2';
     const right = i === lastIdx ? 'pr-0' : 'pr-2';
     return `${left} ${right}`;
