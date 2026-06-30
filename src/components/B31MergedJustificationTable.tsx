@@ -131,7 +131,7 @@ export function B31MergedJustificationTable({
                     <td
                       key="part"
                       className={`${cellStyles} ${partTopBorder}`}
-                      style={{ whiteSpace: 'nowrap', verticalAlign: 'top' }}
+                      style={{ whiteSpace: 'nowrap', verticalAlign: 'middle' }}
                       rowSpan={totalItemRows + 1}
                     >
                       <ParticipantBubble>{label}</ParticipantBubble>
@@ -145,7 +145,7 @@ export function B31MergedJustificationTable({
                 );
                 cells.push(
                   <td key="just" className={`${cellStyles} ${isFirstItemOverall ? partTopBorder : ''}`}>
-                    {itemIdx === 0 && <strong><em>{cat.categoryLabel}:</em></strong>} {item.justification || '—'}
+                    <strong><em>{cat.categoryLabel}:</em></strong> {item.justification || '—'}
                   </td>,
                 );
                 rows.push(<tr key={`${pp.participantId}-${cat.categoryLabel}-${itemIdx}`}>{cells}</tr>);
