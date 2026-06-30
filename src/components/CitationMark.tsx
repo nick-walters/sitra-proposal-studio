@@ -8,6 +8,46 @@ export interface CitationMarkOptions {
   getReference: (citationNumber: number) => { citation: string } | undefined;
 }
 
+/**
+ * Decorates citation nodes whose IMMEDIATELY preceding sibling node is also a
+ * citation (i.e. no text — not even whitespace — between them). The CSS uses
+ * the added `citation-adjacent` class to render a superscript comma before the
+ * second citation. We can't do this with CSS adjacent-sibling alone because
+ * `sup + sup` ignores text nodes between two element siblings.
+ */
+function createCitationAdjacencyPlugin() {
+  const key = new PluginKey('citationAdjacency');
+
+  const build = (doc: any) => {
+    const decorations: Decoration[] = [];
+    doc.descendants((node: any, pos: number, parent: any, index: number) => {
+      if (node.type.name !== 'citation') return;
+      if (!parent || index === 0) return;
+      const prev = parent.child(index - 1);
+      if (prev && prev.type.name === 'citation') {
+        decorations.push(
+          Decoration.node(pos, pos + node.nodeSize, { class: 'citation-adjacent' })
+        );
+      }
+    });
+    return DecorationSet.create(doc, decorations);
+  };
+
+  return new Plugin({
+    key,
+    state: {
+      init: (_, state) => build(state.doc),
+      apply: (tr, old) => (tr.docChanged ? build(tr.doc) : old),
+    },
+    props: {
+      decorations(state) {
+        return this.getState(state);
+      },
+    },
+  });
+}
+
+
 export const CitationNode = Node.create({
   name: 'citation',
   group: 'inline',
