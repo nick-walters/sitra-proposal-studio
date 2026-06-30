@@ -82,93 +82,242 @@ const ROW_HEIGHT = 20;
 // Slot search = median row, then ±1, ±2 outward, refusing collisions with
 // already-placed badge bodies. Pragmatic v1 (no full pathfinding).
 // ─────────────────────────────────────────────────────────────────────────────
-type WpBadgeIn = {
+type WpDelBadgeIn = {
   key: string;
-  kind: 'del' | 'ms';
   label: string;
   color: string;
   dueMonth: number;
   linkedRows: number[];
   linkedTaskIds: string[];
-  anchorRow?: number; // deliverables: row of highest-numbered linked task
-  useWpBand?: boolean;
+  anchorRow?: number;
   tooltipTitle: string;
 };
-type WpBadgeOut = WpBadgeIn & {
+type WpMsBadgeIn = {
+  key: string;
+  id: string;
+  number: number;
+  label: string;
+  dueMonth: number;
+  title: string;
+};
+type WpDelBadgeOut = WpDelBadgeIn & {
   tipX: number;
   leftX: number;
   shapeW: number;
   shapeH: number;
   bodyW: number;
   pointDepth: number;
-  rowIdx: number;          // -1 = WP band
+  rowIdx: number;
+  anchorRowResolved: number;
   drawLines: boolean;
-  flipped: boolean;        // deliverable chevron mirrored (tip on left, body extends right)
+  flipped: boolean;
   origins: Array<{ rowIdx: number; x: number }>;
+  dotX: number;
+};
+type WpMsBadgeOut = WpMsBadgeIn & {
+  shapeW: number;
+  shapeH: number;
+  hexLeft: number;
+  rowIdx: number;     // -1 = band; otherwise stacked task row
+  dotX: number;
+  tipX: number;       // connector end-x on badge side (used when on band row)
+  origins: Array<{ rowIdx: number; x: number }>; // anchor dot (band row)
+  centred: boolean;   // true when stacked vertically onto a task row
 };
 
-// Simplified per-WP deliverable layout.
+// Multi-slot layout for badges that share a due-month dot.
 //
-//   • Each deliverable is anchored on its SINGLE assigned task's row.
-//   • A dot sits at the horizontal centre of the due-month column.
-//   • The chevron tip sits 5px to the LEFT of the dot (right-pointing).
-//   • It flips right only if that left-position rectangle genuinely overlaps
-//     an already-placed deliverable rectangle on the same task row.
+// Slot order per badge:
+//   1) LEFT of dot on anchor row   (chevron tip-right; hex right-tip toward dot)
+//   2) RIGHT of dot on anchor row  (chevron tip-left;  hex left-tip toward dot)
+//   3+) CENTRED on dotX, stacked into adjacent rows (DOWN by default, UP if
+//       anchor is the WP's last task row). Connector is a straight vertical
+//       line from anchor (dotX, anchorY) to badge (dotX, badgeY).
+//   N) Last-resort horizontal nudge on the anchor row, clamped to overlay.
+//
+// All candidates are tested against ONE shared placedRects-per-row map covering
+// the WP band row (-1) and every task row, with a 4px gap, and clamped to the
+// overlay's right edge. First passing candidate wins.
 function layoutWpBadges(args: {
-  delBadges: WpBadgeIn[];
-  tasks: { id: string; startMonth: number; endMonth: number }[];
+  delBadges: WpDelBadgeIn[];
+  msBadges: WpMsBadgeIn[];
+  tasks: { id: string }[];
   cellWidth: number;
-}): WpBadgeOut[] {
-  const { delBadges, tasks, cellWidth } = args;
+  overlayWidth: number;
+  titleRightInOverlay: number; // band row left-edge cutoff (WP title)
+}): { dels: WpDelBadgeOut[]; mss: WpMsBadgeOut[] } {
+  const { delBadges, msBadges, tasks, cellWidth, overlayWidth, titleRightInOverlay } = args;
   const pointDepth = 4;
   const estimateDelW = (label: string) => Math.max(25, label.length * 5 + 5);
+  const estimateMsW = (label: string) => Math.max(26, label.length * 5 + 8);
   const taskRowById = new Map(tasks.map((t, i) => [t.id, i]));
+  const taskCount = tasks.length;
+  const rectGap = 4;
+  const placedRectsByRow = new Map<number, Array<{ left: number; right: number }>>();
+  // Seed band-row obstruction from the WP title text.
+  if (titleRightInOverlay > -Infinity) {
+    placedRectsByRow.set(-1, [{ left: -1e6, right: titleRightInOverlay }]);
+  }
+  const overlapsRow = (rowIdx: number, left: number, right: number) => {
+    const placed = placedRectsByRow.get(rowIdx) || [];
+    return placed.some((r) => left < r.right + rectGap && right + rectGap > r.left);
+  };
+  const commitRect = (rowIdx: number, left: number, right: number) => {
+    const arr = placedRectsByRow.get(rowIdx) || [];
+    arr.push({ left, right });
+    placedRectsByRow.set(rowIdx, arr);
+  };
+
+  type Slot = {
+    rowIdx: number;
+    leftX: number;
+    tipX: number;
+    flipped: boolean;
+    centred: boolean;
+  };
+  const generateSlots = (
+    dueMonth: number,
+    shapeW: number,
+    anchorRow: number,
+  ): Slot[] => {
+    const dotX = (dueMonth - 0.5) * cellWidth;
+    const slots: Slot[] = [];
+    // 1) LEFT
+    slots.push({
+      rowIdx: anchorRow,
+      leftX: dotX - 5 - shapeW,
+      tipX: dotX - 5,
+      flipped: false,
+      centred: false,
+    });
+    // 2) RIGHT
+    slots.push({
+      rowIdx: anchorRow,
+      leftX: dotX + 5,
+      tipX: dotX + 5,
+      flipped: true,
+      centred: false,
+    });
+    // 3+) Centred-stacked. DOWN by default; UP if anchor is the last task row.
+    // Anchor on band (-1) always stacks DOWN.
+    const stackDown = anchorRow === -1 ? true : anchorRow < taskCount - 1;
+    const dir = stackDown ? 1 : -1;
+    const minRow = -1;
+    const maxRow = taskCount - 1;
+    let r = anchorRow + dir;
+    while (r >= minRow && r <= maxRow) {
+      slots.push({
+        rowIdx: r,
+        leftX: dotX - shapeW / 2,
+        tipX: dotX,
+        flipped: false,
+        centred: true,
+      });
+      r += dir;
+    }
+    // Also try the OTHER vertical direction in case the preferred side is full.
+    let r2 = anchorRow - dir;
+    while (r2 >= minRow && r2 <= maxRow) {
+      slots.push({
+        rowIdx: r2,
+        leftX: dotX - shapeW / 2,
+        tipX: dotX,
+        flipped: false,
+        centred: true,
+      });
+      r2 -= dir;
+    }
+    // N) Horizontal nudge fallback on anchor row.
+    for (let i = 1; i < 30; i++) {
+      const off = i * (shapeW + rectGap);
+      slots.push({
+        rowIdx: anchorRow,
+        leftX: dotX + 5 + off,
+        tipX: dotX + 5 + off,
+        flipped: true,
+        centred: false,
+      });
+    }
+    return slots;
+  };
+  const pickSlot = (
+    slots: Slot[],
+    shapeW: number,
+    allowOverflowLeftOnTaskRow: boolean,
+  ): Slot => {
+    for (const s of slots) {
+      const right = s.leftX + shapeW;
+      if (right > overlayWidth) continue;
+      // For band row, the title rect already blocks the left zone.
+      // For task rows we allow negative leftX (deliverable extends into title cell).
+      if (s.rowIdx === -1 && !allowOverflowLeftOnTaskRow && s.leftX < titleRightInOverlay) continue;
+      if (overlapsRow(s.rowIdx, s.leftX, right)) continue;
+      return s;
+    }
+    return slots[slots.length - 1]; // last-resort
+  };
+
+  // ── Place milestones first (band row anchor; stack DOWN into task rows).
+  const msSorted = [...msBadges].sort(
+    (a, b) => a.dueMonth - b.dueMonth || a.number - b.number,
+  );
+  const mss: WpMsBadgeOut[] = msSorted.map((m) => {
+    const shapeW = estimateMsW(m.label);
+    const shapeH = 10;
+    const dotX = (m.dueMonth - 0.5) * cellWidth;
+    const slots = generateSlots(m.dueMonth, shapeW, -1);
+    const pick = pickSlot(slots, shapeW, true);
+    commitRect(pick.rowIdx, pick.leftX, pick.leftX + shapeW);
+    return {
+      ...m,
+      shapeW,
+      shapeH,
+      hexLeft: pick.leftX,
+      rowIdx: pick.rowIdx,
+      dotX,
+      tipX: pick.centred ? dotX : pick.tipX,
+      origins: [{ rowIdx: -1, x: dotX }],
+      centred: pick.centred,
+    };
+  });
+
+  // ── Deliverables: lowest number first wins the natural LEFT slot.
   const parseDelNum = (s: string) => {
     const m = s.match(/(\d+)(?:\.(\d+))?/);
     if (!m) return 0;
     return (parseInt(m[1], 10) || 0) * 10000 + (parseInt(m[2] || '0', 10) || 0);
   };
-  // Process in numbering order so the lower-numbered deliverable wins the
-  // right-pointing slot and higher-numbered ones flip.
-  const sorted = [...delBadges].sort((a, b) => parseDelNum(a.label) - parseDelNum(b.label));
-  const placedRectsByRow = new Map<number, Array<{ left: number; right: number }>>();
-  const rectGap = 4;
-  const overlapsPlacedOnRow = (rowIdx: number, left: number, right: number) => {
-    const placedRects = placedRectsByRow.get(rowIdx) || [];
-    return placedRects.some((rect) => left < rect.right + rectGap && right + rectGap > rect.left);
-  };
-  const out: WpBadgeOut[] = [];
-  for (const b of sorted) {
+  const delSorted = [...delBadges].sort(
+    (a, b) => parseDelNum(a.label) - parseDelNum(b.label),
+  );
+  const dels: WpDelBadgeOut[] = delSorted.map((b) => {
     const bodyW = estimateDelW(b.label);
     const shapeW = bodyW + pointDepth;
     const shapeH = 10;
     const taskId = b.linkedTaskIds[0] ?? null;
-    const rowIdx = taskId != null ? (taskRowById.get(taskId) ?? 0) : 0;
+    const anchorRow = taskId != null ? (taskRowById.get(taskId) ?? 0) : 0;
     const dotX = (b.dueMonth - 0.5) * cellWidth;
-    const leftTipX = dotX - 5;
-    const leftCandidateX = leftTipX - shapeW;
-    const leftBlocked = overlapsPlacedOnRow(rowIdx, leftCandidateX, leftCandidateX + shapeW);
-    const flipped = leftBlocked;
-    const tipX = flipped ? dotX + 5 : leftTipX;
-    const leftX = flipped ? tipX : leftCandidateX;
-    const rowRects = placedRectsByRow.get(rowIdx) || [];
-    rowRects.push({ left: leftX, right: leftX + shapeW });
-    placedRectsByRow.set(rowIdx, rowRects);
-    out.push({
+    const slots = generateSlots(b.dueMonth, shapeW, anchorRow);
+    const pick = pickSlot(slots, shapeW, true);
+    commitRect(pick.rowIdx, pick.leftX, pick.leftX + shapeW);
+    return {
       ...b,
-      tipX,
-      leftX,
+      tipX: pick.centred ? dotX : pick.tipX,
+      leftX: pick.leftX,
       shapeW,
       shapeH,
       bodyW,
       pointDepth,
-      rowIdx,
+      rowIdx: pick.rowIdx,
+      anchorRowResolved: anchorRow,
       drawLines: true,
-      flipped,
-      origins: [{ rowIdx, x: dotX }],
-    });
-  }
-  return out;
+      flipped: pick.flipped,
+      origins: [{ rowIdx: anchorRow, x: dotX }],
+      dotX,
+    };
+  });
+
+  return { dels, mss };
 }
 
 
@@ -648,66 +797,35 @@ export function GanttChartFigure({
               .filter(t => t.wp_draft_id === wp.id)
               .filter(t => t.start_month == null || t.end_month == null);
 
-            // Compute badge layout (rebuilt every render — cheap)
-            const laidOut = layoutWpBadges({
-              delBadges: wp.delBadges,
-              tasks: wp.tasks.map((t: any) => ({ id: t.id, startMonth: t.startMonth, endMonth: t.endMonth })),
-              cellWidth,
-            });
-
-            // ── Milestones on this WP's BAND row (primary WP only).
-            // Placement order: LEFT of dot → if blocked by WP title text or another
-            // milestone, flip RIGHT; if RIGHT is also blocked, keep nudging further
-            // right until a clear slot is found. The WP title is never abbreviated.
-            const msForThisWp = (wpDraftsData?.milestones || [])
-              .filter((m: any) => m.due_month != null && wpDraftsData?.msPrimaryWpId.get(m.id) === wp.id)
-              .slice()
-              .sort((a: any, b: any) => (a.due_month - b.due_month) || (a.number - b.number));
-            const estimateMsW = (label: string) => Math.max(26, label.length * 5 + 8);
             // Estimate the WP title text's right edge in OVERLAY coordinates
             // (overlay origin = labelWidth from the row's left edge).
-            // Title sits in the WP band row with padding-left: 6px, at 11pt bold
-            // Times New Roman (~6.2px/char average — buffered a touch).
             const wpTitleStr = `WP${wp.number}: ${wp.shortName || ''}${wp.shortName && wp.title ? ' – ' : ''}${wp.title || ''}`;
             const wpTitleTextPx = wpTitleStr.length * 6.4;
             const titleBuffer = 4;
             const titleRightInOverlay = (6 + wpTitleTextPx) - labelWidth + titleBuffer;
-            const msGap = 4;
-            const placedHexIntervals: Array<{ left: number; right: number }> = [];
-            const overlapsAny = (left: number, right: number) => {
-              if (left < titleRightInOverlay) return true;
-              for (const p of placedHexIntervals) {
-                if (left < p.right + msGap && right + msGap > p.left) return true;
-              }
-              return false;
-            };
-            const msLaidOut = msForThisWp.map((m: any) => {
-              const label = `MS${m.number}`;
-              const shapeW = estimateMsW(label);
-              const shapeH = 10;
-              const dotX = (m.due_month - 0.5) * cellWidth;
-              // Line connects dot → nearest hex tip.
-              // Hex tips are at x=0 (left tip) and x=shapeW (right tip), at midY.
-              let hexLeft: number;
-              let tipX: number;
-              // 1) Try LEFT of dot.
-              const leftCandidate = dotX - 5 - shapeW;
-              if (!overlapsAny(leftCandidate, leftCandidate + shapeW)) {
-                hexLeft = leftCandidate;
-                tipX = leftCandidate + shapeW; // right tip
-              } else {
-                // 2) Try RIGHT of dot, nudging further right until clear.
-                let candidate = dotX + 5;
-                let guard = 0;
-                while (overlapsAny(candidate, candidate + shapeW) && guard < 50) {
-                  candidate += shapeW + msGap;
-                  guard++;
-                }
-                hexLeft = candidate;
-                tipX = candidate; // left tip (nearest to dot)
-              }
-              placedHexIntervals.push({ left: hexLeft, right: hexLeft + shapeW });
-              return { id: m.id, label, shapeW, shapeH, hexLeft, dotX, tipX, dueMonth: m.due_month, title: m.title || '' };
+            const overlayWidthLocal = timelineWidth + MARGIN_GAP;
+
+            // ── Build milestone inputs for this WP (primary WP only).
+            const msInputs: WpMsBadgeIn[] = (wpDraftsData?.milestones || [])
+              .filter((m: any) => m.due_month != null && wpDraftsData?.msPrimaryWpId.get(m.id) === wp.id)
+              .map((m: any) => ({
+                key: `ms-${m.id}`,
+                id: m.id,
+                number: m.number,
+                label: `MS${m.number}`,
+                dueMonth: m.due_month,
+                title: m.title || '',
+              }));
+
+            // Compute badge layout (rebuilt every render — cheap). Milestones
+            // and deliverables share one placedRects map across band + task rows.
+            const { dels: laidOut, mss: msLaidOut } = layoutWpBadges({
+              delBadges: wp.delBadges,
+              msBadges: msInputs,
+              tasks: wp.tasks.map((t: any) => ({ id: t.id })),
+              cellWidth,
+              overlayWidth: overlayWidthLocal,
+              titleRightInOverlay,
             });
 
 
@@ -857,57 +975,50 @@ export function GanttChartFigure({
                       {laidOut.flatMap((b) => {
                         if (!b.drawLines) return [];
                         const ty = yOfRow(b.rowIdx);
-                        // Deliverable connectors take the badge's WP colour so they
-                        // always match the chevron. Any future per-WP MS would stay black.
-                        const lineColor = b.kind === 'del' ? b.color : '#000000';
+                        // Deliverable connectors take the badge's WP colour so
+                        // they always match the chevron.
+                        const lineColor = b.color;
                         return b.origins.map((o, oi) => {
                           const oy = yOfRow(o.rowIdx);
-                          // Straight diagonal line from origin dot to chevron tip.
+                          // Straight line from origin dot to chevron tip
+                          // (vertical for centred-stacked since tipX = o.x = dotX).
                           const d = `M ${o.x} ${oy} L ${b.tipX} ${ty}`;
                           return (
                             <g key={`${b.key}-l${oi}`}>
                               <path d={d} stroke={lineColor} strokeWidth={1.333} fill="none" strokeLinecap="square" strokeLinejoin="miter" />
                               <circle cx={o.x} cy={oy} r={2} fill={lineColor} stroke="none" />
-
                             </g>
                           );
                         });
                       })}
-                      {/* Milestone connector lines: dot at due-month cell centre on WP band → nearest hex tip */}
-                      {msLaidOut.map((m) => (
-                        <g key={`ms-line-${m.id}`}>
-                          <path
-                            d={`M ${m.dotX} ${yOfWpBand} L ${m.tipX} ${yOfWpBand}`}
-                            stroke="#000000"
-                            strokeWidth={1.333}
-                            fill="none"
-                            strokeLinecap="square"
-                          />
-                          <circle cx={m.dotX} cy={yOfWpBand} r={2} fill="#000000" stroke="none" />
-                        </g>
-                      ))}
+                      {/* Milestone connector lines: from band-row dot to nearest hex tip
+                          (or straight down to a stacked hex on a task row). */}
+                      {msLaidOut.map((m) => {
+                        const ty = yOfRow(m.rowIdx);
+                        return (
+                          <g key={`ms-line-${m.id}`}>
+                            <path
+                              d={`M ${m.dotX} ${yOfWpBand} L ${m.tipX} ${ty}`}
+                              stroke="#000000"
+                              strokeWidth={1.333}
+                              fill="none"
+                              strokeLinecap="square"
+                            />
+                            <circle cx={m.dotX} cy={yOfWpBand} r={2} fill="#000000" stroke="none" />
+                          </g>
+                        );
+                      })}
                     </svg>
 
 
-                    {/* Badges */}
+                    {/* Deliverable chevrons (shape never changes — only position/connector) */}
                     {laidOut.map((b) => {
-                      const isMs = b.kind === 'ms';
-                      const isDel = !isMs;
                       const ty = yOfRow(b.rowIdx);
                       const shapeW = b.shapeW;
                       const shapeH = b.shapeH;
-                      let svgPath: string;
-                      if (isMs) {
-                        const x1 = shapeW * 0.12;
-                        const x2 = shapeW * 0.88;
-                        svgPath = `M ${x1},0 L ${x2},0 L ${shapeW},${shapeH / 2} L ${x2},${shapeH} L ${x1},${shapeH} L 0,${shapeH / 2} Z`;
-                      } else if (b.flipped) {
-                        // Deliverable flipped: left-pointing chevron (tip on left edge)
-                        svgPath = `M ${b.pointDepth},0 L ${shapeW},0 L ${shapeW},${shapeH} L ${b.pointDepth},${shapeH} L 0,${shapeH / 2} Z`;
-                      } else {
-                        // Deliverable: right-pointing chevron (tip on the right edge)
-                        svgPath = `M 0,0 L ${shapeW - b.pointDepth},0 L ${shapeW},${shapeH / 2} L ${shapeW - b.pointDepth},${shapeH} L 0,${shapeH} Z`;
-                      }
+                      const svgPath = b.flipped
+                        ? `M ${b.pointDepth},0 L ${shapeW},0 L ${shapeW},${shapeH} L ${b.pointDepth},${shapeH} L 0,${shapeH / 2} Z`
+                        : `M 0,0 L ${shapeW - b.pointDepth},0 L ${shapeW},${shapeH / 2} L ${shapeW - b.pointDepth},${shapeH} L 0,${shapeH} Z`;
                       return (
                         <Tooltip key={b.key}>
                           <TooltipTrigger asChild>
@@ -931,18 +1042,18 @@ export function GanttChartFigure({
                               >
                                 <path
                                   d={svgPath}
-                                  fill={isMs ? '#000000' : '#ffffff'}
-                                  stroke={isMs ? 'none' : b.color}
-                                  strokeWidth={isMs ? 0 : 1.5}
-                                  strokeLinejoin={isMs ? 'miter' : 'round'}
+                                  fill="#ffffff"
+                                  stroke={b.color}
+                                  strokeWidth={1.5}
+                                  strokeLinejoin="round"
                                 />
                               </svg>
                               <span
                                 style={{
                                   position: 'absolute',
-                                  top: isMs ? 0 : 0.166,
-                                  left: isMs ? 0 : (b.flipped ? b.pointDepth : 0),
-                                  width: isMs ? shapeW : b.bodyW,
+                                  top: 0.166,
+                                  left: b.flipped ? b.pointDepth : 0,
+                                  width: b.bodyW,
                                   height: shapeH,
                                   display: 'flex',
                                   alignItems: 'center',
@@ -951,9 +1062,8 @@ export function GanttChartFigure({
                                   fontSize: '8pt',
                                   fontWeight: 700,
                                   lineHeight: 1,
-                                  color: isMs ? '#ffffff' : b.color,
+                                  color: b.color,
                                   whiteSpace: 'nowrap',
-                                  padding: isMs ? '0 4px' : undefined,
                                   boxSizing: 'border-box',
                                 }}
                               >
@@ -980,7 +1090,7 @@ export function GanttChartFigure({
                             <span
                               style={{
                                 position: 'absolute',
-                                top: yOfWpBand,
+                                top: yOfRow(m.rowIdx),
                                 left: m.hexLeft,
                                 transform: 'translateY(-50%)',
                                 width: m.shapeW,
