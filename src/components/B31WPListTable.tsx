@@ -34,9 +34,8 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
   };
 
   const getComputedPM = (wp: B31WPData) => {
-    let total = 0;
-    wp.tasks.forEach(t => t.effort?.forEach(e => { total += e.person_months || 0; }));
-    return total;
+    // Auto-calculated from A3 staff effort total (wp_draft_effort) per WP.
+    return (wp.wp_effort || []).reduce((sum, e) => sum + (e.person_months || 0), 0);
   };
 
   const autoFitColumns = useCallback(() => {
@@ -101,7 +100,7 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
           {wpData.map(wp => {
             const computedPM = getComputedPM(wp);
             const computedDuration = getComputedDuration(wp);
-            const displayPM = wp.manual_person_months != null ? wp.manual_person_months : (computedPM > 0 ? computedPM : '');
+            const displayPM = computedPM > 0 ? computedPM : '';
             const displayDuration = wp.manual_duration || computedDuration || '';
             const shortName = wp.short_name || '';
             const title = wp.title || '';
