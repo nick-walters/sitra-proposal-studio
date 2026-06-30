@@ -130,7 +130,7 @@ export function ExpertiseMatrixCard({ proposalId, participants }: Props) {
                         <td />
                         <td />
                         {columns.map((col) => (
-                          <td key={col.id} className="px-1 py-1 text-center align-top">
+                          <td key={col.id} className="px-0.5 py-1 text-center align-top">
                             {col.kind === 'custom' && (
                               <Button
                                 size="icon" variant="ghost"
