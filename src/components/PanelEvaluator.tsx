@@ -220,11 +220,14 @@ export function PanelEvaluator({ proposalId }: Props) {
   const [generatingPersona, setGeneratingPersona] = useState(false);
   const [generatedPersona, setGeneratedPersona] = useState<{ name: string; brief: string; thematic_area: string } | null>(null);
 
-  const [costAvg, setCostAvg] = useState<{ eur: number; samples: number; isFallback: boolean }>({
-    eur: 2.5,
-    samples: 0,
-    isFallback: true,
-  });
+  // Self-improving cost estimate state.
+  // - costHistory: recent per-run actuals from evaluation_cost_log (per instrument+stage+budget).
+  // - thisPayloadTokens: rough token count of this proposal's last rendered_proposal payload
+  //   (analysis_data.rendered_proposal length / 4). Used to size-scale the historical avg.
+  const [costHistory, setCostHistory] = useState<
+    Array<{ cost_eur: number; model_used: string | null; payload_tokens: number | null }>
+  >([]);
+  const [thisPayloadTokens, setThisPayloadTokens] = useState<number | null>(null);
 
   // Polling state
   const [runningEvaluationId, setRunningEvaluationId] = useState<string | null>(null);
