@@ -506,9 +506,9 @@ export function B31RisksTable({ proposalId }: Props) {
 
   const columns: Col[] = [
     { label: 'Risk', defaultWidth: 240 },
-    { label: 'i.', defaultWidth: 30, align: 'center' },
-    { label: 'ii.', defaultWidth: 30, align: 'center' },
-    { label: 'WP(s)', defaultWidth: 113 },
+    { label: 'i.', defaultWidth: 30, align: 'center', padX: 'px-0' },
+    { label: 'ii.', defaultWidth: 30, align: 'center', padX: 'px-0' },
+    { label: 'WP(s)', defaultWidth: 113, padX: 'px-0' },
     { label: 'Mitigation & adaptation measures', flex: true },
   ];
   const last = columns.length - 1;
