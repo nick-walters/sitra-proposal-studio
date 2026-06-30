@@ -133,6 +133,8 @@ type Col = {
   defaultWidth?: number;
   flex?: boolean;
   align?: 'left' | 'center';
+  /** Optional override for horizontal padding classes (e.g. 'px-0'). When set, replaces the default first/last-column padding logic for this column's header cell. */
+  padX?: string;
 };
 
 function MirrorTable({
@@ -172,6 +174,8 @@ function MirrorTable({
   );
 
   const cellPad = (i: number) => {
+    const c = columns[i];
+    if (c.padX) return c.padX;
     const left = i === 0 ? 'pl-0' : 'pl-2';
     const right = i === lastIdx ? 'pr-0' : 'pr-2';
     return `${left} ${right}`;
@@ -226,6 +230,7 @@ function MCell({
   style,
   children,
   colSpan,
+  padX,
 }: {
   index: number;
   last: number;
@@ -233,11 +238,14 @@ function MCell({
   style?: React.CSSProperties;
   children?: React.ReactNode;
   colSpan?: number;
+  /** Optional override for horizontal padding classes (e.g. 'px-0'). When set, replaces the default first/last-column padding logic. */
+  padX?: string;
 }) {
   const pl = index === 0 ? 'pl-0' : 'pl-2';
   const pr = index === last ? 'pr-0' : 'pr-2';
+  const padClass = padX ?? `${pl} ${pr}`;
   return (
-    <td colSpan={colSpan} className={`${cellBase} ${pl} ${pr} ${className}`} style={style}>
+    <td colSpan={colSpan} className={`${cellBase} ${padClass} ${className}`} style={style}>
       {children}
     </td>
   );
@@ -498,9 +506,9 @@ export function B31RisksTable({ proposalId }: Props) {
 
   const columns: Col[] = [
     { label: 'Risk', defaultWidth: 240 },
-    { label: 'i.', defaultWidth: 30, align: 'center' },
-    { label: 'ii.', defaultWidth: 30, align: 'center' },
-    { label: 'WP(s)', defaultWidth: 113 },
+    { label: 'i.', defaultWidth: 30, align: 'center', padX: 'px-0' },
+    { label: 'ii.', defaultWidth: 30, align: 'center', padX: 'px-0' },
+    { label: 'WP(s)', defaultWidth: 113, padX: 'px-0' },
     { label: 'Mitigation & adaptation measures', flex: true },
   ];
   const last = columns.length - 1;
@@ -530,13 +538,13 @@ export function B31RisksTable({ proposalId }: Props) {
           return (
             <tr key={r.id}>
               <MCell index={0} last={last}><ReadOnlyHtmlCell html={r.title} /></MCell>
-              <MCell index={1} last={last} className="text-center">
+              <MCell index={1} last={last} padX="px-0" className="text-center">
                 {r.likelihood ? <RiskBadge level={r.likelihood as 'L' | 'M' | 'H'} /> : <span className="text-muted-foreground">—</span>}
               </MCell>
-              <MCell index={2} last={last} className="text-center">
+              <MCell index={2} last={last} padX="px-0" className="text-center">
                 {r.severity ? <RiskBadge level={r.severity as 'L' | 'M' | 'H'} /> : <span className="text-muted-foreground">—</span>}
               </MCell>
-              <MCell index={3} last={last}>
+              <MCell index={3} last={last} padX="px-0">
                 <div className="flex flex-wrap gap-0.5">
                   {wps.length === 0 && <span className="text-muted-foreground italic">—</span>}
                   {wps.map((wp: any) => (
