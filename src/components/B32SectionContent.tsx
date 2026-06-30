@@ -309,31 +309,35 @@ export function B32SectionContent({ proposalId }: Props) {
             </th>
             {orderedCols.map((c, idx) => {
               const colIdx = idx + 1;
+              const h = badgeDims[idx]?.h ?? 0;
               return (
                 <th
                   key={c.id}
-                  className="align-top relative"
+                  className="relative"
                   style={{
                     height: `${effectiveHeaderHeightPx}px`,
                     padding: 0,
                     paddingTop: 0,
                     verticalAlign: 'top',
+                    overflow: 'visible',
                   }}
                 >
-                  {/* Bottom-anchored badge wrapper. `writing-mode: sideways-lr`
-                      makes the element's intrinsic CSS height equal to the
-                      rotated text length — so its CSS bottom IS the visual
-                      bottom of the rotated badge. Pinning `bottom: 4px` puts
-                      every badge's lowest point on the SAME shared line, 3pt
-                      above the cell bottom border, regardless of label length. */}
+                  {/* Badge rendered NORMALLY (so the pill fits its full text),
+                      then rotated -90° around its bottom-left corner. With
+                      transform-origin 0% 100% the rotated visual's bottom edge
+                      lands on the element's CSS bottom — i.e. exactly
+                      `bottom: 4px` above the cell's bottom border. The extra
+                      translateX(h/2) shifts the visual right by half the pill
+                      height to horizontally centre it (visual width = h). All
+                      columns share this same bottom anchor → shared bottom line. */}
                   <div
                     ref={(el) => { badgeRefs.current[idx] = el; }}
                     style={{
                       position: 'absolute',
                       left: '50%',
                       bottom: `${HEADER_BOTTOM_GAP_PX}px`,
-                      transform: 'translateX(-50%)',
-                      writingMode: 'sideways-lr',
+                      transformOrigin: '0% 100%',
+                      transform: `translateX(${h / 2}px) rotate(-90deg)`,
                       whiteSpace: 'nowrap',
                       lineHeight: 1,
                       display: 'inline-block',
