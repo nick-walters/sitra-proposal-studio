@@ -381,6 +381,7 @@ export function B31SortableTable<TRow extends { id: string; order_index: number 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <B31TableWrapper>
           <Table
+            data-table-key={columnResizeKey ?? dbTable}
             className={`${tableStyles} [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b [&_th]:border-black [&_td]:border-x-0 [&_td]:border-y [&_td]:border-gray-200 [&_tr]:border-0 [&_tr:last-child_td]:border-b-0 [&_tbody_tr:first-child_td]:border-t-0`}
             style={{
               tableLayout: colWidths.length > 0 ? 'fixed' : 'auto',

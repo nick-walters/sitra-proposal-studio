@@ -45,6 +45,7 @@ export function B31EquipmentTable({ items, participants, proposalId, tableLabel 
       />
 
       <table
+        data-table-key="equipment"
         className={`${tableStyles} border-collapse [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b-2 [&_th]:border-black [&_td]:border-x-0`}
         style={{
           tableLayout: colWidths.length > 0 ? 'fixed' : 'auto',

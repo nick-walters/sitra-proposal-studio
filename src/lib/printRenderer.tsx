@@ -875,6 +875,28 @@ async function applyPersistedColumnWidths(
               ? widths.slice(0, cellCount)
               : [...widths, ...new Array(cellCount - widths.length).fill(widths[widths.length - 1] || 60)];
         applyColumnWidthsToTable(table, adjusted);
+      } else {
+        // No persisted widths — freeze the editor's currently-displayed column
+        // widths so the 680px→100% container reset can't re-stretch them.
+        // Measure tbody first row (same heuristic useColumnResize uses);
+        // fall back to thead first row when tbody is empty.
+        const measureRow =
+          (table.querySelector('tbody tr:first-child') as HTMLTableRowElement | null) ||
+          (table.querySelector('thead tr:first-child') as HTMLTableRowElement | null);
+        if (measureRow) {
+          const cells = Array.from(measureRow.querySelectorAll('th, td')) as HTMLElement[];
+          const measured: number[] = [];
+          let total = 0;
+          for (const cell of cells) {
+            const span = Math.max(1, parseInt(cell.getAttribute('colspan') || '1', 10) || 1);
+            const w = Math.max(1, Math.round(cell.offsetWidth / span));
+            for (let i = 0; i < span; i++) measured.push(w);
+            total += cell.offsetWidth;
+          }
+          if (measured.length > 0 && total > 0) {
+            applyColumnWidthsToTable(table, measured);
+          }
+        }
       }
       continue;
     }
