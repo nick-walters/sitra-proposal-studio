@@ -133,6 +133,8 @@ type Col = {
   defaultWidth?: number;
   flex?: boolean;
   align?: 'left' | 'center';
+  /** Optional override for horizontal padding classes (e.g. 'px-0'). When set, replaces the default first/last-column padding logic for this column's header cell. */
+  padX?: string;
 };
 
 function MirrorTable({
