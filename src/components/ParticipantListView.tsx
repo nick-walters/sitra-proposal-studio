@@ -23,6 +23,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/t
 import { InviteToProposalDialog } from './InviteToProposalDialog';
 import { AddParticipantDialog } from './AddParticipantDialog';
 import { B31Pill, WPBubble, ParticipantBubble } from './B31Pill';
+import { ExpertiseMatrixCard } from './ExpertiseMatrixCard';
 import { getContrastingTextColor } from '@/lib/wpColors';
 import { buildCaseLabel } from '@/lib/caseTypeLabels';
 
