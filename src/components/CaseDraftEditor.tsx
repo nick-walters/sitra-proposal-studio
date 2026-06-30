@@ -463,10 +463,18 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
 
   // Write a single subsection's content into the subsection_content jsonb
   const updateSubsectionContent = useCallback(
-    (key: string, value: string) => {
-      const current = ((caseDraft as any)?.subsection_content as Record<string, string> | null) || {};
+    (key: string, value: string, heading?: string) => {
+      const current = ((caseDraft as any)?.subsection_content as Record<string, any> | null) || {};
       const safe = typeof value === 'string' ? stripWordHtml(value) : value;
-      updateMutation.mutate({ subsection_content: { ...current, [key]: safe } });
+      // Forward-write the object form { heading, body }. The reader tolerates
+      // both the legacy bare-string shape and this object shape.
+      const existing = current[key];
+      const existingHeading =
+        existing && typeof existing === 'object' ? existing.heading : undefined;
+      const nextHeading = heading || existingHeading || '';
+      updateMutation.mutate({
+        subsection_content: { ...current, [key]: { heading: nextHeading, body: safe } },
+      });
     },
     [caseDraft, updateMutation],
   );
