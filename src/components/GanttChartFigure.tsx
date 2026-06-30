@@ -797,66 +797,35 @@ export function GanttChartFigure({
               .filter(t => t.wp_draft_id === wp.id)
               .filter(t => t.start_month == null || t.end_month == null);
 
-            // Compute badge layout (rebuilt every render — cheap)
-            const laidOut = layoutWpBadges({
-              delBadges: wp.delBadges,
-              tasks: wp.tasks.map((t: any) => ({ id: t.id, startMonth: t.startMonth, endMonth: t.endMonth })),
-              cellWidth,
-            });
-
-            // ── Milestones on this WP's BAND row (primary WP only).
-            // Placement order: LEFT of dot → if blocked by WP title text or another
-            // milestone, flip RIGHT; if RIGHT is also blocked, keep nudging further
-            // right until a clear slot is found. The WP title is never abbreviated.
-            const msForThisWp = (wpDraftsData?.milestones || [])
-              .filter((m: any) => m.due_month != null && wpDraftsData?.msPrimaryWpId.get(m.id) === wp.id)
-              .slice()
-              .sort((a: any, b: any) => (a.due_month - b.due_month) || (a.number - b.number));
-            const estimateMsW = (label: string) => Math.max(26, label.length * 5 + 8);
             // Estimate the WP title text's right edge in OVERLAY coordinates
             // (overlay origin = labelWidth from the row's left edge).
-            // Title sits in the WP band row with padding-left: 6px, at 11pt bold
-            // Times New Roman (~6.2px/char average — buffered a touch).
             const wpTitleStr = `WP${wp.number}: ${wp.shortName || ''}${wp.shortName && wp.title ? ' – ' : ''}${wp.title || ''}`;
             const wpTitleTextPx = wpTitleStr.length * 6.4;
             const titleBuffer = 4;
             const titleRightInOverlay = (6 + wpTitleTextPx) - labelWidth + titleBuffer;
-            const msGap = 4;
-            const placedHexIntervals: Array<{ left: number; right: number }> = [];
-            const overlapsAny = (left: number, right: number) => {
-              if (left < titleRightInOverlay) return true;
-              for (const p of placedHexIntervals) {
-                if (left < p.right + msGap && right + msGap > p.left) return true;
-              }
-              return false;
-            };
-            const msLaidOut = msForThisWp.map((m: any) => {
-              const label = `MS${m.number}`;
-              const shapeW = estimateMsW(label);
-              const shapeH = 10;
-              const dotX = (m.due_month - 0.5) * cellWidth;
-              // Line connects dot → nearest hex tip.
-              // Hex tips are at x=0 (left tip) and x=shapeW (right tip), at midY.
-              let hexLeft: number;
-              let tipX: number;
-              // 1) Try LEFT of dot.
-              const leftCandidate = dotX - 5 - shapeW;
-              if (!overlapsAny(leftCandidate, leftCandidate + shapeW)) {
-                hexLeft = leftCandidate;
-                tipX = leftCandidate + shapeW; // right tip
-              } else {
-                // 2) Try RIGHT of dot, nudging further right until clear.
-                let candidate = dotX + 5;
-                let guard = 0;
-                while (overlapsAny(candidate, candidate + shapeW) && guard < 50) {
-                  candidate += shapeW + msGap;
-                  guard++;
-                }
-                hexLeft = candidate;
-                tipX = candidate; // left tip (nearest to dot)
-              }
-              placedHexIntervals.push({ left: hexLeft, right: hexLeft + shapeW });
-              return { id: m.id, label, shapeW, shapeH, hexLeft, dotX, tipX, dueMonth: m.due_month, title: m.title || '' };
+            const overlayWidthLocal = timelineWidth + MARGIN_GAP;
+
+            // ── Build milestone inputs for this WP (primary WP only).
+            const msInputs: WpMsBadgeIn[] = (wpDraftsData?.milestones || [])
+              .filter((m: any) => m.due_month != null && wpDraftsData?.msPrimaryWpId.get(m.id) === wp.id)
+              .map((m: any) => ({
+                key: `ms-${m.id}`,
+                id: m.id,
+                number: m.number,
+                label: `MS${m.number}`,
+                dueMonth: m.due_month,
+                title: m.title || '',
+              }));
+
+            // Compute badge layout (rebuilt every render — cheap). Milestones
+            // and deliverables share one placedRects map across band + task rows.
+            const { dels: laidOut, mss: msLaidOut } = layoutWpBadges({
+              delBadges: wp.delBadges,
+              msBadges: msInputs,
+              tasks: wp.tasks.map((t: any) => ({ id: t.id })),
+              cellWidth,
+              overlayWidth: overlayWidthLocal,
+              titleRightInOverlay,
             });
 
 
