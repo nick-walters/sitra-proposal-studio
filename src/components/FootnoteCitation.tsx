@@ -70,7 +70,7 @@ export function FootnoteCitation({ html }: Props) {
         whiteSpace: 'nowrap',
         overflowX: 'hidden',
         overflowY: 'visible',
-        lineHeight: 1.4,
+        lineHeight: 0.8,
         margin: 0,
       }}
       dangerouslySetInnerHTML={{ __html: sanitized }}
