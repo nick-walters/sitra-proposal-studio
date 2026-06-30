@@ -1104,6 +1104,7 @@ Produce the full ESR markdown using the four-section structure defined in your s
     budget_type: budgetType || null,
     cost_usd: costUsd,
     cost_eur: costEur,
+    cache_write_tokens: totalCacheWriteTokens,
   });
 
   console.log(`Evaluation ${evaluationId} complete.`);
