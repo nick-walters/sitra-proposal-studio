@@ -237,6 +237,17 @@ export function PanelEvaluator({ proposalId }: Props) {
       setRunningStatus(status);
       setRunningMessage(progressMessage);
 
+      // DEV SAFETY: re-read the kill-switch on EVERY tick so it can't be bypassed
+      // by stale closures, re-renders, or polling that started before the flag
+      // was set. While the flag is true, never invoke any paid action.
+      const skipPolling =
+        typeof window !== "undefined" && (window as any).__skipEvalPolling === true;
+      if (skipPolling && (status === "queued" || status === "running" || status === "processing" || status === "synthesizing")) {
+        // eslint-disable-next-line no-console
+        console.warn(`[PanelEvaluator] eval polling skipped: __skipEvalPolling — status=${status}, evaluationId=${evaluationId}`);
+        return;
+      }
+
       if (status === "queued" || status === "running" || status === "processing") {
         const { error } = await supabase.functions.invoke("run-panel-evaluation", {
           body: { action: "evaluate", evaluationId },
