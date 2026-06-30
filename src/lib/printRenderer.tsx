@@ -407,52 +407,135 @@ export async function buildPrintContainer(
   return container;
 }
 
-// ── Mount B3.1 React components into the print container ─────────────────────
+// ── Mount dynamic React components (B3.1, B3.2, B1.2 cases) ──────────────────
 
-export async function mountB31Components(
+/**
+ * Mounts the React-rendered subtrees the editor draws live (B3.1 mirror
+ * tables, B3.2 expertise matrix, and B1.2 cases-table placeholders) into the
+ * print container so PDF/Word export captures the same content the editor
+ * shows. All mounts share a single QueryClient so they can reuse cached data.
+ */
+export async function mountDynamicComponents(
   container: HTMLElement,
   proposalId: string,
   proposalAcronym: string,
   appQueryClient?: QueryClient,
 ): Promise<void> {
-  const mount = container.querySelector('#print-b31-mount');
-  if (!mount) return;
+  const b31Mount = container.querySelector('#print-b31-mount');
+  const b32Mount = container.querySelector('#print-b32-mount');
+  const casesPlaceholders = Array.from(
+    container.querySelectorAll<HTMLElement>('div[data-cases-table-node]'),
+  );
 
-  const [{ B31IntroText }, { B31SectionContent }] = await Promise.all([
+  if (!b31Mount && !b32Mount && casesPlaceholders.length === 0) return;
+
+  const [
+    { B31IntroText },
+    { B31SectionContent },
+    { B32SectionContent },
+    { CasesTableLiveView },
+  ] = await Promise.all([
     import('@/components/B31IntroText'),
     import('@/components/B31SectionContent'),
+    import('@/components/B32SectionContent'),
+    import('@/components/CasesTableNodeView'),
   ]);
 
   // Reuse the app's QueryClient when available so the export tree reads from
-  // the already-warm cache instead of refetching every B3.1 query cold.
+  // the already-warm cache instead of refetching every query cold.
   const queryClient =
     appQueryClient ??
     new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
 
-  const root = createRoot(mount);
+  // Check whether the B3.2 expertise matrix is enabled before mounting.
+  let mountB32 = false;
+  if (b32Mount) {
+    try {
+      const { data } = await supabase
+        .from('proposals')
+        .select('expertise_matrix_enabled')
+        .eq('id', proposalId)
+        .maybeSingle();
+      mountB32 = data?.expertise_matrix_enabled !== false;
+    } catch {
+      mountB32 = true; // default-on
+    }
+    if (!mountB32) {
+      // Drop the marker so it leaves no trace in the export.
+      b32Mount.remove();
+    }
+  }
 
-  root.render(
-    createElement(
-      QueryClientProvider,
-      { client: queryClient },
+  const roots: { root: ReturnType<typeof createRoot>; el: Element }[] = [];
+
+  if (b31Mount) {
+    const root = createRoot(b31Mount);
+    root.render(
       createElement(
-        'div',
-        { className: 'print-b31-content' },
-        createElement(B31IntroText, { proposalId, proposalAcronym }),
-        createElement(B31SectionContent, { proposalId }),
+        QueryClientProvider,
+        { client: queryClient },
+        createElement(
+          'div',
+          { className: 'print-b31-content' },
+          createElement(B31IntroText, { proposalId, proposalAcronym }),
+          createElement(B31SectionContent, { proposalId }),
+        ),
       ),
-    ),
-  );
+    );
+    roots.push({ root, el: b31Mount });
+  }
 
+  if (b32Mount && mountB32) {
+    const root = createRoot(b32Mount);
+    root.render(
+      createElement(
+        QueryClientProvider,
+        { client: queryClient },
+        createElement(
+          'div',
+          { className: 'print-b32-content' },
+          createElement(B32SectionContent, { proposalId }),
+        ),
+      ),
+    );
+    roots.push({ root, el: b32Mount });
+  }
+
+  // Mount each B1.2 cases-table placeholder. The letterIndex is just the
+  // index of the placeholder in document order — matches the editor's
+  // global counter for typed cases tables (Table 1.2.a, 1.2.b, …).
+  casesPlaceholders.forEach((placeholder, idx) => {
+    const caseTypeId = placeholder.getAttribute('data-case-type-id') || null;
+    const root = createRoot(placeholder);
+    root.render(
+      createElement(
+        QueryClientProvider,
+        { client: queryClient },
+        createElement(CasesTableLiveView, {
+          proposalId,
+          caseTypeId,
+          letterIndex: idx,
+        }),
+      ),
+    );
+    roots.push({ root, el: placeholder });
+  });
+
+  // Wait for queries to settle and at least one table/cases row to render.
   await new Promise<void>((resolve) => {
     let elapsed = 0;
     const interval = setInterval(() => {
       elapsed += 200;
-      const hasTables = mount.querySelector('table') !== null;
       const isFetching = queryClient.isFetching() > 0;
-      if ((hasTables && !isFetching) || elapsed > 15000) {
+      const b31Ready = !b31Mount || b31Mount.querySelector('table') !== null;
+      const b32Ready = !b32Mount || !mountB32 || b32Mount.querySelector('table') !== null;
+      const casesReady = casesPlaceholders.every(
+        (p) => p.querySelector('[data-case-block]') !== null
+            || p.querySelector('div') !== null,
+      );
+      if ((b31Ready && b32Ready && casesReady && !isFetching) || elapsed > 15000) {
         clearInterval(interval);
         setTimeout(resolve, 200);
       }
@@ -467,10 +550,138 @@ export async function mountB31Components(
     '.column-resizer',
     '.tooltip-content',
   ];
-  for (const sel of interactiveSelectors) {
-    mount.querySelectorAll(sel).forEach(el => {
-      el.remove();
+  for (const { el } of roots) {
+    for (const sel of interactiveSelectors) {
+      el.querySelectorAll(sel).forEach((node) => node.remove());
+    }
+  }
+}
+
+/** @deprecated — use mountDynamicComponents. Kept for backward compatibility. */
+export const mountB31Components = mountDynamicComponents;
+
+// ── Figure → text-summary replacement (used by PDF/Word + eval payload) ──────
+
+/**
+ * Replaces visual figures in the export container with a structured text
+ * block, so PDF/Word and the evaluation payload show the same human-readable
+ * description. For PERT/Gantt charts (rendered inside the B3.1 mount) we emit
+ * a one-paragraph structural summary derived from live proposal data. For
+ * ordinary uploaded image figures inside section content we keep the figure
+ * number + caption line and drop the image.
+ */
+async function replaceFiguresWithText(
+  container: HTMLElement,
+  proposalId: string,
+): Promise<void> {
+  // ── PERT / Gantt: replace the chart bodies with a summary paragraph. ──
+  const chartWrappers = Array.from(
+    container.querySelectorAll<HTMLElement>('div[data-figure-type="pert"], div[data-figure-type="gantt"]'),
+  );
+
+  if (chartWrappers.length > 0) {
+    // One batched data fetch covering both summaries.
+    const [wpsRes, delsRes, msRes] = await Promise.all([
+      supabase
+        .from('wp_drafts')
+        .select('id, number, short_name, title')
+        .eq('proposal_id', proposalId)
+        .order('number'),
+      supabase
+        .from('wp_draft_deliverables')
+        .select('number, due_month, title, wp_draft_id')
+        .eq('proposal_id', proposalId),
+      supabase
+        .from('proposal_milestones')
+        .select('number, due_month, title')
+        .eq('proposal_id', proposalId)
+        .order('number'),
+    ]);
+
+    const wps = wpsRes.data || [];
+    const wpById = new Map(wps.map((w: any) => [w.id, w]));
+    const deliverables = (delsRes.data || []).map((d: any) => {
+      const wp = wpById.get(d.wp_draft_id);
+      return {
+        label: wp ? `D${wp.number}.${d.number}` : `D?.${d.number}`,
+        month: d.due_month,
+      };
     });
+    const milestones = msRes.data || [];
+
+    const monthsArr = [
+      ...deliverables.map((d: any) => d.month).filter((m: any) => typeof m === 'number'),
+      ...milestones.map((m: any) => m.due_month).filter((m: any) => typeof m === 'number'),
+    ];
+    const maxMonth = monthsArr.length ? Math.max(...monthsArr) : 0;
+
+    const delList = deliverables
+      .filter((d: any) => typeof d.month === 'number')
+      .sort((a: any, b: any) => a.month - b.month || a.label.localeCompare(b.label))
+      .map((d: any) => `${d.label} at M${d.month}`)
+      .join(', ');
+    const msList = milestones
+      .filter((m: any) => typeof m.due_month === 'number')
+      .map((m: any) => `MS${m.number} at M${m.due_month}`)
+      .join(', ');
+
+    for (const wrapper of chartWrappers) {
+      const kind = wrapper.getAttribute('data-figure-type') === 'pert' ? 'PERT' : 'Gantt';
+      const chartLabel = kind === 'PERT' ? 'PERT diagram' : 'Gantt chart';
+
+      // Caption text — keep the user-visible label rendered alongside the chart.
+      const captionEl = wrapper.querySelector<HTMLElement>('[data-table-key]')
+        || wrapper.querySelector<HTMLElement>('.figure-caption');
+      const captionText = captionEl?.innerText?.trim() || chartLabel;
+
+      const summaryParts: string[] = [];
+      summaryParts.push(`${wps.length} WP${wps.length === 1 ? '' : 's'}`);
+      if (maxMonth > 0) summaryParts.push(`spanning M1–M${maxMonth}`);
+      if (delList) summaryParts.push(`deliverables ${delList}`);
+      if (msList) summaryParts.push(`milestones ${msList}`);
+
+      const replacement = document.createElement('p');
+      replacement.setAttribute('data-figure-summary', kind.toLowerCase());
+      replacement.style.cssText =
+        "font-family:'Times New Roman',Times,serif;font-size:11pt;margin:6pt 0;text-align:left;";
+      const head = `[${captionText} — ${chartLabel}]`;
+      const tail = summaryParts.length
+        ? ` (Structured summary: ${summaryParts.join('; ')}.)`
+        : '';
+      replacement.textContent = `${head}${tail}`;
+
+      // Replace whole wrapper (chart + its caption) with the summary block.
+      wrapper.replaceWith(replacement);
+    }
+  }
+
+  // ── Uploaded image figures inside section content: keep label, drop image. ──
+  const sectionImgs = Array.from(
+    container.querySelectorAll<HTMLImageElement>('.print-section-content img'),
+  );
+  for (const img of sectionImgs) {
+    // Look for an immediately following caption paragraph.
+    let captionText = '';
+    let nextEl: Element | null = img.parentElement;
+    // The image is often wrapped in a paragraph/div — find the next sibling
+    // of the nearest block ancestor inside the section.
+    while (nextEl && !['P', 'DIV', 'FIGURE'].includes(nextEl.tagName)) {
+      nextEl = nextEl.parentElement;
+    }
+    const candidate = nextEl?.nextElementSibling as HTMLElement | null;
+    if (candidate && (candidate.classList.contains('figure-caption')
+      || /^figure\s+/i.test(candidate.innerText.trim()))) {
+      captionText = candidate.innerText.replace(/\s+/g, ' ').trim();
+      candidate.remove();
+    }
+    const alt = img.getAttribute('alt') || '';
+    const label = captionText || (alt ? `Figure — ${alt}` : 'Figure');
+    const replacement = document.createElement('p');
+    replacement.setAttribute('data-figure-summary', 'image');
+    replacement.style.cssText =
+      "font-family:'Times New Roman',Times,serif;font-size:11pt;margin:6pt 0;text-align:left;";
+    replacement.textContent = `[${label}]`;
+    img.replaceWith(replacement);
   }
 }
 
