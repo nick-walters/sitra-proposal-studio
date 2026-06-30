@@ -1097,6 +1097,10 @@ Produce the full ESR markdown using the four-section structure defined in your s
     })
     .eq("id", evaluationId);
 
+  // Rough token estimate for the rendered proposal payload (~4 chars per token).
+  // Used to scale the self-improving pre-run cost estimate by proposal size.
+  const payloadTokens = Math.ceil((renderedProposal?.length || 0) / 4);
+
   await serviceClient.from("evaluation_cost_log").insert({
     evaluation_id: evaluationId,
     instrument_code: instrument.code,
@@ -1105,6 +1109,11 @@ Produce the full ESR markdown using the four-section structure defined in your s
     cost_usd: costUsd,
     cost_eur: costEur,
     cache_write_tokens: totalCacheWriteTokens,
+    model_used: evaluationModel,
+    payload_tokens: payloadTokens,
+    tokens_input: totalInputTokens,
+    tokens_output: totalOutputTokens,
+    tokens_cached: totalCachedTokens,
   });
 
   console.log(`Evaluation ${evaluationId} complete.`);
