@@ -6,6 +6,9 @@ export interface B31JustificationToggles {
   other_goods: boolean;
   fstp: boolean;
   internally_invoiced: boolean;
+  /** When on, Table C.2 (equipment) shows every participant's equipment costs,
+   *  bypassing the default 15%-of-personnel "major equipment" threshold. */
+  equipment_all: boolean;
 }
 
 const DEFAULTS: B31JustificationToggles = {
@@ -13,6 +16,7 @@ const DEFAULTS: B31JustificationToggles = {
   other_goods: false,
   fstp: false,
   internally_invoiced: false,
+  equipment_all: false,
 };
 
 const COLUMN_MAP: Record<keyof B31JustificationToggles, string> = {
@@ -20,6 +24,7 @@ const COLUMN_MAP: Record<keyof B31JustificationToggles, string> = {
   other_goods: 'b31_show_other_goods_justification',
   fstp: 'b31_show_fstp_justification',
   internally_invoiced: 'b31_show_internally_invoiced_justification',
+  equipment_all: 'b31_show_all_equipment_justification',
 };
 
 export function useB31JustificationToggles(proposalId: string) {
@@ -33,7 +38,7 @@ export function useB31JustificationToggles(proposalId: string) {
       const { data, error } = await (supabase as any)
         .from('proposals')
         .select(
-          'b31_show_travel_justification, b31_show_other_goods_justification, b31_show_fstp_justification, b31_show_internally_invoiced_justification',
+          'b31_show_travel_justification, b31_show_other_goods_justification, b31_show_fstp_justification, b31_show_internally_invoiced_justification, b31_show_all_equipment_justification',
         )
         .eq('id', proposalId)
         .maybeSingle();
@@ -44,6 +49,7 @@ export function useB31JustificationToggles(proposalId: string) {
         other_goods: !!row.b31_show_other_goods_justification,
         fstp: !!row.b31_show_fstp_justification,
         internally_invoiced: !!row.b31_show_internally_invoiced_justification,
+        equipment_all: !!row.b31_show_all_equipment_justification,
       };
     },
   });
