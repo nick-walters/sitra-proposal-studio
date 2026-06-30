@@ -471,9 +471,10 @@ export function B31RisksTable({ proposalId }: Props) {
     queryFn: async () => {
       const { data: rows } = await supabase
         .from('proposal_risks')
-        .select('id, number, title, likelihood, severity, mitigation, order_index')
+        .select('id, number, title, likelihood, severity, mitigation, order_index, created_at')
         .eq('proposal_id', proposalId)
-        .order('number');
+        .order('order_index')
+        .order('created_at');
       const ids = (rows || []).map((r: any) => r.id);
       let linkMap = new Map<string, string[]>();
       if (ids.length > 0) {
@@ -491,17 +492,9 @@ export function B31RisksTable({ proposalId }: Props) {
     },
   });
 
-  const orderedRisks = (risks as any[]).slice().sort((a: any, b: any) => {
-    const minWp = (r: any) => {
-      const nums = (r._wpIds as string[])
-        .map((id) => wpInfo?.byId.get(id)?.number)
-        .filter((n: any): n is number => typeof n === 'number');
-      return nums.length ? Math.min(...nums) : Number.POSITIVE_INFINITY;
-    };
-    const wa = minWp(a), wb = minWp(b);
-    if (wa !== wb) return wa - wb;
-    return String(a.id).localeCompare(String(b.id));
-  });
+  // Order matches the manager UI (user-arranged via drag); no in-memory auto-sort.
+  const orderedRisks = risks as any[];
+
 
   const columns: Col[] = [
     { label: 'Risk', defaultWidth: 240 },
