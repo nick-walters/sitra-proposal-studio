@@ -333,7 +333,7 @@ export function B31DeliverablesTable({ proposalId }: Props) {
         proposalId={proposalId}
         tableKey="table-3.1.c"
         label="Table 3.1.c."
-        defaultCaption="Deliverables, including the partner responsible, type, dissemination level & month due"
+        defaultCaption="List of deliverables"
         className="mb-0"
       />
       <MirrorTable
@@ -441,7 +441,7 @@ export function B31MilestonesTable({ proposalId }: Props) {
         proposalId={proposalId}
         tableKey="table-3.1.d"
         label="Table 3.1.d."
-        defaultCaption="Milestones"
+        defaultCaption="List of milestones"
         className="mb-0"
       />
       <MirrorTable
