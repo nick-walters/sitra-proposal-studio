@@ -606,29 +606,6 @@ export function PanelEvaluator({ proposalId }: Props) {
           throw new Error("Rendered proposal payload is empty — aborting.");
         }
 
-        if (typeof window !== "undefined" && (window as any).__skipEvalPolling) {
-          console.warn("[PanelEvaluator] Start: __skipEvalPolling=true — storing rendered_proposal locally, skipping paid invoke");
-          const { data: userRes } = await supabase.auth.getUser();
-          const { data: inserted, error: insErr } = await supabase
-            .from("proposal_analyses")
-            .insert({
-              proposal_id: proposalId,
-              created_by: userRes.user!.id,
-              status: "queued",
-              proposal_stage: proposalStage,
-              budget_type_used: proposalStage === "stage1" ? null : budgetType,
-              evaluators_selected: selectedEvaluators as any,
-              eligibility_flags: eligibilityFlags as any,
-              analysis_data: { rendered_proposal: renderedProposal, kill_switch: true } as any,
-            })
-            .select("id")
-            .single();
-          if (insErr) throw insErr;
-          toast.info(`Kill-switch: stored rendered_proposal in row ${inserted.id} (no paid call).`);
-          startPolling(inserted.id);
-          return;
-        }
-
         const { data, error } = await supabase.functions.invoke("run-panel-evaluation", {
           body: {
             action: "start",
@@ -646,7 +623,8 @@ export function PanelEvaluator({ proposalId }: Props) {
         if (!data?.evaluationId) throw new Error("Edge function did not return an evaluationId");
 
         toast.info("Evaluation running in background. You can leave this page and return.");
-        startPolling(data.evaluationId);
+        startPolling(data.evaluationId, new Date().toISOString());
+
 
       } finally {
         if (clone.parentNode) clone.parentNode.removeChild(clone);
