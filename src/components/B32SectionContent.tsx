@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { EditableCaption } from '@/components/EditableCaption';
@@ -19,8 +19,6 @@ const ONE_CM_PX = 38;
 const ROTATED_COL_MIN_PX = 22;
 // 3pt = ~4px clearance between rotated badge bottom and the header bottom border.
 const HEADER_BOTTOM_GAP_PX = 4;
-// Rotated badge "thickness" (perpendicular to text direction) — fits a 24px-tall pill.
-const ROTATED_BADGE_THICKNESS_PX = 26;
 
 type Row = { id: string; label: string; order_index: number };
 type Col = {
@@ -116,6 +114,11 @@ export function B32SectionContent({ proposalId }: Props) {
 
   const dragStateRef = useRef<{ startY: number; startH: number; min: number; max: number; latest: number } | null>(null);
 
+  // Refs for each rotated header wrapper (sideways-lr) → measure their actual heights
+  // so the auto/min header height = tallest measured badge + 3pt (no dead space).
+  const badgeRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const [measuredTallestPx, setMeasuredTallestPx] = useState<number>(0);
+
   // Column-width resize (reuse the B3.1 mirror's persistence path).
   const totalCols = 1 + ((dataQ.data?.cols.length) ?? 0);
   const { colWidths, tableRef, handleColResizeStart } = useColumnResize({
@@ -125,6 +128,17 @@ export function B32SectionContent({ proposalId }: Props) {
     minWidth: ROTATED_COL_MIN_PX,
   });
   const hasManualWidths = colWidths.length === totalCols && colWidths.every((w) => Number.isFinite(w));
+
+  // Measure rendered badge heights (sideways-lr gives each badge a natural CSS
+  // height = the rotated visual height) so we can set an exact min/auto header
+  // height with NO dead space above the badges.
+  useLayoutEffect(() => {
+    const heights = badgeRefs.current.map((el) => el?.offsetHeight ?? 0);
+    const tallest = heights.length ? Math.max(...heights) : 0;
+    if (tallest && Math.abs(tallest - measuredTallestPx) > 0.5) {
+      setMeasuredTallestPx(tallest);
+    }
+  });
 
   if (enabledQ.data?.enabled === false) return null;
   if (!dataQ.data) return null;
@@ -143,23 +157,18 @@ export function B32SectionContent({ proposalId }: Props) {
   const orderedCols = [...partCols, ...customCols];
   const lastColIdx = orderedCols.length; // index of the final column in the table (0 = expertise)
 
+  // Keep refs array sized to the column count.
+  if (badgeRefs.current.length !== orderedCols.length) {
+    badgeRefs.current = new Array(orderedCols.length).fill(null);
+  }
+
   const cellMap = new Map<string, boolean>();
   for (const c of cells) cellMap.set(`${c.row_id}::${c.column_id}`, c.checked);
 
-  // Rotated header content lengths in px (becomes vertical clearance after rotation).
-  const headerContentPx = orderedCols.map((c) => {
-    if (c.kind === 'participant') {
-      const p = c.participant_id ? partById.get(c.participant_id) : undefined;
-      const label = `${p?.participant_number ?? ''}. ${p?.organisation_short_name ?? ''}`;
-      return Math.ceil(label.length * 7.5) + 16;
-    }
-    const t = (c.header_text || '').trim();
-    return Math.max(28, Math.ceil(t.length * 6) + 8);
-  });
-
-  // Min header height = tallest badge + 3pt gap above the bottom border.
-  const autoHeaderHeightPx =
-    (headerContentPx.length ? Math.max(...headerContentPx) : 24) + HEADER_BOTTOM_GAP_PX;
+  // Min/auto header height = tallest MEASURED badge + 3pt gap above the bottom border.
+  // Fallback (pre-measurement, first paint) = 24px + gap so the row isn't collapsed.
+  const tallestBadgePx = measuredTallestPx || 24;
+  const autoHeaderHeightPx = tallestBadgePx + HEADER_BOTTOM_GAP_PX;
   const minHeaderHeightPx = autoHeaderHeightPx;
   const maxHeaderHeightPx = 480;
   const effectiveHeaderHeightPx = Math.max(
@@ -288,56 +297,52 @@ export function B32SectionContent({ proposalId }: Props) {
               )}
             </th>
             {orderedCols.map((c, idx) => {
-              const contentPx = headerContentPx[idx];
               const colIdx = idx + 1;
               return (
                 <th
                   key={c.id}
-                  className="cell-p0 align-bottom relative"
-                  style={{ height: `${effectiveHeaderHeightPx}px`, padding: 0, verticalAlign: 'bottom' }}
+                  className="align-top relative"
+                  style={{
+                    height: `${effectiveHeaderHeightPx}px`,
+                    padding: 0,
+                    paddingTop: 0,
+                    verticalAlign: 'top',
+                  }}
                 >
-                  {/* Wrapper pinned to the cell bottom; its bottom edge = (cell bottom − 4px gap).
-                      Inner rotated content is centered inside this wrapper, so the wrapper's
-                      bottom edge IS the visual bottom of the rotated badge — independent of
-                      header height. Growing the header only adds empty space ABOVE. */}
+                  {/* Bottom-anchored badge wrapper. `writing-mode: sideways-lr`
+                      makes the element's intrinsic CSS height equal to the
+                      rotated text length — so its CSS bottom IS the visual
+                      bottom of the rotated badge. Pinning `bottom: 4px` puts
+                      every badge's lowest point on the SAME shared line, 3pt
+                      above the cell bottom border, regardless of label length. */}
                   <div
+                    ref={(el) => { badgeRefs.current[idx] = el; }}
                     style={{
                       position: 'absolute',
                       left: '50%',
                       bottom: `${HEADER_BOTTOM_GAP_PX}px`,
                       transform: 'translateX(-50%)',
-                      width: `${ROTATED_BADGE_THICKNESS_PX}px`,
-                      height: `${contentPx}px`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      overflow: 'visible',
+                      writingMode: 'sideways-lr',
+                      whiteSpace: 'nowrap',
+                      lineHeight: 1,
+                      display: 'inline-block',
                     }}
                   >
-                    <div
-                      style={{
-                        transform: 'rotate(-90deg)',
-                        transformOrigin: 'center center',
-                        whiteSpace: 'nowrap',
-                        lineHeight: 1,
-                      }}
-                    >
-                      {c.kind === 'participant'
-                        ? (() => {
-                            const p = c.participant_id ? partById.get(c.participant_id) : undefined;
-                            return (
-                              <ParticipantBubble
-                                number={p?.participant_number ?? undefined}
-                                shortName={p?.organisation_short_name || ''}
-                              />
-                            );
-                          })()
-                        : (
-                          <span className="text-[10pt] leading-tight">
-                            {c.header_text || ''}
-                          </span>
-                        )}
-                    </div>
+                    {c.kind === 'participant'
+                      ? (() => {
+                          const p = c.participant_id ? partById.get(c.participant_id) : undefined;
+                          return (
+                            <ParticipantBubble
+                              number={p?.participant_number ?? undefined}
+                              shortName={p?.organisation_short_name || ''}
+                            />
+                          );
+                        })()
+                      : (
+                        <span className="text-[10pt] leading-tight">
+                          {c.header_text || ''}
+                        </span>
+                      )}
                   </div>
                   {canResize && colIdx < lastColIdx && (
                     <ColumnResizer onMouseDown={handleColResizeStart(colIdx)} />
