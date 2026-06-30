@@ -639,8 +639,10 @@ export function PanelEvaluator({ proposalId }: Props) {
             budgetType: proposalStage === "stage1" ? null : budgetType,
             eligibilityFlags,
             renderedProposal,
+            modelOverride: modelChoice,
           },
         });
+
         if (error) throw error;
         if (data?.error) throw new Error(data.error);
         if (!data?.evaluationId) throw new Error("Edge function did not return an evaluationId");
