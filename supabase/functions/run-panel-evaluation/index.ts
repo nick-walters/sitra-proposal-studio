@@ -352,10 +352,14 @@ async function runEvaluatorPhase(serviceClient: any, evaluationId: string) {
     eligibilityFlags,
   } = context;
 
+  if (evaluation.status === "cancelled") {
+    return { evaluationId, status: "cancelled" };
+  }
 
   if (!["queued", "running", "processing", "failed"].includes(evaluation.status || "queued")) {
     return { evaluationId, status: evaluation.status || "unknown" };
   }
+
 
   const baseAnalysisData = evaluation.analysis_data || {};
   const savedEvaluations = Array.isArray(baseAnalysisData.evaluations) ? baseAnalysisData.evaluations : [];
@@ -618,13 +622,15 @@ EVALUATION RULES
 - Do not recommend changes.
 - Be specific and reference actual content or omissions.
 - Identify at least two distinct weaknesses per criterion.
-- Use the full scoring scale realistically; scores above 4 are rare.${specialExceptions}${topicSpecificContext}
+- Use the full scoring scale realistically; scores above 4 are rare.
+- Evaluate this proposal against ITS SPECIFIC topic — its stated scope and expected outcomes (included in the proposal content) — not against generic RIA/IA/CSA expectations. Unusual instruments (e.g. FSTP-heavy or cascade-funding RIAs) must be judged on the topic's own terms.${specialExceptions}${topicSpecificContext}
 
 EVALUATION CRITERIA:
 ${criteriaText}
 
 OUTPUT — respond with a JSON object only:
 ${fullProposalOutputBlock}`;
+
 
   const systemBlocks: any = [
     { type: "text", text: evaluatorSystem },
@@ -787,9 +793,13 @@ async function runSynthesisPhase(serviceClient: any, evaluationId: string) {
   if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
 
   const evaluation = await getEvaluationRecord(serviceClient, evaluationId);
+  if (evaluation.status === "cancelled") {
+    return { evaluationId, status: "cancelled" };
+  }
   const analysisData = evaluation.analysis_data || {};
   const synthesisContext = analysisData.synthesis_context || {};
   const parsedEvaluations = Array.isArray(analysisData.evaluations) ? analysisData.evaluations : [];
+
 
   const successfulEvaluations = parsedEvaluations.filter((item: any) => !item?.data?.error);
   if (successfulEvaluations.length < MIN_SUCCESSFUL_EVALUATORS) {
@@ -1189,10 +1199,43 @@ serve(async (req) => {
       });
     }
 
+    if (action === "cancel") {
+      const evaluationId = body?.evaluationId;
+      if (!evaluationId) {
+        return new Response(JSON.stringify({ error: "evaluationId is required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const evaluation = await getEvaluationRecord(serviceClient, evaluationId);
+      await ensureProposalAdmin(supabase, userId, evaluation.proposal_id);
+
+      const baseAnalysisData = evaluation.analysis_data || {};
+      await serviceClient
+        .from("proposal_analyses")
+        .update({
+          status: "cancelled",
+          error_message: "Cancelled by user",
+          analysis_data: {
+            ...baseAnalysisData,
+            active_step_started_at: null,
+            progress_message: "Cancelled by user",
+          },
+        })
+        .eq("id", evaluationId);
+
+      return new Response(JSON.stringify({ evaluationId, status: "cancelled" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Unsupported action" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+
   } catch (error: unknown) {
     if (error instanceof Response) return error;
     const message = error instanceof Error ? error.message : "Unknown error";

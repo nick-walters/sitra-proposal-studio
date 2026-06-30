@@ -226,14 +226,31 @@ export function PanelEvaluator({ proposalId }: Props) {
   const [runningEvaluationId, setRunningEvaluationId] = useState<string | null>(null);
   const [runningStatus, setRunningStatus] = useState<string | null>(null);
   const [runningMessage, setRunningMessage] = useState<string>("");
+  const [runStartedAt, setRunStartedAt] = useState<string | null>(null);
+  const [nowTick, setNowTick] = useState<number>(() => Date.now());
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const tickIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const stopPolling = () => {
     if (pollIntervalRef.current) {
       clearInterval(pollIntervalRef.current);
       pollIntervalRef.current = null;
     }
+    if (tickIntervalRef.current) {
+      clearInterval(tickIntervalRef.current);
+      tickIntervalRef.current = null;
+    }
   };
+
+  const formatElapsed = (startIso: string | null, now: number) => {
+    if (!startIso) return "";
+    const elapsedMs = Math.max(0, now - new Date(startIso).getTime());
+    const totalSec = Math.floor(elapsedMs / 1000);
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  };
+
 
   const refreshHistory = async () => {
     const { data: hist } = await supabase
@@ -277,31 +294,43 @@ export function PanelEvaluator({ proposalId }: Props) {
     await refreshHistory();
   };
 
-  const startPolling = (evaluationId: string) => {
+  const startPolling = (evaluationId: string, startedAtIso?: string | null) => {
     stopPolling();
     setRunningEvaluationId(evaluationId);
     setRunningStatus("queued");
     setRunningMessage("Queued for evaluator run");
     setStage("stageB");
+    // Elapsed-time ticker (1s)
+    if (startedAtIso) setRunStartedAt(startedAtIso);
+    setNowTick(Date.now());
+    tickIntervalRef.current = setInterval(() => setNowTick(Date.now()), 1000);
+
     pollIntervalRef.current = setInterval(async () => {
-      if (typeof window !== "undefined" && (window as any).__skipEvalPolling) {
-        console.warn("[PanelEvaluator] polling skipped (window.__skipEvalPolling=true)");
-        return;
-      }
       const { data } = await supabase
         .from("proposal_analyses")
-        .select("status, error_message, analysis_data")
+        .select("status, error_message, analysis_data, created_at")
         .eq("id", evaluationId)
         .single();
       if (!data) return;
-
 
       const status = data.status || "queued";
       const analysisData = (data.analysis_data ?? {}) as Record<string, any>;
       const progressMessage = analysisData.progress_message || "";
       setRunningStatus(status);
       setRunningMessage(progressMessage);
+      if (!runStartedAt && (data as any).created_at) {
+        setRunStartedAt((data as any).created_at);
+      }
 
+      if (status === "cancelled") {
+        stopPolling();
+        setRunningEvaluationId(null);
+        setRunningStatus("cancelled");
+        setRunningMessage("Cancelled");
+        toast.info("Evaluation cancelled");
+        setStage("idle");
+        return;
+      }
 
       if (status === "queued" || status === "running" || status === "processing") {
         const { error } = await supabase.functions.invoke("run-panel-evaluation", {
@@ -338,6 +367,7 @@ export function PanelEvaluator({ proposalId }: Props) {
         setRunningEvaluationId(null);
         setRunningStatus(null);
         setRunningMessage("");
+        setRunStartedAt(null);
         toast.success("Evaluation complete");
         await refreshHistory();
         setStage("complete");
@@ -346,11 +376,33 @@ export function PanelEvaluator({ proposalId }: Props) {
         setRunningEvaluationId(null);
         setRunningStatus(null);
         setRunningMessage("");
+        setRunStartedAt(null);
         toast.error(`Evaluation failed: ${data.error_message || "unknown error"}`);
         setStage("idle");
       }
     }, 10_000);
   };
+
+  async function cancelRun() {
+    if (!runningEvaluationId) return;
+    const id = runningEvaluationId;
+    try {
+      const { error } = await supabase.functions.invoke("run-panel-evaluation", {
+        body: { action: "cancel", evaluationId: id },
+      });
+      if (error) throw error;
+      stopPolling();
+      setRunningEvaluationId(null);
+      setRunningStatus("cancelled");
+      setRunningMessage("Cancelled");
+      setRunStartedAt(null);
+      setStage("idle");
+      toast.info("Cancellation sent. No further evaluator calls will fire.");
+    } catch (e: any) {
+      toast.error(`Cancel failed: ${e.message || e}`);
+    }
+  }
+
 
   // Load proposal + instruments + history on mount; resume polling if a run is in progress
   useEffect(() => {
@@ -373,7 +425,7 @@ export function PanelEvaluator({ proposalId }: Props) {
           .order("created_at", { ascending: true }),
         supabase
           .from("proposal_analyses")
-          .select("id, status, analysis_data")
+          .select("id, status, analysis_data, created_at")
           .eq("proposal_id", proposalId)
           .in("status", ["queued", "running", "processing", "synthesizing"])
           .order("created_at", { ascending: false })
@@ -402,8 +454,9 @@ export function PanelEvaluator({ proposalId }: Props) {
         setRunningMessage(
           ((runningEval.analysis_data ?? {}) as Record<string, any>).progress_message || "",
         );
-        startPolling(runningEval.id);
+        startPolling(runningEval.id, (runningEval as any).created_at ?? null);
       }
+
     })();
     return () => stopPolling();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -553,29 +606,6 @@ export function PanelEvaluator({ proposalId }: Props) {
           throw new Error("Rendered proposal payload is empty — aborting.");
         }
 
-        if (typeof window !== "undefined" && (window as any).__skipEvalPolling) {
-          console.warn("[PanelEvaluator] Start: __skipEvalPolling=true — storing rendered_proposal locally, skipping paid invoke");
-          const { data: userRes } = await supabase.auth.getUser();
-          const { data: inserted, error: insErr } = await supabase
-            .from("proposal_analyses")
-            .insert({
-              proposal_id: proposalId,
-              created_by: userRes.user!.id,
-              status: "queued",
-              proposal_stage: proposalStage,
-              budget_type_used: proposalStage === "stage1" ? null : budgetType,
-              evaluators_selected: selectedEvaluators as any,
-              eligibility_flags: eligibilityFlags as any,
-              analysis_data: { rendered_proposal: renderedProposal, kill_switch: true } as any,
-            })
-            .select("id")
-            .single();
-          if (insErr) throw insErr;
-          toast.info(`Kill-switch: stored rendered_proposal in row ${inserted.id} (no paid call).`);
-          startPolling(inserted.id);
-          return;
-        }
-
         const { data, error } = await supabase.functions.invoke("run-panel-evaluation", {
           body: {
             action: "start",
@@ -593,7 +623,8 @@ export function PanelEvaluator({ proposalId }: Props) {
         if (!data?.evaluationId) throw new Error("Edge function did not return an evaluationId");
 
         toast.info("Evaluation running in background. You can leave this page and return.");
-        startPolling(data.evaluationId);
+        startPolling(data.evaluationId, new Date().toISOString());
+
 
       } finally {
         if (clone.parentNode) clone.parentNode.removeChild(clone);
@@ -787,54 +818,27 @@ export function PanelEvaluator({ proposalId }: Props) {
       {isCoordinator && (
       <Card>
         <CardContent className="pt-6 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label>Instrument type</Label>
-              <Select
-                value={instrumentCode}
-                onValueChange={setInstrumentCode}
-                disabled={stage !== "idle"}
-              >
-                <SelectTrigger><SelectValue placeholder="Select instrument" /></SelectTrigger>
-                <SelectContent>
-                  {instruments.map((i) => (
-                    <SelectItem key={i.id} value={i.code}>{i.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div>
+              <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Instrument</div>
+              <div className="font-medium">
+                {instruments.find((i) => i.code === instrumentCode)?.name || instrumentCode || "—"}
+              </div>
             </div>
-
             {proposalStage !== "stage1" && (
-              <div className="space-y-2">
-                <Label>Budget type</Label>
-                <Select
-                  value={budgetType}
-                  onValueChange={(v) => setBudgetType(v as "traditional" | "lump_sum")}
-                  disabled={stage !== "idle"}
-                >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="traditional">Actual cost</SelectItem>
-                    <SelectItem value="lump_sum">Lump sum</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div>
+                <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Budget type</div>
+                <div className="font-medium">
+                  {budgetType === "lump_sum" ? "Lump sum" : "Actual cost"}
+                </div>
               </div>
             )}
-
             {showStage && (
-              <div className="space-y-2">
-                <Label>Stage</Label>
-                <Select
-                  value={proposalStage}
-                  onValueChange={(v) => setProposalStage(v as "full" | "stage1")}
-                  disabled={stage !== "idle"}
-                >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="full">Full proposal</SelectItem>
-                    <SelectItem value="stage1">Stage 1 of 2</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div>
+                <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Stage</div>
+                <div className="font-medium">
+                  {proposalStage === "stage1" ? "Stage 1 of 2" : "Full proposal"}
+                </div>
               </div>
             )}
           </div>
@@ -856,17 +860,33 @@ export function PanelEvaluator({ proposalId }: Props) {
             <Alert>
               <Loader2 className="h-4 w-4 animate-spin" />
               <AlertDescription>
-                {runningStatus === "synthesizing"
-                  ? "Synthesizing the ESR from evaluator reports. This typically takes a few minutes."
-                  : runningStatus === "processing"
-                  ? "Evaluator agents are reviewing the proposal. This typically takes 4–8 minutes."
-                  : "Evaluation running in the background. This typically takes 4–8 minutes."}
-                <div className="text-xs mt-1 text-muted-foreground">
-                  {runningMessage || "You can leave this page and return — the result will be saved automatically."}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    {runningStatus === "synthesizing"
+                      ? "Synthesizing the ESR from evaluator reports. This typically takes a few minutes."
+                      : runningStatus === "processing"
+                      ? "Evaluator agents are reviewing the proposal. This typically takes 4–8 minutes."
+                      : "Evaluation running in the background. This typically takes 4–8 minutes."}
+                    <div className="text-xs mt-1 text-muted-foreground">
+                      {runningMessage || "You can leave this page and return — the result will be saved automatically."}
+                      {runStartedAt && (
+                        <span className="ml-2 font-mono">· elapsed {formatElapsed(runStartedAt, nowTick)}</span>
+                      )}
+                    </div>
+                  </div>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={cancelRun}
+                    disabled={!runningEvaluationId}
+                  >
+                    Cancel
+                  </Button>
                 </div>
               </AlertDescription>
             </Alert>
           )}
+
         </CardContent>
       </Card>
       )}
