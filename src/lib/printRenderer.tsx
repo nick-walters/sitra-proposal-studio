@@ -774,6 +774,124 @@ function freezeInteractiveElements(container: HTMLElement): void {
   });
 }
 
+// ── Persisted column-width application ───────────────────────────────────────
+
+/**
+ * Parse a TipTap colwidth attribute, which can be either a JSON array
+ * (`"[120]"` / `"[120,80]"`) or a comma-separated list (`"120,80"`).
+ */
+function parseColwidthAttr(raw: string | null): number[] {
+  if (!raw) return [];
+  const trimmed = raw.trim();
+  if (!trimmed) return [];
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (Array.isArray(parsed)) {
+      return parsed.map((n) => Number(n)).filter((n) => Number.isFinite(n) && n > 0);
+    }
+  } catch {
+    // fall through to comma split
+  }
+  return trimmed
+    .split(/[,\s]+/)
+    .map((s) => Number(s))
+    .filter((n) => Number.isFinite(n) && n > 0);
+}
+
+/**
+ * For every <table> in the export container:
+ *   1. If it has [data-table-key], fetch the persisted column widths from
+ *      `table_column_widths` for (proposalId, tableKey) and apply them.
+ *   2. Otherwise (TipTap content tables), if row-0 cells carry `colwidth`
+ *      attrs, materialise them into a <colgroup><col width=…> so the print
+ *      engine honours editor-resized columns instead of equal-distributing.
+ *
+ * Must run before the offscreen container width is reset to 100%, so that
+ * the freshly-applied widths aren't blown away by a remount/measure cycle.
+ */
+async function applyPersistedColumnWidths(
+  container: HTMLElement,
+  proposalId: string,
+): Promise<void> {
+  const tables = Array.from(container.querySelectorAll('table')) as HTMLTableElement[];
+  if (tables.length === 0) return;
+
+  // 1) Batched fetch for all keyed tables.
+  const keyed = tables.filter((t) => t.hasAttribute('data-table-key'));
+  const tableKeys = Array.from(
+    new Set(keyed.map((t) => t.getAttribute('data-table-key')!).filter(Boolean)),
+  );
+
+  const widthsByKey = new Map<string, number[]>();
+  if (tableKeys.length > 0) {
+    const { data, error } = await supabase
+      .from('table_column_widths')
+      .select('table_key, column_widths')
+      .eq('proposal_id', proposalId)
+      .in('table_key', tableKeys);
+    if (!error && data) {
+      for (const row of data) {
+        const widths = row.column_widths;
+        if (Array.isArray(widths) && widths.length > 0) {
+          const nums = (widths as unknown[])
+            .map((n) => Number(n))
+            .filter((n) => Number.isFinite(n) && n > 0);
+          if (nums.length > 0) widthsByKey.set(row.table_key as string, nums);
+        }
+      }
+    }
+  }
+
+  for (const table of tables) {
+    const key = table.getAttribute('data-table-key');
+    if (key) {
+      const widths = widthsByKey.get(key);
+      if (widths && widths.length > 0) {
+        // Match column count where possible; pad/trim defensively.
+        const firstRow = table.querySelector('tbody tr, thead tr');
+        const cellCount = firstRow
+          ? Array.from(firstRow.querySelectorAll('th, td')).reduce(
+              (sum, c) => sum + (parseInt(c.getAttribute('colspan') || '1', 10) || 1),
+              0,
+            )
+          : widths.length;
+        const adjusted =
+          widths.length === cellCount
+            ? widths
+            : widths.length > cellCount
+              ? widths.slice(0, cellCount)
+              : [...widths, ...new Array(cellCount - widths.length).fill(widths[widths.length - 1] || 60)];
+        applyColumnWidthsToTable(table, adjusted);
+      }
+      continue;
+    }
+
+    // 2) TipTap fallback: hoist per-cell colwidth → <colgroup>.
+    if (table.querySelector('colgroup col')) continue;
+    const firstRow = table.querySelector('tr');
+    if (!firstRow) continue;
+    const cells = Array.from(firstRow.querySelectorAll('th, td')) as HTMLTableCellElement[];
+    const widths: number[] = [];
+    let sawAny = false;
+    for (const cell of cells) {
+      const span = Math.max(1, parseInt(cell.getAttribute('colspan') || '1', 10) || 1);
+      const cellWidths = parseColwidthAttr(cell.getAttribute('colwidth'));
+      if (cellWidths.length > 0) sawAny = true;
+      for (let i = 0; i < span; i++) {
+        widths.push(cellWidths[i] ?? 0);
+      }
+    }
+    if (!sawAny) continue;
+    // Fill zeros with the average of the known widths so the print engine has
+    // something concrete for every column.
+    const known = widths.filter((w) => w > 0);
+    if (known.length === 0) continue;
+    const avg = Math.round(known.reduce((a, b) => a + b, 0) / known.length);
+    const filled = widths.map((w) => (w > 0 ? w : avg));
+    applyColumnWidthsToTable(table, filled);
+  }
+}
+
 // ── Shared export container preparation ──────────────────────────────────────
 
 /**
