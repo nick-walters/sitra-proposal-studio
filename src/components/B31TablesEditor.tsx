@@ -461,9 +461,9 @@ export function B31MilestonesTable({ proposalId }: Props) {
             .sort((a: any, b: any) => a.number - b.number);
           return (
             <tr key={m.id}>
-              <MCell index={0} last={last}><MilestoneBadge number={m.number} /></MCell>
+              <MCell index={0} last={last} cellClass="cell-pl-0"><MilestoneBadge number={m.number} /></MCell>
               <MCell index={1} last={last}><ReadOnlyTextCell text={m.title} /></MCell>
-              <MCell index={2} last={last}>
+              <MCell index={2} last={last} cellClass="cell-px-0">
                 <div className="flex flex-wrap gap-0.5">
                   {wps.length === 0 && <span className="text-muted-foreground italic">—</span>}
                   {wps.map((wp: any) => (
@@ -472,7 +472,8 @@ export function B31MilestonesTable({ proposalId }: Props) {
                 </div>
               </MCell>
               <MCell index={3} last={last}><MonthLabel m={m.due_month} /></MCell>
-              <MCell index={4} last={last}><ReadOnlyHtmlCell html={m.means_of_verification} /></MCell>
+              <MCell index={4} last={last} cellClass="cell-pr-0"><ReadOnlyHtmlCell html={m.means_of_verification} /></MCell>
+
             </tr>
           );
         })}
