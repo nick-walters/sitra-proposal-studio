@@ -120,65 +120,44 @@ export interface PersonnelBreakdownItem {
 }
 
 function computeRow(row: BudgetRowData, proposalType: string | null): ComputedBudgetRow {
-  const personnelCosts = row.pmRate != null && row.pmRate > 0
-    ? Math.round(row.pmRate * row.totalPersonMonths)
-    : row.personnelCosts;
+  const out = computeBudgetRow({
+    personnel_costs: row.personnelCosts,
+    subcontracting_costs: row.subcontractingCosts,
+    purchase_travel: row.purchaseTravel,
+    purchase_equipment: row.purchaseEquipment,
+    purchase_other_goods: row.purchaseOtherGoods,
+    financial_support_third_parties: row.financialSupportThirdParties,
+    internally_invoiced: row.internallyInvoiced,
+    procurement: row.procurement,
+    pm_rate: row.pmRate,
+    totalPersonMonths: row.totalPersonMonths,
+    indirect_costs_override: row.indirectCostsOverride,
+    funding_rate_override: row.fundingRateOverride,
+    requested_eu_contribution: row.requestedEuContributionOverride,
+    has_in_kind: row.hasInKind,
+    requested_personnel_costs: row.requestedPersonnelCosts,
+    requested_subcontracting: row.requestedSubcontracting,
+    requested_travel: row.requestedTravel,
+    requested_equipment: row.requestedEquipment,
+    requested_other_goods: row.requestedOtherGoods,
+    requested_fstp: row.requestedFstp,
+    requested_internally_invoiced: row.requestedInternallyInvoiced,
+    proposalType,
+    organisationCategory: row.organisationCategory,
+  });
 
-  const directCosts =
-    personnelCosts +
-    row.subcontractingCosts +
-    row.purchaseTravel +
-    row.purchaseEquipment +
-    row.purchaseOtherGoods +
-    row.financialSupportThirdParties +
-    row.internallyInvoiced +
-    row.procurement;
-
-  const indirectCostsBase = directCosts - row.subcontractingCosts - row.financialSupportThirdParties;
-  const indirectCosts = row.indirectCostsOverride ?? Math.round(indirectCostsBase * 0.25 * 100) / 100;
-  const totalEligibleCosts = directCosts + indirectCosts;
-
-  // Funding rate: RIA = 100% all; IA = 100% except LE (large enterprises) = 70%. SMEs get 100% even in IA.
-  let fundingRate = row.fundingRateOverride ?? 100;
-  if (row.fundingRateOverride == null) {
-    if (proposalType === 'IA' && row.organisationCategory === 'LE') {
-      fundingRate = 70;
-    }
-  }
-
-  const maxEuContribution = Math.round(totalEligibleCosts * (fundingRate / 100) * 100) / 100;
-  let requestedEuContribution: number;
-  if (row.hasInKind) {
-    // Sum per-category requested amounts
-    const reqPersonnel = row.requestedPersonnelCosts ?? personnelCosts;
-    const reqSub = row.requestedSubcontracting ?? row.subcontractingCosts;
-    const reqTravel = row.requestedTravel ?? row.purchaseTravel;
-    const reqEquip = row.requestedEquipment ?? row.purchaseEquipment;
-    const reqOther = row.requestedOtherGoods ?? row.purchaseOtherGoods;
-    const reqFstp = row.requestedFstp ?? row.financialSupportThirdParties;
-    const reqInternally = row.requestedInternallyInvoiced ?? row.internallyInvoiced;
-    const reqDirectTotal = reqPersonnel + reqSub + reqTravel + reqEquip + reqOther + reqFstp + reqInternally;
-    const reqIndirect = Math.round((reqDirectTotal - reqSub - reqFstp) * 0.25 * 100) / 100;
-    requestedEuContribution = Math.min(
-      reqDirectTotal + reqIndirect,
-      maxEuContribution
-    );
-  } else {
-    requestedEuContribution = row.requestedEuContributionOverride != null
-      ? Math.min(row.requestedEuContributionOverride, maxEuContribution)
-      : maxEuContribution;
-  }
-  const totalEstimatedIncome = requestedEuContribution + row.incomeGenerated + row.financialContributions + row.ownResources;
+  const totalEstimatedIncome =
+    out.requestedEuContribution + row.incomeGenerated + row.financialContributions + row.ownResources;
 
   return {
     ...row,
-    personnelCosts,
-    directCosts,
-    indirectCosts,
-    totalEligibleCosts,
-    fundingRate,
-    maxEuContribution,
-    requestedEuContribution,
+    personnelCosts: out.personnel,
+    directCosts: out.directCosts,
+    indirectCosts: out.indirect,
+    totalEligibleCosts: out.totalEligible,
+    fundingRate: out.fundingRate,
+    maxEuContribution: out.maxEuContribution,
+    requestedEuContribution: out.requestedEuContribution,
     totalEstimatedIncome,
   };
 }
