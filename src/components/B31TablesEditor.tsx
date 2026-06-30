@@ -239,6 +239,7 @@ function MCell({
   children,
   colSpan,
   padX,
+  cellClass,
 }: {
   index: number;
   last: number;
@@ -248,16 +249,19 @@ function MCell({
   colSpan?: number;
   /** Optional override for horizontal padding classes (e.g. 'px-0'). When set, replaces the default first/last-column padding logic. */
   padX?: string;
+  /** Optional marker class (e.g. 'cell-px-0' / 'cell-pl-0' / 'cell-pr-0') matched by the scoped CSS rules under `.platform-table--tight`. Must mirror the parent Col's cellClass for header/body alignment. */
+  cellClass?: string;
 }) {
   const pl = index === 0 ? 'pl-0' : 'pl-2';
   const pr = index === last ? 'pr-0' : 'pr-2';
   const padClass = padX ?? `${pl} ${pr}`;
   return (
-    <td colSpan={colSpan} className={`${cellBase} ${padClass} ${className}`} style={style}>
+    <td colSpan={colSpan} className={`${cellBase} ${padClass} ${cellClass ?? ''} ${className}`} style={style}>
       {children}
     </td>
   );
 }
+
 
 /** Parse a comma/space list of WP numbers (e.g. "1, 3, WP5") into number[]. */
 function parseWPList(s: string | null | undefined): number[] {
