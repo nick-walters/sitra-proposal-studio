@@ -657,6 +657,15 @@ html, body {
 .platform-table.platform-table--tight > tbody > tr > td.cell-pr-0 {
   padding-right: 0;
 }
+.platform-table.platform-table--tight > thead > tr > th {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+.platform-table.platform-table--tight > thead > tr > th.cell-px-hair,
+.platform-table.platform-table--tight > tbody > tr > td.cell-px-hair {
+  padding-left: 0.03pt;
+  padding-right: 0.03pt;
+}
 
 
 
