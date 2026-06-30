@@ -3481,9 +3481,12 @@ export type Database = {
           b_subheadings_seeded: Json
           b31_banner_dismissed: boolean
           b31_show_all_equipment_justification: boolean
+          b31_show_equipment_justification: boolean
           b31_show_fstp_justification: boolean
           b31_show_internally_invoiced_justification: boolean
+          b31_show_other_direct_costs: boolean
           b31_show_other_goods_justification: boolean
+          b31_show_purchase_costs: boolean
           b31_show_travel_justification: boolean
           banner_title_override: string | null
           banner_topic_line_override: string | null
@@ -3547,9 +3550,12 @@ export type Database = {
           b_subheadings_seeded?: Json
           b31_banner_dismissed?: boolean
           b31_show_all_equipment_justification?: boolean
+          b31_show_equipment_justification?: boolean
           b31_show_fstp_justification?: boolean
           b31_show_internally_invoiced_justification?: boolean
+          b31_show_other_direct_costs?: boolean
           b31_show_other_goods_justification?: boolean
+          b31_show_purchase_costs?: boolean
           b31_show_travel_justification?: boolean
           banner_title_override?: string | null
           banner_topic_line_override?: string | null
@@ -3613,9 +3619,12 @@ export type Database = {
           b_subheadings_seeded?: Json
           b31_banner_dismissed?: boolean
           b31_show_all_equipment_justification?: boolean
+          b31_show_equipment_justification?: boolean
           b31_show_fstp_justification?: boolean
           b31_show_internally_invoiced_justification?: boolean
+          b31_show_other_direct_costs?: boolean
           b31_show_other_goods_justification?: boolean
+          b31_show_purchase_costs?: boolean
           b31_show_travel_justification?: boolean
           banner_title_override?: string | null
           banner_topic_line_override?: string | null
