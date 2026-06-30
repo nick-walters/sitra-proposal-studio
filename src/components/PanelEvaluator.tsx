@@ -284,12 +284,17 @@ export function PanelEvaluator({ proposalId }: Props) {
     setRunningMessage("Queued for evaluator run");
     setStage("stageB");
     pollIntervalRef.current = setInterval(async () => {
+      if (typeof window !== "undefined" && (window as any).__skipEvalPolling) {
+        console.warn("[PanelEvaluator] polling skipped (window.__skipEvalPolling=true)");
+        return;
+      }
       const { data } = await supabase
         .from("proposal_analyses")
         .select("status, error_message, analysis_data")
         .eq("id", evaluationId)
         .single();
       if (!data) return;
+
 
       const status = data.status || "queued";
       const analysisData = (data.analysis_data ?? {}) as Record<string, any>;
