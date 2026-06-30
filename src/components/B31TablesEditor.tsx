@@ -191,6 +191,7 @@ function MirrorTable({
   return (
     <table
       ref={tableRef}
+      data-table-key={tableKey}
       className={`platform-table ${tableClassName} ${tableFont}`.trim()}
       style={{ tableLayout: 'fixed', width: '100%', borderCollapse: 'collapse' }}
     >

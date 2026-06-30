@@ -272,6 +272,7 @@ export function B32SectionContent({ proposalId }: Props) {
       />
       <table
         ref={tableRef}
+        data-table-key="b32-expertise-matrix"
         className={`platform-table platform-table--tight ${tableFont}`}
         style={{ tableLayout: 'fixed', borderCollapse: 'collapse', ...tableWidthStyle }}
       >

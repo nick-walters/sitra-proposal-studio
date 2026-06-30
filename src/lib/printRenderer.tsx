@@ -13,6 +13,7 @@ import { resolveStorageUrl } from '@/hooks/useStorageUrl';
 import { getCaseTypePrefix } from '@/lib/caseTypeLabels';
 import { extractFilePathFromUrl } from '@/lib/proposalStorage';
 import { SITRA_LOGO_BASE64 } from '@/lib/sitraLogo';
+import { applyColumnWidthsToTable } from '@/lib/autoFitColumns';
 
 /** Escape user-provided strings before interpolating into raw HTML templates. */
 const escHtml = (s: string | number | null | undefined): string =>
@@ -31,8 +32,8 @@ const safeColor = (c: string | null | undefined): string => {
 
 /** Sanitiser config for rich-text content rendered into the export DOM. */
 const PRINT_SANITIZE_CONFIG = {
-  ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'ul', 'ol', 'li', 'span', 'a', 'h1', 'h2', 'h3', 'h4', 'sub', 'sup', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'img', 'figure', 'figcaption', 'div', 'svg', 'path', 'g', 'rect', 'circle', 'line', 'polyline', 'polygon', 'text', 'tspan', 'defs', 'marker', 'use'],
-  ALLOWED_ATTR: ['class', 'style', 'href', 'target', 'rel', 'src', 'alt', 'width', 'height', 'colspan', 'rowspan', 'crossorigin', 'data-type', 'data-id', 'data-wp-number', 'data-wp-short-name', 'data-wp-color', 'data-task-number', 'data-deliverable-number', 'data-milestone-number', 'data-participant-number', 'data-short-name', 'data-case-number', 'data-case-short-name', 'data-case-color', 'data-case-type', 'data-include-number', 'data-include-abbreviation', 'data-figure-id', 'data-table-key', 'data-ref-type', 'data-ref-id', 'data-citation-id', 'data-acronym', 'data-figure-wrapper', 'data-block-id', 'data-section-name', 'data-proposal-banner', 'data-cases-table-node', 'data-case-ids', 'data-caption', 'viewBox', 'fill', 'stroke', 'stroke-width', 'd', 'x', 'y', 'x1', 'y1', 'x2', 'y2', 'cx', 'cy', 'r', 'rx', 'ry', 'points', 'transform', 'opacity', 'fill-opacity', 'stroke-opacity', 'stroke-linejoin', 'stroke-linecap', 'text-anchor', 'font-family', 'font-size', 'font-weight'],
+  ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'ul', 'ol', 'li', 'span', 'a', 'h1', 'h2', 'h3', 'h4', 'sub', 'sup', 'table', 'colgroup', 'col', 'thead', 'tbody', 'tr', 'th', 'td', 'img', 'figure', 'figcaption', 'div', 'svg', 'path', 'g', 'rect', 'circle', 'line', 'polyline', 'polygon', 'text', 'tspan', 'defs', 'marker', 'use'],
+  ALLOWED_ATTR: ['class', 'style', 'href', 'target', 'rel', 'src', 'alt', 'width', 'height', 'colwidth', 'colspan', 'rowspan', 'crossorigin', 'data-type', 'data-id', 'data-wp-number', 'data-wp-short-name', 'data-wp-color', 'data-task-number', 'data-deliverable-number', 'data-milestone-number', 'data-participant-number', 'data-short-name', 'data-case-number', 'data-case-short-name', 'data-case-color', 'data-case-type', 'data-include-number', 'data-include-abbreviation', 'data-figure-id', 'data-table-key', 'data-ref-type', 'data-ref-id', 'data-citation-id', 'data-acronym', 'data-figure-wrapper', 'data-block-id', 'data-section-name', 'data-proposal-banner', 'data-cases-table-node', 'data-case-ids', 'data-caption', 'viewBox', 'fill', 'stroke', 'stroke-width', 'd', 'x', 'y', 'x1', 'y1', 'x2', 'y2', 'cx', 'cy', 'r', 'rx', 'ry', 'points', 'transform', 'opacity', 'fill-opacity', 'stroke-opacity', 'stroke-linejoin', 'stroke-linecap', 'text-anchor', 'font-family', 'font-size', 'font-weight'],
 };
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -773,6 +774,124 @@ function freezeInteractiveElements(container: HTMLElement): void {
   });
 }
 
+// ── Persisted column-width application ───────────────────────────────────────
+
+/**
+ * Parse a TipTap colwidth attribute, which can be either a JSON array
+ * (`"[120]"` / `"[120,80]"`) or a comma-separated list (`"120,80"`).
+ */
+function parseColwidthAttr(raw: string | null): number[] {
+  if (!raw) return [];
+  const trimmed = raw.trim();
+  if (!trimmed) return [];
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (Array.isArray(parsed)) {
+      return parsed.map((n) => Number(n)).filter((n) => Number.isFinite(n) && n > 0);
+    }
+  } catch {
+    // fall through to comma split
+  }
+  return trimmed
+    .split(/[,\s]+/)
+    .map((s) => Number(s))
+    .filter((n) => Number.isFinite(n) && n > 0);
+}
+
+/**
+ * For every <table> in the export container:
+ *   1. If it has [data-table-key], fetch the persisted column widths from
+ *      `table_column_widths` for (proposalId, tableKey) and apply them.
+ *   2. Otherwise (TipTap content tables), if row-0 cells carry `colwidth`
+ *      attrs, materialise them into a <colgroup><col width=…> so the print
+ *      engine honours editor-resized columns instead of equal-distributing.
+ *
+ * Must run before the offscreen container width is reset to 100%, so that
+ * the freshly-applied widths aren't blown away by a remount/measure cycle.
+ */
+async function applyPersistedColumnWidths(
+  container: HTMLElement,
+  proposalId: string,
+): Promise<void> {
+  const tables = Array.from(container.querySelectorAll('table')) as HTMLTableElement[];
+  if (tables.length === 0) return;
+
+  // 1) Batched fetch for all keyed tables.
+  const keyed = tables.filter((t) => t.hasAttribute('data-table-key'));
+  const tableKeys = Array.from(
+    new Set(keyed.map((t) => t.getAttribute('data-table-key')!).filter(Boolean)),
+  );
+
+  const widthsByKey = new Map<string, number[]>();
+  if (tableKeys.length > 0) {
+    const { data, error } = await supabase
+      .from('table_column_widths')
+      .select('table_key, column_widths')
+      .eq('proposal_id', proposalId)
+      .in('table_key', tableKeys);
+    if (!error && data) {
+      for (const row of data) {
+        const widths = row.column_widths;
+        if (Array.isArray(widths) && widths.length > 0) {
+          const nums = (widths as unknown[])
+            .map((n) => Number(n))
+            .filter((n) => Number.isFinite(n) && n > 0);
+          if (nums.length > 0) widthsByKey.set(row.table_key as string, nums);
+        }
+      }
+    }
+  }
+
+  for (const table of tables) {
+    const key = table.getAttribute('data-table-key');
+    if (key) {
+      const widths = widthsByKey.get(key);
+      if (widths && widths.length > 0) {
+        // Match column count where possible; pad/trim defensively.
+        const firstRow = table.querySelector('tbody tr, thead tr');
+        const cellCount = firstRow
+          ? Array.from(firstRow.querySelectorAll('th, td')).reduce(
+              (sum, c) => sum + (parseInt(c.getAttribute('colspan') || '1', 10) || 1),
+              0,
+            )
+          : widths.length;
+        const adjusted =
+          widths.length === cellCount
+            ? widths
+            : widths.length > cellCount
+              ? widths.slice(0, cellCount)
+              : [...widths, ...new Array(cellCount - widths.length).fill(widths[widths.length - 1] || 60)];
+        applyColumnWidthsToTable(table, adjusted);
+      }
+      continue;
+    }
+
+    // 2) TipTap fallback: hoist per-cell colwidth → <colgroup>.
+    if (table.querySelector('colgroup col')) continue;
+    const firstRow = table.querySelector('tr');
+    if (!firstRow) continue;
+    const cells = Array.from(firstRow.querySelectorAll('th, td')) as HTMLTableCellElement[];
+    const widths: number[] = [];
+    let sawAny = false;
+    for (const cell of cells) {
+      const span = Math.max(1, parseInt(cell.getAttribute('colspan') || '1', 10) || 1);
+      const cellWidths = parseColwidthAttr(cell.getAttribute('colwidth'));
+      if (cellWidths.length > 0) sawAny = true;
+      for (let i = 0; i < span; i++) {
+        widths.push(cellWidths[i] ?? 0);
+      }
+    }
+    if (!sawAny) continue;
+    // Fill zeros with the average of the known widths so the print engine has
+    // something concrete for every column.
+    const known = widths.filter((w) => w > 0);
+    if (known.length === 0) continue;
+    const avg = Math.round(known.reduce((a, b) => a + b, 0) / known.length);
+    const filled = widths.map((w) => (w > 0 ? w : avg));
+    applyColumnWidthsToTable(table, filled);
+  }
+}
+
 // ── Shared export container preparation ──────────────────────────────────────
 
 /**
@@ -827,6 +946,13 @@ export async function prepareExportContainer(
   // NOT run here. The visual PDF/Word export must contain real inline SVG
   // (PERT/Gantt) and <img> figures. The evaluation pipeline imports
   // replaceFiguresWithText and runs it on a CLONE of this container.
+
+
+  // Apply persisted column widths (B3.1 mirror tables, B3.2 expertise matrix,
+  // and any other table marked with [data-table-key]) and convert TipTap
+  // per-cell colwidth attrs into a <colgroup>. Must run BEFORE the container
+  // width is reset so React mount measurements don't overwrite them.
+  await applyPersistedColumnWidths(container, options.proposal.id);
 
 
   // Freeze interactive elements (inputs, selects, buttons) into static text
