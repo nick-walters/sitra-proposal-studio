@@ -27,7 +27,7 @@ function ReadOnlyRichText({ html, placeholder }: { html: string | null | undefin
   const safe = DOMPurify.sanitize(raw, RICH_TEXT_CONFIG);
   return (
     <div
-      className="font-['Times_New_Roman',Times,serif] text-[11pt] text-justify [&_p]:mt-[6pt] [&_p]:mb-[6pt]"
+      className="font-['Times_New_Roman',Times,serif] text-[11pt] text-justify [&_p]:mt-[3pt] [&_p]:mb-[3pt]"
       dangerouslySetInnerHTML={{ __html: safe }}
     />
   );
