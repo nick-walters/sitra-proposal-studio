@@ -479,10 +479,14 @@ export async function mountDynamicComponents(
         QueryClientProvider,
         { client: queryClient },
         createElement(
-          'div',
-          { className: 'print-b31-content' },
-          createElement(B31IntroText, { proposalId, proposalAcronym }),
-          createElement(B31SectionContent, { proposalId }),
+          AuthProvider,
+          null,
+          createElement(
+            'div',
+            { className: 'print-b31-content' },
+            createElement(B31IntroText, { proposalId, proposalAcronym }),
+            createElement(B31SectionContent, { proposalId }),
+          ),
         ),
       ),
     );
@@ -496,9 +500,13 @@ export async function mountDynamicComponents(
         QueryClientProvider,
         { client: queryClient },
         createElement(
-          'div',
-          { className: 'print-b32-content' },
-          createElement(B32SectionContent, { proposalId }),
+          AuthProvider,
+          null,
+          createElement(
+            'div',
+            { className: 'print-b32-content' },
+            createElement(B32SectionContent, { proposalId }),
+          ),
         ),
       ),
     );
@@ -515,11 +523,15 @@ export async function mountDynamicComponents(
       createElement(
         QueryClientProvider,
         { client: queryClient },
-        createElement(CasesTableLiveView, {
-          proposalId,
-          caseTypeId,
-          letterIndex: idx,
-        }),
+        createElement(
+          AuthProvider,
+          null,
+          createElement(CasesTableLiveView, {
+            proposalId,
+            caseTypeId,
+            letterIndex: idx,
+          }),
+        ),
       ),
     );
     roots.push({ root, el: placeholder });
