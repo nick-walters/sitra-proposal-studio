@@ -316,48 +316,22 @@ function proposalIdFromUrl(): string {
   return m ? m[1] : '';
 }
 
-export function CasesTableNodeView(props: NodeViewProps) {
-  const params = useParams<{ proposalId?: string; id?: string }>();
-  const pathFallback = proposalIdFromUrl();
-  // Tiptap NodeViews may render in a detached React tree, so useParams can
-  // return empty. Fall back to parsing the proposal id from the URL.
-  const proposalId = params.proposalId || params.id || pathFallback;
+/**
+ * CasesTableLiveView — body of the cases table, decoupled from TipTap.
+ *
+ * Renders the full B1.2 case rows (chip, leader, title, divider, subsection
+ * bodies) for a given proposal/type. Used both by the in-editor NodeView and
+ * by the print/export pipeline (printRenderer), so PDF/Word exports show the
+ * same content the editor shows.
+ */
+export interface CasesTableLiveViewProps {
+  proposalId: string;
+  caseTypeId: string | null;
+  /** 0-based index for caption lettering (a, b, c, …). */
+  letterIndex: number;
+}
 
-  const caseTypeId: string | null = (props.node?.attrs?.caseTypeId as string | null) || null;
-
-  // Letter for the caption — count ALL table-caption slots before this node
-  // in document order (other casesTable atoms AND ordinary <p class="table-caption">
-  // paragraphs that match "Table X.X.x."). This keeps the case-table caption
-  // in the same global sequence the renumberCaptionsInEditor walker uses for
-  // manually-inserted tables, so 1.2.a, 1.2.b, 1.2.c… are assigned
-  // consistently no matter how the tables are interleaved.
-  let nodeLetterIndex = 0;
-  try {
-    const doc = props.editor?.state?.doc;
-    const myPos = typeof props.getPos === 'function' ? props.getPos() : null;
-    if (doc && typeof myPos === 'number') {
-      const tableCaptionPattern = /^(Table)\s+\d+\.\d+\.[a-z]\./i;
-      let count = 0;
-      doc.forEach((n, pos) => {
-        if (pos >= myPos) return;
-        if (n.type?.name === 'casesTable') {
-          count++;
-          return;
-        }
-        if (n.type?.name === 'paragraph') {
-          const cls = (n.attrs?.class || '') as string;
-          if (cls.includes('table-caption') && tableCaptionPattern.test(n.textContent)) {
-            count++;
-          }
-        }
-      });
-      nodeLetterIndex = count;
-    }
-  } catch {
-    // best-effort — fall back to 0
-  }
-
-
+export function CasesTableLiveView({ proposalId, caseTypeId, letterIndex }: CasesTableLiveViewProps) {
   const { data } = useQuery({
     queryKey: ['b12-cases-live', proposalId, caseTypeId],
     enabled: !!proposalId,
@@ -397,13 +371,10 @@ export function CasesTableNodeView(props: NodeViewProps) {
     },
   });
 
-  // Resolve the type row this table is bound to (if any) for caption + scoping.
   const boundType: CaseTypeRow | undefined = caseTypeId
     ? data?.typeById.get(caseTypeId)
     : undefined;
 
-  // Caption — only rendered for typed tables. Legacy untyped placeholders
-  // keep their externally-authored caption paragraph (stage 1 back-compat).
   let captionEl: JSX.Element | null = null;
   if (caseTypeId && boundType) {
     const typeSingular = getCaseTypeLabel(
@@ -411,12 +382,9 @@ export function CasesTableNodeView(props: NodeViewProps) {
       boundType.custom_type_name,
       { plural: false },
     );
-    // Caption text is the verbatim caption_text from proposal_case_types.
-    // The plural type name already appears as the subheading above — do NOT
-    // re-prepend it here.
     const captionBody = (boundType.caption_text ?? '').trim()
       || `${typeSingular} descriptions`;
-    const letter = letterFor(nodeLetterIndex);
+    const letter = letterFor(letterIndex);
     captionEl = (
       <p
         className="table-caption"
@@ -435,25 +403,9 @@ export function CasesTableNodeView(props: NodeViewProps) {
     );
   }
 
-
-
-
-
-
-
-
   return (
-    <NodeViewWrapper
-      as="div"
+    <div
       data-cases-table-nodeview=""
-      contentEditable={false}
-      draggable={false}
-      onDragStart={(e) => {
-        // Block native HTML5 drag — any direct drag of the wrapper or its
-        // children would otherwise clone-on-drop. Reorder via the grip only.
-        e.preventDefault();
-        e.stopPropagation();
-      }}
       style={{
         margin: '0',
         fontFamily: "'Times New Roman', Times, serif",
@@ -502,7 +454,6 @@ export function CasesTableNodeView(props: NodeViewProps) {
             data-case-id={c.id}
             style={{ marginTop: idx === 0 ? 18 : 24 }}
           >
-            {/* Header: chip left, leader pill right */}
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               gap: 12, width: '100%', marginBottom: 4,
@@ -520,12 +471,10 @@ export function CasesTableNodeView(props: NodeViewProps) {
               )}
             </div>
 
-            {/* Title */}
             <div style={{ marginBottom: 4, fontWeight: 700 }}>
               {(c.title || '').trim() ? c.title : <span className="text-muted-foreground italic font-normal">Untitled {caseWord(data?.types ?? [], { capitalize: false })}</span>}
             </div>
 
-            {/* Thick top divider — brackets the case */}
             <div style={{ height: 2, backgroundColor: '#000000', width: '100%', margin: '6px 0' }} />
 
             {subs.map((s, sIdx) => {
@@ -533,7 +482,6 @@ export function CasesTableNodeView(props: NodeViewProps) {
               const startsWithList = bodyStartsWithList(s.body);
               const headingText = s.heading || '';
               const colon = headingText.trim() ? ':' : '';
-              // Build the heading prefix HTML once, escape angle brackets in the heading text.
               const escapedHeading = headingText
                 .replace(/&/g, '&amp;')
                 .replace(/</g, '&lt;')
@@ -544,7 +492,6 @@ export function CasesTableNodeView(props: NodeViewProps) {
               return (
                 <div key={s.key}>
                   {startsWithList ? (
-                    // List-first: heading on its own line, list below.
                     <div>
                       <div>
                         <span style={{ fontWeight: 700, fontStyle: 'italic' }}>
@@ -557,8 +504,6 @@ export function CasesTableNodeView(props: NodeViewProps) {
                       </div>
                     </div>
                   ) : (
-                    // Paragraph-first: heading is merged INSIDE the first <p> of the body
-                    // so they render as one single block (truly inline).
                     <ReadOnlyRichBody html={s.body} headingPrefixHtml={headingPrefixHtml} />
                   )}
                   <div
@@ -577,6 +522,67 @@ export function CasesTableNodeView(props: NodeViewProps) {
       })}
 
       {data && data.cases.length > 0 && <div style={{ height: 18 }} />}
+    </div>
+  );
+}
+
+export function CasesTableNodeView(props: NodeViewProps) {
+  const params = useParams<{ proposalId?: string; id?: string }>();
+  const pathFallback = proposalIdFromUrl();
+  // Tiptap NodeViews may render in a detached React tree, so useParams can
+  // return empty. Fall back to parsing the proposal id from the URL.
+  const proposalId = params.proposalId || params.id || pathFallback;
+
+  const caseTypeId: string | null = (props.node?.attrs?.caseTypeId as string | null) || null;
+
+  // Letter for the caption — count ALL table-caption slots before this node
+  // in document order (other casesTable atoms AND ordinary <p class="table-caption">
+  // paragraphs that match "Table X.X.x."). This keeps the case-table caption
+  // in the same global sequence the renumberCaptionsInEditor walker uses for
+  // manually-inserted tables, so 1.2.a, 1.2.b, 1.2.c… are assigned
+  // consistently no matter how the tables are interleaved.
+  let nodeLetterIndex = 0;
+  try {
+    const doc = props.editor?.state?.doc;
+    const myPos = typeof props.getPos === 'function' ? props.getPos() : null;
+    if (doc && typeof myPos === 'number') {
+      const tableCaptionPattern = /^(Table)\s+\d+\.\d+\.[a-z]\./i;
+      let count = 0;
+      doc.forEach((n, pos) => {
+        if (pos >= myPos) return;
+        if (n.type?.name === 'casesTable') {
+          count++;
+          return;
+        }
+        if (n.type?.name === 'paragraph') {
+          const cls = (n.attrs?.class || '') as string;
+          if (cls.includes('table-caption') && tableCaptionPattern.test(n.textContent)) {
+            count++;
+          }
+        }
+      });
+      nodeLetterIndex = count;
+    }
+  } catch {
+    // best-effort — fall back to 0
+  }
+
+  return (
+    <NodeViewWrapper
+      as="div"
+      contentEditable={false}
+      draggable={false}
+      onDragStart={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+      style={{ margin: 0 }}
+    >
+      <CasesTableLiveView
+        proposalId={proposalId}
+        caseTypeId={caseTypeId}
+        letterIndex={nodeLetterIndex}
+      />
     </NodeViewWrapper>
   );
 }
