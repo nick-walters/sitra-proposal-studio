@@ -116,6 +116,14 @@ function StatusIcon({ status }: { status: string }) {
 export function PanelEvaluator({ proposalId }: Props) {
   const { roleTier } = useProposalRole(proposalId);
   const isCoordinator = roleTier === "coordinator";
+  const { proposal: proposalData, participants } = useProposalData(proposalId);
+  const { sections: allSections } = useProposalSections(
+    proposalData?.templateTypeId || null,
+    proposalId,
+    !!proposalData,
+    isCoordinator,
+  );
+  const appQueryClient = useQueryClient();
   const [proposal, setProposal] = useState<any>(null);
   const [instruments, setInstruments] = useState<InstrumentType[]>([]);
   const [instrumentCode, setInstrumentCode] = useState<string>("");
