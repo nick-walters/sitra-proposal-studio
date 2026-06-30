@@ -393,6 +393,14 @@ export async function buildPrintContainer(
         b31Marker.setAttribute('data-proposal-acronym', proposal.acronym);
         container.appendChild(b31Marker);
       }
+
+      // B3.2 – mount the expertise matrix mirror (respects enabled flag).
+      if (num === '3.2') {
+        const b32Marker = document.createElement('div');
+        b32Marker.id = 'print-b32-mount';
+        b32Marker.setAttribute('data-proposal-id', proposal.id);
+        container.appendChild(b32Marker);
+      }
     }
   }
 
