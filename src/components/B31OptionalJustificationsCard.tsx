@@ -10,10 +10,11 @@ interface Props {
 }
 
 const OPTIONS: Array<{ key: keyof B31JustificationToggles; label: string; hint: string }> = [
-  { key: 'travel',              label: 'C.1 — Travel and subsistence',          hint: 'Adds Table 3.1.i in B3.1 with per-participant travel cost items.' },
-  { key: 'other_goods',         label: 'C.3 — Other goods, works & services',   hint: 'Adds Table 3.1.j in B3.1 with per-participant other goods cost items.' },
-  { key: 'fstp',                label: 'D.1 — Financial support to third parties', hint: 'Adds Table 3.1.k in B3.1 with per-participant FSTP cost items.' },
-  { key: 'internally_invoiced', label: 'D.2 — Internally invoiced goods & services', hint: 'Adds Table 3.1.l in B3.1 with per-participant internally invoiced cost items.' },
+  { key: 'equipment_all',       label: 'C.2 — Include all equipment costs',     hint: 'By default Table C.2 only lists participants whose equipment costs exceed 15% of their personnel costs (the "major equipment" rule). Tick to include every participant with equipment cost items.' },
+  { key: 'travel',              label: 'C.1 — Travel and subsistence',          hint: 'Adds a B3.1 cost-justification table with per-participant travel cost items.' },
+  { key: 'other_goods',         label: 'C.3 — Other goods, works & services',   hint: 'Adds a B3.1 cost-justification table with per-participant other goods cost items.' },
+  { key: 'fstp',                label: 'D.1 — Financial support to third parties', hint: 'Adds a B3.1 cost-justification table with per-participant FSTP cost items.' },
+  { key: 'internally_invoiced', label: 'D.2 — Internally invoiced goods & services', hint: 'Adds a B3.1 cost-justification table with per-participant internally invoiced cost items.' },
 ];
 
 export function B31OptionalJustificationsCard({ proposalId, canEdit }: Props) {
@@ -34,6 +35,7 @@ export function B31OptionalJustificationsCard({ proposalId, canEdit }: Props) {
         <CardDescription>
           B.1 (subcontracting) and C.2 (major equipment, when above the 15% threshold) appear in B3.1 automatically.
           Coordinators can opt to also include the tables below — each will be sourced live from the per-participant cost items.
+          Tables appear in B3.1 in cost-category order (B, then C.2, C.1, C.3, D.1, D.2) and are numbered sequentially from Table 3.1.g onwards.
           {!canEdit && <span className="block mt-1 italic">Only coordinators can change these settings.</span>}
         </CardDescription>
       </CardHeader>

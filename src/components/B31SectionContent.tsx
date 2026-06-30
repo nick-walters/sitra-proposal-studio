@@ -18,13 +18,13 @@ interface Props {
 }
 
 export function B31SectionContent({ proposalId }: Props) {
+  const { toggles } = useB31JustificationToggles(proposalId);
   const {
     wpData, participants, pertFigure, ganttFigure,
     subcontractingByParticipant, equipmentByParticipant,
     travelByParticipant, otherGoodsByParticipant, fstpByParticipant, internallyInvoicedByParticipant,
     loading,
-  } = useB31SectionData(proposalId);
-  const { toggles } = useB31JustificationToggles(proposalId);
+  } = useB31SectionData(proposalId, { includeAllEquipment: toggles.equipment_all });
   const { data: proposalDuration } = useQuery({
     queryKey: ['proposal-duration', proposalId],
     queryFn: async () => {
@@ -36,6 +36,27 @@ export function B31SectionContent({ proposalId }: Props) {
   const projectDuration = proposalDuration || 36;
 
   if (loading) return null;
+
+  // Sequential numbering for cost-justification tables — order is fixed by cost
+  // category (B, C.2, C.1, C.3, D.1, D.2). Letters start at 'g' for the first
+  // included table and increment only for tables that actually render.
+  type JustKey = 'subcontracting' | 'equipment' | 'travel' | 'other_goods' | 'fstp' | 'internally_invoiced';
+  const ORDER: JustKey[] = ['subcontracting', 'equipment', 'travel', 'other_goods', 'fstp', 'internally_invoiced'];
+  const included: Record<JustKey, boolean> = {
+    subcontracting: subcontractingByParticipant.length > 0,
+    equipment: equipmentByParticipant.length > 0,
+    travel: toggles.travel && travelByParticipant.length > 0,
+    other_goods: toggles.other_goods && otherGoodsByParticipant.length > 0,
+    fstp: toggles.fstp && fstpByParticipant.length > 0,
+    internally_invoiced: toggles.internally_invoiced && internallyInvoicedByParticipant.length > 0,
+  };
+  const labelMap: Partial<Record<JustKey, string>> = {};
+  let letterIdx = 0; // 0 → 'g'
+  for (const key of ORDER) {
+    if (!included[key]) continue;
+    labelMap[key] = `Table 3.1.${String.fromCharCode(103 + letterIdx)}.`;
+    letterIdx += 1;
+  }
 
   return (
     <div className="b31-tables-container space-y-4 [&_p]:!my-0 mt-[2px]">
@@ -107,54 +128,60 @@ export function B31SectionContent({ proposalId }: Props) {
       {/* Table 3.1.f – Effort matrix */}
       <B31EffortMatrix wpData={wpData} participants={participants} proposalId={proposalId} />
 
-      {/* Table 3.1.g – Subcontracting (conditional) */}
-      <B31SubcontractingTable items={subcontractingByParticipant} participants={participants} proposalId={proposalId} />
-
-      {/* Table 3.1.h – Equipment (conditional) */}
-      <B31EquipmentTable
-        items={equipmentByParticipant}
-        participants={participants}
-        proposalId={proposalId}
-      />
-
-      {/* Optional cost-justification tables (coordinator-toggled in A3). */}
-      {toggles.travel && (
+      {/* Cost-justification tables — numbered sequentially from 3.1.g onwards. */}
+      {included.subcontracting && (
+        <B31SubcontractingTable
+          items={subcontractingByParticipant}
+          participants={participants}
+          proposalId={proposalId}
+          tableLabel={labelMap.subcontracting}
+        />
+      )}
+      {included.equipment && (
+        <B31EquipmentTable
+          items={equipmentByParticipant}
+          participants={participants}
+          proposalId={proposalId}
+          tableLabel={labelMap.equipment}
+        />
+      )}
+      {included.travel && (
         <B31JustificationTable
           items={travelByParticipant}
           participants={participants}
           proposalId={proposalId}
           tableKey="travel-justification"
-          tableLabel="Table 3.1.i."
+          tableLabel={labelMap.travel!}
           defaultCaption="Travel and subsistence cost items"
         />
       )}
-      {toggles.other_goods && (
+      {included.other_goods && (
         <B31JustificationTable
           items={otherGoodsByParticipant}
           participants={participants}
           proposalId={proposalId}
           tableKey="other-goods-justification"
-          tableLabel="Table 3.1.j."
+          tableLabel={labelMap.other_goods!}
           defaultCaption="Other goods, works and services cost items"
         />
       )}
-      {toggles.fstp && (
+      {included.fstp && (
         <B31JustificationTable
           items={fstpByParticipant}
           participants={participants}
           proposalId={proposalId}
           tableKey="fstp-justification"
-          tableLabel="Table 3.1.k."
+          tableLabel={labelMap.fstp!}
           defaultCaption="Financial support to third parties cost items"
         />
       )}
-      {toggles.internally_invoiced && (
+      {included.internally_invoiced && (
         <B31JustificationTable
           items={internallyInvoicedByParticipant}
           participants={participants}
           proposalId={proposalId}
           tableKey="internally-invoiced-justification"
-          tableLabel="Table 3.1.l."
+          tableLabel={labelMap.internally_invoiced!}
           defaultCaption="Internally invoiced goods and services cost items"
         />
       )}

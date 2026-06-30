@@ -75,7 +75,8 @@ export interface B31EquipmentParticipant {
   personnelCosts: number;
 }
 
-export function useB31SectionData(proposalId: string) {
+export function useB31SectionData(proposalId: string, opts: { includeAllEquipment?: boolean } = {}) {
+  const includeAllEquipment = !!opts.includeAllEquipment;
   // Live source of truth: wp_drafts + wp_draft_tasks + wp_draft_deliverables.
   const wpQuery = useQuery({
     queryKey: ['b31-wp-data', proposalId],
@@ -208,8 +209,11 @@ export function useB31SectionData(proposalId: string) {
       const pmRate = r.pm_rate != null ? Number(r.pm_rate) : 0;
       const totalPMs = br.pmTotals.get(r.participant_id) || 0;
       const personnelCosts = pmRate > 0 ? Math.round(pmRate * totalPMs) : Number(r.personnel_costs) || 0;
-      // 15%-of-personnel "major equipment" rule applied per participant
-      if (personnelCosts <= 0 || totalEquipCost <= personnelCosts * 0.15) continue;
+      // 15%-of-personnel "major equipment" rule applied per participant, unless the
+      // coordinator has opted in to showing every participant's equipment costs.
+      if (!includeAllEquipment) {
+        if (personnelCosts <= 0 || totalEquipCost <= personnelCosts * 0.15) continue;
+      }
       result.push({
         participantId: r.participant_id,
         items,

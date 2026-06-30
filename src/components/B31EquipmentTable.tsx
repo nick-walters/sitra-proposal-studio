@@ -15,9 +15,10 @@ interface Props {
   items: B31EquipmentParticipant[];
   participants: B31Participant[];
   proposalId?: string;
+  tableLabel?: string;
 }
 
-export function B31EquipmentTable({ items, participants, proposalId }: Props) {
+export function B31EquipmentTable({ items, participants, proposalId, tableLabel = 'Table 3.1.h.' }: Props) {
   const { isAdminOrOwner } = useUserRole();
   const { colWidths, tableRef, handleColResizeStart } = useColumnResize({ proposalId, tableKey: 'equipment', canResize: isAdminOrOwner });
 
@@ -38,10 +39,11 @@ export function B31EquipmentTable({ items, participants, proposalId }: Props) {
       <EditableCaption
         proposalId={proposalId}
         tableKey="table-3.1.h"
-        label="Table 3.1.h."
+        label={tableLabel}
         defaultCaption="Major equipment purchase cost items"
         className="mb-0"
       />
+
       <table
         className={`${tableStyles} border-collapse [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b-2 [&_th]:border-black [&_td]:border-x-0`}
         style={{
