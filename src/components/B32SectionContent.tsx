@@ -110,7 +110,7 @@ export function B32SectionContent({ proposalId }: Props) {
   const [overrideHeight, setOverrideHeight] = useState<number | null>(null);
   useEffect(() => { setOverrideHeight(persistedHeight); }, [persistedHeight]);
 
-  const dragStateRef = useRef<{ startY: number; startH: number; min: number; max: number } | null>(null);
+  const dragStateRef = useRef<{ startY: number; startH: number; min: number; max: number; latest: number } | null>(null);
 
   if (enabledQ.data?.enabled === false) return null;
   if (!dataQ.data) return null;
