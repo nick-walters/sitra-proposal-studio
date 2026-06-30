@@ -570,7 +570,14 @@ export const mountB31Components = mountDynamicComponents;
  * ordinary uploaded image figures inside section content we keep the figure
  * number + caption line and drop the image.
  */
-async function replaceFiguresWithText(
+/**
+ * Replace PERT/Gantt charts and uploaded <img> figures with structured text
+ * summaries. NOT used in the visual PDF/Word export path — figures must render
+ * as real inline SVG / <img> there. Exported so the evaluation pipeline can run
+ * it against a CLONE of the prepared export container to produce a
+ * machine-readable text payload.
+ */
+export async function replaceFiguresWithText(
   container: HTMLElement,
   proposalId: string,
 ): Promise<void> {
