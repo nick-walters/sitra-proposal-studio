@@ -286,9 +286,10 @@ async function loadEvaluationContext(serviceClient: any, evaluationId: string): 
       .order("number"),
     serviceClient
       .from("proposal_risks")
-      .select("number, title, mitigation, likelihood, severity, proposal_risk_wps(wp_draft_id)")
+      .select("title, mitigation, likelihood, severity, order_index, proposal_risk_wps(wp_draft_id)")
       .eq("proposal_id", evaluation.proposal_id)
-      .order("number"),
+      .order("order_index"),
+
     serviceClient
       .from("budget_rows")
       .select("participant_id, personnel_costs, subcontracting_costs, purchase_equipment, purchase_other_goods, purchase_travel, requested_eu_contribution")
