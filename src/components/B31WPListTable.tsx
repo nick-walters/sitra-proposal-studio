@@ -75,7 +75,7 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
         defaultCaption="List of work packages"
         className="mb-0"
       />
-      <Table className={`${tableStyles} [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b [&_th]:border-black [&_td]:border-x-0 [&_td]:border-y [&_td]:border-gray-200 [&_tr]:border-0 [&_tr:last-child_td]:border-b-0 [&_tbody_tr:first-child_td]:border-t-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto', width: colWidths.length > 0 ? `${colWidths.reduce((s, w) => s + w, 0)}px` : '100%', borderCollapse: 'collapse' }} ref={tableRef}>
+      <Table data-table-key="wp-list" className={`${tableStyles} [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b [&_th]:border-black [&_td]:border-x-0 [&_td]:border-y [&_td]:border-gray-200 [&_tr]:border-0 [&_tr:last-child_td]:border-b-0 [&_tbody_tr:first-child_td]:border-t-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto', width: colWidths.length > 0 ? `${colWidths.reduce((s, w) => s + w, 0)}px` : '100%', borderCollapse: 'collapse' }} ref={tableRef}>
         <TableHeader>
           <TableRow className="hover:bg-transparent">
             <TableHead className={`${cellStyles} relative font-bold`} style={colWidths.length > 0 ? { width: colWidths[0] } : undefined}>
