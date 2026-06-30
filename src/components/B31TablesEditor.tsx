@@ -426,12 +426,13 @@ export function B31MilestonesTable({ proposalId }: Props) {
   }, [milestones, wpInfo]);
 
   const columns: Col[] = [
-    { label: 'No.', defaultWidth: 48 },
+    { label: 'No.', defaultWidth: 48, cellClass: 'cell-pl-0' },
     { label: 'Milestone name', defaultWidth: 220 },
-    { label: 'WP(s)', defaultWidth: 113 },
+    { label: 'WP(s)', defaultWidth: 113, cellClass: 'cell-px-0' },
     { label: 'Due', defaultWidth: 50 },
-    { label: 'Means of verification', flex: true },
+    { label: 'Means of verification', flex: true, cellClass: 'cell-pr-0' },
   ];
+
   const last = columns.length - 1;
 
   return (
