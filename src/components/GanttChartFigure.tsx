@@ -1090,7 +1090,7 @@ export function GanttChartFigure({
                             <span
                               style={{
                                 position: 'absolute',
-                                top: yOfWpBand,
+                                top: yOfRow(m.rowIdx),
                                 left: m.hexLeft,
                                 transform: 'translateY(-50%)',
                                 width: m.shapeW,
