@@ -540,10 +540,10 @@ export function PanelEvaluator({ proposalId }: Props) {
           (costHistory.filter((h) => h.payload_tokens).reduce((s, h) => s + (h.payload_tokens || 0), 0) /
             Math.max(1, costHistory.filter((h) => h.payload_tokens).length)) || 50000,
         );
-      const cacheWrite = payload;
-      const cacheRead = payload * (K - 1);
+      const cacheWrite = payload * K * 2; // each evaluator writes its own prefix (proposal + persona + instructions ≈ 2× payload)
+      const cacheRead = 0; // observed pattern: little/no cross-evaluator cache reuse
       const uncached = 600 * K; // per-call instruction overhead
-      const output = 3000 * K; // ~3k tokens per evaluator/synthesis
+      const output = 3000 * K; // ~3k tokens per evaluator/synthesis call
       const usd =
         (uncached * p.in + cacheRead * p.in * 0.1 + cacheWrite * p.in * 1.25 + output * p.out) /
         1_000_000;
