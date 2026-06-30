@@ -230,6 +230,7 @@ function MCell({
   style,
   children,
   colSpan,
+  padX,
 }: {
   index: number;
   last: number;
@@ -237,11 +238,14 @@ function MCell({
   style?: React.CSSProperties;
   children?: React.ReactNode;
   colSpan?: number;
+  /** Optional override for horizontal padding classes (e.g. 'px-0'). When set, replaces the default first/last-column padding logic. */
+  padX?: string;
 }) {
   const pl = index === 0 ? 'pl-0' : 'pl-2';
   const pr = index === last ? 'pr-0' : 'pr-2';
+  const padClass = padX ?? `${pl} ${pr}`;
   return (
-    <td colSpan={colSpan} className={`${cellBase} ${pl} ${pr} ${className}`} style={style}>
+    <td colSpan={colSpan} className={`${cellBase} ${padClass} ${className}`} style={style}>
       {children}
     </td>
   );
