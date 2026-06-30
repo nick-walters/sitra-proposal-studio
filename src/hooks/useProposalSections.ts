@@ -381,104 +381,84 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
   // Subscribe to realtime updates for WP drafts and invalidate react-query cache
   useEffect(() => {
     if (!proposalId) return;
-
-    const channel = supabase
-      .channel(`wp-drafts-nav-${proposalId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'wp_drafts',
-          filter: `proposal_id=eq.${proposalId}`,
-        },
-        () => {
-          // Invalidate react-query cache to trigger refetch
-          queryClient.invalidateQueries({ queryKey: ['wp-drafts', proposalId] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    const suffix = channelSuffixRef.current;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    try {
+      channel = supabase
+        .channel(`wp-drafts-nav-${proposalId}-${suffix}`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'wp_drafts', filter: `proposal_id=eq.${proposalId}` },
+          () => queryClient.invalidateQueries({ queryKey: ['wp-drafts', proposalId] }),
+        )
+        .subscribe();
+    } catch (e) {
+      console.error('[useProposalSections] wp-drafts realtime subscribe failed', e);
+    }
+    return () => { if (channel) supabase.removeChannel(channel); };
   }, [proposalId, queryClient]);
 
   // Subscribe to realtime updates for themes
   useEffect(() => {
     if (!proposalId) return;
-
-    const channel = supabase
-      .channel(`wp-themes-nav-${proposalId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'wp_themes',
-          filter: `proposal_id=eq.${proposalId}`,
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['wp-themes', proposalId] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    const suffix = channelSuffixRef.current;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    try {
+      channel = supabase
+        .channel(`wp-themes-nav-${proposalId}-${suffix}`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'wp_themes', filter: `proposal_id=eq.${proposalId}` },
+          () => queryClient.invalidateQueries({ queryKey: ['wp-themes', proposalId] }),
+        )
+        .subscribe();
+    } catch (e) {
+      console.error('[useProposalSections] wp-themes realtime subscribe failed', e);
+    }
+    return () => { if (channel) supabase.removeChannel(channel); };
   }, [proposalId, queryClient]);
 
   // Subscribe to realtime updates for proposal use_wp_themes flag
   useEffect(() => {
     if (!proposalId) return;
-
-    const channel = supabase
-      .channel(`proposal-themes-flag-${proposalId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'proposals',
-          filter: `id=eq.${proposalId}`,
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['proposal-themes-flag', proposalId] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    const suffix = channelSuffixRef.current;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    try {
+      channel = supabase
+        .channel(`proposal-themes-flag-${proposalId}-${suffix}`)
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'proposals', filter: `id=eq.${proposalId}` },
+          () => queryClient.invalidateQueries({ queryKey: ['proposal-themes-flag', proposalId] }),
+        )
+        .subscribe();
+    } catch (e) {
+      console.error('[useProposalSections] proposal-themes-flag realtime subscribe failed', e);
+    }
+    return () => { if (channel) supabase.removeChannel(channel); };
   }, [proposalId, queryClient]);
 
   // Subscribe to realtime updates for Case drafts
   useEffect(() => {
     if (!proposalId) return;
-
-    const channel = supabase
-      .channel(`case-drafts-nav-${proposalId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'case_drafts',
-          filter: `proposal_id=eq.${proposalId}`,
-        },
-        () => {
-          // Invalidate react-query cache to trigger refetch
-          queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
-          queryClient.invalidateQueries({ queryKey: ['case-drafts-management', proposalId] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    const suffix = channelSuffixRef.current;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    try {
+      channel = supabase
+        .channel(`case-drafts-nav-${proposalId}-${suffix}`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'case_drafts', filter: `proposal_id=eq.${proposalId}` },
+          () => {
+            queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
+            queryClient.invalidateQueries({ queryKey: ['case-drafts-management', proposalId] });
+          },
+        )
+        .subscribe();
+    } catch (e) {
+      console.error('[useProposalSections] case-drafts realtime subscribe failed', e);
+    }
+    return () => { if (channel) supabase.removeChannel(channel); };
   }, [proposalId, queryClient]);
 
   // Return either template sections or fallback to hardcoded sections
