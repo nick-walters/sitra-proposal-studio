@@ -294,31 +294,43 @@ export function PanelEvaluator({ proposalId }: Props) {
     await refreshHistory();
   };
 
-  const startPolling = (evaluationId: string) => {
+  const startPolling = (evaluationId: string, startedAtIso?: string | null) => {
     stopPolling();
     setRunningEvaluationId(evaluationId);
     setRunningStatus("queued");
     setRunningMessage("Queued for evaluator run");
     setStage("stageB");
+    // Elapsed-time ticker (1s)
+    if (startedAtIso) setRunStartedAt(startedAtIso);
+    setNowTick(Date.now());
+    tickIntervalRef.current = setInterval(() => setNowTick(Date.now()), 1000);
+
     pollIntervalRef.current = setInterval(async () => {
-      if (typeof window !== "undefined" && (window as any).__skipEvalPolling) {
-        console.warn("[PanelEvaluator] polling skipped (window.__skipEvalPolling=true)");
-        return;
-      }
       const { data } = await supabase
         .from("proposal_analyses")
-        .select("status, error_message, analysis_data")
+        .select("status, error_message, analysis_data, created_at")
         .eq("id", evaluationId)
         .single();
       if (!data) return;
-
 
       const status = data.status || "queued";
       const analysisData = (data.analysis_data ?? {}) as Record<string, any>;
       const progressMessage = analysisData.progress_message || "";
       setRunningStatus(status);
       setRunningMessage(progressMessage);
+      if (!runStartedAt && (data as any).created_at) {
+        setRunStartedAt((data as any).created_at);
+      }
 
+      if (status === "cancelled") {
+        stopPolling();
+        setRunningEvaluationId(null);
+        setRunningStatus("cancelled");
+        setRunningMessage("Cancelled");
+        toast.info("Evaluation cancelled");
+        setStage("idle");
+        return;
+      }
 
       if (status === "queued" || status === "running" || status === "processing") {
         const { error } = await supabase.functions.invoke("run-panel-evaluation", {
@@ -355,6 +367,7 @@ export function PanelEvaluator({ proposalId }: Props) {
         setRunningEvaluationId(null);
         setRunningStatus(null);
         setRunningMessage("");
+        setRunStartedAt(null);
         toast.success("Evaluation complete");
         await refreshHistory();
         setStage("complete");
@@ -363,11 +376,33 @@ export function PanelEvaluator({ proposalId }: Props) {
         setRunningEvaluationId(null);
         setRunningStatus(null);
         setRunningMessage("");
+        setRunStartedAt(null);
         toast.error(`Evaluation failed: ${data.error_message || "unknown error"}`);
         setStage("idle");
       }
     }, 10_000);
   };
+
+  async function cancelRun() {
+    if (!runningEvaluationId) return;
+    const id = runningEvaluationId;
+    try {
+      const { error } = await supabase.functions.invoke("run-panel-evaluation", {
+        body: { action: "cancel", evaluationId: id },
+      });
+      if (error) throw error;
+      stopPolling();
+      setRunningEvaluationId(null);
+      setRunningStatus("cancelled");
+      setRunningMessage("Cancelled");
+      setRunStartedAt(null);
+      setStage("idle");
+      toast.info("Cancellation sent. No further evaluator calls will fire.");
+    } catch (e: any) {
+      toast.error(`Cancel failed: ${e.message || e}`);
+    }
+  }
+
 
   // Load proposal + instruments + history on mount; resume polling if a run is in progress
   useEffect(() => {
