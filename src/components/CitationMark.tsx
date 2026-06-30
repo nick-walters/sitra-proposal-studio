@@ -113,6 +113,8 @@ export const AdjacentCitationComma = Extension.create({
 // Inserts a non-editable superscript comma between two citations that sit
 // immediately next to each other in the document (no characters between).
 function createAdjacentCitationCommaPlugin() {
+  const pluginKey = new PluginKey<DecorationSet>('adjacentCitationComma');
+
   const isCitationChild = (child: any) => {
     if (!child) return false;
     if (child.type?.name === 'citation') return true;
@@ -161,14 +163,14 @@ function createAdjacentCitationCommaPlugin() {
   };
 
   return new Plugin({
-    key: new PluginKey('adjacentCitationComma'),
+    key: pluginKey,
     state: {
       init: (_, state) => build(state.doc),
       apply: (tr, old) => (tr.docChanged ? build(tr.doc) : old),
     },
     props: {
       decorations(state) {
-        return this.getState(state);
+        return pluginKey.getState(state) ?? DecorationSet.empty;
       },
     },
   });
