@@ -49,10 +49,14 @@ export function useB31CostPresence(proposalId: string): B31CostPresence {
         pmTotals.set(e.participant_id, (pmTotals.get(e.participant_id) || 0) + Number(e.person_months || 0));
       });
 
-      const has = (cat: string) =>
+      // A category is "present" if any participant has either an itemised entry OR a top-level column total > 0.
+      const colTotal = (col: string) =>
+        (rows || []).some((r: any) => Number(r[col] || 0) > 0);
+      const hasItem = (cat: string) =>
         items.some((i: any) => i.category === cat && Number(i.amount || 0) > 0);
+      const has = (cat: string, col: string) => hasItem(cat) || colTotal(col);
 
-      // Equipment threshold logic per participant
+      // Equipment threshold logic per participant. Use itemised total when present, else column total.
       let equipmentAboveThreshold = false;
       let equipmentBelowThreshold = false;
       for (const r of rows || []) {
@@ -60,8 +64,9 @@ export function useB31CostPresence(proposalId: string): B31CostPresence {
         const equipItems = items.filter(
           (i: any) => i.budget_row_id === row.id && i.category === 'equipment',
         );
-        const totalEquip = equipItems.reduce((s: number, i: any) => s + Number(i.amount || 0), 0);
-        if (totalEquip <= 0 || equipItems.length === 0) continue;
+        const itemTotal = equipItems.reduce((s: number, i: any) => s + Number(i.amount || 0), 0);
+        const totalEquip = itemTotal > 0 ? itemTotal : Number(row.purchase_equipment || 0);
+        if (totalEquip <= 0) continue;
         const pmRate = row.pm_rate != null ? Number(row.pm_rate) : 0;
         const totalPM = pmTotals.get(row.participant_id) || 0;
         const personnel = pmRate > 0 ? Math.round(pmRate * totalPM) : Number(row.personnel_costs) || 0;
@@ -73,14 +78,15 @@ export function useB31CostPresence(proposalId: string): B31CostPresence {
       }
 
       return {
-        subcontracting: has('subcontracting'),
-        travel: has('travel'),
-        equipment: has('equipment'),
+        subcontracting: has('subcontracting', 'subcontracting_costs'),
+        travel: has('travel', 'purchase_travel'),
+        equipment: has('equipment', 'purchase_equipment'),
         equipmentAboveThreshold,
         equipmentBelowThreshold,
-        otherGoods: has('other_goods'),
-        fstp: has('fstp'),
-        internallyInvoiced: has('internally_invoiced'),
+        otherGoods: has('other_goods', 'purchase_other_goods'),
+        fstp: has('fstp', 'financial_support_third_parties'),
+        internallyInvoiced: has('internally_invoiced', 'internally_invoiced'),
+
       };
     },
   });
