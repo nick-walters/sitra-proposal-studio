@@ -1011,25 +1011,14 @@ export function GanttChartFigure({
                     </svg>
 
 
-                    {/* Badges */}
+                    {/* Deliverable chevrons (shape never changes — only position/connector) */}
                     {laidOut.map((b) => {
-                      const isMs = b.kind === 'ms';
-                      const isDel = !isMs;
                       const ty = yOfRow(b.rowIdx);
                       const shapeW = b.shapeW;
                       const shapeH = b.shapeH;
-                      let svgPath: string;
-                      if (isMs) {
-                        const x1 = shapeW * 0.12;
-                        const x2 = shapeW * 0.88;
-                        svgPath = `M ${x1},0 L ${x2},0 L ${shapeW},${shapeH / 2} L ${x2},${shapeH} L ${x1},${shapeH} L 0,${shapeH / 2} Z`;
-                      } else if (b.flipped) {
-                        // Deliverable flipped: left-pointing chevron (tip on left edge)
-                        svgPath = `M ${b.pointDepth},0 L ${shapeW},0 L ${shapeW},${shapeH} L ${b.pointDepth},${shapeH} L 0,${shapeH / 2} Z`;
-                      } else {
-                        // Deliverable: right-pointing chevron (tip on the right edge)
-                        svgPath = `M 0,0 L ${shapeW - b.pointDepth},0 L ${shapeW},${shapeH / 2} L ${shapeW - b.pointDepth},${shapeH} L 0,${shapeH} Z`;
-                      }
+                      const svgPath = b.flipped
+                        ? `M ${b.pointDepth},0 L ${shapeW},0 L ${shapeW},${shapeH} L ${b.pointDepth},${shapeH} L 0,${shapeH / 2} Z`
+                        : `M 0,0 L ${shapeW - b.pointDepth},0 L ${shapeW},${shapeH / 2} L ${shapeW - b.pointDepth},${shapeH} L 0,${shapeH} Z`;
                       return (
                         <Tooltip key={b.key}>
                           <TooltipTrigger asChild>
@@ -1053,18 +1042,18 @@ export function GanttChartFigure({
                               >
                                 <path
                                   d={svgPath}
-                                  fill={isMs ? '#000000' : '#ffffff'}
-                                  stroke={isMs ? 'none' : b.color}
-                                  strokeWidth={isMs ? 0 : 1.5}
-                                  strokeLinejoin={isMs ? 'miter' : 'round'}
+                                  fill="#ffffff"
+                                  stroke={b.color}
+                                  strokeWidth={1.5}
+                                  strokeLinejoin="round"
                                 />
                               </svg>
                               <span
                                 style={{
                                   position: 'absolute',
-                                  top: isMs ? 0 : 0.166,
-                                  left: isMs ? 0 : (b.flipped ? b.pointDepth : 0),
-                                  width: isMs ? shapeW : b.bodyW,
+                                  top: 0.166,
+                                  left: b.flipped ? b.pointDepth : 0,
+                                  width: b.bodyW,
                                   height: shapeH,
                                   display: 'flex',
                                   alignItems: 'center',
@@ -1073,9 +1062,8 @@ export function GanttChartFigure({
                                   fontSize: '8pt',
                                   fontWeight: 700,
                                   lineHeight: 1,
-                                  color: isMs ? '#ffffff' : b.color,
+                                  color: b.color,
                                   whiteSpace: 'nowrap',
-                                  padding: isMs ? '0 4px' : undefined,
                                   boxSizing: 'border-box',
                                 }}
                               >
