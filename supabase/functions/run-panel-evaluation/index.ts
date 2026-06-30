@@ -859,12 +859,13 @@ async function runSynthesisPhase(serviceClient: any, evaluationId: string) {
   const totalThresholdSuffix =
     totalThreshold !== null ? ` (threshold: ${totalThreshold} / ${maxPoints})` : "";
 
-  const evaluationModel = synthesisContext.evaluation_model || configMap.evaluation_model || "claude-opus-4-8";
-  const synthesisModel = configMap.synthesis_model || evaluationModel;
-  const opusInPrice = parseFloat(configMap.opus_price_input_per_mtok || "15.00");
-  const opusOutPrice = parseFloat(configMap.opus_price_output_per_mtok || "75.00");
+  const modelOverride = typeof baseAnalysisData.model_override === "string" ? baseAnalysisData.model_override : null;
+  const evaluationModel = modelOverride || synthesisContext.evaluation_model || configMap.evaluation_model || "claude-sonnet-5";
+  const synthesisModel = modelOverride || configMap.synthesis_model || evaluationModel;
+  const { inPrice: opusInPrice, outPrice: opusOutPrice } = resolveModelPricing(evaluationModel, configMap);
   const cacheReadMul = parseFloat(configMap.cache_read_multiplier || "0.10");
   const cacheWriteMul = parseFloat(configMap.cache_write_multiplier || "1.25");
+
   const usdEurRate = await fetchUsdEurRate(serviceClient);
 
   const topicSpecificContext = (proposal.evaluation_criteria_notes || "").trim()
