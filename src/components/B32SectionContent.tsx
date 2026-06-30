@@ -1,15 +1,22 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { EditableCaption } from '@/components/EditableCaption';
 import { ParticipantBubble } from './B31Pill';
 import { Check } from 'lucide-react';
+import { useProposalRole } from '@/hooks/useProposalRole';
 
 interface Props {
   proposalId: string;
 }
 
 const tableFont = "font-['Times_New_Roman',Times,serif] text-[11pt]";
+
+// 1cm cap (~37.8px) for every check column.
+const ONE_CM_PX = 38;
+const ROTATED_COL_MIN_PX = 22;
+// Vertical gap between the rotated badge top and the header bottom border.
+const HEADER_BOTTOM_GAP_PX = 8;
 
 type Row = { id: string; label: string; order_index: number };
 type Col = {
@@ -28,6 +35,8 @@ type Participant = {
 
 export function B32SectionContent({ proposalId }: Props) {
   const qc = useQueryClient();
+  const { roleTier } = useProposalRole(proposalId);
+  const canResize = roleTier === 'coordinator';
 
   const enabledQ = useQuery({
     queryKey: ['expertise-matrix-mirror-enabled', proposalId],
@@ -35,17 +44,20 @@ export function B32SectionContent({ proposalId }: Props) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('proposals')
-        .select('expertise_matrix_enabled')
+        .select('expertise_matrix_enabled,expertise_matrix_header_height')
         .eq('id', proposalId)
         .maybeSingle();
       if (error) throw error;
-      return (data?.expertise_matrix_enabled ?? true) as boolean;
+      return {
+        enabled: (data?.expertise_matrix_enabled ?? true) as boolean,
+        headerHeight: (data?.expertise_matrix_header_height ?? null) as number | null,
+      };
     },
   });
 
   const dataQ = useQuery({
     queryKey: ['expertise-matrix-mirror', proposalId],
-    enabled: !!proposalId && enabledQ.data === true,
+    enabled: !!proposalId && enabledQ.data?.enabled === true,
     queryFn: async () => {
       const [rowsR, colsR, cellsR, partsR] = await Promise.all([
         supabase
@@ -93,7 +105,14 @@ export function B32SectionContent({ proposalId }: Props) {
     return () => window.removeEventListener('cross-ref-data-changed', handler);
   }, [qc, proposalId]);
 
-  if (enabledQ.data === false) return null;
+  // Persisted header-row height (null = auto).
+  const persistedHeight = enabledQ.data?.headerHeight ?? null;
+  const [overrideHeight, setOverrideHeight] = useState<number | null>(null);
+  useEffect(() => { setOverrideHeight(persistedHeight); }, [persistedHeight]);
+
+  const dragStateRef = useRef<{ startY: number; startH: number; min: number; max: number } | null>(null);
+
+  if (enabledQ.data?.enabled === false) return null;
   if (!dataQ.data) return null;
 
   const { rows, cols, cells, participants } = dataQ.data;
@@ -112,40 +131,98 @@ export function B32SectionContent({ proposalId }: Props) {
   const cellMap = new Map<string, boolean>();
   for (const c of cells) cellMap.set(`${c.row_id}::${c.column_id}`, c.checked);
 
-  // Heuristic content lengths for the rotated headers (px when rendered horizontally,
-  // which becomes the column's vertical clearance after a -90° rotation).
+  // Rotated header content lengths in px (becomes vertical clearance after rotation).
   const headerContentPx = orderedCols.map((c) => {
     if (c.kind === 'participant') {
       const p = c.participant_id ? partById.get(c.participant_id) : undefined;
       const label = `${p?.participant_number ?? ''}. ${p?.organisation_short_name ?? ''}`;
-      // 11pt Times bold ≈ 7.5px/char + 16px pill chrome.
       return Math.ceil(label.length * 7.5) + 16;
     }
-    // Custom header: 10pt regular ≈ 6px/char, allow some min.
     const t = (c.header_text || '').trim();
     return Math.max(28, Math.ceil(t.length * 6) + 8);
   });
 
-  // Header row height = tallest rotated header (its horizontal length) + breathing room.
-  const headerRowHeightPx = (headerContentPx.length ? Math.max(...headerContentPx) : 24) + 8;
+  // Min header height = tallest badge + gap above border.
+  const autoHeaderHeightPx =
+    (headerContentPx.length ? Math.max(...headerContentPx) : 24) + HEADER_BOTTOM_GAP_PX;
+  const minHeaderHeightPx = autoHeaderHeightPx;
+  const maxHeaderHeightPx = 480;
+  const effectiveHeaderHeightPx = Math.max(
+    minHeaderHeightPx,
+    Math.min(maxHeaderHeightPx, overrideHeight ?? autoHeaderHeightPx),
+  );
 
-  // Rotated badge thickness defines the natural column width.
-  // Participant pill: ~17px tall + chrome → 22px. Custom text: ~16px tall.
-  const ROTATED_COL_MIN_PX = 22;
-
-  // Expertise column: size to its widest label (≈ 6.5px/char, 11pt Times regular).
-  const maxExpertiseChars = rows.reduce((m, r) => Math.max(m, (r.label || '').length), 'Expertise'.length);
+  // Expertise column width: ≈ 6.5px/char (11pt Times regular), clamped.
+  const maxExpertiseChars = rows.reduce(
+    (m, r) => Math.max(m, (r.label || '').length),
+    'Expertise'.length,
+  );
   const expertiseColPx = Math.min(420, Math.max(80, Math.ceil(maxExpertiseChars * 6.5) + 16));
 
   // Width division logic:
-  // Container assumed 18cm ≈ 680px. After expertise, share remainder equally among check cols.
-  // Each check col gets max(ROTATED_COL_MIN_PX, equalShare). If any single col needs more than its
-  // share (it doesn't here — min is fixed), it would take its min and the rest re-divide leftover.
+  //  - Every check column capped at ONE_CM_PX (1cm), min ROTATED_COL_MIN_PX.
+  //  - If no expertise label needs wrapping, table shrinks to its content
+  //    (no full-bleed). Otherwise stretch to 100% so labels wrap nicely.
   const ASSUMED_CONTAINER_PX = 680;
   const numChecks = orderedCols.length;
-  const remainingPx = Math.max(numChecks * ROTATED_COL_MIN_PX, ASSUMED_CONTAINER_PX - expertiseColPx);
-  const equalShare = numChecks > 0 ? Math.floor(remainingPx / numChecks) : 0;
-  const checkColWidthPx = Math.max(ROTATED_COL_MIN_PX, equalShare);
+  const PX_PER_EXPERTISE_CHAR = 6.5;
+  const expertiseContentNeedsPx = (label: string) =>
+    Math.ceil(label.length * PX_PER_EXPERTISE_CHAR) + 16;
+  const anyExpertiseWraps = rows.some(
+    (r) => expertiseContentNeedsPx(r.label || '') > expertiseColPx,
+  );
+
+  const checkColWidthPx = Math.max(
+    ROTATED_COL_MIN_PX,
+    Math.min(
+      ONE_CM_PX,
+      numChecks > 0
+        ? Math.floor((ASSUMED_CONTAINER_PX - expertiseColPx) / numChecks)
+        : ONE_CM_PX,
+    ),
+  );
+
+  const contentWidthPx = expertiseColPx + numChecks * checkColWidthPx;
+  const tableWidthStyle: React.CSSProperties = anyExpertiseWraps
+    ? { width: '100%' }
+    : { width: `${contentWidthPx}px` };
+
+  const onResizeMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    dragStateRef.current = {
+      startY: e.clientY,
+      startH: effectiveHeaderHeightPx,
+      min: minHeaderHeightPx,
+      max: maxHeaderHeightPx,
+    };
+    const onMove = (ev: MouseEvent) => {
+      const st = dragStateRef.current;
+      if (!st) return;
+      const next = Math.max(st.min, Math.min(st.max, st.startH + (ev.clientY - st.startY)));
+      setOverrideHeight(next);
+    };
+    const onUp = async () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      const finalH = dragStateRef.current ? null : null;
+      dragStateRef.current = null;
+      const persistVal = overrideHeight;
+      // Persist current state value (read fresh from React in next tick).
+      setOverrideHeight((cur) => {
+        (async () => {
+          await supabase
+            .from('proposals')
+            .update({ expertise_matrix_header_height: cur })
+            .eq('id', proposalId);
+          qc.invalidateQueries({ queryKey: ['expertise-matrix-mirror-enabled', proposalId] });
+        })();
+        return cur;
+      });
+      void finalH; void persistVal;
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
 
   return (
     <div className="b31-tables-container space-y-1 [&_p]:!my-0 mt-[2px]">
@@ -157,7 +234,7 @@ export function B32SectionContent({ proposalId }: Props) {
       />
       <table
         className={`platform-table platform-table--tight ${tableFont}`}
-        style={{ tableLayout: 'fixed', width: '100%', borderCollapse: 'collapse' }}
+        style={{ tableLayout: 'fixed', borderCollapse: 'collapse', ...tableWidthStyle }}
       >
         <colgroup>
           <col style={{ width: `${expertiseColPx}px` }} />
@@ -166,33 +243,51 @@ export function B32SectionContent({ proposalId }: Props) {
           ))}
         </colgroup>
         <thead>
-          <tr style={{ height: `${headerRowHeightPx}px` }}>
-            <th className="cell-pl-0 py-0 text-[10pt] text-left align-bottom">Expertise</th>
+          <tr style={{ height: `${effectiveHeaderHeightPx}px` }}>
+            <th
+              className="cell-pl-0 py-0 text-[10pt] text-left align-bottom"
+              style={{ position: 'relative' }}
+            >
+              <span>Expertise</span>
+              {canResize && (
+                <div
+                  onMouseDown={onResizeMouseDown}
+                  title="Drag to resize header height"
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    right: 0,
+                    bottom: -3,
+                    height: 6,
+                    cursor: 'row-resize',
+                    zIndex: 5,
+                  }}
+                />
+              )}
+            </th>
             {orderedCols.map((c, idx) => {
               const contentPx = headerContentPx[idx];
               return (
                 <th
                   key={c.id}
                   className="cell-p0 align-bottom"
-                  style={{ height: `${headerRowHeightPx}px`, padding: 0, verticalAlign: 'bottom' }}
+                  style={{ height: `${effectiveHeaderHeightPx}px`, padding: 0, verticalAlign: 'bottom' }}
                 >
                   <div
                     style={{
                       position: 'relative',
                       width: '100%',
-                      height: `${headerRowHeightPx}px`,
+                      height: `${effectiveHeaderHeightPx}px`,
                     }}
                   >
                     <div
                       style={{
                         position: 'absolute',
-                        bottom: 4,
+                        bottom: HEADER_BOTTOM_GAP_PX,
                         left: '50%',
                         transform: 'translateX(-50%) rotate(-90deg)',
                         transformOrigin: 'center center',
                         whiteSpace: 'nowrap',
-                        // After rotation, this element's visual height = its width.
-                        // Reserve content width so the rotated element stays inside the row.
                         width: `${contentPx}px`,
                         textAlign: 'center',
                       }}
