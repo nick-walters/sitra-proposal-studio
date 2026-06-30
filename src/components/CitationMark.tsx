@@ -96,7 +96,12 @@ export const CitationNode = Node.create({
       };
     };
   },
+  addProseMirrorPlugins() {
+    return [createCitationAdjacencyPlugin()];
+  },
+
 });
+
 
 export const CitationMark = Mark.create<CitationMarkOptions>({
   name: 'citationMark',
