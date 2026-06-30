@@ -505,7 +505,26 @@ export function PanelEvaluator({ proposalId }: Props) {
   const validPanelSize = selectedCount >= 3 && selectedCount <= 10;
   const recommendedIds = new Set(proposedPanel.map((p) => p.id));
 
+  // Per-model cost estimate. The historical evaluation_cost_log is logged at
+  // whatever Anthropic prices were in force at the time (the old Opus default
+  // was $15 in / $75 out per MTok = $90 combined). Scale the rolling-avg by
+  // each model's combined per-MTok rate vs that old Opus baseline. Sonnet
+  // intro ($2/$10) auto-switches to standard ($3/$15) on 2026-09-01.
+  const modelCostEstimate = useMemo(() => {
+    const OLD_OPUS_COMBINED = 15 + 75; // baseline used historically in cost_log
+    const NEW_OPUS_COMBINED = 5 + 25;  // $5 in + $25 out
+    const sonnetStandardActive = Date.now() >= new Date("2026-09-01T00:00:00Z").getTime();
+    const SONNET_COMBINED = sonnetStandardActive ? 3 + 15 : 2 + 10;
+    const base = Math.max(0.01, costAvg.eur);
+    return {
+      sonnet: base * (SONNET_COMBINED / OLD_OPUS_COMBINED),
+      opus: base * (NEW_OPUS_COMBINED / OLD_OPUS_COMBINED),
+      sonnetStandardActive,
+    };
+  }, [costAvg]);
+
   async function startEvaluation() {
+
     setStage("stageA");
     setStageAStatus("Reading proposal content...");
     try {
