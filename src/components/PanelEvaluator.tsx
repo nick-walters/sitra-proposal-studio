@@ -818,54 +818,27 @@ export function PanelEvaluator({ proposalId }: Props) {
       {isCoordinator && (
       <Card>
         <CardContent className="pt-6 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label>Instrument type</Label>
-              <Select
-                value={instrumentCode}
-                onValueChange={setInstrumentCode}
-                disabled={stage !== "idle"}
-              >
-                <SelectTrigger><SelectValue placeholder="Select instrument" /></SelectTrigger>
-                <SelectContent>
-                  {instruments.map((i) => (
-                    <SelectItem key={i.id} value={i.code}>{i.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div>
+              <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Instrument</div>
+              <div className="font-medium">
+                {instruments.find((i) => i.code === instrumentCode)?.name || instrumentCode || "—"}
+              </div>
             </div>
-
             {proposalStage !== "stage1" && (
-              <div className="space-y-2">
-                <Label>Budget type</Label>
-                <Select
-                  value={budgetType}
-                  onValueChange={(v) => setBudgetType(v as "traditional" | "lump_sum")}
-                  disabled={stage !== "idle"}
-                >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="traditional">Actual cost</SelectItem>
-                    <SelectItem value="lump_sum">Lump sum</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div>
+                <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Budget type</div>
+                <div className="font-medium">
+                  {budgetType === "lump_sum" ? "Lump sum" : "Actual cost"}
+                </div>
               </div>
             )}
-
             {showStage && (
-              <div className="space-y-2">
-                <Label>Stage</Label>
-                <Select
-                  value={proposalStage}
-                  onValueChange={(v) => setProposalStage(v as "full" | "stage1")}
-                  disabled={stage !== "idle"}
-                >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="full">Full proposal</SelectItem>
-                    <SelectItem value="stage1">Stage 1 of 2</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div>
+                <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Stage</div>
+                <div className="font-medium">
+                  {proposalStage === "stage1" ? "Stage 1 of 2" : "Full proposal"}
+                </div>
               </div>
             )}
           </div>
@@ -887,17 +860,33 @@ export function PanelEvaluator({ proposalId }: Props) {
             <Alert>
               <Loader2 className="h-4 w-4 animate-spin" />
               <AlertDescription>
-                {runningStatus === "synthesizing"
-                  ? "Synthesizing the ESR from evaluator reports. This typically takes a few minutes."
-                  : runningStatus === "processing"
-                  ? "Evaluator agents are reviewing the proposal. This typically takes 4–8 minutes."
-                  : "Evaluation running in the background. This typically takes 4–8 minutes."}
-                <div className="text-xs mt-1 text-muted-foreground">
-                  {runningMessage || "You can leave this page and return — the result will be saved automatically."}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    {runningStatus === "synthesizing"
+                      ? "Synthesizing the ESR from evaluator reports. This typically takes a few minutes."
+                      : runningStatus === "processing"
+                      ? "Evaluator agents are reviewing the proposal. This typically takes 4–8 minutes."
+                      : "Evaluation running in the background. This typically takes 4–8 minutes."}
+                    <div className="text-xs mt-1 text-muted-foreground">
+                      {runningMessage || "You can leave this page and return — the result will be saved automatically."}
+                      {runStartedAt && (
+                        <span className="ml-2 font-mono">· elapsed {formatElapsed(runStartedAt, nowTick)}</span>
+                      )}
+                    </div>
+                  </div>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={cancelRun}
+                    disabled={!runningEvaluationId}
+                  >
+                    Cancel
+                  </Button>
                 </div>
               </AlertDescription>
             </Alert>
           )}
+
         </CardContent>
       </Card>
       )}
