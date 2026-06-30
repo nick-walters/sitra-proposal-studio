@@ -165,15 +165,6 @@ const THEMATIC_AREAS = [
   "Health & Wellbeing",
 ];
 
-const FALLBACK_COSTS: Record<string, number> = {
-  "ria-full-traditional": 2.5,
-  "ria-full-lump_sum": 2.7,
-  "ia-full-traditional": 2.5,
-  "ia-full-lump_sum": 2.7,
-  "csa-full-traditional": 2.0,
-  "csa-full-lump_sum": 2.15,
-  "any-stage1": 1.3,
-};
 
 function StatusIcon({ status }: { status: string }) {
   if (status === "pass") return <CheckCircle2 className="h-4 w-4 text-emerald-600" />;
