@@ -762,6 +762,93 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
 }
 
 
+// ── Sortable row for the risks table (drag-handle in first cell) ──
+function SortableRiskRow({
+  risk, wps, canEdit, onUpdate, onSetWps, onDelete,
+}: {
+  risk: Risk;
+  wps: WPRow[];
+  canEdit: boolean;
+  onUpdate: (patch: Partial<Risk>) => void;
+  onSetWps: (ids: string[]) => void;
+  onDelete: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: risk.id,
+    disabled: !canEdit,
+  });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+  return (
+    <tr ref={setNodeRef} style={style} className="group border-b align-top">
+      <td className="py-1.5 px-0 text-center" style={{ width: '26px' }}>
+        {canEdit && (
+          <button
+            type="button"
+            className="cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center justify-center"
+            {...attributes}
+            {...listeners}
+            aria-label="Drag to reorder"
+          >
+            <GripVertical className="h-4 w-4 text-[#2563EB]" />
+          </button>
+        )}
+      </td>
+      <td className="py-1.5 px-1">
+        <AutoTextarea
+          value={risk.title || ''}
+          disabled={!canEdit}
+          placeholder="Risk description"
+          onChange={(e) => onUpdate({ title: e.target.value })}
+        />
+      </td>
+      <td className="py-1.5 px-1 text-center">
+        <RiskLevelSelect
+          value={(risk.likelihood as 'L' | 'M' | 'H' | null) || null}
+          disabled={!canEdit}
+          onChange={(v) => onUpdate({ likelihood: v })}
+        />
+      </td>
+      <td className="py-1.5 px-1 text-center">
+        <RiskLevelSelect
+          value={(risk.severity as 'L' | 'M' | 'H' | null) || null}
+          disabled={!canEdit}
+          onChange={(v) => onUpdate({ severity: v })}
+        />
+      </td>
+      <td className="py-1.5 px-1">
+        <WPMultiSelect
+          allWps={wps}
+          selectedIds={risk.wp_ids}
+          disabled={!canEdit}
+          onChange={onSetWps}
+        />
+      </td>
+      <td className="py-1.5 px-1">
+        <AutoTextarea
+          value={risk.mitigation || ''}
+          disabled={!canEdit}
+          placeholder="Mitigation & adaptation measures"
+          onChange={(e) => onUpdate({ mitigation: e.target.value })}
+        />
+      </td>
+      <td className="py-1.5 px-0 text-center">
+        <Button
+          size="icon" variant="ghost" className="h-7 w-7 text-red-600 hover:text-red-700"
+          disabled={!canEdit}
+          onClick={onDelete}
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </td>
+    </tr>
+  );
+}
+
+
 // ── L/M/H badge dropdown (uses the same RiskBadge as Table 3.1.e) ──
 function RiskLevelSelect({
   value, onChange, disabled,
