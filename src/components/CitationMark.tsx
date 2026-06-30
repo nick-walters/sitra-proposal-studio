@@ -1,4 +1,4 @@
-import { Mark, Node, mergeAttributes } from '@tiptap/core';
+import { Extension, Mark, Node, mergeAttributes } from '@tiptap/core';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import DOMPurify from 'dompurify';
@@ -97,6 +97,14 @@ export const CitationNode = Node.create({
     };
   },
 
+});
+
+// Standalone extension hosting the adjacent-citation-comma plugin.
+// Kept separate from CitationNode so its plugin doesn't get coupled to the
+// atom node's nodeView lifecycle (which caused stale-extension HMR loads
+// where the editor needed a hard refresh to mount).
+export const AdjacentCitationComma = Extension.create({
+  name: 'adjacentCitationComma',
   addProseMirrorPlugins() {
     return [createAdjacentCitationCommaPlugin()];
   },
@@ -105,40 +113,50 @@ export const CitationNode = Node.create({
 // Inserts a non-editable superscript comma between two citations that sit
 // immediately next to each other in the document (no characters between).
 function createAdjacentCitationCommaPlugin() {
-  const isCitationChild = (child: any) =>
-    child.type.name === 'citation' ||
-    (child.isText && child.marks.some((m: any) => m.type.name === 'citationMark'));
+  const isCitationChild = (child: any) => {
+    if (!child) return false;
+    if (child.type?.name === 'citation') return true;
+    if (child.isText && Array.isArray(child.marks)) {
+      return child.marks.some((m: any) => m?.type?.name === 'citationMark');
+    }
+    return false;
+  };
 
   const build = (doc: any) => {
     const decos: Decoration[] = [];
-    doc.descendants((node: any, pos: number) => {
-      if (!node.isTextblock) return;
-      let prevEnd: number | null = null;
-      node.forEach((child: any, offset: number) => {
-        const childStart = pos + 1 + offset;
-        if (isCitationChild(child)) {
-          if (prevEnd === childStart) {
-            decos.push(
-              Decoration.widget(
-                childStart,
-                () => {
-                  const sup = document.createElement('sup');
-                  sup.textContent = ',';
-                  sup.setAttribute('data-citation-comma', '');
-                  sup.setAttribute('contenteditable', 'false');
-                  (sup.style as any).userSelect = 'none';
-                  return sup;
-                },
-                { side: -1, ignoreSelection: true, key: `cc-${childStart}` }
-              )
-            );
+    try {
+      doc.descendants((node: any, pos: number) => {
+        if (!node?.isTextblock) return;
+        let prevEnd: number | null = null;
+        node.forEach((child: any, offset: number) => {
+          const childStart = pos + 1 + offset;
+          if (isCitationChild(child)) {
+            if (prevEnd === childStart) {
+              decos.push(
+                Decoration.widget(
+                  childStart,
+                  () => {
+                    const sup = document.createElement('sup');
+                    sup.textContent = ',';
+                    sup.setAttribute('data-citation-comma', '');
+                    sup.setAttribute('contenteditable', 'false');
+                    (sup.style as any).userSelect = 'none';
+                    return sup;
+                  },
+                  { side: -1, ignoreSelection: true, key: `cc-${childStart}` }
+                )
+              );
+            }
+            prevEnd = childStart + child.nodeSize;
+          } else {
+            prevEnd = null;
           }
-          prevEnd = childStart + child.nodeSize;
-        } else {
-          prevEnd = null;
-        }
+        });
       });
-    });
+    } catch (err) {
+      console.warn('[adjacentCitationComma] build failed', err);
+      return DecorationSet.empty;
+    }
     return DecorationSet.create(doc, decos);
   };
 
