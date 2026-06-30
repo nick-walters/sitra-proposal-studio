@@ -351,13 +351,22 @@ html, body {
   .document-content table td p,
   .document-content table th p,
   .document-content table td div,
-  .document-content table th div {
+  .document-content table th div,
+  .b31-tables-container table td,
+  .b31-tables-container table th,
+  .b31-tables-container table td p,
+  .b31-tables-container table th p,
+  .b31-tables-container table td div,
+  .b31-tables-container table th div {
     line-height: 1 !important;
   }
   /* Preserve badge/pill internal line-heights */
   .document-content table .wp-reference-badge,
   .document-content table .participant-reference-badge,
-  .document-content table .proposal-badge {
+  .document-content table .proposal-badge,
+  .b31-tables-container table .wp-reference-badge,
+  .b31-tables-container table .participant-reference-badge,
+  .b31-tables-container table .proposal-badge {
     line-height: inherit !important;
   }
 
