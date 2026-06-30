@@ -114,8 +114,14 @@ export function B32SectionContent({ proposalId }: Props) {
   const cellMap = new Map<string, boolean>();
   for (const c of cells) cellMap.set(`${c.row_id}::${c.column_id}`, c.checked);
 
-  const lastIdx = orderedCols.length; // expertise (0) + cols; last data col index is orderedCols.length
-  const interiorCellClass = 'cell-px-hair';
+  // Uniform check-column width: widest participant badge label "N. shortName".
+  // Bubble: 11pt Times, bold, padding 0 5px, border 1.5px → estimate ~7.5px/char + 16px chrome.
+  const maxLabelLen = partCols.reduce((m, c) => {
+    const p = c.participant_id ? partById.get(c.participant_id) : undefined;
+    const label = `${p?.participant_number ?? ''}. ${p?.organisation_short_name ?? ''}`;
+    return Math.max(m, label.length);
+  }, 0);
+  const checkColWidthPx = Math.max(36, Math.ceil(maxLabelLen * 7.5) + 16);
 
   return (
     <div className="b31-tables-container space-y-1 [&_p]:!my-0 mt-[2px]">
@@ -123,7 +129,7 @@ export function B32SectionContent({ proposalId }: Props) {
         proposalId={proposalId}
         tableKey="b32-expertise-matrix"
         label="Table 3.2.a."
-        defaultCaption="Expertise matrix"
+        defaultCaption="Expertise of participants"
       />
       <table
         className={`platform-table platform-table--tight ${tableFont}`}
@@ -132,36 +138,33 @@ export function B32SectionContent({ proposalId }: Props) {
         <colgroup>
           <col />
           {orderedCols.map((c) => (
-            <col key={c.id} style={{ width: '1%', whiteSpace: 'nowrap' } as any} />
+            <col key={c.id} style={{ width: `${checkColWidthPx}px` }} />
           ))}
         </colgroup>
         <thead>
           <tr>
             <th className="cell-pl-0 py-0 text-[10pt] text-left align-bottom">Expertise</th>
-            {orderedCols.map((c, i) => {
-              const isLast = i === orderedCols.length - 1;
-              const cellClass = isLast ? 'cell-pr-0' : interiorCellClass;
-              return (
-                <th
-                  key={c.id}
-                  className={`${cellClass} py-0 text-[10pt] align-bottom text-center whitespace-nowrap`}
-                >
-                  {c.kind === 'participant'
-                    ? (() => {
-                        const p = c.participant_id ? partById.get(c.participant_id) : undefined;
-                        return (
-                          <div className="flex justify-center">
-                            <ParticipantBubble
-                              number={p?.participant_number ?? undefined}
-                              shortName={p?.organisation_short_name || ''}
-                            />
-                          </div>
-                        );
-                      })()
-                    : (c.header_text || '')}
-                </th>
-              );
-            })}
+            {orderedCols.map((c) => (
+              <th
+                key={c.id}
+                className="cell-p0 text-[10pt] align-bottom text-center"
+                style={{ whiteSpace: 'normal', overflowWrap: 'break-word', wordBreak: 'break-word' }}
+              >
+                {c.kind === 'participant'
+                  ? (() => {
+                      const p = c.participant_id ? partById.get(c.participant_id) : undefined;
+                      return (
+                        <div className="flex justify-center">
+                          <ParticipantBubble
+                            number={p?.participant_number ?? undefined}
+                            shortName={p?.organisation_short_name || ''}
+                          />
+                        </div>
+                      );
+                    })()
+                  : (c.header_text || '')}
+              </th>
+            ))}
           </tr>
         </thead>
         <tbody className="[&_tr]:border-b [&_tr]:border-black/10 [&_tr:last-child]:border-0">
@@ -175,15 +178,10 @@ export function B32SectionContent({ proposalId }: Props) {
             rows.map((r) => (
               <tr key={r.id}>
                 <td className="align-middle cell-pl-0 py-0 leading-tight text-[11pt]">{r.label}</td>
-                {orderedCols.map((c, i) => {
-                  const isLast = i === orderedCols.length - 1;
-                  const cellClass = isLast ? 'cell-pr-0' : interiorCellClass;
+                {orderedCols.map((c) => {
                   const checked = cellMap.get(`${r.id}::${c.id}`) === true;
                   return (
-                    <td
-                      key={c.id}
-                      className={`align-middle ${cellClass} py-0 leading-tight text-center`}
-                    >
+                    <td key={c.id} className="align-middle cell-p0 leading-tight text-center">
                       {checked ? (
                         <Check className="inline-block h-4 w-4" style={{ color: '#16a34a' }} strokeWidth={3} />
                       ) : null}
@@ -198,3 +196,4 @@ export function B32SectionContent({ proposalId }: Props) {
     </div>
   );
 }
+
