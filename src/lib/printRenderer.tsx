@@ -603,7 +603,6 @@ async function replaceFiguresWithText(
         .order('number'),
     ]);
 
-    const wps = wpsRes.data || [];
     const wpById = new Map(wps.map((w: any) => [w.id, w]));
     const deliverables = (delsRes.data || []).map((d: any) => {
       const wp = wpById.get(d.wp_draft_id);
