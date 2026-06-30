@@ -522,13 +522,15 @@ html, body {
 }
 
 /* Separate two adjacent citations with a superscript comma.
-   A class is added by the CitationAdjacency plugin only when the previous
-   sibling in the document is another citation (no text/space between). */
-.ProseMirror sup[data-citation].citation-adjacent::before,
-.document-content sup[data-citation].citation-adjacent::before {
+   The CitationAdjacency plugin adds the `citation-adjacent` class only when
+   the citation's IMMEDIATELY preceding sibling in the doc is also a citation
+   (no text — not even whitespace — between them). */
+.ProseMirror .citation-adjacent::before,
+.document-content .citation-adjacent::before {
   content: ",";
   margin-right: 0.1em;
 }
+
 
 
 /* TipTap/ProseMirror table styles - OUTSIDE @layer for higher specificity */
