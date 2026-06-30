@@ -425,7 +425,7 @@ export function PanelEvaluator({ proposalId }: Props) {
           .order("created_at", { ascending: true }),
         supabase
           .from("proposal_analyses")
-          .select("id, status, analysis_data")
+          .select("id, status, analysis_data, created_at")
           .eq("proposal_id", proposalId)
           .in("status", ["queued", "running", "processing", "synthesizing"])
           .order("created_at", { ascending: false })
@@ -454,8 +454,9 @@ export function PanelEvaluator({ proposalId }: Props) {
         setRunningMessage(
           ((runningEval.analysis_data ?? {}) as Record<string, any>).progress_message || "",
         );
-        startPolling(runningEval.id);
+        startPolling(runningEval.id, (runningEval as any).created_at ?? null);
       }
+
     })();
     return () => stopPolling();
     // eslint-disable-next-line react-hooks/exhaustive-deps
