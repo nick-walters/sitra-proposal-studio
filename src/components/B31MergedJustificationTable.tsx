@@ -131,7 +131,7 @@ export function B31MergedJustificationTable({
                     <td
                       key="part"
                       className={`${cellStyles} ${partTopBorder}`}
-                      style={{ whiteSpace: 'nowrap', verticalAlign: 'top' }}
+                      style={{ whiteSpace: 'nowrap', verticalAlign: 'middle' }}
                       rowSpan={totalItemRows + 1}
                     >
                       <ParticipantBubble>{label}</ParticipantBubble>
