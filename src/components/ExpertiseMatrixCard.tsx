@@ -94,7 +94,7 @@ export function ExpertiseMatrixCard({ proposalId, participants }: Props) {
                         Expertise
                       </th>
                       {columns.map((col) => (
-                        <th key={col.id} className="px-1 py-1 align-bottom font-bold text-sm text-foreground" style={{ width: '110px' }}>
+                        <th key={col.id} className="px-0.5 py-1 align-bottom font-bold text-sm text-foreground" style={{ width: '80px' }}>
                           <HeaderCell
                             col={col}
                             participant={col.participant_id ? partMap.get(col.participant_id) : undefined}
