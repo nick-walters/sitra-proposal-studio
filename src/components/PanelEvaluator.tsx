@@ -215,6 +215,14 @@ export function PanelEvaluator({ proposalId }: Props) {
     setRunningStatus("queued");
     setRunningMessage("Queued for evaluator run");
     setStage("stageB");
+    // DEV SAFETY: if window.__skipEvalPolling is set when polling starts, log it
+    // so it's obvious in the console that no paid call will fire. The actual
+    // skip check is done fresh on every tick below (so toggling the flag mid-run
+    // takes effect immediately and can't be bypassed by timing).
+    if (typeof window !== "undefined" && (window as any).__skipEvalPolling === true) {
+      // eslint-disable-next-line no-console
+      console.warn("[PanelEvaluator] eval polling skipped: __skipEvalPolling is TRUE — no paid Anthropic call will be made");
+    }
     pollIntervalRef.current = setInterval(async () => {
       const { data } = await supabase
         .from("proposal_analyses")
@@ -228,6 +236,17 @@ export function PanelEvaluator({ proposalId }: Props) {
       const progressMessage = analysisData.progress_message || "";
       setRunningStatus(status);
       setRunningMessage(progressMessage);
+
+      // DEV SAFETY: re-read the kill-switch on EVERY tick so it can't be bypassed
+      // by stale closures, re-renders, or polling that started before the flag
+      // was set. While the flag is true, never invoke any paid action.
+      const skipPolling =
+        typeof window !== "undefined" && (window as any).__skipEvalPolling === true;
+      if (skipPolling && (status === "queued" || status === "running" || status === "processing" || status === "synthesizing")) {
+        // eslint-disable-next-line no-console
+        console.warn(`[PanelEvaluator] eval polling skipped: __skipEvalPolling — status=${status}, evaluationId=${evaluationId}`);
+        return;
+      }
 
       if (status === "queued" || status === "running" || status === "processing") {
         const { error } = await supabase.functions.invoke("run-panel-evaluation", {
@@ -504,55 +523,8 @@ export function PanelEvaluator({ proposalId }: Props) {
     }
   }
 
-  // DEV-ONLY: expose the build-only half of runEvaluation so we can dump the
-  // payload to console without invoking the paid edge function. Remove after
-  // verification.
-  useEffect(() => {
-    if (!import.meta.env.DEV) return;
-    (window as any).__buildEvalPayload = async () => {
-      if (!proposalData || !allSections || allSections.length === 0) {
-        throw new Error("Proposal not loaded yet");
-      }
-      const { data: sectionRows } = await supabase
-        .from("section_content")
-        .select("id, section_id, content")
-        .eq("proposal_id", proposalId);
-      const sectionContents = (sectionRows || []).map((sc: any) => ({
-        id: sc.id, sectionId: sc.section_id, content: sc.content || "",
-      }));
-      const prepared = await prepareExportContainer(
-        {
-          proposal: {
-            id: proposalData.id,
-            title: proposalData.title || "",
-            acronym: proposalData.acronym || "",
-            submissionStage: (proposalData as any).submissionStage ?? null,
-            topicId: (proposalData as any).topicId ?? null,
-            topicTitle: (proposalData as any).topicTitle ?? null,
-            type: (proposalData as any).type ?? null,
-          },
-          sections: allSections as any,
-          sectionContents,
-          participants,
-        },
-        undefined,
-        appQueryClient,
-      );
-      const clone = prepared.container.cloneNode(true) as HTMLElement;
-      clone.style.position = "absolute";
-      clone.style.left = "-99999px";
-      clone.style.top = "0";
-      document.body.appendChild(clone);
-      try {
-        await replaceFiguresWithText(clone, proposalId);
-        const md = extractEvaluationText(clone);
-        return md;
-      } finally {
-        if (clone.parentNode) clone.parentNode.removeChild(clone);
-        prepared.cleanup();
-      }
-    };
-  }, [proposalData, allSections, participants, proposalId, appQueryClient]);
+
+
 
 
 
