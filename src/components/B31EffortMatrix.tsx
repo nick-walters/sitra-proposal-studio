@@ -88,7 +88,7 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
         proposalId={proposalId}
         tableKey="table-3.1.f"
         label="Table 3.1.f."
-        defaultCaption="Person months per participant per work package"
+        defaultCaption="Staff effort in person months"
         className="mb-0"
       />
       <div className="relative">
