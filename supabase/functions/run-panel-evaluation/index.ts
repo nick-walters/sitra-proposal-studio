@@ -342,13 +342,6 @@ async function runEvaluatorPhase(serviceClient: any, evaluationId: string) {
   const {
     evaluation,
     proposal,
-    sections,
-    participants,
-    wpDrafts,
-    deliverables,
-    milestones,
-    risks,
-    budget,
     instrument,
     criteriaForRun,
     configMap,
@@ -358,6 +351,7 @@ async function runEvaluatorPhase(serviceClient: any, evaluationId: string) {
     budgetTypeLabel,
     eligibilityFlags,
   } = context;
+
 
   if (!["queued", "running", "processing", "failed"].includes(evaluation.status || "queued")) {
     return { evaluationId, status: evaluation.status || "unknown" };
