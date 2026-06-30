@@ -207,6 +207,7 @@ export function B11ParticipantsTable({ proposalId }: Props) {
         }}
       >
         <table
+          data-table-key="b11-participants"
           ref={tableRef}
           className="first-col-flush"
           style={{
