@@ -868,44 +868,79 @@ export function PanelEvaluator({ proposalId }: Props) {
             )}
           </div>
 
-          {/* Per-run model toggle. Defaults to Sonnet 5 each time the pane opens.
+          {/* Per-run model toggle switch. Defaults to Sonnet 5 each time the pane opens.
               Choosing Opus 4.8 overrides for THIS RUN ONLY — the stored default stays Sonnet 5. */}
-          {(stage === "idle" || stage === "panelReview") && (
-            <div className="space-y-2">
-              <div className="text-xs uppercase tracking-wide text-muted-foreground">Evaluation model</div>
-              <div className="inline-flex rounded-md border p-1 bg-muted/30">
-                {([
-                  { id: "claude-sonnet-5", label: "Sonnet 5", est: modelCostEstimate.sonnet },
-                  { id: "claude-opus-4-8", label: "Opus 4.8", est: modelCostEstimate.opus },
-                ] as const).map((opt) => {
-                  const selected = modelChoice === opt.id;
-                  return (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      onClick={() => setModelChoice(opt.id)}
-                      disabled={stage !== "idle" && stage !== "panelReview"}
-                      className={`px-3 py-1.5 text-sm rounded transition-colors ${
-                        selected
-                          ? "bg-background shadow-sm font-medium"
-                          : "text-muted-foreground hover:text-foreground"
+          {(stage === "idle" || stage === "panelReview") && (() => {
+            const isOpus = modelChoice === "claude-opus-4-8";
+            const disabled = stage !== "idle" && stage !== "panelReview";
+            const GREEN = "#16a34a"; // tailwind green-600
+            const sonnetSelected = !isOpus;
+            const opusSelected = isOpus;
+            return (
+              <div className="space-y-3">
+                <div className="text-xs uppercase tracking-wide text-muted-foreground">Evaluation model</div>
+                <div className="flex items-start gap-5 max-w-3xl">
+                  {/* Sonnet block (left) */}
+                  <button
+                    type="button"
+                    onClick={() => setModelChoice("claude-sonnet-5")}
+                    disabled={disabled}
+                    className="flex-1 text-right disabled:opacity-60"
+                  >
+                    <div
+                      className={`text-sm font-semibold transition-colors ${
+                        sonnetSelected ? "" : "text-muted-foreground"
                       }`}
+                      style={sonnetSelected ? { color: GREEN } : undefined}
                     >
-                      {opt.label} <span className="text-xs text-muted-foreground">~{formatCurrency(opt.est)}</span>
-                    </button>
-                  );
-                })}
+                      Sonnet 5 <span className="font-normal text-xs text-muted-foreground">~{formatCurrency(modelCostEstimate.sonnet)}</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1 leading-snug">
+                      Cheaper &amp; faster, quality close to Opus — recommended through development.
+                    </div>
+                  </button>
+
+                  {/* Toggle switch */}
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={opusSelected}
+                    aria-label="Toggle evaluation model"
+                    onClick={() => setModelChoice(isOpus ? "claude-sonnet-5" : "claude-opus-4-8")}
+                    disabled={disabled}
+                    className="relative shrink-0 mt-1 h-7 w-14 rounded-full border transition-colors disabled:opacity-60"
+                    style={{ backgroundColor: GREEN, borderColor: GREEN }}
+                  >
+                    <span
+                      className="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform"
+                      style={{ transform: opusSelected ? "translateX(30px)" : "translateX(2px)" }}
+                    />
+                  </button>
+
+                  {/* Opus block (right) */}
+                  <button
+                    type="button"
+                    onClick={() => setModelChoice("claude-opus-4-8")}
+                    disabled={disabled}
+                    className="flex-1 text-left disabled:opacity-60"
+                  >
+                    <div
+                      className={`text-sm font-semibold transition-colors ${
+                        opusSelected ? "" : "text-muted-foreground"
+                      }`}
+                      style={opusSelected ? { color: GREEN } : undefined}
+                    >
+                      Opus 4.8 <span className="font-normal text-xs text-muted-foreground">~{formatCurrency(modelCostEstimate.opus)}</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1 leading-snug">
+                      Highest accuracy — use late, for extra scrutiny before submission.{" "}
+                      <span className="italic">(per-run only)</span>
+                    </div>
+                  </button>
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground max-w-2xl">
-                Sonnet 5 is recommended throughout proposal development — it&apos;s faster and cheaper
-                with quality close to Opus. Switch to Opus 4.8 late in development for extra scrutiny
-                before submission.
-                {modelChoice === "claude-opus-4-8" && (
-                  <span className="ml-1 italic">Opus 4.8 selected for this run only — default stays Sonnet 5.</span>
-                )}
-              </p>
-            </div>
-          )}
+            );
+          })()}
 
           {stage === "idle" && (
             <Button onClick={startEvaluation} disabled={!instrumentCode} className="gap-2">
