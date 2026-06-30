@@ -131,6 +131,17 @@ export function B32SectionContent({ proposalId }: Props) {
   });
   const hasManualWidths = colWidths.length === totalCols && colWidths.every((w) => Number.isFinite(w));
 
+  // Measure rendered badge heights (sideways-lr gives each badge a natural CSS
+  // height = the rotated visual height) so we can set an exact min/auto header
+  // height with NO dead space above the badges.
+  useLayoutEffect(() => {
+    const heights = badgeRefs.current.map((el) => el?.offsetHeight ?? 0);
+    const tallest = heights.length ? Math.max(...heights) : 0;
+    if (tallest && Math.abs(tallest - measuredTallestPx) > 0.5) {
+      setMeasuredTallestPx(tallest);
+    }
+  });
+
   if (enabledQ.data?.enabled === false) return null;
   if (!dataQ.data) return null;
 
@@ -148,23 +159,18 @@ export function B32SectionContent({ proposalId }: Props) {
   const orderedCols = [...partCols, ...customCols];
   const lastColIdx = orderedCols.length; // index of the final column in the table (0 = expertise)
 
+  // Keep refs array sized to the column count.
+  if (badgeRefs.current.length !== orderedCols.length) {
+    badgeRefs.current = new Array(orderedCols.length).fill(null);
+  }
+
   const cellMap = new Map<string, boolean>();
   for (const c of cells) cellMap.set(`${c.row_id}::${c.column_id}`, c.checked);
 
-  // Rotated header content lengths in px (becomes vertical clearance after rotation).
-  const headerContentPx = orderedCols.map((c) => {
-    if (c.kind === 'participant') {
-      const p = c.participant_id ? partById.get(c.participant_id) : undefined;
-      const label = `${p?.participant_number ?? ''}. ${p?.organisation_short_name ?? ''}`;
-      return Math.ceil(label.length * 7.5) + 16;
-    }
-    const t = (c.header_text || '').trim();
-    return Math.max(28, Math.ceil(t.length * 6) + 8);
-  });
-
-  // Min header height = tallest badge + 3pt gap above the bottom border.
-  const autoHeaderHeightPx =
-    (headerContentPx.length ? Math.max(...headerContentPx) : 24) + HEADER_BOTTOM_GAP_PX;
+  // Min/auto header height = tallest MEASURED badge + 3pt gap above the bottom border.
+  // Fallback (pre-measurement, first paint) = 24px + gap so the row isn't collapsed.
+  const tallestBadgePx = measuredTallestPx || 24;
+  const autoHeaderHeightPx = tallestBadgePx + HEADER_BOTTOM_GAP_PX;
   const minHeaderHeightPx = autoHeaderHeightPx;
   const maxHeaderHeightPx = 480;
   const effectiveHeaderHeightPx = Math.max(
