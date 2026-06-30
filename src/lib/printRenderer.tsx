@@ -794,13 +794,13 @@ export async function prepareExportContainer(
   container.style.overflow = 'visible';
   document.body.appendChild(container);
 
-  // Mount B3.1 React components (tables, charts)
-  await mountB31Components(container, options.proposal.id, options.proposal.acronym, appQueryClient);
-  
+  // Mount B3.1 tables, B3.2 expertise matrix, and B1.2 cases-table placeholders
+  await mountDynamicComponents(container, options.proposal.id, options.proposal.acronym, appQueryClient);
+
 
   // Refresh any expired signed URLs before waiting for images to load
   await refreshSignedUrls(container);
-  
+
 
   // Wait for all images to load
   const images = container.querySelectorAll('img');
@@ -814,7 +814,13 @@ export async function prepareExportContainer(
         }),
     ),
   );
-  
+
+
+  // Replace PERT/Gantt charts and uploaded figures with structured text blocks.
+  // Runs AFTER images load (so we know which ones resolved) but BEFORE the
+  // freeze step, since the freeze pass walks the DOM the user will print.
+  await replaceFiguresWithText(container, options.proposal.id);
+
 
   // Freeze interactive elements (inputs, selects, buttons) into static text
   // Must happen AFTER React mount but BEFORE detaching from DOM
