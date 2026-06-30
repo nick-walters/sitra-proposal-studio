@@ -975,35 +975,39 @@ export function GanttChartFigure({
                       {laidOut.flatMap((b) => {
                         if (!b.drawLines) return [];
                         const ty = yOfRow(b.rowIdx);
-                        // Deliverable connectors take the badge's WP colour so they
-                        // always match the chevron. Any future per-WP MS would stay black.
-                        const lineColor = b.kind === 'del' ? b.color : '#000000';
+                        // Deliverable connectors take the badge's WP colour so
+                        // they always match the chevron.
+                        const lineColor = b.color;
                         return b.origins.map((o, oi) => {
                           const oy = yOfRow(o.rowIdx);
-                          // Straight diagonal line from origin dot to chevron tip.
+                          // Straight line from origin dot to chevron tip
+                          // (vertical for centred-stacked since tipX = o.x = dotX).
                           const d = `M ${o.x} ${oy} L ${b.tipX} ${ty}`;
                           return (
                             <g key={`${b.key}-l${oi}`}>
                               <path d={d} stroke={lineColor} strokeWidth={1.333} fill="none" strokeLinecap="square" strokeLinejoin="miter" />
                               <circle cx={o.x} cy={oy} r={2} fill={lineColor} stroke="none" />
-
                             </g>
                           );
                         });
                       })}
-                      {/* Milestone connector lines: dot at due-month cell centre on WP band → nearest hex tip */}
-                      {msLaidOut.map((m) => (
-                        <g key={`ms-line-${m.id}`}>
-                          <path
-                            d={`M ${m.dotX} ${yOfWpBand} L ${m.tipX} ${yOfWpBand}`}
-                            stroke="#000000"
-                            strokeWidth={1.333}
-                            fill="none"
-                            strokeLinecap="square"
-                          />
-                          <circle cx={m.dotX} cy={yOfWpBand} r={2} fill="#000000" stroke="none" />
-                        </g>
-                      ))}
+                      {/* Milestone connector lines: from band-row dot to nearest hex tip
+                          (or straight down to a stacked hex on a task row). */}
+                      {msLaidOut.map((m) => {
+                        const ty = yOfRow(m.rowIdx);
+                        return (
+                          <g key={`ms-line-${m.id}`}>
+                            <path
+                              d={`M ${m.dotX} ${yOfWpBand} L ${m.tipX} ${ty}`}
+                              stroke="#000000"
+                              strokeWidth={1.333}
+                              fill="none"
+                              strokeLinecap="square"
+                            />
+                            <circle cx={m.dotX} cy={yOfWpBand} r={2} fill="#000000" stroke="none" />
+                          </g>
+                        );
+                      })}
                     </svg>
 
 
