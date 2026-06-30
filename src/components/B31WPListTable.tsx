@@ -129,6 +129,19 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
               </TableRow>
             );
           })}
+          {(() => {
+            const totalPM = wpData.reduce((sum, wp) => sum + getComputedPM(wp), 0);
+            return (
+              <TableRow>
+                <TableCell className={`${cellStyles} font-bold`}>Total</TableCell>
+                <TableCell className={cellStyles} />
+                <TableCell className={`${cellStyles} whitespace-nowrap font-bold`}>
+                  {totalPM > 0 ? totalPM : '—'}
+                </TableCell>
+                <TableCell className={cellStyles} />
+              </TableRow>
+            );
+          })()}
         </TableBody>
       </Table>
     </div>
