@@ -601,6 +601,9 @@ export function PanelEvaluator({ proposalId }: Props) {
       setEligibilityFlags(data.eligibility_flags || []);
       setProposedPanel(data.proposed_panel || []);
       setAllPersonas(data.all_personas || []);
+      setHaikuUsage(data.haiku_usage || null);
+      setHaikuModel(data.haiku_model || null);
+
 
       const recommendedNumbers = new Set((data.proposed_panel || []).map((p: any) => p.id));
       const preselected = new Set<string>();
