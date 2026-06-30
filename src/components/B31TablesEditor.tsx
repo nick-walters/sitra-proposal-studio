@@ -521,12 +521,13 @@ export function B31RisksTable({ proposalId }: Props) {
 
 
   const columns: Col[] = [
-    { label: 'Risk', defaultWidth: 240 },
-    { label: 'i.', defaultWidth: 30, align: 'center', padX: 'px-0' },
-    { label: 'ii.', defaultWidth: 30, align: 'center', padX: 'px-0' },
-    { label: 'WP(s)', defaultWidth: 113, padX: 'px-0' },
-    { label: 'Mitigation & adaptation measures', flex: true },
+    { label: 'Risk', defaultWidth: 240, cellClass: 'cell-pl-0' },
+    { label: 'i.', defaultWidth: 30, align: 'center', cellClass: 'cell-px-0' },
+    { label: 'ii.', defaultWidth: 30, align: 'center', cellClass: 'cell-px-0' },
+    { label: 'WP(s)', defaultWidth: 113, cellClass: 'cell-px-0' },
+    { label: 'Mitigation & adaptation measures', flex: true, cellClass: 'cell-pr-0' },
   ];
+
   const last = columns.length - 1;
 
   return (
