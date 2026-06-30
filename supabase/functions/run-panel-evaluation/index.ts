@@ -1134,7 +1134,7 @@ serve(async (req) => {
     const action = body?.action || "start";
 
     if (action === "start") {
-      const { proposalId, selectedEvaluators, instrumentCode, proposalStage, budgetType, eligibilityFlags, renderedProposal } = body || {};
+      const { proposalId, selectedEvaluators, instrumentCode, proposalStage, budgetType, eligibilityFlags, renderedProposal, modelOverride } = body || {};
       if (
         !proposalId ||
         !Array.isArray(selectedEvaluators) ||
@@ -1155,6 +1155,9 @@ serve(async (req) => {
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
+
+      const normalizedOverride =
+        typeof modelOverride === "string" && modelOverride.trim() ? modelOverride.trim() : null;
 
       await ensureProposalAdmin(supabase, userId, proposalId);
 
@@ -1179,11 +1182,13 @@ serve(async (req) => {
             eligibility_flags: eligibilityFlags ?? [],
             instrument_code: instrumentCode,
             rendered_proposal: renderedProposal,
+            model_override: normalizedOverride,
             progress_message: "Queued for evaluator run",
           },
         })
         .select("id")
         .single();
+
 
       if (insertError || !evalRecord) {
         console.error("Failed to create evaluation record:", insertError);
