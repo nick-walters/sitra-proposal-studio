@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
+import { computeBudgetRow } from '@/lib/budgetCompute';
 
 export interface BudgetRowData {
   id: string;
