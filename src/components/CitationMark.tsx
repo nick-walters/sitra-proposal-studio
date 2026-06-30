@@ -28,21 +28,34 @@ function createCitationAdjacencyPlugin() {
   const build = (doc: any) => {
     const decorations: Decoration[] = [];
     doc.descendants((node: any, pos: number) => {
-      if (!node.isBlock && !node.isTextblock) return;
+      if (node.isText) return;
       let offset = 0;
       for (let i = 0; i < node.childCount; i++) {
         const child = node.child(i);
-        const childStart = pos + 1 + offset;
+        const childStart = pos + (node.isTextblock || node.type.name === 'doc' ? 1 : 1) + offset - (node.type.name === 'doc' ? 1 : 0);
+        // Simpler: compute using PM positions
         if (i > 0 && isCitationChild(child) && isCitationChild(node.child(i - 1))) {
-          decorations.push(
-            Decoration.inline(childStart, childStart + child.nodeSize, { class: 'citation-adjacent' })
-          );
+          // childStart needs to be the start of this child inside parent
+          let cStart = pos + (node.isTextblock ? 1 : 1);
+          let acc = 0;
+          for (let j = 0; j < i; j++) acc += node.child(j).nodeSize;
+          cStart = pos + 1 + acc;
+          if (child.type.name === 'citation') {
+            decorations.push(
+              Decoration.node(cStart, cStart + child.nodeSize, { class: 'citation-adjacent' })
+            );
+          } else {
+            decorations.push(
+              Decoration.inline(cStart, cStart + child.nodeSize, { class: 'citation-adjacent' })
+            );
+          }
         }
         offset += child.nodeSize;
       }
     });
     return DecorationSet.create(doc, decorations);
   };
+
 
 
   return new Plugin({
