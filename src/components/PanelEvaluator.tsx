@@ -17,6 +17,11 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useProposalRole } from "@/hooks/useProposalRole";
+import { useProposalData } from "@/hooks/useProposalData";
+import { useProposalSections } from "@/hooks/useProposalSections";
+import { useQueryClient } from "@tanstack/react-query";
+import { prepareExportContainer, replaceFiguresWithText } from "@/lib/printRenderer";
+import { extractEvaluationText } from "@/lib/extractEvaluationText";
 import { EsrRenderer } from "@/components/EsrRenderer";
 // esrPdfExport is loaded lazily inside downloadEsr() to keep jsPDF out of the initial bundle.
 import {
