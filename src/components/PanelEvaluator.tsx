@@ -908,12 +908,14 @@ export function PanelEvaluator({ proposalId }: Props) {
                     aria-label="Toggle evaluation model"
                     onClick={() => setModelChoice(isOpus ? "claude-sonnet-5" : "claude-opus-4-8")}
                     disabled={disabled}
-                    className="relative shrink-0 mt-1 h-7 w-14 rounded-full border transition-colors disabled:opacity-60"
-                    style={{ backgroundColor: GREEN, borderColor: GREEN }}
+                    className="relative shrink-0 mt-1 h-7 w-14 rounded-full border border-gray-300 bg-white transition-colors disabled:opacity-60"
                   >
                     <span
-                      className="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform"
-                      style={{ transform: opusSelected ? "translateX(30px)" : "translateX(2px)" }}
+                      className="absolute left-0 top-1/2 h-5 w-5 rounded-full shadow transition-transform"
+                      style={{
+                        backgroundColor: GREEN,
+                        transform: `translateY(-50%) translateX(${opusSelected ? 32 : 4}px)`,
+                      }}
                     />
                   </button>
 
