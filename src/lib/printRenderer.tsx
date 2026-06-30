@@ -829,6 +829,13 @@ export async function prepareExportContainer(
   // replaceFiguresWithText and runs it on a CLONE of this container.
 
 
+  // Apply persisted column widths (B3.1 mirror tables, B3.2 expertise matrix,
+  // and any other table marked with [data-table-key]) and convert TipTap
+  // per-cell colwidth attrs into a <colgroup>. Must run BEFORE the container
+  // width is reset so React mount measurements don't overwrite them.
+  await applyPersistedColumnWidths(container, options.proposal.id);
+
+
   // Freeze interactive elements (inputs, selects, buttons) into static text
   // Must happen AFTER React mount but BEFORE detaching from DOM
   freezeInteractiveElements(container);
