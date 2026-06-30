@@ -190,12 +190,13 @@ function HeaderCell({
     );
   }
   return (
-    <DebouncedInput
+    <DebouncedTextarea
       value={col.header_text || ''}
       onDebouncedChange={onChange}
       disabled={!canEditHeader}
       placeholder="Header"
-      className="h-7 text-xs min-w-[80px]"
+      rows={2}
+      className="text-[11px] leading-tight px-1 py-0.5 min-h-[28px] resize-none w-full whitespace-normal break-words text-center"
     />
   );
 }
