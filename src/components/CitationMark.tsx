@@ -96,7 +96,65 @@ export const CitationNode = Node.create({
       };
     };
   },
+
+  addProseMirrorPlugins() {
+    return [createAdjacentCitationCommaPlugin()];
+  },
 });
+
+// Inserts a non-editable superscript comma between two citations that sit
+// immediately next to each other in the document (no characters between).
+function createAdjacentCitationCommaPlugin() {
+  const isCitationChild = (child: any) =>
+    child.type.name === 'citation' ||
+    (child.isText && child.marks.some((m: any) => m.type.name === 'citationMark'));
+
+  const build = (doc: any) => {
+    const decos: Decoration[] = [];
+    doc.descendants((node: any, pos: number) => {
+      if (!node.isTextblock) return;
+      let prevEnd: number | null = null;
+      node.forEach((child: any, offset: number) => {
+        const childStart = pos + 1 + offset;
+        if (isCitationChild(child)) {
+          if (prevEnd === childStart) {
+            decos.push(
+              Decoration.widget(
+                childStart,
+                () => {
+                  const sup = document.createElement('sup');
+                  sup.textContent = ',';
+                  sup.setAttribute('data-citation-comma', '');
+                  sup.setAttribute('contenteditable', 'false');
+                  (sup.style as any).userSelect = 'none';
+                  return sup;
+                },
+                { side: -1, ignoreSelection: true, key: `cc-${childStart}` }
+              )
+            );
+          }
+          prevEnd = childStart + child.nodeSize;
+        } else {
+          prevEnd = null;
+        }
+      });
+    });
+    return DecorationSet.create(doc, decos);
+  };
+
+  return new Plugin({
+    key: new PluginKey('adjacentCitationComma'),
+    state: {
+      init: (_, state) => build(state.doc),
+      apply: (tr, old) => (tr.docChanged ? build(tr.doc) : old),
+    },
+    props: {
+      decorations(state) {
+        return this.getState(state);
+      },
+    },
+  });
+}
 
 export const CitationMark = Mark.create<CitationMarkOptions>({
   name: 'citationMark',
