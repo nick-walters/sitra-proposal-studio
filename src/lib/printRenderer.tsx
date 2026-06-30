@@ -15,6 +15,7 @@ import { getCaseTypePrefix } from '@/lib/caseTypeLabels';
 import { extractFilePathFromUrl } from '@/lib/proposalStorage';
 import { SITRA_LOGO_BASE64 } from '@/lib/sitraLogo';
 import { applyColumnWidthsToTable } from '@/lib/autoFitColumns';
+import { computeBudgetRow } from '@/lib/budgetCompute';
 
 /** Escape user-provided strings before interpolating into raw HTML templates. */
 const escHtml = (s: string | number | null | undefined): string =>
@@ -328,34 +329,46 @@ function stripTags(html: string): string {
 
 /**
  * Build the A3 budget summary table from `budget_rows`. Read-only mirror —
- * one row per participant + a totals row. Kept intentionally compact so the
- * eval payload stays focused on structural budget facts.
+ * one row per participant + a totals row. All figures are derived through
+ * `computeBudgetRow` so the export matches the A3 portal exactly (the
+ * `requested_eu_contribution` column is a manual override and usually NULL).
  */
 async function buildA3BudgetHtml(
   proposalId: string,
   participants: Participant[],
+  proposalType: string | null,
 ): Promise<string> {
-  const { data: rows } = await supabase
-    .from('budget_rows')
-    .select('participant_id, personnel_costs, subcontracting_costs, purchase_equipment, purchase_other_goods, purchase_travel, requested_eu_contribution, indirect_costs')
-    .eq('proposal_id', proposalId);
+  const [{ data: rows }, { data: effortData }] = await Promise.all([
+    supabase
+      .from('budget_rows')
+      .select('participant_id, personnel_costs, subcontracting_costs, purchase_travel, purchase_equipment, purchase_other_goods, financial_support_third_parties, internally_invoiced, procurement, pm_rate, indirect_costs_override, funding_rate_override, requested_eu_contribution, has_in_kind, requested_personnel_costs, requested_subcontracting, requested_travel, requested_equipment, requested_other_goods, requested_fstp, requested_internally_invoiced')
+      .eq('proposal_id', proposalId),
+    supabase
+      .from('wp_draft_effort')
+      .select('participant_id, person_months, wp_drafts!inner(proposal_id)')
+      .eq('wp_drafts.proposal_id', proposalId),
+  ]);
 
   if (!rows || rows.length === 0) return '';
+
+  const pmTotals = new Map<string, number>();
+  (effortData || []).forEach((e: any) => {
+    pmTotals.set(e.participant_id, (pmTotals.get(e.participant_id) || 0) + Number(e.person_months || 0));
+  });
 
   const partById = new Map(participants.map((p) => [p.id, p]));
   const fmt = (n: number) =>
     n.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-  const numericCols = [
-    'personnel_costs',
-    'subcontracting_costs',
-    'purchase_equipment',
-    'purchase_other_goods',
-    'purchase_travel',
-    'indirect_costs',
-    'requested_eu_contribution',
-  ];
-  const totals: Record<string, number> = Object.fromEntries(numericCols.map((c) => [c, 0]));
+  const totals = {
+    personnel: 0,
+    subcontracting: 0,
+    equipment: 0,
+    otherGoods: 0,
+    travel: 0,
+    indirect: 0,
+    requestedEu: 0,
+  };
 
   const sorted = [...rows].sort((a: any, b: any) => {
     const pa = partById.get(a.participant_id);
@@ -369,28 +382,40 @@ async function buildA3BudgetHtml(
     const label = p
       ? `${p.participantNumber}. ${p.organisationShortName || p.organisationName || ''}`
       : '—';
-    for (const c of numericCols) totals[c] += Number(r[c] || 0);
+    const out = computeBudgetRow({
+      ...r,
+      totalPersonMonths: pmTotals.get(r.participant_id) || 0,
+      proposalType,
+      organisationCategory: p?.organisationCategory ?? null,
+    });
+    totals.personnel += out.personnel;
+    totals.subcontracting += Number(r.subcontracting_costs || 0);
+    totals.equipment += Number(r.purchase_equipment || 0);
+    totals.otherGoods += Number(r.purchase_other_goods || 0);
+    totals.travel += Number(r.purchase_travel || 0);
+    totals.indirect += out.indirect;
+    totals.requestedEu += out.requestedEuContribution;
     body += `<tr>
       <td class="print-td">${escHtml(label)}</td>
-      <td class="print-td" style="text-align:right;">${fmt(Number(r.personnel_costs || 0))}</td>
+      <td class="print-td" style="text-align:right;">${fmt(out.personnel)}</td>
       <td class="print-td" style="text-align:right;">${fmt(Number(r.subcontracting_costs || 0))}</td>
       <td class="print-td" style="text-align:right;">${fmt(Number(r.purchase_equipment || 0))}</td>
       <td class="print-td" style="text-align:right;">${fmt(Number(r.purchase_other_goods || 0))}</td>
       <td class="print-td" style="text-align:right;">${fmt(Number(r.purchase_travel || 0))}</td>
-      <td class="print-td" style="text-align:right;">${fmt(Number(r.indirect_costs || 0))}</td>
-      <td class="print-td" style="text-align:right;"><strong>${fmt(Number(r.requested_eu_contribution || 0))}</strong></td>
+      <td class="print-td" style="text-align:right;">${fmt(out.indirect)}</td>
+      <td class="print-td" style="text-align:right;"><strong>${fmt(out.requestedEuContribution)}</strong></td>
     </tr>`;
   }
 
   body += `<tr>
     <td class="print-td"><strong>Total</strong></td>
-    <td class="print-td" style="text-align:right;"><strong>${fmt(totals.personnel_costs)}</strong></td>
-    <td class="print-td" style="text-align:right;"><strong>${fmt(totals.subcontracting_costs)}</strong></td>
-    <td class="print-td" style="text-align:right;"><strong>${fmt(totals.purchase_equipment)}</strong></td>
-    <td class="print-td" style="text-align:right;"><strong>${fmt(totals.purchase_other_goods)}</strong></td>
-    <td class="print-td" style="text-align:right;"><strong>${fmt(totals.purchase_travel)}</strong></td>
-    <td class="print-td" style="text-align:right;"><strong>${fmt(totals.indirect_costs)}</strong></td>
-    <td class="print-td" style="text-align:right;"><strong>${fmt(totals.requested_eu_contribution)}</strong></td>
+    <td class="print-td" style="text-align:right;"><strong>${fmt(totals.personnel)}</strong></td>
+    <td class="print-td" style="text-align:right;"><strong>${fmt(totals.subcontracting)}</strong></td>
+    <td class="print-td" style="text-align:right;"><strong>${fmt(totals.equipment)}</strong></td>
+    <td class="print-td" style="text-align:right;"><strong>${fmt(totals.otherGoods)}</strong></td>
+    <td class="print-td" style="text-align:right;"><strong>${fmt(totals.travel)}</strong></td>
+    <td class="print-td" style="text-align:right;"><strong>${fmt(totals.indirect)}</strong></td>
+    <td class="print-td" style="text-align:right;"><strong>${fmt(totals.requestedEu)}</strong></td>
   </tr>`;
 
   return `
@@ -414,10 +439,11 @@ async function buildPartAHtml(
   proposalId: string,
   sectionContents: SectionContent[],
   participants: Participant[],
+  proposalType: string | null,
 ): Promise<string> {
   const a1 = sectionContents.find((sc) => sc.sectionId === 'a1');
   const a1Html = a1 ? buildA1Html(a1.content) : '';
-  const a3Html = await buildA3BudgetHtml(proposalId, participants);
+  const a3Html = await buildA3BudgetHtml(proposalId, participants, proposalType);
   // A2 (participants list + expertise matrix) is already covered by the
   // participant list table above and the B3.2 expertise-matrix mount.
   return [a1Html, a3Html].filter(Boolean).join('\n');
@@ -509,7 +535,7 @@ export async function buildPrintContainer(
   container.appendChild(partListDiv);
 
   // ── Part A (A1 general info + A3 budget summary) ──
-  const partAHtml = await buildPartAHtml(proposal.id, sectionContents, participants);
+  const partAHtml = await buildPartAHtml(proposal.id, sectionContents, participants, proposal.type ?? null);
   if (partAHtml) {
     const partADiv = document.createElement('div');
     partADiv.setAttribute('data-part-a-mirror', 'true');

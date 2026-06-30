@@ -22,6 +22,7 @@ import { useProposalSections } from "@/hooks/useProposalSections";
 import { useQueryClient } from "@tanstack/react-query";
 import { prepareExportContainer, replaceFiguresWithText } from "@/lib/printRenderer";
 import { extractEvaluationText } from "@/lib/extractEvaluationText";
+import { computeBudgetRow } from "@/lib/budgetCompute";
 import { EsrRenderer } from "@/components/EsrRenderer";
 // esrPdfExport is loaded lazily inside downloadEsr() to keep jsPDF out of the initial bundle.
 import {
@@ -35,6 +36,73 @@ import {
   ReferenceLine,
   Dot,
 } from "recharts";
+
+async function buildComputedBudget(proposalId: string) {
+  const [{ data: proposalRow }, { data: rows }, { data: participants }, { data: effortData }] =
+    await Promise.all([
+      supabase.from("proposals").select("type").eq("id", proposalId).maybeSingle(),
+      supabase
+        .from("budget_rows")
+        .select(
+          "participant_id, personnel_costs, subcontracting_costs, purchase_travel, purchase_equipment, purchase_other_goods, financial_support_third_parties, internally_invoiced, procurement, pm_rate, indirect_costs_override, funding_rate_override, requested_eu_contribution, has_in_kind, requested_personnel_costs, requested_subcontracting, requested_travel, requested_equipment, requested_other_goods, requested_fstp, requested_internally_invoiced",
+        )
+        .eq("proposal_id", proposalId),
+      supabase
+        .from("participants")
+        .select("id, participant_number, organisation_short_name, organisation_name, organisation_category")
+        .eq("proposal_id", proposalId),
+      supabase
+        .from("wp_draft_effort")
+        .select("participant_id, person_months, wp_drafts!inner(proposal_id)")
+        .eq("wp_drafts.proposal_id", proposalId),
+    ]);
+
+  const pmTotals = new Map<string, number>();
+  (effortData || []).forEach((e: any) => {
+    pmTotals.set(e.participant_id, (pmTotals.get(e.participant_id) || 0) + Number(e.person_months || 0));
+  });
+  const partById = new Map((participants || []).map((p: any) => [p.id, p]));
+  const proposalType = (proposalRow as any)?.type ?? null;
+
+  let totalRequestedEu = 0;
+  let totalDirectCosts = 0;
+  let totalIndirect = 0;
+  let totalEligible = 0;
+  const perParticipant: Array<{
+    participantId: string;
+    participantNumber: number | null;
+    shortName: string | null;
+    requestedEu: number;
+    totalEligible: number;
+    fundingRate: number;
+  }> = [];
+
+  for (const r of rows || []) {
+    const p: any = partById.get((r as any).participant_id);
+    const out = computeBudgetRow({
+      ...(r as any),
+      totalPersonMonths: pmTotals.get((r as any).participant_id) || 0,
+      proposalType,
+      organisationCategory: p?.organisation_category ?? null,
+    });
+    totalRequestedEu += out.requestedEuContribution;
+    totalDirectCosts += out.directCosts;
+    totalIndirect += out.indirect;
+    totalEligible += out.totalEligible;
+    perParticipant.push({
+      participantId: (r as any).participant_id,
+      participantNumber: p?.participant_number ?? null,
+      shortName: p?.organisation_short_name ?? p?.organisation_name ?? null,
+      requestedEu: out.requestedEuContribution,
+      totalEligible: out.totalEligible,
+      fundingRate: out.fundingRate,
+    });
+  }
+
+  perParticipant.sort((a, b) => (a.participantNumber || 999) - (b.participantNumber || 999));
+  return { totalRequestedEu, totalDirectCosts, totalIndirect, totalEligible, perParticipant };
+}
+
 
 interface Props {
   proposalId: string;
@@ -379,6 +447,9 @@ export function PanelEvaluator({ proposalId }: Props) {
     setStage("stageA");
     setStageAStatus("Reading proposal content...");
     try {
+      setStageAStatus("Computing budget totals...");
+      const computedBudget = await buildComputedBudget(proposalId);
+
       setStageAStatus("Running compliance check and assembling panel...");
       const { data, error } = await supabase.functions.invoke("propose-evaluation-panel", {
         body: {
@@ -386,6 +457,7 @@ export function PanelEvaluator({ proposalId }: Props) {
           instrumentCode,
           proposalStage,
           budgetType: proposalStage === "stage1" ? null : budgetType,
+          computedBudget,
         },
       });
       if (error) throw error;
