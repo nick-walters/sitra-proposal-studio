@@ -1115,7 +1115,7 @@ serve(async (req) => {
     const action = body?.action || "start";
 
     if (action === "start") {
-      const { proposalId, selectedEvaluators, instrumentCode, proposalStage, budgetType, eligibilityFlags } = body || {};
+      const { proposalId, selectedEvaluators, instrumentCode, proposalStage, budgetType, eligibilityFlags, renderedProposal } = body || {};
       if (
         !proposalId ||
         !Array.isArray(selectedEvaluators) ||
@@ -1126,6 +1126,13 @@ serve(async (req) => {
       ) {
         return new Response(
           JSON.stringify({ error: "Invalid input: need 3–8 evaluators and instrument/stage info" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      if (typeof renderedProposal !== "string" || renderedProposal.trim().length < 200) {
+        return new Response(
+          JSON.stringify({ error: "Missing or too-short renderedProposal markdown payload" }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
@@ -1152,6 +1159,7 @@ serve(async (req) => {
           analysis_data: {
             eligibility_flags: eligibilityFlags ?? [],
             instrument_code: instrumentCode,
+            rendered_proposal: renderedProposal,
             progress_message: "Queued for evaluator run",
           },
         })
@@ -1171,6 +1179,7 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
 
   if (action === "evaluate") {
       const evaluationId = body?.evaluationId;
