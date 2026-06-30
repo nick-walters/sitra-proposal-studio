@@ -183,7 +183,7 @@ function HeaderCell({
       <div className="flex justify-center">
         <ParticipantBubble
           number={participant?.participantNumber}
-          shortName={participant?.shortName || participant?.englishName || ''}
+          shortName={participant?.organisationShortName || ''}
         />
       </div>
     );
