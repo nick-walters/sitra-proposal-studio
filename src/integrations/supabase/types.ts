@@ -3622,6 +3622,7 @@ export type Database = {
           evaluation_criteria_notes: string | null
           expected_projects: string | null
           expertise_matrix_enabled: boolean
+          expertise_matrix_header_height: number | null
           fstp_budget: string | null
           fstp_budget_per_third_party: string | null
           fstp_type: string | null
@@ -3692,6 +3693,7 @@ export type Database = {
           evaluation_criteria_notes?: string | null
           expected_projects?: string | null
           expertise_matrix_enabled?: boolean
+          expertise_matrix_header_height?: number | null
           fstp_budget?: string | null
           fstp_budget_per_third_party?: string | null
           fstp_type?: string | null
@@ -3762,6 +3764,7 @@ export type Database = {
           evaluation_criteria_notes?: string | null
           expected_projects?: string | null
           expertise_matrix_enabled?: boolean
+          expertise_matrix_header_height?: number | null
           fstp_budget?: string | null
           fstp_budget_per_third_party?: string | null
           fstp_type?: string | null
