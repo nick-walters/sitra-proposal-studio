@@ -1254,7 +1254,12 @@ export type Database = {
           evaluation_id: string | null
           id: string
           instrument_code: string | null
+          model_used: string | null
+          payload_tokens: number | null
           proposal_stage: string | null
+          tokens_cached: number | null
+          tokens_input: number | null
+          tokens_output: number | null
         }
         Insert: {
           budget_type?: string | null
@@ -1265,7 +1270,12 @@ export type Database = {
           evaluation_id?: string | null
           id?: string
           instrument_code?: string | null
+          model_used?: string | null
+          payload_tokens?: number | null
           proposal_stage?: string | null
+          tokens_cached?: number | null
+          tokens_input?: number | null
+          tokens_output?: number | null
         }
         Update: {
           budget_type?: string | null
@@ -1276,7 +1286,12 @@ export type Database = {
           evaluation_id?: string | null
           id?: string
           instrument_code?: string | null
+          model_used?: string | null
+          payload_tokens?: number | null
           proposal_stage?: string | null
+          tokens_cached?: number | null
+          tokens_input?: number | null
+          tokens_output?: number | null
         }
         Relationships: [
           {
