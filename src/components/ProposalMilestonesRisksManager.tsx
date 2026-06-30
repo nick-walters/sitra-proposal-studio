@@ -574,7 +574,7 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
               <thead>
                 <tr>
                   <th className="w-14">No.</th>
-                  <th style={{ width: '280px' }}>Milestone name</th>
+                  <th style={{ width: '80px' }}>Milestone name</th>
                   <th style={{ width: '125px', minWidth: '125px', maxWidth: '125px' }}>WP(s)</th>
                   <th style={{ width: '83px' }}>Due month</th>
                   <th>Means of verification</th>
