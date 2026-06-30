@@ -920,8 +920,7 @@ function RisksGuidelinesInline() {
     <div className="text-xs text-muted-foreground space-y-1.5 pt-1">
       <p>
         This list is mirrored to Table 3.1.e (Risk table). Risks appear in the order you arrange them &mdash; drag the
-        grip to reorder. <span className="font-medium text-foreground">i.</span> Level of likelihood to occur &middot;{' '}
-        <span className="font-medium text-foreground">ii.</span> Level of severity.
+        grip to reorder.
       </p>
 
       <p>
@@ -929,12 +928,12 @@ function RisksGuidelinesInline() {
         a high adverse impact on the ability of the project to achieve its objectives.
       </p>
       <p>
-        <span className="font-medium text-foreground">Level of likelihood to occur</span><LMHBadgesInline />: the
+        <span className="font-medium text-foreground">i. Level of likelihood to occur</span><LMHBadgesInline />: the
         estimated probability that the risk will materialise, even after taking account of the mitigating measures put
         in place.
       </p>
       <p>
-        <span className="font-medium text-foreground">Level of severity</span><LMHBadgesInline />: the relative
+        <span className="font-medium text-foreground">ii. Level of severity</span><LMHBadgesInline />: the relative
         seriousness of the risk and the significance of its effect.
       </p>
     </div>
