@@ -427,7 +427,7 @@ export function B31MilestonesTable({ proposalId }: Props) {
 
   const columns: Col[] = [
     { label: 'No.', defaultWidth: 48, cellClass: 'cell-pl-0' },
-    { label: 'Milestone name', defaultWidth: 220 },
+    { label: 'Milestone', defaultWidth: 220 },
     { label: 'WP(s)', defaultWidth: 113, cellClass: 'cell-px-0' },
     { label: 'Due', defaultWidth: 50 },
     { label: 'Means of verification', flex: true, cellClass: 'cell-pr-0' },
