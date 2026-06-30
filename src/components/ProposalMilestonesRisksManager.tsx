@@ -777,7 +777,7 @@ function SortableRiskRow({
     id: risk.id,
     disabled: !canEdit,
   });
-  const style: React.CSSProperties = {
+  const style: CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
