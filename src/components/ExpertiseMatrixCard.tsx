@@ -87,13 +87,13 @@ export function ExpertiseMatrixCard({ proposalId, participants }: Props) {
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse text-sm">
                   <thead>
-                    <tr className="border-b">
-                      <th className="w-7 px-1 py-2" />
-                      <th className="text-left px-2 py-2 font-semibold text-xs uppercase tracking-wide text-muted-foreground">
+                    <tr className="border-b-[1.5px] border-black">
+                      <th className="w-7 px-1 py-1" />
+                      <th className="text-left px-2 py-1 font-bold text-sm text-foreground align-bottom">
                         Expertise
                       </th>
                       {columns.map((col) => (
-                        <th key={col.id} className="px-1 py-2 align-bottom" style={{ width: '1%', whiteSpace: 'nowrap' }}>
+                        <th key={col.id} className="px-1 py-1 align-bottom font-bold text-sm text-foreground" style={{ width: '110px' }}>
                           <HeaderCell
                             col={col}
                             participant={col.participant_id ? partMap.get(col.participant_id) : undefined}
