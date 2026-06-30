@@ -148,6 +148,7 @@ function MirrorTable({
   emptyColSpan,
   emptyLabel,
   isEmpty,
+  tableClassName = '',
 }: {
   proposalId: string;
   tableKey: string;
@@ -156,7 +157,10 @@ function MirrorTable({
   emptyColSpan: number;
   emptyLabel: string;
   isEmpty: boolean;
+  /** Extra class(es) on the <table>, e.g. 'platform-table--tight' to enable per-column marker padding overrides. */
+  tableClassName?: string;
 }) {
+
   const { colWidths, tableRef, handleColResizeStart } = useColumnResize({
     proposalId,
     tableKey,
