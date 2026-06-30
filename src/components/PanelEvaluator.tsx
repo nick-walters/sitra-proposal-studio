@@ -469,35 +469,49 @@ export function PanelEvaluator({ proposalId }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [proposalId]);
 
-  // Load rolling cost average
+  // Load recent per-run actuals for this instrument+stage(+budget) — used to learn the estimate.
   useEffect(() => {
     if (!instrumentCode || !proposalStage) return;
     void (async () => {
-      const stageKey = proposalStage;
-      const fallbackKey =
-        stageKey === "stage1"
-          ? "any-stage1"
-          : `${instrumentCode}-${stageKey}-${budgetType}`;
-      const fallback = FALLBACK_COSTS[fallbackKey] ?? 2.5;
-
       let q = supabase
         .from("evaluation_cost_log")
-        .select("cost_eur")
+        .select("cost_eur, model_used, payload_tokens")
         .eq("instrument_code", instrumentCode)
-        .eq("proposal_stage", stageKey)
+        .eq("proposal_stage", proposalStage)
         .order("created_at", { ascending: false })
-        .limit(10);
-      if (stageKey !== "stage1") q = q.eq("budget_type", budgetType);
-
+        .limit(30);
+      if (proposalStage !== "stage1") q = q.eq("budget_type", budgetType);
       const { data } = await q;
-      if (data && data.length >= 3) {
-        const avg = data.reduce((s: number, r: any) => s + Number(r.cost_eur || 0), 0) / data.length;
-        setCostAvg({ eur: avg, samples: data.length, isFallback: false });
-      } else {
-        setCostAvg({ eur: fallback, samples: data?.length || 0, isFallback: true });
-      }
+      setCostHistory(
+        (data || []).map((r: any) => ({
+          cost_eur: Number(r.cost_eur || 0),
+          model_used: r.model_used ?? null,
+          payload_tokens: r.payload_tokens != null ? Number(r.payload_tokens) : null,
+        })),
+      );
     })();
   }, [instrumentCode, proposalStage, budgetType]);
+
+  // Pull this proposal's most recent rendered_proposal length to size the estimate.
+  // (rendered_proposal is produced on each run and persisted in analysis_data.)
+  useEffect(() => {
+    if (!proposalId) return;
+    void (async () => {
+      const { data } = await supabase
+        .from("proposal_analyses")
+        .select("analysis_data")
+        .eq("proposal_id", proposalId)
+        .order("created_at", { ascending: false })
+        .limit(5);
+      for (const row of data || []) {
+        const rp = (row as any)?.analysis_data?.rendered_proposal;
+        if (typeof rp === "string" && rp.length > 0) {
+          setThisPayloadTokens(Math.ceil(rp.length / 4));
+          return;
+        }
+      }
+    })();
+  }, [proposalId]);
 
   const selectedInstrument = useMemo(
     () => instruments.find((i) => i.code === instrumentCode),
@@ -508,23 +522,61 @@ export function PanelEvaluator({ proposalId }: Props) {
   const validPanelSize = selectedCount >= 3 && selectedCount <= 10;
   const recommendedIds = new Set(proposedPanel.map((p) => p.id));
 
-  // Per-model cost estimate. The historical evaluation_cost_log is logged at
-  // whatever Anthropic prices were in force at the time (the old Opus default
-  // was $15 in / $75 out per MTok = $90 combined). Scale the rolling-avg by
-  // each model's combined per-MTok rate vs that old Opus baseline. Sonnet
-  // intro ($2/$10) auto-switches to standard ($3/$15) on 2026-09-01.
+  // Self-improving per-model cost estimate.
+  //
+  // Preferred path (≥3 actuals for same model+instrument+stage+budget):
+  //   est = avg(actual cost_eur) × (this_payload_tokens / avg(payload_tokens))
+  //
+  // Fallback (thin history): model the typical run shape — K=evaluators+1 synthesis calls,
+  // proposal block cache-written once then cache-read by the remaining K-1 calls — and price
+  // it through the corrected per-model formula (uncached×in + cacheRead×in×0.10 +
+  // cacheWrite×in×1.25 + output×out). Sonnet intro $2/$10 auto-switches to $3/$15 from 2026-09-01.
   const modelCostEstimate = useMemo(() => {
-    const OLD_OPUS_COMBINED = 15 + 75; // baseline used historically in cost_log
-    const NEW_OPUS_COMBINED = 5 + 25;  // $5 in + $25 out
     const sonnetStandardActive = Date.now() >= new Date("2026-09-01T00:00:00Z").getTime();
-    const SONNET_COMBINED = sonnetStandardActive ? 3 + 15 : 2 + 10;
-    const base = Math.max(0.01, costAvg.eur);
+    const PRICES: Record<"sonnet" | "opus", { in: number; out: number }> = {
+      sonnet: { in: sonnetStandardActive ? 3 : 2, out: sonnetStandardActive ? 15 : 10 },
+      opus: { in: 5, out: 25 },
+    };
+    const USD_EUR = 0.88;
+    const K = Math.max(3, Math.min(10, (selectedCount || 4) + 1));
+
+    // Token-based fallback in EUR.
+    const tokenFallback = (m: "sonnet" | "opus") => {
+      const p = PRICES[m];
+      const payload =
+        thisPayloadTokens ??
+        Math.round(
+          (costHistory.filter((h) => h.payload_tokens).reduce((s, h) => s + (h.payload_tokens || 0), 0) /
+            Math.max(1, costHistory.filter((h) => h.payload_tokens).length)) || 50000,
+        );
+      const cacheWrite = payload;
+      const cacheRead = payload * (K - 1);
+      const uncached = 600 * K; // per-call instruction overhead
+      const output = 3000 * K; // ~3k tokens per evaluator/synthesis
+      const usd =
+        (uncached * p.in + cacheRead * p.in * 0.1 + cacheWrite * p.in * 1.25 + output * p.out) /
+        1_000_000;
+      return usd * USD_EUR;
+    };
+
+    const learned = (modelKey: string, fallback: number) => {
+      const samples = costHistory
+        .filter((h) => h.model_used === modelKey && h.payload_tokens && h.cost_eur > 0)
+        .slice(0, 10);
+      if (samples.length < 3) return fallback;
+      const avgCost = samples.reduce((s, h) => s + h.cost_eur, 0) / samples.length;
+      const avgPayload =
+        samples.reduce((s, h) => s + (h.payload_tokens || 0), 0) / samples.length;
+      const scale = thisPayloadTokens && avgPayload ? thisPayloadTokens / avgPayload : 1;
+      return avgCost * scale;
+    };
+
     return {
-      sonnet: base * (SONNET_COMBINED / OLD_OPUS_COMBINED),
-      opus: base * (NEW_OPUS_COMBINED / OLD_OPUS_COMBINED),
+      sonnet: learned("claude-sonnet-5", tokenFallback("sonnet")),
+      opus: learned("claude-opus-4-8", tokenFallback("opus")),
       sonnetStandardActive,
     };
-  }, [costAvg]);
+  }, [costHistory, thisPayloadTokens, selectedCount]);
 
   async function startEvaluation() {
 
