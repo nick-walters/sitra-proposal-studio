@@ -463,10 +463,18 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
 
   // Write a single subsection's content into the subsection_content jsonb
   const updateSubsectionContent = useCallback(
-    (key: string, value: string) => {
-      const current = ((caseDraft as any)?.subsection_content as Record<string, string> | null) || {};
+    (key: string, value: string, heading?: string) => {
+      const current = ((caseDraft as any)?.subsection_content as Record<string, any> | null) || {};
       const safe = typeof value === 'string' ? stripWordHtml(value) : value;
-      updateMutation.mutate({ subsection_content: { ...current, [key]: safe } });
+      // Forward-write the object form { heading, body }. The reader tolerates
+      // both the legacy bare-string shape and this object shape.
+      const existing = current[key];
+      const existingHeading =
+        existing && typeof existing === 'object' ? existing.heading : undefined;
+      const nextHeading = heading || existingHeading || '';
+      updateMutation.mutate({
+        subsection_content: { ...current, [key]: { heading: nextHeading, body: safe } },
+      });
     },
     [caseDraft, updateMutation],
   );
@@ -747,8 +755,12 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
           </p>
         )}
         {subsectionTemplates.map((sub) => {
-          const contentMap = ((caseDraft as any).subsection_content as Record<string, string> | null) || {};
-          const content = contentMap[sub.key] || '';
+          const contentMap = ((caseDraft as any).subsection_content as Record<string, any> | null) || {};
+          const rawEntry = contentMap[sub.key];
+          const content =
+            typeof rawEntry === 'string'
+              ? rawEntry
+              : (rawEntry && typeof rawEntry === 'object' ? (rawEntry.body || '') : '');
           const guideline = sub.guideline || '';
 
           return (
@@ -766,7 +778,7 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
 
                 <WPSimpleEditor
                   value={content}
-                  onChange={(v) => updateSubsectionContent(sub.key, v)}
+                  onChange={(v) => updateSubsectionContent(sub.key, v, sub.heading)}
                   placeholder={`Write about ${sub.heading.toLowerCase()}...`}
                   disabled={readOnly}
                   minHeight="150px"

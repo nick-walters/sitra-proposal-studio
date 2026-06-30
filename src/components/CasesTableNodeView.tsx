@@ -266,16 +266,22 @@ function extractSubsections(row: CaseRow, templates: SubsectionTemplate[]) {
     seen.add(key);
   };
 
-  const jsonContent = row.subsection_content as Record<string, { heading?: string; body?: string }> | null;
+  const jsonContent = row.subsection_content as Record<string, string | { heading?: string; body?: string }> | null;
 
   for (const k of orderedKeys) {
     const tpl = templates.find((t) => t.key === k);
     const tplHeading = tpl?.heading || '';
-    if (jsonContent && jsonContent[k]) {
-      pushSub(k, jsonContent[k].heading || tplHeading || k, jsonContent[k].body || '');
+    const builtin = builtins.find((b) => b.key === k);
+    const builtinDefaultHeading = builtin?.heading || builtin?.defaultHeading || '';
+    if (jsonContent && jsonContent[k] != null) {
+      const entry = jsonContent[k];
+      const body = typeof entry === 'string' ? entry : (entry.body || '');
+      const heading = typeof entry === 'string'
+        ? (tplHeading || builtinDefaultHeading || k)
+        : (entry.heading || tplHeading || builtinDefaultHeading || k);
+      pushSub(k, heading, body);
       continue;
     }
-    const builtin = builtins.find((b) => b.key === k);
     if (builtin) {
       pushSub(k, builtin.heading || tplHeading || builtin.defaultHeading, builtin.body);
     }
@@ -289,7 +295,15 @@ function extractSubsections(row: CaseRow, templates: SubsectionTemplate[]) {
   // Any remaining JSON keys
   if (jsonContent) {
     for (const k of Object.keys(jsonContent)) {
-      pushSub(k, jsonContent[k]?.heading || k, jsonContent[k]?.body || '');
+      const entry = jsonContent[k];
+      if (entry == null) continue;
+      const tpl = templates.find((t) => t.key === k);
+      const tplHeading = tpl?.heading || '';
+      const body = typeof entry === 'string' ? entry : (entry.body || '');
+      const heading = typeof entry === 'string'
+        ? (tplHeading || k)
+        : (entry.heading || tplHeading || k);
+      pushSub(k, heading, body);
     }
   }
 
