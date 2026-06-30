@@ -581,16 +581,21 @@ async function replaceFiguresWithText(
 
   if (chartWrappers.length > 0) {
     // One batched data fetch covering both summaries.
-    const [wpsRes, delsRes, msRes] = await Promise.all([
-      supabase
-        .from('wp_drafts')
-        .select('id, number, short_name, title')
-        .eq('proposal_id', proposalId)
-        .order('number'),
-      supabase
-        .from('wp_draft_deliverables')
-        .select('number, due_month, title, wp_draft_id')
-        .eq('proposal_id', proposalId),
+    const wpsRes = await supabase
+      .from('wp_drafts')
+      .select('id, number, short_name, title')
+      .eq('proposal_id', proposalId)
+      .order('number');
+    const wps = wpsRes.data || [];
+    const wpIds = wps.map((w: any) => w.id);
+
+    const [delsRes, msRes] = await Promise.all([
+      wpIds.length
+        ? supabase
+            .from('wp_draft_deliverables')
+            .select('number, due_month, title, wp_draft_id')
+            .in('wp_draft_id', wpIds)
+        : Promise.resolve({ data: [] as any[] }),
       supabase
         .from('proposal_milestones')
         .select('number, due_month, title')
