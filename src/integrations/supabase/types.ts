@@ -1374,6 +1374,119 @@ export type Database = {
         }
         Relationships: []
       }
+      expertise_matrix_cells: {
+        Row: {
+          checked: boolean
+          column_id: string
+          row_id: string
+        }
+        Insert: {
+          checked?: boolean
+          column_id: string
+          row_id: string
+        }
+        Update: {
+          checked?: boolean
+          column_id?: string
+          row_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expertise_matrix_cells_column_id_fkey"
+            columns: ["column_id"]
+            isOneToOne: false
+            referencedRelation: "expertise_matrix_columns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expertise_matrix_cells_row_id_fkey"
+            columns: ["row_id"]
+            isOneToOne: false
+            referencedRelation: "expertise_matrix_rows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expertise_matrix_columns: {
+        Row: {
+          created_at: string
+          header_text: string | null
+          id: string
+          kind: string
+          order_index: number
+          participant_id: string | null
+          proposal_id: string
+        }
+        Insert: {
+          created_at?: string
+          header_text?: string | null
+          id?: string
+          kind: string
+          order_index: number
+          participant_id?: string | null
+          proposal_id: string
+        }
+        Update: {
+          created_at?: string
+          header_text?: string | null
+          id?: string
+          kind?: string
+          order_index?: number
+          participant_id?: string | null
+          proposal_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expertise_matrix_columns_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expertise_matrix_columns_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expertise_matrix_rows: {
+        Row: {
+          created_at: string
+          id: string
+          is_default: boolean
+          label: string
+          order_index: number
+          proposal_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          label?: string
+          order_index: number
+          proposal_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          label?: string
+          order_index?: number
+          proposal_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expertise_matrix_rows_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       feedback: {
         Row: {
           ai_analysis: string | null
@@ -3508,6 +3621,7 @@ export type Database = {
           duration: number | null
           evaluation_criteria_notes: string | null
           expected_projects: string | null
+          expertise_matrix_enabled: boolean
           fstp_budget: string | null
           fstp_budget_per_third_party: string | null
           fstp_type: string | null
@@ -3577,6 +3691,7 @@ export type Database = {
           duration?: number | null
           evaluation_criteria_notes?: string | null
           expected_projects?: string | null
+          expertise_matrix_enabled?: boolean
           fstp_budget?: string | null
           fstp_budget_per_third_party?: string | null
           fstp_type?: string | null
@@ -3646,6 +3761,7 @@ export type Database = {
           duration?: number | null
           evaluation_criteria_notes?: string | null
           expected_projects?: string | null
+          expertise_matrix_enabled?: boolean
           fstp_budget?: string | null
           fstp_budget_per_third_party?: string | null
           fstp_type?: string | null
