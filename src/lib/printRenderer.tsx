@@ -570,7 +570,14 @@ export const mountB31Components = mountDynamicComponents;
  * ordinary uploaded image figures inside section content we keep the figure
  * number + caption line and drop the image.
  */
-async function replaceFiguresWithText(
+/**
+ * Replace PERT/Gantt charts and uploaded <img> figures with structured text
+ * summaries. NOT used in the visual PDF/Word export path — figures must render
+ * as real inline SVG / <img> there. Exported so the evaluation pipeline can run
+ * it against a CLONE of the prepared export container to produce a
+ * machine-readable text payload.
+ */
+export async function replaceFiguresWithText(
   container: HTMLElement,
   proposalId: string,
 ): Promise<void> {
@@ -816,10 +823,10 @@ export async function prepareExportContainer(
   );
 
 
-  // Replace PERT/Gantt charts and uploaded figures with structured text blocks.
-  // Runs AFTER images load (so we know which ones resolved) but BEFORE the
-  // freeze step, since the freeze pass walks the DOM the user will print.
-  await replaceFiguresWithText(container, options.proposal.id);
+  // NOTE: Figure→text substitution (replaceFiguresWithText) is intentionally
+  // NOT run here. The visual PDF/Word export must contain real inline SVG
+  // (PERT/Gantt) and <img> figures. The evaluation pipeline imports
+  // replaceFiguresWithText and runs it on a CLONE of this container.
 
 
   // Freeze interactive elements (inputs, selects, buttons) into static text
