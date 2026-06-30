@@ -793,9 +793,13 @@ async function runSynthesisPhase(serviceClient: any, evaluationId: string) {
   if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
 
   const evaluation = await getEvaluationRecord(serviceClient, evaluationId);
+  if (evaluation.status === "cancelled") {
+    return { evaluationId, status: "cancelled" };
+  }
   const analysisData = evaluation.analysis_data || {};
   const synthesisContext = analysisData.synthesis_context || {};
   const parsedEvaluations = Array.isArray(analysisData.evaluations) ? analysisData.evaluations : [];
+
 
   const successfulEvaluations = parsedEvaluations.filter((item: any) => !item?.data?.error);
   if (successfulEvaluations.length < MIN_SUCCESSFUL_EVALUATORS) {
