@@ -416,29 +416,94 @@ export function PanelEvaluator({ proposalId }: Props) {
       .map((p) => ({ name: p.name, brief: p.brief }));
 
     setStage("stageB");
-    try {
-      const { data, error } = await supabase.functions.invoke("run-panel-evaluation", {
-        body: {
-          action: "start",
-          proposalId,
-          selectedEvaluators,
-          instrumentCode,
-          proposalStage,
-          budgetType: proposalStage === "stage1" ? null : budgetType,
-          eligibilityFlags,
-        },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      if (!data?.evaluationId) throw new Error("Edge function did not return an evaluationId");
 
-      toast.info("Evaluation running in background. You can leave this page and return.");
-      startPolling(data.evaluationId);
+    let cleanup: (() => void) | null = null;
+    try {
+      if (!proposalData || !allSections || allSections.length === 0) {
+        throw new Error("Proposal content is still loading — please retry in a moment.");
+      }
+
+      toast.info("Rendering proposal for evaluator payload…");
+
+      // 1) Fetch the section_content rows (same shape the PDF/Word export uses).
+      const { data: sectionRows } = await supabase
+        .from("section_content")
+        .select("id, section_id, content")
+        .eq("proposal_id", proposalId);
+      const sectionContents = (sectionRows || []).map((sc: any) => ({
+        id: sc.id,
+        sectionId: sc.section_id,
+        content: sc.content || "",
+      }));
+
+      // 2) Prepare the offscreen export container exactly as the PDF export
+      //    does (Part A mirror, B3.1 / B3.2 / B1.2 React mounts, real
+      //    figures). The visual container keeps real figures.
+      const prepared = await prepareExportContainer(
+        {
+          proposal: {
+            id: proposalData.id,
+            title: proposalData.title || "",
+            acronym: proposalData.acronym || "",
+            submissionStage: (proposalData as any).submissionStage ?? null,
+            topicId: (proposalData as any).topicId ?? null,
+            topicTitle: (proposalData as any).topicTitle ?? null,
+            type: (proposalData as any).type ?? null,
+          },
+          sections: allSections as any,
+          sectionContents,
+          participants,
+        },
+        undefined,
+        appQueryClient,
+      );
+      cleanup = prepared.cleanup;
+
+      // 3) Clone, swap figures to text on the clone, extract markdown.
+      const clone = prepared.container.cloneNode(true) as HTMLElement;
+      // The clone must be attached to render text measurements / innerText
+      // consistently — keep it off-screen.
+      clone.style.position = "absolute";
+      clone.style.left = "-99999px";
+      clone.style.top = "0";
+      document.body.appendChild(clone);
+      try {
+        await replaceFiguresWithText(clone, proposalId);
+        const renderedProposal = extractEvaluationText(clone);
+
+        if (!renderedProposal || renderedProposal.length < 200) {
+          throw new Error("Rendered proposal payload is empty — aborting.");
+        }
+
+        const { data, error } = await supabase.functions.invoke("run-panel-evaluation", {
+          body: {
+            action: "start",
+            proposalId,
+            selectedEvaluators,
+            instrumentCode,
+            proposalStage,
+            budgetType: proposalStage === "stage1" ? null : budgetType,
+            eligibilityFlags,
+            renderedProposal,
+          },
+        });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+        if (!data?.evaluationId) throw new Error("Edge function did not return an evaluationId");
+
+        toast.info("Evaluation running in background. You can leave this page and return.");
+        startPolling(data.evaluationId);
+      } finally {
+        if (clone.parentNode) clone.parentNode.removeChild(clone);
+      }
     } catch (e: any) {
       toast.error(`Evaluation failed to start: ${e.message || e}`);
       setStage("panelReview");
+    } finally {
+      if (cleanup) cleanup();
     }
   }
+
 
   function cancel() {
     setStage("idle");
