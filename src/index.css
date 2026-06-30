@@ -639,6 +639,27 @@ html, body {
   word-wrap: break-word;
 }
 
+/* Scoped "tight" modifier for platform tables — lets per-column marker classes
+   (cell-px-0 / cell-pl-0 / cell-pr-0) zero horizontal padding on BOTH th and td,
+   beating the default thead padding rule above and Tailwind utility source order
+   on body cells. Opt-in per table by adding `platform-table--tight` alongside
+   `platform-table` on the <table>. Used by B3.1 tables 3.1.d and 3.1.e. */
+.platform-table.platform-table--tight > thead > tr > th.cell-px-0,
+.platform-table.platform-table--tight > tbody > tr > td.cell-px-0 {
+  padding-left: 0;
+  padding-right: 0;
+}
+.platform-table.platform-table--tight > thead > tr > th.cell-pl-0,
+.platform-table.platform-table--tight > tbody > tr > td.cell-pl-0 {
+  padding-left: 0;
+}
+.platform-table.platform-table--tight > thead > tr > th.cell-pr-0,
+.platform-table.platform-table--tight > tbody > tr > td.cell-pr-0 {
+  padding-right: 0;
+}
+
+
+
 
 
 /* Tables that should have first-column content flush with the page margin */

@@ -135,7 +135,10 @@ type Col = {
   align?: 'left' | 'center';
   /** Optional override for horizontal padding classes (e.g. 'px-0'). When set, replaces the default first/last-column padding logic for this column's header cell. */
   padX?: string;
+  /** Optional marker class (e.g. 'cell-px-0' / 'cell-pl-0' / 'cell-pr-0') applied to both the header th AND to body MCells with the matching index. Pair with `tableClassName="platform-table--tight"` so the scoped CSS rules in index.css zero the padding. */
+  cellClass?: string;
 };
+
 
 function MirrorTable({
   proposalId,
@@ -145,6 +148,7 @@ function MirrorTable({
   emptyColSpan,
   emptyLabel,
   isEmpty,
+  tableClassName = '',
 }: {
   proposalId: string;
   tableKey: string;
@@ -153,7 +157,10 @@ function MirrorTable({
   emptyColSpan: number;
   emptyLabel: string;
   isEmpty: boolean;
+  /** Extra class(es) on the <table>, e.g. 'platform-table--tight' to enable per-column marker padding overrides. */
+  tableClassName?: string;
 }) {
+
   const { colWidths, tableRef, handleColResizeStart } = useColumnResize({
     proposalId,
     tableKey,
@@ -184,7 +191,7 @@ function MirrorTable({
   return (
     <table
       ref={tableRef}
-      className={`platform-table ${tableFont}`}
+      className={`platform-table ${tableClassName} ${tableFont}`.trim()}
       style={{ tableLayout: 'fixed', width: '100%', borderCollapse: 'collapse' }}
     >
       <colgroup>
@@ -195,7 +202,7 @@ function MirrorTable({
           {columns.map((c, i) => (
             <th
               key={i}
-              className={`${cellPad(i)} py-0 text-[10pt] align-bottom relative ${c.align === 'center' ? 'text-center' : 'text-left'}`}
+              className={`${cellPad(i)} ${c.cellClass ?? ''} py-0 text-[10pt] align-bottom relative ${c.align === 'center' ? 'text-center' : 'text-left'}`}
             >
               {c.label}
               {i < lastIdx && <ColumnResizer onMouseDown={handleColResizeStart(i)} />}
@@ -203,6 +210,7 @@ function MirrorTable({
           ))}
         </tr>
       </thead>
+
       <tbody className="[&_tr]:border-b [&_tr]:border-black/10 [&_tr:last-child]:border-0">
         {isEmpty ? (
           <tr>
@@ -231,6 +239,7 @@ function MCell({
   children,
   colSpan,
   padX,
+  cellClass,
 }: {
   index: number;
   last: number;
@@ -240,16 +249,19 @@ function MCell({
   colSpan?: number;
   /** Optional override for horizontal padding classes (e.g. 'px-0'). When set, replaces the default first/last-column padding logic. */
   padX?: string;
+  /** Optional marker class (e.g. 'cell-px-0' / 'cell-pl-0' / 'cell-pr-0') matched by the scoped CSS rules under `.platform-table--tight`. Must mirror the parent Col's cellClass for header/body alignment. */
+  cellClass?: string;
 }) {
   const pl = index === 0 ? 'pl-0' : 'pl-2';
   const pr = index === last ? 'pr-0' : 'pr-2';
   const padClass = padX ?? `${pl} ${pr}`;
   return (
-    <td colSpan={colSpan} className={`${cellBase} ${padClass} ${className}`} style={style}>
+    <td colSpan={colSpan} className={`${cellBase} ${padClass} ${cellClass ?? ''} ${className}`} style={style}>
       {children}
     </td>
   );
 }
+
 
 /** Parse a comma/space list of WP numbers (e.g. "1, 3, WP5") into number[]. */
 function parseWPList(s: string | null | undefined): number[] {
@@ -414,12 +426,13 @@ export function B31MilestonesTable({ proposalId }: Props) {
   }, [milestones, wpInfo]);
 
   const columns: Col[] = [
-    { label: 'No.', defaultWidth: 48 },
+    { label: 'No.', defaultWidth: 48, cellClass: 'cell-pl-0' },
     { label: 'Milestone name', defaultWidth: 220 },
-    { label: 'WP(s)', defaultWidth: 113 },
+    { label: 'WP(s)', defaultWidth: 113, cellClass: 'cell-px-0' },
     { label: 'Due', defaultWidth: 50 },
-    { label: 'Means of verification', flex: true },
+    { label: 'Means of verification', flex: true, cellClass: 'cell-pr-0' },
   ];
+
   const last = columns.length - 1;
 
   return (
@@ -438,7 +451,9 @@ export function B31MilestonesTable({ proposalId }: Props) {
         emptyColSpan={5}
         emptyLabel="No milestones yet."
         isEmpty={sortedMilestones.length === 0}
+        tableClassName="platform-table--tight"
       >
+
         {sortedMilestones.map((m: any) => {
           const wps = (m._wpIds as string[])
             .map((id) => wpInfo?.byId.get(id))
@@ -446,9 +461,9 @@ export function B31MilestonesTable({ proposalId }: Props) {
             .sort((a: any, b: any) => a.number - b.number);
           return (
             <tr key={m.id}>
-              <MCell index={0} last={last}><MilestoneBadge number={m.number} /></MCell>
+              <MCell index={0} last={last} cellClass="cell-pl-0"><MilestoneBadge number={m.number} /></MCell>
               <MCell index={1} last={last}><ReadOnlyTextCell text={m.title} /></MCell>
-              <MCell index={2} last={last}>
+              <MCell index={2} last={last} cellClass="cell-px-0">
                 <div className="flex flex-wrap gap-0.5">
                   {wps.length === 0 && <span className="text-muted-foreground italic">—</span>}
                   {wps.map((wp: any) => (
@@ -457,7 +472,8 @@ export function B31MilestonesTable({ proposalId }: Props) {
                 </div>
               </MCell>
               <MCell index={3} last={last}><MonthLabel m={m.due_month} /></MCell>
-              <MCell index={4} last={last}><ReadOnlyHtmlCell html={m.means_of_verification} /></MCell>
+              <MCell index={4} last={last} cellClass="cell-pr-0"><ReadOnlyHtmlCell html={m.means_of_verification} /></MCell>
+
             </tr>
           );
         })}
@@ -505,12 +521,13 @@ export function B31RisksTable({ proposalId }: Props) {
 
 
   const columns: Col[] = [
-    { label: 'Risk', defaultWidth: 240 },
-    { label: 'i.', defaultWidth: 30, align: 'center', padX: 'px-0' },
-    { label: 'ii.', defaultWidth: 30, align: 'center', padX: 'px-0' },
-    { label: 'WP(s)', defaultWidth: 113, padX: 'px-0' },
-    { label: 'Mitigation & adaptation measures', flex: true },
+    { label: 'Risk', defaultWidth: 240, cellClass: 'cell-pl-0' },
+    { label: 'i.', defaultWidth: 30, align: 'center', cellClass: 'cell-px-0' },
+    { label: 'ii.', defaultWidth: 30, align: 'center', cellClass: 'cell-px-0' },
+    { label: 'WP(s)', defaultWidth: 113, cellClass: 'cell-px-0' },
+    { label: 'Mitigation & adaptation measures', flex: true, cellClass: 'cell-pr-0' },
   ];
+
   const last = columns.length - 1;
 
   return (
@@ -529,6 +546,7 @@ export function B31RisksTable({ proposalId }: Props) {
         emptyColSpan={5}
         emptyLabel="No risks yet."
         isEmpty={orderedRisks.length === 0}
+        tableClassName="platform-table--tight"
       >
         {orderedRisks.map((r: any) => {
           const wps = (r._wpIds as string[])
@@ -537,14 +555,14 @@ export function B31RisksTable({ proposalId }: Props) {
             .sort((a: any, b: any) => a.number - b.number);
           return (
             <tr key={r.id}>
-              <MCell index={0} last={last}><ReadOnlyHtmlCell html={r.title} /></MCell>
-              <MCell index={1} last={last} padX="px-0" className="text-center">
+              <MCell index={0} last={last} cellClass="cell-pl-0"><ReadOnlyHtmlCell html={r.title} /></MCell>
+              <MCell index={1} last={last} cellClass="cell-px-0" className="text-center">
                 {r.likelihood ? <RiskBadge level={r.likelihood as 'L' | 'M' | 'H'} /> : <span className="text-muted-foreground">—</span>}
               </MCell>
-              <MCell index={2} last={last} padX="px-0" className="text-center">
+              <MCell index={2} last={last} cellClass="cell-px-0" className="text-center">
                 {r.severity ? <RiskBadge level={r.severity as 'L' | 'M' | 'H'} /> : <span className="text-muted-foreground">—</span>}
               </MCell>
-              <MCell index={3} last={last} padX="px-0">
+              <MCell index={3} last={last} cellClass="cell-px-0">
                 <div className="flex flex-wrap gap-0.5">
                   {wps.length === 0 && <span className="text-muted-foreground italic">—</span>}
                   {wps.map((wp: any) => (
@@ -552,7 +570,8 @@ export function B31RisksTable({ proposalId }: Props) {
                   ))}
                 </div>
               </MCell>
-              <MCell index={4} last={last}><ReadOnlyHtmlCell html={r.mitigation} /></MCell>
+              <MCell index={4} last={last} cellClass="cell-pr-0"><ReadOnlyHtmlCell html={r.mitigation} /></MCell>
+
             </tr>
           );
         })}
