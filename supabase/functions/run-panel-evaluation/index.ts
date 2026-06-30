@@ -41,6 +41,42 @@ class RateLimitError extends Error {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// Resolve per-MTok USD pricing for a given model id, using configMap values.
+// Sonnet has intro vs standard pricing — pick by sonnet_pricing_standard_effective_date.
+function resolveModelPricing(
+  model: string,
+  configMap: Record<string, string>,
+): { inPrice: number; outPrice: number } {
+  const m = String(model || "").toLowerCase();
+  if (m.includes("sonnet")) {
+    const effectiveDateStr = configMap.sonnet_pricing_standard_effective_date || "2026-09-01";
+    const effective = new Date(`${effectiveDateStr}T00:00:00Z`);
+    const isStandard = Date.now() >= effective.getTime();
+    if (isStandard) {
+      return {
+        inPrice: parseFloat(configMap.sonnet_price_input_standard_per_mtok || "3.00"),
+        outPrice: parseFloat(configMap.sonnet_price_output_standard_per_mtok || "15.00"),
+      };
+    }
+    return {
+      inPrice: parseFloat(configMap.sonnet_price_input_intro_per_mtok || "2.00"),
+      outPrice: parseFloat(configMap.sonnet_price_output_intro_per_mtok || "10.00"),
+    };
+  }
+  if (m.includes("haiku")) {
+    return {
+      inPrice: parseFloat(configMap.haiku_price_input_per_mtok || "0.80"),
+      outPrice: parseFloat(configMap.haiku_price_output_per_mtok || "4.00"),
+    };
+  }
+  // Default: Opus
+  return {
+    inPrice: parseFloat(configMap.opus_price_input_per_mtok || "5.00"),
+    outPrice: parseFloat(configMap.opus_price_output_per_mtok || "25.00"),
+  };
+}
+
+
 async function callAnthropicWithCache(
   apiKey: string,
   model: string,
