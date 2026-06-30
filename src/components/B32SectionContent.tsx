@@ -114,10 +114,13 @@ export function B32SectionContent({ proposalId }: Props) {
 
   const dragStateRef = useRef<{ startY: number; startH: number; min: number; max: number; latest: number } | null>(null);
 
-  // Refs for each rotated header wrapper (sideways-lr) → measure their actual heights
-  // so the auto/min header height = tallest measured badge + 3pt (no dead space).
+  // Refs for each rotated header (rendered normally, then rotated via transform).
+  // We measure each badge's pre-rotation width (= rotated visual height) AND
+  // pre-rotation height (= rotated visual width). Width drives the row's min
+  // height; height drives the horizontal translate needed to center the rotated
+  // badge in its column.
   const badgeRefs = useRef<Array<HTMLDivElement | null>>([]);
-  const [measuredTallestPx, setMeasuredTallestPx] = useState<number>(0);
+  const [badgeDims, setBadgeDims] = useState<Array<{ w: number; h: number }>>([]);
 
   // Column-width resize (reuse the B3.1 mirror's persistence path).
   const totalCols = 1 + ((dataQ.data?.cols.length) ?? 0);
@@ -129,16 +132,22 @@ export function B32SectionContent({ proposalId }: Props) {
   });
   const hasManualWidths = colWidths.length === totalCols && colWidths.every((w) => Number.isFinite(w));
 
-  // Measure rendered badge heights (sideways-lr gives each badge a natural CSS
-  // height = the rotated visual height) so we can set an exact min/auto header
-  // height with NO dead space above the badges.
+  // Measure each rendered (still-unrotated, CSS-box-wise) badge: offsetWidth is
+  // the badge's text-line length, offsetHeight is the pill thickness. These
+  // values define the rotated visual box and the horizontal centering offset.
   useLayoutEffect(() => {
-    const heights = badgeRefs.current.map((el) => el?.offsetHeight ?? 0);
-    const tallest = heights.length ? Math.max(...heights) : 0;
-    if (tallest && Math.abs(tallest - measuredTallestPx) > 0.5) {
-      setMeasuredTallestPx(tallest);
-    }
+    const next = badgeRefs.current.map((el) =>
+      el ? { w: el.offsetWidth, h: el.offsetHeight } : { w: 0, h: 0 },
+    );
+    const changed =
+      next.length !== badgeDims.length ||
+      next.some((d, i) =>
+        Math.abs(d.w - (badgeDims[i]?.w ?? 0)) > 0.5 ||
+        Math.abs(d.h - (badgeDims[i]?.h ?? 0)) > 0.5,
+      );
+    if (changed) setBadgeDims(next);
   });
+
 
   if (enabledQ.data?.enabled === false) return null;
   if (!dataQ.data) return null;
@@ -165,10 +174,12 @@ export function B32SectionContent({ proposalId }: Props) {
   const cellMap = new Map<string, boolean>();
   for (const c of cells) cellMap.set(`${c.row_id}::${c.column_id}`, c.checked);
 
-  // Min/auto header height = tallest MEASURED badge + 3pt gap above the bottom border.
-  // Fallback (pre-measurement, first paint) = 24px + gap so the row isn't collapsed.
-  const tallestBadgePx = measuredTallestPx || 24;
-  const autoHeaderHeightPx = tallestBadgePx + HEADER_BOTTOM_GAP_PX;
+  // Min/auto header height = tallest measured badge WIDTH (rotated visual height)
+  // + 3pt gap above the bottom border. Fallback (pre-measurement) = 24px + gap.
+  const tallestBadgePx = badgeDims.length
+    ? Math.max(0, ...badgeDims.map((d) => d.w))
+    : 0;
+  const autoHeaderHeightPx = (tallestBadgePx || 24) + HEADER_BOTTOM_GAP_PX;
   const minHeaderHeightPx = autoHeaderHeightPx;
   const maxHeaderHeightPx = 480;
   const effectiveHeaderHeightPx = Math.max(
@@ -298,31 +309,35 @@ export function B32SectionContent({ proposalId }: Props) {
             </th>
             {orderedCols.map((c, idx) => {
               const colIdx = idx + 1;
+              const h = badgeDims[idx]?.h ?? 0;
               return (
                 <th
                   key={c.id}
-                  className="align-top relative"
+                  className="relative"
                   style={{
                     height: `${effectiveHeaderHeightPx}px`,
                     padding: 0,
                     paddingTop: 0,
                     verticalAlign: 'top',
+                    overflow: 'visible',
                   }}
                 >
-                  {/* Bottom-anchored badge wrapper. `writing-mode: sideways-lr`
-                      makes the element's intrinsic CSS height equal to the
-                      rotated text length — so its CSS bottom IS the visual
-                      bottom of the rotated badge. Pinning `bottom: 4px` puts
-                      every badge's lowest point on the SAME shared line, 3pt
-                      above the cell bottom border, regardless of label length. */}
+                  {/* Badge rendered NORMALLY (so the pill fits its full text),
+                      then rotated -90° around its bottom-left corner. With
+                      transform-origin 0% 100% the rotated visual's bottom edge
+                      lands on the element's CSS bottom — i.e. exactly
+                      `bottom: 4px` above the cell's bottom border. The extra
+                      translateX(h/2) shifts the visual right by half the pill
+                      height to horizontally centre it (visual width = h). All
+                      columns share this same bottom anchor → shared bottom line. */}
                   <div
                     ref={(el) => { badgeRefs.current[idx] = el; }}
                     style={{
                       position: 'absolute',
                       left: '50%',
                       bottom: `${HEADER_BOTTOM_GAP_PX}px`,
-                      transform: 'translateX(-50%)',
-                      writingMode: 'sideways-lr',
+                      transformOrigin: '0% 100%',
+                      transform: `translateX(${h / 2}px) rotate(-90deg)`,
                       whiteSpace: 'nowrap',
                       lineHeight: 1,
                       display: 'inline-block',
