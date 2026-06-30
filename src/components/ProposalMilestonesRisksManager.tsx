@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, useCallback, createContext, useContext } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback, createContext, useContext, type CSSProperties } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -312,10 +312,10 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
     queryFn: async () => {
       const { data: rows } = await supabase
         .from('proposal_risks')
-        .select('id, number, title, likelihood, severity, mitigation, order_index')
+        .select('id, number, title, likelihood, severity, mitigation, order_index, created_at')
         .eq('proposal_id', proposalId)
         .order('order_index')
-        .order('number');
+        .order('created_at');
       const ids = (rows || []).map((r: any) => r.id);
       const linksRes = ids.length
         ? await supabase.from('proposal_risk_wps').select('risk_id, wp_draft_id').in('risk_id', ids)
@@ -329,6 +329,7 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
       return (rows || []).map((r: any) => ({ ...r, wp_ids: wpMap.get(r.id) || [] }));
     },
   });
+
 
   // Helper: bump cross-ref consumers when MS data changes
   const notifyRefs = () => {
@@ -510,19 +511,36 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
     ...saveHooks,
   });
 
-  // Auto-order risks by min related WP number (matches B31RisksTable mirror)
-  const orderedRisks = useMemo(() => {
-    const minWpNum = (r: Risk) => {
-      const nums = r.wp_ids.map(id => wpsById.get(id)?.number).filter((n): n is number => typeof n === 'number');
-      return nums.length ? Math.min(...nums) : Number.POSITIVE_INFINITY;
-    };
-    return [...risks].sort((a, b) => {
-      const wa = minWpNum(a);
-      const wb = minWpNum(b);
-      if (wa !== wb) return wa - wb;
-      return a.id.localeCompare(b.id);
-    });
-  }, [risks, wpsById]);
+  // Risks are user-ordered via drag-and-drop; sort by order_index then created_at (query already does this).
+  const riskSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const persistRiskOrder = useCallback(async (ordered: Risk[]) => {
+    // Write sequential order_index 0..N-1 (only for rows whose order_index changed).
+    for (let i = 0; i < ordered.length; i++) {
+      if (ordered[i].order_index !== i) {
+        await supabase.from('proposal_risks').update({ order_index: i }).eq('id', ordered[i].id);
+      }
+    }
+    qc.invalidateQueries({ queryKey: RISK_KEY(proposalId) });
+    qc.invalidateQueries({ queryKey: ['b31-risks-live', proposalId] });
+    notifyRefs();
+  }, [proposalId, qc]);
+
+  const handleRiskDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const oldIndex = risks.findIndex(r => r.id === active.id);
+    const newIndex = risks.findIndex(r => r.id === over.id);
+    if (oldIndex < 0 || newIndex < 0) return;
+    const reordered = arrayMove(risks, oldIndex, newIndex);
+    // Optimistic cache update
+    qc.setQueryData(RISK_KEY(proposalId), reordered.map((r, i) => ({ ...r, order_index: i })));
+    persistRiskOrder(reordered);
+  };
+
 
   const [msReorderOpen, setMsReorderOpen] = useState(false);
 
@@ -683,78 +701,42 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
             <table className="platform-table text-sm">
               <thead>
                 <tr>
+                  <th style={{ width: '26px' }}></th>
                   <th>Risk description</th>
-                  <th style={{ width: '44px' }}>Likelihood</th>
-                  <th style={{ width: '44px' }}>Severity</th>
+                  <th style={{ width: '28px', textAlign: 'center' }}>i.</th>
+                  <th style={{ width: '28px', textAlign: 'center' }}>ii.</th>
                   <th style={{ width: '113px' }}>WP(s)</th>
                   <th>Mitigation &amp; adaptation measures</th>
                   <th style={{ width: '28px' }}></th>
                 </tr>
               </thead>
-              <tbody>
-                {orderedRisks.length === 0 && (
-                  <tr><td colSpan={6} className="py-4 text-center text-muted-foreground italic">No risks yet.</td></tr>
-                )}
-                {orderedRisks.map((r) => {
-                  const selectedWps = r.wp_ids
-                    .map(id => wpsById.get(id))
-                    .filter((w): w is WPRow => !!w)
-                    .sort((a, b) => a.number - b.number);
-                  return (
-                    <tr key={r.id} className="border-b align-top">
-                      <td className="py-1.5 px-1">
-                        <AutoTextarea
-                          value={r.title || ''}
-                          disabled={!canEdit}
-                          placeholder="Risk description"
-                          onChange={(e) => updateRisk.mutate({ id: r.id, patch: { title: e.target.value } })}
-                        />
-                      </td>
-                      <td className="py-1.5 px-1">
-                        <RiskLevelSelect
-                          value={(r.likelihood as 'L' | 'M' | 'H' | null) || null}
-                          disabled={!canEdit}
-                          onChange={(v) => updateRisk.mutate({ id: r.id, patch: { likelihood: v } })}
-                        />
-                      </td>
-                      <td className="py-1.5 px-1">
-                        <RiskLevelSelect
-                          value={(r.severity as 'L' | 'M' | 'H' | null) || null}
-                          disabled={!canEdit}
-                          onChange={(v) => updateRisk.mutate({ id: r.id, patch: { severity: v } })}
-                        />
-                      </td>
-                      <td className="py-1.5 px-1">
-                        <WPMultiSelect
-                          allWps={wps}
-                          selectedIds={r.wp_ids}
-                          disabled={!canEdit}
-                          onChange={(ids) => setRiskWps.mutate({ id: r.id, wpIds: ids })}
-                        />
-                      </td>
-                      <td className="py-1.5 px-1">
-                        <AutoTextarea
-                          value={r.mitigation || ''}
-                          disabled={!canEdit}
-                          placeholder="Mitigation & adaptation measures"
-                          onChange={(e) => updateRisk.mutate({ id: r.id, patch: { mitigation: e.target.value } })}
-                        />
-                      </td>
-                      <td className="py-1.5 px-0 text-center">
-                        <Button
-                          size="icon" variant="ghost" className="h-7 w-7 text-red-600 hover:text-red-700"
-                          disabled={!canEdit}
-                          onClick={() => deleteRisk.mutate(r.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
+              <DndContext
+                sensors={riskSensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleRiskDragEnd}
+              >
+                <SortableContext items={risks.map(r => r.id)} strategy={verticalListSortingStrategy}>
+                  <tbody>
+                    {risks.length === 0 && (
+                      <tr><td colSpan={7} className="py-4 text-center text-muted-foreground italic">No risks yet.</td></tr>
+                    )}
+                    {risks.map((r) => (
+                      <SortableRiskRow
+                        key={r.id}
+                        risk={r}
+                        wps={wps}
+                        canEdit={canEdit}
+                        onUpdate={(patch) => updateRisk.mutate({ id: r.id, patch })}
+                        onSetWps={(ids) => setRiskWps.mutate({ id: r.id, wpIds: ids })}
+                        onDelete={() => deleteRisk.mutate(r.id)}
+                      />
+                    ))}
+                  </tbody>
+                </SortableContext>
+              </DndContext>
             </table>
           </div>
+
           {canEdit && (
             <div className="flex items-center justify-end gap-2 pt-3">
               <Button size="sm" onClick={() => addRisk.mutate()}>
@@ -777,6 +759,93 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
     </SaveTrackerContext.Provider>
   );
 
+}
+
+
+// ── Sortable row for the risks table (drag-handle in first cell) ──
+function SortableRiskRow({
+  risk, wps, canEdit, onUpdate, onSetWps, onDelete,
+}: {
+  risk: Risk;
+  wps: WPRow[];
+  canEdit: boolean;
+  onUpdate: (patch: Partial<Risk>) => void;
+  onSetWps: (ids: string[]) => void;
+  onDelete: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: risk.id,
+    disabled: !canEdit,
+  });
+  const style: CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+  return (
+    <tr ref={setNodeRef} style={style} className="group border-b align-top">
+      <td className="py-1.5 px-0 text-center" style={{ width: '26px' }}>
+        {canEdit && (
+          <button
+            type="button"
+            className="cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center justify-center"
+            {...attributes}
+            {...listeners}
+            aria-label="Drag to reorder"
+          >
+            <GripVertical className="h-4 w-4 text-[#2563EB]" />
+          </button>
+        )}
+      </td>
+      <td className="py-1.5 px-1">
+        <AutoTextarea
+          value={risk.title || ''}
+          disabled={!canEdit}
+          placeholder="Risk description"
+          onChange={(e) => onUpdate({ title: e.target.value })}
+        />
+      </td>
+      <td className="py-1.5 px-1 text-center">
+        <RiskLevelSelect
+          value={(risk.likelihood as 'L' | 'M' | 'H' | null) || null}
+          disabled={!canEdit}
+          onChange={(v) => onUpdate({ likelihood: v })}
+        />
+      </td>
+      <td className="py-1.5 px-1 text-center">
+        <RiskLevelSelect
+          value={(risk.severity as 'L' | 'M' | 'H' | null) || null}
+          disabled={!canEdit}
+          onChange={(v) => onUpdate({ severity: v })}
+        />
+      </td>
+      <td className="py-1.5 px-1">
+        <WPMultiSelect
+          allWps={wps}
+          selectedIds={risk.wp_ids}
+          disabled={!canEdit}
+          onChange={onSetWps}
+        />
+      </td>
+      <td className="py-1.5 px-1">
+        <AutoTextarea
+          value={risk.mitigation || ''}
+          disabled={!canEdit}
+          placeholder="Mitigation & adaptation measures"
+          onChange={(e) => onUpdate({ mitigation: e.target.value })}
+        />
+      </td>
+      <td className="py-1.5 px-0 text-center">
+        <Button
+          size="icon" variant="ghost" className="h-7 w-7 text-red-600 hover:text-red-700"
+          disabled={!canEdit}
+          onClick={onDelete}
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </td>
+    </tr>
+  );
 }
 
 
@@ -850,8 +919,11 @@ function RisksGuidelinesInline() {
   return (
     <div className="text-xs text-muted-foreground space-y-1.5 pt-1">
       <p>
-        This list is mirrored to Table 3.1.e (Risk table). Risks are automatically ordered by related WP(s).
+        This list is mirrored to Table 3.1.e (Risk table). Risks appear in the order you arrange them &mdash; drag the
+        grip to reorder. <span className="font-medium text-foreground">i.</span> Level of likelihood to occur &middot;{' '}
+        <span className="font-medium text-foreground">ii.</span> Level of severity.
       </p>
+
       <p>
         <span className="font-medium text-foreground">Critical risk:</span> a plausible event or issue that could have
         a high adverse impact on the ability of the project to achieve its objectives.
