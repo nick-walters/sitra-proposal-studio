@@ -116,6 +116,11 @@ export function B32SectionContent({ proposalId }: Props) {
 
   const dragStateRef = useRef<{ startY: number; startH: number; min: number; max: number; latest: number } | null>(null);
 
+  // Refs for each rotated header wrapper (sideways-lr) → measure their actual heights
+  // so the auto/min header height = tallest measured badge + 3pt (no dead space).
+  const badgeRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const [measuredTallestPx, setMeasuredTallestPx] = useState<number>(0);
+
   // Column-width resize (reuse the B3.1 mirror's persistence path).
   const totalCols = 1 + ((dataQ.data?.cols.length) ?? 0);
   const { colWidths, tableRef, handleColResizeStart } = useColumnResize({
