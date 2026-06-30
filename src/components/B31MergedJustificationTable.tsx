@@ -156,7 +156,7 @@ export function B31MergedJustificationTable({
             rows.push(
               <tr key={`${pp.participantId}-subtotal`}>
                 <td className={`${cellStyles} text-right font-bold`}>{formatCurrency(pp.total)}</td>
-                <td className={`${cellStyles} italic`}>Subtotal</td>
+                <td className={`${cellStyles} italic font-bold`}>Subtotal</td>
               </tr>,
             );
 
