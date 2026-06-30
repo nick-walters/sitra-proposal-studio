@@ -233,19 +233,20 @@ function SortableRow({
           <GripVertical className="h-4 w-4" />
         </button>
       </td>
-      <td className="px-2 py-1.5 align-middle">
-        <DebouncedInput
+      <td className="px-1 py-0.5 align-middle">
+        <DebouncedTextarea
           value={row.label}
           onDebouncedChange={onLabelChange}
           disabled={!canEdit}
           placeholder="Expertise area"
-          className="h-7 text-sm"
+          rows={1}
+          className="text-[11px] leading-tight px-1 py-0.5 min-h-[28px] resize-none w-full whitespace-normal break-words"
         />
       </td>
       {columns.map((col) => {
         const checked = cellMap.get(`${row.id}::${col.id}`) === true;
         return (
-          <td key={col.id} className="px-1 py-1.5 text-center align-middle">
+          <td key={col.id} className="px-0.5 py-0.5 text-center align-middle">
             <Checkbox
               checked={checked}
               disabled={!canEdit}
