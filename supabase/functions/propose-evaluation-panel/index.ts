@@ -288,6 +288,18 @@ Return JSON array only.`;
       },
     );
 
+    // Aggregate Haiku-phase usage so the caller can persist it into the
+    // evaluation record. Cost accounting in run-panel-evaluation includes
+    // these tokens at Haiku rates (separate from the evaluator/synthesis
+    // model). All four Anthropic token buckets are summed.
+    const sumUsage = (...usages: any[]) => ({
+      input_tokens: usages.reduce((s, u) => s + Number(u?.input_tokens || 0), 0),
+      output_tokens: usages.reduce((s, u) => s + Number(u?.output_tokens || 0), 0),
+      cache_read_input_tokens: usages.reduce((s, u) => s + Number(u?.cache_read_input_tokens || 0), 0),
+      cache_creation_input_tokens: usages.reduce((s, u) => s + Number(u?.cache_creation_input_tokens || 0), 0),
+    });
+    const haikuUsage = sumUsage(eligibilityRes.usage, assemblyRes.usage);
+
     return new Response(
       JSON.stringify({
         eligibility_flags: eligibilityFlags,
@@ -299,9 +311,12 @@ Return JSON array only.`;
           brief: p.brief,
           thematic_area: p.thematic_area,
         })),
+        haiku_usage: haikuUsage,
+        haiku_model: eligibilityModel,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
+
   } catch (e: unknown) {
     console.error("propose-evaluation-panel error:", e);
     return new Response(JSON.stringify({ error: "An internal error occurred" }), {

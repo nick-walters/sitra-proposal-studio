@@ -202,6 +202,14 @@ export function PanelEvaluator({ proposalId }: Props) {
   const [eligibilityFlags, setEligibilityFlags] = useState<EligibilityFlag[]>([]);
   const [proposedPanel, setProposedPanel] = useState<ProposedEvaluator[]>([]);
   const [allPersonas, setAllPersonas] = useState<Persona[]>([]);
+  const [haikuUsage, setHaikuUsage] = useState<{
+    input_tokens: number;
+    output_tokens: number;
+    cache_read_input_tokens: number;
+    cache_creation_input_tokens: number;
+  } | null>(null);
+  const [haikuModel, setHaikuModel] = useState<string | null>(null);
+
   const [selectedPersonaIds, setSelectedPersonaIds] = useState<Set<string>>(new Set());
   // Filter as a Set: empty = "All" mode
   const [activeAreaFilters, setActiveAreaFilters] = useState<Set<string>>(new Set());
@@ -593,6 +601,9 @@ export function PanelEvaluator({ proposalId }: Props) {
       setEligibilityFlags(data.eligibility_flags || []);
       setProposedPanel(data.proposed_panel || []);
       setAllPersonas(data.all_personas || []);
+      setHaikuUsage(data.haiku_usage || null);
+      setHaikuModel(data.haiku_model || null);
+
 
       const recommendedNumbers = new Set((data.proposed_panel || []).map((p: any) => p.id));
       const preselected = new Set<string>();
@@ -686,7 +697,10 @@ export function PanelEvaluator({ proposalId }: Props) {
             eligibilityFlags,
             renderedProposal,
             modelOverride: modelChoice,
+            haikuUsage,
+            haikuModel,
           },
+
         });
 
         if (error) throw error;

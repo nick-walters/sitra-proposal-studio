@@ -1058,8 +1058,35 @@ Produce the full ESR markdown using the four-section structure defined in your s
   const costCacheRead = (totalCachedTokens * opusInPrice * cacheReadMul) / 1_000_000;
   const costCacheWrite = (totalCacheWriteTokens * opusInPrice * cacheWriteMul) / 1_000_000;
   const costOutput = (totalOutputTokens * opusOutPrice) / 1_000_000;
-  const costUsd = costUncachedInput + costCacheRead + costCacheWrite + costOutput;
+  const evaluatorPhaseUsd = costUncachedInput + costCacheRead + costCacheWrite + costOutput;
+
+  // Haiku-phase cost (eligibility + panel assembly). Priced separately at Haiku rates so
+  // these tokens are not lost from the per-run total. Persona generation/creation is a
+  // platform-library action, not tied to this run — logged separately if/when invoked.
+  const haikuUsage = analysisData.haiku_usage || {};
+  const haikuModel = typeof analysisData.haiku_model === "string" && analysisData.haiku_model
+    ? analysisData.haiku_model
+    : "claude-haiku-4-5";
+  const { inPrice: haikuIn, outPrice: haikuOut } = resolveModelPricing(haikuModel, configMap);
+  const haikuInput = Number(haikuUsage.input_tokens || 0);
+  const haikuOutput = Number(haikuUsage.output_tokens || 0);
+  const haikuCacheRead = Number(haikuUsage.cache_read_input_tokens || 0);
+  const haikuCacheWrite = Number(haikuUsage.cache_creation_input_tokens || 0);
+  const haikuPhaseUsd =
+    (haikuInput * haikuIn +
+      haikuCacheRead * haikuIn * cacheReadMul +
+      haikuCacheWrite * haikuIn * cacheWriteMul +
+      haikuOutput * haikuOut) /
+    1_000_000;
+
+  const costUsd = evaluatorPhaseUsd + haikuPhaseUsd;
   const costEur = costUsd * usdEurRate;
+
+  // Combined token totals across ALL phases (evaluator+synthesis+Haiku) for storage.
+  const combinedInputTokens = totalInputTokens + haikuInput;
+  const combinedOutputTokens = totalOutputTokens + haikuOutput;
+  const combinedCachedTokens = totalCachedTokens + haikuCacheRead;
+  const combinedCacheWriteTokens = totalCacheWriteTokens + haikuCacheWrite;
 
   const costBreakdown = {
     model: evaluationModel,
@@ -1074,7 +1101,19 @@ Produce the full ESR markdown using the four-section structure defined in your s
     usd_eur_rate: usdEurRate,
     cost_usd: costUsd,
     cost_eur: costEur,
+    evaluator_phase_usd: evaluatorPhaseUsd,
+    haiku_phase: {
+      model: haikuModel,
+      input_tokens: haikuInput,
+      output_tokens: haikuOutput,
+      cache_read_tokens: haikuCacheRead,
+      cache_write_tokens: haikuCacheWrite,
+      price_in_per_mtok_usd: haikuIn,
+      price_out_per_mtok_usd: haikuOut,
+      cost_usd: haikuPhaseUsd,
+    },
   };
+
 
   await serviceClient
     .from("proposal_analyses")
@@ -1082,9 +1121,9 @@ Produce the full ESR markdown using the four-section structure defined in your s
       status: "complete",
       error_message: null,
       model_used: evaluationModel,
-      tokens_input: totalInputTokens,
-      tokens_output: totalOutputTokens,
-      tokens_cached: totalCachedTokens,
+      tokens_input: combinedInputTokens,
+      tokens_output: combinedOutputTokens,
+      tokens_cached: combinedCachedTokens,
       cost_usd: costUsd,
       cost_eur: costEur,
       analysis_data: {
@@ -1108,13 +1147,14 @@ Produce the full ESR markdown using the four-section structure defined in your s
     budget_type: budgetType || null,
     cost_usd: costUsd,
     cost_eur: costEur,
-    cache_write_tokens: totalCacheWriteTokens,
+    cache_write_tokens: combinedCacheWriteTokens,
     model_used: evaluationModel,
     payload_tokens: payloadTokens,
-    tokens_input: totalInputTokens,
-    tokens_output: totalOutputTokens,
-    tokens_cached: totalCachedTokens,
+    tokens_input: combinedInputTokens,
+    tokens_output: combinedOutputTokens,
+    tokens_cached: combinedCachedTokens,
   });
+
 
   console.log(`Evaluation ${evaluationId} complete.`);
   return { evaluationId, status: "complete" };
@@ -1150,7 +1190,7 @@ serve(async (req) => {
     const action = body?.action || "start";
 
     if (action === "start") {
-      const { proposalId, selectedEvaluators, instrumentCode, proposalStage, budgetType, eligibilityFlags, renderedProposal, modelOverride } = body || {};
+      const { proposalId, selectedEvaluators, instrumentCode, proposalStage, budgetType, eligibilityFlags, renderedProposal, modelOverride, haikuUsage, haikuModel } = body || {};
       if (
         !proposalId ||
         !Array.isArray(selectedEvaluators) ||
@@ -1199,8 +1239,11 @@ serve(async (req) => {
             instrument_code: instrumentCode,
             rendered_proposal: renderedProposal,
             model_override: normalizedOverride,
+            haiku_usage: haikuUsage && typeof haikuUsage === "object" ? haikuUsage : null,
+            haiku_model: typeof haikuModel === "string" ? haikuModel : null,
             progress_message: "Queued for evaluator run",
           },
+
         })
         .select("id")
         .single();
