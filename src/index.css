@@ -870,11 +870,12 @@ table.b31-effort-matrix.first-col-flush {
   padding-top: 0 !important;
 }
 
-/* Lists also left-aligned without extra indent */
+/* Lists also left-aligned without extra indent.
+   Indent before bullet reduced by 4pt; gap between bullet and text reduced by 2pt. */
 .ProseMirror ul,
 .ProseMirror ol {
   margin-left: 0 !important;
-  padding-left: 1.5em !important; /* Standard list indent from text edge */
+  padding-left: calc(1.5em - 4pt) !important;
 }
 
 .ProseMirror ul {
@@ -885,6 +886,10 @@ table.b31-effort-matrix.first-col-flush {
   margin-left: 0 !important;
   padding-left: 0 !important;
   text-align: justify;
+}
+
+.ProseMirror li::marker {
+  font-size: 0.85em; /* tightens the gap after the bullet by ~2pt */
 }
 
 /* Override spacing for caption paragraphs */
