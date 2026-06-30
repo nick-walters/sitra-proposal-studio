@@ -701,78 +701,42 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
             <table className="platform-table text-sm">
               <thead>
                 <tr>
+                  <th style={{ width: '26px' }}></th>
                   <th>Risk description</th>
-                  <th style={{ width: '44px' }}>Likelihood</th>
-                  <th style={{ width: '44px' }}>Severity</th>
+                  <th style={{ width: '28px', textAlign: 'center' }}>i.</th>
+                  <th style={{ width: '28px', textAlign: 'center' }}>ii.</th>
                   <th style={{ width: '113px' }}>WP(s)</th>
                   <th>Mitigation &amp; adaptation measures</th>
                   <th style={{ width: '28px' }}></th>
                 </tr>
               </thead>
-              <tbody>
-                {orderedRisks.length === 0 && (
-                  <tr><td colSpan={6} className="py-4 text-center text-muted-foreground italic">No risks yet.</td></tr>
-                )}
-                {orderedRisks.map((r) => {
-                  const selectedWps = r.wp_ids
-                    .map(id => wpsById.get(id))
-                    .filter((w): w is WPRow => !!w)
-                    .sort((a, b) => a.number - b.number);
-                  return (
-                    <tr key={r.id} className="border-b align-top">
-                      <td className="py-1.5 px-1">
-                        <AutoTextarea
-                          value={r.title || ''}
-                          disabled={!canEdit}
-                          placeholder="Risk description"
-                          onChange={(e) => updateRisk.mutate({ id: r.id, patch: { title: e.target.value } })}
-                        />
-                      </td>
-                      <td className="py-1.5 px-1">
-                        <RiskLevelSelect
-                          value={(r.likelihood as 'L' | 'M' | 'H' | null) || null}
-                          disabled={!canEdit}
-                          onChange={(v) => updateRisk.mutate({ id: r.id, patch: { likelihood: v } })}
-                        />
-                      </td>
-                      <td className="py-1.5 px-1">
-                        <RiskLevelSelect
-                          value={(r.severity as 'L' | 'M' | 'H' | null) || null}
-                          disabled={!canEdit}
-                          onChange={(v) => updateRisk.mutate({ id: r.id, patch: { severity: v } })}
-                        />
-                      </td>
-                      <td className="py-1.5 px-1">
-                        <WPMultiSelect
-                          allWps={wps}
-                          selectedIds={r.wp_ids}
-                          disabled={!canEdit}
-                          onChange={(ids) => setRiskWps.mutate({ id: r.id, wpIds: ids })}
-                        />
-                      </td>
-                      <td className="py-1.5 px-1">
-                        <AutoTextarea
-                          value={r.mitigation || ''}
-                          disabled={!canEdit}
-                          placeholder="Mitigation & adaptation measures"
-                          onChange={(e) => updateRisk.mutate({ id: r.id, patch: { mitigation: e.target.value } })}
-                        />
-                      </td>
-                      <td className="py-1.5 px-0 text-center">
-                        <Button
-                          size="icon" variant="ghost" className="h-7 w-7 text-red-600 hover:text-red-700"
-                          disabled={!canEdit}
-                          onClick={() => deleteRisk.mutate(r.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
+              <DndContext
+                sensors={riskSensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleRiskDragEnd}
+              >
+                <SortableContext items={risks.map(r => r.id)} strategy={verticalListSortingStrategy}>
+                  <tbody>
+                    {risks.length === 0 && (
+                      <tr><td colSpan={7} className="py-4 text-center text-muted-foreground italic">No risks yet.</td></tr>
+                    )}
+                    {risks.map((r) => (
+                      <SortableRiskRow
+                        key={r.id}
+                        risk={r}
+                        wps={wps}
+                        canEdit={canEdit}
+                        onUpdate={(patch) => updateRisk.mutate({ id: r.id, patch })}
+                        onSetWps={(ids) => setRiskWps.mutate({ id: r.id, wpIds: ids })}
+                        onDelete={() => deleteRisk.mutate(r.id)}
+                      />
+                    ))}
+                  </tbody>
+                </SortableContext>
+              </DndContext>
             </table>
           </div>
+
           {canEdit && (
             <div className="flex items-center justify-end gap-2 pt-3">
               <Button size="sm" onClick={() => addRisk.mutate()}>
