@@ -439,8 +439,11 @@ ${risks.map((risk: any) => {
   const wpNums = (risk.proposal_risk_wps || [])
     .map((l: any) => wpDrafts.find((w: any) => w.id === l.wp_draft_id)?.number)
     .filter((n: any) => n != null);
-  return `- R${risk.number} ${stripHtml(risk.title)} | WPs: ${wpNums.map((n: number) => `WP${n}`).join(", ")} | Mitigation: ${stripHtml(risk.mitigation)} | L:${risk.likelihood} S:${risk.severity}`;
+  const wpsLabel = wpNums.length ? wpNums.map((n: number) => `WP${n}`).join(", ") : "—";
+  const title = stripHtml(risk.title) || "(untitled risk)";
+  return `- "${title}" [${wpsLabel}] | Mitigation: ${stripHtml(risk.mitigation)} | L:${risk.likelihood} S:${risk.severity}`;
 }).join("\n")}
+
 
 BUDGET (sum requested EU contribution): €${budget.reduce((sum: number, row: any) => sum + Number(row.requested_eu_contribution || 0), 0).toLocaleString()}
 `;
