@@ -1610,6 +1610,9 @@ export function DocumentEditor({
               {isB31Section && (
                 <B31SectionContent proposalId={proposalId} />
               )}
+              {isB32Section && (
+                <B32SectionContent proposalId={proposalId} />
+              )}
               {/* Footnotes */}
               {footnotes.length > 0 && (
                 <div className="mt-8 border-t border-border">
