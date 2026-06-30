@@ -5,8 +5,9 @@ import { corsHeaders } from "../_shared/cors.ts";
 import { requireAuth } from "../_shared/auth.ts";
 
 
-const stripHtml = (s: string | null | undefined) =>
-  (s || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+// (stripHtml + section digest removed — the evaluator now consumes
+// `analysis_data.rendered_proposal` produced by the client export pipeline.)
+
 
 function extractJson(text: string): any {
   const cleaned = text.replace(/```json\s*|```/g, "").trim();
