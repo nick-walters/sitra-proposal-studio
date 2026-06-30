@@ -1150,7 +1150,7 @@ serve(async (req) => {
     const action = body?.action || "start";
 
     if (action === "start") {
-      const { proposalId, selectedEvaluators, instrumentCode, proposalStage, budgetType, eligibilityFlags, renderedProposal, modelOverride } = body || {};
+      const { proposalId, selectedEvaluators, instrumentCode, proposalStage, budgetType, eligibilityFlags, renderedProposal, modelOverride, haikuUsage, haikuModel } = body || {};
       if (
         !proposalId ||
         !Array.isArray(selectedEvaluators) ||
