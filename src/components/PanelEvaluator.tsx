@@ -380,6 +380,9 @@ export function PanelEvaluator({ proposalId }: Props) {
     setStage("stageA");
     setStageAStatus("Reading proposal content...");
     try {
+      setStageAStatus("Computing budget totals...");
+      const computedBudget = await buildComputedBudget(proposalId);
+
       setStageAStatus("Running compliance check and assembling panel...");
       const { data, error } = await supabase.functions.invoke("propose-evaluation-panel", {
         body: {
@@ -387,6 +390,7 @@ export function PanelEvaluator({ proposalId }: Props) {
           instrumentCode,
           proposalStage,
           budgetType: proposalStage === "stage1" ? null : budgetType,
+          computedBudget,
         },
       });
       if (error) throw error;
