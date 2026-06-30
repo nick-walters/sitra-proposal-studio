@@ -18,20 +18,32 @@ export interface CitationMarkOptions {
 function createCitationAdjacencyPlugin() {
   const key = new PluginKey('citationAdjacency');
 
+  const isCitationChild = (child: any): boolean => {
+    if (!child) return false;
+    if (child.type.name === 'citation') return true;
+    if (child.isText && child.marks?.some((m: any) => m.type.name === 'citationMark')) return true;
+    return false;
+  };
+
   const build = (doc: any) => {
     const decorations: Decoration[] = [];
-    doc.descendants((node: any, pos: number, parent: any, index: number) => {
-      if (node.type.name !== 'citation') return;
-      if (!parent || index === 0) return;
-      const prev = parent.child(index - 1);
-      if (prev && prev.type.name === 'citation') {
-        decorations.push(
-          Decoration.node(pos, pos + node.nodeSize, { class: 'citation-adjacent' })
-        );
+    doc.descendants((node: any, pos: number) => {
+      if (!node.isBlock && !node.isTextblock) return;
+      let offset = 0;
+      for (let i = 0; i < node.childCount; i++) {
+        const child = node.child(i);
+        const childStart = pos + 1 + offset;
+        if (i > 0 && isCitationChild(child) && isCitationChild(node.child(i - 1))) {
+          decorations.push(
+            Decoration.inline(childStart, childStart + child.nodeSize, { class: 'citation-adjacent' })
+          );
+        }
+        offset += child.nodeSize;
       }
     });
     return DecorationSet.create(doc, decorations);
   };
+
 
   return new Plugin({
     key,
