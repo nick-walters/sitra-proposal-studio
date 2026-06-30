@@ -379,7 +379,9 @@ async function runEvaluatorPhase(serviceClient: any, evaluationId: string) {
     evaluator_cache_write_tokens: Number(savedUsage.evaluator_cache_write_tokens || 0),
   };
 
-  const evaluationModel = configMap.evaluation_model || "claude-opus-4-8";
+  const modelOverride = typeof baseAnalysisData.model_override === "string" ? baseAnalysisData.model_override : null;
+  const evaluationModel = modelOverride || configMap.evaluation_model || "claude-sonnet-5";
+
 
   const WORDS_PER_PAGE = 500;
   const FRONT_MATTER_PAGES = 1;
