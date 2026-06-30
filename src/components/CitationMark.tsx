@@ -18,20 +18,42 @@ export interface CitationMarkOptions {
 function createCitationAdjacencyPlugin() {
   const key = new PluginKey('citationAdjacency');
 
+  const isCitationChild = (child: any): boolean => {
+    if (!child) return false;
+    if (child.type.name === 'citation') return true;
+    if (child.isText && child.marks?.some((m: any) => m.type.name === 'citationMark')) return true;
+    return false;
+  };
+
   const build = (doc: any) => {
     const decorations: Decoration[] = [];
-    doc.descendants((node: any, pos: number, parent: any, index: number) => {
-      if (node.type.name !== 'citation') return;
-      if (!parent || index === 0) return;
-      const prev = parent.child(index - 1);
-      if (prev && prev.type.name === 'citation') {
-        decorations.push(
-          Decoration.node(pos, pos + node.nodeSize, { class: 'citation-adjacent' })
-        );
-      }
+    doc.descendants((node: any, pos: number) => {
+      if (node.isText) return;
+      const innerStart = node.type.name === 'doc' ? pos : pos + 1;
+      let prev: any = null;
+      let acc = 0;
+      node.forEach((child: any) => {
+        const cStart = innerStart + acc;
+        if (isCitationChild(child) && isCitationChild(prev)) {
+          if (child.type.name === 'citation') {
+            decorations.push(
+              Decoration.node(cStart, cStart + child.nodeSize, { class: 'citation-adjacent' })
+            );
+          } else {
+            decorations.push(
+              Decoration.inline(cStart, cStart + child.nodeSize, { class: 'citation-adjacent' })
+            );
+          }
+        }
+        prev = child;
+        acc += child.nodeSize;
+      });
     });
     return DecorationSet.create(doc, decorations);
   };
+
+
+
 
   return new Plugin({
     key,
