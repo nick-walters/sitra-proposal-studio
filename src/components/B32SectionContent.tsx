@@ -114,10 +114,13 @@ export function B32SectionContent({ proposalId }: Props) {
 
   const dragStateRef = useRef<{ startY: number; startH: number; min: number; max: number; latest: number } | null>(null);
 
-  // Refs for each rotated header wrapper (sideways-lr) → measure their actual heights
-  // so the auto/min header height = tallest measured badge + 3pt (no dead space).
+  // Refs for each rotated header (rendered normally, then rotated via transform).
+  // We measure each badge's pre-rotation width (= rotated visual height) AND
+  // pre-rotation height (= rotated visual width). Width drives the row's min
+  // height; height drives the horizontal translate needed to center the rotated
+  // badge in its column.
   const badgeRefs = useRef<Array<HTMLDivElement | null>>([]);
-  const [measuredTallestPx, setMeasuredTallestPx] = useState<number>(0);
+  const [badgeDims, setBadgeDims] = useState<Array<{ w: number; h: number }>>([]);
 
   // Column-width resize (reuse the B3.1 mirror's persistence path).
   const totalCols = 1 + ((dataQ.data?.cols.length) ?? 0);
@@ -129,16 +132,22 @@ export function B32SectionContent({ proposalId }: Props) {
   });
   const hasManualWidths = colWidths.length === totalCols && colWidths.every((w) => Number.isFinite(w));
 
-  // Measure rendered badge heights (sideways-lr gives each badge a natural CSS
-  // height = the rotated visual height) so we can set an exact min/auto header
-  // height with NO dead space above the badges.
+  // Measure each rendered (still-unrotated, CSS-box-wise) badge: offsetWidth is
+  // the badge's text-line length, offsetHeight is the pill thickness. These
+  // values define the rotated visual box and the horizontal centering offset.
   useLayoutEffect(() => {
-    const heights = badgeRefs.current.map((el) => el?.offsetHeight ?? 0);
-    const tallest = heights.length ? Math.max(...heights) : 0;
-    if (tallest && Math.abs(tallest - measuredTallestPx) > 0.5) {
-      setMeasuredTallestPx(tallest);
-    }
+    const next = badgeRefs.current.map((el) =>
+      el ? { w: el.offsetWidth, h: el.offsetHeight } : { w: 0, h: 0 },
+    );
+    const changed =
+      next.length !== badgeDims.length ||
+      next.some((d, i) =>
+        Math.abs(d.w - (badgeDims[i]?.w ?? 0)) > 0.5 ||
+        Math.abs(d.h - (badgeDims[i]?.h ?? 0)) > 0.5,
+      );
+    if (changed) setBadgeDims(next);
   });
+
 
   if (enabledQ.data?.enabled === false) return null;
   if (!dataQ.data) return null;
