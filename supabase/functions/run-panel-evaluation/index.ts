@@ -1121,9 +1121,9 @@ Produce the full ESR markdown using the four-section structure defined in your s
       status: "complete",
       error_message: null,
       model_used: evaluationModel,
-      tokens_input: totalInputTokens,
-      tokens_output: totalOutputTokens,
-      tokens_cached: totalCachedTokens,
+      tokens_input: combinedInputTokens,
+      tokens_output: combinedOutputTokens,
+      tokens_cached: combinedCachedTokens,
       cost_usd: costUsd,
       cost_eur: costEur,
       analysis_data: {
@@ -1147,13 +1147,14 @@ Produce the full ESR markdown using the four-section structure defined in your s
     budget_type: budgetType || null,
     cost_usd: costUsd,
     cost_eur: costEur,
-    cache_write_tokens: totalCacheWriteTokens,
+    cache_write_tokens: combinedCacheWriteTokens,
     model_used: evaluationModel,
     payload_tokens: payloadTokens,
-    tokens_input: totalInputTokens,
-    tokens_output: totalOutputTokens,
-    tokens_cached: totalCachedTokens,
+    tokens_input: combinedInputTokens,
+    tokens_output: combinedOutputTokens,
+    tokens_cached: combinedCachedTokens,
   });
+
 
   console.log(`Evaluation ${evaluationId} complete.`);
   return { evaluationId, status: "complete" };
