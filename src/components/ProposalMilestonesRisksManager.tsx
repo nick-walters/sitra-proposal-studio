@@ -511,19 +511,36 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
     ...saveHooks,
   });
 
-  // Auto-order risks by min related WP number (matches B31RisksTable mirror)
-  const orderedRisks = useMemo(() => {
-    const minWpNum = (r: Risk) => {
-      const nums = r.wp_ids.map(id => wpsById.get(id)?.number).filter((n): n is number => typeof n === 'number');
-      return nums.length ? Math.min(...nums) : Number.POSITIVE_INFINITY;
-    };
-    return [...risks].sort((a, b) => {
-      const wa = minWpNum(a);
-      const wb = minWpNum(b);
-      if (wa !== wb) return wa - wb;
-      return a.id.localeCompare(b.id);
-    });
-  }, [risks, wpsById]);
+  // Risks are user-ordered via drag-and-drop; sort by order_index then created_at (query already does this).
+  const riskSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const persistRiskOrder = useCallback(async (ordered: Risk[]) => {
+    // Write sequential order_index 0..N-1 (only for rows whose order_index changed).
+    for (let i = 0; i < ordered.length; i++) {
+      if (ordered[i].order_index !== i) {
+        await supabase.from('proposal_risks').update({ order_index: i }).eq('id', ordered[i].id);
+      }
+    }
+    qc.invalidateQueries({ queryKey: RISK_KEY(proposalId) });
+    qc.invalidateQueries({ queryKey: ['b31-risks-live', proposalId] });
+    notifyRefs();
+  }, [proposalId, qc]);
+
+  const handleRiskDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const oldIndex = risks.findIndex(r => r.id === active.id);
+    const newIndex = risks.findIndex(r => r.id === over.id);
+    if (oldIndex < 0 || newIndex < 0) return;
+    const reordered = arrayMove(risks, oldIndex, newIndex);
+    // Optimistic cache update
+    qc.setQueryData(RISK_KEY(proposalId), reordered.map((r, i) => ({ ...r, order_index: i })));
+    persistRiskOrder(reordered);
+  };
+
 
   const [msReorderOpen, setMsReorderOpen] = useState(false);
 
