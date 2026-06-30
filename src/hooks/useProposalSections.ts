@@ -151,6 +151,16 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
   const [templateSections, setTemplateSections] = useState<Section[]>([]);
   const [hasTemplateSections, setHasTemplateSections] = useState(false);
   const queryClient = useQueryClient();
+  // Unique per-mount suffix so multiple consumers of this hook (e.g. ProposalEditor +
+  // SectionNavigator + PanelEvaluator) each get their own Supabase realtime channel.
+  // Without this, supabase.channel(sameName) returns the already-subscribed channel
+  // from the first consumer, and the subsequent .on('postgres_changes', …) throws
+  // "cannot add postgres_changes callbacks … after subscribe()", killing render.
+  const channelSuffixRef = useRef<string>(
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : Math.random().toString(36).slice(2),
+  );
 
   // Use useEffect directly with templateTypeId as dependency for proper reactivity
   useEffect(() => {
