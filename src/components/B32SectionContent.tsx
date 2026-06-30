@@ -19,8 +19,6 @@ const ONE_CM_PX = 38;
 const ROTATED_COL_MIN_PX = 22;
 // 3pt = ~4px clearance between rotated badge bottom and the header bottom border.
 const HEADER_BOTTOM_GAP_PX = 4;
-// Rotated badge "thickness" (perpendicular to text direction) — fits a 24px-tall pill.
-const ROTATED_BADGE_THICKNESS_PX = 26;
 
 type Row = { id: string; label: string; order_index: number };
 type Col = {
