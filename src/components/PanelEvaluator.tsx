@@ -226,14 +226,31 @@ export function PanelEvaluator({ proposalId }: Props) {
   const [runningEvaluationId, setRunningEvaluationId] = useState<string | null>(null);
   const [runningStatus, setRunningStatus] = useState<string | null>(null);
   const [runningMessage, setRunningMessage] = useState<string>("");
+  const [runStartedAt, setRunStartedAt] = useState<string | null>(null);
+  const [nowTick, setNowTick] = useState<number>(() => Date.now());
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const tickIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const stopPolling = () => {
     if (pollIntervalRef.current) {
       clearInterval(pollIntervalRef.current);
       pollIntervalRef.current = null;
     }
+    if (tickIntervalRef.current) {
+      clearInterval(tickIntervalRef.current);
+      tickIntervalRef.current = null;
+    }
   };
+
+  const formatElapsed = (startIso: string | null, now: number) => {
+    if (!startIso) return "";
+    const elapsedMs = Math.max(0, now - new Date(startIso).getTime());
+    const totalSec = Math.floor(elapsedMs / 1000);
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  };
+
 
   const refreshHistory = async () => {
     const { data: hist } = await supabase
