@@ -202,6 +202,14 @@ export function PanelEvaluator({ proposalId }: Props) {
   const [eligibilityFlags, setEligibilityFlags] = useState<EligibilityFlag[]>([]);
   const [proposedPanel, setProposedPanel] = useState<ProposedEvaluator[]>([]);
   const [allPersonas, setAllPersonas] = useState<Persona[]>([]);
+  const [haikuUsage, setHaikuUsage] = useState<{
+    input_tokens: number;
+    output_tokens: number;
+    cache_read_input_tokens: number;
+    cache_creation_input_tokens: number;
+  } | null>(null);
+  const [haikuModel, setHaikuModel] = useState<string | null>(null);
+
   const [selectedPersonaIds, setSelectedPersonaIds] = useState<Set<string>>(new Set());
   // Filter as a Set: empty = "All" mode
   const [activeAreaFilters, setActiveAreaFilters] = useState<Set<string>>(new Set());
