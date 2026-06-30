@@ -347,6 +347,15 @@ export async function buildPrintContainer(
   partListDiv.innerHTML = partListHtml;
   container.appendChild(partListDiv);
 
+  // ── Part A (A1 general info + A3 budget summary) ──
+  const partAHtml = await buildPartAHtml(proposal.id, sectionContents, participants);
+  if (partAHtml) {
+    const partADiv = document.createElement('div');
+    partADiv.setAttribute('data-part-a-mirror', 'true');
+    partADiv.innerHTML = partAHtml;
+    container.appendChild(partADiv);
+  }
+
   // ── Sections ──
   for (const section of partBSections) {
     const num = section.number.replace(/^B/, '');
