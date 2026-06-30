@@ -215,6 +215,14 @@ export function PanelEvaluator({ proposalId }: Props) {
     setRunningStatus("queued");
     setRunningMessage("Queued for evaluator run");
     setStage("stageB");
+    // DEV SAFETY: if window.__skipEvalPolling is set when polling starts, log it
+    // so it's obvious in the console that no paid call will fire. The actual
+    // skip check is done fresh on every tick below (so toggling the flag mid-run
+    // takes effect immediately and can't be bypassed by timing).
+    if (typeof window !== "undefined" && (window as any).__skipEvalPolling === true) {
+      // eslint-disable-next-line no-console
+      console.warn("[PanelEvaluator] eval polling skipped: __skipEvalPolling is TRUE — no paid Anthropic call will be made");
+    }
     pollIntervalRef.current = setInterval(async () => {
       const { data } = await supabase
         .from("proposal_analyses")
