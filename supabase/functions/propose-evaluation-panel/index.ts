@@ -145,24 +145,18 @@ serve(async (req) => {
     const isStage1 = proposalStage === "stage1";
     const isLumpSum = budgetType === "lump_sum";
 
-    // Compute requested EU budget total from A3 budget rows
-    const totalRequestedEu = budgetRows.reduce(
-      (sum: number, r: any) => sum + Number(r.requested_eu_contribution || 0),
-      0,
-    );
-    const totalDirectCosts = budgetRows.reduce(
-      (sum: number, r: any) =>
-        sum +
-        Number(r.personnel_costs || 0) +
-        Number(r.subcontracting_costs || 0) +
-        Number(r.purchase_equipment || 0) +
-        Number(r.purchase_other_goods || 0) +
-        Number(r.purchase_travel || 0),
-      0,
-    );
+    // Budget totals are computed client-side via the shared helper
+    // (src/lib/budgetCompute.ts) and passed in — the `budget_rows` columns
+    // are inputs, not totals (requested_eu_contribution is a rarely-used
+    // manual override). The edge function consumes the computed payload.
+    const totalRequestedEu = Number(computedBudget?.totalRequestedEu || 0);
+    const totalDirectCosts = Number(computedBudget?.totalDirectCosts || 0);
+    const perParticipantBudget = Array.isArray(computedBudget?.perParticipant)
+      ? computedBudget.perParticipant
+      : [];
     const budgetPopulated = totalRequestedEu > 0 || totalDirectCosts > 0;
     const budgetSummary = budgetPopulated
-      ? `Requested EU contribution: €${Math.round(totalRequestedEu).toLocaleString()} (across ${budgetRows.length} participant row(s)); total direct costs entered: €${Math.round(totalDirectCosts).toLocaleString()}.`
+      ? `Requested EU contribution: €${Math.round(totalRequestedEu).toLocaleString()} (across ${perParticipantBudget.length} participant row(s)); total direct costs entered: €${Math.round(totalDirectCosts).toLocaleString()}.`
       : "No budget figures have been entered in the A3 budget portal yet.";
 
     // ---- 0a Eligibility ----
