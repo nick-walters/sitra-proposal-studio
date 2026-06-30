@@ -312,10 +312,10 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
     queryFn: async () => {
       const { data: rows } = await supabase
         .from('proposal_risks')
-        .select('id, number, title, likelihood, severity, mitigation, order_index')
+        .select('id, number, title, likelihood, severity, mitigation, order_index, created_at')
         .eq('proposal_id', proposalId)
         .order('order_index')
-        .order('number');
+        .order('created_at');
       const ids = (rows || []).map((r: any) => r.id);
       const linksRes = ids.length
         ? await supabase.from('proposal_risk_wps').select('risk_id, wp_draft_id').in('risk_id', ids)
@@ -329,6 +329,7 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
       return (rows || []).map((r: any) => ({ ...r, wp_ids: wpMap.get(r.id) || [] }));
     },
   });
+
 
   // Helper: bump cross-ref consumers when MS data changes
   const notifyRefs = () => {
