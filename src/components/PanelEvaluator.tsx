@@ -197,6 +197,10 @@ export function PanelEvaluator({ proposalId }: Props) {
   const [instrumentCode, setInstrumentCode] = useState<string>("");
   const [proposalStage, setProposalStage] = useState<"full" | "stage1">("full");
   const [budgetType, setBudgetType] = useState<"traditional" | "lump_sum">("traditional");
+  // Per-run model choice. Defaults to Sonnet 5 every time the pane opens.
+  // Selecting Opus 4.8 is a per-run override only; the stored default (Sonnet 5) is unchanged.
+  const [modelChoice, setModelChoice] = useState<"claude-sonnet-5" | "claude-opus-4-8">("claude-sonnet-5");
+
 
   const [history, setHistory] = useState<AnalysisRow[]>([]);
   const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
