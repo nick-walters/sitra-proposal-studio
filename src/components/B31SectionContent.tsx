@@ -144,7 +144,7 @@ export function B31SectionContent({ proposalId }: Props) {
           proposalId={proposalId}
           tableKey="purchase-costs"
           tableLabel={purchaseLabel!}
-          defaultCaption="Purchase cost items"
+          defaultCaption="Purchase cost justifications"
         />
       )}
 
