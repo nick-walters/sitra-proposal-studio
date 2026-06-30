@@ -40,7 +40,7 @@ export function B31SubcontractingTable({ items, participants, proposalId, tableL
         proposalId={proposalId}
         tableKey="table-3.1.g"
         label={tableLabel}
-        defaultCaption="Subcontracting costs"
+        defaultCaption="Subcontracting cost justifications"
         className="mb-0"
       />
 
