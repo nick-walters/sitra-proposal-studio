@@ -1199,10 +1199,43 @@ serve(async (req) => {
       });
     }
 
+    if (action === "cancel") {
+      const evaluationId = body?.evaluationId;
+      if (!evaluationId) {
+        return new Response(JSON.stringify({ error: "evaluationId is required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const evaluation = await getEvaluationRecord(serviceClient, evaluationId);
+      await ensureProposalAdmin(supabase, userId, evaluation.proposal_id);
+
+      const baseAnalysisData = evaluation.analysis_data || {};
+      await serviceClient
+        .from("proposal_analyses")
+        .update({
+          status: "cancelled",
+          error_message: "Cancelled by user",
+          analysis_data: {
+            ...baseAnalysisData,
+            active_step_started_at: null,
+            progress_message: "Cancelled by user",
+          },
+        })
+        .eq("id", evaluationId);
+
+      return new Response(JSON.stringify({ evaluationId, status: "cancelled" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Unsupported action" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+
   } catch (error: unknown) {
     if (error instanceof Response) return error;
     const message = error instanceof Error ? error.message : "Unknown error";
