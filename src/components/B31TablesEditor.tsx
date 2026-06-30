@@ -546,6 +546,7 @@ export function B31RisksTable({ proposalId }: Props) {
         emptyColSpan={5}
         emptyLabel="No risks yet."
         isEmpty={orderedRisks.length === 0}
+        tableClassName="platform-table--tight"
       >
         {orderedRisks.map((r: any) => {
           const wps = (r._wpIds as string[])
@@ -554,14 +555,14 @@ export function B31RisksTable({ proposalId }: Props) {
             .sort((a: any, b: any) => a.number - b.number);
           return (
             <tr key={r.id}>
-              <MCell index={0} last={last}><ReadOnlyHtmlCell html={r.title} /></MCell>
-              <MCell index={1} last={last} padX="px-0" className="text-center">
+              <MCell index={0} last={last} cellClass="cell-pl-0"><ReadOnlyHtmlCell html={r.title} /></MCell>
+              <MCell index={1} last={last} cellClass="cell-px-0" className="text-center">
                 {r.likelihood ? <RiskBadge level={r.likelihood as 'L' | 'M' | 'H'} /> : <span className="text-muted-foreground">—</span>}
               </MCell>
-              <MCell index={2} last={last} padX="px-0" className="text-center">
+              <MCell index={2} last={last} cellClass="cell-px-0" className="text-center">
                 {r.severity ? <RiskBadge level={r.severity as 'L' | 'M' | 'H'} /> : <span className="text-muted-foreground">—</span>}
               </MCell>
-              <MCell index={3} last={last} padX="px-0">
+              <MCell index={3} last={last} cellClass="cell-px-0">
                 <div className="flex flex-wrap gap-0.5">
                   {wps.length === 0 && <span className="text-muted-foreground italic">—</span>}
                   {wps.map((wp: any) => (
@@ -569,7 +570,8 @@ export function B31RisksTable({ proposalId }: Props) {
                   ))}
                 </div>
               </MCell>
-              <MCell index={4} last={last}><ReadOnlyHtmlCell html={r.mitigation} /></MCell>
+              <MCell index={4} last={last} cellClass="cell-pr-0"><ReadOnlyHtmlCell html={r.mitigation} /></MCell>
+
             </tr>
           );
         })}
