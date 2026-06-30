@@ -67,7 +67,7 @@ serve(async (req) => {
     const userId = auth.userId;
 
     const body = await req.json();
-    const { proposalId, instrumentCode, proposalStage, budgetType } = body || {};
+    const { proposalId, instrumentCode, proposalStage, budgetType, computedBudget } = body || {};
     if (!proposalId || !instrumentCode || !proposalStage) {
       return new Response(
         JSON.stringify({ error: "proposalId, instrumentCode, proposalStage required" }),
