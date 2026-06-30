@@ -859,7 +859,7 @@ async function runSynthesisPhase(serviceClient: any, evaluationId: string) {
   const totalThresholdSuffix =
     totalThreshold !== null ? ` (threshold: ${totalThreshold} / ${maxPoints})` : "";
 
-  const modelOverride = typeof baseAnalysisData.model_override === "string" ? baseAnalysisData.model_override : null;
+  const modelOverride = typeof analysisData.model_override === "string" ? analysisData.model_override : null;
   const evaluationModel = modelOverride || synthesisContext.evaluation_model || configMap.evaluation_model || "claude-sonnet-5";
   const synthesisModel = modelOverride || configMap.synthesis_model || evaluationModel;
   const { inPrice: opusInPrice, outPrice: opusOutPrice } = resolveModelPricing(evaluationModel, configMap);
