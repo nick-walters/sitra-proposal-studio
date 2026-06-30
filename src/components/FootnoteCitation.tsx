@@ -68,8 +68,9 @@ export function FootnoteCitation({ html }: Props) {
       className="text-[8pt] text-muted-foreground"
       style={{
         whiteSpace: 'nowrap',
-        overflow: 'hidden',
-        lineHeight: 1,
+        overflowX: 'hidden',
+        overflowY: 'visible',
+        lineHeight: 1.4,
         margin: 0,
       }}
       dangerouslySetInnerHTML={{ __html: sanitized }}
