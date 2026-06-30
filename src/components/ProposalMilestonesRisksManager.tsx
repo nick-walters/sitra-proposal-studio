@@ -919,8 +919,11 @@ function RisksGuidelinesInline() {
   return (
     <div className="text-xs text-muted-foreground space-y-1.5 pt-1">
       <p>
-        This list is mirrored to Table 3.1.e (Risk table). Risks are automatically ordered by related WP(s).
+        This list is mirrored to Table 3.1.e (Risk table). Risks appear in the order you arrange them &mdash; drag the
+        grip to reorder. <span className="font-medium text-foreground">i.</span> Level of likelihood to occur &middot;{' '}
+        <span className="font-medium text-foreground">ii.</span> Level of severity.
       </p>
+
       <p>
         <span className="font-medium text-foreground">Critical risk:</span> a plausible event or issue that could have
         a high adverse impact on the ability of the project to achieve its objectives.
