@@ -191,7 +191,7 @@ function MirrorTable({
   return (
     <table
       ref={tableRef}
-      className={`platform-table ${tableFont}`}
+      className={`platform-table ${tableClassName} ${tableFont}`.trim()}
       style={{ tableLayout: 'fixed', width: '100%', borderCollapse: 'collapse' }}
     >
       <colgroup>
@@ -202,7 +202,7 @@ function MirrorTable({
           {columns.map((c, i) => (
             <th
               key={i}
-              className={`${cellPad(i)} py-0 text-[10pt] align-bottom relative ${c.align === 'center' ? 'text-center' : 'text-left'}`}
+              className={`${cellPad(i)} ${c.cellClass ?? ''} py-0 text-[10pt] align-bottom relative ${c.align === 'center' ? 'text-center' : 'text-left'}`}
             >
               {c.label}
               {i < lastIdx && <ColumnResizer onMouseDown={handleColResizeStart(i)} />}
@@ -210,6 +210,7 @@ function MirrorTable({
           ))}
         </tr>
       </thead>
+
       <tbody className="[&_tr]:border-b [&_tr]:border-black/10 [&_tr:last-child]:border-0">
         {isEmpty ? (
           <tr>
