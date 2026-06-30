@@ -87,7 +87,7 @@ serve(async (req) => {
     }
 
     // Gather data
-    const [proposalRes, sectionsRes, participantsRes, budgetRes, instrumentsRes, personasRes, configRes] =
+    const [proposalRes, sectionsRes, participantsRes, instrumentsRes, personasRes, configRes] =
       await Promise.all([
         supabase.from("proposals").select("*").eq("id", proposalId).single(),
         supabase
@@ -98,10 +98,6 @@ serve(async (req) => {
           .from("participants")
           .select("id, organisation_short_name, organisation_name, participant_number, country")
           .eq("proposal_id", proposalId),
-        supabase
-          .from("budget_rows")
-          .select("requested_eu_contribution, personnel_costs, subcontracting_costs, purchase_equipment, purchase_other_goods, purchase_travel")
-          .eq("proposal_id", proposalId),
         supabase.from("instrument_types").select("*").eq("code", instrumentCode).maybeSingle(),
         supabase.from("evaluator_personas").select("*").eq("active", true),
         supabase.from("ai_platform_config").select("key, value"),
@@ -110,7 +106,6 @@ serve(async (req) => {
     const proposal = proposalRes.data;
     const sections = sectionsRes.data || [];
     const participants = participantsRes.data || [];
-    const budgetRows = budgetRes.data || [];
     const instrument = instrumentsRes.data;
     const personas = personasRes.data || [];
     const configMap = Object.fromEntries(
