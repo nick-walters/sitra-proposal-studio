@@ -194,31 +194,27 @@ export function B32SectionContent({ proposalId }: Props) {
       startH: effectiveHeaderHeightPx,
       min: minHeaderHeightPx,
       max: maxHeaderHeightPx,
+      latest: effectiveHeaderHeightPx,
     };
     const onMove = (ev: MouseEvent) => {
       const st = dragStateRef.current;
       if (!st) return;
       const next = Math.max(st.min, Math.min(st.max, st.startH + (ev.clientY - st.startY)));
+      st.latest = next;
       setOverrideHeight(next);
     };
     const onUp = async () => {
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
-      const finalH = dragStateRef.current ? null : null;
+      const final = dragStateRef.current?.latest ?? null;
       dragStateRef.current = null;
-      const persistVal = overrideHeight;
-      // Persist current state value (read fresh from React in next tick).
-      setOverrideHeight((cur) => {
-        (async () => {
-          await supabase
-            .from('proposals')
-            .update({ expertise_matrix_header_height: cur })
-            .eq('id', proposalId);
-          qc.invalidateQueries({ queryKey: ['expertise-matrix-mirror-enabled', proposalId] });
-        })();
-        return cur;
-      });
-      void finalH; void persistVal;
+      if (final != null) {
+        await supabase
+          .from('proposals')
+          .update({ expertise_matrix_header_height: final })
+          .eq('id', proposalId);
+        qc.invalidateQueries({ queryKey: ['expertise-matrix-mirror-enabled', proposalId] });
+      }
     };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
