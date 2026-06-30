@@ -823,10 +823,10 @@ export async function prepareExportContainer(
   );
 
 
-  // Replace PERT/Gantt charts and uploaded figures with structured text blocks.
-  // Runs AFTER images load (so we know which ones resolved) but BEFORE the
-  // freeze step, since the freeze pass walks the DOM the user will print.
-  await replaceFiguresWithText(container, options.proposal.id);
+  // NOTE: Figure→text substitution (replaceFiguresWithText) is intentionally
+  // NOT run here. The visual PDF/Word export must contain real inline SVG
+  // (PERT/Gantt) and <img> figures. The evaluation pipeline imports
+  // replaceFiguresWithText and runs it on a CLONE of this container.
 
 
   // Freeze interactive elements (inputs, selects, buttons) into static text
