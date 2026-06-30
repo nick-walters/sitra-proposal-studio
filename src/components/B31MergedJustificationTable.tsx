@@ -35,23 +35,40 @@ export function B31MergedJustificationTable({
 
   const getParticipant = (id: string) => participants.find(p => p.id === id);
 
-  const sortedBlocks = blocks
-    .map(b => ({
-      ...b,
-      participants: [...b.participants].sort((a, c) => {
-        const pa = getParticipant(a.participantId);
-        const pc = getParticipant(c.participantId);
-        return (pa?.participant_number || 0) - (pc?.participant_number || 0);
-      }),
-    }))
-    .filter(b => b.participants.length > 0);
+  // Pivot: group by participant first, then by category (preserving the input block order as category order).
+  interface PivotCategory {
+    categoryLabel: string;
+    items: { amount: number; justification: string }[];
+  }
+  interface PivotParticipant {
+    participantId: string;
+    participantNumber: number;
+    categories: PivotCategory[];
+    total: number;
+  }
 
-  if (sortedBlocks.length === 0) return null;
+  const participantMap = new Map<string, PivotParticipant>();
+  blocks.forEach(block => {
+    block.participants.forEach(entry => {
+      if (entry.items.length === 0) return;
+      const p = getParticipant(entry.participantId);
+      const num = p?.participant_number || 0;
+      let pivot = participantMap.get(entry.participantId);
+      if (!pivot) {
+        pivot = { participantId: entry.participantId, participantNumber: num, categories: [], total: 0 };
+        participantMap.set(entry.participantId, pivot);
+      }
+      pivot.categories.push({ categoryLabel: block.categoryLabel, items: entry.items });
+      pivot.total += entry.totalCost;
+    });
+  });
 
-  const grandTotal = sortedBlocks.reduce(
-    (s, b) => s + b.participants.reduce((ss, p) => ss + p.totalCost, 0),
-    0,
-  );
+  const pivotParticipants = Array.from(participantMap.values())
+    .sort((a, b) => a.participantNumber - b.participantNumber);
+
+  if (pivotParticipants.length === 0) return null;
+
+  const grandTotal = pivotParticipants.reduce((s, p) => s + p.total, 0);
 
   return (
     <div>
@@ -86,82 +103,64 @@ export function B31MergedJustificationTable({
               {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(1)} />}
             </th>
             <th className={`${headerCellStyles} text-left relative`}>
-              Justification
+              Category &amp; justification
               {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(2)} />}
             </th>
           </tr>
         </thead>
         <tbody>
-          {sortedBlocks.map((block, blockIdx) => {
-            const isFirstBlock = blockIdx === 0;
-            const blockTopBorder = isFirstBlock ? '' : 'border-t border-black';
-            const blockTotal = block.participants.reduce((s, p) => s + p.totalCost, 0);
+          {pivotParticipants.map((pp, ppIdx) => {
+            const p = getParticipant(pp.participantId);
+            const label = p
+              ? `${p.participant_number}. ${p.organisation_short_name || p.organisation_name}`
+              : 'Unknown';
+            const isFirstParticipant = ppIdx === 0;
+            const partTopBorder = isFirstParticipant ? '' : 'border-t border-black';
 
-            const rendered: React.ReactNode[] = [];
-            let firstItemOfBlockPlaced = false;
+            const totalItemRows = pp.categories.reduce((s, c) => s + c.items.length, 0);
+            const rows: React.ReactNode[] = [];
+            let itemCounter = 0;
 
-            block.participants.forEach((entry, entryIdx) => {
-              const p = getParticipant(entry.participantId);
-              const label = p
-                ? `${p.participant_number}. ${p.organisation_short_name || p.organisation_name}`
-                : 'Unknown';
-              const isFirstParticipantInBlock = entryIdx === 0;
-              const participantTopBorder = isFirstParticipantInBlock
-                ? blockTopBorder
-                : 'border-t border-black/40';
-
-              entry.items.forEach((item, itemIdx) => {
-                const isFirstItem = itemIdx === 0;
-                const isVeryFirst = !firstItemOfBlockPlaced;
-                firstItemOfBlockPlaced = true;
+            pp.categories.forEach((cat) => {
+              cat.items.forEach((item, itemIdx) => {
+                const isFirstItemOverall = itemCounter === 0;
+                itemCounter += 1;
                 const cells: React.ReactNode[] = [];
-                if (isFirstItem) {
+                if (isFirstItemOverall) {
                   cells.push(
                     <td
                       key="part"
-                      className={`${cellStyles} ${participantTopBorder}`}
-                      style={{ whiteSpace: 'nowrap' }}
-                      rowSpan={entry.items.length + 1}
+                      className={`${cellStyles} ${partTopBorder}`}
+                      style={{ whiteSpace: 'nowrap', verticalAlign: 'top' }}
+                      rowSpan={totalItemRows + 1}
                     >
                       <ParticipantBubble>{label}</ParticipantBubble>
                     </td>,
                   );
                 }
                 cells.push(
-                  <td key="amt" className={`${cellStyles} text-right ${isFirstItem ? participantTopBorder : ''}`}>
+                  <td key="amt" className={`${cellStyles} text-right ${isFirstItemOverall ? partTopBorder : ''}`}>
                     {formatCurrency(item.amount)}
                   </td>,
                 );
                 cells.push(
-                  <td key="just" className={`${cellStyles} ${isFirstItem ? participantTopBorder : ''}`}>
-                    {isVeryFirst && <strong>{block.categoryLabel}: </strong>}
-                    {item.justification || (isVeryFirst ? '' : '—')}
+                  <td key="just" className={`${cellStyles} ${isFirstItemOverall ? partTopBorder : ''}`}>
+                    {itemIdx === 0 && <strong><em>{cat.categoryLabel}:</em></strong>} {item.justification || '—'}
                   </td>,
                 );
-                rendered.push(<tr key={`${block.categoryLabel}-${entry.participantId}-${itemIdx}`}>{cells}</tr>);
+                rows.push(<tr key={`${pp.participantId}-${cat.categoryLabel}-${itemIdx}`}>{cells}</tr>);
               });
-
-              // Per-participant subtotal (sits inside the participant rowSpan group)
-              rendered.push(
-                <tr key={`${block.categoryLabel}-${entry.participantId}-subtotal`}>
-                  <td className={`${cellStyles} text-right font-bold`}>{formatCurrency(entry.totalCost)}</td>
-                  <td className={`${cellStyles} italic`}>Subtotal</td>
-                </tr>,
-              );
             });
 
-            // Category subtotal
-            rendered.push(
-              <tr key={`${block.categoryLabel}-cat-subtotal`}>
-                <td className={`${cellStyles} text-right font-bold border-t border-black`} style={{ whiteSpace: 'nowrap' }}>
-                  <strong>{block.categoryLabel}</strong> subtotal
-                </td>
-                <td className={`${cellStyles} text-right font-bold border-t border-black`}>{formatCurrency(blockTotal)}</td>
-                <td className={`${cellStyles} border-t border-black`} />
+            // Per-participant subtotal row
+            rows.push(
+              <tr key={`${pp.participantId}-subtotal`}>
+                <td className={`${cellStyles} text-right font-bold`}>{formatCurrency(pp.total)}</td>
+                <td className={`${cellStyles} italic`}>Subtotal</td>
               </tr>,
             );
 
-            return <React.Fragment key={block.categoryLabel}>{rendered}</React.Fragment>;
+            return <React.Fragment key={pp.participantId}>{rows}</React.Fragment>;
           })}
           <tr>
             <td colSpan={3} className="p-0 border-0" style={{ height: '2px', backgroundColor: 'hsl(var(--foreground))' }} />
