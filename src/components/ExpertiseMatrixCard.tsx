@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { DebouncedInput } from '@/components/ui/debounced-input';
+
 import { DebouncedTextarea } from '@/components/ui/debounced-textarea';
 import { Plus, Trash2, GripVertical } from 'lucide-react';
 import { ParticipantBubble } from './B31Pill';
