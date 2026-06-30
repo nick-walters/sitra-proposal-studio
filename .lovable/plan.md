@@ -1,91 +1,85 @@
-# Plan: Case drafts → B1.2, project-wide subsections, retroactive headings
+# A3 grouped toggles + merged B3.1 cost-justification tables
 
-## 1. Project-wide case subsections & guidelines (new)
+## A. New A3 panel layout (`B31OptionalJustificationsCard`)
 
-New table `case_subsection_templates` (per proposal): `id, proposal_id, key, heading, guideline, order_index, is_default, created_at, updated_at`. Seeded on proposal creation with the five defaults (background_context, key_stakeholders, proposed_solutions, expected_outcomes, replicability).
+Three grouped sections, in order: **B. Subcontracting costs** → **C. Purchase costs** → **D. Other direct cost categories**. Each header is a top-level checkbox with one-line description; C and D expand to show sub-checkboxes when "any cost exists" for that umbrella.
 
-- New button in case manager toolbar: **Edit case subsections & guidelines** → dialog listing rows with drag-handle, heading input, guideline textarea, add-row, delete-row.
-- Edits propagate live: every case-draft editor and the B1.2 Cases table read headings/guidelines from this table instead of per-case `heading_*` / `guideline_*` columns.
-- Per-case heading/guideline editing in `CaseDraftEditor` is removed (fields become read-only labels rendered from the template).
-- `case_drafts.heading_*` and `guideline_*` columns are kept for now (no destructive drop) but stop being written/read; content storage moves to a generic `case_drafts.subsection_content jsonb` keyed by template `key`. Existing per-case data migrated into that jsonb on the same migration.
+### B. Subcontracting costs
+- One checkbox, no children.
+- If **no** subcontracting cost values are filled anywhere in the proposal → checkbox forced unchecked, disabled, description greyed out.
+- If **any** are filled → checkbox forced checked, disabled, description normal, mentions "Table 3.1.g — Subcontracting cost items".
 
-## 2. B1.2 Cases table (auto-inserted placeholder)
+### C. Purchase costs (merged Table 3.1.h)
+- Umbrella checkbox. Disabled+greyed when no C.1/C.2/C.3 values exist anywhere. Otherwise user-toggleable; defaults off **unless** a forced-on subcategory below requires it.
+- Mentions "Table 3.1.h — Purchase costs (Travel, Equipment, Other)" when checked.
+- Subcategory checkboxes appear (indented) for each of C.1/C.2/C.3 that has **any** values filled:
+  - **C.1 Travel and subsistence** — user toggleable, default off.
+  - **C.2 Equipment** — auto-locked **checked** (disabled) if any participant's C.2 cost exceeds 15% of that participant's personnel costs; otherwise user-toggleable.
+  - **C.2 sub-option** "Include equipment costs that fall below the 15% threshold" — visible only when at least one participant has equipment costs below the 15% threshold; reuses existing `equipment_all` toggle.
+  - **C.3 Other goods, works and services** — user toggleable, default off.
+- If umbrella C is unchecked, all sub-toggles are visually disabled.
 
-When ≥1 case draft exists for the proposal, the B1.2 editor auto-inserts (idempotently, once) a new unnumbered subheading + caption + table block under the new section structure (see §4):
+### D. Other direct cost categories (merged Table 3.1.i)
+- Same shape as C. Disabled+greyed when no D.1/D.2 values exist. Otherwise user-toggleable.
+- Sub-checkboxes (when any values exist) — **never auto-locked**:
+  - **D.1 FSTP**
+  - **D.2 Internally invoiced goods & services**
+- Mentions "Table 3.1.i" when checked.
 
-- Subheading text derives from case type: "Living lab descriptions", "Case descriptions", "Challenge descriptions", "Pilot descriptions", "Demonstration descriptions", "Use case descriptions", or the `custom_type_name` + " descriptions" for Other. If mixed types exist, fall back to "Case descriptions".
-- Positioned **directly above** the existing "Linked research & innovation activities" subheading (i.e. below Methodologies content).
-- Auto-generated `EditableCaption` above the table, participating in the existing B1.2 caption sequence so it gets the next free letter and is cross-referenceable like any other table.
+"Any cost filled" detection uses `budget_cost_justification_items` rows per `category`, fetched once via a new lightweight hook.
 
-### Table style (mirrors 3.1.b, black-coloured)
+## B. B3.1 rendered tables (merged C and D)
 
-Per case, a block of rows:
+`B31SectionContent` recomputes which tables render in this fixed order, with sequential lettering from 3.1.g:
 
-```
-┌────────────────────────────────────────────────────┐
-│  [ CS1 · Short name · Title ]   ← long white badge │  ← all black border/font
-│  Lead: Participant short name                       │
-├────────────────────────────────────────────────────┤
-│  ***Background context:*** content…                │
-├────────────────────────────────────────────────────┤
-│  ***Key stakeholders:*** content…                  │
-├────────────────────────────────────────────────────┤
-│  …(remaining template rows)                        │
-└────────────────────────────────────────────────────┘
-```
+1. **3.1.g — Subcontracting** (existing `B31SubcontractingTable`, unchanged structure).
+2. **3.1.h — Purchase costs** (new `B31PurchaseCostsTable`): one table containing rows for each enabled sub-category in order C.1 → C.2 → C.3.
+3. **3.1.i — Other direct costs** (new `B31OtherDirectCostsTable`): one table for D.1 → D.2.
 
-- Long white badge spans full inner width, bold black text, black outline, case-badge typography.
-- Number prefix shown only when the existing case-number toggle is on.
-- Lead participant on its own line beneath the badge.
-- Each subsection in its own full-width cell, black 1px dividers, no inner column splits.
-- Headings rendered from project-wide template (bold italic + colon), the heading text itself is **not** editable in the table (edit via the dialog); the content after the colon is fully editable inline.
-- Rows fully reorderable and deletable in B1.2 (authority shift identical to 3.1.b — once populated, B1.2 is the source of truth).
+Each merged table has columns: **Category | Participant | Cost (€) | Justification**, where:
+- "Category" cell merges (rowSpan) across all rows belonging to that category block; label is one of "Travel" / "Equipment" / "Other" / "FSTP" / "Internally invoiced" (no codes).
+- Within each category block, rows are grouped by participant (rowSpan on Participant), then one row per justification item, with a per-participant Subtotal row, exactly like the existing single-category tables.
+- A category subtotal row closes each block; final grand-total row across the whole table.
 
-## 3. Populate flow (case manager)
+C.2 (Equipment) rows in 3.1.h are filtered by the same 15%-of-personnel rule unless the "include below threshold" sub-option is on (existing `useB31SectionData` `includeAllEquipment` path is reused).
 
-- Add **Populate to B1.2** button in case manager toolbar. Dialog: confirm + list cases to include (all by default, like WP populate but only whole-case granularity).
-- On populate: overwrite/insert each selected case into the B1.2 Cases table, set `case_drafts.is_locked = true` and `locked_by/at`.
-- Lock banner on `CaseDraftEditor` (whole editor read-only) with coordinator **Override** session-local button, mirroring WP-draft pattern.
-- Cases deleted/added in case manager: row stays in B1.2 until next populate (B1.2 is authority). Placeholder rows for newly-added unpopulated cases still appear (badge + lead only, empty subsection cells), matching auto-insert behaviour.
+The old `B31EquipmentTable` and per-category uses of `B31JustificationTable` for travel/other_goods/fstp/internally_invoiced are removed from `B31SectionContent` and replaced by the two new merged components. The files themselves stay for now (no dead-code purge needed this turn).
 
-## 4. Retroactive B-section subheadings
+## C. Data model
 
-Idempotent inserter run once per proposal on first load of each affected section. For sections 1.1, 1.2, 2.1, 2.2, 3.2: inserts each listed subheading at the **top** of the section content (preserving everything below), skipping any subheading already present (case-insensitive match on heading text).
+Two new boolean columns on `proposals` for the umbrella toggles (the C-umbrella also needs to persist because the user can leave it unchecked even when sub-data exists):
+- `b31_show_purchase_costs` (default `false`)
+- `b31_show_other_direct_costs` (default `false`)
 
-Subheadings inserted per your spec:
-- 1.1 — Objectives; Ambition
-- 1.2 — Methodologies; Linked research & innovation activities; Ongoing projects table; Open science practices; Data management; Gender dimension; Case studies & open calls
-- 2.1 — Pathway to impact; Scale & significance of expected impacts; Key performance indicators
-- 2.2 — Key exploitable results; Draft plan for the dissemination & exploitation of results, including communication plan; Intellectual property management
-- 3.2 — Interdisciplinarity & complementarity of the consortium for addressing the project's objectives; Participants' capacity, contributions & resources; Value chain coverage & industrial involvement; Justification of the participation of international organisations & third countries
+Existing per-subcategory columns (`b31_show_travel_justification`, `b31_show_other_goods_justification`, `b31_show_fstp_justification`, `b31_show_internally_invoiced_justification`, `b31_show_all_equipment_justification`) are reused for the sub-checkboxes. A new persisted column for the C.2 sub-toggle ("equipment in 3.1.h at all") is **not** needed — C.2's inclusion is computed: `forced=true` when above-threshold rows exist, otherwise free, persisted in a new column `b31_show_equipment_justification` so users can opt out of C.2 entirely if no above-threshold rows force it.
 
-Tracked via a `proposal_subsection_seeding` jsonb flag on `proposals` so it runs exactly once per (proposal, section).
+So one more new column:
+- `b31_show_equipment_justification` (default `false`).
+
+`useB31JustificationToggles` is extended with the three new keys and their setters.
+
+## Render rules (effective inclusion)
+
+Equipment rows render in 3.1.h when: umbrella C is on **and** (any-participant >15% **or** `b31_show_equipment_justification` is on). When forced-on by >15%, the UI checkbox is disabled+checked.
+
+Subcontracting in 3.1.g renders whenever any subcontracting item exists (B umbrella is always forced-on by data).
 
 ## Technical notes
 
-- New migration: `case_subsection_templates` table (with grants + RLS following proposal-edit pattern), `case_drafts.subsection_content jsonb default '{}'::jsonb`, `case_drafts.is_locked/locked_by/locked_at` already exist, data-copy from existing columns into jsonb + template seed per existing proposal.
-- New components: `CaseSubsectionTemplateDialog.tsx`, `B12CasesTable.tsx` (parallels `B31WPDescriptionTables`), `B12CasesTablePopulator.ts` (parallels `b31Population.ts`).
-- Caption integration: extend B1.2's existing tableOffset logic so the auto-inserted cases-table caption is counted before/after editor tables consistently with `renumberCaptionsInEditor`.
-- Hooks: extend `useCaseDrafts` (or create) to expose subsection_content + lock state; update `CaseDraftEditor` to render template-driven sections and respect lock.
-- No changes to participant/acronym/figure/WP cross-ref sources.
+- New hook `useB31CostPresence(proposalId)` returns `{ subcontracting, travel, equipment, equipmentAboveThreshold, equipmentBelowThreshold, otherGoods, fstp, internallyInvoiced }` booleans — one query against `budget_cost_justification_items` joined with `budget_rows` for the equipment >15% check (reuses logic already in `useB31SectionData`).
+- New components: `B31PurchaseCostsTable.tsx`, `B31OtherDirectCostsTable.tsx` — both wrap a shared internal renderer `MergedJustificationTable` taking `blocks: { categoryLabel: string; participants: B31SubcontractingParticipant[] }[]`.
+- `B31SectionContent` letter computation switches to: B included (data-driven), C included (umbrella+any enabled sub-block), D included (umbrella+any enabled sub-block).
+- `B31OptionalJustificationsCard` rewritten as a nested checkbox group; existing single flat list is removed.
 
-## Files (high-level)
+## Files touched
 
-- New: `supabase/migrations/<ts>_case_subsections_b12.sql`
-- New: `src/components/CaseSubsectionTemplateDialog.tsx`
-- New: `src/components/B12CasesTable.tsx`
-- New: `src/lib/b12CasesPopulation.ts`
-- New: `src/lib/seedBSectionSubheadings.ts`
-- Edit: `src/components/CaseDraftEditor.tsx` (template-driven, lock banner, override)
-- Edit: `src/pages/CaseManager.tsx` (toolbar buttons: edit subsections, populate)
-- Edit: `src/components/B12SectionContent.tsx` (or equivalent B1.2 renderer) to mount cases table + caption above "Linked research & innovation activities"
-- Edit: `src/lib/renumberCaptionsInEditor.ts` (offset handling for the cases table caption)
-- Edit: `src/hooks/useCaseDrafts.ts` (subsection_content, lock)
-- Edit: section loader (likely `useSectionContent.ts` or section page) to invoke `seedBSectionSubheadings` once
+- migration: add `b31_show_purchase_costs`, `b31_show_other_direct_costs`, `b31_show_equipment_justification` to `proposals`.
+- `src/hooks/useB31JustificationToggles.ts` — add three keys, columns, defaults.
+- `src/hooks/useB31CostPresence.ts` — **new**.
+- `src/components/B31OptionalJustificationsCard.tsx` — rewrite as B/C/D grouped panel with auto-lock logic.
+- `src/components/B31PurchaseCostsTable.tsx` — **new**.
+- `src/components/B31OtherDirectCostsTable.tsx` — **new**.
+- `src/components/B31SectionContent.tsx` — replace individual C/D table renders with the two merged tables; update lettering.
+- `src/hooks/useB31SectionData.ts` — expose `equipmentAboveThresholdByParticipant` separately so the merged table can include below-threshold rows when the sub-option is on, without losing the lock-on signal.
 
-## Out of scope (deferred)
-
-- Cross-ref menu changes for cases (already handled in earlier work — picker continues to source from `case_drafts`).
-- Dropping the legacy `heading_*` / `guideline_*` columns (kept until migration is verified in production).
-
-Want me to proceed with this scope, or adjust anything (especially §1's move to project-wide templates, since that's the biggest structural change)?
+No removals this turn; old single-category tables remain in the repo but unused outside tests.
