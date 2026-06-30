@@ -174,10 +174,12 @@ export function B32SectionContent({ proposalId }: Props) {
   const cellMap = new Map<string, boolean>();
   for (const c of cells) cellMap.set(`${c.row_id}::${c.column_id}`, c.checked);
 
-  // Min/auto header height = tallest MEASURED badge + 3pt gap above the bottom border.
-  // Fallback (pre-measurement, first paint) = 24px + gap so the row isn't collapsed.
-  const tallestBadgePx = measuredTallestPx || 24;
-  const autoHeaderHeightPx = tallestBadgePx + HEADER_BOTTOM_GAP_PX;
+  // Min/auto header height = tallest measured badge WIDTH (rotated visual height)
+  // + 3pt gap above the bottom border. Fallback (pre-measurement) = 24px + gap.
+  const tallestBadgePx = badgeDims.length
+    ? Math.max(0, ...badgeDims.map((d) => d.w))
+    : 0;
+  const autoHeaderHeightPx = (tallestBadgePx || 24) + HEADER_BOTTOM_GAP_PX;
   const minHeaderHeightPx = autoHeaderHeightPx;
   const maxHeaderHeightPx = 480;
   const effectiveHeaderHeightPx = Math.max(
