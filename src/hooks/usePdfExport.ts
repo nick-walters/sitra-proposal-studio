@@ -174,13 +174,8 @@ function buildPrintDocument(
       break-before: avoid;
       page-break-before: avoid;
     }
-    .print-export-container table {
-      break-inside: avoid;
-      page-break-inside: avoid;
-    }
-    .print-export-container tr {
-      page-break-inside: avoid;
-    }
+    /* TEMP: tables are allowed to split across page boundaries to reduce
+       large whitespace gaps. Refined keep-together logic TBD. */
     .print-export-container figure,
     .print-export-container img {
       break-inside: avoid;
@@ -188,19 +183,11 @@ function buildPrintDocument(
     }
     .print-export-container .caption-label,
     .print-export-container .figure-caption,
-    .print-export-container .table-caption,
     .print-export-container figcaption {
-      break-before: avoid;
-      page-break-before: avoid;
       break-after: avoid;
       page-break-after: avoid;
       break-inside: avoid;
       page-break-inside: avoid;
-    }
-    .print-export-container .table-caption + table,
-    .print-export-container .caption-label + table {
-      break-before: avoid;
-      page-break-before: avoid;
     }
     .print-export-container p {
       orphans: 3;
