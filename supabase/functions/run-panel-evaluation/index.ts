@@ -352,10 +352,14 @@ async function runEvaluatorPhase(serviceClient: any, evaluationId: string) {
     eligibilityFlags,
   } = context;
 
+  if (evaluation.status === "cancelled") {
+    return { evaluationId, status: "cancelled" };
+  }
 
   if (!["queued", "running", "processing", "failed"].includes(evaluation.status || "queued")) {
     return { evaluationId, status: evaluation.status || "unknown" };
   }
+
 
   const baseAnalysisData = evaluation.analysis_data || {};
   const savedEvaluations = Array.isArray(baseAnalysisData.evaluations) ? baseAnalysisData.evaluations : [];
