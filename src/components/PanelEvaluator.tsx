@@ -868,11 +868,51 @@ export function PanelEvaluator({ proposalId }: Props) {
             )}
           </div>
 
+          {/* Per-run model toggle. Defaults to Sonnet 5 each time the pane opens.
+              Choosing Opus 4.8 overrides for THIS RUN ONLY — the stored default stays Sonnet 5. */}
+          {(stage === "idle" || stage === "panelReview") && (
+            <div className="space-y-2">
+              <div className="text-xs uppercase tracking-wide text-muted-foreground">Evaluation model</div>
+              <div className="inline-flex rounded-md border p-1 bg-muted/30">
+                {([
+                  { id: "claude-sonnet-5", label: "Sonnet 5", est: modelCostEstimate.sonnet },
+                  { id: "claude-opus-4-8", label: "Opus 4.8", est: modelCostEstimate.opus },
+                ] as const).map((opt) => {
+                  const selected = modelChoice === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setModelChoice(opt.id)}
+                      disabled={stage !== "idle" && stage !== "panelReview"}
+                      className={`px-3 py-1.5 text-sm rounded transition-colors ${
+                        selected
+                          ? "bg-background shadow-sm font-medium"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {opt.label} <span className="text-xs text-muted-foreground">~{formatCurrency(opt.est)}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-muted-foreground max-w-2xl">
+                Sonnet 5 is recommended throughout proposal development — it&apos;s faster and cheaper
+                with quality close to Opus. Switch to Opus 4.8 late in development for extra scrutiny
+                before submission.
+                {modelChoice === "claude-opus-4-8" && (
+                  <span className="ml-1 italic">Opus 4.8 selected for this run only — default stays Sonnet 5.</span>
+                )}
+              </p>
+            </div>
+          )}
+
           {stage === "idle" && (
             <Button onClick={startEvaluation} disabled={!instrumentCode} className="gap-2">
               <Sparkles className="h-4 w-4" /> Start Evaluation
             </Button>
           )}
+
 
           {stage === "stageA" && (
             <Alert>
