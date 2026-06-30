@@ -538,13 +538,13 @@ export function B31RisksTable({ proposalId }: Props) {
           return (
             <tr key={r.id}>
               <MCell index={0} last={last}><ReadOnlyHtmlCell html={r.title} /></MCell>
-              <MCell index={1} last={last} className="text-center">
+              <MCell index={1} last={last} padX="px-0" className="text-center">
                 {r.likelihood ? <RiskBadge level={r.likelihood as 'L' | 'M' | 'H'} /> : <span className="text-muted-foreground">—</span>}
               </MCell>
-              <MCell index={2} last={last} className="text-center">
+              <MCell index={2} last={last} padX="px-0" className="text-center">
                 {r.severity ? <RiskBadge level={r.severity as 'L' | 'M' | 'H'} /> : <span className="text-muted-foreground">—</span>}
               </MCell>
-              <MCell index={3} last={last}>
+              <MCell index={3} last={last} padX="px-0">
                 <div className="flex flex-wrap gap-0.5">
                   {wps.length === 0 && <span className="text-muted-foreground italic">—</span>}
                   {wps.map((wp: any) => (
