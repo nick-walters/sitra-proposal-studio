@@ -135,7 +135,10 @@ type Col = {
   align?: 'left' | 'center';
   /** Optional override for horizontal padding classes (e.g. 'px-0'). When set, replaces the default first/last-column padding logic for this column's header cell. */
   padX?: string;
+  /** Optional marker class (e.g. 'cell-px-0' / 'cell-pl-0' / 'cell-pr-0') applied to both the header th AND to body MCells with the matching index. Pair with `tableClassName="platform-table--tight"` so the scoped CSS rules in index.css zero the padding. */
+  cellClass?: string;
 };
+
 
 function MirrorTable({
   proposalId,
