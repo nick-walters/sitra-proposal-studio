@@ -504,6 +504,58 @@ export function PanelEvaluator({ proposalId }: Props) {
     }
   }
 
+  // DEV-ONLY: expose the build-only half of runEvaluation so we can dump the
+  // payload to console without invoking the paid edge function. Remove after
+  // verification.
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    (window as any).__buildEvalPayload = async () => {
+      if (!proposalData || !allSections || allSections.length === 0) {
+        throw new Error("Proposal not loaded yet");
+      }
+      const { data: sectionRows } = await supabase
+        .from("section_content")
+        .select("id, section_id, content")
+        .eq("proposal_id", proposalId);
+      const sectionContents = (sectionRows || []).map((sc: any) => ({
+        id: sc.id, sectionId: sc.section_id, content: sc.content || "",
+      }));
+      const prepared = await prepareExportContainer(
+        {
+          proposal: {
+            id: proposalData.id,
+            title: proposalData.title || "",
+            acronym: proposalData.acronym || "",
+            submissionStage: (proposalData as any).submissionStage ?? null,
+            topicId: (proposalData as any).topicId ?? null,
+            topicTitle: (proposalData as any).topicTitle ?? null,
+            type: (proposalData as any).type ?? null,
+          },
+          sections: allSections as any,
+          sectionContents,
+          participants,
+        },
+        undefined,
+        appQueryClient,
+      );
+      const clone = prepared.container.cloneNode(true) as HTMLElement;
+      clone.style.position = "absolute";
+      clone.style.left = "-99999px";
+      clone.style.top = "0";
+      document.body.appendChild(clone);
+      try {
+        await replaceFiguresWithText(clone, proposalId);
+        const md = extractEvaluationText(clone);
+        return md;
+      } finally {
+        if (clone.parentNode) clone.parentNode.removeChild(clone);
+        prepared.cleanup();
+      }
+    };
+  }, [proposalData, allSections, participants, proposalId, appQueryClient]);
+
+
+
 
   function cancel() {
     setStage("idle");
