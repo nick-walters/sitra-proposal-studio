@@ -439,10 +439,11 @@ async function buildPartAHtml(
   proposalId: string,
   sectionContents: SectionContent[],
   participants: Participant[],
+  proposalType: string | null,
 ): Promise<string> {
   const a1 = sectionContents.find((sc) => sc.sectionId === 'a1');
   const a1Html = a1 ? buildA1Html(a1.content) : '';
-  const a3Html = await buildA3BudgetHtml(proposalId, participants);
+  const a3Html = await buildA3BudgetHtml(proposalId, participants, proposalType);
   // A2 (participants list + expertise matrix) is already covered by the
   // participant list table above and the B3.2 expertise-matrix mount.
   return [a1Html, a3Html].filter(Boolean).join('\n');
