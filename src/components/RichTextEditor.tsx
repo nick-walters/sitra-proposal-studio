@@ -1280,6 +1280,7 @@ StarterKit.configure({
       Underline,
       CitationNode,
       CitationMark,
+      AdjacentCitationComma,
       Superscript,
       TextStyle,
       Color,
