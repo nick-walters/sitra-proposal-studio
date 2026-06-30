@@ -1154,6 +1154,12 @@ export function DocumentEditor({
     section.number === '3.1' ||
     section.sectionTag === 'b3_1'
   );
+  const isB32Section = !!section && (
+    section.id === 'b3-2' ||
+    section.number === 'B3.2' ||
+    section.number === '3.2' ||
+    section.sectionTag === 'b3_2'
+  );
 
   // Per-proposal permanent dismiss for the B3.1 informational banner.
   const [b31BannerDismissed, setB31BannerDismissed] = useState<boolean | null>(null);
