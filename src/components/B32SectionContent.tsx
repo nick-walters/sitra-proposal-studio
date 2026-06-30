@@ -5,6 +5,8 @@ import { EditableCaption } from '@/components/EditableCaption';
 import { ParticipantBubble } from './B31Pill';
 import { Check } from 'lucide-react';
 import { useProposalRole } from '@/hooks/useProposalRole';
+import { useColumnResize } from '@/hooks/useColumnResize';
+import { ColumnResizer } from '@/components/ColumnResizer';
 
 interface Props {
   proposalId: string;
@@ -12,11 +14,13 @@ interface Props {
 
 const tableFont = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 
-// 1cm cap (~37.8px) for every check column.
+// 1cm cap (~37.8px) — used ONLY as the default initial width for check columns.
 const ONE_CM_PX = 38;
 const ROTATED_COL_MIN_PX = 22;
-// Vertical gap between the rotated badge top and the header bottom border.
-const HEADER_BOTTOM_GAP_PX = 8;
+// 3pt = ~4px clearance between rotated badge bottom and the header bottom border.
+const HEADER_BOTTOM_GAP_PX = 4;
+// Rotated badge "thickness" (perpendicular to text direction) — fits a 24px-tall pill.
+const ROTATED_BADGE_THICKNESS_PX = 26;
 
 type Row = { id: string; label: string; order_index: number };
 type Col = {
@@ -112,6 +116,16 @@ export function B32SectionContent({ proposalId }: Props) {
 
   const dragStateRef = useRef<{ startY: number; startH: number; min: number; max: number; latest: number } | null>(null);
 
+  // Column-width resize (reuse the B3.1 mirror's persistence path).
+  const totalCols = 1 + ((dataQ.data?.cols.length) ?? 0);
+  const { colWidths, tableRef, handleColResizeStart } = useColumnResize({
+    proposalId,
+    tableKey: 'b32-expertise-matrix',
+    canResize,
+    minWidth: ROTATED_COL_MIN_PX,
+  });
+  const hasManualWidths = colWidths.length === totalCols && colWidths.every((w) => Number.isFinite(w));
+
   if (enabledQ.data?.enabled === false) return null;
   if (!dataQ.data) return null;
 
@@ -127,6 +141,7 @@ export function B32SectionContent({ proposalId }: Props) {
     });
   const customCols = cols.filter((c) => c.kind === 'custom').sort((a, b) => a.order_index - b.order_index);
   const orderedCols = [...partCols, ...customCols];
+  const lastColIdx = orderedCols.length; // index of the final column in the table (0 = expertise)
 
   const cellMap = new Map<string, boolean>();
   for (const c of cells) cellMap.set(`${c.row_id}::${c.column_id}`, c.checked);
@@ -142,7 +157,7 @@ export function B32SectionContent({ proposalId }: Props) {
     return Math.max(28, Math.ceil(t.length * 6) + 8);
   });
 
-  // Min header height = tallest badge + gap above border.
+  // Min header height = tallest badge + 3pt gap above the bottom border.
   const autoHeaderHeightPx =
     (headerContentPx.length ? Math.max(...headerContentPx) : 24) + HEADER_BOTTOM_GAP_PX;
   const minHeaderHeightPx = autoHeaderHeightPx;
@@ -159,10 +174,9 @@ export function B32SectionContent({ proposalId }: Props) {
   );
   const expertiseColPx = Math.min(420, Math.max(80, Math.ceil(maxExpertiseChars * 6.5) + 16));
 
-  // Width division logic:
+  // AUTO width logic (only used when no manual widths persisted):
   //  - Every check column capped at ONE_CM_PX (1cm), min ROTATED_COL_MIN_PX.
-  //  - If no expertise label needs wrapping, table shrinks to its content
-  //    (no full-bleed). Otherwise stretch to 100% so labels wrap nicely.
+  //  - If no expertise label needs wrapping, table shrinks to its content.
   const ASSUMED_CONTAINER_PX = 680;
   const numChecks = orderedCols.length;
   const PX_PER_EXPERTISE_CHAR = 6.5;
@@ -171,8 +185,7 @@ export function B32SectionContent({ proposalId }: Props) {
   const anyExpertiseWraps = rows.some(
     (r) => expertiseContentNeedsPx(r.label || '') > expertiseColPx,
   );
-
-  const checkColWidthPx = Math.max(
+  const autoCheckColWidthPx = Math.max(
     ROTATED_COL_MIN_PX,
     Math.min(
       ONE_CM_PX,
@@ -182,10 +195,19 @@ export function B32SectionContent({ proposalId }: Props) {
     ),
   );
 
-  const contentWidthPx = expertiseColPx + numChecks * checkColWidthPx;
-  const tableWidthStyle: React.CSSProperties = anyExpertiseWraps
-    ? { width: '100%' }
-    : { width: `${contentWidthPx}px` };
+  // Per-column width resolution: manual wins (no 1cm clamp), else auto default.
+  const colWidthFor = (i: number): number => {
+    if (hasManualWidths) return colWidths[i];
+    return i === 0 ? expertiseColPx : autoCheckColWidthPx;
+  };
+
+  const autoContentWidthPx = expertiseColPx + numChecks * autoCheckColWidthPx;
+  const manualContentWidthPx = hasManualWidths ? colWidths.reduce((s, w) => s + w, 0) : 0;
+  const tableWidthStyle: React.CSSProperties = hasManualWidths
+    ? { width: `${manualContentWidthPx}px` }
+    : anyExpertiseWraps
+      ? { width: '100%' }
+      : { width: `${autoContentWidthPx}px` };
 
   const onResizeMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -229,13 +251,14 @@ export function B32SectionContent({ proposalId }: Props) {
         defaultCaption="Expertise of participants"
       />
       <table
+        ref={tableRef}
         className={`platform-table platform-table--tight ${tableFont}`}
         style={{ tableLayout: 'fixed', borderCollapse: 'collapse', ...tableWidthStyle }}
       >
         <colgroup>
-          <col style={{ width: `${expertiseColPx}px` }} />
-          {orderedCols.map((c) => (
-            <col key={c.id} style={{ width: `${checkColWidthPx}px` }} />
+          <col style={{ width: `${colWidthFor(0)}px` }} />
+          {orderedCols.map((c, i) => (
+            <col key={c.id} style={{ width: `${colWidthFor(i + 1)}px` }} />
           ))}
         </colgroup>
         <thead>
@@ -245,6 +268,9 @@ export function B32SectionContent({ proposalId }: Props) {
               style={{ position: 'relative' }}
             >
               <span>Expertise</span>
+              {canResize && 0 < lastColIdx && (
+                <ColumnResizer onMouseDown={handleColResizeStart(0)} />
+              )}
               {canResize && (
                 <div
                   onMouseDown={onResizeMouseDown}
@@ -263,29 +289,37 @@ export function B32SectionContent({ proposalId }: Props) {
             </th>
             {orderedCols.map((c, idx) => {
               const contentPx = headerContentPx[idx];
+              const colIdx = idx + 1;
               return (
                 <th
                   key={c.id}
-                  className="cell-p0 align-bottom"
+                  className="cell-p0 align-bottom relative"
                   style={{ height: `${effectiveHeaderHeightPx}px`, padding: 0, verticalAlign: 'bottom' }}
                 >
+                  {/* Wrapper pinned to the cell bottom; its bottom edge = (cell bottom − 4px gap).
+                      Inner rotated content is centered inside this wrapper, so the wrapper's
+                      bottom edge IS the visual bottom of the rotated badge — independent of
+                      header height. Growing the header only adds empty space ABOVE. */}
                   <div
                     style={{
-                      position: 'relative',
-                      width: '100%',
-                      height: `${effectiveHeaderHeightPx}px`,
+                      position: 'absolute',
+                      left: '50%',
+                      bottom: `${HEADER_BOTTOM_GAP_PX}px`,
+                      transform: 'translateX(-50%)',
+                      width: `${ROTATED_BADGE_THICKNESS_PX}px`,
+                      height: `${contentPx}px`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      overflow: 'visible',
                     }}
                   >
                     <div
                       style={{
-                        position: 'absolute',
-                        bottom: HEADER_BOTTOM_GAP_PX,
-                        left: '50%',
-                        transform: 'translateX(-50%) rotate(-90deg)',
+                        transform: 'rotate(-90deg)',
                         transformOrigin: 'center center',
                         whiteSpace: 'nowrap',
-                        width: `${contentPx}px`,
-                        textAlign: 'center',
+                        lineHeight: 1,
                       }}
                     >
                       {c.kind === 'participant'
@@ -305,6 +339,9 @@ export function B32SectionContent({ proposalId }: Props) {
                         )}
                     </div>
                   </div>
+                  {canResize && colIdx < lastColIdx && (
+                    <ColumnResizer onMouseDown={handleColResizeStart(colIdx)} />
+                  )}
                 </th>
               );
             })}
