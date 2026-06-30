@@ -451,7 +451,9 @@ export function B31MilestonesTable({ proposalId }: Props) {
         emptyColSpan={5}
         emptyLabel="No milestones yet."
         isEmpty={sortedMilestones.length === 0}
+        tableClassName="platform-table--tight"
       >
+
         {sortedMilestones.map((m: any) => {
           const wps = (m._wpIds as string[])
             .map((id) => wpInfo?.byId.get(id))
