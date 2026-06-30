@@ -156,7 +156,7 @@ export function B31SectionContent({ proposalId }: Props) {
           proposalId={proposalId}
           tableKey="other-direct-costs"
           tableLabel={otherLabel!}
-          defaultCaption="Other direct cost items"
+          defaultCaption="Other direct cost justifications"
         />
       )}
     </div>
