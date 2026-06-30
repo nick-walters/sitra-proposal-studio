@@ -24,7 +24,7 @@ export function useB31CostPresence(proposalId: string): B31CostPresence {
     queryFn: async () => {
       const { data: rows, error: brErr } = await supabase
         .from('budget_rows')
-        .select('id, participant_id, personnel_costs, pm_rate')
+        .select('id, participant_id, personnel_costs, pm_rate, subcontracting_costs, purchase_travel, purchase_equipment, purchase_other_goods, financial_support_third_parties, internally_invoiced')
         .eq('proposal_id', proposalId);
       if (brErr) throw brErr;
 
@@ -38,6 +38,7 @@ export function useB31CostPresence(proposalId: string): B31CostPresence {
         if (error) throw error;
         items = data || [];
       }
+
 
       const { data: effortData } = await supabase
         .from('wp_draft_effort')
