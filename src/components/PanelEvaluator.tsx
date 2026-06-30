@@ -22,6 +22,7 @@ import { useProposalSections } from "@/hooks/useProposalSections";
 import { useQueryClient } from "@tanstack/react-query";
 import { prepareExportContainer, replaceFiguresWithText } from "@/lib/printRenderer";
 import { extractEvaluationText } from "@/lib/extractEvaluationText";
+import { computeBudgetRow } from "@/lib/budgetCompute";
 import { EsrRenderer } from "@/components/EsrRenderer";
 // esrPdfExport is loaded lazily inside downloadEsr() to keep jsPDF out of the initial bundle.
 import {
