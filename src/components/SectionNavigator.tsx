@@ -419,8 +419,10 @@ function SectionItem({
               <TooltipTrigger asChild>
                 <button
                   className={cn(
-                    "p-0.5 rounded shrink-0 opacity-0 group-hover:opacity-100 transition-opacity",
-                    isSectionLocked && "opacity-100",
+                    "p-0.5 rounded shrink-0 transition-opacity",
+                    isSectionLocked
+                      ? "opacity-100"
+                      : "opacity-0 group-hover:opacity-100",
                     !hasSubsections && !isSectionLocked && "ml-auto"
                   )}
                   onClick={(e) => {
