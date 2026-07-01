@@ -81,7 +81,7 @@ import { SplitViewPanel } from "./SplitViewPanel";
 // SectionReviewDialog moved to Part B Evaluate tab
 import { B31DeliverablesTable, B31MilestonesTable, B31RisksTable } from "./B31TablesEditor";
 import { B31SectionContent } from "./B31SectionContent";
-import { B32SectionContent } from "./B32SectionContent";
+
 import { TrackChange } from "@/extensions/TrackChanges";
 // usePageEstimate moved to ExportDialog
 import { EditorZoomBar } from "./EditorZoomBar";
