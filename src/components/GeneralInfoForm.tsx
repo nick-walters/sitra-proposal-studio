@@ -451,7 +451,7 @@ export function GeneralInfoForm({
             : {};
 
           setFormData({
-            abstract: data.abstract || '',
+            abstract: htmlToPlainText(data.abstract || ''),
             fixedKeywords,
             freeKeywords: data.free_keywords || '',
             previousSubmission: prev,
