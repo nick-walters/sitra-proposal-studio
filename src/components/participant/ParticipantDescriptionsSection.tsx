@@ -143,7 +143,8 @@ export function ParticipantDescriptionsSection({
                 onItalic={() => exec('italic')}
                 onUnderline={() => exec('underline')}
               />
-              <Separator orientation="vertical" className="h-5 mx-1.5" />
+
+
 
               <div className="ml-auto">
                 <SaveIndicator
