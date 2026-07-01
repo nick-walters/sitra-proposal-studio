@@ -5556,6 +5556,7 @@ export type Database = {
         Args: { _proposal_id: string; _user_id: string }
         Returns: boolean
       }
+      capture_scope_predicates: { Args: never; Returns: Json }
       create_proposal_snapshot: {
         Args: { p_label?: string; p_proposal_id: string; p_source?: string }
         Returns: {
@@ -5624,6 +5625,13 @@ export type Database = {
         Args: { _proposal_id: string; _user_id: string }
         Returns: boolean
       }
+      preview_proposal_restore: {
+        Args: { p_proposal_id: string; p_snapshot_id: string }
+        Returns: Json
+      }
+      restore_excluded_tables: { Args: never; Returns: string[] }
+      restore_in_scope_tables: { Args: never; Returns: string[] }
+      restore_scope_predicates: { Args: never; Returns: Json }
       thin_proposal_snapshots: {
         Args: {
           p_keep_auto?: number
