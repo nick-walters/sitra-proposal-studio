@@ -79,10 +79,8 @@ export function ParticipantDescriptionsSection({
     );
   }, [participant.country]);
 
-  // The Participant type doesn't declare a literal 'international_partner' — use the
-  // closest matching value from the ParticipantType enum plus a third-country check.
   const isInternationalPartner =
-    participant.organisationType === 'associated_country_partner';
+    participant.organisationType === 'international_partner';
 
   const visibleFields = FIELD_ORDER.filter(f => {
     if (f.key === 'industrial_involvement') return isCompany;
