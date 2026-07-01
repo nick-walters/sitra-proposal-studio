@@ -6,11 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { Slider } from '@/components/ui/slider';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { BarChart3, Check, Circle, ListChecks, Package, AlertTriangle, Users, ChevronDown, ChevronRight, StickyNote } from 'lucide-react';
+import { BarChart3, StickyNote } from 'lucide-react';
 import { WPProgressTracker } from '@/components/WPProgressTracker';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -43,7 +42,7 @@ const DEFAULT_SECTIONS = [
   { id: 'b1-2', label: 'B1.2 – Methodology' },
   { id: 'b2-1', label: 'B2.1 – Impact pathways' },
   { id: 'b2-2', label: 'B2.2 – Dissemination' },
-  { id: 'b2-3', label: 'B2.3 – Communication' },
+  
   { id: 'b3-1', label: 'B3.1 – Work plan' },
   { id: 'b3-2', label: 'B3.2 – Capacity' },
 ];

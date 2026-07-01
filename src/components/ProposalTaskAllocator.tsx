@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -20,7 +20,7 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/comp
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Plus, ListTodo, Trash2, Edit2, CalendarIcon, Flag } from 'lucide-react';
-import { format, differenceInDays, eachWeekOfInterval, startOfWeek, endOfWeek, isWithinInterval, addDays, parseISO } from 'date-fns';
+import { format, differenceInDays, eachWeekOfInterval, addDays, parseISO } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';

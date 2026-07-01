@@ -1,17 +1,9 @@
 import { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import {
-  Calendar,
-  Clock,
-  AlertTriangle,
-  CheckCircle2,
-  BarChart3,
-  RefreshCw,
-  Loader2,
-} from 'lucide-react';
+import { Calendar, Clock, AlertTriangle, CheckCircle2, RefreshCw, Loader2 } from 'lucide-react';
 import { format, isPast, isToday, differenceInDays, addDays, startOfWeek, endOfWeek } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';

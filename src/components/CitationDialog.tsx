@@ -14,7 +14,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Search, CheckCircle2, AlertCircle, BookOpen, Library, Plus, PenLine, X } from "lucide-react";
+import { Loader2, Search, CheckCircle2, AlertCircle, BookOpen, Library, PenLine, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import DOMPurify from "dompurify";

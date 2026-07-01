@@ -4,18 +4,7 @@ import { Header } from "@/components/Header";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  FileText,
-  Users,
-  Shield,
-  ChevronRight,
-  Lock,
-  MessageSquare,
-  Brain,
-  HardDrive,
-  Wand2,
-  Building2,
-} from "lucide-react";
+import { FileText, Shield, ChevronRight, Lock, MessageSquare, Brain, HardDrive, Wand2, Building2 } from "lucide-react";
 import { toast } from "sonner";
 
 export function BackendAdmin() {

@@ -3,16 +3,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { WPBubble, B31Pill, RiskBadge } from '@/components/B31Pill';
+import { WPBubble, RiskBadge } from '@/components/B31Pill';
 import { SingleMonthPicker } from '@/components/SingleMonthPicker';
-import { Plus, Trash2, ChevronsUpDown, ChevronDown, ChevronRight, GripVertical, ArrowUpDown, Check, Star } from 'lucide-react';
+import { Plus, Trash2, GripVertical, ArrowUpDown, Check, Star } from 'lucide-react';
 import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
 import {
   DndContext,

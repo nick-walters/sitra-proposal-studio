@@ -22,7 +22,6 @@ import { CitationDialog } from '@/components/CitationDialog';
 import { InsertFigureDialog } from '@/components/InsertFigureDialog';
 import { useProposalReferences } from '@/hooks/useProposalReferences';
 import { useCaseSubsectionTemplates } from '@/hooks/useCaseSubsectionTemplates';
-import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { ParticipantSummary } from '@/types/proposal';
 import { ParticipantBubble } from '@/components/B31Pill';

@@ -4,7 +4,7 @@ import { Header } from "@/components/Header";
 import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { AdminAvatarUpload } from "@/components/admin/AdminAvatarUpload";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

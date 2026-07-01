@@ -21,7 +21,6 @@ import { SaveIndicator } from "@/components/SaveIndicator";
 import { CaseManagementCard } from "@/components/CaseManagementCard";
 import { ProposalMilestonesRisksManager } from "@/components/ProposalMilestonesRisksManager";
 import { CaseDraftEditor } from "@/components/CaseDraftEditor";
-import { WPProgressTracker } from "@/components/WPProgressTracker";
 import { AvailabilityGantt } from "@/components/AvailabilityGantt";
 import { ProposalMessagingBoard } from "@/components/ProposalMessagingBoard";
 import { ProposalTaskAllocator } from "@/components/ProposalTaskAllocator";
@@ -33,7 +32,6 @@ import { PanelEvaluator } from "@/components/PanelEvaluator";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 import {
@@ -55,32 +53,10 @@ import {
 import { Section, BudgetType, ProposalStatus, WORK_PROGRAMMES, DESTINATIONS, PROPOSAL_STATUS_LABELS } from "@/types/proposal";
 import type { WPSection, CaseSection } from "@/hooks/useProposalSections";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { format, differenceInDays, addDays } from "date-fns";
+import { differenceInDays, addDays } from "date-fns";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import {
-  ArrowLeft,
-  ChevronLeft,
-  ChevronRight,
-  Eye,
-  Calendar,
-  ExternalLink,
-  FileText,
-  AlertTriangle,
-  Clock,
-  CheckCircle2,
-  
-  XCircle,
-  Send,
-  Copy,
-  Users,
-  BarChart3,
-  Trophy,
-  ThumbsDown,
-  ChevronDown,
-  Loader2,
-  Download,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, Eye, ExternalLink, FileText, AlertTriangle, Clock, CheckCircle2, XCircle, Send, Copy, Users, BarChart3, Trophy, ThumbsDown, ChevronDown, Loader2, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePdfExport } from "@/hooks/usePdfExport";
 import { useDocxExport } from "@/hooks/useDocxExport";

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DebouncedInput } from '@/components/ui/debounced-input';
@@ -18,7 +18,6 @@ import { SaveIndicator } from './SaveIndicator';
 import { PartAPageLayout } from './PartAPageLayout';
 
 import { CountrySelect } from './CountrySelect';
-import { User } from 'lucide-react';
 import { isEligibleForGEP } from '@/lib/countries';
 
 // Import new participant detail components

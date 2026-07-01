@@ -6,7 +6,7 @@ import { DebouncedInput } from '@/components/ui/debounced-input';
 import { Checkbox } from '@/components/ui/checkbox';
 
 import { Participant, ParticipantMember, Section, ParticipantType } from '@/types/proposal';
-import { Building2, GripVertical, UserPlus, Plus, Upload, X, Loader2, Hash, FileText, Download } from 'lucide-react';
+import { Building2, GripVertical, UserPlus, Plus, Upload, X, Loader2, FileText } from 'lucide-react';
 import { SaveIndicator } from './SaveIndicator';
 import { BulkPicLookupDialog } from './BulkPicLookupDialog';
 import { ParticipantCompletenessChecker } from './ParticipantCompletenessChecker';
@@ -24,7 +24,6 @@ import { InviteToProposalDialog } from './InviteToProposalDialog';
 import { AddParticipantDialog } from './AddParticipantDialog';
 import { B31Pill, WPBubble, ParticipantBubble } from './B31Pill';
 import { ExpertiseMatrixCard } from './ExpertiseMatrixCard';
-import { getContrastingTextColor } from '@/lib/wpColors';
 import { buildCaseLabel } from '@/lib/caseTypeLabels';
 
 import { supabase } from '@/integrations/supabase/client';

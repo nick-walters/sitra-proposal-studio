@@ -3,7 +3,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Lock, LockOpen } from 'lucide-react';
-import { DEFAULT_WP_COLORS, getContrastingTextColor } from '@/lib/wpColors';
+import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
 import { cn } from '@/lib/utils';
 
 interface WPColorPickerProps {

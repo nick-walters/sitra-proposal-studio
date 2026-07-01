@@ -12,8 +12,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { RICH_TEXT_CONFIG } from '@/lib/sanitizePresets';
 import { stripWordHtml } from '@/lib/stripWordHtml';
-import { B31Pill, ParticipantBubble } from './B31Pill';
-import { Crown } from 'lucide-react';
+import { ParticipantBubble } from './B31Pill';
 
 // B1.2 cases tables are always in section 1.2.
 const SECTION_NUMBER_BASE = '1.2';

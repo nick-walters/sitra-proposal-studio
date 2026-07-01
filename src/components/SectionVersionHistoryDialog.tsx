@@ -38,7 +38,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { format, isToday, isYesterday, differenceInDays, startOfWeek, startOfMonth } from "date-fns";
+import { format, isToday, isYesterday, startOfWeek, startOfMonth } from "date-fns";
 import { useProposalRole } from "@/hooks/useProposalRole";
 
 interface SectionVersion {

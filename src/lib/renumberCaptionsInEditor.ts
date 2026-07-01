@@ -1,5 +1,4 @@
 import { Editor } from '@tiptap/core';
-import { TextSelection } from '@tiptap/pm/state';
 
 /**
  * Renumbers figure and table captions directly in the ProseMirror document.

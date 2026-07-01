@@ -9,35 +9,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { 
-  Plus, 
-  Pencil, 
-  Trash2, 
-  Copy, 
-  ChevronRight,
-  FileText,
-  Layers,
-  BookOpen,
-  FormInput,
-  AlertCircle,
-  Info,
-  Lightbulb,
-  ClipboardCheck,
-  Settings2,
-  Globe
-} from "lucide-react";
+import { Plus, Pencil, Trash2, Copy, FileText, Layers, BookOpen, FormInput, Info, Lightbulb, ClipboardCheck, Settings2, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { GuidelineEditorDialog } from "@/components/admin/GuidelineEditorDialog";
 import { TemplateModifiersAdmin } from "@/components/admin/TemplateModifiersAdmin";
 import { WorkProgrammeExtensionsAdmin } from "@/components/admin/WorkProgrammeExtensionsAdmin";
-import type { FundingProgramme, TemplateType, TemplateSection, SectionGuideline, TemplateFormField } from "@/types/templates";
+import type { FundingProgramme, TemplateType, TemplateSection, SectionGuideline } from "@/types/templates";
 
 export function TemplateAdmin() {
   const navigate = useNavigate();

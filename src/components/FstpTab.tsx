@@ -12,7 +12,6 @@ import Link from '@tiptap/extension-link';
 import { OrderedListStyled } from '@/extensions/OrderedListStyled';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { SaveIndicator } from '@/components/SaveIndicator';
 import { useFstpContent } from '@/hooks/useFstpContent';
 import { FormattingToolbar } from './RichTextEditor';
 import {
@@ -33,11 +32,7 @@ import { toast } from 'sonner';
 // jsPDF, docx and file-saver are loaded lazily inside handleExportPdf / handleExportDocx
 // to keep these heavy libraries out of the initial bundle.
 import type jsPDF from 'jspdf';
-import type {
-  Paragraph,
-  TextRun,
-  AlignmentType,
-} from 'docx';
+import type { Paragraph, TextRun } from 'docx';
 import {
   DropdownMenu,
   DropdownMenuContent,

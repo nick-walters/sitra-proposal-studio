@@ -1,5 +1,4 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
-import { SaveIndicator } from '@/components/SaveIndicator';
 import { getCaseTypePrefix, caseWord } from '@/lib/caseTypeLabels';
 import { useProposalCaseTypes } from '@/hooks/useProposalCaseTypes';
 
@@ -7,7 +6,6 @@ import { DraftFormattingToolbar } from '@/components/DraftFormattingToolbar';
 import { useWPDraftEditor } from '@/hooks/useWPDrafts';
 import { useWPDraftUndoRedo } from '@/hooks/useWPDraftUndoRedo';
 import { WPTableSection } from '@/components/WPTableSection';
-import { ParagraphSpacingExecPopover } from '@/components/ParagraphSpacingExecPopover';
 
 import { WPDeliverablesTable } from '@/components/WPDeliverablesTable';
 import { CitationDialog } from '@/components/CitationDialog';
@@ -20,7 +18,6 @@ import { InsertTDMSReferenceDropdowns } from '@/components/InsertTDMSReferenceDr
 import { useProposalReferences } from '@/hooks/useProposalReferences';
 import { useQuery } from '@tanstack/react-query';
 
-import { Input } from '@/components/ui/input';
 import { DebouncedInput } from '@/components/ui/debounced-input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -29,19 +26,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Separator } from '@/components/ui/separator';
-import { 
-  BookOpen, Lightbulb, Bold, Italic, Underline, List, ListOrdered, 
-  AlignLeft, AlignCenter, AlignRight, AlignJustify, FileText, Link2, 
-  Layers, Building2, Table2, ImageIcon, Image as ImageLucide, ChevronDown, Undo2, Redo2, Crown, ChevronsUpDown, Check, Lock
-} from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { getContrastingTextColor } from '@/lib/wpColors';
+import { Lightbulb, Table2, Image as ImageLucide, Crown, ChevronsUpDown, Check, Lock } from 'lucide-react';
+import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
