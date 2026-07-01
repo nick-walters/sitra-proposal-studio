@@ -3372,6 +3372,47 @@ export type Database = {
           },
         ]
       }
+      proposal_snapshots: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          label: string | null
+          proposal_id: string
+          snapshot: Json
+          source: string | null
+          table_counts: Json | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label?: string | null
+          proposal_id: string
+          snapshot: Json
+          source?: string | null
+          table_counts?: Json | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label?: string | null
+          proposal_id?: string
+          snapshot?: Json
+          source?: string | null
+          table_counts?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_snapshots_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proposal_task_assignees: {
         Row: {
           id: string
@@ -5515,6 +5556,13 @@ export type Database = {
         Args: { _proposal_id: string; _user_id: string }
         Returns: boolean
       }
+      create_proposal_snapshot: {
+        Args: { p_label?: string; p_proposal_id: string; p_source?: string }
+        Returns: {
+          counts: Json
+          snapshot_id: string
+        }[]
+      }
       create_proposal_with_role: {
         Args: {
           p_acronym: string
@@ -5575,6 +5623,14 @@ export type Database = {
       is_proposal_admin: {
         Args: { _proposal_id: string; _user_id: string }
         Returns: boolean
+      }
+      thin_proposal_snapshots: {
+        Args: {
+          p_keep_auto?: number
+          p_keep_manual?: number
+          p_proposal_id: string
+        }
+        Returns: number
       }
       thin_section_versions: {
         Args: { p_proposal_id: string }
