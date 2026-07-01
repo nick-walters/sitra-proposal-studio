@@ -17,44 +17,45 @@ interface UsePageEstimateResult {
 }
 
 export function usePageEstimate(proposalId: string): UsePageEstimateResult {
-  // Fetch all section content for this proposal
-  const { data: sectionContents, isLoading } = useQuery({
+  // Fetch all section content plus the typed A1 abstract in parallel.
+  // The `section_content` row for `a1` is a legacy JSON blob and would
+  // pollute the word count — exclude it and use `part_a1.abstract` instead.
+  const { data, isLoading } = useQuery({
     queryKey: ['page-estimate-content', proposalId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('section_content')
-        .select('content')
-        .eq('proposal_id', proposalId);
-      
-      if (error) throw error;
-      return data || [];
+      const [sectionsRes, a1Res] = await Promise.all([
+        supabase.from('section_content').select('section_id, content').eq('proposal_id', proposalId),
+        supabase.from('part_a1').select('abstract').eq('proposal_id', proposalId).maybeSingle(),
+      ]);
+      if (sectionsRes.error) throw sectionsRes.error;
+      return {
+        sections: sectionsRes.data || [],
+        a1Abstract: a1Res.data?.abstract || '',
+      };
     },
     enabled: !!proposalId,
-    staleTime: 30000, // Cache for 30 seconds
+    staleTime: 30000,
   });
 
   const result = useMemo(() => {
-    if (!sectionContents || sectionContents.length === 0) {
-      return { totalWords: 0, estimatedPages: null };
+    if (!data) return { totalWords: 0, estimatedPages: null };
+
+    const countWords = (html: string) => {
+      const text = html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+      return text ? text.split(' ').filter(w => w.length > 0).length : 0;
+    };
+
+    let totalWords = 0;
+    for (const section of data.sections) {
+      if (section.section_id === 'a1') continue; // legacy JSON blob — skip
+      if (section.content) totalWords += countWords(section.content);
     }
+    totalWords += countWords(data.a1Abstract);
 
-    // Count words across all sections (strip HTML tags)
-    const totalWords = sectionContents.reduce((sum, section) => {
-      if (!section.content) return sum;
-      const text = section.content
-        .replace(/<[^>]*>/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
-      const words = text ? text.split(' ').filter(w => w.length > 0).length : 0;
-      return sum + words;
-    }, 0);
-
-    // Calculate estimated pages
     const contentPages = Math.ceil(totalWords / WORDS_PER_PAGE);
     const estimatedPages = contentPages + FRONT_MATTER_PAGES;
-
     return { totalWords, estimatedPages };
-  }, [sectionContents]);
+  }, [data]);
 
   return {
     estimatedPages: result.estimatedPages,

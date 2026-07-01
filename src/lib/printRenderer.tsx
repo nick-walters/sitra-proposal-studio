@@ -266,47 +266,49 @@ async function buildParticipantListHtml(
 
 // ── Build Part A (A1 general info + A3 budget summary) HTML ──────────────────
 
+interface PartA1Row {
+  abstract: string | null;
+  fixed_keywords: string[] | null;
+  free_keywords: string | null;
+  previous_submission: string | null;
+  previous_submission_reference: string | null;
+}
+
 /**
- * Parses the A1 JSON blob (shape: { abstract, fixedKeywords, freeKeywords,
- * previousSubmission, declarations }) and emits a readable abstract +
- * keywords block. Falls back to treating legacy plain-text content as the
- * abstract. The `declarations` object is intentionally excluded — it is not
+ * Renders A1 (abstract + keywords + previous submission) from the typed
+ * `part_a1` table. The abstract is sanitised HTML — NOT escaped — so
+ * inline acronym/participant badges render as elements in the export.
+ * The `declarations` object is intentionally excluded — it is not
  * evaluative content.
  */
-function buildA1Html(content: string): string {
-  if (!content || !content.trim()) return '';
-  let abstract = '';
-  let fixedKeywords: string[] = [];
-  let freeKeywords = '';
-  let previousSubmission: 'yes' | 'no' | '' = '';
-  let previousReference = '';
-  try {
-    const parsed = JSON.parse(content);
-    if (parsed && typeof parsed === 'object') {
-      abstract = String(parsed.abstract || '').trim();
-      if (Array.isArray(parsed.fixedKeywords)) {
-        fixedKeywords = parsed.fixedKeywords.filter((k: unknown) => typeof k === 'string');
-      } else if (Array.isArray(parsed.keywords)) {
-        fixedKeywords = parsed.keywords.filter((k: unknown) => typeof k === 'string');
-      }
-      freeKeywords = String(parsed.freeKeywords || '').trim();
-      previousSubmission = parsed.previousSubmission === 'yes' || parsed.previousSubmission === 'no'
-        ? parsed.previousSubmission
-        : '';
-      previousReference = String(parsed.previousSubmissionReference || '').trim();
+function buildA1Html(a1: PartA1Row | null): string {
+  if (!a1) return '';
+  const abstractHtml = String(a1.abstract || '').trim();
+  const rawFixed = Array.isArray(a1.fixed_keywords) ? a1.fixed_keywords : [];
+  const fixedKeywords: string[] = [];
+  for (const k of rawFixed) {
+    if (typeof k !== 'string') continue;
+    for (const piece of k.split(',')) {
+      const trimmed = piece.trim();
+      if (trimmed) fixedKeywords.push(trimmed);
     }
-  } catch {
-    // Legacy plain text → treat as the abstract directly.
-    abstract = stripTags(content).trim();
   }
+  const freeKeywords = String(a1.free_keywords || '').trim();
+  const previousSubmission: 'yes' | 'no' | '' =
+    a1.previous_submission === 'yes' || a1.previous_submission === 'no'
+      ? a1.previous_submission
+      : '';
+  const previousReference = String(a1.previous_submission_reference || '').trim();
 
   const parts: string[] = [];
   parts.push(
     `<h2 class="print-h2" data-section-name="A1. General information" style="font-size:12pt;font-weight:bold;margin-top:9pt;margin-bottom:0;">A1. General information</h2>`,
   );
-  if (abstract) {
+  if (abstractHtml) {
     parts.push(`<h3 class="print-h3" style="font-size:11pt;font-weight:bold;margin-top:6pt;margin-bottom:0;">Abstract</h3>`);
-    parts.push(`<div class="print-section-content">${escHtml(abstract).replace(/\n+/g, '<br/>')}</div>`);
+    // Sanitise rich HTML (badges, formatting) rather than escape — matches Part B rendering.
+    const cleanAbstract = DOMPurify.sanitize(abstractHtml, PRINT_SANITIZE_CONFIG);
+    parts.push(`<div class="print-section-content">${cleanAbstract}</div>`);
   }
   const kw: string[] = [];
   if (fixedKeywords.length) kw.push(fixedKeywords.join(', '));
@@ -322,6 +324,7 @@ function buildA1Html(content: string): string {
   }
   return parts.join('\n');
 }
+
 
 function stripTags(html: string): string {
   return String(html || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ');
@@ -437,12 +440,16 @@ async function buildA3BudgetHtml(
 
 async function buildPartAHtml(
   proposalId: string,
-  sectionContents: SectionContent[],
+  _sectionContents: SectionContent[],
   participants: Participant[],
   proposalType: string | null,
 ): Promise<string> {
-  const a1 = sectionContents.find((sc) => sc.sectionId === 'a1');
-  const a1Html = a1 ? buildA1Html(a1.content) : '';
+  const { data: a1Row } = await supabase
+    .from('part_a1')
+    .select('abstract, fixed_keywords, free_keywords, previous_submission, previous_submission_reference')
+    .eq('proposal_id', proposalId)
+    .maybeSingle();
+  const a1Html = buildA1Html(a1Row as PartA1Row | null);
   const a3Html = await buildA3BudgetHtml(proposalId, participants, proposalType);
   // A2 (participants list + expertise matrix) is already covered by the
   // participant list table above and the B3.2 expertise-matrix mount.
