@@ -569,6 +569,17 @@ export function PanelEvaluator({ proposalId }: Props) {
             setBudgetType(proposedRow.budget_type_used);
           }
           setStage("panelReview");
+        } else {
+          // No panel_proposed either — check for a recent failed run with
+          // preserved evaluator results so we can offer Resume.
+          const latestFailed = (hist || [])
+            .filter((r: any) => r.status === "failed")
+            .slice()
+            .reverse()[0];
+          if (latestFailed) {
+            const summary = summarizeFailedRow(latestFailed as any);
+            if (summary && summary.failCount > 0) setFailedRun(summary);
+          }
         }
       }
 
