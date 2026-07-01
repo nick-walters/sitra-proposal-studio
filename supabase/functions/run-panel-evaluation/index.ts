@@ -877,7 +877,7 @@ Apply the evaluation rules, criteria, and output format defined above from your 
     return {
       evaluationId,
       status: "running",
-      completedEvaluators: nextEvaluations.length,
+      completedEvaluators: doneCount,
       totalEvaluators: selectedEvaluators.length,
     };
   }
