@@ -144,16 +144,7 @@ export function ParticipantDescriptionsSection({
                 onUnderline={() => exec('underline')}
               />
               <Separator orientation="vertical" className="h-5 mx-1.5" />
-              <ToolbarButton
-                icon={<AlignLeft className="h-4 w-4" />}
-                label="Align left"
-                onClick={() => exec('justifyLeft')}
-              />
-              <ToolbarButton
-                icon={<AlignJustify className="h-4 w-4" />}
-                label="Justify"
-                onClick={() => exec('justifyFull')}
-              />
+
               <div className="ml-auto">
                 <SaveIndicator
                   saving={saving}
