@@ -1,9 +1,29 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ParticipantResearcher, ParticipantOrganisationRole, ParticipantAchievement, ParticipantPreviousProject, ParticipantInfrastructure, ParticipantDependency, transformResearcherFromRow, transformResearcherToRow, transformAchievementFromRow, transformPreviousProjectFromRow, transformInfrastructureFromRow, transformDependencyFromRow, transformOrganisationRoleFromRow } from '@/types/participantDetails';
 
-export function useParticipantDetails(participantId: string | undefined) {
+export type ParticipantDescriptionField =
+  | 'contribution_resources'
+  | 'value_chain'
+  | 'industrial_involvement'
+  | 'participation_justification';
+
+export interface ParticipantDescriptions {
+  contribution_resources: string;
+  value_chain: string;
+  industrial_involvement: string;
+  participation_justification: string;
+}
+
+const EMPTY_DESCRIPTIONS: ParticipantDescriptions = {
+  contribution_resources: '',
+  value_chain: '',
+  industrial_involvement: '',
+  participation_justification: '',
+};
+
+export function useParticipantDetails(participantId: string | undefined, proposalId?: string) {
   const [loading, setLoading] = useState(true);
   const [researchers, setResearchers] = useState<ParticipantResearcher[]>([]);
   const [organisationRoles, setOrganisationRoles] = useState<ParticipantOrganisationRole[]>([]);
@@ -11,6 +31,12 @@ export function useParticipantDetails(participantId: string | undefined) {
   const [previousProjects, setPreviousProjects] = useState<ParticipantPreviousProject[]>([]);
   const [infrastructure, setInfrastructure] = useState<ParticipantInfrastructure[]>([]);
   const [dependencies, setDependencies] = useState<ParticipantDependency[]>([]);
+  const [descriptions, setDescriptions] = useState<ParticipantDescriptions>(EMPTY_DESCRIPTIONS);
+  const [descriptionsSaving, setDescriptionsSaving] = useState(false);
+  const [descriptionsLastSaved, setDescriptionsLastSaved] = useState<Date | null>(null);
+  const [descriptionsError, setDescriptionsError] = useState<string | null>(null);
+  const descriptionsDebounceRef = useRef<Record<string, ReturnType<typeof setTimeout> | null>>({});
+
 
   // Fetch all participant details
   const fetchDetails = useCallback(async () => {
