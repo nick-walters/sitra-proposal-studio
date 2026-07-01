@@ -214,6 +214,16 @@ export function PanelEvaluator({ proposalId }: Props) {
   // ID of a persisted status='panel_proposed' row (Stage A result stored so
   // navigating away / reloading before Start doesn't discard the paid Haiku panel).
   const [panelProposedRowId, setPanelProposedRowId] = useState<string | null>(null);
+  // Preserved failed-run info so the user can Resume (only re-runs errored evaluators)
+  // instead of paying for a full re-run.
+  const [failedRun, setFailedRun] = useState<{
+    id: string;
+    successCount: number;
+    failCount: number;
+    total: number;
+    errorMessage: string | null;
+  } | null>(null);
+  const [resumingFailedRun, setResumingFailedRun] = useState(false);
   // Filter as a Set: empty = "All" mode
   const [activeAreaFilters, setActiveAreaFilters] = useState<Set<string>>(new Set());
 
@@ -272,6 +282,31 @@ export function PanelEvaluator({ proposalId }: Props) {
       .order("created_at", { ascending: true });
     setHistory((hist || []) as AnalysisRow[]);
     if (hist && hist.length > 0) setSelectedHistoryId(hist[hist.length - 1].id);
+  };
+
+  // Extract success/fail counts from a failed evaluation row's analysis_data.
+  // Returns null if the row has no preserved evaluator results to resume from.
+  const summarizeFailedRow = (row: {
+    id: string;
+    error_message?: string | null;
+    analysis_data: any;
+    evaluators_selected?: any;
+  }) => {
+    const ad = (row.analysis_data ?? {}) as Record<string, any>;
+    const evaluations = Array.isArray(ad.evaluations) ? ad.evaluations : [];
+    if (evaluations.length === 0) return null;
+    const successCount = evaluations.filter((e: any) => e && !e?.data?.error).length;
+    const failCount = evaluations.filter((e: any) => e?.data?.error).length;
+    const total = Array.isArray(row.evaluators_selected)
+      ? row.evaluators_selected.length
+      : evaluations.length;
+    return {
+      id: row.id,
+      successCount,
+      failCount: Math.max(failCount, Math.max(0, total - evaluations.length)),
+      total,
+      errorMessage: row.error_message ?? null,
+    };
   };
 
   const downloadEsr = async (h: AnalysisRow) => {
@@ -387,6 +422,18 @@ export function PanelEvaluator({ proposalId }: Props) {
         setRunningMessage("");
         setRunStartedAt(null);
         toast.error(`Evaluation failed: ${data.error_message || "unknown error"}`);
+        // Load the full row so we can offer a Resume button if any evaluator
+        // results survived (they're preserved in analysis_data.evaluations).
+        const { data: fullRow } = await supabase
+          .from("proposal_analyses")
+          .select("id, error_message, analysis_data, evaluators_selected")
+          .eq("id", evaluationId)
+          .maybeSingle();
+        const summary = fullRow ? summarizeFailedRow(fullRow as any) : null;
+        if (summary) {
+          setFailedRun(summary);
+        }
+        await refreshHistory();
         setStage("idle");
       }
     }, 10_000);
@@ -410,6 +457,30 @@ export function PanelEvaluator({ proposalId }: Props) {
     } catch (e: any) {
       toast.error(`Cancel failed: ${e.message || e}`);
     }
+  }
+
+  async function resumeFailedRun() {
+    if (!failedRun) return;
+    setResumingFailedRun(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("run-panel-evaluation", {
+        body: { action: "resume", evaluationId: failedRun.id },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const evalId = data?.evaluationId || failedRun.id;
+      toast.info(`Resuming ${failedRun.failCount} evaluator${failedRun.failCount === 1 ? "" : "s"}…`);
+      setFailedRun(null);
+      startPolling(evalId, new Date().toISOString());
+    } catch (e: any) {
+      toast.error(`Resume failed: ${e.message || e}`);
+    } finally {
+      setResumingFailedRun(false);
+    }
+  }
+
+  function dismissFailedRun() {
+    setFailedRun(null);
   }
 
 
@@ -498,6 +569,17 @@ export function PanelEvaluator({ proposalId }: Props) {
             setBudgetType(proposedRow.budget_type_used);
           }
           setStage("panelReview");
+        } else {
+          // No panel_proposed either — check for a recent failed run with
+          // preserved evaluator results so we can offer Resume.
+          const latestFailed = (hist || [])
+            .filter((r: any) => r.status === "failed")
+            .slice()
+            .reverse()[0];
+          if (latestFailed) {
+            const summary = summarizeFailedRow(latestFailed as any);
+            if (summary && summary.failCount > 0) setFailedRun(summary);
+          }
         }
       }
 
@@ -1067,7 +1149,65 @@ export function PanelEvaluator({ proposalId }: Props) {
             );
           })()}
 
-          {stage === "idle" && (
+          {stage === "idle" && failedRun && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                <div className="space-y-2">
+                  <div className="font-medium">
+                    Previous evaluation failed —{" "}
+                    {failedRun.successCount} of {failedRun.total} evaluators succeeded,{" "}
+                    {failedRun.failCount} errored.
+                  </div>
+                  {failedRun.errorMessage && (
+                    <div className="text-xs opacity-90">{failedRun.errorMessage}</div>
+                  )}
+                  <div className="text-xs opacity-90">
+                    Resuming only re-runs the errored evaluators (cached prefix — near-free) and
+                    proceeds to synthesis if at least 3 succeed. Starting a new evaluation
+                    discards this run and re-runs everything.
+                  </div>
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={resumeFailedRun}
+                      disabled={resumingFailedRun || failedRun.failCount === 0}
+                      className="gap-2"
+                    >
+                      {resumingFailedRun ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Sparkles className="h-4 w-4" />
+                      )}
+                      Resume failed evaluators
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        dismissFailedRun();
+                        void startEvaluation();
+                      }}
+                      disabled={!instrumentCode || resumingFailedRun}
+                    >
+                      Start new evaluation
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={dismissFailedRun}
+                      disabled={resumingFailedRun}
+                    >
+                      Dismiss
+                    </Button>
+                  </div>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {stage === "idle" && !failedRun && (
             <div className="flex justify-center pt-2">
               <Button onClick={startEvaluation} disabled={!instrumentCode} className="gap-2">
                 <Sparkles className="h-4 w-4" /> Start Evaluation

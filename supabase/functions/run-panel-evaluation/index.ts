@@ -22,6 +22,7 @@ function extractJson(text: string): any {
 
 interface AnthropicCallResult {
   text: string;
+  stop_reason?: string;
   usage: {
     input_tokens?: number;
     output_tokens?: number;
@@ -122,7 +123,14 @@ async function callAnthropicWithCache(
           .filter((block: any) => block.type === "text")
           .map((block: any) => block.text)
           .join("\n") || "";
-      return { text, usage: data?.usage || {} };
+      const stop_reason: string | undefined = data?.stop_reason;
+      if (stop_reason === "max_tokens") {
+        console.warn(
+          `⚠ Anthropic response TRUNCATED at max_tokens cap (model=${model}, max_tokens=${maxTokens}, output_tokens=${data?.usage?.output_tokens ?? "?"}). ` +
+            `Response body was cut off mid-generation and will likely fail JSON parsing.`,
+        );
+      }
+      return { text, stop_reason, usage: data?.usage || {} };
     }
 
     const errorBody = await res.text();
@@ -187,7 +195,7 @@ async function runWithConcurrency<T, R>(
 
 const round05 = (n: number) => Math.round(n * 2) / 2;
 const mean = (values: number[]) => values.reduce((sum, value) => sum + value, 0) / Math.max(values.length, 1);
-const EVALUATOR_MAX_TOKENS = 3200;
+const EVALUATOR_MAX_TOKENS = 8000;
 const SYNTHESIS_MAX_TOKENS = 4200;
 const ACTIVE_STEP_STALE_MS = 180_000;
 const EVALUATOR_TIMEOUT_MS = 120_000;
@@ -616,11 +624,22 @@ ${criterion.scoring_descriptors}`;
     return { evaluationId, status: "synthesizing" };
   };
 
-  if (savedEvaluations.length >= selectedEvaluators.length) {
+  // Resume-aware slot selection: pick the first missing slot OR the first previously-errored slot.
+  // This lets normal "evaluate" ticks continue past a failed run once the row's status is bounced
+  // back to "running" by the `resume` action.
+  let slotIndex = -1;
+  for (let i = 0; i < selectedEvaluators.length; i++) {
+    const slot = savedEvaluations[i];
+    if (!slot || slot?.data?.error) {
+      slotIndex = i;
+      break;
+    }
+  }
+  if (slotIndex === -1) {
     return finalizeEvaluatorPhase(savedEvaluations, usageTotals);
   }
-
-  const evaluator = selectedEvaluators[savedEvaluations.length];
+  const isRetryOfErroredSlot = slotIndex < savedEvaluations.length;
+  const evaluator = selectedEvaluators[slotIndex];
   const fullProposalOutputBlock =
     stageKey === "stage1"
       ? `{
@@ -700,7 +719,7 @@ Apply the evaluation rules, criteria, and output format defined above from your 
         token_usage: usageTotals,
         instrument_code: instrument.code,
         active_step_started_at: new Date().toISOString(),
-        progress_message: `Running evaluator ${savedEvaluations.length + 1} of ${selectedEvaluators.length}`,
+        progress_message: `${isRetryOfErroredSlot ? "Retrying" : "Running"} evaluator ${slotIndex + 1} of ${selectedEvaluators.length}`,
       },
     })
     .eq("id", evaluationId);
@@ -757,29 +776,87 @@ Apply the evaluation rules, criteria, and output format defined above from your 
     clearTimeout(timeoutHandle);
   }
 
-  const parsedEvaluation = {
-    persona: evaluator,
-    data: evaluatorTimedOut
-      ? { error: `Evaluator timeout: ${EVALUATOR_TIMEOUT_MS / 1000}s exceeded` }
-      : (() => {
-          try {
-            return extractJson(result.text);
-          } catch (error) {
-            return { error: error instanceof Error ? error.message : "parse error", raw: result.text };
-          }
-        })(),
-  };
+  // Parse the JSON. If it fails (e.g. rare mid-stream cut or malformed output),
+  // do ONE silent retry — hits the cached prefix, so it's near-free — before
+  // marking this slot as errored.
+  let parsedData: any;
+  let retryUsage: any = null;
+  if (evaluatorTimedOut) {
+    parsedData = { error: `Evaluator timeout: ${EVALUATOR_TIMEOUT_MS / 1000}s exceeded` };
+  } else {
+    try {
+      parsedData = extractJson(result.text);
+    } catch (firstErr) {
+      const firstErrMsg = firstErr instanceof Error ? firstErr.message : "parse error";
+      const truncated = result.stop_reason === "max_tokens";
+      console.warn(
+        `Evaluator ${evaluator.name}: JSON parse failed on first attempt (${firstErrMsg}${truncated ? " — response was TRUNCATED at max_tokens" : ""}). Attempting one silent retry.`,
+      );
+      try {
+        const retryController = new AbortController();
+        const retryTimeout = setTimeout(() => retryController.abort(), EVALUATOR_TIMEOUT_MS);
+        try {
+          const retryResult = await callAnthropicWithCache(
+            ANTHROPIC_API_KEY,
+            evaluationModel,
+            systemBlocks,
+            "Evaluate the proposal above according to your instructions. Respond with the JSON object only.",
+            EVALUATOR_MAX_TOKENS,
+            false,
+            2,
+            retryController.signal,
+          );
+          retryUsage = retryResult.usage || {};
+          parsedData = extractJson(retryResult.text);
+          console.log(`Evaluator ${evaluator.name}: silent retry succeeded.`);
+        } finally {
+          clearTimeout(retryTimeout);
+        }
+      } catch (retryErr) {
+        const retryErrMsg = retryErr instanceof Error ? retryErr.message : "parse error";
+        parsedData = {
+          error: `Parse failed on both attempts. First: ${firstErrMsg}. Retry: ${retryErrMsg}.${truncated ? " (max_tokens truncation on first attempt)" : ""}`,
+          raw: result.text,
+        };
+      }
+    }
+  }
 
-  const nextEvaluations = [...savedEvaluations, parsedEvaluation];
+  const parsedEvaluation = { persona: evaluator, data: parsedData };
+
+  const nextEvaluations = savedEvaluations.slice();
+  nextEvaluations[slotIndex] = parsedEvaluation;
   const nextUsageTotals = {
-    evaluator_input_tokens: usageTotals.evaluator_input_tokens + Number(result.usage?.input_tokens || 0),
-    evaluator_output_tokens: usageTotals.evaluator_output_tokens + Number(result.usage?.output_tokens || 0),
-    evaluator_cached_tokens: usageTotals.evaluator_cached_tokens + Number(result.usage?.cache_read_input_tokens || 0),
+    evaluator_input_tokens:
+      usageTotals.evaluator_input_tokens +
+      Number(result.usage?.input_tokens || 0) +
+      Number(retryUsage?.input_tokens || 0),
+    evaluator_output_tokens:
+      usageTotals.evaluator_output_tokens +
+      Number(result.usage?.output_tokens || 0) +
+      Number(retryUsage?.output_tokens || 0),
+    evaluator_cached_tokens:
+      usageTotals.evaluator_cached_tokens +
+      Number(result.usage?.cache_read_input_tokens || 0) +
+      Number(retryUsage?.cache_read_input_tokens || 0),
     evaluator_cache_write_tokens:
-      usageTotals.evaluator_cache_write_tokens + Number(result.usage?.cache_creation_input_tokens || 0),
+      usageTotals.evaluator_cache_write_tokens +
+      Number(result.usage?.cache_creation_input_tokens || 0) +
+      Number(retryUsage?.cache_creation_input_tokens || 0),
   };
 
-  if (nextEvaluations.length < selectedEvaluators.length) {
+  // Are any slots still to run? (missing OR errored)
+  const remaining = (() => {
+    let n = 0;
+    for (let i = 0; i < selectedEvaluators.length; i++) {
+      const s = nextEvaluations[i];
+      if (!s || s?.data?.error) n++;
+    }
+    return n;
+  })();
+  const doneCount = selectedEvaluators.length - remaining;
+
+  if (remaining > 0) {
     await serviceClient
       .from("proposal_analyses")
       .update({
@@ -792,7 +869,7 @@ Apply the evaluation rules, criteria, and output format defined above from your 
           token_usage: nextUsageTotals,
           instrument_code: instrument.code,
           active_step_started_at: null,
-          progress_message: `Completed evaluator ${nextEvaluations.length} of ${selectedEvaluators.length}`,
+          progress_message: `Completed evaluator ${slotIndex + 1} of ${selectedEvaluators.length} (${doneCount} succeeded)`,
         },
       })
       .eq("id", evaluationId);
@@ -800,7 +877,7 @@ Apply the evaluation rules, criteria, and output format defined above from your 
     return {
       evaluationId,
       status: "running",
-      completedEvaluators: nextEvaluations.length,
+      completedEvaluators: doneCount,
       totalEvaluators: selectedEvaluators.length,
     };
   }
@@ -1309,6 +1386,57 @@ serve(async (req) => {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    if (action === "resume") {
+      const evaluationId = body?.evaluationId;
+      if (!evaluationId) {
+        return new Response(JSON.stringify({ error: "evaluationId is required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const evaluation = await getEvaluationRecord(serviceClient, evaluationId);
+      await ensureProposalAdmin(supabase, userId, evaluation.proposal_id);
+
+      const baseAnalysisData = evaluation.analysis_data || {};
+      const evaluations = Array.isArray(baseAnalysisData.evaluations) ? baseAnalysisData.evaluations : [];
+      const total = Array.isArray(evaluation.evaluators_selected) ? evaluation.evaluators_selected.length : evaluations.length;
+      const erroredCount = evaluations.filter((e: any) => e?.data?.error).length;
+      const missingCount = Math.max(0, total - evaluations.length);
+      const toRun = erroredCount + missingCount;
+
+      if (toRun === 0) {
+        return new Response(
+          JSON.stringify({
+            evaluationId,
+            status: evaluation.status,
+            message: "No errored evaluators to resume.",
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      // Bounce the row back to "running" so runEvaluatorPhase (invoked via the
+      // usual "evaluate" ticks) will pick up errored slots and rerun them.
+      await serviceClient
+        .from("proposal_analyses")
+        .update({
+          status: "running",
+          error_message: null,
+          analysis_data: {
+            ...baseAnalysisData,
+            active_step_started_at: null,
+            progress_message: `Resuming ${toRun} evaluator${toRun === 1 ? "" : "s"} of ${total}`,
+          },
+        })
+        .eq("id", evaluationId);
+
+      return new Response(
+        JSON.stringify({ evaluationId, status: "running", toRun, total }),
+        { status: 202, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     if (action === "cancel") {
