@@ -2,10 +2,21 @@ import { lazy, Suspense } from 'react';
 import { NodeViewWrapper, NodeViewProps } from '@tiptap/react';
 import { useParams } from 'react-router-dom';
 import type { B32SlotKey } from '@/extensions/B32MirrorSlotNode';
+import {
+  B32MirrorParagraphSlot,
+  type B32ParagraphSlotKey,
+} from '@/components/B32MirrorParagraphSlot';
 
 const B32SectionContent = lazy(() =>
   import('@/components/B32SectionContent').then((m) => ({ default: m.B32SectionContent })),
 );
+
+const PARAGRAPH_SLOTS: readonly B32ParagraphSlotKey[] = [
+  'capacity',
+  'value-chain',
+  'industrial',
+  'international',
+];
 
 function proposalIdFromUrl(): string {
   if (typeof window === 'undefined') return '';
