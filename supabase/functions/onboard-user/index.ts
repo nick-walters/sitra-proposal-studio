@@ -1,9 +1,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { corsHeaders } from "../_shared/cors.ts";
+import { requireAuth } from "../_shared/auth.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+
+
 
 const WELCOME_MESSAGE = `Welcome to Sitra Proposal Studio, a co-writing platform for developing funding proposals!
 
@@ -25,22 +25,22 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("Missing authorization");
+    const auth = await requireAuth(req);
+    if (!auth.ok) return auth.response;
+    const user = { id: auth.userId };
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // Get user from auth token
-    const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: { user }, error: authErr } = await userClient.auth.getUser();
-    if (authErr || !user) throw new Error("Unauthorized");
 
     const { proposalId } = await req.json();
-    if (!proposalId) throw new Error("Missing proposalId");
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!proposalId || typeof proposalId !== "string" || !UUID_RE.test(proposalId)) {
+      return new Response(JSON.stringify({ error: "Invalid proposalId" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const admin = createClient(supabaseUrl, serviceKey);
 
@@ -188,8 +188,8 @@ Deno.serve(async (req) => {
     });
   } catch (err) {
     console.error("Onboard error:", err);
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 400,
+    return new Response(JSON.stringify({ error: "An internal error occurred" }), {
+      status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

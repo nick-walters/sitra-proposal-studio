@@ -7,7 +7,7 @@ import { renderElementToPngBlob } from './domExport';
  * uploads it to `proposal-backups/{proposalId}/_figures-cache/{figureId}.png`
  * so the backup edge function can include rendered PERT/Gantt charts.
  */
-export async function cacheFigurePng(
+async function cacheFigurePng(
   proposalId: string,
   figureId: string,
   element: HTMLElement,

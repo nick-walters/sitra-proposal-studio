@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { DebouncedInput } from '@/components/ui/debounced-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
@@ -45,6 +45,7 @@ interface WPOption {
 
 interface WPTableSectionProps {
   wpNumber: number;
+  wpColor?: string;
   objectives: string | null;
   descriptionBeforeTasks: string | null;
   tasks: WPDraftTask[];
@@ -66,6 +67,7 @@ interface WPTableSectionProps {
 
 export function WPTableSection({
   wpNumber,
+  wpColor,
   objectives,
   descriptionBeforeTasks,
   tasks,
@@ -155,6 +157,7 @@ export function WPTableSection({
                     key={task.id}
                     task={task}
                     wpNumber={wpNumber}
+                    wpColor={wpColor}
                     participants={participants}
                     monthOptions={monthOptions}
                     projectDuration={projectDuration}
@@ -193,6 +196,7 @@ export function WPTableSection({
 interface SortableTaskCardProps {
   task: WPDraftTask;
   wpNumber: number;
+  wpColor?: string;
   participants: ParticipantSummary[];
   monthOptions: number[];
   projectDuration: number;
@@ -211,6 +215,7 @@ interface SortableTaskCardProps {
 function SortableTaskCard({
   task,
   wpNumber,
+  wpColor,
   participants,
   monthOptions,
   projectDuration,
@@ -240,26 +245,7 @@ function SortableTaskCard({
     opacity: isDragging ? 0.5 : 1,
   };
 
-  const [localTitle, setLocalTitle] = useState(task.title || '');
-  const [titleTimeout, setTitleTimeout] = useState<NodeJS.Timeout | null>(null);
   const [descriptionTimeout, setDescriptionTimeout] = useState<NodeJS.Timeout | null>(null);
-  const isFocused = useRef(false);
-
-  useEffect(() => {
-    if (!isFocused.current) setLocalTitle(task.title || '');
-  }, [task.title]);
-
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setLocalTitle(newValue);
-
-    if (titleTimeout) clearTimeout(titleTimeout);
-    
-    const timeout = setTimeout(() => {
-      onUpdate(task.id, { title: newValue });
-    }, 500);
-    setTitleTimeout(timeout);
-  };
 
   const handleDescriptionChange = (value: string) => {
     if (descriptionTimeout) clearTimeout(descriptionTimeout);
@@ -269,6 +255,7 @@ function SortableTaskCard({
     }, 500);
     setDescriptionTimeout(timeout);
   };
+
 
   const selectedParticipantIds = (task.participants?.map(p => p.participant_id) || []).filter(id => id !== task.lead_participant_id);
   const availableParticipants = task.lead_participant_id ? participants.filter(p => p.id !== task.lead_participant_id) : participants;
@@ -294,8 +281,8 @@ function SortableTaskCard({
           className="inline-flex items-center justify-center rounded-full font-bold select-none flex-shrink-0"
           style={{
             backgroundColor: '#ffffff',
-            border: '1.5px solid #2563EB',
-            color: '#2563EB',
+            border: `1.5px solid ${wpColor || '#73C92D'}`,
+            color: wpColor || '#73C92D',
             height: '22px',
             fontFamily: "'Times New Roman', Times, serif",
             fontSize: '11pt',
@@ -305,13 +292,12 @@ function SortableTaskCard({
         >
           {formatTaskNumber(task.number)}
         </span>
-        <input
-          value={localTitle}
-          onChange={handleTitleChange}
-          onFocus={() => { isFocused.current = true; }}
-          onBlur={() => { isFocused.current = false; }}
+        <DebouncedInput
+          value={task.title || ''}
+          onDebouncedChange={(val) => { onUpdate(task.id, { title: val }); }}
+          debounceMs={500}
           placeholder="Task title..."
-          className="h-6 text-draft flex-1 font-bold bg-transparent border-0 outline-none px-1 text-foreground placeholder:text-muted-foreground/60"
+          className="h-6 text-draft flex-1 font-bold bg-transparent border-0 outline-none px-1 text-foreground placeholder:text-muted-foreground/60 shadow-none focus-visible:ring-0"
           style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt' }}
           disabled={readOnly}
         />
@@ -392,7 +378,7 @@ function SortableTaskCard({
           {!readOnly && onMove && allWpDrafts.filter(wp => wp.id !== currentWpDraftId).length > 0 && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0">
+                <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0" aria-label="Forward" title="Forward">
                   <ArrowRight className="h-3.5 w-3.5 text-blue-500" />
                 </Button>
               </DropdownMenuTrigger>

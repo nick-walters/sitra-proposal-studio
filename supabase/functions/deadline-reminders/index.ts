@@ -1,9 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { corsHeaders } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 interface SectionWithDeadline {
   id: string;
@@ -22,11 +19,14 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Validate that the caller is authorized (service role key or matching secret)
+    // Validate that the caller is authorized (cron shared secret or service role key)
     const authHeader = req.headers.get("Authorization");
+    const cronSecret = Deno.env.get("CRON_SECRET");
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    if (!authHeader || authHeader !== `Bearer ${supabaseServiceKey}`) {
+    const cronOk = !!cronSecret && authHeader === `Bearer ${cronSecret}`;
+    const serviceOk = !!supabaseServiceKey && authHeader === `Bearer ${supabaseServiceKey}`;
+    if (!authHeader || (!cronOk && !serviceOk)) {
       return new Response(
         JSON.stringify({ error: "Unauthorized" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -177,7 +177,7 @@ Deno.serve(async (req) => {
   } catch (error: any) {
     console.error("Error in deadline-reminders function:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: "An internal error occurred" }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
+import { formatNumber } from '@/lib/formatNumber';
+
 import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,7 +13,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { AlertTriangle, CheckCircle, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PartAGuidelinesDialog } from './PartAGuidelinesDialog';
+import { PartAPageLayout } from './PartAPageLayout';
+
 import { SaveIndicator } from './SaveIndicator';
+import ethicsQuestionsRaw from '@/data/ethicsQuestions.json';
 
 // Extended ethics assessment interface for full proposals
 export interface EthicsAssessment {
@@ -314,404 +319,7 @@ const SECURITY_SECTIONS: SecuritySection[] = [
   },
 ];
 
-const ETHICS_SECTIONS: EthicsSection[] = [
-  {
-    id: 'hesc',
-    number: 1,
-    title: 'HUMAN EMBRYONIC STEM CELLS AND HUMAN EMBRYOS',
-    questions: [
-      {
-        id: 'humanEmbryonicStemCells',
-        pageId: 'humanEmbryonicStemCellsPage',
-        label: 'Does this activity involve Human Embryonic Stem Cells (hESCs)?',
-      },
-      {
-        id: 'hescDerivedFromEmbryos',
-        pageId: 'hescDerivedFromEmbryosPage',
-        label: 'Will they be directly derived from embryos within this project?',
-        indent: 1,
-        parentId: 'humanEmbryonicStemCells',
-      },
-      {
-        id: 'hescEstablishedLines',
-        pageId: 'hescEstablishedLinesPage',
-        label: 'Are they previously established cell lines?',
-        indent: 1,
-        parentId: 'humanEmbryonicStemCells',
-      },
-      {
-        id: 'hescEuropeanRegistry',
-        pageId: 'hescEuropeanRegistryPage',
-        label: 'Are the cell lines registered in the European registry for human embryonic stem cell lines?',
-        indent: 1,
-        parentId: 'humanEmbryonicStemCells',
-      },
-      {
-        id: 'humanEmbryosSection1',
-        pageId: 'humanEmbryosSection1Page',
-        label: 'Does this activity involve the use of human embryos?',
-      },
-      {
-        id: 'humanEmbryosDestruction',
-        pageId: 'humanEmbryosDestructionPage',
-        label: 'Will the activity lead to their destruction?',
-        indent: 1,
-        parentId: 'humanEmbryosSection1',
-      },
-    ],
-  },
-  {
-    id: 'humans',
-    number: 2,
-    title: 'HUMANS',
-    questions: [
-      {
-        id: 'humanParticipants',
-        pageId: 'humanParticipantsPage',
-        label: 'Does this activity involve human participants?',
-      },
-      {
-        id: 'humanVolunteersNonMedical',
-        pageId: 'humanVolunteersNonMedicalPage',
-        label: 'Are they volunteers for non-medical studies (e.g. social or human sciences research)?',
-        indent: 1,
-        parentId: 'humanParticipants',
-      },
-      {
-        id: 'humanVolunteersMedical',
-        pageId: 'humanVolunteersMedicalPage',
-        label: 'Are they healthy volunteers for medical studies?',
-        indent: 1,
-        parentId: 'humanParticipants',
-      },
-      {
-        id: 'humanPatients',
-        pageId: 'humanPatientsPage',
-        label: 'Are they patients for medical studies?',
-        indent: 1,
-        parentId: 'humanParticipants',
-      },
-      {
-        id: 'humanVulnerable',
-        pageId: 'humanVulnerablePage',
-        label: 'Are they potentially vulnerable individuals or groups?',
-        indent: 1,
-        parentId: 'humanParticipants',
-      },
-      {
-        id: 'humanChildren',
-        pageId: 'humanChildrenPage',
-        label: 'Are they children/minors?',
-        indent: 1,
-        parentId: 'humanParticipants',
-      },
-      {
-        id: 'humanUnableConsent',
-        pageId: 'humanUnableConsentPage',
-        label: 'Are they other persons unable to give informed consent?',
-        indent: 1,
-        parentId: 'humanParticipants',
-      },
-      {
-        id: 'humanInterventions',
-        pageId: 'humanInterventionsPage',
-        label: 'Does this activity involve interventions (physical also including imaging technology, behavioural treatments, etc.) on the study participants?',
-      },
-      {
-        id: 'humanInvasive',
-        pageId: 'humanInvasivePage',
-        label: 'Does it involve invasive techniques?',
-        indent: 1,
-        parentId: 'humanInterventions',
-      },
-      {
-        id: 'humanBiologicalSamples',
-        pageId: 'humanBiologicalSamplesPage',
-        label: 'Does it involve collection of biological samples?',
-        indent: 1,
-        parentId: 'humanInterventions',
-      },
-      {
-        id: 'clinicalStudy',
-        pageId: 'clinicalStudyPage',
-        label: '',
-        labelWithLink: {
-          text: 'Does this activity involve conducting a clinical study as defined by the Clinical Trial ',
-          linkText: 'Regulation (EU 536/2014)',
-          linkUrl: 'https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32014R0536',
-          afterLinkText: '? (using pharmaceuticals, biologicals, radiopharmaceuticals, or advanced therapy medicinal products)'
-        },
-      },
-      {
-        id: 'clinicalTrial',
-        pageId: 'clinicalTrialPage',
-        label: 'Is it a clinical trial?',
-        indent: 1,
-        parentId: 'clinicalStudy',
-      },
-      {
-        id: 'lowInterventionTrial',
-        pageId: 'lowInterventionTrialPage',
-        label: 'Is it a low-intervention clinical trial?',
-        indent: 1,
-        parentId: 'clinicalStudy',
-      },
-    ],
-  },
-  {
-    id: 'humanCells',
-    number: 3,
-    title: 'HUMAN CELLS / TISSUES (not covered by section 1)',
-    questions: [
-      {
-        id: 'humanCells',
-        pageId: 'humanCellsPage',
-        label: 'Does this activity involve the use of human cells or tissues?',
-      },
-      {
-        id: 'humanCellsEmbryonicFoetal',
-        pageId: 'humanCellsEmbryonicFoetalPage',
-        label: 'Are they human embryonic or foetal cells or tissues?',
-        indent: 1,
-        parentId: 'humanCells',
-      },
-      {
-        id: 'humanCellsCommercial',
-        pageId: 'humanCellsCommercialPage',
-        label: 'Are they available commercially?',
-        indent: 1,
-        parentId: 'humanCells',
-      },
-      {
-        id: 'humanCellsObtainedWithin',
-        pageId: 'humanCellsObtainedWithinPage',
-        label: 'Are they obtained within this project?',
-        indent: 1,
-        parentId: 'humanCells',
-      },
-      {
-        id: 'humanCellsObtainedOther',
-        pageId: 'humanCellsObtainedOtherPage',
-        label: 'Are they obtained from another project, laboratory or institution?',
-        indent: 1,
-        parentId: 'humanCells',
-      },
-      {
-        id: 'humanCellsBiobank',
-        pageId: 'humanCellsBiobankPage',
-        label: 'Are they obtained from a biobank?',
-        indent: 1,
-        parentId: 'humanCells',
-      },
-    ],
-  },
-  {
-    id: 'personalData',
-    number: 4,
-    title: 'PERSONAL DATA',
-    questions: [
-      {
-        id: 'personalData',
-        pageId: 'personalDataPage',
-        label: 'Does this activity involve processing of personal data?',
-      },
-      {
-        id: 'personalDataSpecialCategories',
-        pageId: 'personalDataSpecialCategoriesPage',
-        label: 'Does it involve the processing of special categories of personal data (e.g. sexual lifestyle, ethnicity, genetic, biometric and health data, political opinion, religious or philosophical beliefs)?',
-        indent: 1,
-        parentId: 'personalData',
-      },
-      {
-        id: 'personalDataGenetic',
-        pageId: 'personalDataGeneticPage',
-        label: 'Does it involve processing of genetic, biometric or health data?',
-        indent: 2,
-        parentId: 'personalDataSpecialCategories',
-      },
-      {
-        id: 'personalDataProfiling',
-        pageId: 'personalDataProfilingPage',
-        label: 'Does it involve profiling, systematic monitoring of individuals, or processing of large scale of special categories of data or intrusive methods of data processing (such as surveillance, geolocation tracking etc.)?',
-        indent: 1,
-        parentId: 'personalData',
-      },
-      {
-        id: 'personalDataPreviouslyCollected',
-        pageId: 'personalDataPreviouslyCollectedPage',
-        label: 'Does this activity involve further processing of previously collected personal data (including use of pre-existing data sets or sources, merging existing data sets)?',
-      },
-      {
-        id: 'personalDataExportNonEu',
-        pageId: 'personalDataExportNonEuPage',
-        label: 'Is it planned to export personal data from the EU to non-EU countries?',
-        detailsId: 'personalDataExportNonEuDetails',
-        detailsPlaceholder: 'Specify the type of personal data and countries involved...',
-      },
-      {
-        id: 'personalDataImportNonEu',
-        pageId: 'personalDataImportNonEuPage',
-        label: 'Is it planned to import personal data from non-EU countries into the EU or from a non-EU country to another non-EU country?',
-        detailsId: 'personalDataImportNonEuDetails',
-        detailsPlaceholder: 'Specify the type of personal data and countries involved...',
-      },
-      {
-        id: 'personalDataCriminal',
-        pageId: 'personalDataCriminalPage',
-        label: 'Does this activity involve the processing of personal data related to criminal convictions or offences?',
-      },
-    ],
-  },
-  {
-    id: 'animals',
-    number: 5,
-    title: 'ANIMALS',
-    questions: [
-      {
-        id: 'animals',
-        pageId: 'animalsPage',
-        label: 'Does this activity involve animals?',
-      },
-      {
-        id: 'animalsVertebrates',
-        pageId: 'animalsVertebratesPage',
-        label: 'Are they vertebrates?',
-        indent: 1,
-        parentId: 'animals',
-      },
-      {
-        id: 'animalsNonHumanPrimates',
-        pageId: 'animalsNonHumanPrimatesPage',
-        label: 'Are they non-human primates (NHP)?',
-        indent: 1,
-        parentId: 'animals',
-      },
-      {
-        id: 'animalsTransgenic',
-        pageId: 'animalsTransgenicPage',
-        label: 'Are they genetically modified animals?',
-        indent: 1,
-        parentId: 'animals',
-      },
-      {
-        id: 'animalsCloned',
-        pageId: 'animalsClonedPage',
-        label: 'Are they cloned farm animals?',
-        indent: 1,
-        parentId: 'animals',
-      },
-      {
-        id: 'animalsEndangered',
-        pageId: 'animalsEndangeredPage',
-        label: 'Are they endangered species?',
-        indent: 1,
-        parentId: 'animals',
-      },
-    ],
-  },
-  {
-    id: 'nonEu',
-    number: 6,
-    title: 'NON-EU COUNTRIES',
-    questions: [
-      {
-        id: 'nonEuCountries',
-        pageId: 'nonEuCountriesPage',
-        label: 'Will some of the activities be carried out in non-EU countries?',
-        detailsId: 'nonEuCountriesDetails',
-        detailsPlaceholder: 'Specify the countries...',
-      },
-      {
-        id: 'nonEuCountriesEthicsIssues',
-        pageId: 'nonEuCountriesEthicsIssuesPage',
-        label: 'In case non-EU countries are involved, do the activities raise potential ethics issues?',
-        indent: 1,
-        parentId: 'nonEuCountries',
-        detailsId: 'nonEuCountriesEthicsIssuesDetails',
-        detailsPlaceholder: 'Specify the countries...',
-      },
-      {
-        id: 'nonEuCountriesMaterialExport',
-        pageId: 'nonEuCountriesMaterialExportPage',
-        label: 'Is it planned to export any material (other than data) from the EU to non-EU countries? For data exports, see section 4.',
-        detailsId: 'nonEuCountriesMaterialExportDetails',
-        detailsPlaceholder: 'Specify material and countries involved...',
-      },
-      {
-        id: 'nonEuCountriesMaterialImport',
-        pageId: 'nonEuCountriesMaterialImportPage',
-        label: 'Is it planned to import any material (other than data) from non-EU countries into the EU or from a non-EU country to another non-EU country? For data imports, see section 4.',
-        detailsId: 'nonEuCountriesMaterialImportDetails',
-        detailsPlaceholder: 'Specify material and countries involved...',
-      },
-      {
-        id: 'nonEuCountriesLmic',
-        pageId: 'nonEuCountriesLmicPage',
-        label: '',
-        labelWithLink: {
-          text: 'Does this activity involve ',
-          linkText: 'low and/or lower-middle income countries',
-          linkUrl: 'https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/guidance/programme-guide_horizon_en.pdf',
-          afterLinkText: '? (if yes, detail the benefit-sharing actions planned in the self-assessment)',
-        },
-      },
-      {
-        id: 'nonEuCountriesRisk',
-        pageId: 'nonEuCountriesRiskPage',
-        label: 'Could the situation in the country put the individuals taking part in the activity at risk?',
-      },
-    ],
-  },
-  {
-    id: 'environment',
-    number: 7,
-    title: 'ENVIRONMENT, HEALTH AND SAFETY',
-    questions: [
-      {
-        id: 'environmentHealth',
-        pageId: 'environmentHealthPage',
-        label: 'Does this activity involve the use of substances or processes that may cause harm to the environment, to animals or plants (during the implementation of the activity or further to the use of the results, as a possible impact)?',
-      },
-      {
-        id: 'environmentHealthEndangered',
-        pageId: 'environmentHealthEndangeredPage',
-        label: 'Does this activity deal with endangered fauna and/or flora / protected areas?',
-      },
-      {
-        id: 'environmentHealthHarmful',
-        pageId: 'environmentHealthHarmfulPage',
-        label: 'Does this activity involve the use of substances or processes that may cause harm to humans, including those performing the activity (during the implementation of the activity or further to the use of the results, as a possible impact)?',
-      },
-    ],
-  },
-  {
-    id: 'ai',
-    number: 8,
-    title: 'ARTIFICIAL INTELLIGENCE',
-    questions: [
-      {
-        id: 'artificialIntelligence',
-        pageId: 'artificialIntelligencePage',
-        label: 'Does this activity involve the development, deployment and/or use of Artificial Intelligence based systems? (if yes, detail in the self-assessment whether that could raise ethical concerns related to human rights and values and detail how this will be addressed)',
-      },
-    ],
-  },
-  {
-    id: 'other',
-    number: 9,
-    title: 'OTHER ETHICS ISSUES',
-    questions: [
-      {
-        id: 'otherEthics',
-        pageId: 'otherEthicsPage',
-        label: 'Are there any other ethics issues that should be taken into consideration?',
-        detailsId: 'otherEthicsDetails',
-        detailsPlaceholder: 'Please specify the ethics issues...',
-        detailsMaxLength: 1000,
-      },
-    ],
-  },
-];
+const ETHICS_SECTIONS = ethicsQuestionsRaw as EthicsSection[];
 
 // Component for a single ethics question row
 function EthicsQuestionRow({
@@ -798,7 +406,7 @@ function EthicsQuestionRow({
           maxLength={maxLength}
         />
         <div className="text-xs text-muted-foreground text-right">
-          {localVal.length.toLocaleString()} / {maxLength.toLocaleString()} characters
+          {formatNumber(localVal.length)} / {formatNumber(maxLength)} characters
         </div>
       </div>
     );
@@ -915,58 +523,56 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
   };
 
   return (
-    <div className="flex-1 overflow-auto p-6 bg-muted/30">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <h1 className="text-xl font-bold text-foreground">Part A4: Ethics self-assessment</h1>
-            <Badge
-              variant={issuesCount > 0 ? 'destructive' : 'default'}
-              className="gap-1.5 px-2 py-0.5 text-xs"
-            >
-              {issuesCount > 0 ? (
-                <>
-                  <AlertTriangle className="w-4 h-4" />
-                  {issuesCount} issue{issuesCount !== 1 ? 's' : ''} identified
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="w-4 h-4" />
-                  No issues identified
-                </>
-              )}
-            </Badge>
-          </div>
-          <div className="flex items-center gap-3">
-            <PartAGuidelinesDialog
-              sectionTitle="Part A4: Ethics & Security self-assessment"
-              officialGuidelines={[
-                {
-                  id: 'ethics-table-info',
-                  title: 'Ethics issues table',
-                  content: 'This table should be completed as an essential part of your proposal. Please go through the table and indicate which elements concern your proposal by answering \'Yes\' or \'No\'. If you answer \'Yes\' to any of the questions:\n• indicate in the adjacent box at which page in your full proposal further information relating to that ethics issue can be found, and\n• provide additional information on that ethics issue in the Ethics Self-Assessment section.\n\nFor more information on each of the ethics issues and how to address them, including detailed legal references, see the guidelines \'How to Complete your Ethics Self-Assessment\' (https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/how-to-complete-your-ethics-self-assessment_en.pdf).'
-                },
-                {
-                  id: 'ethics-self-assessment-info',
-                  title: 'Ethics self-assessment',
-                  content: 'If you have entered any issues in the ethics issue table, you must perform an ethics self-assessment in accordance with the guidelines "How to Complete your Ethics Self-Assessment" (https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/how-to-complete-your-ethics-self-assessment_en.pdf) and complete the table below.'
-                },
-                {
-                  id: 'security-table-info',
-                  title: 'Security issues table',
-                  content: 'Please go through the table and indicate which elements concern your proposal by answering YES or NO.\n\nIf you answer YES to any of the questions:\n• indicate in the adjacent box at which page in your full proposal further information relating to that security issue can be found, and\n• provide additional information on this security issue in the Security self-assessment section below.\n\nFor more information on potential security issues and how to address them, see the guidance "How to handle security-sensitive projects" (https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/how-to-handle-security-sensitive-projects_en.pdf) and the programme-specific guidelines "Classification of information in Horizon Europe projects" (https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/guidance/classification-of-information-in-he-projects_he_en.pdf).'
-                },
-                {
-                  id: 'security-self-assessment-info',
-                  title: 'Security self-assessment',
-                  content: 'If you have answered YES for one or more of the questions indicated above, describe the measures you intend to take to solve/avoid them. For more information, see the guidelines:\n• Classification of information in Horizon Europe projects (https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/guidance/classification-of-information-in-he-projects_he_en.pdf)\n• Classification of information in Digital Europe projects (https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/digital/guidance/classification-of-information-in-dep-projects_dep_en.pdf)\n• Classification of information in EDF projects (https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/edf/guidance/classification-of-information-in-edf-projects_edf_en.pdf)'
-                },
-              ]}
-            />
-            {canEdit && <SaveIndicator saving={false} lastSaved={lastSaved} onSaveNow={() => {}} />}
-          </div>
-        </div>
+    <PartAPageLayout
+      title="Part A4: Ethics self-assessment"
+      titleRightSlot={
+        <Badge
+          variant={issuesCount > 0 ? 'destructive' : 'default'}
+          className="gap-1.5 px-2 py-0.5 text-xs"
+        >
+          {issuesCount > 0 ? (
+            <>
+              <AlertTriangle className="w-4 h-4" />
+              {issuesCount} issue{issuesCount !== 1 ? 's' : ''} identified
+            </>
+          ) : (
+            <>
+              <CheckCircle className="w-4 h-4" />
+              No issues identified
+            </>
+          )}
+        </Badge>
+      }
+      guidelines={
+        <PartAGuidelinesDialog
+          sectionTitle="Part A4: Ethics & Security self-assessment"
+          officialGuidelines={[
+            {
+              id: 'ethics-table-info',
+              title: 'Ethics issues table',
+              content: 'This table should be completed as an essential part of your proposal. Please go through the table and indicate which elements concern your proposal by answering \'Yes\' or \'No\'. If you answer \'Yes\' to any of the questions:\n• indicate in the adjacent box at which page in your full proposal further information relating to that ethics issue can be found, and\n• provide additional information on that ethics issue in the Ethics Self-Assessment section.\n\nFor more information on each of the ethics issues and how to address them, including detailed legal references, see the guidelines \'How to Complete your Ethics Self-Assessment\' (https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/how-to-complete-your-ethics-self-assessment_en.pdf).'
+            },
+            {
+              id: 'ethics-self-assessment-info',
+              title: 'Ethics self-assessment',
+              content: 'If you have entered any issues in the ethics issue table, you must perform an ethics self-assessment in accordance with the guidelines "How to Complete your Ethics Self-Assessment" (https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/how-to-complete-your-ethics-self-assessment_en.pdf) and complete the table below.'
+            },
+            {
+              id: 'security-table-info',
+              title: 'Security issues table',
+              content: 'Please go through the table and indicate which elements concern your proposal by answering YES or NO.\n\nIf you answer YES to any of the questions:\n• indicate in the adjacent box at which page in your full proposal further information relating to that security issue can be found, and\n• provide additional information on this security issue in the Security self-assessment section below.\n\nFor more information on potential security issues and how to address them, see the guidance "How to handle security-sensitive projects" (https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/how-to-handle-security-sensitive-projects_en.pdf) and the programme-specific guidelines "Classification of information in Horizon Europe projects" (https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/guidance/classification-of-information-in-he-projects_he_en.pdf).'
+            },
+            {
+              id: 'security-self-assessment-info',
+              title: 'Security self-assessment',
+              content: 'If you have answered YES for one or more of the questions indicated above, describe the measures you intend to take to solve/avoid them. For more information, see the guidelines:\n• Classification of information in Horizon Europe projects (https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/guidance/classification-of-information-in-he-projects_he_en.pdf)\n• Classification of information in Digital Europe projects (https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/digital/guidance/classification-of-information-in-dep-projects_dep_en.pdf)\n• Classification of information in EDF projects (https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/edf/guidance/classification-of-information-in-edf-projects_edf_en.pdf)'
+            },
+          ]}
+        />
+      }
+      saveIndicator={canEdit ? <SaveIndicator saving={false} lastSaved={lastSaved} onSaveNow={() => {}} /> : undefined}
+    >
+
 
         {/* ETHICS ISSUES TABLE SUBSECTION */}
         <Card>
@@ -1164,11 +770,11 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
               disabled={!canEdit}
             />
             <p className="text-xs text-muted-foreground mt-1 text-right">
-              {(ethicsData.securitySelfAssessment || '').length.toLocaleString()}/{(5000).toLocaleString()} characters
+              {formatNumber((ethicsData.securitySelfAssessment || '').length)}/{formatNumber(5000)} characters
             </p>
           </CardContent>
         </Card>
-      </div>
-    </div>
+    </PartAPageLayout>
+
   );
 }

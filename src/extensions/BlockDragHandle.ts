@@ -81,6 +81,7 @@ function blockContainsTable(doc: ProseMirrorNode, startPos: number, endPos: numb
   return found;
 }
 
+
 export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
   name: 'blockDragHandle',
 
@@ -218,6 +219,13 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
           handleDOMEvents: {
             mousemove(view, event) {
               const { clientX, clientY } = event;
+              const eventTarget = event.target as HTMLElement | null;
+              if (eventTarget?.closest?.('table[data-b12-cases-table="true"], tr[data-case-id], td[data-role="title"], td[data-role="lead"], td[data-role="sub"]')) {
+                dragContainer!.style.display = 'none';
+                currentHoveredBlockPos = null;
+                currentHoveredBlockRange = null;
+                return false;
+              }
               const pos = view.posAtCoords({ left: clientX, top: clientY });
               if (!pos || !dragContainer) {
                 dragContainer!.style.display = 'none';
@@ -235,7 +243,7 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
                   blockPos = $pos.before($pos.depth === 0 ? 1 : $pos.depth);
                 }
                 const blockRange = findBlockRange(view.state.doc, blockPos);
-                if (!blockRange || !isReorderableBlock(blockRange.node)) {
+                if (!blockRange) {
                   dragContainer!.style.display = 'none';
                   currentHoveredBlockPos = null;
                   currentHoveredBlockRange = null;
@@ -253,19 +261,48 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
                   return false;
                 }
 
+                const hasTable = blockContainsTable(view.state.doc, blockRange.startPos, blockRange.endPos);
+                const deleteBtn = dragContainer!.querySelector('.block-delete-btn') as HTMLElement;
+                const dragHandle = dragContainer!.querySelector('.block-drag-handle') as HTMLElement;
+                const isReorderable = isReorderableBlock(blockRange.node);
+
+                if (!isReorderable) {
+                  dragContainer!.style.display = 'none';
+                  currentHoveredBlockPos = null;
+                  currentHoveredBlockRange = null;
+                  return false;
+                }
+
                 currentHoveredBlockPos = blockRange.startPos;
                 currentHoveredBlockRange = { startPos: blockRange.startPos, endPos: blockRange.endPos };
 
-                // Hide delete button when the block contains a table —
-                // table deletion belongs to the formatting toolbar's Table dropdown.
-                const hasTable = blockContainsTable(view.state.doc, blockRange.startPos, blockRange.endPos);
-                const deleteBtn = dragContainer!.querySelector('.block-delete-btn') as HTMLElement;
-                if (deleteBtn) {
-                  deleteBtn.style.visibility = hasTable ? 'hidden' : 'visible';
+                // Detect B1.2 cases NodeView via DOM markers (the NodeView still
+                // renders the cases-block wrapper / table marker classes).
+                const blockDom = view.nodeDOM(blockRange.startPos);
+                let isB12CaseTableDom = false;
+                if (blockDom instanceof HTMLElement) {
+                  isB12CaseTableDom = Boolean(
+                    blockDom.matches?.('table[data-b12-cases-table="true"]') ||
+                    !!blockDom.querySelector?.('table[data-b12-cases-table="true"]') ||
+                    blockDom.classList?.contains('b12-case-table') ||
+                    !!blockDom.querySelector?.('.b12-case-table') ||
+                    !!blockDom.closest?.('[data-b12-cases-block="true"]'),
+                  );
                 }
 
-                // Position
-                const blockDom = view.nodeDOM(blockRange.startPos);
+                // Delete button: hidden for normal tables (toolbar handles row delete),
+                // but VISIBLE for the B1.2 cases table so the whole block can be removed.
+                if (deleteBtn) {
+                  if (isB12CaseTableDom) deleteBtn.style.visibility = 'visible';
+                  else deleteBtn.style.visibility = hasTable ? 'hidden' : 'visible';
+                }
+
+                // Drag handle: hidden for B1.2 cases (reordering is done in Case Manager).
+                if (dragHandle) {
+                  dragHandle.style.display = isB12CaseTableDom ? 'none' : 'flex';
+                  dragHandle.style.visibility = 'visible';
+                }
+
                 if (blockDom && blockDom instanceof HTMLElement) {
                   const rect = blockDom.getBoundingClientRect();
                   const editorRect = view.dom.parentElement?.getBoundingClientRect();

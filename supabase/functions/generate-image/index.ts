@@ -1,10 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { corsHeaders } from "../_shared/cors.ts";
+import { requireAuth } from "../_shared/auth.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -13,27 +10,18 @@ serve(async (req) => {
 
   try {
     // Authenticate the user
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const auth = await requireAuth(req);
+    if (!auth.ok) return auth.response;
+    const supabase = auth.callerClient;
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
+    const { data: roles } = await supabase
+      .from('user_roles')
+      .select('id')
+      .eq('user_id', auth.userId)
+      .limit(1);
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    if (!roles || roles.length === 0) {
+      return new Response(JSON.stringify({ error: 'No proposal access' }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const { prompt } = await req.json();
@@ -46,6 +34,14 @@ serve(async (req) => {
     if (!prompt || prompt.trim().length === 0) {
       return new Response(
         JSON.stringify({ error: "Prompt is required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const MAX_PROMPT_CHARS = 2_000;
+    if (typeof prompt !== 'string' || prompt.length > MAX_PROMPT_CHARS) {
+      return new Response(
+        JSON.stringify({ error: `Prompt too long (max ${MAX_PROMPT_CHARS} characters)` }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -103,7 +99,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("Image generation error:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ error: "An internal error occurred" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

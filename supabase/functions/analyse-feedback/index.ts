@@ -1,18 +1,29 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { corsHeaders } from "../_shared/cors.ts";
+import { requireAuth } from "../_shared/auth.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    // Authenticate caller — this endpoint consumes LOVABLE_API_KEY credits.
+    const auth = await requireAuth(req);
+    if (!auth.ok) return auth.response;
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const { category, title, description } = await req.json();
+    const body = await req.json();
+    const category = typeof body?.category === "string" ? body.category : "";
+    const title = typeof body?.title === "string" ? body.title.slice(0, 500) : "";
+    const description = typeof body?.description === "string" ? body.description.slice(0, 5000) : "";
+    if (!title.trim() || !description.trim()) {
+      return new Response(JSON.stringify({ error: "Title and description are required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const categoryLabel = category === "feature_request" ? "feature request" : "bug report";
 
@@ -68,7 +79,7 @@ Keep your response concise (under 300 words), practical, and actionable. Write i
     });
   } catch (e) {
     console.error("analyse-feedback error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+    return new Response(JSON.stringify({ error: "An internal error occurred" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

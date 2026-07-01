@@ -1,1658 +1,582 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { computeAutoFitSmart } from '@/lib/autoFitColumns';
+import React, { useMemo, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import DOMPurify from 'dompurify';
+import { supabase } from '@/integrations/supabase/client';
+import { EditableCaption } from '@/components/EditableCaption';
+import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
+import { RICH_TEXT_CONFIG } from '@/lib/sanitizePresets';
+import { WPBubble, ParticipantBubble, RiskBadge } from './B31Pill';
 import { useColumnResize } from '@/hooks/useColumnResize';
 import { ColumnResizer } from '@/components/ColumnResizer';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Button } from '@/components/ui/button';
-import { Plus, ChevronDown, GripVertical, ArrowUpDown, Settings2, Hash, CalendarDays } from 'lucide-react';
-import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { toast } from 'sonner';
-import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
-import { useUserRole } from '@/hooks/useUserRole';
-import { DeliverableTaskMappingDialog } from './DeliverableTaskMappingDialog';
-import { MilestoneTaskMappingDialog } from './MilestoneTaskMappingDialog';
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { EditableCaption } from '@/components/EditableCaption';
 
-interface B31TablesEditorProps {
+/**
+ * B31TablesEditor — Stage 1 read-only mirrors.
+ *
+ * Tables 3.1.c / 3.1.d / 3.1.e are read-only views of live source data.
+ * Column widths are user-resizable and persisted per proposal via the
+ * shared `table_column_widths` table (useColumnResize hook).
+ *
+ * Spacing: 0pt padding above/below rows, 0pt outer padding on the leftmost
+ * cell's left edge and the rightmost cell's right edge, minimal row height.
+ */
+
+interface Props {
   proposalId: string;
 }
 
-interface WorkPackage {
-  id: string;
-  number: number;
-  title: string;
-  short_name: string;
-  color: string;
-}
+const tableFont = "font-['Times_New_Roman',Times,serif] text-[11pt]";
+const cellBase = "align-middle px-2 py-0 leading-tight";
 
-interface Participant {
-  id: string;
-  organisation_short_name: string | null;
-  organisation_name: string;
-  participant_number: number | null;
-}
-
-interface Deliverable {
-  id: string;
-  number: string;
-  name: string;
-  description: string;
-  wp_number: number | null;
-  lead_participant_id: string | null;
-  type: string | null;
-  dissemination_level: string | null;
-  due_month: number | null;
-  order_index: number;
-}
-
-interface Milestone {
-  id: string;
-  number: number;
-  name: string;
-  wps: string;
-  due_month: number | null;
-  means_of_verification: string;
-  order_index: number;
-}
-
-interface Risk {
-  id: string;
-  number: number;
-  description: string;
-  wps: string;
-  likelihood: 'L' | 'M' | 'H' | null;
-  severity: 'L' | 'M' | 'H' | null;
-  mitigation: string;
-  order_index: number;
-}
-
-// Generate month options dynamically based on project duration
-function getMonthOptions(projectDuration: number) {
-  return Array.from({ length: projectDuration }, (_, i) => ({
-    value: i + 1,
-    label: `M${String(i + 1).padStart(2, '0')}`,
-  }));
-}
-
-// Hook to fetch project duration
-function useProjectDuration(proposalId: string) {
-  const { data } = useQuery({
-    queryKey: ['proposal-duration', proposalId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('proposals')
-        .select('duration')
-        .eq('id', proposalId)
-        .single();
-      if (error) throw error;
-      return data?.duration || 36;
-    },
-  });
-  return data || 36;
-}
-
-// Risk level options with colors and sort order
-const riskLevelOptions = [
-  { value: 'H', label: 'High', borderColor: 'border-red-500', textColor: 'text-red-500', order: 0 },
-  { value: 'M', label: 'Medium', borderColor: 'border-amber-500', textColor: 'text-amber-500', order: 1 },
-  { value: 'L', label: 'Low', borderColor: 'border-green-500', textColor: 'text-green-500', order: 2 },
-];
-
-// Deliverable types
-const deliverableTypes = [
-  { value: 'R', label: 'Report' },
-  { value: 'DEM', label: 'Demonstrator' },
-  { value: 'DEC', label: 'Websites' },
-  { value: 'DATA', label: 'Data sets' },
-  { value: 'DMP', label: 'Data Management Plan' },
-  { value: 'ETHICS', label: 'Ethics' },
-  { value: 'SECURITY', label: 'Security' },
-  { value: 'OTHER', label: 'Other' },
-];
-
-// Dissemination levels
-const disseminationLevels = [
-  { value: 'PU', label: 'Public' },
-  { value: 'SEN', label: 'Sensitive' },
-  { value: 'EU-RES', label: 'EU Restricted' },
-  { value: 'EU-CON', label: 'EU Confidential' },
-  { value: 'EU-SEC', label: 'EU Secret' },
-];
-
-const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
-const cellStyles = "!px-[1pt] !py-0 px-[1pt] h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight";
-const bubbleCellStyles = "!px-[1pt] !py-[1px] px-[1pt] h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-none overflow-visible";
-const headerCellStyles = "!px-[1pt] !py-0 px-[1pt] h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight font-bold";
-
-// Editable div that renders HTML content (e.g. WP reference spans) and saves as HTML
-function EditableHtml({
-  value,
-  onChange,
-  placeholder,
-}: {
-  value: string;
-  onChange: (val: string) => void;
-  placeholder?: string;
-}) {
-  const divRef = useRef<HTMLDivElement>(null);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isFocused = useRef(false);
-  const lastValueRef = useRef(value);
-
-  // Set initial HTML via ref on mount
-  useEffect(() => {
-    if (divRef.current) {
-      divRef.current.innerHTML = value || '';
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Sync HTML when prop changes externally (not while focused)
-  useEffect(() => {
-    if (!isFocused.current && divRef.current && value !== lastValueRef.current) {
-      divRef.current.innerHTML = value || '';
-      lastValueRef.current = value;
-    }
-  }, [value]);
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); };
-  }, []);
-
-  const handleInput = () => {
-    const html = divRef.current?.innerHTML || '';
-    lastValueRef.current = html;
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(() => { onChange(html); }, 500);
-  };
-
+function ReadOnlyHtmlCell({ html }: { html: string | null | undefined }) {
+  const raw = (html ?? '').toString();
+  if (!raw || raw.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, '').trim() === '') {
+    return <span className="text-muted-foreground italic">—</span>;
+  }
   return (
     <div
-      ref={divRef}
-      contentEditable
-      suppressContentEditableWarning
-      onInput={handleInput}
-      onFocus={() => { isFocused.current = true; }}
-      onBlur={() => {
-        isFocused.current = false;
-        // Flush any pending save on blur
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current);
-          timeoutRef.current = null;
-          const html = divRef.current?.innerHTML || '';
-          if (html !== lastValueRef.current) onChange(html);
-        }
-      }}
-      data-placeholder={placeholder}
-      className="bg-transparent border-0 p-0 m-0 resize-none focus:outline-none focus:ring-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight w-full empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground"
-      style={{ minHeight: '1em', lineHeight: '1.2' }}
+      className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight [&_p]:my-0"
+      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(raw, RICH_TEXT_CONFIG) }}
     />
   );
 }
 
-// Inline editable text that expands to multiple lines - uses contentEditable to avoid textarea extra space
-function EditableText({ 
-  value, 
-  onChange, 
-  placeholder,
-  className = '',
-}: { 
-  value: string; 
-  onChange: (val: string) => void;
-  placeholder?: string;
-  className?: string;
-  inline?: boolean;
-}) {
-  const divRef = useRef<HTMLDivElement>(null);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isFocused = useRef(false);
-  
-  // Set initial text content via ref (not dangerouslySetInnerHTML to avoid React conflicts)
-  useEffect(() => {
-    if (!isFocused.current && divRef.current) {
-      divRef.current.textContent = value || '';
-    }
-  }, [value]);
-  
-  const handleInput = useCallback(() => {
-    const text = divRef.current?.textContent || '';
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(() => {
-      onChange(text);
-    }, 500);
-  }, [onChange]);
-
-  const flushAndBlur = useCallback(() => {
-    isFocused.current = false;
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
-    const text = divRef.current?.textContent || '';
-    onChange(text);
-  }, [onChange]);
-  
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    };
-  }, []);
-  
-  return (
-    <div
-      ref={divRef}
-      contentEditable
-      suppressContentEditableWarning
-      onInput={handleInput}
-      onFocus={() => { isFocused.current = true; }}
-      onBlur={flushAndBlur}
-      data-placeholder={placeholder}
-      className={`bg-transparent focus:outline-none font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight w-full empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground empty:before:pointer-events-none ${className}`}
-      style={{ 
-        minHeight: '1em',
-        lineHeight: '1.2',
-        whiteSpace: 'pre-wrap',
-        wordBreak: 'break-word',
-      }}
-    />
-  );
+function ReadOnlyTextCell({ text }: { text: string | null | undefined }) {
+  const v = (text ?? '').toString();
+  if (!v.trim()) return <span className="text-muted-foreground italic">—</span>;
+  return <span>{v}</span>;
 }
 
-// Inline editable text using contenteditable for true inline flow (no indent on wrap)
-function EditableTextInline({ 
-  value, 
-  onChange, 
-  placeholder,
-  inheritFont = false,
-}: { 
-  value: string; 
-  onChange: (val: string) => void;
-  placeholder?: string;
-  inheritFont?: boolean;
-}) {
-  const spanRef = useRef<HTMLSpanElement>(null);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isFocused = useRef(false);
-  const lastValueRef = useRef(value);
-  
-  // Set initial text via ref on mount
-  useEffect(() => {
-    if (spanRef.current) {
-      spanRef.current.textContent = value || '';
-    }
-    lastValueRef.current = value;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Sync text when prop changes externally (not while focused)
-  useEffect(() => {
-    if (!isFocused.current && spanRef.current && value !== lastValueRef.current) {
-      spanRef.current.textContent = value || '';
-      lastValueRef.current = value;
-    }
-  }, [value]);
-  
-  const handleInput = () => {
-    const newValue = spanRef.current?.textContent || '';
-    lastValueRef.current = newValue;
-    
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(() => {
-      onChange(newValue);
-    }, 500);
-  };
-  
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    };
-  }, []);
-  
-  return (
-    <span
-      ref={spanRef}
-      contentEditable
-      suppressContentEditableWarning
-      onInput={handleInput}
-      onFocus={() => { isFocused.current = true; }}
-      onBlur={() => {
-        isFocused.current = false;
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current);
-          timeoutRef.current = null;
-          const text = spanRef.current?.textContent || '';
-          if (text !== lastValueRef.current) onChange(text);
-        }
-      }}
-      data-placeholder={placeholder}
-      className={`outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground ${inheritFont ? '' : "font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight"}`}
-      style={{ display: 'inline', lineHeight: 1, ...(inheritFont ? { fontFamily: 'inherit', fontSize: 'inherit' } : {}) }}
-    />
-  );
+function MonthLabel({ m }: { m: number | null | undefined }) {
+  if (m == null) return <span className="text-muted-foreground italic">—</span>;
+  return <span>M{String(m).padStart(2, '0')}</span>;
 }
 
-// Compact month selector with minimal padding
-function MonthSelect({ 
-  value, 
-  onChange,
-  projectDuration = 36,
-}: { 
-  value: number | null; 
-  onChange: (val: number | null) => void;
-  projectDuration?: number;
-}) {
-  const options = getMonthOptions(projectDuration);
+function DeliverablePentagon({ label, color }: { label: string; color?: string }) {
+  const stroke = color || '#000';
   return (
-    <Select 
-      value={value?.toString() || ''} 
-      onValueChange={(v) => onChange(v ? parseInt(v) : null)}
-    >
-      <SelectTrigger hideArrow className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex font-['Times_New_Roman',Times,serif] text-[11pt]">
-        <SelectValue placeholder="-">
-          <span className="font-['Times_New_Roman',Times,serif] text-[11pt]">{value ? `M${String(value).padStart(2, '0')}` : '-'}</span>
-        </SelectValue>
-      </SelectTrigger>
-      <SelectContent className="bg-background z-50 max-h-60">
-        {options.map(opt => (
-          <SelectItem key={opt.value} value={opt.value.toString()}>
-            {opt.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
-}
-
-// WP Bubble component - pill shape matching cross-reference style
-function WPBubble({ wp, onRemove }: { wp: WorkPackage; onRemove?: () => void }) {
-  return (
-    <span 
-      className="inline-flex items-center justify-center gap-0.5 rounded-full text-white font-bold whitespace-nowrap"
-      style={{ backgroundColor: wp.color || '#666', border: `1.5px solid ${wp.color || '#666'}`, color: '#ffffff', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px', height: '17px', position: 'relative', top: '-1px' }}
-    >
-      WP{wp.number}
-      {onRemove && (
-        <button 
-          onClick={onRemove}
-          className="ml-0.5 hover:bg-black/20 rounded-full w-3 h-3 flex items-center justify-center text-[8pt]"
-        >
-          ×
-        </button>
-      )}
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', position: 'relative',
+      height: '17px', padding: '0 10px 0 5px', fontFamily: "'Times New Roman', Times, serif",
+      fontSize: '11pt', fontWeight: 700, lineHeight: 1, color: stroke, whiteSpace: 'nowrap',
+    }}>
+      <span style={{
+        position: 'absolute', inset: 0, backgroundColor: stroke,
+        clipPath: 'polygon(0% 0%, calc(100% - 8px) 0%, 100% 50%, calc(100% - 8px) 100%, 0% 100%)',
+      }} />
+      <span style={{
+        position: 'absolute', top: '1.5px', bottom: '1.5px', left: '1.5px', right: '2.5px',
+        backgroundColor: '#ffffff',
+        clipPath: 'polygon(0% 0%, calc(100% - 7px) 0%, 100% 50%, calc(100% - 7px) 100%, 0% 100%)',
+      }} />
+      <span style={{ position: 'relative', zIndex: 1 }}>{label}</span>
     </span>
   );
 }
 
-// Single WP selector (for deliverables)
-function SingleWPSelector({ 
-  value, 
-  onChange, 
-  workPackages 
-}: { 
-  value: number | null; 
-  onChange: (val: number | null) => void;
-  workPackages: WorkPackage[];
-}) {
-  const selectedWP = workPackages.find(wp => wp.number === value);
-  
+function MilestoneBadge({ number }: { number: number | null | undefined }) {
   return (
-    <Select 
-      value={value?.toString() || ''} 
-      onValueChange={(v) => onChange(v ? parseInt(v) : null)}
-    >
-      <SelectTrigger hideArrow className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex items-center overflow-visible">
-        <SelectValue placeholder="-">
-          {selectedWP ? <WPBubble wp={selectedWP} /> : <span className="font-['Times_New_Roman',Times,serif] text-[11pt]">-</span>}
-        </SelectValue>
-      </SelectTrigger>
-      <SelectContent className="bg-background z-50">
-        {workPackages.length === 0 ? (
-          <div className="p-2 text-sm text-muted-foreground">No WPs defined yet</div>
-        ) : (
-          workPackages.map(wp => (
-            <SelectItem key={wp.id} value={wp.number.toString()}>
-              <div className="flex items-center gap-2">
-                <WPBubble wp={wp} />
-                <span className="text-sm">{wp.short_name || wp.title}</span>
-              </div>
-            </SelectItem>
-          ))
-        )}
-      </SelectContent>
-    </Select>
-  );
-}
-
-// Multi WP selector (for milestones and risks)
-function MultiWPSelector({ 
-  value, 
-  onChange, 
-  workPackages,
-}: { 
-  value: string; // comma-separated WP numbers
-  onChange: (val: string) => void;
-  workPackages: WorkPackage[];
-}) {
-  const selectedNumbers = value ? value.split(',').map(n => parseInt(n.trim().replace(/^WP/i, ''))).filter(n => !isNaN(n)) : [];
-  const selectedWPs = workPackages.filter(wp => selectedNumbers.includes(wp.number));
-  const [open, setOpen] = useState(false);
-  
-  const toggleWP = (wpNumber: number) => {
-    if (selectedNumbers.includes(wpNumber)) {
-      onChange(selectedNumbers.filter(n => n !== wpNumber).join(', '));
-    } else {
-      onChange([...selectedNumbers, wpNumber].sort((a, b) => a - b).join(', '));
-    }
-  };
-  
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button className="flex flex-wrap gap-0.5 items-center min-h-[1.2em] text-left">
-          {selectedWPs.length > 0 ? (
-            selectedWPs.map(wp => (
-              <WPBubble key={wp.id} wp={wp} />
-            ))
-          ) : (
-            <span className="font-['Times_New_Roman',Times,serif] text-[11pt] text-muted-foreground">-</span>
-          )}
-        </button>
-      </PopoverTrigger>
-      <PopoverContent className="w-56 p-2 bg-background z-50" align="start">
-        {workPackages.length === 0 ? (
-          <div className="p-2 text-sm text-muted-foreground">No WPs defined yet</div>
-        ) : (
-          <div className="space-y-1">
-            {workPackages.map(wp => (
-              <label key={wp.id} className="flex items-center gap-2 cursor-pointer p-1 hover:bg-muted rounded">
-                <Checkbox 
-                  checked={selectedNumbers.includes(wp.number)}
-                  onCheckedChange={() => toggleWP(wp.number)}
-                />
-                <WPBubble wp={wp} />
-                <span className="text-sm truncate">{wp.short_name || wp.title}</span>
-              </label>
-            ))}
-          </div>
-        )}
-      </PopoverContent>
-    </Popover>
-  );
-}
-
-// Risk level badge - 9pt font
-function RiskBadge({ level }: { level: 'L' | 'M' | 'H' }) {
-  const colorMap: Record<string, string> = { H: '#ef4444', M: '#f59e0b', L: '#22c55e' };
-  const levelColor = colorMap[level] || '#000';
-  
-  return (
-    <span 
-      className="inline-flex items-center justify-center rounded-full font-bold not-italic whitespace-nowrap"
-      style={{ backgroundColor: '#ffffff', color: levelColor, border: `1.5px solid ${levelColor}`, fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, verticalAlign: 'baseline', padding: '0px', width: '19px', height: '17px', position: 'relative', top: '-1.4px' }}
-    >
-      {level}
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      background: '#000', color: '#fff', fontFamily: "'Times New Roman', Times, serif",
+      fontSize: '11pt', fontWeight: 700, lineHeight: '18px', height: '18px', padding: '0 4px',
+      clipPath: 'polygon(12% 0%, 88% 0%, 100% 50%, 88% 100%, 12% 100%, 0% 50%)',
+    }}>
+      MS{number ?? ''}
     </span>
   );
 }
 
-// Removed InlineRiskLevelSelect - now using direct Select in table cell
-
-// Hook to fetch work packages with colors - uses wp_drafts table
-function useWorkPackages(proposalId: string) {
+function useWPLookup(proposalId: string) {
   return useQuery({
-    queryKey: ['wp-drafts-for-b31', proposalId],
+    queryKey: ['wp-drafts-for-b31-mirror', proposalId],
+    enabled: !!proposalId,
     queryFn: async () => {
-      // Fetch from wp_drafts table (not work_packages)
-      const { data: wps, error: wpError } = await supabase
+      const { data } = await supabase
         .from('wp_drafts')
-        .select('id, number, title, color')
+        .select('id, number, title, short_name, color')
         .eq('proposal_id', proposalId)
         .order('number');
-      if (wpError) throw wpError;
-      
-      // Map WPs with colors from wp_drafts.color
-      return (wps || []).map(wp => ({
-        id: wp.id,
-        number: wp.number,
-        title: wp.title || `WP${wp.number}`,
-        short_name: wp.title?.split(':')[0]?.trim() || wp.title || `WP${wp.number}`,
-        color: wp.color || DEFAULT_WP_COLORS[(wp.number - 1) % DEFAULT_WP_COLORS.length]
-      })) as WorkPackage[];
+      const list = (data || []).map((wp: any) => ({
+        ...wp,
+        color: wp.color || DEFAULT_WP_COLORS[(wp.number - 1) % DEFAULT_WP_COLORS.length],
+      }));
+      const byId = new Map(list.map((wp: any) => [wp.id, wp]));
+      const byNumber = new Map(list.map((wp: any) => [wp.number, wp]));
+      return { list, byId, byNumber };
     },
   });
 }
 
-// Hook to fetch participants
-function useParticipants(proposalId: string) {
+function useParticipantLookup(proposalId: string) {
   return useQuery({
-    queryKey: ['participants', proposalId],
+    queryKey: ['b31-participants-mirror', proposalId],
+    enabled: !!proposalId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('participants')
-        .select('id, organisation_short_name, organisation_name, participant_number')
+        .select('id, participant_number, organisation_short_name, organisation_name')
         .eq('proposal_id', proposalId)
         .order('participant_number');
-      if (error) throw error;
-      return data as Participant[];
+      const list = data || [];
+      return { list, byId: new Map(list.map((p: any) => [p.id, p])) };
     },
   });
 }
 
-// ========== SORTABLE ROW WRAPPER ==========
-function SortableTableRow({ 
-  id, 
-  children, 
-  canDrag,
-  onDelete
-}: { 
-  id: string; 
-  children: React.ReactNode; 
-  canDrag: boolean;
-  onDelete?: () => void;
-}) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id, disabled: !canDrag });
+/**
+ * Mirror table column descriptor.
+ * - `defaultWidth`: fallback width in px when no saved widths exist.
+ * - `flex: true`: this column absorbs leftover width (no default px width).
+ */
+type Col = {
+  label: React.ReactNode;
+  defaultWidth?: number;
+  flex?: boolean;
+  align?: 'left' | 'center';
+  /** Optional override for horizontal padding classes (e.g. 'px-0'). When set, replaces the default first/last-column padding logic for this column's header cell. */
+  padX?: string;
+  /** Optional marker class (e.g. 'cell-px-0' / 'cell-pl-0' / 'cell-pr-0') applied to both the header th AND to body MCells with the matching index. Pair with `tableClassName="platform-table--tight"` so the scoped CSS rules in index.css zero the padding. */
+  cellClass?: string;
+};
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
 
-  // position:relative doesn't work on <tr> in most browsers, so we inject
-  // the drag-handle into the first <td> and the delete button into the last <td>.
-  const childArray = React.Children.toArray(children);
-
-  const enhanced = childArray.map((child, index) => {
-    if (!React.isValidElement(child)) return child;
-
-    // Inject drag handle into first cell
-    if (index === 0 && canDrag) {
-      return React.cloneElement(child as React.ReactElement<any>, {
-        style: { ...(child as React.ReactElement<any>).props.style, position: 'relative' as const },
-        children: (
-          <>
-            <div 
-              className="absolute top-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity z-10"
-              style={{ left: '-20px' }}
-              {...attributes} 
-              {...listeners}
-            >
-              <GripVertical className="h-4 w-4 text-[#2563EB]" />
-            </div>
-            {(child as React.ReactElement<any>).props.children}
-          </>
-        ),
-      });
-    }
-
-    // Inject delete button into last cell
-    if (index === childArray.length - 1 && onDelete) {
-      return React.cloneElement(child as React.ReactElement<any>, {
-        style: { ...(child as React.ReactElement<any>).props.style, position: 'relative' as const },
-        children: (
-          <>
-            {(child as React.ReactElement<any>).props.children}
-            <div 
-              className="absolute top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-10"
-              style={{ right: '-24px' }}
-            >
-              <DeleteConfirmDialog
-                itemLabel="this row"
-                onConfirm={() => onDelete?.()}
-                buttonClassName="h-5 w-5 text-destructive hover:text-destructive hover:bg-destructive/10"
-                iconSize="h-3 w-3"
-              />
-            </div>
-          </>
-        ),
-      });
-    }
-
-    return child;
-  });
-
-  return (
-    <TableRow ref={setNodeRef} style={style} className="hover:bg-muted/50 group">
-      {enhanced}
-    </TableRow>
-  );
-}
-
-// Table wrapper - full width with overflow visible for margin controls
-function B31TableWrapper({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="relative w-full [&>div]:overflow-visible">
-      {children}
-    </div>
-  );
-}
-
-// ColumnResizer now imported from shared component
-
-/** Small icon-only button used in the caption-left hover cluster. */
-const CaptionIconButton = React.forwardRef<HTMLButtonElement, {
-  tooltip: string;
-  onClick?: () => void;
+function MirrorTable({
+  proposalId,
+  tableKey,
+  columns,
+  children,
+  emptyColSpan,
+  emptyLabel,
+  isEmpty,
+  tableClassName = '',
+}: {
+  proposalId: string;
+  tableKey: string;
+  columns: Col[];
   children: React.ReactNode;
-} & Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'title'>>(
-  ({ tooltip, onClick, children, ...rest }, ref) => (
-    <button
-      ref={ref}
-      type="button"
-      title={tooltip}
-      aria-label={tooltip}
-      onMouseDown={(e) => e.preventDefault()}
-      onClick={onClick}
-      className="inline-flex items-center justify-center h-5 w-5 rounded text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-      {...rest}
-    >
-      {children}
-    </button>
-  )
-);
-CaptionIconButton.displayName = 'CaptionIconButton';
+  emptyColSpan: number;
+  emptyLabel: string;
+  isEmpty: boolean;
+  /** Extra class(es) on the <table>, e.g. 'platform-table--tight' to enable per-column marker padding overrides. */
+  tableClassName?: string;
+}) {
 
+  const { colWidths, tableRef, handleColResizeStart } = useColumnResize({
+    proposalId,
+    tableKey,
+    canResize: true,
+    minWidth: 24,
+  });
+  const hasSaved = colWidths.length === columns.length;
+  const lastIdx = columns.length - 1;
 
-// ========== DELIVERABLES TABLE (3.1c) ==========
-export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
-  const queryClient = useQueryClient();
-  const projectDuration = useProjectDuration(proposalId);
-  const { data: workPackages = [] } = useWorkPackages(proposalId);
-  const { data: participants = [] } = useParticipants(proposalId);
-  const { isAdminOrOwner, loading: roleLoading } = useUserRole();
-  const { colWidths, setColWidths, tableRef, handleColResizeStart, saveWidths } = useColumnResize({ proposalId, tableKey: 'deliverables', canResize: isAdminOrOwner });
-  
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  const colStyle = useCallback(
+    (i: number): React.CSSProperties => {
+      if (hasSaved) return { width: colWidths[i] };
+      const c = columns[i];
+      if (c.flex) return {};
+      return c.defaultWidth ? { width: c.defaultWidth } : {};
+    },
+    [hasSaved, colWidths, columns],
   );
 
-  const { data: deliverables = [], isLoading } = useQuery({
-    queryKey: ['b31-deliverables', proposalId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('b31_deliverables')
-        .select('*')
-        .eq('proposal_id', proposalId)
-        .order('order_index');
-      if (error) throw error;
-      return data as Deliverable[];
-    },
-  });
-
-  const updateDeliverable = useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<Deliverable> & { id: string }) => {
-      const { error } = await supabase
-        .from('b31_deliverables')
-        .update(updates)
-        .eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['b31-deliverables', proposalId] }); queryClient.invalidateQueries({ queryKey: ['wp-drafts-gantt', proposalId] }); },
-  });
-
-  const addDeliverable = useMutation({
-    mutationFn: async () => {
-      const nextIndex = deliverables.length;
-      const { error } = await supabase
-        .from('b31_deliverables')
-        .insert({ 
-          proposal_id: proposalId, 
-          number: 'DX.X',
-          name: '', 
-          description: '',
-          order_index: nextIndex
-        });
-      if (error) throw error;
-    },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['b31-deliverables', proposalId] }); queryClient.invalidateQueries({ queryKey: ['wp-drafts-gantt', proposalId] }); },
-  });
-
-  const deleteDeliverable = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('b31_deliverables')
-        .delete()
-        .eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['b31-deliverables', proposalId] }); queryClient.invalidateQueries({ queryKey: ['wp-drafts-gantt', proposalId] }); },
-  });
-
-  // Recalculate deliverable sub-numbers within each WP based on due_month order
-  const recalculateDeliverableNumbers = (dels: Deliverable[]): { id: string; number: string; order_index: number }[] => {
-    // Group by WP number
-    const byWP = new Map<number | null, Deliverable[]>();
-    dels.forEach(d => {
-      const key = d.wp_number;
-      if (!byWP.has(key)) byWP.set(key, []);
-      byWP.get(key)!.push(d);
-    });
-
-    // Within each WP group, sort by due_month to assign sub-numbers
-    const updates: { id: string; number: string; order_index: number }[] = [];
-    dels.forEach((del, index) => {
-      const wpGroup = byWP.get(del.wp_number) || [];
-      const sortedGroup = [...wpGroup].sort((a, b) => (a.due_month ?? 999) - (b.due_month ?? 999));
-      const subIndex = sortedGroup.findIndex(d => d.id === del.id) + 1;
-      const wpNum = del.wp_number != null ? del.wp_number : 'X';
-      updates.push({ id: del.id, number: `D${wpNum}.${subIndex}`, order_index: index });
-    });
-    return updates;
+  const cellPad = (i: number) => {
+    const c = columns[i];
+    if (c.padX) return c.padX;
+    const left = i === 0 ? 'pl-0' : 'pl-2';
+    const right = i === lastIdx ? 'pr-0' : 'pr-2';
+    return `${left} ${right}`;
   };
-
-  const reorderDeliverables = useMutation({
-    mutationFn: async (newOrder: Deliverable[]) => {
-      const updates = recalculateDeliverableNumbers(newOrder);
-      
-      for (const update of updates) {
-        const { error } = await supabase
-          .from('b31_deliverables')
-          .update({ order_index: update.order_index, number: update.number })
-          .eq('id', update.id);
-        if (error) throw error;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['b31-deliverables', proposalId] });
-      queryClient.invalidateQueries({ queryKey: ['wp-drafts-gantt', proposalId] });
-      toast.success('Deliverables reordered');
-    },
-  });
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-
-    const oldIndex = deliverables.findIndex((d) => d.id === active.id);
-    const newIndex = deliverables.findIndex((d) => d.id === over.id);
-    const reordered = arrayMove(deliverables, oldIndex, newIndex);
-    reorderDeliverables.mutate(reordered);
-  };
-
-  const [deliverableOrderMode, setDeliverableOrderMode] = useState<'number' | 'month'>('number');
-
-  const orderByNumber = () => {
-    const sorted = [...deliverables].sort((a, b) => {
-      const wpA = a.wp_number ?? 999;
-      const wpB = b.wp_number ?? 999;
-      if (wpA !== wpB) return wpA - wpB;
-      // Parse sub-number from e.g. "D2.3" -> 3
-      const subA = parseInt(a.number.replace(/^D?\d+\./, '')) || 0;
-      const subB = parseInt(b.number.replace(/^D?\d+\./, '')) || 0;
-      return subA - subB;
-    });
-    setDeliverableOrderMode('number');
-    reorderDeliverables.mutate(sorted);
-  };
-
-  const orderByMonth = () => {
-    const sorted = [...deliverables].sort((a, b) => {
-      const monthA = a.due_month ?? 999;
-      const monthB = b.due_month ?? 999;
-      if (monthA !== monthB) return monthA - monthB;
-      const wpA = a.wp_number ?? 999;
-      const wpB = b.wp_number ?? 999;
-      return wpA - wpB;
-    });
-    setDeliverableOrderMode('month');
-    reorderDeliverables.mutate(sorted);
-  };
-
-  const toggleDeliverableOrder = () => {
-    if (deliverableOrderMode === 'month') {
-      orderByNumber();
-    } else {
-      orderByMonth();
-    }
-  };
-
-  const autoFitColumns = useCallback(() => {
-    const table = tableRef.current;
-    if (!table) return;
-    const widths = computeAutoFitSmart(table);
-    if (widths) {
-      setColWidths(widths);
-      saveWidths(widths);
-    }
-  }, [tableRef, setColWidths, saveWidths]);
-
-  useEffect(() => {
-    const handler = (event: Event) => {
-      const detail = (event as CustomEvent<{ tableId?: string }>).detail;
-      if (detail?.tableId !== 'b31-deliverables') return;
-      autoFitColumns();
-    };
-    window.addEventListener('b31-table-autoresize', handler as EventListener);
-    return () => window.removeEventListener('b31-table-autoresize', handler as EventListener);
-  }, [autoFitColumns]);
-
-  const dispatchToolbarFocus = useCallback(() => {
-    window.dispatchEvent(new CustomEvent('b31-table-focus', {
-      detail: { tableId: 'b31-deliverables' },
-    }));
-  }, []);
 
   return (
-    <div onFocusCapture={dispatchToolbarFocus}>
+    <table
+      ref={tableRef}
+      data-table-key={tableKey}
+      className={`platform-table ${tableClassName} ${tableFont}`.trim()}
+      style={{ tableLayout: 'fixed', width: '100%', borderCollapse: 'collapse' }}
+    >
+      <colgroup>
+        {columns.map((_, i) => <col key={i} style={colStyle(i)} />)}
+      </colgroup>
+      <thead>
+        <tr>
+          {columns.map((c, i) => (
+            <th
+              key={i}
+              className={`${cellPad(i)} ${c.cellClass ?? ''} py-0 text-[10pt] align-bottom relative ${c.align === 'center' ? 'text-center' : 'text-left'}`}
+            >
+              {c.label}
+              {i < lastIdx && <ColumnResizer onMouseDown={handleColResizeStart(i)} />}
+            </th>
+          ))}
+        </tr>
+      </thead>
+
+      <tbody className="[&_tr]:border-b [&_tr]:border-black/10 [&_tr:last-child]:border-0">
+        {isEmpty ? (
+          <tr>
+            <td colSpan={emptyColSpan} className={`${cellBase} ${cellPad(0)} text-muted-foreground italic`}>
+              {emptyLabel}
+            </td>
+          </tr>
+        ) : (
+          React.Children.map(children, (child) => {
+            if (!React.isValidElement(child)) return child;
+            // Inject cell padding helpers via context-less wrapper: rely on consumer using <MirrorRow/>
+            return child;
+          })
+        )}
+      </tbody>
+    </table>
+  );
+}
+
+/** Standardised cell for mirror tables — minimal padding, edge-flush on first/last column. */
+function MCell({
+  index,
+  last,
+  className = '',
+  style,
+  children,
+  colSpan,
+  padX,
+  cellClass,
+}: {
+  index: number;
+  last: number;
+  className?: string;
+  style?: React.CSSProperties;
+  children?: React.ReactNode;
+  colSpan?: number;
+  /** Optional override for horizontal padding classes (e.g. 'px-0'). When set, replaces the default first/last-column padding logic. */
+  padX?: string;
+  /** Optional marker class (e.g. 'cell-px-0' / 'cell-pl-0' / 'cell-pr-0') matched by the scoped CSS rules under `.platform-table--tight`. Must mirror the parent Col's cellClass for header/body alignment. */
+  cellClass?: string;
+}) {
+  const pl = index === 0 ? 'pl-0' : 'pl-2';
+  const pr = index === last ? 'pr-0' : 'pr-2';
+  const padClass = padX ?? `${pl} ${pr}`;
+  return (
+    <td colSpan={colSpan} className={`${cellBase} ${padClass} ${cellClass ?? ''} ${className}`} style={style}>
+      {children}
+    </td>
+  );
+}
+
+
+/** Parse a comma/space list of WP numbers (e.g. "1, 3, WP5") into number[]. */
+function parseWPList(s: string | null | undefined): number[] {
+  if (!s) return [];
+  return s.split(/[,;\s]+/)
+    .map((t) => t.replace(/^WP/i, '').trim())
+    .filter(Boolean)
+    .map((t) => parseInt(t, 10))
+    .filter((n) => Number.isFinite(n));
+}
+
+// ============================================================
+// Table 3.1.c — Deliverables (read-only mirror)
+// ============================================================
+export function B31DeliverablesTable({ proposalId }: Props) {
+  const { data: wpInfo } = useWPLookup(proposalId);
+  const { data: partInfo } = useParticipantLookup(proposalId);
+
+  const { data: deliverables = [] } = useQuery({
+    queryKey: ['b31-deliverables-live', proposalId],
+    enabled: !!proposalId && !!wpInfo,
+    queryFn: async () => {
+      const wpIds = wpInfo!.list.map((wp: any) => wp.id);
+      if (wpIds.length === 0) return [];
+      const { data } = await supabase
+        .from('wp_draft_deliverables')
+        .select('id, wp_draft_id, number, title, type, dissemination_level, responsible_participant_id, due_month, description, order_index')
+        .in('wp_draft_id', wpIds);
+
+      const isEmpty = (d: any) =>
+        !(d.title ?? '').toString().trim() &&
+        !(d.type ?? '').toString().trim() &&
+        !(d.dissemination_level ?? '').toString().trim() &&
+        !d.responsible_participant_id &&
+        d.due_month == null;
+
+      return (data || [])
+        .filter((d: any) => !isEmpty(d))
+        .map((d: any) => ({ ...d, wp: wpInfo!.byId.get(d.wp_draft_id) }))
+        .sort((a: any, b: any) => {
+          const wa = a.wp?.number ?? 999;
+          const wb = b.wp?.number ?? 999;
+          if (wa !== wb) return wa - wb;
+          const da = a.due_month ?? Number.POSITIVE_INFINITY;
+          const db = b.due_month ?? Number.POSITIVE_INFINITY;
+          if (da !== db) return da - db;
+          const oa = a.order_index ?? a.number ?? 0;
+          const ob = b.order_index ?? b.number ?? 0;
+          if (oa !== ob) return oa - ob;
+          return (a.number ?? 0) - (b.number ?? 0);
+        });
+    },
+  });
+
+  const columns: Col[] = [
+    { label: 'No.', defaultWidth: 44 },
+    { label: 'Deliverable title', flex: true },
+    { label: 'WP', defaultWidth: 44 },
+    { label: 'Lead', defaultWidth: 90 },
+    { label: 'Type', defaultWidth: 60 },
+    { label: 'Diss.', defaultWidth: 60 },
+    { label: 'Due', defaultWidth: 50 },
+  ];
+  const last = columns.length - 1;
+
+  return (
+    <div>
       <EditableCaption
         proposalId={proposalId}
         tableKey="table-3.1.c"
         label="Table 3.1.c."
-        defaultCaption="Deliverables, including the partner responsible, type, dissemination level & month due"
-        leftButtons={
-          <>
-            <CaptionIconButton tooltip="Add deliverable" onClick={() => addDeliverable.mutate()}>
-              <Plus className="h-3 w-3" />
-            </CaptionIconButton>
-            <DeliverableTaskMappingDialog
-              proposalId={proposalId}
-              trigger={
-                <CaptionIconButton tooltip="Assign deliverables to tasks">
-                  <Settings2 className="h-3 w-3" />
-                </CaptionIconButton>
-              }
-            />
-            {isAdminOrOwner && (
-              <CaptionIconButton
-                tooltip={deliverableOrderMode === 'month' ? 'Order by deliverable number' : 'Order by month due'}
-                onClick={toggleDeliverableOrder}
-              >
-                {deliverableOrderMode === 'month' ? <Hash className="h-3 w-3" /> : <CalendarDays className="h-3 w-3" />}
-              </CaptionIconButton>
-            )}
-          </>
-        }
+        defaultCaption="List of deliverables"
+        className="mb-0"
       />
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <B31TableWrapper>
-          <Table className={`${tableStyles} [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b [&_th]:border-black [&_td]:border-x-0 [&_td]:border-y [&_td]:border-gray-200 [&_tr]:border-0 [&_tr:last-child_td]:border-b-0 [&_tbody_tr:first-child_td]:border-t-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto', borderCollapse: 'collapse', width: colWidths.length > 0 ? `${colWidths.reduce((s, w) => s + w, 0)}px` : '100%' }} ref={tableRef}>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead className={`${headerCellStyles} relative`} style={{ ...(colWidths.length > 0 ? { width: Math.max(colWidths[0], 72) } : { width: '72px', whiteSpace: 'nowrap' }) }}>
-                  No.
-                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(0)} />}
-                </TableHead>
-                <TableHead className={`${headerCellStyles} relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[1] } : {}) }}>
-                  Deliverable title
-                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(1)} />}
-                </TableHead>
-                <TableHead className={`${headerCellStyles} relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[2] } : { width: '40px' }) }}>
-                  WP
-                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(2)} />}
-                </TableHead>
-                <TableHead className={`${headerCellStyles} relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[3] } : { width: '60px' }) }}>
-                  Lead
-                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(3)} />}
-                </TableHead>
-                <TableHead className={`${headerCellStyles} relative`} style={colWidths.length > 0 ? { width: colWidths[4] } : { width: '40px' }}>
-                  Type
-                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(4)} />}
-                </TableHead>
-                <TableHead className={`${headerCellStyles} relative`} style={colWidths.length > 0 ? { width: colWidths[5] } : { width: '50px' }}>
-                  Diss.
-                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(5)} />}
-                </TableHead>
-                <TableHead className={`${headerCellStyles} relative`} style={colWidths.length > 0 ? { width: colWidths[6] } : { width: '40px' }}>
-                  Due
-                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(6)} />}
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <SortableContext items={deliverables.map(d => d.id)} strategy={verticalListSortingStrategy}>
-              <TableBody>
-                {deliverables.map((del) => (
-                  <SortableTableRow key={del.id} id={del.id} canDrag={isAdminOrOwner} onDelete={() => deleteDeliverable.mutate(del.id)}>
-                    <TableCell className={bubbleCellStyles} style={{ whiteSpace: 'nowrap', width: '72px', position: 'relative', zIndex: 2 }}>
-                      {(() => {
-                        const wpColor = del.wp_number != null 
-                          ? workPackages.find(wp => wp.number === del.wp_number)?.color || '#000'
-                          : '#000';
-                        return (
-                          <span
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              position: 'relative',
-                              height: '17px',
-                              padding: '0 10px 0 5px',
-                              fontFamily: "'Times New Roman', Times, serif",
-                              fontSize: '11pt',
-                              fontWeight: 700,
-                              lineHeight: 1,
-                              color: wpColor,
-                              whiteSpace: 'nowrap',
-                              verticalAlign: 'baseline',
-                            }}
-                          >
-                            <span
-                              style={{
-                                position: 'absolute',
-                                inset: 0,
-                                backgroundColor: wpColor,
-                                clipPath: 'polygon(0% 0%, calc(100% - 8px) 0%, 100% 50%, calc(100% - 8px) 100%, 0% 100%)',
-                              }}
-                            />
-                            <span
-                              style={{
-                                position: 'absolute',
-                                inset: '1.5px 2.5px 1.5px 1.5px',
-                                backgroundColor: '#ffffff',
-                                clipPath: 'polygon(0% 0%, calc(100% - 7px) 0%, 100% 50%, calc(100% - 7px) 100%, 0% 100%)',
-                              }}
-                            />
-
-                            <span style={{ position: 'relative', zIndex: 1 }}>
-                              <EditableTextInline
-                                value={del.number}
-                                onChange={(val) => updateDeliverable.mutate({ id: del.id, number: val })}
-                                placeholder="D#.#"
-                                inheritFont
-                              />
-                            </span>
-                          </span>
-                        );
-                      })()}
-                    </TableCell>
-                    <TableCell className={cellStyles} style={{ lineHeight: 1.2, backgroundColor: 'transparent', borderLeft: 'none' }}>
-
-                      <span className="font-['Times_New_Roman',Times,serif] text-[11pt]" style={{ lineHeight: 1.2 }}>
-                        <EditableTextInline
-                          value={del.name}
-                          onChange={(val) => updateDeliverable.mutate({ id: del.id, name: val })}
-                          placeholder="Deliverable name"
-                        />
-                      </span>
-                    </TableCell>
-                    <TableCell className={bubbleCellStyles}>
-                      <SingleWPSelector
-                        value={del.wp_number}
-                        onChange={(val) => {
-                          // When WP changes, update wp_number and recalculate the deliverable number
-                          const wpNum = val != null ? val : 'X';
-                          // Count existing deliverables in the target WP to determine sub-number
-                          const existingInWP = deliverables.filter(d => d.wp_number === val && d.id !== del.id);
-                          const subNum = existingInWP.length + 1;
-                          updateDeliverable.mutate({ id: del.id, wp_number: val, number: `D${wpNum}.${subNum}` });
-                        }}
-                        workPackages={workPackages}
-                      />
-                    </TableCell>
-                    <TableCell className={bubbleCellStyles}>
-                      <Select 
-                        value={del.lead_participant_id || ''} 
-                        onValueChange={(v) => updateDeliverable.mutate({ id: del.id, lead_participant_id: v || null })}
-                      >
-                        <SelectTrigger hideArrow className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex items-center overflow-visible">
-                          <SelectValue placeholder="-">
-                            {del.lead_participant_id ? (
-                              <span
-                                className="inline-flex items-center justify-center rounded-full font-bold text-white whitespace-nowrap relative"
-                                style={{ backgroundColor: '#000', border: '1.5px solid #000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, fontStyle: 'normal', lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px', height: '17px', position: 'relative', top: '-1px' }}
-                              >
-                                {participants.find(p => p.id === del.lead_participant_id)?.organisation_short_name || '-'}
-                              </span>
-                            ) : (
-                              <span className="font-['Times_New_Roman',Times,serif] text-[11pt]">-</span>
-                            )}
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent className="bg-background z-50">
-                          {participants.map(p => (
-                            <SelectItem key={p.id} value={p.id}>
-                              <span
-                                className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
-                                style={{ backgroundColor: '#000000', color: '#ffffff', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, padding: '0px 5px', height: '17px' }}
-                              >
-                                {p.organisation_short_name || p.organisation_name}
-                              </span>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell className={cellStyles}>
-                      <Select 
-                        value={del.type || ''} 
-                        onValueChange={(v) => updateDeliverable.mutate({ id: del.id, type: v || null })}
-                      >
-                        <SelectTrigger hideArrow className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto font-['Times_New_Roman',Times,serif] text-[11pt]">
-                          <SelectValue placeholder="-">
-                            <span className="font-['Times_New_Roman',Times,serif] text-[11pt]">{del.type || '-'}</span>
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent className="bg-background z-50">
-                          {deliverableTypes.map(t => (
-                            <SelectItem key={t.value} value={t.value}>
-                              {t.value} - {t.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell className={cellStyles}>
-                      <Select 
-                        value={del.dissemination_level || ''} 
-                        onValueChange={(v) => updateDeliverable.mutate({ id: del.id, dissemination_level: v || null })}
-                      >
-                        <SelectTrigger hideArrow className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto font-['Times_New_Roman',Times,serif] text-[11pt]">
-                          <SelectValue placeholder="-">
-                            <span className="font-['Times_New_Roman',Times,serif] text-[11pt]">{del.dissemination_level || '-'}</span>
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent className="bg-background z-50">
-                          {disseminationLevels.map(l => (
-                            <SelectItem key={l.value} value={l.value}>
-                              {l.value} - {l.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell className={cellStyles}>
-                      <MonthSelect
-                        value={del.due_month}
-                        onChange={(val) => updateDeliverable.mutate({ id: del.id, due_month: val })}
-                        projectDuration={projectDuration}
-                      />
-                    </TableCell>
-                  </SortableTableRow>
-                ))}
-              </TableBody>
-            </SortableContext>
-          </Table>
-        </B31TableWrapper>
-      </DndContext>
+      <MirrorTable
+        proposalId={proposalId}
+        tableKey="b31-3-1-c-deliverables"
+        columns={columns}
+        emptyColSpan={7}
+        emptyLabel="No deliverables in WP drafts yet."
+        isEmpty={deliverables.length === 0}
+      >
+        {deliverables.map((d: any) => {
+          const lead = d.responsible_participant_id ? partInfo?.byId.get(d.responsible_participant_id) : undefined;
+          const wp = d.wp;
+          const delLabel = wp ? `D${wp.number}.${d.number}` : `D?.${d.number}`;
+          return (
+            <tr key={d.id}>
+              <MCell index={0} last={last} style={{ whiteSpace: 'nowrap' }}>
+                <DeliverablePentagon label={delLabel} color={wp?.color} />
+              </MCell>
+              <MCell index={1} last={last}><ReadOnlyTextCell text={d.title} /></MCell>
+              <MCell index={2} last={last}>
+                {wp ? <WPBubble wpNumber={wp.number} wpColor={wp.color} /> : <span className="text-muted-foreground italic">—</span>}
+              </MCell>
+              <MCell index={3} last={last}>
+                {lead ? (
+                  <ParticipantBubble shortName={lead.organisation_short_name || lead.organisation_name} />
+                ) : (
+                  <span className="text-muted-foreground italic">—</span>
+                )}
+              </MCell>
+              <MCell index={4} last={last}><ReadOnlyTextCell text={d.type} /></MCell>
+              <MCell index={5} last={last}><ReadOnlyTextCell text={d.dissemination_level} /></MCell>
+              <MCell index={6} last={last}><MonthLabel m={d.due_month} /></MCell>
+            </tr>
+          );
+        })}
+      </MirrorTable>
     </div>
   );
 }
 
-// ========== MILESTONES TABLE (3.1d) ==========
-export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
-  const queryClient = useQueryClient();
-  const projectDuration = useProjectDuration(proposalId);
-  const { data: workPackages = [] } = useWorkPackages(proposalId);
-  const { isAdminOrOwner } = useUserRole();
-  
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  );
+// ============================================================
+// Table 3.1.d — Milestones (read-only mirror, proposal_milestones)
+// ============================================================
+export function B31MilestonesTable({ proposalId }: Props) {
+  const { data: wpInfo } = useWPLookup(proposalId);
 
-  const { data: milestones = [], isLoading } = useQuery({
-    queryKey: ['b31-milestones', proposalId],
+  const { data: milestones = [] } = useQuery({
+    queryKey: ['b31-milestones-live', proposalId],
+    enabled: !!proposalId,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('b31_milestones')
-        .select('*')
+      const { data: rows } = await supabase
+        .from('proposal_milestones')
+        .select('id, number, title, due_month, means_of_verification, order_index')
         .eq('proposal_id', proposalId)
-        .order('order_index');
-      if (error) throw error;
-      return data as Milestone[];
-    },
-  });
-
-  const updateMilestone = useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<Milestone> & { id: string }) => {
-      const { error } = await supabase
-        .from('b31_milestones')
-        .update(updates)
-        .eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['b31-milestones', proposalId] }); queryClient.invalidateQueries({ queryKey: ['wp-drafts-gantt', proposalId] }); },
-  });
-
-  const addMilestone = useMutation({
-    mutationFn: async () => {
-      const nextNumber = milestones.length + 1;
-      const { error } = await supabase
-        .from('b31_milestones')
-        .insert({ 
-          proposal_id: proposalId, 
-          number: nextNumber, 
-          name: '', 
-          wps: '', 
-          means_of_verification: '',
-          order_index: milestones.length
-        });
-      if (error) throw error;
-    },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['b31-milestones', proposalId] }); queryClient.invalidateQueries({ queryKey: ['wp-drafts-gantt', proposalId] }); },
-  });
-
-  const deleteMilestone = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('b31_milestones')
-        .delete()
-        .eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['b31-milestones', proposalId] }); queryClient.invalidateQueries({ queryKey: ['wp-drafts-gantt', proposalId] }); },
-  });
-
-  const reorderMilestones = useMutation({
-    mutationFn: async (newOrder: Milestone[]) => {
-      const updates = newOrder.map((ms, index) => ({
-        id: ms.id,
-        order_index: index,
-        number: index + 1
-      }));
-      
-      for (const update of updates) {
-        const { error } = await supabase
-          .from('b31_milestones')
-          .update({ order_index: update.order_index, number: update.number })
-          .eq('id', update.id);
-        if (error) throw error;
+        .order('number');
+      const ids = (rows || []).map((m: any) => m.id);
+      let linkMap = new Map<string, string[]>();
+      if (ids.length > 0) {
+        const { data: links } = await supabase
+          .from('proposal_milestone_wps')
+          .select('milestone_id, wp_draft_id')
+          .in('milestone_id', ids);
+        for (const l of links || []) {
+          const arr = linkMap.get(l.milestone_id) || [];
+          arr.push(l.wp_draft_id);
+          linkMap.set(l.milestone_id, arr);
+        }
       }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['b31-milestones', proposalId] });
-      queryClient.invalidateQueries({ queryKey: ['wp-drafts-gantt', proposalId] });
-      toast.success('Milestones reordered');
+      return (rows || []).map((m: any) => ({ ...m, _wpIds: linkMap.get(m.id) || [] }));
     },
   });
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-
-    const oldIndex = milestones.findIndex((m) => m.id === active.id);
-    const newIndex = milestones.findIndex((m) => m.id === over.id);
-    const reordered = arrayMove(milestones, oldIndex, newIndex);
-    reorderMilestones.mutate(reordered);
-  };
-
-  const autoReorder = () => {
-    const sorted = [...milestones].sort((a, b) => {
-      // First by due month
-      const monthA = a.due_month ?? 999;
-      const monthB = b.due_month ?? 999;
-      if (monthA !== monthB) return monthA - monthB;
-      // Then by first WP number in the list
-      const wpA = a.wps ? parseInt(a.wps.split(',')[0].trim()) || 999 : 999;
-      const wpB = b.wps ? parseInt(b.wps.split(',')[0].trim()) || 999 : 999;
-      return wpA - wpB;
-    });
-    reorderMilestones.mutate(sorted);
-  };
-
-  // Column resizing
-  const { colWidths, setColWidths, tableRef, handleColResizeStart, saveWidths } = useColumnResize({ proposalId, tableKey: 'milestones', canResize: isAdminOrOwner });
-
-  const autoFitColumns = useCallback(() => {
-    const table = tableRef.current;
-    if (!table) return;
-    const widths = computeAutoFitSmart(table, { fullWidth: true });
-    if (widths) {
-      setColWidths(widths);
-      saveWidths(widths);
-    }
-  }, [tableRef, setColWidths, saveWidths]);
-
-  useEffect(() => {
-    const handler = (event: Event) => {
-      const detail = (event as CustomEvent<{ tableId?: string }>).detail;
-      if (detail?.tableId !== 'b31-milestones') return;
-      autoFitColumns();
+  const sortedMilestones = useMemo(() => {
+    const minWpNum = (m: any) => {
+      const nums = (m._wpIds as string[])
+        .map(id => wpInfo?.byId.get(id)?.number)
+        .filter((n: any) => typeof n === 'number') as number[];
+      return nums.length ? Math.min(...nums) : Number.POSITIVE_INFINITY;
     };
-    window.addEventListener('b31-table-autoresize', handler as EventListener);
-    return () => window.removeEventListener('b31-table-autoresize', handler as EventListener);
-  }, [autoFitColumns]);
+    return [...milestones].sort((a: any, b: any) => {
+      const da = a.due_month ?? Number.POSITIVE_INFINITY;
+      const db = b.due_month ?? Number.POSITIVE_INFINITY;
+      if (da !== db) return da - db;
+      const wa = minWpNum(a);
+      const wb = minWpNum(b);
+      if (wa !== wb) return wa - wb;
+      return String(a.id).localeCompare(String(b.id));
+    });
+  }, [milestones, wpInfo]);
 
-  const dispatchToolbarFocus = useCallback(() => {
-    window.dispatchEvent(new CustomEvent('b31-table-focus', {
-      detail: { tableId: 'b31-milestones' },
-    }));
-  }, []);
+  const columns: Col[] = [
+    { label: 'No.', defaultWidth: 48, cellClass: 'cell-pl-0' },
+    { label: 'Milestone', defaultWidth: 220 },
+    { label: 'WP(s)', defaultWidth: 113, cellClass: 'cell-px-0' },
+    { label: 'Due', defaultWidth: 50 },
+    { label: 'Means of verification', flex: true, cellClass: 'cell-pr-0' },
+  ];
+
+  const last = columns.length - 1;
 
   return (
-    <div onFocusCapture={dispatchToolbarFocus}>
+    <div>
       <EditableCaption
         proposalId={proposalId}
         tableKey="table-3.1.d"
         label="Table 3.1.d."
-        defaultCaption="Milestones"
-        leftButtons={
-          <>
-            <CaptionIconButton tooltip="Add milestone" onClick={() => addMilestone.mutate()}>
-              <Plus className="h-3 w-3" />
-            </CaptionIconButton>
-            <MilestoneTaskMappingDialog
-              proposalId={proposalId}
-              trigger={
-                <CaptionIconButton tooltip="Assign milestones to tasks">
-                  <Settings2 className="h-3 w-3" />
-                </CaptionIconButton>
-              }
-            />
-            {isAdminOrOwner && (
-              <CaptionIconButton tooltip="Auto-reorder" onClick={autoReorder}>
-                <ArrowUpDown className="h-3 w-3" />
-              </CaptionIconButton>
-            )}
-          </>
-        }
+        defaultCaption="List of milestones"
+        className="mb-0"
       />
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <B31TableWrapper>
-          <Table className={`${tableStyles} [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b [&_th]:border-black [&_td]:border-x-0 [&_td]:border-y [&_td]:border-gray-200 [&_tr]:border-0 [&_tr:last-child_td]:border-b-0 [&_tbody_tr:first-child_td]:border-t-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto', borderCollapse: 'collapse', width: colWidths.length > 0 ? `${colWidths.reduce((s, w) => s + w, 0)}px` : '100%' }} ref={tableRef}>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead className={`${headerCellStyles} relative`} style={{ ...(colWidths.length > 0 ? { width: Math.max(colWidths[0], 50) } : { width: '50px', whiteSpace: 'nowrap' }) }}>
-                  No.
-                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(0)} />}
-                </TableHead>
-                <TableHead className={`${headerCellStyles} relative`} style={colWidths.length > 0 ? { width: colWidths[1] } : undefined}>
-                  Milestone name
-                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(1)} />}
-                </TableHead>
-                <TableHead className={`${headerCellStyles} relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[2] } : { width: '40px', whiteSpace: 'nowrap' }) }}>
-                  WPs
-                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(2)} />}
-                </TableHead>
-                <TableHead className={`${headerCellStyles} relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[3] } : { width: '40px', whiteSpace: 'nowrap' }) }}>
-                  Due
-                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(3)} />}
-                </TableHead>
-                <TableHead className={`${headerCellStyles} relative`} style={colWidths.length > 0 ? { width: colWidths[4] } : undefined}>
-                  Means of verification
-                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(4)} />}
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <SortableContext items={milestones.map(m => m.id)} strategy={verticalListSortingStrategy}>
-              <TableBody>
-                {milestones.map((ms) => (
-                  <SortableTableRow key={ms.id} id={ms.id} canDrag={isAdminOrOwner} onDelete={() => deleteMilestone.mutate(ms.id)}>
-                    <TableCell className={bubbleCellStyles} style={{ lineHeight: 1.2, whiteSpace: 'nowrap', width: '50px' }}>
-                      <span
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          background: '#000',
-                          color: '#fff',
-                          fontFamily: "'Times New Roman', Times, serif",
-                          fontSize: '11pt',
-                          fontWeight: 700,
-                          lineHeight: '18px',
-                          height: '18px',
-                          padding: '0 4px',
-                          clipPath: 'polygon(12% 0%, 88% 0%, 100% 50%, 88% 100%, 12% 100%, 0% 50%)',
-                          verticalAlign: 'baseline',
-                        }}
-                      >
-                        MS{ms.number}
-                      </span>
-                    </TableCell>
-                    <TableCell className={cellStyles} style={{ lineHeight: 1.2 }}>
-                      <EditableTextInline
-                        value={ms.name}
-                        onChange={(val) => updateMilestone.mutate({ id: ms.id, name: val })}
-                        placeholder="Milestone name"
-                      />
-                    </TableCell>
-                    <TableCell className={bubbleCellStyles}>
-                      <MultiWPSelector
-                        value={ms.wps}
-                        onChange={(val) => updateMilestone.mutate({ id: ms.id, wps: val })}
-                        workPackages={workPackages}
-                      />
-                    </TableCell>
-                    <TableCell className={cellStyles}>
-                      <MonthSelect
-                        value={ms.due_month}
-                        onChange={(val) => updateMilestone.mutate({ id: ms.id, due_month: val })}
-                        projectDuration={projectDuration}
-                      />
-                    </TableCell>
-                    <TableCell className={cellStyles}>
-                      <EditableHtml
-                        value={ms.means_of_verification}
-                        onChange={(val) => updateMilestone.mutate({ id: ms.id, means_of_verification: val })}
-                        placeholder="How will this be verified?"
-                      />
-                    </TableCell>
-                  </SortableTableRow>
-                ))}
-              </TableBody>
-            </SortableContext>
-          </Table>
-        </B31TableWrapper>
-      </DndContext>
+      <MirrorTable
+        proposalId={proposalId}
+        tableKey="b31-3-1-d-milestones"
+        columns={columns}
+        emptyColSpan={5}
+        emptyLabel="No milestones yet."
+        isEmpty={sortedMilestones.length === 0}
+        tableClassName="platform-table--tight"
+      >
+
+        {sortedMilestones.map((m: any) => {
+          const wps = (m._wpIds as string[])
+            .map((id) => wpInfo?.byId.get(id))
+            .filter(Boolean)
+            .sort((a: any, b: any) => a.number - b.number);
+          return (
+            <tr key={m.id}>
+              <MCell index={0} last={last} cellClass="cell-pl-0"><MilestoneBadge number={m.number} /></MCell>
+              <MCell index={1} last={last}><ReadOnlyTextCell text={m.title} /></MCell>
+              <MCell index={2} last={last} cellClass="cell-px-0">
+                <div className="flex flex-wrap gap-0.5">
+                  {wps.length === 0 && <span className="text-muted-foreground italic">—</span>}
+                  {wps.map((wp: any) => (
+                    <WPBubble key={wp.id} wpNumber={wp.number} wpColor={wp.color} />
+                  ))}
+                </div>
+              </MCell>
+              <MCell index={3} last={last}><MonthLabel m={m.due_month} /></MCell>
+              <MCell index={4} last={last} cellClass="cell-pr-0"><ReadOnlyHtmlCell html={m.means_of_verification} /></MCell>
+
+            </tr>
+          );
+        })}
+      </MirrorTable>
     </div>
   );
 }
 
-// ========== RISKS TABLE (3.1e) ==========
-export function B31RisksTable({ proposalId }: { proposalId: string }) {
-  const queryClient = useQueryClient();
-  const { data: workPackages = [] } = useWorkPackages(proposalId);
-  const { isAdminOrOwner } = useUserRole();
-  const { colWidths, setColWidths, tableRef, handleColResizeStart, saveWidths } = useColumnResize({ proposalId, tableKey: 'risks', canResize: isAdminOrOwner });
-  
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  );
 
-  const { data: risks = [], isLoading } = useQuery({
-    queryKey: ['b31-risks', proposalId],
+// ============================================================
+// Table 3.1.e — Critical risks (read-only mirror, proposal_risks)
+// ============================================================
+export function B31RisksTable({ proposalId }: Props) {
+  const { data: wpInfo } = useWPLookup(proposalId);
+
+  const { data: risks = [] } = useQuery({
+    queryKey: ['b31-risks-live', proposalId],
+    enabled: !!proposalId,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('b31_risks')
-        .select('*')
+      const { data: rows } = await supabase
+        .from('proposal_risks')
+        .select('id, number, title, likelihood, severity, mitigation, order_index, created_at')
         .eq('proposal_id', proposalId)
-        .order('order_index');
-      if (error) throw error;
-      return data as Risk[];
-    },
-  });
-
-  const updateRisk = useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<Risk> & { id: string }) => {
-      const { error } = await supabase
-        .from('b31_risks')
-        .update(updates)
-        .eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['b31-risks', proposalId] }),
-  });
-
-  const addRisk = useMutation({
-    mutationFn: async () => {
-      const nextNumber = risks.length + 1;
-      const { error } = await supabase
-        .from('b31_risks')
-        .insert({ 
-          proposal_id: proposalId, 
-          number: nextNumber, 
-          description: '', 
-          wps: '', 
-          mitigation: '',
-          order_index: risks.length
-        });
-      if (error) throw error;
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['b31-risks', proposalId] }),
-  });
-
-  const deleteRisk = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('b31_risks')
-        .delete()
-        .eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['b31-risks', proposalId] }),
-  });
-
-  const reorderRisks = useMutation({
-    mutationFn: async (newOrder: Risk[]) => {
-      const updates = newOrder.map((risk, index) => ({
-        id: risk.id,
-        order_index: index,
-        number: index + 1
-      }));
-      
-      for (const update of updates) {
-        const { error } = await supabase
-          .from('b31_risks')
-          .update({ order_index: update.order_index, number: update.number })
-          .eq('id', update.id);
-        if (error) throw error;
+        .order('order_index')
+        .order('created_at');
+      const ids = (rows || []).map((r: any) => r.id);
+      let linkMap = new Map<string, string[]>();
+      if (ids.length > 0) {
+        const { data: links } = await supabase
+          .from('proposal_risk_wps')
+          .select('risk_id, wp_draft_id')
+          .in('risk_id', ids);
+        for (const l of links || []) {
+          const arr = linkMap.get(l.risk_id) || [];
+          arr.push(l.wp_draft_id);
+          linkMap.set(l.risk_id, arr);
+        }
       }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['b31-risks', proposalId] });
-      toast.success('Risks reordered');
+      return (rows || []).map((r: any) => ({ ...r, _wpIds: linkMap.get(r.id) || [] }));
     },
   });
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
+  // Order matches the manager UI (user-arranged via drag); no in-memory auto-sort.
+  const orderedRisks = risks as any[];
 
-    const oldIndex = risks.findIndex((r) => r.id === active.id);
-    const newIndex = risks.findIndex((r) => r.id === over.id);
-    const reordered = arrayMove(risks, oldIndex, newIndex);
-    reorderRisks.mutate(reordered);
-  };
 
-  const getRiskOrder = (level: string | null): number => {
-    const opt = riskLevelOptions.find(o => o.value === level);
-    return opt?.order ?? 3; // null/undefined comes last
-  };
+  const columns: Col[] = [
+    { label: 'Risk', defaultWidth: 240, cellClass: 'cell-pl-0' },
+    { label: 'i.', defaultWidth: 30, align: 'center', cellClass: 'cell-px-0' },
+    { label: 'ii.', defaultWidth: 30, align: 'center', cellClass: 'cell-px-0' },
+    { label: 'WP(s)', defaultWidth: 113, cellClass: 'cell-px-0' },
+    { label: 'Mitigation & adaptation measures', flex: true, cellClass: 'cell-pr-0' },
+  ];
 
-  const autoReorder = () => {
-    const sorted = [...risks].sort((a, b) => {
-      // First by likelihood (H=0, M=1, L=2, null=3)
-      const likelihoodA = getRiskOrder(a.likelihood);
-      const likelihoodB = getRiskOrder(b.likelihood);
-      if (likelihoodA !== likelihoodB) return likelihoodA - likelihoodB;
-      // Then by severity
-      const severityA = getRiskOrder(a.severity);
-      const severityB = getRiskOrder(b.severity);
-      return severityA - severityB;
-    });
-    reorderRisks.mutate(sorted);
-  };
-
-  const autoFitColumns = useCallback(() => {
-    const table = tableRef.current;
-    if (!table) return;
-
-    const widths = computeAutoFitSmart(table, { fullWidth: true });
-    if (widths) {
-      setColWidths(widths);
-      saveWidths(widths);
-    }
-  }, [tableRef, setColWidths, saveWidths]);
-
-  useEffect(() => {
-    const handler = (event: Event) => {
-      const detail = (event as CustomEvent<{ tableId?: string }>).detail;
-      if (detail?.tableId !== 'b31-risks') return;
-      autoFitColumns();
-    };
-    window.addEventListener('b31-table-autoresize', handler as EventListener);
-    return () => window.removeEventListener('b31-table-autoresize', handler as EventListener);
-  }, [autoFitColumns]);
-
-  const dispatchToolbarFocus = useCallback(() => {
-    window.dispatchEvent(new CustomEvent('b31-table-focus', {
-      detail: { tableId: 'b31-risks' },
-    }));
-  }, []);
+  const last = columns.length - 1;
 
   return (
-    <div onFocusCapture={dispatchToolbarFocus}>
+    <div>
       <EditableCaption
         proposalId={proposalId}
         tableKey="table-3.1.e"
         label="Table 3.1.e."
         defaultCaption="Critical risks"
-        suffix={<>(<span className="font-bold">i.</span> likelihood; <span className="font-bold">ii.</span> severity; <RiskBadge level="L" /> = low, <RiskBadge level="M" /> = medium, <RiskBadge level="H" /> = high)</>}
-        className="flex items-center gap-1 flex-wrap"
-        leftButtons={
-          <>
-            <CaptionIconButton tooltip="Add risk" onClick={() => addRisk.mutate()}>
-              <Plus className="h-3 w-3" />
-            </CaptionIconButton>
-            {isAdminOrOwner && (
-              <CaptionIconButton tooltip="Auto-reorder" onClick={autoReorder}>
-                <ArrowUpDown className="h-3 w-3" />
-              </CaptionIconButton>
-            )}
-          </>
-        }
+        className="mb-0"
       />
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <B31TableWrapper>
-          <Table className={`${tableStyles} [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b [&_th]:border-black [&_td]:border-x-0 [&_td]:border-y [&_td]:border-gray-200 [&_tr]:border-0 [&_tr:last-child_td]:border-b-0 [&_tbody_tr:first-child_td]:border-t-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto', borderCollapse: 'collapse', width: colWidths.length > 0 ? `max(${colWidths.reduce((s, w) => s + w, 0)}px, 100%)` : '100%' }} ref={tableRef}>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead className={`${headerCellStyles} relative`} style={colWidths.length > 0 ? { width: colWidths[0] } : { width: '25%' }}>
-                  Risk
-                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(0)} />}
-                </TableHead>
-                <TableHead className={`${headerCellStyles} relative text-center`} style={colWidths.length > 0 ? { width: colWidths[1] } : { width: '24px' }}>
-                  i.
-                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(1)} />}
-                </TableHead>
-                <TableHead className={`${headerCellStyles} relative text-center`} style={colWidths.length > 0 ? { width: colWidths[2] } : { width: '24px' }}>
-                  ii.
-                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(2)} />}
-                </TableHead>
-                <TableHead className={`${headerCellStyles} relative`} style={colWidths.length > 0 ? { width: colWidths[3] } : { width: '84px' }}>
-                  WPs
-                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(3)} />}
-                </TableHead>
-                <TableHead className={`${headerCellStyles} relative`} style={colWidths.length > 0 ? { width: colWidths[4] } : undefined}>
-                  Mitigation &amp; adaptation measures
-                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(4)} />}
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <SortableContext items={risks.map(r => r.id)} strategy={verticalListSortingStrategy}>
-              <TableBody>
-                {risks.map((risk) => (
-                  <SortableTableRow key={risk.id} id={risk.id} canDrag={isAdminOrOwner} onDelete={() => deleteRisk.mutate(risk.id)}>
-                    <TableCell className={cellStyles}>
-                      <EditableText
-                        value={risk.description}
-                        onChange={(val) => updateRisk.mutate({ id: risk.id, description: val })}
-                        placeholder="Description of risk"
-                      />
-                    </TableCell>
-                    {/* Likelihood (i) column */}
-                    <TableCell className={`${cellStyles} text-center`}>
-                      <Select value={risk.likelihood || ''} onValueChange={(v) => updateRisk.mutate({ id: risk.id, likelihood: v as 'L' | 'M' | 'H' || null })}>
-                        <SelectTrigger hideArrow className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex justify-center">
-                          <SelectValue>
-                            {risk.likelihood ? <RiskBadge level={risk.likelihood} /> : <span className="text-muted-foreground">-</span>}
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent className="bg-background z-50">
-                          {riskLevelOptions.map(opt => (
-                            <SelectItem key={opt.value} value={opt.value}>
-                              <div className="flex items-center gap-2">
-                                <RiskBadge level={opt.value as 'L' | 'M' | 'H'} />
-                                <span>{opt.label}</span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    {/* Severity (ii) column */}
-                    <TableCell className={`${cellStyles} text-center`}>
-                      <Select value={risk.severity || ''} onValueChange={(v) => updateRisk.mutate({ id: risk.id, severity: v as 'L' | 'M' | 'H' || null })}>
-                        <SelectTrigger hideArrow className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex justify-center">
-                          <SelectValue>
-                            {risk.severity ? <RiskBadge level={risk.severity} /> : <span className="text-muted-foreground">-</span>}
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent className="bg-background z-50">
-                          {riskLevelOptions.map(opt => (
-                            <SelectItem key={opt.value} value={opt.value}>
-                              <div className="flex items-center gap-2">
-                                <RiskBadge level={opt.value as 'L' | 'M' | 'H'} />
-                                <span>{opt.label}</span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell className={cellStyles}>
-                      <MultiWPSelector
-                        value={risk.wps}
-                        onChange={(val) => updateRisk.mutate({ id: risk.id, wps: val })}
-                        workPackages={workPackages}
-                      />
-                    </TableCell>
-                    <TableCell className={cellStyles}>
-                      <EditableText
-                        value={risk.mitigation}
-                        onChange={(val) => updateRisk.mutate({ id: risk.id, mitigation: val })}
-                        placeholder="Proposed mitigation measures"
-                      />
-                    </TableCell>
-                  </SortableTableRow>
-                ))}
-              </TableBody>
-            </SortableContext>
-          </Table>
-        </B31TableWrapper>
-      </DndContext>
-    </div>
-  );
-}
+      <MirrorTable
+        proposalId={proposalId}
+        tableKey="b31-3-1-e-risks"
+        columns={columns}
+        emptyColSpan={5}
+        emptyLabel="No risks yet."
+        isEmpty={orderedRisks.length === 0}
+        tableClassName="platform-table--tight"
+      >
+        {orderedRisks.map((r: any) => {
+          const wps = (r._wpIds as string[])
+            .map((id) => wpInfo?.byId.get(id))
+            .filter(Boolean)
+            .sort((a: any, b: any) => a.number - b.number);
+          return (
+            <tr key={r.id}>
+              <MCell index={0} last={last} cellClass="cell-pl-0"><ReadOnlyHtmlCell html={r.title} /></MCell>
+              <MCell index={1} last={last} cellClass="cell-px-0" className="text-center">
+                {r.likelihood ? <RiskBadge level={r.likelihood as 'L' | 'M' | 'H'} /> : <span className="text-muted-foreground">—</span>}
+              </MCell>
+              <MCell index={2} last={last} cellClass="cell-px-0" className="text-center">
+                {r.severity ? <RiskBadge level={r.severity as 'L' | 'M' | 'H'} /> : <span className="text-muted-foreground">—</span>}
+              </MCell>
+              <MCell index={3} last={last} cellClass="cell-px-0">
+                <div className="flex flex-wrap gap-0.5">
+                  {wps.length === 0 && <span className="text-muted-foreground italic">—</span>}
+                  {wps.map((wp: any) => (
+                    <WPBubble key={wp.id} wpNumber={wp.number} wpColor={wp.color} />
+                  ))}
+                </div>
+              </MCell>
+              <MCell index={4} last={last} cellClass="cell-pr-0"><ReadOnlyHtmlCell html={r.mitigation} /></MCell>
 
-// ========== MAIN COMPONENT ==========
-export function B31TablesEditor({ proposalId }: B31TablesEditorProps) {
-  return (
-    <div className="space-y-8">
-      <B31DeliverablesTable proposalId={proposalId} />
-      <B31MilestonesTable proposalId={proposalId} />
-      <B31RisksTable proposalId={proposalId} />
+            </tr>
+          );
+        })}
+      </MirrorTable>
     </div>
   );
 }

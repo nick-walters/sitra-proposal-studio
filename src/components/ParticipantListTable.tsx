@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { StorageImage } from '@/components/StorageImage';
 import { Participant } from '@/types/proposal';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { B31Pill, WPBubble, ParticipantBubble } from '@/components/B31Pill';
 
 // WP Leadership info type
 export interface WPLeadershipInfo {
@@ -26,15 +27,6 @@ interface ParticipantListTableProps {
   onRowClick?: (participant: Participant) => void;
 }
 
-// Convert name to name case (capitalize first letter of each word)
-function toNameCase(str: string): string {
-  if (!str) return '';
-  return str
-    .toLowerCase()
-    .split(' ')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-}
 
 /**
  * A read-only participant list table styled to match Part B editor tables.
@@ -105,17 +97,9 @@ export function ParticipantListTable({
                   <td>
                     <p>
                       {participant.organisationShortName ? (
-                        <span
-                          className="inline-flex items-center px-2.5 py-1 rounded-full text-[11pt]"
-                          style={{ 
-                            backgroundColor: '#000000', 
-                            color: '#ffffff',
-                            fontWeight: 'bold',
-                            fontStyle: 'normal',
-                          }}
-                        >
+                        <ParticipantBubble style={{ fontSize: '11pt', height: 'auto', padding: '4px 10px' }}>
                           {participant.organisationShortName}
-                        </span>
+                        </ParticipantBubble>
                       ) : (
                         '—'
                       )}
@@ -165,15 +149,14 @@ export function ParticipantListTable({
                         {participant.participantNumber === 1 && (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span 
-                                className="inline-flex items-center px-2.5 py-1 rounded text-[11pt] font-medium"
-                                style={{ 
-                                  backgroundColor: 'hsl(var(--primary))', 
-                                  color: 'hsl(var(--primary-foreground))',
-                                }}
+                              <B31Pill
+                                variant="filled"
+                                color="hsl(var(--primary))"
+                                textColor="hsl(var(--primary-foreground))"
+                                style={{ fontSize: '11pt', height: 'auto', padding: '4px 10px', fontWeight: 500, borderRadius: '4px' }}
                               >
                                 Coord
-                              </span>
+                              </B31Pill>
                             </TooltipTrigger>
                             <TooltipContent>Project coordinator</TooltipContent>
                           </Tooltip>
@@ -182,12 +165,12 @@ export function ParticipantListTable({
                         {wpLead.map((wp) => (
                           <Tooltip key={`wp-${wp.wpNumber}`}>
                             <TooltipTrigger asChild>
-                              <span
-                                className="inline-flex items-center px-2.5 py-1 rounded-full text-[11pt] font-bold text-white"
-                                style={{ backgroundColor: wp.color }}
+                              <WPBubble
+                                wpColor={wp.color}
+                                style={{ fontSize: '11pt', height: 'auto', padding: '4px 10px' }}
                               >
                                 WP{wp.wpNumber}
-                              </span>
+                              </WPBubble>
                             </TooltipTrigger>
                             <TooltipContent>
                               {wp.shortName ? `${wp.shortName} (Lead)` : `WP${wp.wpNumber} Lead`}
@@ -198,11 +181,13 @@ export function ParticipantListTable({
                         {caseLead.map((c) => (
                           <Tooltip key={`case-${c.caseNumber}`}>
                             <TooltipTrigger asChild>
-                              <span
-                                className="inline-flex items-center px-2.5 py-1 rounded-full text-[11pt] font-bold border-[1.5px] border-black text-black bg-white"
+                              <B31Pill
+                                variant="outline"
+                                color="#000000"
+                                style={{ fontSize: '11pt', height: 'auto', padding: '4px 10px' }}
                               >
                                 {c.prefix ? `${c.prefix}${c.caseNumber}` : (c.shortName || c.caseNumber)}
-                              </span>
+                              </B31Pill>
                             </TooltipTrigger>
                             <TooltipContent>
                               {c.shortName ? `${c.shortName} (Lead)` : `${c.prefix ? `${c.prefix}${c.caseNumber}` : c.caseNumber} Lead`}

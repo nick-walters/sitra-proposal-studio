@@ -15,6 +15,8 @@ import {
 import { Participant, ParticipantMember, ParticipantSummary, PARTICIPANT_TYPE_LABELS } from '@/types/proposal';
 import { ORGANISATION_CATEGORY_LABELS } from '@/types/proposal';
 import { SaveIndicator } from './SaveIndicator';
+import { PartAPageLayout } from './PartAPageLayout';
+
 import { CountrySelect } from './CountrySelect';
 import { User } from 'lucide-react';
 import { isEligibleForGEP } from '@/lib/countries';
@@ -148,21 +150,17 @@ export function ParticipantDetailForm({
 
   // GEP eligibility: HES, RES, or PUB organisations from EU Member States or Associated countries
   const showGEPSection = useMemo(() => {
-    const GEP_ELIGIBLE_CATEGORIES = ['HES', 'RES', 'PUB'];
-    const isEligibleCategory = GEP_ELIGIBLE_CATEGORIES.includes(participant.organisationCategory || '');
-    const isEligibleCountry = isEligibleForGEP(participant.country || '');
-    return isEligibleCategory && isEligibleCountry;
-  }, [participant.organisationCategory, participant.country]);
+    return isEligibleForGEP(participant.country || '');
+  }, [participant.country]);
 
-  // Helper to convert to Name Case
-  const toNameCase = (str: string) => {
-    return str.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substring(1).toLowerCase());
-  };
 
   const handleFieldUpdate = (field: string, value: unknown) => {
     // No auto-correction of name casing — preserve user input as-is
     setSaving(true);
     onUpdateParticipant(participant.id, { [field]: value });
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
+    }, 100);
     setTimeout(() => {
       setSaving(false);
       setLastSaved(new Date());
@@ -171,35 +169,35 @@ export function ParticipantDetailForm({
 
 
   return (
-    <div className="flex-1 overflow-auto p-6 bg-muted/30">
-      <div className="max-w-7xl mx-auto space-y-4">
-        {/* Header */}
-        <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-              <span className="text-lg font-bold text-primary">{participant.participantNumber}</span>
-            </div>
-            <div>
-              <h1 className="text-xl font-semibold">
-                {participant.organisationName || 'New Participant'}
-                {participant.organisationShortName && (
-                  <span className="text-muted-foreground font-normal ml-2">
-                    ({participant.organisationShortName})
-                  </span>
-                )}
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                {PARTICIPANT_TYPE_LABELS[participant.organisationType]}
-                {participant.participantNumber === 1 && (
-                  <Badge variant="outline" className="ml-2">Coordinator</Badge>
-                )}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            {canEdit && <SaveIndicator saving={saving} lastSaved={lastSaved} onSaveNow={() => {}} />}
-          </div>
+    <PartAPageLayout
+      title={participant.organisationName || 'New Participant'}
+      titleNode={
+        <h1 className="text-xl font-semibold">
+          {participant.organisationName || 'New Participant'}
+          {participant.organisationShortName && (
+            <span className="text-muted-foreground font-normal ml-2">
+              ({participant.organisationShortName})
+            </span>
+          )}
+        </h1>
+      }
+      titleLeftAdornment={
+        <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+          <span className="text-lg font-bold text-primary">{participant.participantNumber}</span>
         </div>
+      }
+      subtitle={
+        <p className="text-sm text-muted-foreground">
+          {PARTICIPANT_TYPE_LABELS[participant.organisationType]}
+          {participant.participantNumber === 1 && (
+            <Badge variant="outline" className="ml-2">Coordinator</Badge>
+          )}
+        </p>
+      }
+      spacing="space-y-4"
+      saveIndicator={canEdit ? <SaveIndicator saving={saving} lastSaved={lastSaved} onSaveNow={() => {}} /> : undefined}
+    >
+
 
         {/* 1. Organisation Details */}
         <Card>
@@ -291,33 +289,6 @@ export function ParticipantDetailForm({
               </div>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-2 sm:col-span-2">
-                <Label>Street</Label>
-                <DebouncedInput
-                  value={participant.street || ''}
-                  onDebouncedChange={(v) => handleFieldUpdate('street', v)}
-                  placeholder="Street address"
-                  disabled={!canEdit}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Town</Label>
-                <DebouncedInput
-                  value={participant.town || ''}
-                  onDebouncedChange={(v) => handleFieldUpdate('town', v)}
-                  placeholder="Town / City"
-                  disabled={!canEdit}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Postcode</Label>
-                <DebouncedInput
-                  value={participant.postcode || ''}
-                  onDebouncedChange={(v) => handleFieldUpdate('postcode', v)}
-                  placeholder="Postcode"
-                  disabled={!canEdit}
-                />
-              </div>
               <div className="space-y-2">
                 <Label>Country *</Label>
                 {canEdit ? (
@@ -427,23 +398,27 @@ export function ParticipantDetailForm({
         {/* 10. Gender Equality Plan (Enhanced) */}
         <GEPSection
           showGEPSection={showGEPSection}
+          hasGenderEqualityPlan={participant.hasGenderEqualityPlan}
+          onChangeHasGEP={(v) => handleFieldUpdate('hasGenderEqualityPlan', v)}
+          canEdit={canEdit}
         />
 
-        {/* 11. Ownership Control Declaration (hidden for public bodies) */}
-        {participant.organisationCategory !== 'PUB' && (
-          <OCDSection
-            visible={ocd.requiresOcd}
-            templateExists={!!ocd.templatePath}
-            hasUploadedOcd={!!ocd.uploads[participant.id]}
-            uploadedAt={ocd.uploads[participant.id]?.uploadedAt}
-            downloadingPrefilled={ocd.downloadingFor === participant.id}
-            onDownloadTemplate={() => ocd.downloadPrefilled(participant.id)}
-            onUploadSigned={(file) => ocd.uploadSignedOcd(participant.id, file)}
-            onDownloadSigned={ocd.uploads[participant.id] ? () => ocd.downloadSignedOcd(participant.id) : undefined}
-            canEdit={canEdit}
-            isHorizonEurope={['RIA', 'IA', 'CSA'].includes(proposalType || '')}
-          />
-        )}
+        {/* 11. Ownership Control Declaration (shown for all org types; PUB is exempt by default) */}
+        <OCDSection
+          visible={ocd.requiresOcd}
+          templateExists={!!ocd.templatePath}
+          hasUploadedOcd={!!ocd.uploads[participant.id]}
+          uploadedAt={ocd.uploads[participant.id]?.uploadedAt}
+          downloadingPrefilled={ocd.downloadingFor === participant.id}
+          onDownloadTemplate={() => ocd.downloadPrefilled(participant.id)}
+          onUploadSigned={(file) => ocd.uploadSignedOcd(participant.id, file)}
+          onDownloadSigned={ocd.uploads[participant.id] ? () => ocd.downloadSignedOcd(participant.id) : undefined}
+          canEdit={canEdit}
+          isHorizonEurope={['RIA', 'IA', 'CSA'].includes(proposalType || '')}
+          participantId={participant.id}
+          isAdmin={canGrant}
+          organisationCategory={participant.organisationCategory}
+        />
 
         {/* Delete Participant */}
         {canDelete && (
@@ -465,8 +440,8 @@ export function ParticipantDetailForm({
               </div>
             </CardContent>
           </Card>
-        )}
-      </div>
-    </div>
+      )}
+    </PartAPageLayout>
+
   );
 }

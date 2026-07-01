@@ -1,10 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { requireAuth } from "../_shared/auth.ts";
+import { corsHeaders } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -12,30 +9,10 @@ serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const userId = claimsData.claims.sub as string;
+    const auth = await requireAuth(req);
+    if (!auth.ok) return auth.response;
+    const supabase = auth.callerClient;
+    const userId = auth.userId;
 
     const { proposalId } = await req.json();
     if (!proposalId) {
@@ -65,7 +42,7 @@ serve(async (req) => {
       { data: sectionContent },
     ] = await Promise.all([
       supabase.from('proposals').select('acronym, title, type, work_programme, destination, topic_url').eq('id', proposalId).single(),
-      supabase.from('participants').select('organisation_name, organisation_short_name, country, organisation_category, legal_entity_type, is_sme').eq('proposal_id', proposalId),
+      supabase.from('participants').select('organisation_name, organisation_short_name, country, organisation_category, legal_entity_type').eq('proposal_id', proposalId),
       supabase.from('wp_drafts').select('number, short_name, title, lead_participant_id').eq('proposal_id', proposalId).order('number'),
       supabase.from('section_content').select('section_id, content').eq('proposal_id', proposalId).in('section_id', ['b1-1', 'b1-2', 'b2-1']),
     ]);
@@ -73,7 +50,7 @@ serve(async (req) => {
     // Build context summary
     const partsList = (participants || []).map(p => {
       const cat = p.organisation_category || 'Unknown';
-      return `- ${p.organisation_short_name || p.organisation_name} (${cat}, ${p.country || 'Unknown country'}${p.is_sme ? ', SME' : ''})`;
+      return `- ${p.organisation_short_name || p.organisation_name} (${cat}, ${p.country || 'Unknown country'})`;
     }).join('\n');
 
     const countriesSet = new Set((participants || []).map(p => p.country).filter(Boolean));
@@ -101,7 +78,7 @@ serve(async (req) => {
 
 Consider these Horizon Europe best practices:
 - Geographic diversity across EU member states and associated countries
-- Balance of organisation types: HES (Higher Education), RES (Research), PRC (Private/Industry), PUB (Public Bodies), OTH (NGOs/Civil society)
+- Balance of organisation types: HES (Higher Education), RES (Research), SME (Small/medium enterprise), LE (Large enterprise), PUB (Public Bodies), OTH (NGOs/Civil society)
 - SME involvement for exploitation and market access
 - Widening participation countries (Eastern/Southern EU) for bonus scoring
 - Each Work Package should have a credible lead
@@ -109,7 +86,7 @@ Consider these Horizon Europe best practices:
 - Dissemination and communication capacity
 - End-user/stakeholder representation
 
-Organisation categories: HES (Higher Education), RES (Research Organisation), PRC (Private Company), PUB (Public Body), INT (International Org), OTH (Other/NGO/CSO)
+Organisation categories: HES (Higher Education), RES (Research Organisation), SME (Small or medium-sized enterprise, private sector), LE (Large enterprise, private sector), PUB (Public Body), INT (International Org), OTH (Other/NGO/CSO)
 
 Return your analysis as JSON with this exact structure:
 {
@@ -121,7 +98,7 @@ Return your analysis as JSON with this exact structure:
       "priority": "high" | "medium" | "low",
       "description": "What is missing",
       "suggestedProfile": {
-        "organisationType": "HES|RES|PRC|PUB|OTH",
+        "organisationType": "HES|RES|SME|LE|PUB|OTH",
         "region": "Suggested region/countries",
         "expertise": "Required expertise area",
         "role": "Suggested role in consortium"
@@ -203,7 +180,7 @@ Analyze this consortium and identify gaps with specific partner profile recommen
   } catch (error) {
     console.error("Consortium analysis error:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ error: "An internal error occurred" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

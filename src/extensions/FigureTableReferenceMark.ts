@@ -21,6 +21,8 @@ declare module '@tiptap/core' {
 export const FigureTableReferenceMark = Mark.create<FigureTableReferenceMarkOptions>({
   name: 'figureTableReference',
 
+  inclusive: false,
+
   addOptions() {
     return {
       HTMLAttributes: {},

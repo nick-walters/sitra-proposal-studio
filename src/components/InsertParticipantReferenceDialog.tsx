@@ -11,6 +11,7 @@ import { Building2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import type { ParticipantSummary } from '@/types/proposal';
+import { ParticipantBubble } from '@/components/B31Pill';
 
 interface InsertParticipantReferenceDialogProps {
   open: boolean;
@@ -55,10 +56,11 @@ export function InsertParticipantReferenceDialog({
   };
 
   const handleSelect = (participant: ParticipantSummary & { participant_number: number }) => {
+    const baseName = participant.organisation_short_name || participant.organisation_name;
     onSelect({
       id: participant.id,
       participantNumber: participant.participant_number,
-      shortName: participant.organisation_short_name || participant.organisation_name,
+      shortName: baseName,
     });
     onOpenChange(false);
   };
@@ -89,38 +91,37 @@ export function InsertParticipantReferenceDialog({
             </div>
           ) : (
             <div className="space-y-1 p-1">
-              {participants.map((participant) => (
-                <button
-                  key={participant.id}
-                  onClick={() => handleSelect(participant)}
-                  className={cn(
-                    "w-full flex items-center p-3 rounded-md text-left",
-                    "hover:bg-muted/80 transition-colors"
-                  )}
-                >
-                  <div className="w-24 shrink-0">
-                    <span
-                      className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold italic whitespace-nowrap"
-                      style={{
-                        backgroundColor: '#000000',
-                        color: '#ffffff',
-                      }}
-                    >
-                      {participant.organisation_short_name || `P${participant.participant_number}`}
-                    </span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm truncate">
-                      {participant.organisation_name}
-                    </div>
-                    {participant.english_name && participant.english_name !== participant.organisation_name && (
-                      <div className="text-xs text-muted-foreground truncate">
-                        {participant.english_name}
-                      </div>
+              {participants.map((participant) => {
+                const baseName = participant.organisation_short_name || `P${participant.participant_number}`;
+                return (
+                  <button
+                    key={participant.id}
+                    onClick={() => handleSelect(participant)}
+                    className={cn(
+                      "w-full flex items-center p-3 rounded-md text-left",
+                      "hover:bg-muted/80 transition-colors"
                     )}
-                  </div>
-                </button>
-              ))}
+                  >
+                    <div className="w-32 shrink-0">
+                      <ParticipantBubble
+                        style={{ fontSize: '12px', height: 'auto', padding: '2px 8px', fontStyle: 'normal' }}
+                      >
+                        {participant.participant_number}. {baseName}
+                      </ParticipantBubble>
+                    </div>
+                    <div className="flex-1 min-w-0" style={{ fontStyle: 'normal' }}>
+                      <div className="text-sm truncate" style={{ fontStyle: 'normal' }}>
+                        {participant.organisation_name}
+                      </div>
+                      {participant.english_name && participant.english_name !== participant.organisation_name && (
+                        <div className="text-xs text-muted-foreground truncate" style={{ fontStyle: 'normal' }}>
+                          {participant.english_name}
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           )}
         </ScrollArea>

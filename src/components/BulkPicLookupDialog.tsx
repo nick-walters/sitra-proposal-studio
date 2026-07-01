@@ -34,7 +34,6 @@ interface BulkPicLookupDialogProps {
     country?: string;
     picNumber?: string;
     legalEntityType?: string;
-    isSme: boolean;
     organisationCategory?: string;
     englishName?: string;
   }) => Promise<void>;
@@ -49,7 +48,7 @@ interface LookupResult {
     country: string;
     organisationCategory?: string;
     legalEntityType?: string;
-    isSme: boolean;
+    
     englishName?: string;
   };
   error?: string;
@@ -112,7 +111,7 @@ export function BulkPicLookupDialog({
               country: org.country,
               organisationCategory: org.organisationCategory,
               legalEntityType: org.legalEntityType,
-              isSme: org.isSme || false,
+              
               englishName: org.englishName,
             },
           });
@@ -144,7 +143,7 @@ export function BulkPicLookupDialog({
         country: result.organisation.country,
         picNumber: result.picNumber,
         legalEntityType: result.organisation.legalEntityType,
-        isSme: result.organisation.isSme,
+        
         organisationCategory: result.organisation.organisationCategory,
         englishName: result.organisation.englishName,
       });
@@ -246,9 +245,6 @@ export function BulkPicLookupDialog({
                           )}
                           {result.organisation.organisationCategory && (
                             <Badge variant="outline" className="text-[10px]">{result.organisation.organisationCategory}</Badge>
-                          )}
-                          {result.organisation.isSme && (
-                            <Badge variant="outline" className="text-[10px] border-blue-300 text-blue-600">SME</Badge>
                           )}
                         </div>
                       </div>

@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
+import DOMPurify from 'dompurify';
+import { RICH_TEXT_WITH_IMAGES_CONFIG } from '@/lib/sanitizePresets';
 import {
   Dialog,
   DialogContent,
@@ -8,8 +10,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Document, Packer, Paragraph, TextRun, AlignmentType, convertMillimetersToTwip } from 'docx';
-import { saveAs } from 'file-saver';
+import type { Paragraph as ParagraphType } from 'docx';
+// docx and file-saver are loaded lazily inside handleDownloadDocx() to keep them out of the initial bundle.
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
@@ -134,6 +136,9 @@ function VersionListItem({ version, isLatest, isSelected, displayNumber, content
             <span className={`text-sm truncate ${version.is_major ? 'font-semibold' : 'font-medium text-muted-foreground'}`}>
               Version {displayNumber}
             </span>
+            {String(version.version_number) !== displayNumber && (
+              <span className="text-[10px] text-muted-foreground font-normal">v{version.version_number}</span>
+            )}
             {isLatest && (
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Latest</Badge>
             )}
@@ -326,10 +331,16 @@ export function SectionVersionHistoryDialog({
 
   const handleDownloadDocx = async (version: SectionVersion) => {
     try {
+      const [docxMod, fileSaverMod] = await Promise.all([
+        import('docx'),
+        import('file-saver'),
+      ]);
+      const { Document, Packer, Paragraph, TextRun, convertMillimetersToTwip } = docxMod;
+      const { saveAs } = fileSaverMod;
       const html = version.content || '';
       const div = document.createElement('div');
-      div.innerHTML = html;
-      const paragraphs: Paragraph[] = [];
+      div.innerHTML = DOMPurify.sanitize(html, RICH_TEXT_WITH_IMAGES_CONFIG);
+      const paragraphs: ParagraphType[] = [];
 
       const processNode = (node: Node) => {
         if (node.nodeType === Node.TEXT_NODE) {
@@ -427,7 +438,7 @@ export function SectionVersionHistoryDialog({
 
       const { error } = await supabase
         .from('section_versions')
-        .update(updateData)
+        .update(updateData as any)
         .eq('id', version.id);
       if (error) throw error;
 
@@ -460,7 +471,7 @@ export function SectionVersionHistoryDialog({
 
       const { error } = await supabase
         .from('section_versions')
-        .update(updateData)
+        .update(updateData as any)
         .eq('id', version.id);
       if (error) throw error;
 
@@ -598,6 +609,12 @@ export function SectionVersionHistoryDialog({
                 <div>
                   <h4 className={`text-sm ${selectedVersion.is_major ? 'font-semibold' : 'font-medium'}`}>
                     Version {displayVersionNumbers.get(selectedVersion.id) || selectedVersion.version_number}
+                    {(() => {
+                      const derived = displayVersionNumbers.get(selectedVersion.id);
+                      return derived && derived !== String(selectedVersion.version_number) ? (
+                        <span className="text-xs text-muted-foreground font-normal ml-1">(v{selectedVersion.version_number})</span>
+                      ) : null;
+                    })()}
                   </h4>
 
                   {/* Label display / editing */}

@@ -1,42 +1,10 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React from 'react';
 import DOMPurify from 'dompurify';
-import { Button } from '@/components/ui/button';
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+import { RICH_TEXT_CONFIG } from '@/lib/sanitizePresets';
 import { EditableCaption } from '@/components/EditableCaption';
-import { useQueryClient } from '@tanstack/react-query';
-import { Check, ChevronsUpDown, Crown, GripVertical, Plus, Trash2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
+
 import type { B31WPData, B31Participant, B31Task } from '@/hooks/useB31SectionData';
+import { B31Pill, WPBubble, ParticipantBubble } from './B31Pill';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 
@@ -47,302 +15,46 @@ interface Props {
   projectDuration?: number;
 }
 
-/* ── Participant bubble ── */
-function ParticipantBubble({ participant, showCrown = false }: { participant: B31Participant; showCrown?: boolean }) {
+/* ── Read-only rich-text renderer (Times New Roman 11pt, justified) ── */
+function ReadOnlyRichText({ html, placeholder }: { html: string | null | undefined; placeholder?: string }) {
+  const raw = (html ?? '').toString();
+  const isEmpty = !raw || raw.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, '').trim() === '';
+  if (isEmpty) {
+    return placeholder ? (
+      <span className="text-muted-foreground italic">{placeholder}</span>
+    ) : null;
+  }
+  const safe = DOMPurify.sanitize(raw, RICH_TEXT_CONFIG);
   return (
-    <span
-      className="inline-flex items-center rounded-full font-bold whitespace-nowrap"
-      style={{ backgroundColor: '#000000', color: '#FFFFFF', border: '1.5px solid #000000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, fontStyle: 'normal', lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px' }}
-    >
-      {showCrown && <Crown className="h-2.5 w-2.5 mr-0.5 fill-white" strokeWidth={0} />}
-      {participant.organisation_short_name || participant.organisation_name}
-    </span>
+    <div
+      className="font-['Times_New_Roman',Times,serif] text-[11pt] text-justify [&_p]:mt-[3pt] [&_p]:mb-[3pt] [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-[calc(1.5em-4pt)] [&_ol]:pl-[calc(1.5em-4pt)] [&_li::marker]:text-[0.85em] [&_li]:my-[1pt]"
+      dangerouslySetInnerHTML={{ __html: safe }}
+    />
   );
 }
 
-/* ── Single-select participant picker (with deselect support) ── */
-function LeaderPicker({
-  entityId,
-  entityTable,
-  currentLeaderId,
-  participants,
-  proposalId,
-  showCrown = false,
-  arrowPosition = 'right',
-}: {
-  entityId: string;
-  entityTable: 'wp_drafts' | 'wp_draft_tasks' | 'b31_tasks';
-  currentLeaderId: string | null;
-  participants: B31Participant[];
-  proposalId: string;
-  showCrown?: boolean;
-  arrowPosition?: 'left' | 'right';
-}) {
-  const [open, setOpen] = useState(false);
-  const queryClient = useQueryClient();
-  const leader = participants.find(p => p.id === currentLeaderId);
-
-  const select = async (pid: string | null) => {
-    setOpen(false);
-    await supabase.from(entityTable).update({ lead_participant_id: pid }).eq('id', entityId);
-    queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
-  };
-
-  const arrow = <ChevronsUpDown className="h-3 w-3 opacity-50 shrink-0" />;
-  const content = leader ? (
-    <ParticipantBubble participant={leader} showCrown={showCrown} />
-  ) : (
-    <span className="text-muted-foreground text-[9pt] italic">{entityTable === 'wp_drafts' ? 'Select WP leader' : 'Select task leader'}</span>
-  );
-
+/* ── Read-only plain text ── */
+function ReadOnlyText({ value, placeholder, className, style }: { value: string | null | undefined; placeholder?: string; className?: string; style?: React.CSSProperties }) {
+  const v = (value ?? '').toString();
+  if (!v.trim()) {
+    return placeholder ? <span className="text-muted-foreground italic">{placeholder}</span> : null;
+  }
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80">
-          {arrowPosition === 'left' ? <>{arrow}{content}</> : <>{content}{arrow}</>}
-        </button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[220px] p-0" align="start">
-        <div className="max-h-[200px] overflow-y-auto">
-          {currentLeaderId && (
-            <button
-              className="flex items-center gap-2 w-full px-2 py-1.5 text-sm hover:bg-accent cursor-pointer text-muted-foreground italic"
-              onClick={() => select(null)}
-            >
-              Clear selection
-            </button>
-          )}
-          {participants.map(p => (
-            <button
-              key={p.id}
-              className={cn(
-                'flex items-center gap-2 w-full px-2 py-1.5 text-sm hover:bg-accent cursor-pointer',
-                p.id === currentLeaderId && 'bg-accent',
-              )}
-              onClick={() => select(p.id)}
-            >
-              <div
-                className={cn(
-                  'flex h-4 w-4 items-center justify-center rounded-full border',
-                  p.id === currentLeaderId ? 'bg-primary border-primary' : 'border-muted-foreground',
-                )}
-              >
-                {p.id === currentLeaderId && <Check className="h-3 w-3 text-primary-foreground" />}
-              </div>
-              <span
-                className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
-                style={{ backgroundColor: '#000000', color: '#ffffff', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, padding: '0px 5px', height: '17px' }}
-              >
-                {p.participant_number}. {p.organisation_short_name || p.organisation_name}
-              </span>
-            </button>
-          ))}
-        </div>
-      </PopoverContent>
-    </Popover>
+    <span className={className} style={style}>{v}</span>
   );
 }
 
-/* ── Multi-select participant picker (partners) ── */
-function PartnersPicker({
-  taskId,
-  selectedIds,
-  participants,
-  proposalId,
-  leaderId,
-}: {
-  taskId: string;
-  selectedIds: string[];
-  participants: B31Participant[];
-  proposalId: string;
-  leaderId: string | null;
-}) {
-  const [open, setOpen] = useState(false);
-  const queryClient = useQueryClient();
-
-  const filteredSelectedIds = selectedIds.filter(id => id !== leaderId);
-  const availableParticipants = participants.filter(p => p.id !== leaderId);
-
-  const toggle = async (pid: string) => {
-    const next = filteredSelectedIds.includes(pid)
-      ? filteredSelectedIds.filter(id => id !== pid)
-      : [...filteredSelectedIds, pid];
-    await supabase.from('b31_task_participants').delete().eq('task_id', taskId);
-    if (next.length > 0) {
-      await supabase
-        .from('b31_task_participants')
-        .insert(next.map(participant_id => ({ task_id: taskId, participant_id })));
-    }
-    queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
-  };
-
-  const selected = availableParticipants.filter(p => filteredSelectedIds.includes(p.id));
-
+/* ── Read-only leader pill (no popover) ── */
+function LeaderPill({ leader, placeholder }: { leader: B31Participant | undefined; placeholder?: string }) {
+  if (!leader) {
+    return <span className="text-muted-foreground text-[9pt] italic">{placeholder || '—'}</span>;
+  }
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button className="inline-flex items-center gap-1 flex-wrap cursor-pointer hover:opacity-80">
-          {selected.length > 0 ? (
-            selected.map(p => (
-              <ParticipantBubble key={p.id} participant={p} />
-            ))
-          ) : (
-            <span className="text-muted-foreground text-[9pt] italic">Select participant(s)</span>
-          )}
-          <ChevronsUpDown className="h-3 w-3 opacity-50 shrink-0" />
-        </button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[220px] p-0" align="start">
-        <div className="max-h-[200px] overflow-y-auto">
-          {availableParticipants.map(p => {
-            const isSelected = filteredSelectedIds.includes(p.id);
-            return (
-              <button
-                key={p.id}
-                className={cn(
-                  'flex items-center gap-2 w-full px-2 py-1.5 text-sm hover:bg-accent cursor-pointer',
-                  isSelected && 'bg-accent',
-                )}
-                onClick={() => toggle(p.id)}
-              >
-                <div
-                  className={cn(
-                    'flex h-4 w-4 items-center justify-center rounded-sm border',
-                    isSelected ? 'bg-primary border-primary' : 'border-muted-foreground',
-                  )}
-                >
-                  {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
-                </div>
-                <span
-                  className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
-                  style={{ backgroundColor: '#000000', color: '#ffffff', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, padding: '0px 5px', height: '17px' }}
-                >
-                  {p.participant_number}. {p.organisation_short_name || p.organisation_name}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
-}
-
-/* ── Month range picker ── */
-function MonthRangePicker({
-  taskId,
-  startMonth,
-  endMonth,
-  proposalId,
-  projectDuration = 36,
-}: {
-  taskId: string;
-  startMonth: number | null;
-  endMonth: number | null;
-  proposalId: string;
-  projectDuration?: number;
-}) {
-  const [open, setOpen] = useState(false);
-  const [selecting, setSelecting] = useState<'start' | 'end' | null>(null);
-  const [localStart, setLocalStart] = useState(startMonth);
-  const [localEnd, setLocalEnd] = useState(endMonth);
-  const queryClient = useQueryClient();
-
-  const months = Array.from({ length: projectDuration }, (_, i) => i + 1);
-
-  const save = async (start: number | null, end: number | null) => {
-    await supabase.from('b31_tasks').update({ start_month: start, end_month: end }).eq('id', taskId);
-    queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
-  };
-
-  const handleClick = (m: number) => {
-    if (selecting === 'start' || !selecting) {
-      setLocalStart(m);
-      if (localEnd != null && m > localEnd) {
-        setLocalEnd(null);
-      }
-      setSelecting('end');
-    } else {
-      if (m < (localStart ?? 1)) {
-        setLocalStart(m);
-        setSelecting('end');
-      } else {
-        setLocalEnd(m);
-        setSelecting(null);
-        save(localStart, m);
-        setOpen(false);
-      }
-    }
-  };
-
-  const handleOpen = (isOpen: boolean) => {
-    setOpen(isOpen);
-    if (isOpen) {
-      setLocalStart(startMonth);
-      setLocalEnd(endMonth);
-      setSelecting('start');
-    }
-  };
-
-  const formatMonth = (m: number | null) => m != null ? `M${String(m).padStart(2, '0')}` : null;
-
-  return (
-    <Popover open={open} onOpenChange={handleOpen}>
-      <PopoverTrigger asChild>
-        <button className="cursor-pointer hover:opacity-80 font-['Times_New_Roman',Times,serif] text-[11pt] font-bold">
-          {startMonth != null && endMonth != null ? (
-            <>{formatMonth(startMonth)}–{formatMonth(endMonth)}</>
-          ) : startMonth != null ? (
-            <>{formatMonth(startMonth)}–<span className="text-muted-foreground italic">M??</span></>
-          ) : (
-            <span className="text-muted-foreground italic">Duration</span>
-          )}
-        </button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[280px] p-2" align="start">
-        <div className="flex items-center justify-between mb-1.5">
-          <span className="text-xs text-muted-foreground font-medium">
-            {selecting === 'start' ? 'Select start month' : selecting === 'end' ? 'Select end month' : 'Select start month'}
-          </span>
-          {(startMonth != null || endMonth != null) && (
-            <button
-              className="text-xs text-muted-foreground hover:text-foreground italic cursor-pointer"
-              onClick={() => {
-                setLocalStart(null);
-                setLocalEnd(null);
-                save(null, null);
-                setOpen(false);
-              }}
-            >
-              Clear selection
-            </button>
-          )}
-        </div>
-        <div className="grid grid-cols-6 gap-0.5">
-          {months.map(m => {
-            const isStart = m === localStart;
-            const isEnd = m === localEnd;
-            const isInRange = localStart != null && localEnd != null && m >= localStart && m <= localEnd;
-            const isPartialRange = selecting === 'end' && localStart != null && localEnd == null && m >= localStart;
-            return (
-              <button
-                key={m}
-                className={cn(
-                  'px-1 py-0.5 text-xs rounded cursor-pointer text-center',
-                  (isStart || isEnd) && 'bg-primary text-primary-foreground font-bold',
-                  !isStart && !isEnd && isInRange && 'bg-primary/20',
-                  !isStart && !isEnd && !isInRange && isPartialRange && 'bg-primary/10',
-                  !isStart && !isEnd && !isInRange && !isPartialRange && 'hover:bg-accent',
-                )}
-                onClick={() => handleClick(m)}
-              >
-                M{String(m).padStart(2, '0')}
-              </button>
-            );
-          })}
-        </div>
-      </PopoverContent>
-    </Popover>
+    <ParticipantBubble
+      showCrown
+      shortName={leader.organisation_short_name || leader.organisation_name}
+      style={{ fontStyle: 'normal' }}
+    />
   );
 }
 
@@ -365,13 +77,7 @@ function SpacerRow({ color }: { color?: string }) {
         contentEditable={false}
       >
         {color ? (
-          <div
-            style={{
-              width: '100%',
-              height: '1px',
-              backgroundColor: color,
-            }}
-          />
+          <div style={{ width: '100%', height: '1px', backgroundColor: color }} />
         ) : (
           <>&nbsp;</>
         )}
@@ -380,410 +86,84 @@ function SpacerRow({ color }: { color?: string }) {
   );
 }
 
-/* ── Inline editable text cell ── */
-function EditableText({
-  value,
-  onSave,
-  placeholder,
-  className,
-  inline,
-}: {
-  value: string;
-  onSave: (newValue: string) => void;
-  placeholder?: string;
-  className?: string;
-  inline?: boolean;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const savedRef = useRef(value);
-  const [focused, setFocused] = useState(false);
-
-  const isEmpty = !value || value.trim() === '' || value.trim() === '<p></p>' || value.trim() === '<br>';
-
-  const handleBlur = useCallback(() => {
-    setFocused(false);
-    const current = ref.current?.innerHTML || '';
-    const trimmed = current.replace(/<br\s*\/?>/gi, '').replace(/<p>\s*<\/p>/gi, '').trim();
-    if (trimmed === '' && savedRef.current === '') return;
-    if (current !== savedRef.current) {
-      const finalValue = trimmed === '' ? '' : current;
-      savedRef.current = finalValue;
-      onSave(finalValue);
-    }
-  }, [onSave]);
-
-  const handleFocus = useCallback(() => {
-    setFocused(true);
-    if (isEmpty && ref.current) {
-      ref.current.innerHTML = '';
-    }
-  }, [isEmpty]);
-
-  const Tag = inline ? 'span' : 'div';
-
-  const displayHtml = (!focused && isEmpty)
-    ? DOMPurify.sanitize(placeholder || '', { ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'ul', 'ol', 'li', 'span', 'a', 'h1', 'h2', 'h3', 'h4', 'sub', 'sup', 'table', 'thead', 'tbody', 'tr', 'th', 'td'], ALLOWED_ATTR: ['class', 'style', 'href', 'target', 'rel', 'colspan', 'rowspan'] })
-    : DOMPurify.sanitize(value || '', { ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'ul', 'ol', 'li', 'span', 'a', 'h1', 'h2', 'h3', 'h4', 'sub', 'sup', 'table', 'thead', 'tbody', 'tr', 'th', 'td'], ALLOWED_ATTR: ['class', 'style', 'href', 'target', 'rel', 'colspan', 'rowspan'] });
-
-  return (
-    <Tag
-      ref={ref as any}
-      contentEditable
-      suppressContentEditableWarning
-      className={cn(
-        "outline-none min-h-[1.2em] font-['Times_New_Roman',Times,serif] text-[11pt] text-justify [&_p]:mt-[6pt] [&_p]:mb-[6pt] [&_div]:mt-[6pt] [&_div]:mb-[6pt]",
-        !focused && isEmpty && 'text-muted-foreground italic',
-        className,
-      )}
-      onBlur={handleBlur}
-      onFocus={handleFocus}
-      dangerouslySetInnerHTML={{ __html: displayHtml }}
-    />
-  );
+function formatMonth(m: number | null | undefined): string | null {
+  return m != null ? `M${String(m).padStart(2, '0')}` : null;
 }
 
-/* ── Inline editable plain text (for headers) ── */
-function EditableHeaderText({
-  value,
-  onSave,
-  className,
-  style: styleProp,
-}: {
-  value: string;
-  onSave: (newValue: string) => void;
-  className?: string;
-  style?: React.CSSProperties;
-}) {
-  const ref = useRef<HTMLSpanElement>(null);
-  const savedRef = useRef(value);
-  const [focused, setFocused] = useState(false);
-
-  const isEmpty = !value || value.trim() === '';
-
-  const handleBlur = useCallback(() => {
-    setFocused(false);
-    const current = ref.current?.textContent || '';
-    if (current !== savedRef.current) {
-      savedRef.current = current;
-      onSave(current);
-    }
-  }, [onSave]);
-
-  const handleFocus = useCallback(() => {
-    setFocused(true);
-    if (isEmpty && ref.current) {
-      ref.current.textContent = '';
-    }
-  }, [isEmpty]);
-
-  return (
-    <span
-      ref={ref}
-      contentEditable
-      suppressContentEditableWarning
-      className={cn(
-        "outline-none font-['Times_New_Roman',Times,serif] text-[11pt] min-h-[1.2em] inline-block cursor-text rounded px-0.5 transition-colors hover:bg-muted/40 focus:bg-muted/20",
-        !focused && isEmpty && "text-muted-foreground/50 italic",
-        className
-      )}
-      style={styleProp}
-      onBlur={handleBlur}
-      onFocus={handleFocus}
-    >
-      {!focused && isEmpty ? 'Click to add title' : value}
-    </span>
-  );
-}
-
-/* ── Caption bubble helpers ── */
-function CaptionParticipantBubble({ showCrown = false }: { showCrown?: boolean }) {
-  return (
-    <span
-      className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
-      style={{ backgroundColor: '#000000', color: '#FFFFFF', border: '1.5px solid #000000', fontFamily: "'Times New Roman', Times, serif", fontSize: '8pt', fontWeight: 700, fontStyle: 'normal', lineHeight: 1, verticalAlign: 'baseline', padding: '0px 4px', height: '17px' }}
-    >
-      {showCrown && <Crown className="h-2.5 w-2.5 fill-white" strokeWidth={0} />}
-      {!showCrown && <span style={{ display: 'inline-block', width: 10 }}>&nbsp;</span>}
-    </span>
-  );
-}
-
-function CaptionTaskBubble() {
-  return (
-    <span
-      className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
-      style={{ backgroundColor: '#ffffff', color: '#000000', border: '1.5px solid #000000', fontFamily: "'Times New Roman', Times, serif", fontSize: '8pt', fontWeight: 700, fontStyle: 'normal', lineHeight: 1, verticalAlign: 'baseline', padding: '0px 4px', height: '17px' }}
-    >
-      TX.X
-    </span>
-  );
-}
-
-function CaptionWPBubble() {
-  return (
-    <span
-      className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
-      style={{ backgroundColor: '#000000', color: '#ffffff', border: '1.5px solid #000000', fontFamily: "'Times New Roman', Times, serif", fontSize: '8pt', fontWeight: 700, fontStyle: 'normal', lineHeight: 1, verticalAlign: 'baseline', padding: '0px 4px', height: '17px' }}
-    >
-      WPX
-    </span>
-  );
-}
-
-/* ── Sortable task group (wraps 3 rows in a tbody) ── */
-function SortableTaskGroup({
+function TaskGroup({
   task,
   wp,
   participants,
-  proposalId,
-  projectDuration,
-  saveTaskField,
-  onDeleteTask,
 }: {
   task: B31Task;
   wp: B31WPData;
   participants: B31Participant[];
-  proposalId: string;
-  projectDuration: number;
-  saveTaskField: (taskId: string, field: string, value: string) => void;
-  onDeleteTask: (taskId: string) => void;
 }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: task.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
-  const partnerIds = task.participants?.map(p => p.participant_id) || [];
-  const queryClient = useQueryClient();
+  const leader = participants.find((p) => p.id === task.lead_participant_id);
+  const partnerIds = (task.participants || []).map((p) => p.participant_id).filter((id) => id !== task.lead_participant_id);
+  const partners = participants.filter((p) => partnerIds.includes(p.id));
+  const start = formatMonth(task.start_month);
+  const end = formatMonth(task.end_month);
 
   return (
-    <tbody ref={setNodeRef} style={style}>
-      {/* Colour border above task */}
+    <tbody>
       <SpacerRow color={wp.color} />
-
       {/* Task header */}
       <tr>
-        <td
-          colSpan={2}
-          className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight"
-          style={{ padding: '1px 6px 1px 0px', border: 'none', position: 'relative', overflow: 'visible' }}
+        <td colSpan={2} className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight"
+          style={{ padding: '1px 6px 1px 0px', border: 'none' }}
         >
-          {/* Drag handle – left margin */}
-          <button
-            {...attributes}
-            {...listeners}
-            className="cursor-grab active:cursor-grabbing p-0.5 hover:bg-muted rounded touch-none print:hidden"
-            title="Drag to reorder"
-            style={{ position: 'absolute', left: '-28px', top: '50%', transform: 'translateY(-50%)' }}
-          >
-            <GripVertical className="w-3.5 h-3.5 text-[#2563EB]" />
-          </button>
-          {/* Delete button – right margin */}
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <button
-                className="p-0.5 text-destructive hover:bg-destructive/10 rounded transition-colors print:hidden"
-                title="Delete task"
-                style={{ position: 'absolute', right: '-28px', top: '50%', transform: 'translateY(-50%)' }}
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete task T{wp.number}.{task.number}?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This will permanently delete this task and its description. This action cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  onClick={() => onDeleteTask(task.id)}
-                >
-                  Delete
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
           <div className="flex items-center gap-1">
-            <span
-              className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
-              style={{ backgroundColor: '#fff', color: wp.color, border: `1.5px solid ${wp.color}`, fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px' }}
-            >
+            <B31Pill variant="outline" color={wp.color}>
               T{wp.number}.{task.number}
-            </span>
-            <span className="font-bold text-[11pt] font-['Times_New_Roman',Times,serif] leading-tight flex-1" data-commentable={`task-title-${wp.number}-${task.number}`}>
-              <EditableHeaderText
-                value={task.title || ''}
-                onSave={(val) => saveTaskField(task.id, 'title', val)}
-              />
+            </B31Pill>
+            <span className="font-bold text-[11pt] font-['Times_New_Roman',Times,serif] leading-tight flex-1">
+              <ReadOnlyText value={task.title} placeholder="Untitled task" />
             </span>
           </div>
         </td>
       </tr>
 
-      {/* Task metadata row: duration | leader | partners */}
+      {/* Meta row: leader + partners + duration */}
       <tr>
-        <td className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle py-0" style={{ border: 'none', paddingLeft: '6px', paddingRight: '6px' }} data-commentable={`task-meta-${wp.number}-${task.number}`}>
+        <td className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle py-0"
+          style={{ border: 'none', paddingLeft: '6px', paddingRight: '6px' }}
+        >
           <div className="flex items-center justify-between flex-wrap gap-0.5">
-            <div className="flex items-center gap-0.5">
-              <LeaderPicker
-                entityId={task.id}
-                entityTable="b31_tasks"
-                currentLeaderId={task.lead_participant_id}
-                participants={participants}
-                proposalId={proposalId}
-                showCrown
-              />
-              <PartnersPicker
-                taskId={task.id}
-                selectedIds={partnerIds}
-                participants={participants}
-                proposalId={proposalId}
-                leaderId={task.lead_participant_id}
-              />
+            <div className="flex items-center gap-0.5 flex-wrap">
+              <LeaderPill leader={leader} placeholder="No task leader" />
+              {partners.map((p) => (
+                <ParticipantBubble
+                  key={p.id}
+                  shortName={p.organisation_short_name || p.organisation_name}
+                  style={{ fontStyle: 'normal' }}
+                />
+              ))}
             </div>
-            <MonthRangePicker taskId={task.id} startMonth={task.start_month} endMonth={task.end_month} proposalId={proposalId} projectDuration={projectDuration} />
+            <span className="font-bold text-[11pt] font-['Times_New_Roman',Times,serif] whitespace-nowrap">
+              {start && end ? `${start}–${end}` : start ? `${start}–M??` : (
+                <span className="text-muted-foreground italic font-normal">Duration not set</span>
+              )}
+            </span>
           </div>
         </td>
       </tr>
 
-      {/* Task description */}
+      {/* Description */}
       <tr>
-        <td
-          colSpan={2}
-          className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-top"
+        <td colSpan={2} className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-top"
           style={{ border: 'none', padding: '2px 6px' }}
         >
-          <EditableText
-            value={task.description || ''}
-            onSave={(val) => saveTaskField(task.id, 'description', val)}
-            placeholder="Click to add task description…"
-          />
+          <ReadOnlyRichText html={task.description} placeholder="No task description yet" />
         </td>
       </tr>
-
     </tbody>
   );
 }
 
-/* ── Main component ── */
-export function B31WPDescriptionTables({ wpData, participants, proposalId, projectDuration = 36 }: Props) {
-  const queryClient = useQueryClient();
-  const populatedWPs = wpData;
-
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  );
-
-  if (populatedWPs.length === 0) return null;
-
-  const saveWPField = async (wpId: string, field: string, value: string) => {
-    await supabase.from('wp_drafts').update({ [field]: value || null }).eq('id', wpId);
-    queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
-  };
-
-  const saveTaskField = async (taskId: string, field: string, value: string) => {
-    await supabase.from('b31_tasks').update({ [field]: value || null }).eq('id', taskId);
-    queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
-  };
-
-  const handleDeleteTask = async (taskId: string) => {
-    const ownerWp = wpData.find(wp => wp.b31_tasks.some(t => t.id === taskId));
-
-    const { error } = await supabase.from('b31_tasks').delete().eq('id', taskId);
-    if (error) {
-      toast.error('Failed to delete task');
-      return;
-    }
-
-    if (ownerWp) {
-      const remaining = ownerWp.b31_tasks
-        .filter(t => t.id !== taskId)
-        .sort((a, b) => a.number - b.number);
-      for (let i = 0; i < remaining.length; i++) {
-        await supabase
-          .from('b31_tasks')
-          .update({ number: i + 1, order_index: i })
-          .eq('id', remaining[i].id);
-      }
-    }
-
-    queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
-    toast.success('Task deleted');
-  };
-
-  const handleAddTask = async (wp: B31WPData) => {
-    const nextNumber = wp.b31_tasks.length > 0 ? Math.max(...wp.b31_tasks.map(t => t.number)) + 1 : 1;
-    const nextOrderIndex = wp.b31_tasks.length;
-    const { error } = await supabase.from('b31_tasks').insert({
-      wp_draft_id: wp.id,
-      number: nextNumber,
-      order_index: nextOrderIndex,
-    });
-    if (error) {
-      toast.error('Failed to add task');
-      return;
-    }
-    queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
-  };
-
-  const handleTaskDragEnd = async (event: DragEndEvent, wp: B31WPData) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-
-    const oldIndex = wp.b31_tasks.findIndex(t => t.id === active.id);
-    const newIndex = wp.b31_tasks.findIndex(t => t.id === over.id);
-    if (oldIndex === -1 || newIndex === -1) return;
-
-    const previousOrder = wp.b31_tasks.map(t => t.id);
-    const reordered = arrayMove(wp.b31_tasks, oldIndex, newIndex);
-
-    const applyOrder = async (taskIds: string[], _label: string) => {
-      for (let i = 0; i < taskIds.length; i++) {
-        const { error } = await supabase
-          .from('b31_tasks')
-          .update({ order_index: i, number: i + 1 })
-          .eq('id', taskIds[i]);
-        if (error) {
-          toast.error('Failed to reorder tasks');
-          return false;
-        }
-      }
-      await queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
-      return true;
-    };
-
-    const reorderedIds = reordered.map(t => t.id);
-    const success = await applyOrder(reorderedIds, 'reorder');
-    if (success) {
-      toast.success('Tasks reordered', {
-        duration: 10000,
-        action: {
-          label: 'Undo',
-          onClick: async () => {
-            const undone = await applyOrder(previousOrder, 'undo');
-            if (undone) {
-              toast.success('Reorder undone');
-            }
-          },
-        },
-      });
-    }
-  };
+/* ── Main read-only WP descriptions mirror (Table 3.1.b) ── */
+export function B31WPDescriptionTables({ wpData, participants, proposalId }: Props) {
+  if (!wpData || wpData.length === 0) return null;
 
   return (
     <div>
@@ -792,17 +172,15 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
         tableKey="table-3.1.b"
         label="Table 3.1.b."
         defaultCaption="Work package descriptions"
-        suffix={<>Work package descriptions <CaptionWPBubble />, including objectives, task descriptions <CaptionTaskBubble />, task/WP leaders <CaptionParticipantBubble showCrown />, other task participants <CaptionParticipantBubble /> &amp; duration</>}
         className="mb-0"
       />
-      {populatedWPs.map((wp, idx) => {
+      {wpData.map((wp) => {
         const shortName = wp.short_name || '';
         const title = wp.title || '';
-        const wpLeader = participants.find(p => p.id === wp.lead_participant_id);
+        const wpLeader = participants.find((p) => p.id === wp.lead_participant_id);
 
-        // Compute month range from tasks
-        const starts = wp.b31_tasks.map(t => t.start_month).filter((m): m is number => m != null);
-        const ends = wp.b31_tasks.map(t => t.end_month).filter((m): m is number => m != null);
+        const starts = wp.tasks.map((t) => t.start_month).filter((m): m is number => m != null);
+        const ends = wp.tasks.map((t) => t.end_month).filter((m): m is number => m != null);
         const monthRange = starts.length > 0 && ends.length > 0
           ? `M${String(Math.min(...starts)).padStart(2, '0')}–M${String(Math.max(...ends)).padStart(2, '0')}`
           : null;
@@ -810,55 +188,35 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
         return (
           <div key={wp.id}>
             <div style={{ height: '0.7em' }} />
-            <table
-              className={`${tableStyles} w-full border-collapse`}
-            >
+            <table className={`${tableStyles} w-full border-collapse`}>
               <tbody>
-                {/* WP Header: pill bubble spanning full width */}
+                {/* WP Header */}
                 <tr>
-                  <td
-                    colSpan={2}
-                    className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight"
+                  <td colSpan={2} className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight"
                     style={{ padding: '0 2px', border: 'none' }}
                   >
-                     <span
-                       className="inline-flex items-baseline rounded-full font-bold text-white w-full"
-                        style={{ backgroundColor: wp.color, border: `1.5px solid ${wp.color}`, fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, padding: '0px 6px', color: '#ffffff' }}
-                     >
-                      WP{wp.number}:&nbsp;
-                      <EditableHeaderText
-                        value={shortName}
-                        onSave={(val) => saveWPField(wp.id, 'short_name', val)}
-                        className="text-white"
-                        style={{ fontFamily: "'Times New Roman', Times, serif" }}
-                      />
-                      {shortName && title ? <>&nbsp;–&nbsp;</> : null}
-                      <EditableHeaderText
-                        value={title}
-                        onSave={(val) => saveWPField(wp.id, 'title', val)}
-                        className="text-white"
-                        style={{ fontFamily: "'Times New Roman', Times, serif" }}
-                      />
-                    </span>
+                    <WPBubble
+                      wpColor={wp.color}
+                      style={{ alignItems: 'baseline', justifyContent: 'flex-start', width: '100%', height: 'auto', padding: '0 6px' }}
+                    >
+                      <span className="text-white">
+                        WP{wp.number}: {shortName}
+                        {shortName && title ? ' – ' : ''}{title}
+                      </span>
+                    </WPBubble>
                   </td>
                 </tr>
 
-                {/* Spacing between header and duration row */}
                 <tr><td colSpan={2} style={{ border: 'none', padding: 0, height: '3px', lineHeight: '3px', fontSize: '1pt' }} /></tr>
 
-                {/* WP duration + leader row */}
+                {/* WP leader + duration */}
                 <tr>
-                  <td className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle py-0" style={{ border: 'none', paddingLeft: '6px', paddingRight: '6px' }}>
+                  <td className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle py-0"
+                    style={{ border: 'none', paddingLeft: '6px', paddingRight: '6px' }}
+                  >
                     <div className="flex items-center justify-between flex-wrap gap-0.5">
                       <div className="flex items-center gap-0.5">
-                        <LeaderPicker
-                          entityId={wp.id}
-                          entityTable="wp_drafts"
-                          currentLeaderId={wp.lead_participant_id}
-                          participants={participants}
-                          proposalId={proposalId}
-                          showCrown
-                        />
+                        <LeaderPill leader={wpLeader} placeholder="No WP leader" />
                       </div>
                       <span className="font-bold text-[11pt] font-['Times_New_Roman',Times,serif] whitespace-nowrap" style={{ color: '#000000' }}>
                         {monthRange || <span className="text-muted-foreground italic font-normal">—</span>}
@@ -867,79 +225,35 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
                   </td>
                 </tr>
 
-                {/* Spacer with WP colour border */}
                 <SpacerRow color={wp.color} />
 
-                {/* Objectives */}
+                {/* Objectives (from wp_drafts.objectives — source of truth) */}
                 <tr>
-                  <td
-                    colSpan={2}
-                    className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-top"
+                  <td colSpan={2} className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-top"
                     style={{ border: 'none', padding: '2px 6px' }}
                   >
-                    <EditableText
-                      value={wp.b31_objectives || ''}
-                      onSave={(val) => saveWPField(wp.id, 'b31_objectives', val)}
-                      placeholder="Click to add objectives…"
-                    />
+                    <ReadOnlyRichText html={wp.objectives} placeholder="No objectives in WP draft yet" />
                   </td>
                 </tr>
 
-                {/* Optional field before tasks */}
-                {wp.b31_description_before_tasks && (wp.b31_description_before_tasks as string).replace(/<[^>]*>/g, '').trim() !== '' && (
+                {/* Optional description before tasks */}
+                {wp.description_before_tasks && wp.description_before_tasks.replace(/<[^>]*>/g, '').trim() !== '' && (
                   <tr>
-                    <td
-                      colSpan={2}
-                      className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-top"
+                    <td colSpan={2} className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-top"
                       style={{ border: 'none', padding: '2px 6px' }}
                     >
-                      <EditableText
-                        value={wp.b31_description_before_tasks as string}
-                        onSave={(val) => saveWPField(wp.id, 'b31_description_before_tasks', val)}
-                        placeholder=""
-                      />
+                      <ReadOnlyRichText html={wp.description_before_tasks} />
                     </td>
                   </tr>
                 )}
-
               </tbody>
 
-              {/* Tasks - each in its own sortable tbody */}
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={(event) => handleTaskDragEnd(event, wp)}
-              >
-                <SortableContext items={wp.b31_tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
-                  {wp.b31_tasks.map(task => (
-                    <SortableTaskGroup
-                      key={task.id}
-                      task={task}
-                      wp={wp}
-                      participants={participants}
-                      proposalId={proposalId}
-                      projectDuration={projectDuration}
-                      saveTaskField={saveTaskField}
-                      onDeleteTask={handleDeleteTask}
-                    />
-                  ))}
-                </SortableContext>
-              </DndContext>
+              {/* Tasks */}
+              {wp.tasks.map((task) => (
+                <TaskGroup key={task.id} task={task} wp={wp} participants={participants} />
+              ))}
 
-              {/* Add task button + colour border */}
               <tbody>
-                <tr>
-                  <td colSpan={2} style={{ border: 'none', padding: '4px 6px' }} className="print:hidden">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-1.5 text-xs"
-                      onClick={() => handleAddTask(wp)}
-                    >
-                      <Plus className="w-3.5 h-3.5" /> Add task
-                    </Button>
-                  </td>
-                </tr>
                 <SpacerRow color={wp.color} />
               </tbody>
             </table>
@@ -949,4 +263,3 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
     </div>
   );
 }
-

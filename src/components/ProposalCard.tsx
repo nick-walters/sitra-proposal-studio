@@ -5,6 +5,8 @@ import { Calendar, FileText, ArrowRight, Send, CheckCircle2, XCircle, Clock, Ext
 import { format, differenceInDays } from "date-fns";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { StorageImage } from "@/components/StorageImage";
+import { ColoredAcronym } from "@/components/AcronymColorEditor";
+import { safeOpenUrl } from "@/lib/safeUrl";
 
 interface ProposalCardProps {
   proposal: Proposal;
@@ -96,7 +98,7 @@ function PinButton({ isPinned, canPin, onTogglePin, proposalId, className = '' }
           className={`h-6 w-6 flex-shrink-0 ${className}`}
           onClick={(e) => { e.stopPropagation(); onTogglePin(proposalId); }}
           disabled={!isPinned && !canPin}
-        >
+         aria-label="Pin" title="Pin">
           <Pin className={`w-3.5 h-3.5 ${isPinned ? 'fill-primary text-primary stroke-[2.5]' : 'text-muted-foreground/30 stroke-[1.5]'}`} />
         </Button>
       </TooltipTrigger>
@@ -144,7 +146,11 @@ export function ProposalCard({ proposal, onClick, compact = false, isPinned, can
             {/* Acronym and title - fixed width column */}
             <div className="sm:w-64 md:w-80 lg:w-96 flex-shrink-0">
               <div className="font-semibold text-sm">
-                {proposal.acronym}
+                {proposal.acronymSegments?.length ? (
+                  <ColoredAcronym segments={proposal.acronymSegments} />
+                ) : (
+                  proposal.acronym
+                )}
                 {proposal.submissionStage === 'stage_1' && <span className="font-normal text-muted-foreground"> (Stage 1 of 2)</span>}
               </div>
               <div className="text-xs text-muted-foreground truncate">{proposal.title}</div>
@@ -210,7 +216,7 @@ export function ProposalCard({ proposal, onClick, compact = false, isPinned, can
                 className="h-5 w-full px-1.5 gap-0.5 text-[9px]"
                 onClick={(e) => {
                   e.stopPropagation();
-                  window.open(proposal.topicUrl, '_blank');
+                  safeOpenUrl(proposal.topicUrl);
                 }}
               >
                 Topic
@@ -287,7 +293,11 @@ export function ProposalCard({ proposal, onClick, compact = false, isPinned, can
 
             {/* Acronym and title */}
             <h3 className="proposal-title text-sm font-semibold group-hover:text-primary transition-colors">
-              {proposal.acronym}
+              {proposal.acronymSegments?.length ? (
+                <ColoredAcronym segments={proposal.acronymSegments} />
+              ) : (
+                proposal.acronym
+              )}
               {proposal.submissionStage === 'stage_1' && <span className="font-normal text-muted-foreground"> (Stage 1 of 2)</span>}
             </h3>
             <p className="text-muted-foreground text-[11px] line-clamp-2">
@@ -304,7 +314,7 @@ export function ProposalCard({ proposal, onClick, compact = false, isPinned, can
                 className="h-6 w-full px-1.5 gap-0.5 text-[10px]"
                 onClick={(e) => {
                   e.stopPropagation();
-                  window.open(proposal.topicUrl, '_blank');
+                  safeOpenUrl(proposal.topicUrl);
                 }}
               >
                 Topic

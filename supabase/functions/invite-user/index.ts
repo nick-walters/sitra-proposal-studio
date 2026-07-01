@@ -1,11 +1,10 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { corsHeaders } from "../_shared/cors.ts";
+import { requireAuth } from "../_shared/auth.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+
+
 
 interface InviteRequest {
   email: string;
@@ -20,38 +19,19 @@ serve(async (req: Request) => {
   }
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Not authenticated" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      });
-    }
+    const auth = await requireAuth(req);
+    if (!auth.ok) return auth.response;
+    const callerId = auth.userId;
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    const callerClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-
-    const {
-      data: { user: caller },
-    } = await callerClient.auth.getUser();
-
-    if (!caller) {
-      return new Response(JSON.stringify({ error: "Invalid token" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      });
-    }
 
     const body = (await req.json()) as Partial<InviteRequest>;
     const email = body.email?.trim().toLowerCase();
     const proposalId = body.proposalId?.trim();
-    const proposalAcronym = body.proposalAcronym?.trim() || "Proposal";
-    const fullName = body.fullName?.trim();
+    const proposalAcronym = (body.proposalAcronym?.replace(/<[^>]*>/g, '').trim()) || "Proposal";
+    const fullName = body.fullName?.replace(/<[^>]*>/g, '').trim();
 
     if (!email || !proposalId) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
@@ -60,21 +40,40 @@ serve(async (req: Request) => {
       });
     }
 
+    if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return new Response(JSON.stringify({ error: "Invalid email address" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    if (fullName && fullName.length > 200) {
+      return new Response(JSON.stringify({ error: "Name is too long (max 200 characters)" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    if (proposalAcronym.length > 100) {
+      return new Response(JSON.stringify({ error: "Proposal acronym is too long" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { data: callerRole } = await adminClient
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", caller.id)
-      .eq("proposal_id", proposalId)
-      .maybeSingle();
-
+    // Only coordinators, proposal admins, or platform owners/admins may invite users
+    const { data: canInvite } = await adminClient.rpc("is_proposal_admin", {
+      _user_id: callerId,
+      _proposal_id: proposalId,
+    });
     const { data: isOwner } = await adminClient.rpc("is_owner", {
-      _user_id: caller.id,
+      _user_id: callerId,
     });
 
-    if (!callerRole && !isOwner) {
-      return new Response(JSON.stringify({ error: "No access to this proposal" }), {
+    if (!canInvite && !isOwner) {
+      return new Response(JSON.stringify({ error: "Only coordinators can invite users to this proposal" }), {
         status: 403,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
@@ -86,10 +85,18 @@ serve(async (req: Request) => {
       .eq("email", email)
       .maybeSingle();
 
-    // Use the published app URL as the redirect base
+    // Use the published app URL as the redirect base. Only accept Origin if it is on a strict allowlist
+    // (prevents an attacker-controlled Origin header from hijacking the password-set link).
     const PUBLISHED_URL = "https://sitra-proposal-studio.lovable.app";
-    const origin = req.headers.get("origin")?.trim();
-    const redirectBase = origin && /^https?:\/\//i.test(origin) && !origin.includes("supabase") ? origin : PUBLISHED_URL;
+    const ALLOWED_ORIGINS = new Set<string>([
+      PUBLISHED_URL,
+      "https://id-preview--41c4eaa0-9c42-48fb-8a64-8c910390fe96.lovable.app",
+      "http://localhost:5173",
+      "http://localhost:8080",
+    ]);
+    const rawOrigin = req.headers.get("origin")?.trim();
+    const isAllowedLovableHost = !!rawOrigin && /^https:\/\/[a-z0-9-]+\.lovable\.app$/i.test(rawOrigin) && !rawOrigin.includes("supabase");
+    const redirectBase = (rawOrigin && (ALLOWED_ORIGINS.has(rawOrigin) || isAllowedLovableHost)) ? rawOrigin : PUBLISHED_URL;
 
     if (existingProfile) {
       return new Response(
@@ -117,7 +124,7 @@ serve(async (req: Request) => {
 
     if (createError) {
       console.error("Create user error:", createError);
-      return new Response(JSON.stringify({ error: createError.message }), {
+      return new Response(JSON.stringify({ error: "Failed to create user account" }), {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
@@ -132,10 +139,18 @@ serve(async (req: Request) => {
       redirectTo: redirectUrl,
     });
 
+    // Redact email in logs (PII): keep first char + domain only.
+    const redactEmail = (e: string) => {
+      const [local, domain] = e.split("@");
+      if (!local || !domain) return "***";
+      return `${local[0]}***@${domain}`;
+    };
+    const safeEmail = redactEmail(email);
+
     if (resetError) {
       console.warn("Failed to send password-set email:", resetError.message);
     } else {
-      console.log(`Password-set email sent to ${email}`);
+      console.log(`Password-set email sent to ${safeEmail}`);
     }
 
     // Step 3: Also generate a direct link for the admin to share as backup
@@ -156,7 +171,7 @@ serve(async (req: Request) => {
       signupUrl = linkData?.properties?.action_link ?? `${redirectBase}/auth`;
     }
 
-    console.log(`User ${email} created for proposal ${proposalAcronym}`);
+    console.log(`User ${safeEmail} created for proposal ${proposalAcronym}`);
 
     return new Response(
       JSON.stringify({
@@ -175,7 +190,7 @@ serve(async (req: Request) => {
     );
   } catch (error) {
     console.error("Error in invite-user:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: "An internal error occurred" }), {
       status: 500,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });

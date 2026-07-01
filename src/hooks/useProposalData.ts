@@ -88,18 +88,7 @@ export function useProposalData(proposalId: string) {
     }
 
     if (data) {
-      const mapped = proposalFromDb(data as Record<string, any>);
-      setProposal({
-        ...mapped,
-        id: data.id,
-        acronym: data.acronym,
-        title: data.title,
-        type: data.type as 'RIA' | 'IA' | 'CSA',
-        budgetType: data.budget_type as BudgetType,
-        status: data.status as ProposalData['status'],
-        createdAt: new Date(data.created_at),
-        updatedAt: new Date(data.updated_at),
-      } as ProposalData);
+      setProposal(proposalFromDb(data) as ProposalData);
     }
   }, [proposalId]);
 
@@ -165,7 +154,7 @@ export function useProposalData(proposalId: string) {
         logoUrl: p.logo_url || undefined,
         picNumber: p.pic_number || undefined,
         legalEntityType: p.legal_entity_type || undefined,
-        isSme: p.is_sme || false,
+        
         participantNumber: p.participant_number || 1,
         contactEmail: p.contact_email || undefined,
         address: p.address || undefined,
@@ -177,6 +166,7 @@ export function useProposalData(proposalId: string) {
         organisationCategory: p.organisation_category || undefined,
         englishName: p.english_name || undefined,
         personnelCostRate: p.personnel_cost_rate || undefined,
+        ocdExempt: p.ocd_exempt ?? null,
         department: p.department || undefined,
         mainContactTitle: p.main_contact_title || undefined,
         mainContactPosition: p.main_contact_position || undefined,
@@ -289,17 +279,13 @@ export function useProposalData(proposalId: string) {
   const updateProposal = async (updates: Partial<ProposalData>) => {
     if (!proposalId) return;
 
-    // Use mapper for fields it knows about; handle direct-name fields separately
+    // All field mapping (including title/acronym/budgetType/status) is handled by proposalToDb.
     const dbUpdates: any = proposalToDb(updates);
-    // Direct-name fields not in the mapper (same name in camelCase and snake_case, or special)
-    if (updates.title !== undefined) dbUpdates.title = updates.title;
-    if (updates.acronym !== undefined) dbUpdates.acronym = updates.acronym;
-    if (updates.budgetType !== undefined) dbUpdates.budget_type = updates.budgetType;
-    if (updates.status !== undefined) dbUpdates.status = updates.status;
+
 
     const { error } = await supabase
       .from('proposals')
-      .update(dbUpdates)
+      .update(dbUpdates as any)
       .eq('id', proposalId);
 
     if (error) {
@@ -326,28 +312,11 @@ export function useProposalData(proposalId: string) {
       }
     }
 
-    // Upsert to shared organisations registry (by PIC number)
-    if (picNumber) {
-      const { data: existingOrg } = await supabase
-        .from('organisations')
-        .select('id')
-        .eq('pic_number', picNumber)
-        .maybeSingle();
-      
-      if (!existingOrg) {
-        // Insert new organisation to shared registry
-        await supabase.from('organisations').insert({
-          name: participant.organisationName,
-          short_name: participant.organisationShortName,
-          pic_number: picNumber,
-          country: participant.country,
-          legal_entity_type: participant.legalEntityType,
-          is_sme: participant.isSme,
-          english_name: participant.englishName,
-          logo_url: participant.logoUrl,
-        });
-      }
-    }
+    // Registry writes are intentionally NOT performed here.
+    // The organisations registry is curated separately via the admin page.
+
+
+  
 
     const { data, error } = await supabase
       .from('participants')
@@ -359,7 +328,6 @@ export function useProposalData(proposalId: string) {
         country: participant.country,
         pic_number: participant.picNumber,
         legal_entity_type: participant.legalEntityType,
-        is_sme: participant.isSme,
         participant_number: participant.participantNumber,
         contact_email: participant.contactEmail,
         address: participant.address,
@@ -388,7 +356,7 @@ export function useProposalData(proposalId: string) {
     if (updates.country !== undefined) dbUpdates.country = updates.country;
     if (updates.picNumber !== undefined) dbUpdates.pic_number = updates.picNumber;
     if (updates.legalEntityType !== undefined) dbUpdates.legal_entity_type = updates.legalEntityType;
-    if (updates.isSme !== undefined) dbUpdates.is_sme = updates.isSme;
+    
     if (updates.contactEmail !== undefined) dbUpdates.contact_email = updates.contactEmail;
     if (updates.address !== undefined) dbUpdates.address = updates.address;
     if (updates.street !== undefined) dbUpdates.street = updates.street;
@@ -420,10 +388,11 @@ export function useProposalData(proposalId: string) {
     if (updates.hasGenderEqualityPlan !== undefined) dbUpdates.has_gender_equality_plan = updates.hasGenderEqualityPlan;
     if (updates.dependencyDeclaration !== undefined) dbUpdates.dependency_declaration = updates.dependencyDeclaration;
     if (updates.personnelCostRate !== undefined) dbUpdates.personnel_cost_rate = updates.personnelCostRate;
+    if (updates.ocdExempt !== undefined) dbUpdates.ocd_exempt = updates.ocdExempt;
     // Handle logoUrl - use null check to allow clearing (null means delete, undefined means no change)
     if ('logoUrl' in updates) dbUpdates.logo_url = updates.logoUrl || null;
 
-    const { error } = await supabase.from('participants').update(dbUpdates).eq('id', id);
+    const { error } = await supabase.from('participants').update(dbUpdates as any).eq('id', id);
 
     if (error) {
       toast.error('Failed to update participant');
@@ -434,52 +403,9 @@ export function useProposalData(proposalId: string) {
         prev.map((p) => (p.id === id ? { ...p, ...updates } : p))
       );
 
-      // Sync to centralized organisations registry (by PIC number)
-      // Find the participant to get its PIC
-      const participant = participants.find(p => p.id === id);
-      const picNumber = updates.picNumber?.trim() || participant?.picNumber?.trim();
-      
-      if (picNumber) {
-        // Build registry updates - only sync org-level fields, not proposal-specific ones
-        const registryUpdates: any = {};
-        if (updates.organisationName !== undefined) registryUpdates.name = updates.organisationName;
-        if (updates.organisationShortName !== undefined) registryUpdates.short_name = updates.organisationShortName;
-        if (updates.country !== undefined) registryUpdates.country = updates.country;
-        if (updates.legalEntityType !== undefined) registryUpdates.legal_entity_type = updates.legalEntityType;
-        if (updates.isSme !== undefined) registryUpdates.is_sme = updates.isSme;
-        if (updates.englishName !== undefined) registryUpdates.english_name = updates.englishName;
-        if ('logoUrl' in updates) registryUpdates.logo_url = updates.logoUrl || null;
-        
-        if (Object.keys(registryUpdates).length > 0) {
-          // Upsert to registry - update if exists, insert if not
-          const { data: existingOrg } = await supabase
-            .from('organisations')
-            .select('id')
-            .eq('pic_number', picNumber)
-            .maybeSingle();
-          
-          if (existingOrg) {
-            // Update existing registry entry
-            await supabase
-              .from('organisations')
-              .update(registryUpdates)
-              .eq('pic_number', picNumber);
-          } else {
-            // Create new registry entry with full participant data
-            const fullParticipant = { ...participant, ...updates };
-            await supabase.from('organisations').insert({
-              name: fullParticipant.organisationName || '',
-              short_name: fullParticipant.organisationShortName,
-              pic_number: picNumber,
-              country: fullParticipant.country,
-              legal_entity_type: fullParticipant.legalEntityType,
-              is_sme: fullParticipant.isSme,
-              english_name: fullParticipant.englishName,
-              logo_url: fullParticipant.logoUrl,
-            });
-          }
-        }
-      }
+      // Registry writes are intentionally NOT performed here.
+      // The organisations registry is curated separately via the admin page.
+
     }
   };
 
@@ -574,7 +500,7 @@ export function useProposalData(proposalId: string) {
     if (updates.accessGrantedBy !== undefined) dbUpdates.access_granted_by = updates.accessGrantedBy;
     if (updates.accessGrantedAt !== undefined) dbUpdates.access_granted_at = updates.accessGrantedAt;
 
-    const { error } = await supabase.from('participant_members').update(dbUpdates).eq('id', id);
+    const { error } = await supabase.from('participant_members').update(dbUpdates as any).eq('id', id);
 
     if (error) {
       toast.error('Failed to update team member');
@@ -610,7 +536,7 @@ export function useProposalData(proposalId: string) {
     }
 
     if (ethics?.id) {
-      const { error } = await supabase.from('ethics_assessment').update(dbUpdates).eq('id', ethics.id);
+      const { error } = await supabase.from('ethics_assessment').update(dbUpdates as any).eq('id', ethics.id);
       if (error) {
         toast.error('Failed to update ethics assessment');
         logError('useProposalData', error);

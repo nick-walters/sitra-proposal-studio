@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
+import { computeBudgetRow } from '@/lib/budgetCompute';
 
 export interface BudgetRowData {
   id: string;
@@ -55,32 +56,59 @@ export interface ComputedBudgetRow extends BudgetRowData {
   totalEstimatedIncome: number;
 }
 
-export interface BudgetJustification {
-  id: string;
-  budgetRowId: string;
-  category: string;
-  justificationText: string;
-  updatedBy: string | null;
-  updatedAt: string;
-}
+// Legacy single-text justifications and per-category item tables removed in Stage 2.
+// All cost-category justifications now live in `budget_cost_justification_items`.
 
-export interface SubcontractingItem {
+export type JustificationCategory =
+  | 'subcontracting'
+  | 'travel'
+  | 'equipment'
+  | 'other_goods'
+  | 'fstp'
+  | 'internally_invoiced';
+
+export interface JustificationItem {
   id: string;
   budgetRowId: string;
-  description: string;
+  category: JustificationCategory;
   amount: number;
   justification: string;
   orderIndex: number;
 }
 
-export interface EquipmentItem {
-  id: string;
-  budgetRowId: string;
-  description: string;
-  amount: number;
-  justification: string;
-  orderIndex: number;
-}
+const CATEGORY_TO_COLUMN: Record<
+  JustificationCategory,
+  | 'subcontracting_costs'
+  | 'purchase_travel'
+  | 'purchase_equipment'
+  | 'purchase_other_goods'
+  | 'financial_support_third_parties'
+  | 'internally_invoiced'
+> = {
+  subcontracting: 'subcontracting_costs',
+  travel: 'purchase_travel',
+  equipment: 'purchase_equipment',
+  other_goods: 'purchase_other_goods',
+  fstp: 'financial_support_third_parties',
+  internally_invoiced: 'internally_invoiced',
+};
+
+const CATEGORY_TO_ROW_FIELD: Record<
+  JustificationCategory,
+  | 'subcontractingCosts'
+  | 'purchaseTravel'
+  | 'purchaseEquipment'
+  | 'purchaseOtherGoods'
+  | 'financialSupportThirdParties'
+  | 'internallyInvoiced'
+> = {
+  subcontracting: 'subcontractingCosts',
+  travel: 'purchaseTravel',
+  equipment: 'purchaseEquipment',
+  other_goods: 'purchaseOtherGoods',
+  fstp: 'financialSupportThirdParties',
+  internally_invoiced: 'internallyInvoiced',
+};
 
 export interface PersonnelBreakdownItem {
   id: string;
@@ -92,65 +120,44 @@ export interface PersonnelBreakdownItem {
 }
 
 function computeRow(row: BudgetRowData, proposalType: string | null): ComputedBudgetRow {
-  const personnelCosts = row.pmRate != null && row.pmRate > 0
-    ? Math.round(row.pmRate * row.totalPersonMonths)
-    : row.personnelCosts;
+  const out = computeBudgetRow({
+    personnel_costs: row.personnelCosts,
+    subcontracting_costs: row.subcontractingCosts,
+    purchase_travel: row.purchaseTravel,
+    purchase_equipment: row.purchaseEquipment,
+    purchase_other_goods: row.purchaseOtherGoods,
+    financial_support_third_parties: row.financialSupportThirdParties,
+    internally_invoiced: row.internallyInvoiced,
+    procurement: row.procurement,
+    pm_rate: row.pmRate,
+    totalPersonMonths: row.totalPersonMonths,
+    indirect_costs_override: row.indirectCostsOverride,
+    funding_rate_override: row.fundingRateOverride,
+    requested_eu_contribution: row.requestedEuContributionOverride,
+    has_in_kind: row.hasInKind,
+    requested_personnel_costs: row.requestedPersonnelCosts,
+    requested_subcontracting: row.requestedSubcontracting,
+    requested_travel: row.requestedTravel,
+    requested_equipment: row.requestedEquipment,
+    requested_other_goods: row.requestedOtherGoods,
+    requested_fstp: row.requestedFstp,
+    requested_internally_invoiced: row.requestedInternallyInvoiced,
+    proposalType,
+    organisationCategory: row.organisationCategory,
+  });
 
-  const directCosts =
-    personnelCosts +
-    row.subcontractingCosts +
-    row.purchaseTravel +
-    row.purchaseEquipment +
-    row.purchaseOtherGoods +
-    row.financialSupportThirdParties +
-    row.internallyInvoiced +
-    row.procurement;
-
-  const indirectCostsBase = directCosts - row.subcontractingCosts - row.financialSupportThirdParties;
-  const indirectCosts = row.indirectCostsOverride ?? Math.round(indirectCostsBase * 0.25 * 100) / 100;
-  const totalEligibleCosts = directCosts + indirectCosts;
-
-  // Funding rate: RIA = 100% all; IA = 100% except PRC (private companies) = 70%
-  let fundingRate = row.fundingRateOverride ?? 100;
-  if (row.fundingRateOverride == null) {
-    if (proposalType === 'IA' && row.organisationCategory === 'PRC') {
-      fundingRate = 70;
-    }
-  }
-
-  const maxEuContribution = Math.round(totalEligibleCosts * (fundingRate / 100) * 100) / 100;
-  let requestedEuContribution: number;
-  if (row.hasInKind) {
-    // Sum per-category requested amounts
-    const reqPersonnel = row.requestedPersonnelCosts ?? personnelCosts;
-    const reqSub = row.requestedSubcontracting ?? row.subcontractingCosts;
-    const reqTravel = row.requestedTravel ?? row.purchaseTravel;
-    const reqEquip = row.requestedEquipment ?? row.purchaseEquipment;
-    const reqOther = row.requestedOtherGoods ?? row.purchaseOtherGoods;
-    const reqFstp = row.requestedFstp ?? row.financialSupportThirdParties;
-    const reqInternally = row.requestedInternallyInvoiced ?? row.internallyInvoiced;
-    const reqDirectTotal = reqPersonnel + reqSub + reqTravel + reqEquip + reqOther + reqFstp + reqInternally;
-    const reqIndirect = Math.round((reqDirectTotal - reqSub - reqFstp) * 0.25 * 100) / 100;
-    requestedEuContribution = Math.min(
-      reqDirectTotal + reqIndirect,
-      maxEuContribution
-    );
-  } else {
-    requestedEuContribution = row.requestedEuContributionOverride != null
-      ? Math.min(row.requestedEuContributionOverride, maxEuContribution)
-      : maxEuContribution;
-  }
-  const totalEstimatedIncome = requestedEuContribution + row.incomeGenerated + row.financialContributions + row.ownResources;
+  const totalEstimatedIncome =
+    out.requestedEuContribution + row.incomeGenerated + row.financialContributions + row.ownResources;
 
   return {
     ...row,
-    personnelCosts,
-    directCosts,
-    indirectCosts,
-    totalEligibleCosts,
-    fundingRate,
-    maxEuContribution,
-    requestedEuContribution,
+    personnelCosts: out.personnel,
+    directCosts: out.directCosts,
+    indirectCosts: out.indirect,
+    totalEligibleCosts: out.totalEligible,
+    fundingRate: out.fundingRate,
+    maxEuContribution: out.maxEuContribution,
+    requestedEuContribution: out.requestedEuContribution,
     totalEstimatedIncome,
   };
 }
@@ -158,17 +165,21 @@ function computeRow(row: BudgetRowData, proposalType: string | null): ComputedBu
 export function useBudgetRows(proposalId: string, proposalType: string | null) {
   const { user } = useAuth();
   const [rows, setRows] = useState<BudgetRowData[]>([]);
-  const [justifications, setJustifications] = useState<BudgetJustification[]>([]);
-  const [subcontractingItems, setSubcontractingItems] = useState<SubcontractingItem[]>([]);
-  const [equipmentItems, setEquipmentItems] = useState<EquipmentItem[]>([]);
+  const [justificationItemsLegacyRemoved] = useState<undefined>(undefined);
+  const [justificationItems, setJustificationItems] = useState<JustificationItem[]>([]);
   const [personnelBreakdown, setPersonnelBreakdown] = useState<PersonnelBreakdownItem[]>([]);
+  const [personnelLoaded, setPersonnelLoaded] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const hasLoadedRef = useRef(false);
+  const personnelRef = useRef<PersonnelBreakdownItem[]>([]);
+  const seedingRef = useRef<Set<string>>(new Set());
+  useEffect(() => { personnelRef.current = personnelBreakdown; }, [personnelBreakdown]);
 
   const fetchRows = useCallback(async () => {
     if (!proposalId) return;
-    setLoading(true);
+    if (!hasLoadedRef.current) setLoading(true);
 
     const [{ data, error }, { data: effortData }] = await Promise.all([
       supabase
@@ -235,55 +246,42 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
     }));
 
     mapped.sort((a, b) => a.participantNumber - b.participantNumber);
-    setRows(mapped);
+    // Stabilise row references: reuse existing row objects whose data
+    // hasn't changed, so React/memoized children can skip re-rendering.
+    setRows(prev => {
+      const existingByParticipant = new Map(prev.map(r => [r.participantId, r]));
+      let anyChanged = prev.length !== mapped.length;
+      const stabilised = mapped.map(newRow => {
+        const existing = existingByParticipant.get(newRow.participantId);
+        if (existing && JSON.stringify(existing) === JSON.stringify(newRow)) {
+          return existing;
+        }
+        anyChanged = true;
+        return newRow;
+      });
+      return anyChanged ? stabilised : prev;
+    });
+    hasLoadedRef.current = true;
     setLoading(false);
   }, [proposalId]);
 
-  const fetchSubcontractingItems = useCallback(async () => {
+
+  const fetchJustificationItems = useCallback(async () => {
     if (!proposalId || rows.length === 0) return;
     const rowIds = rows.map(r => r.id);
     const { data, error } = await supabase
-      .from('budget_subcontracting_items')
+      .from('budget_cost_justification_items')
       .select('*')
       .in('budget_row_id', rowIds)
       .order('order_index');
-
-    if (error) {
-      console.error('Error fetching subcontracting items:', error);
-      return;
-    }
-
-    setSubcontractingItems((data || []).map((item: any) => ({
-      id: item.id,
-      budgetRowId: item.budget_row_id,
-      description: item.description,
-      amount: Number(item.amount) || 0,
-      justification: item.justification,
-      orderIndex: item.order_index,
-    })));
-  }, [proposalId, rows.map(r => r.id).join(',')]);
-
-  const fetchEquipmentItems = useCallback(async () => {
-    if (!proposalId || rows.length === 0) return;
-    const rowIds = rows.map(r => r.id);
-    const { data, error } = await supabase
-      .from('budget_equipment_items')
-      .select('*')
-      .in('budget_row_id', rowIds)
-      .order('order_index');
-
-    if (error) {
-      console.error('Error fetching equipment items:', error);
-      return;
-    }
-
-    setEquipmentItems((data || []).map((item: any) => ({
-      id: item.id,
-      budgetRowId: item.budget_row_id,
-      description: item.description,
-      amount: Number(item.amount) || 0,
-      justification: item.justification,
-      orderIndex: item.order_index,
+    if (error) { console.error('Error fetching justification items:', error); return; }
+    setJustificationItems((data || []).map((it: any) => ({
+      id: it.id,
+      budgetRowId: it.budget_row_id,
+      category: it.category as JustificationCategory,
+      amount: Number(it.amount) || 0,
+      justification: it.justification || '',
+      orderIndex: it.order_index,
     })));
   }, [proposalId, rows.map(r => r.id).join(',')]);
 
@@ -301,37 +299,77 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
       return;
     }
 
-    setPersonnelBreakdown((data || []).map((item: any) => ({
+    // Detect orphan duplicate rows: same budget_row_id + order_index, empty
+    // values (no category, pm_count=0, pm_rate=0). Keep the first, drop the rest.
+    const seen = new Map<string, any>();
+    const orphanIds: string[] = [];
+    for (const it of (data || [])) {
+      const key = `${it.budget_row_id}::${it.order_index}`;
+      const isEmpty = (!it.category || it.category === '') && Number(it.pm_count) === 0 && Number(it.pm_rate) === 0;
+      if (seen.has(key) && isEmpty) {
+        orphanIds.push(it.id);
+      } else if (!seen.has(key)) {
+        seen.set(key, it);
+      }
+    }
+    if (orphanIds.length > 0) {
+      await supabase.from('budget_personnel_breakdown').delete().in('id', orphanIds);
+    }
+
+    const cleaned = (data || []).filter((it: any) => !orphanIds.includes(it.id));
+    const items: PersonnelBreakdownItem[] = cleaned.map((item: any) => ({
       id: item.id,
       budgetRowId: item.budget_row_id,
       category: item.category || '',
       pmCount: Number(item.pm_count) || 0,
       pmRate: Number(item.pm_rate) || 0,
       orderIndex: item.order_index,
-    })));
-  }, [proposalId, rows.map(r => r.id).join(',')]);
+    }));
 
-  const fetchJustifications = useCallback(async () => {
-    if (!proposalId) return;
-    const { data, error } = await supabase
-      .from('budget_cost_justifications')
-      .select('*')
-      .in('budget_row_id', rows.map(r => r.id));
+    // Seed a default row for any budget row that ended up empty and where the
+    // current user can edit (unlocked or locked by them). Runs exactly once
+    // per fetch, with full DB knowledge — no race with the component.
+    const rowsWithItems = new Set(items.map(i => i.budgetRowId));
+    const editableRowIds = rowIds.filter(rid => {
+      const r = rows.find(x => x.id === rid);
+      if (!r) return false;
+      if (!r.isLocked) return true;
+      return r.lockedBy === user?.id;
+    });
+    const toSeed = editableRowIds.filter(
+      rid => !rowsWithItems.has(rid) && !seedingRef.current.has(rid)
+    );
 
-    if (error) {
-      console.error('Error fetching justifications:', error);
-      return;
+    for (const rid of toSeed) {
+      seedingRef.current.add(rid);
+      const { data: inserted, error: insErr } = await supabase
+        .from('budget_personnel_breakdown')
+        .insert({
+          budget_row_id: rid,
+          category: 'Average weighted PM',
+          pm_count: 0,
+          pm_rate: 0,
+          order_index: 0,
+        })
+        .select()
+        .single();
+      seedingRef.current.delete(rid);
+      if (!insErr && inserted) {
+        items.push({
+          id: inserted.id,
+          budgetRowId: inserted.budget_row_id,
+          category: inserted.category || '',
+          pmCount: Number(inserted.pm_count) || 0,
+          pmRate: Number(inserted.pm_rate) || 0,
+          orderIndex: inserted.order_index,
+        });
+      }
     }
 
-    setJustifications((data || []).map((j: any) => ({
-      id: j.id,
-      budgetRowId: j.budget_row_id,
-      category: j.category,
-      justificationText: j.justification_text,
-      updatedBy: j.updated_by,
-      updatedAt: j.updated_at,
-    })));
-  }, [proposalId, rows.map(r => r.id).join(',')]);
+    setPersonnelBreakdown(items);
+    setPersonnelLoaded(new Set(rowIds));
+  }, [proposalId, rows.map(r => r.id).join(','), user?.id]);
+
 
   const initializeRows = useCallback(async () => {
     if (!proposalId) return;
@@ -368,17 +406,21 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
     fetchRows();
   }, [fetchRows]);
 
-  // Re-fetch when effort data changes (e.g. from A3 effort matrix edits)
+  // Re-fetch when effort data changes (e.g. from A3 effort matrix edits).
+  // The source event in A3EffortMatrix is already coalesced behind an 800ms
+  // flush timer, so fetch immediately here — no second debounce needed.
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
-      if (detail?.proposalId === proposalId) {
-        fetchRows();
-      }
+      if (detail?.proposalId !== proposalId) return;
+      fetchRows();
     };
     window.addEventListener('effort-data-changed', handler);
-    return () => window.removeEventListener('effort-data-changed', handler);
+    return () => {
+      window.removeEventListener('effort-data-changed', handler);
+    };
   }, [proposalId, fetchRows]);
+
 
   useEffect(() => {
     if (!loading && proposalId) {
@@ -388,197 +430,97 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
 
   useEffect(() => {
     if (rows.length > 0) {
-      fetchJustifications();
-      fetchSubcontractingItems();
-      fetchEquipmentItems();
+      fetchJustificationItems();
       fetchPersonnelBreakdown();
     }
-  }, [rows.length > 0, fetchJustifications, fetchSubcontractingItems, fetchPersonnelBreakdown]);
+  }, [rows.length > 0, fetchJustificationItems, fetchPersonnelBreakdown]);
 
-  // Sync subcontracting_costs on budget_rows from line items
-  const syncSubcontractingTotal = useCallback(async (budgetRowId: string) => {
-    const items = subcontractingItems.filter(i => i.budgetRowId === budgetRowId);
-    const total = items.reduce((sum, i) => sum + i.amount, 0);
-    
-    setRows(prev => prev.map(r => r.id === budgetRowId ? { ...r, subcontractingCosts: total } : r));
-    
-    await supabase.from('budget_rows').update({ subcontracting_costs: total }).eq('id', budgetRowId);
-  }, [subcontractingItems]);
-
-  const addSubcontractingItem = useCallback(async (budgetRowId: string) => {
-    const existing = subcontractingItems.filter(i => i.budgetRowId === budgetRowId);
-    const nextIndex = existing.length;
-
-    const { data, error } = await supabase
-      .from('budget_subcontracting_items')
-      .insert({
-        budget_row_id: budgetRowId,
-        description: '',
-        amount: 0,
-        justification: '',
-        order_index: nextIndex,
-      })
-      .select()
-      .single();
-
-    if (error) {
-      toast.error('Failed to add subcontracting item');
-      return;
-    }
-
-    setSubcontractingItems(prev => [...prev, {
-      id: data.id,
-      budgetRowId: data.budget_row_id,
-      description: data.description,
-      amount: Number(data.amount) || 0,
-      justification: data.justification,
-      orderIndex: data.order_index,
-    }]);
-  }, [subcontractingItems]);
-
-  const updateSubcontractingItem = useCallback((itemId: string, field: string, value: string | number) => {
-    setSubcontractingItems(prev => prev.map(i => i.id === itemId ? { ...i, [field]: value } : i));
-
-    if (debounceTimers.current[`sub-${itemId}`]) {
-      clearTimeout(debounceTimers.current[`sub-${itemId}`]);
-    }
-
-    debounceTimers.current[`sub-${itemId}`] = setTimeout(async () => {
-      setSaving(true);
-      const { error } = await supabase
-        .from('budget_subcontracting_items')
-        .update({ [field]: value })
-        .eq('id', itemId);
-
-      if (error) {
-        toast.error('Failed to save subcontracting item');
-      }
-
-      // If amount changed, sync total
-      if (field === 'amount') {
-        const item = subcontractingItems.find(i => i.id === itemId);
-        if (item) {
-          const budgetRowId = item.budgetRowId;
-          const otherItems = subcontractingItems.filter(i => i.budgetRowId === budgetRowId && i.id !== itemId);
-          const total = otherItems.reduce((sum, i) => sum + i.amount, 0) + Number(value);
-          setRows(prev => prev.map(r => r.id === budgetRowId ? { ...r, subcontractingCosts: total } : r));
-          await supabase.from('budget_rows').update({ subcontracting_costs: total }).eq('id', budgetRowId);
-        }
-      }
-
-      setSaving(false);
-    }, 300);
-  }, [subcontractingItems]);
-
-  const deleteSubcontractingItem = useCallback(async (itemId: string) => {
-    const item = subcontractingItems.find(i => i.id === itemId);
-    if (!item) return;
-
-    const { error } = await supabase.from('budget_subcontracting_items').delete().eq('id', itemId);
-    if (error) {
-      toast.error('Failed to delete subcontracting item');
-      return;
-    }
-
-    const remaining = subcontractingItems.filter(i => i.id !== itemId);
-    setSubcontractingItems(remaining);
-
-    // Sync total
-    const budgetRowId = item.budgetRowId;
-    const total = remaining.filter(i => i.budgetRowId === budgetRowId).reduce((sum, i) => sum + i.amount, 0);
-    setRows(prev => prev.map(r => r.id === budgetRowId ? { ...r, subcontractingCosts: total } : r));
-    await supabase.from('budget_rows').update({ subcontracting_costs: total }).eq('id', budgetRowId);
-  }, [subcontractingItems]);
-
-  // Equipment item CRUD
-  const syncEquipmentTotal = useCallback(async (budgetRowId: string, items: EquipmentItem[]) => {
-    const total = items.filter(i => i.budgetRowId === budgetRowId).reduce((sum, i) => sum + i.amount, 0);
-    setRows(prev => prev.map(r => r.id === budgetRowId ? { ...r, purchaseEquipment: total } : r));
-    await supabase.from('budget_rows').update({ purchase_equipment: total }).eq('id', budgetRowId);
+  // ─── Multi-row cost justifications (new model) ───
+  const syncCategoryTotalFromItems = useCallback(async (budgetRowId: string, category: JustificationCategory, items: JustificationItem[]) => {
+    const total = items
+      .filter(i => i.budgetRowId === budgetRowId && i.category === category)
+      .reduce((s, i) => s + (Number(i.amount) || 0), 0);
+    const column = CATEGORY_TO_COLUMN[category];
+    const rowField = CATEGORY_TO_ROW_FIELD[category];
+    setRows(prev => prev.map(r => r.id === budgetRowId ? { ...r, [rowField]: total } : r));
+    await supabase.from('budget_rows').update({ [column]: total } as any).eq('id', budgetRowId);
   }, []);
 
-  const addEquipmentItem = useCallback(async (budgetRowId: string) => {
-    const existing = equipmentItems.filter(i => i.budgetRowId === budgetRowId);
+  const addJustificationItem = useCallback(async (budgetRowId: string, category: JustificationCategory) => {
+    const existing = justificationItems.filter(i => i.budgetRowId === budgetRowId && i.category === category);
     const nextIndex = existing.length;
-
     const { data, error } = await supabase
-      .from('budget_equipment_items')
-      .insert({
-        budget_row_id: budgetRowId,
-        description: '',
-        amount: 0,
-        justification: '',
-        order_index: nextIndex,
-      })
-      .select()
-      .single();
-
-    if (error) {
-      toast.error('Failed to add equipment item');
-      return;
-    }
-
-    setEquipmentItems(prev => [...prev, {
+      .from('budget_cost_justification_items')
+      .insert({ budget_row_id: budgetRowId, category, amount: 0, justification: '', order_index: nextIndex })
+      .select().single();
+    if (error || !data) { toast.error('Failed to add justification row'); return; }
+    const item: JustificationItem = {
       id: data.id,
       budgetRowId: data.budget_row_id,
-      description: data.description,
+      category: data.category as JustificationCategory,
       amount: Number(data.amount) || 0,
-      justification: data.justification,
+      justification: data.justification || '',
       orderIndex: data.order_index,
-    }]);
-  }, [equipmentItems]);
+    };
+    let next: JustificationItem[] = [];
+    setJustificationItems(prev => { next = [...prev, item]; return next; });
+    // No total change (amount=0) but keep behaviour consistent
+    await syncCategoryTotalFromItems(budgetRowId, category, next);
+  }, [justificationItems, syncCategoryTotalFromItems]);
 
-  const updateEquipmentItem = useCallback((itemId: string, field: string, value: string | number) => {
-    setEquipmentItems(prev => prev.map(i => i.id === itemId ? { ...i, [field]: value } : i));
-
-    if (debounceTimers.current[`equip-${itemId}`]) {
-      clearTimeout(debounceTimers.current[`equip-${itemId}`]);
-    }
-
-    debounceTimers.current[`equip-${itemId}`] = setTimeout(async () => {
+  const updateJustificationItem = useCallback((itemId: string, field: 'amount' | 'justification', value: number | string) => {
+    let snapshot: JustificationItem[] = [];
+    setJustificationItems(prev => {
+      snapshot = prev.map(i => i.id === itemId ? { ...i, [field]: field === 'amount' ? (Number(value) || 0) : String(value) } : i);
+      return snapshot;
+    });
+    if (debounceTimers.current[`bcji-${itemId}`]) clearTimeout(debounceTimers.current[`bcji-${itemId}`]);
+    debounceTimers.current[`bcji-${itemId}`] = setTimeout(async () => {
       setSaving(true);
+      const dbField = field === 'amount' ? 'amount' : 'justification';
       const { error } = await supabase
-        .from('budget_equipment_items')
-        .update({ [field]: value })
+        .from('budget_cost_justification_items')
+        .update({ [dbField]: field === 'amount' ? Number(value) || 0 : value } as any)
         .eq('id', itemId);
-
-      if (error) {
-        toast.error('Failed to save equipment item');
-      }
-
+      if (error) toast.error('Failed to save justification row');
       if (field === 'amount') {
-        const item = equipmentItems.find(i => i.id === itemId);
-        if (item) {
-          const budgetRowId = item.budgetRowId;
-          const otherItems = equipmentItems.filter(i => i.budgetRowId === budgetRowId && i.id !== itemId);
-          const total = otherItems.reduce((sum, i) => sum + i.amount, 0) + Number(value);
-          setRows(prev => prev.map(r => r.id === budgetRowId ? { ...r, purchaseEquipment: total } : r));
-          await supabase.from('budget_rows').update({ purchase_equipment: total }).eq('id', budgetRowId);
-        }
+        const it = snapshot.find(i => i.id === itemId);
+        if (it) await syncCategoryTotalFromItems(it.budgetRowId, it.category, snapshot);
       }
-
       setSaving(false);
     }, 300);
-  }, [equipmentItems]);
+  }, [syncCategoryTotalFromItems]);
 
-  const deleteEquipmentItem = useCallback(async (itemId: string) => {
-    const item = equipmentItems.find(i => i.id === itemId);
+  const deleteJustificationItem = useCallback(async (itemId: string) => {
+    const item = justificationItems.find(i => i.id === itemId);
     if (!item) return;
+    const { error } = await supabase.from('budget_cost_justification_items').delete().eq('id', itemId);
+    if (error) { toast.error('Failed to delete justification row'); return; }
+    let next: JustificationItem[] = [];
+    setJustificationItems(prev => { next = prev.filter(i => i.id !== itemId); return next; });
+    await syncCategoryTotalFromItems(item.budgetRowId, item.category, next);
+  }, [justificationItems, syncCategoryTotalFromItems]);
 
-    const { error } = await supabase.from('budget_equipment_items').delete().eq('id', itemId);
-    if (error) {
-      toast.error('Failed to delete equipment item');
-      return;
-    }
+  const reorderJustificationItems = useCallback(async (budgetRowId: string, category: JustificationCategory, orderedIds: string[]) => {
+    let next: JustificationItem[] = [];
+    setJustificationItems(prev => {
+      next = prev.map(i => {
+        if (i.budgetRowId !== budgetRowId || i.category !== category) return i;
+        const idx = orderedIds.indexOf(i.id);
+        return idx >= 0 ? { ...i, orderIndex: idx } : i;
+      });
+      return next;
+    });
+    await Promise.all(orderedIds.map((id, idx) =>
+      supabase.from('budget_cost_justification_items').update({ order_index: idx }).eq('id', id)
+    ));
+  }, []);
 
-    const remaining = equipmentItems.filter(i => i.id !== itemId);
-    setEquipmentItems(remaining);
 
-    const budgetRowId = item.budgetRowId;
-    const total = remaining.filter(i => i.budgetRowId === budgetRowId).reduce((sum, i) => sum + i.amount, 0);
-    setRows(prev => prev.map(r => r.id === budgetRowId ? { ...r, purchaseEquipment: total } : r));
-    await supabase.from('budget_rows').update({ purchase_equipment: total }).eq('id', budgetRowId);
-  }, [equipmentItems]);
+  // ─── Legacy subcontracting/equipment item CRUD removed (Stage 2 cleanup) ───
+  // All justification items now live in budget_cost_justification_items
+  // and are managed by the unified JustificationItem CRUD above.
+
 
   // Personnel breakdown CRUD with weighted PM rate sync
   const syncWeightedPmRate = useCallback(async (budgetRowId: string, items: PersonnelBreakdownItem[]) => {
@@ -594,7 +536,7 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
   }, []);
 
   const addPersonnelBreakdownItem = useCallback(async (budgetRowId: string) => {
-    const existing = personnelBreakdown.filter(i => i.budgetRowId === budgetRowId);
+    const existing = personnelRef.current.filter(i => i.budgetRowId === budgetRowId);
     const nextIndex = existing.length;
     const { data, error } = await supabase
       .from('budget_personnel_breakdown')
@@ -605,17 +547,21 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
       toast.error('Failed to add personnel row');
       return;
     }
-    const newItems = [...personnelBreakdown, {
+    const mapped: PersonnelBreakdownItem = {
       id: data.id,
       budgetRowId: data.budget_row_id,
       category: data.category || '',
       pmCount: Number(data.pm_count) || 0,
       pmRate: Number(data.pm_rate) || 0,
       orderIndex: data.order_index,
-    }];
-    setPersonnelBreakdown(newItems);
-    await syncWeightedPmRate(budgetRowId, newItems);
-  }, [personnelBreakdown, syncWeightedPmRate]);
+    };
+    let snapshot: PersonnelBreakdownItem[] = [];
+    setPersonnelBreakdown(prev => {
+      snapshot = [...prev, mapped];
+      return snapshot;
+    });
+    await syncWeightedPmRate(budgetRowId, snapshot);
+  }, [syncWeightedPmRate]);
 
   const updatePersonnelBreakdownItem = useCallback((itemId: string, field: 'category' | 'pmCount' | 'pmRate', value: string | number) => {
     setPersonnelBreakdown(prev => prev.map(i => i.id === itemId ? { ...i, [field]: value } : i));
@@ -625,32 +571,35 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
       const dbField = field === 'pmCount' ? 'pm_count' : field === 'pmRate' ? 'pm_rate' : 'category';
       const { error } = await supabase
         .from('budget_personnel_breakdown')
-        .update({ [dbField]: value })
+        .update({ [dbField]: value } as any)
         .eq('id', itemId);
       if (error) toast.error('Failed to save personnel row');
       if (field === 'pmCount' || field === 'pmRate') {
-        const item = personnelBreakdown.find(i => i.id === itemId);
+        const item = personnelRef.current.find(i => i.id === itemId);
         if (item) {
-          const updated = personnelBreakdown.map(i => i.id === itemId ? { ...i, [field]: Number(value) } : i);
+          const updated = personnelRef.current.map(i => i.id === itemId ? { ...i, [field]: Number(value) } : i);
           await syncWeightedPmRate(item.budgetRowId, updated);
         }
       }
       setSaving(false);
     }, 300);
-  }, [personnelBreakdown, syncWeightedPmRate]);
+  }, [syncWeightedPmRate]);
 
   const deletePersonnelBreakdownItem = useCallback(async (itemId: string) => {
-    const item = personnelBreakdown.find(i => i.id === itemId);
+    const item = personnelRef.current.find(i => i.id === itemId);
     if (!item) return;
     const { error } = await supabase.from('budget_personnel_breakdown').delete().eq('id', itemId);
     if (error) {
       toast.error('Failed to delete personnel row');
       return;
     }
-    const remaining = personnelBreakdown.filter(i => i.id !== itemId);
-    setPersonnelBreakdown(remaining);
+    let remaining: PersonnelBreakdownItem[] = [];
+    setPersonnelBreakdown(prev => {
+      remaining = prev.filter(i => i.id !== itemId);
+      return remaining;
+    });
     await syncWeightedPmRate(item.budgetRowId, remaining);
-  }, [personnelBreakdown, syncWeightedPmRate]);
+  }, [syncWeightedPmRate]);
 
 
   const updateRow = useCallback((rowId: string, field: string, value: number | string | boolean) => {
@@ -675,7 +624,7 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
       setSaving(true);
       const { error } = await supabase
         .from('budget_rows')
-        .update({ [dbField]: dbValue })
+        .update({ [dbField]: dbValue } as any)
         .eq('id', rowId);
 
       if (error) {
@@ -750,25 +699,6 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
     toast.success('All participant budgets unlocked');
   }, [rows, proposalId]);
 
-  const saveJustification = useCallback(async (budgetRowId: string, category: string, text: string) => {
-    if (!user) return;
-    const { error } = await supabase
-      .from('budget_cost_justifications')
-      .upsert({
-        budget_row_id: budgetRowId,
-        category,
-        justification_text: text,
-        updated_by: user.id,
-      }, { onConflict: 'budget_row_id,category' });
-
-    if (error) {
-      toast.error('Failed to save justification');
-      console.error(error);
-      return;
-    }
-
-    await fetchJustifications();
-  }, [user, fetchJustifications]);
 
   const computedRows = useMemo(() => {
     return rows.map(r => computeRow(r, proposalType));
@@ -822,10 +752,13 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
 
   return {
     rows: computedRows,
-    justifications,
-    subcontractingItems,
-    equipmentItems,
     personnelBreakdown,
+    justificationItems,
+    addJustificationItem,
+    updateJustificationItem,
+    deleteJustificationItem,
+    reorderJustificationItems,
+    personnelLoaded,
     grandTotals,
     loading,
     saving,
@@ -835,13 +768,6 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
     unlockRow,
     lockAllRows,
     unlockAllRows,
-    saveJustification,
-    addSubcontractingItem,
-    updateSubcontractingItem,
-    deleteSubcontractingItem,
-    addEquipmentItem,
-    updateEquipmentItem,
-    deleteEquipmentItem,
     addPersonnelBreakdownItem,
     updatePersonnelBreakdownItem,
     deletePersonnelBreakdownItem,

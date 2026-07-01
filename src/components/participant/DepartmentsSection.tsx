@@ -53,19 +53,11 @@ interface DepartmentsSectionProps {
 function SortableDepartmentCard({
   dept,
   canEdit,
-  orgStreet,
-  orgTown,
-  orgPostcode,
-  orgCountry,
   onUpdate,
   onDelete,
 }: {
   dept: Department;
   canEdit: boolean;
-  orgStreet?: string;
-  orgTown?: string;
-  orgPostcode?: string;
-  orgCountry?: string;
   onUpdate: (id: string, updates: Partial<Department>) => void;
   onDelete: (id: string) => void;
 }) {
@@ -84,19 +76,8 @@ function SortableDepartmentCard({
     opacity: isDragging ? 0.5 : 1,
   };
 
-  const handleSameAsOrg = (checked: boolean) => {
-    if (checked) {
-      onUpdate(dept.id, {
-        sameAsOrganisation: true,
-        street: orgStreet || '',
-        town: orgTown || '',
-        postcode: orgPostcode || '',
-        country: orgCountry || '',
-      });
-    } else {
-      onUpdate(dept.id, { sameAsOrganisation: false });
-    }
-  };
+  const handleSameAsOrg = (checked: boolean) =>
+    onUpdate(dept.id, { sameAsOrganisation: !!checked });
 
   return (
     <div ref={setNodeRef} style={style} className="border rounded-lg p-4 bg-muted/30 space-y-3">
@@ -126,7 +107,7 @@ function SortableDepartmentCard({
             size="icon"
             className="flex-shrink-0 text-destructive hover:text-destructive"
             onClick={() => onDelete(dept.id)}
-          >
+           aria-label="Delete" title="Delete">
             <Trash2 className="w-4 h-4" />
           </Button>
         )}
@@ -144,56 +125,54 @@ function SortableDepartmentCard({
         </Label>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 ml-9">
-        <div className="space-y-1 sm:col-span-2">
-          <Label className="text-xs">Street</Label>
-          <DebouncedInput
-            value={dept.street || ''}
-            onDebouncedChange={(v) => onUpdate(dept.id, { street: v })}
-            placeholder="Street address"
-            disabled={!canEdit || dept.sameAsOrganisation}
-          />
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs">Town</Label>
-          <DebouncedInput
-            value={dept.town || ''}
-            onDebouncedChange={(v) => onUpdate(dept.id, { town: v })}
-            placeholder="Town / City"
-            disabled={!canEdit || dept.sameAsOrganisation}
-          />
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs">Postcode</Label>
-          <DebouncedInput
-            value={dept.postcode || ''}
-            onDebouncedChange={(v) => onUpdate(dept.id, { postcode: v })}
-            placeholder="Postcode"
-            disabled={!canEdit || dept.sameAsOrganisation}
-          />
-        </div>
-        <div className="space-y-1 sm:col-span-2">
-          <Label className="text-xs">Country</Label>
-          {canEdit && !dept.sameAsOrganisation ? (
-            <CountrySelect
-              value={dept.country || ''}
-              onValueChange={(v) => onUpdate(dept.id, { country: v })}
+      {!dept.sameAsOrganisation && (
+        <div className="grid gap-3 sm:grid-cols-2 ml-9">
+          <div className="space-y-1 sm:col-span-2">
+            <Label className="text-xs">Street</Label>
+            <DebouncedInput
+              value={dept.street || ''}
+              onDebouncedChange={(v) => onUpdate(dept.id, { street: v })}
+              placeholder="Street address"
+              disabled={!canEdit}
             />
-          ) : (
-            <Input value={dept.country || ''} disabled />
-          )}
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Town</Label>
+            <DebouncedInput
+              value={dept.town || ''}
+              onDebouncedChange={(v) => onUpdate(dept.id, { town: v })}
+              placeholder="Town / City"
+              disabled={!canEdit}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Postcode</Label>
+            <DebouncedInput
+              value={dept.postcode || ''}
+              onDebouncedChange={(v) => onUpdate(dept.id, { postcode: v })}
+              placeholder="Postcode"
+              disabled={!canEdit}
+            />
+          </div>
+          <div className="space-y-1 sm:col-span-2">
+            <Label className="text-xs">Country</Label>
+            {canEdit ? (
+              <CountrySelect
+                value={dept.country || ''}
+                onValueChange={(v) => onUpdate(dept.id, { country: v })}
+              />
+            ) : (
+              <Input value={dept.country || ''} disabled />
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
 
 export function DepartmentsSection({
   participantId,
-  organisationStreet,
-  organisationTown,
-  organisationPostcode,
-  organisationCountry,
   departmentsNotApplicable,
   onToggleNotApplicable,
   canEdit,
@@ -370,10 +349,6 @@ export function DepartmentsSection({
                         key={dept.id}
                         dept={dept}
                         canEdit={canEdit}
-                        orgStreet={organisationStreet}
-                        orgTown={organisationTown}
-                        orgPostcode={organisationPostcode}
-                        orgCountry={organisationCountry}
                         onUpdate={updateDepartment}
                         onDelete={deleteDepartment}
                       />

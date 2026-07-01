@@ -5,18 +5,20 @@ import { useUserRole } from '@/hooks/useUserRole';
 import { useColumnResize } from '@/hooks/useColumnResize';
 import { ColumnResizer } from '@/components/ColumnResizer';
 import { EditableCaption } from '@/components/EditableCaption';
+import { ParticipantBubble } from '@/components/B31Pill';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
-const cellStyles = "border-y border-gray-200 px-[1pt] py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle";
+const cellStyles = "px-[1pt] py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle";
 const headerCellStyles = "px-[1pt] py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight font-bold align-middle";
 
 interface Props {
   items: B31SubcontractingParticipant[];
   participants: B31Participant[];
   proposalId?: string;
+  tableLabel?: string;
 }
 
-export function B31SubcontractingTable({ items, participants, proposalId }: Props) {
+export function B31SubcontractingTable({ items, participants, proposalId, tableLabel = 'Table 3.1.g.' }: Props) {
   const { isAdminOrOwner } = useUserRole();
   const { colWidths, tableRef, handleColResizeStart } = useColumnResize({ proposalId, tableKey: 'subcontracting', canResize: isAdminOrOwner });
 
@@ -37,11 +39,20 @@ export function B31SubcontractingTable({ items, participants, proposalId }: Prop
       <EditableCaption
         proposalId={proposalId}
         tableKey="table-3.1.g"
-        label="Table 3.1.g."
-        defaultCaption="Subcontracting cost items"
+        label={tableLabel}
+        defaultCaption="Subcontracting cost justifications"
         className="mb-0"
       />
-      <table className={`${tableStyles} border-collapse [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b [&_th]:border-black [&_td]:border-x-0 [&_tr]:border-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto', width: colWidths.length > 0 ? `${colWidths.reduce((s: number, w: number) => s + w, 0)}px` : '100%' }} ref={tableRef}>
+
+      <table
+        data-table-key="subcontracting"
+        className={`${tableStyles} border-collapse [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b-2 [&_th]:border-black [&_td]:border-x-0`}
+        style={{
+          tableLayout: colWidths.length > 0 ? 'fixed' : 'auto',
+          width: colWidths.length > 0 ? `${colWidths.reduce((s: number, w: number) => s + w, 0)}px` : '100%',
+        }}
+        ref={tableRef}
+      >
         <colgroup>
           <col style={{ width: colWidths.length > 0 ? `${colWidths[0]}px` : undefined }} />
           <col style={{ width: colWidths.length > 0 ? `${colWidths[1]}px` : undefined }} />
@@ -49,11 +60,17 @@ export function B31SubcontractingTable({ items, participants, proposalId }: Prop
         </colgroup>
         <thead>
           <tr>
-            <th className={`${headerCellStyles} text-left relative`}>
+            <th
+              className={`${headerCellStyles} text-left relative`}
+              style={colWidths.length === 0 ? { width: '1%', whiteSpace: 'nowrap' } : undefined}
+            >
               Participant
               {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(0)} />}
             </th>
-            <th className={`${headerCellStyles} text-left relative`}>
+            <th
+              className={`${headerCellStyles} text-left relative`}
+              style={colWidths.length === 0 ? { width: '1%', whiteSpace: 'nowrap' } : undefined}
+            >
               Cost (€)
               {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(1)} />}
             </th>
@@ -67,37 +84,46 @@ export function B31SubcontractingTable({ items, participants, proposalId }: Prop
           {sorted.map((entry, entryIdx) => {
             const p = getParticipant(entry.participantId);
             const label = p ? `${p.participant_number}. ${p.organisation_short_name || p.organisation_name}` : 'Unknown';
-
-            // Use the justification directly from the single item
-            const justification = entry.items[0]?.justification || '—';
-
-            return (
-              <React.Fragment key={entry.participantId}>
-                {entryIdx > 0 && (
-                  <tr>
-                    <td colSpan={3} className="p-0 border-y border-gray-200" style={{ height: 0 }} />
-                  </tr>
-                )}
-                <tr>
-                  <td className={`${cellStyles} border-y-0`} style={{ whiteSpace: 'nowrap' }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'baseline', border: '1.5px solid #000000', borderRadius: '9999px', padding: '0px 5px', fontSize: '11pt', fontFamily: "'Times New Roman', Times, serif", fontWeight: 'bold', fontStyle: 'normal', lineHeight: 1, color: '#ffffff', backgroundColor: '#000000' }}>
-                      {label}
-                    </span>
+            const isFirstBlock = entryIdx === 0;
+            // Thin divider between participant blocks (header & grand total use the thick lines).
+            const topBorder = isFirstBlock ? '' : 'border-t border-black';
+            const itemRows = entry.items.map((item, itemIdx) => {
+              const isFirstItem = itemIdx === 0;
+              return (
+                <tr key={`${entry.participantId}-${itemIdx}`}>
+                  {isFirstItem && (
+                    <td
+                      className={`${cellStyles} ${topBorder}`}
+                      style={{ whiteSpace: 'nowrap' }}
+                      rowSpan={entry.items.length + 1}
+                    >
+                      <ParticipantBubble>{label}</ParticipantBubble>
+                    </td>
+                  )}
+                  <td className={`${cellStyles} text-right ${isFirstItem ? topBorder : ''}`}>
+                    {formatCurrency(item.amount)}
                   </td>
-                  <td className={`${cellStyles} text-right border-y-0`}>{formatCurrency(entry.totalCost)}</td>
-                  <td className={`${cellStyles} border-y-0`}>{justification}</td>
+                  <td className={`${cellStyles} ${isFirstItem ? topBorder : ''}`}>{item.justification || '—'}</td>
                 </tr>
-              </React.Fragment>
+              );
+            });
+            // Subtotal row (sits inside the rowSpan group)
+            itemRows.push(
+              <tr key={`${entry.participantId}-subtotal`}>
+                <td className={`${cellStyles} text-right font-bold`}>{formatCurrency(entry.totalCost)}</td>
+                <td className={`${cellStyles} italic`}>Subtotal</td>
+              </tr>,
             );
+            return <React.Fragment key={entry.participantId}>{itemRows}</React.Fragment>;
           })}
           {/* Grand total */}
           <tr>
-            <td colSpan={3} className="p-0 border-0" style={{ height: '1px', backgroundColor: 'hsl(var(--foreground))' }} />
+            <td colSpan={3} className="p-0 border-0" style={{ height: '2px', backgroundColor: 'hsl(var(--foreground))' }} />
           </tr>
           <tr>
-            <td className={`${cellStyles} font-bold border-y-0`}>Total</td>
-            <td className={`${cellStyles} text-right font-bold border-y-0`}>{formatCurrency(grandTotal)}</td>
-            <td className={`${cellStyles} border-y-0`}></td>
+            <td className={`${cellStyles} font-bold`}>Total</td>
+            <td className={`${cellStyles} text-right font-bold`}>{formatCurrency(grandTotal)}</td>
+            <td className={`${cellStyles}`}></td>
           </tr>
         </tbody>
       </table>

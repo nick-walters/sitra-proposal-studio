@@ -3,7 +3,7 @@
  * Supabase edge functions (Deno). Pure TypeScript, no runtime-specific
  * syntax. Imported from:
  *   - src/lib/editorContentSanitizer.ts (re-export for client)
- *   - supabase/functions/duplicate-proposal/index.ts (and any other fns)
+ *   - supabase/functions/ (any function that needs HTML sanitisation)
  *
  * Uses isomorphic-dompurify which transparently uses the native browser
  * DOM in the client and a bundled jsdom in Deno/Node.
@@ -23,6 +23,9 @@ export const ALLOWED_CLASSES = new Set<string>([
   'case-reference-badge',
   'participant-reference-badge',
   'formula-result',
+  'b12-case-title-badge',
+  'b12-lead-badge',
+  'b12-case-title-text',
 ]);
 
 export const ALLOWED_DATA_ATTRS = new Set<string>([
@@ -64,6 +67,26 @@ export const ALLOWED_DATA_ATTRS = new Set<string>([
   'data-author-color',
   'data-timestamp',
   'data-citation',
+  'data-heading-number',
+  'data-caption-label',
+  'data-spacing-before',
+  'data-spacing-after',
+  'data-role',
+  'data-case-start',
+  'data-b12-cases-table',
+  'data-b12-cases-block',
+  'data-b12-cases-heading',
+  'data-b12-cases-caption',
+  'data-default-subheading',
+  'data-cases-table-node',
+  'data-case-ids',
+  'data-caption',
+  'data-b12-cases-node-caption',
+  'data-b12-cases-subheading',
+  // Per-type B1.2 binding IDs — must survive save→sanitise→reload so the
+  // reconciler can match existing units instead of re-inserting duplicates.
+  'data-case-type-id',
+  'data-case-type-heading-id',
 ]);
 
 export const STYLE_ALLOWLIST = new Set<string>([
@@ -78,12 +101,15 @@ export const STYLE_ALLOWLIST = new Set<string>([
   'height',
   'margin-left',
   'margin-right',
+  'margin-top',
+  'margin-bottom',
   'display',
   'border-color',
   'fill',
   'stroke',
   'stroke-width',
   '--wp-color',
+  'user-select',
 ]);
 
 export const ALLOWED_TAGS = [
@@ -92,6 +118,8 @@ export const ALLOWED_TAGS = [
   'h1', 'h2', 'h3', 'h4', 'sub', 'sup',
   'table', 'thead', 'tbody', 'tr', 'th', 'td',
   'img', 'blockquote',
+  // Wrapper for the casesTable NodeView (B1.2)
+  'div',
   // SVG (chevrons, diamonds, future inline icons)
   'svg', 'g', 'path', 'circle', 'rect', 'line', 'polyline', 'polygon',
   'ellipse', 'defs', 'use', 'title', 'desc', 'text', 'tspan',

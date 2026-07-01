@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -28,6 +28,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { ParticipantBubble } from '@/components/B31Pill';
 import {
   Select,
   SelectContent,
@@ -37,7 +38,10 @@ import {
 } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { FlaskConical, GripVertical, Plus, Trash2, Lock, LockOpen, Eye, EyeOff } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { FlaskConical, GripVertical, Plus, Trash2, Lock, LockOpen, Settings, ArrowUp, ArrowDown } from 'lucide-react';
+import { CaseSubsectionTemplateDialog } from '@/components/CaseSubsectionTemplateDialog';
+
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
@@ -49,6 +53,7 @@ interface CaseDraft {
   number: number;
   case_type: string;
   custom_type_name: string | null;
+  case_type_id: string | null;
   short_name: string | null;
   title: string | null;
   lead_participant_id: string | null;
@@ -56,58 +61,55 @@ interface CaseDraft {
   order_index: number;
   is_locked: boolean;
   locked_by: string | null;
-  is_hidden: boolean;
 }
 
-const CASE_TYPES = [
-  { value: 'case_study', label: 'Case Study', prefix: 'CS' },
-  { value: 'use_case', label: 'Use Case', prefix: 'UC' },
-  { value: 'living_lab', label: 'Living Lab', prefix: 'LL' },
-  { value: 'pilot', label: 'Pilot', prefix: 'P' },
-  { value: 'demonstration', label: 'Demonstration', prefix: 'D' },
-  { value: 'challenge', label: 'Challenge', prefix: 'CH' },
-  { value: 'other', label: 'Other', prefix: '' },
-];
-
-function getCaseTypeLabel(caseType: string, customTypeName: string | null): string {
-  if (caseType === 'other') return customTypeName || 'Case';
-  const type = CASE_TYPES.find(t => t.value === caseType);
-  return type?.label || 'Case';
+interface CaseTypeRow {
+  id: string;
+  proposal_id: string;
+  type_code: string | null;
+  custom_type_name: string | null;
+  outline_color: string;
+  include_number: boolean;
+  include_abbreviation: boolean;
+  order_index: number;
+  caption_text: string | null;
 }
 
-const CASE_COLORS = [
-  '#DC2626', '#B91C1C', '#EF4444', '#F87171', '#991B1B', 
-  '#C53030', '#E53E3E', '#FC8181', '#9B2C2C', '#F56565',
-];
+import {
+  CASE_TYPE_DEFS,
+  getCaseTypeLabel,
+  getCaseTypePrefix as getCasePrefix,
+  buildCaseLabel,
+  caseWord,
+} from '@/lib/caseTypeLabels';
 
-function getCasePrefix(caseType: string, customTypeName: string | null): string {
-  if (caseType === 'other') {
-    return customTypeName || '';
-  }
-  const type = CASE_TYPES.find(t => t.value === caseType);
-  return type?.prefix || '';
-}
+const CASE_TYPES = CASE_TYPE_DEFS.map((d) => ({
+  value: d.code,
+  label: d.singular,
+  prefix: d.prefix,
+}));
 
-function getCaseBubbleLabel(casePrefix: string, caseNumber: number, shortName: string | null): string {
-  if (casePrefix) {
-    const label = `${casePrefix}${caseNumber}`;
-    return shortName ? `${label}: ${shortName}` : label;
-  }
-  return shortName || `${caseNumber}`;
-}
+
 
 // Local-state abbreviation input to avoid typing lag
 function AbbreviationInput({ value, onChange, disabled }: { value: string; onChange: (v: string) => void; disabled: boolean }) {
   const [local, setLocal] = useState(value);
+  const focusedRef = useRef(false);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    setLocal(value);
+    if (!focusedRef.current) setLocal(value);
   }, [value]);
 
   return (
     <Input
       value={local}
+      onFocus={() => { focusedRef.current = true; }}
+      onBlur={() => {
+        focusedRef.current = false;
+        if (debounceRef.current) { clearTimeout(debounceRef.current); debounceRef.current = null; }
+        if (local !== value) onChange(local);
+      }}
       onChange={(e) => {
         const v = e.target.value.slice(0, 4);
         setLocal(v);
@@ -122,20 +124,56 @@ function AbbreviationInput({ value, onChange, disabled }: { value: string; onCha
   );
 }
 
+// Local-state caption input — debounced save, ignores prop while focused so the
+// query refetch triggered by our own mutation can't overwrite mid-type.
+function CaptionInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [local, setLocal] = useState(value);
+  const focusedRef = useRef(false);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (!focusedRef.current) setLocal(value);
+  }, [value]);
+
+  return (
+    <Input
+      value={local}
+      onFocus={() => { focusedRef.current = true; }}
+      onBlur={() => {
+        focusedRef.current = false;
+        if (debounceRef.current) { clearTimeout(debounceRef.current); debounceRef.current = null; }
+        if (local !== value) onChange(local);
+      }}
+      onChange={(e) => {
+        const v = e.target.value;
+        setLocal(v);
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => onChange(v), 500);
+      }}
+      className="h-7 text-xs"
+    />
+  );
+}
+
 interface SortableCaseRowProps {
   caseItem: CaseDraft;
   participants: ParticipantSummary[];
   casePrefix: string;
+  caseTypeLabel: string;
+  caseWordSingular: string;
   includeNumber: boolean;
   includeAbbreviation: boolean;
+  outlineColor: string;
   onUpdate: (id: string, updates: Partial<CaseDraft>) => void;
   onDelete: (id: string) => void;
   onToggleLock: (id: string, locked: boolean) => void;
-  onToggleVisibility: (id: string, hidden: boolean) => void;
   canEdit: boolean;
 }
 
-function SortableCaseRow({ caseItem, participants, casePrefix, includeNumber, includeAbbreviation, onUpdate, onDelete, onToggleLock, onToggleVisibility, canEdit }: SortableCaseRowProps) {
+function SortableCaseRow({ caseItem, participants, casePrefix, caseTypeLabel, caseWordSingular, includeNumber, includeAbbreviation, outlineColor, onUpdate, onDelete, onToggleLock, canEdit }: SortableCaseRowProps) {
+
+
+
   const [leadOpen, setLeadOpen] = useState(false);
   const [localShortName, setLocalShortName] = useState(caseItem.short_name || '');
   const [localTitle, setLocalTitle] = useState(caseItem.title || '');
@@ -175,11 +213,10 @@ function SortableCaseRow({ caseItem, participants, casePrefix, includeNumber, in
     <div
       ref={setNodeRef}
       style={style}
-      className={`col-span-7 grid grid-cols-subgrid gap-x-1.5 items-center py-1 border-b mb-[4px] ${
+      className={`col-span-6 grid grid-cols-subgrid gap-x-1.5 items-center py-1 border-b mb-[4px] ${
         isDragging ? 'bg-muted shadow-lg' : ''
       }`}
     >
-      {/* Drag Handle */}
       <div className="flex justify-center">
         {canEdit && (
           <button
@@ -192,13 +229,13 @@ function SortableCaseRow({ caseItem, participants, casePrefix, includeNumber, in
         )}
       </div>
 
-      {/* Case Bubble with inline-editable short name */}
       <Badge
-        className="rounded-full font-bold justify-center text-xs h-6 w-auto min-w-[1.5rem] border-[1.5px] border-black text-black bg-white whitespace-nowrap gap-0 px-1.5"
+        className="rounded-full font-bold justify-start text-xs h-6 w-auto min-w-[1.5rem] border-[1.5px] bg-white whitespace-nowrap gap-0 px-2"
+        style={{ borderColor: outlineColor || '#000000', color: outlineColor || '#000000' }}
       >
         {includeAbbreviation && casePrefix && <span>{casePrefix}</span>}
         {includeNumber && <span>{caseItem.number}</span>}
-        {(includeAbbreviation && casePrefix || includeNumber) && <span>:&nbsp;</span>}
+        {((includeAbbreviation && casePrefix) || includeNumber) && <span>:&nbsp;</span>}
         <input
           value={localShortName}
           onChange={(e) => {
@@ -208,13 +245,13 @@ function SortableCaseRow({ caseItem, participants, casePrefix, includeNumber, in
           onFocus={() => { isFocused.current = true; }}
           onBlur={() => { isFocused.current = false; }}
           placeholder={casePrefix ? 'name' : 'Short name'}
-          className="bg-transparent outline-none font-bold text-xs text-black min-w-[2rem]"
-          style={{ width: `${Math.max(2, (localShortName || '').length * 0.6)}em` }}
+          className="bg-transparent outline-none font-bold text-xs min-w-[2rem]"
+          style={{ width: `${Math.max(2, (localShortName || '').length * 0.6)}em`, color: outlineColor || '#000000' }}
           disabled={!canEdit}
         />
       </Badge>
 
-      {/* Title */}
+
       <Input
         value={localTitle}
         onChange={(e) => {
@@ -223,34 +260,41 @@ function SortableCaseRow({ caseItem, participants, casePrefix, includeNumber, in
         }}
         onFocus={() => { isFocused.current = true; }}
         onBlur={() => { isFocused.current = false; }}
-        placeholder="Case title"
+        placeholder={`${caseWordSingular} title`}
         className="h-7 text-sm"
         disabled={!canEdit}
       />
 
-      {/* Case Leader */}
-      <button
-        className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold italic whitespace-nowrap hover:ring-2 hover:ring-primary/30 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-self-start"
-        style={{
-          backgroundColor: selectedLead ? '#000000' : 'transparent',
-          color: selectedLead ? '#ffffff' : undefined,
-          border: selectedLead ? 'none' : '1px dashed hsl(var(--muted-foreground))',
-        }}
-        disabled={!canEdit}
-        onClick={() => setLeadOpen(true)}
-      >
-        {selectedLead
-          ? selectedLead.organisation_short_name || `P${selectedLead.participant_number}`
-          : '+ Leader'}
-      </button>
+      {selectedLead ? (
+        <ParticipantBubble
+          onClick={() => { if (canEdit) setLeadOpen(true); }}
+          style={{ fontSize: '12px', height: 'auto', padding: '2px 8px', cursor: canEdit ? 'pointer' : 'not-allowed', opacity: canEdit ? 1 : 0.5 }}
+          className="justify-self-start whitespace-nowrap hover:ring-2 hover:ring-primary/30 hover:scale-105 transition-all"
+        >
+          {selectedLead.organisation_short_name || `P${selectedLead.participant_number}`}
+        </ParticipantBubble>
+      ) : (
+        <button
+          className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold whitespace-nowrap hover:ring-2 hover:ring-primary/30 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-self-start"
+          style={{
+            backgroundColor: 'transparent',
+            border: '1px dashed hsl(var(--muted-foreground))',
+          }}
+          disabled={!canEdit}
+          onClick={() => setLeadOpen(true)}
+        >
+          + Leader
+        </button>
+      )}
       <Dialog open={leadOpen} onOpenChange={setLeadOpen}>
         <DialogContent className="max-w-xl">
           <DialogHeader>
-            <DialogTitle>Select {getCaseTypeLabel(caseItem.case_type, caseItem.custom_type_name)} Leader</DialogTitle>
+            <DialogTitle>Select {caseTypeLabel} Leader</DialogTitle>
             <DialogDescription>
-              Choose a partner organisation to lead this case.
+              Choose a partner organisation to lead this {caseWordSingular.toLowerCase()}.
             </DialogDescription>
           </DialogHeader>
+
           <ScrollArea className="max-h-[400px]">
             <div className="space-y-1 p-1">
               {participants.map((p) => (
@@ -263,15 +307,11 @@ function SortableCaseRow({ caseItem, participants, casePrefix, includeNumber, in
                   className="w-full flex items-center p-3 rounded-md text-left hover:bg-muted/80 transition-colors"
                 >
                   <div className="w-24 shrink-0">
-                    <span
-                      className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold italic whitespace-nowrap"
-                      style={{
-                        backgroundColor: '#000000',
-                        color: '#ffffff',
-                      }}
+                    <ParticipantBubble
+                      style={{ fontSize: '12px', height: 'auto', padding: '2px 8px' }}
                     >
                       {p.organisation_short_name || `P${p.participant_number}`}
-                    </span>
+                    </ParticipantBubble>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm truncate">
@@ -290,40 +330,27 @@ function SortableCaseRow({ caseItem, participants, casePrefix, includeNumber, in
         </DialogContent>
       </Dialog>
 
-      {/* Visibility Button */}
-      {canEdit && (
-        <button
-          onClick={() => onToggleVisibility(caseItem.id, !caseItem.is_hidden)}
-          className={`p-1 rounded transition-colors ${caseItem.is_hidden ? 'text-destructive hover:bg-destructive/10' : 'text-[#2563EB] hover:bg-blue-100'}`}
-          title={caseItem.is_hidden ? 'Show case' : 'Hide case'}
-        >
-          {caseItem.is_hidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-        </button>
-      )}
-      {!canEdit && <div />}
-
-      {/* Lock Button */}
       {canEdit && (
         <button
           onClick={() => onToggleLock(caseItem.id, !caseItem.is_locked)}
           className={`p-1 rounded transition-colors ${caseItem.is_locked ? 'text-destructive hover:bg-destructive/10' : 'text-green-600 hover:bg-green-100'}`}
-          title={caseItem.is_locked ? 'Unlock case' : 'Lock case'}
+          title={caseItem.is_locked ? `Unlock ${caseWordSingular.toLowerCase()}` : `Lock ${caseWordSingular.toLowerCase()}`}
         >
           {caseItem.is_locked ? <Lock className="w-4 h-4" /> : <LockOpen className="w-4 h-4" />}
         </button>
       )}
       {!canEdit && <div />}
 
-      {/* Delete Button */}
       {canEdit && (
         <button
           onClick={() => onDelete(caseItem.id)}
           className="p-1 text-destructive hover:bg-destructive/10 rounded transition-colors"
-          title="Delete case"
+          title={`Delete ${caseWordSingular.toLowerCase()}`}
         >
           <Trash2 className="w-4 h-4" />
         </button>
       )}
+
       {!canEdit && <div />}
     </div>
   );
@@ -337,28 +364,44 @@ interface CaseManagementCardProps {
   onSaveEvent?: () => void;
 }
 
-export function CaseManagementCard({ 
-  proposalId, 
-  isCoordinator, 
-  casesEnabled, 
+export function CaseManagementCard({
+  proposalId,
+  isCoordinator,
+  casesEnabled,
   onToggleCases,
   onSaveEvent,
 }: CaseManagementCardProps) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const [subsectionsDialogOpen, setSubsectionsDialogOpen] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  // Fetch case drafts
+  // Proposal-level case type rows
+  const { data: caseTypeRows = [], isLoading: typesLoading } = useQuery({
+    queryKey: ['proposal-case-types', proposalId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('proposal_case_types')
+        .select('id, proposal_id, type_code, custom_type_name, outline_color, include_number, include_abbreviation, order_index, caption_text')
+        .eq('proposal_id', proposalId)
+        .order('order_index');
+      if (error) throw error;
+      return data as CaseTypeRow[];
+    },
+    enabled: casesEnabled,
+  });
+
+
   const { data: caseDrafts = [], isLoading: casesLoading } = useQuery({
     queryKey: ['case-drafts-management', proposalId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('case_drafts')
-        .select('id, number, case_type, custom_type_name, short_name, title, lead_participant_id, color, order_index, is_locked, locked_by, is_hidden')
+        .select('id, number, case_type, custom_type_name, case_type_id, short_name, title, lead_participant_id, color, order_index, is_locked, locked_by')
         .eq('proposal_id', proposalId)
         .order('order_index');
       if (error) throw error;
@@ -367,7 +410,6 @@ export function CaseManagementCard({
     enabled: casesEnabled,
   });
 
-  // Fetch participants
   const { data: participants = [] } = useQuery({
     queryKey: ['participants-for-case', proposalId],
     queryFn: async () => {
@@ -382,50 +424,30 @@ export function CaseManagementCard({
     enabled: casesEnabled,
   });
 
-  // Case draft visibility
   const { data: caseSettingsData } = useQuery({
     queryKey: ['case-settings', proposalId],
     queryFn: async () => {
       const { data } = await supabase
         .from('proposals')
-        .select('case_drafts_visible, case_include_number, case_include_abbreviation')
+        .select('case_drafts_visible')
         .eq('id', proposalId)
         .single();
       return data as any;
     },
   });
-  const caseDraftsVisible = caseSettingsData?.case_drafts_visible !== false;
-  const caseIncludeNumber: boolean = caseSettingsData?.case_include_number !== false;
-  const caseIncludeAbbreviation: boolean = caseSettingsData?.case_include_abbreviation !== false;
 
   const invalidateCaseQueries = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: ['case-drafts-management', proposalId] });
+    void queryClient.invalidateQueries({ queryKey: ['proposal-case-types', proposalId] });
     void queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
     void queryClient.invalidateQueries({ queryKey: ['case-leadership', proposalId] });
   }, [proposalId, queryClient]);
 
-  const handleCaseDraftVisibility = async (visible: boolean) => {
-    await supabase.from('proposals').update({ case_drafts_visible: visible } as any).eq('id', proposalId);
-    queryClient.invalidateQueries({ queryKey: ['case-settings', proposalId] });
-    queryClient.invalidateQueries({ queryKey: ['proposal-for-themes', proposalId] });
-  };
 
-  const handleIncludeNumberChange = async (checked: boolean) => {
-    await supabase.from('proposals').update({ case_include_number: checked } as any).eq('id', proposalId);
-    queryClient.invalidateQueries({ queryKey: ['case-settings', proposalId] });
-  };
-
-  const handleIncludeAbbreviationChange = async (checked: boolean) => {
-    await supabase.from('proposals').update({ case_include_abbreviation: checked } as any).eq('id', proposalId);
-    queryClient.invalidateQueries({ queryKey: ['case-settings', proposalId] });
-  };
-
+  // Update a case row (debounced from inputs).
   const updateCaseMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<CaseDraft> }) => {
-      const { error } = await supabase
-        .from('case_drafts')
-        .update(updates)
-        .eq('id', id);
+      const { error } = await supabase.from('case_drafts').update(updates).eq('id', id);
       if (error) throw error;
     },
     onMutate: async ({ id, updates }) => {
@@ -436,76 +458,52 @@ export function CaseManagementCard({
       );
       return { previous };
     },
-    onError: (_err, _vars, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(['case-drafts-management', proposalId], context.previous);
-      }
-      toast.error('Failed to update case');
+    onError: (_e, _v, context) => {
+      if (context?.previous) queryClient.setQueryData(['case-drafts-management', proposalId], context.previous);
+      toast.error(`Failed to update ${caseWord(caseTypeRows, { capitalize: false })}`);
     },
-    onSettled: () => {
-      invalidateCaseQueries();
-      onSaveEvent?.();
-    },
+    onSettled: () => { invalidateCaseQueries(); onSaveEvent?.(); },
+
   });
 
-  // Reorder mutation
-  const reorderMutation = useMutation({
-    mutationFn: async (reorderedCases: CaseDraft[]) => {
-      const updates = reorderedCases.map((c, index) => ({
-        id: c.id,
-        order_index: index,
-        number: index + 1,
-      }));
-      
-      // First pass: set numbers to negative temporaries to avoid unique constraint violations
-      for (const update of updates) {
+  // Per-type reorder: renumber 1..n within a case_type_id (two-phase to dodge unique constraint).
+  const reorderTypeMutation = useMutation({
+    mutationFn: async ({ typeId, ordered }: { typeId: string; ordered: CaseDraft[] }) => {
+      // Phase 1: temp negative numbers
+      for (let i = 0; i < ordered.length; i++) {
         const { error } = await supabase
           .from('case_drafts')
-          .update({ order_index: update.order_index, number: -(update.number + 1000) })
-          .eq('id', update.id);
+          .update({ order_index: i, number: -(i + 1000) })
+          .eq('id', ordered[i].id);
         if (error) throw error;
       }
-      
-      // Second pass: set final numbers
-      for (const update of updates) {
+      // Phase 2: final numbers
+      for (let i = 0; i < ordered.length; i++) {
         const { error } = await supabase
           .from('case_drafts')
-          .update({ number: update.number })
-          .eq('id', update.id);
+          .update({ number: i + 1 })
+          .eq('id', ordered[i].id);
         if (error) throw error;
       }
-    },
-    onMutate: async (reorderedCases) => {
-      await queryClient.cancelQueries({ queryKey: ['case-drafts-management', proposalId] });
-      const previousCases = queryClient.getQueryData<CaseDraft[]>(['case-drafts-management', proposalId]);
-      const optimisticCases = reorderedCases.map((c, index) => ({
-        ...c,
-        order_index: index,
-        number: index + 1,
-      }));
-      queryClient.setQueryData(['case-drafts-management', proposalId], optimisticCases);
-      return { previousCases };
-    },
-    onError: (_err, _vars, context) => {
-      if (context?.previousCases) {
-        queryClient.setQueryData(['case-drafts-management', proposalId], context.previousCases);
-      }
-      toast.error('Failed to reorder cases');
+      return typeId;
     },
     onSettled: () => {
       invalidateCaseQueries();
       window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
       onSaveEvent?.();
     },
+    onError: () => toast.error(`Failed to reorder ${caseWord(caseTypeRows, { plural: true, capitalize: false })}`),
   });
 
-  // Add case mutation — copies shared headings/guidelines from existing cases
+  // Add a case to a specific type card.
   const addCaseMutation = useMutation({
-    mutationFn: async (caseType: string = 'case_study') => {
-      const newNumber = caseDrafts.length + 1;
-      const color = CASE_COLORS[(newNumber - 1) % CASE_COLORS.length];
+    mutationFn: async (typeRow: CaseTypeRow) => {
+      const existing = caseDrafts.filter(c => c.case_type_id === typeRow.id);
+      const newNumber = existing.length + 1;
+      const color = typeRow.outline_color || '#000000';
 
-      // Copy heading/guideline customisations from first existing case
+      // Copy shared headings/guidelines from an existing case (any) so subsection
+      // customisations propagate to new cases.
       let sharedFields: Record<string, string | null> = {};
       if (caseDrafts.length > 0) {
         const { data: ref } = await supabase
@@ -521,110 +519,186 @@ export function CaseManagementCard({
           }
         }
       }
-      
+
       const { error } = await supabase.from('case_drafts').insert({
         proposal_id: proposalId,
         number: newNumber,
-        case_type: caseType,
+        case_type: typeRow.type_code,
+        custom_type_name: typeRow.custom_type_name,
+        case_type_id: typeRow.id,
         color,
-        order_index: newNumber - 1,
+        order_index: caseDrafts.length,
         ...sharedFields,
       });
       if (error) throw error;
     },
-    onSuccess: () => {
-      invalidateCaseQueries();
-      onSaveEvent?.();
-      toast.success('Case added');
-    },
+    onSuccess: () => { invalidateCaseQueries(); onSaveEvent?.(); toast.success(`${caseWord(caseTypeRows, { capitalize: true })} added`); },
+    onError: () => toast.error(`Failed to add ${caseWord(caseTypeRows, { capitalize: false })}`),
+
   });
 
-  // Delete case mutation
+  // Delete a case (renumber its type group afterwards).
   const deleteCaseMutation = useMutation({
     mutationFn: async (caseId: string) => {
-      const { error } = await supabase
-        .from('case_drafts')
-        .delete()
-        .eq('id', caseId);
+      const target = caseDrafts.find(c => c.id === caseId);
+      const { error } = await supabase.from('case_drafts').delete().eq('id', caseId);
       if (error) throw error;
+      if (target?.case_type_id) {
+        const remaining = caseDrafts
+          .filter(c => c.case_type_id === target.case_type_id && c.id !== caseId)
+          .sort((a, b) => a.order_index - b.order_index);
+        // Two-phase renumber to keep (case_type_id, number) unique
+        for (let i = 0; i < remaining.length; i++) {
+          await supabase.from('case_drafts').update({ number: -(i + 1000) }).eq('id', remaining[i].id);
+        }
+        for (let i = 0; i < remaining.length; i++) {
+          await supabase.from('case_drafts').update({ number: i + 1 }).eq('id', remaining[i].id);
+        }
+      }
     },
     onSuccess: () => {
       invalidateCaseQueries();
       window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
       onSaveEvent?.();
-      toast.success('Case deleted');
+      toast.success(`${caseWord(caseTypeRows, { capitalize: true })} deleted`);
     },
-    onError: () => {
-      toast.error('Failed to delete case');
-    },
+    onError: () => toast.error(`Failed to delete ${caseWord(caseTypeRows, { capitalize: false })}`),
+
   });
 
-  // Derive proposal-level case type from first case (all cases share the same type)
-  const proposalCaseType = caseDrafts.length > 0 ? caseDrafts[0].case_type : 'case_study';
-  const proposalCustomName = caseDrafts.length > 0 ? caseDrafts[0].custom_type_name : null;
-  const casePrefix = getCasePrefix(proposalCaseType, proposalCustomName);
+  // Change a card's type: update proposal_case_types row + sync legacy
+  // case_type/custom_type_name on every case in that group.
+  const changeTypeMutation = useMutation({
+    mutationFn: async ({ typeRowId, type_code, custom_type_name, caption_text }: { typeRowId: string; type_code: string | null; custom_type_name: string | null; caption_text?: string | null }) => {
+      const patch: Record<string, unknown> = { type_code, custom_type_name };
+      if (caption_text !== undefined) patch.caption_text = caption_text;
+      const { error: e1 } = await supabase
+        .from('proposal_case_types')
+        .update(patch as never)
+        .eq('id', typeRowId);
+      if (e1) throw e1;
+      if (type_code) {
+        const { error: e2 } = await supabase
+          .from('case_drafts')
+          .update({ case_type: type_code, custom_type_name })
+          .eq('case_type_id', typeRowId);
+        if (e2) throw e2;
+      }
+    },
+    onSuccess: () => {
+      invalidateCaseQueries();
+      window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
+      onSaveEvent?.();
+    },
+    onError: () => toast.error('Failed to change case type'),
+  });
 
-  const handleCaseTypeChange = useCallback((newType: string) => {
-    // Update all cases to the new type
-    caseDrafts.forEach(c => {
-      updateCaseMutation.mutate({ id: c.id, updates: { case_type: newType } });
-    });
-  }, [caseDrafts, updateCaseMutation]);
+  // Per-type settings: outline colour, include_number, include_abbreviation.
+  const updateTypeMutation = useMutation({
+    mutationFn: async ({ typeRowId, patch }: { typeRowId: string; patch: Partial<Pick<CaseTypeRow, 'outline_color' | 'include_number' | 'include_abbreviation' | 'caption_text'>> }) => {
+      const { error } = await supabase.from('proposal_case_types').update(patch).eq('id', typeRowId);
+      if (error) throw error;
+      // If colour changed, mirror onto child cases so legacy `color`-based UI stays in sync.
+      if (patch.outline_color !== undefined) {
+        await supabase.from('case_drafts').update({ color: patch.outline_color }).eq('case_type_id', typeRowId);
+      }
+    },
+    onSuccess: () => {
+      invalidateCaseQueries();
+      window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
+      onSaveEvent?.();
+    },
+    onError: () => toast.error('Failed to update case type'),
+  });
 
-  const handleCustomNameChange = useCallback((name: string) => {
-    caseDrafts.forEach(c => {
-      updateCaseMutation.mutate({ id: c.id, updates: { custom_type_name: name } });
-    });
-  }, [caseDrafts, updateCaseMutation]);
+  // Add another case type row. Starts with NO type selected and no caption —
+  // the user picks a type via the dropdown, at which point caption_text is
+  // auto-filled with the default "{Singular} descriptions".
+  const addTypeMutation = useMutation({
+    mutationFn: async () => {
+      const nextOrder = caseTypeRows.length > 0 ? Math.max(...caseTypeRows.map(t => t.order_index)) + 1 : 0;
+      const { error } = await supabase.from('proposal_case_types').insert({
+        proposal_id: proposalId,
+        type_code: null as unknown as string,
+        order_index: nextOrder,
+        caption_text: null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => { invalidateCaseQueries(); onSaveEvent?.(); },
+    onError: () => toast.error('Failed to add type'),
+  });
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
+  // Delete a type card. Cases must be removed first (ON DELETE RESTRICT).
+  // Behaviour: confirm-cascade — if cases exist, ask the user; on confirm, delete cases then the type row.
+  const deleteTypeMutation = useMutation({
+    mutationFn: async (typeRowId: string) => {
+      const { error: ce } = await supabase.from('case_drafts').delete().eq('case_type_id', typeRowId);
+      if (ce) throw ce;
+      const { error: te } = await supabase.from('proposal_case_types').delete().eq('id', typeRowId);
+      if (te) throw te;
+    },
+    onSuccess: () => {
+      invalidateCaseQueries();
+      window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
+      onSaveEvent?.();
+      toast.success('Case type removed');
+    },
+    onError: () => toast.error('Failed to remove case type'),
+  });
 
-    const oldIndex = caseDrafts.findIndex((c) => c.id === active.id);
-    const newIndex = caseDrafts.findIndex((c) => c.id === over.id);
-    const reordered = arrayMove(caseDrafts, oldIndex, newIndex);
-    
-    reorderMutation.mutate(reordered);
-  };
+  // Swap two type cards' order_index (one-step move).
+  const swapTypeOrderMutation = useMutation({
+    mutationFn: async ({ a, b }: { a: CaseTypeRow; b: CaseTypeRow }) => {
+      // Two-phase swap to avoid any potential unique conflicts.
+      const { error: e1 } = await supabase.from('proposal_case_types').update({ order_index: -1 - a.order_index }).eq('id', a.id);
+      if (e1) throw e1;
+      const { error: e2 } = await supabase.from('proposal_case_types').update({ order_index: a.order_index }).eq('id', b.id);
+      if (e2) throw e2;
+      const { error: e3 } = await supabase.from('proposal_case_types').update({ order_index: b.order_index }).eq('id', a.id);
+      if (e3) throw e3;
+    },
+    onSuccess: () => {
+      invalidateCaseQueries();
+      window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
+      onSaveEvent?.();
+    },
+    onError: () => toast.error('Failed to reorder case types'),
+  });
 
   const handleUpdateCase = useCallback((id: string, updates: Partial<CaseDraft>) => {
     updateCaseMutation.mutate({ id, updates });
   }, [updateCaseMutation]);
 
   const handleDeleteCase = useCallback((id: string) => {
-    if (confirm('Are you sure you want to delete this case?')) {
+    if (confirm(`Are you sure you want to delete this ${caseWord(caseTypeRows, { capitalize: false })}?`)) {
       deleteCaseMutation.mutate(id);
     }
-  }, [deleteCaseMutation]);
+  }, [deleteCaseMutation, caseTypeRows]);
+
 
   const handleToggleLock = useCallback(async (id: string, locked: boolean) => {
-    // Cancel any in-flight refetches so they don't overwrite our optimistic update
     await queryClient.cancelQueries({ queryKey: ['case-drafts-management', proposalId] });
-    // Optimistic update
     queryClient.setQueryData<CaseDraft[]>(['case-drafts-management', proposalId], old =>
       (old || []).map(c => c.id === id ? { ...c, is_locked: locked, locked_by: locked ? user?.id ?? null : null } : c)
     );
     const { error } = await supabase
       .from('case_drafts')
-      .update({ 
-        is_locked: locked, 
+      .update({
+        is_locked: locked,
         locked_by: locked ? user?.id ?? null : null,
         locked_at: locked ? new Date().toISOString() : null,
       } as any)
       .eq('id', id);
-    if (error) {
-      toast.error('Failed to update lock status');
-    }
+    if (error) toast.error('Failed to update lock status');
     invalidateCaseQueries();
-    if (!error) toast.success(locked ? 'Case locked' : 'Case unlocked');
+    if (!error) toast.success(locked ? `${caseWord(caseTypeRows, { capitalize: true })} locked` : `${caseWord(caseTypeRows, { capitalize: true })} unlocked`);
   }, [user, proposalId, queryClient, invalidateCaseQueries]);
 
   const handleToggleLockAll = useCallback(async () => {
-    const allLocked = caseDrafts.every(c => c.is_locked);
+    const allLocked = caseDrafts.length > 0 && caseDrafts.every(c => c.is_locked);
     const newLocked = !allLocked;
     await queryClient.cancelQueries({ queryKey: ['case-drafts-management', proposalId] });
-    // Optimistic update
     queryClient.setQueryData<CaseDraft[]>(['case-drafts-management', proposalId], old =>
       (old || []).map(c => ({ ...c, is_locked: newLocked, locked_by: newLocked ? user?.id ?? null : null }))
     );
@@ -636,55 +710,40 @@ export function CaseManagementCard({
         locked_at: newLocked ? new Date().toISOString() : null,
       } as any)
       .eq('proposal_id', proposalId);
-    if (error) {
-      toast.error('Failed to update lock status');
-      invalidateCaseQueries();
-      return;
-    }
+    if (error) { toast.error('Failed to update lock status'); invalidateCaseQueries(); return; }
     invalidateCaseQueries();
-    toast.success(newLocked ? 'All cases locked' : 'All cases unlocked');
+    toast.success(newLocked ? `All ${caseWord(caseTypeRows, { plural: true, capitalize: false })} locked` : `All ${caseWord(caseTypeRows, { plural: true, capitalize: false })} unlocked`);
   }, [user, proposalId, queryClient, caseDrafts, invalidateCaseQueries]);
 
-  const handleToggleVisibility = useCallback(async (id: string, hidden: boolean) => {
-    await queryClient.cancelQueries({ queryKey: ['case-drafts-management', proposalId] });
-    queryClient.setQueryData<CaseDraft[]>(['case-drafts-management', proposalId], old =>
-      (old || []).map(c => c.id === id ? { ...c, is_hidden: hidden } : c)
-    );
-    const { error } = await supabase
-      .from('case_drafts')
-      .update({ is_hidden: hidden } as any)
-      .eq('id', id);
-    if (error) {
-      toast.error('Failed to update visibility');
-    }
-    invalidateCaseQueries();
-    if (!error) toast.success(hidden ? 'Case hidden' : 'Case visible');
-  }, [proposalId, queryClient, invalidateCaseQueries]);
+  const handleCheckboxChange = (checked: boolean) => onToggleCases(checked);
 
-  const handleToggleVisibilityAll = useCallback(async () => {
-    const allHidden = caseDrafts.every(c => c.is_hidden);
-    const newHidden = !allHidden;
-    await queryClient.cancelQueries({ queryKey: ['case-drafts-management', proposalId] });
-    // Optimistic update
-    queryClient.setQueryData<CaseDraft[]>(['case-drafts-management', proposalId], old =>
-      (old || []).map(c => ({ ...c, is_hidden: newHidden }))
-    );
-    const { error } = await supabase
-      .from('case_drafts')
-      .update({ is_hidden: newHidden } as any)
-      .eq('proposal_id', proposalId);
-    if (error) {
-      toast.error('Failed to update visibility');
-      invalidateCaseQueries();
-      return;
+  // Group cases by case_type_id.
+  const casesByType = useMemo(() => {
+    const map = new Map<string, CaseDraft[]>();
+    for (const c of caseDrafts) {
+      if (!c.case_type_id) continue;
+      const arr = map.get(c.case_type_id) ?? [];
+      arr.push(c);
+      map.set(c.case_type_id, arr);
     }
-    invalidateCaseQueries();
-    toast.success(newHidden ? 'All cases hidden' : 'All cases visible');
-  }, [proposalId, queryClient, caseDrafts, invalidateCaseQueries]);
+    // Sort each group by number (1..n) for stable display.
+    for (const [k, v] of map) {
+      map.set(k, [...v].sort((a, b) => a.number - b.number));
+    }
+    return map;
+  }, [caseDrafts]);
 
-  const handleCheckboxChange = (checked: boolean) => {
-    onToggleCases(checked);
-  };
+  const usedNonOtherTypes = useMemo(
+    () => new Set(
+      caseTypeRows
+        .filter(t => !!t.type_code && t.type_code !== 'other')
+        .map(t => t.type_code as string)
+    ),
+    [caseTypeRows]
+  );
+
+  const hasAnyCase = caseDrafts.length > 0;
+  const canShowAddAnother = isCoordinator && hasAnyCase;
 
   return (
     <Card className="mt-4">
@@ -695,7 +754,6 @@ export function CaseManagementCard({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        {/* Enable cases checkbox */}
         {isCoordinator && (
           <div className="flex items-start gap-3">
             <Checkbox
@@ -711,134 +769,296 @@ export function CaseManagementCard({
           </div>
         )}
 
-        {/* Cases table (when enabled) */}
         {casesEnabled && (
           <>
-            {casesLoading ? (
+            {(casesLoading || typesLoading) ? (
               <div className="animate-pulse space-y-2">
-                {[1, 2].map((i) => (
-                  <div key={i} className="h-8 bg-muted rounded" />
-                ))}
+                {[1, 2].map((i) => (<div key={i} className="h-8 bg-muted rounded" />))}
               </div>
             ) : (
               <>
-                {/* Proposal-level type selector + numbering options */}
-                <div className="flex items-center gap-3 mb-2 flex-wrap">
-                  <div className="flex items-center gap-2">
-                    <Label className="text-sm text-muted-foreground shrink-0">Type:</Label>
-                    <Select 
-                      value={proposalCaseType} 
-                      onValueChange={handleCaseTypeChange}
-                      disabled={!isCoordinator}
-                    >
-                      <SelectTrigger className="h-7 text-xs w-40">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {CASE_TYPES.map((type) => (
-                          <SelectItem key={type.value} value={type.value} className="text-xs">
-                            {type.prefix ? `${type.prefix} – ` : ''}{type.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {proposalCaseType === 'other' && (
-                      <AbbreviationInput
-                        value={proposalCustomName || ''}
-                        onChange={handleCustomNameChange}
-                        disabled={!isCoordinator}
-                      />
+                {/* (Per-type number/abbreviation toggles live on each case-type card below.) */}
+
+
+                {/* First-run prompt: cases enabled but no type yet */}
+                {caseTypeRows.length === 0 && (
+                  <div className="border rounded-md p-3 text-sm text-muted-foreground flex items-center justify-between gap-3">
+                    <span>Pick the first case type to start adding cases.</span>
+                    {isCoordinator && (
+                      <Button size="sm" variant="outline" onClick={() => addTypeMutation.mutate()} disabled={addTypeMutation.isPending}>
+                        <Plus className="w-4 h-4 mr-1" /> Add case type
+                      </Button>
                     )}
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1.5">
-                      <Checkbox
-                        id="include-number"
-                        checked={caseIncludeNumber}
-                        onCheckedChange={(checked) => handleIncludeNumberChange(!!checked)}
-                        disabled={!isCoordinator}
-                      />
-                      <Label htmlFor="include-number" className="text-xs cursor-pointer">Include number</Label>
-                    </div>
-                    {!caseIncludeNumber && (
-                      <div className="flex items-center gap-1.5">
-                        <Checkbox
-                          id="include-abbreviation"
-                          checked={caseIncludeAbbreviation}
-                          onCheckedChange={(checked) => handleIncludeAbbreviationChange(!!checked)}
-                          disabled={!isCoordinator}
-                        />
-                        <Label htmlFor="include-abbreviation" className="text-xs cursor-pointer">Include abbreviation</Label>
+                )}
+
+                {/* One card per case type */}
+                {caseTypeRows.map((typeRow, typeIdx) => {
+                  const typeLabel = getCaseTypeLabel(typeRow.type_code, typeRow.custom_type_name);
+                  const prefix = getCasePrefix(typeRow.type_code, typeRow.custom_type_name);
+                  const cases = casesByType.get(typeRow.id) ?? [];
+                  const isFirst = typeIdx === 0;
+                  const isLast = typeIdx === caseTypeRows.length - 1;
+
+                  const onDragEnd = (event: DragEndEvent) => {
+                    const { active, over } = event;
+                    if (!over || active.id === over.id) return;
+                    const oldIndex = cases.findIndex((c) => c.id === active.id);
+                    const newIndex = cases.findIndex((c) => c.id === over.id);
+                    const reordered = arrayMove(cases, oldIndex, newIndex);
+                    reorderTypeMutation.mutate({ typeId: typeRow.id, ordered: reordered });
+                  };
+
+                  return (
+                    <div key={typeRow.id} className="border rounded-md p-3 space-y-2">
+                      {/* Card header: type selector + per-type controls + delete-type */}
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Label className="text-sm text-muted-foreground shrink-0">Type:</Label>
+                          <Select
+                            value={typeRow.type_code ?? ''}
+                            onValueChange={(newType) => {
+                              const newCustom = newType === 'other' ? typeRow.custom_type_name : null;
+                              // Caption auto-fill rule: overwrite caption_text with the new
+                              // default IFF the current caption is empty OR still matches
+                              // the previous type's default ("{prev singular} descriptions").
+                              // Otherwise leave the user's custom caption alone.
+                              const prevDefault = typeRow.type_code
+                                ? `${getCaseTypeLabel(typeRow.type_code, typeRow.custom_type_name)} descriptions`
+                                : null;
+                              const currentCaption = (typeRow.caption_text ?? '').trim();
+                              const isUntouched =
+                                currentCaption === '' ||
+                                (prevDefault !== null && currentCaption === prevDefault);
+                              const newDefault = `${getCaseTypeLabel(newType, newCustom)} descriptions`;
+                              changeTypeMutation.mutate({
+                                typeRowId: typeRow.id,
+                                type_code: newType,
+                                custom_type_name: newCustom,
+                                ...(isUntouched ? { caption_text: newDefault } : {}),
+                              });
+                            }}
+                            disabled={!isCoordinator}
+                          >
+                            <SelectTrigger className="h-7 text-xs w-44">
+                              <SelectValue placeholder="Select a case type…" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {CASE_TYPES.map((t) => {
+                                const disabledOpt =
+                                  t.value !== 'other' &&
+                                  t.value !== typeRow.type_code &&
+                                  usedNonOtherTypes.has(t.value);
+                                return (
+                                  <SelectItem
+                                    key={t.value}
+                                    value={t.value}
+                                    disabled={disabledOpt}
+                                    className="text-xs"
+                                  >
+                                    {t.prefix ? `${t.prefix} – ` : ''}{t.label}
+                                    {disabledOpt ? ' (already used)' : ''}
+                                  </SelectItem>
+                                );
+                              })}
+                            </SelectContent>
+                          </Select>
+                          {typeRow.type_code === 'other' && (
+                            <AbbreviationInput
+                              value={typeRow.custom_type_name || ''}
+                              onChange={(name) => {
+                                const prevDefault = `${getCaseTypeLabel('other', typeRow.custom_type_name)} descriptions`;
+                                const currentCaption = (typeRow.caption_text ?? '').trim();
+                                const isUntouched = currentCaption === '' || currentCaption === prevDefault;
+                                const newDefault = `${getCaseTypeLabel('other', name)} descriptions`;
+                                changeTypeMutation.mutate({
+                                  typeRowId: typeRow.id,
+                                  type_code: 'other',
+                                  custom_type_name: name,
+                                  ...(isUntouched ? { caption_text: newDefault } : {}),
+                                });
+                              }}
+                              disabled={!isCoordinator}
+                            />
+                          )}
+
+                          {/* Per-type display settings — inline with the type selector */}
+                          {isCoordinator && (
+                            <>
+                              <label className="flex items-center gap-1.5 text-xs ml-2">
+                                <span className="text-muted-foreground">Outline:</span>
+                                <input
+                                  type="color"
+                                  value={typeRow.outline_color || '#000000'}
+                                  onChange={(e) => updateTypeMutation.mutate({ typeRowId: typeRow.id, patch: { outline_color: e.target.value } })}
+                                  className="w-7 h-6 rounded border cursor-pointer p-0"
+                                  aria-label="Outline colour"
+                                />
+                              </label>
+                              <label className="flex items-center gap-1 text-xs">
+                                <Switch
+                                  checked={typeRow.include_number}
+                                  onCheckedChange={(v) => updateTypeMutation.mutate({ typeRowId: typeRow.id, patch: { include_number: v } })}
+                                  className="h-4 w-7 [&>span]:h-3 [&>span]:w-3 [&>span]:data-[state=checked]:translate-x-3"
+                                />
+                                <span>Include number</span>
+                              </label>
+                              <label className="flex items-center gap-1 text-xs">
+                                <Switch
+                                  checked={typeRow.include_abbreviation}
+                                  onCheckedChange={(v) => updateTypeMutation.mutate({ typeRowId: typeRow.id, patch: { include_abbreviation: v } })}
+                                  className="h-4 w-7 [&>span]:h-3 [&>span]:w-3 [&>span]:data-[state=checked]:translate-x-3"
+                                />
+                                <span>Include abbreviation</span>
+                              </label>
+                            </>
+                          )}
+                        </div>
+                        {isCoordinator && (
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => {
+                                if (isFirst) return;
+                                swapTypeOrderMutation.mutate({ a: typeRow, b: caseTypeRows[typeIdx - 1] });
+                              }}
+                              disabled={isFirst || swapTypeOrderMutation.isPending}
+                              className="p-1 text-[#2563EB] hover:bg-muted rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                              title="Move up"
+                            >
+                              <ArrowUp className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (isLast) return;
+                                swapTypeOrderMutation.mutate({ a: typeRow, b: caseTypeRows[typeIdx + 1] });
+                              }}
+                              disabled={isLast || swapTypeOrderMutation.isPending}
+                              className="p-1 text-[#2563EB] hover:bg-muted rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                              title="Move down"
+                            >
+                              <ArrowDown className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                const n = cases.length;
+                                const wordForN = caseWord(caseTypeRows, { plural: n !== 1, capitalize: false });
+                                const msg = n === 0
+                                  ? 'Remove this case type?'
+                                  : `This will permanently delete ${n} ${wordForN} of this type. Continue?`;
+                                if (confirm(msg)) deleteTypeMutation.mutate(typeRow.id);
+                              }}
+
+                              className="p-1 text-destructive hover:bg-destructive/10 rounded transition-colors"
+                              title="Remove case type"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                </div>
 
-                {/* Table Header */}
-                <div className="grid grid-cols-[24px_140px_1fr_80px_20px_20px_20px] gap-x-1.5">
-                  {/* Header row */}
-                  <div className="col-span-7 grid grid-cols-subgrid gap-x-1.5 text-xs font-bold text-muted-foreground border-b pb-1">
-                    <div />
-                    <div />
-                    <div>Title</div>
-                    <div>{getCaseTypeLabel(proposalCaseType, proposalCustomName)} Leader</div>
-                    {isCoordinator ? (
-                      <button
-                        onClick={handleToggleVisibilityAll}
-                        className={`p-1 rounded transition-colors ${caseDrafts.length > 0 && caseDrafts.every(c => c.is_hidden) ? 'text-destructive hover:bg-destructive/10' : 'text-[#2563EB] hover:bg-blue-100'}`}
-                        title={caseDrafts.length > 0 && caseDrafts.every(c => c.is_hidden) ? 'Show all' : 'Hide all'}
-                      >
-                        {caseDrafts.length > 0 && caseDrafts.every(c => c.is_hidden) ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    ) : <div />}
-                    {isCoordinator ? (
-                      <button
-                        onClick={handleToggleLockAll}
-                        className={`p-1 rounded transition-colors ${caseDrafts.length > 0 && caseDrafts.every(c => c.is_locked) ? 'text-destructive hover:bg-destructive/10' : 'text-green-600 hover:bg-green-100'}`}
-                        title={caseDrafts.length > 0 && caseDrafts.every(c => c.is_locked) ? 'Unlock all' : 'Lock all'}
-                      >
-                        {caseDrafts.length > 0 && caseDrafts.every(c => c.is_locked) ? <Lock className="w-4 h-4" /> : <LockOpen className="w-4 h-4" />}
-                      </button>
-                    ) : <div />}
-                    <div />
-                  </div>
+                      {/* Caption text for the B1.2 table for this type */}
+                      {isCoordinator && (
+                        <div className="flex items-center gap-2 text-xs pt-1">
+                          <label className="flex items-center gap-1.5 flex-1">
+                            <span className="text-muted-foreground whitespace-nowrap">Caption text:</span>
+                            <CaptionInput
+                              value={typeRow.caption_text ?? ''}
+                              onChange={(v) => updateTypeMutation.mutate({ typeRowId: typeRow.id, patch: { caption_text: v } })}
+                            />
+                          </label>
+                        </div>
+                      )}
 
-                  {/* Sortable Case List */}
-                  <DndContext
-                    sensors={sensors}
-                    collisionDetection={closestCenter}
-                    onDragEnd={handleDragEnd}
-                  >
-                    <SortableContext items={caseDrafts.map((c) => c.id)} strategy={verticalListSortingStrategy}>
-                      {caseDrafts.map((caseItem) => (
-                        <SortableCaseRow
-                          key={caseItem.id}
-                          caseItem={caseItem}
-                          participants={participants}
-                          casePrefix={casePrefix}
-                          includeNumber={caseIncludeNumber}
-                          includeAbbreviation={caseIncludeNumber || caseIncludeAbbreviation}
-                          onUpdate={handleUpdateCase}
-                          onDelete={handleDeleteCase}
-                          onToggleLock={handleToggleLock}
-                          onToggleVisibility={handleToggleVisibility}
-                          canEdit={isCoordinator}
-                        />
-                      ))}
-                    </SortableContext>
-                  </DndContext>
-                </div>
 
-                {/* Add button & visibility */}
-                {isCoordinator && (
-                  <div className="pt-2 flex items-center justify-between">
+                      {/* Cases grid */}
+                      <div className="grid grid-cols-[24px_140px_1fr_80px_20px_20px] gap-x-1.5">
+                        <div className="col-span-6 grid grid-cols-subgrid gap-x-1.5 items-center text-xs font-bold text-muted-foreground border-b pb-1 min-h-[28px]">
+                          <div />
+                          <div />
+                          <div>Title</div>
+                          <div>{typeLabel} Leader</div>
+                          <div />
+                          <div />
+                        </div>
+
+                        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+                          <SortableContext items={cases.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+                            {cases.map((caseItem) => (
+                              <SortableCaseRow
+                                key={caseItem.id}
+                                caseItem={caseItem}
+                                participants={participants}
+                                casePrefix={prefix}
+                                caseWordSingular={caseWord(caseTypeRows, { capitalize: true })}
+
+                                caseTypeLabel={typeLabel}
+                                includeNumber={typeRow.include_number}
+                                includeAbbreviation={typeRow.include_abbreviation}
+                                outlineColor={typeRow.outline_color || '#000000'}
+                                onUpdate={handleUpdateCase}
+                                onDelete={handleDeleteCase}
+                                onToggleLock={handleToggleLock}
+                                canEdit={isCoordinator}
+
+                              />
+                            ))}
+                          </SortableContext>
+                        </DndContext>
+                      </div>
+
+                      {isCoordinator && (
+                        <div className="pt-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => addCaseMutation.mutate(typeRow)}
+                            disabled={addCaseMutation.isPending || !typeRow.type_code}
+                            title={!typeRow.type_code ? 'Select a case type first' : undefined}
+                          >
+                            <Plus className="w-4 h-4 mr-1" />
+                            Add {typeRow.type_code ? typeLabel.toLowerCase() : 'case'}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* Add another case type */}
+                {canShowAddAnother && (
+                  <div className="flex items-center justify-between gap-2 flex-wrap pt-1">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => addCaseMutation.mutate(proposalCaseType)}
-                      disabled={addCaseMutation.isPending}
+                      onClick={() => addTypeMutation.mutate()}
+                      disabled={addTypeMutation.isPending}
                     >
                       <Plus className="w-4 h-4 mr-1" />
+                      Add another case type
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSubsectionsDialogOpen(true)}
+                    >
+                      <Settings className="w-4 h-4 mr-1" />
+                      Edit {caseWord(caseTypeRows, { capitalize: false })} subsections &amp; guidelines
+
+                    </Button>
+                  </div>
+                )}
+
+                {/* Subsection button always available even when no "add another" yet */}
+                {!canShowAddAnother && isCoordinator && caseTypeRows.length > 0 && (
+                  <div className="pt-1 flex justify-end">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSubsectionsDialogOpen(true)}
+                    >
+                      <Settings className="w-4 h-4 mr-1" />
+                      Edit {caseWord(caseTypeRows, { capitalize: false })} subsections &amp; guidelines
                     </Button>
                   </div>
                 )}
@@ -846,6 +1066,13 @@ export function CaseManagementCard({
             )}
           </>
         )}
+
+        <CaseSubsectionTemplateDialog
+          open={subsectionsDialogOpen}
+          onOpenChange={setSubsectionsDialogOpen}
+          proposalId={proposalId}
+          canEdit={isCoordinator}
+        />
       </CardContent>
     </Card>
   );

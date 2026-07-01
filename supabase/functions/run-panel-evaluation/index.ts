@@ -1,15 +1,13 @@
 // deno-lint-ignore-file no-explicit-any
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { corsHeaders } from "../_shared/cors.ts";
+import { requireAuth } from "../_shared/auth.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
 
-const stripHtml = (s: string | null | undefined) =>
-  (s || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+// (stripHtml + section digest removed — the evaluator now consumes
+// `analysis_data.rendered_proposal` produced by the client export pipeline.)
+
 
 function extractJson(text: string): any {
   const cleaned = text.replace(/```json\s*|```/g, "").trim();
@@ -24,6 +22,7 @@ function extractJson(text: string): any {
 
 interface AnthropicCallResult {
   text: string;
+  stop_reason?: string;
   usage: {
     input_tokens?: number;
     output_tokens?: number;
@@ -43,14 +42,51 @@ class RateLimitError extends Error {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// Resolve per-MTok USD pricing for a given model id, using configMap values.
+// Sonnet has intro vs standard pricing — pick by sonnet_pricing_standard_effective_date.
+function resolveModelPricing(
+  model: string,
+  configMap: Record<string, string>,
+): { inPrice: number; outPrice: number } {
+  const m = String(model || "").toLowerCase();
+  if (m.includes("sonnet")) {
+    const effectiveDateStr = configMap.sonnet_pricing_standard_effective_date || "2026-09-01";
+    const effective = new Date(`${effectiveDateStr}T00:00:00Z`);
+    const isStandard = Date.now() >= effective.getTime();
+    if (isStandard) {
+      return {
+        inPrice: parseFloat(configMap.sonnet_price_input_standard_per_mtok || "3.00"),
+        outPrice: parseFloat(configMap.sonnet_price_output_standard_per_mtok || "15.00"),
+      };
+    }
+    return {
+      inPrice: parseFloat(configMap.sonnet_price_input_intro_per_mtok || "2.00"),
+      outPrice: parseFloat(configMap.sonnet_price_output_intro_per_mtok || "10.00"),
+    };
+  }
+  if (m.includes("haiku")) {
+    return {
+      inPrice: parseFloat(configMap.haiku_price_input_per_mtok || "0.80"),
+      outPrice: parseFloat(configMap.haiku_price_output_per_mtok || "4.00"),
+    };
+  }
+  // Default: Opus
+  return {
+    inPrice: parseFloat(configMap.opus_price_input_per_mtok || "5.00"),
+    outPrice: parseFloat(configMap.opus_price_output_per_mtok || "25.00"),
+  };
+}
+
+
 async function callAnthropicWithCache(
   apiKey: string,
   model: string,
-  systemBlocks: { type: "text"; text: string; cache_control?: { type: "ephemeral" } }[],
+  systemBlocks: { type: "text"; text: string; cache_control?: { type: "ephemeral"; ttl?: string } }[],
   userPrompt: string,
   maxTokens: number,
   enableThinking = false,
-  maxRetries = 3,
+  maxRetries = 2,
+  abortSignal?: AbortSignal,
 ): Promise<AnthropicCallResult> {
   const body: any = {
     model,
@@ -71,10 +107,13 @@ async function callAnthropicWithCache(
       headers: {
         "x-api-key": apiKey,
         "anthropic-version": "2023-06-01",
-        "anthropic-beta": "prompt-caching-2024-07-31",
+        // Enable prompt caching + 1-hour extended TTL so the stable proposal prefix
+        // survives the ~7-min end-to-end evaluator run (default TTL is 5 min).
+        "anthropic-beta": "prompt-caching-2024-07-31,extended-cache-ttl-2025-04-11",
         "content-type": "application/json",
       },
       body: JSON.stringify(body),
+      signal: abortSignal,
     });
 
     if (res.ok) {
@@ -84,7 +123,14 @@ async function callAnthropicWithCache(
           .filter((block: any) => block.type === "text")
           .map((block: any) => block.text)
           .join("\n") || "";
-      return { text, usage: data?.usage || {} };
+      const stop_reason: string | undefined = data?.stop_reason;
+      if (stop_reason === "max_tokens") {
+        console.warn(
+          `⚠ Anthropic response TRUNCATED at max_tokens cap (model=${model}, max_tokens=${maxTokens}, output_tokens=${data?.usage?.output_tokens ?? "?"}). ` +
+            `Response body was cut off mid-generation and will likely fail JSON parsing.`,
+        );
+      }
+      return { text, stop_reason, usage: data?.usage || {} };
     }
 
     const errorBody = await res.text();
@@ -96,9 +142,12 @@ async function callAnthropicWithCache(
     if (res.status === 429 && attempt < maxRetries) {
       const retryAfterHeader = res.headers.get("retry-after");
       const retryAfterSec = retryAfterHeader ? parseInt(retryAfterHeader, 10) : NaN;
-      const backoffMs = Number.isFinite(retryAfterSec)
-        ? retryAfterSec * 1000
-        : Math.min(120_000, 2 ** attempt * 1000) + Math.floor(Math.random() * 500);
+      // Initial 2s, 2x multiplier, capped at 15s. Retry-after honoured but capped at 15s.
+      const baseMs = 2000 * 2 ** attempt;
+      const backoffMs = Math.min(
+        15_000,
+        Number.isFinite(retryAfterSec) ? retryAfterSec * 1000 : baseMs,
+      );
       console.warn(`Rate limited. Backing off ${backoffMs}ms before retry ${attempt + 2}/${maxRetries + 1}.`);
       await sleep(backoffMs);
       attempt++;
@@ -146,11 +195,11 @@ async function runWithConcurrency<T, R>(
 
 const round05 = (n: number) => Math.round(n * 2) / 2;
 const mean = (values: number[]) => values.reduce((sum, value) => sum + value, 0) / Math.max(values.length, 1);
-const EVALUATOR_MAX_TOKENS = 3200;
+const EVALUATOR_MAX_TOKENS = 12000;
 const SYNTHESIS_MAX_TOKENS = 4200;
-const MAX_SECTION_CHARS = 2200;
-const MAX_TOTAL_SECTION_CHARS = 32000;
 const ACTIVE_STEP_STALE_MS = 180_000;
+const EVALUATOR_TIMEOUT_MS = 120_000;
+const MIN_SUCCESSFUL_EVALUATORS = 3;
 
 function formatRetryDelay(retryAfterSeconds?: number) {
   const seconds = Math.max(30, Math.min(retryAfterSeconds ?? 60, 300));
@@ -159,25 +208,6 @@ function formatRetryDelay(retryAfterSeconds?: number) {
   return { seconds, retryAt, label: minutes };
 }
 
-function buildSectionDigest(sections: any[]) {
-  let consumed = 0;
-
-  return sections
-    .map((section: any) => {
-      const text = stripHtml(section.content);
-      if (!text) return `### ${section.section_id}\n[No content provided]`;
-
-      const remaining = MAX_TOTAL_SECTION_CHARS - consumed;
-      if (remaining <= 0) return `### ${section.section_id}\n[Additional content omitted to stay within model limits]`;
-
-      const excerptLength = Math.min(MAX_SECTION_CHARS, remaining);
-      const excerpt = text.slice(0, excerptLength);
-      consumed += excerpt.length;
-      const truncated = text.length > excerpt.length ? "\n[Section excerpt truncated for model budget]" : "";
-      return `### ${section.section_id}\n${excerpt}${truncated}`;
-    })
-    .join("\n\n");
-}
 
 function isRecentStepStart(value: unknown) {
   if (typeof value !== "string") return false;
@@ -201,6 +231,7 @@ interface EvaluationRecord {
   eligibility_flags: any;
   analysis_data: any;
   status: string | null;
+  created_at?: string | null;
 }
 
 interface LoadedContext {
@@ -227,7 +258,7 @@ async function getEvaluationRecord(serviceClient: any, evaluationId: string): Pr
   const { data, error } = await serviceClient
     .from("proposal_analyses")
     .select(
-      "id, proposal_id, created_by, instrument_id, proposal_stage, budget_type_used, evaluators_selected, eligibility_flags, analysis_data, status",
+      "id, proposal_id, created_by, instrument_id, proposal_stage, budget_type_used, evaluators_selected, eligibility_flags, analysis_data, status, created_at",
     )
     .eq("id", evaluationId)
     .single();
@@ -264,25 +295,28 @@ async function loadEvaluationContext(serviceClient: any, evaluationId: string): 
     serviceClient.from("section_content").select("section_id, content").eq("proposal_id", evaluation.proposal_id),
     serviceClient
       .from("participants")
-      .select("id, organisation_short_name, organisation_name, participant_number, country, organisation_category, is_sme")
+      .select("id, organisation_short_name, organisation_name, participant_number, country, organisation_category")
       .eq("proposal_id", evaluation.proposal_id),
     serviceClient
       .from("wp_drafts")
-      .select("id, number, short_name, title, lead_participant_id, methodology, objectives")
+      .select("id, number, short_name, title, lead_participant_id, objectives")
       .eq("proposal_id", evaluation.proposal_id)
       .order("number"),
     serviceClient
-      .from("b31_deliverables")
-      .select("number, name, description, due_month, type, dissemination_level")
-      .eq("proposal_id", evaluation.proposal_id),
+      .from("wp_draft_deliverables")
+      .select("number, title, description, due_month, type, dissemination_level, wp_drafts!inner(proposal_id)")
+      .eq("wp_drafts.proposal_id", evaluation.proposal_id),
     serviceClient
-      .from("b31_milestones")
-      .select("number, name, due_month, means_of_verification, wps")
-      .eq("proposal_id", evaluation.proposal_id),
+      .from("proposal_milestones")
+      .select("number, title, due_month, means_of_verification, proposal_milestone_wps(wp_draft_id, is_primary)")
+      .eq("proposal_id", evaluation.proposal_id)
+      .order("number"),
     serviceClient
-      .from("b31_risks")
-      .select("number, description, mitigation, likelihood, severity, wps")
-      .eq("proposal_id", evaluation.proposal_id),
+      .from("proposal_risks")
+      .select("title, mitigation, likelihood, severity, order_index, proposal_risk_wps(wp_draft_id)")
+      .eq("proposal_id", evaluation.proposal_id)
+      .order("order_index"),
+
     serviceClient
       .from("budget_rows")
       .select("participant_id, personnel_costs, subcontracting_costs, purchase_equipment, purchase_other_goods, purchase_travel, requested_eu_contribution")
@@ -314,7 +348,7 @@ async function loadEvaluationContext(serviceClient: any, evaluationId: string): 
       )
     : [];
 
-  if (selectedEvaluators.length < 3 || selectedEvaluators.length > 10) {
+  if (selectedEvaluators.length < 3 || selectedEvaluators.length > 8) {
     throw new Error("Saved evaluation panel is invalid");
   }
 
@@ -355,13 +389,6 @@ async function runEvaluatorPhase(serviceClient: any, evaluationId: string) {
   const {
     evaluation,
     proposal,
-    sections,
-    participants,
-    wpDrafts,
-    deliverables,
-    milestones,
-    risks,
-    budget,
     instrument,
     criteriaForRun,
     configMap,
@@ -372,9 +399,14 @@ async function runEvaluatorPhase(serviceClient: any, evaluationId: string) {
     eligibilityFlags,
   } = context;
 
+  if (evaluation.status === "cancelled") {
+    return { evaluationId, status: "cancelled" };
+  }
+
   if (!["queued", "running", "processing", "failed"].includes(evaluation.status || "queued")) {
     return { evaluationId, status: evaluation.status || "unknown" };
   }
+
 
   const baseAnalysisData = evaluation.analysis_data || {};
   const savedEvaluations = Array.isArray(baseAnalysisData.evaluations) ? baseAnalysisData.evaluations : [];
@@ -394,42 +426,53 @@ async function runEvaluatorPhase(serviceClient: any, evaluationId: string) {
     evaluator_cache_write_tokens: Number(savedUsage.evaluator_cache_write_tokens || 0),
   };
 
-  const evaluationModel = configMap.evaluation_model || "claude-opus-4-5-20250929";
+  const modelOverride = typeof baseAnalysisData.model_override === "string" ? baseAnalysisData.model_override : null;
+  const evaluationModel = modelOverride || configMap.evaluation_model || "claude-sonnet-5";
+
 
   const WORDS_PER_PAGE = 500;
   const FRONT_MATTER_PAGES = 1;
-  const allText = sections.map((section: any) => stripHtml(section.content)).join(" ");
-  const totalWords = allText.split(/\s+/).filter((word: string) => word.length > 0).length;
+
+  // Consume the client-rendered proposal markdown — the same DOM the editor
+  // displays (Part A + Part B, tables, B1.2 cases, B3.2 expertise matrix,
+  // figure text summaries, cross-ref labels). The raw section_content rows
+  // are no longer fed to the evaluator.
+  const renderedProposal = typeof baseAnalysisData.rendered_proposal === "string"
+    ? baseAnalysisData.rendered_proposal
+    : "";
+
+  if (!renderedProposal || renderedProposal.trim().length < 200) {
+    const msg = "Evaluation payload is missing the rendered proposal markdown. Please restart the evaluation from the Panel Evaluator.";
+    await serviceClient
+      .from("proposal_analyses")
+      .update({
+        status: "failed",
+        error_message: msg,
+        analysis_data: {
+          ...baseAnalysisData,
+          eligibility_flags: eligibilityFlags,
+          instrument_code: instrument.code,
+          active_step_started_at: null,
+          progress_message: msg,
+        },
+      })
+      .eq("id", evaluationId);
+    return { evaluationId, status: "failed", error: msg };
+  }
+
+  const totalWords = renderedProposal.split(/\s+/).filter((w: string) => w.length > 0).length;
   const estimatedPages = Math.ceil(totalWords / WORDS_PER_PAGE) + FRONT_MATTER_PAGES;
 
-  const partA = `PROPOSAL TITLE: ${proposal.title}
+  const proposalHeader = `PROPOSAL TITLE: ${proposal.title}
 ACRONYM: ${proposal.acronym}
 INSTRUMENT: ${instrument.name}
 DURATION: ${proposal.duration ?? "?"} months
 TOPIC: ${proposal.topic_id || "?"}
 WORK PROGRAMME: ${proposal.work_programme || "?"}
-ESTIMATED PAGES: ${estimatedPages} (~${totalWords} words at 500 words/page + 1 front-matter)
+ESTIMATED PAGES: ${estimatedPages} (~${totalWords} words at 500 words/page + 1 front-matter)`;
 
-PARTICIPANTS:
-${participants.map((participant: any) => `- #${participant.participant_number} ${participant.organisation_short_name || participant.organisation_name} (${participant.country}, ${participant.organisation_category || "?"}${participant.is_sme ? ", SME" : ""})`).join("\n")}
+  const proposalContentBlock = `${proposalHeader}\n\n=== RENDERED PROPOSAL (Part A + Part B, as displayed in the editor) ===\n${renderedProposal}`;
 
-WORK PACKAGES:
-${wpDrafts.map((wp: any) => `WP${wp.number} ${wp.short_name || ""} ${wp.title || ""}\nObjectives: ${stripHtml(wp.objectives).slice(0, 600)}\nMethodology: ${stripHtml(wp.methodology).slice(0, 800)}`).join("\n\n")}
-
-DELIVERABLES:
-${deliverables.map((deliverable: any) => `- D${deliverable.number} ${deliverable.name} (M${deliverable.due_month}, ${deliverable.type || "?"}, ${deliverable.dissemination_level || "?"})`).join("\n")}
-
-MILESTONES:
-${milestones.map((milestone: any) => `- MS${milestone.number} ${milestone.name} (M${milestone.due_month}, WPs: ${milestone.wps})`).join("\n")}
-
-RISKS:
-${risks.map((risk: any) => `- R${risk.number} ${stripHtml(risk.description)} | Mitigation: ${stripHtml(risk.mitigation)} | L:${risk.likelihood} S:${risk.severity}`).join("\n")}
-
-BUDGET (sum requested EU contribution): €${budget.reduce((sum: number, row: any) => sum + Number(row.requested_eu_contribution || 0), 0).toLocaleString()}
-`;
-
-  const partB = buildSectionDigest(sections);
-  const proposalContentBlock = `=== PART A: ADMINISTRATIVE ===\n${partA}\n\n=== PART B: TECHNICAL ===\n${partB}`;
 
   const criteriaText = criteriaForRun
     .map((criterion: any) => {
@@ -471,8 +514,25 @@ ${criterion.scoring_descriptors}`;
 
   const finalizeEvaluatorPhase = async (parsedEvaluations: any[], nextUsageTotals: Record<string, number>) => {
     const validEvaluations = parsedEvaluations.filter((item) => !item?.data?.error);
-    if (validEvaluations.length === 0) {
-      throw new Error("All evaluator outputs failed to parse");
+    if (validEvaluations.length < MIN_SUCCESSFUL_EVALUATORS) {
+      const msg = `Only ${validEvaluations.length} of ${parsedEvaluations.length} evaluators completed. Minimum ${MIN_SUCCESSFUL_EVALUATORS} required for synthesis.`;
+      await serviceClient
+        .from("proposal_analyses")
+        .update({
+          status: "failed",
+          error_message: msg,
+          analysis_data: {
+            ...baseAnalysisData,
+            eligibility_flags: eligibilityFlags,
+            evaluations: parsedEvaluations,
+            token_usage: nextUsageTotals,
+            instrument_code: instrument.code,
+            active_step_started_at: null,
+            progress_message: msg,
+          },
+        })
+        .eq("id", evaluationId);
+      return { evaluationId, status: "failed", error: msg };
     }
 
     const excellenceScores = validEvaluations
@@ -565,37 +625,48 @@ ${criterion.scoring_descriptors}`;
     return { evaluationId, status: "synthesizing" };
   };
 
-  if (savedEvaluations.length >= selectedEvaluators.length) {
+  // Resume-aware slot selection: pick the first missing slot OR the first previously-errored slot.
+  // This lets normal "evaluate" ticks continue past a failed run once the row's status is bounced
+  // back to "running" by the `resume` action.
+  let slotIndex = -1;
+  for (let i = 0; i < selectedEvaluators.length; i++) {
+    const slot = savedEvaluations[i];
+    if (!slot || slot?.data?.error) {
+      slotIndex = i;
+      break;
+    }
+  }
+  if (slotIndex === -1) {
     return finalizeEvaluatorPhase(savedEvaluations, usageTotals);
   }
-
-  const evaluator = selectedEvaluators[savedEvaluations.length];
+  const isRetryOfErroredSlot = slotIndex < savedEvaluations.length;
+  const evaluator = selectedEvaluators[slotIndex];
   const fullProposalOutputBlock =
     stageKey === "stage1"
       ? `{
-  "excellence_comments": "120–220 words",
+  "excellence_comments": "80–180 words (HARD CAP: 200 words)",
   "excellence_score": number (0–5 in 0.5 steps),
-  "impact_comments": "120–220 words",
+  "impact_comments": "80–180 words (HARD CAP: 200 words)",
   "impact_score": number (0–5 in 0.5 steps),
-  "overall_comments": "40–70 words",
-  "key_strength": "one sentence",
-  "key_concern": "one sentence"
+  "overall_comments": "40–80 words (HARD CAP: 100 words)",
+  "key_strength": "one sentence (HARD CAP: 40 words)",
+  "key_concern": "one sentence (HARD CAP: 40 words)"
 }`
       : `{
-  "excellence_comments": "120–220 words",
+  "excellence_comments": "80–180 words (HARD CAP: 200 words)",
   "excellence_score": number,
-  "impact_comments": "120–220 words",
+  "impact_comments": "80–180 words (HARD CAP: 200 words)",
   "impact_score": number,
-  "implementation_comments": "120–220 words",
+  "implementation_comments": "80–180 words (HARD CAP: 200 words)",
   "implementation_score": number,
-  "overall_comments": "40–70 words",
-  "key_strength": "one sentence",
-  "key_concern": "one sentence"
+  "overall_comments": "40–80 words (HARD CAP: 100 words)",
+  "key_strength": "one sentence (HARD CAP: 40 words)",
+  "key_concern": "one sentence (HARD CAP: 40 words)"
 }`;
 
-  const evaluatorSystem = `You are ${evaluator.name}. ${evaluator.brief}.
-
-You are serving as an independent Horizon Europe evaluator. Evaluate strictly from your professional perspective.
+  // STABLE PREFIX — byte-identical across all evaluators in this run so the Anthropic
+  // prompt cache keys the same. Persona-specific text is moved AFTER the cache breakpoint.
+  const stableSystemPrefix = `You are serving as an independent Horizon Europe evaluator. Evaluate strictly from your professional perspective.
 
 PROGRAMME CONTEXT
 INSTRUMENT TYPE: ${instrument.name}
@@ -611,21 +682,36 @@ EVALUATION RULES
 - Do not recommend changes.
 - Be specific and reference actual content or omissions.
 - Identify at least two distinct weaknesses per criterion.
-- Use the full scoring scale realistically; scores above 4 are rare.${specialExceptions}${topicSpecificContext}
+- Use the full scoring scale realistically; scores above 4 are rare.
+- Evaluate this proposal against ITS SPECIFIC topic — its stated scope and expected outcomes (included in the proposal content) — not against generic RIA/IA/CSA expectations. Unusual instruments (e.g. FSTP-heavy or cascade-funding RIAs) must be judged on the topic's own terms.${specialExceptions}${topicSpecificContext}
 
 EVALUATION CRITERIA:
 ${criteriaText}
 
-OUTPUT — respond with a JSON object only:
-${fullProposalOutputBlock}`;
+OUTPUT — respond with a JSON object only (no prose before/after, no markdown fences):
+${fullProposalOutputBlock}
+
+LENGTH RULES (STRICT — the response MUST fit well under the token cap):
+- Each *_comments field: aim 80–180 words, HARD CAP 200 words. Do NOT exceed.
+- overall_comments: aim 40–80 words, HARD CAP 100 words.
+- key_strength / key_concern: exactly one sentence, HARD CAP 40 words each.
+- Prefer specificity and concrete references over length. Truncate rather than exceed a cap.
+
+--- PROPOSAL CONTENT ---
+${proposalContentBlock}`;
+
+  // Variable persona — AFTER the cache breakpoint so it doesn't invalidate the prefix.
+  const personaBlock = `You are ${evaluator.name}. ${evaluator.brief}.
+
+Apply the evaluation rules, criteria, and output format defined above from your professional perspective.`;
 
   const systemBlocks: any = [
-    { type: "text", text: evaluatorSystem },
     {
       type: "text",
-      text: `--- PROPOSAL CONTENT ---\n${proposalContentBlock}`,
-      cache_control: { type: "ephemeral" },
+      text: stableSystemPrefix,
+      cache_control: { type: "ephemeral", ttl: "1h" },
     },
+    { type: "text", text: personaBlock },
   ];
 
   await serviceClient
@@ -640,12 +726,17 @@ ${fullProposalOutputBlock}`;
         token_usage: usageTotals,
         instrument_code: instrument.code,
         active_step_started_at: new Date().toISOString(),
-        progress_message: `Running evaluator ${savedEvaluations.length + 1} of ${selectedEvaluators.length}`,
+        progress_message: `${isRetryOfErroredSlot ? "Retrying" : "Running"} evaluator ${slotIndex + 1} of ${selectedEvaluators.length}`,
       },
     })
     .eq("id", evaluationId);
 
   let result: AnthropicCallResult;
+  let evaluatorTimedOut = false;
+  const evaluatorStartedAt = Date.now();
+  let retryStopReason: string | undefined;
+  const abortController = new AbortController();
+  const timeoutHandle = setTimeout(() => abortController.abort(), EVALUATOR_TIMEOUT_MS);
   try {
     result = await callAnthropicWithCache(
       ANTHROPIC_API_KEY,
@@ -655,9 +746,17 @@ ${fullProposalOutputBlock}`;
       EVALUATOR_MAX_TOKENS,
       false,
       2,
+      abortController.signal,
     );
   } catch (error) {
-    if (error instanceof RateLimitError) {
+    const isAbort =
+      (error instanceof DOMException && error.name === "AbortError") ||
+      (error instanceof Error && /abort/i.test(error.message));
+    if (isAbort) {
+      console.warn(`Evaluator ${evaluator.name} timed out after ${EVALUATOR_TIMEOUT_MS / 1000}s, skipping`);
+      evaluatorTimedOut = true;
+      result = { text: "", usage: {} };
+    } else if (error instanceof RateLimitError) {
       const retry = formatRetryDelay(error.retryAfter);
       const message = `The evaluator model is rate limited right now. Please retry after ${retry.label}.`;
       await serviceClient
@@ -679,31 +778,106 @@ ${fullProposalOutputBlock}`;
         })
         .eq("id", evaluationId);
       return { evaluationId, status: "failed", error: message };
+    } else {
+      throw error;
     }
-    throw error;
+  } finally {
+    clearTimeout(timeoutHandle);
   }
 
-  const parsedEvaluation = {
-    persona: evaluator,
-    data: (() => {
+  // Parse the JSON. If it fails (e.g. rare mid-stream cut or malformed output),
+  // do ONE silent retry — hits the cached prefix, so it's near-free — before
+  // marking this slot as errored.
+  let parsedData: any;
+  let retryUsage: any = null;
+  if (evaluatorTimedOut) {
+    parsedData = { error: `Evaluator timeout: ${EVALUATOR_TIMEOUT_MS / 1000}s exceeded` };
+  } else {
+    try {
+      parsedData = extractJson(result.text);
+    } catch (firstErr) {
+      const firstErrMsg = firstErr instanceof Error ? firstErr.message : "parse error";
+      const truncated = result.stop_reason === "max_tokens";
+      console.warn(
+        `Evaluator ${evaluator.name}: JSON parse failed on first attempt (${firstErrMsg}${truncated ? " — response was TRUNCATED at max_tokens" : ""}). Attempting one silent retry.`,
+      );
       try {
-        return extractJson(result.text);
-      } catch (error) {
-        return { error: error instanceof Error ? error.message : "parse error", raw: result.text };
+        const retryController = new AbortController();
+        const retryTimeout = setTimeout(() => retryController.abort(), EVALUATOR_TIMEOUT_MS);
+        try {
+          const retryResult = await callAnthropicWithCache(
+            ANTHROPIC_API_KEY,
+            evaluationModel,
+            systemBlocks,
+            "Evaluate the proposal above according to your instructions. Respond with the JSON object only.",
+            EVALUATOR_MAX_TOKENS,
+            false,
+            2,
+            retryController.signal,
+          );
+          retryUsage = retryResult.usage || {};
+          retryStopReason = retryResult.stop_reason;
+          parsedData = extractJson(retryResult.text);
+          console.log(`Evaluator ${evaluator.name}: silent retry succeeded.`);
+        } finally {
+          clearTimeout(retryTimeout);
+        }
+      } catch (retryErr) {
+        const retryErrMsg = retryErr instanceof Error ? retryErr.message : "parse error";
+        parsedData = {
+          error: `Parse failed on both attempts. First: ${firstErrMsg}. Retry: ${retryErrMsg}.${truncated ? " (max_tokens truncation on first attempt)" : ""}`,
+          raw: result.text,
+        };
       }
-    })(),
-  };
+    }
+  }
 
-  const nextEvaluations = [...savedEvaluations, parsedEvaluation];
+  const retryCount = retryUsage ? 1 : 0;
+  const evaluatorMeta = {
+    stop_reason: retryStopReason ?? result.stop_reason ?? null,
+    first_stop_reason: result.stop_reason ?? null,
+    output_tokens:
+      Number(result.usage?.output_tokens || 0) + Number(retryUsage?.output_tokens || 0),
+    retry_count: retryCount,
+    duration_ms: Date.now() - evaluatorStartedAt,
+    timed_out: evaluatorTimedOut,
+    model: evaluationModel,
+  };
+  const parsedEvaluation = { persona: evaluator, data: parsedData, _meta: evaluatorMeta };
+
+  const nextEvaluations = savedEvaluations.slice();
+  nextEvaluations[slotIndex] = parsedEvaluation;
   const nextUsageTotals = {
-    evaluator_input_tokens: usageTotals.evaluator_input_tokens + Number(result.usage?.input_tokens || 0),
-    evaluator_output_tokens: usageTotals.evaluator_output_tokens + Number(result.usage?.output_tokens || 0),
-    evaluator_cached_tokens: usageTotals.evaluator_cached_tokens + Number(result.usage?.cache_read_input_tokens || 0),
+    evaluator_input_tokens:
+      usageTotals.evaluator_input_tokens +
+      Number(result.usage?.input_tokens || 0) +
+      Number(retryUsage?.input_tokens || 0),
+    evaluator_output_tokens:
+      usageTotals.evaluator_output_tokens +
+      Number(result.usage?.output_tokens || 0) +
+      Number(retryUsage?.output_tokens || 0),
+    evaluator_cached_tokens:
+      usageTotals.evaluator_cached_tokens +
+      Number(result.usage?.cache_read_input_tokens || 0) +
+      Number(retryUsage?.cache_read_input_tokens || 0),
     evaluator_cache_write_tokens:
-      usageTotals.evaluator_cache_write_tokens + Number(result.usage?.cache_creation_input_tokens || 0),
+      usageTotals.evaluator_cache_write_tokens +
+      Number(result.usage?.cache_creation_input_tokens || 0) +
+      Number(retryUsage?.cache_creation_input_tokens || 0),
   };
 
-  if (nextEvaluations.length < selectedEvaluators.length) {
+  // Are any slots still to run? (missing OR errored)
+  const remaining = (() => {
+    let n = 0;
+    for (let i = 0; i < selectedEvaluators.length; i++) {
+      const s = nextEvaluations[i];
+      if (!s || s?.data?.error) n++;
+    }
+    return n;
+  })();
+  const doneCount = selectedEvaluators.length - remaining;
+
+  if (remaining > 0) {
     await serviceClient
       .from("proposal_analyses")
       .update({
@@ -716,7 +890,7 @@ ${fullProposalOutputBlock}`;
           token_usage: nextUsageTotals,
           instrument_code: instrument.code,
           active_step_started_at: null,
-          progress_message: `Completed evaluator ${nextEvaluations.length} of ${selectedEvaluators.length}`,
+          progress_message: `Completed evaluator ${slotIndex + 1} of ${selectedEvaluators.length} (${doneCount} succeeded)`,
         },
       })
       .eq("id", evaluationId);
@@ -724,7 +898,7 @@ ${fullProposalOutputBlock}`;
     return {
       evaluationId,
       status: "running",
-      completedEvaluators: nextEvaluations.length,
+      completedEvaluators: doneCount,
       totalEvaluators: selectedEvaluators.length,
     };
   }
@@ -732,17 +906,62 @@ ${fullProposalOutputBlock}`;
   return finalizeEvaluatorPhase(nextEvaluations, nextUsageTotals);
 }
 
+async function fetchUsdEurRate(serviceClient: any): Promise<number> {
+  try {
+    const response = await fetch("https://api.frankfurter.app/latest?from=USD&to=EUR");
+    if (response.ok) {
+      const data = await response.json();
+      const rate = data?.rates?.EUR;
+      if (typeof rate === "number" && rate > 0) {
+        await serviceClient
+          .from("ai_platform_config")
+          .update({ value: rate.toString(), updated_at: new Date().toISOString() })
+          .eq("key", "usd_eur_rate");
+        return rate;
+      }
+    }
+  } catch (error) {
+    console.warn("Failed to fetch live USD/EUR rate, falling back to config:", error);
+  }
+  const { data } = await serviceClient
+    .from("ai_platform_config")
+    .select("value")
+    .eq("key", "usd_eur_rate")
+    .single();
+  return parseFloat(data?.value || "0.92");
+}
+
+
+
 async function runSynthesisPhase(serviceClient: any, evaluationId: string) {
   const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
   if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
 
   const evaluation = await getEvaluationRecord(serviceClient, evaluationId);
+  if (evaluation.status === "cancelled") {
+    return { evaluationId, status: "cancelled" };
+  }
   const analysisData = evaluation.analysis_data || {};
   const synthesisContext = analysisData.synthesis_context || {};
   const parsedEvaluations = Array.isArray(analysisData.evaluations) ? analysisData.evaluations : [];
 
-  if (parsedEvaluations.length === 0) {
-    throw new Error("No evaluator reports available for synthesis");
+
+  const successfulEvaluations = parsedEvaluations.filter((item: any) => !item?.data?.error);
+  if (successfulEvaluations.length < MIN_SUCCESSFUL_EVALUATORS) {
+    const msg = `Only ${successfulEvaluations.length} of ${parsedEvaluations.length} evaluators completed. Minimum ${MIN_SUCCESSFUL_EVALUATORS} required for synthesis.`;
+    await serviceClient
+      .from("proposal_analyses")
+      .update({
+        status: "failed",
+        error_message: msg,
+        analysis_data: {
+          ...analysisData,
+          active_step_started_at: null,
+          progress_message: msg,
+        },
+      })
+      .eq("id", evaluationId);
+    return { evaluationId, status: "failed", error: msg };
   }
 
   const [proposalRes, instrumentRes, criteriaRes, configRes] = await Promise.all([
@@ -785,12 +1004,14 @@ async function runSynthesisPhase(serviceClient: any, evaluationId: string) {
   const totalThresholdSuffix =
     totalThreshold !== null ? ` (threshold: ${totalThreshold} / ${maxPoints})` : "";
 
-  const evaluationModel = synthesisContext.evaluation_model || configMap.evaluation_model || "claude-opus-4-5-20250929";
-  const opusInPrice = parseFloat(configMap.opus_price_input_per_mtok || "15.00");
-  const opusOutPrice = parseFloat(configMap.opus_price_output_per_mtok || "75.00");
+  const modelOverride = typeof analysisData.model_override === "string" ? analysisData.model_override : null;
+  const evaluationModel = modelOverride || synthesisContext.evaluation_model || configMap.evaluation_model || "claude-sonnet-5";
+  const synthesisModel = modelOverride || configMap.synthesis_model || evaluationModel;
+  const { inPrice: opusInPrice, outPrice: opusOutPrice } = resolveModelPricing(evaluationModel, configMap);
   const cacheReadMul = parseFloat(configMap.cache_read_multiplier || "0.10");
   const cacheWriteMul = parseFloat(configMap.cache_write_multiplier || "1.25");
-  const usdEurRate = parseFloat(configMap.usd_eur_rate || "0.92");
+
+  const usdEurRate = await fetchUsdEurRate(serviceClient);
 
   const topicSpecificContext = (proposal.evaluation_criteria_notes || "").trim()
     ? `\n\nTOPIC-SPECIFIC CONTEXT FROM THE PROPOSAL TEAM:\n${proposal.evaluation_criteria_notes}`
@@ -804,7 +1025,7 @@ async function runSynthesisPhase(serviceClient: any, evaluationId: string) {
     : "(no eligibility flags recorded)";
 
   const synthesisSystem = `You are the Panel Rapporteur for a Horizon Europe expert evaluation panel.
-Synthesise ${parsedEvaluations.length} independent evaluator reports into a single Evaluation Summary Report (ESR)
+Synthesise ${successfulEvaluations.length} independent evaluator reports into a single Evaluation Summary Report (ESR)
 in the style of the official EC evaluation form.
 
 OUTPUT STRUCTURE — produce EXACTLY these top-level sections, in this order, and NOTHING else:
@@ -838,7 +1059,7 @@ ELIGIBILITY FLAGS (for the European Commission initial check section):
 ${eligibilityBlock}
 
 EVALUATOR REPORTS:
-${parsedEvaluations
+${successfulEvaluations
   .map(
     (evaluationItem: any, index: number) => `
 === Evaluator ${index + 1}: ${evaluationItem.persona.name} ===
@@ -873,7 +1094,7 @@ Produce the full ESR markdown using the four-section structure defined in your s
     console.log(`Running ESR synthesis for ${evaluationId}...`);
     const synthesisResult = await callAnthropicWithCache(
       ANTHROPIC_API_KEY,
-      evaluationModel,
+      synthesisModel,
       [{ type: "text", text: synthesisSystem }],
       synthesisUser,
       SYNTHESIS_MAX_TOKENS,
@@ -935,11 +1156,44 @@ Produce the full ESR markdown using the four-section structure defined in your s
     Number(evaluatorUsage.evaluator_cache_write_tokens || 0) +
     Number(synthesisUsage?.cache_creation_input_tokens || 0);
 
-  const effectiveInput =
-    totalInputTokens + totalCachedTokens * cacheReadMul + totalCacheWriteTokens * cacheWriteMul;
-  const costUsd =
-    (effectiveInput * opusInPrice) / 1_000_000 + (totalOutputTokens * opusOutPrice) / 1_000_000;
+  // Anthropic cost formula — REPLACEMENT terms (not additive). Each token bucket is mutually
+  // exclusive: usage.input_tokens excludes cache_read and cache_creation tokens. Bill each at its
+  // own rate (cache read at 0.10×, cache write at 1.25× input). Same formula across evaluator
+  // calls and synthesis (totals here cover both phases).
+  const uncachedInputTokens = totalInputTokens;
+  const costUncachedInput = (uncachedInputTokens * opusInPrice) / 1_000_000;
+  const costCacheRead = (totalCachedTokens * opusInPrice * cacheReadMul) / 1_000_000;
+  const costCacheWrite = (totalCacheWriteTokens * opusInPrice * cacheWriteMul) / 1_000_000;
+  const costOutput = (totalOutputTokens * opusOutPrice) / 1_000_000;
+  const evaluatorPhaseUsd = costUncachedInput + costCacheRead + costCacheWrite + costOutput;
+
+  // Haiku-phase cost (eligibility + panel assembly). Priced separately at Haiku rates so
+  // these tokens are not lost from the per-run total. Persona generation/creation is a
+  // platform-library action, not tied to this run — logged separately if/when invoked.
+  const haikuUsage = analysisData.haiku_usage || {};
+  const haikuModel = typeof analysisData.haiku_model === "string" && analysisData.haiku_model
+    ? analysisData.haiku_model
+    : "claude-haiku-4-5";
+  const { inPrice: haikuIn, outPrice: haikuOut } = resolveModelPricing(haikuModel, configMap);
+  const haikuInput = Number(haikuUsage.input_tokens || 0);
+  const haikuOutput = Number(haikuUsage.output_tokens || 0);
+  const haikuCacheRead = Number(haikuUsage.cache_read_input_tokens || 0);
+  const haikuCacheWrite = Number(haikuUsage.cache_creation_input_tokens || 0);
+  const haikuPhaseUsd =
+    (haikuInput * haikuIn +
+      haikuCacheRead * haikuIn * cacheReadMul +
+      haikuCacheWrite * haikuIn * cacheWriteMul +
+      haikuOutput * haikuOut) /
+    1_000_000;
+
+  const costUsd = evaluatorPhaseUsd + haikuPhaseUsd;
   const costEur = costUsd * usdEurRate;
+
+  // Combined token totals across ALL phases (evaluator+synthesis+Haiku) for storage.
+  const combinedInputTokens = totalInputTokens + haikuInput;
+  const combinedOutputTokens = totalOutputTokens + haikuOutput;
+  const combinedCachedTokens = totalCachedTokens + haikuCacheRead;
+  const combinedCacheWriteTokens = totalCacheWriteTokens + haikuCacheWrite;
 
   const costBreakdown = {
     model: evaluationModel,
@@ -954,7 +1208,30 @@ Produce the full ESR markdown using the four-section structure defined in your s
     usd_eur_rate: usdEurRate,
     cost_usd: costUsd,
     cost_eur: costEur,
+    evaluator_phase_usd: evaluatorPhaseUsd,
+    haiku_phase: {
+      model: haikuModel,
+      input_tokens: haikuInput,
+      output_tokens: haikuOutput,
+      cache_read_tokens: haikuCacheRead,
+      cache_write_tokens: haikuCacheWrite,
+      price_in_per_mtok_usd: haikuIn,
+      price_out_per_mtok_usd: haikuOut,
+      cost_usd: haikuPhaseUsd,
+    },
   };
+
+  // Server-side capture of total run duration (Run click → ESR delivered).
+  // Robust to the client missing the completion tick (tab away, mount-refresh,
+  // completion landing between polls). Measured from proposal_analyses.created_at,
+  // which is set when the row is inserted on the "start" action.
+  const createdAtIso = (evaluation as any).created_at as string | undefined;
+  const totalDurationMs =
+    typeof analysisData.total_duration_ms === "number"
+      ? analysisData.total_duration_ms
+      : createdAtIso
+        ? Math.max(0, Date.now() - new Date(createdAtIso).getTime())
+        : null;
 
   await serviceClient
     .from("proposal_analyses")
@@ -962,9 +1239,9 @@ Produce the full ESR markdown using the four-section structure defined in your s
       status: "complete",
       error_message: null,
       model_used: evaluationModel,
-      tokens_input: totalInputTokens,
-      tokens_output: totalOutputTokens,
-      tokens_cached: totalCachedTokens,
+      tokens_input: combinedInputTokens,
+      tokens_output: combinedOutputTokens,
+      tokens_cached: combinedCachedTokens,
       cost_usd: costUsd,
       cost_eur: costEur,
       analysis_data: {
@@ -973,9 +1250,20 @@ Produce the full ESR markdown using the four-section structure defined in your s
         cost_breakdown: costBreakdown,
         active_step_started_at: null,
         progress_message: "Complete",
+        ...(totalDurationMs != null ? { total_duration_ms: totalDurationMs } : {}),
       },
     })
     .eq("id", evaluationId);
+
+  // Rough token estimate for the rendered proposal payload (~4 chars per token).
+  // Used to scale the self-improving pre-run cost estimate by proposal size.
+  // NB: read from analysisData (in scope here); the local `renderedProposal` from
+  // runEvaluatorPhase does NOT exist in this function — referencing it threw a
+  // ReferenceError AFTER status='complete' had already been written, causing the
+  // client to see a 500 and treat the successful run as failed until refresh.
+  const renderedProposalStr =
+    typeof analysisData.rendered_proposal === "string" ? analysisData.rendered_proposal : "";
+  const payloadTokens = Math.ceil(renderedProposalStr.length / 4);
 
   await serviceClient.from("evaluation_cost_log").insert({
     evaluation_id: evaluationId,
@@ -984,7 +1272,14 @@ Produce the full ESR markdown using the four-section structure defined in your s
     budget_type: budgetType || null,
     cost_usd: costUsd,
     cost_eur: costEur,
+    cache_write_tokens: combinedCacheWriteTokens,
+    model_used: evaluationModel,
+    payload_tokens: payloadTokens,
+    tokens_input: combinedInputTokens,
+    tokens_output: combinedOutputTokens,
+    tokens_cached: combinedCachedTokens,
   });
+
 
   console.log(`Evaluation ${evaluationId} complete.`);
   return { evaluationId, status: "complete" };
@@ -1007,30 +1302,10 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } },
-    );
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const userId = claimsData.claims.sub as string;
+    const auth = await requireAuth(req);
+    if (!auth.ok) return auth.response;
+    const supabase = auth.callerClient;
+    const userId = auth.userId;
     const serviceClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
@@ -1040,20 +1315,30 @@ serve(async (req) => {
     const action = body?.action || "start";
 
     if (action === "start") {
-      const { proposalId, selectedEvaluators, instrumentCode, proposalStage, budgetType, eligibilityFlags } = body || {};
+      const { proposalId, selectedEvaluators, instrumentCode, proposalStage, budgetType, eligibilityFlags, renderedProposal, modelOverride, haikuUsage, haikuModel } = body || {};
       if (
         !proposalId ||
         !Array.isArray(selectedEvaluators) ||
         selectedEvaluators.length < 3 ||
-        selectedEvaluators.length > 10 ||
+        selectedEvaluators.length > 8 ||
         !instrumentCode ||
         !proposalStage
       ) {
         return new Response(
-          JSON.stringify({ error: "Invalid input: need 3–10 evaluators and instrument/stage info" }),
+          JSON.stringify({ error: "Invalid input: need 3–8 evaluators and instrument/stage info" }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
+
+      if (typeof renderedProposal !== "string" || renderedProposal.trim().length < 200) {
+        return new Response(
+          JSON.stringify({ error: "Missing or too-short renderedProposal markdown payload" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      const normalizedOverride =
+        typeof modelOverride === "string" && modelOverride.trim() ? modelOverride.trim() : null;
 
       await ensureProposalAdmin(supabase, userId, proposalId);
 
@@ -1077,11 +1362,17 @@ serve(async (req) => {
           analysis_data: {
             eligibility_flags: eligibilityFlags ?? [],
             instrument_code: instrumentCode,
+            rendered_proposal: renderedProposal,
+            model_override: normalizedOverride,
+            haiku_usage: haikuUsage && typeof haikuUsage === "object" ? haikuUsage : null,
+            haiku_model: typeof haikuModel === "string" ? haikuModel : null,
             progress_message: "Queued for evaluator run",
           },
+
         })
         .select("id")
         .single();
+
 
       if (insertError || !evalRecord) {
         console.error("Failed to create evaluation record:", insertError);
@@ -1096,6 +1387,7 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
 
   if (action === "evaluate") {
       const evaluationId = body?.evaluationId;
@@ -1135,15 +1427,99 @@ serve(async (req) => {
       });
     }
 
+    if (action === "resume") {
+      const evaluationId = body?.evaluationId;
+      if (!evaluationId) {
+        return new Response(JSON.stringify({ error: "evaluationId is required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const evaluation = await getEvaluationRecord(serviceClient, evaluationId);
+      await ensureProposalAdmin(supabase, userId, evaluation.proposal_id);
+
+      const baseAnalysisData = evaluation.analysis_data || {};
+      const evaluations = Array.isArray(baseAnalysisData.evaluations) ? baseAnalysisData.evaluations : [];
+      const total = Array.isArray(evaluation.evaluators_selected) ? evaluation.evaluators_selected.length : evaluations.length;
+      const erroredCount = evaluations.filter((e: any) => e?.data?.error).length;
+      const missingCount = Math.max(0, total - evaluations.length);
+      const toRun = erroredCount + missingCount;
+
+      if (toRun === 0) {
+        return new Response(
+          JSON.stringify({
+            evaluationId,
+            status: evaluation.status,
+            message: "No errored evaluators to resume.",
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      // Bounce the row back to "running" so runEvaluatorPhase (invoked via the
+      // usual "evaluate" ticks) will pick up errored slots and rerun them.
+      await serviceClient
+        .from("proposal_analyses")
+        .update({
+          status: "running",
+          error_message: null,
+          analysis_data: {
+            ...baseAnalysisData,
+            active_step_started_at: null,
+            progress_message: `Resuming ${toRun} evaluator${toRun === 1 ? "" : "s"} of ${total}`,
+          },
+        })
+        .eq("id", evaluationId);
+
+      return new Response(
+        JSON.stringify({ evaluationId, status: "running", toRun, total }),
+        { status: 202, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    if (action === "cancel") {
+      const evaluationId = body?.evaluationId;
+      if (!evaluationId) {
+        return new Response(JSON.stringify({ error: "evaluationId is required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const evaluation = await getEvaluationRecord(serviceClient, evaluationId);
+      await ensureProposalAdmin(supabase, userId, evaluation.proposal_id);
+
+      const baseAnalysisData = evaluation.analysis_data || {};
+      await serviceClient
+        .from("proposal_analyses")
+        .update({
+          status: "cancelled",
+          error_message: "Cancelled by user",
+          analysis_data: {
+            ...baseAnalysisData,
+            active_step_started_at: null,
+            progress_message: "Cancelled by user",
+          },
+        })
+        .eq("id", evaluationId);
+
+      return new Response(JSON.stringify({ evaluationId, status: "cancelled" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Unsupported action" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+
   } catch (error: unknown) {
     if (error instanceof Response) return error;
     const message = error instanceof Error ? error.message : "Unknown error";
     console.error("run-panel-evaluation error:", message);
-    return new Response(JSON.stringify({ error: message }), {
+    return new Response(JSON.stringify({ error: "An internal error occurred" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

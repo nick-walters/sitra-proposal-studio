@@ -1,22 +1,26 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { SaveIndicator } from '@/components/SaveIndicator';
 import { ParagraphSpacingExecPopover } from '@/components/ParagraphSpacingExecPopover';
 import {
-  BookOpen, Italic, Underline, List, ListOrdered,
-  AlignLeft, AlignCenter, AlignRight, AlignJustify,
-  Table2, ImageIcon, FileText, Link2, Undo2, Redo2,
+  BookOpen, List, ListOrdered,
+  ImageIcon, FileText, Link2, Undo2, Redo2,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import {
+  ToolbarButton,
+  TextFormattingGroup,
+  AlignmentGroup,
+  TableGridPicker,
+  SubheadingDropdown,
+  type Alignment,
+} from './toolbar';
 
 export interface DraftToolbarSaveProps {
   saving: boolean;
@@ -25,13 +29,32 @@ export interface DraftToolbarSaveProps {
   onSaveNow?: () => void;
 }
 
+export interface DraftFormattingToolbarTableProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  hoveredCell: { row: number; col: number } | null;
+  onHoverCell: (cell: { row: number; col: number } | null) => void;
+  onInsert: (rows: number, cols: number) => void;
+}
+
 export interface DraftFormattingToolbarProps {
-  /** Callback to open the guidelines dialog. */
-  onOpenGuidelines: () => void;
-  /** Save state passed through to <SaveIndicator />. */
-  save: DraftToolbarSaveProps;
+  /** Callback to open the guidelines dialog. Required when showGuidelinesRow is true. */
+  onOpenGuidelines?: () => void;
+  /** Save state passed through to <SaveIndicator />. Required when showGuidelinesRow is true. */
+  save?: DraftToolbarSaveProps;
   /** If true, the toolbar renders only the guidelines + save row. */
   isReadOnly?: boolean;
+  /** If true, render nothing at all. */
+  hideToolbar?: boolean;
+  /** If true, disable all formatting buttons. */
+  disabled?: boolean;
+  /** Show the Guidelines + Save row (default true). */
+  showGuidelinesRow?: boolean;
+
+  // Subheading dropdown (optional — WPSimpleEditor uses this)
+  showSubheading?: boolean;
+  onSubheadingNumbered?: () => void;
+  onSubheadingUnnumbered?: () => void;
 
   // Undo / Redo (optional — only WP has these)
   undo?: {
@@ -46,14 +69,8 @@ export interface DraftFormattingToolbarProps {
   // Formatting commands — caller decides how (execCommand for both drafts today)
   onCommand: (command: string, value?: string) => void;
 
-  // Table picker
-  table: {
-    open: boolean;
-    onOpenChange: (open: boolean) => void;
-    hoveredCell: { row: number; col: number } | null;
-    onHoverCell: (cell: { row: number; col: number } | null) => void;
-    onInsert: (rows: number, cols: number) => void;
-  };
+  // Table picker — when omitted, toolbar manages its own popover state and inserts via onCommand('insertHTML', ...)
+  table?: DraftFormattingToolbarTableProps;
 
   // Paragraph-spacing popover container (optional — WP only)
   paragraphSpacingContainer?: () => HTMLElement | null;
@@ -68,10 +85,33 @@ export interface DraftFormattingToolbarProps {
   trailing?: ReactNode;
 }
 
+function buildDefaultTableHtml(rows: number, cols: number): string {
+  let html = '<table style="width:100%; border-collapse:collapse; margin:8px 0;">';
+  for (let r = 0; r < rows; r++) {
+    html += '<tr>';
+    for (let c = 0; c < cols; c++) {
+      if (r === 0) {
+        html += '<th style="border:1px solid #000; padding:4px; background:#000; color:#fff; font-weight:bold;">&nbsp;</th>';
+      } else {
+        html += '<td style="border:1px solid #000; padding:4px;">&nbsp;</td>';
+      }
+    }
+    html += '</tr>';
+  }
+  html += '</table><p><br></p>';
+  return html;
+}
+
 export function DraftFormattingToolbar({
   onOpenGuidelines,
   save,
   isReadOnly = false,
+  hideToolbar = false,
+  disabled = false,
+  showGuidelinesRow = true,
+  showSubheading = false,
+  onSubheadingNumbered,
+  onSubheadingUnnumbered,
   undo,
   onCommand,
   table,
@@ -82,147 +122,128 @@ export function DraftFormattingToolbar({
   crossRefMenuItems,
   trailing,
 }: DraftFormattingToolbarProps) {
+  if (hideToolbar) return null;
+
   const exec = (cmd: string, value?: string) => onCommand(cmd, value);
 
+  // Internal table-popover state used only when `table` prop is not supplied.
+  const [internalTableOpen, setInternalTableOpen] = useState(false);
+  const [internalHoveredCell, setInternalHoveredCell] = useState<{ row: number; col: number } | null>(null);
+  const effectiveTable: DraftFormattingToolbarTableProps = table ?? {
+    open: internalTableOpen,
+    onOpenChange: setInternalTableOpen,
+    hoveredCell: internalHoveredCell,
+    onHoverCell: setInternalHoveredCell,
+    onInsert: (rows, cols) => {
+      onCommand('insertHTML', buildDefaultTableHtml(rows, cols));
+      setInternalTableOpen(false);
+    },
+  };
+
+  const containerClass = showGuidelinesRow
+    ? 'p-2 border rounded-md bg-card sticky top-0 z-10 space-y-1.5'
+    : 'p-1.5 border-b bg-muted/30';
+
+  const row2Class = showGuidelinesRow
+    ? 'flex items-center gap-0.5 flex-wrap'
+    : 'flex items-center gap-0 flex-wrap';
+
   return (
-    <div className="p-2 border rounded-md bg-card sticky top-0 z-10 space-y-1.5">
+    <div className={containerClass}>
       {/* Row 1: Guidelines + Save */}
-      <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onOpenGuidelines}
-          className="h-7 px-2 text-xs gap-1 text-destructive border-destructive/50 hover:bg-destructive/10 hover:text-destructive"
-        >
-          <BookOpen className="h-3.5 w-3.5" />
-          Guidelines
-        </Button>
-        <SaveIndicator
-          saving={save.saving}
-          lastSaved={save.lastSaved}
-          saveError={save.saveError ?? null}
-          onSaveNow={save.onSaveNow}
-        />
-      </div>
+      {showGuidelinesRow && (
+        <div className="flex items-center gap-2">
+          {onOpenGuidelines && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onOpenGuidelines}
+              className="h-7 px-2 text-xs gap-1 text-destructive border-destructive/50 hover:bg-destructive/10 hover:text-destructive"
+            >
+              <BookOpen className="h-3.5 w-3.5" />
+              Guidelines
+            </Button>
+          )}
+          {save && (
+            <SaveIndicator
+              saving={save.saving}
+              lastSaved={save.lastSaved}
+              saveError={save.saveError ?? null}
+              onSaveNow={save.onSaveNow}
+            />
+          )}
+        </div>
+      )}
 
       {/* Row 2: Formatting toolbar */}
       {!isReadOnly && (
-        <div className="flex items-center gap-0.5 flex-wrap">
+        <div className={row2Class}>
           {undo && (
             <>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 w-7 p-0"
-                    disabled={!undo.canUndo}
-                    onClick={undo.onUndo}
-                  >
-                    <Undo2 className="h-3.5 w-3.5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-xs">{undo.undoLabel ?? 'Undo'}</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 w-7 p-0"
-                    disabled={!undo.canRedo}
-                    onClick={undo.onRedo}
-                  >
-                    <Redo2 className="h-3.5 w-3.5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-xs">{undo.redoLabel ?? 'Redo'}</TooltipContent>
-              </Tooltip>
+              <ToolbarButton
+                icon={<Undo2 className="h-3.5 w-3.5" />}
+                label={undo.undoLabel ?? 'Undo'}
+                onClick={undo.onUndo}
+                disabled={disabled || !undo.canUndo}
+              />
+              <ToolbarButton
+                icon={<Redo2 className="h-3.5 w-3.5" />}
+                label={undo.redoLabel ?? 'Redo'}
+                onClick={undo.onRedo}
+                disabled={disabled || !undo.canRedo}
+              />
               <Separator orientation="vertical" className="h-5 mx-1.5" />
             </>
           )}
 
+          {/* Subheading dropdown */}
+          {showSubheading && (
+            <SubheadingDropdown
+              onNumbered={() => onSubheadingNumbered?.()}
+              onUnnumbered={() => onSubheadingUnnumbered?.()}
+              disabled={disabled}
+              numberedLabel="Numbered subheading"
+              unnumberedLabel="Unnumbered subheading"
+            />
+          )}
+
           {/* Bold / Italic / Underline */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => exec('bold')}>
-                <span className="font-black text-sm">B</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">Bold (Ctrl+B)</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => exec('italic')}>
-                <Italic className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">Italic (Ctrl+I)</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => exec('underline')}>
-                <Underline className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">Underline (Ctrl+U)</TooltipContent>
-          </Tooltip>
+          <TextFormattingGroup
+            onBold={() => exec('bold')}
+            onItalic={() => exec('italic')}
+            onUnderline={() => exec('underline')}
+            disabled={disabled}
+          />
 
           <Separator orientation="vertical" className="h-5 mx-1.5" />
 
           {/* Lists */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => exec('insertUnorderedList')}>
-                <List className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">Bullet list</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => exec('insertOrderedList')}>
-                <ListOrdered className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">Numbered list</TooltipContent>
-          </Tooltip>
+          <ToolbarButton
+            icon={<List className="h-4 w-4" />}
+            label="Bullet list"
+            onClick={() => exec('insertUnorderedList')}
+            disabled={disabled}
+          />
+          <ToolbarButton
+            icon={<ListOrdered className="h-4 w-4" />}
+            label="Numbered list"
+            onClick={() => exec('insertOrderedList')}
+            disabled={disabled}
+          />
 
           <Separator orientation="vertical" className="h-5 mx-1.5" />
 
           {/* Alignment */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => exec('justifyLeft')}>
-                <AlignLeft className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">Align left</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => exec('justifyCenter')}>
-                <AlignCenter className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">Align center</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => exec('justifyRight')}>
-                <AlignRight className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">Align right</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => exec('justifyFull')}>
-                <AlignJustify className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">Justify</TooltipContent>
-          </Tooltip>
+          <AlignmentGroup
+            disabled={disabled}
+            onAlign={(a: Alignment) => {
+              const cmd = a === 'left' ? 'justifyLeft'
+                : a === 'center' ? 'justifyCenter'
+                : a === 'right' ? 'justifyRight'
+                : 'justifyFull';
+              exec(cmd);
+            }}
+          />
 
           {paragraphSpacingContainer && (
             <ParagraphSpacingExecPopover getContainer={paragraphSpacingContainer} />
@@ -231,52 +252,18 @@ export function DraftFormattingToolbar({
           <Separator orientation="vertical" className="h-5 mx-1.5" />
 
           {/* Table picker */}
-          <Popover open={table.open} onOpenChange={table.onOpenChange}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <PopoverTrigger asChild>
-                  <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1">
-                    <Table2 className="h-4 w-4" />
-                    <span className="text-xs">Table</span>
-                  </Button>
-                </PopoverTrigger>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="text-xs">Insert table</TooltipContent>
-            </Tooltip>
-            <PopoverContent className="w-auto p-2" align="start">
-              <div className="text-xs text-muted-foreground mb-2">
-                {table.hoveredCell ? `${table.hoveredCell.row} × ${table.hoveredCell.col}` : 'Select size'}
-              </div>
-              <div className="grid gap-0.5" style={{ gridTemplateColumns: 'repeat(8, 1fr)' }}>
-                {Array.from({ length: 8 }, (_, row) =>
-                  Array.from({ length: 8 }, (_, col) => {
-                    const isHighlighted = table.hoveredCell && row < table.hoveredCell.row && col < table.hoveredCell.col;
-                    const isFirstRow = row === 0;
-                    return (
-                      <button
-                        key={`${row}-${col}`}
-                        className={cn(
-                          "w-4 h-4 border border-border rounded-sm transition-colors",
-                          isHighlighted
-                            ? isFirstRow ? "bg-foreground" : "bg-primary/40"
-                            : "bg-background hover:bg-muted"
-                        )}
-                        onMouseEnter={() => table.onHoverCell({ row: row + 1, col: col + 1 })}
-                        onMouseLeave={() => table.onHoverCell(null)}
-                        onClick={() => table.onInsert(row + 1, col + 1)}
-                      />
-                    );
-                  })
-                )}
-              </div>
-            </PopoverContent>
-          </Popover>
+          <TableGridPicker
+            disabled={disabled}
+            open={effectiveTable.open}
+            onOpenChange={effectiveTable.onOpenChange}
+            onInsert={effectiveTable.onInsert}
+          />
 
           {/* Figure */}
           {onOpenFigureDialog && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1" onClick={onOpenFigureDialog} onMouseDown={onSaveSelection}>
+                <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1" disabled={disabled} onClick={onOpenFigureDialog} onMouseDown={onSaveSelection}>
                   <ImageIcon className="h-4 w-4" />
                   <span className="text-xs">Figure</span>
                 </Button>
@@ -289,7 +276,7 @@ export function DraftFormattingToolbar({
           {onOpenCitationDialog && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1" onClick={onOpenCitationDialog} onMouseDown={onSaveSelection}>
+                <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1" disabled={disabled} onClick={onOpenCitationDialog} onMouseDown={onSaveSelection}>
                   <FileText className="h-4 w-4" />
                   <span className="text-xs">Citations</span>
                 </Button>
@@ -304,7 +291,7 @@ export function DraftFormattingToolbar({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <DropdownMenuTrigger asChild>
-                    <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1" onMouseDown={onSaveSelection}>
+                    <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1" disabled={disabled} onMouseDown={onSaveSelection}>
                       <Link2 className="w-4 h-4" />
                       <span className="text-xs">Cross-ref</span>
                     </Button>

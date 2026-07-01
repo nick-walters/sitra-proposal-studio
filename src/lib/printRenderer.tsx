@@ -6,11 +6,37 @@
 import { createElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { AuthProvider } from '@/hooks/useAuth';
+import DOMPurify from 'dompurify';
 import { Participant, Section } from '@/types/proposal';
 import { supabase } from '@/integrations/supabase/client';
 import { resolveStorageUrl } from '@/hooks/useStorageUrl';
+import { getCaseTypePrefix } from '@/lib/caseTypeLabels';
 import { extractFilePathFromUrl } from '@/lib/proposalStorage';
 import { SITRA_LOGO_BASE64 } from '@/lib/sitraLogo';
+import { applyColumnWidthsToTable } from '@/lib/autoFitColumns';
+import { computeBudgetRow } from '@/lib/budgetCompute';
+
+/** Escape user-provided strings before interpolating into raw HTML templates. */
+const escHtml = (s: string | number | null | undefined): string =>
+  String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+/** Sanitize a hex/CSS colour string so it can't break out of an HTML attribute. */
+const safeColor = (c: string | null | undefined): string => {
+  if (!c) return '#000000';
+  return /^#[0-9a-fA-F]{3,8}$|^rgb\(|^rgba\(|^hsl\(|^hsla\(|^[a-zA-Z]+$/.test(c) ? c : '#000000';
+};
+
+/** Sanitiser config for rich-text content rendered into the export DOM. */
+const PRINT_SANITIZE_CONFIG = {
+  ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'ul', 'ol', 'li', 'span', 'a', 'h1', 'h2', 'h3', 'h4', 'sub', 'sup', 'table', 'colgroup', 'col', 'thead', 'tbody', 'tr', 'th', 'td', 'img', 'figure', 'figcaption', 'div', 'svg', 'path', 'g', 'rect', 'circle', 'line', 'polyline', 'polygon', 'text', 'tspan', 'defs', 'marker', 'use'],
+  ALLOWED_ATTR: ['class', 'style', 'href', 'target', 'rel', 'src', 'alt', 'width', 'height', 'colwidth', 'colspan', 'rowspan', 'crossorigin', 'data-type', 'data-id', 'data-wp-number', 'data-wp-short-name', 'data-wp-color', 'data-task-number', 'data-deliverable-number', 'data-milestone-number', 'data-participant-number', 'data-short-name', 'data-case-number', 'data-case-short-name', 'data-case-color', 'data-case-type', 'data-include-number', 'data-include-abbreviation', 'data-figure-id', 'data-table-key', 'data-ref-type', 'data-ref-id', 'data-citation-id', 'data-acronym', 'data-figure-wrapper', 'data-block-id', 'data-section-name', 'data-proposal-banner', 'data-cases-table-node', 'data-case-ids', 'data-caption', 'viewBox', 'fill', 'stroke', 'stroke-width', 'd', 'x', 'y', 'x1', 'y1', 'x2', 'y2', 'cx', 'cy', 'r', 'rx', 'ry', 'points', 'transform', 'opacity', 'fill-opacity', 'stroke-opacity', 'stroke-linejoin', 'stroke-linecap', 'text-anchor', 'font-family', 'font-size', 'font-weight'],
+};
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -160,16 +186,13 @@ async function buildParticipantListHtml(
     wpLeadership.get(wp.lead_participant_id)!.push({ num: wp.number, color: wp.color });
   }
 
-  const getCasePrefix = (t: string, c: string | null) => {
-    if (t === 'other') return c ? c.toUpperCase() : '';
-    return { case_study: 'CS', use_case: 'UC', living_lab: 'LL', pilot: 'P', demonstration: 'D' }[t] || '';
-  };
+  // Case prefix resolution lives in @/lib/caseTypeLabels.
 
   const caseLeadership = new Map<string, { label: string; color: string }[]>();
   for (const c of caseData || []) {
     if (!c.lead_participant_id) continue;
     if (!caseLeadership.has(c.lead_participant_id)) caseLeadership.set(c.lead_participant_id, []);
-    const prefix = getCasePrefix(c.case_type, c.custom_type_name);
+    const prefix = getCaseTypePrefix(c.case_type, c.custom_type_name);
     caseLeadership.get(c.lead_participant_id)!.push({
       label: prefix ? `${prefix}${c.number}` : (c.short_name || `${c.number}`),
       color: c.color,
@@ -201,10 +224,10 @@ async function buildParticipantListHtml(
       roleHtml += `<span class="print-bubble" style="background:hsl(221.2,83.2%,53.3%);color:#fff;border-radius:4px;padding:0 5px;font-weight:bold;font-size:11pt;font-style:normal;font-family:'Times New Roman',Times,serif;line-height:1;white-space:nowrap;">Coord</span> `;
     }
     for (const wp of wpLeadership.get(p.id) || []) {
-      roleHtml += `<span class="print-bubble" style="background:${wp.color};color:#fff;border-radius:9999px;padding:0 5px;font-weight:bold;font-size:11pt;font-style:normal;font-family:'Times New Roman',Times,serif;line-height:1;white-space:nowrap;">WP${wp.num}</span> `;
+      roleHtml += `<span class="print-bubble" style="background:${safeColor(wp.color)};color:#fff;border-radius:9999px;padding:0 5px;font-weight:bold;font-size:11pt;font-style:normal;font-family:'Times New Roman',Times,serif;line-height:1;white-space:nowrap;">WP${escHtml(wp.num)}</span> `;
     }
     for (const c of caseLeadership.get(p.id) || []) {
-      roleHtml += `<span class="print-bubble" style="background:#fff;color:#000;border:1.5px solid #000;border-radius:9999px;padding:0 5px;font-weight:bold;font-size:11pt;font-style:normal;font-family:'Times New Roman',Times,serif;line-height:1;white-space:nowrap;">${c.label}</span> `;
+      roleHtml += `<span class="print-bubble" style="background:#fff;color:#000;border:1.5px solid #000;border-radius:9999px;padding:0 5px;font-weight:bold;font-size:11pt;font-style:normal;font-family:'Times New Roman',Times,serif;line-height:1;white-space:nowrap;">${escHtml(c.label)}</span> `;
     }
     if (!isCoord && !wpLeadership.has(p.id) && !caseLeadership.has(p.id)) {
       roleHtml = '—';
@@ -212,17 +235,17 @@ async function buildParticipantListHtml(
 
     // Short name bubble with participant number inside
     const shortBubble = shortName
-      ? `<span class="print-bubble" style="background:#000;color:#fff;border-radius:9999px;padding:0 5px;font-weight:bold;font-size:11pt;font-style:normal;font-family:'Times New Roman',Times,serif;line-height:1;white-space:nowrap;">${p.participantNumber}. ${shortName}</span>`
+      ? `<span class="print-bubble" style="background:#000;color:#fff;border-radius:9999px;padding:0 5px;font-weight:bold;font-size:11pt;font-style:normal;font-family:'Times New Roman',Times,serif;line-height:1;white-space:nowrap;">${escHtml(p.participantNumber)}. ${escHtml(shortName)}</span>`
       : '—';
 
     rows += `<tr>
       <td class="print-td" style="vertical-align:middle;">${shortBubble}</td>
       <td class="print-td" style="vertical-align:middle;">
-        ${legalName}${englishName ? `<br/><span style="font-style:italic;color:#666;">${englishName}</span>` : ''}
+        ${escHtml(legalName)}${englishName ? `<br/><span style="font-style:italic;color:#666;">${escHtml(englishName)}</span>` : ''}
       </td>
       ${logoHtml}
       <td class="print-td" style="vertical-align:middle;">${roleHtml}</td>
-      <td class="print-td" style="vertical-align:middle;">${p.country || '—'}</td>
+      <td class="print-td" style="vertical-align:middle;">${escHtml(p.country || '—')}</td>
     </tr>`;
   }
 
@@ -241,7 +264,205 @@ async function buildParticipantListHtml(
     </table>`;
 }
 
+// ── Build Part A (A1 general info + A3 budget summary) HTML ──────────────────
+
+interface PartA1Row {
+  abstract: string | null;
+  fixed_keywords: string[] | null;
+  free_keywords: string | null;
+  previous_submission: string | null;
+  previous_submission_reference: string | null;
+}
+
+/**
+ * Renders A1 (abstract + keywords + previous submission) from the typed
+ * `part_a1` table. The abstract is sanitised HTML — NOT escaped — so
+ * inline acronym/participant badges render as elements in the export.
+ * The `declarations` object is intentionally excluded — it is not
+ * evaluative content.
+ */
+function buildA1Html(a1: PartA1Row | null): string {
+  if (!a1) return '';
+  const abstractHtml = String(a1.abstract || '').trim();
+  const rawFixed = Array.isArray(a1.fixed_keywords) ? a1.fixed_keywords : [];
+  const fixedKeywords: string[] = [];
+  for (const k of rawFixed) {
+    if (typeof k !== 'string') continue;
+    for (const piece of k.split(',')) {
+      const trimmed = piece.trim();
+      if (trimmed) fixedKeywords.push(trimmed);
+    }
+  }
+  const freeKeywords = String(a1.free_keywords || '').trim();
+  const previousSubmission: 'yes' | 'no' | '' =
+    a1.previous_submission === 'yes' || a1.previous_submission === 'no'
+      ? a1.previous_submission
+      : '';
+  const previousReference = String(a1.previous_submission_reference || '').trim();
+
+  const parts: string[] = [];
+  parts.push(
+    `<h2 class="print-h2" data-section-name="A1. General information" style="font-size:12pt;font-weight:bold;margin-top:9pt;margin-bottom:0;">A1. General information</h2>`,
+  );
+  if (abstractHtml) {
+    parts.push(`<h3 class="print-h3" style="font-size:11pt;font-weight:bold;margin-top:6pt;margin-bottom:0;">Abstract</h3>`);
+    // Abstract is stored as plain text — render as escaped paragraphs.
+    const paragraphs = abstractHtml
+      .split(/\n{2,}/)
+      .map((p) => p.trim())
+      .filter(Boolean)
+      .map((p) => `<p style="margin:3pt 0 0 0;">${escHtml(p).replace(/\n/g, '<br>')}</p>`)
+      .join('');
+    parts.push(`<div class="print-section-content">${paragraphs}</div>`);
+  }
+  const kw: string[] = [];
+  if (fixedKeywords.length) kw.push(fixedKeywords.join(', '));
+  if (freeKeywords) kw.push(freeKeywords);
+  if (kw.length) {
+    parts.push(`<p style="margin:6pt 0 0 0;"><strong>Keywords:</strong> ${escHtml(kw.join(' · '))}</p>`);
+  }
+  if (previousSubmission) {
+    const label = previousSubmission === 'yes'
+      ? `Previously submitted${previousReference ? `: ${previousReference}` : ''}`
+      : 'Not previously submitted';
+    parts.push(`<p style="margin:3pt 0 0 0;"><strong>Previous submission:</strong> ${escHtml(label)}</p>`);
+  }
+  return parts.join('\n');
+}
+
+
+function stripTags(html: string): string {
+  return String(html || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ');
+}
+
+/**
+ * Build the A3 budget summary table from `budget_rows`. Read-only mirror —
+ * one row per participant + a totals row. All figures are derived through
+ * `computeBudgetRow` so the export matches the A3 portal exactly (the
+ * `requested_eu_contribution` column is a manual override and usually NULL).
+ */
+async function buildA3BudgetHtml(
+  proposalId: string,
+  participants: Participant[],
+  proposalType: string | null,
+): Promise<string> {
+  const [{ data: rows }, { data: effortData }] = await Promise.all([
+    supabase
+      .from('budget_rows')
+      .select('participant_id, personnel_costs, subcontracting_costs, purchase_travel, purchase_equipment, purchase_other_goods, financial_support_third_parties, internally_invoiced, procurement, pm_rate, indirect_costs_override, funding_rate_override, requested_eu_contribution, has_in_kind, requested_personnel_costs, requested_subcontracting, requested_travel, requested_equipment, requested_other_goods, requested_fstp, requested_internally_invoiced')
+      .eq('proposal_id', proposalId),
+    supabase
+      .from('wp_draft_effort')
+      .select('participant_id, person_months, wp_drafts!inner(proposal_id)')
+      .eq('wp_drafts.proposal_id', proposalId),
+  ]);
+
+  if (!rows || rows.length === 0) return '';
+
+  const pmTotals = new Map<string, number>();
+  (effortData || []).forEach((e: any) => {
+    pmTotals.set(e.participant_id, (pmTotals.get(e.participant_id) || 0) + Number(e.person_months || 0));
+  });
+
+  const partById = new Map(participants.map((p) => [p.id, p]));
+  const fmt = (n: number) =>
+    n.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const totals = {
+    personnel: 0,
+    subcontracting: 0,
+    equipment: 0,
+    otherGoods: 0,
+    travel: 0,
+    indirect: 0,
+    requestedEu: 0,
+  };
+
+  const sorted = [...rows].sort((a: any, b: any) => {
+    const pa = partById.get(a.participant_id);
+    const pb = partById.get(b.participant_id);
+    return (pa?.participantNumber || 999) - (pb?.participantNumber || 999);
+  });
+
+  let body = '';
+  for (const r of sorted as any[]) {
+    const p = partById.get(r.participant_id);
+    const label = p
+      ? `${p.participantNumber}. ${p.organisationShortName || p.organisationName || ''}`
+      : '—';
+    const out = computeBudgetRow({
+      ...r,
+      totalPersonMonths: pmTotals.get(r.participant_id) || 0,
+      proposalType,
+      organisationCategory: p?.organisationCategory ?? null,
+    });
+    totals.personnel += out.personnel;
+    totals.subcontracting += Number(r.subcontracting_costs || 0);
+    totals.equipment += Number(r.purchase_equipment || 0);
+    totals.otherGoods += Number(r.purchase_other_goods || 0);
+    totals.travel += Number(r.purchase_travel || 0);
+    totals.indirect += out.indirect;
+    totals.requestedEu += out.requestedEuContribution;
+    body += `<tr>
+      <td class="print-td">${escHtml(label)}</td>
+      <td class="print-td" style="text-align:right;">${fmt(out.personnel)}</td>
+      <td class="print-td" style="text-align:right;">${fmt(Number(r.subcontracting_costs || 0))}</td>
+      <td class="print-td" style="text-align:right;">${fmt(Number(r.purchase_equipment || 0))}</td>
+      <td class="print-td" style="text-align:right;">${fmt(Number(r.purchase_other_goods || 0))}</td>
+      <td class="print-td" style="text-align:right;">${fmt(Number(r.purchase_travel || 0))}</td>
+      <td class="print-td" style="text-align:right;">${fmt(out.indirect)}</td>
+      <td class="print-td" style="text-align:right;"><strong>${fmt(out.requestedEuContribution)}</strong></td>
+    </tr>`;
+  }
+
+  body += `<tr>
+    <td class="print-td"><strong>Total</strong></td>
+    <td class="print-td" style="text-align:right;"><strong>${fmt(totals.personnel)}</strong></td>
+    <td class="print-td" style="text-align:right;"><strong>${fmt(totals.subcontracting)}</strong></td>
+    <td class="print-td" style="text-align:right;"><strong>${fmt(totals.equipment)}</strong></td>
+    <td class="print-td" style="text-align:right;"><strong>${fmt(totals.otherGoods)}</strong></td>
+    <td class="print-td" style="text-align:right;"><strong>${fmt(totals.travel)}</strong></td>
+    <td class="print-td" style="text-align:right;"><strong>${fmt(totals.indirect)}</strong></td>
+    <td class="print-td" style="text-align:right;"><strong>${fmt(totals.requestedEu)}</strong></td>
+  </tr>`;
+
+  return `
+    <h2 class="print-h2" data-section-name="A3. Budget" style="font-size:12pt;font-weight:bold;margin-top:9pt;margin-bottom:0;">A3. Budget</h2>
+    <table class="print-table" style="width:100%;border-collapse:collapse;">
+      <thead><tr>
+        <th class="print-th">Participant</th>
+        <th class="print-th">Personnel</th>
+        <th class="print-th">Subcontracting</th>
+        <th class="print-th">Equipment</th>
+        <th class="print-th">Other goods</th>
+        <th class="print-th">Travel</th>
+        <th class="print-th">Indirect</th>
+        <th class="print-th">Requested EU</th>
+      </tr></thead>
+      <tbody>${body}</tbody>
+    </table>`;
+}
+
+async function buildPartAHtml(
+  proposalId: string,
+  _sectionContents: SectionContent[],
+  participants: Participant[],
+  proposalType: string | null,
+): Promise<string> {
+  const { data: a1Row } = await supabase
+    .from('part_a1')
+    .select('abstract, fixed_keywords, free_keywords, previous_submission, previous_submission_reference')
+    .eq('proposal_id', proposalId)
+    .maybeSingle();
+  const a1Html = buildA1Html(a1Row as PartA1Row | null);
+  const a3Html = await buildA3BudgetHtml(proposalId, participants, proposalType);
+  // A2 (participants list + expertise matrix) is already covered by the
+  // participant list table above and the B3.2 expertise-matrix mount.
+  return [a1Html, a3Html].filter(Boolean).join('\n');
+}
+
 // ── Build the full print container HTML ──────────────────────────────────────
+
 
 export async function buildPrintContainer(
   options: PrintRenderOptions,
@@ -325,6 +546,15 @@ export async function buildPrintContainer(
   partListDiv.innerHTML = partListHtml;
   container.appendChild(partListDiv);
 
+  // ── Part A (A1 general info + A3 budget summary) ──
+  const partAHtml = await buildPartAHtml(proposal.id, sectionContents, participants, proposal.type ?? null);
+  if (partAHtml) {
+    const partADiv = document.createElement('div');
+    partADiv.setAttribute('data-part-a-mirror', 'true');
+    partADiv.innerHTML = partAHtml;
+    container.appendChild(partADiv);
+  }
+
   // ── Sections ──
   for (const section of partBSections) {
     const num = section.number.replace(/^B/, '');
@@ -355,7 +585,7 @@ export async function buildPrintContainer(
         const resolved = await resolveImagesInHtml(content);
         const sectionDiv = document.createElement('div');
         sectionDiv.className = 'print-section-content ProseMirror';
-        sectionDiv.innerHTML = resolved;
+        sectionDiv.innerHTML = DOMPurify.sanitize(resolved, PRINT_SANITIZE_CONFIG);
         container.appendChild(sectionDiv);
       } else {
         const placeholder = document.createElement('p');
@@ -373,58 +603,161 @@ export async function buildPrintContainer(
         b31Marker.setAttribute('data-proposal-acronym', proposal.acronym);
         container.appendChild(b31Marker);
       }
+
+      // B3.2 – mount the expertise matrix mirror (respects enabled flag).
+      if (num === '3.2') {
+        const b32Marker = document.createElement('div');
+        b32Marker.id = 'print-b32-mount';
+        b32Marker.setAttribute('data-proposal-id', proposal.id);
+        container.appendChild(b32Marker);
+      }
     }
   }
 
   return container;
 }
 
-// ── Mount B3.1 React components into the print container ─────────────────────
+// ── Mount dynamic React components (B3.1, B3.2, B1.2 cases) ──────────────────
 
-export async function mountB31Components(
+/**
+ * Mounts the React-rendered subtrees the editor draws live (B3.1 mirror
+ * tables, B3.2 expertise matrix, and B1.2 cases-table placeholders) into the
+ * print container so PDF/Word export captures the same content the editor
+ * shows. All mounts share a single QueryClient so they can reuse cached data.
+ */
+export async function mountDynamicComponents(
   container: HTMLElement,
   proposalId: string,
   proposalAcronym: string,
   appQueryClient?: QueryClient,
 ): Promise<void> {
-  const mount = container.querySelector('#print-b31-mount');
-  if (!mount) return;
+  const b31Mount = container.querySelector('#print-b31-mount');
+  const b32Mount = container.querySelector('#print-b32-mount');
+  const casesPlaceholders = Array.from(
+    container.querySelectorAll<HTMLElement>('div[data-cases-table-node]'),
+  );
 
-  const [{ B31IntroText }, { B31SectionContent }] = await Promise.all([
+  if (!b31Mount && !b32Mount && casesPlaceholders.length === 0) return;
+
+  const [
+    { B31IntroText },
+    { B31SectionContent },
+    { B32SectionContent },
+    { CasesTableLiveView },
+  ] = await Promise.all([
     import('@/components/B31IntroText'),
     import('@/components/B31SectionContent'),
+    import('@/components/B32SectionContent'),
+    import('@/components/CasesTableNodeView'),
   ]);
 
   // Reuse the app's QueryClient when available so the export tree reads from
-  // the already-warm cache instead of refetching every B3.1 query cold.
+  // the already-warm cache instead of refetching every query cold.
   const queryClient =
     appQueryClient ??
     new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
 
-  const root = createRoot(mount);
+  // Check whether the B3.2 expertise matrix is enabled before mounting.
+  let mountB32 = false;
+  if (b32Mount) {
+    try {
+      const { data } = await supabase
+        .from('proposals')
+        .select('expertise_matrix_enabled')
+        .eq('id', proposalId)
+        .maybeSingle();
+      mountB32 = data?.expertise_matrix_enabled !== false;
+    } catch {
+      mountB32 = true; // default-on
+    }
+    if (!mountB32) {
+      // Drop the marker so it leaves no trace in the export.
+      b32Mount.remove();
+    }
+  }
 
-  root.render(
-    createElement(
-      QueryClientProvider,
-      { client: queryClient },
+  const roots: { root: ReturnType<typeof createRoot>; el: Element }[] = [];
+
+  if (b31Mount) {
+    const root = createRoot(b31Mount);
+    root.render(
       createElement(
-        'div',
-        { className: 'print-b31-content' },
-        createElement(B31IntroText, { proposalId, proposalAcronym }),
-        createElement(B31SectionContent, { proposalId }),
+        QueryClientProvider,
+        { client: queryClient },
+        createElement(
+          AuthProvider,
+          null,
+          createElement(
+            'div',
+            { className: 'print-b31-content' },
+            createElement(B31IntroText, { proposalId, proposalAcronym }),
+            createElement(B31SectionContent, { proposalId }),
+          ),
+        ),
       ),
-    ),
-  );
+    );
+    roots.push({ root, el: b31Mount });
+  }
 
+  if (b32Mount && mountB32) {
+    const root = createRoot(b32Mount);
+    root.render(
+      createElement(
+        QueryClientProvider,
+        { client: queryClient },
+        createElement(
+          AuthProvider,
+          null,
+          createElement(
+            'div',
+            { className: 'print-b32-content' },
+            createElement(B32SectionContent, { proposalId }),
+          ),
+        ),
+      ),
+    );
+    roots.push({ root, el: b32Mount });
+  }
+
+  // Mount each B1.2 cases-table placeholder. The letterIndex is just the
+  // index of the placeholder in document order — matches the editor's
+  // global counter for typed cases tables (Table 1.2.a, 1.2.b, …).
+  casesPlaceholders.forEach((placeholder, idx) => {
+    const caseTypeId = placeholder.getAttribute('data-case-type-id') || null;
+    const root = createRoot(placeholder);
+    root.render(
+      createElement(
+        QueryClientProvider,
+        { client: queryClient },
+        createElement(
+          AuthProvider,
+          null,
+          createElement(CasesTableLiveView, {
+            proposalId,
+            caseTypeId,
+            letterIndex: idx,
+          }),
+        ),
+      ),
+    );
+    roots.push({ root, el: placeholder });
+  });
+
+  // Wait for queries to settle and at least one table/cases row to render.
   await new Promise<void>((resolve) => {
     let elapsed = 0;
     const interval = setInterval(() => {
       elapsed += 200;
-      const hasTables = mount.querySelector('table') !== null;
       const isFetching = queryClient.isFetching() > 0;
-      if ((hasTables && !isFetching) || elapsed > 15000) {
+      const b31Ready = !b31Mount || b31Mount.querySelector('table') !== null;
+      const b32Ready = !b32Mount || !mountB32 || b32Mount.querySelector('table') !== null;
+      const casesReady = casesPlaceholders.every(
+        (p) => p.querySelector('[data-case-block]') !== null
+            || p.querySelector('div') !== null,
+      );
+      if ((b31Ready && b32Ready && casesReady && !isFetching) || elapsed > 15000) {
         clearInterval(interval);
         setTimeout(resolve, 200);
       }
@@ -439,10 +772,149 @@ export async function mountB31Components(
     '.column-resizer',
     '.tooltip-content',
   ];
-  for (const sel of interactiveSelectors) {
-    mount.querySelectorAll(sel).forEach(el => {
-      el.remove();
+  for (const { el } of roots) {
+    for (const sel of interactiveSelectors) {
+      el.querySelectorAll(sel).forEach((node) => node.remove());
+    }
+  }
+}
+
+/** @deprecated — use mountDynamicComponents. Kept for backward compatibility. */
+export const mountB31Components = mountDynamicComponents;
+
+// ── Figure → text-summary replacement (used by PDF/Word + eval payload) ──────
+
+/**
+ * Replaces visual figures in the export container with a structured text
+ * block, so PDF/Word and the evaluation payload show the same human-readable
+ * description. For PERT/Gantt charts (rendered inside the B3.1 mount) we emit
+ * a one-paragraph structural summary derived from live proposal data. For
+ * ordinary uploaded image figures inside section content we keep the figure
+ * number + caption line and drop the image.
+ */
+/**
+ * Replace PERT/Gantt charts and uploaded <img> figures with structured text
+ * summaries. NOT used in the visual PDF/Word export path — figures must render
+ * as real inline SVG / <img> there. Exported so the evaluation pipeline can run
+ * it against a CLONE of the prepared export container to produce a
+ * machine-readable text payload.
+ */
+export async function replaceFiguresWithText(
+  container: HTMLElement,
+  proposalId: string,
+): Promise<void> {
+  // ── PERT / Gantt: replace the chart bodies with a summary paragraph. ──
+  const chartWrappers = Array.from(
+    container.querySelectorAll<HTMLElement>('div[data-figure-type="pert"], div[data-figure-type="gantt"]'),
+  );
+
+  if (chartWrappers.length > 0) {
+    // One batched data fetch covering both summaries.
+    const wpsRes = await supabase
+      .from('wp_drafts')
+      .select('id, number, short_name, title')
+      .eq('proposal_id', proposalId)
+      .order('number');
+    const wps = wpsRes.data || [];
+    const wpIds = wps.map((w: any) => w.id);
+
+    const [delsRes, msRes] = await Promise.all([
+      wpIds.length
+        ? supabase
+            .from('wp_draft_deliverables')
+            .select('number, due_month, title, wp_draft_id')
+            .in('wp_draft_id', wpIds)
+        : Promise.resolve({ data: [] as any[] }),
+      supabase
+        .from('proposal_milestones')
+        .select('number, due_month, title')
+        .eq('proposal_id', proposalId)
+        .order('number'),
+    ]);
+
+    const wpById = new Map(wps.map((w: any) => [w.id, w]));
+    const deliverables = (delsRes.data || []).map((d: any) => {
+      const wp = wpById.get(d.wp_draft_id);
+      return {
+        label: wp ? `D${wp.number}.${d.number}` : `D?.${d.number}`,
+        month: d.due_month,
+      };
     });
+    const milestones = msRes.data || [];
+
+    const monthsArr = [
+      ...deliverables.map((d: any) => d.month).filter((m: any) => typeof m === 'number'),
+      ...milestones.map((m: any) => m.due_month).filter((m: any) => typeof m === 'number'),
+    ];
+    const maxMonth = monthsArr.length ? Math.max(...monthsArr) : 0;
+
+    const delList = deliverables
+      .filter((d: any) => typeof d.month === 'number')
+      .sort((a: any, b: any) => a.month - b.month || a.label.localeCompare(b.label))
+      .map((d: any) => `${d.label} at M${d.month}`)
+      .join(', ');
+    const msList = milestones
+      .filter((m: any) => typeof m.due_month === 'number')
+      .map((m: any) => `MS${m.number} at M${m.due_month}`)
+      .join(', ');
+
+    for (const wrapper of chartWrappers) {
+      const kind = wrapper.getAttribute('data-figure-type') === 'pert' ? 'PERT' : 'Gantt';
+      const chartLabel = kind === 'PERT' ? 'PERT diagram' : 'Gantt chart';
+
+      // Caption text — keep the user-visible label rendered alongside the chart.
+      const captionEl = wrapper.querySelector<HTMLElement>('[data-table-key]')
+        || wrapper.querySelector<HTMLElement>('.figure-caption');
+      const captionText = captionEl?.innerText?.trim() || chartLabel;
+
+      const summaryParts: string[] = [];
+      summaryParts.push(`${wps.length} WP${wps.length === 1 ? '' : 's'}`);
+      if (maxMonth > 0) summaryParts.push(`spanning M1–M${maxMonth}`);
+      if (delList) summaryParts.push(`deliverables ${delList}`);
+      if (msList) summaryParts.push(`milestones ${msList}`);
+
+      const replacement = document.createElement('p');
+      replacement.setAttribute('data-figure-summary', kind.toLowerCase());
+      replacement.style.cssText =
+        "font-family:'Times New Roman',Times,serif;font-size:11pt;margin:6pt 0;text-align:left;";
+      const head = `[${captionText} — ${chartLabel}]`;
+      const tail = summaryParts.length
+        ? ` (Structured summary: ${summaryParts.join('; ')}.)`
+        : '';
+      replacement.textContent = `${head}${tail}`;
+
+      // Replace whole wrapper (chart + its caption) with the summary block.
+      wrapper.replaceWith(replacement);
+    }
+  }
+
+  // ── Uploaded image figures inside section content: keep label, drop image. ──
+  const sectionImgs = Array.from(
+    container.querySelectorAll<HTMLImageElement>('.print-section-content img'),
+  );
+  for (const img of sectionImgs) {
+    // Look for an immediately following caption paragraph.
+    let captionText = '';
+    let nextEl: Element | null = img.parentElement;
+    // The image is often wrapped in a paragraph/div — find the next sibling
+    // of the nearest block ancestor inside the section.
+    while (nextEl && !['P', 'DIV', 'FIGURE'].includes(nextEl.tagName)) {
+      nextEl = nextEl.parentElement;
+    }
+    const candidate = nextEl?.nextElementSibling as HTMLElement | null;
+    if (candidate && (candidate.classList.contains('figure-caption')
+      || /^figure\s+/i.test(candidate.innerText.trim()))) {
+      captionText = candidate.innerText.replace(/\s+/g, ' ').trim();
+      candidate.remove();
+    }
+    const alt = img.getAttribute('alt') || '';
+    const label = captionText || (alt ? `Figure — ${alt}` : 'Figure');
+    const replacement = document.createElement('p');
+    replacement.setAttribute('data-figure-summary', 'image');
+    replacement.style.cssText =
+      "font-family:'Times New Roman',Times,serif;font-size:11pt;margin:6pt 0;text-align:left;";
+    replacement.textContent = `[${label}]`;
+    img.replaceWith(replacement);
   }
 }
 
@@ -523,6 +995,146 @@ function freezeInteractiveElements(container: HTMLElement): void {
   });
 }
 
+// ── Persisted column-width application ───────────────────────────────────────
+
+/**
+ * Parse a TipTap colwidth attribute, which can be either a JSON array
+ * (`"[120]"` / `"[120,80]"`) or a comma-separated list (`"120,80"`).
+ */
+function parseColwidthAttr(raw: string | null): number[] {
+  if (!raw) return [];
+  const trimmed = raw.trim();
+  if (!trimmed) return [];
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (Array.isArray(parsed)) {
+      return parsed.map((n) => Number(n)).filter((n) => Number.isFinite(n) && n > 0);
+    }
+  } catch {
+    // fall through to comma split
+  }
+  return trimmed
+    .split(/[,\s]+/)
+    .map((s) => Number(s))
+    .filter((n) => Number.isFinite(n) && n > 0);
+}
+
+/**
+ * For every <table> in the export container:
+ *   1. If it has [data-table-key], fetch the persisted column widths from
+ *      `table_column_widths` for (proposalId, tableKey) and apply them.
+ *   2. Otherwise (TipTap content tables), if row-0 cells carry `colwidth`
+ *      attrs, materialise them into a <colgroup><col width=…> so the print
+ *      engine honours editor-resized columns instead of equal-distributing.
+ *
+ * Must run before the offscreen container width is reset to 100%, so that
+ * the freshly-applied widths aren't blown away by a remount/measure cycle.
+ */
+async function applyPersistedColumnWidths(
+  container: HTMLElement,
+  proposalId: string,
+): Promise<void> {
+  const tables = Array.from(container.querySelectorAll('table')) as HTMLTableElement[];
+  if (tables.length === 0) return;
+
+  // 1) Batched fetch for all keyed tables.
+  const keyed = tables.filter((t) => t.hasAttribute('data-table-key'));
+  const tableKeys = Array.from(
+    new Set(keyed.map((t) => t.getAttribute('data-table-key')!).filter(Boolean)),
+  );
+
+  const widthsByKey = new Map<string, number[]>();
+  if (tableKeys.length > 0) {
+    const { data, error } = await supabase
+      .from('table_column_widths')
+      .select('table_key, column_widths')
+      .eq('proposal_id', proposalId)
+      .in('table_key', tableKeys);
+    if (!error && data) {
+      for (const row of data) {
+        const widths = row.column_widths;
+        if (Array.isArray(widths) && widths.length > 0) {
+          const nums = (widths as unknown[])
+            .map((n) => Number(n))
+            .filter((n) => Number.isFinite(n) && n > 0);
+          if (nums.length > 0) widthsByKey.set(row.table_key as string, nums);
+        }
+      }
+    }
+  }
+
+  for (const table of tables) {
+    const key = table.getAttribute('data-table-key');
+    if (key) {
+      const widths = widthsByKey.get(key);
+      if (widths && widths.length > 0) {
+        // Match column count where possible; pad/trim defensively.
+        const firstRow = table.querySelector('tbody tr, thead tr');
+        const cellCount = firstRow
+          ? Array.from(firstRow.querySelectorAll('th, td')).reduce(
+              (sum, c) => sum + (parseInt(c.getAttribute('colspan') || '1', 10) || 1),
+              0,
+            )
+          : widths.length;
+        const adjusted =
+          widths.length === cellCount
+            ? widths
+            : widths.length > cellCount
+              ? widths.slice(0, cellCount)
+              : [...widths, ...new Array(cellCount - widths.length).fill(widths[widths.length - 1] || 60)];
+        applyColumnWidthsToTable(table, adjusted);
+      } else {
+        // No persisted widths — freeze the editor's currently-displayed column
+        // widths so the 680px→100% container reset can't re-stretch them.
+        // Measure tbody first row (same heuristic useColumnResize uses);
+        // fall back to thead first row when tbody is empty.
+        const measureRow =
+          (table.querySelector('tbody tr:first-child') as HTMLTableRowElement | null) ||
+          (table.querySelector('thead tr:first-child') as HTMLTableRowElement | null);
+        if (measureRow) {
+          const cells = Array.from(measureRow.querySelectorAll('th, td')) as HTMLElement[];
+          const measured: number[] = [];
+          let total = 0;
+          for (const cell of cells) {
+            const span = Math.max(1, parseInt(cell.getAttribute('colspan') || '1', 10) || 1);
+            const w = Math.max(1, Math.round(cell.offsetWidth / span));
+            for (let i = 0; i < span; i++) measured.push(w);
+            total += cell.offsetWidth;
+          }
+          if (measured.length > 0 && total > 0) {
+            applyColumnWidthsToTable(table, measured);
+          }
+        }
+      }
+      continue;
+    }
+
+    // 2) TipTap fallback: hoist per-cell colwidth → <colgroup>.
+    if (table.querySelector('colgroup col')) continue;
+    const firstRow = table.querySelector('tr');
+    if (!firstRow) continue;
+    const cells = Array.from(firstRow.querySelectorAll('th, td')) as HTMLTableCellElement[];
+    const widths: number[] = [];
+    let sawAny = false;
+    for (const cell of cells) {
+      const span = Math.max(1, parseInt(cell.getAttribute('colspan') || '1', 10) || 1);
+      const cellWidths = parseColwidthAttr(cell.getAttribute('colwidth'));
+      if (cellWidths.length > 0) sawAny = true;
+      for (let i = 0; i < span; i++) {
+        widths.push(cellWidths[i] ?? 0);
+      }
+    }
+    if (!sawAny) continue;
+    // Fill zeros with the average of the known widths so the print engine has
+    // something concrete for every column.
+    const known = widths.filter((w) => w > 0);
+    if (known.length === 0) continue;
+    const avg = Math.round(known.reduce((a, b) => a + b, 0) / known.length);
+    const filled = widths.map((w) => (w > 0 ? w : avg));
+    applyColumnWidthsToTable(table, filled);
+  }
+}
+
 // ── Shared export container preparation ──────────────────────────────────────
 
 /**
@@ -551,13 +1163,13 @@ export async function prepareExportContainer(
   container.style.overflow = 'visible';
   document.body.appendChild(container);
 
-  // Mount B3.1 React components (tables, charts)
-  await mountB31Components(container, options.proposal.id, options.proposal.acronym, appQueryClient);
-  
+  // Mount B3.1 tables, B3.2 expertise matrix, and B1.2 cases-table placeholders
+  await mountDynamicComponents(container, options.proposal.id, options.proposal.acronym, appQueryClient);
+
 
   // Refresh any expired signed URLs before waiting for images to load
   await refreshSignedUrls(container);
-  
+
 
   // Wait for all images to load
   const images = container.querySelectorAll('img');
@@ -571,7 +1183,20 @@ export async function prepareExportContainer(
         }),
     ),
   );
-  
+
+
+  // NOTE: Figure→text substitution (replaceFiguresWithText) is intentionally
+  // NOT run here. The visual PDF/Word export must contain real inline SVG
+  // (PERT/Gantt) and <img> figures. The evaluation pipeline imports
+  // replaceFiguresWithText and runs it on a CLONE of this container.
+
+
+  // Apply persisted column widths (B3.1 mirror tables, B3.2 expertise matrix,
+  // and any other table marked with [data-table-key]) and convert TipTap
+  // per-cell colwidth attrs into a <colgroup>. Must run BEFORE the container
+  // width is reset so React mount measurements don't overwrite them.
+  await applyPersistedColumnWidths(container, options.proposal.id);
+
 
   // Freeze interactive elements (inputs, selects, buttons) into static text
   // Must happen AFTER React mount but BEFORE detaching from DOM

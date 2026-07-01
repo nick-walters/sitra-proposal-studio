@@ -11,9 +11,13 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
+import { safeOpenUrl } from "@/lib/safeUrl";
 import { Separator } from "@/components/ui/separator";
 import { SaveIndicator } from "./SaveIndicator";
+import { PartAPageLayout } from "./PartAPageLayout";
+
 
 import { Proposal, WORK_PROGRAMMES, DESTINATIONS, getDestinationsForWorkProgramme } from "@/types/proposal";
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
@@ -21,9 +25,10 @@ import { TopicFormattingToolbar } from "./TopicFormattingToolbar";
 import { StickyToolbarWrapper } from "./StickyToolbarWrapper";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Target, Euro, Calendar as CalendarIcon, ExternalLink, FileText, FileDown, CheckCircle2, RefreshCw, Pencil, Save, X, ClipboardList } from "lucide-react";
+import { Loader2, Target, Euro, Calendar as CalendarIcon, ExternalLink, FileText, FileDown, CheckCircle2, RefreshCw, Pencil, Save, X, ClipboardList, Download, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import DOMPurify from 'dompurify';
 
 interface TopicInformationPageProps {
   proposalId: string;
@@ -63,21 +68,26 @@ function parseBudgetRange(val: string): [number, number] | null {
   return null;
 }
 
+function computeIndicativeProjects(totalBudgetText: string | undefined, totalBudget: number | undefined, budgetPerProject: string): string {
+  const topicRange = totalBudgetText ? parseBudgetRange(totalBudgetText) : (totalBudget ? [totalBudget, totalBudget] as [number, number] : null);
+  if (!topicRange || !budgetPerProject) return '';
+  const perProjectRange = parseBudgetRange(budgetPerProject);
+  if (!perProjectRange) return '';
+  const [topicMin, topicMax] = topicRange;
+  const [ppMin, ppMax] = perProjectRange;
+  const low = Math.floor(topicMin / ppMax);
+  const high = Math.floor(topicMax / ppMin);
+  if (low === high) return high.toString();
+  if (low > high) return `${high}–${low}`;
+  return `${low}–${high}`;
+}
+
 function IndicativeProjectsField({ totalBudgetText, totalBudget, budgetPerProject }: { totalBudgetText?: string; totalBudget?: number; budgetPerProject: string }) {
-  const computed = useMemo(() => {
-    const topicRange = totalBudgetText ? parseBudgetRange(totalBudgetText) : (totalBudget ? [totalBudget, totalBudget] as [number, number] : null);
-    if (!topicRange || !budgetPerProject) return '–';
-    const perProjectRange = parseBudgetRange(budgetPerProject);
-    if (!perProjectRange) return '–';
-    const [topicMin, topicMax] = topicRange;
-    const [ppMin, ppMax] = perProjectRange;
-    const low = Math.floor(topicMin / ppMax);
-    const high = Math.floor(topicMax / ppMin);
-    if (low === high) return high.toString();
-    if (low > high) return `${high}–${low}`;
-    return `${low}–${high}`;
-  }, [totalBudgetText, totalBudget, budgetPerProject]);
-  return <p className="text-sm font-medium">{computed}</p>;
+  const computed = useMemo(
+    () => computeIndicativeProjects(totalBudgetText, totalBudget, budgetPerProject),
+    [totalBudgetText, totalBudget, budgetPerProject]
+  );
+  return <p className="text-sm font-medium">{computed || '–'}</p>;
 }
 
 type EditableField = 'expectedOutcome' | 'scope' | 'destination' | null;
@@ -107,6 +117,187 @@ export function TopicInformationPage({
   const [editSnapshot, setEditSnapshot] = useState<Record<string, any> | null>(null);
 
   const userCanEdit = canEdit && isCoordinator;
+
+  // --- Import-from-portal state ---
+  const [importing, setImporting] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [importedMeta, setImportedMeta] = useState<{ topicId: string; url: string | null; otherSections: { label: string; html: string }[] } | null>(null);
+  const [importTitle, setImportTitle] = useState('');
+  const [importOutcome, setImportOutcome] = useState('');
+  const [importScope, setImportScope] = useState('');
+  const [importDestination, setImportDestination] = useState('');
+
+  // --- Update-check state ---
+  const [checkingUpdates, setCheckingUpdates] = useState(false);
+  const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
+  const [updateMeta, setUpdateMeta] = useState<{ topicId: string; url: string | null; otherSections: { label: string; html: string }[] } | null>(null);
+  const [updateCheckedAt, setUpdateCheckedAt] = useState<Date | null>(null);
+  const [upTitle, setUpTitle] = useState('');
+  const [upOutcome, setUpOutcome] = useState('');
+  const [upScope, setUpScope] = useState('');
+  const [upDestination, setUpDestination] = useState('');
+  const [applyTitle, setApplyTitle] = useState(false);
+  const [applyOutcome, setApplyOutcome] = useState(false);
+  const [applyScope, setApplyScope] = useState(false);
+  const [applyDestination, setApplyDestination] = useState(false);
+  const [applyingUpdates, setApplyingUpdates] = useState(false);
+
+  const normaliseVisibleText = (html: string): string => {
+    if (!html) return '';
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    doc.querySelectorAll('sup.footnote-marker, sup[data-footnote-id], [data-footnote-id]').forEach((el) => el.remove());
+    const text = doc.body.textContent || '';
+    return text.replace(/\s+/g, ' ').trim();
+  };
+  const normaliseTitle = (s: string): string => (s || '').replace(/\s+/g, ' ').trim();
+
+  const titleChanged = useMemo(
+    () => normaliseTitle((editedProposal as any)?.topicTitle) !== normaliseTitle(upTitle),
+    [editedProposal, upTitle],
+  );
+  const outcomeChanged = useMemo(
+    () => normaliseVisibleText((editedProposal as any)?.topicExpectedOutcome) !== normaliseVisibleText(upOutcome),
+    [editedProposal, upOutcome],
+  );
+  const scopeChanged = useMemo(
+    () => normaliseVisibleText((editedProposal as any)?.topicScope) !== normaliseVisibleText(upScope),
+    [editedProposal, upScope],
+  );
+  const destinationChanged = useMemo(
+    () => normaliseVisibleText((editedProposal as any)?.topicDestinationDescription) !== normaliseVisibleText(upDestination),
+    [editedProposal, upDestination],
+  );
+
+  const changedCount = (titleChanged ? 1 : 0) + (outcomeChanged ? 1 : 0) + (scopeChanged ? 1 : 0) + (destinationChanged ? 1 : 0);
+  const anyApplySelected = applyTitle || applyOutcome || applyScope || applyDestination;
+
+  const handleCheckForUpdates = async () => {
+    if (!proposal?.topicId) return;
+    setCheckingUpdates(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('import-topic-info', {
+        body: { topicId: proposal.topicId },
+      });
+      if (error || !data?.success || !data?.topic) {
+        toast.error("Couldn't check the portal for updates. Check the Topic ID is correct.");
+        return;
+      }
+      const t = data.topic;
+      const pTitle = t.title || '';
+      const pOutcome = t.expectedOutcome || '';
+      const pScope = t.scope || '';
+      const pDestination = t.destinationDetails || '';
+      setUpTitle(pTitle);
+      setUpOutcome(pOutcome);
+      setUpScope(pScope);
+      setUpDestination(pDestination);
+      setUpdateMeta({
+        topicId: t.topicId,
+        url: t.url || null,
+        otherSections: Array.isArray(t.otherSections) ? t.otherSections : [],
+      });
+      setUpdateCheckedAt(new Date());
+      // Default: apply changed fields, skip unchanged
+      const ep: any = editedProposal || {};
+      setApplyTitle(normaliseTitle(ep.topicTitle) !== normaliseTitle(pTitle));
+      setApplyOutcome(normaliseVisibleText(ep.topicExpectedOutcome) !== normaliseVisibleText(pOutcome));
+      setApplyScope(normaliseVisibleText(ep.topicScope) !== normaliseVisibleText(pScope));
+      setApplyDestination(normaliseVisibleText(ep.topicDestinationDescription) !== normaliseVisibleText(pDestination));
+      setUpdateDialogOpen(true);
+    } catch {
+      toast.error("Couldn't check the portal for updates. Check the Topic ID is correct.");
+    } finally {
+      setCheckingUpdates(false);
+    }
+  };
+
+  const handleApplyUpdates = async () => {
+    if (!editedProposal || !anyApplySelected) return;
+    const updates: Record<string, any> = { ...editedProposal };
+    if (applyTitle) updates.topicTitle = upTitle;
+    if (applyOutcome) {
+      updates.topicExpectedOutcome = upOutcome;
+      updates.outcomeFootnotes = [];
+    }
+    if (applyScope) {
+      updates.topicScope = upScope;
+      updates.scopeFootnotes = [];
+    }
+    if (applyDestination) {
+      updates.topicDestinationDescription = upDestination;
+      updates.destinationFootnotes = [];
+    }
+    updates.topicContentImportedAt = new Date();
+    setEditedProposal(updates as any);
+    setApplyingUpdates(true);
+    try {
+      await onUpdateProposal(updates);
+      setLastSaved(new Date());
+      toast.success('Topic updates applied.');
+      setUpdateDialogOpen(false);
+    } catch {
+      toast.error('Could not save topic updates.');
+    } finally {
+      setApplyingUpdates(false);
+    }
+  };
+
+  const handleImportFromPortal = async () => {
+    if (!proposal?.topicId) return;
+    setImporting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('import-topic-info', {
+        body: { topicId: proposal.topicId },
+      });
+      if (error || !data?.success || !data?.topic) {
+        toast.error("Couldn't import this topic from the portal. Check the Topic ID is correct.");
+        return;
+      }
+      const t = data.topic;
+      setImportTitle(t.title || '');
+      setImportOutcome(t.expectedOutcome || '');
+      setImportScope(t.scope || '');
+      setImportDestination(t.destinationDetails || '');
+      setImportedMeta({
+        topicId: t.topicId,
+        url: t.url || null,
+        otherSections: Array.isArray(t.otherSections) ? t.otherSections : [],
+      });
+      setImportDialogOpen(true);
+    } catch (e) {
+      toast.error("Couldn't import this topic from the portal. Check the Topic ID is correct.");
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const handleConfirmImport = async () => {
+    if (!editedProposal) return;
+    const updates: Record<string, any> = {
+      ...editedProposal,
+      topicTitle: importTitle,
+      topicExpectedOutcome: importOutcome,
+      topicScope: importScope,
+      topicDestinationDescription: importDestination,
+      outcomeFootnotes: [],
+      scopeFootnotes: [],
+      destinationFootnotes: [],
+      topicContentImportedAt: new Date(),
+    };
+    setEditedProposal(updates as any);
+    setSaving(true);
+    try {
+      await onUpdateProposal(updates);
+      setLastSaved(new Date());
+      toast.success('Topic information imported.');
+    } catch {
+      toast.error('Could not save imported topic.');
+    } finally {
+      setSaving(false);
+      setImportDialogOpen(false);
+    }
+  };
+
 
   const startEditing = (field: EditableField) => {
     if (!userCanEdit || !editedProposal) return;
@@ -333,14 +524,13 @@ export function TopicInformationPage({
   };
 
   return (
-    <div className="flex-1 overflow-auto bg-muted/30">
-      <div className="max-w-7xl mx-auto space-y-4 p-4">
-        <div className="space-y-2">
-          <h1 className="text-xl font-bold">Topic information</h1>
-          <div className="flex items-center gap-3">
-            {userCanEdit && <SaveIndicator saving={saving} lastSaved={lastSaved} hasUnsavedChanges={!!hasUnsavedChanges} onSaveNow={() => { if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current); saveEdits(); }} />}
-          </div>
-        </div>
+    <PartAPageLayout
+      title="Topic information"
+      padding="p-4"
+      spacing="space-y-4"
+      saveIndicator={userCanEdit ? <SaveIndicator saving={saving} lastSaved={lastSaved} hasUnsavedChanges={!!hasUnsavedChanges} onSaveNow={() => { if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current); saveEdits(); }} /> : undefined}
+    >
+
 
         {/* General Topic Information Card */}
         <Card>
@@ -350,19 +540,48 @@ export function TopicInformationPage({
                 <Target className="w-4 h-4" />
                 General topic information
               </CardTitle>
-              {proposal?.topicUrl && !isEditing && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5 h-7 text-xs"
-                  onClick={() => window.open(proposal.topicUrl, '_blank')}
-                >
-                  <ExternalLink className="w-3 h-3" />
-                  View on portal
-                </Button>
-              )}
+              <div className="flex items-center gap-2 flex-wrap justify-end">
+                {userCanEdit && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 h-7 text-xs"
+                    onClick={handleImportFromPortal}
+                    disabled={!proposal?.topicId || importing}
+                    title={!proposal?.topicId ? 'Set a Topic ID first' : 'Import topic content from the EU portal'}
+                  >
+                    {importing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
+                    Import from portal
+                  </Button>
+                )}
+                {userCanEdit && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 h-7 text-xs"
+                    onClick={handleCheckForUpdates}
+                    disabled={!proposal?.topicId || checkingUpdates}
+                    title={!proposal?.topicId ? 'Set a Topic ID first' : 'Re-fetch from the EU portal and compare'}
+                  >
+                    {checkingUpdates ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                    Check for topic updates
+                  </Button>
+                )}
+                {proposal?.topicUrl && !isEditing && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 h-7 text-xs"
+                    onClick={() => safeOpenUrl(proposal.topicUrl)}
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    View on portal
+                  </Button>
+                )}
+              </div>
             </div>
           </CardHeader>
+
           <CardContent className="space-y-3">
             <div>
               <label className="text-xs text-muted-foreground mb-0.5 block">Topic ID</label>
@@ -650,12 +869,35 @@ export function TopicInformationPage({
               </div>
               <div>
                 <label className="text-xs text-muted-foreground mb-0.5 block">Indicative № projects to be funded</label>
-                <IndicativeProjectsField
-                  totalBudgetText={isEditing ? (editedProposal as any)?.totalBudgetText : (proposal as any)?.totalBudgetText}
-                  totalBudget={isEditing ? editedProposal?.totalBudget : proposal?.totalBudget}
-                  budgetPerProject={(isEditing ? (editedProposal as any)?.indicativeBudgetPerProject : (proposal as any)?.indicativeBudgetPerProject) || ''}
-                />
+                {isEditing && editedProposal ? (
+                  (() => {
+                    const computed = computeIndicativeProjects(
+                      (editedProposal as any)?.totalBudgetText,
+                      editedProposal?.totalBudget,
+                      (editedProposal as any)?.indicativeBudgetPerProject || ''
+                    );
+                    const current = (editedProposal as any)?.expectedProjects ?? '';
+                    const displayValue = current !== '' ? current : computed;
+                    return (
+                      <Input
+                        value={displayValue}
+                        onChange={(e) => setEditedProposal({ ...editedProposal, expectedProjects: e.target.value } as any)}
+                        placeholder={computed || 'e.g. 3–4'}
+                        className="h-8 text-sm"
+                      />
+                    );
+                  })()
+                ) : (proposal as any)?.expectedProjects ? (
+                  <p className="text-sm font-medium">{(proposal as any).expectedProjects}</p>
+                ) : (
+                  <IndicativeProjectsField
+                    totalBudgetText={(proposal as any)?.totalBudgetText}
+                    totalBudget={proposal?.totalBudget}
+                    budgetPerProject={(proposal as any)?.indicativeBudgetPerProject || ''}
+                  />
+                )}
               </div>
+
             </div>
 
             <div className="space-y-2">
@@ -832,7 +1074,273 @@ export function TopicInformationPage({
             </CardContent>
           </Card>
         )}
-      </div>
-    </div>
+      <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Review imported topic information</DialogTitle>
+            <DialogDescription>
+              Review and edit the content fetched from the EU portal. Nothing is saved until you click Confirm.
+            </DialogDescription>
+          </DialogHeader>
+
+          {importedMeta && (
+            <div className="text-xs text-muted-foreground border rounded-md p-2 bg-muted/30 space-y-0.5">
+              <div><span className="font-medium text-foreground">Topic ID:</span> {importedMeta.topicId}</div>
+              {importTitle && <div><span className="font-medium text-foreground">Matched title:</span> {importTitle}</div>}
+              {importedMeta.url && (
+                <div>
+                  <a href={importedMeta.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline">
+                    <ExternalLink className="w-3 h-3" /> Open on portal
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
+
+          {(((proposal as any)?.outcomeFootnotes || []).length > 0 ||
+            ((proposal as any)?.scopeFootnotes || []).length > 0 ||
+            ((proposal as any)?.destinationFootnotes || []).length > 0) && (
+            <div className="flex gap-2 items-start text-xs border border-amber-300 bg-amber-50 text-amber-900 dark:bg-amber-900/20 dark:text-amber-200 dark:border-amber-700 rounded-md p-2">
+              <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+              <div>
+                Importing will replace the current Expected Outcome / Scope / Destination text and remove their footnotes. Your other edits are unaffected.
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-4">
+            <div>
+              <Label className="text-xs">Topic title</Label>
+              <Input value={importTitle} onChange={(e) => setImportTitle(e.target.value)} className="h-8 text-sm mt-1" />
+            </div>
+
+            <div>
+              <Label className="text-xs">Expected outcome</Label>
+              <div className="border rounded-md mt-1">
+                <TopicRichTextArea
+                  value={importOutcome}
+                  onChange={setImportOutcome}
+                  footnotes={[]}
+                  onFootnotesChange={() => {}}
+                  footnoteStartNumber={1}
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs">Scope</Label>
+              <div className="border rounded-md mt-1">
+                <TopicRichTextArea
+                  value={importScope}
+                  onChange={setImportScope}
+                  footnotes={[]}
+                  onFootnotesChange={() => {}}
+                  footnoteStartNumber={1}
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs">Destination description</Label>
+              <div className="border rounded-md mt-1">
+                <TopicRichTextArea
+                  value={importDestination}
+                  onChange={setImportDestination}
+                  footnotes={[]}
+                  onFootnotesChange={() => {}}
+                  footnoteStartNumber={1}
+                />
+              </div>
+            </div>
+
+            {importedMeta && importedMeta.otherSections.length > 0 && (
+              <div className="space-y-2 pt-2 border-t">
+                <p className="text-xs text-muted-foreground italic">
+                  These additional sections were found on the portal but won&rsquo;t be saved.
+                </p>
+                {importedMeta.otherSections.map((s, i) => (
+                  <div key={i}>
+                    <Label className="text-xs">{s.label || 'Section'}</Label>
+                    <div
+                      className="text-sm border rounded-md p-2 mt-1 bg-muted/30 prose prose-sm max-w-none dark:prose-invert"
+                      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(s.html, { ALLOWED_TAGS: ['p','br','strong','em','b','i','u','ul','ol','li','a','table','thead','tbody','tr','th','td','span','div','h1','h2','h3','h4','h5','h6','blockquote','code','pre'], ALLOWED_ATTR: ['href','target','rel'] }) }}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setImportDialogOpen(false)} disabled={saving}>
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmImport} disabled={saving}>
+              {saving ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : null}
+              Confirm import
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Update-check comparison dialog */}
+      <Dialog open={updateDialogOpen} onOpenChange={setUpdateDialogOpen}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Topic updates from the portal</DialogTitle>
+            <DialogDescription>
+              Compare your saved content with the latest from the EU portal. Choose which fields to apply.
+            </DialogDescription>
+          </DialogHeader>
+
+          {updateMeta && (
+            <div className="text-xs text-muted-foreground border rounded-md p-2 bg-muted/30 space-y-0.5">
+              <div><span className="font-medium text-foreground">Matched title:</span> {upTitle || '–'}</div>
+              <div><span className="font-medium text-foreground">Topic ID:</span> {updateMeta.topicId}</div>
+              {updateMeta.url && (
+                <div>
+                  <a href={updateMeta.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline">
+                    <ExternalLink className="w-3 h-3" /> Open on portal
+                  </a>
+                </div>
+              )}
+              {updateCheckedAt && (
+                <div className="italic">Re-checked just now.</div>
+              )}
+            </div>
+          )}
+
+          <div className="text-sm">
+            {changedCount === 0
+              ? 'No differences found — your saved content matches the portal.'
+              : `${changedCount} field(s) differ from the portal. Review and choose which to apply.`}
+          </div>
+
+          {(() => {
+            const losingFootnotes: string[] = [];
+            if (applyOutcome && (((editedProposal as any)?.outcomeFootnotes || []).length > 0)) losingFootnotes.push('Expected outcome');
+            if (applyScope && (((editedProposal as any)?.scopeFootnotes || []).length > 0)) losingFootnotes.push('Scope');
+            if (applyDestination && (((editedProposal as any)?.destinationFootnotes || []).length > 0)) losingFootnotes.push('Destination');
+            if (losingFootnotes.length === 0) return null;
+            return (
+              <div className="flex gap-2 items-start text-xs border border-amber-300 bg-amber-50 text-amber-900 dark:bg-amber-900/20 dark:text-amber-200 dark:border-amber-700 rounded-md p-2">
+                <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                <div>
+                  Applying a field replaces its text and removes that field's footnotes. Fields you don't apply are untouched.
+                  <div className="mt-0.5 opacity-80">Affected: {losingFootnotes.join(', ')}.</div>
+                </div>
+              </div>
+            );
+          })()}
+
+          <div className="space-y-6">
+            {/* Title */}
+            {(() => {
+              const changed = titleChanged;
+              return (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <Label className="text-sm font-semibold">Topic title</Label>
+                      <Badge variant="outline" className={cn('text-[10px] px-1.5 py-0 h-4', changed ? 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-900/30 dark:text-amber-200 dark:border-amber-700' : 'bg-muted text-muted-foreground')}>
+                        {changed ? 'Changed' : 'No change'}
+                      </Badge>
+                    </div>
+                    <label className="flex items-center gap-2 text-xs">
+                      <Checkbox checked={applyTitle} onCheckedChange={(v) => setApplyTitle(!!v)} />
+                      Apply this field
+                    </label>
+                  </div>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">Current (saved)</p>
+                      <div className="text-sm border rounded-md p-2 bg-muted/30 min-h-[2.25rem]">
+                        {(editedProposal as any)?.topicTitle || '–'}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">From portal</p>
+                      <Input value={upTitle} onChange={(e) => setUpTitle(e.target.value)} className="h-9 text-sm" />
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Rich-text fields */}
+            {([
+              { key: 'outcome', label: 'Expected outcome', savedKey: 'topicExpectedOutcome', fnKey: 'outcomeFootnotes', changed: outcomeChanged, apply: applyOutcome, setApply: setApplyOutcome, value: upOutcome, setValue: setUpOutcome },
+              { key: 'scope', label: 'Scope', savedKey: 'topicScope', fnKey: 'scopeFootnotes', changed: scopeChanged, apply: applyScope, setApply: setApplyScope, value: upScope, setValue: setUpScope },
+              { key: 'destination', label: 'Destination description', savedKey: 'topicDestinationDescription', fnKey: 'destinationFootnotes', changed: destinationChanged, apply: applyDestination, setApply: setApplyDestination, value: upDestination, setValue: setUpDestination },
+            ] as const).map((f) => (
+              <div key={f.key} className="space-y-2">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <Label className="text-sm font-semibold">{f.label}</Label>
+                    <Badge variant="outline" className={cn('text-[10px] px-1.5 py-0 h-4', f.changed ? 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-900/30 dark:text-amber-200 dark:border-amber-700' : 'bg-muted text-muted-foreground')}>
+                      {f.changed ? 'Changed' : 'No change'}
+                    </Badge>
+                  </div>
+                  <label className="flex items-center gap-2 text-xs">
+                    <Checkbox checked={f.apply} onCheckedChange={(v) => f.setApply(!!v)} />
+                    Apply this field
+                  </label>
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">Current (saved)</p>
+                    <div className="border rounded-md p-2 bg-muted/30">
+                      <TopicRichTextReadonly
+                        html={(editedProposal as any)?.[f.savedKey]}
+                        footnotes={(editedProposal as any)?.[f.fnKey] || []}
+                        emptyMessage="—"
+                        footnoteStartNumber={1}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">From portal</p>
+                    <div className="border rounded-md">
+                      <TopicRichTextArea
+                        value={f.value}
+                        onChange={f.setValue}
+                        footnotes={[]}
+                        onFootnotesChange={() => {}}
+                        footnoteStartNumber={1}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {updateMeta && updateMeta.otherSections.length > 0 && (
+              <div className="space-y-2 pt-2 border-t">
+                <p className="text-xs text-muted-foreground italic">
+                  Additional portal sections (not tracked here).
+                </p>
+                {updateMeta.otherSections.map((s, i) => (
+                  <div key={i} className="text-xs text-muted-foreground">
+                    • {s.label || 'Section'}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUpdateDialogOpen(false)} disabled={applyingUpdates}>
+              Cancel
+            </Button>
+            <Button onClick={handleApplyUpdates} disabled={!anyApplySelected || applyingUpdates}>
+              {applyingUpdates ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : null}
+              Apply selected updates
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </PartAPageLayout>
+
+
   );
 }

@@ -1,0 +1,1 @@
+UPDATE section_content SET content = '' WHERE proposal_id = '9d7716c3-e0cb-4bad-a862-1abc0acb97e4' AND section_id = 'b3-1';

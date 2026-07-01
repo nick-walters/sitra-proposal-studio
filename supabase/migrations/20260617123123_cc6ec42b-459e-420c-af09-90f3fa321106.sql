@@ -1,0 +1,1 @@
+ALTER TABLE public.participants ADD COLUMN IF NOT EXISTS main_contact_department text;

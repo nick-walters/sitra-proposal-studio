@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Check, Circle, BarChart3, Users, Package, AlertTriangle, ListChecks } from 'lucide-react';
+import { Check, Circle, BarChart3, Users, Package, ListChecks } from 'lucide-react';
 import { WPColorSwatch } from '@/components/WPColorPicker';
 import { useWPDrafts } from '@/hooks/useWPDrafts';
 import { useWPProgress } from '@/hooks/useWPProgress';
@@ -100,21 +100,21 @@ export function WPProgressTracker({ proposalId, onNavigateToWP }: WPProgressTrac
               </div>
               <h3 className="text-lg font-medium mb-2">No Work packages Yet</h3>
               <p className="text-sm text-muted-foreground max-w-sm mb-4">
-                Create work packages in the "Proposal overview" page to start tracking progress. 
-                Each WP tracks methodology, objectives, tasks, deliverables, risks, and interactions.
+                Create work packages in the "Proposal overview" page to start tracking progress.
+                Each WP tracks lead, objectives, description, tasks, and deliverables.
               </p>
               <div className="flex flex-col gap-2 text-xs text-muted-foreground">
                 <div className="flex items-center gap-2">
                   <Check className="h-3 w-3 text-green-600" />
-                  <span>Methodology (50+ words)</span>
+                  <span>Lead participant assigned</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-3 w-3 text-green-600" />
-                  <span>Objectives (30+ words)</span>
+                  <span>Objectives & description (30+ words each)</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-3 w-3 text-green-600" />
-                  <span>At least one task, deliverable, risk, and interaction</span>
+                  <span>At least one task and deliverable with timing</span>
                 </div>
               </div>
             </div>
@@ -164,12 +164,11 @@ export function WPProgressTracker({ proposalId, onNavigateToWP }: WPProgressTrac
               <TableHeader>
                 <TableRow>
                   <TableHead className="font-bold">Work package</TableHead>
-                  <TableHead className="text-center font-bold">Methodology</TableHead>
+                  <TableHead className="text-center font-bold">Lead</TableHead>
                   <TableHead className="text-center font-bold">Objectives</TableHead>
+                  <TableHead className="text-center font-bold">Description</TableHead>
                   <TableHead className="text-center font-bold">Tasks</TableHead>
                   <TableHead className="text-center font-bold">Deliverables</TableHead>
-                  <TableHead className="text-center font-bold">Risks</TableHead>
-                  <TableHead className="text-center font-bold">Interactions</TableHead>
                   <TableHead className="text-center font-bold">Status</TableHead>
                 </TableRow>
               </TableHeader>
@@ -189,22 +188,19 @@ export function WPProgressTracker({ proposalId, onNavigateToWP }: WPProgressTrac
                       </span>
                     </TableCell>
                     <TableCell className="text-center py-1.5">
-                      <CompletionIcon complete={wp.completion.methodology} />
+                      <CompletionIcon complete={wp.completion.lead} />
                     </TableCell>
                     <TableCell className="text-center py-1.5">
                       <CompletionIcon complete={wp.completion.objectives} />
+                    </TableCell>
+                    <TableCell className="text-center py-1.5">
+                      <CompletionIcon complete={wp.completion.description} />
                     </TableCell>
                     <TableCell className="text-center py-1.5">
                       <CompletionIcon complete={wp.completion.tasks} />
                     </TableCell>
                     <TableCell className="text-center py-1.5">
                       <CompletionIcon complete={wp.completion.deliverables} />
-                    </TableCell>
-                    <TableCell className="text-center py-1.5">
-                      <CompletionIcon complete={wp.completion.risks} />
-                    </TableCell>
-                    <TableCell className="text-center py-1.5">
-                      <CompletionIcon complete={wp.completion.interactions} />
                     </TableCell>
                     <TableCell className="text-center py-1.5">
                       {wp.completion.overall ? (
@@ -237,7 +233,7 @@ export function WPProgressTracker({ proposalId, onNavigateToWP }: WPProgressTrac
           <CardTitle className="text-base">Proposal Totals</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <StatCard
               icon={<ListChecks className="h-4 w-4" />}
               label="Total tasks"
@@ -248,11 +244,6 @@ export function WPProgressTracker({ proposalId, onNavigateToWP }: WPProgressTrac
               icon={<Package className="h-4 w-4" />}
               label="Total deliverables"
               value={totals.totalDeliverables}
-            />
-            <StatCard
-              icon={<AlertTriangle className="h-4 w-4" />}
-              label="Total risks"
-              value={totals.totalRisks}
             />
             <StatCard
               icon={<Users className="h-4 w-4" />}

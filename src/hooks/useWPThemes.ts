@@ -1,21 +1,19 @@
- import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
- import { supabase } from '@/integrations/supabase/client';
- import { toast } from 'sonner';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { WP_CONTENT_COLORS } from '@/lib/wpColors';
+
+export interface WPTheme {
+  id: string;
+  proposal_id: string;
+  number: number;
+  short_name: string | null;
+  name: string | null;
+  color: string;
+  order_index: number;
+}
+
  
- export interface WPTheme {
-   id: string;
-   proposal_id: string;
-   number: number;
-   short_name: string | null;
-   name: string | null;
-   color: string;
-   order_index: number;
- }
- 
- const DEFAULT_THEME_COLORS = [
-   '#2563EB', '#059669', '#D97706', '#E11D48', '#7C3AED', '#0891B2',
-   '#EA580C', '#DB2777', '#475569', '#65A30D', '#4F46E5', '#0D9488'
- ];
  
  export function useWPThemes(proposalId: string) {
    const queryClient = useQueryClient();
@@ -39,7 +37,7 @@
    const addThemeMutation = useMutation({
      mutationFn: async () => {
        const newNumber = themes.length + 1;
-       const color = DEFAULT_THEME_COLORS[(newNumber - 1) % DEFAULT_THEME_COLORS.length];
+       const color = WP_CONTENT_COLORS[(newNumber - 1) % WP_CONTENT_COLORS.length];
        
        const { data, error } = await supabase
          .from('wp_themes')

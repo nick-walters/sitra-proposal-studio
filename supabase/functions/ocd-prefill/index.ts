@@ -1,11 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import JSZip from "https://esm.sh/jszip@3.10.1";
+import { corsHeaders } from "../_shared/cors.ts";
+import { requireAuth } from "../_shared/auth.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+
+
 
 function escapeXml(str: string): string {
   return str
@@ -106,34 +106,25 @@ serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const auth = await requireAuth(req);
+    if (!auth.ok) return auth.response;
+    const callerId = auth.userId;
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const token = authHeader.replace("Bearer ", "");
-    const { data: authData, error: authError } = await userClient.auth.getUser(token);
-    if (authError || !authData?.user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
 
     const { proposalId, participantId } = await req.json();
 
-    if (!proposalId || !participantId) {
-      return new Response(JSON.stringify({ error: "Missing proposalId or participantId" }), {
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!proposalId || typeof proposalId !== "string" || !UUID_RE.test(proposalId)) {
+      return new Response(JSON.stringify({ error: "Invalid proposalId" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (!participantId || typeof participantId !== "string" || !UUID_RE.test(participantId)) {
+      return new Response(JSON.stringify({ error: "Invalid participantId" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -144,7 +135,7 @@ serve(async (req) => {
     // Verify caller has access to this proposal
     const { data: hasAccess, error: accessError } = await supabase.rpc(
       "has_any_proposal_role",
-      { _user_id: authData.user.id, _proposal_id: proposalId }
+      { _user_id: callerId, _proposal_id: proposalId }
     );
     if (accessError || !hasAccess) {
       return new Response(JSON.stringify({ error: "Forbidden" }), {
@@ -181,6 +172,7 @@ serve(async (req) => {
       .from("participants")
       .select("organisation_name, organisation_short_name, pic_number, participant_number")
       .eq("id", participantId)
+      .eq("proposal_id", proposalId)
       .single();
 
     if (participantError || !participant) {
@@ -256,7 +248,7 @@ serve(async (req) => {
     );
   } catch (err) {
     console.error("OCD prefill error:", err);
-    return new Response(JSON.stringify({ error: String(err) }), {
+    return new Response(JSON.stringify({ error: "An internal error occurred" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

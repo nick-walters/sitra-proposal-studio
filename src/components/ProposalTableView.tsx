@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar, ArrowRight, Send, CheckCircle2, XCircle, Clock, ExternalLink, AlertTriangle, Trophy, ArrowUpDown, ArrowUp, ArrowDown, HelpCircle, Pin, GripVertical } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { safeOpenUrl } from "@/lib/safeUrl";
 
 interface ProposalTableViewProps {
   proposals: Proposal[];
@@ -226,7 +227,7 @@ export function ProposalTableView({ proposals, onProposalClick, pinnedIds = [], 
                     className="h-6 w-6"
                     onClick={(e) => { e.stopPropagation(); onTogglePin(proposal.id); }}
                     disabled={!pinned && !canPin}
-                  >
+                   aria-label="Pin" title="Pin">
                     <Pin className={`w-3.5 h-3.5 ${pinned ? 'fill-primary text-primary stroke-[2.5]' : 'text-muted-foreground/30 stroke-[1.5]'}`} />
                   </Button>
                 </TooltipTrigger>
@@ -317,7 +318,7 @@ export function ProposalTableView({ proposals, onProposalClick, pinnedIds = [], 
               className="h-6 px-2 gap-1 text-[10px]"
               onClick={(e) => {
                 e.stopPropagation();
-                window.open(proposal.topicUrl, '_blank');
+                safeOpenUrl(proposal.topicUrl);
               }}
             >
               <ExternalLink className="w-2.5 h-2.5" />

@@ -7,7 +7,9 @@ import { B31WPDescriptionTables } from './B31WPDescriptionTables';
 import { B31DeliverablesTable, B31MilestonesTable, B31RisksTable } from './B31TablesEditor';
 import { B31EffortMatrix } from './B31EffortMatrix';
 import { B31SubcontractingTable } from './B31SubcontractingTable';
-import { B31EquipmentTable } from './B31EquipmentTable';
+import { B31MergedJustificationTable, type MergedBlock } from './B31MergedJustificationTable';
+import { useB31JustificationToggles } from '@/hooks/useB31JustificationToggles';
+import { useB31CostPresence } from '@/hooks/useB31CostPresence';
 import { PERTChartFigure } from './PERTChartFigure';
 import { GanttChartFigure } from './GanttChartFigure';
 
@@ -16,7 +18,15 @@ interface Props {
 }
 
 export function B31SectionContent({ proposalId }: Props) {
-  const { wpData, participants, pertFigure, ganttFigure, subcontractingByParticipant, equipmentByParticipant, loading } = useB31SectionData(proposalId);
+  const { toggles } = useB31JustificationToggles(proposalId);
+  const presence = useB31CostPresence(proposalId);
+  const {
+    wpData, participants, pertFigure, ganttFigure,
+    subcontractingByParticipant, equipmentByParticipant,
+    travelByParticipant, otherGoodsByParticipant, fstpByParticipant, internallyInvoicedByParticipant,
+    loading,
+  } = useB31SectionData(proposalId, { includeAllEquipment: toggles.equipment_all });
+
   const { data: proposalDuration } = useQuery({
     queryKey: ['proposal-duration', proposalId],
     queryFn: async () => {
@@ -29,12 +39,43 @@ export function B31SectionContent({ proposalId }: Props) {
 
   if (loading) return null;
 
+  // ---- Determine which tables render & their letters ----
+  const c2ForcedOn = presence.equipmentAboveThreshold;
+
+  // Sub-block inclusion in 3.1.h
+  const includeTravel = toggles.purchase_costs && toggles.travel && travelByParticipant.length > 0;
+  const includeEquipment =
+    (toggles.purchase_costs || c2ForcedOn) &&
+    (c2ForcedOn || toggles.equipment) &&
+    equipmentByParticipant.length > 0;
+  const includeOtherGoods = toggles.purchase_costs && toggles.other_goods && otherGoodsByParticipant.length > 0;
+  const purchaseBlocks: MergedBlock[] = [];
+  if (includeTravel)      purchaseBlocks.push({ categoryLabel: 'Travel', participants: travelByParticipant });
+  if (includeEquipment)   purchaseBlocks.push({ categoryLabel: 'Equipment', participants: equipmentByParticipant });
+  if (includeOtherGoods)  purchaseBlocks.push({ categoryLabel: 'Other', participants: otherGoodsByParticipant });
+  const includePurchase = purchaseBlocks.length > 0;
+
+  // Sub-block inclusion in 3.1.i
+  const includeFstp = toggles.other_direct_costs && toggles.fstp && fstpByParticipant.length > 0;
+  const includeInternallyInvoiced = toggles.other_direct_costs && toggles.internally_invoiced && internallyInvoicedByParticipant.length > 0;
+  const otherBlocks: MergedBlock[] = [];
+  if (includeFstp)                otherBlocks.push({ categoryLabel: 'FSTP', participants: fstpByParticipant });
+  if (includeInternallyInvoiced)  otherBlocks.push({ categoryLabel: 'Internally invoiced', participants: internallyInvoicedByParticipant });
+  const includeOther = otherBlocks.length > 0;
+
+  const includeSubcontracting = subcontractingByParticipant.length > 0;
+
+  // Sequential lettering starting at 'g'
+  let letterIdx = 0;
+  const nextLabel = () => `Table 3.1.${String.fromCharCode(103 + letterIdx++)}.`;
+  const subLabel  = includeSubcontracting ? nextLabel() : undefined;
+  const purchaseLabel = includePurchase ? nextLabel() : undefined;
+  const otherLabel = includeOther ? nextLabel() : undefined;
+
   return (
-    <div className="b31-tables-container space-y-4 [&_p]:!my-0 mt-[20px]">
-      {/* Table 3.1.a – List of work packages */}
+    <div className="b31-tables-container space-y-4 [&_p]:!my-0 mt-[2px]">
       <B31WPListTable wpData={wpData} participants={participants} proposalId={proposalId} />
 
-      {/* Figure 3.1.a – PERT chart */}
       {pertFigure ? (
          <div data-figure-type="pert">
           <PERTChartFigure
@@ -54,12 +95,9 @@ export function B31SectionContent({ proposalId }: Props) {
           />
         </div>
       ) : (
-        <p className="text-muted-foreground text-sm italic">
-          PERT chart will appear here once created in Figures
-        </p>
+        <p className="text-muted-foreground text-sm italic">PERT chart will appear here once created in Figures</p>
       )}
 
-      {/* Figure 3.1.b – Gantt chart */}
       {ganttFigure ? (
         <div data-figure-type="gantt">
           <GanttChartFigure
@@ -74,55 +112,53 @@ export function B31SectionContent({ proposalId }: Props) {
             proposalId={proposalId}
             tableKey="figure-3.1.b"
             label="Figure 3.1.b."
-            defaultCaption="Gantt chart, showing timings of WPs"
-            suffix={<>
-              <span style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'baseline', border: '1.5px solid #000000', borderRadius: '9999px', padding: '0px 5px', fontSize: '11pt', fontFamily: "'Times New Roman', Times, serif", fontWeight: 'bold', fontStyle: 'normal', lineHeight: 1, color: '#ffffff', backgroundColor: '#000000' }}>WPX</span>
-              {', '}tasks{' '}
-              <span style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'baseline', border: '1.5px solid #000000', borderRadius: '9999px', padding: '0px 5px', fontSize: '11pt', fontFamily: "'Times New Roman', Times, serif", fontWeight: 'bold', fontStyle: 'normal', lineHeight: 1, color: '#000000', backgroundColor: '#ffffff' }}>TX.X</span>
-              {', '}deliverables{' '}
-              <svg width={32} height={12} viewBox="0 0 32 12" style={{ display: 'inline-block', verticalAlign: 'baseline', overflow: 'visible', position: 'relative', top: '2px' }}>
-                <path d="M 0,0 L 26,0 L 32,6 L 26,12 L 0,12 Z" fill="#ffffff" stroke="#000000" strokeWidth={1.5} strokeLinejoin="round" />
-                <text x={13} y={9.5} textAnchor="middle" fontFamily="'Times New Roman', Times, serif" fontSize="8pt" fontWeight={700} fontStyle="normal" fill="#000000">DX.X</text>
-              </svg>
-              {' '}&amp; milestones{' '}
-              <svg width={17} height={17} viewBox="0 0 17 17" style={{ display: 'inline-block', verticalAlign: 'baseline', overflow: 'visible', position: 'relative', top: '2px' }}>
-                <path d="M 17,0 L 0,8.5 L 17,17 Z" fill="#000000" />
-                <text x={11} y={12.5} textAnchor="middle" fontFamily="'Times New Roman', Times, serif" fontSize="8pt" fontWeight={700} fontStyle="normal" fill="#ffffff" letterSpacing="-0.5">X</text>
-              </svg>
-            </>}
+            defaultCaption="Gantt chart"
             className="mt-1"
           />
         </div>
       ) : (
-        <p className="text-muted-foreground text-sm italic">
-          Gantt chart will appear here once created in Figures
-        </p>
+        <p className="text-muted-foreground text-sm italic">Gantt chart will appear here once created in Figures</p>
       )}
 
-      {/* Table 3.1.b – Work package descriptions */}
       <B31WPDescriptionTables wpData={wpData} participants={participants} proposalId={proposalId} projectDuration={projectDuration} />
-
-      {/* Table 3.1.c – Deliverables */}
       <B31DeliverablesTable proposalId={proposalId} />
-
-      {/* Table 3.1.d – Milestones */}
       <B31MilestonesTable proposalId={proposalId} />
-
-      {/* Table 3.1.e – Critical risks */}
       <B31RisksTable proposalId={proposalId} />
-
-      {/* Table 3.1.f – Effort matrix */}
       <B31EffortMatrix wpData={wpData} participants={participants} proposalId={proposalId} />
 
-      {/* Table 3.1.g – Subcontracting (conditional) */}
-      <B31SubcontractingTable items={subcontractingByParticipant} participants={participants} proposalId={proposalId} />
+      {/* 3.1.g — Subcontracting */}
+      {includeSubcontracting && (
+        <B31SubcontractingTable
+          items={subcontractingByParticipant}
+          participants={participants}
+          proposalId={proposalId}
+          tableLabel={subLabel}
+        />
+      )}
 
-      {/* Table 3.1.h – Equipment (conditional) */}
-      <B31EquipmentTable
-        items={equipmentByParticipant}
-        participants={participants}
-        proposalId={proposalId}
-      />
+      {/* 3.1.h — Purchase costs (merged) */}
+      {includePurchase && (
+        <B31MergedJustificationTable
+          blocks={purchaseBlocks}
+          participants={participants}
+          proposalId={proposalId}
+          tableKey="purchase-costs"
+          tableLabel={purchaseLabel!}
+          defaultCaption="Purchase cost justifications"
+        />
+      )}
+
+      {/* 3.1.i — Other direct cost categories (merged) */}
+      {includeOther && (
+        <B31MergedJustificationTable
+          blocks={otherBlocks}
+          participants={participants}
+          proposalId={proposalId}
+          tableKey="other-direct-costs"
+          tableLabel={otherLabel!}
+          defaultCaption="Other direct cost justifications"
+        />
+      )}
     </div>
   );
 }

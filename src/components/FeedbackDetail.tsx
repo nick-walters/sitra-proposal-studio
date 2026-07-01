@@ -18,6 +18,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { formatDate } from "@/lib/formatDate";
 import { MentionTextarea, MentionMember, renderMentionContent } from "@/components/MentionTextarea";
 import { toast } from "sonner";
 import {
@@ -280,7 +281,7 @@ export function FeedbackDetail({ feedbackId, onBack, onDeleted }: FeedbackDetail
             <div className="space-y-1 min-w-0">
               <CardTitle className="text-lg">{item.title}</CardTitle>
               <p className="text-xs text-muted-foreground">
-                by {profiles[item.user_id]?.name || "Unknown"} · {new Date(item.created_at).toLocaleDateString()}
+                by {profiles[item.user_id]?.name || "Unknown"} · {formatDate(item.created_at)}
               </p>
             </div>
             {statusBadge(item.status)}
@@ -411,7 +412,7 @@ export function FeedbackDetail({ feedbackId, onBack, onDeleted }: FeedbackDetail
                         size="icon"
                         className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity ml-auto"
                         onClick={() => handleDeleteComment(c.id)}
-                      >
+                       aria-label="Delete" title="Delete">
                         <Trash2 className="w-3 h-3 text-muted-foreground" />
                       </Button>
                     )}
@@ -440,7 +441,7 @@ export function FeedbackDetail({ feedbackId, onBack, onDeleted }: FeedbackDetail
                 onClick={handleSendComment}
                 disabled={sending || !newComment.trim()}
                 className="shrink-0 self-end"
-              >
+               aria-label="Send comment" title="Send comment">
                 {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               </Button>
             </div>

@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.analyse-feedback]
 verify_jwt = false
+
+[functions.import-topic-info]
+verify_jwt = false

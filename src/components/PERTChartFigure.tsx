@@ -7,7 +7,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Download, Network, Move, Plus, Trash2, ArrowRight, ArrowLeft, ArrowLeftRight, Image, FileDown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { exportAsPng, exportPERTAsPptx, type PERTExportData } from '@/lib/figureExport';
+import type { PERTExportData } from '@/lib/figureExport';
 import { toast } from 'sonner';
 
 interface WPNode {
@@ -311,23 +311,25 @@ export function PERTChartFigure({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => {
+                <DropdownMenuItem onClick={async () => {
                   if (chartRef.current) {
-                    exportAsPng(chartRef.current, `PERT-Chart-Figure-${figureNumber}`);
+                    const { exportAsPng } = await import('@/lib/figureExport');
+                    await exportAsPng(chartRef.current, `PERT-Chart-Figure-${figureNumber}`);
                     toast.success('PNG downloaded');
                   }
                 }}>
                   <Image className="w-4 h-4 mr-2" />
                   Download as PNG
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => {
+                <DropdownMenuItem onClick={async () => {
                   const exportData: PERTExportData = {
                     nodes: nodes.map(n => ({ id: n.id, number: n.number, shortName: n.shortName, color: n.color, x: n.x, y: n.y })),
                     arrows: dependencies.map(d => ({ fromNodeId: d.fromWpId, toNodeId: d.toWpId, direction: d.direction })),
                     svgWidth,
                     svgHeight,
                   };
-                  exportPERTAsPptx(exportData, `PERT-Chart-Figure-${figureNumber}`);
+                  const { exportPERTAsPptx } = await import('@/lib/figureExport');
+                  await exportPERTAsPptx(exportData, `PERT-Chart-Figure-${figureNumber}`);
                   toast.success('PPTX downloaded');
                 }}>
                   <FileDown className="w-4 h-4 mr-2" />

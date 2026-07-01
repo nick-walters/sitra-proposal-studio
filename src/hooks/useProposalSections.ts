@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Section } from '@/types/proposal';
 import { PART_A_SECTIONS, HORIZON_EUROPE_SECTIONS } from '@/types/proposal';
+import { getCaseTypePrefix, buildCaseLabel, buildWpCaseManagerTitle } from '@/lib/caseTypeLabels';
 
 interface WPTheme {
   id: string;
@@ -26,6 +27,8 @@ export interface CaseSection extends Section {
   caseNumber?: number;
   caseColor?: string;
   caseType?: string;
+  caseLabel?: string;
+  caseShortName?: string;
 }
 
 interface TemplateSectionData {
@@ -148,6 +151,16 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
   const [templateSections, setTemplateSections] = useState<Section[]>([]);
   const [hasTemplateSections, setHasTemplateSections] = useState(false);
   const queryClient = useQueryClient();
+  // Unique per-mount suffix so multiple consumers of this hook (e.g. ProposalEditor +
+  // SectionNavigator + PanelEvaluator) each get their own Supabase realtime channel.
+  // Without this, supabase.channel(sameName) returns the already-subscribed channel
+  // from the first consumer, and the subsequent .on('postgres_changes', …) throws
+  // "cannot add postgres_changes callbacks … after subscribe()", killing render.
+  const channelSuffixRef = useRef<string>(
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : Math.random().toString(36).slice(2),
+  );
 
   // Use useEffect directly with templateTypeId as dependency for proper reactivity
   useEffect(() => {
@@ -218,14 +231,14 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
     enabled: !!proposalId,
   });
 
-  // Fetch proposal's use_wp_themes flag
+  // Fetch proposal's use_wp_themes flag and case display settings
   const { data: proposalData } = useQuery({
     queryKey: ['proposal-themes-flag', proposalId],
     queryFn: async () => {
       if (!proposalId) return null;
       const { data, error } = await supabase
         .from('proposals')
-        .select('use_wp_themes')
+        .select('use_wp_themes, case_include_number, case_include_abbreviation')
         .eq('id', proposalId)
         .single();
       if (error) throw error;
@@ -255,9 +268,9 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
     return new Map(themesData.map((t: WPTheme) => [t.id, t]));
   }, [themesData]);
 
-  // Convert WP drafts to sections (filter hidden for non-coordinators)
+  // Convert WP drafts to sections (all WPs always visible)
   const wpDraftSections: WPSection[] = useMemo(() => {
-    const visibleWPs = isCoordinator ? wpDraftsData : wpDraftsData.filter(wp => !wp.is_hidden);
+    const visibleWPs = wpDraftsData;
     return visibleWPs.map(wp => {
       // Resolve effective color: use theme color if themes are enabled and WP has a theme
       let effectiveColor = wp.color;
@@ -278,14 +291,13 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
     });
   }, [wpDraftsData, useWpThemes, themesMap, isCoordinator]);
 
-  // Fetch Case drafts using react-query
   const { data: caseDraftsData = [] } = useQuery({
     queryKey: ['case-drafts', proposalId],
     queryFn: async () => {
       if (!proposalId) return [];
       const { data, error } = await supabase
         .from('case_drafts')
-        .select('id, number, short_name, title, color, order_index, case_type, is_hidden')
+        .select('id, number, short_name, title, color, order_index, case_type, case_type_id')
         .eq('proposal_id', proposalId)
         .order('order_index');
       if (error) throw error;
@@ -294,136 +306,159 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
     enabled: !!proposalId,
   });
 
-  // Get case prefix based on type
-  const getCasePrefix = (caseType: string): string => {
-    switch (caseType) {
-      case 'case_study': return 'CS';
-      case 'use_case': return 'UC';
-      case 'living_lab': return 'LL';
-      case 'pilot': return 'P';
-      case 'demonstration': return 'D';
-      default: return '';
-    }
-  };
+  // Per-type display flags + outline colour live on proposal_case_types.
+  const { data: caseTypeFlags = [] } = useQuery({
+    queryKey: ['proposal-case-types', proposalId],
+    queryFn: async () => {
+      if (!proposalId) return [];
+      const { data, error } = await supabase
+        .from('proposal_case_types')
+        .select('id, include_number, include_abbreviation, outline_color, type_code, custom_type_name, order_index')
+        .eq('proposal_id', proposalId)
+        .order('order_index');
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!proposalId,
+  });
 
-  // Convert Case drafts to sections (filter hidden for non-coordinators)
+  // cases_enabled flag — drives the WP/case manager title.
+  const { data: casesEnabled = false } = useQuery({
+    queryKey: ['proposal-cases-enabled', proposalId],
+    queryFn: async () => {
+      if (!proposalId) return false;
+      const { data, error } = await supabase
+        .from('proposals')
+        .select('cases_enabled')
+        .eq('id', proposalId)
+        .maybeSingle();
+      if (error) throw error;
+      return !!data?.cases_enabled;
+    },
+    enabled: !!proposalId,
+  });
+
   const caseDraftSections: CaseSection[] = useMemo(() => {
-    const visibleCases = isCoordinator ? caseDraftsData : caseDraftsData.filter(c => !c.is_hidden);
-    return visibleCases.map(c => {
-      const prefix = getCasePrefix(c.case_type);
+    const flagsById = new Map(caseTypeFlags.map((t: any) => [t.id, t]));
+    return caseDraftsData.map(c => {
+      const flags = (c as any).case_type_id ? flagsById.get((c as any).case_type_id) : undefined;
+      // Prefer the type's code (from proposal_case_types) over the
+      // denormalised case_drafts.case_type — keeps prefix resolution
+      // working even if the row's case_type column is stale/missing.
+      const typeCode = (flags as any)?.type_code ?? c.case_type ?? null;
+      const customName = (flags as any)?.custom_type_name ?? null;
+      const prefix = getCaseTypePrefix(typeCode, customName);
+      const includeNumber = flags?.include_number !== false;
+      const includeAbbreviation = flags?.include_abbreviation !== false;
+      const outlineColor = flags?.outline_color || c.color || '#000000';
+      const shortName = c.short_name || '';
+      const numberStr = c.number != null ? String(c.number) : '';
+      const label = buildCaseLabel({
+        prefix, number: c.number, shortName: shortName || c.title || '',
+        includeNumber, includeAbbreviation,
+      });
+      // chip — prefix portion only; never inject the string "undefined".
+      const chip = buildCaseLabel({
+        prefix, number: c.number, shortName: shortName || numberStr,
+        includeNumber, includeAbbreviation, withShortName: false,
+      });
       return {
         id: `case-${c.id}`,
-        number: prefix ? `${prefix}${c.number}` : (c.short_name || `${c.number}`),
-        title: prefix ? (c.short_name || c.title || '') : (c.title || ''),
+        number: chip,
+        title: includeAbbreviation && prefix ? (shortName || c.title || '') : (c.title || ''),
         caseId: c.id,
         caseNumber: c.number,
-        caseColor: c.color,
+        caseColor: outlineColor,
         caseType: c.case_type,
+        caseLabel: label,
+        caseShortName: shortName,
       };
     });
-  }, [caseDraftsData, isCoordinator]);
+  }, [caseDraftsData, caseTypeFlags]);
+
+
 
   // Subscribe to realtime updates for WP drafts and invalidate react-query cache
   useEffect(() => {
     if (!proposalId) return;
-
-    const channel = supabase
-      .channel(`wp-drafts-nav-${proposalId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'wp_drafts',
-          filter: `proposal_id=eq.${proposalId}`,
-        },
-        () => {
-          // Invalidate react-query cache to trigger refetch
-          queryClient.invalidateQueries({ queryKey: ['wp-drafts', proposalId] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    const suffix = channelSuffixRef.current;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    try {
+      channel = supabase
+        .channel(`wp-drafts-nav-${proposalId}-${suffix}`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'wp_drafts', filter: `proposal_id=eq.${proposalId}` },
+          () => queryClient.invalidateQueries({ queryKey: ['wp-drafts', proposalId] }),
+        )
+        .subscribe();
+    } catch (e) {
+      console.error('[useProposalSections] wp-drafts realtime subscribe failed', e);
+    }
+    return () => { if (channel) supabase.removeChannel(channel); };
   }, [proposalId, queryClient]);
 
   // Subscribe to realtime updates for themes
   useEffect(() => {
     if (!proposalId) return;
-
-    const channel = supabase
-      .channel(`wp-themes-nav-${proposalId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'wp_themes',
-          filter: `proposal_id=eq.${proposalId}`,
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['wp-themes', proposalId] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    const suffix = channelSuffixRef.current;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    try {
+      channel = supabase
+        .channel(`wp-themes-nav-${proposalId}-${suffix}`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'wp_themes', filter: `proposal_id=eq.${proposalId}` },
+          () => queryClient.invalidateQueries({ queryKey: ['wp-themes', proposalId] }),
+        )
+        .subscribe();
+    } catch (e) {
+      console.error('[useProposalSections] wp-themes realtime subscribe failed', e);
+    }
+    return () => { if (channel) supabase.removeChannel(channel); };
   }, [proposalId, queryClient]);
 
   // Subscribe to realtime updates for proposal use_wp_themes flag
   useEffect(() => {
     if (!proposalId) return;
-
-    const channel = supabase
-      .channel(`proposal-themes-flag-${proposalId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'proposals',
-          filter: `id=eq.${proposalId}`,
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['proposal-themes-flag', proposalId] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    const suffix = channelSuffixRef.current;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    try {
+      channel = supabase
+        .channel(`proposal-themes-flag-${proposalId}-${suffix}`)
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'proposals', filter: `id=eq.${proposalId}` },
+          () => queryClient.invalidateQueries({ queryKey: ['proposal-themes-flag', proposalId] }),
+        )
+        .subscribe();
+    } catch (e) {
+      console.error('[useProposalSections] proposal-themes-flag realtime subscribe failed', e);
+    }
+    return () => { if (channel) supabase.removeChannel(channel); };
   }, [proposalId, queryClient]);
 
   // Subscribe to realtime updates for Case drafts
   useEffect(() => {
     if (!proposalId) return;
-
-    const channel = supabase
-      .channel(`case-drafts-nav-${proposalId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'case_drafts',
-          filter: `proposal_id=eq.${proposalId}`,
-        },
-        () => {
-          // Invalidate react-query cache to trigger refetch
-          queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
-          queryClient.invalidateQueries({ queryKey: ['case-drafts-management', proposalId] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    const suffix = channelSuffixRef.current;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    try {
+      channel = supabase
+        .channel(`case-drafts-nav-${proposalId}-${suffix}`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'case_drafts', filter: `proposal_id=eq.${proposalId}` },
+          () => {
+            queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
+            queryClient.invalidateQueries({ queryKey: ['case-drafts-management', proposalId] });
+          },
+        )
+        .subscribe();
+    } catch (e) {
+      console.error('[useProposalSections] case-drafts realtime subscribe failed', e);
+    }
+    return () => { if (channel) supabase.removeChannel(channel); };
   }, [proposalId, queryClient]);
 
   // Return either template sections or fallback to hardcoded sections
@@ -446,6 +481,7 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
         { id: 'progress-tracker', number: '', title: 'Progress' },
         { id: 'availability', number: '', title: 'Availability' },
         { id: 'backups', number: '', title: 'Backups' },
+        { id: 'snapshots', number: '', title: 'Snapshots & restore' },
       ],
     };
 
@@ -459,11 +495,22 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
       },
     };
 
-    // Combined WPs & cases section
+    // Milestones & risks (proposal-level managers)
+    const milestonesRisksSection: Section = {
+      id: 'milestones-risks',
+      number: '',
+      title: 'Milestones & risks',
+    };
+
+    // Combined WPs & cases section — dynamic title based on cases_enabled + case types.
+    const wpCaseManagerTitle = buildWpCaseManagerTitle({
+      casesEnabled,
+      types: caseTypeFlags as any,
+    });
     const wpAndCasesSection: Section = {
       id: 'wp-drafts',
       number: '',
-      title: 'WP/case manager & drafts',
+      title: wpCaseManagerTitle,
       subsections: [...wpDraftSections, ...caseDraftSections],
     };
 
@@ -478,33 +525,40 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
         partBRoot.subsections = partBRoot.subsections.filter(s => s.id !== 'figures' && s.title !== 'Figures');
       }
       
-      // Build result: Proposal Management, Topic Info, Part A, Part B, then Figures, then WP Drafts
+      // Build result: Proposal Management, Topic Info, Part A, Part B, then WP/case manager & drafts, Milestones & risks, then Figures
       const result = [proposalManagementSection, topicInfoSection, ...partASections, ...partBSections];
-      
-      // Add Figures as standalone top-level section (before WP Drafts)
-      result.push(figuresSection);
-      
+
       // Add combined WPs & cases section if there are any WP or case drafts
       if (wpDraftSections.length > 0 || caseDraftSections.length > 0) {
         result.push(wpAndCasesSection);
       }
-      
+
+      // Add Milestones & risks manager (always shown)
+      result.push(milestonesRisksSection);
+
+      // Add Figures as standalone top-level section (after Milestones & risks)
+      result.push(figuresSection);
+
       return result;
     }
     
     // Fallback to hardcoded sections
     const fallbackSections = [proposalManagementSection, topicInfoSection, ...PART_A_SECTIONS, ...HORIZON_EUROPE_SECTIONS];
-    
-    // Add Figures before WP Drafts
-    fallbackSections.push(figuresSection);
-    
+
     // Add combined WPs & cases section
     if (wpDraftSections.length > 0 || caseDraftSections.length > 0) {
       fallbackSections.push(wpAndCasesSection);
     }
+
+    // Add Milestones & risks manager
+    fallbackSections.push(milestonesRisksSection);
+
+    // Add Figures after Milestones & risks
+    fallbackSections.push(figuresSection);
     
     return fallbackSections;
-  }, [templateSections, hasTemplateSections, wpDraftSections, caseDraftSections]);
+
+  }, [templateSections, hasTemplateSections, wpDraftSections, caseDraftSections, casesEnabled, caseTypeFlags]);
 
   // Create a refetch function that can be called externally
   const refetch = useCallback(async () => {

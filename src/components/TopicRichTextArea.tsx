@@ -1,11 +1,8 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
 import DOMPurify from 'dompurify';
 import { cn } from '@/lib/utils';
-
-const SANITIZE_CONFIG = {
-  ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'ul', 'ol', 'li', 'span', 'a', 'h1', 'h2', 'h3', 'h4', 'sub', 'sup', 'table', 'thead', 'tbody', 'tr', 'th', 'td'],
-  ALLOWED_ATTR: ['class', 'style', 'href', 'target', 'rel', 'colspan', 'rowspan'],
-};
+import { RICH_TEXT_CONFIG as SANITIZE_CONFIG, FOOTNOTE_CONFIG } from '@/lib/sanitizePresets';
+import { handleWordPaste } from '@/lib/pasteWordHtmlHandler';
 
 /** Strip Word/XML artifacts (mso-*, borders, backgrounds) from HTML */
 function stripXmlArtifacts(html: string): string {
@@ -64,51 +61,9 @@ export function TopicRichTextArea({
     }
   }, [value, isFocused]);
 
-  // Handle paste: strip font sizes, keep structure
-  const handlePaste = useCallback((e: React.ClipboardEvent) => {
-    e.preventDefault();
-    const html = e.clipboardData.getData('text/html');
-    const text = e.clipboardData.getData('text/plain');
-
-    if (html) {
-      // Parse HTML, strip font-size and font-family styles but keep structure
-      const temp = document.createElement('div');
-      temp.innerHTML = html;
-      // Remove font-size and font-family from all elements
-      temp.querySelectorAll('*').forEach(el => {
-        const htmlEl = el as HTMLElement;
-        if (htmlEl.style) {
-          htmlEl.style.fontSize = '';
-          htmlEl.style.fontFamily = '';
-          htmlEl.style.lineHeight = '';
-          htmlEl.style.border = '';
-          htmlEl.style.borderTop = '';
-          htmlEl.style.borderBottom = '';
-          htmlEl.style.borderLeft = '';
-          htmlEl.style.borderRight = '';
-          htmlEl.style.borderColor = '';
-          htmlEl.style.borderStyle = '';
-          htmlEl.style.borderWidth = '';
-          htmlEl.style.background = '';
-          htmlEl.style.backgroundColor = '';
-        }
-        // Remove font tags
-        if (el.tagName === 'FONT') {
-          const span = document.createElement('span');
-          span.innerHTML = el.innerHTML;
-          el.replaceWith(span);
-        }
-      });
-      document.execCommand('insertHTML', false, DOMPurify.sanitize(temp.innerHTML, SANITIZE_CONFIG));
-    } else {
-      // Plain text: convert line breaks to paragraphs
-      const paragraphs = text.split(/\n\n|\r\n\r\n/).map(p => {
-        const lines = p.split(/\n|\r\n/).join('<br>');
-        return `<p>${lines}</p>`;
-      }).join('');
-      document.execCommand('insertHTML', false, paragraphs || text);
-    }
-  }, []);
+  // Handle paste: delegate to the shared Word-cleaning handler so MSO/<o:p>/
+  // namespace junk is fully stripped while custom badges survive.
+  const handlePaste = handleWordPaste;
 
   // Sync footnotes: remove orphaned footnotes whose markers were deleted from HTML
   const syncFootnotesWithContent = useCallback(() => {
@@ -144,12 +99,15 @@ export function TopicRichTextArea({
     });
   }, [footnotes, onFootnotesChange, footnoteStartNumber]);
 
+  const lastValueRef = useRef<string>(value);
+
   const handleInput = useCallback(() => {
     if (!editorRef.current) return;
     syncFootnotesWithContent();
     const newValue = editorRef.current.innerHTML;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
+      lastValueRef.current = newValue;
       onChange(newValue);
     }, 500);
   }, [onChange, syncFootnotesWithContent]);
@@ -159,6 +117,20 @@ export function TopicRichTextArea({
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, []);
+
+  const handleBlur = useCallback(() => {
+    // Flush any pending debounced save immediately
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+    const currentContent = editorRef.current?.innerHTML ?? '';
+    if (currentContent !== lastValueRef.current) {
+      lastValueRef.current = currentContent;
+      onChange(currentContent);
+    }
+    setIsFocused(false);
+  }, [onChange]);
 
   const showPlaceholder = !value && !isFocused;
 
@@ -170,7 +142,7 @@ export function TopicRichTextArea({
         onInput={handleInput}
         onPaste={handlePaste}
         onFocus={() => { setIsFocused(true); onFocus?.(); }}
-        onBlur={() => setIsFocused(false)}
+        onBlur={handleBlur}
         className={cn(
           "p-3 outline-none resize-y overflow-auto text-sm topic-rich-text-content",
           "[&_ul]:list-disc [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:ml-4",
@@ -198,7 +170,7 @@ export function TopicRichTextArea({
                     contentEditable
                     suppressContentEditableWarning
                     className="flex-1 bg-transparent border-b border-dashed border-muted-foreground/30 outline-none text-xs py-0.5 focus:border-primary [&_a]:text-primary [&_a]:underline"
-                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(fn.text || '', { ALLOWED_TAGS: ['em', 'strong', 'a', 'br', 'sup', 'span'], ALLOWED_ATTR: ['href', 'target', 'rel', 'style'] }) }}
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(fn.text || '', FOOTNOTE_CONFIG) }}
                     onBlur={(e) => {
                       if (onFootnotesChange) {
                         const updated = [...footnotes];
@@ -209,7 +181,7 @@ export function TopicRichTextArea({
                     data-placeholder="Enter reference (paste links supported)..."
                   />
                 ) : (
-                  <span className="text-muted-foreground [&_a]:text-primary [&_a]:underline" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(fn.text || '–', { ALLOWED_TAGS: ['em', 'strong', 'a', 'br', 'sup', 'span'], ALLOWED_ATTR: ['href', 'target', 'rel', 'style'] }) }} />
+                  <span className="text-muted-foreground [&_a]:text-primary [&_a]:underline" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(fn.text || '–', FOOTNOTE_CONFIG) }} />
                 )}
               </div>
             );
@@ -261,7 +233,7 @@ export function TopicRichTextReadonly({ html, footnotes = [], emptyMessage = '�
           {footnotes.map((fn, idx) => (
             <div key={fn.id} className="flex items-start gap-1.5 text-xs text-muted-foreground">
               <span className="text-primary font-semibold text-[10px] shrink-0" style={{ marginTop: '1.5px' }}>{footnoteStartNumber + idx}</span>
-              <span className="[&_a]:text-primary [&_a]:underline [&_a]:cursor-pointer" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(fn.text || '–', { ALLOWED_TAGS: ['em', 'strong', 'a', 'br', 'sup', 'span'], ALLOWED_ATTR: ['href', 'target', 'rel', 'style'] }) }} />
+              <span className="[&_a]:text-primary [&_a]:underline [&_a]:cursor-pointer" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(fn.text || '–', FOOTNOTE_CONFIG) }} />
             </div>
           ))}
         </div>

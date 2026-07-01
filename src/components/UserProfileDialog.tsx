@@ -91,15 +91,21 @@ export function UserProfileDialog({ open, onOpenChange, userId, editable = false
   const fetchProfile = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
+      const [baseRes, privRes] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('id, email, full_name, avatar_url, organisation, first_name, last_name, department, country, website, linkedin, bluesky, instagram, facebook, other_links')
+          .eq('id', userId)
+          .single(),
 
-      if (error) throw error;
+        supabase.rpc('get_my_private_profile'),
+      ]);
 
-      setProfile(data);
+      if (baseRes.error) throw baseRes.error;
+      const data = baseRes.data;
+      const priv: any = Array.isArray(privRes.data) ? privRes.data[0] : privRes.data;
+
+      setProfile({ ...data, ...(priv || {}) } as any);
       setAvatarUrl(data.avatar_url);
       setFormData({
         first_name: data.first_name || '',
@@ -107,12 +113,12 @@ export function UserProfileDialog({ open, onOpenChange, userId, editable = false
         email: data.email || '',
         organisation: data.organisation || '',
         department: data.department || '',
-        country_code: data.country_code || '',
-        phone_number: data.phone_number || '',
-        address: data.address || '',
-        address_line_2: data.address_line_2 || '',
-        postcode: data.postcode || '',
-        city: data.city || '',
+        country_code: priv?.country_code || '',
+        phone_number: priv?.phone_number || '',
+        address: priv?.address || '',
+        address_line_2: priv?.address_line_2 || '',
+        postcode: priv?.postcode || '',
+        city: priv?.city || '',
         country: data.country || '',
         website: data.website || '',
         linkedin: data.linkedin || '',
@@ -129,6 +135,7 @@ export function UserProfileDialog({ open, onOpenChange, userId, editable = false
       setLoading(false);
     }
   };
+
 
   const validateProfile = (): boolean => {
     const newErrors: ProfileErrors = {};

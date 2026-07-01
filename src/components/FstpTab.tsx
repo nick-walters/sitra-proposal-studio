@@ -1,47 +1,28 @@
 import { useEditor, EditorContent } from '@tiptap/react';
+import { wordCleanPasteProps } from '@/lib/tiptapPasteProps';
+import DOMPurify from 'dompurify';
+import { RICH_TEXT_WITH_DIV_CONFIG } from '@/lib/sanitizePresets';
 import StarterKit from '@tiptap/starter-kit';
 import { HeadingExitOnEnter } from '@/extensions/HeadingExitOnEnter';
 import { HeadingNumberLabel } from '@/extensions/HeadingNumberLabel';
-import { renumberH3Headings } from '@/lib/renumberH3Headings';
+
 import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 import Link from '@tiptap/extension-link';
 import { OrderedListStyled } from '@/extensions/OrderedListStyled';
-import { OrderedListDropdown } from './OrderedListDropdown';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { SaveIndicator } from '@/components/SaveIndicator';
 import { useFstpContent } from '@/hooks/useFstpContent';
+import { FormattingToolbar } from './RichTextEditor';
 import {
-  Bold,
-  Italic,
-  Underline as UnderlineIcon,
-  Link as LinkIcon,
-  List,
-  ListOrdered,
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
-  AlignJustify,
-  Undo,
-  Redo,
-  
   Download,
   FileText,
   Loader2,
-  Table as TableIcon,
-  Image as ImageIcon,
   Pencil,
   Check,
   X,
-  ChevronDown,
 } from 'lucide-react';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { Table } from '@tiptap/extension-table';
 import { TableRow } from '@tiptap/extension-table-row';
 import { TableCell } from '@tiptap/extension-table-cell';
@@ -49,24 +30,14 @@ import { TableHeader } from '@tiptap/extension-table-header';
 import { ResizableImage } from './ResizableImage';
 import { useCallback, useEffect, useState, useRef } from 'react';
 import { toast } from 'sonner';
-import jsPDF from 'jspdf';
-import {
-  Document,
-  Packer,
+// jsPDF, docx and file-saver are loaded lazily inside handleExportPdf / handleExportDocx
+// to keep these heavy libraries out of the initial bundle.
+import type jsPDF from 'jspdf';
+import type {
   Paragraph,
   TextRun,
   AlignmentType,
-  Header,
-  Footer,
-  PageNumber,
-  convertMillimetersToTwip,
-  Table as DocxTable,
-  TableRow as DocxTableRow,
-  TableCell as DocxTableCell,
-  WidthType,
-  BorderStyle,
 } from 'docx';
-import { saveAs } from 'file-saver';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -82,237 +53,7 @@ interface FstpTabProps {
   fstpType?: 'grant' | 'prize';
 }
 
-function FstpToolbarButton({ icon, tooltip, onClick, active, disabled }: {
-  icon: React.ReactNode;
-  tooltip: string;
-  onClick?: () => void;
-  active?: boolean;
-  disabled?: boolean;
-}) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          variant={active ? "secondary" : "ghost"}
-          size="icon"
-          className="h-7 w-7"
-          onClick={onClick}
-          disabled={disabled}
-        >
-          {icon}
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent side="bottom" className="text-xs">{tooltip}</TooltipContent>
-    </Tooltip>
-  );
-}
 
-function FstpToolbar({ editor }: { editor: any }) {
-  // Force re-render on editor state changes so isActive() reflects current state
-  const [, setTick] = useState(0);
-  useEffect(() => {
-    if (!editor) return;
-    const handler = () => setTick((t) => t + 1);
-    editor.on('selectionUpdate', handler);
-    editor.on('transaction', handler);
-    return () => {
-      editor.off('selectionUpdate', handler);
-      editor.off('transaction', handler);
-    };
-  }, [editor]);
-
-  if (!editor) return null;
-
-  const setLink = () => {
-    const previousUrl = editor.getAttributes('link').href;
-    const url = window.prompt('URL', previousUrl);
-    if (url === null) return;
-    if (url === '') {
-      editor.chain().focus().extendMarkRange('link').unsetLink().run();
-      return;
-    }
-    editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
-  };
-
-  return (
-    <div className="editor-toolbar border-b border-border bg-card px-2 py-1">
-      <div className="flex items-center gap-0">
-        {/* Undo Redo */}
-        <FstpToolbarButton
-          icon={<Undo className="w-4 h-4" />}
-          tooltip="Undo (Ctrl+Z)"
-          onClick={() => editor.chain().focus().undo().run()}
-          disabled={!editor.can().undo()}
-        />
-        <FstpToolbarButton
-          icon={<Redo className="w-4 h-4" />}
-          tooltip="Redo (Ctrl+Y)"
-          onClick={() => editor.chain().focus().redo().run()}
-          disabled={!editor.can().redo()}
-        />
-
-        <Separator orientation="vertical" className="h-5 mx-1.5" />
-
-        {/* Subheading dropdown */}
-        <DropdownMenu>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant={editor.isActive('heading', { level: 3 }) || (editor.isActive('bold') && editor.isActive('underline')) ? "secondary" : "ghost"}
-                  size="sm"
-                  className="h-7 px-2 text-xs gap-1"
-                >
-                  <span className="font-black underline">Subheading</span>
-                  <ChevronDown className="w-3 h-3" />
-                </Button>
-              </DropdownMenuTrigger>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">
-              Insert subheading
-            </TooltipContent>
-          </Tooltip>
-          <DropdownMenuContent align="start" className="w-64">
-            <DropdownMenuItem onClick={() => {
-              const placeholder = `1.1.0. `;
-              editor.chain().focus().toggleHeading({ level: 3 }).run();
-              if (editor.isActive('heading', { level: 3 })) {
-                const $from = editor.state.selection.$from;
-                const startOfNode = $from.start();
-                const currentText = $from.parent.textContent;
-                const hasPrefix = /^\d+\.\d+\.\d+\.\s/.test(currentText);
-                if (!hasPrefix) {
-                  editor.chain().focus().insertContentAt(startOfNode, placeholder).run();
-                }
-                renumberH3Headings(editor, '1.1');
-              }
-            }}>
-              <span className="text-sm font-semibold underline">1.1.1. Numbered subheading</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              editor.chain().focus().toggleBold().run();
-              editor.chain().focus().toggleUnderline().run();
-            }}>
-              <span className="text-sm font-bold underline">Unnumbered subheading</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant={editor.isActive('bold') ? "secondary" : "ghost"}
-              size="icon"
-              className="h-7 w-7"
-              onClick={() => editor.chain().focus().toggleBold().run()}
-            >
-              <span className="font-black text-sm">B</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" className="text-xs">
-            Bold (Ctrl+B)
-          </TooltipContent>
-        </Tooltip>
-        <FstpToolbarButton
-          icon={<Italic className="w-3.5 h-3.5" />}
-          tooltip="Italic (Ctrl+I)"
-          onClick={() => editor.chain().focus().toggleItalic().run()}
-          active={editor.isActive('italic')}
-        />
-        <FstpToolbarButton
-          icon={<UnderlineIcon className="w-4 h-4" />}
-          tooltip="Underline (Ctrl+U)"
-          onClick={() => editor.chain().focus().toggleUnderline().run()}
-          active={editor.isActive('underline')}
-        />
-        <FstpToolbarButton
-          icon={<LinkIcon className="w-4 h-4" />}
-          tooltip="Insert link"
-          onClick={setLink}
-          active={editor.isActive('link')}
-        />
-
-        <Separator orientation="vertical" className="h-5 mx-1.5" />
-
-        {/* Bullet Numbered */}
-        <FstpToolbarButton
-          icon={<List className="w-4 h-4" />}
-          tooltip="Bullet list"
-          onClick={() => editor.chain().focus().toggleBulletList().run()}
-          active={editor.isActive('bulletList')}
-        />
-        <OrderedListDropdown
-          editor={editor}
-          active={editor.isActive('orderedList')}
-        />
-
-        <Separator orientation="vertical" className="h-5 mx-1.5" />
-
-        {/* Left Centre Right Justify */}
-        <FstpToolbarButton
-          icon={<AlignLeft className="w-4 h-4" />}
-          tooltip="Align left"
-          onClick={() => editor.chain().focus().setTextAlign('left').run()}
-          active={editor.isActive({ textAlign: 'left' })}
-        />
-        <FstpToolbarButton
-          icon={<AlignCenter className="w-4 h-4" />}
-          tooltip="Align center"
-          onClick={() => editor.chain().focus().setTextAlign('center').run()}
-          active={editor.isActive({ textAlign: 'center' })}
-        />
-        <FstpToolbarButton
-          icon={<AlignRight className="w-4 h-4" />}
-          tooltip="Align right"
-          onClick={() => editor.chain().focus().setTextAlign('right').run()}
-          active={editor.isActive({ textAlign: 'right' })}
-        />
-        <FstpToolbarButton
-          icon={<AlignJustify className="w-4 h-4" />}
-          tooltip="Justify"
-          onClick={() => editor.chain().focus().setTextAlign('justify').run()}
-          active={editor.isActive({ textAlign: 'justify' })}
-        />
-
-        <Separator orientation="vertical" className="h-5 mx-1.5" />
-
-        {/* Table */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 px-2 gap-1"
-              onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
-            >
-              <TableIcon className="w-4 h-4" />
-              <span className="text-xs">Table</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" className="text-xs">Insert table</TooltipContent>
-        </Tooltip>
-
-        {/* Figure */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 px-2 gap-1"
-              onClick={() => {
-                const url = window.prompt('Enter image URL:');
-                if (url) editor.chain().focus().setImage({ src: url }).run();
-              }}
-            >
-              <ImageIcon className="w-4 h-4" />
-              <span className="text-xs">Figure</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" className="text-xs">Insert figure</TooltipContent>
-        </Tooltip>
-      </div>
-    </div>
-  );
-}
 
 export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, fstpType = 'grant' }: FstpTabProps) {
   const { data, loading, saving, lastSaved, hasUnsavedChanges, saveError, updateInstructions, updateResponse, saveNow } = useFstpContent(proposalId, fstpType);
@@ -344,6 +85,7 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, f
         updateResponse(e.getHTML());
       }
     },
+    editorProps: wordCleanPasteProps,
   });
 
   // Reset init flag when fstpType changes so content re-syncs
@@ -419,7 +161,7 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, f
   const parseHtmlToBlocks = useCallback((html: string): ContentBlock[] => {
     if (!html) return [];
     const div = document.createElement('div');
-    div.innerHTML = html;
+    div.innerHTML = DOMPurify.sanitize(html, RICH_TEXT_WITH_DIV_CONFIG);
     const blocks: ContentBlock[] = [];
 
     const processNode = (node: Node) => {
@@ -478,6 +220,7 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, f
     if (!editor) return;
     setExporting(true);
     try {
+      const { default: jsPDF } = await import('jspdf');
       const doc = new jsPDF({ unit: 'mm', format: 'a4' });
       const margin = 15;
       const contentWidth = 210 - 2 * margin;
@@ -696,11 +439,24 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, f
     if (!editor) return;
     setExporting(true);
     try {
+      const [docxMod, fileSaverMod] = await Promise.all([
+        import('docx'),
+        import('file-saver'),
+      ]);
+      const {
+        Document, Packer, Paragraph, TextRun, AlignmentType,
+        Header, Footer, PageNumber, convertMillimetersToTwip,
+        Table: DocxTable, TableRow: DocxTableRow, TableCell: DocxTableCell,
+        WidthType, BorderStyle,
+      } = docxMod;
+      const { saveAs } = fileSaverMod;
+
       const FONT = 'Times New Roman';
       const SZ = 22;
       const LINE = 240;
       const SP_BEFORE = 60;
       const SP_AFTER = 60;
+
 
       const segsToRunOpts = (segs: TextSegment[]): Record<string, unknown>[] =>
         segs.map(s => ({
@@ -911,7 +667,7 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, f
                 size="icon"
                 className="h-8 w-8 shrink-0"
                 onClick={() => { setDraftInstructions(data.instructionsText); setEditingInstructions(true); }}
-              >
+               aria-label="Edit" title="Edit">
                 <Pencil className="w-4 h-4" />
               </Button>
             )}
@@ -978,7 +734,21 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, f
           )}
 
           <div className="border rounded-md overflow-hidden">
-            {canEdit && <FstpToolbar editor={editor} />}
+            {canEdit && (
+              <FormattingToolbar
+                editor={editor}
+                isPartB={false}
+                showColor={false}
+                showParagraphSpacing={false}
+                showImageControls={false}
+                showTableEditing={false}
+                tableInsertMode="fixed3x3"
+                figureInsertMode="urlPrompt"
+                showLinkButton={true}
+                subheadingPrefix="1.1"
+                showSubheadingBodyItem={false}
+              />
+            )}
             <div className="max-w-none p-4 min-h-[300px] text-sm focus-within:outline-none [&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[280px] [&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:pl-6 [&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:pl-6 [&_.ProseMirror_li]:my-1">
               <EditorContent editor={editor} />
             </div>

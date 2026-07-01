@@ -2,10 +2,73 @@ import { Mark, Node, mergeAttributes } from '@tiptap/core';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import DOMPurify from 'dompurify';
+import { INLINE_EMPHASIS_CONFIG } from '@/lib/sanitizePresets';
 
 export interface CitationMarkOptions {
   getReference: (citationNumber: number) => { citation: string } | undefined;
 }
+
+/**
+ * Decorates citation nodes whose IMMEDIATELY preceding sibling node is also a
+ * citation (i.e. no text — not even whitespace — between them). The CSS uses
+ * the added `citation-adjacent` class to render a superscript comma before the
+ * second citation. We can't do this with CSS adjacent-sibling alone because
+ * `sup + sup` ignores text nodes between two element siblings.
+ */
+function createCitationAdjacencyPlugin() {
+  const key = new PluginKey('citationAdjacency');
+
+  const isCitationChild = (child: any): boolean => {
+    if (!child) return false;
+    if (child.type.name === 'citation') return true;
+    if (child.isText && child.marks?.some((m: any) => m.type.name === 'citationMark')) return true;
+    return false;
+  };
+
+  const build = (doc: any) => {
+    const decorations: Decoration[] = [];
+    doc.descendants((node: any, pos: number) => {
+      if (node.isText) return;
+      const innerStart = node.type.name === 'doc' ? pos : pos + 1;
+      let prev: any = null;
+      let acc = 0;
+      node.forEach((child: any) => {
+        const cStart = innerStart + acc;
+        if (isCitationChild(child) && isCitationChild(prev)) {
+          if (child.type.name === 'citation') {
+            decorations.push(
+              Decoration.node(cStart, cStart + child.nodeSize, { class: 'citation-adjacent' })
+            );
+          } else {
+            decorations.push(
+              Decoration.inline(cStart, cStart + child.nodeSize, { class: 'citation-adjacent' })
+            );
+          }
+        }
+        prev = child;
+        acc += child.nodeSize;
+      });
+    });
+    return DecorationSet.create(doc, decorations);
+  };
+
+
+
+
+  return new Plugin({
+    key,
+    state: {
+      init: (_, state) => build(state.doc),
+      apply: (tr, old) => (tr.docChanged ? build(tr.doc) : old),
+    },
+    props: {
+      decorations(state) {
+        return this.getState(state);
+      },
+    },
+  });
+}
+
 
 export const CitationNode = Node.create({
   name: 'citation',
@@ -95,7 +158,12 @@ export const CitationNode = Node.create({
       };
     };
   },
+  addProseMirrorPlugins() {
+    return [createCitationAdjacencyPlugin()];
+  },
+
 });
+
 
 export const CitationMark = Mark.create<CitationMarkOptions>({
   name: 'citationMark',
@@ -188,7 +256,7 @@ export function createCitationTooltipPlugin(
       .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
       .replace(/\*([^*]+)\*/g, '<em>$1</em>');
 
-    tooltip.innerHTML = DOMPurify.sanitize(formattedContent, { ALLOWED_TAGS: ['em', 'strong'] });
+    tooltip.innerHTML = DOMPurify.sanitize(formattedContent, INLINE_EMPHASIS_CONFIG);
     tooltip.style.display = 'block';
     
     // Position tooltip above the citation

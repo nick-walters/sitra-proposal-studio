@@ -55,11 +55,11 @@ export function OrderedListDropdown({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          variant={active ? 'secondary' : 'ghost'}
-          size="icon"
-          className={buttonClassName}
-          title="Numbered list"
-        >
+ variant={active ? 'secondary' : 'ghost'}
+ size="icon"
+ className={buttonClassName}
+ title="Numbered list"
+ aria-label="Numbered list" >
           <ListOrdered className={iconClassName} />
         </Button>
       </DropdownMenuTrigger>

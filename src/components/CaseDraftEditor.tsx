@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { DraftFormattingToolbar } from '@/components/DraftFormattingToolbar';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,40 +11,32 @@ import { DebouncedInput } from '@/components/ui/debounced-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { WPSimpleEditor } from '@/components/WPSimpleEditor';
 import { SitraTipsBox } from '@/components/SitraTipsBox';
-import { BookOpen, Lock } from 'lucide-react';
+import { BookOpen, Lock, Image as ImageLucide, Table2 } from 'lucide-react';
+import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
+import { InsertCrossReferenceDialog } from '@/components/InsertCrossReferenceDialog';
+import { InsertWPReferenceDialog } from '@/components/InsertWPReferenceDialog';
+import { InsertParticipantReferenceDialog } from '@/components/InsertParticipantReferenceDialog';
+import { InsertCaseReferenceDialog } from '@/components/InsertCaseReferenceDialog';
+import { InsertTDMSReferenceDropdowns } from '@/components/InsertTDMSReferenceDropdowns';
+import { CitationDialog } from '@/components/CitationDialog';
+import { InsertFigureDialog } from '@/components/InsertFigureDialog';
+import { useProposalReferences } from '@/hooks/useProposalReferences';
+import { useCaseSubsectionTemplates } from '@/hooks/useCaseSubsectionTemplates';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { ParticipantSummary } from '@/types/proposal';
+import { ParticipantBubble } from '@/components/B31Pill';
 
-const CASE_TYPES: Record<string, string> = {
-  case_study: 'CS',
-  use_case: 'UC',
-  living_lab: 'LL',
-  pilot: 'P',
-  demonstration: 'D',
-  challenge: 'CH',
-  other: '',
-};
+import {
+  getCaseTypeLabel,
+  getCaseTypePrefix as getCasePrefix,
+  buildCaseLabel,
+  caseWord,
+} from '@/lib/caseTypeLabels';
+import { useProposalCaseTypes } from '@/hooks/useProposalCaseTypes';
+import { stripWordHtml } from '@/lib/stripWordHtml';
 
-const CASE_TYPE_LABELS: Record<string, string> = {
-  case_study: 'Case Study',
-  use_case: 'Use Case',
-  living_lab: 'Living Lab',
-  pilot: 'Pilot',
-  demonstration: 'Demonstration',
-  challenge: 'Challenge',
-  other: 'Case',
-};
 
-function getCaseTypeLabel(caseType: string, customTypeName?: string | null): string {
-  if (caseType === 'other') return customTypeName || 'Case';
-  return CASE_TYPE_LABELS[caseType] || 'Case';
-}
-
-function getCasePrefix(caseType: string, customTypeName?: string | null): string {
-  if (caseType === 'other') return customTypeName ? customTypeName.toUpperCase() : '';
-  return CASE_TYPES[caseType] || '';
-}
 
 const SITRA_CASE_TIPS = [
   {
@@ -69,51 +61,8 @@ const SITRA_CASE_TIPS = [
   },
 ];
 
-interface SubsectionConfig {
-  key: 'background_context' | 'key_stakeholders' | 'proposed_solutions' | 'expected_outcomes' | 'replicability';
-  headingKey: 'heading_background' | 'heading_stakeholders' | 'heading_solutions' | 'heading_outcomes' | 'heading_replicability';
-  guidelineKey: 'guideline_background' | 'guideline_stakeholders' | 'guideline_solutions' | 'guideline_outcomes' | 'guideline_replicability';
-  defaultHeading: string;
-  defaultGuideline: string;
-}
-
-const SUBSECTIONS: SubsectionConfig[] = [
-  {
-    key: 'background_context',
-    headingKey: 'heading_background',
-    guidelineKey: 'guideline_background',
-    defaultHeading: 'Background context',
-    defaultGuideline: 'Describe the specific setting, stakeholders, and challenges that motivate this case. Explain what makes this context relevant to the project objectives.',
-  },
-  {
-    key: 'key_stakeholders',
-    headingKey: 'heading_stakeholders',
-    guidelineKey: 'guideline_stakeholders',
-    defaultHeading: 'Key stakeholders',
-    defaultGuideline: 'Summarise the key target groups involved in the case.',
-  },
-  {
-    key: 'proposed_solutions',
-    headingKey: 'heading_solutions',
-    guidelineKey: 'guideline_solutions',
-    defaultHeading: 'Proposed solutions',
-    defaultGuideline: 'Outline the solutions or interventions to be developed and tested in this case. Describe interactions with relevant WPs and how each contributes to this case.',
-  },
-  {
-    key: 'expected_outcomes',
-    headingKey: 'heading_outcomes',
-    guidelineKey: 'guideline_outcomes',
-    defaultHeading: 'Expected outcomes',
-    defaultGuideline: 'Specify the measurable results expected from this case, including KPIs and success criteria.',
-  },
-  {
-    key: 'replicability',
-    headingKey: 'heading_replicability',
-    guidelineKey: 'guideline_replicability',
-    defaultHeading: 'Replicability',
-    defaultGuideline: 'Explain how lessons and solutions from this case can be transferred to other contexts, sectors, or geographies.',
-  },
-];
+// Subsection templates are now project-wide; loaded via useCaseSubsectionTemplates.
+// Legacy per-case heading_*/guideline_* fields are no longer read or written.
 
 interface CaseDraftEditorProps {
   caseId: string;
@@ -132,6 +81,279 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
   const [lockWarningDismissed, setLockWarningDismissed] = useState(false);
   const [showLockWarning, setShowLockWarning] = useState(false);
 
+  // Cross-reference dialog states
+  const [isCrossRefOpen, setIsCrossRefOpen] = useState(false);
+  const [crossRefFilterType, setCrossRefFilterType] = useState<'figure' | 'table' | undefined>(undefined);
+  const [isWPRefOpen, setIsWPRefOpen] = useState(false);
+  const [isParticipantRefOpen, setIsParticipantRefOpen] = useState(false);
+  const [isTaskRefOpen, setIsTaskRefOpen] = useState(false);
+  const [isDeliverableRefOpen, setIsDeliverableRefOpen] = useState(false);
+  const [isMilestoneRefOpen, setIsMilestoneRefOpen] = useState(false);
+  const [isCaseRefOpen, setIsCaseRefOpen] = useState(false);
+  const [isCitationOpen, setIsCitationOpen] = useState(false);
+  const [isFigureDialogOpen, setIsFigureDialogOpen] = useState(false);
+
+  // Proposal-wide references hook (for citations)
+  const {
+    references: proposalReferences,
+    updateReference,
+    getNextCitationNumber,
+  } = useProposalReferences(proposalId);
+
+  // Proposal acronym + has-cases for dropdown
+  const { data: proposalMeta } = useQuery({
+    queryKey: ['case-draft-proposal-meta', proposalId],
+    queryFn: async () => {
+      const [{ data: proposal }, { count }] = await Promise.all([
+        supabase.from('proposals').select('acronym_segments').eq('id', proposalId).maybeSingle(),
+        supabase.from('case_drafts').select('id', { count: 'exact', head: true }).eq('proposal_id', proposalId),
+      ]);
+      return {
+        acronymSegments: (proposal?.acronym_segments as { text: string; color: string }[] | null) || [],
+        hasCases: (count || 0) > 0,
+      };
+    },
+    enabled: !!proposalId,
+  });
+  const acronymSegments = proposalMeta?.acronymSegments || [];
+  const hasCases = !!proposalMeta?.hasCases;
+  const { data: caseTypes = [] } = useProposalCaseTypes(proposalId);
+
+
+  // Save/restore selection across multiple WPSimpleEditor subsections
+  const savedRangeRef = useRef<Range | null>(null);
+  const savedEditorRef = useRef<HTMLElement | null>(null);
+  const saveSelection = useCallback(() => {
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      const node = sel.anchorNode;
+      if (node) {
+        const el = node.nodeType === Node.ELEMENT_NODE ? (node as HTMLElement) : node.parentElement;
+        const editable = el?.closest('[contenteditable="true"]') as HTMLElement | null;
+        if (editable) {
+          savedRangeRef.current = sel.getRangeAt(0).cloneRange();
+          savedEditorRef.current = editable;
+        }
+      }
+    }
+  }, []);
+  const restoreSelection = useCallback((): { editorEl: HTMLElement | null } => {
+    const range = savedRangeRef.current;
+    const editorEl = savedEditorRef.current;
+    const clear = () => { savedRangeRef.current = null; savedEditorRef.current = null; };
+    if (range && editorEl && document.body.contains(editorEl)) {
+      if (document.body.contains(range.startContainer)) {
+        editorEl.focus({ preventScroll: true });
+        const sel = window.getSelection();
+        if (sel) { sel.removeAllRanges(); sel.addRange(range); }
+        clear();
+        return { editorEl };
+      }
+      editorEl.focus({ preventScroll: true });
+      const sel = window.getSelection();
+      if (sel) {
+        sel.removeAllRanges();
+        const fallback = document.createRange();
+        fallback.selectNodeContents(editorEl);
+        fallback.collapse(false);
+        sel.addRange(fallback);
+        clear();
+        return { editorEl };
+      }
+    }
+    clear();
+    return { editorEl: null };
+  }, []);
+  const notifyEditorInput = useCallback((editorEl: HTMLElement | null) => {
+    if (!editorEl || !document.body.contains(editorEl)) return;
+    editorEl.dispatchEvent(new Event('input', { bubbles: true }));
+  }, []);
+
+  const insertNodeAtCursor = useCallback((node: Node) => {
+    const { editorEl } = restoreSelection();
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      range.insertNode(node);
+      range.setStartAfter(node);
+      range.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(range);
+      notifyEditorInput(editorEl);
+    }
+  }, [notifyEditorInput, restoreSelection]);
+
+  const insertCrossRefAtCursor = useCallback((payload: { refText: string; figureId?: string; tableKey?: string; refKind: 'figure' | 'table' }) => {
+    const span = document.createElement('span');
+    span.textContent = payload.refText;
+    span.setAttribute('data-fig-table-ref', '');
+    if (payload.figureId) span.setAttribute('data-figure-id', payload.figureId);
+    if (payload.tableKey) span.setAttribute('data-table-key', payload.tableKey);
+    span.setAttribute('data-ref-kind', payload.refKind);
+    Object.assign(span.style, { fontWeight: 'bold', fontStyle: 'normal', fontFamily: "'Times New Roman', Times, serif", cursor: 'pointer' });
+    insertNodeAtCursor(span);
+    toast.success('Cross-reference inserted');
+  }, [insertNodeAtCursor]);
+
+  const insertWPRefAtCursor = useCallback((wpNumber: number, wpShortName: string, wpColor: string, wpId: string) => {
+    const span = document.createElement('span');
+    span.textContent = `WP${wpNumber}${wpShortName ? `: ${wpShortName}` : ''}`;
+    span.setAttribute('data-wp-reference', '');
+    span.setAttribute('data-wp-number', String(wpNumber));
+    span.setAttribute('data-wp-id', wpId);
+    span.setAttribute('data-wp-color', wpColor);
+    span.setAttribute('data-wp-short-name', wpShortName || '');
+    span.setAttribute('contenteditable', 'false');
+    Object.assign(span.style, {
+      backgroundColor: wpColor, color: '#ffffff', border: `1.5px solid ${wpColor}`,
+      padding: '0px 5px', borderRadius: '9999px', fontFamily: "'Times New Roman', Times, serif",
+      fontWeight: '700', fontSize: '11pt', lineHeight: '1', verticalAlign: 'baseline',
+      display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap', userSelect: 'none',
+    });
+    insertNodeAtCursor(span);
+    toast.success(`WP${wpNumber} reference inserted`);
+  }, [insertNodeAtCursor]);
+
+  const insertParticipantRefAtCursor = useCallback((participantNumber: number, shortName: string, participantId: string) => {
+    const span = document.createElement('span');
+    span.textContent = shortName || 'Partner';
+    span.setAttribute('data-participant-reference', '');
+    span.setAttribute('data-participant-number', String(participantNumber));
+    span.setAttribute('data-participant-id', participantId);
+    span.setAttribute('data-participant-short-name', shortName || '');
+    span.setAttribute('contenteditable', 'false');
+    Object.assign(span.style, {
+      backgroundColor: '#000000', color: '#ffffff', border: '1.5px solid #000000',
+      padding: '0px 5px', borderRadius: '9999px', fontFamily: "'Times New Roman', Times, serif",
+      fontWeight: '700', fontSize: '11pt', lineHeight: '1',
+      verticalAlign: 'baseline', display: 'inline-flex', alignItems: 'center',
+      whiteSpace: 'nowrap', userSelect: 'none',
+    });
+    span.style.setProperty('font-style', 'normal', 'important');
+    insertNodeAtCursor(span);
+    toast.success(`${shortName} reference inserted`);
+  }, [insertNodeAtCursor]);
+
+  const insertTaskRefAtCursor = useCallback((task: { id: string; wp_number: number; number: number; title: string; wp_color?: string }) => {
+    const color = task.wp_color || '#73C92D';
+    const span = document.createElement('span');
+    span.textContent = `T${task.wp_number}.${task.number}`;
+    span.setAttribute('contenteditable', 'false');
+    span.setAttribute('data-task-id', task.id);
+    Object.assign(span.style, { display: 'inline-flex', alignItems: 'center', height: '17px', padding: '0 4px', borderRadius: '9999px', border: `1.5px solid ${color}`, color, fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: '700', lineHeight: '1', whiteSpace: 'nowrap', verticalAlign: 'baseline', userSelect: 'none' });
+    insertNodeAtCursor(span);
+    toast.success(`T${task.wp_number}.${task.number} reference inserted`);
+  }, [insertNodeAtCursor]);
+
+  const insertDeliverableRefAtCursor = useCallback((del: { id: string; number: string; name: string; wp_color?: string }) => {
+    const rawColor = del.wp_color || '#73C92D';
+    const color = /^#[0-9a-fA-F]{3,8}$/.test(rawColor) ? rawColor : '#73C92D';
+    const label = String(del.number).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    const textWidth = Math.max(36, label.length * 8 + 8);
+    const totalWidth = textWidth + 8;
+    const wrapper = document.createElement('span');
+    wrapper.setAttribute('contenteditable', 'false');
+    wrapper.setAttribute('data-deliverable-id', del.id);
+    Object.assign(wrapper.style, { display: 'inline-block', verticalAlign: 'baseline', position: 'relative', width: `${totalWidth}px`, height: '17px', userSelect: 'none' });
+    wrapper.innerHTML = `<svg width="${totalWidth}" height="17" viewBox="0 0 ${totalWidth} 17" style="position:absolute;top:0;left:0;overflow:visible;"><path d="M 0,0 L ${textWidth},0 L ${totalWidth},8.5 L ${textWidth},17 L 0,17 Z" fill="#ffffff" stroke="${color}" stroke-width="1.5" stroke-linejoin="round"/></svg><span style="position:absolute;top:0;left:0;width:${textWidth}px;height:17px;display:flex;align-items:center;justify-content:center;font-family:'Times New Roman',Times,serif;font-size:11pt;font-weight:700;line-height:1;color:${color};white-space:nowrap;">${label}</span>`;
+    insertNodeAtCursor(wrapper);
+    toast.success(`${del.number} reference inserted`);
+  }, [insertNodeAtCursor]);
+
+  const insertMilestoneRefAtCursor = useCallback((ms: { id: string; number: number; name: string }) => {
+    const wrapper = document.createElement('span');
+    wrapper.setAttribute('contenteditable', 'false');
+    wrapper.setAttribute('data-milestone-id', ms.id);
+    Object.assign(wrapper.style, {
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      background: '#000', color: '#ffffff',
+      fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: '700',
+      lineHeight: '18px', height: '18px', padding: '0 4px',
+      clipPath: 'polygon(12% 0%, 88% 0%, 100% 50%, 88% 100%, 12% 100%, 0% 50%)',
+      verticalAlign: 'baseline', whiteSpace: 'nowrap', userSelect: 'none',
+    });
+    wrapper.textContent = `MS${Number(ms.number) || 0}`;
+    insertNodeAtCursor(wrapper);
+    toast.success(`MS${ms.number} reference inserted`);
+  }, [insertNodeAtCursor]);
+
+  const insertAcronymRefAtCursor = useCallback(() => {
+    if (!acronymSegments || acronymSegments.length === 0) return;
+    const wrapper = document.createElement('span');
+    wrapper.setAttribute('data-acronym-reference', '');
+    wrapper.setAttribute('contenteditable', 'false');
+    wrapper.setAttribute('data-acronym-segments', JSON.stringify(acronymSegments));
+    Object.assign(wrapper.style, {
+      display: 'inline', fontFamily: "'Arial Black', Arial, sans-serif",
+      fontWeight: '900', fontSize: 'inherit', whiteSpace: 'nowrap', cursor: 'pointer',
+    });
+    acronymSegments.forEach((seg) => {
+      const s = document.createElement('span');
+      s.style.color = seg.color;
+      s.textContent = seg.text;
+      wrapper.appendChild(s);
+    });
+    insertNodeAtCursor(wrapper);
+    toast.success('Acronym reference inserted');
+  }, [acronymSegments, insertNodeAtCursor]);
+
+  const insertCaseRefAtCursor = useCallback((caseItem: { id: string; number: number; short_name: string | null; case_type: string }) => {
+    const prefix = getCasePrefix(caseItem.case_type);
+    const label = prefix ? `${prefix}${caseItem.number}` : (caseItem.short_name || String(caseItem.number));
+    const span = document.createElement('span');
+    span.textContent = label;
+    span.setAttribute('data-case-reference', '');
+    span.setAttribute('data-case-id', caseItem.id);
+    span.setAttribute('data-case-number', String(caseItem.number));
+    span.setAttribute('data-case-type', caseItem.case_type);
+    if (caseItem.short_name) span.setAttribute('data-case-short-name', caseItem.short_name);
+    span.setAttribute('contenteditable', 'false');
+    Object.assign(span.style, {
+      display: 'inline-flex', alignItems: 'center', backgroundColor: '#ffffff', color: '#000000',
+      border: '1.5px solid #000000', padding: '0 0.4rem', borderRadius: '9999px',
+      fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: '700',
+      fontStyle: 'normal', lineHeight: '1', whiteSpace: 'nowrap', verticalAlign: 'baseline',
+      cursor: 'pointer', userSelect: 'none',
+    });
+    insertNodeAtCursor(span);
+    toast.success(`${caseWord(caseTypes, { capitalize: true })} reference inserted`);
+  }, [insertNodeAtCursor, caseTypes]);
+
+
+  const insertCitationAtCursor = useCallback((citationNumber: number) => {
+    const sup = document.createElement('sup');
+    sup.textContent = `${citationNumber}`;
+    sup.setAttribute('data-citation', String(citationNumber));
+    sup.style.color = 'blue';
+    sup.style.cursor = 'pointer';
+    insertNodeAtCursor(sup);
+    toast.success(`Citation ${citationNumber} inserted`);
+  }, [insertNodeAtCursor]);
+
+  const insertFigureAtCursor = useCallback((figure: any) => {
+    const refSpan = document.createElement('span');
+    refSpan.textContent = `(see ${figure.figure_number})`;
+    refSpan.style.color = 'blue';
+    refSpan.style.textDecoration = 'underline';
+    insertNodeAtCursor(refSpan);
+    toast.success('Figure reference inserted');
+  }, [insertNodeAtCursor]);
+
+  // Browser-level undo/redo for contentEditable surfaces in the case draft
+  const handleUndo = useCallback(() => {
+    const { editorEl } = restoreSelection();
+    if (editorEl) editorEl.focus({ preventScroll: true });
+    document.execCommand('undo');
+  }, [restoreSelection]);
+  const handleRedo = useCallback(() => {
+    const { editorEl } = restoreSelection();
+    if (editorEl) editorEl.focus({ preventScroll: true });
+    document.execCommand('redo');
+  }, [restoreSelection]);
+
+
+
+
   // Fetch case draft
   const { data: caseDraft, isLoading } = useQuery({
     queryKey: ['case-draft-detail', caseId],
@@ -141,6 +363,21 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
         .select('*')
         .eq('id', caseId)
         .single();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Fetch case type flags (include_number / include_abbreviation / outline_color)
+  const { data: caseTypeRow } = useQuery({
+    queryKey: ['proposal-case-type', (caseDraft as any)?.case_type_id],
+    enabled: !!(caseDraft as any)?.case_type_id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('proposal_case_types')
+        .select('include_number, include_abbreviation, outline_color')
+        .eq('id', (caseDraft as any).case_type_id)
+        .maybeSingle();
       if (error) throw error;
       return data;
     },
@@ -189,35 +426,17 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
     return false;
   }, [canEditProp, isLocked, isCoordinator, lockWarningDismissed]);
 
-  // Heading and guideline keys that should propagate across all cases
-  const PROPAGATED_KEYS = new Set([
-    'heading_background', 'heading_stakeholders', 'heading_solutions', 'heading_outcomes', 'heading_replicability',
-    'guideline_background', 'guideline_stakeholders', 'guideline_solutions', 'guideline_outcomes', 'guideline_replicability',
-  ]);
+  // Project-wide subsection templates
+  const { templates: subsectionTemplates } = useCaseSubsectionTemplates(proposalId);
 
-  // Update mutation
+  // Update mutation (writes go only to this case row; per-case heading/guideline propagation removed)
   const updateMutation = useMutation({
     mutationFn: async (updates: Record<string, any>) => {
       const { error } = await supabase
         .from('case_drafts')
-        .update(updates)
+        .update(updates as any)
         .eq('id', caseId);
       if (error) throw error;
-
-      // Propagate heading/guideline changes to ALL other cases in the proposal
-      const propagatedUpdates: Record<string, any> = {};
-      for (const [key, val] of Object.entries(updates)) {
-        if (PROPAGATED_KEYS.has(key)) {
-          propagatedUpdates[key] = val;
-        }
-      }
-      if (Object.keys(propagatedUpdates).length > 0) {
-        await supabase
-          .from('case_drafts')
-          .update(propagatedUpdates)
-          .eq('proposal_id', proposalId)
-          .neq('id', caseId);
-      }
     },
     onSuccess: () => {
       setLastSaved(new Date());
@@ -232,8 +451,33 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
   });
 
   const updateField = useCallback((field: string, value: any) => {
-    updateMutation.mutate({ [field]: value });
+    // Save-time guard: if the value looks like HTML, run it through the
+    // shared Word-cleaner so any MSO junk that slipped past paste-time
+    // (or arrived via a programmatic insert) is stripped before write.
+    const safe =
+      typeof value === 'string' && value.indexOf('<') !== -1
+        ? stripWordHtml(value)
+        : value;
+    updateMutation.mutate({ [field]: safe });
   }, [updateMutation]);
+
+  // Write a single subsection's content into the subsection_content jsonb
+  const updateSubsectionContent = useCallback(
+    (key: string, value: string, heading?: string) => {
+      const current = ((caseDraft as any)?.subsection_content as Record<string, any> | null) || {};
+      const safe = typeof value === 'string' ? stripWordHtml(value) : value;
+      // Forward-write the object form { heading, body }. The reader tolerates
+      // both the legacy bare-string shape and this object shape.
+      const existing = current[key];
+      const existingHeading =
+        existing && typeof existing === 'object' ? existing.heading : undefined;
+      const nextHeading = heading || existingHeading || '';
+      updateMutation.mutate({
+        subsection_content: { ...current, [key]: { heading: nextHeading, body: safe } },
+      });
+    },
+    [caseDraft, updateMutation],
+  );
 
   const execCommand = (command: string, value?: string) => {
     document.execCommand(command, false, value);
@@ -269,13 +513,24 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
   if (!caseDraft) {
     return (
       <div className="flex items-center justify-center h-64 text-muted-foreground">
-        Case not found
+        {caseWord(caseTypes, { capitalize: true })} not found
       </div>
     );
   }
 
   const readOnly = !canEdit;
   const prefix = getCasePrefix(caseDraft.case_type, caseDraft.custom_type_name);
+  const includeNumber = caseTypeRow?.include_number !== false;
+  const includeAbbreviation = caseTypeRow?.include_abbreviation !== false;
+  const headingLabel = buildCaseLabel({
+    prefix,
+    number: caseDraft.number,
+    shortName: caseDraft.short_name,
+    includeNumber,
+    includeAbbreviation,
+    withShortName: false,
+  });
+
 
   return (
     <ScrollArea className="h-full">
@@ -284,7 +539,7 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
         {isLocked && !canEdit && (
           <div className="flex items-center gap-2 p-3 rounded-md bg-destructive/10 border border-destructive/30 text-sm">
             <Lock className="w-4 h-4 text-destructive shrink-0" />
-            <span>This case has been locked by <strong>{lockerName}</strong>. Editing is disabled.</span>
+            <span>This {caseWord(caseTypes, { capitalize: false })} has been locked by <strong>{lockerName}</strong>. Editing is disabled.</span>
             {isCoordinator && (
               <Button variant="outline" size="sm" className="ml-auto shrink-0 h-7 text-xs" onClick={() => setShowLockWarning(true)}>
                 Edit anyway
@@ -303,7 +558,7 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
               </DialogTitle>
             </DialogHeader>
             <p className="text-sm text-muted-foreground">
-              This case has been locked by <strong>{lockerName}</strong>. As you are a coordinator, you can still edit it, but doing so may result in differences between the draft and Part B. It is recommended to therefore work on Part B instead.
+              This {caseWord(caseTypes, { capitalize: false })} has been locked by <strong>{lockerName}</strong>. As you are a coordinator, you can still edit it, but doing so may result in differences between the draft and Part B. It is recommended to therefore work on Part B instead.
             </p>
             <p className="text-sm font-medium">Do you wish to continue editing the draft?</p>
             <div className="flex justify-end gap-2 mt-2">
@@ -322,6 +577,12 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
             onSaveNow: () => {},
           }}
           isReadOnly={readOnly}
+          undo={{
+            canUndo: !readOnly,
+            canRedo: !readOnly,
+            onUndo: handleUndo,
+            onRedo: handleRedo,
+          }}
           onCommand={execCommand}
           table={{
             open: tablePopoverOpen,
@@ -330,6 +591,91 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
             onHoverCell: setHoveredCell,
             onInsert: insertTable,
           }}
+          paragraphSpacingContainer={() =>
+            (document.activeElement && (document.activeElement as HTMLElement).closest('[contenteditable="true"]')) as HTMLElement | null
+            || (document.querySelector('.case-draft-editor [contenteditable="true"]') as HTMLElement | null)
+          }
+          onSaveSelection={saveSelection}
+          onOpenFigureDialog={() => setIsFigureDialogOpen(true)}
+          onOpenCitationDialog={() => setIsCitationOpen(true)}
+          crossRefMenuItems={
+            <>
+              <DropdownMenuItem onClick={() => { setCrossRefFilterType('figure'); setIsCrossRefOpen(true); }} className="flex items-center gap-2">
+                <span className="w-16 flex justify-start shrink-0"><ImageLucide className="w-3.5 h-3.5 text-foreground" /></span>
+                <span>Figure number</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => { setCrossRefFilterType('table'); setIsCrossRefOpen(true); }} className="flex items-center gap-2">
+                <span className="w-16 flex justify-start shrink-0"><Table2 className="w-3.5 h-3.5 text-foreground" /></span>
+                <span>Table number</span>
+              </DropdownMenuItem>
+              {acronymSegments && acronymSegments.length > 0 && (
+                <DropdownMenuItem onClick={insertAcronymRefAtCursor} className="flex items-center gap-2">
+                  <span className="w-16 flex justify-start shrink-0">
+                    <span style={{ fontFamily: "'Arial Black', Arial, sans-serif", fontWeight: 900, fontSize: '9px', whiteSpace: 'nowrap' }}>
+                      {acronymSegments.map((seg, i) => <span key={i} style={{ color: seg.color }}>{seg.text}</span>)}
+                    </span>
+                  </span>
+                  <span>Acronym</span>
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem onClick={() => setIsWPRefOpen(true)} className="flex items-center gap-2">
+                <span className="w-16 flex justify-start shrink-0">
+                  <span style={{ display: 'inline-block', width: '22px', height: '14px', backgroundColor: '#73C92D', border: '1.5px solid #73C92D', borderRadius: '9999px' }} />
+                </span>
+                <span>Work package</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setIsTaskRefOpen(true)} className="flex items-center gap-2">
+                <span className="w-16 flex justify-start shrink-0">
+                  <span style={{ display: 'inline-block', width: '22px', height: '14px', borderRadius: '9999px', border: '1.5px solid #73C92D', background: '#ffffff' }} />
+                </span>
+                <span>Task</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setIsDeliverableRefOpen(true)} className="flex items-center gap-2">
+                <span className="w-16 flex justify-start shrink-0">
+                  <span style={{ display: 'inline-block', width: '22px', height: '14px', background: '#73C92D', clipPath: 'polygon(0% 0%, calc(100% - 6px) 0%, 100% 50%, calc(100% - 6px) 100%, 0% 100%)', position: 'relative' }}>
+                    <span style={{ position: 'absolute', inset: '1.5px', right: '2px', background: '#ffffff', clipPath: 'polygon(0% 0%, calc(100% - 5px) 0%, 100% 50%, calc(100% - 5px) 100%, 0% 100%)' }} />
+                  </span>
+                </span>
+                <span>Deliverable</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setIsMilestoneRefOpen(true)} className="flex items-center gap-2">
+                <span className="w-16 flex justify-start shrink-0">
+                  <span style={{ display: 'inline-block', width: '16px', height: '16px', background: '#000', clipPath: 'polygon(100% 0%, 0% 50%, 100% 100%)', margin: '-1px 0' }} />
+                </span>
+                <span>Milestone</span>
+              </DropdownMenuItem>
+              {hasCases && (
+                <DropdownMenuItem onClick={() => setIsCaseRefOpen(true)} className="flex items-center gap-2">
+                  <span className="w-16 flex justify-start shrink-0">
+                    <span style={{ display: 'inline-block', width: '22px', height: '14px', border: '1.5px solid #000000', borderRadius: '9999px', background: '#ffffff' }} />
+                  </span>
+                  <span>{caseWord(caseTypes, { capitalize: true })}</span>
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem onClick={() => setIsParticipantRefOpen(true)} className="flex items-center gap-2">
+                <span className="w-16 flex justify-start shrink-0">
+                  <span style={{ display: 'inline-block', width: '22px', height: '14px', backgroundColor: '#000000', border: '1.5px solid #000000', borderRadius: '9999px' }} />
+                </span>
+                <span>Participant</span>
+              </DropdownMenuItem>
+            </>
+          }
+          trailing={
+            <InsertTDMSReferenceDropdowns
+              proposalId={proposalId}
+              disabled={readOnly}
+              onInsertTask={insertTaskRefAtCursor}
+              onInsertDeliverable={insertDeliverableRefAtCursor}
+              onInsertMilestone={insertMilestoneRefAtCursor}
+              dialogsOnly
+              openTask={isTaskRefOpen}
+              onOpenTaskChange={setIsTaskRefOpen}
+              openDeliverable={isDeliverableRefOpen}
+              onOpenDeliverableChange={setIsDeliverableRefOpen}
+              openMilestone={isMilestoneRefOpen}
+              onOpenMilestoneChange={setIsMilestoneRefOpen}
+            />
+          }
         />
 
 
@@ -362,12 +708,9 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
                 <SelectContent>
                   {participants.map((p) => (
                     <SelectItem key={p.id} value={p.id}>
-                      <span
-                        className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
-                        style={{ backgroundColor: '#000000', color: '#ffffff', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, padding: '0px 5px', height: '17px' }}
-                      >
+                      <ParticipantBubble>
                         {p.organisation_short_name || p.organisation_name}
-                      </span>
+                      </ParticipantBubble>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -376,11 +719,11 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
           </div>
           {/* Row 2: Badge + Title */}
           <div className="flex items-center gap-2">
-            <span className="text-base font-bold text-black">{prefix ? `${prefix}${caseDraft.number}` : (caseDraft.short_name || caseDraft.number)}:</span>
+            <span className="text-base font-bold text-black">{headingLabel}:</span>
             <DebouncedInput
               value={caseDraft.title || ''}
               onDebouncedChange={(v) => updateField('title', v)}
-              placeholder="Full case title"
+              placeholder={`Full ${caseWord(caseTypes, { capitalize: false })} title`}
               className="flex-1 text-base font-bold"
               disabled={readOnly}
             />
@@ -391,12 +734,12 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
         <Dialog open={guidelinesOpen} onOpenChange={setGuidelinesOpen}>
           <DialogContent className="max-w-3xl max-h-[90vh] w-[90vw]">
             <DialogHeader>
-              <DialogTitle>Guidelines for {prefix ? `${prefix}${caseDraft.number}` : (caseDraft.short_name || caseDraft.number)}: {caseDraft.title || caseDraft.short_name || 'Case'}</DialogTitle>
+              <DialogTitle>Guidelines for {headingLabel}: {caseDraft.title || caseDraft.short_name || 'Case'}</DialogTitle>
             </DialogHeader>
             <ScrollArea className="max-h-[75vh] pr-4">
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">
-                  There are no official EC guidelines for case descriptions. Use the Sitra tips below for guidance.
+                  There are no official EC guidelines for {caseWord(caseTypes, { plural: true, capitalize: false })} descriptions. Use the Sitra tips below for guidance.
                 </p>
                 <SitraTipsBox tips={SITRA_CASE_TIPS} />
               </div>
@@ -404,47 +747,39 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
           </DialogContent>
         </Dialog>
 
-        {/* Subsections */}
-        {SUBSECTIONS.map((sub) => {
-          const heading = (caseDraft as any)[sub.headingKey] || sub.defaultHeading;
-          const guideline = (caseDraft as any)[sub.guidelineKey] || sub.defaultGuideline;
-          const content = (caseDraft as any)[sub.key] || '';
+        {/* Subsections — driven by project-wide template */}
+        {subsectionTemplates.length === 0 && (
+          <p className="text-sm text-muted-foreground italic px-1">
+            No subsections defined for this proposal yet. A coordinator can add them via the
+            &ldquo;Edit {caseWord(caseTypes, { capitalize: false })} subsections &amp; guidelines&rdquo; button in the case manager.
+          </p>
+        )}
+        {subsectionTemplates.map((sub) => {
+          const contentMap = ((caseDraft as any).subsection_content as Record<string, any> | null) || {};
+          const rawEntry = contentMap[sub.key];
+          const content =
+            typeof rawEntry === 'string'
+              ? rawEntry
+              : (rawEntry && typeof rawEntry === 'object' ? (rawEntry.body || '') : '');
+          const guideline = sub.guideline || '';
 
           return (
-            <Card key={sub.key}>
+            <Card key={sub.id}>
               <CardHeader className="py-2 px-3">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <BookOpen className="h-4 w-4" />
-                  {isCoordinator ? (
-                    <DebouncedInput
-                      value={heading}
-                      onDebouncedChange={(v) => updateField(sub.headingKey, v)}
-                      className="h-7 text-base font-semibold border-dashed"
-                      disabled={!isCoordinator}
-                    />
-                  ) : (
-                    <span>{heading}</span>
-                  )}
+                  <span>{sub.heading}</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 px-3 pb-3 pt-0">
-                <div className="rounded-md border border-border bg-muted/30 p-2">
-                  {isCoordinator ? (
-                    <DebouncedInput
-                      value={guideline}
-                      onDebouncedChange={(v) => updateField(sub.guidelineKey, v)}
-                      className="h-auto text-xs text-muted-foreground italic border-dashed bg-transparent min-h-[1.5rem]"
-                    />
-                  ) : (
-                    <p className="text-xs text-muted-foreground italic">
-                      {guideline}
-                    </p>
-                  )}
-                </div>
+                {guideline && (
+                  <p className="text-xs text-muted-foreground italic px-1">{guideline}</p>
+                )}
+
                 <WPSimpleEditor
                   value={content}
-                  onChange={(v) => updateField(sub.key, v)}
-                  placeholder={`Write about ${sub.defaultHeading.toLowerCase()}...`}
+                  onChange={(v) => updateSubsectionContent(sub.key, v, sub.heading)}
+                  placeholder={`Write about ${sub.heading.toLowerCase()}...`}
                   disabled={readOnly}
                   minHeight="150px"
                   hideToolbar={true}
@@ -454,6 +789,71 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
           );
         })}
       </div>
+
+      {/* Cross-reference dialogs */}
+      <InsertCrossReferenceDialog
+        isOpen={isCrossRefOpen}
+        onClose={() => { setIsCrossRefOpen(false); setCrossRefFilterType(undefined); }}
+        proposalId={proposalId}
+        sectionNumber=""
+        onInsert={insertCrossRefAtCursor}
+        filterType={crossRefFilterType}
+      />
+      <InsertWPReferenceDialog
+        open={isWPRefOpen}
+        onOpenChange={setIsWPRefOpen}
+        proposalId={proposalId}
+        onSelect={(wp) => {
+          setIsWPRefOpen(false);
+          setTimeout(() => {
+            insertWPRefAtCursor(wp.number, wp.short_name || '', wp.color || '#3b82f6', wp.id);
+          }, 100);
+        }}
+      />
+      <InsertParticipantReferenceDialog
+        open={isParticipantRefOpen}
+        onOpenChange={setIsParticipantRefOpen}
+        proposalId={proposalId}
+        onSelect={(participant) => {
+          setIsParticipantRefOpen(false);
+          setTimeout(() => {
+            insertParticipantRefAtCursor(participant.participantNumber, participant.shortName, participant.id);
+          }, 100);
+        }}
+      />
+      <InsertCaseReferenceDialog
+        open={isCaseRefOpen}
+        onOpenChange={setIsCaseRefOpen}
+        proposalId={proposalId}
+        onSelect={(caseItem) => {
+          setIsCaseRefOpen(false);
+          setTimeout(() => {
+            insertCaseRefAtCursor(caseItem);
+          }, 100);
+        }}
+      />
+
+      {/* Citation Dialog */}
+      <CitationDialog
+        isOpen={isCitationOpen}
+        onClose={() => setIsCitationOpen(false)}
+        onInsertCitation={(_reference, _formattedCitation, citationNumber) => {
+          insertCitationAtCursor(citationNumber);
+        }}
+        proposalReferences={proposalReferences}
+        isLoadingReferences={false}
+        nextCitationNumber={getNextCitationNumber()}
+        onUpdateReference={updateReference}
+      />
+
+      {/* Figure Dialog */}
+      <InsertFigureDialog
+        isOpen={isFigureDialogOpen}
+        onClose={() => setIsFigureDialogOpen(false)}
+        proposalId={proposalId}
+        currentSectionId=""
+        onInsertFigure={insertFigureAtCursor}
+      />
     </ScrollArea>
   );
 }

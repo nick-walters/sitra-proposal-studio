@@ -1,10 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { corsHeaders } from "../_shared/cors.ts";
+import { requireAuth } from "../_shared/auth.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 type Category = 'grammar' | 'conciseness' | 'clarity' | 'tone' | 'terminology';
 
@@ -29,27 +26,18 @@ serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const auth = await requireAuth(req);
+    if (!auth.ok) return auth.response;
+    const supabase = auth.callerClient;
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
+    const { data: roles } = await supabase
+      .from('user_roles')
+      .select('id')
+      .eq('user_id', auth.userId)
+      .limit(1);
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    if (!roles || roles.length === 0) {
+      return new Response(JSON.stringify({ error: 'No proposal access' }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const { text, categories } = await req.json();
@@ -63,6 +51,14 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ suggestions: [] }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const MAX_TEXT_CHARS = 50_000;
+    if (typeof text !== 'string' || text.length > MAX_TEXT_CHARS) {
+      return new Response(
+        JSON.stringify({ error: `Text too long (max ${MAX_TEXT_CHARS} characters)` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -173,7 +169,7 @@ Be thorough but practical. If the text is already strong in the selected categor
   } catch (error) {
     console.error("Grammar check error:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ error: "An internal error occurred" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

@@ -22,7 +22,7 @@ export function renumberCaptionsInEditor(editor: Editor, sectionNumber: string, 
 
   // Collect caption info: position of the paragraph, type, and the range of the caption text
   interface CaptionInfo {
-    type: 'figure' | 'table';
+    type: 'figure' | 'table' | 'caseTable';
     paragraphPos: number; // position of paragraph node in the doc
     // The caption text "Table 1.1.a." may span multiple text nodes (e.g., bold+italic)
     // We need to find the character range within the paragraph content
@@ -34,8 +34,22 @@ export function renumberCaptionsInEditor(editor: Editor, sectionNumber: string, 
   const captions: CaptionInfo[] = [];
 
   doc.forEach((node, offset) => {
+    // casesTable atoms render their caption inside a NodeView (React) — they
+    // are NOT paragraphs, so they don't show up in the text scan. We still
+    // need to count them as table-caption slots so manual tables interleaved
+    // around them get the right sequential letter.
+    if (node.type.name === 'casesTable') {
+      captions.push({
+        type: 'caseTable',
+        paragraphPos: offset,
+        captionTextStart: -1,
+        captionTextEnd: -1,
+        currentText: '',
+      });
+      return;
+    }
     if (node.type.name !== 'paragraph') return;
-    
+
     const fullText = node.textContent;
     const match = captionPattern.exec(fullText);
     if (!match) return;
@@ -65,7 +79,13 @@ export function renumberCaptionsInEditor(editor: Editor, sectionNumber: string, 
   const updates: { from: number; to: number; newText: string; oldText: string; type: 'figure' | 'table'; oldLetter: string; newLetter: string }[] = [];
 
   for (const cap of captions) {
+    if (cap.type === 'caseTable') {
+      // Reserve a slot — case-table captions render inside the NodeView.
+      tableIdx++;
+      continue;
+    }
     const idx = cap.type === 'figure' ? figureIdx++ : tableIdx++;
+
     const newLetter = String.fromCharCode('a'.charCodeAt(0) + idx);
     const prefix = cap.type === 'figure' ? 'Figure' : 'Table';
     const newText = `${prefix} ${cleanSectionNum}.${newLetter}.`;
@@ -86,6 +106,10 @@ export function renumberCaptionsInEditor(editor: Editor, sectionNumber: string, 
   figureIdx = 0;
   tableIdx = tableOffset;
   for (const cap of captions) {
+    if (cap.type === 'caseTable') {
+      tableIdx++;
+      continue;
+    }
     const idx = cap.type === 'figure' ? figureIdx++ : tableIdx++;
     const newLetter = String.fromCharCode('a'.charCodeAt(0) + idx);
     const prefix = cap.type === 'figure' ? 'Figure' : 'Table';
@@ -97,6 +121,7 @@ export function renumberCaptionsInEditor(editor: Editor, sectionNumber: string, 
       labelRemap.set(oldLabel, newLabel);
     }
   }
+
 
   // Apply caption text updates in reverse order to preserve positions
   const tr = state.tr;
@@ -191,6 +216,12 @@ export function updateCaptionForTableAtCursor(editor: Editor, sectionNumber: str
   let tableLetterIdx = tableOffset;
   doc.forEach((node, offset) => {
     if (offset >= tablePos) return; // only count captions before this table
+    // casesTable atoms render their caption in a NodeView (not a paragraph),
+    // but they still occupy a slot in the global table-caption sequence.
+    if (node.type.name === 'casesTable') {
+      tableLetterIdx++;
+      return;
+    }
     if (node.type.name === 'paragraph') {
       const cls = (node.attrs?.class || '') as string;
       const text = node.textContent;
@@ -199,6 +230,7 @@ export function updateCaptionForTableAtCursor(editor: Editor, sectionNumber: str
       }
     }
   });
+
 
   // Check if there's a paragraph immediately before the table
   const $tablePos = doc.resolve(tablePos);

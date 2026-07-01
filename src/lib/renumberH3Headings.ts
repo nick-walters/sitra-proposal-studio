@@ -18,6 +18,8 @@ export function renumberH3Headings(editor: Editor, sectionPrefix: string) {
 
   const headingNumberMark = state.schema.marks.headingNumberLabel?.create();
 
+  const replacements: { from: number; to: number; newPrefix: string; headingPos: number }[] = [];
+
   state.doc.descendants((node, pos) => {
     if (node.type.name === 'heading' && node.attrs.level === 3) {
       const text = node.textContent;
@@ -29,14 +31,33 @@ export function renumberH3Headings(editor: Editor, sectionPrefix: string) {
         const to = from + match[0].length;
 
         if (match[0] !== newPrefix || !hasHeadingNumberMark(node, state)) {
-          // Replace prefix text with marked version
-          const marks = headingNumberMark ? [headingNumberMark] : [];
-          tr.replaceRangeWith(from, to, state.schema.text(newPrefix, marks));
-          hasChanges = true;
+          replacements.push({ from, to, newPrefix, headingPos: pos });
         }
       }
     }
   });
+
+  // Apply highest-position-first so earlier (lower) positions are not shifted
+  // by length-changing replacements that happen later in the document
+  // (e.g. when the counter crosses 9 → 10, or a prefix is introduced for the
+  // first time). Same position-safety pattern as the reference-mark guards
+  // and syncCrossReferences.
+  replacements.sort((a, b) => b.from - a.from);
+
+  for (const r of replacements) {
+    // Re-check against the live transaction doc: the heading must still be a
+    // level-3 heading and the text at [from, to] must still look like a
+    // numbered prefix of the expected length. Skip silently otherwise.
+    const headingNode = tr.doc.nodeAt(r.headingPos);
+    if (!headingNode || headingNode.type.name !== 'heading' || headingNode.attrs.level !== 3) continue;
+    if (r.to > tr.doc.content.size) continue;
+    const currentText = tr.doc.textBetween(r.from, r.to, '', '');
+    if (!prefixPattern.test(currentText)) continue;
+
+    const marks = headingNumberMark ? [headingNumberMark] : [];
+    tr.replaceRangeWith(r.from, r.to, state.schema.text(r.newPrefix, marks));
+    hasChanges = true;
+  }
 
   if (hasChanges) {
     tr.setMeta('addToHistory', false);

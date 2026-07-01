@@ -393,6 +393,7 @@ export function AcronymColorEditor({ acronym, segments, onChange, onAcronymChang
                   backgroundColor: isSelected ? 'hsl(var(--primary) / 0.15)' : undefined,
                   borderBottom: isSelected ? '2px solid hsl(var(--primary))' : '2px solid transparent',
                   padding: '2px 0',
+                  whiteSpace: 'pre',
                 }}
                 onMouseDown={(e) => handleMouseDown(i, e)}
                 onMouseEnter={() => handleMouseEnter(i)}
@@ -417,6 +418,30 @@ export function AcronymColorEditor({ acronym, segments, onChange, onAcronymChang
           onFocus={() => setIsFocused(true)}
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
+          onPaste={(e) => {
+            e.preventDefault();
+            const pastedText = e.clipboardData.getData('text/plain');
+            if (!pastedText) return;
+            const text = pastedText.replace(/\r?\n/g, '');
+            const range = getSelectionRange();
+            const colorAtCursor = cursorPos > 0 ? chars[cursorPos - 1].color : (chars.length > 0 ? chars[0].color : '#000000');
+            if (range) {
+              const [start, end] = range;
+              const newChars = [...chars];
+              newChars.splice(start, end - start + 1, ...text.split('').map((char) => ({ char, color: colorAtCursor })));
+              setInternalChars(newChars);
+              setCursorPos(start + text.length);
+              setSelStart(null);
+              setSelEnd(null);
+              flushToParent(newChars);
+            } else {
+              const newChars = [...chars];
+              newChars.splice(cursorPos, 0, ...text.split('').map((char) => ({ char, color: colorAtCursor })));
+              setInternalChars(newChars);
+              setCursorPos(cursorPos + text.length);
+              flushToParent(newChars);
+            }
+          }}
           tabIndex={0}
           aria-label="Acronym input"
           disabled={disabled}

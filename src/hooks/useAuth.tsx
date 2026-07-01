@@ -1,104 +1,128 @@
-import { useEffect, useState, useCallback } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+  type ReactNode,
+} from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
-export function useAuth() {
-  // Initialize from sessionStorage for instant hydration on refresh
-  const [user, setUser] = useState<User | null>(() => {
-    try {
-      const cached = sessionStorage.getItem('auth-user');
-      // Cached value is slim {id, email} — enough to prevent loading flash
-      return cached ? JSON.parse(cached) as User : null;
-    } catch {
-      return null;
-    }
-  });
+interface AuthContextValue {
+  user: User | null;
+  session: Session | null;
+  loading: boolean;
+  signOut: () => Promise<void>;
+  isAuthenticated: boolean;
+}
+
+const AuthContext = createContext<AuthContextValue | null>(null);
+
+/**
+ * AuthProvider — single, shared source of truth for the auth session.
+ *
+ * Previously `useAuth` was a plain hook called independently in 26+
+ * components. Each call spun up its own `onAuthStateChange` listener
+ * and its own `getSession()` + `getUser()` validation pair, producing
+ * staggered setStates on a cold load. That caused the visible
+ * flash / re-mount and the dead-click window between renders.
+ *
+ * Now everything mounts inside this provider, which runs a single
+ * subscription + validation flight. `App` gates the initial render on
+ * `loading`, so the tree paints exactly once.
+ */
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  // If we have a cached user, don't show loading state - prevents redirect flash
-  const [loading, setLoading] = useState(() => {
-    try {
-      return !sessionStorage.getItem('auth-user');
-    } catch {
-      return true;
-    }
-  });
+  const [loading, setLoading] = useState(true);
 
   const updateAuthState = useCallback((newSession: Session | null) => {
     setSession(newSession);
     const newUser = newSession?.user ?? null;
-    setUser(prev => {
-      // Keep same reference if user ID unchanged — prevents re-render cascade
-      if (prev?.id === newUser?.id) return prev;
+    setUser((prev) => {
+      // Preserve reference when the id is unchanged to avoid
+      // downstream effect cascades that key off `user`.
+      if (prev?.id === newUser?.id && prev && newUser) return prev;
       return newUser;
     });
-    // Cache user for instant hydration on page refresh
-    if (newSession?.user) {
-      try {
-        const { id, email } = newSession.user;
-        sessionStorage.setItem('auth-user', JSON.stringify({ id, email }));
-      } catch {
-        // Ignore storage errors
-      }
-    } else {
-      sessionStorage.removeItem('auth-user');
-    }
     setLoading(false);
   }, []);
 
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (event === 'TOKEN_REFRESHED') {
-          // Token refreshed on tab focus — update session silently, skip re-render
-          setSession(session);
-          return;
-        }
-        updateAuthState(session);
-      }
-    );
+    let cancelled = false;
 
-    // THEN check for existing session and validate server-side
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session) {
-        // Validate the session is actually valid server-side
-        const { error } = await supabase.auth.getUser();
-        if (error) {
-          // Only sign out on real auth errors, not network failures
-          const msg = error.message || '';
-          const isNetworkError = msg.includes('Failed to fetch') ||
-                                 msg.includes('NetworkError') ||
-                                 msg.includes('AbortError') ||
-                                 msg.includes('Load failed') ||  // Safari
-                                 msg.includes('network') ||
-                                 msg.toLowerCase().includes('timeout');
-          if (isNetworkError) {
-            console.warn('Network error during session validation, keeping session:', error.message);
-          } else {
-            console.warn('Session invalid, signing out:', error.message);
-            sessionStorage.removeItem('auth-user');
-            await supabase.auth.signOut();
-            updateAuthState(null);
-            return;
-          }
-        }
+    // 1. Subscribe FIRST so we don't miss events between setup and getSession.
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      if (cancelled) return;
+      if (event === 'TOKEN_REFRESHED') {
+        // Silent refresh on tab focus — refresh session ref but no user flip.
+        setSession(nextSession);
+        return;
       }
-      updateAuthState(session);
+      updateAuthState(nextSession);
     });
 
-    return () => subscription.unsubscribe();
+    // 2. Then resolve the existing session. Validate server-side, but
+    // tolerate transient network errors so a flaky refresh doesn't sign
+    // the user out.
+    void supabase.auth.getSession().then(async ({ data: { session: existing } }) => {
+      if (cancelled) return;
+      if (existing) {
+        const { error } = await supabase.auth.getUser();
+        if (cancelled) return;
+        if (error) {
+          const msg = (error.message || '').toLowerCase();
+          const isNetworkError =
+            msg.includes('failed to fetch') ||
+            msg.includes('networkerror') ||
+            msg.includes('aborterror') ||
+            msg.includes('load failed') ||
+            msg.includes('network') ||
+            msg.includes('timeout');
+          if (!isNetworkError) {
+            console.warn('Session invalid, signing out:', error.message);
+            await supabase.auth.signOut();
+            if (!cancelled) updateAuthState(null);
+            return;
+          }
+          console.warn('Network error during session validation, keeping session:', error.message);
+        }
+      }
+      updateAuthState(existing);
+    });
+
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
   }, [updateAuthState]);
 
-  const signOut = async () => {
-    sessionStorage.removeItem('auth-user');
+  const signOut = useCallback(async () => {
     await supabase.auth.signOut();
-  };
+  }, []);
 
-  return {
-    user,
-    session,
-    loading,
-    signOut,
-    isAuthenticated: !!user,
-  };
+  const value = useMemo<AuthContextValue>(
+    () => ({
+      user,
+      session,
+      loading,
+      signOut,
+      isAuthenticated: !!user,
+    }),
+    [user, session, loading, signOut],
+  );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useAuth(): AuthContextValue {
+  const ctx = useContext(AuthContext);
+  if (!ctx) {
+    throw new Error('useAuth must be used within an <AuthProvider>');
+  }
+  return ctx;
 }

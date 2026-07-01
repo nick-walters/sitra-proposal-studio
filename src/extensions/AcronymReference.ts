@@ -59,7 +59,7 @@ export const AcronymReference = Node.create<AcronymReferenceOptions>({
     ];
   },
 
-  renderHTML({ node }) {
+  renderHTML({ node, HTMLAttributes }) {
     const segments: AcronymSegment[] = node.attrs.segments || [];
 
     const baseStyle = `
@@ -79,7 +79,7 @@ export const AcronymReference = Node.create<AcronymReferenceOptions>({
 
     return [
       'span',
-      mergeAttributes(this.options.HTMLAttributes, {
+      mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
         'data-acronym-reference': '',
         'contenteditable': 'false',
         'style': baseStyle,

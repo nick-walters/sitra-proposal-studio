@@ -1,11 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireAuth } from "../_shared/auth.ts";
+import { corsHeaders } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
 
 const VALID_AREAS = [
   "Circular Economy",
@@ -18,13 +14,8 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const auth = await requireAuth(req);
+    if (!auth.ok) return auth.response;
 
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
     if (!ANTHROPIC_API_KEY) {
@@ -34,21 +25,8 @@ serve(async (req) => {
       });
     }
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } },
-    );
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const userId = claimsData.claims.sub as string;
+    const supabase = auth.callerClient;
+    const userId = auth.userId;
 
     // Coordinator+ on any proposal is sufficient (this affects platform-wide library)
     const { data: hasCoord } = await supabase.rpc("is_coordinator_or_above", {
@@ -69,12 +47,12 @@ serve(async (req) => {
       });
     }
 
-    const { data: cfg } = await supabase
+    const { data: cfgRows } = await supabase
       .from("ai_platform_config")
       .select("key, value")
-      .eq("key", "persona_creation_model")
-      .maybeSingle();
-    const model = cfg?.value || "claude-haiku-4-5-20251001";
+      .in("key", ["persona_generation_model", "persona_creation_model"]);
+    const cfgMap = Object.fromEntries((cfgRows || []).map((r: any) => [r.key, r.value]));
+    const model = cfgMap.persona_generation_model || cfgMap.persona_creation_model || "claude-haiku-4-5-20251001";
 
     const systemPrompt = `You are building an evaluator persona library. Generate a structured persona from the user's description.
 OUTPUT: JSON only: {"name": "Title, field — max 10 words", "brief": "One sentence, max 25 words", "thematic_area": "Circular Economy|Data & AI|Democracy & Trust|Health & Wellbeing"}
@@ -139,9 +117,8 @@ Name style examples: "Machine learning researcher, applied AI" / "Health equity 
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : "Unknown error";
-    console.error("generate-persona error:", msg);
-    return new Response(JSON.stringify({ error: msg }), {
+    console.error("generate-persona error:", e);
+    return new Response(JSON.stringify({ error: "An internal error occurred" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

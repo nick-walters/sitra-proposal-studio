@@ -1,28 +1,37 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+
+import { DebouncedInput } from '@/components/ui/debounced-input';
 import { Checkbox } from '@/components/ui/checkbox';
+
 import { Participant, ParticipantMember, Section, ParticipantType } from '@/types/proposal';
-import { Building2, GripVertical, UserPlus, Plus, Search, Check, Upload, X, Loader2, Hash, FileText, Download } from 'lucide-react';
+import { Building2, GripVertical, UserPlus, Plus, Upload, X, Loader2, Hash, FileText, Download } from 'lucide-react';
 import { SaveIndicator } from './SaveIndicator';
 import { BulkPicLookupDialog } from './BulkPicLookupDialog';
 import { ParticipantCompletenessChecker } from './ParticipantCompletenessChecker';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { ParticipantListTable } from './ParticipantListTable';
-import { generateParticipantLogoPath, uploadProposalFile } from '@/lib/proposalStorage';
+// (logo uploads go directly to the public participant-logos bucket)
 import { StorageImage } from './StorageImage';
 import { CountrySelect } from './CountrySelect';
 import { PartAGuidelinesDialog } from './PartAGuidelinesDialog';
+import { PartAPageLayout } from './PartAPageLayout';
+
 import { Badge } from './ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { InviteToProposalDialog } from './InviteToProposalDialog';
 import { AddParticipantDialog } from './AddParticipantDialog';
+import { B31Pill, WPBubble, ParticipantBubble } from './B31Pill';
+import { ExpertiseMatrixCard } from './ExpertiseMatrixCard';
 import { getContrastingTextColor } from '@/lib/wpColors';
+import { buildCaseLabel } from '@/lib/caseTypeLabels';
+
 import { supabase } from '@/integrations/supabase/client';
 import { useProposalRole } from '@/hooks/useProposalRole';
 import { useOCD } from '@/hooks/useOCD';
 import { toast } from 'sonner';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   DndContext,
   closestCenter,
@@ -54,7 +63,11 @@ export interface CaseLeadershipInfo {
   color: string;
   shortName?: string;
   prefix: string; // CS, UC, LL, P, D, C
+  includeNumber?: boolean;
+  includeAbbreviation?: boolean;
+  outlineColor?: string;
 }
+
 
 interface ParticipantListViewProps {
   participants: Participant[];
@@ -71,7 +84,7 @@ interface ParticipantListViewProps {
     country?: string;
     picNumber?: string;
     legalEntityType?: string;
-    isSme: boolean;
+    
     organisationCategory?: string;
     englishName?: string;
   }) => Promise<void>;
@@ -92,10 +105,9 @@ interface ParticipantCardProps {
   canEdit: boolean;
   wpLeadership?: WPLeadershipInfo[];
   caseLeadership?: CaseLeadershipInfo[];
+  caseIncludeNumber?: boolean;
   dragHandleProps?: Record<string, unknown>;
   isDragging?: boolean;
-  onFetchLogo?: () => void;
-  isFetchingLogo?: boolean;
   onUpdateParticipant?: (id: string, updates: Partial<Participant>) => Promise<void>;
 }
 
@@ -107,27 +119,12 @@ interface SortableParticipantCardProps {
   canEdit: boolean;
   wpLeadership?: WPLeadershipInfo[];
   caseLeadership?: CaseLeadershipInfo[];
-  onFetchLogo?: () => void;
-  isFetchingLogo?: boolean;
+  caseIncludeNumber?: boolean;
   onUpdateParticipant?: (id: string, updates: Partial<Participant>) => Promise<void>;
 }
 
-// Debounce hook for autosave
-function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
 
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
 
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [value, delay]);
-
-  return debouncedValue;
-}
 
 function ParticipantCard({ 
   participant, 
@@ -137,100 +134,34 @@ function ParticipantCard({
   canEdit,
   wpLeadership,
   caseLeadership,
+  caseIncludeNumber = true,
   dragHandleProps,
   isDragging,
-  onFetchLogo,
-  isFetchingLogo,
   onUpdateParticipant,
 }: ParticipantCardProps) {
-  // Local state for editable fields
-  const [shortName, setShortName] = useState(participant.organisationShortName || '');
-  const [legalName, setLegalName] = useState(participant.organisationName || '');
-  const [englishName, setEnglishName] = useState(participant.englishName || '');
+  // Local state for the country dropdown (CountrySelect commits on selection — no debounce needed)
   const [country, setCountry] = useState(participant.country || '');
   const [isSaving, setIsSaving] = useState(false);
-  const [hasChanges, setHasChanges] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
-  
-  // Track if values have changed from original
-  const originalRef = useRef({
-    shortName: participant.organisationShortName || '',
-    legalName: participant.organisationName || '',
-    englishName: participant.englishName || '',
-    country: participant.country || '',
-  });
 
-  // Update local state when participant prop changes
+  // Re-sync country when participant prop changes
   useEffect(() => {
-    setShortName(participant.organisationShortName || '');
-    setLegalName(participant.organisationName || '');
-    setEnglishName(participant.englishName || '');
     setCountry(participant.country || '');
-    originalRef.current = {
-      shortName: participant.organisationShortName || '',
-      legalName: participant.organisationName || '',
-      englishName: participant.englishName || '',
-      country: participant.country || '',
-    };
-    setHasChanges(false);
-  }, [participant.id, participant.organisationShortName, participant.organisationName, participant.englishName, participant.country]);
+  }, [participant.id, participant.country]);
 
-  // Debounced values for autosave
-  const debouncedShortName = useDebounce(shortName, 1000);
-  const debouncedLegalName = useDebounce(legalName, 1000);
-  const debouncedEnglishName = useDebounce(englishName, 1000);
-  const debouncedCountry = useDebounce(country, 1000);
-
-  // Autosave effect
-  useEffect(() => {
+  // Wrap a field save so we keep the existing saving indicator
+  const saveField = useCallback(async (updates: Partial<Participant>) => {
     if (!canEdit || !onUpdateParticipant) return;
+    setIsSaving(true);
+    try {
+      await onUpdateParticipant(participant.id, updates);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [canEdit, onUpdateParticipant, participant.id]);
 
-    const updates: Partial<Participant> = {};
-    let hasUpdates = false;
 
-    if (debouncedShortName !== originalRef.current.shortName) {
-      updates.organisationShortName = debouncedShortName || undefined;
-      hasUpdates = true;
-    }
-    if (debouncedLegalName !== originalRef.current.legalName) {
-      updates.organisationName = debouncedLegalName;
-      hasUpdates = true;
-    }
-    if (debouncedEnglishName !== originalRef.current.englishName) {
-      updates.englishName = debouncedEnglishName || undefined;
-      hasUpdates = true;
-    }
-    if (debouncedCountry !== originalRef.current.country) {
-      updates.country = debouncedCountry || undefined;
-      hasUpdates = true;
-    }
-
-    if (hasUpdates) {
-      setIsSaving(true);
-      onUpdateParticipant(participant.id, updates)
-        .then(() => {
-          originalRef.current = {
-            shortName: debouncedShortName,
-            legalName: debouncedLegalName,
-            englishName: debouncedEnglishName,
-            country: debouncedCountry,
-          };
-          setHasChanges(false);
-        })
-        .finally(() => {
-          setIsSaving(false);
-        });
-    }
-  }, [debouncedShortName, debouncedLegalName, debouncedEnglishName, debouncedCountry, canEdit, onUpdateParticipant, participant.id]);
-
-  // Track changes
-  const handleChange = useCallback((setter: React.Dispatch<React.SetStateAction<string>>) => {
-    return (e: React.ChangeEvent<HTMLInputElement>) => {
-      setter(e.target.value);
-      setHasChanges(true);
-    };
-  }, []);
 
   return (
     <Card className={`${isDragging ? 'shadow-lg ring-2 ring-primary' : ''}`}>
@@ -253,20 +184,18 @@ function ParticipantCard({
               <span className="font-bold text-primary text-xs">{participant.participantNumber}</span>
             </div>
             {canEdit ? (
-              <Input
-                value={shortName}
-                onChange={handleChange(setShortName)}
+              <DebouncedInput
+                value={participant.organisationShortName || ''}
+                onDebouncedChange={(val) => saveField({ organisationShortName: val || undefined })}
+                debounceMs={1000}
                 placeholder="Short"
                 className="h-7 text-sm font-bold px-1.5"
               />
             ) : (
-              shortName ? (
-                <span 
-                  className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold w-fit"
-                  style={{ backgroundColor: '#000000', color: '#ffffff' }}
-                >
-                  {shortName}
-                </span>
+              participant.organisationShortName ? (
+                <ParticipantBubble style={{ fontSize: '12px', height: 'auto', padding: '1.5px 8px' }}>
+                  {participant.organisationShortName}
+                </ParticipantBubble>
               ) : (
                 <span className="text-muted-foreground text-sm">—</span>
               )
@@ -277,15 +206,17 @@ function ParticipantCard({
           <div className="flex-1 min-w-0 space-y-1">
             {canEdit ? (
               <>
-                <Input
-                  value={legalName}
-                  onChange={handleChange(setLegalName)}
+                <DebouncedInput
+                  value={participant.organisationName || ''}
+                  onDebouncedChange={(val) => saveField({ organisationName: val })}
+                  debounceMs={1000}
                   placeholder="Legal name"
                   className="h-7 text-sm px-1.5"
                 />
-                <Input
-                  value={englishName}
-                  onChange={handleChange(setEnglishName)}
+                <DebouncedInput
+                  value={participant.englishName || ''}
+                  onDebouncedChange={(val) => saveField({ englishName: val || undefined })}
+                  debounceMs={1000}
                   placeholder="English name (if different)"
                   className="h-7 text-sm px-1.5 italic text-muted-foreground"
                 />
@@ -293,63 +224,16 @@ function ParticipantCard({
             ) : (
               <>
                 <div className="text-sm truncate">
-                  {legalName || 'Unnamed Organisation'}
+                  {participant.organisationName || 'Unnamed Organisation'}
                 </div>
-                {englishName && 
-                 englishName.trim() && 
-                 englishName.trim().toLowerCase() !== legalName.trim().toLowerCase() && (
+                {participant.englishName &&
+                 participant.englishName.trim() &&
+                 participant.englishName.trim().toLowerCase() !== (participant.organisationName || '').trim().toLowerCase() && (
                   <div className="text-sm text-muted-foreground italic truncate">
-                    {englishName}
+                    {participant.englishName}
                   </div>
                 )}
               </>
-            )}
-          </div>
-          
-          {/* Roles/Leadership badges */}
-          <div className="w-20 shrink-0 flex flex-col gap-0.5">
-            {participant.participantNumber === 1 && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Badge className="text-xs py-0 px-1.5 w-fit">Coord</Badge>
-                </TooltipTrigger>
-                <TooltipContent>Project coordinator</TooltipContent>
-              </Tooltip>
-            )}
-            {wpLeadership && wpLeadership.length > 0 && (
-              wpLeadership.map((wp) => (
-                <Tooltip key={`wp-${wp.wpNumber}`}>
-                  <TooltipTrigger asChild>
-                    <span
-                      className="inline-flex items-center px-1.5 py-0 rounded-full text-xs font-bold cursor-default w-fit text-white"
-                      style={{
-                        backgroundColor: wp.color,
-                      }}
-                    >
-                      WP{wp.wpNumber}
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {wp.shortName ? `${wp.shortName} (Lead)` : `WP${wp.wpNumber} Lead`}
-                  </TooltipContent>
-                </Tooltip>
-              ))
-            )}
-            {caseLeadership && caseLeadership.length > 0 && (
-              caseLeadership.map((c) => (
-                <Tooltip key={`case-${c.caseNumber}`}>
-                  <TooltipTrigger asChild>
-                    <span
-                      className="inline-flex items-center px-1.5 py-0 rounded-full text-xs font-bold cursor-default w-fit border-[1.5px] border-black text-black bg-white"
-                    >
-                      {c.prefix ? `${c.prefix}${c.caseNumber}` : (c.shortName || c.caseNumber)}
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {c.shortName ? `${c.shortName} (Lead)` : `${c.prefix ? `${c.prefix}${c.caseNumber}` : c.caseNumber} Lead`}
-                  </TooltipContent>
-                </Tooltip>
-              ))
             )}
           </div>
           
@@ -376,15 +260,20 @@ function ParticipantCard({
                 
                 setIsUploadingLogo(true);
                 try {
-                  const filePath = generateParticipantLogoPath(proposalId, participant.participantNumber || 0, file.name);
-                  const { error } = await uploadProposalFile(file, filePath, { upsert: true });
-                  
-                  if (error) {
+                  const ext = (file.name.split('.').pop() || 'png').toLowerCase();
+                  const filePath = `logos/${participant.id}-${Date.now()}.${ext}`;
+                  const { error: uploadError } = await supabase.storage
+                    .from('participant-logos')
+                    .upload(filePath, file, { upsert: true, contentType: file.type });
+
+                  if (uploadError) {
+                    console.error('Upload error:', uploadError);
                     toast.error('Failed to upload logo');
                     return;
                   }
-                  
-                  // Store the file path, not the signed URL
+
+                  // Store the storage path (not a public URL); bucket is private and
+                  // StorageImage will resolve it to a signed URL at render time.
                   await onUpdateParticipant(participant.id, { logoUrl: filePath });
                   toast.success('Logo uploaded');
                 } catch (err) {
@@ -412,23 +301,10 @@ function ParticipantCard({
             {/* Hover overlay with action buttons */}
             {canEdit && onUpdateParticipant && (
               <div className="absolute inset-0 bg-background/90 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-0.5 transition-opacity">
-                {isUploadingLogo || isFetchingLogo ? (
+                {isUploadingLogo ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   <>
-                    {/* Fetch logo from web */}
-                    {onFetchLogo && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onFetchLogo();
-                        }}
-                        className="p-1 hover:bg-muted rounded"
-                        title="Fetch logo from web"
-                      >
-                        <Search className="w-3 h-3" />
-                      </button>
-                    )}
                     {/* Upload logo from file */}
                     <button
                       onClick={(e) => {
@@ -460,6 +336,67 @@ function ParticipantCard({
             )}
           </div>
           
+          {/* Roles/Leadership badges */}
+          <div className="w-28 shrink-0 flex flex-col gap-0.5 items-start">
+            {participant.participantNumber === 1 && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge className="text-xs py-0 px-1.5 w-fit">Coordinator</Badge>
+                </TooltipTrigger>
+                <TooltipContent>Project coordinator</TooltipContent>
+              </Tooltip>
+            )}
+            {wpLeadership && wpLeadership.length > 0 && (
+              wpLeadership.map((wp) => (
+                <Tooltip key={`wp-${wp.wpNumber}`}>
+                  <TooltipTrigger asChild>
+                    <WPBubble
+                      wpColor={wp.color}
+                      style={{ fontSize: '12px', height: 'auto', padding: '1.5px 6px' }}
+                    >
+                      WP{wp.wpNumber}
+                    </WPBubble>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {wp.shortName ? `${wp.shortName} (Lead)` : `WP${wp.wpNumber} Lead`}
+                  </TooltipContent>
+                </Tooltip>
+              ))
+            )}
+            {caseLeadership && caseLeadership.length > 0 && (
+              caseLeadership.map((c) => {
+                const inclNum = c.includeNumber ?? caseIncludeNumber;
+                const inclAbbr = c.includeAbbreviation ?? true;
+                const displayLabel = buildCaseLabel({
+                  prefix: c.prefix,
+                  number: c.caseNumber,
+                  shortName: c.shortName ?? null,
+                  includeNumber: inclNum,
+                  includeAbbreviation: inclAbbr,
+                  withShortName: false,
+                });
+                const numberLabel = c.prefix ? `${c.prefix}${c.caseNumber}` : String(c.caseNumber);
+                return (
+                  <Tooltip key={`case-${c.caseNumber}`}>
+                    <TooltipTrigger asChild>
+                      <B31Pill
+                        variant="outline"
+                        color={c.outlineColor || '#000000'}
+                        style={{ fontSize: '12px', height: 'auto', padding: '1.5px 6px' }}
+                      >
+                        {displayLabel}
+                      </B31Pill>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {c.shortName ? `${c.shortName} (Lead)` : `${numberLabel} Lead`}
+                    </TooltipContent>
+                  </Tooltip>
+                );
+
+              })
+            )}
+          </div>
+          
           {/* Country - searchable dropdown */}
           <div className="shrink-0" style={{ width: '140px' }}>
             {canEdit ? (
@@ -467,7 +404,7 @@ function ParticipantCard({
                 value={country}
                 onValueChange={(val) => {
                   setCountry(val);
-                  setHasChanges(true);
+                  saveField({ country: val || undefined });
                 }}
                 className="h-7 text-xs px-1.5"
                 placeholder="Country"
@@ -481,18 +418,9 @@ function ParticipantCard({
           
           {/* Save indicator / Edit button */}
           <div className="shrink-0 flex items-center justify-end">
-            {canEdit && (isSaving || hasChanges) && (
+            {canEdit && isSaving && (
               <span className="text-xs text-muted-foreground flex items-center gap-1">
-                {isSaving ? (
-                  <span className="animate-pulse">Saving...</span>
-                ) : hasChanges ? (
-                  <span className="animate-pulse">...</span>
-                ) : (
-                  <>
-                    <Check className="w-3 h-3 text-green-600" />
-                    <span>Saved</span>
-                  </>
-                )}
+                <span className="animate-pulse">Saving...</span>
               </span>
             )}
             {canEdit && (
@@ -514,7 +442,7 @@ function ParticipantCard({
   );
 }
 
-function SortableParticipantCard({ participant, proposalId, onSelect, canReorder, canEdit, wpLeadership, caseLeadership, onFetchLogo, isFetchingLogo, onUpdateParticipant }: SortableParticipantCardProps) {
+function SortableParticipantCard({ participant, proposalId, onSelect, canReorder, canEdit, wpLeadership, caseLeadership, caseIncludeNumber, onUpdateParticipant }: SortableParticipantCardProps) {
   const {
     attributes,
     listeners,
@@ -541,10 +469,9 @@ function SortableParticipantCard({ participant, proposalId, onSelect, canReorder
         canEdit={canEdit}
         wpLeadership={wpLeadership}
         caseLeadership={caseLeadership}
+        caseIncludeNumber={caseIncludeNumber}
         dragHandleProps={{ ...attributes, ...listeners }}
         isDragging={isDragging}
-        onFetchLogo={onFetchLogo}
-        isFetchingLogo={isFetchingLogo}
         onUpdateParticipant={onUpdateParticipant}
       />
     </div>
@@ -571,13 +498,44 @@ export function ParticipantListView({
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [isAddParticipantDialogOpen, setIsAddParticipantDialogOpen] = useState(false);
   const [isBulkPicOpen, setIsBulkPicOpen] = useState(false);
-  const [fetchingLogoFor, setFetchingLogoFor] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('participants');
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const { roleTier } = useProposalRole(proposalId);
   const isAdmin = roleTier === 'coordinator';
   const ocd = useOCD(proposalId);
   const templateInputRef = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
+
+  // Fetch case display setting (whether to show numbers vs short names on case bubbles)
+  const { data: caseSettings } = useQuery({
+    queryKey: ['case-settings', proposalId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('proposals')
+        .select('case_include_number')
+        .eq('id', proposalId)
+        .maybeSingle() as { data: { case_include_number: boolean | null } | null };
+      return data;
+    },
+    enabled: !!proposalId,
+  });
+  const caseIncludeNumber: boolean = caseSettings?.case_include_number !== false;
+
+  // Listen for cross-ref data changes so WP / Case leadership badges update in real time
+  // when a lead is changed in WPManagementCard or CaseManagementCard.
+  useEffect(() => {
+    if (!proposalId) return;
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent).detail;
+      if (detail?.type === 'case-settings') {
+        queryClient.invalidateQueries({ queryKey: ['case-settings', proposalId] });
+      }
+      queryClient.invalidateQueries({ queryKey: ['wp-leadership', proposalId] });
+      queryClient.invalidateQueries({ queryKey: ['case-leadership', proposalId] });
+    };
+    window.addEventListener('cross-ref-data-changed', handler);
+    return () => window.removeEventListener('cross-ref-data-changed', handler);
+  }, [proposalId, queryClient]);
 
   // Extract guidelines from section
   const officialGuidelines = useMemo(() => {
@@ -627,35 +585,10 @@ export function ParticipantListView({
 
       if (onReorderParticipants) {
         await onReorderParticipants(reorderedParticipants);
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
+        }, 100);
       }
-    }
-  };
-
-  const handleFetchLogo = async (participant: Participant) => {
-    if (!onUpdateParticipant) return;
-    
-    setFetchingLogoFor(participant.id);
-    try {
-      const { data, error } = await supabase.functions.invoke('fetch-logo', {
-        body: { 
-          organisationName: participant.organisationName,
-          shortName: participant.organisationShortName 
-        },
-      });
-
-      if (error) throw error;
-
-      if (data?.logoUrl) {
-        await onUpdateParticipant(participant.id, { logoUrl: data.logoUrl });
-        toast.success('Logo fetched successfully');
-      } else {
-        toast.info('No logo found');
-      }
-    } catch (err) {
-      console.error('Failed to fetch logo:', err);
-      toast.error('Failed to fetch logo');
-    } finally {
-      setFetchingLogoFor(null);
     }
   };
 
@@ -666,109 +599,114 @@ export function ParticipantListView({
 
   return (
     <TooltipProvider>
-      <div className="flex-1 overflow-auto p-6 bg-muted/30">
-        <div className="max-w-7xl mx-auto space-y-6">
-          {/* Header */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between gap-4">
-              <h1 className="text-xl font-bold text-foreground">Part A2: Participants</h1>
-              <div className="flex gap-2">
-                {canAddParticipant && onAddParticipant && (
-                  <>
-                    <Button size="sm" onClick={() => setIsAddParticipantDialogOpen(true)} className="gap-1.5 h-8">
-                      <Plus className="w-3.5 h-3.5" />
-                      Add participant
-                    </Button>
-                  </>
-                )}
-                {canInvite && (
-                  <Button variant="outline" size="sm" onClick={() => setIsInviteDialogOpen(true)} className="gap-1.5 h-8">
-                    <UserPlus className="w-3.5 h-3.5" />
-                    Invite
-                  </Button>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <PartAGuidelinesDialog
-                sectionTitle="Part A2: Participants"
-                officialGuidelines={officialGuidelines}
-                sitraTips={sitraTips}
-              />
-              <SaveIndicator saving={false} lastSaved={lastSaved} onSaveNow={() => {}} />
-            </div>
+      <PartAPageLayout
+        title="Part A2: Participants"
+        titleRightSlot={
+          <div className="flex gap-2">
+            {canAddParticipant && onAddParticipant && (
+              <Button size="sm" onClick={() => setIsAddParticipantDialogOpen(true)} className="gap-1.5 h-8">
+                <Plus className="w-3.5 h-3.5" />
+                Add participant
+              </Button>
+            )}
+            {canInvite && (
+              <Button variant="outline" size="sm" onClick={() => setIsInviteDialogOpen(true)} className="gap-1.5 h-8">
+                <UserPlus className="w-3.5 h-3.5" />
+                Invite
+              </Button>
+            )}
           </div>
+        }
+        guidelines={
+          <PartAGuidelinesDialog
+            sectionTitle="Part A2: Participants"
+            officialGuidelines={officialGuidelines}
+            sitraTips={sitraTips}
+          />
+        }
+        saveIndicator={<SaveIndicator saving={false} lastSaved={lastSaved} onSaveNow={() => {}} />}
+      >
+
 
           {/* OCD Controls - coordinator+ only */}
           {isAdmin && (
-            <div className="flex flex-wrap items-center gap-3 p-3 bg-muted/50 rounded-lg border">
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="requires-ocd"
-                  checked={ocd.requiresOcd}
-                  onCheckedChange={(checked) => ocd.toggleRequiresOcd(!!checked)}
-                />
-                <label htmlFor="requires-ocd" className="text-sm font-medium cursor-pointer">
-                  This topic requires Ownership Control Declarations
-                </label>
-              </div>
+            <Card>
+              <CardHeader className="pb-2 pt-4">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 text-sm">
+                    <FileText className="w-4 h-4" />
+                    Ownership Control Declarations
+                  </CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="pb-4">
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="requires-ocd"
+                      checked={ocd.requiresOcd}
+                      onCheckedChange={(checked) => ocd.toggleRequiresOcd(!!checked)}
+                    />
+                    <label htmlFor="requires-ocd" className="text-sm font-medium cursor-pointer">
+                      This topic requires OCDs
+                    </label>
+                  </div>
 
-              {ocd.requiresOcd && (
-                <>
-                  <input
-                    ref={templateInputRef}
-                    type="file"
-                    accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                    className="hidden"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (file) await ocd.uploadTemplate(file);
-                      if (templateInputRef.current) templateInputRef.current.value = '';
-                    }}
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => templateInputRef.current?.click()}
-                    className="gap-1.5"
-                  >
-                    <Upload className="w-3.5 h-3.5" />
-                    {ocd.templatePath ? 'Replace OCD template' : 'Upload OCD template'}
-                  </Button>
-                  {ocd.templatePath && (
-                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Check className="w-3 h-3 text-green-600" /> Template uploaded
-                    </span>
-                  )}
-                  {ocd.templatePath && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={async () => {
-                        const missing = participants.filter(p => !ocd.uploads[p.id] && p.organisationCategory !== 'PUB');
-                        if (missing.length > 0) {
-                          const names = missing.map(p => p.organisationShortName || p.organisationName).join(', ');
-                          const proceed = window.confirm(
-                            `The following partners have not uploaded their signed OCD:\n\n${names}\n\nDo you wish to proceed with compiling the available declarations?`
-                          );
-                          if (!proceed) return;
-                        }
-                        await ocd.compileOcds();
-                      }}
-                      disabled={ocd.compiling}
-                      className="gap-1.5"
-                    >
-                      {ocd.compiling ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        <FileText className="w-3.5 h-3.5" />
+                  {ocd.requiresOcd && (
+                    <>
+                      <input
+                        ref={templateInputRef}
+                        type="file"
+                        accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) await ocd.uploadTemplate(file);
+                          if (templateInputRef.current) templateInputRef.current.value = '';
+                        }}
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => templateInputRef.current?.click()}
+                        className="gap-1.5"
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        {ocd.templatePath ? 'Replace OCD template' : 'Upload OCD template'}
+                      </Button>
+                      {ocd.templatePath && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            const isOcdExempt = (p: Participant) =>
+                              p.ocdExempt === true || (p.ocdExempt == null && p.organisationCategory === 'PUB');
+                            const missing = participants.filter(p => !ocd.uploads[p.id] && !isOcdExempt(p));
+                            if (missing.length > 0) {
+                              const names = missing.map(p => p.organisationShortName || p.organisationName).join(', ');
+                              const proceed = window.confirm(
+                                `The following partners have not uploaded their signed OCD:\n\n${names}\n\nDo you wish to proceed with compiling the available declarations?`
+                              );
+                              if (!proceed) return;
+                            }
+                            await ocd.compileOcds();
+                          }}
+                          disabled={ocd.compiling}
+                          className="gap-1.5"
+                        >
+                          {ocd.compiling ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <FileText className="w-3.5 h-3.5" />
+                          )}
+                          Compile OCDs
+                        </Button>
                       )}
-                      Compile Ownership Control Declarations
-                    </Button>
+                    </>
                   )}
-                </>
-              )}
-            </div>
+                </div>
+              </CardContent>
+            </Card>
           )}
 
           <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -803,8 +741,8 @@ export function ParticipantListView({
                     {canReorder && <div className="w-4" />}
                     <div className="w-24 text-left"># / Short</div>
                     <div className="flex-1 min-w-0 text-left">Organisation</div>
-                    <div className="w-20 text-left">Lead roles</div>
                     <div className="w-10 text-left">Logo</div>
+                    <div className="w-28 text-left">Lead roles</div>
                     <div className="text-left" style={{ width: '140px' }}>Country</div>
                     <div className="w-10" />
                   </div>
@@ -828,8 +766,7 @@ export function ParticipantListView({
                             canEdit={canEdit}
                             wpLeadership={wpLeadership[participant.id]}
                             caseLeadership={caseLeadership[participant.id]}
-                            onFetchLogo={() => handleFetchLogo(participant)}
-                            isFetchingLogo={fetchingLogoFor === participant.id}
+                            caseIncludeNumber={caseIncludeNumber}
                             onUpdateParticipant={onUpdateParticipant}
                           />
                         ))}
@@ -842,8 +779,8 @@ export function ParticipantListView({
                   <div className="flex items-center gap-1.5 px-2 pb-[3px] text-xs text-muted-foreground font-bold">
                     <div className="w-24 text-left"># / Short</div>
                     <div className="flex-1 min-w-0 text-left">Organisation</div>
-                    <div className="w-20 text-left">Lead roles</div>
                     <div className="w-10 text-left">Logo</div>
+                    <div className="w-28 text-left">Lead roles</div>
                     <div className="text-left" style={{ width: '140px' }}>Country</div>
                     <div className="w-10" />
                   </div>
@@ -858,8 +795,7 @@ export function ParticipantListView({
                         canEdit={canEdit}
                         wpLeadership={wpLeadership[participant.id]}
                         caseLeadership={caseLeadership[participant.id]}
-                        onFetchLogo={onUpdateParticipant ? () => handleFetchLogo(participant) : undefined}
-                        isFetchingLogo={fetchingLogoFor === participant.id}
+                        caseIncludeNumber={caseIncludeNumber}
                         onUpdateParticipant={onUpdateParticipant}
                       />
                     ))}
@@ -874,9 +810,9 @@ export function ParticipantListView({
               </TabsContent>
             )}
           </Tabs>
-        </div>
 
         {/* Invite to Proposal Dialog */}
+
         <InviteToProposalDialog
           open={isInviteDialogOpen}
           onOpenChange={setIsInviteDialogOpen}
@@ -896,7 +832,9 @@ export function ParticipantListView({
                 await onAddParticipant(participantData);
               }}
               participantCount={participants.length}
+              existingPics={participants.map(p => p.picNumber).filter(Boolean) as string[]}
             />
+
             <BulkPicLookupDialog
               isOpen={isBulkPicOpen}
               onClose={() => setIsBulkPicOpen(false)}
@@ -906,7 +844,12 @@ export function ParticipantListView({
             />
           </>
         )}
-      </div>
+
+        <div className="mt-6">
+          <ExpertiseMatrixCard proposalId={proposalId} participants={participants} />
+        </div>
+      </PartAPageLayout>
     </TooltipProvider>
+
   );
 }

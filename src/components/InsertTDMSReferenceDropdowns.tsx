@@ -11,6 +11,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { B31Pill } from '@/components/B31Pill';
 
 
 interface Task {
@@ -56,27 +57,8 @@ interface InsertTDMSReferenceDropdownsProps {
   hideMilestone?: boolean;
 }
 
-// Miniature bubble helpers for toolbar buttons
-function BubblePill({ text, bg, fg, border }: { text: string; bg: string; fg: string; border?: string }) {
-  return (
-    <span
-      className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
-      style={{
-        backgroundColor: bg,
-        color: fg,
-        border: border ? `1.5px solid ${border}` : undefined,
-        fontFamily: "'Times New Roman', Times, serif",
-        fontSize: '7pt',
-        fontWeight: 700,
-        lineHeight: 1,
-        padding: '1px 4px',
-        height: '13px',
-      }}
-    >
-      {text}
-    </span>
-  );
-}
+// Miniature toolbar pill — uses shared B31Pill at toolbar size
+
 
 function MiniPentagon({ text }: { text: string }) {
   const w = Math.max(32, text.length * 7 + 14);
@@ -235,96 +217,86 @@ export function InsertTDMSReferenceDropdowns({
         .order('number');
 
       const wpColorMap = new Map<number, string>();
-
+      const wpShortNameMap = new Map<number, string | null>();
+      const wpIdToNumber = new Map<string, number>();
       if (wpDrafts) {
         for (const wp of wpDrafts) {
           wpColorMap.set(wp.number, wp.color || '#000000');
+          wpShortNameMap.set(wp.number, wp.short_name);
+          wpIdToNumber.set(wp.id, wp.number);
         }
-
-        const allTasks: Task[] = [];
-        for (const wp of wpDrafts) {
-          const { data: wpTasks } = await supabase
-            .from('wp_draft_tasks')
-            .select('id, number, title')
-            .eq('wp_draft_id', wp.id)
-            .order('number');
-          if (wpTasks) {
-            for (const t of wpTasks) {
-              allTasks.push({
-                id: t.id,
-                number: t.number,
-                title: t.title || '',
-                wp_number: wp.number,
-                wp_short_name: wp.short_name,
-                wp_color: wp.color || '#000000',
-              });
-            }
-          }
-        }
-        setTasks(allTasks);
       }
 
-      // Fetch deliverables from both b31_deliverables AND wp_draft_deliverables
-      const [{ data: dels }, { data: draftDels }] = await Promise.all([
-        supabase
-          .from('b31_deliverables')
-          .select('id, number, name, wp_number')
-          .eq('proposal_id', proposalId)
-          .order('number'),
-        supabase
+      // Tasks: live source = wp_draft_tasks.
+      const allTasks: Task[] = [];
+      if (wpDrafts && wpDrafts.length > 0) {
+        const { data: srcTasks } = await supabase
+          .from('wp_draft_tasks')
+          .select('id, number, title, wp_draft_id, order_index')
+          .in('wp_draft_id', wpDrafts.map(wp => wp.id))
+          .order('order_index');
+        if (srcTasks) {
+          for (const t of srcTasks) {
+            const wpNum = wpIdToNumber.get(t.wp_draft_id) || 0;
+            allTasks.push({
+              id: t.id,
+              number: t.number,
+              title: t.title || '',
+              wp_number: wpNum,
+              wp_short_name: wpShortNameMap.get(wpNum) ?? null,
+              wp_color: wpColorMap.get(wpNum) || '#000000',
+            });
+          }
+          allTasks.sort((a, b) =>
+            a.wp_number !== b.wp_number ? a.wp_number - b.wp_number : a.number - b.number,
+          );
+        }
+      }
+      setTasks(allTasks);
+
+      // Deliverables: live source = wp_draft_deliverables, synthesise D{wp}.{n}.
+      const allDeliverables: Deliverable[] = [];
+      if (wpDrafts && wpDrafts.length > 0) {
+        const { data: srcDels } = await supabase
           .from('wp_draft_deliverables')
           .select('id, number, title, wp_draft_id')
-          .in('wp_draft_id', (wpDrafts || []).map(wp => wp.id))
-          .order('number'),
-      ]);
-
-      // Build a set of b31 deliverable IDs to avoid duplicates
-      const b31Deliverables: Deliverable[] = (dels || []).map(d => ({
-        ...d,
-        wp_color: d.wp_number ? wpColorMap.get(d.wp_number) || '#000000' : '#000000',
-      }));
-
-      // Build map of wp_draft_id -> wp_number
-      const wpDraftIdToNumber = new Map<string, number>();
-      if (wpDrafts) {
-        for (const wp of wpDrafts) {
-          wpDraftIdToNumber.set(wp.id, wp.number);
+          .in('wp_draft_id', wpDrafts.map(wp => wp.id))
+          .order('number');
+        if (srcDels) {
+          for (const d of srcDels) {
+            const wpNum = wpIdToNumber.get(d.wp_draft_id) || null;
+            allDeliverables.push({
+              id: d.id,
+              number: `D${wpNum ?? '?'}.${d.number}`,
+              name: d.title || '',
+              wp_number: wpNum,
+              wp_color: wpNum ? wpColorMap.get(wpNum) || '#000000' : '#000000',
+            });
+          }
+          allDeliverables.sort((a, b) => {
+            const wa = a.wp_number ?? 999;
+            const wb = b.wp_number ?? 999;
+            if (wa !== wb) return wa - wb;
+            return a.number.localeCompare(b.number);
+          });
         }
       }
-
-      // Add wp_draft_deliverables that don't already exist in b31_deliverables
-      // Match by D{wp_number}.{number} format
-      const b31Numbers = new Set(b31Deliverables.map(d => d.number));
-      const draftDeliverables: Deliverable[] = (draftDels || []).map(d => {
-        const wpNum = wpDraftIdToNumber.get(d.wp_draft_id) || 0;
-        return {
-          id: d.id,
-          number: `D${wpNum}.${d.number}`,
-          name: d.title || '',
-          wp_number: wpNum,
-          wp_color: wpColorMap.get(wpNum) || '#000000',
-        };
-      }).filter(d => !b31Numbers.has(d.number));
-
-      // Merge and sort numerically
-      const allDeliverables = [...b31Deliverables, ...draftDeliverables].sort((a, b) => {
-        // Parse "D{wp}.{num}" format
-        const parseDelNum = (n: string) => {
-          const match = n.match(/D?(\d+)\.(\d+)/);
-          return match ? [parseInt(match[1]), parseInt(match[2])] : [0, 0];
-        };
-        const [aWp, aNum] = parseDelNum(a.number);
-        const [bWp, bNum] = parseDelNum(b.number);
-        return aWp !== bWp ? aWp - bWp : aNum - bNum;
-      });
       setDeliverables(allDeliverables);
 
-      const { data: mss } = await supabase
-        .from('b31_milestones')
-        .select('id, number, name')
+      // Milestones: live source = proposal_milestones (proposal-wide).
+      const allMilestones: Milestone[] = [];
+      const { data: srcMs } = await supabase
+        .from('proposal_milestones')
+        .select('id, number, title')
         .eq('proposal_id', proposalId)
         .order('number');
-      if (mss) setMilestones(mss);
+      if (srcMs) {
+        for (const m of srcMs) {
+          allMilestones.push({ id: m.id, number: m.number, name: m.title || '' });
+        }
+      }
+      setMilestones(allMilestones);
+
       setLoading(false);
     };
 
@@ -364,7 +336,7 @@ export function InsertTDMSReferenceDropdowns({
                 disabled={disabled}
                 onClick={() => setTaskDialogOpen(true)}
               >
-                <BubblePill text="T" bg="#ffffff" fg="#000" border="#000" />
+                <B31Pill variant="outline" color="#000" size="toolbar">T</B31Pill>
               </Button>
             </TooltipTrigger>
             <TooltipContent>Insert task reference</TooltipContent>
@@ -427,7 +399,7 @@ export function InsertTDMSReferenceDropdowns({
               </div>
             ) : tasks.length === 0 ? (
               <div className="text-center text-muted-foreground py-8">
-                No tasks found. Add tasks to your work packages first.
+                No tasks available. Populate a work package to Part B3.1 first, or add tasks directly in 3.1.b.
               </div>
             ) : (
               <div className="p-1">

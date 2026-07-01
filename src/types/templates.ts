@@ -139,13 +139,6 @@ export interface BudgetCategory {
 
 export type AppRole = 'owner' | 'admin' | 'coordinator' | 'editor' | 'viewer';
 
-export const ROLE_LABELS: Record<AppRole, string> = {
-  owner: 'Owner',
-  admin: 'Admin',
-  coordinator: 'Coordinator',
-  editor: 'Editor',
-  viewer: 'Viewer',
-};
 
 export const ROLE_DESCRIPTIONS: Record<AppRole, string> = {
   owner: 'Full platform access including all proposals and admin pages',

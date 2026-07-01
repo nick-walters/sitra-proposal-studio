@@ -15,6 +15,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { Separator } from "@/components/ui/separator";
 import { InlineGuideline } from "./GuidelineBox";
 import { PartAGuidelinesDialog } from "./PartAGuidelinesDialog";
+import { PartAPageLayout } from "./PartAPageLayout";
+
 import { LogoUpload } from "./LogoUpload";
 import { StorageImage } from "./StorageImage";
 
@@ -29,6 +31,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useNavigate } from "react-router-dom";
 import { format, addMonths } from "date-fns";
 import { cn } from "@/lib/utils";
+import declarationsData from "@/data/declarations.json";
+import { htmlToPlainText } from "@/lib/htmlToPlainText";
 
 interface GeneralInfoFormProps {
   proposalId: string;
@@ -87,81 +91,7 @@ interface FormData {
   };
 }
 
-const DECLARATIONS: Declaration[] = [
-  {
-    id: 'consent',
-    number: 1,
-    text: 'We declare to have the explicit consent of all applicants on their participation and on the content of this proposal.',
-  },
-  {
-    id: 'correctComplete',
-    number: 2,
-    text: 'We confirm that the information contained in this proposal is correct and complete and that none of the project activities have started before the proposal was submitted (unless explicitly authorised in the call conditions).',
-  },
-  {
-    id: 'eligibility',
-    number: 3,
-    text: 'We declare:',
-    bullets: [
-      'to be fully compliant with the eligibility criteria set out in the call',
-      { text: 'not to be subject to any exclusion grounds under the ', link: { text: 'EU Financial Regulation 2018/1046', url: 'https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32018R1046' } },
-      'to have the financial and operational capacity to carry out the proposed project'
-    ],
-  },
-  {
-    id: 'communication',
-    number: 4,
-    text: 'We acknowledge that all communication will be made through the {{Funding & Tenders Portal}} electronic exchange system and that access and use of this system is subject to the Funding & Tenders Portal {{Terms and Conditions}}.',
-    links: [
-      { text: 'Funding & Tenders Portal', url: 'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home' },
-      { text: 'Terms and Conditions', url: 'https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/ftp/tc_en.pdf' }
-    ],
-  },
-  {
-    id: 'termsPrivacy',
-    number: 5,
-    text: 'We have read, understood and accepted the Funding & Tenders Portal {{Terms & Conditions}} and {{Privacy Statement}} that set out the conditions of use of the Portal and the scope, purposes, retention periods, etc. for the processing of personal data of all data subjects whose data we communicate for the purpose of the application, evaluation, award and subsequent management of our grant, prizes and contracts (including financial transactions and audits).',
-    links: [
-      { text: 'Terms & Conditions', url: 'https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/ftp/tc_en.pdf' },
-      { text: 'Privacy Statement', url: 'https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/ftp/privacy-statement_en.pdf' }
-    ],
-  },
-  {
-    id: 'ethics',
-    number: 6,
-    text: 'We declare that the proposal complies with ethical principles (including the highest standards of research integrity as set out in the {{ALLEA European Code of Conduct for Research Integrity}}), as well as applicable international and national law, including the {{Charter of Fundamental Rights of the European Union}} and the {{European Convention on Human Rights}} and its Supplementary Protocols. Appropriate procedures, policies and structures are in place to foster responsible research practices, to prevent questionable research practices and research misconduct, and to handle allegations of breaches of the principles and standards in the Code of Conduct.',
-    links: [
-      { text: 'ALLEA European Code of Conduct for Research Integrity', url: 'https://allea.org/code-of-conduct/' },
-      { text: 'Charter of Fundamental Rights of the European Union', url: 'https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:12012P/TXT' },
-      { text: 'European Convention on Human Rights', url: 'https://www.echr.coe.int/documents/convention_eng.pdf' }
-    ],
-  },
-  {
-    id: 'civilApplications',
-    number: 7,
-    text: 'We declare that the proposal has an exclusive focus on civil applications (activities intended to be used in military application or aiming to serve military purposes cannot be funded). If the project involves dual-use items in the sense of {{Regulation 428/2009}}, or other items for which authorisation is required, we confirm that we will comply with the applicable regulatory framework (e.g. obtain export/import licences before these items are used).',
-    links: [
-      { text: 'Regulation 428/2009', url: 'https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32009R0428' }
-    ],
-  },
-  {
-    id: 'prohibitedResearch',
-    number: 8,
-    text: 'We confirm that the activities proposed do not:',
-    bullets: [
-      'aim at human cloning for reproductive purposes',
-      'intend to modify the genetic heritage of human beings which could make such changes heritable (with the exception of research relating to cancer treatment of the gonads, which may be financed)',
-      'intend to create human embryos solely for the purpose of research or for the purpose of stem cell procurement, including by means of somatic cell nuclear transfer',
-      'lead to the destruction of human embryos (for example, for obtaining stem cells)'
-    ],
-    suffix: 'These activities are excluded from funding.',
-  },
-  {
-    id: 'outsideEU',
-    number: 9,
-    text: 'We confirm that for activities carried out outside the Union, the same activities would have been allowed in at least one Member State.',
-  },
-];
+const DECLARATIONS = declarationsData as Declaration[];
 
 // Helper function to render text with inline links using {{linkText}} placeholders
 const renderTextWithLinks = (text: string, links?: DeclarationLink[]) => {
@@ -487,48 +417,62 @@ export function GeneralInfoForm({
     }
   };
 
-  // Load A1 form content
+  // Load A1 form content from part_a1
   useEffect(() => {
     const loadContent = async () => {
       if (!proposalId) return;
-      
+
       try {
         const { data, error } = await supabase
-          .from('section_content')
-          .select('content')
+          .from('part_a1')
+          .select('abstract, fixed_keywords, free_keywords, previous_submission, previous_submission_reference, declarations')
           .eq('proposal_id', proposalId)
-          .eq('section_id', 'a1')
           .maybeSingle();
 
         if (error) throw error;
 
-        if (data?.content) {
-          try {
-            const parsed = JSON.parse(data.content);
-            setFormData({
-              abstract: parsed.abstract || '',
-              fixedKeywords: parsed.fixedKeywords || parsed.keywords || [],
-              freeKeywords: parsed.freeKeywords || '',
-              previousSubmission: parsed.previousSubmission || '',
-              previousSubmissionReference: parsed.previousSubmissionReference || '',
-              declarations: {
-                consent: parsed.declarations?.consent || false,
-                correctComplete: parsed.declarations?.correctComplete || false,
-                eligibility: parsed.declarations?.eligibility || false,
-                communication: parsed.declarations?.communication || false,
-                termsPrivacy: parsed.declarations?.termsPrivacy || false,
-                ethics: parsed.declarations?.ethics || false,
-                civilApplications: parsed.declarations?.civilApplications || false,
-                prohibitedResearch: parsed.declarations?.prohibitedResearch || false,
-                outsideEU: parsed.declarations?.outsideEU || false,
-              },
-            });
-          } catch {
-            setFormData(prev => ({ ...prev, abstract: data.content }));
+        if (data) {
+          // Split any comma-joined legacy keyword entries into separate items
+          const rawFixed = Array.isArray(data.fixed_keywords) ? data.fixed_keywords : [];
+          const fixedKeywords: string[] = [];
+          for (const k of rawFixed) {
+            if (typeof k !== 'string') continue;
+            for (const piece of k.split(',')) {
+              const trimmed = piece.trim();
+              if (trimmed && !fixedKeywords.includes(trimmed)) fixedKeywords.push(trimmed);
+            }
           }
+
+          const prev = data.previous_submission === 'yes' || data.previous_submission === 'no'
+            ? data.previous_submission
+            : '';
+          const decl = (data.declarations && typeof data.declarations === 'object' && !Array.isArray(data.declarations))
+            ? (data.declarations as Record<string, boolean>)
+            : {};
+
+          setFormData({
+            abstract: htmlToPlainText(data.abstract || ''),
+            fixedKeywords,
+            freeKeywords: data.free_keywords || '',
+            previousSubmission: prev,
+            previousSubmissionReference: data.previous_submission_reference || '',
+            declarations: {
+              consent: !!decl.consent,
+              correctComplete: !!decl.correctComplete,
+              eligibility: !!decl.eligibility,
+              communication: !!decl.communication,
+              termsPrivacy: !!decl.termsPrivacy,
+              ethics: !!decl.ethics,
+              civilApplications: !!decl.civilApplications,
+              prohibitedResearch: !!decl.prohibitedResearch,
+              outsideEU: !!decl.outsideEU,
+            },
+          });
         }
       } catch (error) {
-        console.error('Error loading general info:', error);
+        // NEVER dump raw content into the abstract field (that caused the
+        // legacy blob-in-blob corruption). Leave form defaults untouched.
+        console.error('Error loading A1 content:', error);
       }
       setLoading(false);
     };
@@ -536,23 +480,25 @@ export function GeneralInfoForm({
     loadContent();
   }, [proposalId]);
 
-  // Auto-save A1 form content
+  // Auto-save A1 form content to part_a1
   const saveContent = useCallback(async (data: FormData) => {
     if (!canEdit) return;
-    
+
     setSaving(true);
     try {
-      const content = JSON.stringify(data);
-      
       const { error } = await supabase
-        .from('section_content')
+        .from('part_a1')
         .upsert({
           proposal_id: proposalId,
-          section_id: 'a1',
-          content,
+          abstract: data.abstract,
+          fixed_keywords: data.fixedKeywords,
+          free_keywords: data.freeKeywords,
+          previous_submission: data.previousSubmission,
+          previous_submission_reference: data.previousSubmissionReference,
+          declarations: data.declarations as unknown as Record<string, boolean>,
           updated_at: new Date().toISOString(),
         }, {
-          onConflict: 'proposal_id,section_id',
+          onConflict: 'proposal_id',
         });
 
       if (error) throw error;
@@ -642,23 +588,20 @@ export function GeneralInfoForm({
   }
 
   return (
-    <div className="flex-1 overflow-auto p-4 bg-muted/30">
-      <div className="max-w-7xl mx-auto space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="space-y-2">
-            <h1 className="text-xl font-bold text-foreground">A1. General information</h1>
-            <div className="flex items-center gap-3">
-              <PartAGuidelinesDialog
-                sectionTitle="Part A1: General information"
-                officialGuidelines={officialGuidelines}
-                sitraTips={sitraTips}
-              />
-              {canEdit && <SaveIndicator saving={saving} lastSaved={lastSaved} onSaveNow={() => saveContent(formData)} />}
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-          </div>
-        </div>
+    <PartAPageLayout
+      title="A1. General information"
+      padding="p-4"
+      spacing="space-y-4"
+      guidelines={
+        <PartAGuidelinesDialog
+          sectionTitle="Part A1: General information"
+          officialGuidelines={officialGuidelines}
+          sitraTips={sitraTips}
+        />
+      }
+      saveIndicator={canEdit ? <SaveIndicator saving={saving} lastSaved={lastSaved} onSaveNow={() => saveContent(formData)} /> : undefined}
+    >
+
 
         {/* Project Identity Card */}
         <Card>
@@ -888,6 +831,18 @@ export function GeneralInfoForm({
             <Textarea
               value={formData.abstract}
               onChange={(e) => handleAbstractChange(e.target.value)}
+              onPaste={(e) => {
+                // Enforce plain-text paste — strip any HTML/rich content
+                // (e.g. Word, editor badges) before it lands in the field.
+                const cd = e.clipboardData;
+                if (!cd) return;
+                const html = cd.getData('text/html');
+                const text = cd.getData('text/plain');
+                if (!html && !text) return;
+                e.preventDefault();
+                const plain = html ? htmlToPlainText(html) : text;
+                document.execCommand('insertText', false, plain);
+              }}
               placeholder="Enter your proposal abstract..."
               className="min-h-[200px] resize-none"
               maxLength={2000}
@@ -1078,12 +1033,12 @@ export function GeneralInfoForm({
         </Card>
 
 
-        {/* Delete Proposal - Admins/Owners Only */}
-        {isCoordinator && (
-          <DeleteProposalSection proposalId={proposalId} proposalTitle={proposal?.title || 'this proposal'} />
-        )}
-      </div>
-    </div>
+      {/* Delete Proposal - Admins/Owners Only */}
+      {isCoordinator && (
+        <DeleteProposalSection proposalId={proposalId} proposalTitle={proposal?.title || 'this proposal'} />
+      )}
+    </PartAPageLayout>
+
   );
 }
 

@@ -7,9 +7,10 @@ import { Download, BarChart3, Plus, Trash2, Image, FileDown } from 'lucide-react
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { getContrastingTextColor, lightenColor } from '@/lib/wpColors';
-import { exportAsPng, exportGanttAsPptx, type GanttExportData } from '@/lib/figureExport';
+import type { GanttExportData } from '@/lib/figureExport';
 import { toast } from 'sonner';
 import { scheduleFigurePngCache } from '@/lib/figureCache';
+import { B31Pill } from '@/components/B31Pill';
 
 interface Task {
   id: string;
@@ -65,6 +66,264 @@ const MIN_CELL_WIDTH = 7;
 const MARGIN_GAP = 42;
 const ROW_HEIGHT = 20;
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Per-WP badge layout (deliverables + milestones).
+//
+// Inputs are already partitioned per WP. Each badge declares:
+//   • dueMonth         → tipX = centre of due-month cell
+//   • linkedTaskIds    → tasks in this WP (rowIdx[]) for origins/median
+//   • useWpBand (ms)   → milestone falls back to the WP band (rowIdx = -1)
+//
+// Output:
+//   • badges with absolute geometry (tipX, leftX, shapeW, shapeH, rowIdx)
+//   • drawLines flag (single-task deliverable = no lines, no dot)
+//   • origins[] in {rowIdx, x} form — the renderer resolves Y from rowIdx.
+//
+// Slot search = median row, then ±1, ±2 outward, refusing collisions with
+// already-placed badge bodies. Pragmatic v1 (no full pathfinding).
+// ─────────────────────────────────────────────────────────────────────────────
+type WpDelBadgeIn = {
+  key: string;
+  label: string;
+  color: string;
+  dueMonth: number;
+  linkedRows: number[];
+  linkedTaskIds: string[];
+  anchorRow?: number;
+  tooltipTitle: string;
+};
+type WpMsBadgeIn = {
+  key: string;
+  id: string;
+  number: number;
+  label: string;
+  dueMonth: number;
+  title: string;
+};
+type WpDelBadgeOut = WpDelBadgeIn & {
+  tipX: number;
+  leftX: number;
+  shapeW: number;
+  shapeH: number;
+  bodyW: number;
+  pointDepth: number;
+  rowIdx: number;
+  anchorRowResolved: number;
+  drawLines: boolean;
+  flipped: boolean;
+  origins: Array<{ rowIdx: number; x: number }>;
+  dotX: number;
+};
+type WpMsBadgeOut = WpMsBadgeIn & {
+  shapeW: number;
+  shapeH: number;
+  hexLeft: number;
+  rowIdx: number;     // -1 = band; otherwise stacked task row
+  dotX: number;
+  tipX: number;       // connector end-x on badge side (used when on band row)
+  origins: Array<{ rowIdx: number; x: number }>; // anchor dot (band row)
+  centred: boolean;   // true when stacked vertically onto a task row
+};
+
+// Multi-slot layout for badges that share a due-month dot.
+//
+// Slot order per badge:
+//   1) LEFT of dot on anchor row   (chevron tip-right; hex right-tip toward dot)
+//   2) RIGHT of dot on anchor row  (chevron tip-left;  hex left-tip toward dot)
+//   3+) CENTRED on dotX, stacked into adjacent rows (DOWN by default, UP if
+//       anchor is the WP's last task row). Connector is a straight vertical
+//       line from anchor (dotX, anchorY) to badge (dotX, badgeY).
+//   N) Last-resort horizontal nudge on the anchor row, clamped to overlay.
+//
+// All candidates are tested against ONE shared placedRects-per-row map covering
+// the WP band row (-1) and every task row, with a 4px gap, and clamped to the
+// overlay's right edge. First passing candidate wins.
+function layoutWpBadges(args: {
+  delBadges: WpDelBadgeIn[];
+  msBadges: WpMsBadgeIn[];
+  tasks: { id: string }[];
+  cellWidth: number;
+  overlayWidth: number;
+  titleRightInOverlay: number; // band row left-edge cutoff (WP title)
+}): { dels: WpDelBadgeOut[]; mss: WpMsBadgeOut[] } {
+  const { delBadges, msBadges, tasks, cellWidth, overlayWidth, titleRightInOverlay } = args;
+  const pointDepth = 4;
+  const estimateDelW = (label: string) => Math.max(25, label.length * 5 + 5);
+  const estimateMsW = (label: string) => Math.max(26, label.length * 5 + 8);
+  const taskRowById = new Map(tasks.map((t, i) => [t.id, i]));
+  const taskCount = tasks.length;
+  const rectGap = 4;
+  const placedRectsByRow = new Map<number, Array<{ left: number; right: number }>>();
+  // Seed band-row obstruction from the WP title text.
+  if (titleRightInOverlay > -Infinity) {
+    placedRectsByRow.set(-1, [{ left: -1e6, right: titleRightInOverlay }]);
+  }
+  const overlapsRow = (rowIdx: number, left: number, right: number) => {
+    const placed = placedRectsByRow.get(rowIdx) || [];
+    return placed.some((r) => left < r.right + rectGap && right + rectGap > r.left);
+  };
+  const commitRect = (rowIdx: number, left: number, right: number) => {
+    const arr = placedRectsByRow.get(rowIdx) || [];
+    arr.push({ left, right });
+    placedRectsByRow.set(rowIdx, arr);
+  };
+
+  type Slot = {
+    rowIdx: number;
+    leftX: number;
+    tipX: number;
+    flipped: boolean;
+    centred: boolean;
+  };
+  const generateSlots = (
+    dueMonth: number,
+    shapeW: number,
+    anchorRow: number,
+  ): Slot[] => {
+    const dotX = (dueMonth - 0.5) * cellWidth;
+    const slots: Slot[] = [];
+    // 1) LEFT
+    slots.push({
+      rowIdx: anchorRow,
+      leftX: dotX - 5 - shapeW,
+      tipX: dotX - 5,
+      flipped: false,
+      centred: false,
+    });
+    // 2) RIGHT
+    slots.push({
+      rowIdx: anchorRow,
+      leftX: dotX + 5,
+      tipX: dotX + 5,
+      flipped: true,
+      centred: false,
+    });
+    // 3+) Centred-stacked. DOWN by default; UP if anchor is the last task row.
+    // Anchor on band (-1) always stacks DOWN.
+    const stackDown = anchorRow === -1 ? true : anchorRow < taskCount - 1;
+    const dir = stackDown ? 1 : -1;
+    const minRow = -1;
+    const maxRow = taskCount - 1;
+    let r = anchorRow + dir;
+    while (r >= minRow && r <= maxRow) {
+      slots.push({
+        rowIdx: r,
+        leftX: dotX - shapeW / 2,
+        tipX: dotX,
+        flipped: false,
+        centred: true,
+      });
+      r += dir;
+    }
+    // Also try the OTHER vertical direction in case the preferred side is full.
+    let r2 = anchorRow - dir;
+    while (r2 >= minRow && r2 <= maxRow) {
+      slots.push({
+        rowIdx: r2,
+        leftX: dotX - shapeW / 2,
+        tipX: dotX,
+        flipped: false,
+        centred: true,
+      });
+      r2 -= dir;
+    }
+    // N) Horizontal nudge fallback on anchor row.
+    for (let i = 1; i < 30; i++) {
+      const off = i * (shapeW + rectGap);
+      slots.push({
+        rowIdx: anchorRow,
+        leftX: dotX + 5 + off,
+        tipX: dotX + 5 + off,
+        flipped: true,
+        centred: false,
+      });
+    }
+    return slots;
+  };
+  const pickSlot = (
+    slots: Slot[],
+    shapeW: number,
+    allowOverflowLeftOnTaskRow: boolean,
+  ): Slot => {
+    for (const s of slots) {
+      const right = s.leftX + shapeW;
+      if (right > overlayWidth) continue;
+      // For band row, the title rect already blocks the left zone.
+      // For task rows we allow negative leftX (deliverable extends into title cell).
+      if (s.rowIdx === -1 && !allowOverflowLeftOnTaskRow && s.leftX < titleRightInOverlay) continue;
+      if (overlapsRow(s.rowIdx, s.leftX, right)) continue;
+      return s;
+    }
+    return slots[slots.length - 1]; // last-resort
+  };
+
+  // ── Place milestones first (band row anchor; stack DOWN into task rows).
+  const msSorted = [...msBadges].sort(
+    (a, b) => a.dueMonth - b.dueMonth || a.number - b.number,
+  );
+  const mss: WpMsBadgeOut[] = msSorted.map((m) => {
+    const shapeW = estimateMsW(m.label);
+    const shapeH = 10;
+    const dotX = (m.dueMonth - 0.5) * cellWidth;
+    const slots = generateSlots(m.dueMonth, shapeW, -1);
+    const pick = pickSlot(slots, shapeW, true);
+    commitRect(pick.rowIdx, pick.leftX, pick.leftX + shapeW);
+    return {
+      ...m,
+      shapeW,
+      shapeH,
+      hexLeft: pick.leftX,
+      rowIdx: pick.rowIdx,
+      dotX,
+      tipX: pick.centred ? dotX : pick.tipX,
+      origins: [{ rowIdx: -1, x: dotX }],
+      centred: pick.centred,
+    };
+  });
+
+  // ── Deliverables: lowest number first wins the natural LEFT slot.
+  const parseDelNum = (s: string) => {
+    const m = s.match(/(\d+)(?:\.(\d+))?/);
+    if (!m) return 0;
+    return (parseInt(m[1], 10) || 0) * 10000 + (parseInt(m[2] || '0', 10) || 0);
+  };
+  const delSorted = [...delBadges].sort(
+    (a, b) => parseDelNum(a.label) - parseDelNum(b.label),
+  );
+  const dels: WpDelBadgeOut[] = delSorted.map((b) => {
+    const bodyW = estimateDelW(b.label);
+    const shapeW = bodyW + pointDepth;
+    const shapeH = 10;
+    const taskId = b.linkedTaskIds[0] ?? null;
+    const anchorRow = taskId != null ? (taskRowById.get(taskId) ?? 0) : 0;
+    const dotX = (b.dueMonth - 0.5) * cellWidth;
+    const slots = generateSlots(b.dueMonth, shapeW, anchorRow);
+    const pick = pickSlot(slots, shapeW, true);
+    commitRect(pick.rowIdx, pick.leftX, pick.leftX + shapeW);
+    return {
+      ...b,
+      tipX: pick.centred ? dotX : pick.tipX,
+      leftX: pick.leftX,
+      shapeW,
+      shapeH,
+      bodyW,
+      pointDepth,
+      rowIdx: pick.rowIdx,
+      anchorRowResolved: anchorRow,
+      drawLines: true,
+      flipped: pick.flipped,
+      origins: [{ rowIdx: anchorRow, x: dotX }],
+      dotX,
+    };
+  });
+
+  return { dels, mss };
+}
+
+
+
+
+
 export function GanttChartFigure({
   figureId,
   figureNumber,
@@ -96,7 +355,11 @@ export function GanttChartFigure({
     },
   });
 
-  // Fetch wp_drafts with their tasks, deliverables, and milestones dynamically
+  // Fetch wp_drafts with tasks, deliverables, and milestones — fully live from
+  // source tables. Includes the new link tables:
+  //   * wp_draft_deliverable_tasks  (deliverable → task[])
+  //   * proposal_milestone_wps      (milestone → wp[], with is_primary flag)
+  // No legacy / degraded / snapshot source is used anywhere below.
   const { data: wpDraftsData } = useQuery({
     queryKey: ['wp-drafts-gantt', proposalId],
     queryFn: async () => {
@@ -104,7 +367,9 @@ export function GanttChartFigure({
         { data: wps, error: wpError },
         { data: tasks, error: taskError },
         { data: deliverables, error: delError },
+        { data: delTaskLinks, error: dtlError },
         { data: msData, error: msError },
+        { data: msWpLinks, error: mwlError },
         { data: participants, error: partError },
       ] = await Promise.all([
         supabase
@@ -117,14 +382,18 @@ export function GanttChartFigure({
           .select('id, wp_draft_id, number, title, start_month, end_month')
           .order('order_index'),
         supabase
-          .from('b31_deliverables')
-          .select('id, wp_number, number, name, due_month, task_id, type, dissemination_level, lead_participant_id')
+          .from('wp_draft_deliverables')
+          .select('id, wp_draft_id, number, title, due_month, type, dissemination_level, responsible_participant_id'),
+        supabase
+          .from('wp_draft_deliverable_tasks')
+          .select('deliverable_id, wp_draft_task_id'),
+        supabase
+          .from('proposal_milestones')
+          .select('id, number, title, due_month')
           .eq('proposal_id', proposalId),
         supabase
-          .from('b31_milestones')
-          .select('id, number, name, due_month, task_id, wps')
-          .eq('proposal_id', proposalId)
-          .order('number'),
+          .from('proposal_milestone_wps')
+          .select('milestone_id, wp_draft_id, is_primary'),
         supabase
           .from('participants')
           .select('id, organisation_short_name, participant_number')
@@ -133,111 +402,153 @@ export function GanttChartFigure({
       if (wpError) throw wpError;
       if (taskError) throw taskError;
       if (delError) throw delError;
+      if (dtlError) throw dtlError;
       if (msError) throw msError;
+      if (mwlError) throw mwlError;
       if (partError) throw partError;
 
-      const wpIds = new Set(wps!.map(wp => wp.id));
+      const wpIds = new Set((wps || []).map(wp => wp.id));
       const filteredTasks = (tasks || []).filter(t => wpIds.has(t.wp_draft_id));
+      const taskIds = new Set(filteredTasks.map(t => t.id));
+      const filteredDels = (deliverables || []).filter(d => wpIds.has(d.wp_draft_id));
+      const delIds = new Set(filteredDels.map(d => d.id));
+      const msIds = new Set((msData || []).map(m => m.id));
 
-      return { wps: wps!, tasks: filteredTasks, deliverables: deliverables || [], milestones: msData || [], participants: participants || [] };
-    },
-  });
+      const delToTaskIds = new Map<string, string[]>();
+      for (const l of delTaskLinks || []) {
+        if (!delIds.has(l.deliverable_id) || !taskIds.has(l.wp_draft_task_id)) continue;
+        const arr = delToTaskIds.get(l.deliverable_id) || [];
+        arr.push(l.wp_draft_task_id);
+        delToTaskIds.set(l.deliverable_id, arr);
+      }
 
-  const dynamicData = useMemo(() => {
-    if (!wpDraftsData) return { workPackages: [] as WorkPackage[], milestones: [] as Milestone[] };
-
-    const { wps, tasks, deliverables, milestones: msRows, participants } = wpDraftsData;
-
-    const partMap = new Map(participants.map(p => [p.id, p.organisation_short_name || `P${p.participant_number}`]));
-
-    const workPackages: WorkPackage[] = wps.map((wp) => {
-      const wpTasks = tasks.filter(t => t.wp_draft_id === wp.id);
-      const wpDeliverables = deliverables.filter(d => d.wp_number === wp.number);
-      const wpMilestones = msRows.filter(m => {
-        // Milestones linked to tasks in this WP
-        if (m.task_id && wpTasks.some(t => t.id === m.task_id)) return true;
-        // Milestones with WPs field containing this WP number
-        if (!m.task_id && m.wps) {
-          const wpNums = String(m.wps).split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
-          return wpNums.includes(wp.number);
-        }
-        return false;
-      });
-
-      const taskStartMonths = wpTasks.filter(t => t.start_month != null).map(t => t.start_month!);
-      const taskEndMonths = wpTasks.filter(t => t.end_month != null).map(t => t.end_month!);
-      const startMonth = taskStartMonths.length > 0 ? Math.min(...taskStartMonths) : null;
-      const endMonth = taskEndMonths.length > 0 ? Math.max(...taskEndMonths) : null;
-
-      const mappedTasks = wpTasks
-        .filter(t => t.start_month != null && t.end_month != null)
-        .map(t => ({
-          id: t.id,
-          wpNumber: wp.number,
-          taskNumber: t.number,
-          name: t.title || '',
-          startMonth: t.start_month!,
-          endMonth: t.end_month!,
-          deliverables: wpDeliverables
-            .filter(d => d.task_id === t.id && d.due_month != null)
-            .map(d => ({ number: d.number, name: d.name, month: d.due_month!, type: d.type || undefined, disseminationLevel: d.dissemination_level || undefined, leadShortName: d.lead_participant_id ? partMap.get(d.lead_participant_id) : undefined })),
-          milestones: wpMilestones
-            .filter(m => m.task_id === t.id && m.due_month != null)
-            .map(m => {
-              const taskDel = wpDeliverables.find(d => d.task_id === t.id && d.lead_participant_id);
-              const leadName = taskDel?.lead_participant_id ? partMap.get(taskDel.lead_participant_id) : undefined;
-              return { number: m.number, name: m.name, month: m.due_month!, leadShortName: leadName };
-            }),
-        }));
-
-      // Attach unassigned deliverables/milestones (no task_id) to the last task, or create a virtual task
-      const unassignedDels = wpDeliverables
-        .filter(d => !d.task_id && d.due_month != null)
-        .map(d => ({ number: d.number, name: d.name, month: d.due_month!, type: d.type || undefined, disseminationLevel: d.dissemination_level || undefined, leadShortName: d.lead_participant_id ? partMap.get(d.lead_participant_id) : undefined }));
-      const unassignedMs = wpMilestones
-        .filter(m => !m.task_id && m.due_month != null)
-        .map(m => ({ number: m.number, name: m.name, month: m.due_month!, leadShortName: undefined as string | undefined }));
-
-      if (unassignedDels.length > 0 || unassignedMs.length > 0) {
-        if (mappedTasks.length > 0) {
-          // Attach to last task
-          const lastTask = mappedTasks[mappedTasks.length - 1];
-          lastTask.deliverables = [...(lastTask.deliverables || []), ...unassignedDels];
-          lastTask.milestones = [...(lastTask.milestones || []), ...unassignedMs];
-        } else {
-          // Create a virtual task spanning the WP to hold the bubbles
-          const wpStart = startMonth ?? 1;
-          const wpEnd = endMonth ?? (startMonth ?? 1);
-          mappedTasks.push({
-            id: `virtual-${wp.id}`,
-            wpNumber: wp.number,
-            taskNumber: 0,
-            name: '',
-            startMonth: wpStart,
-            endMonth: wpEnd,
-            deliverables: unassignedDels,
-            milestones: unassignedMs,
-          });
-        }
+      const msToWpIds = new Map<string, string[]>();
+      const msPrimaryWpId = new Map<string, string>();
+      for (const l of msWpLinks || []) {
+        if (!msIds.has(l.milestone_id) || !wpIds.has(l.wp_draft_id)) continue;
+        const arr = msToWpIds.get(l.milestone_id) || [];
+        arr.push(l.wp_draft_id);
+        msToWpIds.set(l.milestone_id, arr);
+        if (l.is_primary) msPrimaryWpId.set(l.milestone_id, l.wp_draft_id);
       }
 
       return {
+        wps: wps || [],
+        tasks: filteredTasks,
+        deliverables: filteredDels,
+        milestones: msData || [],
+        participants: participants || [],
+        delToTaskIds,
+        msToWpIds,
+        msPrimaryWpId,
+      };
+    },
+  });
+
+
+
+  // Build a typed structure per WP with: tasks (timed only), the WP's active
+  // span, and the badges to render in the overlay. Each badge carries the
+  // task-row indices it links to (within the WP), so layout & connector lines
+  // can be computed below from a single source.
+  const dynamicData = useMemo(() => {
+    if (!wpDraftsData) return { workPackages: [] as any[], milestones: [] as Milestone[] };
+
+    const { wps, tasks, deliverables, milestones: msRows, participants, delToTaskIds, msToWpIds } = wpDraftsData;
+
+    const partMap = new Map(participants.map(p => [p.id, p.organisation_short_name || `P${p.participant_number}`]));
+    const wpNumberById = new Map(wps.map(wp => [wp.id, wp.number]));
+
+    const workPackages = wps.map((wp) => {
+      const wpTasks = tasks.filter(t => t.wp_draft_id === wp.id);
+      const timedTasks = wpTasks.filter(t => t.start_month != null && t.end_month != null);
+
+      // Stable per-WP task ordering (matches what we render). rowIdx = position.
+      const taskRowIdxById = new Map<string, number>();
+      timedTasks.forEach((t, i) => taskRowIdxById.set(t.id, i));
+      const taskById = new Map(timedTasks.map(t => [t.id, t]));
+
+      const taskStartMonths = timedTasks.map(t => t.start_month!);
+      const taskEndMonths = timedTasks.map(t => t.end_month!);
+      const wpStart = taskStartMonths.length ? Math.min(...taskStartMonths) : null;
+      const wpEnd = taskEndMonths.length ? Math.max(...taskEndMonths) : null;
+
+      const mappedTasks = timedTasks.map(t => ({
+        id: t.id,
+        wpNumber: wp.number,
+        taskNumber: t.number,
+        name: t.title || '',
+        startMonth: t.start_month!,
+        endMonth: t.end_month!,
+      }));
+
+      // ── Deliverable badges (one per deliverable). Links: wp_draft_deliverable_tasks.
+      const wpDeliverables = deliverables.filter(d => d.wp_draft_id === wp.id && d.due_month != null);
+      const taskNumOf = (id: string) => {
+        const t = taskById.get(id) as any;
+        if (!t) return -Infinity;
+        // task.number may be number or string like "1.5" — use trailing segment.
+        const raw = String(t.number ?? '');
+        const tail = raw.includes('.') ? raw.split('.').pop() : raw;
+        const n = parseInt(tail || '0', 10);
+        return Number.isFinite(n) ? n : -Infinity;
+      };
+      const delBadges = wpDeliverables.map(d => {
+        const linkedTaskIds = (delToTaskIds.get(d.id) || []).filter(id => taskRowIdxById.has(id));
+        const linkedRows = linkedTaskIds.map(id => taskRowIdxById.get(id)!);
+        // Anchor row = row of HIGHEST-NUMBERED linked task within this WP.
+        let anchorRow: number | undefined = undefined;
+        if (linkedTaskIds.length > 0) {
+          const sortedIds = [...linkedTaskIds].sort((a, b) => taskNumOf(b) - taskNumOf(a));
+          anchorRow = taskRowIdxById.get(sortedIds[0]);
+        }
+        const wpNum = wpNumberById.get(d.wp_draft_id) ?? wp.number;
+        const tooltipParts = [`D${wpNum}.${d.number}: ${d.title || ''}`];
+        if (d.type) tooltipParts.push(`Type: ${d.type}`);
+        if (d.dissemination_level) tooltipParts.push(`Dissemination: ${d.dissemination_level}`);
+        if (d.responsible_participant_id) {
+          const lead = partMap.get(d.responsible_participant_id);
+          if (lead) tooltipParts.push(`Lead: ${lead}`);
+        }
+        return {
+          key: `del-${d.id}`,
+          kind: 'del' as const,
+          label: `D${wpNum}.${d.number}`,
+          color: wp.color,
+          dueMonth: d.due_month!,
+          linkedRows,
+          // Origin x is computed in layout (right edge of each linked task's end month).
+          linkedTaskIds,
+          anchorRow,
+          tooltipTitle: tooltipParts.join(' | '),
+        };
+      });
+
+      // Milestones are no longer rendered per-WP; the chart-wide overlay owns them.
+      return {
+        id: wp.id,
         number: wp.number,
         shortName: wp.short_name || '',
         title: wp.title || '',
-        startMonth: startMonth ?? 1,
-        endMonth: endMonth ?? 1,
+        startMonth: wpStart ?? 1,
+        endMonth: wpEnd ?? 1,
         color: wp.color,
         tasks: mappedTasks,
+        taskById,
+        delBadges,
+        msBadges: [] as any[],
       };
     });
 
+
     const msMapped: Milestone[] = msRows
       .filter(m => m.due_month != null)
-      .map(m => ({ id: m.id, number: m.number, name: m.name, month: m.due_month! }));
+      .map(m => ({ id: m.id, number: m.number, name: m.title || '', month: m.due_month! }));
 
     return { workPackages, milestones: msMapped };
   }, [wpDraftsData]);
+
+
 
   const projectDuration = proposalData?.duration || content?.projectDuration || 36;
   const workPackages = dynamicData.workPackages;
@@ -280,6 +591,46 @@ export function GanttChartFigure({
   const cellWidth = Math.max(MIN_CELL_WIDTH, Math.ceil(minQuarterWidth / 3));
   const timelineWidth = cellWidth * projectDuration;
   const labelWidth = TOTAL_WIDTH_PX - timelineWidth - MARGIN_GAP;
+  const overlayWidth = timelineWidth + MARGIN_GAP;
+
+  // Global per-chart row layout. Each WP contributes: 1 header row + N task rows
+  // + M untimed task rows. A 2px spacer sits BETWEEN WPs. Slot indices are a
+  // continuous integer space; slotCenterY[slot] holds the centre Y in pixels
+  // measured from the top of the first WP block.
+  const rowLayout = useMemo(() => {
+    const wpBandSlot: number[] = [];
+    const taskSlotByTaskId = new Map<string, number>();
+    const slotCenterY: number[] = [];
+    let nextSlot = 0;
+    let y = 0;
+    workPackages.forEach((wp: any, idx: number) => {
+      if (idx > 0) y += 2;
+      wpBandSlot[idx] = nextSlot;
+      slotCenterY[nextSlot] = y + ROW_HEIGHT / 2;
+      nextSlot += 1;
+      y += ROW_HEIGHT;
+      wp.tasks.forEach((t: any) => {
+        taskSlotByTaskId.set(t.id, nextSlot);
+        slotCenterY[nextSlot] = y + ROW_HEIGHT / 2;
+        nextSlot += 1;
+        y += ROW_HEIGHT;
+      });
+      const untimed = (wpDraftsData?.tasks || []).filter(
+        (t: any) => t.wp_draft_id === wp.id && (t.start_month == null || t.end_month == null),
+      );
+      untimed.forEach(() => {
+        slotCenterY[nextSlot] = y + ROW_HEIGHT / 2;
+        nextSlot += 1;
+        y += ROW_HEIGHT;
+      });
+    });
+    return { wpBandSlot, taskSlotByTaskId, slotCenterY, totalSlots: nextSlot, totalHeight: y };
+  }, [workPackages, wpDraftsData]);
+
+  // Milestones are no longer rendered on the Gantt.
+
+
+
 
   // Border colors - lighter greys
   const borderLight = '#e5e5e5';
@@ -320,16 +671,17 @@ export function GanttChartFigure({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => {
+                <DropdownMenuItem onClick={async () => {
                   if (chartRef.current) {
-                    exportAsPng(chartRef.current, `Gantt-Chart-Figure-${figureNumber}`);
+                    const { exportAsPng } = await import('@/lib/figureExport');
+                    await exportAsPng(chartRef.current, `Gantt-Chart-Figure-${figureNumber}`);
                     toast.success('PNG downloaded');
                   }
                 }}>
                   <Image className="w-4 h-4 mr-2" />
                   Download as PNG
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => {
+                <DropdownMenuItem onClick={async () => {
                   const exportData: GanttExportData = {
                     projectDuration,
                     workPackages: workPackages.map(wp => ({
@@ -348,7 +700,8 @@ export function GanttChartFigure({
                     })),
                     milestones: milestones.map(m => ({ number: m.number, name: m.name, month: m.month })),
                   };
-                  exportGanttAsPptx(exportData, `Gantt-Chart-Figure-${figureNumber}`);
+                  const { exportGanttAsPptx } = await import('@/lib/figureExport');
+                  await exportGanttAsPptx(exportData, `Gantt-Chart-Figure-${figureNumber}`);
                   toast.success('PPTX downloaded');
                 }}>
                   <FileDown className="w-4 h-4 mr-2" />
@@ -432,345 +785,162 @@ export function GanttChartFigure({
           {/* Slim spacer after header - non-editable */}
           <div style={{ height: 2 }} aria-hidden="true" />
 
-          {/* Work packages and Tasks */}
+          {/* Work packages and Tasks — wrapped so chart-wide milestone overlay can span all WPs */}
+          <div style={{ position: 'relative' }}>
           {workPackages.map((wp, wpIdx) => {
-            const wpColor = wp.color || '#2563EB';
+
+            const wpColor = wp.color || '#73C92D';
             const taskColor = '#d4d4d4';
-            
-            const wpId = wpDraftsData?.wps.find(w => w.number === wp.number)?.id;
+            const titleWidth = labelWidth - 38 - 6;
+
             const untimedTasks = (wpDraftsData?.tasks || [])
-              .filter(t => t.wp_draft_id === wpId)
+              .filter(t => t.wp_draft_id === wp.id)
               .filter(t => t.start_month == null || t.end_month == null);
-            
+
+            // Estimate the WP title text's right edge in OVERLAY coordinates
+            // (overlay origin = labelWidth from the row's left edge).
+            const wpTitleStr = `WP${wp.number}: ${wp.shortName || ''}${wp.shortName && wp.title ? ' – ' : ''}${wp.title || ''}`;
+            const wpTitleTextPx = wpTitleStr.length * 6.4;
+            const titleBuffer = 4;
+            const titleRightInOverlay = (6 + wpTitleTextPx) - labelWidth + titleBuffer;
+            const overlayWidthLocal = timelineWidth + MARGIN_GAP;
+
+            // ── Build milestone inputs for this WP (primary WP only).
+            const msInputs: WpMsBadgeIn[] = (wpDraftsData?.milestones || [])
+              .filter((m: any) => m.due_month != null && wpDraftsData?.msPrimaryWpId.get(m.id) === wp.id)
+              .map((m: any) => ({
+                key: `ms-${m.id}`,
+                id: m.id,
+                number: m.number,
+                label: `MS${m.number}`,
+                dueMonth: m.due_month,
+                title: m.title || '',
+              }));
+
+            // Compute badge layout (rebuilt every render — cheap). Milestones
+            // and deliverables share one placedRects map across band + task rows.
+            const { dels: laidOut, mss: msLaidOut } = layoutWpBadges({
+              delBadges: wp.delBadges,
+              msBadges: msInputs,
+              tasks: wp.tasks.map((t: any) => ({ id: t.id })),
+              cellWidth,
+              overlayWidth: overlayWidthLocal,
+              titleRightInOverlay,
+            });
+
+
+            // Per-task title max-width based on the leftmost chevron on that row.
+            // The title cell sits immediately left of the timeline, so a chevron with
+            // leftX < 0 (in overlay coordinates) extends into the title area.
+            // Run AFTER chevron placement so cutoff reflects actual geometry.
+            const titleGapPx = 4;
+            const taskTitleMaxWidth = new Map<string, number>();
+            wp.tasks.forEach((t: any, i: number) => {
+              const onRow = laidOut.filter(b => b.rowIdx === i);
+              if (onRow.length === 0) return;
+              const minLeftX = Math.min(...onRow.map(b => b.leftX));
+              if (minLeftX < 0) {
+                const constrained = Math.max(20, titleWidth + minLeftX - titleGapPx);
+                taskTitleMaxWidth.set(t.id, constrained);
+              }
+            });
+
+
+            // Y coordinates relative to the per-WP overlay container.
+            // Overlay top = top of WP band; band centre = ROW/2;
+            // task row i centre = ROW + i*ROW + ROW/2.
+            const yOfWpBand = ROW_HEIGHT / 2;
+            const yOfTaskRow = (i: number) => ROW_HEIGHT + i * ROW_HEIGHT + ROW_HEIGHT / 2;
+            const yOfRow = (rowIdx: number) => (rowIdx === -1 ? yOfWpBand : yOfTaskRow(rowIdx));
+            const overlayHeight = ROW_HEIGHT + wp.tasks.length * ROW_HEIGHT + untimedTasks.length * ROW_HEIGHT;
+            const overlayWidth = timelineWidth + MARGIN_GAP;
+
             return (
               <div key={wp.number}>
-                {/* Slim spacer between WPs - non-editable */}
-                {wpIdx > 0 && (
-                  <div style={{ height: 2 }} aria-hidden="true" />
-                )}
+                {wpIdx > 0 && <div style={{ height: 2 }} aria-hidden="true" />}
 
-                {/* WP Header Row - full width bubble with left rounded, right triangle */}
-                <div className="flex relative" style={{ height: ROW_HEIGHT }}>
-                  <div 
-                    className="absolute flex items-center font-bold text-white truncate"
-                    style={{
-                      backgroundColor: wpColor,
-                      fontFamily: "'Times New Roman', Times, serif",
-                      fontSize: '11pt',
-                      fontWeight: 700,
-                      padding: '0 12px 0 6px',
-                      pointerEvents: 'none',
-                      top: 0,
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      borderRadius: `${ROW_HEIGHT / 2}px 0 0 ${ROW_HEIGHT / 2}px`,
-                      clipPath: `polygon(0% 0%, calc(100% - 12.5px) 0%, 100% 50%, calc(100% - 12.5px) 100%, 0% 100%)`,
-                    }}
-                  >
-                    WP{wp.number}: {wp.shortName || ''}{wp.shortName && wp.title ? ' – ' : ''}{wp.title || ''}
-                  </div>
-                </div>
-
-                {/* Task Rows */}
-                {wp.tasks.map((task, taskIdx) => {
-                  // Pre-compute bubble positions for this task
-                  const taskBubbles: { month: number; label: string; color: string; tooltipTitle: string; type: 'del' | 'ms'; sortNum: string }[] = [];
-                  task.deliverables?.forEach(d => {
-                    const parts = [`D${d.number.replace(/^D/, '')}: ${d.name}`];
-                    if (d.type) parts.push(`Type: ${d.type}`);
-                    if (d.disseminationLevel) parts.push(`Dissemination: ${d.disseminationLevel}`);
-                    if (d.leadShortName) parts.push(`Lead: ${d.leadShortName}`);
-                    taskBubbles.push({ month: d.month, label: `D${d.number.replace(/^D/, '')}`, color: wpColor, tooltipTitle: parts.join(' | '), type: 'del', sortNum: d.number });
-                  });
-                  task.milestones?.forEach(ms => {
-                    const parts = [`MS${ms.number}: ${ms.name}`];
-                    if (ms.leadShortName) parts.push(`Lead: ${ms.leadShortName}`);
-                    taskBubbles.push({ month: ms.month, label: `MS${ms.number}`, color: '#000000', tooltipTitle: parts.join(' | '), type: 'ms', sortNum: String(ms.number) });
-                  });
-
-                  // Sort: by month, D before MS at same month, then numerically
-                  taskBubbles.sort((a, b) => {
-                    if (a.month !== b.month) return a.month - b.month;
-                    if (a.type !== b.type) return a.type === 'del' ? -1 : 1;
-                    return a.sortNum.localeCompare(b.sortNum, undefined, { numeric: true });
-                  });
-
-                  const pointDepth = 5;
-                  const estimateBubbleW = (label: string) => Math.max(26, label.length * 6 + 8);
-
-                  type PBubble = typeof taskBubbles[0] & { leftX: number; width: number; bodyW: number; triSide: 'right' | 'left' };
-                  const positioned: PBubble[] = taskBubbles.map(b => {
-                    if (b.type === 'ms') {
-                      const bodyW = estimateBubbleW(b.label);
-                      return {
-                        ...b,
-                        bodyW,
-                        width: bodyW,
-                        leftX: 0,
-                        triSide: 'left' as const,
-                      };
-                    }
-                    const bodyW = estimateBubbleW(b.label);
-                    return {
-                      ...b,
-                      bodyW,
-                      width: bodyW + pointDepth,
-                      leftX: 0,
-                      triSide: 'right' as const,
-                    };
-                  });
-
-                  // targetX = right border of the month cell (end of month)
-                  // Subtract 0.5 to align tip with the center of the 1px cell border
-                  const getTargetX = (month: number) => month * cellWidth - 0.5;
-
-                  // Group by month and position
-                  const monthGroups = new Map<number, number[]>();
-                  positioned.forEach((b, idx) => {
-                    if (!monthGroups.has(b.month)) monthGroups.set(b.month, []);
-                    monthGroups.get(b.month)!.push(idx);
-                  });
-
-                  monthGroups.forEach((indices) => {
-                    const tX = getTargetX(positioned[indices[0]].month);
-                    if (indices.length === 1) {
-                      const b = positioned[indices[0]];
-                      if (b.type === 'ms') {
-                        // MS: right of month boundary, triangle points left
-                        b.leftX = tX;
-                        b.triSide = 'left';
-                      } else {
-                        // D: left of month boundary, triangle points right
-                        b.leftX = tX - b.width;
-                        b.triSide = 'right';
-                      }
-                    } else {
-                      // Two at same month: first left-aligns to tX, second right-aligns from tX
-                      const left = positioned[indices[0]];
-                      const right = positioned[indices[1]];
-                      left.leftX = tX - left.width;
-                      left.triSide = 'right';
-                      right.leftX = tX;
-                      right.triSide = 'left';
-                      // Any extras just stack to the right
-                      let nextX = right.leftX + right.width + 1;
-                      for (let i = 2; i < indices.length; i++) {
-                        positioned[indices[i]].leftX = nextX;
-                        positioned[indices[i]].triSide = 'left';
-                        nextX += positioned[indices[i]].width + 1;
-                      }
-                    }
-                  });
-
-                  // Resolve overlaps between different-month bubbles
-                  for (let ni = 1; ni < positioned.length; ni++) {
-                    const prev = positioned[ni - 1];
-                    const curr = positioned[ni];
-                    if (prev.month === curr.month) continue;
-                    const overlap = (prev.leftX + prev.width + 1) - curr.leftX;
-                    if (overlap > 0) {
-                      if (prev.type === 'ms' && curr.type === 'del') {
-                        // D has priority: keep D in default position (pointing right, left of boundary)
-                        // MS flips to point right, pushed left of D
-                        const currTX = getTargetX(curr.month);
-                        curr.leftX = currTX - curr.width;
-                        curr.triSide = 'right';
-                        const prevTX = getTargetX(prev.month);
-                        const proposedLeftX = Math.min(prevTX - prev.width, curr.leftX - prev.width - 1);
-                        if (proposedLeftX < -20) {
-                          // MS would be pushed too far left; anchor MS at its target pointing right, push D right of MS
-                          prev.leftX = prevTX - prev.width;
-                          prev.triSide = 'right';
-                          curr.leftX = prev.leftX + prev.width + 1;
-                          curr.triSide = 'right';
-                        } else {
-                          prev.leftX = proposedLeftX;
-                          prev.triSide = 'right';
-                        }
-                      } else if (prev.type === 'del' && curr.type === 'ms') {
-                        // D has priority: keep D in default position (pointing right, left of boundary)
-                        // MS flips to point left, pushed right of D
-                        const prevTX = getTargetX(prev.month);
-                        prev.leftX = prevTX - prev.width;
-                        prev.triSide = 'right';
-                        const currTX = getTargetX(curr.month);
-                        const proposedLeftX = Math.max(currTX, prev.leftX + prev.width + 1);
-                        const timelineEnd = projectDuration * cellWidth;
-                        if (proposedLeftX + curr.width > timelineEnd + 20) {
-                          // MS would be pushed too far right; anchor MS at its target pointing left, push D left of MS
-                          curr.leftX = currTX;
-                          curr.triSide = 'left';
-                          prev.leftX = curr.leftX - prev.width - 1;
-                          prev.triSide = 'right';
-                        } else {
-                          curr.leftX = proposedLeftX;
-                          curr.triSide = 'left';
-                        }
-                      } else {
-                        // Same type: earlier points right, later points left (existing behavior)
-                        const prevTX = getTargetX(prev.month);
-                        prev.leftX = prevTX - prev.width;
-                        prev.triSide = 'right';
-                        const currTX = getTargetX(curr.month);
-                        curr.leftX = currTX;
-                        curr.triSide = 'left';
-                      }
-                    }
-                  }
-
-                  // Allow bubbles to extend left of timeline (negative leftX is OK)
-
-                  const rowHeight = ROW_HEIGHT;
-                  const titleWidth = labelWidth - 38 - 6;
-
-                  return (
-                    <div key={task.id} className="flex" style={{ position: 'relative' }}>
-                      {/* Task number bubble */}
-                      <div 
-                        className="shrink-0 flex items-center justify-center"
-                        style={{ width: 38, height: rowHeight, marginLeft: 6 }}
-                      >
-                        <span
-                          className="inline-flex items-center justify-center rounded-full font-bold"
-                          style={{ backgroundColor: '#fff', color: wpColor, border: `1.5px solid ${wpColor}`, fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, padding: '0px 4px', whiteSpace: 'nowrap', verticalAlign: 'baseline' }}
-                        >
-                          T{task.wpNumber}.{task.taskNumber}
-                        </span>
-                      </div>
-                      {/* Task title - use clip to allow bubbles to visually overlap */}
-                      <div 
-                        className="shrink-0 flex items-center"
-                        style={{ width: titleWidth, height: rowHeight, padding: '0 2px', borderRight: `1px solid ${wpColor}`, overflow: 'visible', position: 'relative' }}
-                      >
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', maxWidth: '100%' }}>{task.name}</span>
-                      </div>
-                      <div className="flex" style={{ position: 'relative', marginRight: MARGIN_GAP }}>
-                        {/* Render month cells */}
-                        {months.map(m => {
-                          const isInTask = m >= task.startMonth && m <= task.endMonth;
-                          return (
-                            <div
-                              key={m}
-                              style={{ 
-                                width: cellWidth, 
-                                height: rowHeight,
-                                backgroundColor: isInTask ? taskColor : undefined,
-                                borderRight: isInTask ? getFilledCellRightBorder(m, wpColor) : `1px solid ${getMonthRightBorder(m, wpColor)}`,
-                              }}
-                            />
-                          );
-                        })}
-                        {/* Render positioned bubbles */}
-                        {positioned.map((b, idx) => {
-                          const topPos = rowHeight / 2;
-                          const bH = 10;
-                          const r = bH / 2;
-                          const isRight = b.triSide === 'right';
-
-                          const isDel = b.type === 'del';
-                          const isMs = b.type === 'ms';
-                          let svgPath: string;
-                          let shapeW: number;
-                          let shapeH: number;
-                          if (isMs) {
-                            // Milestone: elongated hexagon
-                            shapeW = b.width;
-                            shapeH = 12;
-                            const x1 = shapeW * 0.12;
-                            const x2 = shapeW * 0.88;
-                            svgPath = `M ${x1},0 L ${x2},0 L ${shapeW},${shapeH / 2} L ${x2},${shapeH} L ${x1},${shapeH} L 0,${shapeH / 2} Z`;
-                          } else {
-                            shapeW = b.width;
-                            shapeH = bH;
-                            // Deliverable: square on non-arrow side, pointed on arrow side
-                            svgPath = isRight
-                              ? `M 0,0 L ${shapeW - pointDepth},0 L ${shapeW},${shapeH / 2} L ${shapeW - pointDepth},${shapeH} L 0,${shapeH} Z`
-                              : `M ${pointDepth},0 L ${shapeW},0 L ${shapeW},${shapeH} L ${pointDepth},${shapeH} L 0,${shapeH / 2} Z`;
-                          }
-
-                          return (
-                            <Tooltip key={`${b.type}-${idx}`}>
-                              <TooltipTrigger asChild>
-                                <span
-                                  style={{
-                                    position: 'absolute',
-                                    top: topPos,
-                                    left: b.leftX - (isDel ? 1 : 0),
-                                    transform: 'translateY(-50%)',
-                                    width: shapeW,
-                                    height: shapeH,
-                                    zIndex: 10,
-                                  }}
-                                >
-                                  <svg
-                                    width={shapeW}
-                                    height={shapeH}
-                                    viewBox={`0 0 ${shapeW} ${shapeH}`}
-                                    style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}
-                                  >
-                                    <path
-                                      d={svgPath}
-                                      fill={isMs ? '#000000' : '#ffffff'}
-                                      stroke={isMs ? 'none' : b.color}
-                                      strokeWidth={isMs ? 0 : 1.5}
-                                      strokeLinejoin={isMs ? 'miter' : 'round'}
-                                    />
-                                  </svg>
-                                  <span
-                                    style={{
-                                      position: 'absolute',
-                                      top: isMs ? 0 : -0.5,
-                                      left: isMs ? 0 : (isRight ? (isDel ? 1 : 0) : pointDepth),
-                                      width: isMs ? shapeW : b.bodyW,
-                                      height: shapeH,
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      fontFamily: "'Times New Roman', Times, serif",
-                                      fontSize: '8pt',
-                                      fontWeight: 700,
-                                      lineHeight: 1,
-                                      color: isMs ? '#ffffff' : b.color,
-                                      whiteSpace: 'nowrap',
-                                    }}
-                                  >
-                                    {b.label}
-                                  </span>
-                                </span>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="text-xs font-medium">{b.tooltipTitle}</p>
-                                <p className="text-xs text-muted-foreground">Month {b.month}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          );
-                        })}
-                      </div>
+                <div style={{ position: 'relative' }}>
+                  {/* WP Header Row - full width bubble */}
+                  <div className="flex relative" style={{ height: ROW_HEIGHT }}>
+                    <div
+                      className="absolute flex items-center font-bold text-white truncate"
+                      style={{
+                        backgroundColor: wpColor,
+                        fontFamily: "'Times New Roman', Times, serif",
+                        fontSize: '11pt',
+                        fontWeight: 700,
+                        padding: '0 12px 0 6px',
+                        pointerEvents: 'none',
+                        top: 0, bottom: 0, left: 0, right: 0,
+                        borderRadius: `${ROW_HEIGHT / 2}px 0 0 ${ROW_HEIGHT / 2}px`,
+                        clipPath: `polygon(0% 0%, calc(100% - 12.5px) 0%, 100% 50%, calc(100% - 12.5px) 100%, 0% 100%)`,
+                      }}
+                    >
+                      WP{wp.number}: {wp.shortName || ''}{wp.shortName && wp.title ? ' – ' : ''}{wp.title || ''}
                     </div>
-                  );
-                })}
+                  </div>
 
-                {/* Untimed task rows */}
-                {untimedTasks.map((task, utIdx) => {
-                  return (
+                  {/* Task Rows (no inline badges — badges live in the overlay below) */}
+                  {wp.tasks.map((task: any) => (
                     <div key={task.id} className="flex">
-                      {/* Task number bubble */}
-                      <div 
+                      <div
                         className="shrink-0 flex items-center justify-center"
                         style={{ width: 38, height: ROW_HEIGHT, marginLeft: 6 }}
                       >
-                        <span
-                          className="inline-flex items-center justify-center rounded-full font-bold"
-                          style={{ backgroundColor: '#fff', color: wpColor, border: `1.5px solid ${wpColor}`, fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, padding: '0px 4px', whiteSpace: 'nowrap', verticalAlign: 'baseline' }}
-                        >
-                          T{wp.number}.{task.number}
-                        </span>
+                        <B31Pill variant="outline" color={wpColor} style={{ padding: '0px 4px' }}>
+                          T{task.wpNumber}.{task.taskNumber}
+                        </B31Pill>
                       </div>
-                      {/* Task title */}
-                      <div 
+                      <div
+                        className="shrink-0 flex items-center"
+                        style={{ width: titleWidth, height: ROW_HEIGHT, padding: '0 2px', borderRight: `1px solid ${wpColor}`, overflow: 'hidden' }}
+                      >
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', maxWidth: taskTitleMaxWidth.get(task.id) ?? '100%' }}>{task.name}</span>
+                      </div>
+                      <div className="relative flex" style={{ marginRight: MARGIN_GAP }}>
+                        {months.map(m => (
+                          <div
+                            key={m}
+                            style={{
+                              width: cellWidth,
+                              height: ROW_HEIGHT,
+                              borderRight: `1px solid ${getMonthRightBorder(m, wpColor)}`,
+                            }}
+                          />
+                        ))}
+                        {task.startMonth != null && task.endMonth != null && task.endMonth >= task.startMonth && (
+                          <div
+                            aria-hidden="true"
+                            style={{
+                              position: 'absolute',
+                              top: '10%',
+                              height: '80%',
+                              left: (task.startMonth - 1) * cellWidth,
+                              width: (task.endMonth - task.startMonth + 1) * cellWidth,
+                              backgroundColor: taskColor,
+                              borderRadius: 9999,
+                              pointerEvents: 'none',
+                            }}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Untimed task rows */}
+                  {untimedTasks.map((task) => (
+                    <div key={task.id} className="flex">
+                      <div
+                        className="shrink-0 flex items-center justify-center"
+                        style={{ width: 38, height: ROW_HEIGHT, marginLeft: 6 }}
+                      >
+                        <B31Pill variant="outline" color={wpColor} style={{ padding: '0px 4px' }}>
+                          T{wp.number}.{task.number}
+                        </B31Pill>
+                      </div>
+                      <div
                         className="shrink-0 flex items-center overflow-hidden"
-                        style={{ width: labelWidth - 38 - 6, height: ROW_HEIGHT, padding: '0 2px', borderRight: `1px solid ${wpColor}` }}
+                        style={{ width: titleWidth, height: ROW_HEIGHT, padding: '0 2px', borderRight: `1px solid ${wpColor}` }}
                       >
                         <span className="text-muted-foreground" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.title}</span>
                       </div>
@@ -778,17 +948,199 @@ export function GanttChartFigure({
                         {months.map(m => (
                           <div
                             key={m}
-                            style={{ 
-                              width: cellWidth, 
-                              height: ROW_HEIGHT,
-                              borderRight: `1px solid ${getMonthRightBorder(m, wpColor)}`,
-                            }}
+                            style={{ width: cellWidth, height: ROW_HEIGHT, borderRight: `1px solid ${getMonthRightBorder(m, wpColor)}` }}
                           />
                         ))}
                       </div>
                     </div>
-                  );
-                })}
+                  ))}
+
+                  {/* ── Overlay: connector lines (SVG) + badges, anchored at timeline top-left ── */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: labelWidth,
+                      width: overlayWidth,
+                      height: overlayHeight,
+                      pointerEvents: 'none',
+                    }}
+                  >
+                    {/* Connector lines */}
+                    <svg
+                      width={overlayWidth}
+                      height={overlayHeight}
+                      style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}
+                    >
+                      {laidOut.flatMap((b) => {
+                        if (!b.drawLines) return [];
+                        const ty = yOfRow(b.rowIdx);
+                        // Deliverable connectors take the badge's WP colour so
+                        // they always match the chevron.
+                        const lineColor = b.color;
+                        return b.origins.map((o, oi) => {
+                          const oy = yOfRow(o.rowIdx);
+                          // Straight line from origin dot to chevron tip
+                          // (vertical for centred-stacked since tipX = o.x = dotX).
+                          const d = `M ${o.x} ${oy} L ${b.tipX} ${ty}`;
+                          return (
+                            <g key={`${b.key}-l${oi}`}>
+                              <path d={d} stroke={lineColor} strokeWidth={1.333} fill="none" strokeLinecap="square" strokeLinejoin="miter" />
+                              <circle cx={o.x} cy={oy} r={2} fill={lineColor} stroke="none" />
+                            </g>
+                          );
+                        });
+                      })}
+                      {/* Milestone connector lines: from band-row dot to nearest hex tip
+                          (or straight down to a stacked hex on a task row). */}
+                      {msLaidOut.map((m) => {
+                        const ty = yOfRow(m.rowIdx);
+                        return (
+                          <g key={`ms-line-${m.id}`}>
+                            <path
+                              d={`M ${m.dotX} ${yOfWpBand} L ${m.tipX} ${ty}`}
+                              stroke="#000000"
+                              strokeWidth={1.333}
+                              fill="none"
+                              strokeLinecap="square"
+                            />
+                            <circle cx={m.dotX} cy={yOfWpBand} r={2} fill="#000000" stroke="none" />
+                          </g>
+                        );
+                      })}
+                    </svg>
+
+
+                    {/* Deliverable chevrons (shape never changes — only position/connector) */}
+                    {laidOut.map((b) => {
+                      const ty = yOfRow(b.rowIdx);
+                      const shapeW = b.shapeW;
+                      const shapeH = b.shapeH;
+                      const svgPath = b.flipped
+                        ? `M ${b.pointDepth},0 L ${shapeW},0 L ${shapeW},${shapeH} L ${b.pointDepth},${shapeH} L 0,${shapeH / 2} Z`
+                        : `M 0,0 L ${shapeW - b.pointDepth},0 L ${shapeW},${shapeH / 2} L ${shapeW - b.pointDepth},${shapeH} L 0,${shapeH} Z`;
+                      return (
+                        <Tooltip key={b.key}>
+                          <TooltipTrigger asChild>
+                            <span
+                              style={{
+                                position: 'absolute',
+                                top: ty,
+                                left: b.leftX,
+                                transform: 'translateY(-50%)',
+                                width: shapeW,
+                                height: shapeH,
+                                zIndex: 10,
+                                pointerEvents: 'auto',
+                              }}
+                            >
+                              <svg
+                                width={shapeW}
+                                height={shapeH}
+                                viewBox={`0 0 ${shapeW} ${shapeH}`}
+                                style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}
+                              >
+                                <path
+                                  d={svgPath}
+                                  fill="#ffffff"
+                                  stroke={b.color}
+                                  strokeWidth={1.5}
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                              <span
+                                style={{
+                                  position: 'absolute',
+                                  top: 0.166,
+                                  left: b.flipped ? b.pointDepth : 0,
+                                  width: b.bodyW,
+                                  height: shapeH,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontFamily: "'Times New Roman', Times, serif",
+                                  fontSize: '8pt',
+                                  fontWeight: 700,
+                                  lineHeight: 1,
+                                  color: b.color,
+                                  whiteSpace: 'nowrap',
+                                  boxSizing: 'border-box',
+                                }}
+                              >
+                                {b.label}
+                              </span>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="text-xs font-medium">{b.tooltipTitle}</p>
+                            <p className="text-xs text-muted-foreground">Month {b.dueMonth}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      );
+                    })}
+
+                    {/* Milestone hexagons on the WP band row (primary WP only) */}
+                    {msLaidOut.map((m) => {
+                      const x1 = m.shapeW * 0.12;
+                      const x2 = m.shapeW * 0.88;
+                      const path = `M ${x1},0 L ${x2},0 L ${m.shapeW},${m.shapeH / 2} L ${x2},${m.shapeH} L ${x1},${m.shapeH} L 0,${m.shapeH / 2} Z`;
+                      return (
+                        <Tooltip key={`ms-badge-${m.id}`}>
+                          <TooltipTrigger asChild>
+                            <span
+                              style={{
+                                position: 'absolute',
+                                top: yOfRow(m.rowIdx),
+                                left: m.hexLeft,
+                                transform: 'translateY(-50%)',
+                                width: m.shapeW,
+                                height: m.shapeH,
+                                zIndex: 10,
+                                pointerEvents: 'auto',
+                              }}
+                            >
+                              <svg
+                                width={m.shapeW}
+                                height={m.shapeH}
+                                viewBox={`0 0 ${m.shapeW} ${m.shapeH}`}
+                                style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}
+                              >
+                                <path d={path} fill="#000000" stroke="none" />
+                              </svg>
+                              <span
+                                style={{
+                                  position: 'absolute',
+                                  top: 0,
+                                  left: 0,
+                                  width: m.shapeW,
+                                  height: m.shapeH,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontFamily: "'Times New Roman', Times, serif",
+                                  fontSize: '8pt',
+                                  fontWeight: 700,
+                                  lineHeight: 1,
+                                  color: '#ffffff',
+                                  whiteSpace: 'nowrap',
+                                  padding: '0 4px',
+                                  boxSizing: 'border-box',
+                                }}
+                              >
+                                {m.label}
+                              </span>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="text-xs font-medium">{m.label}{m.title ? `: ${m.title}` : ''}</p>
+                            <p className="text-xs text-muted-foreground">Month {m.dueMonth}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      );
+                    })}
+                  </div>
+
+                </div>
 
                 {/* Bottom border under months columns only */}
                 <div className="flex">
@@ -798,6 +1150,13 @@ export function GanttChartFigure({
               </div>
             );
           })}
+
+          {/* Milestones are intentionally not rendered on the Gantt. */}
+
+          </div>
+
+
+
 
 
         </div>

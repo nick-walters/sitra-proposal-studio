@@ -28,19 +28,19 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { WPBubble, ParticipantBubble } from '@/components/B31Pill';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { WPColorPicker } from '@/components/WPColorPicker';
 
-import { Layers, GripVertical, Plus, AlertTriangle, Trash2, Paintbrush, Lock, LockOpen, Eye, EyeOff } from 'lucide-react';
+import { Layers, GripVertical, Plus, Trash2, Paintbrush, Lock, LockOpen } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useWPColorPalette } from '@/hooks/useWPColorPalette';
 import { useWPThemes, WPTheme } from '@/hooks/useWPThemes';
-import { PopulateB31Dialog } from '@/components/PopulateB31Dialog';
 import { toast } from 'sonner';
 import type { ParticipantSummary } from '@/types/proposal';
 
@@ -56,7 +56,7 @@ interface WPDraft {
   theme_id: string | null;
   is_locked: boolean;
   locked_by: string | null;
-  is_hidden: boolean;
+  is_hidden?: boolean;
 }
 
 interface SortableWPRowProps {
@@ -67,12 +67,11 @@ interface SortableWPRowProps {
   onUpdate: (id: string, updates: Partial<WPDraft>) => void;
   onDelete: (id: string) => void;
   onToggleLock: (id: string, locked: boolean) => void;
-  onToggleVisibility: (id: string, hidden: boolean) => void;
   canEdit: boolean;
   isCoordinator: boolean;
 }
 
-function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete, onToggleLock, onToggleVisibility, canEdit, isCoordinator }: SortableWPRowProps) {
+function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete, onToggleLock, canEdit, isCoordinator }: SortableWPRowProps) {
   const [leadOpen, setLeadOpen] = useState(false);
   const {
     attributes,
@@ -93,10 +92,10 @@ function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete
   const selectedTheme = themes.find((t) => t.id === wp.theme_id);
   const effectiveColor = useThemes && selectedTheme ? selectedTheme.color : wp.color;
 
-  // Grid columns change based on whether themes are enabled (added visibility column)
+  // Grid columns change based on whether themes are enabled
   const gridCols = useThemes 
-    ? 'grid-cols-[24px_50px_100px_90px_1fr_80px_20px_20px_20px]' 
-    : 'grid-cols-[24px_50px_90px_1fr_80px_20px_20px_20px]';
+    ? 'grid-cols-[24px_50px_100px_90px_1fr_80px_20px_20px]' 
+    : 'grid-cols-[24px_50px_90px_1fr_80px_20px_20px]';
 
   return (
     <div
@@ -122,12 +121,12 @@ function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete
       {/* WP Number Badge - with Color Picker or Theme Color */}
       {useThemes ? (
         <div className="flex justify-center">
-          <span
-            className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold text-white"
-            style={{ backgroundColor: effectiveColor }}
+          <WPBubble
+            wpColor={effectiveColor}
+            style={{ fontSize: '12px', height: 'auto', padding: '2px 8px' }}
           >
             WP{wp.number}
-          </span>
+          </WPBubble>
         </div>
       ) : (
         <WPColorPicker
@@ -191,20 +190,27 @@ function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete
       />
 
       {/* WP Lead - Dialog styled like partner reference dialog */}
-      <button
-        className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold italic whitespace-nowrap hover:ring-2 hover:ring-primary/30 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-self-start"
-        style={{
-          backgroundColor: selectedLead ? '#000000' : 'transparent',
-          color: selectedLead ? '#ffffff' : undefined,
-          border: selectedLead ? 'none' : '1px dashed hsl(var(--muted-foreground))',
-        }}
-        disabled={!canEdit}
-        onClick={() => setLeadOpen(true)}
-      >
-        {selectedLead
-          ? selectedLead.organisation_short_name || `P${selectedLead.participant_number}`
-          : '+ Lead'}
-      </button>
+      {selectedLead ? (
+        <ParticipantBubble
+          onClick={() => { if (canEdit) setLeadOpen(true); }}
+          style={{ fontSize: '12px', height: 'auto', padding: '2px 8px', cursor: canEdit ? 'pointer' : 'not-allowed', opacity: canEdit ? 1 : 0.5 }}
+          className="justify-self-start whitespace-nowrap hover:ring-2 hover:ring-primary/30 hover:scale-105 transition-all"
+        >
+          {selectedLead.organisation_short_name || `P${selectedLead.participant_number}`}
+        </ParticipantBubble>
+      ) : (
+        <button
+          className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold whitespace-nowrap hover:ring-2 hover:ring-primary/30 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-self-start"
+          style={{
+            backgroundColor: 'transparent',
+            border: '1px dashed hsl(var(--muted-foreground))',
+          }}
+          disabled={!canEdit}
+          onClick={() => setLeadOpen(true)}
+        >
+          + Lead
+        </button>
+      )}
       <Dialog open={leadOpen} onOpenChange={setLeadOpen}>
         <DialogContent className="max-w-xl">
           <DialogHeader>
@@ -240,7 +246,7 @@ function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete
                 >
                   <div className="w-24 shrink-0">
                     <span
-                      className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold italic whitespace-nowrap"
+                      className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold whitespace-nowrap"
                       style={{
                         backgroundColor: '#000000',
                         color: '#ffffff',
@@ -265,18 +271,6 @@ function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete
           </ScrollArea>
         </DialogContent>
       </Dialog>
-
-      {/* Visibility Button */}
-      {canEdit && (
-        <button
-          onClick={() => onToggleVisibility(wp.id, !wp.is_hidden)}
-          className={`p-1 rounded transition-colors ${wp.is_hidden ? 'text-destructive hover:bg-destructive/10' : 'text-[#2563EB] hover:bg-blue-100'}`}
-          title={wp.is_hidden ? 'Show work package' : 'Hide work package'}
-        >
-          {wp.is_hidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-        </button>
-      )}
-      {!canEdit && <div />}
 
       {/* Lock Button */}
       {canEdit && (
@@ -316,7 +310,7 @@ interface WPManagementCardProps {
 export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = true, onDraftVisibilityChange, onSaveEvent }: WPManagementCardProps) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const [populateDialogOpen, setPopulateDialogOpen] = useState(false);
+  
   
   
   
@@ -444,42 +438,10 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
         if (error) throw error;
       }
 
-      // Third pass: update b31_deliverables.wp_number for deliverables linked via tasks
-      // Fetch all tasks for these WPs to build wp_draft_id → new number map
-      const wpIdToNumber = new Map(updates.map(u => [u.id, u.number]));
-      const { data: tasks } = await supabase
-        .from('wp_draft_tasks')
-        .select('id, wp_draft_id')
-        .in('wp_draft_id', updates.map(u => u.id));
-      
-      if (tasks && tasks.length > 0) {
-        // Build task_id → new wp_number map
-        const taskWpMap = new Map(tasks.map(t => [t.id, wpIdToNumber.get(t.wp_draft_id)!]));
-        
-        // Fetch deliverables linked to these tasks
-        const { data: deliverables } = await supabase
-          .from('b31_deliverables')
-          .select('id, task_id, wp_number, number')
-          .eq('proposal_id', proposalId)
-          .not('task_id', 'is', null);
-        
-        if (deliverables) {
-          for (const del of deliverables) {
-            const newWpNum = del.task_id ? taskWpMap.get(del.task_id) : undefined;
-            if (newWpNum != null && newWpNum !== del.wp_number) {
-              // Update wp_number and also the display number string (e.g., "D2.1" → "D3.1")
-              const currentNumber = del.number || '';
-              const dotIndex = currentNumber.indexOf('.');
-              const suffix = dotIndex >= 0 ? currentNumber.substring(dotIndex) : '.X';
-              const newNumber = `D${newWpNum}${suffix}`;
-              await supabase
-                .from('b31_deliverables')
-                .update({ wp_number: newWpNum, number: newNumber })
-                .eq('id', del.id);
-            }
-          }
-        }
-      }
+      // Note: previously a third pass updated b31_deliverables.wp_number for
+      // deliverables linked via tasks. Snapshot tables have been removed, and
+      // wp_draft_deliverables.number is per-WP (display "D{wpNum}.{n}" is
+      // derived live from wp_draft_id), so no rewrite is needed.
     },
     onMutate: async (reorderedWPs) => {
       await queryClient.cancelQueries({ queryKey: ['wp-drafts-management', proposalId] });
@@ -504,7 +466,9 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
       queryClient.invalidateQueries({ queryKey: ['wp-drafts', proposalId] });
       queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
       queryClient.invalidateQueries({ queryKey: ['wp-drafts-gantt', proposalId] });
-      window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
+      console.log('[SYNC-EVENT] dispatching cross-ref-data-changed', { source: 'WPManagementCard.reorder' }); /* TEMP-LOG */
+      window.dispatchEvent(new CustomEvent('cross-ref-data-changed', { detail: { source: 'WPManagementCard.reorder' } }));
+
       onSaveEvent?.();
     },
   });
@@ -606,7 +570,9 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
       queryClient.invalidateQueries({ queryKey: ['wp-drafts', proposalId] });
       queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
       queryClient.invalidateQueries({ queryKey: ['wp-drafts-gantt', proposalId] });
-      window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
+      console.log('[SYNC-EVENT] dispatching cross-ref-data-changed', { source: 'WPManagementCard.delete' }); /* TEMP-LOG */
+      window.dispatchEvent(new CustomEvent('cross-ref-data-changed', { detail: { source: 'WPManagementCard.delete' } }));
+
       onSaveEvent?.();
       toast.success('Work package deleted');
     },
@@ -674,35 +640,6 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
     toast.success(newLocked ? 'All work packages locked' : 'All work packages unlocked');
   }, [user, proposalId, queryClient, wpDrafts]);
 
-  const handleToggleVisibility = useCallback(async (id: string, hidden: boolean) => {
-    const { error } = await supabase
-      .from('wp_drafts')
-      .update({ is_hidden: hidden } as any)
-      .eq('id', id);
-    if (error) {
-      toast.error('Failed to update visibility');
-      return;
-    }
-    queryClient.invalidateQueries({ queryKey: ['wp-drafts-management', proposalId] });
-    queryClient.invalidateQueries({ queryKey: ['wp-drafts', proposalId] });
-    toast.success(hidden ? 'Work package hidden' : 'Work package visible');
-  }, [proposalId, queryClient]);
-
-  const handleToggleVisibilityAll = useCallback(async () => {
-    const allHidden = wpDrafts.every(wp => wp.is_hidden);
-    const newHidden = !allHidden;
-    const { error } = await supabase
-      .from('wp_drafts')
-      .update({ is_hidden: newHidden } as any)
-      .eq('proposal_id', proposalId);
-    if (error) {
-      toast.error('Failed to update visibility');
-      return;
-    }
-    queryClient.invalidateQueries({ queryKey: ['wp-drafts-management', proposalId] });
-    queryClient.invalidateQueries({ queryKey: ['wp-drafts', proposalId] });
-    toast.success(newHidden ? 'All work packages hidden' : 'All work packages visible');
-  }, [proposalId, queryClient, wpDrafts]);
 
   if (wpsLoading) {
     return (
@@ -756,7 +693,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
             </h4>
             
             {/* Theme Table Header */}
-            <div className="grid grid-cols-[24px_50px_100px_1fr_20px] gap-1.5 text-xs font-bold text-muted-foreground border-b pb-1">
+            <div className="grid grid-cols-[24px_50px_100px_1fr_20px] gap-1.5 items-center text-xs font-bold text-muted-foreground border-b pb-1 min-h-[28px]">
               <div />
               <div className="text-center">Theme</div>
               <div>Short name</div>
@@ -841,22 +778,13 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
         )}
 
         {/* Table Header */}
-        <div className={`grid ${useWpThemes ? 'grid-cols-[24px_50px_100px_90px_1fr_80px_20px_20px_20px]' : 'grid-cols-[24px_50px_90px_1fr_80px_20px_20px_20px]'} gap-x-1.5 text-xs font-bold text-muted-foreground border-b pb-1`}>
+        <div className={`grid ${useWpThemes ? 'grid-cols-[24px_50px_100px_90px_1fr_80px_20px_20px]' : 'grid-cols-[24px_50px_90px_1fr_80px_20px_20px]'} gap-x-1.5 items-center text-xs font-bold text-muted-foreground border-b pb-1 min-h-[28px]`}>
           <div />
           <div className="text-center">Colour</div>
           {useWpThemes && <div>Theme</div>}
           <div>Short name</div>
           <div>Title</div>
           <div>WP Leader</div>
-          {isCoordinator ? (
-            <button
-              onClick={handleToggleVisibilityAll}
-              className={`p-1 rounded transition-colors ${wpDrafts.length > 0 && wpDrafts.every(wp => wp.is_hidden) ? 'text-destructive hover:bg-destructive/10' : 'text-[#2563EB] hover:bg-blue-100'}`}
-              title={wpDrafts.length > 0 && wpDrafts.every(wp => wp.is_hidden) ? 'Show all' : 'Hide all'}
-            >
-              {wpDrafts.length > 0 && wpDrafts.every(wp => wp.is_hidden) ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
-          ) : <div />}
           {isCoordinator ? (
             <button
               onClick={handleToggleLockAll}
@@ -886,7 +814,6 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
                 onUpdate={handleUpdateWP}
                 onDelete={handleDeleteWP}
                 onToggleLock={handleToggleLock}
-                onToggleVisibility={handleToggleVisibility}
                 canEdit={isCoordinator}
                 isCoordinator={isCoordinator}
               />
@@ -906,36 +833,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
               <Plus className="w-4 h-4 mr-1" />
               Add WP
             </Button>
-            {/* Populate button next to palette button */}
-            {isFullProposal && isCoordinator && (
-              <Button
-                variant="default"
-                size="sm"
-                onClick={() => setPopulateDialogOpen(true)}
-              >
-                Populate Part B3.1…
-              </Button>
-            )}
           </div>
-        )}
-
-        {/* Populate explanation */}
-        {isFullProposal && isCoordinator && (
-          <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/50 p-2 rounded">
-            <AlertTriangle className="w-4 h-4 text-warning shrink-0 mt-0.5" />
-            <span>
-              The populate function copies selected content from WP drafts to Part B3.1 tables. Existing entries in Part B3.1 will be replaced.
-            </span>
-          </div>
-        )}
-        
-
-        {isFullProposal && isCoordinator && (
-          <PopulateB31Dialog
-            open={populateDialogOpen}
-            onOpenChange={setPopulateDialogOpen}
-            proposalId={proposalId}
-          />
         )}
       </CardContent>
     </Card>

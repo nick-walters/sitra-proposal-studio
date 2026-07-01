@@ -4,10 +4,6 @@ export type UserRole = 'coordinator' | 'editor' | 'viewer';
 export type ProposalStatus = 'draft' | 'submitted' | 'funded' | 'not_funded';
 export type SubmissionStage = 'full' | 'stage_1';
 
-export const BUDGET_TYPE_LABELS: Record<BudgetType, string> = {
-  traditional: 'Actual costs',
-  lump_sum: 'Lump sum',
-};
 
 export const SUBMISSION_STAGE_LABELS: Record<SubmissionStage, string> = {
   full: 'Full Proposal',
@@ -241,7 +237,7 @@ export interface Participant {
   logoUrl?: string;
   picNumber?: string;
   legalEntityType?: string;
-  isSme: boolean;
+  
   participantNumber: number;
   contactEmail?: string;
   address?: string;
@@ -253,6 +249,7 @@ export interface Participant {
   organisationCategory?: string;
   englishName?: string;
   personnelCostRate?: number;
+  ocdExempt?: boolean | null;
   // Part A2 additional fields
   department?: string;
   mainContactTitle?: string;
@@ -379,7 +376,8 @@ export interface EthicsAssessment {
 export type OrganisationCategory = 
   | 'HES' 
   | 'RES' 
-  | 'PRC' 
+  | 'SME' 
+  | 'LE' 
   | 'PUB' 
   | 'INT' 
   | 'OTH';
@@ -387,7 +385,8 @@ export type OrganisationCategory =
 export const ORGANISATION_CATEGORY_LABELS: Record<OrganisationCategory, string> = {
   HES: 'Higher or secondary education establishment',
   RES: 'Research organisation',
-  PRC: 'Private for-profit entity',
+  SME: 'Small or medium-sized enterprise',
+  LE: 'Large enterprise',
   PUB: 'Public body',
   INT: 'International organisation',
   OTH: 'Other',

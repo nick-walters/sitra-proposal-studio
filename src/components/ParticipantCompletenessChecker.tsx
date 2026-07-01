@@ -29,10 +29,13 @@ interface CompletionIssue {
   participantNumber: number;
   participantName: string;
   field: string;
-  severity: 'error' | 'warning';
+  severity: 'error' | 'warning' | 'info';
   message: string;
   icon: React.ReactNode;
 }
+
+// Horizon Europe proposal types — associated partners must always provide an OCD
+const HORIZON_EUROPE_TYPES = ['RIA', 'IA', 'CSA'];
 
 export function ParticipantCompletenessChecker({ proposalId }: ParticipantCompletenessCheckerProps) {
   const [issues, setIssues] = useState<CompletionIssue[]>([]);
@@ -43,6 +46,12 @@ export function ParticipantCompletenessChecker({ proposalId }: ParticipantComple
   const runCheck = async () => {
     setLoading(true);
     try {
+      const { data: proposal } = await supabase
+        .from('proposals')
+        .select('type, requires_ocd, ocd_template_path')
+        .eq('id', proposalId)
+        .maybeSingle() as any;
+
       const { data: participants } = await supabase
         .from('participants')
         .select('*')
@@ -51,6 +60,18 @@ export function ParticipantCompletenessChecker({ proposalId }: ParticipantComple
         .from('participant_members')
         .select('participant_id')
         .in('participant_id', (participants || []).map((p: any) => p.id)) as any;
+
+      const ocdRequired = !!proposal?.requires_ocd && !!proposal?.ocd_template_path;
+      const isHorizonEurope = HORIZON_EUROPE_TYPES.includes(proposal?.type || '');
+
+      const ocdUploadedSet = new Set<string>();
+      if (ocdRequired) {
+        const { data: ocdUploads } = await supabase
+          .from('participant_ocd_uploads' as any)
+          .select('participant_id')
+          .eq('proposal_id', proposalId) as any;
+        (ocdUploads || []).forEach((u: any) => ocdUploadedSet.add(u.participant_id));
+      }
 
       const parts = participants || [];
       const mems = members || [];
@@ -78,9 +99,39 @@ export function ParticipantCompletenessChecker({ proposalId }: ParticipantComple
         if (!p.street?.trim() || !p.town?.trim() || !p.postcode?.trim())
           found.push({ participantNumber: num, participantName: name, field: 'Address', severity: 'warning', message: 'Address is incomplete', icon: <MapPin className="w-3.5 h-3.5" /> });
 
+        // GEP: only warn when the Yes/No question is unanswered (null/undefined).
         const gepEligible = ['HES', 'RES', 'PUB'].includes(p.organisation_category || '') && isEligibleForGEP(p.country || '');
-        if (gepEligible) {
-          found.push({ participantNumber: num, participantName: name, field: 'GEP', severity: 'warning', message: 'Ensure Gender Equality Plan is provided', icon: <FileText className="w-3.5 h-3.5" /> });
+        if (gepEligible && (p.has_gender_equality_plan === null || p.has_gender_equality_plan === undefined)) {
+          found.push({ participantNumber: num, participantName: name, field: 'GEP', severity: 'warning', message: 'Select whether this organisation has a Gender Equality Plan', icon: <FileText className="w-3.5 h-3.5" /> });
+        }
+
+        // OCD: only when the proposal requires it and a template exists.
+        // Effective exempt = explicit ocd_exempt boolean if set, else default by org type
+        // (PUB = exempt, all others = not exempt).
+        const effectiveOcdExempt =
+          p.ocd_exempt === null || p.ocd_exempt === undefined
+            ? p.organisation_category === 'PUB'
+            : Boolean(p.ocd_exempt);
+
+        if (ocdRequired && !effectiveOcdExempt) {
+          const orgType = (p.organisation_type || '').toLowerCase();
+          const isHardRequirement =
+            orgType === 'beneficiary' ||
+            orgType === 'affiliated_entity' ||
+            orgType === 'affiliated' ||
+            (isHorizonEurope && (orgType === 'associated_partner' || orgType === 'associated'));
+          const isConditional =
+            orgType === 'associated_partner' ||
+            orgType === 'associated' ||
+            orgType === 'subcontractor';
+
+          if (!ocdUploadedSet.has(p.id)) {
+            if (isHardRequirement) {
+              found.push({ participantNumber: num, participantName: name, field: 'OCD', severity: 'warning', message: 'Upload completed Ownership Control Declaration', icon: <FileText className="w-3.5 h-3.5" /> });
+            } else if (isConditional) {
+              found.push({ participantNumber: num, participantName: name, field: 'OCD', severity: 'info', message: 'Ownership Control Declaration may be required (check call conditions)', icon: <FileText className="w-3.5 h-3.5" /> });
+            }
+          }
         }
 
         const memberCount = mems.filter(m => m.participant_id === p.id).length;
@@ -88,15 +139,18 @@ export function ParticipantCompletenessChecker({ proposalId }: ParticipantComple
           found.push({ participantNumber: num, participantName: name, field: 'Team', severity: 'warning', message: 'No team members added', icon: <User className="w-3.5 h-3.5" /> });
       });
 
+      const severityRank = { error: 0, warning: 1, info: 2 } as const;
       found.sort((a, b) => {
-        if (a.severity !== b.severity) return a.severity === 'error' ? -1 : 1;
+        if (a.severity !== b.severity) return severityRank[a.severity] - severityRank[b.severity];
         return a.participantNumber - b.participantNumber;
       });
 
       setIssues(found);
       setHasRun(true);
+      const errs = found.filter(i => i.severity === 'error').length;
+      const warns = found.filter(i => i.severity === 'warning').length;
       if (found.length === 0) toast.success('All participants complete!');
-      else toast.info(`Found ${found.filter(i => i.severity === 'error').length} error(s) and ${found.filter(i => i.severity === 'warning').length} warning(s)`);
+      else toast.info(`Found ${errs} error(s) and ${warns} warning(s)`);
     } catch (error) {
       console.error('Participant check error:', error);
       toast.error('Failed to check participants');
@@ -107,6 +161,7 @@ export function ParticipantCompletenessChecker({ proposalId }: ParticipantComple
 
   const errorCount = issues.filter(i => i.severity === 'error').length;
   const warningCount = issues.filter(i => i.severity === 'warning').length;
+  const infoCount = issues.filter(i => i.severity === 'info').length;
 
   const grouped = useMemo(() => {
     const map: Record<string, CompletionIssue[]> = {};
@@ -165,6 +220,7 @@ export function ParticipantCompletenessChecker({ proposalId }: ParticipantComple
             <div className="flex gap-2">
               {errorCount > 0 && <Badge variant="destructive" className="gap-1"><XCircle className="w-3 h-3" /> {errorCount}</Badge>}
               {warningCount > 0 && <Badge variant="outline" className="gap-1 border-amber-500 text-amber-600"><AlertTriangle className="w-3 h-3" /> {warningCount}</Badge>}
+              {infoCount > 0 && <Badge variant="outline" className="gap-1 border-sky-500 text-sky-600"><AlertTriangle className="w-3 h-3" /> {infoCount}</Badge>}
             </div>
           </div>
 
@@ -194,7 +250,11 @@ export function ParticipantCompletenessChecker({ proposalId }: ParticipantComple
                         <div
                           key={idx}
                           className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm ${
-                            issue.severity === 'error' ? 'bg-destructive/10 text-destructive' : 'bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-400'
+                            issue.severity === 'error'
+                              ? 'bg-destructive/10 text-destructive'
+                              : issue.severity === 'info'
+                                ? 'bg-sky-50 text-sky-700 dark:bg-sky-950/20 dark:text-sky-400'
+                                : 'bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-400'
                           }`}
                         >
                           {issue.icon}

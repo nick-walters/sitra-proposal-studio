@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { formatNumber } from '@/lib/formatNumber';
+
 import {
   Dialog,
   DialogContent,
@@ -60,7 +62,7 @@ export function ExportDialog({ open, onOpenChange, onExport, proposalId }: Expor
               <div className="space-y-0.5">
                 <Label className="text-sm font-medium">Estimated length</Label>
                 <p className="text-xs text-muted-foreground">
-                  {totalWords.toLocaleString()} words across all sections
+                  {formatNumber(totalWords)} words across all sections
                 </p>
               </div>
               <div className="flex items-center gap-1.5">

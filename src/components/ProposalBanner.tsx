@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { SITRA_LOGO_BASE64 } from '@/lib/sitraLogo';
 import { supabase } from '@/integrations/supabase/client';
 import { useProposalRole } from '@/hooks/useProposalRole';
+import { handlePlainTextPaste } from '@/lib/pasteWordHtmlHandler';
 
 interface ProposalBannerProps {
   acronym: string;
@@ -65,7 +66,7 @@ export function ProposalBanner({
     if (!proposalId) return;
     // If the user cleared the field or it matches the auto-computed value, store NULL.
     const next = value.trim() === '' || value === fallback ? null : value;
-    await supabase.from('proposals').update({ [field]: next }).eq('id', proposalId);
+    await supabase.from('proposals').update({ [field]: next } as any).eq('id', proposalId);
     queryClient.invalidateQueries({ queryKey: overrideKey });
   };
 
@@ -188,6 +189,7 @@ function EditableLine({ value, canEdit, onSave, style }: EditableLineProps) {
       suppressContentEditableWarning
       spellCheck={false}
       onFocus={() => setEditing(true)}
+      onPaste={handlePlainTextPaste}
       onBlur={(e) => {
         setEditing(false);
         if (canEdit) {

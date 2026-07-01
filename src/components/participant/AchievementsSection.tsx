@@ -142,7 +142,7 @@ function SortableAchievementRow({
       </div>
       {canEdit && (
         <div className="flex items-center gap-1 flex-shrink-0">
-          <Button variant="ghost" size="icon" onClick={() => setEditing(true)}>
+          <Button variant="ghost" size="icon" onClick={() => setEditing(true)} aria-label="Edit" title="Edit">
             <Pencil className="w-4 h-4" />
           </Button>
           <Button
@@ -150,7 +150,7 @@ function SortableAchievementRow({
             size="icon"
             className="text-destructive hover:text-destructive"
             onClick={() => onDelete(achievement.id)}
-          >
+           aria-label="Delete" title="Delete">
             <Trash2 className="w-4 h-4" />
           </Button>
         </div>

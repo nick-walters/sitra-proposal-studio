@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { handlePlainTextPaste } from '@/lib/pasteWordHtmlHandler';
 
 const NUMBER_WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
 
@@ -83,21 +84,34 @@ export function B31IntroText({ proposalId, acronymSegments, proposalAcronym }: P
       });
   }, [proposalId]);
 
+  const persistText = useCallback(async (text: string) => {
+    if (!text) {
+      await supabase.from('section_content').delete().eq('proposal_id', proposalId).eq('section_id', 'b31-intro-text');
+    } else {
+      await supabase.from('section_content').upsert({
+        proposal_id: proposalId,
+        section_id: 'b31-intro-text',
+        content: text,
+      }, { onConflict: 'proposal_id,section_id' });
+    }
+  }, [proposalId]);
+
   const saveText = useCallback((text: string) => {
     setSavedText(text || null);
     clearTimeout(saveTimeout.current);
-    saveTimeout.current = setTimeout(async () => {
-      if (!text) {
-        await supabase.from('section_content').delete().eq('proposal_id', proposalId).eq('section_id', 'b31-intro-text');
-      } else {
-        await supabase.from('section_content').upsert({
-          proposal_id: proposalId,
-          section_id: 'b31-intro-text',
-          content: text,
-        }, { onConflict: 'proposal_id,section_id' });
-      }
+    saveTimeout.current = setTimeout(() => {
+      persistText(text);
     }, 500);
-  }, [proposalId]);
+  }, [persistText]);
+
+  const flushSaveText = useCallback((text: string) => {
+    // Cancel any pending debounce and save immediately
+    clearTimeout(saveTimeout.current);
+    saveTimeout.current = undefined;
+    setSavedText(text || null);
+    persistText(text);
+  }, [persistText]);
+
 
   const duration = proposalMeta?.duration || 36;
   const rps = (proposalMeta?.reporting_periods as any[]);
@@ -134,14 +148,15 @@ export function B31IntroText({ proposalId, acronymSegments, proposalAcronym }: P
       contentEditable
       suppressContentEditableWarning
       className="outline-none"
+      onPaste={handlePlainTextPaste}
       style={{ textAlign: 'justify', margin: 0, fontFamily: '"Times New Roman", Times, serif', fontSize: '11pt', lineHeight: 1.15 }}
       onBlur={(e) => {
         const text = e.currentTarget.textContent || '';
         const defaultFull = (proposalAcronym + defaultSuffix).trim();
         if (!text.trim() || text.trim() === defaultFull) {
-          saveText('');
+          flushSaveText('');
         } else {
-          saveText(text);
+          flushSaveText(text);
         }
       }}
     >

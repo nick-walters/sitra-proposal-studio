@@ -1,20 +1,20 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { SaveIndicator } from '@/components/SaveIndicator';
+import { getCaseTypePrefix, caseWord } from '@/lib/caseTypeLabels';
+import { useProposalCaseTypes } from '@/hooks/useProposalCaseTypes';
+
 import { DraftFormattingToolbar } from '@/components/DraftFormattingToolbar';
 import { useWPDraftEditor } from '@/hooks/useWPDrafts';
 import { useWPDraftUndoRedo } from '@/hooks/useWPDraftUndoRedo';
-import { WPMethodologySection } from '@/components/WPMethodologySection';
 import { WPTableSection } from '@/components/WPTableSection';
-import { WPPlanningQuestions } from '@/components/WPPlanningQuestions';
 import { ParagraphSpacingExecPopover } from '@/components/ParagraphSpacingExecPopover';
 
 import { WPDeliverablesTable } from '@/components/WPDeliverablesTable';
-import { WPRisksTable } from '@/components/WPRisksTable';
-import { WPMilestonesTable } from '@/components/WPMilestonesTable';
 import { CitationDialog } from '@/components/CitationDialog';
 import { InsertCrossReferenceDialog } from '@/components/InsertCrossReferenceDialog';
 import { InsertWPReferenceDialog } from '@/components/InsertWPReferenceDialog';
 import { InsertParticipantReferenceDialog } from '@/components/InsertParticipantReferenceDialog';
+import { InsertCaseReferenceDialog } from '@/components/InsertCaseReferenceDialog';
 import { InsertFigureDialog } from '@/components/InsertFigureDialog';
 import { InsertTDMSReferenceDropdowns } from '@/components/InsertTDMSReferenceDropdowns';
 import { useProposalReferences } from '@/hooks/useProposalReferences';
@@ -33,7 +33,7 @@ import { Separator } from '@/components/ui/separator';
 import { 
   BookOpen, Lightbulb, Bold, Italic, Underline, List, ListOrdered, 
   AlignLeft, AlignCenter, AlignRight, AlignJustify, FileText, Link2, 
-  Layers, Building2, Table2, ImageIcon, ChevronDown, Undo2, Redo2, Crown, ChevronsUpDown, Check, Lock
+  Layers, Building2, Table2, ImageIcon, Image as ImageLucide, ChevronDown, Undo2, Redo2, Crown, ChevronsUpDown, Check, Lock
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -152,6 +152,9 @@ function parseGuidelineContent(content: string): React.ReactNode {
   );
 }
 
+
+
+
 export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordinator = false, projectDuration = 36 }: WPDraftEditorProps) {
   const {
     wpDraft,
@@ -172,14 +175,6 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
     deleteDeliverable: rawDeleteDeliverable,
     reorderDeliverables,
     moveDeliverableToWP,
-    addRisk,
-    updateRisk,
-    deleteRisk: rawDeleteRisk,
-    reorderRisks,
-    addMilestone,
-    updateMilestone,
-    deleteMilestone: rawDeleteMilestone,
-    reorderMilestones,
     refetch: refetchDraft,
   } = useWPDraftEditor(wpId);
 
@@ -203,18 +198,6 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
     if (d) recordDelete('deliverable', d);
     return rawDeleteDeliverable(deliverableId);
   }, [rawDeleteDeliverable, wpDraft, recordDelete]);
-
-  const deleteRisk = useCallback(async (riskId: string) => {
-    const r = wpDraft?.risks?.find(r => r.id === riskId);
-    if (r) recordDelete('risk', r);
-    return rawDeleteRisk(riskId);
-  }, [rawDeleteRisk, wpDraft, recordDelete]);
-
-  const deleteMilestone = useCallback(async (milestoneId: string) => {
-    const m = wpDraft?.milestones?.find(m => m.id === milestoneId);
-    if (m) recordDelete('milestone', m);
-    return rawDeleteMilestone(milestoneId);
-  }, [rawDeleteMilestone, wpDraft, recordDelete]);
 
   const handleUndo = useCallback(async () => {
     const result = await undo();
@@ -241,6 +224,9 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
     enabled: !!proposalId,
   });
 
+  const { data: caseTypes = [] } = useProposalCaseTypes(proposalId);
+
+
   // Fetch theme if WP has a theme_id
   const { data: themeData } = useQuery({
     queryKey: ['wp-theme', wpDraft?.theme_id],
@@ -262,7 +248,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
     if (proposalData?.use_wp_themes && themeData) {
       return themeData.color;
     }
-    return wpDraft?.color || '#2563EB';
+    return wpDraft?.color || '#73C92D';
   }, [proposalData?.use_wp_themes, themeData, wpDraft?.color]);
 
   // Lock enforcement
@@ -299,19 +285,44 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
     return false;
   }, [canEditProp, isLocked, isCoordinator, lockWarningDismissed]);
 
+  // Populate/snapshot system removed — WP draft sections are no longer locked
+  // by populate flags. B3.1 reads live from the source tables.
+
+
   const [participants, setParticipants] = useState<ParticipantSummary[]>([]);
   const [guidelinesDialogOpen, setGuidelinesDialogOpen] = useState(false);
   
   // Dialog states for editor features
   const [isCitationOpen, setIsCitationOpen] = useState(false);
   const [isCrossRefOpen, setIsCrossRefOpen] = useState(false);
+  const [crossRefFilterType, setCrossRefFilterType] = useState<'figure' | 'table' | undefined>(undefined);
   const [isWPRefOpen, setIsWPRefOpen] = useState(false);
   const [isParticipantRefOpen, setIsParticipantRefOpen] = useState(false);
   const [isFigureDialogOpen, setIsFigureDialogOpen] = useState(false);
   const [isTaskRefOpen, setIsTaskRefOpen] = useState(false);
   const [isDeliverableRefOpen, setIsDeliverableRefOpen] = useState(false);
+  const [isMilestoneRefOpen, setIsMilestoneRefOpen] = useState(false);
+  const [isCaseRefOpen, setIsCaseRefOpen] = useState(false);
   const [figures, setFigures] = useState<any[]>([]);
   const [wpDrafts, setWpDrafts] = useState<any[]>([]);
+
+  // Fetch proposal acronym segments + has-cases for dropdown
+  const { data: proposalMeta } = useQuery({
+    queryKey: ['wp-draft-proposal-meta', proposalId],
+    queryFn: async () => {
+      const [{ data: proposal }, { count }] = await Promise.all([
+        supabase.from('proposals').select('acronym_segments').eq('id', proposalId).maybeSingle(),
+        supabase.from('case_drafts').select('id', { count: 'exact', head: true }).eq('proposal_id', proposalId),
+      ]);
+      return {
+        acronymSegments: (proposal?.acronym_segments as { text: string; color: string }[] | null) || [],
+        hasCases: (count || 0) > 0,
+      };
+    },
+    enabled: !!proposalId,
+  });
+  const acronymSegments = proposalMeta?.acronymSegments || [];
+  const hasCases = !!proposalMeta?.hasCases;
 
   // Save the selection range before opening dialogs so we can restore it when inserting
   const savedRangeRef = useRef<Range | null>(null);
@@ -488,7 +499,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
       partSpan.style.borderRadius = '9999px';
       partSpan.style.fontFamily = "'Times New Roman', Times, serif";
       partSpan.style.fontWeight = '700';
-      partSpan.style.fontStyle = 'normal';
+      partSpan.style.setProperty('font-style', 'normal', 'important');
       partSpan.style.fontSize = '11pt';
       partSpan.style.lineHeight = '1';
       partSpan.style.verticalAlign = 'baseline';
@@ -532,7 +543,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
-      const color = task.wp_color || '#2563EB';
+      const color = task.wp_color || '#73C92D';
       const span = document.createElement('span');
       span.textContent = `T${task.wp_number}.${task.number}`;
       span.setAttribute('contenteditable', 'false');
@@ -554,8 +565,9 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
-      const color = del.wp_color || '#2563EB';
-      const label = del.number;
+      const rawColor = del.wp_color || '#73C92D';
+      const color = /^#[0-9a-fA-F]{3,8}$/.test(rawColor) ? rawColor : '#73C92D';
+      const label = String(del.number).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
       const textWidth = Math.max(36, label.length * 8 + 8);
       const totalWidth = textWidth + 8;
       const wrapper = document.createElement('span');
@@ -573,7 +585,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
     toast.success(`${del.number} reference inserted`);
   }, [notifyEditorInput, restoreSelection]);
 
-  // Handle Milestone reference insertion - triangle bubble matching 3.1.d
+  // Handle Milestone reference insertion - elongated hexagon matching the rest of the app
   const insertMilestoneRefAtCursor = useCallback((ms: { id: string; number: number; name: string }) => {
     const { editorEl } = restoreSelection();
     const selection = window.getSelection();
@@ -582,8 +594,15 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
       const wrapper = document.createElement('span');
       wrapper.setAttribute('contenteditable', 'false');
       wrapper.setAttribute('data-milestone-id', ms.id);
-      Object.assign(wrapper.style, { display: 'inline-block', verticalAlign: 'baseline', position: 'relative', width: '21px', height: '21px', userSelect: 'none' });
-      wrapper.innerHTML = `<svg width="21" height="21" viewBox="0 0 21 21" style="position:absolute;top:0;left:0;overflow:visible;"><path d="M 0,0 L 21,10.5 L 0,21 Z" fill="#000000"/></svg><span style="position:absolute;top:0;left:-1px;width:15px;height:21px;display:flex;align-items:center;justify-content:center;font-family:'Times New Roman',Times,serif;font-size:11pt;font-weight:700;line-height:1;color:#ffffff;letter-spacing:-0.7px;white-space:nowrap;">${ms.number}</span>`;
+      Object.assign(wrapper.style, {
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        background: '#000', color: '#ffffff',
+        fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: '700',
+        lineHeight: '18px', height: '18px', padding: '0 4px',
+        clipPath: 'polygon(12% 0%, 88% 0%, 100% 50%, 88% 100%, 12% 100%, 0% 50%)',
+        verticalAlign: 'baseline', whiteSpace: 'nowrap', userSelect: 'none',
+      });
+      wrapper.textContent = `MS${Number(ms.number) || 0}`;
       range.insertNode(wrapper);
       range.setStartAfter(wrapper);
       range.collapse(true);
@@ -593,6 +612,76 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
     }
     toast.success(`MS${ms.number} reference inserted`);
   }, [notifyEditorInput, restoreSelection]);
+
+  // Handle Acronym reference insertion - colored letters mimicking AcronymReference extension
+  const insertAcronymRefAtCursor = useCallback(() => {
+    if (!acronymSegments || acronymSegments.length === 0) return;
+    const { editorEl } = restoreSelection();
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      const wrapper = document.createElement('span');
+      wrapper.setAttribute('data-acronym-reference', '');
+      wrapper.setAttribute('contenteditable', 'false');
+      wrapper.setAttribute('data-acronym-segments', JSON.stringify(acronymSegments));
+      Object.assign(wrapper.style, {
+        display: 'inline',
+        fontFamily: "'Arial Black', Arial, sans-serif",
+        fontWeight: '900',
+        fontSize: 'inherit',
+        whiteSpace: 'nowrap',
+        cursor: 'pointer',
+      });
+      acronymSegments.forEach((seg) => {
+        const s = document.createElement('span');
+        s.style.color = seg.color;
+        s.textContent = seg.text;
+        wrapper.appendChild(s);
+      });
+      range.insertNode(wrapper);
+      range.setStartAfter(wrapper);
+      range.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(range);
+      notifyEditorInput(editorEl);
+    }
+    toast.success('Acronym reference inserted');
+  }, [acronymSegments, notifyEditorInput, restoreSelection]);
+
+  // Handle Case reference insertion - rounded outline badge matching CaseReferenceMark
+  const insertCaseRefAtCursor = useCallback((caseItem: { id: string; number: number; short_name: string | null; case_type: string }) => {
+    const { editorEl } = restoreSelection();
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      const prefix = getCaseTypePrefix(caseItem.case_type);
+      const label = prefix ? `${prefix}${caseItem.number}` : (caseItem.short_name || String(caseItem.number));
+      const span = document.createElement('span');
+      span.textContent = label;
+      span.setAttribute('data-case-reference', '');
+      span.setAttribute('data-case-id', caseItem.id);
+      span.setAttribute('data-case-number', String(caseItem.number));
+      span.setAttribute('data-case-type', caseItem.case_type);
+      if (caseItem.short_name) span.setAttribute('data-case-short-name', caseItem.short_name);
+      span.setAttribute('contenteditable', 'false');
+      Object.assign(span.style, {
+        display: 'inline-flex', alignItems: 'center', backgroundColor: '#ffffff', color: '#000000',
+        border: '1.5px solid #000000', padding: '0 0.4rem', borderRadius: '9999px',
+        fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: '700',
+        fontStyle: 'normal', lineHeight: '1', whiteSpace: 'nowrap', verticalAlign: 'baseline',
+        cursor: 'pointer', userSelect: 'none',
+      });
+      range.insertNode(span);
+      range.setStartAfter(span);
+      range.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(range);
+      notifyEditorInput(editorEl);
+    }
+    toast.success(`${caseWord(caseTypes, { capitalize: true })} reference inserted`);
+  }, [notifyEditorInput, restoreSelection, caseTypes]);
+
+
 
   // Fetch participants, figures, and WP drafts for the proposal
   useEffect(() => {
@@ -643,34 +732,35 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
 
     const wpColorByNumber = new Map<number, string>();
     for (const wp of wpDrafts) {
-      wpColorByNumber.set(wp.number, wp.color || '#2563EB');
+      wpColorByNumber.set(wp.number, wp.color || '#73C92D');
     }
 
     const recolorInContainer = async () => {
-      // Build taskId → wpColor map
+      // Build taskId → wpColor map (live from source: wp_draft_tasks)
       const { data: tasks } = await supabase
-        .from('b31_tasks')
-        .select('id, number, wp_draft_id')
+        .from('wp_draft_tasks')
+        .select('id, wp_draft_id')
         .in('wp_draft_id', wpDrafts.map(w => w.id));
 
       const taskColorMap = new Map<string, string>();
       if (tasks) {
         for (const t of tasks) {
           const wp = wpDrafts.find(w => w.id === t.wp_draft_id);
-          if (wp) taskColorMap.set(t.id, wp.color || '#2563EB');
+          if (wp) taskColorMap.set(t.id, wp.color || '#73C92D');
         }
       }
 
-      // Build deliverableId → wpColor map
+      // Build deliverableId → wpColor map (live from source: wp_draft_deliverables)
       const { data: deliverables } = await supabase
-        .from('b31_deliverables')
-        .select('id, wp_number')
-        .eq('proposal_id', proposalId);
+        .from('wp_draft_deliverables')
+        .select('id, wp_draft_id')
+        .in('wp_draft_id', wpDrafts.map(w => w.id));
 
       const delColorMap = new Map<string, string>();
       if (deliverables) {
         for (const d of deliverables) {
-          if (d.wp_number) delColorMap.set(d.id, wpColorByNumber.get(d.wp_number) || '#2563EB');
+          const wp = wpDrafts.find(w => w.id === d.wp_draft_id);
+          if (wp) delColorMap.set(d.id, wp.color || '#73C92D');
         }
       }
 
@@ -823,30 +913,58 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
           onOpenCitationDialog={() => setIsCitationOpen(true)}
           crossRefMenuItems={
             <>
-              <DropdownMenuItem onClick={() => setIsCrossRefOpen(true)} className="flex items-center gap-2">
-                <span className="w-16 flex justify-start shrink-0"><ImageIcon className="w-3.5 h-3.5 text-foreground" /></span>
-                <span>Figure / Table number</span>
+              <DropdownMenuItem onClick={() => { setCrossRefFilterType('figure'); setIsCrossRefOpen(true); }} className="flex items-center gap-2">
+                <span className="w-16 flex justify-start shrink-0"><ImageLucide className="w-3.5 h-3.5 text-foreground" /></span>
+                <span>Figure number</span>
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => { setCrossRefFilterType('table'); setIsCrossRefOpen(true); }} className="flex items-center gap-2">
+                <span className="w-16 flex justify-start shrink-0"><Table2 className="w-3.5 h-3.5 text-foreground" /></span>
+                <span>Table number</span>
+              </DropdownMenuItem>
+              {acronymSegments && acronymSegments.length > 0 && (
+                <DropdownMenuItem onClick={insertAcronymRefAtCursor} className="flex items-center gap-2">
+                  <span className="w-16 flex justify-start shrink-0">
+                    <span style={{ fontFamily: "'Arial Black', Arial, sans-serif", fontWeight: 900, fontSize: '9px', whiteSpace: 'nowrap' }}>
+                      {acronymSegments.map((seg, i) => <span key={i} style={{ color: seg.color }}>{seg.text}</span>)}
+                    </span>
+                  </span>
+                  <span>Acronym</span>
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onClick={() => setIsWPRefOpen(true)} className="flex items-center gap-2">
                 <span className="w-16 flex justify-start shrink-0">
-                  <span style={{ display: 'inline-block', width: '22px', height: '14px', backgroundColor: '#2563EB', border: '1.5px solid #2563EB', borderRadius: '9999px' }} />
+                  <span style={{ display: 'inline-block', width: '22px', height: '14px', backgroundColor: '#73C92D', border: '1.5px solid #73C92D', borderRadius: '9999px' }} />
                 </span>
                 <span>Work package</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setIsTaskRefOpen(true)} className="flex items-center gap-2">
                 <span className="w-16 flex justify-start shrink-0">
-                  <span style={{ display: 'inline-block', width: '22px', height: '14px', borderRadius: '9999px', border: '1.5px solid #2563EB', background: '#ffffff' }} />
+                  <span style={{ display: 'inline-block', width: '22px', height: '14px', borderRadius: '9999px', border: '1.5px solid #73C92D', background: '#ffffff' }} />
                 </span>
                 <span>Task</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setIsDeliverableRefOpen(true)} className="flex items-center gap-2">
                 <span className="w-16 flex justify-start shrink-0">
-                  <span style={{ display: 'inline-block', width: '22px', height: '14px', background: '#2563EB', clipPath: 'polygon(0% 0%, calc(100% - 6px) 0%, 100% 50%, calc(100% - 6px) 100%, 0% 100%)', position: 'relative' }}>
+                  <span style={{ display: 'inline-block', width: '22px', height: '14px', background: '#73C92D', clipPath: 'polygon(0% 0%, calc(100% - 6px) 0%, 100% 50%, calc(100% - 6px) 100%, 0% 100%)', position: 'relative' }}>
                     <span style={{ position: 'absolute', inset: '1.5px', right: '2px', background: '#ffffff', clipPath: 'polygon(0% 0%, calc(100% - 5px) 0%, 100% 50%, calc(100% - 5px) 100%, 0% 100%)' }} />
                   </span>
                 </span>
                 <span>Deliverable</span>
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setIsMilestoneRefOpen(true)} className="flex items-center gap-2">
+                <span className="w-16 flex justify-start shrink-0">
+                  <span style={{ display: 'inline-block', width: '16px', height: '16px', background: '#000', clipPath: 'polygon(100% 0%, 0% 50%, 100% 100%)', margin: '-1px 0' }} />
+                </span>
+                <span>Milestone</span>
+              </DropdownMenuItem>
+              {hasCases && (
+                <DropdownMenuItem onClick={() => setIsCaseRefOpen(true)} className="flex items-center gap-2">
+                  <span className="w-16 flex justify-start shrink-0">
+                    <span style={{ display: 'inline-block', width: '22px', height: '14px', border: '1.5px solid #000000', borderRadius: '9999px', background: '#ffffff' }} />
+                  </span>
+                  <span>{caseWord(caseTypes, { capitalize: true })}</span>
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onClick={() => setIsParticipantRefOpen(true)} className="flex items-center gap-2">
                 <span className="w-16 flex justify-start shrink-0">
                   <span style={{ display: 'inline-block', width: '22px', height: '14px', backgroundColor: '#000000', border: '1.5px solid #000000', borderRadius: '9999px' }} />
@@ -867,7 +985,8 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
               onOpenTaskChange={setIsTaskRefOpen}
               openDeliverable={isDeliverableRefOpen}
               onOpenDeliverableChange={setIsDeliverableRefOpen}
-              hideMilestone
+              openMilestone={isMilestoneRefOpen}
+              onOpenMilestoneChange={setIsMilestoneRefOpen}
             />
           }
         />
@@ -1070,23 +1189,11 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
           </DialogContent>
         </Dialog>
 
-        {/* Objectives & Ambition + Methodologies Sections */}
-        <WPMethodologySection
-          backgroundKnowledge={wpDraft.background_knowledge}
-          onBackgroundKnowledgeChange={(value) => updateField('background_knowledge', value)}
-          approachSummary={wpDraft.approach_summary}
-          onApproachSummaryChange={(value) => updateField('approach_summary', value)}
-          methodologiesList={wpDraft.methodologies_list}
-          onMethodologiesListChange={(value) => updateField('methodologies_list', value)}
-          foreseenChallenges={wpDraft.foreseen_challenges}
-          onForeseenChallengesChange={(value) => updateField('foreseen_challenges', value)}
-          readOnly={readOnly}
-          hideToolbar={true}
-        />
 
         {/* WP Table (Objectives & Tasks) */}
         <WPTableSection
           wpNumber={wpDraft.number}
+          wpColor={effectiveColor}
           objectives={wpDraft.objectives}
           descriptionBeforeTasks={wpDraft.description_before_tasks}
           tasks={wpDraft.tasks || []}
@@ -1108,7 +1215,10 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
 
         {/* Deliverables */}
         <WPDeliverablesTable
+          wpDraftId={wpDraft.id}
           wpNumber={wpDraft.number}
+          wpColor={wpDraft.color}
+          wpTasks={wpDraft.tasks || []}
           deliverables={wpDraft.deliverables || []}
           participants={participants}
           onDeliverableUpdate={updateDeliverable}
@@ -1119,44 +1229,10 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
           readOnly={readOnly}
           projectDuration={projectDuration}
           allWpDrafts={wpDrafts}
-          currentWpDraftId={wpDraft.id}
         />
 
-        {/* Task Interactions & Bottlenecks */}
-        <WPPlanningQuestions
-          inputs={wpDraft.inputs_question}
-          outputs={wpDraft.outputs_question}
-          bottlenecks={wpDraft.bottlenecks_question}
-          onInputsChange={(value) => updateField('inputs_question', value)}
-          onOutputsChange={(value) => updateField('outputs_question', value)}
-          onBottlenecksChange={(value) => updateField('bottlenecks_question', value)}
-          readOnly={readOnly}
-        />
 
-        {/* Milestones */}
-        <WPMilestonesTable
-          wpNumber={wpDraft.number}
-          milestones={wpDraft.milestones || []}
-          onMilestoneUpdate={updateMilestone}
-          onMilestoneAdd={addMilestone}
-          onMilestoneDelete={deleteMilestone}
-          onMilestoneReorder={reorderMilestones}
-          readOnly={readOnly}
-          projectDuration={projectDuration}
-          allWpDrafts={wpDrafts}
-        />
 
-        {/* Risks */}
-        <WPRisksTable
-          wpNumber={wpDraft.number}
-          risks={wpDraft.risks || []}
-          onRiskUpdate={updateRisk}
-          onRiskAdd={addRisk}
-          onRiskDelete={deleteRisk}
-          onRiskReorder={reorderRisks}
-          readOnly={readOnly}
-          allWpDrafts={wpDrafts}
-        />
 
       </div>
       
@@ -1176,10 +1252,24 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
       {/* Cross-reference Dialog */}
       <InsertCrossReferenceDialog
         isOpen={isCrossRefOpen}
-        onClose={() => setIsCrossRefOpen(false)}
+        onClose={() => { setIsCrossRefOpen(false); setCrossRefFilterType(undefined); }}
         proposalId={proposalId}
         sectionNumber=""
         onInsert={insertCrossRefAtCursor}
+        filterType={crossRefFilterType}
+      />
+
+      {/* Case Reference Dialog */}
+      <InsertCaseReferenceDialog
+        open={isCaseRefOpen}
+        onOpenChange={setIsCaseRefOpen}
+        proposalId={proposalId}
+        onSelect={(caseItem) => {
+          setIsCaseRefOpen(false);
+          setTimeout(() => {
+            insertCaseRefAtCursor(caseItem);
+          }, 100);
+        }}
       />
       
       {/* WP Reference Dialog */}

@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { formatNumber, formatCurrency } from "@/lib/formatNumber";
+import { formatDate, formatDateTime } from "@/lib/formatDate";
+
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,8 +17,14 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useProposalRole } from "@/hooks/useProposalRole";
+import { useProposalData } from "@/hooks/useProposalData";
+import { useProposalSections } from "@/hooks/useProposalSections";
+import { useQueryClient } from "@tanstack/react-query";
+import { prepareExportContainer, replaceFiguresWithText } from "@/lib/printRenderer";
+import { extractEvaluationText } from "@/lib/extractEvaluationText";
+import { computeBudgetRow } from "@/lib/budgetCompute";
 import { EsrRenderer } from "@/components/EsrRenderer";
-import { exportEsrToPdf } from "@/lib/esrPdfExport";
+// esrPdfExport is loaded lazily inside downloadEsr() to keep jsPDF out of the initial bundle.
 import {
   LineChart,
   Line,
@@ -27,6 +36,73 @@ import {
   ReferenceLine,
   Dot,
 } from "recharts";
+
+async function buildComputedBudget(proposalId: string) {
+  const [{ data: proposalRow }, { data: rows }, { data: participants }, { data: effortData }] =
+    await Promise.all([
+      supabase.from("proposals").select("type").eq("id", proposalId).maybeSingle(),
+      supabase
+        .from("budget_rows")
+        .select(
+          "participant_id, personnel_costs, subcontracting_costs, purchase_travel, purchase_equipment, purchase_other_goods, financial_support_third_parties, internally_invoiced, procurement, pm_rate, indirect_costs_override, funding_rate_override, requested_eu_contribution, has_in_kind, requested_personnel_costs, requested_subcontracting, requested_travel, requested_equipment, requested_other_goods, requested_fstp, requested_internally_invoiced",
+        )
+        .eq("proposal_id", proposalId),
+      supabase
+        .from("participants")
+        .select("id, participant_number, organisation_short_name, organisation_name, organisation_category")
+        .eq("proposal_id", proposalId),
+      supabase
+        .from("wp_draft_effort")
+        .select("participant_id, person_months, wp_drafts!inner(proposal_id)")
+        .eq("wp_drafts.proposal_id", proposalId),
+    ]);
+
+  const pmTotals = new Map<string, number>();
+  (effortData || []).forEach((e: any) => {
+    pmTotals.set(e.participant_id, (pmTotals.get(e.participant_id) || 0) + Number(e.person_months || 0));
+  });
+  const partById = new Map((participants || []).map((p: any) => [p.id, p]));
+  const proposalType = (proposalRow as any)?.type ?? null;
+
+  let totalRequestedEu = 0;
+  let totalDirectCosts = 0;
+  let totalIndirect = 0;
+  let totalEligible = 0;
+  const perParticipant: Array<{
+    participantId: string;
+    participantNumber: number | null;
+    shortName: string | null;
+    requestedEu: number;
+    totalEligible: number;
+    fundingRate: number;
+  }> = [];
+
+  for (const r of rows || []) {
+    const p: any = partById.get((r as any).participant_id);
+    const out = computeBudgetRow({
+      ...(r as any),
+      totalPersonMonths: pmTotals.get((r as any).participant_id) || 0,
+      proposalType,
+      organisationCategory: p?.organisation_category ?? null,
+    });
+    totalRequestedEu += out.requestedEuContribution;
+    totalDirectCosts += out.directCosts;
+    totalIndirect += out.indirect;
+    totalEligible += out.totalEligible;
+    perParticipant.push({
+      participantId: (r as any).participant_id,
+      participantNumber: p?.participant_number ?? null,
+      shortName: p?.organisation_short_name ?? p?.organisation_name ?? null,
+      requestedEu: out.requestedEuContribution,
+      totalEligible: out.totalEligible,
+      fundingRate: out.fundingRate,
+    });
+  }
+
+  perParticipant.sort((a, b) => (a.participantNumber || 999) - (b.participantNumber || 999));
+  return { totalRequestedEu, totalDirectCosts, totalIndirect, totalEligible, perParticipant };
+}
+
 
 interface Props {
   proposalId: string;
@@ -89,15 +165,6 @@ const THEMATIC_AREAS = [
   "Health & Wellbeing",
 ];
 
-const FALLBACK_COSTS: Record<string, number> = {
-  "ria-full-traditional": 2.5,
-  "ria-full-lump_sum": 2.7,
-  "ia-full-traditional": 2.5,
-  "ia-full-lump_sum": 2.7,
-  "csa-full-traditional": 2.0,
-  "csa-full-lump_sum": 2.15,
-  "any-stage1": 1.3,
-};
 
 function StatusIcon({ status }: { status: string }) {
   if (status === "pass") return <CheckCircle2 className="h-4 w-4 text-emerald-600" />;
@@ -108,11 +175,23 @@ function StatusIcon({ status }: { status: string }) {
 export function PanelEvaluator({ proposalId }: Props) {
   const { roleTier } = useProposalRole(proposalId);
   const isCoordinator = roleTier === "coordinator";
+  const { proposal: proposalData, participants } = useProposalData(proposalId);
+  const { sections: allSections } = useProposalSections(
+    proposalData?.templateTypeId || null,
+    proposalId,
+    !!proposalData,
+    isCoordinator,
+  );
+  const appQueryClient = useQueryClient();
   const [proposal, setProposal] = useState<any>(null);
   const [instruments, setInstruments] = useState<InstrumentType[]>([]);
   const [instrumentCode, setInstrumentCode] = useState<string>("");
   const [proposalStage, setProposalStage] = useState<"full" | "stage1">("full");
   const [budgetType, setBudgetType] = useState<"traditional" | "lump_sum">("traditional");
+  // Per-run model choice. Defaults to Sonnet 5 every time the pane opens.
+  // Selecting Opus 4.8 is a per-run override only; the stored default (Sonnet 5) is unchanged.
+  const [modelChoice, setModelChoice] = useState<"claude-sonnet-5" | "claude-opus-4-8">("claude-sonnet-5");
+
 
   const [history, setHistory] = useState<AnalysisRow[]>([]);
   const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
@@ -123,7 +202,28 @@ export function PanelEvaluator({ proposalId }: Props) {
   const [eligibilityFlags, setEligibilityFlags] = useState<EligibilityFlag[]>([]);
   const [proposedPanel, setProposedPanel] = useState<ProposedEvaluator[]>([]);
   const [allPersonas, setAllPersonas] = useState<Persona[]>([]);
+  const [haikuUsage, setHaikuUsage] = useState<{
+    input_tokens: number;
+    output_tokens: number;
+    cache_read_input_tokens: number;
+    cache_creation_input_tokens: number;
+  } | null>(null);
+  const [haikuModel, setHaikuModel] = useState<string | null>(null);
+
   const [selectedPersonaIds, setSelectedPersonaIds] = useState<Set<string>>(new Set());
+  // ID of a persisted status='panel_proposed' row (Stage A result stored so
+  // navigating away / reloading before Start doesn't discard the paid Haiku panel).
+  const [panelProposedRowId, setPanelProposedRowId] = useState<string | null>(null);
+  // Preserved failed-run info so the user can Resume (only re-runs errored evaluators)
+  // instead of paying for a full re-run.
+  const [failedRun, setFailedRun] = useState<{
+    id: string;
+    successCount: number;
+    failCount: number;
+    total: number;
+    errorMessage: string | null;
+  } | null>(null);
+  const [resumingFailedRun, setResumingFailedRun] = useState(false);
   // Filter as a Set: empty = "All" mode
   const [activeAreaFilters, setActiveAreaFilters] = useState<Set<string>>(new Set());
 
@@ -132,24 +232,71 @@ export function PanelEvaluator({ proposalId }: Props) {
   const [generatingPersona, setGeneratingPersona] = useState(false);
   const [generatedPersona, setGeneratedPersona] = useState<{ name: string; brief: string; thematic_area: string } | null>(null);
 
-  const [costAvg, setCostAvg] = useState<{ eur: number; samples: number; isFallback: boolean }>({
-    eur: 2.5,
-    samples: 0,
-    isFallback: true,
-  });
+  // Self-improving cost estimate state.
+  // - costHistory: recent per-run actuals from evaluation_cost_log (per instrument+stage+budget).
+  // - thisPayloadTokens: rough token count of this proposal's last rendered_proposal payload
+  //   (analysis_data.rendered_proposal length / 4). Used to size-scale the historical avg.
+  const [costHistory, setCostHistory] = useState<
+    Array<{ cost_eur: number; model_used: string | null; payload_tokens: number | null }>
+  >([]);
+  const [thisPayloadTokens, setThisPayloadTokens] = useState<number | null>(null);
 
   // Polling state
   const [runningEvaluationId, setRunningEvaluationId] = useState<string | null>(null);
   const [runningStatus, setRunningStatus] = useState<string | null>(null);
   const [runningMessage, setRunningMessage] = useState<string>("");
+  const [runStartedAt, setRunStartedAt] = useState<string | null>(null);
+  const [nowTick, setNowTick] = useState<number>(() => Date.now());
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const tickIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const stopPolling = () => {
     if (pollIntervalRef.current) {
       clearInterval(pollIntervalRef.current);
       pollIntervalRef.current = null;
     }
+    if (tickIntervalRef.current) {
+      clearInterval(tickIntervalRef.current);
+      tickIntervalRef.current = null;
+    }
   };
+
+  const formatElapsed = (startIso: string | null, now: number) => {
+    if (!startIso) return "";
+    const elapsedMs = Math.max(0, now - new Date(startIso).getTime());
+    const totalSec = Math.floor(elapsedMs / 1000);
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  };
+
+  const formatDurationMs = (ms: number | null | undefined) => {
+    if (ms == null || !Number.isFinite(Number(ms)) || Number(ms) <= 0) return "—";
+    const totalSec = Math.floor(Number(ms) / 1000);
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    return `${m}m ${s}s`;
+  };
+
+  // Friendly, color-coded model badge. Green = Sonnet 5, Red = Opus 4.8.
+  const renderModelBadge = (modelUsed: string | null | undefined) => {
+    const raw = String(modelUsed || "").toLowerCase();
+    const isOpus = raw.includes("opus");
+    const isSonnet = raw.includes("sonnet");
+    const label = isOpus ? "Opus 4.8" : isSonnet ? "Sonnet 5" : (modelUsed || "—");
+    const cls = isOpus
+      ? "border-red-600 text-red-700 font-semibold"
+      : isSonnet
+        ? "border-green-600 text-green-700 font-semibold"
+        : "";
+    return (
+      <Badge variant="outline" className={cls}>
+        {label}
+      </Badge>
+    );
+  };
+
+
 
   const refreshHistory = async () => {
     const { data: hist } = await supabase
@@ -161,14 +308,39 @@ export function PanelEvaluator({ proposalId }: Props) {
       .in("status", ["complete", "failed"])
       .order("created_at", { ascending: true });
     setHistory((hist || []) as AnalysisRow[]);
-    if (hist && hist.length > 0) setSelectedHistoryId(hist[hist.length - 1].id);
   };
 
-  const downloadEsr = (h: AnalysisRow) => {
+  // Extract success/fail counts from a failed evaluation row's analysis_data.
+  // Returns null if the row has no preserved evaluator results to resume from.
+  const summarizeFailedRow = (row: {
+    id: string;
+    error_message?: string | null;
+    analysis_data: any;
+    evaluators_selected?: any;
+  }) => {
+    const ad = (row.analysis_data ?? {}) as Record<string, any>;
+    const evaluations = Array.isArray(ad.evaluations) ? ad.evaluations : [];
+    if (evaluations.length === 0) return null;
+    const successCount = evaluations.filter((e: any) => e && !e?.data?.error).length;
+    const failCount = evaluations.filter((e: any) => e?.data?.error).length;
+    const total = Array.isArray(row.evaluators_selected)
+      ? row.evaluators_selected.length
+      : evaluations.length;
+    return {
+      id: row.id,
+      successCount,
+      failCount: Math.max(failCount, Math.max(0, total - evaluations.length)),
+      total,
+      errorMessage: row.error_message ?? null,
+    };
+  };
+
+  const downloadEsr = async (h: AnalysisRow) => {
     const analysisData = (h.analysis_data ?? {}) as Record<string, any>;
     const markdown = analysisData.esr_markdown || "(no ESR available)";
     const acronym = proposal?.acronym || "proposal";
     try {
+      const { exportEsrToPdf } = await import("@/lib/esrPdfExport");
       exportEsrToPdf({ acronym, createdAt: h.created_at, markdown });
     } catch (err) {
       console.error("ESR PDF export failed:", err);
@@ -179,7 +351,7 @@ export function PanelEvaluator({ proposalId }: Props) {
   const deleteEsr = async (h: AnalysisRow) => {
     if (!isCoordinator) return;
     const ok = window.confirm(
-      `Delete this Evaluation Summary Report from ${new Date(h.created_at).toLocaleString()}? This cannot be undone.`,
+      `Delete this Evaluation Summary Report from ${formatDateTime(h.created_at)}? This cannot be undone.`,
     );
     if (!ok) return;
     const { error } = await supabase.from("proposal_analyses").delete().eq("id", h.id);
@@ -192,16 +364,21 @@ export function PanelEvaluator({ proposalId }: Props) {
     await refreshHistory();
   };
 
-  const startPolling = (evaluationId: string) => {
+  const startPolling = (evaluationId: string, startedAtIso?: string | null) => {
     stopPolling();
     setRunningEvaluationId(evaluationId);
     setRunningStatus("queued");
     setRunningMessage("Queued for evaluator run");
     setStage("stageB");
+    // Elapsed-time ticker (1s)
+    if (startedAtIso) setRunStartedAt(startedAtIso);
+    setNowTick(Date.now());
+    tickIntervalRef.current = setInterval(() => setNowTick(Date.now()), 1000);
+
     pollIntervalRef.current = setInterval(async () => {
       const { data } = await supabase
         .from("proposal_analyses")
-        .select("status, error_message, analysis_data")
+        .select("status, error_message, analysis_data, created_at")
         .eq("id", evaluationId)
         .single();
       if (!data) return;
@@ -211,6 +388,19 @@ export function PanelEvaluator({ proposalId }: Props) {
       const progressMessage = analysisData.progress_message || "";
       setRunningStatus(status);
       setRunningMessage(progressMessage);
+      if (!runStartedAt && (data as any).created_at) {
+        setRunStartedAt((data as any).created_at);
+      }
+
+      if (status === "cancelled") {
+        stopPolling();
+        setRunningEvaluationId(null);
+        setRunningStatus("cancelled");
+        setRunningMessage("Cancelled");
+        toast.info("Evaluation cancelled");
+        setStage("idle");
+        return;
+      }
 
       if (status === "queued" || status === "running" || status === "processing") {
         const { error } = await supabase.functions.invoke("run-panel-evaluation", {
@@ -244,9 +434,29 @@ export function PanelEvaluator({ proposalId }: Props) {
 
       if (status === "complete") {
         stopPolling();
+        // Persist total run duration (Run click → ESR delivered) into
+        // analysis_data.total_duration_ms so the history badge can show it.
+        try {
+          const startIso = runStartedAt || (data as any).created_at;
+          if (startIso && analysisData.total_duration_ms == null) {
+            const totalDurationMs = Math.max(
+              0,
+              Date.now() - new Date(startIso).getTime(),
+            );
+            await supabase
+              .from("proposal_analyses")
+              .update({
+                analysis_data: { ...analysisData, total_duration_ms: totalDurationMs },
+              })
+              .eq("id", evaluationId);
+          }
+        } catch (_e) {
+          /* non-fatal: badge just falls back to "—" */
+        }
         setRunningEvaluationId(null);
         setRunningStatus(null);
         setRunningMessage("");
+        setRunStartedAt(null);
         toast.success("Evaluation complete");
         await refreshHistory();
         setStage("complete");
@@ -255,11 +465,69 @@ export function PanelEvaluator({ proposalId }: Props) {
         setRunningEvaluationId(null);
         setRunningStatus(null);
         setRunningMessage("");
+        setRunStartedAt(null);
         toast.error(`Evaluation failed: ${data.error_message || "unknown error"}`);
+        // Load the full row so we can offer a Resume button if any evaluator
+        // results survived (they're preserved in analysis_data.evaluations).
+        const { data: fullRow } = await supabase
+          .from("proposal_analyses")
+          .select("id, error_message, analysis_data, evaluators_selected")
+          .eq("id", evaluationId)
+          .maybeSingle();
+        const summary = fullRow ? summarizeFailedRow(fullRow as any) : null;
+        if (summary) {
+          setFailedRun(summary);
+        }
+        await refreshHistory();
         setStage("idle");
       }
     }, 10_000);
   };
+
+  async function cancelRun() {
+    if (!runningEvaluationId) return;
+    const id = runningEvaluationId;
+    try {
+      const { error } = await supabase.functions.invoke("run-panel-evaluation", {
+        body: { action: "cancel", evaluationId: id },
+      });
+      if (error) throw error;
+      stopPolling();
+      setRunningEvaluationId(null);
+      setRunningStatus("cancelled");
+      setRunningMessage("Cancelled");
+      setRunStartedAt(null);
+      setStage("idle");
+      toast.info("Cancellation sent. No further evaluator calls will fire.");
+    } catch (e: any) {
+      toast.error(`Cancel failed: ${e.message || e}`);
+    }
+  }
+
+  async function resumeFailedRun() {
+    if (!failedRun) return;
+    setResumingFailedRun(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("run-panel-evaluation", {
+        body: { action: "resume", evaluationId: failedRun.id },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const evalId = data?.evaluationId || failedRun.id;
+      toast.info(`Resuming ${failedRun.failCount} evaluator${failedRun.failCount === 1 ? "" : "s"}…`);
+      setFailedRun(null);
+      startPolling(evalId, new Date().toISOString());
+    } catch (e: any) {
+      toast.error(`Resume failed: ${e.message || e}`);
+    } finally {
+      setResumingFailedRun(false);
+    }
+  }
+
+  function dismissFailedRun() {
+    setFailedRun(null);
+  }
+
 
   // Load proposal + instruments + history on mount; resume polling if a run is in progress
   useEffect(() => {
@@ -282,7 +550,7 @@ export function PanelEvaluator({ proposalId }: Props) {
           .order("created_at", { ascending: true }),
         supabase
           .from("proposal_analyses")
-          .select("id, status, analysis_data")
+          .select("id, status, analysis_data, created_at")
           .eq("proposal_id", proposalId)
           .in("status", ["queued", "running", "processing", "synthesizing"])
           .order("created_at", { ascending: false })
@@ -292,7 +560,6 @@ export function PanelEvaluator({ proposalId }: Props) {
       setProposal(prop);
       setInstruments((insts || []) as InstrumentType[]);
       setHistory((hist || []) as AnalysisRow[]);
-      if (hist && hist.length > 0) setSelectedHistoryId(hist[hist.length - 1].id);
 
       if (prop?.type) {
         const mapped = String(prop.type).toLowerCase();
@@ -311,42 +578,103 @@ export function PanelEvaluator({ proposalId }: Props) {
         setRunningMessage(
           ((runningEval.analysis_data ?? {}) as Record<string, any>).progress_message || "",
         );
-        startPolling(runningEval.id);
+        startPolling(runningEval.id, (runningEval as any).created_at ?? null);
+      } else {
+        // No in-flight run — try to rehydrate a stored panel_proposed row so
+        // returning to Part B after Stage A doesn't force a paid Haiku re-run.
+        const { data: proposedRow } = await supabase
+          .from("proposal_analyses")
+          .select("id, analysis_data, proposal_stage, budget_type_used, eligibility_flags")
+          .eq("proposal_id", proposalId)
+          .eq("status", "panel_proposed")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (proposedRow?.id) {
+          const ad = (proposedRow.analysis_data ?? {}) as Record<string, any>;
+          setPanelProposedRowId(proposedRow.id);
+          setEligibilityFlags(
+            (ad.eligibility_flags as unknown as EligibilityFlag[]) ??
+              (proposedRow.eligibility_flags as unknown as EligibilityFlag[]) ??
+              [],
+          );
+          setProposedPanel((ad.proposed_panel as unknown as ProposedEvaluator[]) ?? []);
+          setAllPersonas((ad.all_personas as unknown as Persona[]) ?? []);
+          setHaikuUsage(ad.haiku_usage ?? null);
+          setHaikuModel(ad.haiku_model ?? null);
+          if (Array.isArray(ad.selected_persona_ids)) {
+            setSelectedPersonaIds(new Set(ad.selected_persona_ids as string[]));
+          }
+          if (typeof ad.instrument_code === "string") setInstrumentCode(ad.instrument_code);
+          if (proposedRow.proposal_stage === "stage1" || proposedRow.proposal_stage === "full") {
+            setProposalStage(proposedRow.proposal_stage as "full" | "stage1");
+          }
+          if (proposedRow.budget_type_used === "lump_sum" || proposedRow.budget_type_used === "traditional") {
+            setBudgetType(proposedRow.budget_type_used);
+          }
+          setStage("panelReview");
+        } else {
+          // No panel_proposed either — check for a recent failed run with
+          // preserved evaluator results so we can offer Resume.
+          const latestFailed = (hist || [])
+            .filter((r: any) => r.status === "failed")
+            .slice()
+            .reverse()[0];
+          if (latestFailed) {
+            const summary = summarizeFailedRow(latestFailed as any);
+            if (summary && summary.failCount > 0) setFailedRun(summary);
+          }
+        }
       }
+
     })();
     return () => stopPolling();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [proposalId]);
 
-  // Load rolling cost average
+  // Load recent per-run actuals for this instrument+stage(+budget) — used to learn the estimate.
   useEffect(() => {
     if (!instrumentCode || !proposalStage) return;
     void (async () => {
-      const stageKey = proposalStage;
-      const fallbackKey =
-        stageKey === "stage1"
-          ? "any-stage1"
-          : `${instrumentCode}-${stageKey}-${budgetType}`;
-      const fallback = FALLBACK_COSTS[fallbackKey] ?? 2.5;
-
       let q = supabase
         .from("evaluation_cost_log")
-        .select("cost_eur")
+        .select("cost_eur, model_used, payload_tokens")
         .eq("instrument_code", instrumentCode)
-        .eq("proposal_stage", stageKey)
+        .eq("proposal_stage", proposalStage)
         .order("created_at", { ascending: false })
-        .limit(10);
-      if (stageKey !== "stage1") q = q.eq("budget_type", budgetType);
-
+        .limit(30);
+      if (proposalStage !== "stage1") q = q.eq("budget_type", budgetType);
       const { data } = await q;
-      if (data && data.length >= 3) {
-        const avg = data.reduce((s: number, r: any) => s + Number(r.cost_eur || 0), 0) / data.length;
-        setCostAvg({ eur: avg, samples: data.length, isFallback: false });
-      } else {
-        setCostAvg({ eur: fallback, samples: data?.length || 0, isFallback: true });
-      }
+      setCostHistory(
+        (data || []).map((r: any) => ({
+          cost_eur: Number(r.cost_eur || 0),
+          model_used: r.model_used ?? null,
+          payload_tokens: r.payload_tokens != null ? Number(r.payload_tokens) : null,
+        })),
+      );
     })();
   }, [instrumentCode, proposalStage, budgetType]);
+
+  // Pull this proposal's most recent rendered_proposal length to size the estimate.
+  // (rendered_proposal is produced on each run and persisted in analysis_data.)
+  useEffect(() => {
+    if (!proposalId) return;
+    void (async () => {
+      const { data } = await supabase
+        .from("proposal_analyses")
+        .select("analysis_data")
+        .eq("proposal_id", proposalId)
+        .order("created_at", { ascending: false })
+        .limit(5);
+      for (const row of data || []) {
+        const rp = (row as any)?.analysis_data?.rendered_proposal;
+        if (typeof rp === "string" && rp.length > 0) {
+          setThisPayloadTokens(Math.ceil(rp.length / 4));
+          return;
+        }
+      }
+    })();
+  }, [proposalId]);
 
   const selectedInstrument = useMemo(
     () => instruments.find((i) => i.code === instrumentCode),
@@ -357,10 +685,70 @@ export function PanelEvaluator({ proposalId }: Props) {
   const validPanelSize = selectedCount >= 3 && selectedCount <= 10;
   const recommendedIds = new Set(proposedPanel.map((p) => p.id));
 
+  // Self-improving per-model cost estimate.
+  //
+  // Preferred path (≥3 actuals for same model+instrument+stage+budget):
+  //   est = avg(actual cost_eur) × (this_payload_tokens / avg(payload_tokens))
+  //
+  // Fallback (thin history): model the typical run shape — K=evaluators+1 synthesis calls,
+  // proposal block cache-written once then cache-read by the remaining K-1 calls — and price
+  // it through the corrected per-model formula (uncached×in + cacheRead×in×0.10 +
+  // cacheWrite×in×1.25 + output×out). Sonnet intro $2/$10 auto-switches to $3/$15 from 2026-09-01.
+  const modelCostEstimate = useMemo(() => {
+    const sonnetStandardActive = Date.now() >= new Date("2026-09-01T00:00:00Z").getTime();
+    const PRICES: Record<"sonnet" | "opus", { in: number; out: number }> = {
+      sonnet: { in: sonnetStandardActive ? 3 : 2, out: sonnetStandardActive ? 15 : 10 },
+      opus: { in: 5, out: 25 },
+    };
+    const USD_EUR = 0.88;
+    const K = Math.max(3, Math.min(10, (selectedCount || 4) + 1));
+
+    // Token-based fallback in EUR.
+    const tokenFallback = (m: "sonnet" | "opus") => {
+      const p = PRICES[m];
+      const payload =
+        thisPayloadTokens ??
+        Math.round(
+          (costHistory.filter((h) => h.payload_tokens).reduce((s, h) => s + (h.payload_tokens || 0), 0) /
+            Math.max(1, costHistory.filter((h) => h.payload_tokens).length)) || 50000,
+        );
+      const cacheWrite = payload * K * 2; // each evaluator writes its own prefix (proposal + persona + instructions ≈ 2× payload)
+      const cacheRead = 0; // observed pattern: little/no cross-evaluator cache reuse
+      const uncached = 600 * K; // per-call instruction overhead
+      const output = 3000 * K; // ~3k tokens per evaluator/synthesis call
+      const usd =
+        (uncached * p.in + cacheRead * p.in * 0.1 + cacheWrite * p.in * 1.25 + output * p.out) /
+        1_000_000;
+      return usd * USD_EUR;
+    };
+
+    const learned = (modelKey: string, fallback: number) => {
+      const samples = costHistory
+        .filter((h) => h.model_used === modelKey && h.payload_tokens && h.cost_eur > 0)
+        .slice(0, 10);
+      if (samples.length < 3) return fallback;
+      const avgCost = samples.reduce((s, h) => s + h.cost_eur, 0) / samples.length;
+      const avgPayload =
+        samples.reduce((s, h) => s + (h.payload_tokens || 0), 0) / samples.length;
+      const scale = thisPayloadTokens && avgPayload ? thisPayloadTokens / avgPayload : 1;
+      return avgCost * scale;
+    };
+
+    return {
+      sonnet: learned("claude-sonnet-5", tokenFallback("sonnet")),
+      opus: learned("claude-opus-4-8", tokenFallback("opus")),
+      sonnetStandardActive,
+    };
+  }, [costHistory, thisPayloadTokens, selectedCount]);
+
   async function startEvaluation() {
+
     setStage("stageA");
     setStageAStatus("Reading proposal content...");
     try {
+      setStageAStatus("Computing budget totals...");
+      const computedBudget = await buildComputedBudget(proposalId);
+
       setStageAStatus("Running compliance check and assembling panel...");
       const { data, error } = await supabase.functions.invoke("propose-evaluation-panel", {
         body: {
@@ -368,6 +756,7 @@ export function PanelEvaluator({ proposalId }: Props) {
           instrumentCode,
           proposalStage,
           budgetType: proposalStage === "stage1" ? null : budgetType,
+          computedBudget,
         },
       });
       if (error) throw error;
@@ -376,6 +765,9 @@ export function PanelEvaluator({ proposalId }: Props) {
       setEligibilityFlags(data.eligibility_flags || []);
       setProposedPanel(data.proposed_panel || []);
       setAllPersonas(data.all_personas || []);
+      setHaikuUsage(data.haiku_usage || null);
+      setHaikuModel(data.haiku_model || null);
+
 
       const recommendedNumbers = new Set((data.proposed_panel || []).map((p: any) => p.id));
       const preselected = new Set<string>();
@@ -385,6 +777,49 @@ export function PanelEvaluator({ proposalId }: Props) {
         }
       });
       setSelectedPersonaIds(preselected);
+
+      // Persist the proposed panel so a reload / tab-switch before Start
+      // doesn't discard the (paid) Haiku Stage A output.
+      try {
+        // Clear any prior panel_proposed rows for this proposal — only one active proposal at a time.
+        await supabase
+          .from("proposal_analyses")
+          .delete()
+          .eq("proposal_id", proposalId)
+          .eq("status", "panel_proposed");
+        const { data: userData } = await supabase.auth.getUser();
+        const uid = userData?.user?.id;
+        if (uid) {
+          const { data: inserted } = await supabase
+            .from("proposal_analyses")
+            .insert({
+              proposal_id: proposalId,
+              created_by: uid,
+              status: "panel_proposed",
+              proposal_stage: proposalStage,
+              budget_type_used: proposalStage === "stage1" ? null : budgetType,
+              eligibility_flags: data.eligibility_flags ?? [],
+              analysis_data: {
+                eligibility_flags: data.eligibility_flags ?? [],
+                proposed_panel: data.proposed_panel ?? [],
+                all_personas: data.all_personas ?? [],
+                haiku_usage: data.haiku_usage ?? null,
+                haiku_model: data.haiku_model ?? null,
+                computed_budget: computedBudget,
+                instrument_code: instrumentCode,
+                proposal_stage: proposalStage,
+                budget_type: proposalStage === "stage1" ? null : budgetType,
+                selected_persona_ids: Array.from(preselected),
+              },
+            })
+            .select("id")
+            .single();
+          if (inserted?.id) setPanelProposedRowId(inserted.id);
+        }
+      } catch (persistErr) {
+        console.warn("Failed to persist proposed panel (non-fatal):", persistErr);
+      }
+
       setStage("panelReview");
     } catch (e: any) {
       toast.error(`Stage A failed: ${e.message || e}`);
@@ -399,31 +834,119 @@ export function PanelEvaluator({ proposalId }: Props) {
       .map((p) => ({ name: p.name, brief: p.brief }));
 
     setStage("stageB");
-    try {
-      const { data, error } = await supabase.functions.invoke("run-panel-evaluation", {
-        body: {
-          action: "start",
-          proposalId,
-          selectedEvaluators,
-          instrumentCode,
-          proposalStage,
-          budgetType: proposalStage === "stage1" ? null : budgetType,
-          eligibilityFlags,
-        },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      if (!data?.evaluationId) throw new Error("Edge function did not return an evaluationId");
 
-      toast.info("Evaluation running in background. You can leave this page and return.");
-      startPolling(data.evaluationId);
+    let cleanup: (() => void) | null = null;
+    try {
+      if (!proposalData || !allSections || allSections.length === 0) {
+        throw new Error("Proposal content is still loading — please retry in a moment.");
+      }
+
+      toast.info("Rendering proposal for evaluator payload…");
+
+      // 1) Fetch the section_content rows (same shape the PDF/Word export uses).
+      const { data: sectionRows } = await supabase
+        .from("section_content")
+        .select("id, section_id, content")
+        .eq("proposal_id", proposalId);
+      const sectionContents = (sectionRows || []).map((sc: any) => ({
+        id: sc.id,
+        sectionId: sc.section_id,
+        content: sc.content || "",
+      }));
+
+      // 2) Prepare the offscreen export container exactly as the PDF export
+      //    does (Part A mirror, B3.1 / B3.2 / B1.2 React mounts, real
+      //    figures). The visual container keeps real figures.
+      const prepared = await prepareExportContainer(
+        {
+          proposal: {
+            id: proposalData.id,
+            title: proposalData.title || "",
+            acronym: proposalData.acronym || "",
+            submissionStage: (proposalData as any).submissionStage ?? null,
+            topicId: (proposalData as any).topicId ?? null,
+            topicTitle: (proposalData as any).topicTitle ?? null,
+            type: (proposalData as any).type ?? null,
+          },
+          sections: allSections as any,
+          sectionContents,
+          participants,
+        },
+        undefined,
+        appQueryClient,
+      );
+      cleanup = prepared.cleanup;
+
+      // 3) Clone, swap figures to text on the clone, extract markdown.
+      const clone = prepared.container.cloneNode(true) as HTMLElement;
+      // The clone must be attached to render text measurements / innerText
+      // consistently — keep it off-screen.
+      clone.style.position = "absolute";
+      clone.style.left = "-99999px";
+      clone.style.top = "0";
+      document.body.appendChild(clone);
+      try {
+        await replaceFiguresWithText(clone, proposalId);
+        const renderedProposal = extractEvaluationText(clone);
+
+        if (!renderedProposal || renderedProposal.length < 200) {
+          throw new Error("Rendered proposal payload is empty — aborting.");
+        }
+
+        const { data, error } = await supabase.functions.invoke("run-panel-evaluation", {
+          body: {
+            action: "start",
+            proposalId,
+            selectedEvaluators,
+            instrumentCode,
+            proposalStage,
+            budgetType: proposalStage === "stage1" ? null : budgetType,
+            eligibilityFlags,
+            renderedProposal,
+            modelOverride: modelChoice,
+            haikuUsage,
+            haikuModel,
+          },
+
+        });
+
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+        if (!data?.evaluationId) throw new Error("Edge function did not return an evaluationId");
+
+        toast.info("Evaluation running in background. You can leave this page and return.");
+        // Remove the panel_proposed row now that the real run is queued —
+        // exactly one active row per proposal.
+        if (panelProposedRowId) {
+          await supabase.from("proposal_analyses").delete().eq("id", panelProposedRowId);
+          setPanelProposedRowId(null);
+        }
+        startPolling(data.evaluationId, new Date().toISOString());
+
+
+      } finally {
+        if (clone.parentNode) clone.parentNode.removeChild(clone);
+      }
     } catch (e: any) {
       toast.error(`Evaluation failed to start: ${e.message || e}`);
       setStage("panelReview");
+    } finally {
+      if (cleanup) cleanup();
     }
   }
 
-  function cancel() {
+
+
+
+
+
+
+  async function cancel() {
+    // Discard the persisted panel_proposed row so it doesn't rehydrate later.
+    if (panelProposedRowId) {
+      await supabase.from("proposal_analyses").delete().eq("id", panelProposedRowId);
+      setPanelProposedRowId(null);
+    }
     setStage("idle");
     setEligibilityFlags([]);
     setProposedPanel([]);
@@ -479,9 +1002,10 @@ export function PanelEvaluator({ proposalId }: Props) {
   );
 
   const chartData = history.map((h) => ({
-    date: new Date(h.created_at).toLocaleDateString(),
+    date: formatDate(h.created_at),
     score: Number(h.total_score_unweighted ?? h.overall_score ?? 0),
     id: h.id,
+    model: h.model_used || "",
   }));
 
   const yMax = proposalStage === "stage1" ? 10 : selectedInstrument?.code === "ia" ? 17.5 : 15;
@@ -574,87 +1098,181 @@ export function PanelEvaluator({ proposalId }: Props) {
       {/* Description card */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-base">
             <Sparkles className="h-5 w-5 text-purple-600" />
             Mock AI evaluation
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm text-muted-foreground">
           <p>
-            This tool simulates a Horizon Europe expert evaluation panel. After an eligibility
-            check by an agentic AI European Commission evaluator, it assembles a panel of agentic
-            AI "evaluators" with different expert roles and personas, which evaluate the proposal
-            in its current state from different perspectives. Finally, another agent assembles
-            scores and detailed feedback into an Evaluation Summary Report (ESR).
-          </p>
-          <p>
-            The cost per evaluation is ~€2.50. Only proposal coordinators can run an evaluation,
-            but all users can view the ESRs associated with a proposal.
+            This tool simulates a Horizon Europe expert evaluation panel using Anthropic's API.
+            After an eligibility check by an agentic AI European Commission evaluator using
+            Haiku 4.5, it assembles a panel of agentic AI "evaluators" with different expert
+            roles and personas, which evaluate the proposal in its current state from different
+            perspectives, using either Sonnet 5 or Opus 4.8. Finally, another agent assembles
+            scores and detailed feedback into an Evaluation Summary Report (ESR). Only proposal
+            coordinators can run an evaluation, but all users can view the ESRs associated with
+            a proposal.
           </p>
         </CardContent>
-      </Card>
+        {isCoordinator && (
+          <CardContent className="pt-0 space-y-4">
 
-      {/* Configuration row — coordinators only */}
-      {isCoordinator && (
-      <Card>
-        <CardContent className="pt-6 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label>Instrument type</Label>
-              <Select
-                value={instrumentCode}
-                onValueChange={setInstrumentCode}
-                disabled={stage !== "idle"}
-              >
-                <SelectTrigger><SelectValue placeholder="Select instrument" /></SelectTrigger>
-                <SelectContent>
-                  {instruments.map((i) => (
-                    <SelectItem key={i.id} value={i.code}>{i.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Per-run model toggle switch. Defaults to Sonnet 5 each time the pane opens.
+              Choosing Opus 4.8 overrides for THIS RUN ONLY — the stored default stays Sonnet 5. */}
+          {(stage === "idle" || stage === "panelReview") && (() => {
+            const isOpus = modelChoice === "claude-opus-4-8";
+            const disabled = stage !== "idle" && stage !== "panelReview";
+            const GREEN = "#16a34a"; // tailwind green-600
+            const RED = "#dc2626"; // tailwind red-600
+            const sonnetSelected = !isOpus;
+            const opusSelected = isOpus;
+            const activeColor = opusSelected ? RED : GREEN;
+            return (
+              <div className="space-y-2 -mt-1">
+                {/* Row 1: model name (right) · toggle switch · model name (left) */}
+                <div className="flex items-start gap-5 max-w-3xl">
+                  <button
+                    type="button"
+                    onClick={() => setModelChoice("claude-sonnet-5")}
+                    disabled={disabled}
+                    className="flex-1 text-right disabled:opacity-60"
+                  >
+                    <div
+                      className={`text-sm font-semibold transition-colors ${
+                        sonnetSelected ? "" : "text-muted-foreground"
+                      }`}
+                      style={sonnetSelected ? { color: GREEN } : undefined}
+                    >
+                      Sonnet 5 <span className="font-normal text-xs text-muted-foreground">~{formatCurrency(modelCostEstimate.sonnet)}</span>
+                    </div>
+                  </button>
 
-            {proposalStage !== "stage1" && (
-              <div className="space-y-2">
-                <Label>Budget type</Label>
-                <Select
-                  value={budgetType}
-                  onValueChange={(v) => setBudgetType(v as "traditional" | "lump_sum")}
-                  disabled={stage !== "idle"}
-                >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="traditional">Actual cost</SelectItem>
-                    <SelectItem value="lump_sum">Lump sum</SelectItem>
-                  </SelectContent>
-                </Select>
+                  {/* Toggle switch — knob turns RED when Opus is active, GREEN when Sonnet is active. */}
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={opusSelected}
+                    aria-label="Toggle evaluation model"
+                    onClick={() => setModelChoice(isOpus ? "claude-sonnet-5" : "claude-opus-4-8")}
+                    disabled={disabled}
+                    className="relative shrink-0 mt-1 h-7 w-14 rounded-full border border-gray-300 bg-white transition-colors disabled:opacity-60"
+                  >
+                    <span
+                      className="absolute left-0 top-1/2 h-5 w-5 rounded-full shadow transition-transform"
+                      style={{
+                        backgroundColor: activeColor,
+                        transform: `translateY(-50%) translateX(${opusSelected ? 32 : 4}px)`,
+                      }}
+                    />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setModelChoice("claude-opus-4-8")}
+                    disabled={disabled}
+                    className="flex-1 text-left disabled:opacity-60"
+                  >
+                    <div
+                      className={`text-sm font-semibold transition-colors ${
+                        opusSelected ? "" : "text-muted-foreground"
+                      }`}
+                      style={opusSelected ? { color: RED } : undefined}
+                    >
+                      Opus 4.8 <span className="font-normal text-xs text-muted-foreground">~{formatCurrency(modelCostEstimate.opus)}</span>
+                    </div>
+                  </button>
+                </div>
+
+                {/* Row 2: descriptions flank a small Start button centred under the toggle. */}
+                <div className="flex items-center gap-5 max-w-3xl">
+                  <div className="flex-1 text-right text-xs text-muted-foreground leading-snug">
+                    Faster, more affordable &amp; similar quality to Opus<br />
+                    Recommended through development
+                  </div>
+                  <div className="shrink-0 flex justify-center">
+                    {stage === "idle" && !failedRun ? (
+                      <Button
+                        onClick={startEvaluation}
+                        disabled={!instrumentCode}
+                        size="sm"
+                        className="gap-2 h-8 px-3"
+                      >
+                        <Sparkles className="h-4 w-4" /> Start
+                      </Button>
+                    ) : (
+                      <span className="w-[88px]" aria-hidden />
+                    )}
+                  </div>
+                  <div className="flex-1 text-left text-xs text-muted-foreground leading-snug">
+                    Highest accuracy<br />
+                    Use late during proposal development for extra scrutiny
+                  </div>
+                </div>
               </div>
-            )}
+            );
+          })()}
 
-            {showStage && (
-              <div className="space-y-2">
-                <Label>Stage</Label>
-                <Select
-                  value={proposalStage}
-                  onValueChange={(v) => setProposalStage(v as "full" | "stage1")}
-                  disabled={stage !== "idle"}
-                >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="full">Full proposal</SelectItem>
-                    <SelectItem value="stage1">Stage 1 of 2</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-          </div>
-
-          {stage === "idle" && (
-            <Button onClick={startEvaluation} disabled={!instrumentCode} className="gap-2">
-              <Sparkles className="h-4 w-4" /> Start Evaluation
-            </Button>
+          {stage === "idle" && failedRun && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                <div className="space-y-2">
+                  <div className="font-medium">
+                    Previous evaluation failed —{" "}
+                    {failedRun.successCount} of {failedRun.total} evaluators succeeded,{" "}
+                    {failedRun.failCount} errored.
+                  </div>
+                  {failedRun.errorMessage && (
+                    <div className="text-xs opacity-90">{failedRun.errorMessage}</div>
+                  )}
+                  <div className="text-xs opacity-90">
+                    Resuming only re-runs the errored evaluators (cached prefix — near-free) and
+                    proceeds to synthesis if at least 3 succeed. Starting a new evaluation
+                    discards this run and re-runs everything.
+                  </div>
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={resumeFailedRun}
+                      disabled={resumingFailedRun || failedRun.failCount === 0}
+                      className="gap-2"
+                    >
+                      {resumingFailedRun ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Sparkles className="h-4 w-4" />
+                      )}
+                      Resume failed evaluators
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        dismissFailedRun();
+                        void startEvaluation();
+                      }}
+                      disabled={!instrumentCode || resumingFailedRun}
+                    >
+                      Start new evaluation
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={dismissFailedRun}
+                      disabled={resumingFailedRun}
+                    >
+                      Dismiss
+                    </Button>
+                  </div>
+                </div>
+              </AlertDescription>
+            </Alert>
           )}
+
+
+
 
           {stage === "stageA" && (
             <Alert>
@@ -667,20 +1285,37 @@ export function PanelEvaluator({ proposalId }: Props) {
             <Alert>
               <Loader2 className="h-4 w-4 animate-spin" />
               <AlertDescription>
-                {runningStatus === "synthesizing"
-                  ? "Synthesizing the ESR from evaluator reports. This typically takes a few minutes."
-                  : runningStatus === "processing"
-                  ? "Evaluator agents are reviewing the proposal. This typically takes 4–8 minutes."
-                  : "Evaluation running in the background. This typically takes 4–8 minutes."}
-                <div className="text-xs mt-1 text-muted-foreground">
-                  {runningMessage || "You can leave this page and return — the result will be saved automatically."}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    {runningStatus === "synthesizing"
+                      ? "Synthesizing the ESR from evaluator reports. This typically takes a few minutes."
+                      : runningStatus === "processing"
+                      ? "Evaluator agents are reviewing the proposal. This typically takes 4–8 minutes."
+                      : "Evaluation running in the background. This typically takes 4–8 minutes."}
+                    <div className="text-xs mt-1 text-muted-foreground">
+                      {runningMessage || "You can leave this page and return — the result will be saved automatically."}
+                      {runStartedAt && (
+                        <span className="ml-2 font-mono">· elapsed {formatElapsed(runStartedAt, nowTick)}</span>
+                      )}
+                    </div>
+                  </div>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={cancelRun}
+                    disabled={!runningEvaluationId}
+                  >
+                    Cancel
+                  </Button>
                 </div>
               </AlertDescription>
             </Alert>
           )}
-        </CardContent>
+
+          </CardContent>
+        )}
       </Card>
-      )}
+
 
       {/* Evaluation Summary Reports — chart + most recent + previous in one card */}
       {history.length > 0 && stage !== "panelReview" && (
@@ -690,42 +1325,59 @@ export function PanelEvaluator({ proposalId }: Props) {
           </CardHeader>
           <CardContent className="space-y-4">
             {chartData.length >= 2 && (
-              <div className="h-32">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-                    <YAxis domain={[0, yMax]} tick={{ fontSize: 10 }} width={28} />
-                    <RTooltip />
-                    <ReferenceLine
-                      y={overallThreshold}
-                      stroke="hsl(var(--destructive))"
-                      strokeDasharray="4 4"
-                      label={{ value: `Threshold ${overallThreshold}`, fontSize: 10 }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="score"
-                      stroke="hsl(var(--primary))"
-                      activeDot={{
-                        r: 6,
-                        onClick: (_e: any, payload: any) => {
-                          if (payload?.payload?.id) setSelectedHistoryId(payload.payload.id);
-                        },
-                      }}
-                      dot={(props: any) => {
-                        const v = props.payload.score;
-                        const color =
-                          v < overallThreshold
-                            ? "hsl(var(--destructive))"
-                            : v < overallThreshold + 1
-                            ? "hsl(38 92% 50%)"
-                            : "hsl(142 71% 45%)";
-                        return <Dot {...props} r={4} fill={color} stroke={color} />;
-                      }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+              <div className="space-y-1">
+                <div className="h-32">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                      <YAxis domain={[0, yMax]} tick={{ fontSize: 10 }} width={28} />
+                      <RTooltip />
+                      <ReferenceLine
+                        y={overallThreshold}
+                        stroke="hsl(var(--destructive))"
+                        strokeDasharray="4 4"
+                        label={{ value: `Threshold ${overallThreshold}`, fontSize: 10 }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="score"
+                        stroke="hsl(var(--primary))"
+                        activeDot={{
+                          r: 6,
+                          onClick: (_e: any, payload: any) => {
+                            if (payload?.payload?.id) setSelectedHistoryId(payload.payload.id);
+                          },
+                        }}
+                        dot={(props: any) => {
+                          const { key, cx, cy, payload } = props;
+                          const isOpus = (payload?.model || "").includes("opus");
+                          const color = isOpus ? "#dc2626" : "#16a34a";
+                          return (
+                            <Dot
+                              key={key}
+                              cx={cx}
+                              cy={cy}
+                              r={4}
+                              fill={color}
+                              stroke={color}
+                            />
+                          );
+                        }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="flex items-center justify-end gap-3 text-[10px] text-muted-foreground pr-2">
+                  <span className="inline-flex items-center gap-1">
+                    <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: "#16a34a" }} />
+                    Sonnet 5
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: "#dc2626" }} />
+                    Opus 4.8
+                  </span>
+                </div>
               </div>
             )}
             <div className="space-y-2">
@@ -745,16 +1397,7 @@ export function PanelEvaluator({ proposalId }: Props) {
                         className="flex-1 min-w-0 flex items-center gap-3 text-left"
                       >
                         <span className="font-medium truncate">
-                          {new Date(h.created_at).toLocaleString()}
-                        </span>
-                        <Badge variant="outline" className="text-[10px]">
-                          {instruments.find((i) => i.id === h.instrument_id)?.name || "?"}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground truncate">
-                          Model: {h.model_used || "—"} ·{" "}
-                          {Array.isArray(h.evaluators_selected)
-                            ? `${h.evaluators_selected.length} evaluators`
-                            : ""}
+                          {formatDateTime(h.created_at)}
                         </span>
                       </button>
                       <div className="flex items-center gap-2 shrink-0">
@@ -774,6 +1417,7 @@ export function PanelEvaluator({ proposalId }: Props) {
                             </Badge>
                           );
                         })()}
+                        {renderModelBadge(h.model_used)}
                         {h.cost_eur != null && (() => {
                           const cb = h.analysis_data?.cost_breakdown as
                             | {
@@ -791,13 +1435,17 @@ export function PanelEvaluator({ proposalId }: Props) {
                               }
                             | undefined;
                           const fmt = (n: number | undefined) =>
-                            n == null ? "—" : Number(n).toLocaleString();
+                            n == null ? "—" : formatNumber(Number(n));
+
                           return (
                             <TooltipProvider delayDuration={150}>
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <Badge variant="outline" className="cursor-help">
-                                    €{Number(h.cost_eur).toFixed(2)}
+                                  <Badge
+                                    variant="outline"
+                                    className="cursor-help border-primary text-primary font-semibold"
+                                  >
+                                    Actual: {formatCurrency(Number(h.cost_eur))}
                                   </Badge>
                                 </TooltipTrigger>
                                 <TooltipContent side="top" className="max-w-xs">
@@ -845,29 +1493,34 @@ export function PanelEvaluator({ proposalId }: Props) {
                             </TooltipProvider>
                           );
                         })()}
+                        <Badge variant="outline" title="Total run time">
+                          {formatDurationMs(
+                            (h.analysis_data as any)?.total_duration_ms as number | undefined,
+                          )}
+                        </Badge>
                         <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          title="Download ESR (PDF)"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            downloadEsr(h);
-                          }}
-                        >
+ variant="ghost"
+ size="icon"
+ className="h-7 w-7"
+ title="Download ESR (PDF)"
+ onClick={(e) => {
+ e.stopPropagation();
+ downloadEsr(h);
+ }}
+ aria-label="Download" >
                           <Download className="h-4 w-4" />
                         </Button>
                         {isCoordinator && (
                           <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-destructive hover:text-destructive"
-                            title="Delete ESR"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              void deleteEsr(h);
-                            }}
-                          >
+ variant="ghost"
+ size="icon"
+ className="h-7 w-7 text-destructive hover:text-destructive"
+ title="Delete ESR"
+ onClick={(e) => {
+ e.stopPropagation();
+ void deleteEsr(h);
+ }}
+ aria-label="Delete" >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         )}

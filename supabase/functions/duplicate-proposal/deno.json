@@ -1,5 +1,0 @@
-{
-  "imports": {
-    "isomorphic-dompurify": "npm:isomorphic-dompurify@3.12.0"
-  }
-}

@@ -30,13 +30,14 @@ import {
   BorderStyle,
   AlignmentType,
 } from "npm:docx@9.5.0";
-import XLSX from "npm:xlsx-js-style@1.2.0";
+import xlsxNs from "npm:xlsx-js-style@1.2.0";
+// xlsx-js-style ships as CJS; Deno's npm: interop sometimes nests it under `.default`.
+// Reach the real module regardless of which shape we get.
+// deno-lint-ignore no-explicit-any
+const XLSX: any = (xlsxNs as any)?.utils ? xlsxNs : (xlsxNs as any)?.default ?? xlsxNs;
 import { parse as parseHtml } from "npm:node-html-parser@6.1.13";
+import { corsHeaders } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -374,7 +375,7 @@ interface WpTableOpts {
   duration?: string | null;
   objectives?: string | null;
   description?: string | null;
-  methodology?: string | null;
+  
   tasks: WpTableTask[];
   extras?: [string, string | null | undefined][];
 }
@@ -420,10 +421,6 @@ function buildWpDescriptionTable(opts: WpTableOpts): Table {
   if (opts.description && String(opts.description).trim()) {
     rows.push(new TableRow({ children: [txtCell("Description", { span: 6, shading: SHADE, bold: true })] }));
     rows.push(new TableRow({ children: [htmlCell(opts.description, { span: 6 })] }));
-  }
-  if (opts.methodology && String(opts.methodology).trim()) {
-    rows.push(new TableRow({ children: [txtCell("Methodology", { span: 6, shading: SHADE, bold: true })] }));
-    rows.push(new TableRow({ children: [htmlCell(opts.methodology, { span: 6 })] }));
   }
   for (const t of opts.tasks) {
     rows.push(new TableRow({
@@ -479,11 +476,63 @@ async function buildA1(supabase: any, proposal: any): Promise<Uint8Array> {
     KV("Duration (months)", proposal.duration),
     KV("Uses FSTP", yn(proposal.uses_fstp)),
     KV("Cases enabled", yn(proposal.cases_enabled)),
+    KV("Expertise matrix enabled", yn(proposal.expertise_matrix_enabled)),
     KV("Indicative budget per project", proposal.indicative_budget_per_project),
     KV("FSTP budget", proposal.fstp_budget),
     KV("FSTP budget per third party", proposal.fstp_budget_per_third_party),
     KV("Total budget text", proposal.total_budget_text),
   ];
+
+  // part_a1 content: abstract (plain text paragraphs), keywords, previous submission, declarations.
+  const { data: a1 } = await supabase
+    .from("part_a1")
+    .select("abstract, fixed_keywords, free_keywords, previous_submission, previous_submission_reference, declarations")
+    .eq("proposal_id", proposal.id)
+    .maybeSingle();
+
+  if (a1) {
+    if (a1.abstract && String(a1.abstract).trim()) {
+      children.push(H(HeadingLevel.HEADING_2, "Abstract"));
+      for (const line of String(a1.abstract).split(/\r?\n/)) {
+        children.push(P(line));
+      }
+    }
+    const fixedKw = Array.isArray(a1.fixed_keywords) ? a1.fixed_keywords.filter((s: any) => s && String(s).trim()) : [];
+    if (fixedKw.length || (a1.free_keywords && String(a1.free_keywords).trim())) {
+      children.push(H(HeadingLevel.HEADING_2, "Keywords"));
+      if (fixedKw.length) children.push(KV("Fixed keywords", fixedKw.join(", ")));
+      if (a1.free_keywords && String(a1.free_keywords).trim()) children.push(KV("Free keywords", a1.free_keywords));
+    }
+    if ((a1.previous_submission && String(a1.previous_submission).trim())
+      || (a1.previous_submission_reference && String(a1.previous_submission_reference).trim())) {
+      children.push(H(HeadingLevel.HEADING_2, "Previous submission"));
+      if (a1.previous_submission && String(a1.previous_submission).trim()) {
+        for (const line of String(a1.previous_submission).split(/\r?\n/)) children.push(P(line));
+      }
+      if (a1.previous_submission_reference && String(a1.previous_submission_reference).trim()) {
+        children.push(KV("Reference", a1.previous_submission_reference));
+      }
+    }
+    const decl = (a1.declarations && typeof a1.declarations === "object") ? a1.declarations as Record<string, any> : null;
+    if (decl && Object.keys(decl).length) {
+      children.push(H(HeadingLevel.HEADING_2, "Declarations"));
+      const declLabels: Record<string, string> = {
+        eligibility: "Eligibility",
+        ethics: "Ethics",
+        consent: "Consent",
+        outsideEU: "Activities outside the EU",
+        termsPrivacy: "Terms & privacy",
+        communication: "Communication",
+        correctComplete: "Information correct & complete",
+        civilApplications: "Civil applications only",
+        prohibitedResearch: "No prohibited research",
+      };
+      for (const [k, v] of Object.entries(decl)) {
+        children.push(KV(declLabels[k] ?? k, yn(v)));
+      }
+    }
+  }
+
   return await packDocx(children);
 }
 
@@ -499,10 +548,9 @@ async function buildA2(supabase: any, proposal: any): Promise<Uint8Array> {
     children.push(KV("English name", p.english_name));
     children.push(KV("PIC", p.pic_number));
     children.push(KV("Country", p.country));
-    children.push(KV("Legal entity type", p.legal_entity_type));
     children.push(KV("Organisation category", p.organisation_category));
     children.push(KV("Organisation type", p.organisation_type));
-    children.push(KV("SME", yn(p.is_sme)));
+    
     children.push(KV("Street", p.street));
     children.push(KV("Postcode", p.postcode));
     children.push(KV("Town", p.town));
@@ -637,18 +685,25 @@ async function buildA3Xlsx(supabase: any, proposal: any): Promise<Uint8Array> {
     wp_draft_id: e.wp_draft_id, participant_id: e.participant_id, person_months: Number(e.person_months ?? 0),
   }));
 
-  // Sub-items + justifications for note attachment (currently informational only here).
+  // Justification items (unified model) for note attachment on the budget summary sheet.
   const budgetRowIds = (budgetRowsRaw ?? []).map((r: any) => r.id);
-  const [{ data: subItemsRaw }, { data: justsRaw }] = await Promise.all([
-    budgetRowIds.length
-      ? supabase.from("budget_subcontracting_items").select("*").in("budget_row_id", budgetRowIds).order("order_index")
-      : Promise.resolve({ data: [] }),
-    budgetRowIds.length
-      ? supabase.from("budget_cost_justifications").select("*").in("budget_row_id", budgetRowIds)
-      : Promise.resolve({ data: [] }),
-  ]);
-  const subItems = subItemsRaw ?? [];
-  const justifications = justsRaw ?? [];
+  const { data: justItemsRaw } = budgetRowIds.length
+    ? await supabase
+        .from("budget_cost_justification_items")
+        .select("*")
+        .in("budget_row_id", budgetRowIds)
+        .order("order_index")
+    : { data: [] };
+  const justificationItems = justItemsRaw ?? [];
+  // Build a concatenated justification text per (row, category).
+  const justByRowCat = new Map<string, string>();
+  for (const it of justificationItems) {
+    const key = `${it.budget_row_id}::${it.category}`;
+    const piece = [it.description, it.justification].filter((s: any) => s && String(s).trim()).join(" — ");
+    if (!piece) continue;
+    justByRowCat.set(key, justByRowCat.has(key) ? `${justByRowCat.get(key)}\n${piece}` : piece);
+  }
+
 
   // PM totals per participant (sum across all WPs)
   const pmTotals = new Map<string, number>();
@@ -677,7 +732,7 @@ async function buildA3Xlsx(supabase: any, proposal: any): Promise<Uint8Array> {
     const totalEligibleCosts = directCosts + indirectCosts;
     const fundingRateOverride = r.funding_rate_override != null ? Number(r.funding_rate_override) : null;
     let fundingRate = fundingRateOverride ?? 100;
-    if (fundingRateOverride == null && proposalType === "IA" && r.participants?.organisation_category === "PRC") {
+    if (fundingRateOverride == null && proposalType === "IA" && r.participants?.organisation_category === "LE") {
       fundingRate = 70;
     }
     const maxEuContribution = Math.round(totalEligibleCosts * (fundingRate / 100) * 100) / 100;
@@ -914,21 +969,24 @@ async function buildA3Xlsx(supabase: any, proposal: any): Promise<Uint8Array> {
       (ws2[ref].c as any).hidden = true;
     };
     if (row.subcontractingCosts > 0) {
-      const subItem = subItems.find((s: any) => s.budget_row_id === row.id);
-      if (subItem?.justification) addComment(4, subItem.justification);
+      const t = justByRowCat.get(`${row.id}::subcontracting`);
+      if (t) addComment(4, t);
     }
     if (row.purchaseTravel > 0) {
-      const j = justifications.find((x: any) => x.budget_row_id === row.id && x.category === "travel");
-      if (j?.justification_text) addComment(5, j.justification_text);
+      const t = justByRowCat.get(`${row.id}::travel`);
+      if (t) addComment(5, t);
     }
-    if (row.purchaseEquipment > 0 && row.purchaseEquipmentJustification) {
-      addComment(6, row.purchaseEquipmentJustification);
+    if (row.purchaseEquipment > 0) {
+      const t = justByRowCat.get(`${row.id}::equipment`);
+      if (t) addComment(6, t);
+      else if (row.purchaseEquipmentJustification) addComment(6, row.purchaseEquipmentJustification);
     }
     if (row.purchaseOtherGoods > 0) {
-      const j = justifications.find((x: any) => x.budget_row_id === row.id && x.category === "other_goods");
-      if (j?.justification_text) addComment(7, j.justification_text);
+      const t = justByRowCat.get(`${row.id}::other_goods`);
+      if (t) addComment(7, t);
     }
   });
+
   XLSX.utils.book_append_sheet(wb, ws2, "Summary by Participant");
 
   // ─── Sheet 3: Budget Overview ───
@@ -1257,6 +1315,90 @@ async function buildPartBSection(supabase: any, proposal: any, sectionId: string
     H(HeadingLevel.HEADING_1, `Part ${label}`),
     ...htmlToDocxChildren(content),
   ];
+
+  // ── B1.2: append structured ongoing-projects table ──
+  if (sectionId === "b1-2") {
+    const { data: projects } = await supabase
+      .from("b12_ongoing_projects")
+      .select("id, project_info, shared_data, order_index")
+      .eq("proposal_id", proposal.id)
+      .order("order_index", { ascending: true });
+    const projIds = (projects ?? []).map((p: any) => p.id);
+    const [{ data: links }, { data: parts }] = await Promise.all([
+      projIds.length
+        ? supabase.from("b12_ongoing_project_participants")
+            .select("ongoing_project_id, participant_id").in("ongoing_project_id", projIds)
+        : Promise.resolve({ data: [] }),
+      supabase.from("participants")
+        .select("id, participant_number, organisation_short_name")
+        .eq("proposal_id", proposal.id),
+    ]);
+    const partById = new Map<string, any>();
+    for (const p of parts ?? []) partById.set(p.id, p);
+    const linkMap = new Map<string, string[]>();
+    for (const l of links ?? []) {
+      const arr = linkMap.get(l.ongoing_project_id) ?? [];
+      arr.push(l.participant_id);
+      linkMap.set(l.ongoing_project_id, arr);
+    }
+    if ((projects ?? []).length) {
+      children.push(H(HeadingLevel.HEADING_2, "Ongoing projects"));
+      children.push(simpleTable(
+        ["Project info", "Data / results shared", "Participants"],
+        (projects ?? []).map((pr: any) => {
+          const partLabels = (linkMap.get(pr.id) ?? [])
+            .map((id) => partById.get(id))
+            .filter(Boolean)
+            .sort((a, b) => (a.participant_number ?? 0) - (b.participant_number ?? 0))
+            .map((p) => `P${p.participant_number} ${p.organisation_short_name ?? ""}`);
+          return [
+            htmlToText(pr.project_info ?? ""),
+            htmlToText(pr.shared_data ?? ""),
+            partLabels.join(", ") || "—",
+          ];
+        }),
+      ));
+    }
+  }
+
+  // ── B3.2: append expertise matrix (if enabled) ──
+  if (sectionId === "b3-2" && proposal.expertise_matrix_enabled) {
+    const [{ data: cols }, { data: rows }, { data: cells }, { data: parts }] = await Promise.all([
+      supabase.from("expertise_matrix_columns")
+        .select("id, kind, participant_id, header_text, order_index")
+        .eq("proposal_id", proposal.id).order("order_index", { ascending: true }),
+      supabase.from("expertise_matrix_rows")
+        .select("id, label, order_index")
+        .eq("proposal_id", proposal.id).order("order_index", { ascending: true }),
+      supabase.from("expertise_matrix_cells").select("row_id, column_id, checked"),
+      supabase.from("participants")
+        .select("id, participant_number, organisation_short_name")
+        .eq("proposal_id", proposal.id),
+    ]);
+    const partById = new Map<string, any>();
+    for (const p of parts ?? []) partById.set(p.id, p);
+    const rowIds = new Set((rows ?? []).map((r: any) => r.id));
+    const checkKey = new Set<string>();
+    for (const c of cells ?? []) {
+      if (c.checked && rowIds.has(c.row_id)) checkKey.add(`${c.row_id}::${c.column_id}`);
+    }
+    if ((rows ?? []).length && (cols ?? []).length) {
+      children.push(H(HeadingLevel.HEADING_2, "Expertise matrix"));
+      const colLabels = (cols ?? []).map((c: any) => {
+        if (c.kind === "participant") {
+          const p = c.participant_id ? partById.get(c.participant_id) : null;
+          return p ? `P${p.participant_number} ${p.organisation_short_name ?? ""}` : (c.header_text ?? "—");
+        }
+        return c.header_text ?? "—";
+      });
+      const matrixRows = (rows ?? []).map((r: any) => [
+        r.label ?? "",
+        ...(cols ?? []).map((c: any) => checkKey.has(`${r.id}::${c.id}`) ? "✓" : ""),
+      ]);
+      children.push(simpleTable(["Expertise", ...colLabels], matrixRows));
+    }
+  }
+
   return await packDocx(children);
 }
 
@@ -1266,55 +1408,170 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
     latestSectionContent(supabase, proposal.id, "b3-1"),
   ]);
 
+  // Read B3.1 justification toggle flags from the proposal (b31_show_*)
+  const { data: propFlags } = await supabase
+    .from("proposals")
+    .select(
+      "b31_show_purchase_costs, b31_show_other_direct_costs, b31_show_travel_justification, b31_show_equipment_justification, b31_show_all_equipment_justification, b31_show_other_goods_justification, b31_show_fstp_justification, b31_show_internally_invoiced_justification"
+    )
+    .eq("id", proposal.id)
+    .maybeSingle();
+  const toggles = {
+    purchase_costs: !!propFlags?.b31_show_purchase_costs,
+    other_direct_costs: !!propFlags?.b31_show_other_direct_costs,
+    travel: !!propFlags?.b31_show_travel_justification,
+    equipment: !!propFlags?.b31_show_equipment_justification,
+    equipment_all: !!propFlags?.b31_show_all_equipment_justification,
+    other_goods: !!propFlags?.b31_show_other_goods_justification,
+    fstp: !!propFlags?.b31_show_fstp_justification,
+    internally_invoiced: !!propFlags?.b31_show_internally_invoiced_justification,
+  };
+
   const { data: wps } = await supabase
     .from("wp_drafts")
-    .select("id, number, short_name, title, color, lead_participant_id, manual_duration, b31_objectives, background_knowledge, approach_summary, methodologies_list, foreseen_challenges, b31_description_before_tasks")
+    .select("id, number, short_name, title, color, lead_participant_id, manual_duration, b31_objectives, b31_description_before_tasks")
     .eq("proposal_id", proposal.id)
     .order("number", { ascending: true });
 
   const wpIds = (wps ?? []).map((w: any) => w.id);
+
+  // Live tables replacing the deleted b31_* snapshot tables.
   const [
-    { data: b31Tasks },
+    { data: tasks },
     { data: deliverables },
     { data: milestones },
     { data: risks },
+    { data: msLinks },
+    { data: riskLinks },
     { data: participants },
-    { data: effortRows },
+    { data: wpEffortRows },
   ] = await Promise.all([
-    wpIds.length ? supabase.from("b31_tasks").select("*").in("wp_draft_id", wpIds).order("number", { ascending: true }) : { data: [] },
-    supabase.from("b31_deliverables").select("*").eq("proposal_id", proposal.id).order("order_index", { ascending: true }),
-    supabase.from("b31_milestones").select("*").eq("proposal_id", proposal.id).order("number", { ascending: true }),
-    supabase.from("b31_risks").select("*").eq("proposal_id", proposal.id).order("number", { ascending: true }),
-    supabase.from("participants").select("id, participant_number, organisation_short_name").eq("proposal_id", proposal.id).order("participant_number", { ascending: true }),
-    wpIds.length ? supabase.from("wp_draft_effort").select("wp_draft_id, participant_id, person_months").in("wp_draft_id", wpIds) : { data: [] },
+    wpIds.length
+      ? supabase.from("wp_draft_tasks")
+          .select("id, wp_draft_id, number, title, description, lead_participant_id, start_month, end_month, order_index")
+          .in("wp_draft_id", wpIds)
+          .order("number", { ascending: true })
+      : Promise.resolve({ data: [] }),
+    wpIds.length
+      ? supabase.from("wp_draft_deliverables")
+          .select("id, wp_draft_id, number, title, type, dissemination_level, responsible_participant_id, due_month, description, order_index")
+          .in("wp_draft_id", wpIds)
+      : Promise.resolve({ data: [] }),
+    supabase.from("proposal_milestones")
+      .select("id, number, title, due_month, means_of_verification, order_index")
+      .eq("proposal_id", proposal.id)
+      .order("number", { ascending: true }),
+    supabase.from("proposal_risks")
+      .select("id, number, title, likelihood, severity, mitigation, order_index, created_at")
+      .eq("proposal_id", proposal.id)
+      .order("order_index", { ascending: true })
+      .order("created_at", { ascending: true }),
+    supabase.from("proposal_milestone_wps").select("milestone_id, wp_draft_id"),
+    supabase.from("proposal_risk_wps").select("risk_id, wp_draft_id"),
+    supabase.from("participants").select("id, participant_number, organisation_short_name")
+      .eq("proposal_id", proposal.id)
+      .order("participant_number", { ascending: true }),
+    wpIds.length
+      ? supabase.from("wp_draft_effort").select("wp_draft_id, participant_id, person_months").in("wp_draft_id", wpIds)
+      : Promise.resolve({ data: [] }),
   ]);
 
-  // Subcontracting & equipment for 3.1.g/3.1.h via budget_rows joined to participants
-  const { data: budgetRows } = await supabase
-    .from("budget_rows")
-    .select("id, participant_id")
-    .eq("proposal_id", proposal.id);
-  const brIds = (budgetRows ?? []).map((r: any) => r.id);
-  const [{ data: subItems }, { data: equipItems }] = await Promise.all([
-    brIds.length
-      ? supabase.from("budget_subcontracting_items").select("*").in("budget_row_id", brIds).order("order_index")
+  // Per-task effort for aggregating participant PMs where needed.
+  const taskIds = (tasks ?? []).map((t: any) => t.id);
+  const [{ data: taskParts }, { data: taskEffort }] = await Promise.all([
+    taskIds.length
+      ? supabase.from("wp_draft_task_participants").select("task_id, participant_id").in("task_id", taskIds)
       : Promise.resolve({ data: [] }),
-    brIds.length
-      ? supabase.from("budget_equipment_items").select("*").in("budget_row_id", brIds).order("order_index")
+    taskIds.length
+      ? supabase.from("wp_draft_task_effort").select("task_id, participant_id, person_months").in("task_id", taskIds)
       : Promise.resolve({ data: [] }),
   ]);
+
+  const wpIdSet = new Set(wpIds);
+  const msLinkMap = new Map<string, string[]>();
+  for (const l of msLinks ?? []) {
+    if (!wpIdSet.has(l.wp_draft_id)) continue;
+    const arr = msLinkMap.get(l.milestone_id) ?? [];
+    arr.push(l.wp_draft_id);
+    msLinkMap.set(l.milestone_id, arr);
+  }
+  const riskLinkMap = new Map<string, string[]>();
+  for (const l of riskLinks ?? []) {
+    if (!wpIdSet.has(l.wp_draft_id)) continue;
+    const arr = riskLinkMap.get(l.risk_id) ?? [];
+    arr.push(l.wp_draft_id);
+    riskLinkMap.set(l.risk_id, arr);
+  }
+
+  const wpById = new Map<string, any>();
+  for (const w of wps ?? []) wpById.set(w.id, w);
+
+  // ── Justification items (subcontracting / equipment / travel / other_goods) ──
+  const { data: budgetRows } = await supabase
+    .from("budget_rows")
+    .select("id, participant_id, pm_rate, personnel_costs")
+    .eq("proposal_id", proposal.id);
+  const brIds = (budgetRows ?? []).map((r: any) => r.id);
+  const { data: justItemsRaw } = brIds.length
+    ? await supabase
+        .from("budget_cost_justification_items")
+        .select("*")
+        .in("budget_row_id", brIds)
+        .order("order_index")
+    : { data: [] };
+  const itemsByCat = (cat: string) => (justItemsRaw ?? []).filter((it: any) => it.category === cat);
+  const subItems = itemsByCat("subcontracting");
+  const equipItemsAll = itemsByCat("equipment");
+  const travelItems = itemsByCat("travel");
+  const otherGoodsItems = itemsByCat("other_goods");
+
   const brToPart = new Map<string, string>();
   for (const br of budgetRows ?? []) brToPart.set(br.id, br.participant_id);
 
-  const taskIds = (b31Tasks ?? []).map((t: any) => t.id);
-  const { data: b31TaskParts } = taskIds.length
-    ? await supabase.from("b31_task_participants").select("task_id, participant_id").in("task_id", taskIds)
-    : { data: [] };
+  // Aggregate PMs per participant (from wp-level effort) for 15% personnel rule.
+  const pmByPart = new Map<string, number>();
+  for (const e of wpEffortRows ?? []) {
+    pmByPart.set(e.participant_id, (pmByPart.get(e.participant_id) || 0) + Number(e.person_months ?? 0));
+  }
+  const personnelCostFor = (partId: string): number => {
+    const br = (budgetRows ?? []).find((r: any) => r.participant_id === partId);
+    if (!br) return 0;
+    const pmRate = br.pm_rate != null ? Number(br.pm_rate) : null;
+    if (pmRate != null && pmRate > 0) return Math.round(pmRate * (pmByPart.get(partId) || 0));
+    return Number(br.personnel_costs || 0);
+  };
+  // Apply 15%-of-personnel rule per participant for equipment.
+  const equipTotalsByPart = new Map<string, number>();
+  for (const it of equipItemsAll) {
+    const partId = brToPart.get(it.budget_row_id);
+    if (!partId) continue;
+    equipTotalsByPart.set(partId, (equipTotalsByPart.get(partId) || 0) + Number(it.amount || 0));
+  }
+  const partsForced = new Set<string>();
+  for (const [partId, total] of equipTotalsByPart) {
+    const pers = personnelCostFor(partId);
+    if (pers > 0 ? total > 0.15 * pers : total > 0) partsForced.add(partId);
+  }
+  const c2ForcedOn = partsForced.size > 0;
+  const includeEquipmentCategory = (toggles.purchase_costs || c2ForcedOn) && (c2ForcedOn || toggles.equipment);
+  const equipItems = equipItemsAll.filter((it: any) => {
+    if (!includeEquipmentCategory) return false;
+    const partId = brToPart.get(it.budget_row_id);
+    if (!partId) return false;
+    if (partsForced.has(partId)) return true;
+    return toggles.equipment_all; // include below-15% only when explicitly opted in
+  });
+  const includeTravel = toggles.purchase_costs && toggles.travel && travelItems.length > 0;
+  const includeOtherGoods = toggles.purchase_costs && toggles.other_goods && otherGoodsItems.length > 0;
 
   const partLabel = (id: string | null) => {
     if (!id) return "—";
     const p = (participants ?? []).find((x: any) => x.id === id);
     return p ? `P${p.participant_number} ${p.organisation_short_name ?? ""}` : "—";
+  };
+  const wpLabel = (id: string): string => {
+    const w = wpById.get(id);
+    return w ? `WP${w.number}` : "";
   };
 
   const children: (Paragraph | Table)[] = [H(HeadingLevel.HEADING_1, "Part B3.1 — Work plan & work packages")];
@@ -1328,10 +1585,10 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
     children.push(...htmlToDocxChildren(body));
   }
 
-  // Effort totals per (wp, participant) and per WP
+  // Effort per (wp, participant); WP totals from wp_draft_effort.
   const effortMap = new Map<string, number>();
   const wpEffortTotal = new Map<string, number>();
-  for (const e of effortRows ?? []) {
+  for (const e of wpEffortRows ?? []) {
     const v = Number(e.person_months ?? 0);
     effortMap.set(`${e.wp_draft_id}::${e.participant_id}`, v);
     wpEffortTotal.set(e.wp_draft_id, (wpEffortTotal.get(e.wp_draft_id) || 0) + v);
@@ -1343,7 +1600,7 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
     children.push(simpleTable(
       ["WP #", "WP title", "Lead participant", "Person-months", "Start month", "End month"],
       (wps ?? []).map((w: any) => {
-        const wpTasks = (b31Tasks ?? []).filter((t: any) => t.wp_draft_id === w.id);
+        const wpTasks = (tasks ?? []).filter((t: any) => t.wp_draft_id === w.id);
         const starts = wpTasks.map((t: any) => t.start_month).filter((v: any) => v != null);
         const ends = wpTasks.map((t: any) => t.end_month).filter((v: any) => v != null);
         const wpStart = starts.length ? Math.min(...starts) : null;
@@ -1360,10 +1617,10 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
     ));
   }
 
-  // Per-WP detail using the shared Table 3.1.b structure.
+  // ─── Table 3.1.b — Per-WP description tables ───
   children.push(H(HeadingLevel.HEADING_2, "Table 3.1.b — Work package descriptions"));
   for (const w of wps ?? []) {
-    const wpTasks = (b31Tasks ?? []).filter((t: any) => t.wp_draft_id === w.id);
+    const wpTasks = (tasks ?? []).filter((t: any) => t.wp_draft_id === w.id);
     children.push(buildWpDescriptionTable({
       wpNumber: w.number,
       shortName: w.short_name,
@@ -1372,9 +1629,8 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
       duration: w.manual_duration ? String(w.manual_duration) : null,
       objectives: w.b31_objectives,
       description: w.b31_description_before_tasks,
-      methodology: w.approach_summary,
       tasks: wpTasks.map((t: any) => {
-        const ids = (b31TaskParts ?? []).filter((tp: any) => tp.task_id === t.id).map((tp: any) => tp.participant_id);
+        const ids = (taskParts ?? []).filter((tp: any) => tp.task_id === t.id).map((tp: any) => tp.participant_id);
         return {
           number: t.number,
           title: t.title,
@@ -1384,35 +1640,97 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
           description: t.description,
         };
       }),
-      extras: [
-        ["Background knowledge", w.background_knowledge],
-        ["Methodologies", w.methodologies_list],
-        ["Foreseen challenges", w.foreseen_challenges],
-      ],
     }));
-    children.push(P("")); // spacer between WP tables
+    children.push(P(""));
   }
 
-  // ─── Tables 3.1.c/d/e ───
-  if (deliverables?.length) {
+  // ─── Table 3.1.c — Deliverables (WP-scoped D{wp}.{n} labels) ───
+  const visibleDeliverables = (deliverables ?? []).filter((d: any) => {
+    const empty = !(d.title ?? "").toString().trim()
+      && !(d.type ?? "").toString().trim()
+      && !(d.dissemination_level ?? "").toString().trim()
+      && !d.responsible_participant_id
+      && d.due_month == null;
+    return !empty;
+  }).sort((a: any, b: any) => {
+    const wa = wpById.get(a.wp_draft_id)?.number ?? 999;
+    const wb = wpById.get(b.wp_draft_id)?.number ?? 999;
+    if (wa !== wb) return wa - wb;
+    const da = a.due_month ?? Number.POSITIVE_INFINITY;
+    const db = b.due_month ?? Number.POSITIVE_INFINITY;
+    if (da !== db) return da - db;
+    return (a.order_index ?? a.number ?? 0) - (b.order_index ?? b.number ?? 0);
+  });
+  if (visibleDeliverables.length) {
     children.push(H(HeadingLevel.HEADING_2, "Table 3.1.c — Deliverables"));
     children.push(simpleTable(
-      ["#", "Name", "WP", "Lead", "Type", "Diss.", "Due month"],
-      deliverables.map((d: any) => [d.number, d.name ?? "", d.wp_number ?? "", partLabel(d.lead_participant_id), d.type ?? "", d.dissemination_level ?? "", mLabel(d.due_month)]),
+      ["No.", "Deliverable title", "WP", "Lead", "Type", "Diss.", "Due"],
+      visibleDeliverables.map((d: any) => {
+        const w = wpById.get(d.wp_draft_id);
+        const label = w ? `D${w.number}.${d.number}` : `D?.${d.number}`;
+        return [
+          label,
+          d.title ?? "",
+          w ? `WP${w.number}` : "—",
+          partLabel(d.responsible_participant_id),
+          d.type ?? "",
+          d.dissemination_level ?? "",
+          mLabel(d.due_month),
+        ];
+      }),
     ));
   }
-  if (milestones?.length) {
+
+  // ─── Table 3.1.d — Milestones (proposal-level + WP links) ───
+  const sortedMilestones = [...(milestones ?? [])].sort((a: any, b: any) => {
+    const da = a.due_month ?? Number.POSITIVE_INFINITY;
+    const db = b.due_month ?? Number.POSITIVE_INFINITY;
+    if (da !== db) return da - db;
+    const wa = Math.min(...(msLinkMap.get(a.id) ?? []).map((id) => wpById.get(id)?.number ?? Infinity), Infinity);
+    const wb = Math.min(...(msLinkMap.get(b.id) ?? []).map((id) => wpById.get(id)?.number ?? Infinity), Infinity);
+    if (wa !== wb) return wa - wb;
+    return (a.number ?? 0) - (b.number ?? 0);
+  });
+  if (sortedMilestones.length) {
     children.push(H(HeadingLevel.HEADING_2, "Table 3.1.d — Milestones"));
     children.push(simpleTable(
-      ["#", "Name", "WPs", "Due month", "Means of verification"],
-      milestones.map((m: any) => [m.number, m.name ?? "", m.wps ?? "", mLabel(m.due_month), m.means_of_verification ?? ""]),
+      ["No.", "Milestone", "WP(s)", "Due", "Means of verification"],
+      sortedMilestones.map((m: any) => {
+        const wpIdsForMs = (msLinkMap.get(m.id) ?? [])
+          .map((id) => wpById.get(id))
+          .filter(Boolean)
+          .sort((a: any, b: any) => a.number - b.number)
+          .map((w: any) => `WP${w.number}`);
+        return [
+          `MS${m.number}`,
+          htmlToText(m.title ?? ""),
+          wpIdsForMs.join(", ") || "—",
+          mLabel(m.due_month),
+          htmlToText(m.means_of_verification ?? ""),
+        ];
+      }),
     ));
   }
-  if (risks?.length) {
+
+  // ─── Table 3.1.e — Critical risks ───
+  if ((risks ?? []).length) {
     children.push(H(HeadingLevel.HEADING_2, "Table 3.1.e — Critical risks"));
     children.push(simpleTable(
-      ["#", "Description", "WPs", "Likelihood", "Severity", "Mitigation"],
-      risks.map((r: any) => [r.number, r.description ?? "", r.wps ?? "", r.likelihood ?? "", r.severity ?? "", r.mitigation ?? ""]),
+      ["Risk", "Likelihood", "Severity", "WP(s)", "Mitigation & adaptation measures"],
+      (risks ?? []).map((r: any) => {
+        const wpIdsForRisk = (riskLinkMap.get(r.id) ?? [])
+          .map((id) => wpById.get(id))
+          .filter(Boolean)
+          .sort((a: any, b: any) => a.number - b.number)
+          .map((w: any) => `WP${w.number}`);
+        return [
+          htmlToText(r.title ?? ""),
+          r.likelihood ?? "",
+          r.severity ?? "",
+          wpIdsForRisk.join(", ") || "—",
+          htmlToText(r.mitigation ?? ""),
+        ];
+      }),
     ));
   }
 
@@ -1439,32 +1757,63 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
     children.push(simpleTable(headers, matrixRows));
   }
 
-  // ─── Table 3.1.g — Subcontracting ───
+  // Helper: render a justification-items table grouped by participant with subtotals + grand total.
+  const renderJustItemsTable = (items: any[]) => {
+    const rowsOut: any[][] = [];
+    const byPart = new Map<string, any[]>();
+    for (const it of items) {
+      const partId = brToPart.get(it.budget_row_id) ?? null;
+      if (!partId) continue;
+      const arr = byPart.get(partId) ?? [];
+      arr.push(it);
+      byPart.set(partId, arr);
+    }
+    const partIdsSorted = Array.from(byPart.keys()).sort((a, b) => {
+      const pa = (participants ?? []).find((p: any) => p.id === a)?.participant_number ?? 999;
+      const pb = (participants ?? []).find((p: any) => p.id === b)?.participant_number ?? 999;
+      return pa - pb;
+    });
+    let grand = 0;
+    for (const partId of partIdsSorted) {
+      const its = byPart.get(partId) ?? [];
+      let subtotal = 0;
+      its.forEach((it: any, idx: number) => {
+        const amt = Number(it.amount || 0);
+        subtotal += amt;
+        rowsOut.push([
+          idx === 0 ? partLabel(partId) : "",
+          eur(amt),
+          [it.description, it.justification].filter((s: any) => s && String(s).trim()).join(" — "),
+        ]);
+      });
+      rowsOut.push(["", eur(subtotal), "Subtotal"]);
+      grand += subtotal;
+    }
+    rowsOut.push(["", eur(grand), "Total"]);
+    return simpleTable(["Participant", "Cost (€)", "Justification"], rowsOut);
+  };
+
+  // ─── Table 3.1.g — Subcontracting (auto-included when items exist) ───
   if ((subItems ?? []).length) {
     children.push(H(HeadingLevel.HEADING_2, "Table 3.1.g — Subcontracting"));
-    children.push(simpleTable(
-      ["Participant", "Description", "Cost (€)", "Justification"],
-      (subItems ?? []).map((s: any) => [
-        partLabel(brToPart.get(s.budget_row_id) ?? null),
-        s.description ?? "",
-        eur(s.amount),
-        s.justification ?? "",
-      ]),
-    ));
+    children.push(renderJustItemsTable(subItems));
   }
 
-  // ─── Table 3.1.h — Purchase costs / equipment ───
-  if ((equipItems ?? []).length) {
+  // ─── Table 3.1.h — Purchase costs (equipment / travel / other goods per toggles + 15% rule) ───
+  if (equipItems.length || includeTravel || includeOtherGoods) {
     children.push(H(HeadingLevel.HEADING_2, "Table 3.1.h — Purchase costs (equipment, infrastructure or other assets)"));
-    children.push(simpleTable(
-      ["Participant", "Description", "Cost (€)", "Justification"],
-      (equipItems ?? []).map((e: any) => [
-        partLabel(brToPart.get(e.budget_row_id) ?? null),
-        e.description ?? "",
-        eur(e.amount),
-        e.justification ?? "",
-      ]),
-    ));
+    if (equipItems.length) {
+      children.push(H(HeadingLevel.HEADING_3, "Equipment"));
+      children.push(renderJustItemsTable(equipItems));
+    }
+    if (includeTravel) {
+      children.push(H(HeadingLevel.HEADING_3, "Travel and subsistence"));
+      children.push(renderJustItemsTable(travelItems));
+    }
+    if (includeOtherGoods) {
+      children.push(H(HeadingLevel.HEADING_3, "Other goods, works and services"));
+      children.push(renderJustItemsTable(otherGoodsItems));
+    }
   }
 
   return await packDocx(children);
@@ -1480,15 +1829,45 @@ async function buildWpDraft(supabase: any, proposal: any, wp: any, participants:
 
   const { data: tasks } = await supabase.from("wp_draft_tasks").select("*").eq("wp_draft_id", wp.id).order("number", { ascending: true });
   const taskIds = (tasks ?? []).map((t: any) => t.id);
-  const [{ data: deliverables }, { data: milestones }, { data: risks }, { data: effort }, { data: taskParts }] = await Promise.all([
+  const [
+    { data: deliverables },
+    { data: msLinks },
+    { data: riskLinks },
+    { data: effort },
+    { data: taskParts },
+    { data: taskEffort },
+    { data: delTaskLinks },
+  ] = await Promise.all([
     supabase.from("wp_draft_deliverables").select("*").eq("wp_draft_id", wp.id).order("number", { ascending: true }),
-    supabase.from("wp_draft_milestones").select("*").eq("wp_draft_id", wp.id).order("number", { ascending: true }),
-    supabase.from("wp_draft_risks").select("*").eq("wp_draft_id", wp.id).order("number", { ascending: true }),
+    supabase
+      .from("proposal_milestone_wps")
+      .select("is_primary, milestone:milestone_id(number, title, due_month, means_of_verification, proposal_id)")
+      .eq("wp_draft_id", wp.id),
+    supabase
+      .from("proposal_risk_wps")
+      .select("risk:risk_id(number, title, mitigation, likelihood, severity, proposal_id)")
+      .eq("wp_draft_id", wp.id),
     supabase.from("wp_draft_effort").select("*, participant:participant_id(participant_number, organisation_short_name)").eq("wp_draft_id", wp.id),
     taskIds.length
       ? supabase.from("wp_draft_task_participants").select("task_id, participant_id").in("task_id", taskIds)
       : Promise.resolve({ data: [] }),
+    taskIds.length
+      ? supabase.from("wp_draft_task_effort").select("task_id, participant_id, person_months").in("task_id", taskIds)
+      : Promise.resolve({ data: [] }),
+    taskIds.length
+      ? supabase.from("wp_draft_deliverable_tasks").select("deliverable_id, wp_draft_task_id").in("wp_draft_task_id", taskIds)
+      : Promise.resolve({ data: [] }),
   ]);
+
+  // Filter to this proposal and dedupe by number.
+  const milestones = (msLinks ?? [])
+    .map((l: any) => l.milestone ? { ...l.milestone, is_primary: l.is_primary } : null)
+    .filter((m: any) => m && m.proposal_id === wp.proposal_id)
+    .sort((a: any, b: any) => (a.number ?? 0) - (b.number ?? 0));
+  const risks = (riskLinks ?? [])
+    .map((l: any) => l.risk)
+    .filter((r: any) => r && r.proposal_id === wp.proposal_id)
+    .sort((a: any, b: any) => (a.number ?? 0) - (b.number ?? 0));
 
   const wpTable = buildWpDescriptionTable({
     wpNumber: wp.number,
@@ -1498,7 +1877,6 @@ async function buildWpDraft(supabase: any, proposal: any, wp: any, participants:
     duration: wp.manual_duration ? String(wp.manual_duration) : null,
     objectives: wp.objectives,
     description: wp.description_before_tasks,
-    methodology: wp.methodology,
     tasks: (tasks ?? []).map((t: any) => {
       const ids = (taskParts ?? []).filter((tp: any) => tp.task_id === t.id).map((tp: any) => tp.participant_id);
       return {
@@ -1510,11 +1888,6 @@ async function buildWpDraft(supabase: any, proposal: any, wp: any, participants:
         description: t.description ?? t.b31_description ?? "",
       };
     }),
-    extras: [
-      ["Inputs", wp.inputs_question],
-      ["Outputs", wp.outputs_question],
-      ["Bottlenecks", wp.bottlenecks_question],
-    ],
   });
 
 
@@ -1530,18 +1903,18 @@ async function buildWpDraft(supabase: any, proposal: any, wp: any, participants:
       deliverables.map((d: any) => [d.number, d.title ?? "", d.type ?? "", d.dissemination_level ?? "", partLabel(d.responsible_participant_id), d.due_month ?? "", d.description ?? ""]),
     ));
   }
-  if (milestones?.length) {
+  if (milestones.length) {
     children.push(H(HeadingLevel.HEADING_2, "Milestones"));
     children.push(simpleTable(
-      ["#", "Title", "Related WPs", "Due month", "Means of verification"],
-      milestones.map((m: any) => [m.number, m.title ?? "", m.related_wps ?? "", m.due_month ?? "", m.means_of_verification ?? ""]),
+      ["#", "Title", "Primary WP?", "Due month", "Means of verification"],
+      milestones.map((m: any) => [m.number, m.title ?? "", m.is_primary ? "Yes" : "No", m.due_month ?? "", m.means_of_verification ?? ""]),
     ));
   }
-  if (risks?.length) {
+  if (risks.length) {
     children.push(H(HeadingLevel.HEADING_2, "Risks"));
     children.push(simpleTable(
-      ["#", "Title", "Related WPs", "Likelihood", "Severity", "Mitigation"],
-      risks.map((r: any) => [r.number, r.title ?? "", r.related_wps ?? "", r.likelihood ?? "", r.severity ?? "", r.mitigation ?? ""]),
+      ["#", "Title", "Likelihood", "Severity", "Mitigation"],
+      risks.map((r: any) => [r.number, r.title ?? "", r.likelihood ?? "", r.severity ?? "", r.mitigation ?? ""]),
     ));
   }
   if (effort?.length) {
@@ -1550,6 +1923,61 @@ async function buildWpDraft(supabase: any, proposal: any, wp: any, participants:
       ["Participant", "PM"],
       effort.map((e: any) => [e.participant ? `P${e.participant.participant_number} ${e.participant.organisation_short_name ?? ""}` : "—", e.person_months ?? ""]),
     ));
+  }
+
+  // ── Per-task effort matrix (tasks × participants) ──
+  if ((taskEffort ?? []).length) {
+    children.push(H(HeadingLevel.HEADING_2, "Per-task effort (person-months)"));
+    const partIdsInEffort = Array.from(new Set((taskEffort ?? []).map((e: any) => e.participant_id)));
+    const orderedParts = partIdsInEffort
+      .map((id) => participants.find((p) => p.id === id))
+      .filter(Boolean)
+      .sort((a: any, b: any) => (a.participant_number ?? 0) - (b.participant_number ?? 0));
+    const key = (tid: string, pid: string) => `${tid}::${pid}`;
+    const map = new Map<string, number>();
+    for (const e of taskEffort ?? []) map.set(key(e.task_id, e.participant_id), Number(e.person_months ?? 0));
+    const headers = ["Task", ...orderedParts.map((p: any) => `P${p.participant_number} ${p.organisation_short_name ?? ""}`), "Total"];
+    const rowsOut = (tasks ?? []).map((t: any) => {
+      const row: (string | number)[] = [`T${wp.number}.${t.number} ${t.title ?? ""}`];
+      let total = 0;
+      for (const p of orderedParts as any[]) {
+        const v = map.get(key(t.id, p.id)) ?? 0;
+        row.push(v || 0);
+        total += v;
+      }
+      row.push(total);
+      return row;
+    });
+    children.push(simpleTable(headers, rowsOut));
+  }
+
+  // ── Deliverable → task links ──
+  if ((delTaskLinks ?? []).length) {
+    const tById = new Map<string, any>();
+    for (const t of tasks ?? []) tById.set(t.id, t);
+    const dById = new Map<string, any>();
+    for (const d of deliverables ?? []) dById.set(d.id, d);
+    const grouped = new Map<string, string[]>();
+    for (const l of delTaskLinks ?? []) {
+      const t = tById.get(l.wp_draft_task_id);
+      if (!t) continue;
+      const arr = grouped.get(l.deliverable_id) ?? [];
+      arr.push(`T${wp.number}.${t.number}`);
+      grouped.set(l.deliverable_id, arr);
+    }
+    if (grouped.size) {
+      children.push(H(HeadingLevel.HEADING_2, "Deliverable ↔ task links"));
+      children.push(simpleTable(
+        ["Deliverable", "Contributing tasks"],
+        Array.from(grouped.entries())
+          .map(([delId, taskLabels]) => {
+            const d = dById.get(delId);
+            const delLabel = d ? `D${wp.number}.${d.number} ${d.title ?? ""}` : "—";
+            return [delLabel, taskLabels.sort().join(", ")];
+          })
+          .sort((a, b) => String(a[0]).localeCompare(String(b[0]))),
+      ));
+    }
   }
   return await packDocx(children);
 }
@@ -1644,6 +2072,59 @@ const XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.s
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  // Auth: accept either (a) Bearer == service role key OR Bearer == CRON_SECRET
+  // (cron / server-to-server), or (b) a valid user JWT belonging to an
+  // owner/admin/coordinator (manual UI trigger).
+  const authHeader = req.headers.get("Authorization") || "";
+  const cronSecret = Deno.env.get("CRON_SECRET");
+  const isServiceCall =
+    authHeader === `Bearer ${SERVICE_KEY}` ||
+    (!!cronSecret && authHeader === `Bearer ${cronSecret}`);
+  let isAuthorizedUser = false;
+  let callerUserId: string | null = null;
+  if (!isServiceCall) {
+    if (!authHeader.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    try {
+      const userClient = createClient(
+        SUPABASE_URL,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        { global: { headers: { Authorization: authHeader } } },
+      );
+      const token = authHeader.replace("Bearer ", "");
+      const { data: claimsData, error: claimsErr } = await userClient.auth.getClaims(token);
+      if (claimsErr || !claimsData?.claims?.sub) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      // Capture caller id once — reused below for per-proposal authorization checks
+      // so we don't re-validate the JWT (extra network round-trip + silent-failure risk).
+      callerUserId = claimsData.claims.sub;
+      const adminClient = createClient(SUPABASE_URL, SERVICE_KEY);
+      const { data: roles } = await adminClient
+        .from("user_roles")
+        .select("role, proposal_id")
+        .eq("user_id", callerUserId);
+      isAuthorizedUser = !!roles?.some((r: any) =>
+        (r.proposal_id === null && (r.role === "owner" || r.role === "admin")) ||
+        r.role === "coordinator"
+      );
+      if (!isAuthorizedUser) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    } catch (_e) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+  }
+
   const now = new Date();
   const url = new URL(req.url);
   let bodyForce = false;
@@ -1657,6 +2138,41 @@ Deno.serve(async (req) => {
   }
   const force = url.searchParams.get("force") === "1" || bodyForce;
   const proposalId = bodyProposalId ?? url.searchParams.get("proposal_id");
+
+  // Per-proposal / full-fleet authorization (user-authenticated calls only).
+  // Uses callerUserId captured during the first getClaims() above — no second JWT validation.
+  if (!isServiceCall) {
+    // When a specific proposal is targeted, require admin/owner/coordinator on THAT proposal
+    // (or a global owner/admin). Prevents cross-proposal data exfiltration via backup trigger.
+    if (proposalId && callerUserId) {
+      const adminClient = createClient(SUPABASE_URL, SERVICE_KEY);
+      const { data: allowed, error: rpcErr } = await adminClient.rpc("is_proposal_admin", {
+        _user_id: callerUserId,
+        _proposal_id: proposalId,
+      });
+      if (rpcErr || !allowed) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    } else if (!proposalId) {
+      // Full-fleet backup runs (no proposal_id) require global owner/admin, not just any coordinator.
+      const adminClient = createClient(SUPABASE_URL, SERVICE_KEY);
+      const { data: roles } = await adminClient
+        .from("user_roles")
+        .select("role, proposal_id")
+        .eq("user_id", callerUserId);
+      const isGlobalAdmin = !!roles?.some((r: any) =>
+        r.proposal_id === null && (r.role === "owner" || r.role === "admin")
+      );
+      if (!isGlobalAdmin) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+  }
+
   const helsinkiH = helsinkiHour(now);
   if (!force && helsinkiH !== 6) {
     return new Response(
@@ -1664,6 +2180,7 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
+
 
   const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
   const stamp = helsinkiStamp(now);

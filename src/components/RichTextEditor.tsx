@@ -21,21 +21,27 @@ import { createCitationTooltipPlugin, CitationMark, CitationNode } from './Citat
 import { BlockReordering } from '@/extensions/BlockReordering';
 import { ParagraphSpacing } from '@/extensions/ParagraphSpacing';
 
-import { InlineReferenceMark } from '@/extensions/InlineReferenceMark';
+import { InlineReferenceNode } from '@/extensions/InlineReferenceNode';
 import { BlockDragHandle } from '@/extensions/BlockDragHandle';
 import { TrackChanges, TrackChangesOptions } from '@/extensions/TrackChanges';
 import { TableFormula } from '@/extensions/TableFormula';
-import { WPReferenceMark } from '@/extensions/WPReferenceMark';
-import { CaseReferenceMark } from '@/extensions/CaseReferenceMark';
-import { ParticipantReferenceMark } from '@/extensions/ParticipantReferenceMark';
+import { WPReferenceNode } from '@/extensions/WPReferenceNode';
+import { CaseReferenceNode } from '@/extensions/CaseReferenceNode';
+import { CasesTableNode } from '@/extensions/CasesTableNode';
+import { ParticipantReferenceNode } from '@/extensions/ParticipantReferenceNode';
 import { AcronymReference } from '@/extensions/AcronymReference';
 import { FigureTableReferenceMark } from '@/extensions/FigureTableReferenceMark';
+import { ParenBadgeGlue } from '@/extensions/ParenBadgeGlue';
+import { BadgeTrailingCaret } from '@/extensions/BadgeTrailingCaret';
+import { BadgeCaretHost } from '@/extensions/BadgeCaretHost';
+
 import { CaptionLabel } from '@/extensions/CaptionLabel';
 import { HeadingNumberLabel } from '@/extensions/HeadingNumberLabel';
 import { OrderedListStyled } from '@/extensions/OrderedListStyled';
 import { renumberH3Headings } from '@/lib/renumberH3Headings';
 import { updateCaptionForTableAtCursor } from '@/lib/renumberCaptionsInEditor';
 import { sanitizeEditorHtml } from '@/lib/editorContentSanitizer';
+import { stripWordHtml } from '@/lib/stripWordHtml';
 import { OrderedListDropdown } from './OrderedListDropdown';
 import { autoFitEditorTableAtPos } from '@/lib/editorTableAutoFit';
 import { ParagraphSpacingPopover } from './ParagraphSpacingPopover';
@@ -44,15 +50,9 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import {
-  Italic,
-  Underline as UnderlineIcon,
   Strikethrough,
   List,
   ListOrdered,
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
-  AlignJustify,
   Link as LinkIcon,
   Undo,
   Redo,
@@ -81,7 +81,6 @@ import {
   Pipette,
   Ban,
   Check,
-  ChevronDown,
 } from "lucide-react";
 import {
   Tooltip,
@@ -111,6 +110,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  ToolbarButton,
+  TextFormattingGroup,
+  AlignmentGroup,
+  TableGridPicker,
+  SubheadingDropdown,
+  type Alignment,
+} from './toolbar';
 
 interface RichTextEditorProps {
   content: string;
@@ -122,40 +129,9 @@ interface RichTextEditorProps {
   sectionNumber?: string; // Section number for caption numbering (e.g., "1.1")
 }
 
-interface ToolbarButtonProps {
-  icon: React.ReactNode;
-  tooltip: string;
-  onClick?: () => void;
-  active?: boolean;
-  disabled?: boolean;
-}
-
-function ToolbarButton({ icon, tooltip, onClick, active, disabled }: ToolbarButtonProps) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          type="button"
-          variant={active ? "secondary" : "ghost"}
-          size="icon"
-          className="h-7 w-7"
-          onMouseDown={(e) => {
-            e.preventDefault();
-            if (!disabled) onClick?.();
-          }}
-          disabled={disabled}
-        >
-          {icon}
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent side="bottom" className="text-xs">
-        {tooltip}
-      </TooltipContent>
-    </Tooltip>
-  );
-}
 
 const PART_B_ALIGNMENT_EXEMPT_PARAGRAPH_CLASSES = new Set(['figure-caption', 'table-caption']);
+
 
 const ParagraphClass = Extension.create({
   name: 'paragraphClass',
@@ -175,6 +151,36 @@ const ParagraphClass = Extension.create({
   },
 });
 
+const HeadingDataAttributes = Extension.create({
+  name: 'headingDataAttributes',
+  addGlobalAttributes() {
+    return [
+      {
+        types: ['heading'],
+        attributes: {
+          'data-default-subheading': {
+            default: null,
+            parseHTML: (element) => element.getAttribute('data-default-subheading'),
+            renderHTML: (attributes) =>
+              attributes['data-default-subheading']
+                ? { 'data-default-subheading': attributes['data-default-subheading'] }
+                : {},
+          },
+          'data-case-type-heading-id': {
+            default: null,
+            parseHTML: (element) => element.getAttribute('data-case-type-heading-id'),
+            renderHTML: (attributes) =>
+              attributes['data-case-type-heading-id']
+                ? { 'data-case-type-heading-id': attributes['data-case-type-heading-id'] }
+                : {},
+          },
+        },
+      },
+    ];
+  },
+});
+
+
 /**
  * Strips text-align from pasted paragraphs so they adopt the default (justified).
  * Only used for transformPastedHTML — NOT for initial content load, so that
@@ -182,7 +188,8 @@ const ParagraphClass = Extension.create({
  */
 function normalizePartBPastedAlignment(html: string) {
   if (!html || typeof document === 'undefined') return html;
-  html = sanitizeEditorHtml(html);
+  // NOTE: callers run stripWordHtml() as a pre-pass (which already invokes
+  // sanitizeEditorHtml internally), so we skip the redundant sanitize here.
 
   // Strip mso-* properties from raw HTML
   html = html.replace(/mso-[^;:"']+:[^;:"']+;?/gi, '');
@@ -309,6 +316,7 @@ function normalizePartBLoadedContent(html: string) {
     }
   });
 
+
   div.querySelectorAll('*').forEach((el) => {
     const h = el as HTMLElement;
     if (h.style) {
@@ -366,50 +374,6 @@ function normalizePartBLoadedContent(html: string) {
   return div.innerHTML;
 }
 
-// Table size selector grid
-function TableSizeSelector({ onSelect }: { onSelect: (rows: number, cols: number) => void }) {
-  const [hoveredRows, setHoveredRows] = useState(0);
-  const [hoveredCols, setHoveredCols] = useState(0);
-  const maxRows = 8;
-  const maxCols = 8;
-
-  return (
-    <div className="p-2">
-      <div className="text-xs text-muted-foreground mb-2 text-center">
-        {hoveredRows > 0 && hoveredCols > 0 
-          ? `${hoveredRows} × ${hoveredCols} table` 
-          : 'Select table size'}
-      </div>
-      <div 
-        className="grid gap-0.5"
-        style={{ gridTemplateColumns: `repeat(${maxCols}, 1fr)` }}
-        onMouseLeave={() => { setHoveredRows(0); setHoveredCols(0); }}
-      >
-        {Array.from({ length: maxRows * maxCols }).map((_, index) => {
-          const row = Math.floor(index / maxCols) + 1;
-          const col = (index % maxCols) + 1;
-          const isHighlighted = row <= hoveredRows && col <= hoveredCols;
-          const isHeaderRow = row === 1 && isHighlighted;
-          
-          return (
-            <button
-              key={index}
-              className={`w-4 h-4 border rounded-sm transition-colors ${
-                isHeaderRow
-                  ? 'bg-foreground border-foreground'
-                  : isHighlighted 
-                    ? 'bg-primary/40 border-primary/60'
-                    : 'bg-muted border-border hover:border-primary/50'
-              }`}
-              onMouseEnter={() => { setHoveredRows(row); setHoveredCols(col); }}
-              onClick={() => onSelect(row, col)}
-            />
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 // ── Text Color Picker ───────────────────────────────────────────────────
 const PRESET_COLORS = [
@@ -440,7 +404,7 @@ function TextColorPicker({ editor }: { editor: Editor }) {
               variant="ghost"
               size="icon"
               className="h-7 w-7 relative"
-            >
+             aria-label="Colour" title="Colour">
               <Palette className="w-4 h-4" />
               {currentColor && (
                 <span
@@ -485,16 +449,16 @@ function TextColorPicker({ editor }: { editor: Editor }) {
               maxLength={7}
             />
             <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 shrink-0"
-              onClick={() => {
-                if (/^#[0-9A-Fa-f]{6}$/.test(customHex)) {
-                  applyColor(customHex);
-                }
-              }}
-              title="Apply colour"
-            >
+ variant="ghost"
+ size="icon"
+ className="h-7 w-7 shrink-0"
+ onClick={() => {
+ if (/^#[0-9A-Fa-f]{6}$/.test(customHex)) {
+ applyColor(customHex);
+ }
+ }}
+ title="Apply colour"
+ aria-label="Confirm" >
               <Check className="w-3.5 h-3.5" />
             </Button>
           </div>
@@ -531,6 +495,15 @@ export function FormattingToolbar({
   b31TableFocus,
   onB31AutoResize,
   crossRefDropdown,
+  showLinkButton = false,
+  showColor = true,
+  showParagraphSpacing = true,
+  showImageControls = true,
+  showTableEditing = true,
+  tableInsertMode = 'popover',
+  figureInsertMode = 'dialog',
+  subheadingPrefix,
+  showSubheadingBodyItem = true,
 }: { 
   editor: Editor | null;
   sectionNumber?: string;
@@ -549,6 +522,15 @@ export function FormattingToolbar({
    b31TableFocus?: string | null;
    onB31AutoResize?: () => void;
   crossRefDropdown?: React.ReactNode;
+  showLinkButton?: boolean;
+  showColor?: boolean;
+  showParagraphSpacing?: boolean;
+  showImageControls?: boolean;
+  showTableEditing?: boolean;
+  tableInsertMode?: 'popover' | 'fixed3x3';
+  figureInsertMode?: 'dialog' | 'urlPrompt' | 'none';
+  subheadingPrefix?: string;
+  showSubheadingBodyItem?: boolean;
 }) {
   const [tablePopoverOpen, setTablePopoverOpen] = useState(false);
   const [isCropOpen, setIsCropOpen] = useState(false);
@@ -837,13 +819,13 @@ export function FormattingToolbar({
         {/* Undo Redo */}
         <ToolbarButton 
           icon={<Undo className="w-4 h-4" />} 
-          tooltip="Undo (Ctrl+Z)"
+          label="Undo (Ctrl+Z)"
           onClick={() => editor.chain().focus().undo().run()}
           disabled={!editor.can().undo()}
         />
         <ToolbarButton 
           icon={<Redo className="w-4 h-4" />} 
-          tooltip="Redo (Ctrl+Y)"
+          label="Redo (Ctrl+Y)"
           onClick={() => editor.chain().focus().redo().run()}
           disabled={!editor.can().redo()}
         />
@@ -851,105 +833,95 @@ export function FormattingToolbar({
         <Separator orientation="vertical" className="h-5 mx-1.5" />
 
         {/* Subheading dropdown */}
-        <DropdownMenu>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant={editor.isActive('heading', { level: 3 }) || (editor.isActive('bold') && editor.isActive('underline')) ? "secondary" : "ghost"}
-                  size="sm"
-                  className="h-7 px-2 text-xs gap-1"
-                >
-                  <span className="font-black underline">Subheading</span>
-                  <ChevronDown className="w-3 h-3" />
-                </Button>
-              </DropdownMenuTrigger>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">
-              Insert subheading
-            </TooltipContent>
-          </Tooltip>
-          <DropdownMenuContent align="start" className="w-64">
-            <DropdownMenuItem onClick={() => {
-              const chain = editor.chain().focus();
-              if (editor.isActive('heading', { level: 1 })) chain.toggleHeading({ level: 1 });
-              else if (editor.isActive('heading', { level: 2 })) chain.toggleHeading({ level: 2 });
-              else if (editor.isActive('heading', { level: 3 })) chain.toggleHeading({ level: 3 });
-              if (editor.isActive('bold')) chain.toggleBold();
-              if (editor.isActive('underline')) chain.toggleUnderline();
-              chain.run();
-            }}>
-              <span className="text-sm">Body</span>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => {
-              const cleanNum = sectionNumber ? sectionNumber.replace(/^[A-Za-z]+/, '') : '1.1';
-              // Use a temporary placeholder number; renumber will fix it
-              const placeholder = `${cleanNum}.0. `;
-              editor.chain().focus().toggleHeading({ level: 3 }).run();
-              if (editor.isActive('heading', { level: 3 })) {
-                const $from = editor.state.selection.$from;
-                const startOfNode = $from.start();
-                const currentText = $from.parent.textContent;
-                // Only add prefix if there isn't already a numbered prefix
-                const hasPrefix = /^\d+\.\d+\.\d+\.\s/.test(currentText);
-                if (!hasPrefix) {
-                  editor.chain().focus().insertContentAt(startOfNode, placeholder).run();
+        {(() => {
+          const cleanNum = subheadingPrefix ?? (sectionNumber ? sectionNumber.replace(/^[A-Za-z]+/, '') : '1.1');
+          return (
+            <SubheadingDropdown
+              isActive={editor.isActive('heading', { level: 3 }) || (editor.isActive('bold') && editor.isActive('underline'))}
+              numberedLabel={`${cleanNum}.1. Numbered subheading`}
+              onBody={showSubheadingBodyItem ? () => {
+                const chain = editor.chain().focus();
+                if (editor.isActive('heading', { level: 1 })) chain.toggleHeading({ level: 1 });
+                else if (editor.isActive('heading', { level: 2 })) chain.toggleHeading({ level: 2 });
+                else if (editor.isActive('heading', { level: 3 })) chain.toggleHeading({ level: 3 });
+                if (editor.isActive('bold')) chain.toggleBold();
+                if (editor.isActive('underline')) chain.toggleUnderline();
+                chain.run();
+              } : undefined}
+              onNumbered={() => {
+                const placeholder = `${cleanNum}.0. `;
+                editor.chain().focus().toggleHeading({ level: 3 }).run();
+                if (editor.isActive('heading', { level: 3 })) {
+                  const $from = editor.state.selection.$from;
+                  const startOfNode = $from.start();
+                  const currentText = $from.parent.textContent;
+                  const hasPrefix = /^\d+\.\d+\.\d+\.\s/.test(currentText);
+                  if (!hasPrefix) {
+                    const tr = editor.state.tr.insertText(placeholder, startOfNode);
+                    editor.view.dispatch(tr);
+                  }
+                  renumberH3Headings(editor, cleanNum);
                 }
-                // Renumber all H3s by position
-                renumberH3Headings(editor, cleanNum);
-              }
-            }}>
-              <span className="text-sm font-semibold underline">{sectionNumber ? `${sectionNumber.replace(/^[A-Za-z]+/, '')}.1.` : '1.1.1.'} Numbered subheading</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              // Unnumbered subheading (bold + underline inline style)
-              editor.chain().focus().toggleBold().run();
-              editor.chain().focus().toggleUnderline().run();
-            }}>
-              <span className="text-sm font-bold underline">Unnumbered subheading</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant={editor.isActive('bold') ? "secondary" : "ghost"}
-              size="icon"
-              className="h-7 w-7"
-              onClick={() => editor.chain().focus().toggleBold().run()}
-            >
-              <span className="font-black text-sm">B</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" className="text-xs">
-            Bold (Ctrl+B)
-          </TooltipContent>
-        </Tooltip>
-        <ToolbarButton
-          icon={<Italic className="w-3.5 h-3.5" />} 
-          tooltip="Italic (Ctrl+I)"
-          onClick={() => editor.chain().focus().toggleItalic().run()}
-          active={editor.isActive('italic')}
-        />
-        <ToolbarButton 
-          icon={<UnderlineIcon className="w-4 h-4" />} 
-          tooltip="Underline (Ctrl+U)"
-          onClick={() => editor.chain().focus().toggleUnderline().run()}
-          active={editor.isActive('underline')}
+                // After all mutations settle AND the Radix dropdown finishes
+                // closing + restoring focus to its trigger, restore focus into
+                // the editor and place caret at the end of the current heading
+                // using FRESH editor state. A small setTimeout outlasts the
+                // dropdown's onCloseAutoFocus, which fires after rAF.
+                setTimeout(() => {
+                  const sel = editor.state.selection;
+                  const endOfHeading = sel.$from.end();
+                  editor.chain().focus().setTextSelection(endOfHeading).run();
+                }, 60);
+
+              }}
+              onUnnumbered={() => {
+                // Block H3 on its own line (bold+underline come from .prose h3 styling).
+                editor.chain().focus().setNode('heading', { level: 3 }).run();
+                // Outlast Radix dropdown's onCloseAutoFocus (which restores
+                // focus to the trigger after rAF). setTimeout ensures our
+                // editor focus + caret placement wins.
+                setTimeout(() => {
+                  const sel = editor.state.selection;
+                  const endOfHeading = sel.$from.end();
+                  editor.chain().focus().setTextSelection(endOfHeading).run();
+                }, 60);
+
+              }}
+            />
+          );
+        })()}
+
+        {/* Bold / Italic / Underline */}
+        <TextFormattingGroup
+          onBold={() => editor.chain().focus().toggleBold().run()}
+          onItalic={() => editor.chain().focus().toggleItalic().run()}
+          onUnderline={() => editor.chain().focus().toggleUnderline().run()}
+          isBoldActive={editor.isActive('bold')}
+          isItalicActive={editor.isActive('italic')}
+          isUnderlineActive={editor.isActive('underline')}
         />
 
+        {/* Link (standalone) */}
+        {showLinkButton && (
+          <ToolbarButton
+            icon={<LinkIcon className="w-4 h-4" />}
+            label="Insert link"
+            onClick={setLink}
+            isActive={editor.isActive('link')}
+          />
+        )}
+
         {/* Text colour */}
-        <TextColorPicker editor={editor} />
+        {showColor && <TextColorPicker editor={editor} />}
 
         <Separator orientation="vertical" className="h-5 mx-1.5" />
 
         {/* Bullet Numbered */}
         <ToolbarButton 
           icon={<List className="w-4 h-4" />} 
-          tooltip="Bullet list"
+          label="Bullet list"
           onClick={() => editor.chain().focus().toggleBulletList().run()}
-          active={editor.isActive('bulletList')}
+          isActive={editor.isActive('bulletList')}
         />
         <OrderedListDropdown
           editor={editor}
@@ -959,89 +931,54 @@ export function FormattingToolbar({
         <Separator orientation="vertical" className="h-5 mx-1.5" />
 
         {/* Left Centre Right Justify */}
-        <ToolbarButton 
-          icon={<AlignLeft className="w-4 h-4" />} 
-          tooltip="Align left"
-          onClick={() => {
+        <AlignmentGroup
+          disabled={isAlignDisabled}
+          activeAlignment={
+            editor.isActive({ textAlign: 'left' }) ? 'left'
+              : editor.isActive({ textAlign: 'center' }) ? 'center'
+              : editor.isActive({ textAlign: 'right' }) ? 'right'
+              : editor.isActive({ textAlign: 'justify' }) ? 'justify'
+              : undefined
+          }
+          onAlign={(a: Alignment) => {
             const s = (editor.storage as any).trackChanges;
             const was = s?.enabled;
             if (s) s.enabled = false;
-            editor.chain().focus().setTextAlign('left').run();
+            editor.chain().focus().setTextAlign(a).run();
             if (s) s.enabled = was;
           }}
-          active={!isAlignDisabled && editor.isActive({ textAlign: 'left' })}
-          disabled={isAlignDisabled}
-        />
-        <ToolbarButton 
-          icon={<AlignCenter className="w-4 h-4" />} 
-          tooltip="Align center"
-          onClick={() => {
-            const s = (editor.storage as any).trackChanges;
-            const was = s?.enabled;
-            if (s) s.enabled = false;
-            editor.chain().focus().setTextAlign('center').run();
-            if (s) s.enabled = was;
-          }}
-          active={!isAlignDisabled && editor.isActive({ textAlign: 'center' })}
-          disabled={isAlignDisabled}
-        />
-        <ToolbarButton 
-          icon={<AlignRight className="w-4 h-4" />} 
-          tooltip="Align right"
-          onClick={() => {
-            const s = (editor.storage as any).trackChanges;
-            const was = s?.enabled;
-            if (s) s.enabled = false;
-            editor.chain().focus().setTextAlign('right').run();
-            if (s) s.enabled = was;
-          }}
-          active={!isAlignDisabled && editor.isActive({ textAlign: 'right' })}
-          disabled={isAlignDisabled}
-        />
-        <ToolbarButton 
-          icon={<AlignJustify className="w-4 h-4" />} 
-          tooltip="Justify"
-          onClick={() => {
-            const s = (editor.storage as any).trackChanges;
-            const was = s?.enabled;
-            if (s) s.enabled = false;
-            editor.chain().focus().setTextAlign('justify').run();
-            if (s) s.enabled = was;
-          }}
-          active={!isAlignDisabled && editor.isActive({ textAlign: 'justify' })}
-          disabled={isAlignDisabled}
         />
 
-        <ParagraphSpacingPopover editor={editor} disabled={isAlignDisabled} />
+
+        {showParagraphSpacing && <ParagraphSpacingPopover editor={editor} disabled={isAlignDisabled} />}
 
         <Separator orientation="vertical" className="h-5 mx-1.5" />
 
         {/* Table */}
-        {!showTableOptions && !hideTableInsert && (
-          <Popover open={tablePopoverOpen} onOpenChange={setTablePopoverOpen}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 px-2 gap-1"
-                  >
-                    <TableIcon className="w-4 h-4" />
-                    <span className="text-xs">Table</span>
-                  </Button>
-                </PopoverTrigger>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="text-xs">
-                Insert table
-              </TooltipContent>
-            </Tooltip>
-            <PopoverContent align="start" className="w-auto p-0">
-              <TableSizeSelector onSelect={insertTable} />
-            </PopoverContent>
-          </Popover>
+        {!showTableOptions && !hideTableInsert && tableInsertMode === 'fixed3x3' && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 gap-1"
+                onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+              >
+                <TableIcon className="w-4 h-4" />
+                <span className="text-xs">Table</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs">Insert table</TooltipContent>
+          </Tooltip>
         )}
-        {showTableOptions && (
+        {!showTableOptions && !hideTableInsert && tableInsertMode === 'popover' && (
+          <TableGridPicker
+            open={tablePopoverOpen}
+            onOpenChange={setTablePopoverOpen}
+            onInsert={insertTable}
+          />
+        )}
+        {showTableOptions && showTableEditing && (
           <DropdownMenu>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -1050,7 +987,7 @@ export function FormattingToolbar({
                     variant="secondary"
                     size="icon"
                     className="h-7 w-7"
-                  >
+                   aria-label="Table options" title="Table options">
                     <TableIcon className="w-4 h-4" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -1150,7 +1087,7 @@ export function FormattingToolbar({
         )}
 
         {/* Figure */}
-        {isPartB && onOpenFigureDialog && (
+        {figureInsertMode === 'dialog' && isPartB && onOpenFigureDialog && (
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -1158,6 +1095,28 @@ export function FormattingToolbar({
                 size="sm"
                 className="h-7 px-2 gap-1"
                 onClick={onOpenFigureDialog}
+                disabled={isReadOnly}
+              >
+                <ImageIcon className="w-4 h-4" />
+                <span className="text-xs">Figure</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs">
+              Insert figure
+            </TooltipContent>
+          </Tooltip>
+        )}
+        {figureInsertMode === 'urlPrompt' && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 gap-1"
+                onClick={() => {
+                  const url = window.prompt('Enter image URL:');
+                  if (url) editor.chain().focus().setImage({ src: url }).run();
+                }}
                 disabled={isReadOnly}
               >
                 <ImageIcon className="w-4 h-4" />
@@ -1195,7 +1154,7 @@ export function FormattingToolbar({
         {crossRefDropdown}
 
         {/* Image controls - show when image is selected */}
-        {isImageSelected && (
+        {showImageControls && isImageSelected && (
           <>
             <Separator orientation="vertical" className="h-5 mx-1.5" />
             <div className="flex items-center gap-1">
@@ -1215,7 +1174,7 @@ export function FormattingToolbar({
 
               <ToolbarButton
                 icon={<Crop className="w-4 h-4" />}
-                tooltip="Crop image"
+                label="Crop image"
                 onClick={handleCropClick}
               />
               
@@ -1224,21 +1183,21 @@ export function FormattingToolbar({
               {/* Image alignment controls */}
               <ToolbarButton
                 icon={<AlignHorizontalJustifyStart className="w-4 h-4" />}
-                tooltip="Align left"
+                label="Align left"
                 onClick={() => setImageAlignment('left')}
-                active={currentImageAlignment === 'left'}
+                isActive={currentImageAlignment === 'left'}
               />
               <ToolbarButton
                 icon={<AlignHorizontalJustifyCenter className="w-4 h-4" />}
-                tooltip="Align center"
+                label="Align center"
                 onClick={() => setImageAlignment('center')}
-                active={currentImageAlignment === 'center'}
+                isActive={currentImageAlignment === 'center'}
               />
               <ToolbarButton
                 icon={<AlignHorizontalJustifyEnd className="w-4 h-4" />}
-                tooltip="Align right"
+                label="Align right"
                 onClick={() => setImageAlignment('right')}
-                active={currentImageAlignment === 'right'}
+                isActive={currentImageAlignment === 'right'}
               />
               
               <Separator orientation="vertical" className="h-5 mx-1" />
@@ -1247,13 +1206,13 @@ export function FormattingToolbar({
               {onOpenFigureDialog && (
                 <ToolbarButton
                   icon={<RefreshCw className="w-4 h-4" />}
-                  tooltip="Replace figure"
+                  label="Replace figure"
                   onClick={replaceFigure}
                 />
               )}
               <ToolbarButton
                 icon={<Trash2 className="w-4 h-4 text-destructive" />}
-                tooltip="Delete figure with caption"
+                label="Delete figure with caption"
                 onClick={() => setShowDeleteConfirm(true)}
               />
             </div>
@@ -1325,6 +1284,7 @@ StarterKit.configure({
       TextStyle,
       Color,
       ParagraphClass,
+      HeadingDataAttributes,
       ParagraphSpacing,
       TextAlign.configure({
         types: ['heading', 'paragraph'],
@@ -1356,11 +1316,16 @@ StarterKit.configure({
       }),
       HeadingExitOnEnter,
       BlockReordering,
-      InlineReferenceMark,
-      WPReferenceMark,
-      CaseReferenceMark,
+      InlineReferenceNode,
+      WPReferenceNode,
+      CaseReferenceNode,
+      ParticipantReferenceNode,
+      CasesTableNode,
       AcronymReference,
       FigureTableReferenceMark,
+      ParenBadgeGlue,
+      BadgeTrailingCaret,
+      BadgeCaretHost,
       CaptionLabel,
       HeadingNumberLabel,
       // Suppress heading input rules inside table cells: revert heading nodes back to paragraphs
@@ -1391,7 +1356,7 @@ StarterKit.configure({
                     }
                   }
                 });
-                if (tr) console.log('[DIAG-APPEND]', 'pluginName:', 'preventHeadingInTable', 'changes:', tr.steps.length);
+                
                 return tr;
               },
             }),
@@ -1420,7 +1385,7 @@ StarterKit.configure({
                 // Insert empty paragraph at position 0 (before the table)
                 const paragraphNode = newState.schema.nodes.paragraph.create();
                 const tr = newState.tr.insert(0, paragraphNode);
-                if (tr) console.log('[DIAG-APPEND]', 'pluginName:', 'preventTableAtStart', 'changes:', tr.steps.length);
+                
                 return tr;
               },
             }),
@@ -1431,6 +1396,7 @@ StarterKit.configure({
     content: initialEditorContentRef.current,
     enableExtensionDispatchTransaction: true,
     onUpdate: ({ editor }) => {
+      if (editor.isDestroyed || !editor.schema) return;
       onChange(editor.getHTML());
     },
     editorProps: {
@@ -1439,7 +1405,7 @@ StarterKit.configure({
         style: 'font-family: "Times New Roman", Times, serif',
       },
       transformPastedHTML(html) {
-        return normalizePartBPastedAlignment(html);
+        return normalizePartBPastedAlignment(stripWordHtml(html));
       },
       transformPasted(slice) {
         return stripPastedAlignment(slice);
@@ -1459,9 +1425,11 @@ StarterKit.configure({
 
       {/* Editor Content */}
       <EditorContent editor={editor} />
+      
     </div>
   );
 }
+
 
 // Hook to get editor instance for external toolbar control
 export function useRichTextEditor({ 
@@ -1546,6 +1514,8 @@ StarterKit.configure({
       TextStyle,
       Color,
       ParagraphClass,
+      HeadingDataAttributes,
+      
       ParagraphSpacing,
       TextAlign.configure({
         types: ['heading', 'paragraph'],
@@ -1579,19 +1549,25 @@ StarterKit.configure({
       HeadingExitOnEnter,
       BlockReordering,
       
-      InlineReferenceMark,
-      // WP reference marks for inline WP badges
-      WPReferenceMark,
-      // Case reference marks for inline case badges
-      CaseReferenceMark,
-      // Participant reference marks for inline partner badges
-      ParticipantReferenceMark,
+      InlineReferenceNode,
+      // WP reference: inline atom NODE (migrated from mark in Stage 1 pilot)
+      WPReferenceNode,
+      // Case reference: inline atom NODE (migrated from mark in Stage 2)
+      CaseReferenceNode,
+      // Participant reference: inline atom NODE (migrated from mark in Stage 2)
+      ParticipantReferenceNode,
+      // B1.2 cases-table block node (Stage 1 skeleton)
+      CasesTableNode,
       // Acronym reference for colored acronym insertion
       AcronymReference,
       CaptionLabel,
       HeadingNumberLabel,
       // Figure/table reference marks for atomic deletion
       FigureTableReferenceMark,
+      ParenBadgeGlue,
+      BadgeTrailingCaret,
+      BadgeCaretHost,
+      
       // Block drag-and-drop via drag handle
       BlockDragHandle.configure({
         getLockedBlocks: () => getLockedBlocksRef.current(),
@@ -1625,11 +1601,18 @@ StarterKit.configure({
                   const target = event.target as HTMLElement;
                   const refEl = target.closest('[data-inline-reference], [data-wp-reference], [data-case-reference], [data-participant-reference], [data-acronym-reference], [data-fig-table-ref]');
                   if (!refEl) return false;
+
+                  
+
                   
                   // Find the mark range at this position
                   const { doc } = view.state;
                   const $pos = doc.resolve(pos);
-                  const markTypes = ['inlineReference', 'wpReference', 'caseReference', 'participantReference', 'acronymReference', 'figureTableReference'];
+                  // NOTE: wpReference, caseReference, participantReference,
+                  // and inlineReference are inline atom NODES — they handle
+                  // their own click-to-select via NodeSelection, so they are
+                  // intentionally excluded from this mark-based fallback.
+                  const markTypes = ['acronymReference', 'figureTableReference'];
                   
                   for (const markName of markTypes) {
                     const markType = view.state.schema.marks[markName];
@@ -1684,7 +1667,9 @@ StarterKit.configure({
                 handleTextInput(view, from, to, text) {
                   if (from === to) return false;
                   const { doc, schema } = view.state;
-                  const markNames = ['inlineReference', 'wpReference', 'caseReference', 'participantReference', 'acronymReference', 'figureTableReference'];
+                  // wpReference, caseReference, participantReference, and
+                  // inlineReference excluded — atom nodes are non-editable.
+                  const markNames = ['acronymReference', 'figureTableReference'];
                   let coversRefMark = false;
                   doc.nodesBetween(from, to, (node) => {
                     if (!node.isText) return;
@@ -1733,24 +1718,38 @@ StarterKit.configure({
                 // Check if transaction affects locked block
                 let affectsLocked = false;
                 tr.steps.forEach((step) => {
+                  if (affectsLocked) return;
                   const stepMap = step.getMap();
                   stepMap.forEach((oldStart, oldEnd) => {
-                    for (let pos = oldStart; pos <= Math.min(oldEnd, state.doc.content.size); pos++) {
-                      try {
-                        const $pos = state.doc.resolve(pos);
-                        let depth = $pos.depth;
-                        while (depth > 1) depth--;
-                        if (depth >= 1) {
-                          const node = $pos.node(depth);
-                          const start = $pos.start(depth);
-                          const blockId = `${start}-${node.type.name}`;
-                          if (lockedBlockIds.has(blockId)) {
-                            affectsLocked = true;
+                    if (affectsLocked) return;
+                    const clampedStart = Math.max(0, Math.min(oldStart, state.doc.content.size));
+                    const clampedEnd = Math.max(clampedStart, Math.min(oldEnd, state.doc.content.size));
+                    try {
+                      // Visit only actual nodes in the changed range (O(nodes), not O(positions)).
+                      // This catches locked blocks at the boundaries AND any locked block sitting
+                      // entirely inside a multi-block edit (e.g. a large paste / bulk delete).
+                      state.doc.nodesBetween(clampedStart, clampedEnd, (_node, pos) => {
+                        if (affectsLocked) return false;
+                        try {
+                          const $pos = state.doc.resolve(pos);
+                          let depth = $pos.depth;
+                          while (depth > 1) depth--;
+                          if (depth >= 1) {
+                            const blockNode = $pos.node(depth);
+                            const start = $pos.start(depth);
+                            const blockId = `${start}-${blockNode.type.name}`;
+                            if (lockedBlockIds.has(blockId)) {
+                              affectsLocked = true;
+                              return false; // stop walking
+                            }
                           }
+                        } catch {
+                          // Ignore invalid positions
                         }
-                      } catch {
-                        // Ignore invalid positions
-                      }
+                        return true;
+                      });
+                    } catch {
+                      // Ignore invalid ranges
                     }
                   });
                 });
@@ -1798,7 +1797,7 @@ StarterKit.configure({
                     }
                   }
                 });
-                if (tr) console.log('[DIAG-APPEND]', 'pluginName:', 'preventHeadingInTableMain', 'changes:', tr.steps.length);
+                
                 return tr;
               },
             }),
@@ -1827,7 +1826,7 @@ StarterKit.configure({
                 // Insert empty paragraph at position 0 (before the table)
                 const paragraphNode = newState.schema.nodes.paragraph.create();
                 const tr = newState.tr.insert(0, paragraphNode);
-                if (tr) console.log('[DIAG-APPEND]', 'pluginName:', 'preventTableAtStartMain', 'changes:', tr.steps.length);
+                
                 return tr;
               },
             }),
@@ -1842,6 +1841,7 @@ StarterKit.configure({
     
     onUpdate: ({ editor }) => {
       if (!readyRef.current) return;
+      if (editor.isDestroyed || !editor.schema) return;
       const html = editor.getHTML();
       lastSetContentRef.current = normalizePartBLoadedContent(html);
       onChange(html);
@@ -1852,7 +1852,7 @@ StarterKit.configure({
         style: 'font-family: "Times New Roman", Times, serif',
       },
       transformPastedHTML(html) {
-        return normalizePartBPastedAlignment(html);
+        return normalizePartBPastedAlignment(stripWordHtml(html));
       },
       transformPasted(slice) {
         return stripPastedAlignment(slice);
@@ -1867,7 +1867,8 @@ StarterKit.configure({
   //    transient parent re-renders wiping the document during section switch)
   // Normalisation only runs when we actually replace content.
   useEffect(() => {
-    if (!editor || !isReady) return;
+    if (!editor || editor.isDestroyed || !editor.schema) return;
+    if (!isReady) return;
     if (!content && editor.state.doc.content.size > 2) return;
     const nextContent = normalizePartBLoadedContent(content);
     if (nextContent === lastSetContentRef.current) return;
@@ -1886,10 +1887,11 @@ StarterKit.configure({
     if (storage) storage.enabled = wasEnabled;
   }, [editor, content, isReady]);
 
+
   // Sync track changes enabled state — use direct storage assignment to avoid
   // toggle race conditions and double-toggles
   useEffect(() => {
-    if (!editor) return;
+    if (!editor || editor.isDestroyed || !editor.schema) return;
     trackChangesRef.current = trackChanges;
     const storage = (editor.storage as any).trackChanges;
     if (storage) {
@@ -1942,9 +1944,10 @@ StarterKit.configure({
   // Also triggers a one-time re-save if marks had missing attributes (to flush corrected HTML to DB)
   const hasReserializedRef = useRef(false);
   useEffect(() => {
-    if (!editor || !isReady || !trackChanges?.onChangesUpdate) return;
+    if (!editor || editor.isDestroyed || !editor.schema || !isReady || !trackChanges?.onChangesUpdate) return;
     // Wait a tick for content to be fully set
     const timer = setTimeout(() => {
+      if (!editor || editor.isDestroyed || !editor.schema) return;
       const doc = editor.state.doc;
       const schema = editor.state.schema;
       const insertionType = schema.marks.trackInsertion;

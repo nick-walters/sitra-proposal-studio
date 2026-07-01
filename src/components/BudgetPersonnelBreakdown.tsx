@@ -62,18 +62,10 @@ export function BudgetPersonnelBreakdown({
   const undefinedPm = Math.round((totalPersonMonths - totalPm) * 100) / 100;
   const hasMismatch = rows.length > 0 && Math.abs(undefinedPm) > 0.001;
 
-  // Ensure at least one row always exists
-  const seededRef = useRef(false);
-  useEffect(() => {
-    if (!editable) return;
-    if (rows.length === 0 && !seededRef.current) {
-      seededRef.current = true;
-      onAdd();
-    }
-    if (rows.length > 0) {
-      seededRef.current = false;
-    }
-  }, [rows.length, editable, onAdd]);
+  // Seeding the initial "Average weighted PM" row is handled by the parent
+  // fetch in useBudgetRows.fetchPersonnelBreakdown. The component must NOT
+  // insert rows on mount — that races the fetch and creates orphan duplicates.
+
 
   // Alert when staff effort total changes while rows exist
   const lastTotalRef = useRef<number | null>(null);
@@ -176,7 +168,7 @@ export function BudgetPersonnelBreakdown({
             ))}
             {hasMismatch && (
               <tr className="border-t bg-destructive/5">
-                <td className="px-2 py-1 font-semibold text-destructive">Undefined!</td>
+                <td className="px-2 py-1 font-semibold text-destructive">Unallocated PMs</td>
                 <td className="px-2 py-1" />
                 <td className="py-1 pr-5 text-right tabular-nums font-semibold text-destructive">{formatPM(undefinedPm)}</td>
                 <td className="px-2 py-1" />

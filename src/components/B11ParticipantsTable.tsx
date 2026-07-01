@@ -6,6 +6,8 @@ import { useStorageUrl } from '@/hooks/useStorageUrl';
 import { useColumnResize } from '@/hooks/useColumnResize';
 import { useProposalRole } from '@/hooks/useProposalRole';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { B31Pill, WPBubble, ParticipantBubble } from './B31Pill';
+import { getCaseTypePrefix, buildCaseLabel } from '@/lib/caseTypeLabels';
 
 interface Props {
   proposalId: string;
@@ -35,20 +37,12 @@ interface CaseLeadRow {
   lead_participant_id: string | null;
   color: string;
   case_type: string;
+  case_type_id: string | null;
   custom_type_name: string | null;
 }
 
-function getCasePrefix(caseType: string, customTypeName: string | null): string {
-  if (caseType === 'other') return customTypeName ? customTypeName.toUpperCase() : '';
-  switch (caseType) {
-    case 'case_study': return 'CS';
-    case 'use_case': return 'UC';
-    case 'living_lab': return 'LL';
-    case 'pilot': return 'P';
-    case 'demonstration': return 'D';
-    default: return '';
-  }
-}
+
+// Case prefix resolution lives in @/lib/caseTypeLabels.
 
 function ParticipantLogo({ src }: { src: string | null }) {
   const url = useStorageUrl(src);
@@ -66,41 +60,7 @@ function ParticipantLogo({ src }: { src: string | null }) {
 
 const baseFont = "'Times New Roman', Times, serif";
 
-function ParticipantBubble({ number, shortName }: { number: number | null; shortName: string }) {
-  return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        backgroundColor: '#000000',
-        color: '#FFFFFF',
-        border: '1.5px solid #000000',
-        borderRadius: '9999px',
-        fontFamily: baseFont,
-        fontSize: '11pt',
-        fontWeight: 700,
-        fontStyle: 'normal',
-        lineHeight: 1,
-        padding: '0px 5px',
-        whiteSpace: 'nowrap',
-      }}
-    >
-      {number ?? '—'}. {shortName}
-    </span>
-  );
-}
-
-const roleBadgeBase: React.CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  padding: '0px 5px',
-  borderRadius: 9999,
-  fontFamily: baseFont,
-  fontSize: '9pt',
-  fontWeight: 700,
-  lineHeight: 1.2,
-  whiteSpace: 'nowrap',
-};
+// ParticipantBubble is imported from './B31Pill'. roleBadgeBase removed in favour of B31Pill size="role".
 
 export function B11ParticipantsTable({ proposalId }: Props) {
   const queryClient = useQueryClient();
@@ -110,6 +70,8 @@ export function B11ParticipantsTable({ proposalId }: Props) {
   const participantsKey = ['b11-participants', proposalId];
   const wpKey = ['b11-wp-leadership', proposalId];
   const caseKey = ['b11-case-leadership', proposalId];
+  const caseSettingsKey = ['case-settings', proposalId];
+
 
   const { data: participants = [] } = useQuery({
     queryKey: participantsKey,
@@ -142,13 +104,41 @@ export function B11ParticipantsTable({ proposalId }: Props) {
     queryFn: async (): Promise<CaseLeadRow[]> => {
       const { data, error } = await supabase
         .from('case_drafts')
-        .select('number, short_name, lead_participant_id, color, case_type, custom_type_name')
+        .select('number, short_name, lead_participant_id, color, case_type, case_type_id, custom_type_name')
         .eq('proposal_id', proposalId)
         .order('number');
       if (error) throw error;
       return (data || []) as CaseLeadRow[];
     },
   });
+
+  const { data: caseTypeFlags = [] } = useQuery({
+    queryKey: ['proposal-case-types', proposalId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('proposal_case_types')
+        .select('id, include_number, include_abbreviation, outline_color')
+        .eq('proposal_id', proposalId);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+  const caseTypeById = useMemo(
+    () => new Map(caseTypeFlags.map((t: any) => [t.id, t])),
+    [caseTypeFlags],
+  );
+
+
+  useEffect(() => {
+    const handleCrossRefChange = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.type === 'case-settings' || detail?.type === 'case-management') {
+        queryClient.invalidateQueries({ queryKey: caseSettingsKey });
+      }
+    };
+    window.addEventListener('cross-ref-data-changed', handleCrossRefChange);
+    return () => window.removeEventListener('cross-ref-data-changed', handleCrossRefChange);
+  }, [proposalId, queryClient]);
 
   useEffect(() => {
     const channel = supabase
@@ -176,16 +166,22 @@ export function B11ParticipantsTable({ proposalId }: Props) {
   }, [wpLeads]);
 
   const caseByPart = useMemo(() => {
-    const m: Record<string, { number: number; shortName: string | null; color: string; prefix: string }[]> = {};
+    const m: Record<string, { number: number; shortName: string | null; color: string; prefix: string; includeNumber: boolean; includeAbbreviation: boolean }[]> = {};
     for (const c of caseLeads) {
       if (!c.lead_participant_id) continue;
+      const t = c.case_type_id ? (caseTypeById.get(c.case_type_id) as any) : null;
       (m[c.lead_participant_id] ||= []).push({
-        number: c.number, shortName: c.short_name, color: c.color,
-        prefix: getCasePrefix(c.case_type, c.custom_type_name),
+        number: c.number,
+        shortName: c.short_name,
+        color: t?.outline_color || c.color || '#000000',
+        prefix: getCaseTypePrefix(c.case_type, c.custom_type_name),
+        includeNumber: t?.include_number !== false,
+        includeAbbreviation: t?.include_abbreviation !== false,
       });
     }
     return m;
-  }, [caseLeads]);
+  }, [caseLeads, caseTypeById]);
+
 
   const { colWidths, tableRef, handleColResizeStart } = useColumnResize({
     proposalId,
@@ -211,6 +207,7 @@ export function B11ParticipantsTable({ proposalId }: Props) {
         }}
       >
         <table
+          data-table-key="b11-participants"
           ref={tableRef}
           className="first-col-flush"
           style={{
@@ -254,7 +251,7 @@ export function B11ParticipantsTable({ proposalId }: Props) {
               const caseLed = caseByPart[p.id] || [];
               const isCoord = p.participant_number === 1;
               return (
-                <ParticipantRowView
+              <ParticipantRowView
                   key={p.id}
                   p={p}
                   isCoord={isCoord}
@@ -265,6 +262,7 @@ export function B11ParticipantsTable({ proposalId }: Props) {
                 />
               );
             })}
+
             {participants.length === 0 && (
               <tr>
                 <td colSpan={NUM_COLS} style={{ fontStyle: 'italic', color: '#666' }}>
@@ -303,12 +301,13 @@ interface RowProps {
   p: ParticipantRow;
   isCoord: boolean;
   wpLed: { number: number; shortName: string | null; color: string }[];
-  caseLed: { number: number; shortName: string | null; color: string; prefix: string }[];
+  caseLed: { number: number; shortName: string | null; color: string; prefix: string; includeNumber: boolean; includeAbbreviation: boolean }[];
   canResize: boolean;
   onResize: (i: number) => (e: React.MouseEvent) => void;
 }
 
 function ParticipantRowView({ p, isCoord, wpLed, caseLed, canResize, onResize }: RowProps) {
+
   const legalName = p.organisation_name || '';
   const englishName =
     p.english_name && p.english_name.trim().toLowerCase() !== legalName.trim().toLowerCase()
@@ -321,7 +320,7 @@ function ParticipantRowView({ p, isCoord, wpLed, caseLed, canResize, onResize }:
   const coordBadges = isCoord ? [
     <Tooltip key="coord">
       <TooltipTrigger asChild>
-        <span style={{ ...roleBadgeBase, backgroundColor: '#000', color: '#fff', border: '1.5px solid #000' }}>Coordinator</span>
+        <B31Pill variant="filled" color="#000" size="document" style={{ lineHeight: 1.2 }}>Coordinator</B31Pill>
       </TooltipTrigger>
       <TooltipContent>Project coordinator</TooltipContent>
     </Tooltip>
@@ -329,31 +328,41 @@ function ParticipantRowView({ p, isCoord, wpLed, caseLed, canResize, onResize }:
   const wpBadges = wpLed.map((wp) => (
     <Tooltip key={`wp-${wp.number}`}>
       <TooltipTrigger asChild>
-        <span style={{ ...roleBadgeBase, backgroundColor: wp.color, color: '#fff' }}>WP{wp.number}</span>
+        <WPBubble wpNumber={wp.number} wpColor={wp.color} size="document" style={{ lineHeight: 1.2 }} />
       </TooltipTrigger>
       <TooltipContent>{wp.shortName ? `${wp.shortName} (Lead)` : `WP${wp.number} Lead`}</TooltipContent>
     </Tooltip>
   ));
-  const caseBadges = caseLed.map((c) => (
-    <Tooltip key={`case-${c.number}`}>
-      <TooltipTrigger asChild>
-        <span style={{ ...roleBadgeBase, backgroundColor: '#fff', color: '#000', border: '1.5px solid #000' }}>
-          {c.prefix ? `${c.prefix}${c.number}` : (c.shortName || c.number)}
-        </span>
-      </TooltipTrigger>
-      <TooltipContent>{c.shortName ? `${c.shortName} (Lead)` : `Lead`}</TooltipContent>
-    </Tooltip>
-  ));
+  const caseBadges = caseLed.map((c) => {
+    const displayLabel = buildCaseLabel({
+      prefix: c.prefix,
+      number: c.number,
+      shortName: c.shortName,
+      includeNumber: c.includeNumber,
+      includeAbbreviation: c.includeAbbreviation,
+      withShortName: false,
+    });
+    return (
+      <Tooltip key={`case-${c.number}`}>
+        <TooltipTrigger asChild>
+          <B31Pill variant="outline" color={c.color || '#000'} size="document" style={{ lineHeight: 1.2 }}>
+            {displayLabel}
+          </B31Pill>
+        </TooltipTrigger>
+        <TooltipContent>{c.shortName ? `${c.shortName} (Lead)` : `Lead`}</TooltipContent>
+
+      </Tooltip>
+    );
+  });
 
   const allBadges = [...coordBadges, ...wpBadges, ...caseBadges];
 
   return (
     <tr>
       <ResizableTd index={0} canResize={canResize} onResize={onResize} style={{ verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
-        <ParticipantBubble
-          number={p.participant_number}
-          shortName={p.organisation_short_name || ''}
-        />
+        <ParticipantBubble>
+          {p.participant_number ?? '—'}. {p.organisation_short_name || ''}
+        </ParticipantBubble>
       </ResizableTd>
       <ResizableTd index={1} canResize={canResize} onResize={onResize} style={{ verticalAlign: 'middle' }}>
         {legalName}

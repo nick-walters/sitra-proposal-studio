@@ -1,5 +1,35 @@
 import { Mark } from '@tiptap/core';
 import { Plugin, PluginKey, TextSelection } from '@tiptap/pm/state';
+import { Decoration, DecorationSet } from '@tiptap/pm/view';
+
+/**
+ * Build a DecorationSet of zero-width inline widgets placed immediately after
+ * each headingNumberLabel-marked text run. View-only: never enters the saved
+ * document and never round-trips through getHTML().
+ */
+function buildHeadingTailDecorations(doc: any, markType: any): DecorationSet {
+  const decos: Decoration[] = [];
+  doc.descendants((node: any, pos: number) => {
+    if (!node.isText) return;
+    if (!markType.isInSet(node.marks)) return;
+    const labelTo = pos + node.nodeSize;
+    decos.push(
+      Decoration.widget(
+        labelTo,
+        () => {
+          const span = document.createElement('span');
+          span.setAttribute('data-heading-number-tail', '');
+          span.setAttribute('aria-hidden', 'true');
+          span.textContent = '\u200B';
+          return span;
+        },
+        { side: 1, key: `heading-number-tail@${labelTo}`, ignoreSelection: false } as any,
+      ),
+    );
+  });
+  return DecorationSet.create(doc, decos);
+}
+
 
 /**
  * A TipTap mark that wraps the numbered prefix of H3 headings
@@ -11,6 +41,8 @@ export const HeadingNumberLabel = Mark.create({
   name: 'headingNumberLabel',
 
   excludes: '',
+
+  inclusive: false,
 
   parseHTML() {
     return [{ tag: 'span[data-heading-number]' }];
@@ -33,6 +65,29 @@ export const HeadingNumberLabel = Mark.create({
 
     return [
       new Plugin({
+        key: new PluginKey('headingNumberTrailingCaretWidget'),
+        // View-only decoration: provides a tiny zero-width DOM caret target
+        // immediately after each headingNumberLabel-marked text run, so the
+        // browser can host a DOM caret at that PM position. Never inserted
+        // into the document; never serialized into getHTML(). Rebuilt on
+        // docChanged only (same pattern as ParenBadgeGlue).
+        state: {
+          init(_, { doc }) {
+            return buildHeadingTailDecorations(doc, markType);
+          },
+          apply(tr, old) {
+            if (!tr.docChanged) return old;
+            return buildHeadingTailDecorations(tr.doc, markType);
+          },
+        },
+        props: {
+          decorations(state) {
+            return this.getState(state);
+          },
+        },
+      }),
+
+      new Plugin({
         key: new PluginKey('headingNumberGuard'),
 
         filterTransaction(tr, state) {
@@ -43,10 +98,17 @@ export const HeadingNumberLabel = Mark.create({
             const stepMap = step.getMap();
             stepMap.forEach((oldStart, oldEnd, newStart, newEnd) => {
               if (newEnd > newStart && oldStart < state.doc.content.size) {
-                const $pos = state.doc.resolve(Math.min(oldStart, state.doc.content.size - 1));
-                const marks = $pos.marks();
-                if (marks.some(m => m.type === markType)) {
-                  dominated = true;
+                const $pos = state.doc.resolve(Math.min(oldStart, state.doc.content.size));
+                const nodeBefore = $pos.nodeBefore;
+                const nodeAfter = $pos.nodeAfter;
+                const beforeMarked = !!nodeBefore && nodeBefore.isText && markType.isInSet(nodeBefore.marks);
+                const afterMarked = !!nodeAfter && nodeAfter.isText && !!markType.isInSet(nodeAfter.marks);
+
+                if (oldEnd > oldStart) {
+                  if (beforeMarked && afterMarked) dominated = true;
+                  else if (afterMarked) dominated = true;
+                } else {
+                  if (beforeMarked && afterMarked) dominated = true;
                 }
               }
             });
@@ -54,11 +116,14 @@ export const HeadingNumberLabel = Mark.create({
 
           if (dominated) {
             const isProgram = tr.getMeta('addToHistory') === false || tr.getMeta('blockReorder');
-            if (!isProgram) return false;
+            if (!isProgram) {
+              return false;
+            }
           }
 
           return true;
         },
+
 
         appendTransaction(transactions, _oldState, newState) {
           if (!transactions.some(tr => tr.docChanged)) return null;
@@ -79,37 +144,43 @@ export const HeadingNumberLabel = Mark.create({
           const markTypeRef = schema.marks.headingNumberLabel;
           if (!markTypeRef) return null;
 
-          let needsClamp = false;
-          let labelFrom = -1;
-          let labelTo = -1;
-
+          // Collect individual label runs in a ±5 window around each changed
+          // range. Do NOT merge them into a single envelope — adjacent
+          // headings' labels would otherwise span the editable text between
+          // them and wrongly trap a cursor sitting in heading body text.
+          const labelRuns: Array<{ from: number; to: number }> = [];
           for (const range of changedRanges) {
             const from = Math.max(0, range.from - 5);
             const to = Math.min(doc.content.size, range.to + 5);
-
             doc.nodesBetween(from, to, (node, pos) => {
               if (!node.isText) return;
-              const mark = markTypeRef.isInSet(node.marks);
-              if (mark) {
-                needsClamp = true;
-                if (labelFrom === -1 || pos < labelFrom) labelFrom = pos;
-                if (pos + node.nodeSize > labelTo) labelTo = pos + node.nodeSize;
+              if (markTypeRef.isInSet(node.marks)) {
+                labelRuns.push({ from: pos, to: pos + node.nodeSize });
               }
             });
-
-            if (needsClamp) break;
           }
 
-          if (!needsClamp) return null;
+          if (labelRuns.length === 0) return null;
 
           const cursorPos = selection.$from.pos;
-          if (cursorPos < labelFrom || cursorPos > labelTo) return null;
+
+          // Clamp ONLY when the cursor sits strictly inside a single label
+          // run (i.e. genuinely within the uneditable number text). Strict
+          // inequalities ensure that a cursor exactly at run.to (the
+          // legitimate "just after the number" position) is NOT clamped,
+          // and a cursor in a heading's body text between two labels is
+          // never moved into a different heading.
+          const containing = labelRuns.find(
+            (r) => cursorPos > r.from && cursorPos < r.to,
+          );
+          if (!containing) return null;
 
           const tr = newState.tr;
-          tr.setSelection(TextSelection.create(doc, labelTo));
+          tr.setSelection(TextSelection.create(doc, containing.to));
           tr.setMeta('addToHistory', false);
           return tr;
         },
+
       }),
     ];
   },

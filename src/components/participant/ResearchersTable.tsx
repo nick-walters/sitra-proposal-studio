@@ -360,7 +360,7 @@ export function ResearchersTable({
                           size="icon"
                           className="h-8 w-8 text-destructive hover:text-destructive"
                           onClick={() => setDeleteConfirm({ id: researcher.id, name: `${researcher.firstName} ${researcher.lastName}` })}
-                        >
+                         aria-label="Delete" title="Delete">
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </TableCell>

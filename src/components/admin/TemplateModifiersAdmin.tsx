@@ -180,7 +180,7 @@ export function TemplateModifiersAdmin() {
                         variant="ghost"
                         size="icon"
                         onClick={() => openEditDialog(modifier)}
-                      >
+                       aria-label="Edit" title="Edit">
                         <Pencil className="w-4 h-4" />
                       </Button>
                       <Button
@@ -190,7 +190,7 @@ export function TemplateModifiersAdmin() {
                           setDeletingId(modifier.id);
                           setDeleteDialogOpen(true);
                         }}
-                      >
+                       aria-label="Delete" title="Delete">
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>

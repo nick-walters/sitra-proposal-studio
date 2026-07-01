@@ -1,10 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireAuth } from "../_shared/auth.ts";
+import { corsHeaders } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
-};
 
 serve(async (req) => {
   // Handle CORS preflight
@@ -14,27 +11,18 @@ serve(async (req) => {
 
   try {
     // Authenticate user
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    const auth = await requireAuth(req);
+    if (!auth.ok) return auth.response;
+    const supabase = auth.callerClient;
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
+    const { data: roles } = await supabase
+      .from('user_roles')
+      .select('id')
+      .eq('user_id', auth.userId)
+      .limit(1);
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    if (!roles || roles.length === 0) {
+      return new Response(JSON.stringify({ error: 'No proposal access' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     const body = await req.json();
@@ -51,14 +39,39 @@ serve(async (req) => {
         );
       }
 
-      console.log('Fetching topic content from:', topicUrl);
+      // SSRF guard: only https + allowlisted EU public hosts.
+      let parsedUrl: URL;
+      try {
+        parsedUrl = new URL(topicUrl);
+      } catch {
+        return new Response(
+          JSON.stringify({ error: "Invalid topic URL" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      if (parsedUrl.protocol !== "https:") {
+        return new Response(
+          JSON.stringify({ error: "Only https URLs are allowed" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      const allowedHost = /^([a-z0-9-]+\.)*(europa\.eu)$/i;
+      if (!allowedHost.test(parsedUrl.hostname)) {
+        return new Response(
+          JSON.stringify({ error: "Topic URL host is not in the allowlist" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      console.log('Fetching topic content from:', parsedUrl.toString());
 
       try {
-        const response = await fetch(topicUrl, {
+        const response = await fetch(parsedUrl.toString(), {
           headers: {
             'User-Agent': 'Mozilla/5.0 (compatible; ProposalStudio/1.0)',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
           },
+          redirect: 'error',
         });
 
         if (!response.ok) {
@@ -107,6 +120,24 @@ serve(async (req) => {
 
     // Handle pathway generation
     const { projectDescription, expectedOutcomes, topicId, topicContent, proposalContent, workProgramme, destination } = body;
+
+    const MAX_FIELD_CHARS = 5_000;
+    if (projectDescription !== undefined && projectDescription !== null) {
+      if (typeof projectDescription !== 'string' || projectDescription.length > MAX_FIELD_CHARS) {
+        return new Response(
+          JSON.stringify({ error: `projectDescription too long (max ${MAX_FIELD_CHARS} characters)` }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+    if (expectedOutcomes !== undefined && expectedOutcomes !== null) {
+      if (typeof expectedOutcomes !== 'string' || expectedOutcomes.length > MAX_FIELD_CHARS) {
+        return new Response(
+          JSON.stringify({ error: `expectedOutcomes too long (max ${MAX_FIELD_CHARS} characters)` }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     
@@ -254,10 +285,9 @@ Generate 2-3 outcomes, 2-3 impacts, and 2-3 barriers. Make all content specific 
 
   } catch (error: unknown) {
     console.error('Error in generate-impact-pathway:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Failed to generate impact pathways';
     return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { 
+      JSON.stringify({ error: "An internal error occurred" }),
+      {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }

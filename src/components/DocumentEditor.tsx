@@ -1,13 +1,18 @@
 import { TextSelection } from '@tiptap/pm/state';
 import { Section } from "@/types/proposal";
 import { supabase } from "@/integrations/supabase/client";
+import { caseWord } from "@/lib/caseTypeLabels";
+import { useProposalCaseTypes } from "@/hooks/useProposalCaseTypes";
+import { useB12CasesTableReconciler } from "@/hooks/useB12CasesTableReconciler";
+
 import DOMPurify from "dompurify";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, BookOpen, Route, History, Info, Image, Lock, Unlock, MessageSquare, PanelRightClose, PanelRight, UserPlus, CalendarClock, User, FileText, X, Search, GitCompare, Keyboard, Wand2, FileCode, SplitSquareHorizontal, Layers, Building2, FlaskConical, Check, Link2, Table2, AlertTriangle } from "lucide-react";
+import { Route, History, Info, Image, Lock, MessageSquare, PanelRightClose, PanelRight, CalendarClock, User, FileText, X, GitCompare, Keyboard, Layers, Building2, FlaskConical, Check, Link2, Table2, AlertTriangle } from "lucide-react";
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { FormattingToolbar, useRichTextEditor } from "./RichTextEditor";
+import { AdvancedToolbar } from "./toolbar/AdvancedToolbar";
 import { ProposalBanner } from "./ProposalBanner";
 import { B11ParticipantsTable } from "./B11ParticipantsTable";
 import {
@@ -28,6 +33,7 @@ import { InsertCrossReferenceDialog } from "./InsertCrossReferenceDialog";
 import { InsertWPReferenceDialog } from "./InsertWPReferenceDialog";
 import { InsertCaseReferenceDialog } from "./InsertCaseReferenceDialog";
 import { InsertParticipantReferenceDialog } from "./InsertParticipantReferenceDialog";
+import { B31Pill, WPBubble } from "./B31Pill";
 import { InsertTDMSReferenceDropdowns } from "./InsertTDMSReferenceDropdowns";
 import { CommentsSidebar } from "./CommentsSidebar";
 import { SectionAssignmentDialog } from "./SectionAssignmentDialog";
@@ -43,6 +49,7 @@ import { useBlockLocking } from "@/hooks/useBlockLocking";
 import { renumberFootnotes } from "@/lib/captionRenumbering";
 import { syncCrossReferences } from "@/lib/syncCrossReferences";
 import { renumberCaptionsInEditor } from "@/lib/renumberCaptionsInEditor";
+import { renumberH3Headings } from "@/lib/renumberH3Headings";
 import { useProposalReferences } from "@/hooks/useProposalReferences";
 import { useGlobalCitationOrder } from "@/hooks/useGlobalCitationOrder";
 import { FootnoteCitation } from "@/components/FootnoteCitation";
@@ -74,6 +81,7 @@ import { SplitViewPanel } from "./SplitViewPanel";
 // SectionReviewDialog moved to Part B Evaluate tab
 import { B31DeliverablesTable, B31MilestonesTable, B31RisksTable } from "./B31TablesEditor";
 import { B31SectionContent } from "./B31SectionContent";
+import { B32SectionContent } from "./B32SectionContent";
 import { B31IntroText } from "./B31IntroText";
 import { TrackChange } from "@/extensions/TrackChanges";
 // usePageEstimate moved to ExportDialog
@@ -134,6 +142,8 @@ export function DocumentEditor({
 }: DocumentEditorProps) {
   const { user } = useAuth();
   const { roleTier } = useProposalRole(proposalId);
+  const { data: caseTypes = [] } = useProposalCaseTypes(proposalId);
+
 
   // Fetch profile full_name from DB for reliable author name in track changes
   const [profileFullName, setProfileFullName] = useState<string | null>(null);
@@ -334,6 +344,11 @@ export function DocumentEditor({
   // Use isDirty from the hook directly instead of tracking separately
   const hasUnsavedChanges = isDirty;
 
+  // B3.1 uses the standard TipTap editor; no seed content is written.
+  // An empty-state placeholder is shown via overlay (see EditorContent below).
+
+
+
   // Ctrl+S / Cmd+S keyboard shortcut to flush pending save
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -457,6 +472,14 @@ export function DocumentEditor({
     },
   });
 
+  // Stage 2 — auto-insert/remove one casesTable per case type with >=1 case (B1.2 only).
+  useB12CasesTableReconciler({
+    editor,
+    proposalId,
+    sectionNumber: section?.number,
+    isReady: !loading,
+  });
+
   // Note: trackChangesEnabled sync is handled by useRichTextEditor's own effect
 
   // Re-run the citation display patcher after every editor transaction so
@@ -552,12 +575,22 @@ export function DocumentEditor({
   const [syncTrigger, setSyncTrigger] = useState(0);
 
   useEffect(() => {
-    const handleCrossRefDataChanged = () => setSyncTrigger(prev => prev + 1);
+    const handleCrossRefDataChanged = (e: Event) => {
+      // TEMP-LOG
+      const detail = (e as CustomEvent).detail;
+      console.log('[SYNC-EVENT] received cross-ref-data-changed', { detail });
+      setSyncTrigger(prev => prev + 1);
+    };
     const handleBlockReordered = () => {
-      // Renumber captions first, then sync cross-references
-      if (editor && section?.number) {
+      // Renumber H3 headings first (synchronously, same handler invocation),
+      // then captions, then trigger debounced cross-ref sync.
+      if (editor && section?.number && !editor.view.composing) {
+        const cleanNum = section.number.replace(/^[A-Za-z]+/, '');
+        renumberH3Headings(editor, cleanNum);
         renumberCaptionsInEditor(editor, section.number, 0);
       }
+      // TEMP-LOG
+      console.log('[SYNC-EVENT] received block-reordered');
       setSyncTrigger(prev => prev + 1);
     };
     const handleB31TableFocus = (e: Event) => {
@@ -581,6 +614,7 @@ export function DocumentEditor({
       window.removeEventListener('caption-refresh-all', handleCaptionRefreshAll);
     };
   }, [editor, section?.number]);
+
 
   useEffect(() => {
     setB31TableFocus(null);
@@ -801,13 +835,8 @@ export function DocumentEditor({
     editor.chain().focus().insertContent(impactContent).run();
   }, [editor]);
 
-  // Handle figure reference insertion (text link only)
-  const handleInsertFigureReference = useCallback((figure: { figureNumber: string; title: string }) => {
-    if (!editor) return;
-    editor.chain().focus().insertContent(
-      `<span class="figure-reference text-primary cursor-pointer hover:underline">(see Figure ${figure.figureNumber})</span>`
-    ).run();
-  }, [editor]);
+  // Figure text cross-references are inserted via the cross-reference dropdown
+  // (handleInsertCrossRef). The Insert Figure dialog now only inserts images.
 
   const handleRestoreVersion = useCallback((restoredContent: string) => {
     setContent(restoredContent);
@@ -1115,6 +1144,45 @@ export function DocumentEditor({
 
   // Check if this is the B2.1 section (impact pathways)
   const isImpactSection = section?.id === 'b2-1' || section?.number === '2.1';
+  // Check if this is the B3.1 section — must match the exact condition used to
+  // render B31SectionContent below, so the compact editor and tables never disagree.
+  // Robust to load order: also matches the canonical section_tag from the DB,
+  // which is populated before section_number on a clean refresh.
+  const isB31Section = !!section && (
+    section.id === 'b3-1' ||
+    section.number === 'B3.1' ||
+    section.number === '3.1' ||
+    section.sectionTag === 'b3_1'
+  );
+  const isB32Section = !!section && (
+    section.id === 'b3-2' ||
+    section.number === 'B3.2' ||
+    section.number === '3.2' ||
+    section.sectionTag === 'b3_2'
+  );
+
+  // Per-proposal permanent dismiss for the B3.1 informational banner.
+  const [b31BannerDismissed, setB31BannerDismissed] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (!proposalId) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from('proposals')
+        .select('b31_banner_dismissed')
+        .eq('id', proposalId)
+        .maybeSingle();
+      if (!cancelled) setB31BannerDismissed(!!(data as any)?.b31_banner_dismissed);
+    })();
+    return () => { cancelled = true; };
+  }, [proposalId]);
+  const dismissB31Banner = useCallback(async () => {
+    setB31BannerDismissed(true);
+    await supabase
+      .from('proposals')
+      .update({ b31_banner_dismissed: true } as any)
+      .eq('id', proposalId);
+  }, [proposalId]);
   // Strip HTML for grammar checking
   const plainText = content.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim();
 
@@ -1155,115 +1223,25 @@ export function DocumentEditor({
         {/* Row 1: Guidelines | Autosaved | Find | Split Compare | Lock History | Shortcuts Comments/Panel */}
         <div className="px-2 py-1 border-b border-border bg-card">
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-1 min-w-0 flex-1 overflow-x-auto">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="h-6 px-2 text-xs gap-1 text-destructive border-destructive/50 hover:bg-destructive/10 hover:text-destructive"
-                onClick={() => setIsGuidelinesOpen(true)}
-              >
-                <Info className="w-3 h-3" />
-                Guidelines
-              </Button>
-              
-              <Separator orientation="vertical" className="h-4 mx-1" />
-              
-              {!isEffectivelyReadOnly && <SaveIndicator saving={saving} lastSaved={lastSaved} hasUnsavedChanges={hasUnsavedChanges} saveError={saveError} onSaveNow={saveNow} />}
-              
-              <Separator orientation="vertical" className="h-4 mx-1" />
-              
-              <Button variant="outline" size="sm" className="h-6 px-2 text-xs gap-1" onClick={() => setIsSearchOpen(true)}>
-                <Search className="w-3 h-3" />
-                Find
-              </Button>
-              
-              <Separator orientation="vertical" className="h-4 mx-1" />
-              
-              <Button 
-                variant={isSplitViewOpen ? "default" : "outline"}
-                size="sm" 
-                className="h-6 px-2 text-xs gap-1"
-                onClick={() => setIsSplitViewOpen(!isSplitViewOpen)}
-              >
-                <SplitSquareHorizontal className="w-3 h-3" />
-                Split
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="h-6 px-2 text-xs gap-1" 
-                onClick={() => setIsComparisonOpen(true)}
-              >
-                <GitCompare className="w-3 h-3" />
-                Compare
-              </Button>
-              
-              <Separator orientation="vertical" className="h-4 mx-1" />
-              
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="h-6 px-2 text-xs gap-1"
-                onClick={() => setIsWritingAssistantOpen(true)}
-                disabled={!editor || isEffectivelyReadOnly}
-              >
-                <Wand2 className="w-3 h-3" />
-                AI tools
-              </Button>
-              {canUseSnippets && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="h-6 px-2 text-xs gap-1"
-                onClick={() => setIsSnippetsOpen(true)}
-                disabled={!editor || isEffectivelyReadOnly}
-              >
-                <FileCode className="w-3 h-3" />
-                Snippets
-              </Button>
-              )}
-              
-              <Separator orientation="vertical" className="h-4 mx-1" />
-              
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="h-6 px-2 text-xs gap-1" 
-                onClick={() => setIsVersionHistoryOpen(true)}
-              >
-                <History className="w-3 h-3" />
-                History
-              </Button>
-              <Separator orientation="vertical" className="h-4 mx-1" />
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant={isCollaborationPanelOpen ? "default" : "outline"}
-                    size="sm"
-                    className="h-6 px-2 text-xs gap-1"
-                    onClick={() => {
-                      setIsCollaborationPanelOpen(!isCollaborationPanelOpen);
-                    }}
-                  >
-                    {isCollaborationPanelOpen ? <PanelRightClose className="w-3 h-3" /> : <PanelRight className="w-3 h-3" />}
-                    Review panel
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{isCollaborationPanelOpen ? 'Hide collaboration panel' : 'Show collaboration panel'}</TooltipContent>
-              </Tooltip>
-              {isImpactSection && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-6 px-2 text-xs gap-1 bg-primary/5 border-primary/30 hover:bg-primary/10" 
-                  onClick={() => setIsImpactPathwayOpen(true)}
-                  disabled={isEffectivelyReadOnly}
-                >
-                  <Route className="w-3 h-3" />
-                  Impact Mapper
-                </Button>
-              )}
-            </div>
+            <AdvancedToolbar
+              onOpenGuidelines={() => setIsGuidelinesOpen(true)}
+              saveIndicator={!isEffectivelyReadOnly ? <SaveIndicator saving={saving} lastSaved={lastSaved} hasUnsavedChanges={hasUnsavedChanges} saveError={saveError} onSaveNow={saveNow} /> : undefined}
+              onOpenSearch={() => setIsSearchOpen(true)}
+              isSplitViewOpen={isSplitViewOpen}
+              onToggleSplitView={() => setIsSplitViewOpen(prev => !prev)}
+              onOpenComparison={() => setIsComparisonOpen(true)}
+              onOpenWritingAssistant={() => setIsWritingAssistantOpen(true)}
+              isWritingAssistantDisabled={!editor || isEffectivelyReadOnly}
+              onOpenSnippets={() => setIsSnippetsOpen(true)}
+              showSnippets={canUseSnippets}
+              isSnippetsDisabled={isEffectivelyReadOnly}
+              onOpenVersionHistory={() => setIsVersionHistoryOpen(true)}
+              isCollaborationPanelOpen={isCollaborationPanelOpen}
+              onToggleCollaborationPanel={() => setIsCollaborationPanelOpen(prev => !prev)}
+              onOpenImpactPathway={() => setIsImpactPathwayOpen(true)}
+              showImpactPathway={isImpactSection}
+              isImpactPathwayDisabled={isEffectivelyReadOnly}
+            />
             
           </div>
         </div>
@@ -1362,7 +1340,7 @@ export function DocumentEditor({
           onOpenParticipantRefDialog={() => setIsParticipantRefOpen(true)}
           isPartB={section && !section.isPartA}
           isReadOnly={isEffectivelyReadOnly}
-          hideTableInsert={section?.number === 'B3.1'}
+          hideTableInsert={isB31Section}
           tableOffset={0}
           b31TableFocus={b31TableFocus}
           onB31AutoResize={b31TableFocus ? handleB31AutoResize : undefined}
@@ -1401,19 +1379,19 @@ export function DocumentEditor({
                   )}
                   <DropdownMenuItem onClick={() => setIsWPRefOpen(true)} className="flex items-center gap-2">
                     <span className="w-16 flex justify-start shrink-0">
-                      <span style={{ display: 'inline-block', width: '22px', height: '14px', backgroundColor: '#2563EB', border: '1.5px solid #2563EB', borderRadius: '9999px' }} />
+                      <WPBubble wpColor="#73C92D" style={{ width: '22px', height: '14px', padding: 0 }}>{' '}</WPBubble>
                     </span>
                     <span>Work package</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setIsTaskRefOpen(true)} className="flex items-center gap-2">
                     <span className="w-16 flex justify-start shrink-0">
-                      <span style={{ display: 'inline-block', width: '22px', height: '14px', borderRadius: '9999px', border: '1.5px solid #2563EB', background: '#ffffff' }} />
+                      <B31Pill variant="outline" color="#73C92D" style={{ width: '22px', height: '14px', padding: 0 }}>{' '}</B31Pill>
                     </span>
                     <span>Task</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setIsDeliverableRefOpen(true)} className="flex items-center gap-2">
                     <span className="w-16 flex justify-start shrink-0">
-                      <span style={{ display: 'inline-block', width: '22px', height: '14px', background: '#2563EB', clipPath: 'polygon(0% 0%, calc(100% - 6px) 0%, 100% 50%, calc(100% - 6px) 100%, 0% 100%)', position: 'relative' }}>
+                      <span style={{ display: 'inline-block', width: '22px', height: '14px', background: '#73C92D', clipPath: 'polygon(0% 0%, calc(100% - 6px) 0%, 100% 50%, calc(100% - 6px) 100%, 0% 100%)', position: 'relative' }}>
                         <span style={{ position: 'absolute', inset: '1.5px', right: '2px', background: '#ffffff', clipPath: 'polygon(0% 0%, calc(100% - 5px) 0%, 100% 50%, calc(100% - 5px) 100%, 0% 100%)' }} />
                       </span>
                     </span>
@@ -1430,7 +1408,7 @@ export function DocumentEditor({
                     <span className="w-16 flex justify-start shrink-0">
                       <span style={{ display: 'inline-block', width: '22px', height: '14px', border: '1.5px solid #000000', borderRadius: '9999px', background: '#ffffff' }} />
                     </span>
-                    <span>Case</span>
+                    <span>{caseWord(caseTypes, { capitalize: true })}</span>
                   </DropdownMenuItem>
                   )}
                   <DropdownMenuItem onClick={() => setIsParticipantRefOpen(true)} className="flex items-center gap-2">
@@ -1444,7 +1422,7 @@ export function DocumentEditor({
               <Separator orientation="vertical" className="h-4 mx-1" />
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsShortcutsOpen(true)}>
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsShortcutsOpen(true)} aria-label="Keyboard" title="Keyboard">
                     <Keyboard className="w-3 h-3" />
                   </Button>
                 </TooltipTrigger>
@@ -1468,6 +1446,22 @@ export function DocumentEditor({
           ) : undefined}
         />
       </div>
+
+      {isB31Section && b31BannerDismissed === false && (
+        <div className="relative bg-red-500/15 border-b border-red-500/30 px-4 py-1 pr-9 text-xs text-red-600">
+          Part B3.1 consists mostly of compulsory tables and figures. The text field before Table 3.1.a is editable, but the remainder of the content is filled via the work packages and milestones and risks pages in the left panel and mirrored to Part B3.1, where it cannot be edited.
+          <button
+            type="button"
+            onClick={dismissB31Banner}
+            aria-label="Dismiss banner"
+            className="absolute top-1 right-2 p-0.5 rounded hover:bg-red-500/20 text-red-600"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+
 
       <div className="flex-1 flex min-w-0 min-h-0">
         <div className="flex-1 flex min-w-0 min-h-0 overflow-hidden">
@@ -1546,47 +1540,78 @@ export function DocumentEditor({
                   <Skeleton className="h-4 w-2/3" />
                 </div>
               ) : (
-                <div ref={editorContainerRef} className="relative tiptap-editor-container overflow-visible">
-                  <EditorContent
-                    key={section?.id}
-                    editor={editor}
-                    className={`document-content outline-none prose prose-sm max-w-none ${isEffectivelyReadOnly ? 'pointer-events-none opacity-75' : ''} min-h-[400px]`}
-                    style={{ fontFamily: '"Times New Roman", Times, serif' }}
-                  />
-                  {/* Track change bubble menu */}
-                  {editor && <TrackChangeBubbleMenu editor={editor} proposalId={proposalId} />}
-                  {/* Block lock indicators */}
-                  <BlockLockIndicator
-                    editor={editor}
-                    blockLocks={blockLocks}
-                    containerRef={editorContainerRef}
-                  />
-                  {/* Collaborative cursors overlay */}
-                  <CollaborativeCursors
-                    editor={editor}
-                    collaborators={collaboratorsInSection}
-                    containerRef={editorContainerRef}
-                  />
-                  {/* Caption refresh icon */}
-                  <CaptionRefreshButton
-                    editor={editor}
-                    containerRef={editorContainerRef}
-                    sectionNumber={section?.number}
-                    tableOffset={0}
-                  />
-                </div>
+                <>
+                  <div ref={editorContainerRef} className="relative tiptap-editor-container overflow-visible">
+                    <EditorContent
+                      key={section?.id}
+                      editor={editor}
+                      className={`document-content outline-none prose prose-sm max-w-none ${isEffectivelyReadOnly ? 'pointer-events-none opacity-75' : ''} ${isB31Section ? 'min-h-[20px] b31-compact-editor' : 'min-h-[400px]'}`}
+                      style={{ fontFamily: '"Times New Roman", Times, serif' }}
+                    />
+                    {isB31Section && (() => {
+                      const raw = content ?? '';
+                      // Treat as empty if there's no real text content – ignore any number
+                      // of empty paragraphs, <br> trailing breaks, or whitespace.
+                      const stripped = String(raw)
+                        .replace(/<br\b[^>]*>/gi, '')
+                        .replace(/<p\b[^>]*>\s*<\/p>/gi, '')
+                        .replace(/&nbsp;/gi, '')
+                        .replace(/\s+/g, '')
+                        .trim();
+                      const isEmpty = stripped === '';
+                      if (!isEmpty) return null;
+                      return (
+                        <div
+                          className="pointer-events-none absolute top-0 left-0 text-muted-foreground italic select-none"
+                          style={{ fontFamily: '"Times New Roman", Times, serif', padding: '0.25em 0' }}
+                          aria-hidden="true"
+                        >
+                          Describe the work plan structure — number of WPs, reporting periods, project duration...
+                        </div>
+                      );
+                    })()}
+                    {/* Track change bubble menu */}
+                    {editor && <TrackChangeBubbleMenu editor={editor} proposalId={proposalId} />}
+                    {/* Block lock indicators */}
+                    <BlockLockIndicator
+                      editor={editor}
+                      blockLocks={blockLocks}
+                      containerRef={editorContainerRef}
+                    />
+                    {/* Collaborative cursors overlay */}
+                    <CollaborativeCursors
+                      editor={editor}
+                      collaborators={collaboratorsInSection}
+                      containerRef={editorContainerRef}
+                    />
+                    {/* Caption refresh icon */}
+                    <CaptionRefreshButton
+                      editor={editor}
+                      containerRef={editorContainerRef}
+                      sectionNumber={section?.number}
+                      tableOffset={0}
+                    />
+                  </div>
+                </>
+
               )}
 
 
 
-              {/* B3.1 Intro text - dynamic sentence before compulsory tables */}
+              {/* B3.1 Intro text - now lives in the standard TipTap editor above.
+                  B31IntroText kept for easy revert.
               {(section.id === 'b3-1' || section.number === 'B3.1' || section.number === '3.1') && (
                 <B31IntroText proposalId={proposalId} acronymSegments={acronymSegments} proposalAcronym={proposalAcronym} />
               )}
+              */}
+
 
               {/* B3.1 Section Content - auto-populated figures, tables, and structured content */}
-              {(section.id === 'b3-1' || section.number === 'B3.1' || section.number === '3.1') && (
+              {isB31Section && (
                 <B31SectionContent proposalId={proposalId} />
+              )}
+              {isB32Section && (
+                <B32SectionContent proposalId={proposalId} />
               )}
               {/* Footnotes */}
               {footnotes.length > 0 && (
@@ -1952,7 +1977,6 @@ export function DocumentEditor({
         onClose={() => setIsFigureDialogOpen(false)}
         proposalId={proposalId}
         currentSectionId={section?.id || ''}
-        onInsertFigure={handleInsertFigureReference}
         onInsertFigureImage={handleInsertFigureImage}
       />
       <ImpactPathwayGenerator

@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Mail, Building2, Search, Users, UserPlus, Phone, Crown, ShieldCheck, Pencil, Eye, Loader2, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useCollaborativeCursors } from "@/hooks/useCollaborativeCursors";
 import { supabase } from "@/integrations/supabase/client";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -36,9 +37,8 @@ interface Collaborator {
   full_name: string | null;
   organisation: string | null;
   avatar_url: string | null;
-  phone_number: string | null;
-  country_code: string | null;
 }
+
 
 interface OnlineUser {
   id: string;
@@ -87,7 +87,6 @@ export function CollaboratorsDialog({ open, onOpenChange }: CollaboratorsDialogP
   const [canManageProposal, setCanManageProposal] = useState(false);
   const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
   const [loadingCollaborators, setLoadingCollaborators] = useState(true);
-  const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
 
   // Proposal access management state
   const [proposalCollaborators, setProposalCollaborators] = useState<ProposalCollaborator[]>([]);
@@ -100,39 +99,17 @@ export function CollaboratorsDialog({ open, onOpenChange }: CollaboratorsDialogP
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteRole, setInviteRole] = useState<'coordinator' | 'editor' | 'viewer'>('editor');
 
-  // Subscribe to realtime presence for the current proposal
-  useEffect(() => {
-    if (!open || !proposalId || !user) {
-      setOnlineUsers([]);
-      return;
-    }
+  // Consume the shared cursors/presence channel only while the dialog is open.
+  // The ref-counted hook reuses the single subscription owned by the editor.
+  const { collaborators: presenceCollaborators } = useCollaborativeCursors({
+    proposalId: proposalId || '',
+    currentSectionId: null,
+    enabled: !!open && !!proposalId && !!user,
+  });
+  const onlineUsers: OnlineUser[] = presenceCollaborators.map((c) => ({ id: c.id, name: c.name }));
+  const onlineUserIds = new Set(onlineUsers.map((u) => u.id));
 
-    const channel = supabase.channel(`proposal:${proposalId}:cursors`, {
-      config: {
-        presence: {},
-      },
-    });
 
-    channel
-      .on('presence', { event: 'sync' }, () => {
-        const state = channel.presenceState();
-        const users: OnlineUser[] = [];
-        for (const [, presences] of Object.entries(state)) {
-          const presence = presences[0] as unknown as { id: string; name: string };
-          if (presence.id && presence.id !== user.id) {
-            users.push({ id: presence.id, name: presence.name });
-          }
-        }
-        setOnlineUsers(users);
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [open, proposalId, user]);
-
-  const onlineUserIds = new Set(onlineUsers.map(u => u.id));
 
   // Fetch real collaborators from profiles table
   useEffect(() => {
@@ -141,7 +118,8 @@ export function CollaboratorsDialog({ open, onOpenChange }: CollaboratorsDialogP
       try {
         const { data, error } = await supabase
           .from('profiles_basic')
-          .select('id, email, first_name, last_name, full_name, organisation, avatar_url, phone_number, country_code');
+          .select('id, email, first_name, last_name, full_name, organisation, avatar_url');
+
 
         if (error) {
           console.error('Error fetching collaborators:', error);
@@ -554,12 +532,8 @@ export function CollaboratorsDialog({ open, onOpenChange }: CollaboratorsDialogP
                               <Mail className="w-3 h-3" />
                               {collab.email}
                             </div>
-                            {collab.phone_number && (
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <Phone className="w-3 h-3" />
-                                {collab.country_code ? `${collab.country_code} ${collab.phone_number}` : collab.phone_number}
-                              </div>
-                            )}
+
+
                           </div>
 
                           <Button
@@ -702,7 +676,7 @@ export function CollaboratorsDialog({ open, onOpenChange }: CollaboratorsDialogP
                                       size="icon"
                                       className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
                                       onClick={() => handleRemoveFromProposal(collab)}
-                                    >
+                                     aria-label="Delete" title="Delete">
                                       <Trash2 className="w-3 h-3 text-destructive" />
                                     </Button>
                                   </TooltipTrigger>

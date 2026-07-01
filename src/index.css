@@ -84,6 +84,7 @@ html, body {
   font-style: italic !important;
 }
 
+
 /* Figure container styling */
 
 /* Figure container styling */
@@ -344,6 +345,33 @@ html, body {
     text-align: left;
   }
 
+  /* Force line-height 1 for all table cell content in Part B (overrides Tailwind leading-tight) */
+  .document-content table td,
+  .document-content table th,
+  .document-content table td p,
+  .document-content table th p,
+  .document-content table td div,
+  .document-content table th div,
+  .b31-tables-container table td,
+  .b31-tables-container table th,
+  .b31-tables-container table td p,
+  .b31-tables-container table th p,
+  .b31-tables-container table td div,
+  .b31-tables-container table th div {
+    line-height: 1 !important;
+  }
+  /* Preserve badge/pill internal line-heights */
+  .document-content table .wp-reference-badge,
+  .document-content table .participant-reference-badge,
+  .document-content table .proposal-badge,
+  .b31-tables-container table .wp-reference-badge,
+  .b31-tables-container table .participant-reference-badge,
+  .b31-tables-container table .proposal-badge {
+    line-height: inherit !important;
+  }
+
+
+
   .document-h1 {
     font-family: 'Times New Roman', Times, serif;
     font-size: 12pt;
@@ -382,31 +410,15 @@ html, body {
     padding-top: 0 !important;
   }
 
-  /* Inline H3 sub-header styling for Part B templates */
-  .document-h3-inline {
-    font-family: 'Times New Roman', Times, serif;
-    font-size: 11pt;
-    font-weight: 700;
-    text-decoration: underline;
-    display: inline;
-    margin-top: 3pt !important;
-    margin-bottom: 3pt !important;
-  }
-
-  /* TipTap editor H3 styling */
+  /* TipTap editor H3 styling — block subheading on its own line */
   .prose h3 {
     font-family: 'Times New Roman', Times, serif;
     font-size: 11pt;
     font-weight: 700;
     text-decoration: underline;
-    display: inline;
-    margin: 0;
+    margin-top: 3pt;
+    margin-bottom: 3pt;
     text-align: left;
-  }
-
-  /* Ensure text after H3 can continue on same line */
-  .prose h3 + p {
-    display: inline;
   }
 }
 
@@ -536,6 +548,18 @@ html, body {
   line-height: 1;
 }
 
+/* Separate two adjacent citations with a superscript comma.
+   The CitationAdjacency plugin adds the `citation-adjacent` class only when
+   the citation's IMMEDIATELY preceding sibling in the doc is also a citation
+   (no text — not even whitespace — between them). */
+.ProseMirror .citation-adjacent::before,
+.document-content .citation-adjacent::before {
+  content: ",";
+  margin-right: 0.1em;
+}
+
+
+
 /* TipTap/ProseMirror table styles - OUTSIDE @layer for higher specificity */
 .ProseMirror table {
   border-collapse: collapse !important;
@@ -637,6 +661,58 @@ html, body {
   margin-top: 0 !important;
 }
 
+/* Shared platform header style for manager/editor tables (milestones, risks, deliverables, etc.) */
+.platform-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.platform-table > thead > tr > th {
+  background-color: transparent;
+  color: #000;
+  font-weight: 700;
+  text-align: left;
+  vertical-align: middle;
+  padding: 1px 4px;
+  border-bottom: 1.5px solid #000;
+  white-space: normal;
+  word-wrap: break-word;
+}
+
+/* Scoped "tight" modifier for platform tables — lets per-column marker classes
+   (cell-px-0 / cell-pl-0 / cell-pr-0) zero horizontal padding on BOTH th and td,
+   beating the default thead padding rule above and Tailwind utility source order
+   on body cells. Opt-in per table by adding `platform-table--tight` alongside
+   `platform-table` on the <table>. Used by B3.1 tables 3.1.d and 3.1.e. */
+.platform-table.platform-table--tight > thead > tr > th.cell-px-0,
+.platform-table.platform-table--tight > tbody > tr > td.cell-px-0 {
+  padding-left: 0;
+  padding-right: 0;
+}
+.platform-table.platform-table--tight > thead > tr > th.cell-pl-0,
+.platform-table.platform-table--tight > tbody > tr > td.cell-pl-0 {
+  padding-left: 0;
+}
+.platform-table.platform-table--tight > thead > tr > th.cell-pr-0,
+.platform-table.platform-table--tight > tbody > tr > td.cell-pr-0 {
+  padding-right: 0;
+}
+.platform-table.platform-table--tight > thead > tr > th {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+.platform-table.platform-table--tight > thead > tr > th.cell-px-hair,
+.platform-table.platform-table--tight > tbody > tr > td.cell-px-hair {
+  padding-left: 0.03pt;
+  padding-right: 0.03pt;
+}
+.platform-table.platform-table--tight > thead > tr > th.cell-p0,
+.platform-table.platform-table--tight > tbody > tr > td.cell-p0 {
+  padding: 0 !important;
+}
+
+
+
+
 
 /* Tables that should have first-column content flush with the page margin */
 .ProseMirror table.first-col-flush th:first-child,
@@ -645,6 +721,7 @@ table.first-col-flush th:first-child,
 table.first-col-flush td:first-child {
   padding-left: 0 !important;
 }
+
 /* B3.1.f matrix uses border-spacing; shift left so first col is flush */
 table.b31-effort-matrix.first-col-flush {
   margin-left: -5pt;
@@ -758,6 +835,13 @@ table.b31-effort-matrix.first-col-flush {
 .ProseMirror h5,
 .ProseMirror h6 {
   text-align: left !important;
+  font-family: 'Times New Roman', Times, serif !important;
+  font-size: 11pt !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  text-decoration: underline !important;
+  margin-top: 3pt !important;
+  margin-bottom: 3pt !important;
 }
 
 
@@ -786,21 +870,38 @@ table.b31-effort-matrix.first-col-flush {
   padding-top: 0 !important;
 }
 
-/* Lists also left-aligned without extra indent */
+/* Lists also left-aligned without extra indent.
+   Indent before bullet reduced by 4pt; gap between bullet and text reduced by 2pt. */
 .ProseMirror ul,
 .ProseMirror ol {
   margin-left: 0 !important;
-  padding-left: 1.5em !important; /* Standard list indent from text edge */
 }
 
 .ProseMirror ul {
   list-style-type: disc !important;
+  padding-left: calc(1.5em - 4pt) !important;
+}
+
+/* Ordered lists: native marker, indent matched to bullet lists. */
+.ProseMirror ol {
+  list-style-position: outside !important;
+  list-style-type: decimal;
+  padding-left: calc(1.5em - 4pt) !important;
 }
 
 .ProseMirror li {
   margin-left: 0 !important;
   padding-left: 0 !important;
   text-align: justify;
+}
+
+/* Bullet marker stays slightly reduced to tighten the gap after the disc.
+   Ordered-list markers render at full body size (11pt) to match text. */
+.ProseMirror ul > li::marker {
+  font-size: 0.85em;
+}
+.ProseMirror ol > li::marker {
+  font-size: 1em;
 }
 
 /* Override spacing for caption paragraphs */
@@ -1041,31 +1142,10 @@ table.b31-effort-matrix.first-col-flush {
   margin-bottom: 0;
 }
 
-/* Ordered list period markers via CSS counters */
-.ProseMirror ol {
-  list-style: none;
-  counter-reset: list-counter;
-  padding-left: 2em;
-}
-.ProseMirror ol > li {
-  counter-increment: list-counter;
-  position: relative;
-}
-.ProseMirror ol > li::before {
-  position: absolute;
-  right: calc(100% + 0.25em);
-  white-space: nowrap;
-}
-.ProseMirror ol[style*="list-style-type: decimal"] > li::before,
-.ProseMirror ol:not([style*="list-style-type"]) > li::before {
-  content: counter(list-counter, decimal) ".";
-}
-.ProseMirror ol[style*="list-style-type: lower-alpha"] > li::before {
-  content: counter(list-counter, lower-alpha) ".";
-}
-.ProseMirror ol[style*="list-style-type: lower-roman"] > li::before {
-  content: counter(list-counter, lower-roman) ".";
-}
+/* Ordered list markers are rendered natively (see .ProseMirror ol above).
+   No custom counter/::before — a previous dual-source setup caused numbers
+   to overlap the list content in the editor. */
+
 
 /* ═══════════════════════════════════════════════════════════════════════════
    Print Export Container Styles
@@ -1505,3 +1585,21 @@ table.b31-effort-matrix.first-col-flush {
   -webkit-print-color-adjust: exact !important;
   print-color-adjust: exact !important;
 }
+
+/* B3.1 compact editor: tighten paragraph margins so the editor sits
+   close to the auto-generated tables below it. Scoped to B3.1 only. */
+.b31-compact-editor .ProseMirror p {
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
+
+/* B3.1 compact editor: the inner ProseMirror element receives a hardcoded
+   min-h-[400px] class via editorProps (shared across all Part B sections).
+   Override it here so B3.1's editor grows with content instead of forcing
+   a 400px gap above the tables. Scoped to B3.1 only. */
+.b31-compact-editor .ProseMirror {
+  min-height: 20px !important;
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
+}
+

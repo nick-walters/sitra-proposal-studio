@@ -1,12 +1,16 @@
 import { Section, Participant } from "@/types/proposal";
-import { ChevronRight, ChevronDown, FileText, User, Clock, AlertTriangle, BarChart3, Layers, Building2, Info, Euro, Lightbulb, Target, Settings, FlaskConical, ShieldCheck, HelpCircle, MessageSquare, ListTodo, Briefcase, Lock, Unlock, CalendarDays, Download } from "lucide-react";
+import { ChevronRight, ChevronDown, FileText, User, Clock, AlertTriangle, BarChart3, Layers, Building2, Info, Euro, Lightbulb, Target, Settings, FlaskConical, ShieldCheck, HelpCircle, MessageSquare, ListTodo, Briefcase, Lock, Unlock, CalendarDays, Download, Flag, PencilRuler } from "lucide-react";
 import { useState, useMemo, useRef, useLayoutEffect, useCallback } from "react";
+import { useParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SectionAssignment } from "@/hooks/useSectionAssignments";
 import { isPast, isToday, differenceInDays, format } from "date-fns";
 import type { WPSection, CaseSection } from "@/hooks/useProposalSections";
+import { B31Pill, WPBubble, ParticipantBubble } from "@/components/B31Pill";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 // JS-based truncation that trims trailing whitespace before "..."
 function TruncatedText({ text, className, isActive }: { text: string; className?: string; isActive?: boolean }) {
@@ -149,6 +153,7 @@ function SectionItem({
   lockedSections,
   onToggleLock,
   onExportPartB,
+  caseIncludeNumber = true,
 }: {
   section: Section | WPSection | CaseSection;
   depth?: number;
@@ -161,18 +166,30 @@ function SectionItem({
   lockedSections?: Set<string>;
   onToggleLock?: (sectionId: string) => void;
   onExportPartB?: () => void;
+  caseIncludeNumber?: boolean;
 }) {
   const isAlwaysExpanded = false;
   const [isExpanded, setIsExpanded] = useState(section.id !== 'a2');
   const hasSubsections = section.subsections && section.subsections.length > 0;
   const isActive = activeSectionId === section.id;
-  // Compute effective lock state: direct lock OR inherited from parent (part-a / part-b)
-  const isPartAChild = section.id === 'a1' || section.id === 'a2' || section.id === 'a3' || section.id === 'a4' || section.id === 'a5';
-  const isPartBChild = (section.number && /^B?\d/.test(section.number) && section.id !== 'part-b') ||
-    section.id === 'figures' || section.title === 'Figures' || section.id === 'wp-drafts';
-  const isSectionLocked = (lockedSections?.has(section.id) ?? false) ||
-    (isPartAChild && section.id !== 'topic-info' && (lockedSections?.has('part-a') ?? false)) ||
-    (isPartBChild && (lockedSections?.has('part-b') ?? false));
+  // Independent-subsection lock model:
+  //  - Individual subsections use their own row.
+  //  - Major sections (part-a / part-b) are DERIVED — locked iff every child has a row.
+  //  - The "Work packages & cases" group header uses section.id === 'wp-drafts'
+  //    but is stored under the single group-lock id 'wp-cases-group'.
+  const PART_A_CHILDREN = ['a1', 'a2', 'a3', 'a4', 'a5'];
+  const PART_B_CHILDREN = ['b1-1', 'b1-2', 'b2-1', 'b2-2', 'b3-1', 'b3-2'];
+  const isWpCasesGroup = section.id === 'wp-drafts';
+  const directLockId = isWpCasesGroup ? 'wp-cases-group' : section.id;
+  let isSectionLocked: boolean;
+  if (section.id === 'part-a') {
+    isSectionLocked = PART_A_CHILDREN.every(c => lockedSections?.has(c) ?? false);
+  } else if (section.id === 'part-b') {
+    isSectionLocked = PART_B_CHILDREN.every(c => lockedSections?.has(c) ?? false);
+  } else {
+    isSectionLocked = lockedSections?.has(directLockId) ?? false;
+  }
+  const lockToggleTarget = directLockId;
 
   // Determine if this section shows a lock button (coordinators only)
   // topic-info is never lockable — always visible to all
@@ -182,8 +199,9 @@ function SectionItem({
     section.id === 'a4' || section.id === 'a5' ||
     section.id === 'figures' || section.title === 'Figures' ||
     section.id === 'wp-drafts' ||
+    section.id === 'milestones-risks' ||
     section.id === 'part-b' ||
-    (section.number && /^B\d/.test(section.number) && section.id !== 'part-b')
+    (section.number && /^B\d+\.\d/.test(section.number) && section.id !== 'part-b')
   );
   
   // Check if this is a WP section with color
@@ -233,6 +251,7 @@ function SectionItem({
     section.title === 'Figures' ||
     section.id === 'wp-progress-tracker' ||
     section.id === 'wp-drafts' ||
+    section.id === 'milestones-risks' ||
     section.id === 'proposal-management';
   
   // Note: Guideline icons removed from navigation hover to reduce visual clutter
@@ -325,7 +344,9 @@ function SectionItem({
           section.id === 'wp-progress-tracker' ? (
             <BarChart3 className="w-4 h-4 text-muted-foreground shrink-0" />
           ) : section.id === 'wp-drafts' ? (
-            <Layers className="w-4 h-4 text-muted-foreground shrink-0" />
+            <PencilRuler className="w-4 h-4 text-muted-foreground shrink-0" />
+          ) : section.id === 'milestones-risks' ? (
+            null
           ) : section.id === 'figures' || section.title === 'Figures' ? (
             null
           ) : isWPSection && wpColor ? (
@@ -341,35 +362,27 @@ function SectionItem({
         
         {/* WP sections render as colored bubbles - with left margin to align with text */}
         {isWPSection && wpColor ? (
-          <span 
-            className="inline-flex items-center justify-center px-1.5 py-px rounded-full text-[9px] font-bold whitespace-nowrap"
-            style={{ backgroundColor: wpColor, color: '#ffffff' }}
+          <WPBubble
+            wpColor={wpColor}
+            style={{ fontSize: '9px', height: 'auto', padding: '1px 6px' }}
           >
             WP{wpSection.wpNumber}{wpSection.title ? `: ${wpSection.title}` : ''}
-          </span>
+          </WPBubble>
         ) : isCaseSection && caseColor ? (
-          (() => {
-            // Match case manager bubble format: "PREFIX+NUM: SHORT_NAME" or just "SHORT_NAME"
-            const hasPrefix = /^[A-Za-z]/.test(caseSection.number);
-            const label = hasPrefix
-              ? `${caseSection.number}${caseSection.title ? ` ${caseSection.title}` : ''}`
-              : caseSection.number;
-            return (
-              <span 
-                className="inline-flex items-center justify-center px-1.5 py-px rounded-full text-[9px] font-bold whitespace-nowrap border-[1.5px] border-black"
-                style={{ backgroundColor: '#ffffff', color: '#000000' }}
-              >
-                {label}
-              </span>
-            );
-          })()
+          <B31Pill
+            variant="outline"
+            color="#000000"
+            style={{ fontSize: '9px', height: 'auto', padding: '1px 6px', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '140px', whiteSpace: 'nowrap' }}
+          >
+            {caseSection.caseLabel || caseSection.caseShortName || caseSection.number}
+          </B31Pill>
         ) : isParticipantSection ? (
-          <span 
-            className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[11px] font-bold whitespace-nowrap ml-5"
-            style={{ backgroundColor: '#000000', color: '#ffffff' }}
+          <ParticipantBubble
+            className="ml-5"
+            style={{ fontSize: '11px', height: 'auto', padding: '2px 8px' }}
           >
             P{section.number}: {section.title}
-          </span>
+          </ParticipantBubble>
         ) : (
           <>
             {/* Only show number if not a top-level bold item and number exists */}
@@ -406,17 +419,19 @@ function SectionItem({
               <TooltipTrigger asChild>
                 <button
                   className={cn(
-                    "p-0.5 rounded shrink-0 opacity-0 group-hover:opacity-100 transition-opacity",
-                    isSectionLocked && "opacity-100",
+                    "p-0.5 rounded shrink-0 transition-opacity",
+                    isSectionLocked
+                      ? "opacity-100"
+                      : "opacity-0 group-hover:opacity-100",
                     !hasSubsections && !isSectionLocked && "ml-auto"
                   )}
                   onClick={(e) => {
                     e.stopPropagation();
-                    onToggleLock!(section.id);
+                    onToggleLock!(lockToggleTarget);
                   }}
                 >
                   {isSectionLocked ? (
-                    <Lock className="w-3.5 h-3.5 text-amber-500" />
+                    <Lock className="w-3.5 h-3.5 text-red-500" />
                   ) : (
                     <Unlock className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground" />
                   )}
@@ -583,23 +598,50 @@ function SectionItem({
                   <TooltipProvider key={subsection.id}>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                          <button
-                          className={cn(
-                            "inline-flex items-center justify-start w-fit px-1.5 py-0 rounded-full text-[11px] font-bold truncate cursor-pointer transition-all max-w-full leading-tight break-all",
-                            isSubActive && "ring-2 ring-primary ring-offset-1",
-                          )}
-                          style={{ 
-                            backgroundColor: isWP ? wpSub.wpColor : '#ffffff',
-                            color: isCase ? '#000000' : '#ffffff',
-                            border: isCase ? '1.5px solid #000000' : undefined,
-                          }}
-                          onClick={() => onSectionClick(subsection)}
-                        >
-                          {isWP 
-                            ? `WP${wpSub.wpNumber}: ${wpSub.title}`
-                            : `${caseSub.number}: ${caseSub.title}`
-                          }
-                        </button>
+                        {isWP ? (
+                          <WPBubble
+                            wpColor={wpSub.wpColor}
+                            onClick={() => onSectionClick(subsection)}
+                            className={cn(
+                              "max-w-full break-all transition-all cursor-pointer",
+                              isSubActive && "ring-2 ring-primary ring-offset-1",
+                            )}
+                            style={{
+                              fontSize: '11px',
+                              height: 'auto',
+                              padding: '0 6px',
+                              justifyContent: 'flex-start',
+                              whiteSpace: 'normal',
+                              lineHeight: '1.1',
+                            }}
+                          >
+                            WP{wpSub.wpNumber}: {wpSub.title}
+                          </WPBubble>
+                        ) : (
+                          <B31Pill
+                            variant="outline"
+                            color={caseSub.caseColor || '#000000'}
+
+                            onClick={() => onSectionClick(subsection)}
+                            className={cn(
+                              "max-w-full transition-all cursor-pointer",
+                              isSubActive && "ring-2 ring-primary ring-offset-1",
+                            )}
+                            style={{
+                              fontSize: '11px',
+                              height: 'auto',
+                              padding: '0 6px',
+                              justifyContent: 'flex-start',
+                              whiteSpace: 'nowrap',
+                              lineHeight: '1.1',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              maxWidth: '140px',
+                            }}
+                          >
+                            {caseSub.caseLabel || caseSub.caseShortName || caseSub.number}
+                          </B31Pill>
+                        )}
                       </TooltipTrigger>
                       <TooltipContent side="right" className="text-xs">
                         {isWP 
@@ -627,6 +669,7 @@ function SectionItem({
                 isCoordinator={isCoordinator}
                 lockedSections={lockedSections}
                 onToggleLock={onToggleLock}
+                caseIncludeNumber={caseIncludeNumber}
               />
             ))
           )}
@@ -652,6 +695,23 @@ export function SectionNavigator({
   caseDraftsVisible = true,
   onExportPartB,
 }: SectionNavigatorProps) {
+  const { id: proposalId } = useParams();
+
+  // Fetch case display setting (whether to show numbers vs short names on case bubbles)
+  const { data: caseSettings } = useQuery({
+    queryKey: ['case-settings', proposalId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('proposals')
+        .select('case_include_number')
+        .eq('id', proposalId)
+        .maybeSingle() as { data: { case_include_number: boolean | null } | null };
+      return data;
+    },
+    enabled: !!proposalId,
+    placeholderData: (previousData) => previousData,
+  });
+  const caseIncludeNumber: boolean = caseSettings?.case_include_number !== false;
   // All users with proposal access can see all participants
   const visibleParticipants = useMemo(() => {
     return participants;
@@ -662,11 +722,9 @@ export function SectionNavigator({
     return sections;
   }, [sections]);
 
-  // Filter out locked sections for non-coordinators
-  // When 'part-a' is locked, all A sections (except topic-info) are hidden
-  // When 'part-b' is locked, all B-prefixed subsections + figures + wp-drafts are hidden
-  const isPartALocked = !isCoordinator && lockedSections?.has('part-a');
-  const isPartBLocked = !isCoordinator && lockedSections?.has('part-b');
+  // Read-filter: hide each section iff its OWN row exists (independent-subsection model).
+  // wp-cases-group remains a single group-lock that hides WP + case items.
+  const isWpCasesLocked = !isCoordinator && lockedSections?.has('wp-cases-group');
 
   const filterLockedSections = useCallback((sectionList: (Section | WPSection | CaseSection)[]): (Section | WPSection | CaseSection)[] => {
     if (isCoordinator || !lockedSections || lockedSections.size === 0) return sectionList;
@@ -676,12 +734,11 @@ export function SectionNavigator({
         // topic-info is always visible
         if (s.id === 'topic-info') return true;
         if (lockedSections.has(s.id)) return false;
-        // Part A cascade: hide a1-a5 (but not topic-info)
-        if (isPartALocked && (s.id === 'a1' || s.id === 'a2' || s.id === 'a3' || s.id === 'a4' || s.id === 'a5')) return false;
-        // Part B cascade: hide B-numbered sections, figures, wp-drafts
-        if (isPartBLocked) {
-          if (s.number && /^B?\d/.test(s.number)) return false;
-          if (s.id === 'figures' || s.id === 'wp-drafts') return false;
+        // WP & cases group cascade: hide the group container and every WP / case item
+        if (isWpCasesLocked) {
+          if (s.id === 'wp-drafts' || s.id === 'case-drafts') return false;
+          if ((s as WPSection).wpId !== undefined) return false;
+          if ((s as CaseSection).caseId !== undefined) return false;
         }
         return true;
       })
@@ -691,7 +748,7 @@ export function SectionNavigator({
         }
         return s;
       });
-  }, [isCoordinator, lockedSections, isPartALocked, isPartBLocked]);
+  }, [isCoordinator, lockedSections, isWpCasesLocked]);
 
   const filterDraftVisibility = useCallback((sectionList: (Section | WPSection | CaseSection)[]): (Section | WPSection | CaseSection)[] => {
     if (wpDraftsVisible && caseDraftsVisible) return sectionList;
@@ -728,6 +785,7 @@ export function SectionNavigator({
             lockedSections={lockedSections}
             onToggleLock={onToggleLock}
             onExportPartB={onExportPartB}
+            caseIncludeNumber={caseIncludeNumber}
           />
         ))}
       </div>

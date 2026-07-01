@@ -1,11 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireAuth } from "../_shared/auth.ts";
+import { corsHeaders } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
 
 const stripHtml = (s: string | null | undefined) =>
   (s || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
@@ -56,13 +52,8 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const auth = await requireAuth(req);
+    if (!auth.ok) return auth.response;
 
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
     if (!ANTHROPIC_API_KEY) {
@@ -72,24 +63,11 @@ serve(async (req) => {
       });
     }
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } },
-    );
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const userId = claimsData.claims.sub as string;
+    const supabase = auth.callerClient;
+    const userId = auth.userId;
 
     const body = await req.json();
-    const { proposalId, instrumentCode, proposalStage, budgetType } = body || {};
+    const { proposalId, instrumentCode, proposalStage, budgetType, computedBudget } = body || {};
     if (!proposalId || !instrumentCode || !proposalStage) {
       return new Response(
         JSON.stringify({ error: "proposalId, instrumentCode, proposalStage required" }),
@@ -109,7 +87,7 @@ serve(async (req) => {
     }
 
     // Gather data
-    const [proposalRes, sectionsRes, participantsRes, budgetRes, instrumentsRes, personasRes, configRes] =
+    const [proposalRes, sectionsRes, a1Res, participantsRes, instrumentsRes, personasRes, configRes] =
       await Promise.all([
         supabase.from("proposals").select("*").eq("id", proposalId).single(),
         supabase
@@ -117,12 +95,13 @@ serve(async (req) => {
           .select("section_id, content")
           .eq("proposal_id", proposalId),
         supabase
+          .from("part_a1")
+          .select("abstract")
+          .eq("proposal_id", proposalId)
+          .maybeSingle(),
+        supabase
           .from("participants")
           .select("id, organisation_short_name, organisation_name, participant_number, country")
-          .eq("proposal_id", proposalId),
-        supabase
-          .from("budget_rows")
-          .select("requested_eu_contribution, personnel_costs, subcontracting_costs, purchase_equipment, purchase_other_goods, purchase_travel")
           .eq("proposal_id", proposalId),
         supabase.from("instrument_types").select("*").eq("code", instrumentCode).maybeSingle(),
         supabase.from("evaluator_personas").select("*").eq("active", true),
@@ -130,9 +109,14 @@ serve(async (req) => {
       ]);
 
     const proposal = proposalRes.data;
-    const sections = sectionsRes.data || [];
+    const sectionsRaw = sectionsRes.data || [];
+    // Replace the legacy A1 JSON blob with the clean abstract from part_a1
+    // so downstream word counts and prompts see prose, not JSON noise.
+    const a1Abstract = String(a1Res.data?.abstract || "");
+    const sections = sectionsRaw
+      .filter((s: any) => s.section_id !== "a1")
+      .concat(a1Abstract ? [{ section_id: "a1", content: a1Abstract }] : []);
     const participants = participantsRes.data || [];
-    const budgetRows = budgetRes.data || [];
     const instrument = instrumentsRes.data;
     const personas = personasRes.data || [];
     const configMap = Object.fromEntries(
@@ -147,7 +131,7 @@ serve(async (req) => {
     }
 
     const eligibilityModel = configMap.eligibility_model || "claude-haiku-4-5-20251001";
-    const assemblyModel = configMap.assembly_model || "claude-haiku-4-5-20251001";
+    const assemblyModel = configMap.panel_selection_model || configMap.assembly_model || "claude-haiku-4-5-20251001";
 
     // Estimate page count using platform formula (500 words/page + 1 front-matter page)
     const WORDS_PER_PAGE = 500;
@@ -172,24 +156,18 @@ serve(async (req) => {
     const isStage1 = proposalStage === "stage1";
     const isLumpSum = budgetType === "lump_sum";
 
-    // Compute requested EU budget total from A3 budget rows
-    const totalRequestedEu = budgetRows.reduce(
-      (sum: number, r: any) => sum + Number(r.requested_eu_contribution || 0),
-      0,
-    );
-    const totalDirectCosts = budgetRows.reduce(
-      (sum: number, r: any) =>
-        sum +
-        Number(r.personnel_costs || 0) +
-        Number(r.subcontracting_costs || 0) +
-        Number(r.purchase_equipment || 0) +
-        Number(r.purchase_other_goods || 0) +
-        Number(r.purchase_travel || 0),
-      0,
-    );
+    // Budget totals are computed client-side via the shared helper
+    // (src/lib/budgetCompute.ts) and passed in — the `budget_rows` columns
+    // are inputs, not totals (requested_eu_contribution is a rarely-used
+    // manual override). The edge function consumes the computed payload.
+    const totalRequestedEu = Number(computedBudget?.totalRequestedEu || 0);
+    const totalDirectCosts = Number(computedBudget?.totalDirectCosts || 0);
+    const perParticipantBudget = Array.isArray(computedBudget?.perParticipant)
+      ? computedBudget.perParticipant
+      : [];
     const budgetPopulated = totalRequestedEu > 0 || totalDirectCosts > 0;
     const budgetSummary = budgetPopulated
-      ? `Requested EU contribution: €${Math.round(totalRequestedEu).toLocaleString()} (across ${budgetRows.length} participant row(s)); total direct costs entered: €${Math.round(totalDirectCosts).toLocaleString()}.`
+      ? `Requested EU contribution: €${Math.round(totalRequestedEu).toLocaleString()} (across ${perParticipantBudget.length} participant row(s)); total direct costs entered: €${Math.round(totalDirectCosts).toLocaleString()}.`
       : "No budget figures have been entered in the A3 budget portal yet.";
 
     // ---- 0a Eligibility ----
@@ -273,7 +251,7 @@ ${sectionList || "(none)"}
     const assemblySystem = `You are a European Commission Programme Officer assembling an expert evaluation panel.
 
 SELECTION RULES:
-- Select minimum 3, maximum 10 evaluators. Target 5–8. Rank in order of relevance.
+- Select minimum 3, maximum 8 evaluators. Target 5–7. Rank in order of relevance.
 - Ensure disciplinary diversity. Include at least one critical/sceptical perspective.
 - For Stage 1, prioritise evaluators strong on Excellence and Impact.
 
@@ -321,6 +299,18 @@ Return JSON array only.`;
       },
     );
 
+    // Aggregate Haiku-phase usage so the caller can persist it into the
+    // evaluation record. Cost accounting in run-panel-evaluation includes
+    // these tokens at Haiku rates (separate from the evaluator/synthesis
+    // model). All four Anthropic token buckets are summed.
+    const sumUsage = (...usages: any[]) => ({
+      input_tokens: usages.reduce((s, u) => s + Number(u?.input_tokens || 0), 0),
+      output_tokens: usages.reduce((s, u) => s + Number(u?.output_tokens || 0), 0),
+      cache_read_input_tokens: usages.reduce((s, u) => s + Number(u?.cache_read_input_tokens || 0), 0),
+      cache_creation_input_tokens: usages.reduce((s, u) => s + Number(u?.cache_creation_input_tokens || 0), 0),
+    });
+    const haikuUsage = sumUsage(eligibilityRes.usage, assemblyRes.usage);
+
     return new Response(
       JSON.stringify({
         eligibility_flags: eligibilityFlags,
@@ -332,13 +322,15 @@ Return JSON array only.`;
           brief: p.brief,
           thematic_area: p.thematic_area,
         })),
+        haiku_usage: haikuUsage,
+        haiku_model: eligibilityModel,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
+
   } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : "Unknown error";
-    console.error("propose-evaluation-panel error:", msg);
-    return new Response(JSON.stringify({ error: msg }), {
+    console.error("propose-evaluation-panel error:", e);
+    return new Response(JSON.stringify({ error: "An internal error occurred" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

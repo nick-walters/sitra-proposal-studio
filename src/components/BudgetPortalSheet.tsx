@@ -7,8 +7,8 @@ import { SaveIndicator } from '@/components/SaveIndicator';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import * as XLSX from 'xlsx-js-style';
-import JSZip from 'jszip';
+import type * as XLSXNS from 'xlsx-js-style';
+// XLSX runtime is loaded lazily inside handleExportXlsx() to keep it out of the initial bundle.
 import { Lock, Unlock, Loader2, Euro, Calculator, FileSpreadsheet, Download, History, TableProperties, AlertCircle, Info, X, Users } from 'lucide-react';
 import {
   Tooltip,
@@ -26,14 +26,18 @@ import {
 } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { PartAGuidelinesDialog } from './PartAGuidelinesDialog';
+import { PartAPageLayout } from './PartAPageLayout';
+
 import { toast } from 'sonner';
 import { FstpTab } from './FstpTab';
 import { BudgetParticipantForm } from './BudgetParticipantForm';
 import { A3EffortMatrix } from './A3EffortMatrix';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { ParticipantBubble } from '@/components/B31Pill';
+import { B31OptionalJustificationsCard } from '@/components/B31OptionalJustificationsCard';
 
 interface BudgetPortalSheetProps {
   proposalId: string;
@@ -87,8 +91,7 @@ export function BudgetPortalSheet({
 }: BudgetPortalSheetProps) {
   const {
     rows,
-    justifications,
-    subcontractingItems,
+    justificationItems,
     grandTotals,
     loading,
     saving,
@@ -154,6 +157,11 @@ export function BudgetPortalSheet({
   }, [rows]);
 
   const handleExportXlsx = async () => {
+    const [XLSX, JSZipMod] = await Promise.all([
+      import('xlsx-js-style'),
+      import('jszip'),
+    ]);
+    const JSZip = JSZipMod.default;
     const wb = XLSX.utils.book_new();
 
     const colLetter = (c: number): string => {
@@ -174,7 +182,7 @@ export function BudgetPortalSheet({
     const pmFmt = { numFmt: '0.0' };
 
     // Helper to apply styles to header row
-    const styleHeaders = (ws: XLSX.WorkSheet, rowNum: number, colCount: number) => {
+    const styleHeaders = (ws: XLSXNS.WorkSheet, rowNum: number, colCount: number) => {
       for (let c = 0; c < colCount; c++) {
         const ref = colLetter(c) + rowNum;
         if (ws[ref]) ws[ref].s = bold;
@@ -182,7 +190,7 @@ export function BudgetPortalSheet({
     };
 
     // Helper to apply styles to a row
-    const styleRow = (ws: XLSX.WorkSheet, rowNum: number, colCount: number, style: any) => {
+    const styleRow = (ws: XLSXNS.WorkSheet, rowNum: number, colCount: number, style: any) => {
       for (let c = 0; c < colCount; c++) {
         const ref = colLetter(c) + rowNum;
         if (ws[ref]) ws[ref].s = { ...ws[ref].s, ...style };
@@ -190,7 +198,7 @@ export function BudgetPortalSheet({
     };
 
     // Helper to bold an entire column
-    const styleCol = (ws: XLSX.WorkSheet, colIdx: number, startRow: number, endRow: number) => {
+    const styleCol = (ws: XLSXNS.WorkSheet, colIdx: number, startRow: number, endRow: number) => {
       const cl = colLetter(colIdx);
       for (let r = startRow; r <= endRow; r++) {
         const ref = cl + r;
@@ -199,7 +207,7 @@ export function BudgetPortalSheet({
     };
 
     // Helper to auto-fit column widths based on content
-    const autoFitCols = (ws: XLSX.WorkSheet, aoa: any[][]) => {
+    const autoFitCols = (ws: XLSXNS.WorkSheet, aoa: any[][]) => {
       const colWidths: number[] = [];
       for (const row of aoa) {
         row.forEach((cell: any, i: number) => {
@@ -450,27 +458,31 @@ export function BudgetPortalSheet({
         ws2[ref].c.hidden = true;
       };
 
+      const concatJustifications = (cat: 'subcontracting' | 'travel' | 'equipment' | 'other_goods') =>
+        justificationItems
+          .filter(i => i.budgetRowId === row.id && i.category === cat)
+          .map(i => i.justification?.trim())
+          .filter((s): s is string => !!s)
+          .join('\n');
+
       // B. Subcontracting (col E = index 4)
       if (row.subcontractingCosts > 0) {
-        const subItem = subcontractingItems.find(s => s.budgetRowId === row.id);
-        if (subItem?.justification) addComment(4, subItem.justification);
+        addComment(4, concatJustifications('subcontracting'));
       }
 
       // C.1 Travel (col F = index 5)
       if (row.purchaseTravel > 0) {
-        const j = justifications.find(j => j.budgetRowId === row.id && j.category === 'travel');
-        if (j?.justificationText) addComment(5, j.justificationText);
+        addComment(5, concatJustifications('travel'));
       }
 
       // C.2 Equipment (col G = index 6)
       if (row.purchaseEquipment > 0) {
-        if (row.purchaseEquipmentJustification) addComment(6, row.purchaseEquipmentJustification);
+        addComment(6, concatJustifications('equipment'));
       }
 
       // C.3 Other goods (col H = index 7)
       if (row.purchaseOtherGoods > 0) {
-        const j = justifications.find(j => j.budgetRowId === row.id && j.category === 'other_goods');
-        if (j?.justificationText) addComment(7, j.justificationText);
+        addComment(7, concatJustifications('other_goods'));
       }
     });
 
@@ -655,29 +667,27 @@ export function BudgetPortalSheet({
   }
 
   return (
-    <div className="flex-1 overflow-auto p-6 bg-muted/30">
-      <div className="mx-auto space-y-6 max-w-full">
-        <div className="space-y-2">
-          <h1 className="text-xl font-bold text-foreground">Part A3: Budget</h1>
-          <div className="flex items-center gap-3">
-            <PartAGuidelinesDialog
-              sectionTitle="Part A3: Budget"
-              officialGuidelines={[{
-                id: 'budget-info',
-                title: 'Budget Guidelines',
-                content: 'The estimated budget should include all eligible costs for the action.\n\nKey budget categories:\n• A. Personnel costs\n• B. Subcontracting\n• C. Purchase costs (Travel, Equipment, Other)\n• D. Other cost categories (Internally invoiced)\n• E. Indirect costs (25% flat rate)\n\nAll costs must be directly linked to the project activities.'
-              }]}
-              sitraTips={[{
-                id: 'budget-tip',
-                title: 'Budget planning tips',
-                content: 'Start by estimating person months per work package, then convert to costs.\n\nRecommendations:\n• Distribute effort proportionally across partners\n• Include buffer for unexpected costs where rules allow\n• Ensure consistency between budget and work package descriptions'
-              }]}
-            />
-            {activeTab !== 'validation' && (
-              <SaveIndicator saving={saving} lastSaved={null} onSaveNow={refetchBudgetRows} />
-            )}
-          </div>
-        </div>
+    <PartAPageLayout
+      title="Part A3: Budget"
+      maxWidth="max-w-full"
+      guidelines={
+        <PartAGuidelinesDialog
+          sectionTitle="Part A3: Budget"
+          officialGuidelines={[{
+            id: 'budget-info',
+            title: 'Budget Guidelines',
+            content: 'The estimated budget should include all eligible costs for the action.\n\nKey budget categories:\n• A. Personnel costs\n• B. Subcontracting\n• C. Purchase costs (Travel, Equipment, Other)\n• D. Other cost categories (Internally invoiced)\n• E. Indirect costs (25% flat rate)\n\nAll costs must be directly linked to the project activities.'
+          }]}
+          sitraTips={[{
+            id: 'budget-tip',
+            title: 'Budget planning tips',
+            content: 'Start by estimating person months per work package, then convert to costs.\n\nRecommendations:\n• Distribute effort proportionally across partners\n• Include buffer for unexpected costs where rules allow\n• Ensure consistency between budget and work package descriptions'
+          }]}
+        />
+      }
+      saveIndicator={activeTab !== 'validation' ? <SaveIndicator saving={saving} lastSaved={null} onSaveNow={refetchBudgetRows} /> : undefined}
+    >
+
 
         {/* Main Content Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -853,7 +863,7 @@ export function BudgetPortalSheet({
                                           lockAllRows();
                                         }
                                       }}
-                                    >
+                                     aria-label="Lock" title="Lock">
                                       {rows.every(r => r.isLocked)
                                         ? <Lock className="w-3.5 h-3.5 text-destructive" />
                                         : <Unlock className="w-3.5 h-3.5 text-green-600" />}
@@ -907,12 +917,11 @@ export function BudgetPortalSheet({
                               <td className="sticky left-0 bg-background z-10 px-2 py-1 border-r whitespace-nowrap">
                                 <div className="flex items-center justify-between gap-2">
                                   <span className="flex items-center gap-1">
-                                    <span
-                                      className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap"
-                                      style={{ backgroundColor: '#000000', color: '#ffffff' }}
+                                    <ParticipantBubble
+                                      style={{ fontSize: '10px', height: 'auto', padding: '2px 6px' }}
                                     >
                                       {row.participantNumber}. {row.participantShortName || row.participantName}
-                                    </span>
+                                    </ParticipantBubble>
                                     {row.isLocked && !isAdmin && <Lock className="w-3 h-3 text-muted-foreground flex-shrink-0" />}
                                   </span>
                                   <span className="flex items-center gap-1 shrink-0">
@@ -922,7 +931,7 @@ export function BudgetPortalSheet({
                                         size="icon"
                                         className="h-6 w-6"
                                         onClick={() => row.isLocked ? unlockRow(row.id) : lockRow(row.id)}
-                                      >
+                                       aria-label="Lock" title="Lock">
                                         {row.isLocked ? <Lock className="w-3 h-3 text-destructive" /> : <Unlock className="w-3 h-3 text-green-600" />}
                                       </Button>
                                     )}
@@ -1001,6 +1010,8 @@ export function BudgetPortalSheet({
                 </div>
               </CardContent>
             </Card>
+
+            {isAdmin && <B31OptionalJustificationsCard proposalId={proposalId} canEdit={isAdmin} />}
           </TabsContent>
 
 
@@ -1019,7 +1030,7 @@ export function BudgetPortalSheet({
           <BudgetValidationDialog proposalId={proposalId} open={validationOpen} onOpenChange={setValidationOpen} />
         </Tabs>
 
-      </div>
+
 
       {/* Participant Budget Dialog */}
       <Dialog open={!!editingParticipantId} onOpenChange={(open) => { if (!open) { setEditingParticipantId(null); refetchBudgetRows(); } }}>
@@ -1065,6 +1076,7 @@ export function BudgetPortalSheet({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PartAPageLayout>
+
   );
 }

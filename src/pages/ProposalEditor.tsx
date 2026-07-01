@@ -1,4 +1,5 @@
 import { Header } from "@/components/Header";
+import { getCaseTypePrefix } from "@/lib/caseTypeLabels";
 import { StorageImage } from "@/components/StorageImage";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SectionNavigator } from "@/components/SectionNavigator";
@@ -12,14 +13,13 @@ import { BudgetPortalSheet } from "@/components/BudgetPortalSheet";
 import { BudgetParticipantForm } from "@/components/BudgetParticipantForm";
 import { EthicsForm } from "@/components/EthicsForm";
 import { OtherQuestionsForm } from "@/components/OtherQuestionsForm";
-import { DeclarationsForm } from "@/components/DeclarationsForm";
 import { FigureManager } from "@/components/FigureManager";
-import { SectionProgressDashboard } from "@/components/SectionProgressDashboard";
 import { WPDraftEditor } from "@/components/WPDraftEditor";
 import { WPManagementCard } from "@/components/WPManagementCard";
 import { SaveIndicator } from "@/components/SaveIndicator";
 
 import { CaseManagementCard } from "@/components/CaseManagementCard";
+import { ProposalMilestonesRisksManager } from "@/components/ProposalMilestonesRisksManager";
 import { CaseDraftEditor } from "@/components/CaseDraftEditor";
 import { WPProgressTracker } from "@/components/WPProgressTracker";
 import { AvailabilityGantt } from "@/components/AvailabilityGantt";
@@ -28,13 +28,14 @@ import { ProposalTaskAllocator } from "@/components/ProposalTaskAllocator";
 import { ProposalProgressTracker } from "@/components/ProposalProgressTracker";
 import { WorkloadDashboard } from "@/components/WorkloadDashboard";
 import { ProposalBackupsPanel } from "@/components/ProposalBackupsPanel";
+import { ProposalSnapshotsPanel } from "@/components/ProposalSnapshotsPanel";
 import { PanelEvaluator } from "@/components/PanelEvaluator";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { DuplicateProposalDialog } from "@/components/DuplicateProposalDialog";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -113,7 +114,7 @@ export function ProposalEditor() {
   const [activeSection, setActiveSection] = useState<Section | WPSection | CaseSection | null>(null);
   const [selectedParticipantId, setSelectedParticipantId] = useState<string | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [isDuplicateOpen, setIsDuplicateOpen] = useState(false);
+  
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isAddParticipantOpen, setIsAddParticipantOpen] = useState(false);
   const [isSubmitConfirmOpen, setIsSubmitConfirmOpen] = useState(false);
@@ -149,7 +150,7 @@ export function ProposalEditor() {
   // Budget data
   const {
     budgetItems,
-    budgetChanges,
+    
     saving: budgetSaving,
     addBudgetItem,
     updateBudgetItem,
@@ -217,7 +218,7 @@ export function ProposalEditor() {
       if (!id) return [];
       const { data, error } = await supabase
         .from('case_drafts')
-        .select('id, number, short_name, lead_participant_id, color, case_type, custom_type_name')
+        .select('id, number, short_name, lead_participant_id, color, case_type, case_type_id, custom_type_name')
         .eq('proposal_id', id)
         .order('number');
       if (error) throw error;
@@ -226,39 +227,46 @@ export function ProposalEditor() {
     enabled: !!id && !!proposal?.casesEnabled,
   });
 
-  // Helper to get case prefix
-  const getCasePrefix = (caseType: string, customTypeName: string | null): string => {
-    if (caseType === 'other') {
-      return customTypeName ? customTypeName.toUpperCase() : '';
-    }
-    switch (caseType) {
-      case 'case_study': return 'CS';
-      case 'use_case': return 'UC';
-      case 'living_lab': return 'LL';
-      case 'pilot': return 'P';
-      case 'demonstration': return 'D';
-      default: return '';
-    }
-  };
+  const { data: caseTypeFlagsData = [] } = useQuery({
+    queryKey: ['proposal-case-types-flags', id],
+    queryFn: async () => {
+      if (!id) return [];
+      const { data, error } = await supabase
+        .from('proposal_case_types')
+        .select('id, include_number, include_abbreviation, outline_color')
+        .eq('proposal_id', id);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!id,
+  });
+
+  // Case prefix resolution lives in @/lib/caseTypeLabels.
 
   // Compute Case leadership mapping: participantId -> Cases they lead
   const caseLeadership = useMemo(() => {
+    const typeById = new Map(caseTypeFlagsData.map((t: any) => [t.id, t]));
     const mapping: Record<string, CaseLeadershipInfo[]> = {};
-    for (const c of caseLeadershipData) {
+    for (const c of caseLeadershipData as any[]) {
       if (c.lead_participant_id) {
         if (!mapping[c.lead_participant_id]) {
           mapping[c.lead_participant_id] = [];
         }
+        const t = c.case_type_id ? (typeById.get(c.case_type_id) as any) : null;
         mapping[c.lead_participant_id].push({
           caseNumber: c.number,
-          color: c.color,
+          color: t?.outline_color || c.color,
           shortName: c.short_name || undefined,
-          prefix: getCasePrefix(c.case_type, c.custom_type_name),
+          prefix: getCaseTypePrefix(c.case_type, c.custom_type_name),
+          includeNumber: t?.include_number !== false,
+          includeAbbreviation: t?.include_abbreviation !== false,
+          outlineColor: t?.outline_color || '#000000',
         });
       }
     }
     return mapping;
-  }, [caseLeadershipData]);
+  }, [caseLeadershipData, caseTypeFlagsData]);
+
 
   // Helper to find section by id
   const findSectionById = useCallback((sections: Section[], targetId: string): Section | undefined => {
@@ -430,48 +438,9 @@ export function ProposalEditor() {
     }
   };
 
-  const handleDuplicateProposal = async (newAcronym: string, newTitle: string) => {
-    if (!proposal || !id) return;
-    
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        toast.error('You must be logged in to duplicate a proposal');
-        return;
-      }
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/duplicate-proposal`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            proposalId: id,
-            newAcronym,
-            newTitle,
-          }),
-        }
-      );
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to duplicate proposal');
-      }
-
-      toast.success(`Proposal "${newAcronym}" created as a draft. Redirecting...`);
-      setTimeout(() => navigate('/dashboard'), 1500);
-    } catch (error) {
-      console.error('Error duplicating proposal:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to duplicate proposal');
-    }
-  };
-
-  // Render the appropriate content based on section
+  // Render the appropriate content based on section.
+  // Uses a dispatch map (static IDs) + prefix table (dynamic IDs) instead of a long if/else chain.
   const renderContent = () => {
     if (loading) {
       return (
@@ -501,30 +470,84 @@ export function ProposalEditor() {
       );
     }
 
-    // Proposal management tools
-    if (activeSection.id === 'messaging') {
-      return (
+    // Default DocumentEditor for Part A unknown sections (no proposalTitle / topicUrl)
+    const renderPartADefault = () => (
+      <DocumentEditor
+        section={activeSection}
+        proposalId={id || ''}
+        proposalAcronym={proposal?.acronym || ''}
+        proposalType={proposal?.type}
+        topicTitle={proposal?.topicTitle}
+        readOnly={!canEdit}
+        submissionStage={proposal?.submissionStage}
+        topicId={proposal?.topicId}
+        workProgramme={proposal?.workProgramme}
+        destination={proposal?.destination}
+        allSections={allSections}
+        acronymSegments={(proposal as any)?.acronymSegments}
+        openPanel={openPanel}
+      />
+    );
+
+    // Default DocumentEditor for Part B leaf sections (b1-1, b2-1, b3-1, …)
+    const renderPartBDefault = () => (
+      <DocumentEditor
+        section={activeSection}
+        proposalId={id || ''}
+        proposalAcronym={proposal?.acronym || ''}
+        proposalTitle={proposal?.title}
+        proposalType={proposal?.type}
+        topicTitle={proposal?.topicTitle}
+        readOnly={!canEdit}
+        submissionStage={proposal?.submissionStage}
+        topicId={proposal?.topicId}
+        topicUrl={proposal?.topicUrl}
+        workProgramme={proposal?.workProgramme}
+        destination={proposal?.destination}
+        allSections={allSections}
+        acronymSegments={(proposal as any)?.acronymSegments}
+        openPanel={openPanel}
+      />
+    );
+
+    type Renderer = () => React.ReactNode;
+
+    // ── Static dispatch: exact ID → component ────────────────────────────────
+    const staticDispatch: Record<string, Renderer> = {
+      'messaging': () => (
         <div className="flex-1 overflow-y-auto">
           <ProposalMessagingBoard proposalId={id || ''} isCoordinator={isCoordinator} />
         </div>
-      );
-    }
-    if (activeSection.id === 'backups') {
-      if (!isCoordinator) {
+      ),
+      'backups': () => {
+        if (!isCoordinator) {
+          return (
+            <div className="flex-1 flex items-center justify-center text-muted-foreground">
+              Backups are only visible to coordinators &amp; admins.
+            </div>
+          );
+        }
         return (
-          <div className="flex-1 flex items-center justify-center text-muted-foreground">
-            Backups are only visible to coordinators &amp; admins.
+          <div className="flex-1 overflow-y-auto">
+            <ProposalBackupsPanel proposalId={id || ''} />
           </div>
         );
-      }
-      return (
-        <div className="flex-1 overflow-y-auto">
-          <ProposalBackupsPanel proposalId={id || ''} />
-        </div>
-      );
-    }
-    if (activeSection.id === 'task-allocator') {
-      return (
+      },
+      'snapshots': () => {
+        if (!isCoordinator) {
+          return (
+            <div className="flex-1 flex items-center justify-center text-muted-foreground">
+              Snapshots &amp; restore are only available to coordinators &amp; admins.
+            </div>
+          );
+        }
+        return (
+          <div className="flex-1 overflow-y-auto">
+            <ProposalSnapshotsPanel proposalId={id || ''} />
+          </div>
+        );
+      },
+      'task-allocator': () => (
         <div className="flex-1 overflow-y-auto p-6 bg-muted/30">
           <div className="max-w-7xl mx-auto space-y-6">
             <h1 className="text-xl font-bold text-foreground">Assignments & Workload</h1>
@@ -542,10 +565,8 @@ export function ProposalEditor() {
             </Tabs>
           </div>
         </div>
-      );
-    }
-    if (activeSection.id === 'part-b') {
-      return (
+      ),
+      'part-b': () => (
         <div className="flex-1 overflow-y-auto p-6 bg-muted/30">
           <div className="max-w-7xl mx-auto space-y-6">
             <div className="flex items-center justify-between">
@@ -568,10 +589,8 @@ export function ProposalEditor() {
             {isCoordinator && <PanelEvaluator proposalId={id || ''} />}
           </div>
         </div>
-      );
-    }
-    if (activeSection.id === 'progress-tracker') {
-      return (
+      ),
+      'progress-tracker': () => (
         <div className="flex-1 overflow-y-auto">
           <ProposalProgressTracker
             proposalId={id || ''}
@@ -587,23 +606,19 @@ export function ProposalEditor() {
             }}
           />
         </div>
-      );
-    }
-    if (activeSection.id === 'availability') {
-      const proposalStart = proposal?.createdAt ? new Date(proposal.createdAt) : new Date();
-      const proposalEnd = proposal?.deadline ? new Date(proposal.deadline) : addDays(proposalStart, 90);
-      return (
-        <AvailabilityGantt
-          proposalId={id || ''}
-          startDate={proposalStart}
-          endDate={proposalEnd}
-        />
-      );
-    }
-
-    // Topic Information page
-    if (activeSection.id === 'topic-info') {
-      return (
+      ),
+      'availability': () => {
+        const proposalStart = proposal?.createdAt ? new Date(proposal.createdAt) : new Date();
+        const proposalEnd = proposal?.deadline ? new Date(proposal.deadline) : addDays(proposalStart, 90);
+        return (
+          <AvailabilityGantt
+            proposalId={id || ''}
+            startDate={proposalStart}
+            endDate={proposalEnd}
+          />
+        );
+      },
+      'topic-info': () => (
         <div className="flex-1 overflow-y-auto">
           <TopicInformationPage
             proposalId={id || ''}
@@ -622,50 +637,38 @@ export function ProposalEditor() {
             }))}
           />
         </div>
-      );
-    }
-
-    // Part A sections
-    if (activeSection.isPartA) {
-      // A1 - General Information (form-based) - matches "a1"
-      // Only admins/owners can edit A1, but all users can view it
-      if (activeSection.id === 'a1' || activeSection.id === 'general-info') {
-        return (
-          <div className="flex-1 overflow-y-auto">
-            <GeneralInfoForm
-              proposalId={id || ''}
-              proposal={proposal ? {
-                ...proposal,
-                members: [],
-                sections: allSections,
-              } : null}
-              section={activeSection}
-              canEdit={canEdit && isCoordinator}
-              isCoordinator={isCoordinator}
-              onUpdateProposal={updateProposal}
-              participants={participants}
-              budgetItems={budgetItems.map((b) => ({
-                amount: b.amount,
-                participantId: b.participantId,
-              }))}
-              onExport={handleExport}
-              onStatusChange={handleStatusChangeRequest}
-              updatingStatus={updatingStatus}
-              canChangeStatus={isGlobalOwner || isCoordinator}
-            />
-          </div>
-        );
-      }
-
-      // A2 - Participants (list or detail view) - matches "a2" or "a2-{participantId}"
-      if (activeSection.id === 'a2' || activeSection.id === 'participants') {
-        // Check if a specific participant is selected (from navigation or state)
+      ),
+      'a1': () => (
+        <div className="flex-1 overflow-y-auto">
+          <GeneralInfoForm
+            proposalId={id || ''}
+            proposal={proposal ? {
+              ...proposal,
+              members: [],
+              sections: allSections,
+            } : null}
+            section={activeSection}
+            canEdit={canEdit && isCoordinator}
+            isCoordinator={isCoordinator}
+            onUpdateProposal={updateProposal}
+            participants={participants}
+            budgetItems={budgetItems.map((b) => ({
+              amount: b.amount,
+              participantId: b.participantId,
+            }))}
+            onExport={handleExport}
+            onStatusChange={handleStatusChangeRequest}
+            updatingStatus={updatingStatus}
+            canChangeStatus={isGlobalOwner || isCoordinator}
+          />
+        </div>
+      ),
+      'a2': () => {
+        // Specific participant selected → detail view
         if (selectedParticipantId) {
           const selectedParticipant = participants.find(p => p.id === selectedParticipantId);
           if (selectedParticipant) {
-            // Admins/Owners can edit any participant, members can edit their own
             const canEditThisParticipant = canEdit;
-            
             return (
               <div className="flex-1 overflow-y-auto">
                 <ParticipantDetailForm
@@ -699,7 +702,6 @@ export function ProposalEditor() {
 
         // All users with proposal access can see all participants
         const visibleParticipants = participants;
-
         return (
           <div className="flex-1 overflow-y-auto">
             <ParticipantListView
@@ -729,16 +731,130 @@ export function ProposalEditor() {
             />
           </div>
         );
-      }
+      },
+      'a3': () => {
+        return (
+        <div className="flex-1 overflow-y-auto">
+          <BudgetPortalSheet
+            proposalId={id || ''}
+            proposalType={proposal?.type || null}
+            canEdit={canEdit}
+            isCoordinator={isCoordinator}
+            usesFstp={proposal?.usesFstp}
+            fstpType={(proposal as any)?.fstpType || 'grant'}
+            proposalAcronym={proposal?.acronym || ''}
+            onNavigateToParticipantBudget={(participantId) => {
+              handleSectionClick({ id: `a3-${participantId}`, title: 'Budget', isPartA: true } as any);
+            }}
+          />
+        </div>
+        );
+      },
+      'a4': () => (
+        <div className="flex-1 overflow-y-auto">
+          <EthicsForm
+            ethics={ethics}
+            onUpdateEthics={updateEthics}
+            canEdit={canEdit}
+          />
+        </div>
+      ),
+      'a5': () => (
+        <div className="flex-1 overflow-y-auto">
+          <OtherQuestionsForm
+            proposalId={id || ''}
+            isTwoStageSecondStage={proposal?.isTwoStageSecondStage}
+            canEdit={canEdit}
+          />
+        </div>
+      ),
+      'figures': () => {
+        // Extract Part B leaf sections for figures
+        const getPartBLeafSections = (sections: Section[]): { id: string; number: string; label: string }[] => {
+          const result: { id: string; number: string; label: string }[] = [];
+          const traverse = (section: Section) => {
+            if (section.isPartA || section.id === 'figures') return;
+            const hasContentSubsections = section.subsections?.some(sub =>
+              sub.number && sub.number.match(/^B?\d+\.\d+/)
+            );
+            if (hasContentSubsections) {
+              section.subsections?.forEach(traverse);
+            } else if (section.number && section.number.match(/^B?\d+\.\d+/)) {
+              const internalId = section.number.replace(/^B/, '');
+              result.push({
+                id: internalId,
+                number: section.number.startsWith('B') ? section.number : `B${section.number}`,
+                label: section.title,
+              });
+            } else if (section.subsections) {
+              section.subsections.forEach(traverse);
+            }
+          };
+          sections.forEach(traverse);
+          return result;
+        };
+        const partBSections = getPartBLeafSections(allSections);
+        return (
+          <div className="flex-1 overflow-y-auto">
+            <FigureManager
+              proposalId={id || ''}
+              canEdit={canEdit}
+              availableSections={partBSections}
+            />
+          </div>
+        );
+      },
+      'wp-drafts': () => {
+        const handleToggleCases = async (enabled: boolean) => {
+          await supabase
+            .from('proposals')
+            .update({ cases_enabled: enabled })
+            .eq('id', id);
+          await refreshProposal();
+        };
+        return (
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            <div className="space-y-2">
+              <h1 className="text-xl font-bold text-foreground">{allSections.find(s => s.id === 'wp-drafts')?.title || 'Work packages'}</h1>
+              <div className="flex items-center gap-3">
+                <SaveIndicator saving={false} lastSaved={managerLastSaved} onSaveNow={handleManagerSaveEvent} />
+              </div>
+            </div>
+            <WPManagementCard
+              proposalId={id || ''}
+              isCoordinator={canEdit && isCoordinator}
+              isFullProposal={proposal?.submissionStage !== 'stage_1'}
+              onDraftVisibilityChange={refreshProposal}
+              onSaveEvent={handleManagerSaveEvent}
+            />
+            <CaseManagementCard
+              proposalId={id || ''}
+              isCoordinator={canEdit && isCoordinator}
+              casesEnabled={proposal?.casesEnabled || false}
+              onToggleCases={handleToggleCases}
+              onSaveEvent={handleManagerSaveEvent}
+            />
+          </div>
+        );
+      },
+      'milestones-risks': () => (
+        <div className="flex-1 overflow-y-auto">
+          <ProposalMilestonesRisksManager proposalId={id || ''} canEdit={canEdit} projectDuration={proposal?.duration || 36} />
+        </div>
+      ),
+    };
 
-      // Handle specific participant section (a2-{id})
-      if (activeSection.id.startsWith('a2-')) {
-        const participantId = activeSection.id.replace('a2-', '');
-        const participant = participants.find(p => p.id === participantId);
-        
-        if (participant) {
+
+    // ── Prefix dispatch: ID startsWith → component (returning null falls through) ─
+    type PrefixHandler = { prefix: string; render: (sectionId: string) => React.ReactNode };
+    const prefixDispatch: PrefixHandler[] = [
+      {
+        prefix: 'a2-',
+        render: (sid) => {
+          const participantId = sid.replace('a2-', '');
+          const participant = participants.find(p => p.id === participantId);
+          if (!participant) return null; // fall through to Part A default
           const canEditThisParticipant = canEdit;
-          
           return (
             <div className="flex-1 overflow-y-auto">
               <ParticipantDetailForm
@@ -753,7 +869,7 @@ export function ProposalEditor() {
                 onUpdateParticipant={updateParticipant}
                 onDeleteParticipant={(id) => {
                   deleteParticipant(id);
-                  const a2Section = allSections.find(s => s.id === 'a2') || 
+                  const a2Section = allSections.find(s => s.id === 'a2') ||
                     allSections.flatMap(s => s.subsections || []).find(s => s.id === 'a2');
                   if (a2Section) setActiveSection(a2Section);
                 }}
@@ -762,7 +878,6 @@ export function ProposalEditor() {
                 onDeleteMember={deleteParticipantMember}
                 canEdit={canEditThisParticipant}
                 canDelete={canEdit}
-                
                 canGrant={isGlobalOwner || isCoordinator}
                 proposalId={id}
                 proposalAcronym={proposal?.acronym}
@@ -770,245 +885,79 @@ export function ProposalEditor() {
               />
             </div>
           );
-        }
-      }
-
-      // Handle specific participant budget section (a3-{id})
-      if (activeSection.id.startsWith('a3-')) {
-        const participantId = activeSection.id.replace('a3-', '');
-        return (
-          <div className="flex-1 overflow-y-auto">
-            <BudgetParticipantForm
-              proposalId={id || ''}
-              participantId={participantId}
-              proposalType={proposal?.type || null}
-              canEdit={canEdit}
-              isCoordinator={isCoordinator}
-            />
-          </div>
-        );
-      }
-
-      // A3 - Budget (overview) - matches "a3"
-      if (activeSection.id === 'a3' || activeSection.id === 'budget') {
-        return (
-          <div className="flex-1 overflow-y-auto">
-            <BudgetPortalSheet
-              proposalId={id || ''}
-              proposalType={proposal?.type || null}
-              canEdit={canEdit}
-              isCoordinator={isCoordinator}
-              usesFstp={proposal?.usesFstp}
-              fstpType={(proposal as any)?.fstpType || 'grant'}
-              proposalAcronym={proposal?.acronym || ''}
-              onNavigateToParticipantBudget={(participantId) => {
-                handleSectionClick({ id: `a3-${participantId}`, title: 'Budget', isPartA: true } as any);
-              }}
-            />
-          </div>
-        );
-      }
-
-      // A4 - Ethics & Security (form) - matches "a4"
-      if (activeSection.id === 'a4' || activeSection.id === 'ethics') {
-        return (
-          <div className="flex-1 overflow-y-auto">
-            <EthicsForm
-              ethics={ethics}
-              onUpdateEthics={updateEthics}
-              canEdit={canEdit}
-            />
-          </div>
-        );
-      }
-
-      // A5 - Other Questions (form) - matches "a5"
-      if (activeSection.id === 'a5' || activeSection.id === 'other-questions') {
-        return (
-          <div className="flex-1 overflow-y-auto">
-            <OtherQuestionsForm
-              proposalId={id || ''}
-              isTwoStageSecondStage={proposal?.isTwoStageSecondStage}
-              canEdit={canEdit}
-            />
-          </div>
-        );
-      }
-
-
-      // Default Part A fallback
-      return (
-        <DocumentEditor
-          section={activeSection}
-          proposalId={id || ''}
-          proposalAcronym={proposal?.acronym || ''}
-          proposalType={proposal?.type}
-          topicTitle={proposal?.topicTitle}
-          readOnly={!canEdit}
-          submissionStage={proposal?.submissionStage}
-          topicId={proposal?.topicId}
-          workProgramme={proposal?.workProgramme}
-          destination={proposal?.destination}
-          allSections={allSections}
-          acronymSegments={(proposal as any)?.acronymSegments}
-          openPanel={openPanel}
-        />
-      );
-    }
-
-    // Figures section
-    if (activeSection.id === 'figures') {
-      // Extract Part B leaf sections for figures (sections with actual content, not container sections)
-      const getPartBLeafSections = (sections: Section[]): { id: string; number: string; label: string }[] => {
-        const result: { id: string; number: string; label: string }[] = [];
-        
-        const traverse = (section: Section) => {
-          // Skip Part A sections, figures section itself, and container sections like "Part B", "B1", "B2"
-          if (section.isPartA || section.id === 'figures') return;
-          
-          // If this section has subsections that are content sections, it's a container - skip it but process children
-          const hasContentSubsections = section.subsections?.some(sub => 
-            sub.number && sub.number.match(/^B?\d+\.\d+/)
-          );
-          
-          if (hasContentSubsections) {
-            section.subsections?.forEach(traverse);
-          } else if (section.number && section.number.match(/^B?\d+\.\d+/)) {
-            // This is a leaf content section (e.g., B1.1, B2.1)
-            // Convert section number like "B1.1" to internal ID like "1.1"
-            const internalId = section.number.replace(/^B/, '');
-            result.push({
-              id: internalId,
-              number: section.number.startsWith('B') ? section.number : `B${section.number}`,
-              label: section.title,
-            });
-          } else if (section.subsections) {
-            // Container without matching number pattern, traverse children
-            section.subsections.forEach(traverse);
-          }
-        };
-        
-        sections.forEach(traverse);
-        return result;
-      };
-      
-      const partBSections = getPartBLeafSections(allSections);
-      
-      return (
-        <div className="flex-1 overflow-y-auto">
-          <FigureManager
-            proposalId={id || ''}
-            canEdit={canEdit}
-            availableSections={partBSections}
-          />
-        </div>
-      );
-    }
-
-    // Assignments section (legacy fallback)
-    if (activeSection.id === 'assignments') {
-      return (
-        <div className="flex-1 overflow-y-auto">
-          <SectionProgressDashboard
-            proposalId={id || ''}
-            proposalAcronym={proposal?.acronym}
-            currentUserId={user?.id}
-          />
-        </div>
-      );
-    }
-
-    // WP Drafts container section
-    if (activeSection.id === 'wp-drafts') {
-      const handleToggleCases = async (enabled: boolean) => {
-        await supabase
-          .from('proposals')
-          .update({ cases_enabled: enabled })
-          .eq('id', id);
-        await refreshProposal();
-      };
-      
-      return (
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          <div className="space-y-2">
-            <h1 className="text-xl font-bold text-foreground">WP/case manager & drafts</h1>
-            <div className="flex items-center gap-3">
-              <SaveIndicator saving={false} lastSaved={managerLastSaved} onSaveNow={handleManagerSaveEvent} />
+        },
+      },
+      {
+        prefix: 'a3-',
+        render: (sid) => {
+          const participantId = sid.replace('a3-', '');
+          return (
+            <div className="flex-1 overflow-y-auto">
+              <BudgetParticipantForm
+                proposalId={id || ''}
+                participantId={participantId}
+                proposalType={proposal?.type || null}
+                canEdit={canEdit}
+                isCoordinator={isCoordinator}
+              />
             </div>
-          </div>
-          <WPManagementCard
-            proposalId={id || ''}
-            isCoordinator={canEdit}
-            isFullProposal={proposal?.submissionStage !== 'stage_1'}
-            onDraftVisibilityChange={refreshProposal}
-            onSaveEvent={handleManagerSaveEvent}
-          />
-          <CaseManagementCard
-            proposalId={id || ''}
-            isCoordinator={canEdit && isCoordinator}
-            casesEnabled={proposal?.casesEnabled || false}
-            onToggleCases={handleToggleCases}
-            onSaveEvent={handleManagerSaveEvent}
-          />
-        </div>
-      );
+          );
+        },
+      },
+      {
+        prefix: 'case-',
+        render: () => {
+          const caseSection = activeSection as CaseSection;
+          if (!caseSection.caseId) return null;
+          return (
+            <div className="flex-1 overflow-y-auto">
+              <CaseDraftEditor
+                caseId={caseSection.caseId}
+                proposalId={id || ''}
+                canEdit={canEdit}
+                isCoordinator={isCoordinator}
+              />
+            </div>
+          );
+        },
+      },
+      {
+        prefix: 'wp-',
+        render: () => {
+          const wpSection = activeSection as WPSection;
+          if (!wpSection.wpId) return null;
+          return (
+            <div className="flex-1 overflow-y-auto">
+              <WPDraftEditor
+                wpId={wpSection.wpId}
+                proposalId={id || ''}
+                canEdit={canEdit}
+                isCoordinator={isCoordinator}
+                projectDuration={proposal?.duration || 36}
+              />
+            </div>
+          );
+        },
+      },
+    ];
+
+    const sectionId = activeSection.id;
+
+    // 1. Static dispatch (exact ID match)
+    const staticEntry = staticDispatch[sectionId];
+    if (staticEntry) return staticEntry();
+
+    // 2. Prefix dispatch (dynamic IDs)
+    for (const { prefix, render } of prefixDispatch) {
+      if (sectionId.startsWith(prefix)) {
+        const result = render(sectionId);
+        if (result !== null && result !== undefined) return result;
+      }
     }
 
-
-    // Individual Case Draft (case-{uuid})
-    const caseSection = activeSection as CaseSection;
-    if (activeSection.id.startsWith('case-') && caseSection.caseId) {
-      return (
-        <div className="flex-1 overflow-y-auto">
-          <CaseDraftEditor
-            caseId={caseSection.caseId}
-            proposalId={id || ''}
-            canEdit={canEdit}
-            isCoordinator={isCoordinator}
-          />
-        </div>
-      );
-    }
-
-    // Individual WP Draft editor (wp-{uuid})
-    const wpSection = activeSection as WPSection;
-    if (activeSection.id.startsWith('wp-') && wpSection.wpId) {
-      return (
-        <div className="flex-1 overflow-y-auto">
-          <WPDraftEditor
-            wpId={wpSection.wpId}
-            proposalId={id || ''}
-            canEdit={canEdit}
-            isCoordinator={isCoordinator}
-            projectDuration={proposal?.duration || 36}
-          />
-        </div>
-      );
-    }
-
-    // Part B, B1, B2 are collapsible headings - navigation redirects to first child
-
-    // Part B document sections - use rich text editor
-    // Matches: "b1-1", "b1-2", "b2-1", etc.
-    return (
-      <DocumentEditor
-        section={activeSection}
-        proposalId={id || ''}
-        proposalAcronym={proposal?.acronym || ''}
-        proposalTitle={proposal?.title}
-        proposalType={proposal?.type}
-        topicTitle={proposal?.topicTitle}
-        readOnly={!canEdit}
-        submissionStage={proposal?.submissionStage}
-        topicId={proposal?.topicId}
-        topicUrl={proposal?.topicUrl}
-        workProgramme={proposal?.workProgramme}
-        destination={proposal?.destination}
-        allSections={allSections}
-        acronymSegments={(proposal as any)?.acronymSegments}
-        openPanel={openPanel}
-      />
-    );
+    // 3. Default fallback: Part A → Part A DocumentEditor; otherwise Part B DocumentEditor
+    if (activeSection.isPartA) return renderPartADefault();
+    return renderPartBDefault();
   };
 
   // Get work programme and destination info
@@ -1098,7 +1047,7 @@ export function ProposalEditor() {
   const StatusIcon = statusInfo.icon;
 
   return (
-    <div className="h-screen bg-background flex flex-col overflow-hidden">
+    <div className="h-dvh bg-background flex flex-col overflow-hidden">
       <Header />
       {/* Proposal Top Bar */}
       <header className="h-10 border-b border-border bg-card/80 backdrop-blur-sm sticky top-10 z-40">
@@ -1282,19 +1231,6 @@ export function ProposalEditor() {
 
       {/* Version History is now section-specific in DocumentEditor */}
 
-      {/* Duplicate Proposal Dialog */}
-      {proposal && (
-        <DuplicateProposalDialog
-          isOpen={isDuplicateOpen}
-          onClose={() => setIsDuplicateOpen(false)}
-          proposal={{
-            ...proposal,
-            members: [],
-            sections: allSections,
-          }}
-          onDuplicate={handleDuplicateProposal}
-        />
-      )}
 
       {/* Submission Confirmation Dialog */}
       <AlertDialog open={isSubmitConfirmOpen} onOpenChange={setIsSubmitConfirmOpen}>

@@ -1,0 +1,1 @@
+ALTER TABLE public.evaluation_cost_log ADD COLUMN IF NOT EXISTS cache_write_tokens bigint;

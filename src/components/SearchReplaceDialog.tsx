@@ -360,7 +360,7 @@ export function SearchReplaceDialog({ isOpen, onClose, editor }: SearchReplaceDi
             </div>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" size="icon" className="h-8 w-8" onClick={goToPrevMatch} disabled={matches.length === 0}>
+                <Button variant="outline" size="icon" className="h-8 w-8" onClick={goToPrevMatch} disabled={matches.length === 0} aria-label="Move up" title="Move up">
                   <ChevronUp className="w-3.5 h-3.5" />
                 </Button>
               </TooltipTrigger>
@@ -368,7 +368,7 @@ export function SearchReplaceDialog({ isOpen, onClose, editor }: SearchReplaceDi
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" size="icon" className="h-8 w-8" onClick={goToNextMatch} disabled={matches.length === 0}>
+                <Button variant="outline" size="icon" className="h-8 w-8" onClick={goToNextMatch} disabled={matches.length === 0} aria-label="Move down" title="Move down">
                   <ChevronDown className="w-3.5 h-3.5" />
                 </Button>
               </TooltipTrigger>
