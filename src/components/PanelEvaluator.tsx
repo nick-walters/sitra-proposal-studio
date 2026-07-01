@@ -211,6 +211,9 @@ export function PanelEvaluator({ proposalId }: Props) {
   const [haikuModel, setHaikuModel] = useState<string | null>(null);
 
   const [selectedPersonaIds, setSelectedPersonaIds] = useState<Set<string>>(new Set());
+  // ID of a persisted status='panel_proposed' row (Stage A result stored so
+  // navigating away / reloading before Start doesn't discard the paid Haiku panel).
+  const [panelProposedRowId, setPanelProposedRowId] = useState<string | null>(null);
   // Filter as a Set: empty = "All" mode
   const [activeAreaFilters, setActiveAreaFilters] = useState<Set<string>>(new Set());
 
@@ -461,6 +464,41 @@ export function PanelEvaluator({ proposalId }: Props) {
           ((runningEval.analysis_data ?? {}) as Record<string, any>).progress_message || "",
         );
         startPolling(runningEval.id, (runningEval as any).created_at ?? null);
+      } else {
+        // No in-flight run — try to rehydrate a stored panel_proposed row so
+        // returning to Part B after Stage A doesn't force a paid Haiku re-run.
+        const { data: proposedRow } = await supabase
+          .from("proposal_analyses")
+          .select("id, analysis_data, proposal_stage, budget_type_used, eligibility_flags")
+          .eq("proposal_id", proposalId)
+          .eq("status", "panel_proposed")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (proposedRow?.id) {
+          const ad = (proposedRow.analysis_data ?? {}) as Record<string, any>;
+          setPanelProposedRowId(proposedRow.id);
+          setEligibilityFlags(
+            (ad.eligibility_flags as unknown as EligibilityFlag[]) ??
+              (proposedRow.eligibility_flags as unknown as EligibilityFlag[]) ??
+              [],
+          );
+          setProposedPanel((ad.proposed_panel as unknown as ProposedEvaluator[]) ?? []);
+          setAllPersonas((ad.all_personas as unknown as Persona[]) ?? []);
+          setHaikuUsage(ad.haiku_usage ?? null);
+          setHaikuModel(ad.haiku_model ?? null);
+          if (Array.isArray(ad.selected_persona_ids)) {
+            setSelectedPersonaIds(new Set(ad.selected_persona_ids as string[]));
+          }
+          if (typeof ad.instrument_code === "string") setInstrumentCode(ad.instrument_code);
+          if (proposedRow.proposal_stage === "stage1" || proposedRow.proposal_stage === "full") {
+            setProposalStage(proposedRow.proposal_stage as "full" | "stage1");
+          }
+          if (proposedRow.budget_type_used === "lump_sum" || proposedRow.budget_type_used === "traditional") {
+            setBudgetType(proposedRow.budget_type_used);
+          }
+          setStage("panelReview");
+        }
       }
 
     })();
@@ -613,6 +651,49 @@ export function PanelEvaluator({ proposalId }: Props) {
         }
       });
       setSelectedPersonaIds(preselected);
+
+      // Persist the proposed panel so a reload / tab-switch before Start
+      // doesn't discard the (paid) Haiku Stage A output.
+      try {
+        // Clear any prior panel_proposed rows for this proposal — only one active proposal at a time.
+        await supabase
+          .from("proposal_analyses")
+          .delete()
+          .eq("proposal_id", proposalId)
+          .eq("status", "panel_proposed");
+        const { data: userData } = await supabase.auth.getUser();
+        const uid = userData?.user?.id;
+        if (uid) {
+          const { data: inserted } = await supabase
+            .from("proposal_analyses")
+            .insert({
+              proposal_id: proposalId,
+              created_by: uid,
+              status: "panel_proposed",
+              proposal_stage: proposalStage,
+              budget_type_used: proposalStage === "stage1" ? null : budgetType,
+              eligibility_flags: data.eligibility_flags ?? [],
+              analysis_data: {
+                eligibility_flags: data.eligibility_flags ?? [],
+                proposed_panel: data.proposed_panel ?? [],
+                all_personas: data.all_personas ?? [],
+                haiku_usage: data.haiku_usage ?? null,
+                haiku_model: data.haiku_model ?? null,
+                computed_budget: computedBudget,
+                instrument_code: instrumentCode,
+                proposal_stage: proposalStage,
+                budget_type: proposalStage === "stage1" ? null : budgetType,
+                selected_persona_ids: Array.from(preselected),
+              },
+            })
+            .select("id")
+            .single();
+          if (inserted?.id) setPanelProposedRowId(inserted.id);
+        }
+      } catch (persistErr) {
+        console.warn("Failed to persist proposed panel (non-fatal):", persistErr);
+      }
+
       setStage("panelReview");
     } catch (e: any) {
       toast.error(`Stage A failed: ${e.message || e}`);
@@ -708,6 +789,12 @@ export function PanelEvaluator({ proposalId }: Props) {
         if (!data?.evaluationId) throw new Error("Edge function did not return an evaluationId");
 
         toast.info("Evaluation running in background. You can leave this page and return.");
+        // Remove the panel_proposed row now that the real run is queued —
+        // exactly one active row per proposal.
+        if (panelProposedRowId) {
+          await supabase.from("proposal_analyses").delete().eq("id", panelProposedRowId);
+          setPanelProposedRowId(null);
+        }
         startPolling(data.evaluationId, new Date().toISOString());
 
 
@@ -728,7 +815,12 @@ export function PanelEvaluator({ proposalId }: Props) {
 
 
 
-  function cancel() {
+  async function cancel() {
+    // Discard the persisted panel_proposed row so it doesn't rehydrate later.
+    if (panelProposedRowId) {
+      await supabase.from("proposal_analyses").delete().eq("id", panelProposedRowId);
+      setPanelProposedRowId(null);
+    }
     setStage("idle");
     setEligibilityFlags([]);
     setProposedPanel([]);
