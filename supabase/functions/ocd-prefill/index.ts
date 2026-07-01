@@ -172,6 +172,7 @@ serve(async (req) => {
       .from("participants")
       .select("organisation_name, organisation_short_name, pic_number, participant_number")
       .eq("id", participantId)
+      .eq("proposal_id", proposalId)
       .single();
 
     if (participantError || !participant) {
