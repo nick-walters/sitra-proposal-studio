@@ -12,7 +12,13 @@ import { B32MirrorSlotNodeView } from '@/components/B32MirrorSlotNodeView';
  * (Stage 3a: dummy placeholder; Stage 3b: real mirrored content).
  */
 
-export type B32SlotKey = 'capacity' | 'value-chain' | 'international';
+export type B32SlotKey =
+  | 'interdisciplinarity'
+  | 'capacity'
+  | 'infrastructure'
+  | 'value-chain'
+  | 'industrial'
+  | 'international';
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {

@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
  * (marked data-default-subheading="true") are removed and replaced.
  * User-added headings are never touched.
  */
-const SEED_VERSION = 'v4';
+const SEED_VERSION = 'v5';
 
 const DEFAULT_SUBHEADINGS: Record<string, string[]> = {
   'b1-1': [
@@ -86,19 +86,37 @@ export async function seedBSectionSubheadings(
   });
 
   // Always prepend the full canonical list in the declared order.
-  // For B3.2, three of the subheadings get a data-b32-slot-key and a mirror
-  // slot node immediately after the intro <p>. The Interdisciplinarity
-  // heading gets no slot.
-  const B32_SLOT_KEYS: Record<string, 'capacity' | 'value-chain' | 'international'> = {
-    'participants\u2019 capacity, contributions & resources': 'capacity',
-    'value chain coverage & industrial involvement': 'value-chain',
-    'justification of the participation of international organisations & third countries': 'international',
+  // For B3.2, each heading gets a data-b32-slot-key (primary key) plus one or
+  // two mirror-slot nodes immediately after its intro <p>.
+  //   - interdisciplinarity heading → [interdisciplinarity]
+  //   - capacity heading            → [capacity, infrastructure]
+  //   - value-chain heading         → [value-chain, industrial]
+  //   - international heading       → [international]
+  type B32Key =
+    | 'interdisciplinarity'
+    | 'capacity'
+    | 'infrastructure'
+    | 'value-chain'
+    | 'industrial'
+    | 'international';
+  const B32_HEADING_SLOTS: Record<string, { primary: B32Key; keys: B32Key[] }> = {
+    'interdisciplinarity & complementarity of the consortium for addressing the project\u2019s objectives':
+      { primary: 'interdisciplinarity', keys: ['interdisciplinarity'] },
+    'participants\u2019 capacity, contributions & resources':
+      { primary: 'capacity', keys: ['capacity', 'infrastructure'] },
+    'value chain coverage & industrial involvement':
+      { primary: 'value-chain', keys: ['value-chain', 'industrial'] },
+    'justification of the participation of international organisations & third countries':
+      { primary: 'international', keys: ['international'] },
   };
   const headingsHtml = subheadings
     .map((h) => {
-      const key = sectionId === 'b3-2' ? B32_SLOT_KEYS[h.toLowerCase()] : undefined;
-      if (key) {
-        return `<h3 data-default-subheading="true" data-b32-slot-key="${key}">${esc(h)}</h3><p></p><div data-b32-mirror-slot data-b32-slot-key="${key}"></div>`;
+      const cfg = sectionId === 'b3-2' ? B32_HEADING_SLOTS[h.toLowerCase()] : undefined;
+      if (cfg) {
+        const slotsHtml = cfg.keys
+          .map((k) => `<div data-b32-mirror-slot data-b32-slot-key="${k}"></div>`)
+          .join('');
+        return `<h3 data-default-subheading="true" data-b32-slot-key="${cfg.primary}">${esc(h)}</h3><p></p>${slotsHtml}`;
       }
       return `<h3 data-default-subheading="true">${esc(h)}</h3><p></p>`;
     })

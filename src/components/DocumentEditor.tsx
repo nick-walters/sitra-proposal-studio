@@ -81,7 +81,7 @@ import { SplitViewPanel } from "./SplitViewPanel";
 // SectionReviewDialog moved to Part B Evaluate tab
 import { B31DeliverablesTable, B31MilestonesTable, B31RisksTable } from "./B31TablesEditor";
 import { B31SectionContent } from "./B31SectionContent";
-import { B32SectionContent } from "./B32SectionContent";
+
 import { TrackChange } from "@/extensions/TrackChanges";
 // usePageEstimate moved to ExportDialog
 import { EditorZoomBar } from "./EditorZoomBar";
@@ -1160,12 +1160,8 @@ export function DocumentEditor({
     section.number === '3.1' ||
     section.sectionTag === 'b3_1'
   );
-  const isB32Section = !!section && (
-    section.id === 'b3-2' ||
-    section.number === 'B3.2' ||
-    section.number === '3.2' ||
-    section.sectionTag === 'b3_2'
-  );
+  // B3.2 no longer needs a below-editor mount — the expertise matrix renders
+  // inside the interdisciplinarity mirror slot.
 
   // Per-proposal permanent dismiss for the B3.1 informational banner.
   const [b31BannerDismissed, setB31BannerDismissed] = useState<boolean | null>(null);
@@ -1616,9 +1612,8 @@ export function DocumentEditor({
               {isB31Section && (
                 <B31SectionContent proposalId={proposalId} />
               )}
-              {isB32Section && (
-                <B32SectionContent proposalId={proposalId} />
-              )}
+              {/* B3.2 expertise matrix now renders inside the interdisciplinarity
+                  mirror slot (see B32MirrorSlotNodeView). No below-editor mount. */}
               {/* Footnotes */}
               {footnotes.length > 0 && (
                 <div className="mt-8 border-t border-border">
