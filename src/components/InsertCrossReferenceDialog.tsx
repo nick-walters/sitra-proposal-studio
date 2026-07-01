@@ -77,7 +77,7 @@ export function InsertCrossReferenceDialog({
   isOpen,
   onClose,
   proposalId,
-  sectionNumber,
+  
   onInsert,
   filterType,
 }: InsertCrossReferenceDialogProps) {

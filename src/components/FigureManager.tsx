@@ -109,7 +109,7 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
   const queryClient = useQueryClient();
 
   // Fetch figures for this proposal
-  const { data: figures = [], isLoading } = useQuery({
+  const { data: figures = [] } = useQuery({
     queryKey: ['figures', proposalId],
     queryFn: async () => {
       const { data, error } = await supabase
