@@ -498,7 +498,7 @@ export function ParticipantListView({
   const [isAddParticipantDialogOpen, setIsAddParticipantDialogOpen] = useState(false);
   const [isBulkPicOpen, setIsBulkPicOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('participants');
-  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [lastSaved] = useState<Date | null>(null);
   const { roleTier } = useProposalRole(proposalId);
   const isAdmin = roleTier === 'coordinator';
   const ocd = useOCD(proposalId);

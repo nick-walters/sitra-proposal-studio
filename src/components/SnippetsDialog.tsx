@@ -129,7 +129,7 @@ export function SnippetsDialog({
   const [newCategory, setNewCategory] = useState('Custom');
 
   // Fetch user snippets from DB
-  const { data: dbSnippets = [], isLoading } = useQuery({
+  const { data: dbSnippets = [] } = useQuery({
     queryKey: ['snippet-library'],
     queryFn: async () => {
       const { data, error } = await supabase

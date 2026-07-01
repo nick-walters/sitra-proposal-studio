@@ -37,7 +37,7 @@ export function InsertFigureDialog({
   isOpen,
   onClose,
   proposalId,
-  currentSectionId,
+  
   onInsertFigure,
   onInsertFigureImage,
 }: InsertFigureDialogProps) {

@@ -49,7 +49,7 @@ function drawCrop(
 export function AdminAvatarUpload({ userId, avatarUrl, initials, onAvatarChange }: AdminAvatarUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [cropOpen, setCropOpen] = useState(false);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [, setPreviewImage] = useState<string | null>(null);
   const [zoom, setZoom] = useState([1]);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);

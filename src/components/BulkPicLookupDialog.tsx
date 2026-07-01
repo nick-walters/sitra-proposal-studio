@@ -57,7 +57,7 @@ interface LookupResult {
 export function BulkPicLookupDialog({
   isOpen,
   onClose,
-  proposalId,
+  
   existingPics,
   onAddParticipant,
 }: BulkPicLookupDialogProps) {

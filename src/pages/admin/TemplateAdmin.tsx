@@ -39,10 +39,6 @@ export function TemplateAdmin() {
   } = useTemplates();
 
   const [selectedTemplateType, setSelectedTemplateType] = useState<string | null>(null);
-  const [programmeDialogOpen, setProgrammeDialogOpen] = useState(false);
-  const [typeDialogOpen, setTypeDialogOpen] = useState(false);
-  const [editingProgramme, setEditingProgramme] = useState<FundingProgramme | null>(null);
-  const [editingType, setEditingType] = useState<TemplateType | null>(null);
 
   // Redirect non-owners
   useEffect(() => {

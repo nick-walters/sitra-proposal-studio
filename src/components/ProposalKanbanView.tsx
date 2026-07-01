@@ -22,12 +22,6 @@ interface ProposalKanbanViewProps {
   
 }
 
-type KanbanColumnType = 'drafts' | 'submitted';
-
-const KANBAN_COLUMNS: { type: KanbanColumnType; label: string; color: string; bgColor: string; icon: React.ElementType }[] = [
-  { type: 'drafts', label: 'Proposal drafts', color: 'text-yellow-600', bgColor: 'bg-yellow-500/10', icon: Clock },
-  { type: 'submitted', label: 'Submitted proposals', color: 'text-blue-600', bgColor: 'bg-blue-500/10', icon: Send },
-];
 
 // Get combined status/urgency info for drafts
 const getDraftStatusInfo = (deadline: Date | undefined) => {
@@ -62,32 +56,6 @@ const getDraftStatusInfo = (deadline: Date | undefined) => {
   }
 };
 
-// Get status info for submitted proposals
-const getSubmittedStatusInfo = (status: string) => {
-  if (status === 'submitted') {
-    return {
-      label: 'Under evaluation',
-      icon: Send,
-      className: 'bg-orange-500/15 text-orange-600 border border-orange-500/30',
-      sortOrder: 1 // Under evaluation at top
-    };
-  } else if (status === 'funded') {
-    return {
-      label: 'Funded',
-      icon: Trophy,
-      className: 'bg-white text-green-600 border border-green-500/30',
-      sortOrder: 2 // Funded in middle
-    };
-  } else if (status === 'not_funded') {
-    return {
-      label: 'Not funded',
-      icon: XCircle,
-      className: 'bg-white text-red-600 border border-red-500/30',
-      sortOrder: 3 // Not funded at bottom
-    };
-  }
-  return { sortOrder: 4 };
-};
 
 export function ProposalKanbanView({ proposals, onProposalClick }: ProposalKanbanViewProps) {
   // Get drafts grouped by urgency

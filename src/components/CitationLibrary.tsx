@@ -24,7 +24,7 @@ export function CitationLibrary({
   isLoading,
   onSelectReference,
   onUpdateReference,
-  displayOrder,
+  
 }: CitationLibraryProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);

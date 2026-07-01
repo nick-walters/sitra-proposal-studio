@@ -52,7 +52,7 @@ interface Profile {
   avatar_url: string | null;
 }
 
-const PRIORITY_LABELS = ['No priority', 'Low priority', 'Medium priority', 'High priority'] as const;
+
 
 export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMessagingBoardProps) {
   const { user } = useAuth();
