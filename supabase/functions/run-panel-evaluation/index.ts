@@ -831,7 +831,18 @@ Apply the evaluation rules, criteria, and output format defined above from your 
     }
   }
 
-  const parsedEvaluation = { persona: evaluator, data: parsedData };
+  const retryCount = retryUsage ? 1 : 0;
+  const evaluatorMeta = {
+    stop_reason: retryStopReason ?? result.stop_reason ?? null,
+    first_stop_reason: result.stop_reason ?? null,
+    output_tokens:
+      Number(result.usage?.output_tokens || 0) + Number(retryUsage?.output_tokens || 0),
+    retry_count: retryCount,
+    duration_ms: Date.now() - evaluatorStartedAt,
+    timed_out: evaluatorTimedOut,
+    model: evaluationModel,
+  };
+  const parsedEvaluation = { persona: evaluator, data: parsedData, _meta: evaluatorMeta };
 
   const nextEvaluations = savedEvaluations.slice();
   nextEvaluations[slotIndex] = parsedEvaluation;
