@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 //  - The major-section icon is DERIVED from children (all locked = locked).
 //  - Legacy 'part-a' / 'part-b' rows are auto-migrated on load.
 export const PART_A_CHILD_IDS = ['a1', 'a2', 'a3', 'a4', 'a5'] as const;
-export const PART_B_CHILD_IDS = ['b1-1', 'b1-2', 'b2-1', 'b2-2', 'b2-3', 'b3-1', 'b3-2'] as const;
+export const PART_B_CHILD_IDS = ['b1-1', 'b1-2', 'b2-1', 'b2-2', 'b3-1', 'b3-2'] as const;
 
 function childrenOfMajor(sectionId: string): readonly string[] | null {
   if (sectionId === 'part-a') return PART_A_CHILD_IDS;
