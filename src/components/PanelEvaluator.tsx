@@ -1270,13 +1270,7 @@ export function PanelEvaluator({ proposalId }: Props) {
             </Alert>
           )}
 
-          {stage === "idle" && !failedRun && (
-            <div className="flex justify-center pt-2">
-              <Button onClick={startEvaluation} disabled={!instrumentCode} className="gap-2">
-                <Sparkles className="h-4 w-4" /> Start Evaluation
-              </Button>
-            </div>
-          )}
+
 
 
           {stage === "stageA" && (
