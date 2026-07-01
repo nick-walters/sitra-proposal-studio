@@ -32,6 +32,7 @@ import { useNavigate } from "react-router-dom";
 import { format, addMonths } from "date-fns";
 import { cn } from "@/lib/utils";
 import declarationsData from "@/data/declarations.json";
+import { htmlToPlainText } from "@/lib/htmlToPlainText";
 
 interface GeneralInfoFormProps {
   proposalId: string;
