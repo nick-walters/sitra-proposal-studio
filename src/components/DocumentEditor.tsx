@@ -1616,9 +1616,8 @@ export function DocumentEditor({
               {isB31Section && (
                 <B31SectionContent proposalId={proposalId} />
               )}
-              {isB32Section && (
-                <B32SectionContent proposalId={proposalId} />
-              )}
+              {/* B3.2 expertise matrix now renders inside the interdisciplinarity
+                  mirror slot (see B32MirrorSlotNodeView). No below-editor mount. */}
               {/* Footnotes */}
               {footnotes.length > 0 && (
                 <div className="mt-8 border-t border-border">
