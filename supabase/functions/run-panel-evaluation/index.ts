@@ -123,7 +123,14 @@ async function callAnthropicWithCache(
           .filter((block: any) => block.type === "text")
           .map((block: any) => block.text)
           .join("\n") || "";
-      return { text, usage: data?.usage || {} };
+      const stop_reason: string | undefined = data?.stop_reason;
+      if (stop_reason === "max_tokens") {
+        console.warn(
+          `⚠ Anthropic response TRUNCATED at max_tokens cap (model=${model}, max_tokens=${maxTokens}, output_tokens=${data?.usage?.output_tokens ?? "?"}). ` +
+            `Response body was cut off mid-generation and will likely fail JSON parsing.`,
+        );
+      }
+      return { text, stop_reason, usage: data?.usage || {} };
     }
 
     const errorBody = await res.text();
