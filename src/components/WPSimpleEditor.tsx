@@ -75,7 +75,10 @@ export function WPSimpleEditor({
   acronymSegments,
   hasCases,
   onSaveSelection,
+  onFocus,
+  onBlur,
 }: WPSimpleEditorProps) {
+
   const editorRef = useRef<HTMLDivElement>(null);
   const { data: caseTypes = [] } = useProposalCaseTypes(proposalId);
 
