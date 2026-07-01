@@ -815,6 +815,7 @@ Apply the evaluation rules, criteria, and output format defined above from your 
             retryController.signal,
           );
           retryUsage = retryResult.usage || {};
+          retryStopReason = retryResult.stop_reason;
           parsedData = extractJson(retryResult.text);
           console.log(`Evaluator ${evaluator.name}: silent retry succeeded.`);
         } finally {
