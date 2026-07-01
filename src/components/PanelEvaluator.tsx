@@ -1149,7 +1149,65 @@ export function PanelEvaluator({ proposalId }: Props) {
             );
           })()}
 
-          {stage === "idle" && (
+          {stage === "idle" && failedRun && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                <div className="space-y-2">
+                  <div className="font-medium">
+                    Previous evaluation failed —{" "}
+                    {failedRun.successCount} of {failedRun.total} evaluators succeeded,{" "}
+                    {failedRun.failCount} errored.
+                  </div>
+                  {failedRun.errorMessage && (
+                    <div className="text-xs opacity-90">{failedRun.errorMessage}</div>
+                  )}
+                  <div className="text-xs opacity-90">
+                    Resuming only re-runs the errored evaluators (cached prefix — near-free) and
+                    proceeds to synthesis if at least 3 succeed. Starting a new evaluation
+                    discards this run and re-runs everything.
+                  </div>
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={resumeFailedRun}
+                      disabled={resumingFailedRun || failedRun.failCount === 0}
+                      className="gap-2"
+                    >
+                      {resumingFailedRun ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Sparkles className="h-4 w-4" />
+                      )}
+                      Resume failed evaluators
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        dismissFailedRun();
+                        void startEvaluation();
+                      }}
+                      disabled={!instrumentCode || resumingFailedRun}
+                    >
+                      Start new evaluation
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={dismissFailedRun}
+                      disabled={resumingFailedRun}
+                    >
+                      Dismiss
+                    </Button>
+                  </div>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {stage === "idle" && !failedRun && (
             <div className="flex justify-center pt-2">
               <Button onClick={startEvaluation} disabled={!instrumentCode} className="gap-2">
                 <Sparkles className="h-4 w-4" /> Start Evaluation
