@@ -1829,7 +1829,15 @@ async function buildWpDraft(supabase: any, proposal: any, wp: any, participants:
 
   const { data: tasks } = await supabase.from("wp_draft_tasks").select("*").eq("wp_draft_id", wp.id).order("number", { ascending: true });
   const taskIds = (tasks ?? []).map((t: any) => t.id);
-  const [{ data: deliverables }, { data: msLinks }, { data: riskLinks }, { data: effort }, { data: taskParts }] = await Promise.all([
+  const [
+    { data: deliverables },
+    { data: msLinks },
+    { data: riskLinks },
+    { data: effort },
+    { data: taskParts },
+    { data: taskEffort },
+    { data: delTaskLinks },
+  ] = await Promise.all([
     supabase.from("wp_draft_deliverables").select("*").eq("wp_draft_id", wp.id).order("number", { ascending: true }),
     supabase
       .from("proposal_milestone_wps")
@@ -1842,6 +1850,12 @@ async function buildWpDraft(supabase: any, proposal: any, wp: any, participants:
     supabase.from("wp_draft_effort").select("*, participant:participant_id(participant_number, organisation_short_name)").eq("wp_draft_id", wp.id),
     taskIds.length
       ? supabase.from("wp_draft_task_participants").select("task_id, participant_id").in("task_id", taskIds)
+      : Promise.resolve({ data: [] }),
+    taskIds.length
+      ? supabase.from("wp_draft_task_effort").select("task_id, participant_id, person_months").in("task_id", taskIds)
+      : Promise.resolve({ data: [] }),
+    taskIds.length
+      ? supabase.from("wp_draft_deliverable_tasks").select("deliverable_id, wp_draft_task_id").in("wp_draft_task_id", taskIds)
       : Promise.resolve({ data: [] }),
   ]);
 
