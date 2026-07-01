@@ -961,6 +961,7 @@ export function PanelEvaluator({ proposalId }: Props) {
     date: formatDate(h.created_at),
     score: Number(h.total_score_unweighted ?? h.overall_score ?? 0),
     id: h.id,
+    model: h.model_used || "",
   }));
 
   const yMax = proposalStage === "stage1" ? 10 : selectedInstrument?.code === "ia" ? 17.5 : 15;
