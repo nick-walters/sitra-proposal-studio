@@ -438,10 +438,6 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
         if (error) throw error;
       }
 
-      // Note: previously a third pass updated b31_deliverables.wp_number for
-      // deliverables linked via tasks. Snapshot tables have been removed, and
-      // wp_draft_deliverables.number is per-WP (display "D{wpNum}.{n}" is
-      // derived live from wp_draft_id), so no rewrite is needed.
     },
     onMutate: async (reorderedWPs) => {
       await queryClient.cancelQueries({ queryKey: ['wp-drafts-management', proposalId] });
