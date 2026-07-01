@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { caseWord } from "@/lib/caseTypeLabels";
 import { useProposalCaseTypes } from "@/hooks/useProposalCaseTypes";
 import { useB12CasesTableReconciler } from "@/hooks/useB12CasesTableReconciler";
+import { useB32MirrorsReconciler } from "@/hooks/useB32MirrorsReconciler";
 
 import DOMPurify from "dompurify";
 import { toast } from "sonner";
@@ -474,6 +475,13 @@ export function DocumentEditor({
   useB12CasesTableReconciler({
     editor,
     proposalId,
+    sectionNumber: section?.number,
+    isReady: !loading,
+  });
+
+  // Stage 3a — auto-insert/remove one b32MirrorSlot per slot key (B3.2 only).
+  useB32MirrorsReconciler({
+    editor,
     sectionNumber: section?.number,
     isReady: !loading,
   });
