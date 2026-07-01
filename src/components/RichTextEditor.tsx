@@ -142,6 +142,14 @@ const HeadingDataAttributes = Extension.create({
                 ? { 'data-case-type-heading-id': attributes['data-case-type-heading-id'] }
                 : {},
           },
+          'data-b32-slot-key': {
+            default: null,
+            parseHTML: (element) => element.getAttribute('data-b32-slot-key'),
+            renderHTML: (attributes) =>
+              attributes['data-b32-slot-key']
+                ? { 'data-b32-slot-key': attributes['data-b32-slot-key'] }
+                : {},
+          },
         },
       },
     ];
