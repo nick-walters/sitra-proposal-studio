@@ -1442,7 +1442,7 @@ export function PanelEvaluator({ proposalId }: Props) {
                                 <TooltipTrigger asChild>
                                   <Badge
                                     variant="outline"
-                                    className="cursor-help border-green-600 text-green-700 font-semibold"
+                                    className="cursor-help border-primary text-primary font-semibold"
                                   >
                                     Actual: {formatCurrency(Number(h.cost_eur))}
                                   </Badge>
