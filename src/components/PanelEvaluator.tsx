@@ -1098,7 +1098,7 @@ export function PanelEvaluator({ proposalId }: Props) {
       {/* Description card */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-base">
             <Sparkles className="h-5 w-5 text-purple-600" />
             Mock AI evaluation
           </CardTitle>
