@@ -1315,6 +1315,90 @@ async function buildPartBSection(supabase: any, proposal: any, sectionId: string
     H(HeadingLevel.HEADING_1, `Part ${label}`),
     ...htmlToDocxChildren(content),
   ];
+
+  // ── B1.2: append structured ongoing-projects table ──
+  if (sectionId === "b1-2") {
+    const { data: projects } = await supabase
+      .from("b12_ongoing_projects")
+      .select("id, project_info, shared_data, order_index")
+      .eq("proposal_id", proposal.id)
+      .order("order_index", { ascending: true });
+    const projIds = (projects ?? []).map((p: any) => p.id);
+    const [{ data: links }, { data: parts }] = await Promise.all([
+      projIds.length
+        ? supabase.from("b12_ongoing_project_participants")
+            .select("ongoing_project_id, participant_id").in("ongoing_project_id", projIds)
+        : Promise.resolve({ data: [] }),
+      supabase.from("participants")
+        .select("id, participant_number, organisation_short_name")
+        .eq("proposal_id", proposal.id),
+    ]);
+    const partById = new Map<string, any>();
+    for (const p of parts ?? []) partById.set(p.id, p);
+    const linkMap = new Map<string, string[]>();
+    for (const l of links ?? []) {
+      const arr = linkMap.get(l.ongoing_project_id) ?? [];
+      arr.push(l.participant_id);
+      linkMap.set(l.ongoing_project_id, arr);
+    }
+    if ((projects ?? []).length) {
+      children.push(H(HeadingLevel.HEADING_2, "Ongoing projects"));
+      children.push(simpleTable(
+        ["Project info", "Data / results shared", "Participants"],
+        (projects ?? []).map((pr: any) => {
+          const partLabels = (linkMap.get(pr.id) ?? [])
+            .map((id) => partById.get(id))
+            .filter(Boolean)
+            .sort((a, b) => (a.participant_number ?? 0) - (b.participant_number ?? 0))
+            .map((p) => `P${p.participant_number} ${p.organisation_short_name ?? ""}`);
+          return [
+            htmlToText(pr.project_info ?? ""),
+            htmlToText(pr.shared_data ?? ""),
+            partLabels.join(", ") || "—",
+          ];
+        }),
+      ));
+    }
+  }
+
+  // ── B3.2: append expertise matrix (if enabled) ──
+  if (sectionId === "b3-2" && proposal.expertise_matrix_enabled) {
+    const [{ data: cols }, { data: rows }, { data: cells }, { data: parts }] = await Promise.all([
+      supabase.from("expertise_matrix_columns")
+        .select("id, kind, participant_id, header_text, order_index")
+        .eq("proposal_id", proposal.id).order("order_index", { ascending: true }),
+      supabase.from("expertise_matrix_rows")
+        .select("id, label, order_index")
+        .eq("proposal_id", proposal.id).order("order_index", { ascending: true }),
+      supabase.from("expertise_matrix_cells").select("row_id, column_id, checked"),
+      supabase.from("participants")
+        .select("id, participant_number, organisation_short_name")
+        .eq("proposal_id", proposal.id),
+    ]);
+    const partById = new Map<string, any>();
+    for (const p of parts ?? []) partById.set(p.id, p);
+    const rowIds = new Set((rows ?? []).map((r: any) => r.id));
+    const checkKey = new Set<string>();
+    for (const c of cells ?? []) {
+      if (c.checked && rowIds.has(c.row_id)) checkKey.add(`${c.row_id}::${c.column_id}`);
+    }
+    if ((rows ?? []).length && (cols ?? []).length) {
+      children.push(H(HeadingLevel.HEADING_2, "Expertise matrix"));
+      const colLabels = (cols ?? []).map((c: any) => {
+        if (c.kind === "participant") {
+          const p = c.participant_id ? partById.get(c.participant_id) : null;
+          return p ? `P${p.participant_number} ${p.organisation_short_name ?? ""}` : (c.header_text ?? "—");
+        }
+        return c.header_text ?? "—";
+      });
+      const matrixRows = (rows ?? []).map((r: any) => [
+        r.label ?? "",
+        ...(cols ?? []).map((c: any) => checkKey.has(`${r.id}::${c.id}`) ? "✓" : ""),
+      ]);
+      children.push(simpleTable(["Expertise", ...colLabels], matrixRows));
+    }
+  }
+
   return await packDocx(children);
 }
 
