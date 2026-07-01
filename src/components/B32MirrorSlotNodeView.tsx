@@ -54,6 +54,18 @@ export function B32MirrorSlotLiveView({ slotKey, proposalId }: B32MirrorSlotLive
     );
   }
 
+  if (slotKey && (PARAGRAPH_SLOTS as readonly string[]).includes(slotKey)) {
+    return (
+      <div data-b32-mirror-slot-nodeview="" data-b32-slot-key={slotKey}>
+        <B32MirrorParagraphSlot
+          proposalId={proposalId}
+          slotKey={slotKey as B32ParagraphSlotKey}
+        />
+      </div>
+    );
+  }
+
+
   const label = slotKey ? SLOT_LABELS[slotKey] : 'unknown';
   return (
     <div
