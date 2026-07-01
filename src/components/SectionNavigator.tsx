@@ -177,7 +177,11 @@ function SectionItem({
   // visibility rows and must not inherit Part B’s red/locked state.
   const isPartAChild = section.id === 'a1' || section.id === 'a2' || section.id === 'a3' || section.id === 'a4' || section.id === 'a5';
   const isPartBChild = Boolean(section.number && /^B?\d/.test(section.number) && section.id !== 'part-b');
-  const isDirectlyLocked = lockedSections?.has(section.id) ?? false;
+  // The "Work packages & cases" group header uses section.id === 'wp-drafts'
+  // but is stored under the single group-lock id 'wp-cases-group' (one row, no per-item rows).
+  const isWpCasesGroup = section.id === 'wp-drafts';
+  const directLockId = isWpCasesGroup ? 'wp-cases-group' : section.id;
+  const isDirectlyLocked = lockedSections?.has(directLockId) ?? false;
   const isInheritedFromPartA = isPartAChild && section.id !== 'topic-info' && (lockedSections?.has('part-a') ?? false);
   const isInheritedFromPartB = isPartBChild && (lockedSections?.has('part-b') ?? false);
   const isSectionLocked = isDirectlyLocked || isInheritedFromPartA || isInheritedFromPartB;
@@ -185,7 +189,7 @@ function SectionItem({
     ? 'part-a'
     : !isDirectlyLocked && isInheritedFromPartB
       ? 'part-b'
-      : section.id;
+      : directLockId;
 
   // Determine if this section shows a lock button (coordinators only)
   // topic-info is never lockable — always visible to all
@@ -195,6 +199,7 @@ function SectionItem({
     section.id === 'a4' || section.id === 'a5' ||
     section.id === 'figures' || section.title === 'Figures' ||
     section.id === 'wp-drafts' ||
+    section.id === 'milestones-risks' ||
     section.id === 'part-b' ||
     (section.number && /^B\d/.test(section.number) && section.id !== 'part-b')
   );
