@@ -1079,8 +1079,10 @@ export function PanelEvaluator({ proposalId }: Props) {
             const isOpus = modelChoice === "claude-opus-4-8";
             const disabled = stage !== "idle" && stage !== "panelReview";
             const GREEN = "#16a34a"; // tailwind green-600
+            const RED = "#dc2626"; // tailwind red-600
             const sonnetSelected = !isOpus;
             const opusSelected = isOpus;
+            const activeColor = opusSelected ? RED : GREEN;
             return (
               <div className="space-y-3">
 
@@ -1105,7 +1107,7 @@ export function PanelEvaluator({ proposalId }: Props) {
                     </div>
                   </button>
 
-                  {/* Toggle switch */}
+                  {/* Toggle switch — knob turns RED when Opus is active, GREEN when Sonnet is active. */}
                   <button
                     type="button"
                     role="switch"
@@ -1118,7 +1120,7 @@ export function PanelEvaluator({ proposalId }: Props) {
                     <span
                       className="absolute left-0 top-1/2 h-5 w-5 rounded-full shadow transition-transform"
                       style={{
-                        backgroundColor: GREEN,
+                        backgroundColor: activeColor,
                         transform: `translateY(-50%) translateX(${opusSelected ? 32 : 4}px)`,
                       }}
                     />
@@ -1135,7 +1137,7 @@ export function PanelEvaluator({ proposalId }: Props) {
                       className={`text-sm font-semibold transition-colors ${
                         opusSelected ? "" : "text-muted-foreground"
                       }`}
-                      style={opusSelected ? { color: GREEN } : undefined}
+                      style={opusSelected ? { color: RED } : undefined}
                     >
                       Opus 4.8 <span className="font-normal text-xs text-muted-foreground">~{formatCurrency(modelCostEstimate.opus)}</span>
                     </div>
