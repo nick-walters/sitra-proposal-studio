@@ -1,6 +1,11 @@
+import { lazy, Suspense } from 'react';
 import { NodeViewWrapper, NodeViewProps } from '@tiptap/react';
 import { useParams } from 'react-router-dom';
 import type { B32SlotKey } from '@/extensions/B32MirrorSlotNode';
+
+const B32SectionContent = lazy(() =>
+  import('@/components/B32SectionContent').then((m) => ({ default: m.B32SectionContent })),
+);
 
 function proposalIdFromUrl(): string {
   if (typeof window === 'undefined') return '';
@@ -9,8 +14,11 @@ function proposalIdFromUrl(): string {
 }
 
 const SLOT_LABELS: Record<B32SlotKey, string> = {
+  interdisciplinarity: 'Interdisciplinarity — expertise matrix',
   capacity: 'Participants\u2019 capacity, contributions & resources',
-  'value-chain': 'Value chain coverage & industrial involvement',
+  infrastructure: 'Critical infrastructure',
+  'value-chain': 'Value chain coverage',
+  industrial: 'Industrial / commercial involvement',
   international: 'Justification of international organisations & third countries',
 };
 
@@ -20,11 +28,21 @@ export interface B32MirrorSlotLiveViewProps {
 }
 
 /**
- * Stage 3a: dummy placeholder for the B3.2 mirror slot body.
- * Stage 3b will replace this with the real mirrored content
- * (participant_descriptions + participant_infrastructure).
+ * Stage 3a: dispatch by slot key.
+ *  - interdisciplinarity → real expertise matrix (B32SectionContent)
+ *  - others → dummy placeholder (Stage 3b will replace with real content).
  */
 export function B32MirrorSlotLiveView({ slotKey, proposalId }: B32MirrorSlotLiveViewProps) {
+  if (slotKey === 'interdisciplinarity') {
+    return (
+      <div data-b32-mirror-slot-nodeview="" data-b32-slot-key="interdisciplinarity">
+        <Suspense fallback={null}>
+          <B32SectionContent proposalId={proposalId} />
+        </Suspense>
+      </div>
+    );
+  }
+
   const label = slotKey ? SLOT_LABELS[slotKey] : 'unknown';
   return (
     <div
@@ -42,7 +60,7 @@ export function B32MirrorSlotLiveView({ slotKey, proposalId }: B32MirrorSlotLive
         userSelect: 'text',
       }}
     >
-      <strong>[B3.2 mirror: {slotKey ?? '—'}]</strong>{' '}
+      <strong>[B3.2 mirror: {slotKey ?? '—'} — Stage 3b]</strong>{' '}
       <span style={{ color: '#6b7280' }}>
         {label} — content in Stage 3b (proposal {proposalId || '?'})
       </span>
