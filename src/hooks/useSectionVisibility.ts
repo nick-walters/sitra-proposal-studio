@@ -71,28 +71,76 @@ export function useSectionVisibility(proposalId: string | undefined) {
     if (!proposalId || !user?.id) return;
 
     const isCurrentlyLocked = lockedSections.has(sectionId);
+    const isMajor = sectionId === 'part-a' || sectionId === 'part-b';
 
     try {
       if (isCurrentlyLocked) {
-        const unlockIds = getUnlockScope(sectionId);
-        const { error } = await supabase
+        // Unlock: parent + all children (cascade)
+        let query = supabase
           .from('section_visibility_locks')
           .delete()
-          .eq('proposal_id', proposalId)
-          .in('section_id', unlockIds);
-        if (error) throw error;
+          .eq('proposal_id', proposalId);
+        if (sectionId === 'part-b') {
+          // Delete part-b parent + any b* child + wp-drafts/figures
+          const { error } = await query.or(
+            `section_id.eq.part-b,section_id.like.b%,section_id.in.(${PART_B_EXTRA_CHILD_IDS.join(',')})`
+          );
+          if (error) throw error;
+        } else {
+          const unlockIds = getUnlockScope(sectionId);
+          const { error } = await query.in('section_id', unlockIds);
+          if (error) throw error;
+        }
         setLockedSections(prev => {
           const next = new Set(prev);
-          unlockIds.forEach(id => next.delete(id));
+          if (sectionId === 'part-b') {
+            for (const id of next) {
+              if (id === 'part-b' || id.startsWith('b') || PART_B_EXTRA_CHILD_IDS.includes(id)) {
+                next.delete(id);
+              }
+            }
+          } else {
+            getUnlockScope(sectionId).forEach(id => next.delete(id));
+          }
           return next;
         });
         toast.success('Section unlocked — now visible to all users');
       } else {
-        const { error } = await supabase
+        // Lock. For major sections, also purge any stale child rows so parent is authoritative.
+        const { error: insertErr } = await supabase
           .from('section_visibility_locks')
           .insert({ proposal_id: proposalId, section_id: sectionId, locked_by: user.id });
-        if (error) throw error;
-        setLockedSections(prev => new Set([...prev, sectionId]));
+        if (insertErr) throw insertErr;
+
+        if (isMajor) {
+          const delQuery = supabase
+            .from('section_visibility_locks')
+            .delete()
+            .eq('proposal_id', proposalId);
+          if (sectionId === 'part-a') {
+            await delQuery.in('section_id', PART_A_CHILD_IDS);
+          } else {
+            // part-b: any b* child + wp-drafts/figures (never delete parent 'part-b')
+            await delQuery.or(
+              `and(section_id.like.b%,section_id.neq.part-b),section_id.in.(${PART_B_EXTRA_CHILD_IDS.join(',')})`
+            );
+          }
+        }
+
+        setLockedSections(prev => {
+          const next = new Set(prev);
+          next.add(sectionId);
+          if (sectionId === 'part-a') {
+            PART_A_CHILD_IDS.forEach(id => next.delete(id));
+          } else if (sectionId === 'part-b') {
+            for (const id of next) {
+              if (id !== 'part-b' && (id.startsWith('b') || PART_B_EXTRA_CHILD_IDS.includes(id))) {
+                next.delete(id);
+              }
+            }
+          }
+          return next;
+        });
         toast.success('Section locked — hidden from editors and viewers');
       }
     } catch (err) {
@@ -103,3 +151,4 @@ export function useSectionVisibility(proposalId: string | undefined) {
 
   return { lockedSections, toggleLock, loading };
 }
+
