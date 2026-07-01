@@ -459,6 +459,30 @@ export function PanelEvaluator({ proposalId }: Props) {
     }
   }
 
+  async function resumeFailedRun() {
+    if (!failedRun) return;
+    setResumingFailedRun(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("run-panel-evaluation", {
+        body: { action: "resume", evaluationId: failedRun.id },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const evalId = data?.evaluationId || failedRun.id;
+      toast.info(`Resuming ${failedRun.failCount} evaluator${failedRun.failCount === 1 ? "" : "s"}…`);
+      setFailedRun(null);
+      startPolling(evalId, new Date().toISOString());
+    } catch (e: any) {
+      toast.error(`Resume failed: ${e.message || e}`);
+    } finally {
+      setResumingFailedRun(false);
+    }
+  }
+
+  function dismissFailedRun() {
+    setFailedRun(null);
+  }
+
 
   // Load proposal + instruments + history on mount; resume polling if a run is in progress
   useEffect(() => {
