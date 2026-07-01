@@ -1187,7 +1187,8 @@ export function PanelEvaluator({ proposalId }: Props) {
                 {/* Row 2: descriptions flank a small Start button centred under the toggle. */}
                 <div className="flex items-center gap-5 max-w-3xl">
                   <div className="flex-1 text-right text-xs text-muted-foreground leading-snug">
-                    Cheaper &amp; faster, quality close to Opus — recommended through development.
+                    Faster, more affordable &amp; similar quality to Opus<br />
+                    Recommended through development
                   </div>
                   <div className="shrink-0 flex justify-center">
                     {stage === "idle" && !failedRun ? (
@@ -1204,8 +1205,8 @@ export function PanelEvaluator({ proposalId }: Props) {
                     )}
                   </div>
                   <div className="flex-1 text-left text-xs text-muted-foreground leading-snug">
-                    Highest accuracy — use late, for extra scrutiny before submission.{" "}
-                    <span className="italic">(per-run only)</span>
+                    Highest accuracy<br />
+                    Use late during proposal development for extra scrutiny
                   </div>
                 </div>
               </div>
