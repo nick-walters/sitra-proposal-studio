@@ -789,6 +789,12 @@ export function PanelEvaluator({ proposalId }: Props) {
         if (!data?.evaluationId) throw new Error("Edge function did not return an evaluationId");
 
         toast.info("Evaluation running in background. You can leave this page and return.");
+        // Remove the panel_proposed row now that the real run is queued —
+        // exactly one active row per proposal.
+        if (panelProposedRowId) {
+          await supabase.from("proposal_analyses").delete().eq("id", panelProposedRowId);
+          setPanelProposedRowId(null);
+        }
         startPolling(data.evaluationId, new Date().toISOString());
 
 
