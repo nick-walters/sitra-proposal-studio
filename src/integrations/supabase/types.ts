@@ -115,371 +115,12 @@ export type Database = {
           },
         ]
       }
-      b31_deliverables: {
-        Row: {
-          created_at: string
-          description: string
-          dissemination_level: string | null
-          due_month: number | null
-          id: string
-          lead_participant_id: string | null
-          name: string
-          number: string
-          order_index: number
-          proposal_id: string
-          task_id: string | null
-          type: string | null
-          updated_at: string
-          wp_number: number | null
-        }
-        Insert: {
-          created_at?: string
-          description?: string
-          dissemination_level?: string | null
-          due_month?: number | null
-          id?: string
-          lead_participant_id?: string | null
-          name?: string
-          number: string
-          order_index?: number
-          proposal_id: string
-          task_id?: string | null
-          type?: string | null
-          updated_at?: string
-          wp_number?: number | null
-        }
-        Update: {
-          created_at?: string
-          description?: string
-          dissemination_level?: string | null
-          due_month?: number | null
-          id?: string
-          lead_participant_id?: string | null
-          name?: string
-          number?: string
-          order_index?: number
-          proposal_id?: string
-          task_id?: string | null
-          type?: string | null
-          updated_at?: string
-          wp_number?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "b31_deliverables_lead_participant_id_fkey"
-            columns: ["lead_participant_id"]
-            isOneToOne: false
-            referencedRelation: "participants"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "b31_deliverables_proposal_id_fkey"
-            columns: ["proposal_id"]
-            isOneToOne: false
-            referencedRelation: "proposals"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "b31_deliverables_task_id_fkey"
-            columns: ["task_id"]
-            isOneToOne: false
-            referencedRelation: "wp_draft_tasks"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      b31_milestones: {
-        Row: {
-          created_at: string
-          due_month: number | null
-          id: string
-          means_of_verification: string
-          name: string
-          number: number
-          order_index: number | null
-          proposal_id: string
-          task_id: string | null
-          updated_at: string
-          wps: string
-        }
-        Insert: {
-          created_at?: string
-          due_month?: number | null
-          id?: string
-          means_of_verification?: string
-          name?: string
-          number: number
-          order_index?: number | null
-          proposal_id: string
-          task_id?: string | null
-          updated_at?: string
-          wps?: string
-        }
-        Update: {
-          created_at?: string
-          due_month?: number | null
-          id?: string
-          means_of_verification?: string
-          name?: string
-          number?: number
-          order_index?: number | null
-          proposal_id?: string
-          task_id?: string | null
-          updated_at?: string
-          wps?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "b31_milestones_proposal_id_fkey"
-            columns: ["proposal_id"]
-            isOneToOne: false
-            referencedRelation: "proposals"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "b31_milestones_task_id_fkey"
-            columns: ["task_id"]
-            isOneToOne: false
-            referencedRelation: "wp_draft_tasks"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      b31_risks: {
-        Row: {
-          created_at: string
-          description: string
-          id: string
-          likelihood: string | null
-          mitigation: string
-          number: number
-          order_index: number | null
-          proposal_id: string
-          severity: string | null
-          updated_at: string
-          wps: string
-        }
-        Insert: {
-          created_at?: string
-          description?: string
-          id?: string
-          likelihood?: string | null
-          mitigation?: string
-          number: number
-          order_index?: number | null
-          proposal_id: string
-          severity?: string | null
-          updated_at?: string
-          wps?: string
-        }
-        Update: {
-          created_at?: string
-          description?: string
-          id?: string
-          likelihood?: string | null
-          mitigation?: string
-          number?: number
-          order_index?: number | null
-          proposal_id?: string
-          severity?: string | null
-          updated_at?: string
-          wps?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "b31_risks_proposal_id_fkey"
-            columns: ["proposal_id"]
-            isOneToOne: false
-            referencedRelation: "proposals"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      b31_task_participants: {
-        Row: {
-          id: string
-          participant_id: string
-          task_id: string
-        }
-        Insert: {
-          id?: string
-          participant_id: string
-          task_id: string
-        }
-        Update: {
-          id?: string
-          participant_id?: string
-          task_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "b31_task_participants_participant_id_fkey"
-            columns: ["participant_id"]
-            isOneToOne: false
-            referencedRelation: "participants"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "b31_task_participants_task_id_fkey"
-            columns: ["task_id"]
-            isOneToOne: false
-            referencedRelation: "b31_tasks"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      b31_tasks: {
-        Row: {
-          created_at: string | null
-          description: string | null
-          end_month: number | null
-          id: string
-          lead_participant_id: string | null
-          number: number
-          order_index: number | null
-          start_month: number | null
-          title: string | null
-          updated_at: string | null
-          wp_draft_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          end_month?: number | null
-          id?: string
-          lead_participant_id?: string | null
-          number: number
-          order_index?: number | null
-          start_month?: number | null
-          title?: string | null
-          updated_at?: string | null
-          wp_draft_id: string
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          end_month?: number | null
-          id?: string
-          lead_participant_id?: string | null
-          number?: number
-          order_index?: number | null
-          start_month?: number | null
-          title?: string | null
-          updated_at?: string | null
-          wp_draft_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "b31_tasks_lead_participant_id_fkey"
-            columns: ["lead_participant_id"]
-            isOneToOne: false
-            referencedRelation: "participants"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "b31_tasks_wp_draft_id_fkey"
-            columns: ["wp_draft_id"]
-            isOneToOne: false
-            referencedRelation: "wp_drafts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      budget_changes: {
-        Row: {
-          budget_item_id: string | null
-          change_type: string
-          created_at: string
-          field_changed: string | null
-          id: string
-          new_value: string | null
-          old_value: string | null
-          proposal_id: string
-          user_id: string
-        }
-        Insert: {
-          budget_item_id?: string | null
-          change_type: string
-          created_at?: string
-          field_changed?: string | null
-          id?: string
-          new_value?: string | null
-          old_value?: string | null
-          proposal_id: string
-          user_id: string
-        }
-        Update: {
-          budget_item_id?: string | null
-          change_type?: string
-          created_at?: string
-          field_changed?: string | null
-          id?: string
-          new_value?: string | null
-          old_value?: string | null
-          proposal_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "budget_changes_budget_item_id_fkey"
-            columns: ["budget_item_id"]
-            isOneToOne: false
-            referencedRelation: "budget_items"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "budget_changes_proposal_id_fkey"
-            columns: ["proposal_id"]
-            isOneToOne: false
-            referencedRelation: "proposals"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      budget_cost_justifications: {
-        Row: {
-          budget_row_id: string
-          category: string
-          created_at: string
-          id: string
-          justification_text: string
-          updated_at: string
-          updated_by: string | null
-        }
-        Insert: {
-          budget_row_id: string
-          category: string
-          created_at?: string
-          id?: string
-          justification_text?: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Update: {
-          budget_row_id?: string
-          category?: string
-          created_at?: string
-          id?: string
-          justification_text?: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "budget_cost_justifications_budget_row_id_fkey"
-            columns: ["budget_row_id"]
-            isOneToOne: false
-            referencedRelation: "budget_rows"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      budget_equipment_items: {
+      budget_cost_justification_items: {
         Row: {
           amount: number
           budget_row_id: string
+          category: string
           created_at: string
-          description: string
           id: string
           justification: string
           order_index: number
@@ -488,8 +129,8 @@ export type Database = {
         Insert: {
           amount?: number
           budget_row_id: string
+          category: string
           created_at?: string
-          description?: string
           id?: string
           justification?: string
           order_index?: number
@@ -498,8 +139,8 @@ export type Database = {
         Update: {
           amount?: number
           budget_row_id?: string
+          category?: string
           created_at?: string
-          description?: string
           id?: string
           justification?: string
           order_index?: number
@@ -507,7 +148,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "budget_equipment_items_budget_row_id_fkey"
+            foreignKeyName: "budget_cost_justification_items_budget_row_id_fkey"
             columns: ["budget_row_id"]
             isOneToOne: false
             referencedRelation: "budget_rows"
@@ -751,47 +392,6 @@ export type Database = {
           },
         ]
       }
-      budget_subcontracting_items: {
-        Row: {
-          amount: number
-          budget_row_id: string
-          created_at: string
-          description: string
-          id: string
-          justification: string
-          order_index: number
-          updated_at: string
-        }
-        Insert: {
-          amount?: number
-          budget_row_id: string
-          created_at?: string
-          description?: string
-          id?: string
-          justification?: string
-          order_index?: number
-          updated_at?: string
-        }
-        Update: {
-          amount?: number
-          budget_row_id?: string
-          created_at?: string
-          description?: string
-          id?: string
-          justification?: string
-          order_index?: number
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "budget_subcontracting_items_budget_row_id_fkey"
-            columns: ["budget_row_id"]
-            isOneToOne: false
-            referencedRelation: "budget_rows"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       budget_templates: {
         Row: {
           budget_type: string
@@ -838,8 +438,10 @@ export type Database = {
       }
       case_drafts: {
         Row: {
+          b12_populated: boolean
           background_context: string | null
           case_type: string
+          case_type_id: string | null
           color: string
           created_at: string
           custom_type_name: string | null
@@ -868,12 +470,15 @@ export type Database = {
           proposed_solutions: string | null
           replicability: string | null
           short_name: string | null
+          subsection_content: Json
           title: string | null
           updated_at: string
         }
         Insert: {
+          b12_populated?: boolean
           background_context?: string | null
           case_type?: string
+          case_type_id?: string | null
           color?: string
           created_at?: string
           custom_type_name?: string | null
@@ -902,12 +507,15 @@ export type Database = {
           proposed_solutions?: string | null
           replicability?: string | null
           short_name?: string | null
+          subsection_content?: Json
           title?: string | null
           updated_at?: string
         }
         Update: {
+          b12_populated?: boolean
           background_context?: string | null
           case_type?: string
+          case_type_id?: string | null
           color?: string
           created_at?: string
           custom_type_name?: string | null
@@ -936,10 +544,18 @@ export type Database = {
           proposed_solutions?: string | null
           replicability?: string | null
           short_name?: string | null
+          subsection_content?: Json
           title?: string | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "case_drafts_case_type_id_fkey"
+            columns: ["case_type_id"]
+            isOneToOne: false
+            referencedRelation: "proposal_case_types"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "case_drafts_lead_participant_id_fkey"
             columns: ["lead_participant_id"]
@@ -949,6 +565,50 @@ export type Database = {
           },
           {
             foreignKeyName: "case_drafts_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      case_subsection_templates: {
+        Row: {
+          created_at: string
+          guideline: string | null
+          heading: string
+          id: string
+          is_default: boolean
+          key: string
+          order_index: number
+          proposal_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          guideline?: string | null
+          heading: string
+          id?: string
+          is_default?: boolean
+          key: string
+          order_index?: number
+          proposal_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          guideline?: string | null
+          heading?: string
+          id?: string
+          is_default?: boolean
+          key?: string
+          order_index?: number
+          proposal_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_subsection_templates_proposal_id_fkey"
             columns: ["proposal_id"]
             isOneToOne: false
             referencedRelation: "proposals"
@@ -1587,33 +1247,51 @@ export type Database = {
       evaluation_cost_log: {
         Row: {
           budget_type: string | null
+          cache_write_tokens: number | null
           cost_eur: number | null
           cost_usd: number | null
           created_at: string | null
           evaluation_id: string | null
           id: string
           instrument_code: string | null
+          model_used: string | null
+          payload_tokens: number | null
           proposal_stage: string | null
+          tokens_cached: number | null
+          tokens_input: number | null
+          tokens_output: number | null
         }
         Insert: {
           budget_type?: string | null
+          cache_write_tokens?: number | null
           cost_eur?: number | null
           cost_usd?: number | null
           created_at?: string | null
           evaluation_id?: string | null
           id?: string
           instrument_code?: string | null
+          model_used?: string | null
+          payload_tokens?: number | null
           proposal_stage?: string | null
+          tokens_cached?: number | null
+          tokens_input?: number | null
+          tokens_output?: number | null
         }
         Update: {
           budget_type?: string | null
+          cache_write_tokens?: number | null
           cost_eur?: number | null
           cost_usd?: number | null
           created_at?: string | null
           evaluation_id?: string | null
           id?: string
           instrument_code?: string | null
+          model_used?: string | null
+          payload_tokens?: number | null
           proposal_stage?: string | null
+          tokens_cached?: number | null
+          tokens_input?: number | null
+          tokens_output?: number | null
         }
         Relationships: [
           {
@@ -1713,6 +1391,119 @@ export type Database = {
           thematic_area?: string | null
         }
         Relationships: []
+      }
+      expertise_matrix_cells: {
+        Row: {
+          checked: boolean
+          column_id: string
+          row_id: string
+        }
+        Insert: {
+          checked?: boolean
+          column_id: string
+          row_id: string
+        }
+        Update: {
+          checked?: boolean
+          column_id?: string
+          row_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expertise_matrix_cells_column_id_fkey"
+            columns: ["column_id"]
+            isOneToOne: false
+            referencedRelation: "expertise_matrix_columns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expertise_matrix_cells_row_id_fkey"
+            columns: ["row_id"]
+            isOneToOne: false
+            referencedRelation: "expertise_matrix_rows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expertise_matrix_columns: {
+        Row: {
+          created_at: string
+          header_text: string | null
+          id: string
+          kind: string
+          order_index: number
+          participant_id: string | null
+          proposal_id: string
+        }
+        Insert: {
+          created_at?: string
+          header_text?: string | null
+          id?: string
+          kind: string
+          order_index: number
+          participant_id?: string | null
+          proposal_id: string
+        }
+        Update: {
+          created_at?: string
+          header_text?: string | null
+          id?: string
+          kind?: string
+          order_index?: number
+          participant_id?: string | null
+          proposal_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expertise_matrix_columns_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expertise_matrix_columns_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expertise_matrix_rows: {
+        Row: {
+          created_at: string
+          id: string
+          is_default: boolean
+          label: string
+          order_index: number
+          proposal_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          label?: string
+          order_index: number
+          proposal_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          label?: string
+          order_index?: number
+          proposal_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expertise_matrix_rows_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       feedback: {
         Row: {
@@ -2161,12 +1952,11 @@ export type Database = {
           created_by: string | null
           english_name: string | null
           id: string
-          is_sme: boolean | null
-          legal_entity_type: string | null
           logo_url: string | null
           name: string
-          pic_number: string | null
-          short_name: string | null
+          organisation_category: string | null
+          pic_number: string
+          short_name: string
           updated_at: string
         }
         Insert: {
@@ -2175,12 +1965,11 @@ export type Database = {
           created_by?: string | null
           english_name?: string | null
           id?: string
-          is_sme?: boolean | null
-          legal_entity_type?: string | null
           logo_url?: string | null
           name: string
-          pic_number?: string | null
-          short_name?: string | null
+          organisation_category?: string | null
+          pic_number: string
+          short_name: string
           updated_at?: string
         }
         Update: {
@@ -2189,12 +1978,11 @@ export type Database = {
           created_by?: string | null
           english_name?: string | null
           id?: string
-          is_sme?: boolean | null
-          legal_entity_type?: string | null
           logo_url?: string | null
           name?: string
-          pic_number?: string | null
-          short_name?: string | null
+          organisation_category?: string | null
+          pic_number?: string
+          short_name?: string
           updated_at?: string
         }
         Relationships: []
@@ -2239,6 +2027,53 @@ export type Database = {
             columns: ["participant_id"]
             isOneToOne: true
             referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      part_a1: {
+        Row: {
+          abstract: string
+          created_at: string
+          declarations: Json
+          fixed_keywords: string[]
+          free_keywords: string
+          id: string
+          previous_submission: string
+          previous_submission_reference: string
+          proposal_id: string
+          updated_at: string
+        }
+        Insert: {
+          abstract?: string
+          created_at?: string
+          declarations?: Json
+          fixed_keywords?: string[]
+          free_keywords?: string
+          id?: string
+          previous_submission?: string
+          previous_submission_reference?: string
+          proposal_id: string
+          updated_at?: string
+        }
+        Update: {
+          abstract?: string
+          created_at?: string
+          declarations?: Json
+          fixed_keywords?: string[]
+          free_keywords?: string
+          id?: string
+          previous_submission?: string
+          previous_submission_reference?: string
+          proposal_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "part_a1_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: true
+            referencedRelation: "proposals"
             referencedColumns: ["id"]
           },
         ]
@@ -2694,16 +2529,21 @@ export type Database = {
           main_contact_access_requested: boolean | null
           main_contact_access_requested_by: string | null
           main_contact_country: string | null
+          main_contact_department: string | null
           main_contact_dept_same_as_org: boolean | null
+          main_contact_email: string | null
           main_contact_first_name: string | null
           main_contact_gender: string | null
           main_contact_last_name: string | null
           main_contact_phone: string | null
+          main_contact_phone2: string | null
           main_contact_position: string | null
           main_contact_postcode: string | null
           main_contact_street: string | null
           main_contact_title: string | null
           main_contact_town: string | null
+          main_contact_website: string | null
+          ocd_exempt: boolean | null
           organisation_category: string | null
           organisation_name: string
           organisation_short_name: string | null
@@ -2749,16 +2589,21 @@ export type Database = {
           main_contact_access_requested?: boolean | null
           main_contact_access_requested_by?: string | null
           main_contact_country?: string | null
+          main_contact_department?: string | null
           main_contact_dept_same_as_org?: boolean | null
+          main_contact_email?: string | null
           main_contact_first_name?: string | null
           main_contact_gender?: string | null
           main_contact_last_name?: string | null
           main_contact_phone?: string | null
+          main_contact_phone2?: string | null
           main_contact_position?: string | null
           main_contact_postcode?: string | null
           main_contact_street?: string | null
           main_contact_title?: string | null
           main_contact_town?: string | null
+          main_contact_website?: string | null
+          ocd_exempt?: boolean | null
           organisation_category?: string | null
           organisation_name: string
           organisation_short_name?: string | null
@@ -2804,16 +2649,21 @@ export type Database = {
           main_contact_access_requested?: boolean | null
           main_contact_access_requested_by?: string | null
           main_contact_country?: string | null
+          main_contact_department?: string | null
           main_contact_dept_same_as_org?: boolean | null
+          main_contact_email?: string | null
           main_contact_first_name?: string | null
           main_contact_gender?: string | null
           main_contact_last_name?: string | null
           main_contact_phone?: string | null
+          main_contact_phone2?: string | null
           main_contact_position?: string | null
           main_contact_postcode?: string | null
           main_contact_street?: string | null
           main_contact_title?: string | null
           main_contact_town?: string | null
+          main_contact_website?: string | null
+          ocd_exempt?: boolean | null
           organisation_category?: string | null
           organisation_name?: string
           organisation_short_name?: string | null
@@ -3122,6 +2972,56 @@ export type Database = {
           },
         ]
       }
+      proposal_case_types: {
+        Row: {
+          caption_text: string | null
+          created_at: string
+          custom_type_name: string | null
+          id: string
+          include_abbreviation: boolean
+          include_number: boolean
+          order_index: number
+          outline_color: string
+          proposal_id: string
+          type_code: string | null
+          updated_at: string
+        }
+        Insert: {
+          caption_text?: string | null
+          created_at?: string
+          custom_type_name?: string | null
+          id?: string
+          include_abbreviation?: boolean
+          include_number?: boolean
+          order_index?: number
+          outline_color?: string
+          proposal_id: string
+          type_code?: string | null
+          updated_at?: string
+        }
+        Update: {
+          caption_text?: string | null
+          created_at?: string
+          custom_type_name?: string | null
+          id?: string
+          include_abbreviation?: boolean
+          include_number?: boolean
+          order_index?: number
+          outline_color?: string
+          proposal_id?: string
+          type_code?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_case_types_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proposal_message_recipients: {
         Row: {
           id: string
@@ -3211,6 +3111,89 @@ export type Database = {
           },
         ]
       }
+      proposal_milestone_wps: {
+        Row: {
+          created_at: string
+          id: string
+          is_primary: boolean
+          milestone_id: string
+          wp_draft_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          milestone_id: string
+          wp_draft_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          milestone_id?: string
+          wp_draft_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_milestone_wps_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "proposal_milestones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_milestone_wps_wp_draft_id_fkey"
+            columns: ["wp_draft_id"]
+            isOneToOne: false
+            referencedRelation: "wp_drafts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposal_milestones: {
+        Row: {
+          created_at: string
+          due_month: number | null
+          id: string
+          means_of_verification: string | null
+          number: number
+          order_index: number
+          proposal_id: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          due_month?: number | null
+          id?: string
+          means_of_verification?: string | null
+          number?: number
+          order_index?: number
+          proposal_id: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          due_month?: number | null
+          id?: string
+          means_of_verification?: string | null
+          number?: number
+          order_index?: number
+          proposal_id?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_milestones_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proposal_progress: {
         Row: {
           id: string
@@ -3245,6 +3228,89 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "proposal_progress_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposal_risk_wps: {
+        Row: {
+          created_at: string
+          id: string
+          risk_id: string
+          wp_draft_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          risk_id: string
+          wp_draft_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          risk_id?: string
+          wp_draft_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_risk_wps_risk_id_fkey"
+            columns: ["risk_id"]
+            isOneToOne: false
+            referencedRelation: "proposal_risks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_risk_wps_wp_draft_id_fkey"
+            columns: ["wp_draft_id"]
+            isOneToOne: false
+            referencedRelation: "wp_drafts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposal_risks: {
+        Row: {
+          created_at: string
+          id: string
+          likelihood: string | null
+          mitigation: string | null
+          number: number
+          order_index: number
+          proposal_id: string
+          severity: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          likelihood?: string | null
+          mitigation?: string | null
+          number?: number
+          order_index?: number
+          proposal_id: string
+          severity?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          likelihood?: string | null
+          mitigation?: string | null
+          number?: number
+          order_index?: number
+          proposal_id?: string
+          severity?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_risks_proposal_id_fkey"
             columns: ["proposal_id"]
             isOneToOne: false
             referencedRelation: "proposals"
@@ -3302,6 +3368,47 @@ export type Database = {
             columns: ["source_guideline_id"]
             isOneToOne: false
             referencedRelation: "section_guidelines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposal_snapshots: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          label: string | null
+          proposal_id: string
+          snapshot: Json
+          source: string | null
+          table_counts: Json | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label?: string | null
+          proposal_id: string
+          snapshot: Json
+          source?: string | null
+          table_counts?: Json | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label?: string | null
+          proposal_id?: string
+          snapshot?: Json
+          source?: string | null
+          table_counts?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_snapshots_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
             referencedColumns: ["id"]
           },
         ]
@@ -3590,6 +3697,16 @@ export type Database = {
         Row: {
           acronym: string
           acronym_segments: Json | null
+          b_subheadings_seeded: Json
+          b31_banner_dismissed: boolean
+          b31_show_all_equipment_justification: boolean
+          b31_show_equipment_justification: boolean
+          b31_show_fstp_justification: boolean
+          b31_show_internally_invoiced_justification: boolean
+          b31_show_other_direct_costs: boolean
+          b31_show_other_goods_justification: boolean
+          b31_show_purchase_costs: boolean
+          b31_show_travel_justification: boolean
           banner_title_override: string | null
           banner_topic_line_override: string | null
           budget_template_id: string | null
@@ -3610,6 +3727,8 @@ export type Database = {
           duration: number | null
           evaluation_criteria_notes: string | null
           expected_projects: string | null
+          expertise_matrix_enabled: boolean
+          expertise_matrix_header_height: number | null
           fstp_budget: string | null
           fstp_budget_per_third_party: string | null
           fstp_type: string | null
@@ -3649,6 +3768,16 @@ export type Database = {
         Insert: {
           acronym: string
           acronym_segments?: Json | null
+          b_subheadings_seeded?: Json
+          b31_banner_dismissed?: boolean
+          b31_show_all_equipment_justification?: boolean
+          b31_show_equipment_justification?: boolean
+          b31_show_fstp_justification?: boolean
+          b31_show_internally_invoiced_justification?: boolean
+          b31_show_other_direct_costs?: boolean
+          b31_show_other_goods_justification?: boolean
+          b31_show_purchase_costs?: boolean
+          b31_show_travel_justification?: boolean
           banner_title_override?: string | null
           banner_topic_line_override?: string | null
           budget_template_id?: string | null
@@ -3669,6 +3798,8 @@ export type Database = {
           duration?: number | null
           evaluation_criteria_notes?: string | null
           expected_projects?: string | null
+          expertise_matrix_enabled?: boolean
+          expertise_matrix_header_height?: number | null
           fstp_budget?: string | null
           fstp_budget_per_third_party?: string | null
           fstp_type?: string | null
@@ -3708,6 +3839,16 @@ export type Database = {
         Update: {
           acronym?: string
           acronym_segments?: Json | null
+          b_subheadings_seeded?: Json
+          b31_banner_dismissed?: boolean
+          b31_show_all_equipment_justification?: boolean
+          b31_show_equipment_justification?: boolean
+          b31_show_fstp_justification?: boolean
+          b31_show_internally_invoiced_justification?: boolean
+          b31_show_other_direct_costs?: boolean
+          b31_show_other_goods_justification?: boolean
+          b31_show_purchase_costs?: boolean
+          b31_show_travel_justification?: boolean
           banner_title_override?: string | null
           banner_topic_line_override?: string | null
           budget_template_id?: string | null
@@ -3728,6 +3869,8 @@ export type Database = {
           duration?: number | null
           evaluation_criteria_notes?: string | null
           expected_projects?: string | null
+          expertise_matrix_enabled?: boolean
+          expertise_matrix_header_height?: number | null
           fstp_budget?: string | null
           fstp_budget_per_third_party?: string | null
           fstp_type?: string | null
@@ -4909,6 +5052,42 @@ export type Database = {
           },
         ]
       }
+      wp_draft_deliverable_tasks: {
+        Row: {
+          created_at: string
+          deliverable_id: string
+          id: string
+          wp_draft_task_id: string
+        }
+        Insert: {
+          created_at?: string
+          deliverable_id: string
+          id?: string
+          wp_draft_task_id: string
+        }
+        Update: {
+          created_at?: string
+          deliverable_id?: string
+          id?: string
+          wp_draft_task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wp_draft_deliverable_tasks_deliverable_id_fkey"
+            columns: ["deliverable_id"]
+            isOneToOne: false
+            referencedRelation: "wp_draft_deliverables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wp_draft_deliverable_tasks_wp_draft_task_id_fkey"
+            columns: ["wp_draft_task_id"]
+            isOneToOne: false
+            referencedRelation: "wp_draft_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wp_draft_deliverables: {
         Row: {
           created_at: string
@@ -5014,103 +5193,6 @@ export type Database = {
           },
           {
             foreignKeyName: "wp_draft_effort_wp_draft_id_fkey"
-            columns: ["wp_draft_id"]
-            isOneToOne: false
-            referencedRelation: "wp_drafts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      wp_draft_milestones: {
-        Row: {
-          created_at: string
-          due_month: number | null
-          id: string
-          means_of_verification: string | null
-          number: number
-          order_index: number
-          related_wps: string | null
-          title: string | null
-          updated_at: string
-          wp_draft_id: string
-        }
-        Insert: {
-          created_at?: string
-          due_month?: number | null
-          id?: string
-          means_of_verification?: string | null
-          number?: number
-          order_index?: number
-          related_wps?: string | null
-          title?: string | null
-          updated_at?: string
-          wp_draft_id: string
-        }
-        Update: {
-          created_at?: string
-          due_month?: number | null
-          id?: string
-          means_of_verification?: string | null
-          number?: number
-          order_index?: number
-          related_wps?: string | null
-          title?: string | null
-          updated_at?: string
-          wp_draft_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "wp_draft_milestones_wp_draft_id_fkey"
-            columns: ["wp_draft_id"]
-            isOneToOne: false
-            referencedRelation: "wp_drafts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      wp_draft_risks: {
-        Row: {
-          created_at: string
-          id: string
-          likelihood: string | null
-          mitigation: string | null
-          number: number
-          order_index: number
-          related_wps: string
-          severity: string | null
-          title: string | null
-          updated_at: string
-          wp_draft_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          likelihood?: string | null
-          mitigation?: string | null
-          number: number
-          order_index?: number
-          related_wps?: string
-          severity?: string | null
-          title?: string | null
-          updated_at?: string
-          wp_draft_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          likelihood?: string | null
-          mitigation?: string | null
-          number?: number
-          order_index?: number
-          related_wps?: string
-          severity?: string | null
-          title?: string | null
-          updated_at?: string
-          wp_draft_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "wp_draft_risks_wp_draft_id_fkey"
             columns: ["wp_draft_id"]
             isOneToOne: false
             referencedRelation: "wp_drafts"
@@ -5297,18 +5379,13 @@ export type Database = {
       }
       wp_drafts: {
         Row: {
-          approach_summary: string | null
           b31_description_before_tasks: string | null
           b31_objectives: string | null
-          background_knowledge: string | null
-          bottlenecks_question: string | null
           color: string
           color_locked: boolean
           created_at: string
           description_before_tasks: string | null
-          foreseen_challenges: string | null
           id: string
-          inputs_question: string | null
           is_hidden: boolean
           is_locked: boolean
           lead_participant_id: string | null
@@ -5316,12 +5393,9 @@ export type Database = {
           locked_by: string | null
           manual_duration: string | null
           manual_person_months: number | null
-          methodologies_list: Json | null
-          methodology: string | null
           number: number
           objectives: string | null
           order_index: number
-          outputs_question: string | null
           proposal_id: string
           short_name: string | null
           theme_id: string | null
@@ -5329,18 +5403,13 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          approach_summary?: string | null
           b31_description_before_tasks?: string | null
           b31_objectives?: string | null
-          background_knowledge?: string | null
-          bottlenecks_question?: string | null
           color?: string
           color_locked?: boolean
           created_at?: string
           description_before_tasks?: string | null
-          foreseen_challenges?: string | null
           id?: string
-          inputs_question?: string | null
           is_hidden?: boolean
           is_locked?: boolean
           lead_participant_id?: string | null
@@ -5348,12 +5417,9 @@ export type Database = {
           locked_by?: string | null
           manual_duration?: string | null
           manual_person_months?: number | null
-          methodologies_list?: Json | null
-          methodology?: string | null
           number: number
           objectives?: string | null
           order_index?: number
-          outputs_question?: string | null
           proposal_id: string
           short_name?: string | null
           theme_id?: string | null
@@ -5361,18 +5427,13 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          approach_summary?: string | null
           b31_description_before_tasks?: string | null
           b31_objectives?: string | null
-          background_knowledge?: string | null
-          bottlenecks_question?: string | null
           color?: string
           color_locked?: boolean
           created_at?: string
           description_before_tasks?: string | null
-          foreseen_challenges?: string | null
           id?: string
-          inputs_question?: string | null
           is_hidden?: boolean
           is_locked?: boolean
           lead_participant_id?: string | null
@@ -5380,12 +5441,9 @@ export type Database = {
           locked_by?: string | null
           manual_duration?: string | null
           manual_person_months?: number | null
-          methodologies_list?: Json | null
-          methodology?: string | null
           number?: number
           objectives?: string | null
           order_index?: number
-          outputs_question?: string | null
           proposal_id?: string
           short_name?: string | null
           theme_id?: string | null
@@ -5465,36 +5523,30 @@ export type Database = {
       profiles_basic: {
         Row: {
           avatar_url: string | null
-          country_code: string | null
           email: string | null
           first_name: string | null
           full_name: string | null
           id: string | null
           last_name: string | null
           organisation: string | null
-          phone_number: string | null
         }
         Insert: {
           avatar_url?: string | null
-          country_code?: string | null
           email?: string | null
           first_name?: string | null
           full_name?: string | null
           id?: string | null
           last_name?: string | null
           organisation?: string | null
-          phone_number?: string | null
         }
         Update: {
           avatar_url?: string | null
-          country_code?: string | null
           email?: string | null
           first_name?: string | null
           full_name?: string | null
           id?: string | null
           last_name?: string | null
           organisation?: string | null
-          phone_number?: string | null
         }
         Relationships: []
       }
@@ -5503,6 +5555,14 @@ export type Database = {
       can_edit_proposal: {
         Args: { _proposal_id: string; _user_id: string }
         Returns: boolean
+      }
+      capture_scope_predicates: { Args: never; Returns: Json }
+      create_proposal_snapshot: {
+        Args: { p_label?: string; p_proposal_id: string; p_source?: string }
+        Returns: {
+          counts: Json
+          snapshot_id: string
+        }[]
       }
       create_proposal_with_role: {
         Args: {
@@ -5519,6 +5579,18 @@ export type Database = {
           p_work_programme?: string
         }
         Returns: string
+      }
+      get_my_private_profile: {
+        Args: never
+        Returns: {
+          address: string
+          address_line_2: string
+          city: string
+          country_code: string
+          gdpr_consented_at: string
+          phone_number: string
+          postcode: string
+        }[]
       }
       has_any_proposal_role: {
         Args: { _proposal_id: string; _user_id: string }
@@ -5552,6 +5624,25 @@ export type Database = {
       is_proposal_admin: {
         Args: { _proposal_id: string; _user_id: string }
         Returns: boolean
+      }
+      preview_proposal_restore: {
+        Args: { p_proposal_id: string; p_snapshot_id: string }
+        Returns: Json
+      }
+      restore_excluded_tables: { Args: never; Returns: string[] }
+      restore_in_scope_tables: { Args: never; Returns: string[] }
+      restore_proposal_snapshot: {
+        Args: { p_proposal_id: string; p_snapshot_id: string }
+        Returns: Json
+      }
+      restore_scope_predicates: { Args: never; Returns: Json }
+      thin_proposal_snapshots: {
+        Args: {
+          p_keep_auto?: number
+          p_keep_manual?: number
+          p_proposal_id: string
+        }
+        Returns: number
       }
       thin_section_versions: {
         Args: { p_proposal_id: string }
