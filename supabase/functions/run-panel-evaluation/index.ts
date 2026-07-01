@@ -624,11 +624,22 @@ ${criterion.scoring_descriptors}`;
     return { evaluationId, status: "synthesizing" };
   };
 
-  if (savedEvaluations.length >= selectedEvaluators.length) {
+  // Resume-aware slot selection: pick the first missing slot OR the first previously-errored slot.
+  // This lets normal "evaluate" ticks continue past a failed run once the row's status is bounced
+  // back to "running" by the `resume` action.
+  let slotIndex = -1;
+  for (let i = 0; i < selectedEvaluators.length; i++) {
+    const slot = savedEvaluations[i];
+    if (!slot || slot?.data?.error) {
+      slotIndex = i;
+      break;
+    }
+  }
+  if (slotIndex === -1) {
     return finalizeEvaluatorPhase(savedEvaluations, usageTotals);
   }
-
-  const evaluator = selectedEvaluators[savedEvaluations.length];
+  const isRetryOfErroredSlot = slotIndex < savedEvaluations.length;
+  const evaluator = selectedEvaluators[slotIndex];
   const fullProposalOutputBlock =
     stageKey === "stage1"
       ? `{
