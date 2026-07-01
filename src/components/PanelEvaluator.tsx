@@ -1129,10 +1129,9 @@ export function PanelEvaluator({ proposalId }: Props) {
             const opusSelected = isOpus;
             const activeColor = opusSelected ? RED : GREEN;
             return (
-              <div className="space-y-3">
-
+              <div className="space-y-2 -mt-1">
+                {/* Row 1: model name (right) · toggle switch · model name (left) */}
                 <div className="flex items-start gap-5 max-w-3xl">
-                  {/* Sonnet block (left) */}
                   <button
                     type="button"
                     onClick={() => setModelChoice("claude-sonnet-5")}
@@ -1146,9 +1145,6 @@ export function PanelEvaluator({ proposalId }: Props) {
                       style={sonnetSelected ? { color: GREEN } : undefined}
                     >
                       Sonnet 5 <span className="font-normal text-xs text-muted-foreground">~{formatCurrency(modelCostEstimate.sonnet)}</span>
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1 leading-snug">
-                      Cheaper &amp; faster, quality close to Opus — recommended through development.
                     </div>
                   </button>
 
@@ -1171,7 +1167,6 @@ export function PanelEvaluator({ proposalId }: Props) {
                     />
                   </button>
 
-                  {/* Opus block (right) */}
                   <button
                     type="button"
                     onClick={() => setModelChoice("claude-opus-4-8")}
@@ -1186,11 +1181,32 @@ export function PanelEvaluator({ proposalId }: Props) {
                     >
                       Opus 4.8 <span className="font-normal text-xs text-muted-foreground">~{formatCurrency(modelCostEstimate.opus)}</span>
                     </div>
-                    <div className="text-xs text-muted-foreground mt-1 leading-snug">
-                      Highest accuracy — use late, for extra scrutiny before submission.{" "}
-                      <span className="italic">(per-run only)</span>
-                    </div>
                   </button>
+                </div>
+
+                {/* Row 2: descriptions flank a small Start button centred under the toggle. */}
+                <div className="flex items-center gap-5 max-w-3xl">
+                  <div className="flex-1 text-right text-xs text-muted-foreground leading-snug">
+                    Cheaper &amp; faster, quality close to Opus — recommended through development.
+                  </div>
+                  <div className="shrink-0 flex justify-center">
+                    {stage === "idle" && !failedRun ? (
+                      <Button
+                        onClick={startEvaluation}
+                        disabled={!instrumentCode}
+                        size="sm"
+                        className="gap-2 h-8 px-3"
+                      >
+                        <Sparkles className="h-4 w-4" /> Start
+                      </Button>
+                    ) : (
+                      <span className="w-[88px]" aria-hidden />
+                    )}
+                  </div>
+                  <div className="flex-1 text-left text-xs text-muted-foreground leading-snug">
+                    Highest accuracy — use late, for extra scrutiny before submission.{" "}
+                    <span className="italic">(per-run only)</span>
+                  </div>
                 </div>
               </div>
             );
