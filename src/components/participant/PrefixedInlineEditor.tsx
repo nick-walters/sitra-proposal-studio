@@ -147,22 +147,112 @@ export function PrefixedInlineEditor({
     if (debounceRef.current) clearTimeout(debounceRef.current);
   }, []);
 
+  /**
+   * Returns the first valid caret position AFTER the prefix island (i.e. after
+   * the prefix span AND its trailing NBSP). Null if the editor/prefix aren't
+   * ready yet.
+   */
+  const getMinCaretPoint = useCallback((): { node: Node; offset: number } | null => {
+    const root = editorRef.current;
+    if (!root) return null;
+    const prefixEl = root.querySelector(`[${PREFIX_ATTR}]`);
+    if (!prefixEl) return null;
+    const next = prefixEl.nextSibling;
+    if (next && next.nodeType === Node.TEXT_NODE && /^\u00a0/.test(next.textContent || '')) {
+      // Caret sits AFTER the NBSP (offset 1).
+      return { node: next, offset: 1 };
+    }
+    // Fallback: right after the prefix element within the editor root.
+    const idx = Array.prototype.indexOf.call(root.childNodes, prefixEl);
+    return { node: root, offset: idx + 1 };
+  }, []);
+
+  /**
+   * True if the given caret point is at or before the minimum allowed
+   * position (i.e. before the end of the prefix + NBSP).
+   */
+  const isBeforeMin = useCallback((node: Node, offset: number): boolean => {
+    const root = editorRef.current;
+    if (!root) return false;
+    const min = getMinCaretPoint();
+    if (!min) return false;
+    // Compare via a Range: caret point vs min point.
+    const a = document.createRange();
+    try {
+      a.setStart(node, offset);
+    } catch {
+      return true;
+    }
+    const b = document.createRange();
+    try {
+      b.setStart(min.node, min.offset);
+    } catch {
+      return false;
+    }
+    // If a.start is before b.start -> caret is before minimum.
+    return a.compareBoundaryPoints(Range.START_TO_START, b) < 0;
+  }, [getMinCaretPoint]);
+
+  const clampCaret = useCallback(() => {
+    const root = editorRef.current;
+    if (!root) return;
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    const range = sel.getRangeAt(0);
+    if (!root.contains(range.startContainer)) return;
+    const startBefore = isBeforeMin(range.startContainer, range.startOffset);
+    const endBefore = isBeforeMin(range.endContainer, range.endOffset);
+    if (!startBefore && !endBefore) return;
+    const min = getMinCaretPoint();
+    if (!min) return;
+    const next = document.createRange();
+    next.setStart(min.node, min.offset);
+    // If selection was a range that started before min but ended after, clamp only start.
+    if (range.collapsed || endBefore) {
+      next.collapse(true);
+    } else {
+      next.setEnd(range.endContainer, range.endOffset);
+    }
+    sel.removeAllRanges();
+    sel.addRange(next);
+  }, [getMinCaretPoint, isBeforeMin]);
+
+  // Global selectionchange listener while focused — catches clicks anywhere,
+  // programmatic selection, keyboard nav, etc.
+  useEffect(() => {
+    if (!isFocused) return;
+    const handler = () => clampCaret();
+    document.addEventListener('selectionchange', handler);
+    return () => document.removeEventListener('selectionchange', handler);
+  }, [isFocused, clampCaret]);
+
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (!editorRef.current) return;
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0) return;
     const range = sel.getRangeAt(0);
 
+    // Home / Ctrl+Home: force caret to first valid position AFTER prefix.
+    if (e.key === 'Home') {
+      e.preventDefault();
+      const min = getMinCaretPoint();
+      if (min) {
+        const r = document.createRange();
+        r.setStart(min.node, min.offset);
+        r.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(r);
+      }
+      return;
+    }
+
     // Prevent Backspace from deleting into the non-editable prefix.
     if (e.key === 'Backspace' && range.collapsed) {
       const prefixEl = editorRef.current.querySelector(`[${PREFIX_ATTR}]`);
       if (!prefixEl) return;
-      // If caret sits right after the prefix (offset 0 in the &nbsp; text node
-      // or 0 in first element after prefix), block deletion.
       const container = range.startContainer;
       if (container.nodeType === Node.TEXT_NODE) {
         const text = container.textContent || '';
-        // Caret at position 0 or 1 of the nbsp text node that follows the prefix
         if (
           container.previousSibling === prefixEl &&
           range.startOffset <= 1 &&
@@ -176,7 +266,18 @@ export function PrefixedInlineEditor({
         return;
       }
     }
-  }, []);
+  }, [getMinCaretPoint]);
+
+  // Block any input event whose caret is before the minimum position.
+  const handleBeforeInput = useCallback((e: React.FormEvent<HTMLDivElement>) => {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    const range = sel.getRangeAt(0);
+    if (isBeforeMin(range.startContainer, range.startOffset)) {
+      e.preventDefault();
+      clampCaret();
+    }
+  }, [isBeforeMin, clampCaret]);
 
   const showPlaceholder =
     !value && !isFocused && placeholder;
