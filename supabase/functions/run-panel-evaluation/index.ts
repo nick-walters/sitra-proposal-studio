@@ -231,6 +231,7 @@ interface EvaluationRecord {
   eligibility_flags: any;
   analysis_data: any;
   status: string | null;
+  created_at?: string | null;
 }
 
 interface LoadedContext {
