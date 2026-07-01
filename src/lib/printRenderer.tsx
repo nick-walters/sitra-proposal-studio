@@ -440,12 +440,16 @@ async function buildA3BudgetHtml(
 
 async function buildPartAHtml(
   proposalId: string,
-  sectionContents: SectionContent[],
+  _sectionContents: SectionContent[],
   participants: Participant[],
   proposalType: string | null,
 ): Promise<string> {
-  const a1 = sectionContents.find((sc) => sc.sectionId === 'a1');
-  const a1Html = a1 ? buildA1Html(a1.content) : '';
+  const { data: a1Row } = await supabase
+    .from('part_a1')
+    .select('abstract, fixed_keywords, free_keywords, previous_submission, previous_submission_reference')
+    .eq('proposal_id', proposalId)
+    .maybeSingle();
+  const a1Html = buildA1Html(a1Row as PartA1Row | null);
   const a3Html = await buildA3BudgetHtml(proposalId, participants, proposalType);
   // A2 (participants list + expertise matrix) is already covered by the
   // participant list table above and the B3.2 expertise-matrix mount.
