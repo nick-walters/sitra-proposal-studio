@@ -3787,6 +3787,11 @@ export type Database = {
           indicative_budget_per_project: string | null
           is_two_stage_second_stage: boolean | null
           logo_url: string | null
+          mirror_contribution_resources: boolean
+          mirror_industrial_involvement: boolean
+          mirror_infrastructure: boolean
+          mirror_participation_justification: boolean
+          mirror_value_chain: boolean
           ocd_template_path: string | null
           opening_date: string | null
           outcome_footnotes: Json | null
@@ -3858,6 +3863,11 @@ export type Database = {
           indicative_budget_per_project?: string | null
           is_two_stage_second_stage?: boolean | null
           logo_url?: string | null
+          mirror_contribution_resources?: boolean
+          mirror_industrial_involvement?: boolean
+          mirror_infrastructure?: boolean
+          mirror_participation_justification?: boolean
+          mirror_value_chain?: boolean
           ocd_template_path?: string | null
           opening_date?: string | null
           outcome_footnotes?: Json | null
@@ -3929,6 +3939,11 @@ export type Database = {
           indicative_budget_per_project?: string | null
           is_two_stage_second_stage?: boolean | null
           logo_url?: string | null
+          mirror_contribution_resources?: boolean
+          mirror_industrial_involvement?: boolean
+          mirror_infrastructure?: boolean
+          mirror_participation_justification?: boolean
+          mirror_value_chain?: boolean
           ocd_template_path?: string | null
           opening_date?: string | null
           outcome_footnotes?: Json | null
