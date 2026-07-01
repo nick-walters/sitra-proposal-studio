@@ -687,8 +687,14 @@ EVALUATION RULES
 EVALUATION CRITERIA:
 ${criteriaText}
 
-OUTPUT — respond with a JSON object only:
+OUTPUT — respond with a JSON object only (no prose before/after, no markdown fences):
 ${fullProposalOutputBlock}
+
+LENGTH RULES (STRICT — the response MUST fit well under the token cap):
+- Each *_comments field: aim 80–180 words, HARD CAP 200 words. Do NOT exceed.
+- overall_comments: aim 40–80 words, HARD CAP 100 words.
+- key_strength / key_concern: exactly one sentence, HARD CAP 40 words each.
+- Prefer specificity and concrete references over length. Truncate rather than exceed a cap.
 
 --- PROPOSAL CONTENT ---
 ${proposalContentBlock}`;
