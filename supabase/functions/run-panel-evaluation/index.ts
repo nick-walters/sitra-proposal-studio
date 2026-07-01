@@ -80,7 +80,7 @@ function resolveModelPricing(
 async function callAnthropicWithCache(
   apiKey: string,
   model: string,
-  systemBlocks: { type: "text"; text: string; cache_control?: { type: "ephemeral" } }[],
+  systemBlocks: { type: "text"; text: string; cache_control?: { type: "ephemeral"; ttl?: string } }[],
   userPrompt: string,
   maxTokens: number,
   enableThinking = false,
@@ -106,7 +106,9 @@ async function callAnthropicWithCache(
       headers: {
         "x-api-key": apiKey,
         "anthropic-version": "2023-06-01",
-        "anthropic-beta": "prompt-caching-2024-07-31",
+        // Enable prompt caching + 1-hour extended TTL so the stable proposal prefix
+        // survives the ~7-min end-to-end evaluator run (default TTL is 5 min).
+        "anthropic-beta": "prompt-caching-2024-07-31,extended-cache-ttl-2025-04-11",
         "content-type": "application/json",
       },
       body: JSON.stringify(body),
