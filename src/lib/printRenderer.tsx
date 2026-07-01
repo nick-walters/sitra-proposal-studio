@@ -628,7 +628,6 @@ export async function mountDynamicComponents(
   appQueryClient?: QueryClient,
 ): Promise<void> {
   const b31Mount = container.querySelector('#print-b31-mount');
-  const b32Mount = container.querySelector('#print-b32-mount');
   const casesPlaceholders = Array.from(
     container.querySelectorAll<HTMLElement>('div[data-cases-table-node]'),
   );
@@ -636,18 +635,16 @@ export async function mountDynamicComponents(
     container.querySelectorAll<HTMLElement>('div[data-b32-mirror-slot]'),
   );
 
-  if (!b31Mount && !b32Mount && casesPlaceholders.length === 0 && b32SlotPlaceholders.length === 0) return;
+  if (!b31Mount && casesPlaceholders.length === 0 && b32SlotPlaceholders.length === 0) return;
 
   const [
     { B31IntroText },
     { B31SectionContent },
-    { B32SectionContent },
     { CasesTableLiveView },
     { B32MirrorSlotLiveView },
   ] = await Promise.all([
     import('@/components/B31IntroText'),
     import('@/components/B31SectionContent'),
-    import('@/components/B32SectionContent'),
     import('@/components/CasesTableNodeView'),
     import('@/components/B32MirrorSlotNodeView'),
   ]);
@@ -660,24 +657,26 @@ export async function mountDynamicComponents(
       defaultOptions: { queries: { retry: false } },
     });
 
-  // Check whether the B3.2 expertise matrix is enabled before mounting.
-  let mountB32 = false;
-  if (b32Mount) {
-    try {
-      const { data } = await supabase
-        .from('proposals')
-        .select('expertise_matrix_enabled')
-        .eq('id', proposalId)
-        .maybeSingle();
-      mountB32 = data?.expertise_matrix_enabled !== false;
-    } catch {
-      mountB32 = true; // default-on
-    }
-    if (!mountB32) {
-      // Drop the marker so it leaves no trace in the export.
-      b32Mount.remove();
-    }
+  // If the expertise matrix is disabled, drop the interdisciplinarity slot
+  // placeholder so it exports as empty (matches the editor's hide behaviour).
+  let matrixEnabled = true;
+  try {
+    const { data } = await supabase
+      .from('proposals')
+      .select('expertise_matrix_enabled')
+      .eq('id', proposalId)
+      .maybeSingle();
+    matrixEnabled = data?.expertise_matrix_enabled !== false;
+  } catch {
+    matrixEnabled = true;
   }
+  const slotPlaceholders = b32SlotPlaceholders.filter((el) => {
+    if (!matrixEnabled && el.getAttribute('data-b32-slot-key') === 'interdisciplinarity') {
+      el.remove();
+      return false;
+    }
+    return true;
+  });
 
   const roots: { root: ReturnType<typeof createRoot>; el: Element }[] = [];
 
@@ -702,25 +701,6 @@ export async function mountDynamicComponents(
     roots.push({ root, el: b31Mount });
   }
 
-  if (b32Mount && mountB32) {
-    const root = createRoot(b32Mount);
-    root.render(
-      createElement(
-        QueryClientProvider,
-        { client: queryClient },
-        createElement(
-          AuthProvider,
-          null,
-          createElement(
-            'div',
-            { className: 'print-b32-content' },
-            createElement(B32SectionContent, { proposalId }),
-          ),
-        ),
-      ),
-    );
-    roots.push({ root, el: b32Mount });
-  }
 
   // Mount each B1.2 cases-table placeholder. The letterIndex is just the
   // index of the placeholder in document order — matches the editor's
