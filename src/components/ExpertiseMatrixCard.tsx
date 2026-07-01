@@ -272,3 +272,71 @@ function SortableRow({
     </tr>
   );
 }
+
+type MirrorKey =
+  | 'mirror_contribution_resources'
+  | 'mirror_infrastructure'
+  | 'mirror_value_chain'
+  | 'mirror_industrial_involvement'
+  | 'mirror_participation_justification';
+
+const MIRROR_FIELDS: { key: MirrorKey; label: string }[] = [
+  { key: 'mirror_contribution_resources', label: 'Mirror participant contributions & resources to B3.2' },
+  { key: 'mirror_infrastructure', label: 'Mirror critical infrastructure table to B3.2' },
+  { key: 'mirror_value_chain', label: 'Mirror value chain coverage to B3.2' },
+  { key: 'mirror_industrial_involvement', label: 'Mirror industrial/commercial involvement to B3.2' },
+  { key: 'mirror_participation_justification', label: 'Mirror participation justification to B3.2' },
+];
+
+function B32MirrorToggles({ proposalId, isCoordinator }: { proposalId: string; isCoordinator: boolean }) {
+  const qc = useQueryClient();
+  const queryKey = ['b32-mirror-toggles', proposalId];
+
+  const { data } = useQuery({
+    queryKey,
+    enabled: !!proposalId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('proposals')
+        .select(
+          'mirror_contribution_resources, mirror_infrastructure, mirror_value_chain, mirror_industrial_involvement, mirror_participation_justification',
+        )
+        .eq('id', proposalId)
+        .maybeSingle();
+      if (error) throw error;
+      return (data ?? {}) as Partial<Record<MirrorKey, boolean>>;
+    },
+  });
+
+  const setField = async (key: MirrorKey, value: boolean) => {
+    qc.setQueryData(queryKey, (prev: Partial<Record<MirrorKey, boolean>> | undefined) => ({
+      ...(prev ?? {}),
+      [key]: value,
+    }));
+    const { error } = await supabase.from('proposals').update({ [key]: value }).eq('id', proposalId);
+    if (error) qc.invalidateQueries({ queryKey });
+    window.dispatchEvent(new CustomEvent('cross-ref-data-changed', { detail: { type: 'b32-mirror-toggles' } }));
+  };
+
+  return (
+    <div className="flex flex-col gap-1.5 pt-2">
+      {MIRROR_FIELDS.map((f) => {
+        const checked = data?.[f.key] ?? true;
+        const id = `b32-${f.key}`;
+        return (
+          <div key={f.key} className="flex items-center gap-2">
+            <Checkbox
+              id={id}
+              checked={checked}
+              disabled={!isCoordinator}
+              onCheckedChange={(v) => setField(f.key, v === true)}
+            />
+            <label htmlFor={id} className="text-sm cursor-pointer">
+              {f.label}
+            </label>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
