@@ -1272,6 +1272,25 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
     latestSectionContent(supabase, proposal.id, "b3-1"),
   ]);
 
+  // Read B3.1 justification toggle flags from the proposal (b31_show_*)
+  const { data: propFlags } = await supabase
+    .from("proposals")
+    .select(
+      "b31_show_purchase_costs, b31_show_other_direct_costs, b31_show_travel_justification, b31_show_equipment_justification, b31_show_all_equipment_justification, b31_show_other_goods_justification, b31_show_fstp_justification, b31_show_internally_invoiced_justification"
+    )
+    .eq("id", proposal.id)
+    .maybeSingle();
+  const toggles = {
+    purchase_costs: !!propFlags?.b31_show_purchase_costs,
+    other_direct_costs: !!propFlags?.b31_show_other_direct_costs,
+    travel: !!propFlags?.b31_show_travel_justification,
+    equipment: !!propFlags?.b31_show_equipment_justification,
+    equipment_all: !!propFlags?.b31_show_all_equipment_justification,
+    other_goods: !!propFlags?.b31_show_other_goods_justification,
+    fstp: !!propFlags?.b31_show_fstp_justification,
+    internally_invoiced: !!propFlags?.b31_show_internally_invoiced_justification,
+  };
+
   const { data: wps } = await supabase
     .from("wp_drafts")
     .select("id, number, short_name, title, color, lead_participant_id, manual_duration, b31_objectives, b31_description_before_tasks")
@@ -1279,23 +1298,79 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
     .order("number", { ascending: true });
 
   const wpIds = (wps ?? []).map((w: any) => w.id);
+
+  // Live tables replacing the deleted b31_* snapshot tables.
   const [
-    { data: b31Tasks },
+    { data: tasks },
     { data: deliverables },
     { data: milestones },
     { data: risks },
+    { data: msLinks },
+    { data: riskLinks },
     { data: participants },
-    { data: effortRows },
+    { data: wpEffortRows },
   ] = await Promise.all([
-    wpIds.length ? supabase.from("b31_tasks").select("*").in("wp_draft_id", wpIds).order("number", { ascending: true }) : { data: [] },
-    supabase.from("b31_deliverables").select("*").eq("proposal_id", proposal.id).order("order_index", { ascending: true }),
-    supabase.from("b31_milestones").select("*").eq("proposal_id", proposal.id).order("number", { ascending: true }),
-    supabase.from("b31_risks").select("*").eq("proposal_id", proposal.id).order("number", { ascending: true }),
-    supabase.from("participants").select("id, participant_number, organisation_short_name").eq("proposal_id", proposal.id).order("participant_number", { ascending: true }),
-    wpIds.length ? supabase.from("wp_draft_effort").select("wp_draft_id, participant_id, person_months").in("wp_draft_id", wpIds) : { data: [] },
+    wpIds.length
+      ? supabase.from("wp_draft_tasks")
+          .select("id, wp_draft_id, number, title, description, lead_participant_id, start_month, end_month, order_index")
+          .in("wp_draft_id", wpIds)
+          .order("number", { ascending: true })
+      : Promise.resolve({ data: [] }),
+    wpIds.length
+      ? supabase.from("wp_draft_deliverables")
+          .select("id, wp_draft_id, number, title, type, dissemination_level, responsible_participant_id, due_month, description, order_index")
+          .in("wp_draft_id", wpIds)
+      : Promise.resolve({ data: [] }),
+    supabase.from("proposal_milestones")
+      .select("id, number, title, due_month, means_of_verification, order_index")
+      .eq("proposal_id", proposal.id)
+      .order("number", { ascending: true }),
+    supabase.from("proposal_risks")
+      .select("id, number, title, likelihood, severity, mitigation, order_index, created_at")
+      .eq("proposal_id", proposal.id)
+      .order("order_index", { ascending: true })
+      .order("created_at", { ascending: true }),
+    supabase.from("proposal_milestone_wps").select("milestone_id, wp_draft_id"),
+    supabase.from("proposal_risk_wps").select("risk_id, wp_draft_id"),
+    supabase.from("participants").select("id, participant_number, organisation_short_name")
+      .eq("proposal_id", proposal.id)
+      .order("participant_number", { ascending: true }),
+    wpIds.length
+      ? supabase.from("wp_draft_effort").select("wp_draft_id, participant_id, person_months").in("wp_draft_id", wpIds)
+      : Promise.resolve({ data: [] }),
   ]);
 
-  // Subcontracting & equipment justification items for 3.1.g/3.1.h via budget_rows joined to participants
+  // Per-task effort for aggregating participant PMs where needed.
+  const taskIds = (tasks ?? []).map((t: any) => t.id);
+  const [{ data: taskParts }, { data: taskEffort }] = await Promise.all([
+    taskIds.length
+      ? supabase.from("wp_draft_task_participants").select("task_id, participant_id").in("task_id", taskIds)
+      : Promise.resolve({ data: [] }),
+    taskIds.length
+      ? supabase.from("wp_draft_task_effort").select("task_id, participant_id, person_months").in("task_id", taskIds)
+      : Promise.resolve({ data: [] }),
+  ]);
+
+  const wpIdSet = new Set(wpIds);
+  const msLinkMap = new Map<string, string[]>();
+  for (const l of msLinks ?? []) {
+    if (!wpIdSet.has(l.wp_draft_id)) continue;
+    const arr = msLinkMap.get(l.milestone_id) ?? [];
+    arr.push(l.wp_draft_id);
+    msLinkMap.set(l.milestone_id, arr);
+  }
+  const riskLinkMap = new Map<string, string[]>();
+  for (const l of riskLinks ?? []) {
+    if (!wpIdSet.has(l.wp_draft_id)) continue;
+    const arr = riskLinkMap.get(l.risk_id) ?? [];
+    arr.push(l.wp_draft_id);
+    riskLinkMap.set(l.risk_id, arr);
+  }
+
+  const wpById = new Map<string, any>();
+  for (const w of wps ?? []) wpById.set(w.id, w);
+
+  // ── Justification items (subcontracting / equipment / travel / other_goods) ──
   const { data: budgetRows } = await supabase
     .from("budget_rows")
     .select("id, participant_id, pm_rate, personnel_costs")
@@ -1306,18 +1381,20 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
         .from("budget_cost_justification_items")
         .select("*")
         .in("budget_row_id", brIds)
-        .in("category", ["subcontracting", "equipment"])
         .order("order_index")
     : { data: [] };
-  const subItems = (justItemsRaw ?? []).filter((it: any) => it.category === "subcontracting");
-  const equipItemsAll = (justItemsRaw ?? []).filter((it: any) => it.category === "equipment");
+  const itemsByCat = (cat: string) => (justItemsRaw ?? []).filter((it: any) => it.category === cat);
+  const subItems = itemsByCat("subcontracting");
+  const equipItemsAll = itemsByCat("equipment");
+  const travelItems = itemsByCat("travel");
+  const otherGoodsItems = itemsByCat("other_goods");
 
   const brToPart = new Map<string, string>();
-  const brById = new Map<string, any>();
-  for (const br of budgetRows ?? []) { brToPart.set(br.id, br.participant_id); brById.set(br.id, br); }
-  // Per-participant personnel cost for 15% major-equipment rule.
+  for (const br of budgetRows ?? []) brToPart.set(br.id, br.participant_id);
+
+  // Aggregate PMs per participant (from wp-level effort) for 15% personnel rule.
   const pmByPart = new Map<string, number>();
-  for (const e of effortRows ?? []) {
+  for (const e of wpEffortRows ?? []) {
     pmByPart.set(e.participant_id, (pmByPart.get(e.participant_id) || 0) + Number(e.person_months ?? 0));
   }
   const personnelCostFor = (partId: string): number => {
@@ -1327,31 +1404,38 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
     if (pmRate != null && pmRate > 0) return Math.round(pmRate * (pmByPart.get(partId) || 0));
     return Number(br.personnel_costs || 0);
   };
-  // Apply 15% major-equipment rule per participant: include all items only if total > 15% of personnel.
+  // Apply 15%-of-personnel rule per participant for equipment.
   const equipTotalsByPart = new Map<string, number>();
   for (const it of equipItemsAll) {
     const partId = brToPart.get(it.budget_row_id);
     if (!partId) continue;
     equipTotalsByPart.set(partId, (equipTotalsByPart.get(partId) || 0) + Number(it.amount || 0));
   }
+  const partsForced = new Set<string>();
+  for (const [partId, total] of equipTotalsByPart) {
+    const pers = personnelCostFor(partId);
+    if (pers > 0 ? total > 0.15 * pers : total > 0) partsForced.add(partId);
+  }
+  const c2ForcedOn = partsForced.size > 0;
+  const includeEquipmentCategory = (toggles.purchase_costs || c2ForcedOn) && (c2ForcedOn || toggles.equipment);
   const equipItems = equipItemsAll.filter((it: any) => {
+    if (!includeEquipmentCategory) return false;
     const partId = brToPart.get(it.budget_row_id);
     if (!partId) return false;
-    const pers = personnelCostFor(partId);
-    const total = equipTotalsByPart.get(partId) || 0;
-    return pers > 0 ? total > 0.15 * pers : total > 0;
+    if (partsForced.has(partId)) return true;
+    return toggles.equipment_all; // include below-15% only when explicitly opted in
   });
-
-
-  const taskIds = (b31Tasks ?? []).map((t: any) => t.id);
-  const { data: b31TaskParts } = taskIds.length
-    ? await supabase.from("b31_task_participants").select("task_id, participant_id").in("task_id", taskIds)
-    : { data: [] };
+  const includeTravel = toggles.purchase_costs && toggles.travel && travelItems.length > 0;
+  const includeOtherGoods = toggles.purchase_costs && toggles.other_goods && otherGoodsItems.length > 0;
 
   const partLabel = (id: string | null) => {
     if (!id) return "—";
     const p = (participants ?? []).find((x: any) => x.id === id);
     return p ? `P${p.participant_number} ${p.organisation_short_name ?? ""}` : "—";
+  };
+  const wpLabel = (id: string): string => {
+    const w = wpById.get(id);
+    return w ? `WP${w.number}` : "";
   };
 
   const children: (Paragraph | Table)[] = [H(HeadingLevel.HEADING_1, "Part B3.1 — Work plan & work packages")];
@@ -1365,10 +1449,10 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
     children.push(...htmlToDocxChildren(body));
   }
 
-  // Effort totals per (wp, participant) and per WP
+  // Effort per (wp, participant); WP totals from wp_draft_effort.
   const effortMap = new Map<string, number>();
   const wpEffortTotal = new Map<string, number>();
-  for (const e of effortRows ?? []) {
+  for (const e of wpEffortRows ?? []) {
     const v = Number(e.person_months ?? 0);
     effortMap.set(`${e.wp_draft_id}::${e.participant_id}`, v);
     wpEffortTotal.set(e.wp_draft_id, (wpEffortTotal.get(e.wp_draft_id) || 0) + v);
@@ -1380,7 +1464,7 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
     children.push(simpleTable(
       ["WP #", "WP title", "Lead participant", "Person-months", "Start month", "End month"],
       (wps ?? []).map((w: any) => {
-        const wpTasks = (b31Tasks ?? []).filter((t: any) => t.wp_draft_id === w.id);
+        const wpTasks = (tasks ?? []).filter((t: any) => t.wp_draft_id === w.id);
         const starts = wpTasks.map((t: any) => t.start_month).filter((v: any) => v != null);
         const ends = wpTasks.map((t: any) => t.end_month).filter((v: any) => v != null);
         const wpStart = starts.length ? Math.min(...starts) : null;
@@ -1397,10 +1481,10 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
     ));
   }
 
-  // Per-WP detail using the shared Table 3.1.b structure.
+  // ─── Table 3.1.b — Per-WP description tables ───
   children.push(H(HeadingLevel.HEADING_2, "Table 3.1.b — Work package descriptions"));
   for (const w of wps ?? []) {
-    const wpTasks = (b31Tasks ?? []).filter((t: any) => t.wp_draft_id === w.id);
+    const wpTasks = (tasks ?? []).filter((t: any) => t.wp_draft_id === w.id);
     children.push(buildWpDescriptionTable({
       wpNumber: w.number,
       shortName: w.short_name,
@@ -1410,7 +1494,7 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
       objectives: w.b31_objectives,
       description: w.b31_description_before_tasks,
       tasks: wpTasks.map((t: any) => {
-        const ids = (b31TaskParts ?? []).filter((tp: any) => tp.task_id === t.id).map((tp: any) => tp.participant_id);
+        const ids = (taskParts ?? []).filter((tp: any) => tp.task_id === t.id).map((tp: any) => tp.participant_id);
         return {
           number: t.number,
           title: t.title,
@@ -1421,29 +1505,96 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
         };
       }),
     }));
-    children.push(P("")); // spacer between WP tables
+    children.push(P(""));
   }
 
-  // ─── Tables 3.1.c/d/e ───
-  if (deliverables?.length) {
+  // ─── Table 3.1.c — Deliverables (WP-scoped D{wp}.{n} labels) ───
+  const visibleDeliverables = (deliverables ?? []).filter((d: any) => {
+    const empty = !(d.title ?? "").toString().trim()
+      && !(d.type ?? "").toString().trim()
+      && !(d.dissemination_level ?? "").toString().trim()
+      && !d.responsible_participant_id
+      && d.due_month == null;
+    return !empty;
+  }).sort((a: any, b: any) => {
+    const wa = wpById.get(a.wp_draft_id)?.number ?? 999;
+    const wb = wpById.get(b.wp_draft_id)?.number ?? 999;
+    if (wa !== wb) return wa - wb;
+    const da = a.due_month ?? Number.POSITIVE_INFINITY;
+    const db = b.due_month ?? Number.POSITIVE_INFINITY;
+    if (da !== db) return da - db;
+    return (a.order_index ?? a.number ?? 0) - (b.order_index ?? b.number ?? 0);
+  });
+  if (visibleDeliverables.length) {
     children.push(H(HeadingLevel.HEADING_2, "Table 3.1.c — Deliverables"));
     children.push(simpleTable(
-      ["#", "Name", "WP", "Lead", "Type", "Diss.", "Due month"],
-      deliverables.map((d: any) => [d.number, d.name ?? "", d.wp_number ?? "", partLabel(d.lead_participant_id), d.type ?? "", d.dissemination_level ?? "", mLabel(d.due_month)]),
+      ["No.", "Deliverable title", "WP", "Lead", "Type", "Diss.", "Due"],
+      visibleDeliverables.map((d: any) => {
+        const w = wpById.get(d.wp_draft_id);
+        const label = w ? `D${w.number}.${d.number}` : `D?.${d.number}`;
+        return [
+          label,
+          d.title ?? "",
+          w ? `WP${w.number}` : "—",
+          partLabel(d.responsible_participant_id),
+          d.type ?? "",
+          d.dissemination_level ?? "",
+          mLabel(d.due_month),
+        ];
+      }),
     ));
   }
-  if (milestones?.length) {
+
+  // ─── Table 3.1.d — Milestones (proposal-level + WP links) ───
+  const sortedMilestones = [...(milestones ?? [])].sort((a: any, b: any) => {
+    const da = a.due_month ?? Number.POSITIVE_INFINITY;
+    const db = b.due_month ?? Number.POSITIVE_INFINITY;
+    if (da !== db) return da - db;
+    const wa = Math.min(...(msLinkMap.get(a.id) ?? []).map((id) => wpById.get(id)?.number ?? Infinity), Infinity);
+    const wb = Math.min(...(msLinkMap.get(b.id) ?? []).map((id) => wpById.get(id)?.number ?? Infinity), Infinity);
+    if (wa !== wb) return wa - wb;
+    return (a.number ?? 0) - (b.number ?? 0);
+  });
+  if (sortedMilestones.length) {
     children.push(H(HeadingLevel.HEADING_2, "Table 3.1.d — Milestones"));
     children.push(simpleTable(
-      ["#", "Name", "WPs", "Due month", "Means of verification"],
-      milestones.map((m: any) => [m.number, m.name ?? "", m.wps ?? "", mLabel(m.due_month), m.means_of_verification ?? ""]),
+      ["No.", "Milestone", "WP(s)", "Due", "Means of verification"],
+      sortedMilestones.map((m: any) => {
+        const wpIdsForMs = (msLinkMap.get(m.id) ?? [])
+          .map((id) => wpById.get(id))
+          .filter(Boolean)
+          .sort((a: any, b: any) => a.number - b.number)
+          .map((w: any) => `WP${w.number}`);
+        return [
+          `MS${m.number}`,
+          htmlToText(m.title ?? ""),
+          wpIdsForMs.join(", ") || "—",
+          mLabel(m.due_month),
+          htmlToText(m.means_of_verification ?? ""),
+        ];
+      }),
     ));
   }
-  if (risks?.length) {
+
+  // ─── Table 3.1.e — Critical risks ───
+  if ((risks ?? []).length) {
     children.push(H(HeadingLevel.HEADING_2, "Table 3.1.e — Critical risks"));
     children.push(simpleTable(
-      ["#", "Description", "WPs", "Likelihood", "Severity", "Mitigation"],
-      risks.map((r: any) => [r.number, r.description ?? "", r.wps ?? "", r.likelihood ?? "", r.severity ?? "", r.mitigation ?? ""]),
+      ["Risk", "Likelihood", "Severity", "WP(s)", "Mitigation & adaptation measures"],
+      (risks ?? []).map((r: any) => {
+        const wpIdsForRisk = (riskLinkMap.get(r.id) ?? [])
+          .map((id) => wpById.get(id))
+          .filter(Boolean)
+          .sort((a: any, b: any) => a.number - b.number)
+          .map((w: any) => `WP${w.number}`);
+        return [
+          htmlToText(r.title ?? ""),
+          r.likelihood ?? "",
+          r.severity ?? "",
+          wpIdsForRisk.join(", ") || "—",
+          htmlToText(r.mitigation ?? ""),
+        ];
+      }),
     ));
   }
 
@@ -1506,18 +1657,28 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
     return simpleTable(["Participant", "Cost (€)", "Justification"], rowsOut);
   };
 
-  // ─── Table 3.1.g — Subcontracting ───
+  // ─── Table 3.1.g — Subcontracting (auto-included when items exist) ───
   if ((subItems ?? []).length) {
     children.push(H(HeadingLevel.HEADING_2, "Table 3.1.g — Subcontracting"));
     children.push(renderJustItemsTable(subItems));
   }
 
-  // ─── Table 3.1.h — Purchase costs / equipment (15% major-equipment rule applied above) ───
-  if ((equipItems ?? []).length) {
+  // ─── Table 3.1.h — Purchase costs (equipment / travel / other goods per toggles + 15% rule) ───
+  if (equipItems.length || includeTravel || includeOtherGoods) {
     children.push(H(HeadingLevel.HEADING_2, "Table 3.1.h — Purchase costs (equipment, infrastructure or other assets)"));
-    children.push(renderJustItemsTable(equipItems));
+    if (equipItems.length) {
+      children.push(H(HeadingLevel.HEADING_3, "Equipment"));
+      children.push(renderJustItemsTable(equipItems));
+    }
+    if (includeTravel) {
+      children.push(H(HeadingLevel.HEADING_3, "Travel and subsistence"));
+      children.push(renderJustItemsTable(travelItems));
+    }
+    if (includeOtherGoods) {
+      children.push(H(HeadingLevel.HEADING_3, "Other goods, works and services"));
+      children.push(renderJustItemsTable(otherGoodsItems));
+    }
   }
-
 
   return await packDocx(children);
 }
