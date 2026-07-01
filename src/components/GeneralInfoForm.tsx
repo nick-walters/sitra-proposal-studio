@@ -32,6 +32,7 @@ import { useNavigate } from "react-router-dom";
 import { format, addMonths } from "date-fns";
 import { cn } from "@/lib/utils";
 import declarationsData from "@/data/declarations.json";
+import { htmlToPlainText } from "@/lib/htmlToPlainText";
 
 interface GeneralInfoFormProps {
   proposalId: string;
@@ -450,7 +451,7 @@ export function GeneralInfoForm({
             : {};
 
           setFormData({
-            abstract: data.abstract || '',
+            abstract: htmlToPlainText(data.abstract || ''),
             fixedKeywords,
             freeKeywords: data.free_keywords || '',
             previousSubmission: prev,
@@ -830,6 +831,18 @@ export function GeneralInfoForm({
             <Textarea
               value={formData.abstract}
               onChange={(e) => handleAbstractChange(e.target.value)}
+              onPaste={(e) => {
+                // Enforce plain-text paste — strip any HTML/rich content
+                // (e.g. Word, editor badges) before it lands in the field.
+                const cd = e.clipboardData;
+                if (!cd) return;
+                const html = cd.getData('text/html');
+                const text = cd.getData('text/plain');
+                if (!html && !text) return;
+                e.preventDefault();
+                const plain = html ? htmlToPlainText(html) : text;
+                document.execCommand('insertText', false, plain);
+              }}
               placeholder="Enter your proposal abstract..."
               className="min-h-[200px] resize-none"
               maxLength={2000}
