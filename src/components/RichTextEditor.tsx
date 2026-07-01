@@ -23,7 +23,7 @@ import { ParagraphSpacing } from '@/extensions/ParagraphSpacing';
 
 import { InlineReferenceNode } from '@/extensions/InlineReferenceNode';
 import { BlockDragHandle } from '@/extensions/BlockDragHandle';
-import { TrackChanges, TrackChangesOptions } from '@/extensions/TrackChanges';
+import { TrackChanges } from '@/extensions/TrackChanges';
 import { TableFormula } from '@/extensions/TableFormula';
 import { WPReferenceNode } from '@/extensions/WPReferenceNode';
 import { CaseReferenceNode } from '@/extensions/CaseReferenceNode';
@@ -49,39 +49,7 @@ import { FigureDimensionsPopover } from './FigureDimensionsPopover';
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
-import {
-  Strikethrough,
-  List,
-  ListOrdered,
-  Link as LinkIcon,
-  Undo,
-  Redo,
-  Table as TableIcon,
-  Plus,
-  Minus,
-  Trash2,
-  Crop,
-  ImageIcon,
-  Lock,
-  Unlock,
-  Percent,
-  AlignHorizontalJustifyStart,
-  AlignHorizontalJustifyCenter,
-  AlignHorizontalJustifyEnd,
-  RefreshCw,
-  Combine,
-  SplitSquareHorizontal,
-  Calculator,
-  FileText,
-  Link2,
-  Layers,
-  Building2,
-  Columns,
-  Palette,
-  Pipette,
-  Ban,
-  Check,
-} from "lucide-react";
+import { List, Link as LinkIcon, Undo, Redo, Table as TableIcon, Plus, Minus, Trash2, Crop, ImageIcon, AlignHorizontalJustifyStart, AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd, RefreshCw, Combine, SplitSquareHorizontal, Calculator, FileText, Columns, Palette, Pipette, Ban, Check } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,

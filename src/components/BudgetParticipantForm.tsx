@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
-import { useBudgetRows, ComputedBudgetRow } from '@/hooks/useBudgetRows';
+import { useBudgetRows } from '@/hooks/useBudgetRows';
 import { useProposalRole } from '@/hooks/useProposalRole';
 import { FormattedNumberInput } from '@/components/FormattedNumberInput';
 import { JustificationItemsEditor } from '@/components/JustificationItemsEditor';
@@ -9,7 +9,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Lock, Loader2, Copy, Check, AlertTriangle } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { BudgetPersonnelBreakdown } from '@/components/BudgetPersonnelBreakdown';
 import { PartAPageLayout } from '@/components/PartAPageLayout';
 

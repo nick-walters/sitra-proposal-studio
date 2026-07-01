@@ -15,26 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import {
-  Wand2,
-  Sparkles,
-  Expand,
-  Loader2,
-  ChevronRight,
-  BarChart3,
-  ThumbsUp,
-  ThumbsDown,
-  Lightbulb,
-  MapPin,
-  Building2,
-  Target,
-  Megaphone,
-  TrendingUp,
-  AlertTriangle,
-  CheckCircle2,
-  X,
-  Users,
-} from 'lucide-react';
+import { Wand2, Sparkles, Loader2, ChevronRight, BarChart3, ThumbsUp, ThumbsDown, Lightbulb, MapPin, Building2, Target, Megaphone, TrendingUp, AlertTriangle, CheckCircle2, X, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface WritingAssistantDialogProps {

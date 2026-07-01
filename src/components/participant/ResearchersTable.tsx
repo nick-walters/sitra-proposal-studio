@@ -24,7 +24,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Plus, Trash2, Users, HelpCircle, Edit2, Check, X, BookOpen } from 'lucide-react';
+import { Plus, Trash2, Users, HelpCircle, BookOpen } from 'lucide-react';
 import {
   Dialog,
   DialogContent,

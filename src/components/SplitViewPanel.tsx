@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { X, PanelLeft, SplitSquareHorizontal } from 'lucide-react';
+import { X, SplitSquareHorizontal } from 'lucide-react';
 
 interface SplitViewPanelProps {
   proposalId: string;

@@ -1,5 +1,5 @@
 import { Section, Participant } from "@/types/proposal";
-import { ChevronRight, ChevronDown, FileText, User, Clock, AlertTriangle, BarChart3, Layers, Building2, Info, Euro, Lightbulb, Target, Settings, FlaskConical, ShieldCheck, HelpCircle, MessageSquare, ListTodo, Briefcase, Lock, Unlock, CalendarDays, Download, Flag, PencilRuler } from "lucide-react";
+import { ChevronRight, ChevronDown, FileText, User, Clock, AlertTriangle, BarChart3, Building2, Info, Euro, Lightbulb, Target, Settings, ShieldCheck, HelpCircle, MessageSquare, ListTodo, Briefcase, Lock, Unlock, CalendarDays, PencilRuler } from "lucide-react";
 import { useState, useMemo, useRef, useLayoutEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { cn } from "@/lib/utils";

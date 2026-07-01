@@ -52,7 +52,6 @@ interface FigureData {
   title: string;
 }
 
-import { getCaseTypePrefix } from '@/lib/caseTypeLabels';
 
 /**
  * Fetches current numbering data for all cross-referenceable items in a proposal

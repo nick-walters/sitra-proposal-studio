@@ -1,22 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import {
-  ParticipantResearcher,
-  ParticipantOrganisationRole,
-  ParticipantAchievement,
-  ParticipantPreviousProject,
-  ParticipantInfrastructure,
-  ParticipantDependency,
-  ParticipantDetails,
-  transformResearcherFromRow,
-  transformResearcherToRow,
-  transformAchievementFromRow,
-  transformPreviousProjectFromRow,
-  transformInfrastructureFromRow,
-  transformDependencyFromRow,
-  transformOrganisationRoleFromRow,
-} from '@/types/participantDetails';
+import { ParticipantResearcher, ParticipantOrganisationRole, ParticipantAchievement, ParticipantPreviousProject, ParticipantInfrastructure, ParticipantDependency, transformResearcherFromRow, transformResearcherToRow, transformAchievementFromRow, transformPreviousProjectFromRow, transformInfrastructureFromRow, transformDependencyFromRow, transformOrganisationRoleFromRow } from '@/types/participantDetails';
 
 export function useParticipantDetails(participantId: string | undefined) {
   const [loading, setLoading] = useState(true);

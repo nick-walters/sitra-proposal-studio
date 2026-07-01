@@ -1,17 +1,7 @@
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import {
-  FileText,
-  Users,
-  History,
-  Download,
-  CheckCircle,
-  ArrowRight,
-  Star,
-  Shield,
-  Zap,
-} from "lucide-react";
+import { FileText, Users, History, Download, ArrowRight, Shield, Zap } from "lucide-react";
 import sitraLogo from "@/assets/sitra-proposal-studio-logo.png";
 import { useAuth } from "@/hooks/useAuth";
 

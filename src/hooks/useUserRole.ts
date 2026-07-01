@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import type { AppRole } from '@/types/templates';
+import type {} from '@/types/templates';
 
 interface UserRoleState {
   isOwner: boolean;

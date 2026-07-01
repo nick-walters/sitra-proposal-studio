@@ -8,7 +8,7 @@ import { ProfileCompletionDialog } from "@/components/ProfileCompletionDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Proposal, ProposalType, ProposalStatus, BudgetType, SubmissionStage, HORIZON_EUROPE_SECTIONS, WORK_PROGRAMMES, DESTINATIONS, PROPOSAL_STATUS_LABELS, getDestinationsForWorkProgramme } from "@/types/proposal";
+import { Proposal, ProposalType, ProposalStatus, BudgetType, SubmissionStage, HORIZON_EUROPE_SECTIONS, WORK_PROGRAMMES, DESTINATIONS, getDestinationsForWorkProgramme } from "@/types/proposal";
 import { Plus, Search, LayoutGrid, List, X, Filter, Table2, Columns3, AlertTriangle, Clock, CheckCircle2, Send, Trophy, XCircle } from "lucide-react";
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { usePinnedProposals } from "@/hooks/usePinnedProposals";

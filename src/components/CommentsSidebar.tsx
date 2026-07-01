@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { useSectionComments, Comment, AnchorType, AnchorPayload } from '@/hooks/useSectionComments';
+import { useState, useEffect } from 'react';
+import { useSectionComments, Comment, AnchorType } from '@/hooks/useSectionComments';
 import { useAuth } from '@/hooks/useAuth';
 import { useProposalRole } from '@/hooks/useProposalRole';
 import { supabase } from '@/integrations/supabase/client';
@@ -29,7 +29,6 @@ import {
 
 import { smartTimestamp } from '@/lib/smartTimestamp';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
 import { useProposalUserColors } from '@/hooks/useProposalUserColors';
 
 interface CommentsSidebarProps {

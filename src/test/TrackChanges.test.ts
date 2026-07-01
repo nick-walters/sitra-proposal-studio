@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import { TrackChanges, TrackChange, trackChangesPluginKey } from '@/extensions/TrackChanges';
+import { TrackChanges, TrackChange } from '@/extensions/TrackChanges';
 
 function createEditor(opts: { enabled?: boolean; content?: string } = {}) {
   return new Editor({

@@ -75,13 +75,7 @@ interface CaseTypeRow {
   caption_text: string | null;
 }
 
-import {
-  CASE_TYPE_DEFS,
-  getCaseTypeLabel,
-  getCaseTypePrefix as getCasePrefix,
-  buildCaseLabel,
-  caseWord,
-} from '@/lib/caseTypeLabels';
+import { CASE_TYPE_DEFS, getCaseTypeLabel, getCaseTypePrefix as getCasePrefix, caseWord } from '@/lib/caseTypeLabels';
 
 const CASE_TYPES = CASE_TYPE_DEFS.map((d) => ({
   value: d.code,

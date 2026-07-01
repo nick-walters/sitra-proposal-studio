@@ -6,11 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { Slider } from '@/components/ui/slider';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { BarChart3, Check, Circle, ListChecks, Package, AlertTriangle, Users, ChevronDown, ChevronRight, StickyNote } from 'lucide-react';
+import { BarChart3, StickyNote } from 'lucide-react';
 import { WPProgressTracker } from '@/components/WPProgressTracker';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';

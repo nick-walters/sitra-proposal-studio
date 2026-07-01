@@ -1,7 +1,7 @@
-import { Proposal, WORK_PROGRAMMES, DESTINATIONS, PROPOSAL_STATUS_LABELS } from "@/types/proposal";
+import { Proposal, WORK_PROGRAMMES, DESTINATIONS } from "@/types/proposal";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, FileText, ArrowRight, Send, CheckCircle2, XCircle, Clock, ExternalLink, AlertTriangle, Trophy, HelpCircle, Pin, PinOff, GripVertical } from "lucide-react";
+import { Calendar, FileText, ArrowRight, Send, CheckCircle2, XCircle, Clock, ExternalLink, AlertTriangle, Trophy, HelpCircle, Pin, GripVertical } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { StorageImage } from "@/components/StorageImage";

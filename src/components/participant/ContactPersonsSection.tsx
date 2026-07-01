@@ -19,7 +19,6 @@ import {
 import { User, Plus, Trash2, Crown, Copy, ShieldCheck, ShieldOff, Loader2, Edit2, Check, X } from 'lucide-react';
 import { Participant, ParticipantMember } from '@/types/proposal';
 import { ParticipantResearcher } from '@/types/participantDetails';
-import { PersonAutocomplete } from '@/components/PersonAutocomplete';
 import { MCPDetailFields } from './MCPDetailFields';
 import { CopyToResearcherDialog } from './CopyToResearcherDialog';
 import { toast } from 'sonner';

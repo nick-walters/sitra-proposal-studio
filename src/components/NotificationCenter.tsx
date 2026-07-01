@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell, Check, CheckCheck, Trash2, Clock, AlertTriangle, UserPlus, X, AtSign, EyeOff, UserCircle } from "lucide-react";
+import { Bell, CheckCheck, Trash2, Clock, AlertTriangle, UserPlus, X, AtSign, EyeOff, UserCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";

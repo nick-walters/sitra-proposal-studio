@@ -7,12 +7,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Layers } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { getContrastingTextColor } from '@/lib/wpColors';
 import { cn } from '@/lib/utils';
 
 // Lightweight WP type for this dialog only

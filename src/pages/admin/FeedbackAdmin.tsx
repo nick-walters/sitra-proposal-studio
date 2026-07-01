@@ -6,8 +6,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ReceivedFeedback } from "@/components/ReceivedFeedback";
 import { FeedbackDetail } from "@/components/FeedbackDetail";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
 export function FeedbackAdmin() {
