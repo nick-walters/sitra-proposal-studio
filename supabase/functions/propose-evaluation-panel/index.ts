@@ -87,13 +87,18 @@ serve(async (req) => {
     }
 
     // Gather data
-    const [proposalRes, sectionsRes, participantsRes, instrumentsRes, personasRes, configRes] =
+    const [proposalRes, sectionsRes, a1Res, participantsRes, instrumentsRes, personasRes, configRes] =
       await Promise.all([
         supabase.from("proposals").select("*").eq("id", proposalId).single(),
         supabase
           .from("section_content")
           .select("section_id, content")
           .eq("proposal_id", proposalId),
+        supabase
+          .from("part_a1")
+          .select("abstract")
+          .eq("proposal_id", proposalId)
+          .maybeSingle(),
         supabase
           .from("participants")
           .select("id, organisation_short_name, organisation_name, participant_number, country")
@@ -104,7 +109,13 @@ serve(async (req) => {
       ]);
 
     const proposal = proposalRes.data;
-    const sections = sectionsRes.data || [];
+    const sectionsRaw = sectionsRes.data || [];
+    // Replace the legacy A1 JSON blob with the clean abstract from part_a1
+    // so downstream word counts and prompts see prose, not JSON noise.
+    const a1Abstract = String(a1Res.data?.abstract || "");
+    const sections = sectionsRaw
+      .filter((s: any) => s.section_id !== "a1")
+      .concat(a1Abstract ? [{ section_id: "a1", content: a1Abstract }] : []);
     const participants = participantsRes.data || [];
     const instrument = instrumentsRes.data;
     const personas = personasRes.data || [];
