@@ -22,6 +22,7 @@ function extractJson(text: string): any {
 
 interface AnthropicCallResult {
   text: string;
+  stop_reason?: string;
   usage: {
     input_tokens?: number;
     output_tokens?: number;
