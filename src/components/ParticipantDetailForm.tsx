@@ -145,7 +145,13 @@ export function ParticipantDetailForm({
     addDependency,
     updateDependency,
     deleteDependency,
-  } = useParticipantDetails(participant.id);
+    descriptions,
+    updateDescriptionField,
+    descriptionsSaving,
+    descriptionsLastSaved,
+    descriptionsError,
+  } = useParticipantDetails(participant.id, proposalId);
+
 
   const members = participantMembers.filter(m => m.participantId === participant.id);
 
