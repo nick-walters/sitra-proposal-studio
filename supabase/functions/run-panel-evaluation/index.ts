@@ -644,9 +644,9 @@ ${criterion.scoring_descriptors}`;
   "key_concern": "one sentence"
 }`;
 
-  const evaluatorSystem = `You are ${evaluator.name}. ${evaluator.brief}.
-
-You are serving as an independent Horizon Europe evaluator. Evaluate strictly from your professional perspective.
+  // STABLE PREFIX — byte-identical across all evaluators in this run so the Anthropic
+  // prompt cache keys the same. Persona-specific text is moved AFTER the cache breakpoint.
+  const stableSystemPrefix = `You are serving as an independent Horizon Europe evaluator. Evaluate strictly from your professional perspective.
 
 PROGRAMME CONTEXT
 INSTRUMENT TYPE: ${instrument.name}
@@ -669,16 +669,23 @@ EVALUATION CRITERIA:
 ${criteriaText}
 
 OUTPUT — respond with a JSON object only:
-${fullProposalOutputBlock}`;
+${fullProposalOutputBlock}
 
+--- PROPOSAL CONTENT ---
+${proposalContentBlock}`;
+
+  // Variable persona — AFTER the cache breakpoint so it doesn't invalidate the prefix.
+  const personaBlock = `You are ${evaluator.name}. ${evaluator.brief}.
+
+Apply the evaluation rules, criteria, and output format defined above from your professional perspective.`;
 
   const systemBlocks: any = [
-    { type: "text", text: evaluatorSystem },
     {
       type: "text",
-      text: `--- PROPOSAL CONTENT ---\n${proposalContentBlock}`,
-      cache_control: { type: "ephemeral" },
+      text: stableSystemPrefix,
+      cache_control: { type: "ephemeral", ttl: "1h" },
     },
+    { type: "text", text: personaBlock },
   ];
 
   await serviceClient
