@@ -643,24 +643,24 @@ ${criterion.scoring_descriptors}`;
   const fullProposalOutputBlock =
     stageKey === "stage1"
       ? `{
-  "excellence_comments": "120–220 words",
+  "excellence_comments": "80–180 words (HARD CAP: 200 words)",
   "excellence_score": number (0–5 in 0.5 steps),
-  "impact_comments": "120–220 words",
+  "impact_comments": "80–180 words (HARD CAP: 200 words)",
   "impact_score": number (0–5 in 0.5 steps),
-  "overall_comments": "40–70 words",
-  "key_strength": "one sentence",
-  "key_concern": "one sentence"
+  "overall_comments": "40–80 words (HARD CAP: 100 words)",
+  "key_strength": "one sentence (HARD CAP: 40 words)",
+  "key_concern": "one sentence (HARD CAP: 40 words)"
 }`
       : `{
-  "excellence_comments": "120–220 words",
+  "excellence_comments": "80–180 words (HARD CAP: 200 words)",
   "excellence_score": number,
-  "impact_comments": "120–220 words",
+  "impact_comments": "80–180 words (HARD CAP: 200 words)",
   "impact_score": number,
-  "implementation_comments": "120–220 words",
+  "implementation_comments": "80–180 words (HARD CAP: 200 words)",
   "implementation_score": number,
-  "overall_comments": "40–70 words",
-  "key_strength": "one sentence",
-  "key_concern": "one sentence"
+  "overall_comments": "40–80 words (HARD CAP: 100 words)",
+  "key_strength": "one sentence (HARD CAP: 40 words)",
+  "key_concern": "one sentence (HARD CAP: 40 words)"
 }`;
 
   // STABLE PREFIX — byte-identical across all evaluators in this run so the Anthropic
