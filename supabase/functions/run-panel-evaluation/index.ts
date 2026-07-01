@@ -258,7 +258,7 @@ async function getEvaluationRecord(serviceClient: any, evaluationId: string): Pr
   const { data, error } = await serviceClient
     .from("proposal_analyses")
     .select(
-      "id, proposal_id, created_by, instrument_id, proposal_stage, budget_type_used, evaluators_selected, eligibility_flags, analysis_data, status",
+      "id, proposal_id, created_by, instrument_id, proposal_stage, budget_type_used, evaluators_selected, eligibility_flags, analysis_data, status, created_at",
     )
     .eq("id", evaluationId)
     .single();
