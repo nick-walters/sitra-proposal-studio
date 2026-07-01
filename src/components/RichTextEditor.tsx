@@ -28,6 +28,7 @@ import { TableFormula } from '@/extensions/TableFormula';
 import { WPReferenceNode } from '@/extensions/WPReferenceNode';
 import { CaseReferenceNode } from '@/extensions/CaseReferenceNode';
 import { CasesTableNode } from '@/extensions/CasesTableNode';
+import { B32MirrorSlotNode } from '@/extensions/B32MirrorSlotNode';
 import { ParticipantReferenceNode } from '@/extensions/ParticipantReferenceNode';
 import { AcronymReference } from '@/extensions/AcronymReference';
 import { FigureTableReferenceMark } from '@/extensions/FigureTableReferenceMark';
@@ -140,6 +141,14 @@ const HeadingDataAttributes = Extension.create({
             renderHTML: (attributes) =>
               attributes['data-case-type-heading-id']
                 ? { 'data-case-type-heading-id': attributes['data-case-type-heading-id'] }
+                : {},
+          },
+          'data-b32-slot-key': {
+            default: null,
+            parseHTML: (element) => element.getAttribute('data-b32-slot-key'),
+            renderHTML: (attributes) =>
+              attributes['data-b32-slot-key']
+                ? { 'data-b32-slot-key': attributes['data-b32-slot-key'] }
                 : {},
           },
         },
@@ -1289,6 +1298,7 @@ StarterKit.configure({
       CaseReferenceNode,
       ParticipantReferenceNode,
       CasesTableNode,
+      B32MirrorSlotNode,
       AcronymReference,
       FigureTableReferenceMark,
       ParenBadgeGlue,
@@ -1526,6 +1536,8 @@ StarterKit.configure({
       ParticipantReferenceNode,
       // B1.2 cases-table block node (Stage 1 skeleton)
       CasesTableNode,
+      // B3.2 mirror slot block node
+      B32MirrorSlotNode,
       // Acronym reference for colored acronym insertion
       AcronymReference,
       CaptionLabel,

@@ -35,7 +35,7 @@ const safeColor = (c: string | null | undefined): string => {
 /** Sanitiser config for rich-text content rendered into the export DOM. */
 const PRINT_SANITIZE_CONFIG = {
   ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'ul', 'ol', 'li', 'span', 'a', 'h1', 'h2', 'h3', 'h4', 'sub', 'sup', 'table', 'colgroup', 'col', 'thead', 'tbody', 'tr', 'th', 'td', 'img', 'figure', 'figcaption', 'div', 'svg', 'path', 'g', 'rect', 'circle', 'line', 'polyline', 'polygon', 'text', 'tspan', 'defs', 'marker', 'use'],
-  ALLOWED_ATTR: ['class', 'style', 'href', 'target', 'rel', 'src', 'alt', 'width', 'height', 'colwidth', 'colspan', 'rowspan', 'crossorigin', 'data-type', 'data-id', 'data-wp-number', 'data-wp-short-name', 'data-wp-color', 'data-task-number', 'data-deliverable-number', 'data-milestone-number', 'data-participant-number', 'data-short-name', 'data-case-number', 'data-case-short-name', 'data-case-color', 'data-case-type', 'data-include-number', 'data-include-abbreviation', 'data-figure-id', 'data-table-key', 'data-ref-type', 'data-ref-id', 'data-citation-id', 'data-acronym', 'data-figure-wrapper', 'data-block-id', 'data-section-name', 'data-proposal-banner', 'data-cases-table-node', 'data-case-ids', 'data-caption', 'viewBox', 'fill', 'stroke', 'stroke-width', 'd', 'x', 'y', 'x1', 'y1', 'x2', 'y2', 'cx', 'cy', 'r', 'rx', 'ry', 'points', 'transform', 'opacity', 'fill-opacity', 'stroke-opacity', 'stroke-linejoin', 'stroke-linecap', 'text-anchor', 'font-family', 'font-size', 'font-weight'],
+  ALLOWED_ATTR: ['class', 'style', 'href', 'target', 'rel', 'src', 'alt', 'width', 'height', 'colwidth', 'colspan', 'rowspan', 'crossorigin', 'data-type', 'data-id', 'data-wp-number', 'data-wp-short-name', 'data-wp-color', 'data-task-number', 'data-deliverable-number', 'data-milestone-number', 'data-participant-number', 'data-short-name', 'data-case-number', 'data-case-short-name', 'data-case-color', 'data-case-type', 'data-include-number', 'data-include-abbreviation', 'data-figure-id', 'data-table-key', 'data-ref-type', 'data-ref-id', 'data-citation-id', 'data-acronym', 'data-figure-wrapper', 'data-block-id', 'data-section-name', 'data-proposal-banner', 'data-cases-table-node', 'data-case-ids', 'data-caption', 'data-case-type-id', 'data-case-type-heading-id', 'data-b32-mirror-slot', 'data-b32-slot-key', 'viewBox', 'fill', 'stroke', 'stroke-width', 'd', 'x', 'y', 'x1', 'y1', 'x2', 'y2', 'cx', 'cy', 'r', 'rx', 'ry', 'points', 'transform', 'opacity', 'fill-opacity', 'stroke-opacity', 'stroke-linejoin', 'stroke-linecap', 'text-anchor', 'font-family', 'font-size', 'font-weight'],
 };
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -636,19 +636,24 @@ export async function mountDynamicComponents(
   const casesPlaceholders = Array.from(
     container.querySelectorAll<HTMLElement>('div[data-cases-table-node]'),
   );
+  const b32SlotPlaceholders = Array.from(
+    container.querySelectorAll<HTMLElement>('div[data-b32-mirror-slot]'),
+  );
 
-  if (!b31Mount && !b32Mount && casesPlaceholders.length === 0) return;
+  if (!b31Mount && !b32Mount && casesPlaceholders.length === 0 && b32SlotPlaceholders.length === 0) return;
 
   const [
     { B31IntroText },
     { B31SectionContent },
     { B32SectionContent },
     { CasesTableLiveView },
+    { B32MirrorSlotLiveView },
   ] = await Promise.all([
     import('@/components/B31IntroText'),
     import('@/components/B31SectionContent'),
     import('@/components/B32SectionContent'),
     import('@/components/CasesTableNodeView'),
+    import('@/components/B32MirrorSlotNodeView'),
   ]);
 
   // Reuse the app's QueryClient when available so the export tree reads from
@@ -745,6 +750,27 @@ export async function mountDynamicComponents(
     roots.push({ root, el: placeholder });
   });
 
+  // Mount each B3.2 mirror slot placeholder with the dummy live view.
+  b32SlotPlaceholders.forEach((placeholder) => {
+    const slotKey = (placeholder.getAttribute('data-b32-slot-key') || null) as any;
+    const root = createRoot(placeholder);
+    root.render(
+      createElement(
+        QueryClientProvider,
+        { client: queryClient },
+        createElement(
+          AuthProvider,
+          null,
+          createElement(B32MirrorSlotLiveView, {
+            proposalId,
+            slotKey,
+          }),
+        ),
+      ),
+    );
+    roots.push({ root, el: placeholder });
+  });
+
   // Wait for queries to settle and at least one table/cases row to render.
   await new Promise<void>((resolve) => {
     let elapsed = 0;
@@ -757,7 +783,10 @@ export async function mountDynamicComponents(
         (p) => p.querySelector('[data-case-block]') !== null
             || p.querySelector('div') !== null,
       );
-      if ((b31Ready && b32Ready && casesReady && !isFetching) || elapsed > 15000) {
+      const slotsReady = b32SlotPlaceholders.every(
+        (p) => p.querySelector('[data-b32-mirror-slot-nodeview]') !== null,
+      );
+      if ((b31Ready && b32Ready && casesReady && slotsReady && !isFetching) || elapsed > 15000) {
         clearInterval(interval);
         setTimeout(resolve, 200);
       }
