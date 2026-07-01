@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
  * (marked data-default-subheading="true") are removed and replaced.
  * User-added headings are never touched.
  */
-const SEED_VERSION = 'v4';
+const SEED_VERSION = 'v5';
 
 const DEFAULT_SUBHEADINGS: Record<string, string[]> = {
   'b1-1': [
