@@ -72,7 +72,7 @@ import { WritingAssistantDialog } from "./WritingAssistantDialog";
 import { SnippetsDialog } from "./SnippetsDialog";
 import { SplitViewPanel } from "./SplitViewPanel";
 // SectionReviewDialog moved to Part B Evaluate tab
-
+import { B31DeliverablesTable, B31MilestonesTable, B31RisksTable } from "./B31TablesEditor";
 import { B31SectionContent } from "./B31SectionContent";
 import { B31IntroText } from "./B31IntroText";
 import { TrackChange } from "@/extensions/TrackChanges";
