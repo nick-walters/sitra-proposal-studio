@@ -427,6 +427,19 @@ export function ParticipantDetailForm({
           organisationCategory={participant.organisationCategory}
         />
 
+        {/* Participant descriptions — Stage 2a of A2 partner-descriptions feature */}
+        <ParticipantDescriptionsSection
+          participant={participant}
+          descriptions={descriptions}
+          onUpdateField={updateDescriptionField}
+          saving={descriptionsSaving}
+          lastSaved={descriptionsLastSaved}
+          saveError={descriptionsError}
+          canEdit={canEdit}
+        />
+
+
+
         {/* Delete Participant */}
         {canDelete && (
           <Card className="border-destructive/50">
