@@ -1924,6 +1924,61 @@ async function buildWpDraft(supabase: any, proposal: any, wp: any, participants:
       effort.map((e: any) => [e.participant ? `P${e.participant.participant_number} ${e.participant.organisation_short_name ?? ""}` : "—", e.person_months ?? ""]),
     ));
   }
+
+  // ── Per-task effort matrix (tasks × participants) ──
+  if ((taskEffort ?? []).length) {
+    children.push(H(HeadingLevel.HEADING_2, "Per-task effort (person-months)"));
+    const partIdsInEffort = Array.from(new Set((taskEffort ?? []).map((e: any) => e.participant_id)));
+    const orderedParts = partIdsInEffort
+      .map((id) => participants.find((p) => p.id === id))
+      .filter(Boolean)
+      .sort((a: any, b: any) => (a.participant_number ?? 0) - (b.participant_number ?? 0));
+    const key = (tid: string, pid: string) => `${tid}::${pid}`;
+    const map = new Map<string, number>();
+    for (const e of taskEffort ?? []) map.set(key(e.task_id, e.participant_id), Number(e.person_months ?? 0));
+    const headers = ["Task", ...orderedParts.map((p: any) => `P${p.participant_number} ${p.organisation_short_name ?? ""}`), "Total"];
+    const rowsOut = (tasks ?? []).map((t: any) => {
+      const row: (string | number)[] = [`T${wp.number}.${t.number} ${t.title ?? ""}`];
+      let total = 0;
+      for (const p of orderedParts as any[]) {
+        const v = map.get(key(t.id, p.id)) ?? 0;
+        row.push(v || 0);
+        total += v;
+      }
+      row.push(total);
+      return row;
+    });
+    children.push(simpleTable(headers, rowsOut));
+  }
+
+  // ── Deliverable → task links ──
+  if ((delTaskLinks ?? []).length) {
+    const tById = new Map<string, any>();
+    for (const t of tasks ?? []) tById.set(t.id, t);
+    const dById = new Map<string, any>();
+    for (const d of deliverables ?? []) dById.set(d.id, d);
+    const grouped = new Map<string, string[]>();
+    for (const l of delTaskLinks ?? []) {
+      const t = tById.get(l.wp_draft_task_id);
+      if (!t) continue;
+      const arr = grouped.get(l.deliverable_id) ?? [];
+      arr.push(`T${wp.number}.${t.number}`);
+      grouped.set(l.deliverable_id, arr);
+    }
+    if (grouped.size) {
+      children.push(H(HeadingLevel.HEADING_2, "Deliverable ↔ task links"));
+      children.push(simpleTable(
+        ["Deliverable", "Contributing tasks"],
+        Array.from(grouped.entries())
+          .map(([delId, taskLabels]) => {
+            const d = dById.get(delId);
+            const delLabel = d ? `D${wp.number}.${d.number} ${d.title ?? ""}` : "—";
+            return [delLabel, taskLabels.sort().join(", ")];
+          })
+          .sort((a, b) => String(a[0]).localeCompare(String(b[0]))),
+      ));
+    }
+  }
   return await packDocx(children);
 }
 
