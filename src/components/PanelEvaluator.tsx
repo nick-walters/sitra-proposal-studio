@@ -284,6 +284,31 @@ export function PanelEvaluator({ proposalId }: Props) {
     if (hist && hist.length > 0) setSelectedHistoryId(hist[hist.length - 1].id);
   };
 
+  // Extract success/fail counts from a failed evaluation row's analysis_data.
+  // Returns null if the row has no preserved evaluator results to resume from.
+  const summarizeFailedRow = (row: {
+    id: string;
+    error_message?: string | null;
+    analysis_data: any;
+    evaluators_selected?: any;
+  }) => {
+    const ad = (row.analysis_data ?? {}) as Record<string, any>;
+    const evaluations = Array.isArray(ad.evaluations) ? ad.evaluations : [];
+    if (evaluations.length === 0) return null;
+    const successCount = evaluations.filter((e: any) => e && !e?.data?.error).length;
+    const failCount = evaluations.filter((e: any) => e?.data?.error).length;
+    const total = Array.isArray(row.evaluators_selected)
+      ? row.evaluators_selected.length
+      : evaluations.length;
+    return {
+      id: row.id,
+      successCount,
+      failCount: Math.max(failCount, Math.max(0, total - evaluations.length)),
+      total,
+      errorMessage: row.error_message ?? null,
+    };
+  };
+
   const downloadEsr = async (h: AnalysisRow) => {
     const analysisData = (h.analysis_data ?? {}) as Record<string, any>;
     const markdown = analysisData.esr_markdown || "(no ESR available)";
