@@ -43,7 +43,6 @@ const DEFAULT_SECTIONS = [
   { id: 'b1-2', label: 'B1.2 – Methodology' },
   { id: 'b2-1', label: 'B2.1 – Impact pathways' },
   { id: 'b2-2', label: 'B2.2 – Dissemination' },
-  { id: 'b2-2', label: 'B2.2 – Dissemination' }, // (b2-3 removed — section no longer exists)
   { id: 'b3-1', label: 'B3.1 – Work plan' },
   { id: 'b3-2', label: 'B3.2 – Capacity' },
 ];
