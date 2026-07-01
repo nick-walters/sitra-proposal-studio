@@ -4,7 +4,7 @@ import { EditableCaption } from '@/components/EditableCaption';
 import { useB31SectionData } from '@/hooks/useB31SectionData';
 import { B31WPListTable } from './B31WPListTable';
 import { B31WPDescriptionTables } from './B31WPDescriptionTables';
-import { B31DeliverablesTable, B31MilestonesTable, B31RisksTable } from './B31TablesEditor';
+
 import { B31EffortMatrix } from './B31EffortMatrix';
 import { B31SubcontractingTable } from './B31SubcontractingTable';
 import { B31EquipmentTable } from './B31EquipmentTable';
@@ -102,14 +102,7 @@ export function B31SectionContent({ proposalId }: Props) {
       {/* Table 3.1.b – Work package descriptions */}
       <B31WPDescriptionTables wpData={wpData} participants={participants} proposalId={proposalId} projectDuration={projectDuration} />
 
-      {/* Table 3.1.c – Deliverables */}
-      <B31DeliverablesTable proposalId={proposalId} />
-
-      {/* Table 3.1.d – Milestones */}
-      <B31MilestonesTable proposalId={proposalId} />
-
-      {/* Table 3.1.e – Critical risks */}
-      <B31RisksTable proposalId={proposalId} />
+      {/* Tables 3.1.c/d/e (Deliverables, Milestones, Risks) — pending read-only mirror rewrite */}
 
       {/* Table 3.1.f – Effort matrix */}
       <B31EffortMatrix wpData={wpData} participants={participants} proposalId={proposalId} />
