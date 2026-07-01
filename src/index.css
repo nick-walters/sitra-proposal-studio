@@ -882,13 +882,11 @@ table.b31-effort-matrix.first-col-flush {
   padding-left: calc(1.5em - 4pt) !important;
 }
 
-/* Ordered lists: native decimal marker (single source of truth).
-   Inline list-style-type overrides (lower-alpha, lower-roman) from
-   OrderedListStyled cascade naturally. */
+/* Ordered lists: native marker, indent matched to bullet lists. */
 .ProseMirror ol {
   list-style-position: outside !important;
   list-style-type: decimal;
-  padding-left: 2em !important;
+  padding-left: calc(1.5em - 4pt) !important;
 }
 
 .ProseMirror li {
@@ -897,8 +895,13 @@ table.b31-effort-matrix.first-col-flush {
   text-align: justify;
 }
 
-.ProseMirror li::marker {
-  font-size: 0.85em; /* tightens the gap after the bullet by ~2pt */
+/* Bullet marker stays slightly reduced to tighten the gap after the disc.
+   Ordered-list markers render at full body size (11pt) to match text. */
+.ProseMirror ul > li::marker {
+  font-size: 0.85em;
+}
+.ProseMirror ol > li::marker {
+  font-size: 1em;
 }
 
 /* Override spacing for caption paragraphs */
