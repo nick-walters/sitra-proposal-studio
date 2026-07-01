@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
  * (marked data-default-subheading="true") are removed and replaced.
  * User-added headings are never touched.
  */
-const SEED_VERSION = 'v3';
+const SEED_VERSION = 'v4';
 
 const DEFAULT_SUBHEADINGS: Record<string, string[]> = {
   'b1-1': [
@@ -85,9 +85,23 @@ export async function seedBSectionSubheadings(
     el.remove();
   });
 
-  // Always prepend the full canonical list in the declared order
+  // Always prepend the full canonical list in the declared order.
+  // For B3.2, three of the subheadings get a data-b32-slot-key and a mirror
+  // slot node immediately after the intro <p>. The Interdisciplinarity
+  // heading gets no slot.
+  const B32_SLOT_KEYS: Record<string, 'capacity' | 'value-chain' | 'international'> = {
+    'participants\u2019 capacity, contributions & resources': 'capacity',
+    'value chain coverage & industrial involvement': 'value-chain',
+    'justification of the participation of international organisations & third countries': 'international',
+  };
   const headingsHtml = subheadings
-    .map((h) => `<h3 data-default-subheading="true">${esc(h)}</h3><p></p>`)
+    .map((h) => {
+      const key = sectionId === 'b3-2' ? B32_SLOT_KEYS[h.toLowerCase()] : undefined;
+      if (key) {
+        return `<h3 data-default-subheading="true" data-b32-slot-key="${key}">${esc(h)}</h3><p></p><div data-b32-mirror-slot data-b32-slot-key="${key}"></div>`;
+      }
+      return `<h3 data-default-subheading="true">${esc(h)}</h3><p></p>`;
+    })
     .join('');
   const finalHtml = headingsHtml + root.innerHTML;
 
