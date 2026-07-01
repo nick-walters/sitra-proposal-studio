@@ -1388,6 +1388,57 @@ serve(async (req) => {
       });
     }
 
+    if (action === "resume") {
+      const evaluationId = body?.evaluationId;
+      if (!evaluationId) {
+        return new Response(JSON.stringify({ error: "evaluationId is required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const evaluation = await getEvaluationRecord(serviceClient, evaluationId);
+      await ensureProposalAdmin(supabase, userId, evaluation.proposal_id);
+
+      const baseAnalysisData = evaluation.analysis_data || {};
+      const evaluations = Array.isArray(baseAnalysisData.evaluations) ? baseAnalysisData.evaluations : [];
+      const total = Array.isArray(evaluation.evaluators_selected) ? evaluation.evaluators_selected.length : evaluations.length;
+      const erroredCount = evaluations.filter((e: any) => e?.data?.error).length;
+      const missingCount = Math.max(0, total - evaluations.length);
+      const toRun = erroredCount + missingCount;
+
+      if (toRun === 0) {
+        return new Response(
+          JSON.stringify({
+            evaluationId,
+            status: evaluation.status,
+            message: "No errored evaluators to resume.",
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      // Bounce the row back to "running" so runEvaluatorPhase (invoked via the
+      // usual "evaluate" ticks) will pick up errored slots and rerun them.
+      await serviceClient
+        .from("proposal_analyses")
+        .update({
+          status: "running",
+          error_message: null,
+          analysis_data: {
+            ...baseAnalysisData,
+            active_step_started_at: null,
+            progress_message: `Resuming ${toRun} evaluator${toRun === 1 ? "" : "s"} of ${total}`,
+          },
+        })
+        .eq("id", evaluationId);
+
+      return new Response(
+        JSON.stringify({ evaluationId, status: "running", toRun, total }),
+        { status: 202, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     if (action === "cancel") {
       const evaluationId = body?.evaluationId;
       if (!evaluationId) {
