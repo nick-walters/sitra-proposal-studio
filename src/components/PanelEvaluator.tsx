@@ -976,9 +976,11 @@ export function PanelEvaluator({ proposalId }: Props) {
           })()}
 
           {stage === "idle" && (
-            <Button onClick={startEvaluation} disabled={!instrumentCode} className="gap-2">
-              <Sparkles className="h-4 w-4" /> Start Evaluation
-            </Button>
+            <div className="flex justify-center pt-2">
+              <Button onClick={startEvaluation} disabled={!instrumentCode} className="gap-2">
+                <Sparkles className="h-4 w-4" /> Start Evaluation
+              </Button>
+            </div>
           )}
 
 
