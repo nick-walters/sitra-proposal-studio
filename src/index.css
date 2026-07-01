@@ -882,10 +882,12 @@ table.b31-effort-matrix.first-col-flush {
   padding-left: calc(1.5em - 4pt) !important;
 }
 
-/* Ordered lists need extra left padding to fit the absolutely-positioned
-   number marker (see counter rules below). Without this, "1.", "2." clip
-   or overlap the text. */
+/* Ordered lists: native decimal marker (single source of truth).
+   Inline list-style-type overrides (lower-alpha, lower-roman) from
+   OrderedListStyled cascade naturally. */
 .ProseMirror ol {
+  list-style-position: outside !important;
+  list-style-type: decimal;
   padding-left: 2em !important;
 }
 
