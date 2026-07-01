@@ -481,6 +481,7 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
         { id: 'progress-tracker', number: '', title: 'Progress' },
         { id: 'availability', number: '', title: 'Availability' },
         { id: 'backups', number: '', title: 'Backups' },
+        { id: 'snapshots', number: '', title: 'Snapshots & restore' },
       ],
     };
 
