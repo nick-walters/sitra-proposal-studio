@@ -422,6 +422,18 @@ export function PanelEvaluator({ proposalId }: Props) {
         setRunningMessage("");
         setRunStartedAt(null);
         toast.error(`Evaluation failed: ${data.error_message || "unknown error"}`);
+        // Load the full row so we can offer a Resume button if any evaluator
+        // results survived (they're preserved in analysis_data.evaluations).
+        const { data: fullRow } = await supabase
+          .from("proposal_analyses")
+          .select("id, error_message, analysis_data, evaluators_selected")
+          .eq("id", evaluationId)
+          .maybeSingle();
+        const summary = fullRow ? summarizeFailedRow(fullRow as any) : null;
+        if (summary) {
+          setFailedRun(summary);
+        }
+        await refreshHistory();
         setStage("idle");
       }
     }, 10_000);
