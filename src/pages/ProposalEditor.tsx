@@ -28,6 +28,7 @@ import { ProposalTaskAllocator } from "@/components/ProposalTaskAllocator";
 import { ProposalProgressTracker } from "@/components/ProposalProgressTracker";
 import { WorkloadDashboard } from "@/components/WorkloadDashboard";
 import { ProposalBackupsPanel } from "@/components/ProposalBackupsPanel";
+import { ProposalSnapshotsPanel } from "@/components/ProposalSnapshotsPanel";
 import { PanelEvaluator } from "@/components/PanelEvaluator";
 
 import { Button } from "@/components/ui/button";
