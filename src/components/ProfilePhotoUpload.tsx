@@ -62,7 +62,7 @@ export function ProfilePhotoUpload({
 }: ProfilePhotoUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [cropDialogOpen, setCropDialogOpen] = useState(false);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [, setPreviewImage] = useState<string | null>(null);
   const [zoom, setZoom] = useState([1]);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);

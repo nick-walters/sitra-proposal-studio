@@ -280,15 +280,8 @@ export function PERTChartFigure({
   const svgHeight = canEdit ? Math.max(400, maxY + pad) : Math.max(1, maxY - minY + pad * 2);
   const viewBoxStr = canEdit ? `0 0 ${svgWidth} ${svgHeight}` : `${minX - pad} ${minY - pad} ${svgWidth} ${svgHeight}`;
 
-  const getWpLabel = (wpId: string) => {
-    const wp = wpDrafts.find((w) => w.id === wpId);
-    if (!wp) return 'Unknown';
-    return `WP${wp.number}${wp.short_name ? `: ${wp.short_name}` : ''}`;
-  };
 
-  const getWpColor = (wpId: string) => {
-    return wpDrafts.find((w) => w.id === wpId)?.color || '#888';
-  };
+
 
   return (
     <div className={canEdit ? "space-y-4" : ""}>
