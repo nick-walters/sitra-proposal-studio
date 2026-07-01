@@ -162,7 +162,7 @@ export function B32MirrorParagraphSlot({ proposalId, slotKey }: Props) {
       {rows.map(({ participant, html }) => {
         const safe = DOMPurify.sanitize(html || '', SANITIZE_CONFIG);
         return (
-          <p
+          <div
             key={participant.id}
             style={{ margin: '0 0 8pt 0', lineHeight: 1.3, textAlign: 'justify' }}
           >
@@ -179,9 +179,8 @@ export function B32MirrorParagraphSlot({ proposalId, slotKey }: Props) {
             <span
               data-b32-mirror-body=""
               dangerouslySetInnerHTML={{ __html: safe }}
-              style={{ display: 'inline' }}
             />
-          </p>
+          </div>
         );
       })}
     </div>
