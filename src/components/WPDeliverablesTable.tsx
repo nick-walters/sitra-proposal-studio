@@ -433,13 +433,13 @@ function DeliverableRow({
 
       {/* Title */}
       <td className="py-1.5 px-1">
-        <AutoTextarea
+        <DeliverableTitleCell
           value={deliverable.title || ''}
           disabled={readOnly}
-          placeholder="Deliverable title & short description"
-          onChange={(e) => onUpdate(deliverable.id, { title: e.target.value })}
+          onCommit={(v) => onUpdate(deliverable.id, { title: v })}
         />
       </td>
+
 
       {/* Partner */}
       <td className="py-1.5 px-1">
