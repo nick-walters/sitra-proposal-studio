@@ -604,13 +604,9 @@ export async function buildPrintContainer(
         container.appendChild(b31Marker);
       }
 
-      // B3.2 – mount the expertise matrix mirror (respects enabled flag).
-      if (num === '3.2') {
-        const b32Marker = document.createElement('div');
-        b32Marker.id = 'print-b32-mount';
-        b32Marker.setAttribute('data-proposal-id', proposal.id);
-        container.appendChild(b32Marker);
-      }
+      // B3.2 — the expertise matrix now renders inside the interdisciplinarity
+      // mirror slot (see B32MirrorSlotLiveView), so there is no separate mount.
+
     }
   }
 
