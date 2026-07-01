@@ -416,48 +416,62 @@ export function GeneralInfoForm({
     }
   };
 
-  // Load A1 form content
+  // Load A1 form content from part_a1
   useEffect(() => {
     const loadContent = async () => {
       if (!proposalId) return;
-      
+
       try {
         const { data, error } = await supabase
-          .from('section_content')
-          .select('content')
+          .from('part_a1')
+          .select('abstract, fixed_keywords, free_keywords, previous_submission, previous_submission_reference, declarations')
           .eq('proposal_id', proposalId)
-          .eq('section_id', 'a1')
           .maybeSingle();
 
         if (error) throw error;
 
-        if (data?.content) {
-          try {
-            const parsed = JSON.parse(data.content);
-            setFormData({
-              abstract: parsed.abstract || '',
-              fixedKeywords: parsed.fixedKeywords || parsed.keywords || [],
-              freeKeywords: parsed.freeKeywords || '',
-              previousSubmission: parsed.previousSubmission || '',
-              previousSubmissionReference: parsed.previousSubmissionReference || '',
-              declarations: {
-                consent: parsed.declarations?.consent || false,
-                correctComplete: parsed.declarations?.correctComplete || false,
-                eligibility: parsed.declarations?.eligibility || false,
-                communication: parsed.declarations?.communication || false,
-                termsPrivacy: parsed.declarations?.termsPrivacy || false,
-                ethics: parsed.declarations?.ethics || false,
-                civilApplications: parsed.declarations?.civilApplications || false,
-                prohibitedResearch: parsed.declarations?.prohibitedResearch || false,
-                outsideEU: parsed.declarations?.outsideEU || false,
-              },
-            });
-          } catch {
-            setFormData(prev => ({ ...prev, abstract: data.content }));
+        if (data) {
+          // Split any comma-joined legacy keyword entries into separate items
+          const rawFixed = Array.isArray(data.fixed_keywords) ? data.fixed_keywords : [];
+          const fixedKeywords: string[] = [];
+          for (const k of rawFixed) {
+            if (typeof k !== 'string') continue;
+            for (const piece of k.split(',')) {
+              const trimmed = piece.trim();
+              if (trimmed && !fixedKeywords.includes(trimmed)) fixedKeywords.push(trimmed);
+            }
           }
+
+          const prev = data.previous_submission === 'yes' || data.previous_submission === 'no'
+            ? data.previous_submission
+            : '';
+          const decl = (data.declarations && typeof data.declarations === 'object' && !Array.isArray(data.declarations))
+            ? (data.declarations as Record<string, boolean>)
+            : {};
+
+          setFormData({
+            abstract: data.abstract || '',
+            fixedKeywords,
+            freeKeywords: data.free_keywords || '',
+            previousSubmission: prev,
+            previousSubmissionReference: data.previous_submission_reference || '',
+            declarations: {
+              consent: !!decl.consent,
+              correctComplete: !!decl.correctComplete,
+              eligibility: !!decl.eligibility,
+              communication: !!decl.communication,
+              termsPrivacy: !!decl.termsPrivacy,
+              ethics: !!decl.ethics,
+              civilApplications: !!decl.civilApplications,
+              prohibitedResearch: !!decl.prohibitedResearch,
+              outsideEU: !!decl.outsideEU,
+            },
+          });
         }
       } catch (error) {
-        console.error('Error loading general info:', error);
+        // NEVER dump raw content into the abstract field (that caused the
+        // legacy blob-in-blob corruption). Leave form defaults untouched.
+        console.error('Error loading A1 content:', error);
       }
       setLoading(false);
     };
@@ -465,23 +479,25 @@ export function GeneralInfoForm({
     loadContent();
   }, [proposalId]);
 
-  // Auto-save A1 form content
+  // Auto-save A1 form content to part_a1
   const saveContent = useCallback(async (data: FormData) => {
     if (!canEdit) return;
-    
+
     setSaving(true);
     try {
-      const content = JSON.stringify(data);
-      
       const { error } = await supabase
-        .from('section_content')
+        .from('part_a1')
         .upsert({
           proposal_id: proposalId,
-          section_id: 'a1',
-          content,
+          abstract: data.abstract,
+          fixed_keywords: data.fixedKeywords,
+          free_keywords: data.freeKeywords,
+          previous_submission: data.previousSubmission,
+          previous_submission_reference: data.previousSubmissionReference,
+          declarations: data.declarations as unknown as Record<string, boolean>,
           updated_at: new Date().toISOString(),
         }, {
-          onConflict: 'proposal_id,section_id',
+          onConflict: 'proposal_id',
         });
 
       if (error) throw error;
