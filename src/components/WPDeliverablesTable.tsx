@@ -117,6 +117,58 @@ function AutoTextarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) 
   );
 }
 
+/**
+ * Title cell with a LOCAL buffer + debounced save. Fixes the typing bug where
+ * every keystroke round-trips through onUpdate → DB → refetch, causing
+ * character loss / cursor jumps when the async refetch overwrites the
+ * controlled value mid-keystroke. Persistence is debounced (400ms) and also
+ * flushed on blur.
+ */
+function DeliverableTitleCell({
+  value,
+  disabled,
+  onCommit,
+}: {
+  value: string;
+  disabled?: boolean;
+  onCommit: (v: string) => void;
+}) {
+  const [local, setLocal] = useState(value || '');
+  const dirtyRef = useRef(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!dirtyRef.current) setLocal(value || '');
+  }, [value]);
+
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
+
+  return (
+    <AutoTextarea
+      value={local}
+      disabled={disabled}
+      placeholder="Deliverable title & short description"
+      onChange={(e) => {
+        const next = e.target.value;
+        dirtyRef.current = true;
+        setLocal(next);
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => {
+          dirtyRef.current = false;
+          onCommit(next);
+        }, 400);
+      }}
+      onBlur={() => {
+        if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
+        if (dirtyRef.current) {
+          dirtyRef.current = false;
+          onCommit(local);
+        }
+      }}
+    />
+  );
+}
+
 export function WPDeliverablesTable({
   wpDraftId,
   wpNumber,
@@ -381,13 +433,13 @@ function DeliverableRow({
 
       {/* Title */}
       <td className="py-1.5 px-1">
-        <AutoTextarea
+        <DeliverableTitleCell
           value={deliverable.title || ''}
           disabled={readOnly}
-          placeholder="Deliverable title & short description"
-          onChange={(e) => onUpdate(deliverable.id, { title: e.target.value })}
+          onCommit={(v) => onUpdate(deliverable.id, { title: v })}
         />
       </td>
+
 
       {/* Partner */}
       <td className="py-1.5 px-1">
