@@ -326,11 +326,13 @@ export function WPSimpleEditor({
               document.execCommand('insertText', false, text);
             }
           }}
-          onFocus={() => setIsFocused(true)}
+          onFocus={() => { setIsFocused(true); onFocus?.(); }}
           onBlur={() => {
             flushPendingChange();
             setIsFocused(false);
+            onBlur?.();
           }}
+
           className={cn(
             "p-3 outline-none resize-y overflow-auto text-draft",
             "[&_p]:mt-[6pt] [&_p]:mb-[6pt] [&_div]:mt-[6pt] [&_div]:mb-[6pt]",
