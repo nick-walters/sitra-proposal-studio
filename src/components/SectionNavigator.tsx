@@ -172,24 +172,24 @@ function SectionItem({
   const [isExpanded, setIsExpanded] = useState(section.id !== 'a2');
   const hasSubsections = section.subsections && section.subsections.length > 0;
   const isActive = activeSectionId === section.id;
-  // Compute effective lock state: direct lock OR inherited from parent (part-a / part-b).
-  // The standalone managers after Part B (WP/case drafts + Figures) have their own
-  // visibility rows and must not inherit Part B’s red/locked state.
-  const isPartAChild = section.id === 'a1' || section.id === 'a2' || section.id === 'a3' || section.id === 'a4' || section.id === 'a5';
-  const isPartBChild = Boolean(section.number && /^B?\d/.test(section.number) && section.id !== 'part-b');
-  // The "Work packages & cases" group header uses section.id === 'wp-drafts'
-  // but is stored under the single group-lock id 'wp-cases-group' (one row, no per-item rows).
+  // Independent-subsection lock model:
+  //  - Individual subsections use their own row.
+  //  - Major sections (part-a / part-b) are DERIVED — locked iff every child has a row.
+  //  - The "Work packages & cases" group header uses section.id === 'wp-drafts'
+  //    but is stored under the single group-lock id 'wp-cases-group'.
+  const PART_A_CHILDREN = ['a1', 'a2', 'a3', 'a4', 'a5'];
+  const PART_B_CHILDREN = ['b1-1', 'b1-2', 'b2-1', 'b2-2', 'b2-3', 'b3-1', 'b3-2'];
   const isWpCasesGroup = section.id === 'wp-drafts';
   const directLockId = isWpCasesGroup ? 'wp-cases-group' : section.id;
-  const isDirectlyLocked = lockedSections?.has(directLockId) ?? false;
-  const isInheritedFromPartA = isPartAChild && section.id !== 'topic-info' && (lockedSections?.has('part-a') ?? false);
-  const isInheritedFromPartB = isPartBChild && (lockedSections?.has('part-b') ?? false);
-  const isSectionLocked = isDirectlyLocked || isInheritedFromPartA || isInheritedFromPartB;
-  const lockToggleTarget = !isDirectlyLocked && isInheritedFromPartA
-    ? 'part-a'
-    : !isDirectlyLocked && isInheritedFromPartB
-      ? 'part-b'
-      : directLockId;
+  let isSectionLocked: boolean;
+  if (section.id === 'part-a') {
+    isSectionLocked = PART_A_CHILDREN.every(c => lockedSections?.has(c) ?? false);
+  } else if (section.id === 'part-b') {
+    isSectionLocked = PART_B_CHILDREN.every(c => lockedSections?.has(c) ?? false);
+  } else {
+    isSectionLocked = lockedSections?.has(directLockId) ?? false;
+  }
+  const lockToggleTarget = directLockId;
 
   // Determine if this section shows a lock button (coordinators only)
   // topic-info is never lockable — always visible to all
