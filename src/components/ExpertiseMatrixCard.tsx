@@ -59,7 +59,7 @@ export function ExpertiseMatrixCard({ proposalId, participants }: Props) {
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-base">Expertise matrix</CardTitle>
+        <CardTitle className="text-base">Capacity of participants &amp; consortium</CardTitle>
         <CardDescription>
           Tick the area(s) of expertise each participant brings to the consortium. This table is mirrored read-only into Part B3.2.
         </CardDescription>
@@ -79,6 +79,7 @@ export function ExpertiseMatrixCard({ proposalId, participants }: Props) {
             </span>
           )}
         </div>
+        <B32MirrorToggles proposalId={proposalId} isCoordinator={isCoordinator} />
       </CardHeader>
 
       {enabled && (
