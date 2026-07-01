@@ -476,11 +476,63 @@ async function buildA1(supabase: any, proposal: any): Promise<Uint8Array> {
     KV("Duration (months)", proposal.duration),
     KV("Uses FSTP", yn(proposal.uses_fstp)),
     KV("Cases enabled", yn(proposal.cases_enabled)),
+    KV("Expertise matrix enabled", yn(proposal.expertise_matrix_enabled)),
     KV("Indicative budget per project", proposal.indicative_budget_per_project),
     KV("FSTP budget", proposal.fstp_budget),
     KV("FSTP budget per third party", proposal.fstp_budget_per_third_party),
     KV("Total budget text", proposal.total_budget_text),
   ];
+
+  // part_a1 content: abstract (plain text paragraphs), keywords, previous submission, declarations.
+  const { data: a1 } = await supabase
+    .from("part_a1")
+    .select("abstract, fixed_keywords, free_keywords, previous_submission, previous_submission_reference, declarations")
+    .eq("proposal_id", proposal.id)
+    .maybeSingle();
+
+  if (a1) {
+    if (a1.abstract && String(a1.abstract).trim()) {
+      children.push(H(HeadingLevel.HEADING_2, "Abstract"));
+      for (const line of String(a1.abstract).split(/\r?\n/)) {
+        children.push(P(line));
+      }
+    }
+    const fixedKw = Array.isArray(a1.fixed_keywords) ? a1.fixed_keywords.filter((s: any) => s && String(s).trim()) : [];
+    if (fixedKw.length || (a1.free_keywords && String(a1.free_keywords).trim())) {
+      children.push(H(HeadingLevel.HEADING_2, "Keywords"));
+      if (fixedKw.length) children.push(KV("Fixed keywords", fixedKw.join(", ")));
+      if (a1.free_keywords && String(a1.free_keywords).trim()) children.push(KV("Free keywords", a1.free_keywords));
+    }
+    if ((a1.previous_submission && String(a1.previous_submission).trim())
+      || (a1.previous_submission_reference && String(a1.previous_submission_reference).trim())) {
+      children.push(H(HeadingLevel.HEADING_2, "Previous submission"));
+      if (a1.previous_submission && String(a1.previous_submission).trim()) {
+        for (const line of String(a1.previous_submission).split(/\r?\n/)) children.push(P(line));
+      }
+      if (a1.previous_submission_reference && String(a1.previous_submission_reference).trim()) {
+        children.push(KV("Reference", a1.previous_submission_reference));
+      }
+    }
+    const decl = (a1.declarations && typeof a1.declarations === "object") ? a1.declarations as Record<string, any> : null;
+    if (decl && Object.keys(decl).length) {
+      children.push(H(HeadingLevel.HEADING_2, "Declarations"));
+      const declLabels: Record<string, string> = {
+        eligibility: "Eligibility",
+        ethics: "Ethics",
+        consent: "Consent",
+        outsideEU: "Activities outside the EU",
+        termsPrivacy: "Terms & privacy",
+        communication: "Communication",
+        correctComplete: "Information correct & complete",
+        civilApplications: "Civil applications only",
+        prohibitedResearch: "No prohibited research",
+      };
+      for (const [k, v] of Object.entries(decl)) {
+        children.push(KV(declLabels[k] ?? k, yn(v)));
+      }
+    }
+  }
+
   return await packDocx(children);
 }
 
