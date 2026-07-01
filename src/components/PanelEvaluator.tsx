@@ -1388,15 +1388,6 @@ export function PanelEvaluator({ proposalId }: Props) {
                         <span className="font-medium truncate">
                           {formatDateTime(h.created_at)}
                         </span>
-                        <Badge variant="outline" className="text-[10px]">
-                          {instruments.find((i) => i.id === h.instrument_id)?.name || "?"}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground truncate">
-                          Model: {h.model_used || "—"} ·{" "}
-                          {Array.isArray(h.evaluators_selected)
-                            ? `${h.evaluators_selected.length} evaluators`
-                            : ""}
-                        </span>
                       </button>
                       <div className="flex items-center gap-2 shrink-0">
                         {(() => {
