@@ -195,7 +195,7 @@ async function runWithConcurrency<T, R>(
 
 const round05 = (n: number) => Math.round(n * 2) / 2;
 const mean = (values: number[]) => values.reduce((sum, value) => sum + value, 0) / Math.max(values.length, 1);
-const EVALUATOR_MAX_TOKENS = 8000;
+const EVALUATOR_MAX_TOKENS = 12000;
 const SYNTHESIS_MAX_TOKENS = 4200;
 const ACTIVE_STEP_STALE_MS = 180_000;
 const EVALUATOR_TIMEOUT_MS = 120_000;
