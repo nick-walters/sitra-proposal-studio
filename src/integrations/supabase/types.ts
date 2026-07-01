@@ -2208,6 +2208,57 @@ export type Database = {
           },
         ]
       }
+      participant_descriptions: {
+        Row: {
+          contribution_resources: string | null
+          created_at: string
+          id: string
+          industrial_involvement: string | null
+          participant_id: string
+          participation_justification: string | null
+          proposal_id: string
+          updated_at: string
+          value_chain: string | null
+        }
+        Insert: {
+          contribution_resources?: string | null
+          created_at?: string
+          id?: string
+          industrial_involvement?: string | null
+          participant_id: string
+          participation_justification?: string | null
+          proposal_id: string
+          updated_at?: string
+          value_chain?: string | null
+        }
+        Update: {
+          contribution_resources?: string | null
+          created_at?: string
+          id?: string
+          industrial_involvement?: string | null
+          participant_id?: string
+          participation_justification?: string | null
+          proposal_id?: string
+          updated_at?: string
+          value_chain?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "participant_descriptions_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "participant_descriptions_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       participant_infrastructure: {
         Row: {
           created_at: string
