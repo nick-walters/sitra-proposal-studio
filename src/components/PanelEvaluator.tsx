@@ -464,6 +464,41 @@ export function PanelEvaluator({ proposalId }: Props) {
           ((runningEval.analysis_data ?? {}) as Record<string, any>).progress_message || "",
         );
         startPolling(runningEval.id, (runningEval as any).created_at ?? null);
+      } else {
+        // No in-flight run — try to rehydrate a stored panel_proposed row so
+        // returning to Part B after Stage A doesn't force a paid Haiku re-run.
+        const { data: proposedRow } = await supabase
+          .from("proposal_analyses")
+          .select("id, analysis_data, proposal_stage, budget_type_used, eligibility_flags")
+          .eq("proposal_id", proposalId)
+          .eq("status", "panel_proposed")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (proposedRow?.id) {
+          const ad = (proposedRow.analysis_data ?? {}) as Record<string, any>;
+          setPanelProposedRowId(proposedRow.id);
+          setEligibilityFlags(
+            (ad.eligibility_flags as EligibilityFlag[]) ??
+              (proposedRow.eligibility_flags as EligibilityFlag[]) ??
+              [],
+          );
+          setProposedPanel((ad.proposed_panel as ProposedEvaluator[]) ?? []);
+          setAllPersonas((ad.all_personas as Persona[]) ?? []);
+          setHaikuUsage(ad.haiku_usage ?? null);
+          setHaikuModel(ad.haiku_model ?? null);
+          if (Array.isArray(ad.selected_persona_ids)) {
+            setSelectedPersonaIds(new Set(ad.selected_persona_ids as string[]));
+          }
+          if (typeof ad.instrument_code === "string") setInstrumentCode(ad.instrument_code);
+          if (proposedRow.proposal_stage === "stage1" || proposedRow.proposal_stage === "full") {
+            setProposalStage(proposedRow.proposal_stage as "full" | "stage1");
+          }
+          if (proposedRow.budget_type_used === "lump_sum" || proposedRow.budget_type_used === "traditional") {
+            setBudgetType(proposedRow.budget_type_used);
+          }
+          setStage("panelReview");
+        }
       }
 
     })();
