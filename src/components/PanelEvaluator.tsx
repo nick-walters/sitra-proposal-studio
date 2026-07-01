@@ -214,6 +214,16 @@ export function PanelEvaluator({ proposalId }: Props) {
   // ID of a persisted status='panel_proposed' row (Stage A result stored so
   // navigating away / reloading before Start doesn't discard the paid Haiku panel).
   const [panelProposedRowId, setPanelProposedRowId] = useState<string | null>(null);
+  // Preserved failed-run info so the user can Resume (only re-runs errored evaluators)
+  // instead of paying for a full re-run.
+  const [failedRun, setFailedRun] = useState<{
+    id: string;
+    successCount: number;
+    failCount: number;
+    total: number;
+    errorMessage: string | null;
+  } | null>(null);
+  const [resumingFailedRun, setResumingFailedRun] = useState(false);
   // Filter as a Set: empty = "All" mode
   const [activeAreaFilters, setActiveAreaFilters] = useState<Set<string>>(new Set());
 
