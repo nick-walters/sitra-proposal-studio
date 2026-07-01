@@ -417,7 +417,7 @@ function SectionItem({
                   }}
                 >
                   {isSectionLocked ? (
-                    <Lock className="w-3.5 h-3.5 text-amber-500" />
+                    <Lock className="w-3.5 h-3.5 text-red-500" />
                   ) : (
                     <Unlock className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground" />
                   )}
