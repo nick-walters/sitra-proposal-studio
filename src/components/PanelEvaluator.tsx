@@ -479,8 +479,8 @@ export function PanelEvaluator({ proposalId }: Props) {
           const ad = (proposedRow.analysis_data ?? {}) as Record<string, any>;
           setPanelProposedRowId(proposedRow.id);
           setEligibilityFlags(
-            (ad.eligibility_flags as EligibilityFlag[]) ??
-              (proposedRow.eligibility_flags as EligibilityFlag[]) ??
+            (ad.eligibility_flags as unknown as EligibilityFlag[]) ??
+              (proposedRow.eligibility_flags as unknown as EligibilityFlag[]) ??
               [],
           );
           setProposedPanel((ad.proposed_panel as ProposedEvaluator[]) ?? []);
