@@ -32,7 +32,9 @@ import { InfrastructureSection } from './participant/InfrastructureSection';
 import { DepartmentsSection } from './participant/DepartmentsSection';
 import { GEPSection } from './participant/GEPSection';
 import { OCDSection } from './participant/OCDSection';
+import { ParticipantDescriptionsSection } from './participant/ParticipantDescriptionsSection';
 import { useOCD } from '@/hooks/useOCD';
+
 
 // PIC number input: digits only, max 9
 function PicNumberInput({ value, onDebouncedChange, disabled }: { value: string; onDebouncedChange: (v: string) => void; disabled: boolean }) {
