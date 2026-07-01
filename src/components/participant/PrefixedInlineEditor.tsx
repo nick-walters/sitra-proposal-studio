@@ -296,9 +296,13 @@ export function PrefixedInlineEditor({
           contentEditable={!disabled}
           suppressContentEditableWarning
           onInput={handleInput}
+          onBeforeInput={handleBeforeInput}
           onKeyDown={handleKeyDown}
+          onMouseUp={() => clampCaret()}
           onPaste={(e) => {
             e.preventDefault();
+            // If caret is before prefix, clamp before inserting.
+            clampCaret();
             const html = e.clipboardData.getData('text/html');
             if (html) {
               const cleaned = stripWordHtml(html);
@@ -310,6 +314,8 @@ export function PrefixedInlineEditor({
           }}
           onFocus={() => {
             setIsFocused(true);
+            // Defer so browser's default focus-caret placement lands first.
+            setTimeout(() => clampCaret(), 0);
             onFocus?.();
           }}
           onBlur={() => {
