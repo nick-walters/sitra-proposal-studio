@@ -434,6 +434,25 @@ export function PanelEvaluator({ proposalId }: Props) {
 
       if (status === "complete") {
         stopPolling();
+        // Persist total run duration (Run click → ESR delivered) into
+        // analysis_data.total_duration_ms so the history badge can show it.
+        try {
+          const startIso = runStartedAt || (data as any).created_at;
+          if (startIso && analysisData.total_duration_ms == null) {
+            const totalDurationMs = Math.max(
+              0,
+              Date.now() - new Date(startIso).getTime(),
+            );
+            await supabase
+              .from("proposal_analyses")
+              .update({
+                analysis_data: { ...analysisData, total_duration_ms: totalDurationMs },
+              })
+              .eq("id", evaluationId);
+          }
+        } catch (_e) {
+          /* non-fatal: badge just falls back to "—" */
+        }
         setRunningEvaluationId(null);
         setRunningStatus(null);
         setRunningMessage("");
