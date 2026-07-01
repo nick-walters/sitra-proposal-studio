@@ -598,7 +598,14 @@ export function useParticipantDetails(participantId: string | undefined, proposa
     addDependency,
     updateDependency,
     deleteDependency,
+    // Participant descriptions (proposal-scoped)
+    descriptions,
+    updateDescriptionField,
+    descriptionsSaving,
+    descriptionsLastSaved,
+    descriptionsError,
     // Refresh
+
     refetch: fetchDetails,
   };
 }
