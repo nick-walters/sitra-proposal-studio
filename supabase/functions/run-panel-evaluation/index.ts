@@ -732,6 +732,8 @@ Apply the evaluation rules, criteria, and output format defined above from your 
 
   let result: AnthropicCallResult;
   let evaluatorTimedOut = false;
+  const evaluatorStartedAt = Date.now();
+  let retryStopReason: string | undefined;
   const abortController = new AbortController();
   const timeoutHandle = setTimeout(() => abortController.abort(), EVALUATOR_TIMEOUT_MS);
   try {
