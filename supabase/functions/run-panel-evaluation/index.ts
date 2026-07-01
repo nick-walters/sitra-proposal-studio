@@ -719,7 +719,7 @@ Apply the evaluation rules, criteria, and output format defined above from your 
         token_usage: usageTotals,
         instrument_code: instrument.code,
         active_step_started_at: new Date().toISOString(),
-        progress_message: `Running evaluator ${savedEvaluations.length + 1} of ${selectedEvaluators.length}`,
+        progress_message: `${isRetryOfErroredSlot ? "Retrying" : "Running"} evaluator ${slotIndex + 1} of ${selectedEvaluators.length}`,
       },
     })
     .eq("id", evaluationId);
