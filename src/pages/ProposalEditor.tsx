@@ -533,6 +533,20 @@ export function ProposalEditor() {
           </div>
         );
       },
+      'snapshots': () => {
+        if (!isCoordinator) {
+          return (
+            <div className="flex-1 flex items-center justify-center text-muted-foreground">
+              Snapshots &amp; restore are only available to coordinators &amp; admins.
+            </div>
+          );
+        }
+        return (
+          <div className="flex-1 overflow-y-auto">
+            <ProposalSnapshotsPanel proposalId={id || ''} />
+          </div>
+        );
+      },
       'task-allocator': () => (
         <div className="flex-1 overflow-y-auto p-6 bg-muted/30">
           <div className="max-w-7xl mx-auto space-y-6">
