@@ -16,38 +16,6 @@ export default function Index() {
     }
   }, [loading, user, navigate]);
 
-  const features = [
-    {
-      icon: FileText,
-      title: "Structured templates",
-      description: "Pre-built templates following Part B requirements for RIA, IA, and CSA proposals.",
-    },
-    {
-      icon: Users,
-      title: "Real-time Collaboration",
-      description: "Work together with your consortium partners. Track changes, add comments, and coordinate seamlessly.",
-    },
-    {
-      icon: History,
-      title: "Version control",
-      description: "Automatic version history with the ability to compare and restore previous versions anytime.",
-    },
-    {
-      icon: Download,
-      title: "PDF Export",
-      description: "Export publication-ready PDFs with proper formatting: A4, Times New Roman, correct margins.",
-    },
-    {
-      icon: Shield,
-      title: "Access control",
-      description: "Granular permissions with admin, editor, and viewer roles per proposal.",
-    },
-    {
-      icon: Zap,
-      title: "Smart guidelines",
-      description: "Integrated writing guidelines with text, images, and video instructions for each section.",
-    },
-  ];
 
   return (
     <div className="min-h-screen bg-white flex flex-col">

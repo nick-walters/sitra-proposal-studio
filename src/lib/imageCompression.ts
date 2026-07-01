@@ -5,7 +5,6 @@
 
 // 18 cm at 300 DPI = 2126 pixels
 const MAX_WIDTH_PIXELS = Math.round(18 * 300 / 2.54);
-const TARGET_DPI = 300;
 
 /**
  * Compress and optimize an image for proposal figures.

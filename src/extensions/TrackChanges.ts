@@ -270,7 +270,6 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
     const authorName = options.authorName;
     const authorColor = options.authorColor;
     const now = Date.now();
-    const MERGE_WINDOW = 2000;
 
     tr.steps.forEach((step: any) => {
       step.getMap().forEach((oldStart: number, oldEnd: number, newStart: number, newEnd: number) => {
