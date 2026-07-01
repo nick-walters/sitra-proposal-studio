@@ -483,8 +483,8 @@ export function PanelEvaluator({ proposalId }: Props) {
               (proposedRow.eligibility_flags as unknown as EligibilityFlag[]) ??
               [],
           );
-          setProposedPanel((ad.proposed_panel as ProposedEvaluator[]) ?? []);
-          setAllPersonas((ad.all_personas as Persona[]) ?? []);
+          setProposedPanel((ad.proposed_panel as unknown as ProposedEvaluator[]) ?? []);
+          setAllPersonas((ad.all_personas as unknown as Persona[]) ?? []);
           setHaikuUsage(ad.haiku_usage ?? null);
           setHaikuModel(ad.haiku_model ?? null);
           if (Array.isArray(ad.selected_persona_ids)) {
