@@ -722,11 +722,8 @@ export function SectionNavigator({
     return sections;
   }, [sections]);
 
-  // Filter out locked sections for non-coordinators
-  // When 'part-a' is locked, all A sections (except topic-info) are hidden
-  // When 'part-b' is locked, all B-prefixed subsections + figures + wp-drafts are hidden
-  const isPartALocked = !isCoordinator && lockedSections?.has('part-a');
-  const isPartBLocked = !isCoordinator && lockedSections?.has('part-b');
+  // Read-filter: hide each section iff its OWN row exists (independent-subsection model).
+  // wp-cases-group remains a single group-lock that hides WP + case items.
   const isWpCasesLocked = !isCoordinator && lockedSections?.has('wp-cases-group');
 
   const filterLockedSections = useCallback((sectionList: (Section | WPSection | CaseSection)[]): (Section | WPSection | CaseSection)[] => {
@@ -737,13 +734,6 @@ export function SectionNavigator({
         // topic-info is always visible
         if (s.id === 'topic-info') return true;
         if (lockedSections.has(s.id)) return false;
-        // Part A cascade: hide a1-a5 (but not topic-info)
-        if (isPartALocked && (s.id === 'a1' || s.id === 'a2' || s.id === 'a3' || s.id === 'a4' || s.id === 'a5')) return false;
-        // Part B cascade: hide B-numbered sections, figures, wp-drafts
-        if (isPartBLocked) {
-          if (s.number && /^B?\d/.test(s.number)) return false;
-          if (s.id === 'figures' || s.id === 'wp-drafts') return false;
-        }
         // WP & cases group cascade: hide the group container and every WP / case item
         if (isWpCasesLocked) {
           if (s.id === 'wp-drafts' || s.id === 'case-drafts') return false;
@@ -758,7 +748,7 @@ export function SectionNavigator({
         }
         return s;
       });
-  }, [isCoordinator, lockedSections, isPartALocked, isPartBLocked, isWpCasesLocked]);
+  }, [isCoordinator, lockedSections, isWpCasesLocked]);
 
   const filterDraftVisibility = useCallback((sectionList: (Section | WPSection | CaseSection)[]): (Section | WPSection | CaseSection)[] => {
     if (wpDraftsVisible && caseDraftsVisible) return sectionList;
