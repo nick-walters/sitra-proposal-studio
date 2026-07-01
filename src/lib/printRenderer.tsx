@@ -787,16 +787,6 @@ export async function mountDynamicComponents(
         (p) => p.querySelector('[data-b32-mirror-slot-nodeview]') !== null,
       );
       if ((b31Ready && b32Ready && casesReady && slotsReady && !isFetching) || elapsed > 15000) {
-    const interval = setInterval(() => {
-      elapsed += 200;
-      const isFetching = queryClient.isFetching() > 0;
-      const b31Ready = !b31Mount || b31Mount.querySelector('table') !== null;
-      const b32Ready = !b32Mount || !mountB32 || b32Mount.querySelector('table') !== null;
-      const casesReady = casesPlaceholders.every(
-        (p) => p.querySelector('[data-case-block]') !== null
-            || p.querySelector('div') !== null,
-      );
-      if ((b31Ready && b32Ready && casesReady && !isFetching) || elapsed > 15000) {
         clearInterval(interval);
         setTimeout(resolve, 200);
       }
