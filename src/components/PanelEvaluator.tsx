@@ -270,6 +270,33 @@ export function PanelEvaluator({ proposalId }: Props) {
     return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
+  const formatDurationMs = (ms: number | null | undefined) => {
+    if (ms == null || !Number.isFinite(Number(ms)) || Number(ms) <= 0) return "—";
+    const totalSec = Math.floor(Number(ms) / 1000);
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    return `${m}m ${s}s`;
+  };
+
+  // Friendly, color-coded model badge. Green = Sonnet 5, Red = Opus 4.8.
+  const renderModelBadge = (modelUsed: string | null | undefined) => {
+    const raw = String(modelUsed || "").toLowerCase();
+    const isOpus = raw.includes("opus");
+    const isSonnet = raw.includes("sonnet");
+    const label = isOpus ? "Opus 4.8" : isSonnet ? "Sonnet 5" : (modelUsed || "—");
+    const cls = isOpus
+      ? "border-red-600 text-red-700 font-semibold"
+      : isSonnet
+        ? "border-green-600 text-green-700 font-semibold"
+        : "";
+    return (
+      <Badge variant="outline" className={cls}>
+        {label}
+      </Badge>
+    );
+  };
+
+
 
   const refreshHistory = async () => {
     const { data: hist } = await supabase
