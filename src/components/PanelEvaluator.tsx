@@ -896,12 +896,8 @@ export function PanelEvaluator({ proposalId }: Props) {
             a proposal.
           </p>
         </CardContent>
-      </Card>
-
-      {/* Configuration row — coordinators only */}
-      {isCoordinator && (
-      <Card>
-        <CardContent className="pt-6 space-y-4">
+        {isCoordinator && (
+          <CardContent className="pt-0 space-y-4">
 
           {/* Per-run model toggle switch. Defaults to Sonnet 5 each time the pane opens.
               Choosing Opus 4.8 overrides for THIS RUN ONLY — the stored default stays Sonnet 5. */}
@@ -913,7 +909,7 @@ export function PanelEvaluator({ proposalId }: Props) {
             const opusSelected = isOpus;
             return (
               <div className="space-y-3">
-                <div className="text-xs uppercase tracking-wide text-muted-foreground">Evaluation model</div>
+
                 <div className="flex items-start gap-5 max-w-3xl">
                   {/* Sonnet block (left) */}
                   <button
@@ -980,9 +976,11 @@ export function PanelEvaluator({ proposalId }: Props) {
           })()}
 
           {stage === "idle" && (
-            <Button onClick={startEvaluation} disabled={!instrumentCode} className="gap-2">
-              <Sparkles className="h-4 w-4" /> Start Evaluation
-            </Button>
+            <div className="flex justify-center pt-2">
+              <Button onClick={startEvaluation} disabled={!instrumentCode} className="gap-2">
+                <Sparkles className="h-4 w-4" /> Start Evaluation
+              </Button>
+            </div>
           )}
 
 
@@ -1024,9 +1022,10 @@ export function PanelEvaluator({ proposalId }: Props) {
             </Alert>
           )}
 
-        </CardContent>
+          </CardContent>
+        )}
       </Card>
-      )}
+
 
       {/* Evaluation Summary Reports — chart + most recent + previous in one card */}
       {history.length > 0 && stage !== "panelReview" && (
