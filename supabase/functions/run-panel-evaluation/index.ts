@@ -1244,7 +1244,13 @@ Produce the full ESR markdown using the four-section structure defined in your s
 
   // Rough token estimate for the rendered proposal payload (~4 chars per token).
   // Used to scale the self-improving pre-run cost estimate by proposal size.
-  const payloadTokens = Math.ceil((renderedProposal?.length || 0) / 4);
+  // NB: read from analysisData (in scope here); the local `renderedProposal` from
+  // runEvaluatorPhase does NOT exist in this function — referencing it threw a
+  // ReferenceError AFTER status='complete' had already been written, causing the
+  // client to see a 500 and treat the successful run as failed until refresh.
+  const renderedProposalStr =
+    typeof analysisData.rendered_proposal === "string" ? analysisData.rendered_proposal : "";
+  const payloadTokens = Math.ceil(renderedProposalStr.length / 4);
 
   await serviceClient.from("evaluation_cost_log").insert({
     evaluation_id: evaluationId,
