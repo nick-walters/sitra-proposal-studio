@@ -882,10 +882,12 @@ table.b31-effort-matrix.first-col-flush {
   padding-left: calc(1.5em - 4pt) !important;
 }
 
-/* Ordered lists need extra left padding to fit the absolutely-positioned
-   number marker (see counter rules below). Without this, "1.", "2." clip
-   or overlap the text. */
+/* Ordered lists: native decimal marker (single source of truth).
+   Inline list-style-type overrides (lower-alpha, lower-roman) from
+   OrderedListStyled cascade naturally. */
 .ProseMirror ol {
+  list-style-position: outside !important;
+  list-style-type: decimal;
   padding-left: 2em !important;
 }
 
@@ -1137,31 +1139,10 @@ table.b31-effort-matrix.first-col-flush {
   margin-bottom: 0;
 }
 
-/* Ordered list period markers via CSS counters */
-.ProseMirror ol {
-  list-style: none;
-  counter-reset: list-counter;
-  padding-left: 2em;
-}
-.ProseMirror ol > li {
-  counter-increment: list-counter;
-  position: relative;
-}
-.ProseMirror ol > li::before {
-  position: absolute;
-  right: calc(100% + 0.25em);
-  white-space: nowrap;
-}
-.ProseMirror ol[style*="list-style-type: decimal"] > li::before,
-.ProseMirror ol:not([style*="list-style-type"]) > li::before {
-  content: counter(list-counter, decimal) ".";
-}
-.ProseMirror ol[style*="list-style-type: lower-alpha"] > li::before {
-  content: counter(list-counter, lower-alpha) ".";
-}
-.ProseMirror ol[style*="list-style-type: lower-roman"] > li::before {
-  content: counter(list-counter, lower-roman) ".";
-}
+/* Ordered list markers are rendered natively (see .ProseMirror ol above).
+   No custom counter/::before — a previous dual-source setup caused numbers
+   to overlap the list content in the editor. */
+
 
 /* ═══════════════════════════════════════════════════════════════════════════
    Print Export Container Styles
