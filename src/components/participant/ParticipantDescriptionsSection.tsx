@@ -8,7 +8,7 @@ import {
   ToolbarButton,
   TextFormattingGroup,
 } from '@/components/toolbar';
-import { AlignLeft, AlignJustify, Undo2, Redo2 } from 'lucide-react';
+import { Undo2, Redo2 } from 'lucide-react';
 import { StickyToolbarWrapper } from '@/components/StickyToolbarWrapper';
 import { Participant } from '@/types/proposal';
 import { ALL_COUNTRIES } from '@/lib/countries';
