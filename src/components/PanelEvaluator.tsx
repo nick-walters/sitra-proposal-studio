@@ -815,7 +815,12 @@ export function PanelEvaluator({ proposalId }: Props) {
 
 
 
-  function cancel() {
+  async function cancel() {
+    // Discard the persisted panel_proposed row so it doesn't rehydrate later.
+    if (panelProposedRowId) {
+      await supabase.from("proposal_analyses").delete().eq("id", panelProposedRowId);
+      setPanelProposedRowId(null);
+    }
     setStage("idle");
     setEligibilityFlags([]);
     setProposedPanel([]);
