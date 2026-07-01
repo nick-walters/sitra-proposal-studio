@@ -514,7 +514,6 @@ export function PanelEvaluator({ proposalId }: Props) {
       setProposal(prop);
       setInstruments((insts || []) as InstrumentType[]);
       setHistory((hist || []) as AnalysisRow[]);
-      if (hist && hist.length > 0) setSelectedHistoryId(hist[hist.length - 1].id);
 
       if (prop?.type) {
         const mapped = String(prop.type).toLowerCase();
