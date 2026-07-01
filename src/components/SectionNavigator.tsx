@@ -201,7 +201,7 @@ function SectionItem({
     section.id === 'wp-drafts' ||
     section.id === 'milestones-risks' ||
     section.id === 'part-b' ||
-    (section.number && /^B\d/.test(section.number) && section.id !== 'part-b')
+    (section.number && /^B\d+\.\d/.test(section.number) && section.id !== 'part-b')
   );
   
   // Check if this is a WP section with color
