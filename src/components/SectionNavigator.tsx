@@ -177,9 +177,15 @@ function SectionItem({
   // visibility rows and must not inherit Part B’s red/locked state.
   const isPartAChild = section.id === 'a1' || section.id === 'a2' || section.id === 'a3' || section.id === 'a4' || section.id === 'a5';
   const isPartBChild = Boolean(section.number && /^B?\d/.test(section.number) && section.id !== 'part-b');
-  const isSectionLocked = (lockedSections?.has(section.id) ?? false) ||
-    (isPartAChild && section.id !== 'topic-info' && (lockedSections?.has('part-a') ?? false)) ||
-    (isPartBChild && (lockedSections?.has('part-b') ?? false));
+  const isDirectlyLocked = lockedSections?.has(section.id) ?? false;
+  const isInheritedFromPartA = isPartAChild && section.id !== 'topic-info' && (lockedSections?.has('part-a') ?? false);
+  const isInheritedFromPartB = isPartBChild && (lockedSections?.has('part-b') ?? false);
+  const isSectionLocked = isDirectlyLocked || isInheritedFromPartA || isInheritedFromPartB;
+  const lockToggleTarget = !isDirectlyLocked && isInheritedFromPartA
+    ? 'part-a'
+    : !isDirectlyLocked && isInheritedFromPartB
+      ? 'part-b'
+      : section.id;
 
   // Determine if this section shows a lock button (coordinators only)
   // topic-info is never lockable — always visible to all
@@ -414,7 +420,7 @@ function SectionItem({
                   )}
                   onClick={(e) => {
                     e.stopPropagation();
-                    onToggleLock!(section.id);
+                    onToggleLock!(lockToggleTarget);
                   }}
                 >
                   {isSectionLocked ? (

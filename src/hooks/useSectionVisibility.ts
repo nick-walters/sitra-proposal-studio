@@ -4,6 +4,15 @@ import { useAuth } from './useAuth';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
+const PART_A_LOCK_IDS = ['part-a', 'a1', 'a2', 'a3', 'a4', 'a5'];
+const PART_B_LOCK_IDS = ['part-b', 'wp-drafts', 'figures'];
+
+function getUnlockScope(sectionId: string) {
+  if (sectionId === 'part-a') return PART_A_LOCK_IDS;
+  if (sectionId === 'part-b') return PART_B_LOCK_IDS;
+  return [sectionId];
+}
+
 /**
  * Manages section visibility locks for a proposal.
  * Locked sections are hidden from non-coordinator users.
@@ -62,15 +71,16 @@ export function useSectionVisibility(proposalId: string | undefined) {
 
     try {
       if (isCurrentlyLocked) {
+        const unlockIds = getUnlockScope(sectionId);
         const { error } = await supabase
           .from('section_visibility_locks')
           .delete()
           .eq('proposal_id', proposalId)
-          .eq('section_id', sectionId);
+          .in('section_id', unlockIds);
         if (error) throw error;
         setLockedSections(prev => {
           const next = new Set(prev);
-          next.delete(sectionId);
+          unlockIds.forEach(id => next.delete(id));
           return next;
         });
         toast.success('Section unlocked — now visible to all users');
