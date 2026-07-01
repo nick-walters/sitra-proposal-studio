@@ -2031,6 +2031,53 @@ export type Database = {
           },
         ]
       }
+      part_a1: {
+        Row: {
+          abstract: string
+          created_at: string
+          declarations: Json
+          fixed_keywords: string[]
+          free_keywords: string
+          id: string
+          previous_submission: string
+          previous_submission_reference: string
+          proposal_id: string
+          updated_at: string
+        }
+        Insert: {
+          abstract?: string
+          created_at?: string
+          declarations?: Json
+          fixed_keywords?: string[]
+          free_keywords?: string
+          id?: string
+          previous_submission?: string
+          previous_submission_reference?: string
+          proposal_id: string
+          updated_at?: string
+        }
+        Update: {
+          abstract?: string
+          created_at?: string
+          declarations?: Json
+          fixed_keywords?: string[]
+          free_keywords?: string
+          id?: string
+          previous_submission?: string
+          previous_submission_reference?: string
+          proposal_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "part_a1_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: true
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       participant_achievements: {
         Row: {
           achievement_type: string
