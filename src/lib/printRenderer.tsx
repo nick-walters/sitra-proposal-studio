@@ -306,9 +306,14 @@ function buildA1Html(a1: PartA1Row | null): string {
   );
   if (abstractHtml) {
     parts.push(`<h3 class="print-h3" style="font-size:11pt;font-weight:bold;margin-top:6pt;margin-bottom:0;">Abstract</h3>`);
-    // Sanitise rich HTML (badges, formatting) rather than escape — matches Part B rendering.
-    const cleanAbstract = DOMPurify.sanitize(abstractHtml, PRINT_SANITIZE_CONFIG);
-    parts.push(`<div class="print-section-content">${cleanAbstract}</div>`);
+    // Abstract is stored as plain text — render as escaped paragraphs.
+    const paragraphs = abstractHtml
+      .split(/\n{2,}/)
+      .map((p) => p.trim())
+      .filter(Boolean)
+      .map((p) => `<p style="margin:3pt 0 0 0;">${escHtml(p).replace(/\n/g, '<br>')}</p>`)
+      .join('');
+    parts.push(`<div class="print-section-content">${paragraphs}</div>`);
   }
   const kw: string[] = [];
   if (fixedKeywords.length) kw.push(fixedKeywords.join(', '));
