@@ -28,6 +28,7 @@ import { TableFormula } from '@/extensions/TableFormula';
 import { WPReferenceNode } from '@/extensions/WPReferenceNode';
 import { CaseReferenceNode } from '@/extensions/CaseReferenceNode';
 import { CasesTableNode } from '@/extensions/CasesTableNode';
+import { B32MirrorSlotNode } from '@/extensions/B32MirrorSlotNode';
 import { ParticipantReferenceNode } from '@/extensions/ParticipantReferenceNode';
 import { AcronymReference } from '@/extensions/AcronymReference';
 import { FigureTableReferenceMark } from '@/extensions/FigureTableReferenceMark';
