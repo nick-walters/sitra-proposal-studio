@@ -177,7 +177,11 @@ function SectionItem({
   // visibility rows and must not inherit Part B’s red/locked state.
   const isPartAChild = section.id === 'a1' || section.id === 'a2' || section.id === 'a3' || section.id === 'a4' || section.id === 'a5';
   const isPartBChild = Boolean(section.number && /^B?\d/.test(section.number) && section.id !== 'part-b');
-  const isDirectlyLocked = lockedSections?.has(section.id) ?? false;
+  // The "Work packages & cases" group header uses section.id === 'wp-drafts'
+  // but is stored under the single group-lock id 'wp-cases-group' (one row, no per-item rows).
+  const isWpCasesGroup = section.id === 'wp-drafts';
+  const directLockId = isWpCasesGroup ? 'wp-cases-group' : section.id;
+  const isDirectlyLocked = lockedSections?.has(directLockId) ?? false;
   const isInheritedFromPartA = isPartAChild && section.id !== 'topic-info' && (lockedSections?.has('part-a') ?? false);
   const isInheritedFromPartB = isPartBChild && (lockedSections?.has('part-b') ?? false);
   const isSectionLocked = isDirectlyLocked || isInheritedFromPartA || isInheritedFromPartB;
@@ -185,7 +189,7 @@ function SectionItem({
     ? 'part-a'
     : !isDirectlyLocked && isInheritedFromPartB
       ? 'part-b'
-      : section.id;
+      : directLockId;
 
   // Determine if this section shows a lock button (coordinators only)
   // topic-info is never lockable — always visible to all
@@ -195,6 +199,7 @@ function SectionItem({
     section.id === 'a4' || section.id === 'a5' ||
     section.id === 'figures' || section.title === 'Figures' ||
     section.id === 'wp-drafts' ||
+    section.id === 'milestones-risks' ||
     section.id === 'part-b' ||
     (section.number && /^B\d/.test(section.number) && section.id !== 'part-b')
   );
@@ -720,6 +725,7 @@ export function SectionNavigator({
   // When 'part-b' is locked, all B-prefixed subsections + figures + wp-drafts are hidden
   const isPartALocked = !isCoordinator && lockedSections?.has('part-a');
   const isPartBLocked = !isCoordinator && lockedSections?.has('part-b');
+  const isWpCasesLocked = !isCoordinator && lockedSections?.has('wp-cases-group');
 
   const filterLockedSections = useCallback((sectionList: (Section | WPSection | CaseSection)[]): (Section | WPSection | CaseSection)[] => {
     if (isCoordinator || !lockedSections || lockedSections.size === 0) return sectionList;
@@ -736,6 +742,12 @@ export function SectionNavigator({
           if (s.number && /^B?\d/.test(s.number)) return false;
           if (s.id === 'figures' || s.id === 'wp-drafts') return false;
         }
+        // WP & cases group cascade: hide the group container and every WP / case item
+        if (isWpCasesLocked) {
+          if (s.id === 'wp-drafts' || s.id === 'case-drafts') return false;
+          if ((s as WPSection).wpId !== undefined) return false;
+          if ((s as CaseSection).caseId !== undefined) return false;
+        }
         return true;
       })
       .map(s => {
@@ -744,7 +756,7 @@ export function SectionNavigator({
         }
         return s;
       });
-  }, [isCoordinator, lockedSections, isPartALocked, isPartBLocked]);
+  }, [isCoordinator, lockedSections, isPartALocked, isPartBLocked, isWpCasesLocked]);
 
   const filterDraftVisibility = useCallback((sectionList: (Section | WPSection | CaseSection)[]): (Section | WPSection | CaseSection)[] => {
     if (wpDraftsVisible && caseDraftsVisible) return sectionList;
