@@ -211,6 +211,9 @@ export function PanelEvaluator({ proposalId }: Props) {
   const [haikuModel, setHaikuModel] = useState<string | null>(null);
 
   const [selectedPersonaIds, setSelectedPersonaIds] = useState<Set<string>>(new Set());
+  // ID of a persisted status='panel_proposed' row (Stage A result stored so
+  // navigating away / reloading before Start doesn't discard the paid Haiku panel).
+  const [panelProposedRowId, setPanelProposedRowId] = useState<string | null>(null);
   // Filter as a Set: empty = "All" mode
   const [activeAreaFilters, setActiveAreaFilters] = useState<Set<string>>(new Set());
 
