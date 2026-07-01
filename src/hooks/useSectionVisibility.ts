@@ -4,14 +4,17 @@ import { useAuth } from './useAuth';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
-const PART_A_LOCK_IDS = ['part-a', 'a1', 'a2', 'a3', 'a4', 'a5'];
-const PART_B_LOCK_IDS = ['part-b', 'wp-drafts', 'figures'];
+const PART_A_CHILD_IDS = ['a1', 'a2', 'a3', 'a4', 'a5'];
+const PART_A_LOCK_IDS = ['part-a', ...PART_A_CHILD_IDS];
+const PART_B_EXTRA_CHILD_IDS = ['wp-drafts', 'figures'];
 
 function getUnlockScope(sectionId: string) {
   if (sectionId === 'part-a') return PART_A_LOCK_IDS;
-  if (sectionId === 'part-b') return PART_B_LOCK_IDS;
+  // Part B children are dynamic (b1, b1-1, b2-2, b3-1, ...); scope by prefix.
+  if (sectionId === 'part-b') return ['part-b']; // extra child ids handled via SQL filter
   return [sectionId];
 }
+
 
 /**
  * Manages section visibility locks for a proposal.
