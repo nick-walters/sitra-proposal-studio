@@ -231,6 +231,7 @@ interface EvaluationRecord {
   eligibility_flags: any;
   analysis_data: any;
   status: string | null;
+  created_at?: string | null;
 }
 
 interface LoadedContext {
@@ -257,7 +258,7 @@ async function getEvaluationRecord(serviceClient: any, evaluationId: string): Pr
   const { data, error } = await serviceClient
     .from("proposal_analyses")
     .select(
-      "id, proposal_id, created_by, instrument_id, proposal_stage, budget_type_used, evaluators_selected, eligibility_flags, analysis_data, status",
+      "id, proposal_id, created_by, instrument_id, proposal_stage, budget_type_used, evaluators_selected, eligibility_flags, analysis_data, status, created_at",
     )
     .eq("id", evaluationId)
     .single();
@@ -1220,6 +1221,17 @@ Produce the full ESR markdown using the four-section structure defined in your s
     },
   };
 
+  // Server-side capture of total run duration (Run click → ESR delivered).
+  // Robust to the client missing the completion tick (tab away, mount-refresh,
+  // completion landing between polls). Measured from proposal_analyses.created_at,
+  // which is set when the row is inserted on the "start" action.
+  const createdAtIso = (evaluation as any).created_at as string | undefined;
+  const totalDurationMs =
+    typeof analysisData.total_duration_ms === "number"
+      ? analysisData.total_duration_ms
+      : createdAtIso
+        ? Math.max(0, Date.now() - new Date(createdAtIso).getTime())
+        : null;
 
   await serviceClient
     .from("proposal_analyses")
@@ -1238,6 +1250,7 @@ Produce the full ESR markdown using the four-section structure defined in your s
         cost_breakdown: costBreakdown,
         active_step_started_at: null,
         progress_message: "Complete",
+        ...(totalDurationMs != null ? { total_duration_ms: totalDurationMs } : {}),
       },
     })
     .eq("id", evaluationId);
