@@ -1482,6 +1482,11 @@ export function PanelEvaluator({ proposalId }: Props) {
                             </TooltipProvider>
                           );
                         })()}
+                        <Badge variant="outline" title="Total run time">
+                          {formatDurationMs(
+                            (h.analysis_data as any)?.total_duration_ms as number | undefined,
+                          )}
+                        </Badge>
                         <Button
  variant="ghost"
  size="icon"
