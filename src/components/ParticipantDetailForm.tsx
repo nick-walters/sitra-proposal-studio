@@ -32,7 +32,9 @@ import { InfrastructureSection } from './participant/InfrastructureSection';
 import { DepartmentsSection } from './participant/DepartmentsSection';
 import { GEPSection } from './participant/GEPSection';
 import { OCDSection } from './participant/OCDSection';
+import { ParticipantDescriptionsSection } from './participant/ParticipantDescriptionsSection';
 import { useOCD } from '@/hooks/useOCD';
+
 
 // PIC number input: digits only, max 9
 function PicNumberInput({ value, onDebouncedChange, disabled }: { value: string; onDebouncedChange: (v: string) => void; disabled: boolean }) {
@@ -143,7 +145,13 @@ export function ParticipantDetailForm({
     addDependency,
     updateDependency,
     deleteDependency,
-  } = useParticipantDetails(participant.id);
+    descriptions,
+    updateDescriptionField,
+    descriptionsSaving,
+    descriptionsLastSaved,
+    descriptionsError,
+  } = useParticipantDetails(participant.id, proposalId);
+
 
   const members = participantMembers.filter(m => m.participantId === participant.id);
 
@@ -418,6 +426,19 @@ export function ParticipantDetailForm({
           isAdmin={canGrant}
           organisationCategory={participant.organisationCategory}
         />
+
+        {/* Participant descriptions — Stage 2a of A2 partner-descriptions feature */}
+        <ParticipantDescriptionsSection
+          participant={participant}
+          descriptions={descriptions}
+          onUpdateField={updateDescriptionField}
+          saving={descriptionsSaving}
+          lastSaved={descriptionsLastSaved}
+          saveError={descriptionsError}
+          canEdit={canEdit}
+        />
+
+
 
         {/* Delete Participant */}
         {canDelete && (

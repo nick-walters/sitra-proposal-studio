@@ -47,7 +47,11 @@ interface WPSimpleEditorProps {
   hasCases?: boolean;
   /** Called before opening a cross-ref dialog so the parent can save the cursor position */
   onSaveSelection?: () => void;
+  /** Optional focus/blur listeners — fired in addition to the editor's internal handling. */
+  onFocus?: () => void;
+  onBlur?: () => void;
 }
+
 
 export function WPSimpleEditor({
   value,
@@ -71,7 +75,10 @@ export function WPSimpleEditor({
   acronymSegments,
   hasCases,
   onSaveSelection,
+  onFocus,
+  onBlur,
 }: WPSimpleEditorProps) {
+
   const editorRef = useRef<HTMLDivElement>(null);
   const { data: caseTypes = [] } = useProposalCaseTypes(proposalId);
 
@@ -319,11 +326,13 @@ export function WPSimpleEditor({
               document.execCommand('insertText', false, text);
             }
           }}
-          onFocus={() => setIsFocused(true)}
+          onFocus={() => { setIsFocused(true); onFocus?.(); }}
           onBlur={() => {
             flushPendingChange();
             setIsFocused(false);
+            onBlur?.();
           }}
+
           className={cn(
             "p-3 outline-none resize-y overflow-auto text-draft",
             "[&_p]:mt-[6pt] [&_p]:mb-[6pt] [&_div]:mt-[6pt] [&_div]:mb-[6pt]",

@@ -1,9 +1,29 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ParticipantResearcher, ParticipantOrganisationRole, ParticipantAchievement, ParticipantPreviousProject, ParticipantInfrastructure, ParticipantDependency, transformResearcherFromRow, transformResearcherToRow, transformAchievementFromRow, transformPreviousProjectFromRow, transformInfrastructureFromRow, transformDependencyFromRow, transformOrganisationRoleFromRow } from '@/types/participantDetails';
 
-export function useParticipantDetails(participantId: string | undefined) {
+export type ParticipantDescriptionField =
+  | 'contribution_resources'
+  | 'value_chain'
+  | 'industrial_involvement'
+  | 'participation_justification';
+
+export interface ParticipantDescriptions {
+  contribution_resources: string;
+  value_chain: string;
+  industrial_involvement: string;
+  participation_justification: string;
+}
+
+const EMPTY_DESCRIPTIONS: ParticipantDescriptions = {
+  contribution_resources: '',
+  value_chain: '',
+  industrial_involvement: '',
+  participation_justification: '',
+};
+
+export function useParticipantDetails(participantId: string | undefined, proposalId?: string) {
   const [loading, setLoading] = useState(true);
   const [researchers, setResearchers] = useState<ParticipantResearcher[]>([]);
   const [organisationRoles, setOrganisationRoles] = useState<ParticipantOrganisationRole[]>([]);
@@ -11,6 +31,12 @@ export function useParticipantDetails(participantId: string | undefined) {
   const [previousProjects, setPreviousProjects] = useState<ParticipantPreviousProject[]>([]);
   const [infrastructure, setInfrastructure] = useState<ParticipantInfrastructure[]>([]);
   const [dependencies, setDependencies] = useState<ParticipantDependency[]>([]);
+  const [descriptions, setDescriptions] = useState<ParticipantDescriptions>(EMPTY_DESCRIPTIONS);
+  const [descriptionsSaving, setDescriptionsSaving] = useState(false);
+  const [descriptionsLastSaved, setDescriptionsLastSaved] = useState<Date | null>(null);
+  const [descriptionsError, setDescriptionsError] = useState<string | null>(null);
+  const descriptionsDebounceRef = useRef<Record<string, ReturnType<typeof setTimeout> | null>>({});
+
 
   // Fetch all participant details
   const fetchDetails = useCallback(async () => {
@@ -84,9 +110,79 @@ export function useParticipantDetails(participantId: string | undefined) {
     }
   }, [participantId]);
 
+  // Fetch participant_descriptions (proposal-scoped)
+  const fetchDescriptions = useCallback(async () => {
+    if (!participantId || !proposalId) {
+      setDescriptions(EMPTY_DESCRIPTIONS);
+      return;
+    }
+    const { data, error } = await supabase
+      .from('participant_descriptions')
+      .select('contribution_resources, value_chain, industrial_involvement, participation_justification')
+      .eq('proposal_id', proposalId)
+      .eq('participant_id', participantId)
+      .maybeSingle();
+    if (error) {
+      console.error('Error fetching participant_descriptions:', error);
+      return;
+    }
+    setDescriptions({
+      contribution_resources: data?.contribution_resources ?? '',
+      value_chain: data?.value_chain ?? '',
+      industrial_involvement: data?.industrial_involvement ?? '',
+      participation_justification: data?.participation_justification ?? '',
+    });
+  }, [participantId, proposalId]);
+
   useEffect(() => {
     fetchDetails();
   }, [fetchDetails]);
+
+  useEffect(() => {
+    fetchDescriptions();
+  }, [fetchDescriptions]);
+
+  const commitDescriptionField = useCallback(async (field: ParticipantDescriptionField, value: string) => {
+    if (!participantId || !proposalId) return;
+    setDescriptionsSaving(true);
+    setDescriptionsError(null);
+    try {
+      const { error } = await supabase
+        .from('participant_descriptions')
+        .upsert(
+          { proposal_id: proposalId, participant_id: participantId, [field]: value },
+          { onConflict: 'proposal_id,participant_id' },
+        );
+      if (error) throw error;
+      setDescriptionsLastSaved(new Date());
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to save';
+      setDescriptionsError(message);
+      console.error('participant_descriptions upsert failed:', err);
+    } finally {
+      setDescriptionsSaving(false);
+    }
+  }, [participantId, proposalId]);
+
+  const updateDescriptionField = useCallback((field: ParticipantDescriptionField, value: string) => {
+    setDescriptions(prev => ({ ...prev, [field]: value }));
+    const timers = descriptionsDebounceRef.current;
+    if (timers[field]) clearTimeout(timers[field]!);
+    timers[field] = setTimeout(() => {
+      timers[field] = null;
+      commitDescriptionField(field, value);
+    }, 500);
+  }, [commitDescriptionField]);
+
+  useEffect(() => {
+    return () => {
+      const timers = descriptionsDebounceRef.current;
+      Object.keys(timers).forEach(k => {
+        if (timers[k]) clearTimeout(timers[k]!);
+      });
+    };
+  }, []);
+
 
   // ============================================
   // Researchers CRUD
@@ -502,7 +598,14 @@ export function useParticipantDetails(participantId: string | undefined) {
     addDependency,
     updateDependency,
     deleteDependency,
+    // Participant descriptions (proposal-scoped)
+    descriptions,
+    updateDescriptionField,
+    descriptionsSaving,
+    descriptionsLastSaved,
+    descriptionsError,
     // Refresh
+
     refetch: fetchDetails,
   };
 }
