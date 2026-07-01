@@ -217,9 +217,7 @@ export function GeneralInfoForm({
   canEdit,
   isCoordinator = false,
   onUpdateProposal,
-  participants = [],
   budgetItems = [],
-  onExport,
   onStatusChange,
   updatingStatus = false,
   canChangeStatus = false,
@@ -247,10 +245,7 @@ export function GeneralInfoForm({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const [pendingBudgetType, setPendingBudgetType] = useState<'traditional' | 'lump_sum' | null>(null);
-  
-  
-  const [isExportOpen, setIsExportOpen] = useState(false);
+
   // Overview editing state (for admin/owner)
   const [editedProposal, setEditedProposal] = useState(proposal);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -271,12 +266,8 @@ export function GeneralInfoForm({
     }
   }, [editedProposal?.workProgramme]);
 
-  const workProgramme = WORK_PROGRAMMES.find(wp => wp.id === proposal?.workProgramme);
-  const destination = DESTINATIONS.find(d => d.id === proposal?.destination);
-  const totalBudgetFromItems = budgetItems.reduce((sum, item) => sum + item.amount, 0);
-  const daysUntilDeadline = proposal?.deadline
-    ? Math.ceil((new Date(proposal.deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
-    : null;
+
+
 
   // User can edit overview fields if admin/owner
   const userCanEditOverview = canEdit && isCoordinator;
