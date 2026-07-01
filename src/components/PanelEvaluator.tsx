@@ -886,15 +886,14 @@ export function PanelEvaluator({ proposalId }: Props) {
         </CardHeader>
         <CardContent className="space-y-3 text-sm text-muted-foreground">
           <p>
-            This tool simulates a Horizon Europe expert evaluation panel. After an eligibility
-            check by an agentic AI European Commission evaluator, it assembles a panel of agentic
-            AI "evaluators" with different expert roles and personas, which evaluate the proposal
-            in its current state from different perspectives. Finally, another agent assembles
-            scores and detailed feedback into an Evaluation Summary Report (ESR).
-          </p>
-          <p>
-            The cost per evaluation is ~€2.50. Only proposal coordinators can run an evaluation,
-            but all users can view the ESRs associated with a proposal.
+            This tool simulates a Horizon Europe expert evaluation panel using Anthropic's API.
+            After an eligibility check by an agentic AI European Commission evaluator using
+            Haiku 4.5, it assembles a panel of agentic AI "evaluators" with different expert
+            roles and personas, which evaluate the proposal in its current state from different
+            perspectives, using either Sonnet 5 or Opus 4.8. Finally, another agent assembles
+            scores and detailed feedback into an Evaluation Summary Report (ESR). Only proposal
+            coordinators can run an evaluation, but all users can view the ESRs associated with
+            a proposal.
           </p>
         </CardContent>
       </Card>
@@ -903,30 +902,6 @@ export function PanelEvaluator({ proposalId }: Props) {
       {isCoordinator && (
       <Card>
         <CardContent className="pt-6 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-            <div>
-              <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Instrument</div>
-              <div className="font-medium">
-                {instruments.find((i) => i.code === instrumentCode)?.name || instrumentCode || "—"}
-              </div>
-            </div>
-            {proposalStage !== "stage1" && (
-              <div>
-                <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Budget type</div>
-                <div className="font-medium">
-                  {budgetType === "lump_sum" ? "Lump sum" : "Actual cost"}
-                </div>
-              </div>
-            )}
-            {showStage && (
-              <div>
-                <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Stage</div>
-                <div className="font-medium">
-                  {proposalStage === "stage1" ? "Stage 1 of 2" : "Full proposal"}
-                </div>
-              </div>
-            )}
-          </div>
 
           {/* Per-run model toggle switch. Defaults to Sonnet 5 each time the pane opens.
               Choosing Opus 4.8 overrides for THIS RUN ONLY — the stored default stays Sonnet 5. */}
