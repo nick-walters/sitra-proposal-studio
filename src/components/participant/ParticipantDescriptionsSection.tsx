@@ -8,7 +8,7 @@ import {
   ToolbarButton,
   TextFormattingGroup,
 } from '@/components/toolbar';
-import { AlignLeft, AlignJustify, Undo2, Redo2 } from 'lucide-react';
+import { Undo2, Redo2 } from 'lucide-react';
 import { StickyToolbarWrapper } from '@/components/StickyToolbarWrapper';
 import { Participant } from '@/types/proposal';
 import { ALL_COUNTRIES } from '@/lib/countries';
@@ -143,17 +143,9 @@ export function ParticipantDescriptionsSection({
                 onItalic={() => exec('italic')}
                 onUnderline={() => exec('underline')}
               />
-              <Separator orientation="vertical" className="h-5 mx-1.5" />
-              <ToolbarButton
-                icon={<AlignLeft className="h-4 w-4" />}
-                label="Align left"
-                onClick={() => exec('justifyLeft')}
-              />
-              <ToolbarButton
-                icon={<AlignJustify className="h-4 w-4" />}
-                label="Justify"
-                onClick={() => exec('justifyFull')}
-              />
+
+
+
               <div className="ml-auto">
                 <SaveIndicator
                   saving={saving}
