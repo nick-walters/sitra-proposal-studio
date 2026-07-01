@@ -726,8 +726,9 @@ export async function mountDynamicComponents(
     roots.push({ root, el: placeholder });
   });
 
-  // Mount each B3.2 mirror slot placeholder with the dummy live view.
-  b32SlotPlaceholders.forEach((placeholder) => {
+  // Mount each B3.2 mirror slot placeholder — the interdisciplinarity slot
+  // renders the real expertise matrix; the others render dummy placeholders.
+  slotPlaceholders.forEach((placeholder) => {
     const slotKey = (placeholder.getAttribute('data-b32-slot-key') || null) as any;
     const root = createRoot(placeholder);
     root.render(
@@ -754,20 +755,26 @@ export async function mountDynamicComponents(
       elapsed += 200;
       const isFetching = queryClient.isFetching() > 0;
       const b31Ready = !b31Mount || b31Mount.querySelector('table') !== null;
-      const b32Ready = !b32Mount || !mountB32 || b32Mount.querySelector('table') !== null;
       const casesReady = casesPlaceholders.every(
         (p) => p.querySelector('[data-case-block]') !== null
             || p.querySelector('div') !== null,
       );
-      const slotsReady = b32SlotPlaceholders.every(
+      const slotsReady = slotPlaceholders.every(
         (p) => p.querySelector('[data-b32-mirror-slot-nodeview]') !== null,
       );
-      if ((b31Ready && b32Ready && casesReady && slotsReady && !isFetching) || elapsed > 15000) {
+      // Interdisciplinarity slot (when present + matrix enabled) must have
+      // rendered the matrix's <table>.
+      const interSlot = slotPlaceholders.find(
+        (p) => p.getAttribute('data-b32-slot-key') === 'interdisciplinarity',
+      );
+      const matrixReady = !interSlot || interSlot.querySelector('table') !== null;
+      if ((b31Ready && casesReady && slotsReady && matrixReady && !isFetching) || elapsed > 15000) {
         clearInterval(interval);
         setTimeout(resolve, 200);
       }
     }, 200);
   });
+
 
   const interactiveSelectors = [
     '.drag-handle',
