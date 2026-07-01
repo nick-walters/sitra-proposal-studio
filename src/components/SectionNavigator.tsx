@@ -178,7 +178,7 @@ function SectionItem({
   //  - The "Work packages & cases" group header uses section.id === 'wp-drafts'
   //    but is stored under the single group-lock id 'wp-cases-group'.
   const PART_A_CHILDREN = ['a1', 'a2', 'a3', 'a4', 'a5'];
-  const PART_B_CHILDREN = ['b1-1', 'b1-2', 'b2-1', 'b2-2', 'b2-3', 'b3-1', 'b3-2'];
+  const PART_B_CHILDREN = ['b1-1', 'b1-2', 'b2-1', 'b2-2', 'b3-1', 'b3-2'];
   const isWpCasesGroup = section.id === 'wp-drafts';
   const directLockId = isWpCasesGroup ? 'wp-cases-group' : section.id;
   let isSectionLocked: boolean;
@@ -201,7 +201,7 @@ function SectionItem({
     section.id === 'wp-drafts' ||
     section.id === 'milestones-risks' ||
     section.id === 'part-b' ||
-    (section.number && /^B\d/.test(section.number) && section.id !== 'part-b')
+    (section.number && /^B\d+\.\d/.test(section.number) && section.id !== 'part-b')
   );
   
   // Check if this is a WP section with color
