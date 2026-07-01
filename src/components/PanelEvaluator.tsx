@@ -281,7 +281,6 @@ export function PanelEvaluator({ proposalId }: Props) {
       .in("status", ["complete", "failed"])
       .order("created_at", { ascending: true });
     setHistory((hist || []) as AnalysisRow[]);
-    if (hist && hist.length > 0) setSelectedHistoryId(hist[hist.length - 1].id);
   };
 
   // Extract success/fail counts from a failed evaluation row's analysis_data.
