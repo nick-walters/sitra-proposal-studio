@@ -616,6 +616,49 @@ export function PanelEvaluator({ proposalId }: Props) {
         }
       });
       setSelectedPersonaIds(preselected);
+
+      // Persist the proposed panel so a reload / tab-switch before Start
+      // doesn't discard the (paid) Haiku Stage A output.
+      try {
+        // Clear any prior panel_proposed rows for this proposal — only one active proposal at a time.
+        await supabase
+          .from("proposal_analyses")
+          .delete()
+          .eq("proposal_id", proposalId)
+          .eq("status", "panel_proposed");
+        const { data: userData } = await supabase.auth.getUser();
+        const uid = userData?.user?.id;
+        if (uid) {
+          const { data: inserted } = await supabase
+            .from("proposal_analyses")
+            .insert({
+              proposal_id: proposalId,
+              created_by: uid,
+              status: "panel_proposed",
+              proposal_stage: proposalStage,
+              budget_type_used: proposalStage === "stage1" ? null : budgetType,
+              eligibility_flags: data.eligibility_flags ?? [],
+              analysis_data: {
+                eligibility_flags: data.eligibility_flags ?? [],
+                proposed_panel: data.proposed_panel ?? [],
+                all_personas: data.all_personas ?? [],
+                haiku_usage: data.haiku_usage ?? null,
+                haiku_model: data.haiku_model ?? null,
+                computed_budget: computedBudget,
+                instrument_code: instrumentCode,
+                proposal_stage: proposalStage,
+                budget_type: proposalStage === "stage1" ? null : budgetType,
+                selected_persona_ids: Array.from(preselected),
+              },
+            })
+            .select("id")
+            .single();
+          if (inserted?.id) setPanelProposedRowId(inserted.id);
+        }
+      } catch (persistErr) {
+        console.warn("Failed to persist proposed panel (non-fatal):", persistErr);
+      }
+
       setStage("panelReview");
     } catch (e: any) {
       toast.error(`Stage A failed: ${e.message || e}`);
