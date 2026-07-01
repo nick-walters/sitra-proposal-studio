@@ -476,11 +476,63 @@ async function buildA1(supabase: any, proposal: any): Promise<Uint8Array> {
     KV("Duration (months)", proposal.duration),
     KV("Uses FSTP", yn(proposal.uses_fstp)),
     KV("Cases enabled", yn(proposal.cases_enabled)),
+    KV("Expertise matrix enabled", yn(proposal.expertise_matrix_enabled)),
     KV("Indicative budget per project", proposal.indicative_budget_per_project),
     KV("FSTP budget", proposal.fstp_budget),
     KV("FSTP budget per third party", proposal.fstp_budget_per_third_party),
     KV("Total budget text", proposal.total_budget_text),
   ];
+
+  // part_a1 content: abstract (plain text paragraphs), keywords, previous submission, declarations.
+  const { data: a1 } = await supabase
+    .from("part_a1")
+    .select("abstract, fixed_keywords, free_keywords, previous_submission, previous_submission_reference, declarations")
+    .eq("proposal_id", proposal.id)
+    .maybeSingle();
+
+  if (a1) {
+    if (a1.abstract && String(a1.abstract).trim()) {
+      children.push(H(HeadingLevel.HEADING_2, "Abstract"));
+      for (const line of String(a1.abstract).split(/\r?\n/)) {
+        children.push(P(line));
+      }
+    }
+    const fixedKw = Array.isArray(a1.fixed_keywords) ? a1.fixed_keywords.filter((s: any) => s && String(s).trim()) : [];
+    if (fixedKw.length || (a1.free_keywords && String(a1.free_keywords).trim())) {
+      children.push(H(HeadingLevel.HEADING_2, "Keywords"));
+      if (fixedKw.length) children.push(KV("Fixed keywords", fixedKw.join(", ")));
+      if (a1.free_keywords && String(a1.free_keywords).trim()) children.push(KV("Free keywords", a1.free_keywords));
+    }
+    if ((a1.previous_submission && String(a1.previous_submission).trim())
+      || (a1.previous_submission_reference && String(a1.previous_submission_reference).trim())) {
+      children.push(H(HeadingLevel.HEADING_2, "Previous submission"));
+      if (a1.previous_submission && String(a1.previous_submission).trim()) {
+        for (const line of String(a1.previous_submission).split(/\r?\n/)) children.push(P(line));
+      }
+      if (a1.previous_submission_reference && String(a1.previous_submission_reference).trim()) {
+        children.push(KV("Reference", a1.previous_submission_reference));
+      }
+    }
+    const decl = (a1.declarations && typeof a1.declarations === "object") ? a1.declarations as Record<string, any> : null;
+    if (decl && Object.keys(decl).length) {
+      children.push(H(HeadingLevel.HEADING_2, "Declarations"));
+      const declLabels: Record<string, string> = {
+        eligibility: "Eligibility",
+        ethics: "Ethics",
+        consent: "Consent",
+        outsideEU: "Activities outside the EU",
+        termsPrivacy: "Terms & privacy",
+        communication: "Communication",
+        correctComplete: "Information correct & complete",
+        civilApplications: "Civil applications only",
+        prohibitedResearch: "No prohibited research",
+      };
+      for (const [k, v] of Object.entries(decl)) {
+        children.push(KV(declLabels[k] ?? k, yn(v)));
+      }
+    }
+  }
+
   return await packDocx(children);
 }
 
@@ -1263,6 +1315,90 @@ async function buildPartBSection(supabase: any, proposal: any, sectionId: string
     H(HeadingLevel.HEADING_1, `Part ${label}`),
     ...htmlToDocxChildren(content),
   ];
+
+  // ── B1.2: append structured ongoing-projects table ──
+  if (sectionId === "b1-2") {
+    const { data: projects } = await supabase
+      .from("b12_ongoing_projects")
+      .select("id, project_info, shared_data, order_index")
+      .eq("proposal_id", proposal.id)
+      .order("order_index", { ascending: true });
+    const projIds = (projects ?? []).map((p: any) => p.id);
+    const [{ data: links }, { data: parts }] = await Promise.all([
+      projIds.length
+        ? supabase.from("b12_ongoing_project_participants")
+            .select("ongoing_project_id, participant_id").in("ongoing_project_id", projIds)
+        : Promise.resolve({ data: [] }),
+      supabase.from("participants")
+        .select("id, participant_number, organisation_short_name")
+        .eq("proposal_id", proposal.id),
+    ]);
+    const partById = new Map<string, any>();
+    for (const p of parts ?? []) partById.set(p.id, p);
+    const linkMap = new Map<string, string[]>();
+    for (const l of links ?? []) {
+      const arr = linkMap.get(l.ongoing_project_id) ?? [];
+      arr.push(l.participant_id);
+      linkMap.set(l.ongoing_project_id, arr);
+    }
+    if ((projects ?? []).length) {
+      children.push(H(HeadingLevel.HEADING_2, "Ongoing projects"));
+      children.push(simpleTable(
+        ["Project info", "Data / results shared", "Participants"],
+        (projects ?? []).map((pr: any) => {
+          const partLabels = (linkMap.get(pr.id) ?? [])
+            .map((id) => partById.get(id))
+            .filter(Boolean)
+            .sort((a, b) => (a.participant_number ?? 0) - (b.participant_number ?? 0))
+            .map((p) => `P${p.participant_number} ${p.organisation_short_name ?? ""}`);
+          return [
+            htmlToText(pr.project_info ?? ""),
+            htmlToText(pr.shared_data ?? ""),
+            partLabels.join(", ") || "—",
+          ];
+        }),
+      ));
+    }
+  }
+
+  // ── B3.2: append expertise matrix (if enabled) ──
+  if (sectionId === "b3-2" && proposal.expertise_matrix_enabled) {
+    const [{ data: cols }, { data: rows }, { data: cells }, { data: parts }] = await Promise.all([
+      supabase.from("expertise_matrix_columns")
+        .select("id, kind, participant_id, header_text, order_index")
+        .eq("proposal_id", proposal.id).order("order_index", { ascending: true }),
+      supabase.from("expertise_matrix_rows")
+        .select("id, label, order_index")
+        .eq("proposal_id", proposal.id).order("order_index", { ascending: true }),
+      supabase.from("expertise_matrix_cells").select("row_id, column_id, checked"),
+      supabase.from("participants")
+        .select("id, participant_number, organisation_short_name")
+        .eq("proposal_id", proposal.id),
+    ]);
+    const partById = new Map<string, any>();
+    for (const p of parts ?? []) partById.set(p.id, p);
+    const rowIds = new Set((rows ?? []).map((r: any) => r.id));
+    const checkKey = new Set<string>();
+    for (const c of cells ?? []) {
+      if (c.checked && rowIds.has(c.row_id)) checkKey.add(`${c.row_id}::${c.column_id}`);
+    }
+    if ((rows ?? []).length && (cols ?? []).length) {
+      children.push(H(HeadingLevel.HEADING_2, "Expertise matrix"));
+      const colLabels = (cols ?? []).map((c: any) => {
+        if (c.kind === "participant") {
+          const p = c.participant_id ? partById.get(c.participant_id) : null;
+          return p ? `P${p.participant_number} ${p.organisation_short_name ?? ""}` : (c.header_text ?? "—");
+        }
+        return c.header_text ?? "—";
+      });
+      const matrixRows = (rows ?? []).map((r: any) => [
+        r.label ?? "",
+        ...(cols ?? []).map((c: any) => checkKey.has(`${r.id}::${c.id}`) ? "✓" : ""),
+      ]);
+      children.push(simpleTable(["Expertise", ...colLabels], matrixRows));
+    }
+  }
+
   return await packDocx(children);
 }
 
@@ -1693,7 +1829,15 @@ async function buildWpDraft(supabase: any, proposal: any, wp: any, participants:
 
   const { data: tasks } = await supabase.from("wp_draft_tasks").select("*").eq("wp_draft_id", wp.id).order("number", { ascending: true });
   const taskIds = (tasks ?? []).map((t: any) => t.id);
-  const [{ data: deliverables }, { data: msLinks }, { data: riskLinks }, { data: effort }, { data: taskParts }] = await Promise.all([
+  const [
+    { data: deliverables },
+    { data: msLinks },
+    { data: riskLinks },
+    { data: effort },
+    { data: taskParts },
+    { data: taskEffort },
+    { data: delTaskLinks },
+  ] = await Promise.all([
     supabase.from("wp_draft_deliverables").select("*").eq("wp_draft_id", wp.id).order("number", { ascending: true }),
     supabase
       .from("proposal_milestone_wps")
@@ -1706,6 +1850,12 @@ async function buildWpDraft(supabase: any, proposal: any, wp: any, participants:
     supabase.from("wp_draft_effort").select("*, participant:participant_id(participant_number, organisation_short_name)").eq("wp_draft_id", wp.id),
     taskIds.length
       ? supabase.from("wp_draft_task_participants").select("task_id, participant_id").in("task_id", taskIds)
+      : Promise.resolve({ data: [] }),
+    taskIds.length
+      ? supabase.from("wp_draft_task_effort").select("task_id, participant_id, person_months").in("task_id", taskIds)
+      : Promise.resolve({ data: [] }),
+    taskIds.length
+      ? supabase.from("wp_draft_deliverable_tasks").select("deliverable_id, wp_draft_task_id").in("wp_draft_task_id", taskIds)
       : Promise.resolve({ data: [] }),
   ]);
 
@@ -1773,6 +1923,61 @@ async function buildWpDraft(supabase: any, proposal: any, wp: any, participants:
       ["Participant", "PM"],
       effort.map((e: any) => [e.participant ? `P${e.participant.participant_number} ${e.participant.organisation_short_name ?? ""}` : "—", e.person_months ?? ""]),
     ));
+  }
+
+  // ── Per-task effort matrix (tasks × participants) ──
+  if ((taskEffort ?? []).length) {
+    children.push(H(HeadingLevel.HEADING_2, "Per-task effort (person-months)"));
+    const partIdsInEffort = Array.from(new Set((taskEffort ?? []).map((e: any) => e.participant_id)));
+    const orderedParts = partIdsInEffort
+      .map((id) => participants.find((p) => p.id === id))
+      .filter(Boolean)
+      .sort((a: any, b: any) => (a.participant_number ?? 0) - (b.participant_number ?? 0));
+    const key = (tid: string, pid: string) => `${tid}::${pid}`;
+    const map = new Map<string, number>();
+    for (const e of taskEffort ?? []) map.set(key(e.task_id, e.participant_id), Number(e.person_months ?? 0));
+    const headers = ["Task", ...orderedParts.map((p: any) => `P${p.participant_number} ${p.organisation_short_name ?? ""}`), "Total"];
+    const rowsOut = (tasks ?? []).map((t: any) => {
+      const row: (string | number)[] = [`T${wp.number}.${t.number} ${t.title ?? ""}`];
+      let total = 0;
+      for (const p of orderedParts as any[]) {
+        const v = map.get(key(t.id, p.id)) ?? 0;
+        row.push(v || 0);
+        total += v;
+      }
+      row.push(total);
+      return row;
+    });
+    children.push(simpleTable(headers, rowsOut));
+  }
+
+  // ── Deliverable → task links ──
+  if ((delTaskLinks ?? []).length) {
+    const tById = new Map<string, any>();
+    for (const t of tasks ?? []) tById.set(t.id, t);
+    const dById = new Map<string, any>();
+    for (const d of deliverables ?? []) dById.set(d.id, d);
+    const grouped = new Map<string, string[]>();
+    for (const l of delTaskLinks ?? []) {
+      const t = tById.get(l.wp_draft_task_id);
+      if (!t) continue;
+      const arr = grouped.get(l.deliverable_id) ?? [];
+      arr.push(`T${wp.number}.${t.number}`);
+      grouped.set(l.deliverable_id, arr);
+    }
+    if (grouped.size) {
+      children.push(H(HeadingLevel.HEADING_2, "Deliverable ↔ task links"));
+      children.push(simpleTable(
+        ["Deliverable", "Contributing tasks"],
+        Array.from(grouped.entries())
+          .map(([delId, taskLabels]) => {
+            const d = dById.get(delId);
+            const delLabel = d ? `D${wp.number}.${d.number} ${d.title ?? ""}` : "—";
+            return [delLabel, taskLabels.sort().join(", ")];
+          })
+          .sort((a, b) => String(a[0]).localeCompare(String(b[0]))),
+      ));
+    }
   }
   return await packDocx(children);
 }
