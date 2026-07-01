@@ -110,9 +110,79 @@ export function useParticipantDetails(participantId: string | undefined, proposa
     }
   }, [participantId]);
 
+  // Fetch participant_descriptions (proposal-scoped)
+  const fetchDescriptions = useCallback(async () => {
+    if (!participantId || !proposalId) {
+      setDescriptions(EMPTY_DESCRIPTIONS);
+      return;
+    }
+    const { data, error } = await supabase
+      .from('participant_descriptions')
+      .select('contribution_resources, value_chain, industrial_involvement, participation_justification')
+      .eq('proposal_id', proposalId)
+      .eq('participant_id', participantId)
+      .maybeSingle();
+    if (error) {
+      console.error('Error fetching participant_descriptions:', error);
+      return;
+    }
+    setDescriptions({
+      contribution_resources: data?.contribution_resources ?? '',
+      value_chain: data?.value_chain ?? '',
+      industrial_involvement: data?.industrial_involvement ?? '',
+      participation_justification: data?.participation_justification ?? '',
+    });
+  }, [participantId, proposalId]);
+
   useEffect(() => {
     fetchDetails();
   }, [fetchDetails]);
+
+  useEffect(() => {
+    fetchDescriptions();
+  }, [fetchDescriptions]);
+
+  const commitDescriptionField = useCallback(async (field: ParticipantDescriptionField, value: string) => {
+    if (!participantId || !proposalId) return;
+    setDescriptionsSaving(true);
+    setDescriptionsError(null);
+    try {
+      const { error } = await supabase
+        .from('participant_descriptions')
+        .upsert(
+          { proposal_id: proposalId, participant_id: participantId, [field]: value },
+          { onConflict: 'proposal_id,participant_id' },
+        );
+      if (error) throw error;
+      setDescriptionsLastSaved(new Date());
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to save';
+      setDescriptionsError(message);
+      console.error('participant_descriptions upsert failed:', err);
+    } finally {
+      setDescriptionsSaving(false);
+    }
+  }, [participantId, proposalId]);
+
+  const updateDescriptionField = useCallback((field: ParticipantDescriptionField, value: string) => {
+    setDescriptions(prev => ({ ...prev, [field]: value }));
+    const timers = descriptionsDebounceRef.current;
+    if (timers[field]) clearTimeout(timers[field]!);
+    timers[field] = setTimeout(() => {
+      timers[field] = null;
+      commitDescriptionField(field, value);
+    }, 500);
+  }, [commitDescriptionField]);
+
+  useEffect(() => {
+    return () => {
+      const timers = descriptionsDebounceRef.current;
+      Object.keys(timers).forEach(k => {
+        if (timers[k]) clearTimeout(timers[k]!);
+      });
+    };
+  }, []);
+
 
   // ============================================
   // Researchers CRUD
