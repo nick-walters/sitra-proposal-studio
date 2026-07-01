@@ -270,6 +270,33 @@ export function PanelEvaluator({ proposalId }: Props) {
     return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
+  const formatDurationMs = (ms: number | null | undefined) => {
+    if (ms == null || !Number.isFinite(Number(ms)) || Number(ms) <= 0) return "—";
+    const totalSec = Math.floor(Number(ms) / 1000);
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    return `${m}m ${s}s`;
+  };
+
+  // Friendly, color-coded model badge. Green = Sonnet 5, Red = Opus 4.8.
+  const renderModelBadge = (modelUsed: string | null | undefined) => {
+    const raw = String(modelUsed || "").toLowerCase();
+    const isOpus = raw.includes("opus");
+    const isSonnet = raw.includes("sonnet");
+    const label = isOpus ? "Opus 4.8" : isSonnet ? "Sonnet 5" : (modelUsed || "—");
+    const cls = isOpus
+      ? "border-red-600 text-red-700 font-semibold"
+      : isSonnet
+        ? "border-green-600 text-green-700 font-semibold"
+        : "";
+    return (
+      <Badge variant="outline" className={cls}>
+        {label}
+      </Badge>
+    );
+  };
+
+
 
   const refreshHistory = async () => {
     const { data: hist } = await supabase
@@ -281,7 +308,6 @@ export function PanelEvaluator({ proposalId }: Props) {
       .in("status", ["complete", "failed"])
       .order("created_at", { ascending: true });
     setHistory((hist || []) as AnalysisRow[]);
-    if (hist && hist.length > 0) setSelectedHistoryId(hist[hist.length - 1].id);
   };
 
   // Extract success/fail counts from a failed evaluation row's analysis_data.
@@ -408,6 +434,25 @@ export function PanelEvaluator({ proposalId }: Props) {
 
       if (status === "complete") {
         stopPolling();
+        // Persist total run duration (Run click → ESR delivered) into
+        // analysis_data.total_duration_ms so the history badge can show it.
+        try {
+          const startIso = runStartedAt || (data as any).created_at;
+          if (startIso && analysisData.total_duration_ms == null) {
+            const totalDurationMs = Math.max(
+              0,
+              Date.now() - new Date(startIso).getTime(),
+            );
+            await supabase
+              .from("proposal_analyses")
+              .update({
+                analysis_data: { ...analysisData, total_duration_ms: totalDurationMs },
+              })
+              .eq("id", evaluationId);
+          }
+        } catch (_e) {
+          /* non-fatal: badge just falls back to "—" */
+        }
         setRunningEvaluationId(null);
         setRunningStatus(null);
         setRunningMessage("");
@@ -515,7 +560,6 @@ export function PanelEvaluator({ proposalId }: Props) {
       setProposal(prop);
       setInstruments((insts || []) as InstrumentType[]);
       setHistory((hist || []) as AnalysisRow[]);
-      if (hist && hist.length > 0) setSelectedHistoryId(hist[hist.length - 1].id);
 
       if (prop?.type) {
         const mapped = String(prop.type).toLowerCase();
@@ -1344,15 +1388,6 @@ export function PanelEvaluator({ proposalId }: Props) {
                         <span className="font-medium truncate">
                           {formatDateTime(h.created_at)}
                         </span>
-                        <Badge variant="outline" className="text-[10px]">
-                          {instruments.find((i) => i.id === h.instrument_id)?.name || "?"}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground truncate">
-                          Model: {h.model_used || "—"} ·{" "}
-                          {Array.isArray(h.evaluators_selected)
-                            ? `${h.evaluators_selected.length} evaluators`
-                            : ""}
-                        </span>
                       </button>
                       <div className="flex items-center gap-2 shrink-0">
                         {(() => {
@@ -1371,6 +1406,7 @@ export function PanelEvaluator({ proposalId }: Props) {
                             </Badge>
                           );
                         })()}
+                        {renderModelBadge(h.model_used)}
                         {h.cost_eur != null && (() => {
                           const cb = h.analysis_data?.cost_breakdown as
                             | {
@@ -1446,6 +1482,11 @@ export function PanelEvaluator({ proposalId }: Props) {
                             </TooltipProvider>
                           );
                         })()}
+                        <Badge variant="outline" title="Total run time">
+                          {formatDurationMs(
+                            (h.analysis_data as any)?.total_duration_ms as number | undefined,
+                          )}
+                        </Badge>
                         <Button
  variant="ghost"
  size="icon"
