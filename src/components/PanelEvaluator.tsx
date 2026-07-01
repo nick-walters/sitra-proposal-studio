@@ -961,6 +961,7 @@ export function PanelEvaluator({ proposalId }: Props) {
     date: formatDate(h.created_at),
     score: Number(h.total_score_unweighted ?? h.overall_score ?? 0),
     id: h.id,
+    model: h.model_used || "",
   }));
 
   const yMax = proposalStage === "stage1" ? 10 : selectedInstrument?.code === "ia" ? 17.5 : 15;
@@ -1079,8 +1080,10 @@ export function PanelEvaluator({ proposalId }: Props) {
             const isOpus = modelChoice === "claude-opus-4-8";
             const disabled = stage !== "idle" && stage !== "panelReview";
             const GREEN = "#16a34a"; // tailwind green-600
+            const RED = "#dc2626"; // tailwind red-600
             const sonnetSelected = !isOpus;
             const opusSelected = isOpus;
+            const activeColor = opusSelected ? RED : GREEN;
             return (
               <div className="space-y-3">
 
@@ -1105,7 +1108,7 @@ export function PanelEvaluator({ proposalId }: Props) {
                     </div>
                   </button>
 
-                  {/* Toggle switch */}
+                  {/* Toggle switch — knob turns RED when Opus is active, GREEN when Sonnet is active. */}
                   <button
                     type="button"
                     role="switch"
@@ -1118,7 +1121,7 @@ export function PanelEvaluator({ proposalId }: Props) {
                     <span
                       className="absolute left-0 top-1/2 h-5 w-5 rounded-full shadow transition-transform"
                       style={{
-                        backgroundColor: GREEN,
+                        backgroundColor: activeColor,
                         transform: `translateY(-50%) translateX(${opusSelected ? 32 : 4}px)`,
                       }}
                     />
@@ -1135,7 +1138,7 @@ export function PanelEvaluator({ proposalId }: Props) {
                       className={`text-sm font-semibold transition-colors ${
                         opusSelected ? "" : "text-muted-foreground"
                       }`}
-                      style={opusSelected ? { color: GREEN } : undefined}
+                      style={opusSelected ? { color: RED } : undefined}
                     >
                       Opus 4.8 <span className="font-normal text-xs text-muted-foreground">~{formatCurrency(modelCostEstimate.opus)}</span>
                     </div>
@@ -1267,42 +1270,59 @@ export function PanelEvaluator({ proposalId }: Props) {
           </CardHeader>
           <CardContent className="space-y-4">
             {chartData.length >= 2 && (
-              <div className="h-32">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-                    <YAxis domain={[0, yMax]} tick={{ fontSize: 10 }} width={28} />
-                    <RTooltip />
-                    <ReferenceLine
-                      y={overallThreshold}
-                      stroke="hsl(var(--destructive))"
-                      strokeDasharray="4 4"
-                      label={{ value: `Threshold ${overallThreshold}`, fontSize: 10 }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="score"
-                      stroke="hsl(var(--primary))"
-                      activeDot={{
-                        r: 6,
-                        onClick: (_e: any, payload: any) => {
-                          if (payload?.payload?.id) setSelectedHistoryId(payload.payload.id);
-                        },
-                      }}
-                      dot={(props: any) => {
-                        const v = props.payload.score;
-                        const color =
-                          v < overallThreshold
-                            ? "hsl(var(--destructive))"
-                            : v < overallThreshold + 1
-                            ? "hsl(38 92% 50%)"
-                            : "hsl(142 71% 45%)";
-                        return <Dot {...props} r={4} fill={color} stroke={color} />;
-                      }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+              <div className="space-y-1">
+                <div className="h-32">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                      <YAxis domain={[0, yMax]} tick={{ fontSize: 10 }} width={28} />
+                      <RTooltip />
+                      <ReferenceLine
+                        y={overallThreshold}
+                        stroke="hsl(var(--destructive))"
+                        strokeDasharray="4 4"
+                        label={{ value: `Threshold ${overallThreshold}`, fontSize: 10 }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="score"
+                        stroke="hsl(var(--primary))"
+                        activeDot={{
+                          r: 6,
+                          onClick: (_e: any, payload: any) => {
+                            if (payload?.payload?.id) setSelectedHistoryId(payload.payload.id);
+                          },
+                        }}
+                        dot={(props: any) => {
+                          const { key, cx, cy, payload } = props;
+                          const isOpus = (payload?.model || "").includes("opus");
+                          const color = isOpus ? "#dc2626" : "#16a34a";
+                          return (
+                            <Dot
+                              key={key}
+                              cx={cx}
+                              cy={cy}
+                              r={4}
+                              fill={color}
+                              stroke={color}
+                            />
+                          );
+                        }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="flex items-center justify-end gap-3 text-[10px] text-muted-foreground pr-2">
+                  <span className="inline-flex items-center gap-1">
+                    <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: "#16a34a" }} />
+                    Sonnet 5
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: "#dc2626" }} />
+                    Opus 4.8
+                  </span>
+                </div>
               </div>
             )}
             <div className="space-y-2">

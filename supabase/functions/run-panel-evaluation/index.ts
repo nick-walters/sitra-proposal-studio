@@ -195,7 +195,7 @@ async function runWithConcurrency<T, R>(
 
 const round05 = (n: number) => Math.round(n * 2) / 2;
 const mean = (values: number[]) => values.reduce((sum, value) => sum + value, 0) / Math.max(values.length, 1);
-const EVALUATOR_MAX_TOKENS = 8000;
+const EVALUATOR_MAX_TOKENS = 12000;
 const SYNTHESIS_MAX_TOKENS = 4200;
 const ACTIVE_STEP_STALE_MS = 180_000;
 const EVALUATOR_TIMEOUT_MS = 120_000;
@@ -643,24 +643,24 @@ ${criterion.scoring_descriptors}`;
   const fullProposalOutputBlock =
     stageKey === "stage1"
       ? `{
-  "excellence_comments": "120–220 words",
+  "excellence_comments": "80–180 words (HARD CAP: 200 words)",
   "excellence_score": number (0–5 in 0.5 steps),
-  "impact_comments": "120–220 words",
+  "impact_comments": "80–180 words (HARD CAP: 200 words)",
   "impact_score": number (0–5 in 0.5 steps),
-  "overall_comments": "40–70 words",
-  "key_strength": "one sentence",
-  "key_concern": "one sentence"
+  "overall_comments": "40–80 words (HARD CAP: 100 words)",
+  "key_strength": "one sentence (HARD CAP: 40 words)",
+  "key_concern": "one sentence (HARD CAP: 40 words)"
 }`
       : `{
-  "excellence_comments": "120–220 words",
+  "excellence_comments": "80–180 words (HARD CAP: 200 words)",
   "excellence_score": number,
-  "impact_comments": "120–220 words",
+  "impact_comments": "80–180 words (HARD CAP: 200 words)",
   "impact_score": number,
-  "implementation_comments": "120–220 words",
+  "implementation_comments": "80–180 words (HARD CAP: 200 words)",
   "implementation_score": number,
-  "overall_comments": "40–70 words",
-  "key_strength": "one sentence",
-  "key_concern": "one sentence"
+  "overall_comments": "40–80 words (HARD CAP: 100 words)",
+  "key_strength": "one sentence (HARD CAP: 40 words)",
+  "key_concern": "one sentence (HARD CAP: 40 words)"
 }`;
 
   // STABLE PREFIX — byte-identical across all evaluators in this run so the Anthropic
@@ -687,8 +687,14 @@ EVALUATION RULES
 EVALUATION CRITERIA:
 ${criteriaText}
 
-OUTPUT — respond with a JSON object only:
+OUTPUT — respond with a JSON object only (no prose before/after, no markdown fences):
 ${fullProposalOutputBlock}
+
+LENGTH RULES (STRICT — the response MUST fit well under the token cap):
+- Each *_comments field: aim 80–180 words, HARD CAP 200 words. Do NOT exceed.
+- overall_comments: aim 40–80 words, HARD CAP 100 words.
+- key_strength / key_concern: exactly one sentence, HARD CAP 40 words each.
+- Prefer specificity and concrete references over length. Truncate rather than exceed a cap.
 
 --- PROPOSAL CONTENT ---
 ${proposalContentBlock}`;
@@ -726,6 +732,8 @@ Apply the evaluation rules, criteria, and output format defined above from your 
 
   let result: AnthropicCallResult;
   let evaluatorTimedOut = false;
+  const evaluatorStartedAt = Date.now();
+  let retryStopReason: string | undefined;
   const abortController = new AbortController();
   const timeoutHandle = setTimeout(() => abortController.abort(), EVALUATOR_TIMEOUT_MS);
   try {
@@ -807,6 +815,7 @@ Apply the evaluation rules, criteria, and output format defined above from your 
             retryController.signal,
           );
           retryUsage = retryResult.usage || {};
+          retryStopReason = retryResult.stop_reason;
           parsedData = extractJson(retryResult.text);
           console.log(`Evaluator ${evaluator.name}: silent retry succeeded.`);
         } finally {
@@ -822,7 +831,18 @@ Apply the evaluation rules, criteria, and output format defined above from your 
     }
   }
 
-  const parsedEvaluation = { persona: evaluator, data: parsedData };
+  const retryCount = retryUsage ? 1 : 0;
+  const evaluatorMeta = {
+    stop_reason: retryStopReason ?? result.stop_reason ?? null,
+    first_stop_reason: result.stop_reason ?? null,
+    output_tokens:
+      Number(result.usage?.output_tokens || 0) + Number(retryUsage?.output_tokens || 0),
+    retry_count: retryCount,
+    duration_ms: Date.now() - evaluatorStartedAt,
+    timed_out: evaluatorTimedOut,
+    model: evaluationModel,
+  };
+  const parsedEvaluation = { persona: evaluator, data: parsedData, _meta: evaluatorMeta };
 
   const nextEvaluations = savedEvaluations.slice();
   nextEvaluations[slotIndex] = parsedEvaluation;
@@ -1224,7 +1244,13 @@ Produce the full ESR markdown using the four-section structure defined in your s
 
   // Rough token estimate for the rendered proposal payload (~4 chars per token).
   // Used to scale the self-improving pre-run cost estimate by proposal size.
-  const payloadTokens = Math.ceil((renderedProposal?.length || 0) / 4);
+  // NB: read from analysisData (in scope here); the local `renderedProposal` from
+  // runEvaluatorPhase does NOT exist in this function — referencing it threw a
+  // ReferenceError AFTER status='complete' had already been written, causing the
+  // client to see a 500 and treat the successful run as failed until refresh.
+  const renderedProposalStr =
+    typeof analysisData.rendered_proposal === "string" ? analysisData.rendered_proposal : "";
+  const payloadTokens = Math.ceil(renderedProposalStr.length / 4);
 
   await serviceClient.from("evaluation_cost_log").insert({
     evaluation_id: evaluationId,
