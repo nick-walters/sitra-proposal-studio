@@ -1298,6 +1298,7 @@ StarterKit.configure({
       CaseReferenceNode,
       ParticipantReferenceNode,
       CasesTableNode,
+      B32MirrorSlotNode,
       AcronymReference,
       FigureTableReferenceMark,
       ParenBadgeGlue,
@@ -1535,6 +1536,8 @@ StarterKit.configure({
       ParticipantReferenceNode,
       // B1.2 cases-table block node (Stage 1 skeleton)
       CasesTableNode,
+      // B3.2 mirror slot block node
+      B32MirrorSlotNode,
       // Acronym reference for colored acronym insertion
       AcronymReference,
       CaptionLabel,
