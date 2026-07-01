@@ -5631,6 +5631,10 @@ export type Database = {
       }
       restore_excluded_tables: { Args: never; Returns: string[] }
       restore_in_scope_tables: { Args: never; Returns: string[] }
+      restore_proposal_snapshot: {
+        Args: { p_proposal_id: string; p_snapshot_id: string }
+        Returns: Json
+      }
       restore_scope_predicates: { Args: never; Returns: Json }
       thin_proposal_snapshots: {
         Args: {
