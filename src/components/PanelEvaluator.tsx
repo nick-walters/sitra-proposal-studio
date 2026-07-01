@@ -1406,6 +1406,7 @@ export function PanelEvaluator({ proposalId }: Props) {
                             </Badge>
                           );
                         })()}
+                        {renderModelBadge(h.model_used)}
                         {h.cost_eur != null && (() => {
                           const cb = h.analysis_data?.cost_breakdown as
                             | {
