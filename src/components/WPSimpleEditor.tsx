@@ -47,7 +47,11 @@ interface WPSimpleEditorProps {
   hasCases?: boolean;
   /** Called before opening a cross-ref dialog so the parent can save the cursor position */
   onSaveSelection?: () => void;
+  /** Optional focus/blur listeners — fired in addition to the editor's internal handling. */
+  onFocus?: () => void;
+  onBlur?: () => void;
 }
+
 
 export function WPSimpleEditor({
   value,
