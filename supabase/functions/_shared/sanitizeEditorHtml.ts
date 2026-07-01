@@ -87,6 +87,9 @@ export const ALLOWED_DATA_ATTRS = new Set<string>([
   // reconciler can match existing units instead of re-inserting duplicates.
   'data-case-type-id',
   'data-case-type-heading-id',
+  // B3.2 mirror slot binding (heading ↔ slot pairing)
+  'data-b32-mirror-slot',
+  'data-b32-slot-key',
 ]);
 
 export const STYLE_ALLOWLIST = new Set<string>([
