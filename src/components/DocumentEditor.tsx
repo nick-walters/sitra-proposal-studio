@@ -136,7 +136,7 @@ export function DocumentEditor({
   workProgramme,
   destination,
   allSections = [],
-  acronymSegments,
+  acronymSegments: acronymSegmentsProp,
   openPanel,
 }: DocumentEditorProps) {
   const { user } = useAuth();
