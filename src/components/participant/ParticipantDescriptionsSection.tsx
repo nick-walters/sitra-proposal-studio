@@ -70,7 +70,9 @@ export function ParticipantDescriptionsSection({
   canManageCustomColors = false,
 }: ParticipantDescriptionsSectionProps) {
   const [anyFieldFocused, setAnyFieldFocused] = useState(false);
+  const [colorPickerOpen, setColorPickerOpen] = useState(false);
   const blurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
 
   const isCompany =
     participant.organisationCategory === 'SME' ||
