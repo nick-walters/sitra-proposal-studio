@@ -845,7 +845,7 @@ export function FormattingToolbar({
         )}
 
         {/* Text colour */}
-        {showColor && <TextColorPicker editor={editor} />}
+        {showColor && <TextColorPicker editor={editor} proposalId={proposalId} canManageCustom={canManageCustomColors} />}
 
         <Separator orientation="vertical" className="h-5 mx-1.5" />
 
