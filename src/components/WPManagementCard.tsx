@@ -326,6 +326,16 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
   // WP Themes
   const { themes } = useWPThemes(proposalId);
 
+  // Per-position colour overrides (sparse array indexed by orderIndex).
+  // Loaded here so optimistic reorder/add/delete updates can compute the FINAL
+  // colour (override- and theme-aware) synchronously, avoiding a flash to the
+  // positional default before reconcileWPColorsForProposal runs.
+  const { data: positionOverrides = [] } = useQuery({
+    queryKey: ['wp-position-overrides', proposalId],
+    queryFn: () => fetchPositionOverrides(proposalId),
+    enabled: !!proposalId,
+  });
+
   // Fetch proposal to check budget_type and use_wp_themes
   const { data: proposal } = useQuery({
     queryKey: ['proposal-for-themes', proposalId],
