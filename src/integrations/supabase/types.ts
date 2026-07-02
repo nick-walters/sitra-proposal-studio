@@ -5451,7 +5451,6 @@ export type Database = {
           b31_description_before_tasks: string | null
           b31_objectives: string | null
           color: string
-          color_locked: boolean
           created_at: string
           description_before_tasks: string | null
           id: string
@@ -5475,7 +5474,6 @@ export type Database = {
           b31_description_before_tasks?: string | null
           b31_objectives?: string | null
           color?: string
-          color_locked?: boolean
           created_at?: string
           description_before_tasks?: string | null
           id?: string
@@ -5499,7 +5497,6 @@ export type Database = {
           b31_description_before_tasks?: string | null
           b31_objectives?: string | null
           color?: string
-          color_locked?: boolean
           created_at?: string
           description_before_tasks?: string | null
           id?: string

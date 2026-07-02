@@ -1,0 +1,1 @@
+ALTER TABLE public.wp_drafts DROP COLUMN IF EXISTS color_locked;
