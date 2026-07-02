@@ -36,7 +36,7 @@ export function ImpactCanvasBuilder({ proposalId, canEdit }: Props) {
 
   const { columns, isLoading: colsLoading } = useImpactCanvasColumns(proposalId);
   const { rows, isLoading: rowsLoading, addRow, deleteRow, updateCell } = useImpactCanvasRows(proposalId);
-  const { enabled, setEnabled } = useImpactCanvasEnabled(proposalId);
+  
 
   const [activeEditor, setActiveEditor] = useState<Editor | null>(null);
   const [columnDialogOpen, setColumnDialogOpen] = useState(false);
