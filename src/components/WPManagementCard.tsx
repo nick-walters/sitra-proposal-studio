@@ -122,30 +122,15 @@ function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete
         )}
       </div>
 
-      {/* WP Number Badge - with Color Picker or Theme Color */}
-      {useThemes ? (
-        <div className="flex justify-center">
-          <WPBubble
-            wpColor={wp.color}
-            style={{ fontSize: '12px', height: 'auto', padding: '2px 8px' }}
-          >
-            WP{wp.number}
-          </WPBubble>
-        </div>
-      ) : (
-        <WPColorPicker
-          color={wp.color}
-          onChange={(color) => onUpdate(wp.id, { color } as any)}
-          wpNumber={wp.number}
-          disabled={!canEdit}
-          proposalId={proposalId}
-          canManageCustom={isCoordinator}
-          excludePaletteColors={['#000000']}
-        />
-
-
-
-      )}
+      {/* WP Number Badge — read-only colour swatch (edit via Colour sequence dialogue) */}
+      <div className="flex justify-center">
+        <WPBubble
+          wpColor={wp.color}
+          style={{ fontSize: '12px', height: 'auto', padding: '2px 8px' }}
+        >
+          WP{wp.number}
+        </WPBubble>
+      </div>
 
       {/* Theme selector (only when themes enabled) */}
       {useThemes && (
