@@ -140,7 +140,7 @@ export function WPProgressTracker({ proposalId, onNavigateToWP }: WPProgressTrac
                     <TableCell className="py-1.5 leading-[0]">
                       <span 
                         className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold whitespace-nowrap align-middle"
-                        style={{ backgroundColor: getEffectiveColor(wp.wpId, wp.color), color: '#ffffff', lineHeight: 1 }}
+                        style={{ backgroundColor: wp.color, color: '#ffffff', lineHeight: 1 }}
                       >
                         WP{wp.wpNumber}{wp.shortName ? `: ${wp.shortName}` : ''}
                       </span>
