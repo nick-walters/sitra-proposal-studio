@@ -604,8 +604,17 @@ export async function buildPrintContainer(
         container.appendChild(b31Marker);
       }
 
+      // B2.1 — impact canvas mount at the end of the section content.
+      if (num === '2.1') {
+        const impactMarker = document.createElement('div');
+        impactMarker.id = 'print-impact-canvas-mount';
+        impactMarker.setAttribute('data-proposal-id', proposal.id);
+        container.appendChild(impactMarker);
+      }
+
       // B3.2 — the expertise matrix now renders inside the interdisciplinarity
       // mirror slot (see B32MirrorSlotLiveView), so there is no separate mount.
+
 
     }
   }
