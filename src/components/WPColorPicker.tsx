@@ -134,7 +134,13 @@ export function WPColorPicker({
   const handleOpenChange = (next: boolean) => {
     setOpen(next);
     onOpenChange?.(next);
+    // Refresh in-use scan whenever the picker opens so a colour that was just
+    // applied elsewhere (font colour, WP colour, etc.) is reflected in the
+    // delete guard. Without this, staleTime alone lets the popover render a
+    // "delete" X for a colour that IS in use.
+    if (next) void refetchUsed();
   };
+
 
 
   return (
