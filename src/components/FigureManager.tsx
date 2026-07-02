@@ -190,13 +190,14 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
   // Update figure mutation
   const updateFigure = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Figure> }) => {
+      const payload: Record<string, unknown> = {};
+      if (updates.title !== undefined) payload.title = updates.title;
+      if (updates.caption !== undefined) payload.caption = updates.caption;
+      if (updates.content !== undefined) payload.content = updates.content;
+      if (Object.keys(payload).length === 0) return;
       const { error } = await supabase
         .from('figures')
-        .update({
-          title: updates.title,
-          caption: updates.caption,
-          content: updates.content,
-        })
+        .update(payload)
         .eq('id', id);
       if (error) throw error;
     },
