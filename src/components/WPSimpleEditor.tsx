@@ -308,6 +308,11 @@ export function WPSimpleEditor({
         onSaveSelection={onSaveSelection}
         crossRefMenuItems={crossRefMenuItems}
         trailing={trailing}
+        fontColor={{
+          proposalId: proposalId ?? null,
+          canManageCustom: canManageCustomColors,
+          getEditableElement: () => editorRef.current,
+        }}
       />
 
       {/* Editor */}
