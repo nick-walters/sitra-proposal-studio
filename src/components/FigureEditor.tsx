@@ -21,6 +21,9 @@ import { toast } from 'sonner';
 import { generateProposalFilePath, uploadProposalFile } from '@/lib/proposalStorage';
 import { compressImage, getFormatExtension } from '@/lib/imageCompression';
 import { useStorageUrl } from '@/hooks/useStorageUrl';
+import { useImpactCanvasEnabled } from '@/hooks/useImpactCanvas';
+import { useProposalRole } from '@/hooks/useProposalRole';
+import { Switch } from '@/components/ui/switch';
 
 interface Figure {
   id: string;
