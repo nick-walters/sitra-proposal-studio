@@ -860,6 +860,13 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
           paragraphSpacingContainer={() =>
             document.querySelector('.wp-draft-editor [contenteditable="true"]') as HTMLElement | null
           }
+          fontColor={{
+            proposalId,
+            canManageCustom: isCoordinator,
+            getEditableElement: () =>
+              (document.activeElement && (document.activeElement as HTMLElement).closest('[contenteditable="true"]')) as HTMLElement | null
+              ?? (document.querySelector('.wp-draft-editor [contenteditable="true"]') as HTMLElement | null),
+          }}
           onSaveSelection={saveSelection}
           onOpenFigureDialog={() => setIsFigureDialogOpen(true)}
           onOpenCitationDialog={() => setIsCitationOpen(true)}
