@@ -402,6 +402,19 @@ export function ParticipantDetailForm({
           canEdit={canEdit}
         />
 
+        {/* Participant descriptions — Stage 2a of A2 partner-descriptions feature */}
+        <ParticipantDescriptionsSection
+          participant={participant}
+          descriptions={descriptions}
+          onUpdateField={updateDescriptionField}
+          saving={descriptionsSaving}
+          lastSaved={descriptionsLastSaved}
+          saveError={descriptionsError}
+          canEdit={canEdit}
+          proposalId={proposalId}
+          canManageCustomColors={canGrant}
+        />
+
         {/* 10. Gender Equality Plan (Enhanced) */}
         <GEPSection
           showGEPSection={showGEPSection}
@@ -427,18 +440,6 @@ export function ParticipantDetailForm({
           organisationCategory={participant.organisationCategory}
         />
 
-        {/* Participant descriptions — Stage 2a of A2 partner-descriptions feature */}
-        <ParticipantDescriptionsSection
-          participant={participant}
-          descriptions={descriptions}
-          onUpdateField={updateDescriptionField}
-          saving={descriptionsSaving}
-          lastSaved={descriptionsLastSaved}
-          saveError={descriptionsError}
-          canEdit={canEdit}
-          proposalId={proposalId}
-          canManageCustomColors={canGrant}
-        />
 
 
 
