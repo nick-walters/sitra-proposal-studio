@@ -352,17 +352,19 @@ function normalizePartBLoadedContent(html: string) {
 }
 
 
-// ── Text Color Picker ───────────────────────────────────────────────────
-const PRESET_COLORS = [
-  '#000000', '#434343', '#666666', '#999999',
-  '#DC2626', '#EA580C', '#D97706', '#65A30D',
-  '#059669', '#0891B2', '#2563EB', '#7C3AED',
-  '#DB2777', '#9333EA', '#4F46E5', '#0D9488',
-];
+// ── Text Color Picker (shared per-proposal colour library) ──────────────
+import { WPColorPicker } from './WPColorPicker';
 
-function TextColorPicker({ editor }: { editor: Editor }) {
-  const [customHex, setCustomHex] = useState('');
-  const currentColor = editor.getAttributes('textStyle')?.color || '';
+function TextColorPicker({
+  editor,
+  proposalId,
+  canManageCustom,
+}: {
+  editor: Editor;
+  proposalId?: string | null;
+  canManageCustom?: boolean;
+}) {
+  const currentColor = (editor.getAttributes('textStyle')?.color as string) || '';
 
   const applyColor = useCallback((color: string) => {
     editor.chain().focus().setColor(color).run();
@@ -372,85 +374,35 @@ function TextColorPicker({ editor }: { editor: Editor }) {
     editor.chain().focus().unsetColor().run();
   }, [editor]);
 
+  const trigger = (
+    <Button
+      variant="ghost"
+      size="icon"
+      className="h-7 w-7 relative"
+      aria-label="Colour"
+      title="Colour"
+    >
+      <Palette className="w-4 h-4" />
+      {currentColor && (
+        <span
+          className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-3.5 h-0.5 rounded-full"
+          style={{ backgroundColor: currentColor }}
+        />
+      )}
+    </Button>
+  );
+
   return (
-    <Popover>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <PopoverTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 relative"
-             aria-label="Colour" title="Colour">
-              <Palette className="w-4 h-4" />
-              {currentColor && (
-                <span
-                  className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-3.5 h-0.5 rounded-full"
-                  style={{ backgroundColor: currentColor }}
-                />
-              )}
-            </Button>
-          </PopoverTrigger>
-        </TooltipTrigger>
-        <TooltipContent side="bottom" className="text-xs">Text colour</TooltipContent>
-      </Tooltip>
-      <PopoverContent align="start" className="w-52 p-3">
-        <div className="space-y-3">
-          <div className="text-xs font-medium text-muted-foreground">Preset colours</div>
-          <div className="grid grid-cols-8 gap-1">
-            {PRESET_COLORS.map((color) => (
-              <button
-                key={color}
-                className={`w-5 h-5 rounded-sm border transition-transform hover:scale-125 cursor-pointer ${
-                  currentColor === color ? 'ring-2 ring-primary ring-offset-1' : 'border-border'
-                }`}
-                style={{ backgroundColor: color }}
-                onClick={() => applyColor(color)}
-                title={color}
-              />
-            ))}
-          </div>
-          <Separator />
-          <div className="flex items-center gap-2">
-            <Pipette className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-            <Input
-              value={customHex}
-              onChange={(e) => setCustomHex(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && /^#[0-9A-Fa-f]{6}$/.test(customHex)) {
-                  applyColor(customHex);
-                }
-              }}
-              placeholder="#000000"
-              className="h-7 text-xs font-mono"
-              maxLength={7}
-            />
-            <Button
- variant="ghost"
- size="icon"
- className="h-7 w-7 shrink-0"
- onClick={() => {
- if (/^#[0-9A-Fa-f]{6}$/.test(customHex)) {
- applyColor(customHex);
- }
- }}
- title="Apply colour"
- aria-label="Confirm" >
-              <Check className="w-3.5 h-3.5" />
-            </Button>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full h-7 text-xs gap-1.5"
-            onClick={removeColor}
-          >
-            <Ban className="w-3 h-3" />
-            Remove colour
-          </Button>
-        </div>
-      </PopoverContent>
-    </Popover>
+    <WPColorPicker
+      color={currentColor || '#000000'}
+      onChange={applyColor}
+      onRemove={currentColor ? removeColor : undefined}
+      removeLabel="Remove colour"
+      proposalId={proposalId ?? null}
+      canManageCustom={canManageCustom}
+      trigger={trigger}
+      label="Text colour"
+    />
   );
 }
 
