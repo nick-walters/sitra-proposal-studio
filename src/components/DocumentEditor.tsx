@@ -796,7 +796,7 @@ export function DocumentEditor({
     const hasContentBefore = cursorPos > 1; // pos 0 is doc start, pos 1 is inside first empty paragraph
     
     // Insert image and caption together
-    const figureLabel = `Figure ${figure.figureNumber}`;
+
     
     // Build content array
     const contentToInsert: any[] = [];
