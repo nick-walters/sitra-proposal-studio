@@ -53,8 +53,7 @@ export function FigureEditor({
   onBack,
   canEdit,
 }: FigureEditorProps) {
-  const [title, setTitle] = useState(figure.title);
-  const caption = figure.caption || '';
+  const [caption, setCaption] = useState(figure.caption || figure.title || '');
   
   // AI regeneration state
   const [editPrompt, setEditPrompt] = useState(figure.content?.aiPrompt || '');
