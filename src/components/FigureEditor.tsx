@@ -21,6 +21,9 @@ import { toast } from 'sonner';
 import { generateProposalFilePath, uploadProposalFile } from '@/lib/proposalStorage';
 import { compressImage, getFormatExtension } from '@/lib/imageCompression';
 import { useStorageUrl } from '@/hooks/useStorageUrl';
+import { useImpactCanvasEnabled } from '@/hooks/useImpactCanvas';
+import { useProposalRole } from '@/hooks/useProposalRole';
+import { Switch } from '@/components/ui/switch';
 
 interface Figure {
   id: string;
@@ -59,6 +62,12 @@ export function FigureEditor({
   const [isReplacing, setIsReplacing] = useState(false);
   const replaceInputRef = useRef<HTMLInputElement>(null);
   const resolvedImageUrl = useStorageUrl(figure.content?.imageUrl);
+  const isImpactCanvas = figure.figureType === 'impact-canvas';
+  const { roleTier } = useProposalRole(proposalId);
+  const isCoordinator = roleTier === 'coordinator';
+  const { enabled: canvasEnabled, setEnabled: setCanvasEnabled } = useImpactCanvasEnabled(
+    isImpactCanvas ? proposalId : '',
+  );
 
   const handleReplaceImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -262,6 +271,16 @@ export function FigureEditor({
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {isImpactCanvas && isCoordinator && (
+              <label className="flex items-center gap-2 text-sm mr-1 select-none">
+                <Switch
+                  checked={canvasEnabled}
+                  onCheckedChange={(v) => setCanvasEnabled.mutate(!!v)}
+                  aria-label="Include impact canvas"
+                />
+                <span className="text-muted-foreground">Include in B2.1</span>
+              </label>
+            )}
             {canEdit && (
               <>
                 <Button variant="outline" size="sm" onClick={onDelete} className="text-destructive">

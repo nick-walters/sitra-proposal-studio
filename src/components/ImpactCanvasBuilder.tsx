@@ -2,12 +2,10 @@ import { useState, useCallback } from 'react';
 import type { Editor } from '@tiptap/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Plus, Trash2, Settings2, Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, Info } from 'lucide-react';
 import DOMPurify from 'dompurify';
-import { useImpactCanvasColumns, useImpactCanvasRows, useImpactCanvasEnabled } from '@/hooks/useImpactCanvas';
+import { useImpactCanvasColumns, useImpactCanvasRows } from '@/hooks/useImpactCanvas';
 import { useProposalRole } from '@/hooks/useProposalRole';
 import { ImpactCanvasCellEditor } from './ImpactCanvasCellEditor';
 import { ImpactCanvasColumnDialog } from './ImpactCanvasColumnDialog';
@@ -38,7 +36,7 @@ export function ImpactCanvasBuilder({ proposalId, canEdit }: Props) {
 
   const { columns, isLoading: colsLoading } = useImpactCanvasColumns(proposalId);
   const { rows, isLoading: rowsLoading, addRow, deleteRow, updateCell } = useImpactCanvasRows(proposalId);
-  const { enabled, setEnabled } = useImpactCanvasEnabled(proposalId);
+  
 
   const [activeEditor, setActiveEditor] = useState<Editor | null>(null);
   const [columnDialogOpen, setColumnDialogOpen] = useState(false);
@@ -62,24 +60,9 @@ export function ImpactCanvasBuilder({ proposalId, canEdit }: Props) {
   return (
     <TooltipProvider delayDuration={200}>
       <div className="space-y-6">
-        {/* Enable toggle */}
-        {isCoordinator && (
-          <Card>
-            <CardContent className="py-4 flex items-center justify-between gap-4">
-              <div>
-                <Label className="text-sm font-medium">Include impact canvas</Label>
-                <p className="text-xs text-muted-foreground mt-1">
-                  When enabled, the impact canvas appears at the end of B2.1 in the editor and PDF export.
-                </p>
-              </div>
-              <Checkbox
-                checked={enabled}
-                onCheckedChange={(v) => setEnabled.mutate(!!v)}
-                aria-label="Include impact canvas"
-              />
-            </CardContent>
-          </Card>
-        )}
+        {/* Enable toggle moved to figure page header */}
+
+
 
         {/* The graphic */}
         <Card>
@@ -175,83 +158,103 @@ export function ImpactCanvasBuilder({ proposalId, canEdit }: Props) {
               <p className="text-xs text-muted-foreground italic py-6 text-center">
                 No columns configured.
               </p>
+            ) : rows.length === 0 ? (
+              <p className="text-xs text-muted-foreground italic py-6 text-center">
+                No rows yet.
+              </p>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse text-sm">
-                  <thead>
-                    <tr>
-                      {columnOrder.map((c) => (
-                        <th key={c.id} className="border p-2 bg-muted/50 text-left align-top min-w-[160px]">
-                          <div className="flex items-start gap-1">
-                            <span className="text-xs font-semibold">{c.heading}</span>
-                            {c.guideline && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <button
-                                    type="button"
-                                    className="text-muted-foreground hover:text-foreground"
-                                    aria-label="Guideline"
-                                  >
-                                    <Info className="w-3 h-3" />
-                                  </button>
-                                </TooltipTrigger>
-                                <TooltipContent side="bottom" className="max-w-xs text-xs">
-                                  {c.guideline}
-                                </TooltipContent>
-                              </Tooltip>
-                            )}
-                          </div>
-                          {c.guideline && (
-                            <p className="text-[10px] italic text-muted-foreground mt-1 font-normal leading-snug">
-                              {c.guideline}
-                            </p>
-                          )}
-                        </th>
-                      ))}
-                      {canEdit && <th className="border p-2 bg-muted/50 w-10"></th>}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((row) => (
-                      <tr key={row.id}>
-                        {columnOrder.map((c) => (
-                          <td key={c.id} className="border align-top p-0">
-                            <ImpactCanvasCellEditor
-                              html={row.content[c.key] || ''}
-                              onChange={(html) =>
-                                updateCell.mutate({ rowId: row.id, key: c.key, html })
-                              }
-                              onFocus={handleFocus}
-                              disabled={!canEdit}
-                            />
-                          </td>
-                        ))}
+              <div className="space-y-4">
+                {rows.map((row, rowIdx) => {
+                  const chunks: typeof columnOrder[] = [];
+                  for (let i = 0; i < columnOrder.length; i += 3) {
+                    chunks.push(columnOrder.slice(i, i + 3));
+                  }
+                  return (
+                    <div key={row.id} className="border-2 border-border rounded-md overflow-hidden bg-background">
+                      <div className="flex items-center justify-between bg-muted/60 px-3 py-1.5 border-b">
+                        <span className="text-xs font-semibold uppercase tracking-wide">
+                          Row {rowIdx + 1}
+                        </span>
                         {canEdit && (
-                          <td className="border align-top text-center p-1">
-                            <button
-                              onClick={() => {
-                                if (confirm('Delete this row?')) deleteRow.mutate(row.id);
-                              }}
-                              className="p-1 text-destructive hover:bg-destructive/10 rounded"
-                              aria-label="Delete row"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </td>
+                          <button
+                            onClick={() => {
+                              if (confirm('Delete this row?')) deleteRow.mutate(row.id);
+                            }}
+                            className="p-1 text-destructive hover:bg-destructive/10 rounded"
+                            aria-label="Delete row"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         )}
-                      </tr>
-                    ))}
-                    {rows.length === 0 && (
-                      <tr>
-                        <td colSpan={columnOrder.length + (canEdit ? 1 : 0)} className="border text-center text-xs text-muted-foreground italic py-6">
-                          No rows yet.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+                      </div>
+                      {chunks.map((chunk, ci) => (
+                        <div key={ci} className="overflow-x-auto border-t first:border-t-0">
+                          <table className="w-full border-collapse text-sm table-fixed">
+                            <colgroup>
+                              {chunk.map((c) => (
+                                <col key={c.id} style={{ width: `${100 / chunk.length}%` }} />
+                              ))}
+                            </colgroup>
+                            <thead>
+                              <tr>
+                                {chunk.map((c) => (
+                                  <th
+                                    key={c.id}
+                                    className="border p-2 bg-muted/30 text-left align-top min-w-[160px]"
+                                  >
+                                    <div className="flex items-start gap-1">
+                                      <span className="text-xs font-semibold">{c.heading}</span>
+                                      {c.guideline && (
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <button
+                                              type="button"
+                                              className="text-muted-foreground hover:text-foreground"
+                                              aria-label="Guideline"
+                                            >
+                                              <Info className="w-3 h-3" />
+                                            </button>
+                                          </TooltipTrigger>
+                                          <TooltipContent side="bottom" className="max-w-xs text-xs">
+                                            {c.guideline}
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      )}
+                                    </div>
+                                    {c.guideline && (
+                                      <p className="text-[10px] italic text-muted-foreground mt-1 font-normal leading-snug">
+                                        {c.guideline}
+                                      </p>
+                                    )}
+                                  </th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr>
+                                {chunk.map((c) => (
+                                  <td key={c.id} className="border align-top p-0">
+                                    <ImpactCanvasCellEditor
+                                      html={row.content[c.key] || ''}
+                                      onChange={(html) =>
+                                        updateCell.mutate({ rowId: row.id, key: c.key, html })
+                                      }
+                                      onFocus={handleFocus}
+                                      disabled={!canEdit}
+                                    />
+                                  </td>
+                                ))}
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })}
               </div>
             )}
+
 
             {canEdit && (
               <Button variant="outline" size="sm" onClick={() => addRow.mutate()} disabled={addRow.isPending}>
