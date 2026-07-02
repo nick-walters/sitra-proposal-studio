@@ -158,8 +158,8 @@ export function useProposalCustomColors(proposalId: string | null | undefined) {
       for (const r of (pinfraRes.data as Array<{ description: string | null }> | null) || []) addFromHtml(r.description);
       for (const r of (fstpRes.data as Array<{ response_content: string | null }> | null) || []) addFromHtml(r.response_content);
 
-      void wpIds;
       return Array.from(set);
+
     },
     enabled: !!proposalId,
     staleTime: 60_000,
