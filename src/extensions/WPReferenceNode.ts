@@ -1,4 +1,6 @@
 import { Node, mergeAttributes } from '@tiptap/core';
+import { formatWPLabel } from '@/lib/referenceLabels';
+
 
 export interface WPReferenceOptions {
   HTMLAttributes: Record<string, any>;
