@@ -391,7 +391,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
     },
   });
 
-  // Update WP mutation
+  // Update WP mutation — triggers colour reconciliation when theme_id changes
   const updateWPMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<WPDraft> }) => {
       const { error } = await supabase
@@ -399,6 +399,11 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
         .update(updates)
         .eq('id', id);
       if (error) throw error;
+      // If theme assignment changed, write down the correct colour immediately.
+      if (Object.prototype.hasOwnProperty.call(updates, 'theme_id')) {
+        const { reconcileWPColorsForProposal } = await import('@/lib/computeWPColors');
+        await reconcileWPColorsForProposal(proposalId);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wp-drafts-management', proposalId] });
@@ -407,18 +412,19 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
     },
   });
 
-  // Reorder mutation with optimistic updates
+  // Reorder mutation with optimistic updates — reassigns colours positionally
   const reorderMutation = useMutation({
     mutationFn: async (reorderedWPs: WPDraft[]) => {
-      // Preserve each WP's existing color — do NOT reassign from palette
+      const { computeWPColorForPosition } = await import('@/lib/computeWPColors');
+      const total = reorderedWPs.length;
       const updates = reorderedWPs.map((wp, index) => ({
         id: wp.id,
         order_index: index,
         number: index + 1,
-        color: wp.color,
+        color: computeWPColorForPosition(index, total),
       }));
-      
-      // First pass: set all numbers to negative temporaries to avoid unique constraint violations
+
+      // First pass: set order_index + temp negative number to avoid unique-constraint clashes
       for (const update of updates) {
         const { error } = await supabase
           .from('wp_drafts')
@@ -426,8 +432,8 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
           .eq('id', update.id);
         if (error) throw error;
       }
-      
-      // Second pass: set final numbers and reassign colors from palette
+
+      // Second pass: set final number AND positional colour
       for (const update of updates) {
         const { error } = await supabase
           .from('wp_drafts')
@@ -436,19 +442,20 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
         if (error) throw error;
       }
 
-      // Note: previously a third pass updated b31_deliverables.wp_number for
-      // deliverables linked via tasks. Snapshot tables have been removed, and
-      // wp_draft_deliverables.number is per-WP (display "D{wpNum}.{n}" is
-      // derived live from wp_draft_id), so no rewrite is needed.
+      // Theme-mode: overwrite positional colour with theme colour where assigned
+      const { reconcileWPColorsForProposal } = await import('@/lib/computeWPColors');
+      await reconcileWPColorsForProposal(proposalId);
     },
     onMutate: async (reorderedWPs) => {
       await queryClient.cancelQueries({ queryKey: ['wp-drafts-management', proposalId] });
       const previousWPs = queryClient.getQueryData<WPDraft[]>(['wp-drafts-management', proposalId]);
+      const { computeWPColorForPosition } = await import('@/lib/computeWPColors');
+      const total = reorderedWPs.length;
       const optimisticWPs = reorderedWPs.map((wp, index) => ({
         ...wp,
         order_index: index,
         number: index + 1,
-        color: wp.color,
+        color: computeWPColorForPosition(index, total),
       }));
       queryClient.setQueryData(['wp-drafts-management', proposalId], optimisticWPs);
       return { previousWPs };
@@ -464,7 +471,6 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
       queryClient.invalidateQueries({ queryKey: ['wp-drafts', proposalId] });
       queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
       queryClient.invalidateQueries({ queryKey: ['wp-drafts-gantt', proposalId] });
-      console.log('[SYNC-EVENT] dispatching cross-ref-data-changed', { source: 'WPManagementCard.reorder' }); /* TEMP-LOG */
       window.dispatchEvent(new CustomEvent('cross-ref-data-changed', { detail: { source: 'WPManagementCard.reorder' } }));
 
       onSaveEvent?.();
