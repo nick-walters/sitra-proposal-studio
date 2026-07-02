@@ -20,6 +20,8 @@ interface FontColorToolbarButtonProps {
    * selection.
    */
   getEditableElement?: () => HTMLElement | null;
+  /** Optional live HTML sources to include in colour in-use checks before autosave persists. */
+  getLiveHtmlSources?: () => Array<string | null | undefined>;
   /** Notified when the picker popover opens/closes (for parent focus retention). */
   onOpenChange?: (open: boolean) => void;
 }
@@ -60,6 +62,7 @@ export function FontColorToolbarButton({
   canManageCustom,
   disabled,
   getEditableElement,
+  getLiveHtmlSources,
   onOpenChange,
 }: FontColorToolbarButtonProps) {
 
@@ -176,6 +179,10 @@ export function FontColorToolbarButton({
       label="Text colour"
       disabled={disabled}
       onOpenChange={onOpenChange}
+      getLiveHtmlSources={getLiveHtmlSources ?? (() => {
+        const editable = resolveEditable(savedRangeRef.current);
+        return editable ? [editable.innerHTML] : [];
+      })}
     />
 
   );

@@ -1170,6 +1170,8 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
           hideToolbar={true}
           allWpDrafts={wpDrafts}
           currentWpDraftId={wpDraft.id}
+          proposalId={proposalId}
+          canManageCustomColors={isCoordinator}
         />
 
         {/* Deliverables */}

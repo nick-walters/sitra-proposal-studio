@@ -312,6 +312,7 @@ export function WPSimpleEditor({
           proposalId: proposalId ?? null,
           canManageCustom: canManageCustomColors,
           getEditableElement: () => editorRef.current,
+          getLiveHtmlSources: () => [editorRef.current?.innerHTML],
         }}
       />
 
