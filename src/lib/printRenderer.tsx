@@ -652,11 +652,13 @@ export async function mountDynamicComponents(
     { B31SectionContent },
     { CasesTableLiveView },
     { B32MirrorSlotLiveView },
+    { ImpactCanvasSection },
   ] = await Promise.all([
     import('@/components/B31IntroText'),
     import('@/components/B31SectionContent'),
     import('@/components/CasesTableNodeView'),
     import('@/components/B32MirrorSlotNodeView'),
+    import('@/components/ImpactCanvasSection'),
   ]);
 
   // Reuse the app's QueryClient when available so the export tree reads from
