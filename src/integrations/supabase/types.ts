@@ -3758,6 +3758,7 @@ export type Database = {
           b31_show_other_goods_justification: boolean
           b31_show_purchase_costs: boolean
           b31_show_travel_justification: boolean
+          b32_infrastructure_order: Json
           banner_title_override: string | null
           banner_topic_line_override: string | null
           budget_template_id: string | null
@@ -3835,6 +3836,7 @@ export type Database = {
           b31_show_other_goods_justification?: boolean
           b31_show_purchase_costs?: boolean
           b31_show_travel_justification?: boolean
+          b32_infrastructure_order?: Json
           banner_title_override?: string | null
           banner_topic_line_override?: string | null
           budget_template_id?: string | null
@@ -3912,6 +3914,7 @@ export type Database = {
           b31_show_other_goods_justification?: boolean
           b31_show_purchase_costs?: boolean
           b31_show_travel_justification?: boolean
+          b32_infrastructure_order?: Json
           banner_title_override?: string | null
           banner_topic_line_override?: string | null
           budget_template_id?: string | null
