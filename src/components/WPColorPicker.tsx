@@ -152,7 +152,7 @@ export function WPColorPicker({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         {trigger ? (
-          <>{trigger}</>
+          trigger
         ) : wpNumber !== undefined ? (
           <button
             className={cn(
