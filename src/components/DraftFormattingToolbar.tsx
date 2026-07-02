@@ -227,6 +227,16 @@ export function DraftFormattingToolbar({
             disabled={disabled}
           />
 
+          {fontColor && (
+            <FontColorToolbarButton
+              proposalId={fontColor.proposalId ?? null}
+              canManageCustom={fontColor.canManageCustom}
+              disabled={disabled}
+              getEditableElement={fontColor.getEditableElement}
+            />
+          )}
+
+
           <Separator orientation="vertical" className="h-5 mx-1.5" />
 
           {/* Lists */}
