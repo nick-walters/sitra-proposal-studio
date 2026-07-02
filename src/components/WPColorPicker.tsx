@@ -70,6 +70,12 @@ interface WPColorPickerProps {
   wpNumber?: number;
   /** Optional label shown above the palette. */
   label?: string;
+  /** Custom trigger element (e.g. toolbar icon button). Replaces the default swatch/pill trigger. */
+  trigger?: React.ReactNode;
+  /** Optional "remove colour" action rendered in the popover footer. */
+  onRemove?: () => void;
+  /** Label for the remove-colour button. */
+  removeLabel?: string;
 }
 
 export function WPColorPicker({
@@ -82,6 +88,9 @@ export function WPColorPicker({
   canManageCustom,
   wpNumber,
   label,
+  trigger,
+  onRemove,
+  removeLabel = 'Remove colour',
 }: WPColorPickerProps) {
   const [open, setOpen] = useState(false);
   const [format, setFormat] = useState<ColorFormat>('hex');
@@ -142,7 +151,9 @@ export function WPColorPicker({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        {wpNumber !== undefined ? (
+        {trigger ? (
+          trigger
+        ) : wpNumber !== undefined ? (
           <button
             className={cn(
               'inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold transition-all text-white',
@@ -262,6 +273,20 @@ export function WPColorPicker({
               {format}
             </button>
           </div>
+
+          {onRemove && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full h-7 text-xs"
+              onClick={() => {
+                onRemove();
+                setOpen(false);
+              }}
+            >
+              {removeLabel}
+            </Button>
+          )}
         </div>
       </PopoverContent>
     </Popover>
