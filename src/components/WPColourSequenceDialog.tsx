@@ -5,6 +5,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { DebouncedInput } from '@/components/ui/debounced-input';
 import { WPColorPicker } from '@/components/WPColorPicker';
+import { WPBubble } from '@/components/B31Pill';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import {
@@ -197,9 +198,7 @@ export function WPColourSequenceDialog({
   const posRows = useMemo(() => {
     return positions.map((p) => {
       const effective = computeWPColorForPosition(p.order_index, total, overrides);
-      const isLast = total >= 2 && p.order_index === total - 1;
-      const isPenultimate = total >= 2 && p.order_index === total - 2;
-      const label = isLast ? 'Coordination' : isPenultimate ? 'Exploitation' : `Position ${p.order_index + 1}`;
+      const label = `Position ${p.order_index + 1}`;
       const hasOverride = !!overrides[p.order_index];
       return { ...p, effective, label, hasOverride };
     });
@@ -253,12 +252,13 @@ export function WPColourSequenceDialog({
         {showThemeMode ? (
           // ---------- Theme editor ----------
           <div className="space-y-1 max-h-[60vh] overflow-y-auto pr-1">
-            <div className="grid grid-cols-[24px_70px_110px_1fr_auto_20px] gap-2 items-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground pb-1 border-b">
+            <div className="grid grid-cols-[24px_80px_110px_1fr_90px_70px_20px] gap-2 items-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground pb-1 border-b">
               <div />
-              <div className="text-center">Colour</div>
+              <div>Position</div>
               <div>Short name</div>
               <div>Theme name</div>
-              <div />
+              <div className="text-center">Theme</div>
+              <div className="text-center">Colour</div>
               <div />
             </div>
 
@@ -311,7 +311,7 @@ export function WPColourSequenceDialog({
               <div className="py-8 text-center text-sm text-muted-foreground">No work packages found.</div>
             ) : (
               <div className="space-y-1 max-h-[60vh] overflow-y-auto pr-1">
-                <div className="grid grid-cols-[70px_1fr_auto_auto] gap-2 items-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground pb-1 border-b">
+                <div className="grid grid-cols-[90px_1fr_auto_auto] gap-2 items-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground pb-1 border-b">
                   <div>Position</div>
                   <div>Work package</div>
                   <div className="text-center">Colour</div>
@@ -320,17 +320,14 @@ export function WPColourSequenceDialog({
                 {posRows.map((r) => (
                   <div
                     key={r.order_index}
-                    className="grid grid-cols-[70px_1fr_auto_auto] gap-2 items-center py-1.5 border-b border-border/60"
+                    className="grid grid-cols-[90px_1fr_auto_auto] gap-2 items-center py-1.5 border-b border-border/60"
                   >
                     <div className="text-xs font-medium">{r.label}</div>
-                    <div className="text-sm truncate">
-                      {r.wp_id ? (
-                        <span>
-                          <span className="font-semibold">WP{r.number}</span>
-                          {r.short_name ? <span className="text-muted-foreground"> · {r.short_name}</span> : null}
-                        </span>
+                    <div className="text-sm">
+                      {r.wp_id && r.number != null ? (
+                        <WPBubble wpNumber={r.number} wpColor={r.effective} />
                       ) : (
-                        <span className="text-muted-foreground italic">(vacant)</span>
+                        <span className="text-muted-foreground italic text-xs">(vacant)</span>
                       )}
                     </div>
                     <div className="flex items-center justify-center">
@@ -397,11 +394,12 @@ function SortableThemeRow({
     disabled: !canEdit || fixed,
   });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
+  const themeLetter = String.fromCharCode(65 + index); // A, B, C…
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`grid grid-cols-[24px_70px_110px_1fr_auto_20px] gap-2 items-center py-1 border-b ${isDragging ? 'bg-muted shadow-lg' : ''}`}
+      className={`grid grid-cols-[24px_80px_110px_1fr_90px_70px_20px] gap-2 items-center py-1 border-b ${isDragging ? 'bg-muted shadow-lg' : ''}`}
     >
       <div className="flex justify-center">
         {fixed ? (
@@ -412,17 +410,7 @@ function SortableThemeRow({
           </button>
         ) : null}
       </div>
-      <div className="flex items-center justify-center">
-        <WPColorPicker
-          color={theme.color}
-          onChange={onColorChange}
-          wpNumber={theme.number}
-          extraColors={extraColors}
-          proposalId={proposalId}
-          canManageCustom={canEdit}
-          disabled={!canEdit}
-        />
-      </div>
+      <div className="text-xs font-medium">Position {index + 1}</div>
       <DebouncedInput
         value={theme.short_name || ''}
         onDebouncedChange={onShortChange}
@@ -437,8 +425,19 @@ function SortableThemeRow({
         className="h-7 text-sm"
         disabled={!canEdit}
       />
-      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
-        {fixed ? (index === total - 1 ? 'Coord' : 'Exploit') : ''}
+      <div className="flex items-center justify-center">
+        <WPBubble wpColor={theme.color}>{`Theme ${themeLetter}`}</WPBubble>
+      </div>
+      <div className="flex items-center justify-center">
+        <WPColorPicker
+          color={theme.color}
+          onChange={onColorChange}
+          wpNumber={theme.number}
+          extraColors={extraColors}
+          proposalId={proposalId}
+          canManageCustom={canEdit}
+          disabled={!canEdit}
+        />
       </div>
       <div className="w-5 flex justify-end">
         {!fixed && canEdit ? (
