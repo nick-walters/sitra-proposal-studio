@@ -436,6 +436,8 @@ export function ParticipantDetailForm({
           lastSaved={descriptionsLastSaved}
           saveError={descriptionsError}
           canEdit={canEdit}
+          proposalId={proposalId}
+          canManageCustomColors={canGrant}
         />
 
 

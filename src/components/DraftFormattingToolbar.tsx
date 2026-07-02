@@ -19,8 +19,16 @@ import {
   AlignmentGroup,
   TableGridPicker,
   SubheadingDropdown,
+  FontColorToolbarButton,
   type Alignment,
 } from './toolbar';
+
+export interface DraftToolbarFontColorProps {
+  proposalId?: string | null;
+  canManageCustom?: boolean;
+  /** Resolve the active contentEditable element (for post-remove input dispatch). */
+  getEditableElement?: () => HTMLElement | null;
+}
 
 export interface DraftToolbarSaveProps {
   saving: boolean;
@@ -83,6 +91,9 @@ export interface DraftFormattingToolbarProps {
   crossRefMenuItems?: ReactNode;
   /** Extra trailing nodes (e.g. <InsertTDMSReferenceDropdowns dialogsOnly />). */
   trailing?: ReactNode;
+
+  /** Font-colour picker (shared per-proposal library). Optional. */
+  fontColor?: DraftToolbarFontColorProps;
 }
 
 function buildDefaultTableHtml(rows: number, cols: number): string {
@@ -121,6 +132,7 @@ export function DraftFormattingToolbar({
   onOpenCitationDialog,
   crossRefMenuItems,
   trailing,
+  fontColor,
 }: DraftFormattingToolbarProps) {
   if (hideToolbar) return null;
 
@@ -214,6 +226,16 @@ export function DraftFormattingToolbar({
             onUnderline={() => exec('underline')}
             disabled={disabled}
           />
+
+          {fontColor && (
+            <FontColorToolbarButton
+              proposalId={fontColor.proposalId ?? null}
+              canManageCustom={fontColor.canManageCustom}
+              disabled={disabled}
+              getEditableElement={fontColor.getEditableElement}
+            />
+          )}
+
 
           <Separator orientation="vertical" className="h-5 mx-1.5" />
 

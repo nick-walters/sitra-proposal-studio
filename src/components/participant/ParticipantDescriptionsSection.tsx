@@ -7,6 +7,7 @@ import { ParticipantBubble } from '@/components/B31Pill';
 import {
   ToolbarButton,
   TextFormattingGroup,
+  FontColorToolbarButton,
 } from '@/components/toolbar';
 import { Undo2, Redo2 } from 'lucide-react';
 import { StickyToolbarWrapper } from '@/components/StickyToolbarWrapper';
@@ -52,6 +53,9 @@ interface ParticipantDescriptionsSectionProps {
   lastSaved: Date | null;
   saveError?: string | null;
   canEdit: boolean;
+  proposalId?: string;
+  /** Coordinator+? Enables deleting custom colours from the shared library. */
+  canManageCustomColors?: boolean;
 }
 
 export function ParticipantDescriptionsSection({
@@ -62,6 +66,8 @@ export function ParticipantDescriptionsSection({
   lastSaved,
   saveError,
   canEdit,
+  proposalId,
+  canManageCustomColors = false,
 }: ParticipantDescriptionsSectionProps) {
   const [anyFieldFocused, setAnyFieldFocused] = useState(false);
   const blurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -140,6 +146,13 @@ export function ParticipantDescriptionsSection({
                 onItalic={() => exec('italic')}
                 onUnderline={() => exec('underline')}
               />
+
+              <FontColorToolbarButton
+                proposalId={proposalId ?? null}
+                canManageCustom={canManageCustomColors}
+              />
+
+
 
 
 

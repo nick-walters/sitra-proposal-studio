@@ -50,6 +50,8 @@ interface WPSimpleEditorProps {
   /** Optional focus/blur listeners — fired in addition to the editor's internal handling. */
   onFocus?: () => void;
   onBlur?: () => void;
+  /** Coordinator+? Enables deleting custom colours from the shared library. */
+  canManageCustomColors?: boolean;
 }
 
 
@@ -77,6 +79,7 @@ export function WPSimpleEditor({
   onSaveSelection,
   onFocus,
   onBlur,
+  canManageCustomColors = false,
 }: WPSimpleEditorProps) {
 
   const editorRef = useRef<HTMLDivElement>(null);
@@ -305,6 +308,11 @@ export function WPSimpleEditor({
         onSaveSelection={onSaveSelection}
         crossRefMenuItems={crossRefMenuItems}
         trailing={trailing}
+        fontColor={{
+          proposalId: proposalId ?? null,
+          canManageCustom: canManageCustomColors,
+          getEditableElement: () => editorRef.current,
+        }}
       />
 
       {/* Editor */}

@@ -594,6 +594,13 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
             (document.activeElement && (document.activeElement as HTMLElement).closest('[contenteditable="true"]')) as HTMLElement | null
             || (document.querySelector('.case-draft-editor [contenteditable="true"]') as HTMLElement | null)
           }
+          fontColor={{
+            proposalId,
+            canManageCustom: isCoordinator,
+            getEditableElement: () =>
+              (document.activeElement && (document.activeElement as HTMLElement).closest('[contenteditable="true"]')) as HTMLElement | null
+              ?? (document.querySelector('.case-draft-editor [contenteditable="true"]') as HTMLElement | null),
+          }}
           onSaveSelection={saveSelection}
           onOpenFigureDialog={() => setIsFigureDialogOpen(true)}
           onOpenCitationDialog={() => setIsCitationOpen(true)}
