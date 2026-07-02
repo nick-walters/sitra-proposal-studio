@@ -124,7 +124,7 @@ export function ParticipantDescriptionsSection({
         <CardTitle className="text-lg">Participant description</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {canEdit && anyFieldFocused && (
+        {canEdit && (anyFieldFocused || colorPickerOpen) && (
           <StickyToolbarWrapper>
             <div
               className="p-1.5 border rounded-md bg-card flex items-center gap-0.5 flex-wrap shadow-sm"
@@ -152,7 +152,9 @@ export function ParticipantDescriptionsSection({
               <FontColorToolbarButton
                 proposalId={proposalId ?? null}
                 canManageCustom={canManageCustomColors}
+                onOpenChange={setColorPickerOpen}
               />
+
 
 
 
