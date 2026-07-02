@@ -349,19 +349,8 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
     onDraftVisibilityChange?.();
   };
 
-  // Toggle use_wp_themes
-  const toggleWpThemesMutation = useMutation({
-    mutationFn: async (enabled: boolean) => {
-      const { error } = await supabase
-        .from('proposals')
-        .update({ use_wp_themes: enabled })
-        .eq('id', proposalId);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['proposal-for-themes', proposalId] });
-    },
-  });
+  // Theme toggle + editor now live inside WPColourSequenceDialog.
+
 
   // Fetch WP drafts
   const { data: wpDrafts = [], isLoading: wpsLoading } = useQuery({
