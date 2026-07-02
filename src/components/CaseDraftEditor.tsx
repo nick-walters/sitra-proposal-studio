@@ -104,11 +104,17 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
     queryKey: ['case-draft-proposal-meta', proposalId],
     queryFn: async () => {
       const [{ data: proposal }, { count }] = await Promise.all([
-        supabase.from('proposals').select('acronym_segments').eq('id', proposalId).maybeSingle(),
+        supabase.from('proposals').select('acronym, acronym_segments').eq('id', proposalId).maybeSingle(),
         supabase.from('case_drafts').select('id', { count: 'exact', head: true }).eq('proposal_id', proposalId),
       ]);
+      const rawSegs = (proposal?.acronym_segments as { text: string; color: string }[] | null) || [];
+      const acronym = (proposal?.acronym as string | null) || '';
+      // Fallback: if no colours saved but an acronym exists, use a single all-black segment.
+      const acronymSegments = rawSegs.length > 0
+        ? rawSegs
+        : (acronym ? [{ text: acronym, color: '#000000' }] : []);
       return {
-        acronymSegments: (proposal?.acronym_segments as { text: string; color: string }[] | null) || [],
+        acronymSegments,
         hasCases: (count || 0) > 0,
       };
     },
