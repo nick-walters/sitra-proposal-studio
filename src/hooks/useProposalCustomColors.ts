@@ -99,10 +99,9 @@ export function useProposalCustomColors(proposalId: string | null | undefined) {
       }
 
       // 2. Rich-text sources scoped to the proposal (font-colour union).
-      const wpIds = (wpRes.data || []).map((r) => (r as { id?: string }).id).filter(Boolean) as string[];
-      // wp_draft_tasks / wp_draft_deliverables need wp id list — refetch minimal set.
-      const wpIdRes = await supabase.from('wp_drafts').select('id').eq('proposal_id', proposalId);
-      const wpIdList = (wpIdRes.data || []).map((r) => (r as { id: string }).id);
+      const wpIdList = (wpRes.data || []).map((r) => (r as { id: string }).id);
+
+
 
       const [
         secRes,
