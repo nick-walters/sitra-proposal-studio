@@ -164,7 +164,7 @@ function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete
             <SelectItem value="none">
               <span className="text-muted-foreground">No theme</span>
             </SelectItem>
-            {themes.map((theme) => (
+            {themes.map((theme, idx) => (
               <SelectItem key={theme.id} value={theme.id}>
                 <div className="flex items-center gap-1.5">
                   <span
@@ -172,7 +172,7 @@ function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete
                     style={{ backgroundColor: theme.color }}
                   />
                   <span className="truncate">
-                    {theme.short_name || `Theme ${theme.number}`}
+                    {theme.short_name || `Theme ${themeLetter(idx)}`}
                   </span>
                 </div>
               </SelectItem>
