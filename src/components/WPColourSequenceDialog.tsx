@@ -14,7 +14,7 @@ import {
   reconcileWPColorsForProposal,
   setPositionOverride,
 } from '@/lib/computeWPColors';
-import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
+import { DEFAULT_WP_COLORS, themeLetter } from '@/lib/wpColors';
 import { RotateCcw, Plus, Trash2, GripVertical, Lock } from 'lucide-react';
 import { useWPThemes, isFixedThemeIndex, type WPTheme } from '@/hooks/useWPThemes';
 import {
