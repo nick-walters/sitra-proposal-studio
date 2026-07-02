@@ -713,6 +713,24 @@ export async function mountDynamicComponents(
     roots.push({ root, el: b31Mount });
   }
 
+  // Impact canvas mount (B2.1) — Phase 1a placeholder + caption.
+  if (impactCanvasMount) {
+    const root = createRoot(impactCanvasMount);
+    root.render(
+      createElement(
+        QueryClientProvider,
+        { client: queryClient },
+        createElement(
+          AuthProvider,
+          null,
+          createElement(ImpactCanvasSection, { proposalId }),
+        ),
+      ),
+    );
+    roots.push({ root, el: impactCanvasMount });
+  }
+
+
 
   // Mount each B1.2 cases-table placeholder. The letterIndex is just the
   // index of the placeholder in document order — matches the editor's
