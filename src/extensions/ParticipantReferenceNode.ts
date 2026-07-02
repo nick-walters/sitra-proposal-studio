@@ -1,4 +1,6 @@
 import { Node, mergeAttributes } from '@tiptap/core';
+import { formatParticipantLabel } from '@/lib/referenceLabels';
+
 
 export interface ParticipantReferenceOptions {
   HTMLAttributes: Record<string, any>;
