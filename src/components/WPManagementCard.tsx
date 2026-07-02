@@ -88,7 +88,7 @@ function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete
 
   const selectedLead = participants.find((p) => p.id === wp.lead_participant_id);
   const selectedTheme = themes.find((t) => t.id === wp.theme_id);
-  const effectiveColor = useThemes && selectedTheme ? selectedTheme.color : wp.color;
+  void selectedTheme; // theme selection still shown via wp.theme_id; colour now lives on wp.color
 
   // Grid columns change based on whether themes are enabled
   const gridCols = useThemes 
