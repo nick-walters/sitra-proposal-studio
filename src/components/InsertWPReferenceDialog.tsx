@@ -44,38 +44,6 @@ export function InsertWPReferenceDialog({
   const [wpDrafts, setWPDrafts] = useState<WPRefData[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch proposal's use_wp_themes flag
-  const { data: proposalData } = useQuery({
-    queryKey: ['proposal-themes-flag', proposalId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('proposals')
-        .select('use_wp_themes')
-        .eq('id', proposalId)
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!proposalId && open,
-  });
-
-  // Fetch themes for the proposal
-  const { data: themesData = [] } = useQuery({
-    queryKey: ['wp-themes', proposalId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('wp_themes')
-        .select('id, color')
-        .eq('proposal_id', proposalId);
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!proposalId && open,
-  });
-
-  const useWpThemes = proposalData?.use_wp_themes ?? false;
-  const themesMap = new Map(themesData.map((t: WPTheme) => [t.id, t]));
-
   useEffect(() => {
     if (open && proposalId) {
       fetchWPDrafts();
@@ -98,26 +66,16 @@ export function InsertWPReferenceDialog({
     setLoading(false);
   };
 
-  // Get effective color for a WP (theme color if themes enabled, otherwise WP color)
-  const getEffectiveColor = (wp: WPRefData): string => {
-    if (useWpThemes && wp.theme_id) {
-      const theme = themesMap.get(wp.theme_id);
-      if (theme) {
-        return theme.color;
-      }
-    }
-    return wp.color;
-  };
-
+  // wp_drafts.color is now the single authoritative colour (theme colour is
+  // written down there when themes are enabled), so no effectiveColor fork
+  // is required.
   const handleSelectNumberOnly = (wp: WPRefData) => {
-    const effectiveColor = getEffectiveColor(wp);
-    onSelect({ ...wp, short_name: '', color: effectiveColor });
+    onSelect({ ...wp, short_name: '' });
     onOpenChange(false);
   };
 
   const handleSelectWithShortName = (wp: WPRefData) => {
-    const effectiveColor = getEffectiveColor(wp);
-    onSelect({ ...wp, color: effectiveColor });
+    onSelect(wp);
     onOpenChange(false);
   };
 
