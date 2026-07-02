@@ -83,7 +83,7 @@ export function B32MirrorParagraphSlot({ proposalId, slotKey }: Props) {
       const { data, error } = await supabase
         .from('proposals')
         .select(
-          'mirror_contribution_resources, mirror_value_chain, mirror_industrial_involvement, mirror_participation_justification',
+          'mirror_contribution_resources, mirror_infrastructure, mirror_value_chain, mirror_industrial_involvement, mirror_participation_justification',
         )
         .eq('id', proposalId)
         .maybeSingle();
