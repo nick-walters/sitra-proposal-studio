@@ -61,7 +61,7 @@ export interface WPTheme {
      },
    });
  
-   // Update theme mutation
+   // Update theme mutation — writes colour down to member WPs if theme.color changes
    const updateThemeMutation = useMutation({
      mutationFn: async ({ id, updates }: { id: string; updates: Partial<WPTheme> }) => {
        const { error } = await supabase
@@ -69,21 +69,29 @@ export interface WPTheme {
          .update(updates)
          .eq('id', id);
        if (error) throw error;
+       if (Object.prototype.hasOwnProperty.call(updates, 'color')) {
+         const { reconcileWPColorsForProposal } = await import('@/lib/computeWPColors');
+         await reconcileWPColorsForProposal(proposalId);
+       }
      },
      onSuccess: () => {
        queryClient.invalidateQueries({ queryKey: ['wp-themes', proposalId] });
+       queryClient.invalidateQueries({ queryKey: ['wp-drafts', proposalId] });
+       queryClient.invalidateQueries({ queryKey: ['wp-drafts-management', proposalId] });
      },
    });
  
    // Delete theme mutation
    const deleteThemeMutation = useMutation({
-     mutationFn: async (themeId: string) => {
-       const { error } = await supabase
-         .from('wp_themes')
-         .delete()
-         .eq('id', themeId);
-       if (error) throw error;
-     },
+       mutationFn: async (themeId: string) => {
+         const { error } = await supabase
+           .from('wp_themes')
+           .delete()
+           .eq('id', themeId);
+         if (error) throw error;
+         const { reconcileWPColorsForProposal } = await import('@/lib/computeWPColors');
+         await reconcileWPColorsForProposal(proposalId);
+       },
      onSuccess: () => {
        queryClient.invalidateQueries({ queryKey: ['wp-themes', proposalId] });
        queryClient.invalidateQueries({ queryKey: ['wp-drafts', proposalId] });
@@ -110,6 +118,10 @@ export interface WPTheme {
            .eq('id', update.id);
          if (error) throw error;
        }
+       // Theme colours are unchanged here, but write-down keeps wp_drafts.color
+       // in sync in case downstream logic ever re-derives from theme numbering.
+       const { reconcileWPColorsForProposal } = await import('@/lib/computeWPColors');
+       await reconcileWPColorsForProposal(proposalId);
      },
      onMutate: async (reorderedThemes) => {
        await queryClient.cancelQueries({ queryKey: ['wp-themes', proposalId] });

@@ -6,9 +6,7 @@ import { Check, Circle, BarChart3, Users, Package, ListChecks } from 'lucide-rea
 import { useWPDrafts } from '@/hooks/useWPDrafts';
 import { useWPProgress } from '@/hooks/useWPProgress';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useMemo } from 'react';
+
 
 interface WPProgressTrackerProps {
   proposalId: string;
@@ -19,50 +17,9 @@ export function WPProgressTracker({ proposalId, onNavigateToWP }: WPProgressTrac
   const { wpDrafts, loading } = useWPDrafts(proposalId);
   const { progressData, totals } = useWPProgress(wpDrafts);
 
-  // Fetch proposal's use_wp_themes flag
-  const { data: proposalData } = useQuery({
-    queryKey: ['proposal-themes-flag', proposalId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('proposals')
-        .select('use_wp_themes')
-        .eq('id', proposalId)
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!proposalId,
-  });
+  // wp_drafts.color is authoritative (theme colour is written down there),
+  // so no effectiveColor fork is needed here.
 
-  // Fetch themes for the proposal
-  const { data: themesData = [] } = useQuery({
-    queryKey: ['wp-themes', proposalId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('wp_themes')
-        .select('id, color')
-        .eq('proposal_id', proposalId);
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!proposalId,
-  });
-
-  const useWpThemes = proposalData?.use_wp_themes ?? false;
-  const themesMap = useMemo(() => {
-    return new Map(themesData.map((t: { id: string; color: string }) => [t.id, t]));
-  }, [themesData]);
-
-  // Get effective color for a WP
-  const getEffectiveColor = (wpId: string, defaultColor: string): string => {
-    if (!useWpThemes) return defaultColor;
-    const wp = wpDrafts.find(w => w.id === wpId);
-    if (wp && wp.theme_id) {
-      const theme = themesMap.get(wp.theme_id);
-      if (theme) return theme.color;
-    }
-    return defaultColor;
-  };
 
   if (loading) {
     return (
@@ -181,7 +138,7 @@ export function WPProgressTracker({ proposalId, onNavigateToWP }: WPProgressTrac
                     <TableCell className="py-1.5 leading-[0]">
                       <span 
                         className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold whitespace-nowrap align-middle"
-                        style={{ backgroundColor: getEffectiveColor(wp.wpId, wp.color), color: '#ffffff', lineHeight: 1 }}
+                        style={{ backgroundColor: wp.color, color: '#ffffff', lineHeight: 1 }}
                       >
                         WP{wp.wpNumber}{wp.shortName ? `: ${wp.shortName}` : ''}
                       </span>

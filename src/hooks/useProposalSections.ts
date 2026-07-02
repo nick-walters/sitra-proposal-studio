@@ -248,7 +248,9 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
   });
 
   // Fetch themes for the proposal
-  const { data: themesData = [] } = useQuery({
+  // Themes fetched only to keep the realtime cache warm for the WP manager;
+  // colour resolution happens via wp_drafts.color (write-down).
+  const { data: _themesData = [] } = useQuery({
     queryKey: ['wp-themes', proposalId],
     queryFn: async () => {
       if (!proposalId) return [];
@@ -258,38 +260,25 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
         .eq('proposal_id', proposalId)
         .order('order_index');
       if (error) throw error;
-      return data || [];
+      return (data || []) as WPTheme[];
     },
     enabled: !!proposalId,
   });
+  void _themesData;
 
-  const useWpThemes = proposalData?.use_wp_themes ?? false;
-  const themesMap = useMemo(() => {
-    return new Map(themesData.map((t: WPTheme) => [t.id, t]));
-  }, [themesData]);
-
-  // Convert WP drafts to sections (all WPs always visible)
+  // Convert WP drafts to sections. wp_drafts.color is now the single
+  // authoritative colour (written down from theme colour when themes are
+  // enabled), so no per-consumer effectiveColor fork is required.
   const wpDraftSections: WPSection[] = useMemo(() => {
-    const visibleWPs = wpDraftsData;
-    return visibleWPs.map(wp => {
-      // Resolve effective color: use theme color if themes are enabled and WP has a theme
-      let effectiveColor = wp.color;
-      if (useWpThemes && wp.theme_id) {
-        const theme = themesMap.get(wp.theme_id);
-        if (theme) {
-          effectiveColor = theme.color;
-        }
-      }
-      return {
-        id: `wp-${wp.id}`,
-        number: `WP${wp.number}`,
-        title: wp.short_name || wp.title || '',
-        wpId: wp.id,
-        wpNumber: wp.number,
-        wpColor: effectiveColor,
-      };
-    });
-  }, [wpDraftsData, useWpThemes, themesMap, isCoordinator]);
+    return wpDraftsData.map(wp => ({
+      id: `wp-${wp.id}`,
+      number: `WP${wp.number}`,
+      title: wp.short_name || wp.title || '',
+      wpId: wp.id,
+      wpNumber: wp.number,
+      wpColor: wp.color,
+    }));
+  }, [wpDraftsData]);
 
   const { data: caseDraftsData = [] } = useQuery({
     queryKey: ['case-drafts', proposalId],

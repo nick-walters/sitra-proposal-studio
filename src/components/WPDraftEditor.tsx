@@ -195,47 +195,13 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
     if (result?.refetch) refetchDraft();
   }, [redo, refetchDraft]);
 
-  // Fetch proposal's use_wp_themes flag
-  const { data: proposalData } = useQuery({
-    queryKey: ['proposal-themes-flag', proposalId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('proposals')
-        .select('use_wp_themes')
-        .eq('id', proposalId)
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!proposalId,
-  });
-
   const { data: caseTypes = [] } = useProposalCaseTypes(proposalId);
 
+  // wp_drafts.color is authoritative — theme colour is written down there
+  // by the WP manager, so no effectiveColor fork is needed.
+  const effectiveColor = wpDraft?.color || '#73C92D';
 
-  // Fetch theme if WP has a theme_id
-  const { data: themeData } = useQuery({
-    queryKey: ['wp-theme', wpDraft?.theme_id],
-    queryFn: async () => {
-      if (!wpDraft?.theme_id) return null;
-      const { data, error } = await supabase
-        .from('wp_themes')
-        .select('*')
-        .eq('id', wpDraft.theme_id)
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!wpDraft?.theme_id,
-  });
 
-  // Compute effective color: use theme color if themes enabled and WP has a theme
-  const effectiveColor = useMemo(() => {
-    if (proposalData?.use_wp_themes && themeData) {
-      return themeData.color;
-    }
-    return wpDraft?.color || '#73C92D';
-  }, [proposalData?.use_wp_themes, themeData, wpDraft?.color]);
 
   // Lock enforcement
   const isLocked = (wpDraft as any)?.is_locked === true;
