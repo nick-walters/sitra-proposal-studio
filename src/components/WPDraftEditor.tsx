@@ -195,9 +195,12 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
     if (result?.refetch) refetchDraft();
   }, [redo, refetchDraft]);
 
+  const { data: caseTypes = [] } = useProposalCaseTypes(proposalId);
+
   // wp_drafts.color is authoritative — theme colour is written down there
   // by the WP manager, so no effectiveColor fork is needed.
   const effectiveColor = wpDraft?.color || '#73C92D';
+
 
 
   // Lock enforcement
