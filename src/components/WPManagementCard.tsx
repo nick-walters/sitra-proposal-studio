@@ -417,7 +417,6 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
       if (error) throw error;
       // If theme assignment changed, write down the correct colour immediately.
       if (Object.prototype.hasOwnProperty.call(updates, 'theme_id')) {
-        const { reconcileWPColorsForProposal } = await import('@/lib/computeWPColors');
         await reconcileWPColorsForProposal(proposalId);
       }
     },
