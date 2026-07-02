@@ -573,6 +573,10 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
             .eq('id', remaining[i].id);
         }
       }
+
+      // Reassign colours positionally after renumber
+      const { reconcileWPColorsForProposal } = await import('@/lib/computeWPColors');
+      await reconcileWPColorsForProposal(proposalId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wp-drafts-management', proposalId] });
