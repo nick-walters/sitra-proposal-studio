@@ -301,11 +301,14 @@ export function PrefixedInlineEditor({
           onMouseUp={() => clampCaret()}
           onPaste={(e) => {
             e.preventDefault();
-            // If caret is before prefix, clamp before inserting.
+            // Clamp caret so pasted content never lands inside/before the prefix.
             clampCaret();
             const html = e.clipboardData.getData('text/html');
             if (html) {
-              const cleaned = stripWordHtml(html);
+              // Strip Word/MSO junk, then sanitise to the same allow-list
+              // the editor uses for display (SANITIZE_CONFIG). This matches
+              // WPSimpleEditor's paste behaviour for the draft editors.
+              const cleaned = DOMPurify.sanitize(stripWordHtml(html), SANITIZE_CONFIG);
               document.execCommand('insertHTML', false, cleaned);
             } else {
               const text = e.clipboardData.getData('text/plain');
