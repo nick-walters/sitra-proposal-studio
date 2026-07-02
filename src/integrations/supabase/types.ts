@@ -3769,6 +3769,7 @@ export type Database = {
           cases_type: string | null
           created_at: string
           created_by: string | null
+          custom_colors: Json
           deadline: string | null
           decision_date: string | null
           decision_date_is_estimated: boolean
@@ -3845,6 +3846,7 @@ export type Database = {
           cases_type?: string | null
           created_at?: string
           created_by?: string | null
+          custom_colors?: Json
           deadline?: string | null
           decision_date?: string | null
           decision_date_is_estimated?: boolean
@@ -3921,6 +3923,7 @@ export type Database = {
           cases_type?: string | null
           created_at?: string
           created_by?: string | null
+          custom_colors?: Json
           deadline?: string | null
           decision_date?: string | null
           decision_date_is_estimated?: boolean
