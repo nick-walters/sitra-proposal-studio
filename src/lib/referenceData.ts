@@ -64,6 +64,11 @@ export interface FigureData {
   title: string;
 }
 
+export interface AcronymSegmentData {
+  text: string;
+  color: string;
+}
+
 export interface RefSnapshot {
   wpById: Map<string, WPData>;
   taskById: Map<string, TaskData>;
@@ -73,7 +78,9 @@ export interface RefSnapshot {
   participantById: Map<string, ParticipantData>;
   figureById: Map<string, FigureData>;
   tableCaptionMap: Map<string, string>;
+  acronymSegments: AcronymSegmentData[];
 }
+
 
 /**
  * Fetches current numbering data for all cross-referenceable items in a
