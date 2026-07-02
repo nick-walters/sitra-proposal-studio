@@ -15,6 +15,13 @@ export const WP_CONTENT_COLORS = [
 export const WP_EXPLOITATION_COLOR = '#75CFEB'; // Penultimate WP
 export const WP_COORDINATION_COLOR = '#367ABA'; // Last WP
 
+// Standard names for the fixed last-two WP/theme slots.
+// Sourced from the seeded wp_draft_templates (DEC / COORD) — must stay in sync.
+export const STANDARD_EXPLOITATION_NAME = 'Dissemination, exploitation & communication';
+export const STANDARD_COORDINATION_NAME = 'Project coordination & administration';
+export const STANDARD_EXPLOITATION_SHORT = 'DEC';
+export const STANDARD_COORDINATION_SHORT = 'COORD';
+
 // Full palette for the palette editor (content colors + special colors)
 export const DEFAULT_WP_COLORS = [
   ...WP_CONTENT_COLORS,
