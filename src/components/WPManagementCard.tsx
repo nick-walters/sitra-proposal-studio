@@ -33,7 +33,8 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { WPColorPicker } from '@/components/WPColorPicker';
 
-import { Layers, GripVertical, Plus, Trash2, Paintbrush, Lock, LockOpen } from 'lucide-react';
+import { Layers, GripVertical, Plus, Trash2, Paintbrush, Lock, LockOpen, Palette } from 'lucide-react';
+import { WPColourSequenceDialog } from '@/components/WPColourSequenceDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
@@ -306,12 +307,13 @@ interface WPManagementCardProps {
 export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = true, onDraftVisibilityChange, onSaveEvent }: WPManagementCardProps) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  
-  
-  
-  
-  // Color palette for the proposal
+
+  const [colourSequenceOpen, setColourSequenceOpen] = useState(false);
+
+  // Color palette hook — retained for legacy read; per-position overrides now
+  // live in wp_color_palette.colors indexed by orderIndex (see Stage C).
   const { colors: wpColors, updatePalette } = useWPColorPalette(proposalId);
+
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -675,11 +677,36 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
   return (
     <Card>
       <CardHeader className="pb-2 pt-4">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Layers className="w-5 h-5" />
-          Work package manager
-        </CardTitle>
+        <div className="flex items-center justify-between gap-2">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Layers className="w-5 h-5" />
+            Work package manager
+          </CardTitle>
+          {isCoordinator && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 gap-1.5 text-xs"
+              onClick={() => setColourSequenceOpen(true)}
+              title="Set the colour for each WP position"
+            >
+              <Palette className="w-3.5 h-3.5" />
+              Colour sequence
+            </Button>
+          )}
+        </div>
       </CardHeader>
+      <WPColourSequenceDialog
+        open={colourSequenceOpen}
+        onOpenChange={setColourSequenceOpen}
+        proposalId={proposalId}
+        onSaved={() => {
+          queryClient.invalidateQueries({ queryKey: ['wp-drafts-management', proposalId] });
+          queryClient.invalidateQueries({ queryKey: ['wp-drafts', proposalId] });
+          onSaveEvent?.();
+        }}
+      />
+
       <CardContent className="space-y-2">
         {/* WP Themes Toggle (only for lump sum proposals) */}
         {isLumpSum && isCoordinator && (
