@@ -637,6 +637,7 @@ export async function mountDynamicComponents(
   appQueryClient?: QueryClient,
 ): Promise<void> {
   const b31Mount = container.querySelector('#print-b31-mount');
+  const impactCanvasMount = container.querySelector('#print-impact-canvas-mount');
   const casesPlaceholders = Array.from(
     container.querySelectorAll<HTMLElement>('div[data-cases-table-node]'),
   );
@@ -644,7 +645,7 @@ export async function mountDynamicComponents(
     container.querySelectorAll<HTMLElement>('div[data-b32-mirror-slot]'),
   );
 
-  if (!b31Mount && casesPlaceholders.length === 0 && b32SlotPlaceholders.length === 0) return;
+  if (!b31Mount && !impactCanvasMount && casesPlaceholders.length === 0 && b32SlotPlaceholders.length === 0) return;
 
   const [
     { B31IntroText },
