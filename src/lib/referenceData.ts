@@ -88,7 +88,7 @@ export interface RefSnapshot {
  * syncCrossReferences.ts.
  */
 export async function fetchReferenceData(proposalId: string): Promise<RefSnapshot> {
-  const [wpRes, taskRes, delRes, msRes, caseRes, caseTypeRes, participantRes, figureRes, tableCaptionRes] = await Promise.all([
+  const [wpRes, taskRes, delRes, msRes, caseRes, caseTypeRes, participantRes, figureRes, tableCaptionRes, proposalRes] = await Promise.all([
     supabase
       .from('wp_drafts')
       .select('id, number, color, short_name')
@@ -129,7 +129,13 @@ export async function fetchReferenceData(proposalId: string): Promise<RefSnapsho
       .from('table_captions')
       .select('table_key, caption')
       .eq('proposal_id', proposalId),
+    supabase
+      .from('proposals')
+      .select('acronym, acronym_segments')
+      .eq('id', proposalId)
+      .maybeSingle(),
   ]);
+
 
   const wps: WPData[] = wpRes.data || [];
   const wpMap = new Map(wps.map(wp => [wp.id, wp]));
