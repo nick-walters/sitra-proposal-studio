@@ -592,7 +592,6 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
       }
 
       // Reassign colours positionally after renumber
-      const { reconcileWPColorsForProposal } = await import('@/lib/computeWPColors');
       await reconcileWPColorsForProposal(proposalId);
     },
     onSuccess: () => {
