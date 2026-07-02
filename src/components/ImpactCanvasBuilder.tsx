@@ -60,24 +60,9 @@ export function ImpactCanvasBuilder({ proposalId, canEdit }: Props) {
   return (
     <TooltipProvider delayDuration={200}>
       <div className="space-y-6">
-        {/* Enable toggle */}
-        {isCoordinator && (
-          <Card>
-            <CardContent className="py-4 flex items-center justify-between gap-4">
-              <div>
-                <Label className="text-sm font-medium">Include impact canvas</Label>
-                <p className="text-xs text-muted-foreground mt-1">
-                  When enabled, the impact canvas appears at the end of B2.1 in the editor and PDF export.
-                </p>
-              </div>
-              <Checkbox
-                checked={enabled}
-                onCheckedChange={(v) => setEnabled.mutate(!!v)}
-                aria-label="Include impact canvas"
-              />
-            </CardContent>
-          </Card>
-        )}
+        {/* Enable toggle moved to figure page header */}
+
+
 
         {/* The graphic */}
         <Card>
