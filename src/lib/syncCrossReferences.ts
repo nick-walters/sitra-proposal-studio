@@ -1,169 +1,11 @@
 import { Editor } from '@tiptap/core';
-import { supabase } from '@/integrations/supabase/client';
-
-interface WPData {
-  id: string;
-  number: number;
-  color: string;
-  short_name: string | null;
-}
-
-interface TaskData {
-  id: string;
-  number: number;
-  wp_number: number;
-  wp_color: string;
-}
-
-interface DeliverableData {
-  id: string;
-  number: string;
-  wp_number: number | null;
-  wp_color: string;
-}
-
-interface MilestoneData {
-  id: string;
-  number: number;
-}
-
-interface CaseData {
-  id: string;
-  number: number;
-  case_type: string;
-  case_type_id: string | null;
-  short_name: string | null;
-  color: string;
-  include_number: boolean;
-  include_abbreviation: boolean;
-}
+import { fetchReferenceData } from './referenceData';
+import {
+  formatFigureLabel,
+  formatTableLabel,
+} from './referenceLabels';
 
 
-interface ParticipantData {
-  id: string;
-  participant_number: number | null;
-  organisation_short_name: string | null;
-}
-
-interface FigureData {
-  id: string;
-  figure_number: string;
-  figure_type: string;
-  title: string;
-}
-
-
-/**
- * Fetches current numbering data for all cross-referenceable items in a proposal
- */
-async function fetchReferenceData(proposalId: string) {
-  const [wpRes, taskRes, delRes, msRes, caseRes, caseTypeRes, participantRes, figureRes, tableCaptionRes] = await Promise.all([
-    supabase
-      .from('wp_drafts')
-      .select('id, number, color, short_name')
-      .eq('proposal_id', proposalId)
-      .order('number'),
-    supabase
-      .from('wp_draft_tasks')
-      .select('id, number, wp_draft_id')
-      .order('number'),
-    supabase
-      .from('wp_draft_deliverables')
-      .select('id, number, wp_draft_id')
-      .order('number'),
-    supabase
-      .from('proposal_milestones')
-      .select('id, number, proposal_id')
-      .eq('proposal_id', proposalId)
-      .order('number'),
-
-    supabase
-      .from('case_drafts')
-      .select('id, number, case_type, case_type_id, short_name, color')
-      .eq('proposal_id', proposalId)
-      .order('number'),
-    supabase
-      .from('proposal_case_types')
-      .select('id, include_number, include_abbreviation, outline_color')
-      .eq('proposal_id', proposalId),
-
-    supabase
-      .from('participants')
-      .select('id, participant_number, organisation_short_name')
-      .eq('proposal_id', proposalId)
-      .order('participant_number'),
-    supabase
-      .from('figures')
-      .select('id, figure_number, figure_type, title')
-      .eq('proposal_id', proposalId),
-    supabase
-      .from('table_captions')
-      .select('table_key, caption')
-      .eq('proposal_id', proposalId),
-  ]);
-
-  const wps: WPData[] = wpRes.data || [];
-  const wpMap = new Map(wps.map(wp => [wp.id, wp]));
-
-  // Build task map with WP number resolved
-  const tasks: TaskData[] = (taskRes.data || [])
-    .filter(t => wpMap.has(t.wp_draft_id))
-    .map(t => {
-      const wp = wpMap.get(t.wp_draft_id)!;
-      return { id: t.id, number: t.number, wp_number: wp.number, wp_color: wp.color || '#000000' };
-    });
-
-  // Deliverables: synthesise "D{wp}.{n}" from source, only for deliverables
-  // whose WP is in this proposal.
-  const deliverables: DeliverableData[] = (delRes.data || [])
-    .filter(d => wpMap.has(d.wp_draft_id))
-    .map(d => {
-      const wp = wpMap.get(d.wp_draft_id)!;
-      return {
-        id: d.id,
-        number: `D${wp.number}.${d.number}`,
-        wp_number: wp.number,
-        wp_color: wp.color || '#000000',
-      };
-    });
-
-  // Milestones: proposal-scoped (proposal_milestones).
-  const milestones: MilestoneData[] = (msRes.data || [])
-    .map(m => ({ id: m.id, number: m.number }));
-
-  const caseTypeFlagsById = new Map(
-    (caseTypeRes.data || []).map((t: any) => [t.id, t]),
-  );
-  const cases: CaseData[] = (caseRes.data || []).map((c: any) => {
-    const t = c.case_type_id ? caseTypeFlagsById.get(c.case_type_id) : null;
-    return {
-      ...c,
-      color: t?.outline_color || c.color || '#000000',
-      include_number: t?.include_number !== false,
-      include_abbreviation: t?.include_abbreviation !== false,
-    } as CaseData;
-  });
-
-  const participants: ParticipantData[] = participantRes.data || [];
-  const figures: FigureData[] = figureRes.data || [];
-
-  // Build table caption map: tableKey → caption text
-  const tableCaptionMap = new Map<string, string>();
-  for (const tc of tableCaptionRes.data || []) {
-    tableCaptionMap.set(tc.table_key, tc.caption || '');
-  }
-
-  return {
-    wpById: wpMap,
-    taskById: new Map(tasks.map(t => [t.id, t])),
-    deliverableById: new Map(deliverables.map(d => [d.id, d])),
-    milestoneById: new Map(milestones.map(m => [m.id, m])),
-    caseById: new Map(cases.map(c => [c.id, c])),
-    participantById: new Map(participants.map(p => [p.id, p])),
-    figureById: new Map(figures.map(f => [f.id, f])),
-    tableCaptionMap,
-  };
-}
 
 /**
  * Synchronizes all cross-reference marks in the editor with current numbering.
@@ -257,7 +99,9 @@ export async function syncCrossReferences(
       // are now inline atom NODES (Stages 1–3) — handled by their own
       // descendants passes below.
       case 'figureTableReference':
-        return a.figureId ? { markName: 'figureTableReference', idKey: 'figureId', idValue: a.figureId } : null;
+        if (a.figureId) return { markName: 'figureTableReference', idKey: 'figureId', idValue: a.figureId };
+        if (a.tableKey) return { markName: 'figureTableReference', idKey: 'tableKey', idValue: a.tableKey };
+        return null;
       default:
         return null;
     }
@@ -266,17 +110,29 @@ export async function syncCrossReferences(
   const computeTarget = (mark: any): { newAttrs: Record<string, any>; newLabel: string } | null => {
     const a = mark.attrs;
     switch (mark.type.name) {
-      // wpReference / caseReference / participantReference / inlineReference
-      // are now inline atom NODES (Stages 1–3) — handled by their own
-      // descendants passes below.
       case 'figureTableReference': {
-        const f = data.figureById.get(a.figureId);
-        if (!f) return null;
-        return { newAttrs: { ...a }, newLabel: `Figure ${f.figure_number}` };
+        if (a.figureId) {
+          const f = data.figureById.get(a.figureId);
+          if (!f) return null;
+          return { newAttrs: { ...a }, newLabel: formatFigureLabel(f) };
+        }
+        if (a.tableKey) {
+          // Table refs: rewrite label from persisted table_captions row.
+          // Missing entries (compulsory tables without a captions row) are
+          // left untouched — do NOT delete-mark them.
+          if (!data.tableCaptionMap.has(a.tableKey)) return null;
+          const caption = data.tableCaptionMap.get(a.tableKey) ?? '';
+          return {
+            newAttrs: { ...a },
+            newLabel: formatTableLabel({ table_key: a.tableKey, caption }),
+          };
+        }
+        return null;
       }
     }
     return null;
   };
+
 
   const attrsEqual = (a: Record<string, any>, b: Record<string, any>): boolean => {
     const keys = new Set([...Object.keys(a), ...Object.keys(b)]);

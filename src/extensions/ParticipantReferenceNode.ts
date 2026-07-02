@@ -1,4 +1,6 @@
 import { Node, mergeAttributes } from '@tiptap/core';
+import { formatParticipantLabel } from '@/lib/referenceLabels';
+
 
 export interface ParticipantReferenceOptions {
   HTMLAttributes: Record<string, any>;
@@ -97,7 +99,7 @@ export const ParticipantReferenceNode = Node.create<ParticipantReferenceOptions>
   },
 
   renderHTML({ node, HTMLAttributes }) {
-    const label = node.attrs.shortName || 'Partner';
+    const label = formatParticipantLabel({ organisation_short_name: node.attrs.shortName });
 
     return [
       'span',

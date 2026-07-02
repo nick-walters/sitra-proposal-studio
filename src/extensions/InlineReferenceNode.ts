@@ -1,4 +1,10 @@
 import { Node, mergeAttributes } from '@tiptap/core';
+import {
+  formatTaskLabel,
+  formatDeliverableLabel,
+  formatMilestoneLabel,
+} from '@/lib/referenceLabels';
+
 
 export interface InlineReferenceOptions {
   HTMLAttributes: Record<string, any>;
@@ -39,12 +45,13 @@ declare module '@tiptap/core' {
  */
 function computeLabel(attrs: Record<string, any>): string {
   switch (attrs.refType) {
+
     case 'task':
-      return `T${attrs.wpNumber ?? ''}.${attrs.taskNumber ?? ''}`;
+      return formatTaskLabel({ wp_number: attrs.wpNumber, number: attrs.taskNumber });
     case 'deliverable':
-      return `${attrs.deliverableNumber ?? ''}`;
+      return formatDeliverableLabel({ number: attrs.deliverableNumber });
     case 'milestone':
-      return `MS${attrs.milestoneNumber ?? ''}`;
+      return formatMilestoneLabel({ number: attrs.milestoneNumber });
     case 'deleted': {
       const kindMap: Record<string, string> = {
         task: 'task',
@@ -62,6 +69,7 @@ function computeLabel(attrs: Record<string, any>): string {
       return '';
   }
 }
+
 
 /**
  * InlineReferenceNode (Stage 3 migration)
