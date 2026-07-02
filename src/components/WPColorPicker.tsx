@@ -9,41 +9,13 @@ import { cn } from '@/lib/utils';
 
 // ---------- Format helpers (canonical storage is always hex) ----------
 
-type ColorFormat = 'hex' | 'rgb';
-
 const HEX_RE = /^#([0-9a-fA-F]{6})$/;
-const RGB_RE = /^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/;
 
 function normaliseHex(v: string): string | null {
   const m = v.trim().match(HEX_RE);
   return m ? `#${m[1].toUpperCase()}` : null;
 }
 
-function hexToRgbString(hex: string): string {
-  const h = hex.replace('#', '');
-  const r = parseInt(h.slice(0, 2), 16);
-  const g = parseInt(h.slice(2, 4), 16);
-  const b = parseInt(h.slice(4, 6), 16);
-  return `rgb(${r}, ${g}, ${b})`;
-}
-
-function rgbStringToHex(v: string): string | null {
-  const m = v.trim().match(RGB_RE);
-  if (!m) return null;
-  const [r, g, b] = [m[1], m[2], m[3]].map((n) => parseInt(n, 10));
-  if ([r, g, b].some((n) => n < 0 || n > 255)) return null;
-  const toHex = (n: number) => n.toString(16).padStart(2, '0').toUpperCase();
-  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-}
-
-function formatValue(hex: string, format: ColorFormat): string {
-  if (format === 'rgb') return hexToRgbString(hex);
-  return hex.toUpperCase();
-}
-
-function parseValue(input: string, format: ColorFormat): string | null {
-  return format === 'rgb' ? rgbStringToHex(input) : normaliseHex(input);
-}
 
 // ---------- Picker ----------
 
