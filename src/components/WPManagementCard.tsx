@@ -129,13 +129,11 @@ function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete
       ) : (
         <WPColorPicker
           color={wp.color}
-          onChange={(color) => onUpdate(wp.id, { color, color_locked: true } as any)}
+          onChange={(color) => onUpdate(wp.id, { color } as any)}
           wpNumber={wp.number}
           disabled={!canEdit}
-          colorLocked={wp.color_locked}
-          isCoordinator={isCoordinator}
-          onToggleColorLock={(locked) => onUpdate(wp.id, { color_locked: locked } as any)}
         />
+
       )}
 
       {/* Theme selector (only when themes enabled) */}
