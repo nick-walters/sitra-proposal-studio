@@ -175,6 +175,8 @@ export function FontColorToolbarButton({
       trigger={trigger}
       label="Text colour"
       disabled={disabled}
+      onOpenChange={onOpenChange}
     />
+
   );
 }
