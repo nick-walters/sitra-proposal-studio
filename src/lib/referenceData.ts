@@ -182,6 +182,13 @@ export async function fetchReferenceData(proposalId: string): Promise<RefSnapsho
     tableCaptionMap.set(tc.table_key, tc.caption || '');
   }
 
+  const proposalRow = (proposalRes as any).data as { acronym: string | null; acronym_segments: AcronymSegmentData[] | null } | null;
+  const rawSegs = (proposalRow?.acronym_segments as AcronymSegmentData[] | null) || [];
+  const plainAcronym = proposalRow?.acronym || '';
+  const acronymSegments: AcronymSegmentData[] = rawSegs.length > 0
+    ? rawSegs
+    : (plainAcronym ? [{ text: plainAcronym, color: '#000000' }] : []);
+
   return {
     wpById: wpMap,
     taskById: new Map(tasks.map(t => [t.id, t])),
@@ -191,8 +198,10 @@ export async function fetchReferenceData(proposalId: string): Promise<RefSnapsho
     participantById: new Map(participants.map(p => [p.id, p])),
     figureById: new Map(figures.map(f => [f.id, f])),
     tableCaptionMap,
+    acronymSegments,
   };
 }
+
 
 /**
  * React Query hook wrapping fetchReferenceData. Invalidated by the
