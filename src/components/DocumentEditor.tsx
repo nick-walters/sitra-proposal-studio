@@ -641,6 +641,85 @@ export function DocumentEditor({
     return () => clearTimeout(timer);
   }, [editor, proposalId, section?.id, loading, syncTrigger]);
 
+  // Migrate legacy inline figure-caption paragraphs → figureCaption atom nodes.
+  // Matches paragraphs whose text starts with "Figure X.a." against the
+  // proposal's figures by figure_number, then swaps them for the read-only node.
+  useEffect(() => {
+    if (!editor || !proposalId || loading) return;
+    let cancelled = false;
+    const run = async () => {
+      // Find candidate paragraphs (legacy: no data-figure-id, has figure-caption class)
+      const doc = editor.state.doc;
+      const candidates: Array<{ pos: number; size: number; num: string; text: string }> = [];
+      doc.descendants((node, pos) => {
+        if (node.type.name !== 'paragraph') return;
+        const cls = (node.attrs?.class as string | undefined) || '';
+        if (!cls.includes('figure-caption')) return;
+        const text = node.textContent || '';
+        const m = text.match(/^\s*Figure\s+([0-9]+(?:\.[0-9]+)?\.[a-z])\.?\s*(.*)$/i);
+        if (!m) return;
+        candidates.push({ pos, size: node.nodeSize, num: m[1], text: (m[2] || '').trim() });
+      });
+      if (candidates.length === 0) return;
+
+      const nums = Array.from(new Set(candidates.map((c) => c.num)));
+      const { data: figs } = await supabase
+        .from('figures')
+        .select('id, figure_number, caption, title')
+        .eq('proposal_id', proposalId)
+        .in('figure_number', nums);
+      if (cancelled || !figs) return;
+      const byNum = new Map(figs.map((f) => [f.figure_number, f]));
+
+      // Backfill DB captions from inline text when DB caption is empty.
+      const backfills: Array<{ id: string; caption: string }> = [];
+      for (const c of candidates) {
+        const fig = byNum.get(c.num);
+        if (!fig) continue;
+        const dbCaption = (fig.caption || '').trim();
+        if (!dbCaption && c.text) backfills.push({ id: fig.id, caption: c.text });
+      }
+      if (backfills.length > 0) {
+        await Promise.all(
+          backfills.map((b) =>
+            supabase.from('figures').update({ caption: b.caption }).eq('id', b.id),
+          ),
+        );
+      }
+
+      // Replace paragraphs with figureCaption nodes (iterate back-to-front so
+      // positions stay valid).
+      const sorted = [...candidates].sort((a, b) => b.pos - a.pos);
+      const nodeType = editor.schema.nodes.figureCaption;
+      if (!nodeType) return;
+      const tr = editor.state.tr;
+      for (const c of sorted) {
+        const fig = byNum.get(c.num);
+        if (!fig) continue;
+        const captionText =
+          (fig.caption && fig.caption.trim()) ||
+          c.text ||
+          (fig.title || '').trim();
+        const newNode = nodeType.create({
+          figureId: fig.id,
+          figureNumber: fig.figure_number,
+          captionText,
+        });
+        tr.replaceWith(c.pos, c.pos + c.size, newNode);
+      }
+      if (tr.docChanged) {
+        editor.view.dispatch(tr);
+      }
+    };
+    // Delay slightly so it runs after initial content settle
+    const t = setTimeout(run, 600);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [editor, proposalId, section?.id, loading]);
+
+
   // Check if proposal has cases
   useEffect(() => {
     if (!proposalId) return;
