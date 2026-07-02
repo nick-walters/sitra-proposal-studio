@@ -122,6 +122,9 @@ export function ParticipantDescriptionsSection({
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="text-lg">Participant description</CardTitle>
+        <p className="text-xs text-muted-foreground mt-1">
+          This content is mirrored to Part B3.2, where the consortium and its roles are described.
+        </p>
       </CardHeader>
       <CardContent className="space-y-4">
         {canEdit && (anyFieldFocused || colorPickerOpen) && (
