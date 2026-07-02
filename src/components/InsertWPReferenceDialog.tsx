@@ -23,10 +23,6 @@ interface WPRefData {
   theme_id?: string | null;
 }
 
-interface WPTheme {
-  id: string;
-  color: string;
-}
 
 interface InsertWPReferenceDialogProps {
   open: boolean;
