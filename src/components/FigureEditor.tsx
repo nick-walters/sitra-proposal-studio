@@ -62,6 +62,12 @@ export function FigureEditor({
   const [isReplacing, setIsReplacing] = useState(false);
   const replaceInputRef = useRef<HTMLInputElement>(null);
   const resolvedImageUrl = useStorageUrl(figure.content?.imageUrl);
+  const isImpactCanvas = figure.figureType === 'impact-canvas';
+  const { roleTier } = useProposalRole(proposalId);
+  const isCoordinator = roleTier === 'coordinator';
+  const { enabled: canvasEnabled, setEnabled: setCanvasEnabled } = useImpactCanvasEnabled(
+    isImpactCanvas ? proposalId : '',
+  );
 
   const handleReplaceImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
