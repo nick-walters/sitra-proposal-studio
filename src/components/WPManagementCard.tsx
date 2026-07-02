@@ -77,9 +77,10 @@ interface SortableWPRowProps {
   onToggleLock: (id: string, locked: boolean) => void;
   canEdit: boolean;
   isCoordinator: boolean;
+  proposalId: string;
 }
 
-function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete, onToggleLock, canEdit, isCoordinator }: SortableWPRowProps) {
+function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete, onToggleLock, canEdit, isCoordinator, proposalId }: SortableWPRowProps) {
   const [leadOpen, setLeadOpen] = useState(false);
   const {
     attributes,
