@@ -252,12 +252,13 @@ export function WPColourSequenceDialog({
         {showThemeMode ? (
           // ---------- Theme editor ----------
           <div className="space-y-1 max-h-[60vh] overflow-y-auto pr-1">
-            <div className="grid grid-cols-[24px_70px_110px_1fr_auto_20px] gap-2 items-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground pb-1 border-b">
+            <div className="grid grid-cols-[24px_80px_110px_1fr_90px_70px_20px] gap-2 items-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground pb-1 border-b">
               <div />
-              <div className="text-center">Colour</div>
+              <div>Position</div>
               <div>Short name</div>
               <div>Theme name</div>
-              <div />
+              <div className="text-center">Theme</div>
+              <div className="text-center">Colour</div>
               <div />
             </div>
 
