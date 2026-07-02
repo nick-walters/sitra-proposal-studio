@@ -1769,6 +1769,82 @@ export type Database = {
         }
         Relationships: []
       }
+      impact_canvas_columns: {
+        Row: {
+          created_at: string
+          guideline: string | null
+          heading: string
+          id: string
+          key: string
+          order_index: number
+          proposal_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          guideline?: string | null
+          heading?: string
+          id?: string
+          key: string
+          order_index?: number
+          proposal_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          guideline?: string | null
+          heading?: string
+          id?: string
+          key?: string
+          order_index?: number
+          proposal_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "impact_canvas_columns_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      impact_canvas_rows: {
+        Row: {
+          content: Json
+          created_at: string
+          id: string
+          order_index: number
+          proposal_id: string
+          updated_at: string
+        }
+        Insert: {
+          content?: Json
+          created_at?: string
+          id?: string
+          order_index?: number
+          proposal_id: string
+          updated_at?: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          id?: string
+          order_index?: number
+          proposal_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "impact_canvas_rows_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       instrument_types: {
         Row: {
           active: boolean | null
@@ -3786,6 +3862,7 @@ export type Database = {
           fstp_budget_per_third_party: string | null
           fstp_type: string | null
           id: string
+          impact_canvas_enabled: boolean
           indicative_budget_per_project: string | null
           is_two_stage_second_stage: boolean | null
           logo_url: string | null
@@ -3864,6 +3941,7 @@ export type Database = {
           fstp_budget_per_third_party?: string | null
           fstp_type?: string | null
           id?: string
+          impact_canvas_enabled?: boolean
           indicative_budget_per_project?: string | null
           is_two_stage_second_stage?: boolean | null
           logo_url?: string | null
@@ -3942,6 +4020,7 @@ export type Database = {
           fstp_budget_per_third_party?: string | null
           fstp_type?: string | null
           id?: string
+          impact_canvas_enabled?: boolean
           indicative_budget_per_project?: string | null
           is_two_stage_second_stage?: boolean | null
           logo_url?: string | null
