@@ -63,6 +63,8 @@ interface WPTableSectionProps {
   hideToolbar?: boolean;
   allWpDrafts?: WPOption[];
   currentWpDraftId?: string;
+  proposalId?: string | null;
+  canManageCustomColors?: boolean;
 }
 
 export function WPTableSection({
@@ -85,6 +87,8 @@ export function WPTableSection({
   hideToolbar = false,
   allWpDrafts = [],
   currentWpDraftId,
+  proposalId,
+  canManageCustomColors = false,
 }: WPTableSectionProps) {
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -125,6 +129,8 @@ export function WPTableSection({
             disabled={readOnly}
             minHeight="80px"
             hideToolbar={hideToolbar}
+            proposalId={proposalId ?? undefined}
+            canManageCustomColors={canManageCustomColors}
           />
           <p className="text-draft text-muted-foreground">Describe the main objective of this work package. Use the bullet list button if you need multiple objectives.</p>
         </div>
@@ -139,6 +145,8 @@ export function WPTableSection({
             disabled={readOnly}
             minHeight="60px"
             hideToolbar={hideToolbar}
+            proposalId={proposalId ?? undefined}
+            canManageCustomColors={canManageCustomColors}
           />
         </div>
 
@@ -171,6 +179,8 @@ export function WPTableSection({
                     hideToolbar={hideToolbar}
                     allWpDrafts={allWpDrafts}
                     currentWpDraftId={currentWpDraftId}
+                    proposalId={proposalId}
+                    canManageCustomColors={canManageCustomColors}
                   />
                 ))}
               </div>
@@ -210,6 +220,8 @@ interface SortableTaskCardProps {
   hideToolbar?: boolean;
   allWpDrafts?: WPOption[];
   currentWpDraftId?: string;
+  proposalId?: string | null;
+  canManageCustomColors?: boolean;
 }
 
 function SortableTaskCard({
@@ -229,6 +241,8 @@ function SortableTaskCard({
   hideToolbar = false,
   allWpDrafts = [],
   currentWpDraftId,
+  proposalId,
+  canManageCustomColors = false,
 }: SortableTaskCardProps) {
   const {
     attributes,
@@ -409,6 +423,8 @@ function SortableTaskCard({
           disabled={readOnly}
           minHeight="60px"
           hideToolbar={hideToolbar}
+          proposalId={proposalId ?? undefined}
+          canManageCustomColors={canManageCustomColors}
         />
       </div>
     </div>

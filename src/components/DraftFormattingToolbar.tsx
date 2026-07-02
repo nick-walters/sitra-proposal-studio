@@ -28,6 +28,8 @@ export interface DraftToolbarFontColorProps {
   canManageCustom?: boolean;
   /** Resolve the active contentEditable element (for post-remove input dispatch). */
   getEditableElement?: () => HTMLElement | null;
+  /** Optional live HTML sources to include in colour in-use checks before autosave persists. */
+  getLiveHtmlSources?: () => Array<string | null | undefined>;
 }
 
 export interface DraftToolbarSaveProps {
@@ -233,6 +235,7 @@ export function DraftFormattingToolbar({
               canManageCustom={fontColor.canManageCustom}
               disabled={disabled}
               getEditableElement={fontColor.getEditableElement}
+              getLiveHtmlSources={fontColor.getLiveHtmlSources}
             />
           )}
 

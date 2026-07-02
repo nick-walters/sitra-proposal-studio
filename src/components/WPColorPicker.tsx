@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { X } from 'lucide-react';
 import { DEFAULT_WP_COLORS, getContrastingTextColor } from '@/lib/wpColors';
 import { useProposalCustomColors } from '@/hooks/useProposalCustomColors';
+import { extractHexTextColorsFromHtml } from '@/lib/extractHexTextColors';
 import { cn } from '@/lib/utils';
 
 // ---------- Format helpers (canonical storage is always hex) ----------
@@ -57,6 +58,12 @@ interface WPColorPickerProps {
   excludePaletteColors?: string[];
   /** Notified when the popover opens/closes (for parent focus retention). */
   onOpenChange?: (open: boolean) => void;
+  /**
+   * Optional live, unsaved rich-text HTML sources. Used by text-colour pickers
+   * so delete protection includes the current editor DOM before autosave has
+   * reached the database.
+   */
+  getLiveHtmlSources?: () => Array<string | null | undefined>;
 }
 
 export function WPColorPicker({
@@ -74,9 +81,14 @@ export function WPColorPicker({
   removeLabel = 'Remove colour',
   excludePaletteColors,
   onOpenChange,
+  getLiveHtmlSources,
 }: WPColorPickerProps) {
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState(() => normaliseHex(color) ?? color.toUpperCase());
+  const [liveUsedColors, setLiveUsedColors] = useState<Set<string>>(() => new Set());
+  const [freshDbUsedColors, setFreshDbUsedColors] = useState<Set<string>>(() => new Set());
+  const [usageCheckReady, setUsageCheckReady] = useState(false);
+  const usageScanSeqRef = useRef(0);
 
   const {
     customColors,
@@ -88,6 +100,14 @@ export function WPColorPicker({
 
 
   const allowDelete = (canManageCustom ?? !disabled) && !!proposalId;
+
+  const collectLiveUsedColors = useCallback(() => {
+    const set = new Set<string>();
+    for (const html of getLiveHtmlSources?.() ?? []) {
+      for (const c of extractHexTextColorsFromHtml(html)) set.add(c);
+    }
+    return set;
+  }, [getLiveHtmlSources]);
 
   useEffect(() => {
     setInputValue(normaliseHex(color) ?? color.toUpperCase());
@@ -134,11 +154,33 @@ export function WPColorPicker({
   const handleOpenChange = (next: boolean) => {
     setOpen(next);
     onOpenChange?.(next);
-    // Refresh in-use scan whenever the picker opens so a colour that was just
-    // applied elsewhere (font colour, WP colour, etc.) is reflected in the
-    // delete guard. Without this, staleTime alone lets the popover render a
-    // "delete" X for a colour that IS in use.
-    if (next) void refetchUsed();
+    const seq = usageScanSeqRef.current + 1;
+    usageScanSeqRef.current = seq;
+
+    if (!next) {
+      setUsageCheckReady(false);
+      setLiveUsedColors(new Set());
+      setFreshDbUsedColors(new Set());
+      return;
+    }
+
+    // Pessimistic delete guard: the popover must not render delete affordances
+    // until the fresh DB in-use scan has completed. We also union in live editor
+    // DOM immediately so the autosave window cannot make a just-applied font
+    // colour look unused.
+    setUsageCheckReady(false);
+    setLiveUsedColors(collectLiveUsedColors());
+    void refetchUsed()
+      .then((res) => {
+        if (usageScanSeqRef.current !== seq) return;
+        setFreshDbUsedColors(new Set(res.data ?? []));
+        setLiveUsedColors(collectLiveUsedColors());
+        setUsageCheckReady(true);
+      })
+      .catch(() => {
+        if (usageScanSeqRef.current !== seq) return;
+        setUsageCheckReady(false);
+      });
   };
 
 
@@ -204,8 +246,8 @@ export function WPColorPicker({
               <div className="grid grid-cols-6 gap-1.5">
                 {dedupedExtras.map((c, index) => {
                   const isSelected = (normaliseHex(color) ?? color.toUpperCase()) === c;
-                  const inUse = isColorInUse(c);
-                  const showDelete = allowDelete && !inUse;
+                  const inUse = isColorInUse(c) || freshDbUsedColors.has(c) || liveUsedColors.has(c);
+                  const showDelete = allowDelete && usageCheckReady && !inUse;
                   const iconColor = getContrastingTextColor(c);
                   return (
                     <div key={`${c}-${index}`} className="relative">
@@ -223,6 +265,9 @@ export function WPColorPicker({
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
+                            const liveNow = collectLiveUsedColors();
+                            setLiveUsedColors(liveNow);
+                            if (!usageCheckReady || liveNow.has(c) || freshDbUsedColors.has(c) || isColorInUse(c)) return;
                             void removeCustomColor(c);
                           }}
                           className="absolute -top-1 -right-1 h-3.5 w-3.5 rounded-full flex items-center justify-center shadow-sm hover:scale-110 transition-transform"

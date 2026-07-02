@@ -402,6 +402,7 @@ function TextColorPicker({
       canManageCustom={canManageCustom}
       trigger={trigger}
       label="Text colour"
+      getLiveHtmlSources={() => [editor.getHTML()]}
     />
   );
 }
