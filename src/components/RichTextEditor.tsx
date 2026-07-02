@@ -1497,6 +1497,7 @@ StarterKit.configure({
       CasesTableNode,
       // B3.2 mirror slot block node
       B32MirrorSlotNode,
+      FigureCaptionNode,
       // Acronym reference for colored acronym insertion
       AcronymReference,
       CaptionLabel,
