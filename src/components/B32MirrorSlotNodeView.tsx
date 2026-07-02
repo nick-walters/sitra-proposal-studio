@@ -6,6 +6,7 @@ import {
   B32MirrorParagraphSlot,
   type B32ParagraphSlotKey,
 } from '@/components/B32MirrorParagraphSlot';
+import { B32MirrorInfrastructureSlot } from '@/components/B32MirrorInfrastructureSlot';
 
 const B32SectionContent = lazy(() =>
   import('@/components/B32SectionContent').then((m) => ({ default: m.B32SectionContent })),
@@ -17,6 +18,7 @@ const PARAGRAPH_SLOTS: readonly B32ParagraphSlotKey[] = [
   'industrial',
   'international',
 ];
+
 
 function proposalIdFromUrl(): string {
   if (typeof window === 'undefined') return '';
