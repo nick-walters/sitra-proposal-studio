@@ -426,7 +426,7 @@ function SortableThemeRow({
         disabled={!canEdit}
       />
       <div className="flex items-center justify-center">
-        <WPBubble wpColor={theme.color}>{`Theme ${themeLetter}`}</WPBubble>
+        <WPBubble wpColor={theme.color}>{`Theme ${letter}`}</WPBubble>
       </div>
       <div className="flex items-center justify-center">
         <WPColorPicker
