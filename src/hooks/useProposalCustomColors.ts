@@ -2,6 +2,11 @@ import { useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
+import {
+  collectStringsFromJson,
+  extractHexTextColorsFromHtml,
+} from '@/lib/extractHexTextColors';
+
 
 const HEX_RE = /^#[0-9A-F]{6}$/;
 const PALETTE = new Set(DEFAULT_WP_COLORS.map((c) => c.toUpperCase()));
