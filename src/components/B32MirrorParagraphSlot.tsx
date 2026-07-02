@@ -172,7 +172,6 @@ export function B32MirrorParagraphSlot({ proposalId, slotKey }: Props) {
                 number={participant.participant_number ?? undefined}
                 shortName={participant.organisation_short_name ?? ''}
               />
-              {config.prefixWithWill ? <span style={{ marginLeft: 4 }}>will</span> : null}
             </span>
             <span
               data-b32-mirror-body=""
