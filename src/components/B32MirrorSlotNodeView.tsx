@@ -38,6 +38,8 @@ const SLOT_LABELS: Record<B32SlotKey, string> = {
 export interface B32MirrorSlotLiveViewProps {
   proposalId: string;
   slotKey: B32SlotKey | null;
+  /** true when mounted inside the editor NodeView (enables interactive controls like row reordering). */
+  interactive?: boolean;
 }
 
 /**
@@ -45,7 +47,7 @@ export interface B32MirrorSlotLiveViewProps {
  *  - interdisciplinarity → real expertise matrix (B32SectionContent)
  *  - others → dummy placeholder (Stage 3b will replace with real content).
  */
-export function B32MirrorSlotLiveView({ slotKey, proposalId }: B32MirrorSlotLiveViewProps) {
+export function B32MirrorSlotLiveView({ slotKey, proposalId, interactive = false }: B32MirrorSlotLiveViewProps) {
   if (slotKey === 'interdisciplinarity') {
     return (
       <div data-b32-mirror-slot-nodeview="" data-b32-slot-key="interdisciplinarity">
