@@ -110,7 +110,8 @@ export const WPReferenceNode = Node.create<WPReferenceOptions>({
     const color = node.attrs.wpColor || '#2563EB';
     const wpNumber = node.attrs.wpNumber;
     const wpShortName = node.attrs.wpShortName;
-    const label = wpShortName ? `WP${wpNumber}: ${wpShortName}` : `WP${wpNumber}`;
+    const label = formatWPLabel({ number: wpNumber, short_name: wpShortName });
+
 
     return [
       'span',
