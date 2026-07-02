@@ -394,7 +394,7 @@ function SortableThemeRow({
     disabled: !canEdit || fixed,
   });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
-  const themeLetter = String.fromCharCode(65 + index); // A, B, C…
+  const letter = themeLetter(index);
   return (
     <div
       ref={setNodeRef}
