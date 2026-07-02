@@ -20,7 +20,10 @@ interface FontColorToolbarButtonProps {
    * selection.
    */
   getEditableElement?: () => HTMLElement | null;
+  /** Notified when the picker popover opens/closes (for parent focus retention). */
+  onOpenChange?: (open: boolean) => void;
 }
+
 
 function currentColorFromSelection(): string {
   try {
