@@ -438,7 +438,9 @@ function SortableThemeRow({
           proposalId={proposalId}
           canManageCustom={canEdit}
           disabled={!canEdit}
+          excludePaletteColors={['#000000']}
         />
+
       </div>
       <div className="w-5 flex justify-end">
         {!fixed && canEdit ? (
