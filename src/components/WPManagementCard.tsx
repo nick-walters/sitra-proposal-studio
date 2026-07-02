@@ -146,7 +146,9 @@ function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete
           disabled={!canEdit}
           proposalId={proposalId}
           canManageCustom={isCoordinator}
+          excludePaletteColors={['#000000']}
         />
+
 
 
       )}
