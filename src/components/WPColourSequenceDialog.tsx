@@ -310,7 +310,7 @@ export function WPColourSequenceDialog({
               <div className="py-8 text-center text-sm text-muted-foreground">No work packages found.</div>
             ) : (
               <div className="space-y-1 max-h-[60vh] overflow-y-auto pr-1">
-                <div className="grid grid-cols-[70px_1fr_auto_auto] gap-2 items-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground pb-1 border-b">
+                <div className="grid grid-cols-[90px_1fr_auto_auto] gap-2 items-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground pb-1 border-b">
                   <div>Position</div>
                   <div>Work package</div>
                   <div className="text-center">Colour</div>
@@ -319,17 +319,14 @@ export function WPColourSequenceDialog({
                 {posRows.map((r) => (
                   <div
                     key={r.order_index}
-                    className="grid grid-cols-[70px_1fr_auto_auto] gap-2 items-center py-1.5 border-b border-border/60"
+                    className="grid grid-cols-[90px_1fr_auto_auto] gap-2 items-center py-1.5 border-b border-border/60"
                   >
                     <div className="text-xs font-medium">{r.label}</div>
-                    <div className="text-sm truncate">
-                      {r.wp_id ? (
-                        <span>
-                          <span className="font-semibold">WP{r.number}</span>
-                          {r.short_name ? <span className="text-muted-foreground"> · {r.short_name}</span> : null}
-                        </span>
+                    <div className="text-sm">
+                      {r.wp_id && r.number != null ? (
+                        <WPBubble wpNumber={r.number} wpColor={r.effective} />
                       ) : (
-                        <span className="text-muted-foreground italic">(vacant)</span>
+                        <span className="text-muted-foreground italic text-xs">(vacant)</span>
                       )}
                     </div>
                     <div className="flex items-center justify-center">
