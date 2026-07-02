@@ -198,9 +198,7 @@ export function WPColourSequenceDialog({
   const posRows = useMemo(() => {
     return positions.map((p) => {
       const effective = computeWPColorForPosition(p.order_index, total, overrides);
-      const isLast = total >= 2 && p.order_index === total - 1;
-      const isPenultimate = total >= 2 && p.order_index === total - 2;
-      const label = isLast ? 'Coordination' : isPenultimate ? 'Exploitation' : `Position ${p.order_index + 1}`;
+      const label = `Position ${p.order_index + 1}`;
       const hasOverride = !!overrides[p.order_index];
       return { ...p, effective, label, hasOverride };
     });
