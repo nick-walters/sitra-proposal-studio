@@ -167,6 +167,7 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
           figure_number: figureNumber,
           section_id: data.sectionId,
           title: data.title,
+          caption: data.title,
           figure_type: data.figureType,
           content,
           order_index: figures.length,
@@ -189,18 +190,20 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
   // Update figure mutation
   const updateFigure = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Figure> }) => {
+      const payload: { title?: string; caption?: string | null; content?: any } = {};
+      if (updates.title !== undefined) payload.title = updates.title;
+      if (updates.caption !== undefined) payload.caption = updates.caption;
+      if (updates.content !== undefined) payload.content = updates.content;
+      if (Object.keys(payload).length === 0) return;
       const { error } = await supabase
         .from('figures')
-        .update({
-          title: updates.title,
-          caption: updates.caption,
-          content: updates.content,
-        })
+        .update(payload)
         .eq('id', id);
       if (error) throw error;
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['figures', proposalId] });
+      queryClient.invalidateQueries({ queryKey: ['figure-caption', variables.id] });
       // Sync selectedFigure with the updates so the editor reflects changes immediately
       setSelectedFigure(prev => prev && prev.id === variables.id
         ? { ...prev, ...variables.updates, content: variables.updates.content ?? prev.content }
