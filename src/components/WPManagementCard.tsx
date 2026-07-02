@@ -321,7 +321,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
   );
 
   // WP Themes
-  const { themes, addTheme, updateTheme, deleteTheme, reorderThemes, isAdding: isAddingTheme } = useWPThemes(proposalId);
+  const { themes } = useWPThemes(proposalId);
 
   // Fetch proposal to check budget_type and use_wp_themes
   const { data: proposal } = useQuery({
