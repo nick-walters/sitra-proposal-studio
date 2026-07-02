@@ -1620,6 +1620,10 @@ export function DocumentEditor({
               {isB31Section && (
                 <B31SectionContent proposalId={proposalId} />
               )}
+              {/* B2.1 Impact Canvas — compulsory figure fixed at the end of B2.1 */}
+              {isImpactSection && (
+                <ImpactCanvasSection proposalId={proposalId} />
+              )}
               {/* B3.2 expertise matrix now renders inside the interdisciplinarity
                   mirror slot (see B32MirrorSlotNodeView). No below-editor mount. */}
               {/* Footnotes */}
