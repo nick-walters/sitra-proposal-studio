@@ -337,6 +337,8 @@ export function WPColourSequenceDialog({
                         color={r.effective}
                         onChange={(hex) => handleSetOverride(r.order_index, hex)}
                         extraColors={extraColors}
+                        proposalId={proposalId}
+                        canManageCustom={isCoordinator}
                         disabled={saving === `pos-${r.order_index}` || !isCoordinator}
                         label={`${r.label} colour`}
                       />
