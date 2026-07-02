@@ -38,7 +38,9 @@ export async function syncCrossReferences(
     'caseReference',
     'participantReference',
     'inlineReference',
+    'acronymReference',
   ]);
+
   let hasAnyRef = false;
   editor.state.doc.descendants((node) => {
     if (hasAnyRef) return false;
