@@ -272,6 +272,7 @@ export function WPColourSequenceDialog({
                     total={themes.length}
                     extraColors={extraColors}
                     canEdit={isCoordinator}
+                    proposalId={proposalId}
                     onColorChange={(hex) => updateTheme(t.id, { color: hex })}
                     onShortChange={(v) => updateTheme(t.id, { short_name: v })}
                     onNameChange={(v) => updateTheme(t.id, { name: v })}
