@@ -21,8 +21,6 @@ interface FieldDef {
   key: ParticipantDescriptionField;
   /** Question shown as the plain-text label above the field. Uses [name] placeholder for short name. */
   labelTemplate: string;
-  /** If true, the inline prefix inside the editable area also includes the word "will". */
-  prefixWithWill?: boolean;
 }
 
 const FIELD_ORDER: FieldDef[] = [
@@ -30,7 +28,6 @@ const FIELD_ORDER: FieldDef[] = [
     key: 'contribution_resources',
     labelTemplate:
       'How does [name] contribute to the project? Describe your roles and show that you have adequate resources in the project to fulfil those roles.',
-    prefixWithWill: true,
   },
   {
     key: 'value_chain',
