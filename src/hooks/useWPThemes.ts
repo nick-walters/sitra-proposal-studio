@@ -61,7 +61,7 @@ export interface WPTheme {
      },
    });
  
-   // Update theme mutation
+   // Update theme mutation — writes colour down to member WPs if theme.color changes
    const updateThemeMutation = useMutation({
      mutationFn: async ({ id, updates }: { id: string; updates: Partial<WPTheme> }) => {
        const { error } = await supabase
@@ -69,9 +69,15 @@ export interface WPTheme {
          .update(updates)
          .eq('id', id);
        if (error) throw error;
+       if (Object.prototype.hasOwnProperty.call(updates, 'color')) {
+         const { reconcileWPColorsForProposal } = await import('@/lib/computeWPColors');
+         await reconcileWPColorsForProposal(proposalId);
+       }
      },
      onSuccess: () => {
        queryClient.invalidateQueries({ queryKey: ['wp-themes', proposalId] });
+       queryClient.invalidateQueries({ queryKey: ['wp-drafts', proposalId] });
+       queryClient.invalidateQueries({ queryKey: ['wp-drafts-management', proposalId] });
      },
    });
  
