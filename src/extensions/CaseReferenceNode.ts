@@ -25,7 +25,7 @@ declare module '@tiptap/core' {
   }
 }
 
-import { getCaseTypePrefix, buildCaseLabel } from '@/lib/caseTypeLabels';
+import { formatCaseLabel } from '@/lib/referenceLabels';
 
 
 /**
