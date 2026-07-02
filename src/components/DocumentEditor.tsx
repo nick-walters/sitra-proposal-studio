@@ -81,6 +81,7 @@ import { SplitViewPanel } from "./SplitViewPanel";
 // SectionReviewDialog moved to Part B Evaluate tab
 import { B31DeliverablesTable, B31MilestonesTable, B31RisksTable } from "./B31TablesEditor";
 import { B31SectionContent } from "./B31SectionContent";
+import { ImpactCanvasSection } from "./ImpactCanvasSection";
 
 import { TrackChange } from "@/extensions/TrackChanges";
 // usePageEstimate moved to ExportDialog
@@ -1618,6 +1619,10 @@ export function DocumentEditor({
               {/* B3.1 Section Content - auto-populated figures, tables, and structured content */}
               {isB31Section && (
                 <B31SectionContent proposalId={proposalId} />
+              )}
+              {/* B2.1 Impact Canvas — compulsory figure fixed at the end of B2.1 */}
+              {isImpactSection && (
+                <ImpactCanvasSection proposalId={proposalId} />
               )}
               {/* B3.2 expertise matrix now renders inside the interdisciplinarity
                   mirror slot (see B32MirrorSlotNodeView). No below-editor mount. */}

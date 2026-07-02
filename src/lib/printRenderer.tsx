@@ -604,8 +604,17 @@ export async function buildPrintContainer(
         container.appendChild(b31Marker);
       }
 
+      // B2.1 — impact canvas mount at the end of the section content.
+      if (num === '2.1') {
+        const impactMarker = document.createElement('div');
+        impactMarker.id = 'print-impact-canvas-mount';
+        impactMarker.setAttribute('data-proposal-id', proposal.id);
+        container.appendChild(impactMarker);
+      }
+
       // B3.2 — the expertise matrix now renders inside the interdisciplinarity
       // mirror slot (see B32MirrorSlotLiveView), so there is no separate mount.
+
 
     }
   }
@@ -628,6 +637,7 @@ export async function mountDynamicComponents(
   appQueryClient?: QueryClient,
 ): Promise<void> {
   const b31Mount = container.querySelector('#print-b31-mount');
+  const impactCanvasMount = container.querySelector('#print-impact-canvas-mount');
   const casesPlaceholders = Array.from(
     container.querySelectorAll<HTMLElement>('div[data-cases-table-node]'),
   );
@@ -635,18 +645,20 @@ export async function mountDynamicComponents(
     container.querySelectorAll<HTMLElement>('div[data-b32-mirror-slot]'),
   );
 
-  if (!b31Mount && casesPlaceholders.length === 0 && b32SlotPlaceholders.length === 0) return;
+  if (!b31Mount && !impactCanvasMount && casesPlaceholders.length === 0 && b32SlotPlaceholders.length === 0) return;
 
   const [
     { B31IntroText },
     { B31SectionContent },
     { CasesTableLiveView },
     { B32MirrorSlotLiveView },
+    { ImpactCanvasSection },
   ] = await Promise.all([
     import('@/components/B31IntroText'),
     import('@/components/B31SectionContent'),
     import('@/components/CasesTableNodeView'),
     import('@/components/B32MirrorSlotNodeView'),
+    import('@/components/ImpactCanvasSection'),
   ]);
 
   // Reuse the app's QueryClient when available so the export tree reads from
@@ -700,6 +712,24 @@ export async function mountDynamicComponents(
     );
     roots.push({ root, el: b31Mount });
   }
+
+  // Impact canvas mount (B2.1) — Phase 1a placeholder + caption.
+  if (impactCanvasMount) {
+    const root = createRoot(impactCanvasMount);
+    root.render(
+      createElement(
+        QueryClientProvider,
+        { client: queryClient },
+        createElement(
+          AuthProvider,
+          null,
+          createElement(ImpactCanvasSection, { proposalId }),
+        ),
+      ),
+    );
+    roots.push({ root, el: impactCanvasMount });
+  }
+
 
 
   // Mount each B1.2 cases-table placeholder. The letterIndex is just the
