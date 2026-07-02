@@ -307,12 +307,13 @@ interface WPManagementCardProps {
 export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = true, onDraftVisibilityChange, onSaveEvent }: WPManagementCardProps) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  
-  
-  
-  
-  // Color palette for the proposal
+
+  const [colourSequenceOpen, setColourSequenceOpen] = useState(false);
+
+  // Color palette hook — retained for legacy read; per-position overrides now
+  // live in wp_color_palette.colors indexed by orderIndex (see Stage C).
   const { colors: wpColors, updatePalette } = useWPColorPalette(proposalId);
+
 
   const sensors = useSensors(
     useSensor(PointerSensor),
