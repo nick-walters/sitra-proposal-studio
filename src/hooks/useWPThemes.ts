@@ -83,13 +83,15 @@ export interface WPTheme {
  
    // Delete theme mutation
    const deleteThemeMutation = useMutation({
-     mutationFn: async (themeId: string) => {
-       const { error } = await supabase
-         .from('wp_themes')
-         .delete()
-         .eq('id', themeId);
-       if (error) throw error;
-     },
+       mutationFn: async (themeId: string) => {
+         const { error } = await supabase
+           .from('wp_themes')
+           .delete()
+           .eq('id', themeId);
+         if (error) throw error;
+         const { reconcileWPColorsForProposal } = await import('@/lib/computeWPColors');
+         await reconcileWPColorsForProposal(proposalId);
+       },
      onSuccess: () => {
        queryClient.invalidateQueries({ queryKey: ['wp-themes', proposalId] });
        queryClient.invalidateQueries({ queryKey: ['wp-drafts', proposalId] });
