@@ -272,6 +272,7 @@ export function WPColourSequenceDialog({
                     total={themes.length}
                     extraColors={extraColors}
                     canEdit={isCoordinator}
+                    proposalId={proposalId}
                     onColorChange={(hex) => updateTheme(t.id, { color: hex })}
                     onShortChange={(v) => updateTheme(t.id, { short_name: v })}
                     onNameChange={(v) => updateTheme(t.id, { name: v })}
@@ -337,6 +338,8 @@ export function WPColourSequenceDialog({
                         color={r.effective}
                         onChange={(hex) => handleSetOverride(r.order_index, hex)}
                         extraColors={extraColors}
+                        proposalId={proposalId}
+                        canManageCustom={isCoordinator}
                         disabled={saving === `pos-${r.order_index}` || !isCoordinator}
                         label={`${r.label} colour`}
                       />
@@ -377,6 +380,7 @@ interface SortableThemeRowProps {
   total: number;
   extraColors: string[];
   canEdit: boolean;
+  proposalId: string;
   onColorChange: (hex: string) => void;
   onShortChange: (v: string) => void;
   onNameChange: (v: string) => void;
@@ -384,7 +388,7 @@ interface SortableThemeRowProps {
 }
 
 function SortableThemeRow({
-  theme, index, total, extraColors, canEdit,
+  theme, index, total, extraColors, canEdit, proposalId,
   onColorChange, onShortChange, onNameChange, onDelete,
 }: SortableThemeRowProps) {
   const fixed = isFixedThemeIndex(index, total);
@@ -414,6 +418,8 @@ function SortableThemeRow({
           onChange={onColorChange}
           wpNumber={theme.number}
           extraColors={extraColors}
+          proposalId={proposalId}
+          canManageCustom={canEdit}
           disabled={!canEdit}
         />
       </div>

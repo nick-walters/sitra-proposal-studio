@@ -1,0 +1,1 @@
+ALTER TABLE public.proposals ADD COLUMN IF NOT EXISTS custom_colors jsonb NOT NULL DEFAULT '[]'::jsonb;

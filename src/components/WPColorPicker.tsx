@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
+import { X } from 'lucide-react';
+import { DEFAULT_WP_COLORS, getContrastingTextColor } from '@/lib/wpColors';
+import { useProposalCustomColors } from '@/hooks/useProposalCustomColors';
 import { cn } from '@/lib/utils';
 
 // ---------- Format helpers (canonical storage is always hex) ----------
@@ -53,6 +55,17 @@ interface WPColorPickerProps {
   palette?: string[];
   /** Extra "in-proposal" colours to render as a second section (deduped against palette). */
   extraColors?: string[];
+  /**
+   * Proposal id. When set, the picker auto-persists any custom (non-palette)
+   * hex the user picks into proposals.custom_colors, and merges them into the
+   * "in this proposal" section. Delete affordance also becomes available.
+   */
+  proposalId?: string | null;
+  /**
+   * Whether the user is allowed to delete custom colours. Coordinator+ only.
+   * Defaults to !disabled.
+   */
+  canManageCustom?: boolean;
   /** If set, renders a filled WP-number pill trigger; otherwise a bordered swatch button. */
   wpNumber?: number;
   /** Optional label shown above the palette. */
@@ -65,6 +78,8 @@ export function WPColorPicker({
   disabled = false,
   palette = DEFAULT_WP_COLORS,
   extraColors = [],
+  proposalId = null,
+  canManageCustom,
   wpNumber,
   label,
 }: WPColorPickerProps) {
@@ -72,15 +87,25 @@ export function WPColorPicker({
   const [format, setFormat] = useState<ColorFormat>('hex');
   const [inputValue, setInputValue] = useState(() => formatValue(color, 'hex'));
 
+  const {
+    customColors,
+    addCustomColor,
+    removeCustomColor,
+    isColorInUse,
+  } = useProposalCustomColors(proposalId);
+
+  const allowDelete = (canManageCustom ?? !disabled) && !!proposalId;
+
   useEffect(() => {
     setInputValue(formatValue(color, format));
   }, [color, format]);
 
-  // Dedupe extras against the default palette (case-insensitive hex compare)
+  // Union of caller-supplied extras + persisted custom colours, deduped and
+  // excluded from the default palette.
   const paletteSet = new Set(palette.map((c) => c.toUpperCase()));
   const dedupedExtras = Array.from(
     new Set(
-      extraColors
+      [...extraColors, ...customColors]
         .map((c) => normaliseHex(c) ?? c.toUpperCase())
         .filter((c) => HEX_RE.test(c) && !paletteSet.has(c))
     )
@@ -89,6 +114,10 @@ export function WPColorPicker({
   const commitColor = (newHex: string) => {
     onChange(newHex);
     setInputValue(formatValue(newHex, format));
+    // Auto-add non-palette picks to proposals.custom_colors.
+    if (proposalId && !paletteSet.has(newHex.toUpperCase())) {
+      void addCustomColor(newHex);
+    }
   };
 
   const handleSelectSwatch = (paletteColor: string) => {
@@ -135,10 +164,10 @@ export function WPColorPicker({
         <div className="space-y-3">
           <div className="text-sm font-medium">{label ?? 'Select colour'}</div>
 
-          {/* Default palette (fixed order) */}
+          {/* Sitra's colour palette (fixed order, no delete) */}
           <div>
             <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5">
-              Default palette
+              Sitra&apos;s colour palette
             </div>
             <div className="grid grid-cols-6 gap-1.5">
               {palette.map((paletteColor, index) => {
@@ -160,7 +189,7 @@ export function WPColorPicker({
             </div>
           </div>
 
-          {/* In-proposal colours */}
+          {/* In-proposal colours (union of extras + saved custom) */}
           {dedupedExtras.length > 0 && (
             <div>
               <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5">
@@ -169,17 +198,36 @@ export function WPColorPicker({
               <div className="grid grid-cols-6 gap-1.5">
                 {dedupedExtras.map((c, index) => {
                   const isSelected = (normaliseHex(color) ?? color.toUpperCase()) === c;
+                  const inUse = isColorInUse(c);
+                  const showDelete = allowDelete && !inUse;
+                  const iconColor = getContrastingTextColor(c);
                   return (
-                    <button
-                      key={`${c}-${index}`}
-                      className={cn(
-                        'h-7 w-7 rounded-md border-2 transition-all hover:scale-110',
-                        isSelected ? 'border-primary ring-2 ring-primary/20' : 'border-transparent'
+                    <div key={`${c}-${index}`} className="relative">
+                      <button
+                        className={cn(
+                          'h-7 w-7 rounded-md border-2 transition-all hover:scale-110',
+                          isSelected ? 'border-primary ring-2 ring-primary/20' : 'border-transparent'
+                        )}
+                        style={{ backgroundColor: c }}
+                        onClick={() => handleSelectSwatch(c)}
+                        aria-label={`Select ${c}`}
+                      />
+                      {showDelete && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void removeCustomColor(c);
+                          }}
+                          className="absolute -top-1 -right-1 h-3.5 w-3.5 rounded-full flex items-center justify-center shadow-sm hover:scale-110 transition-transform"
+                          style={{ backgroundColor: c }}
+                          title={`Remove ${c}`}
+                          aria-label={`Remove ${c}`}
+                        >
+                          <X className="h-2.5 w-2.5" style={{ color: iconColor }} strokeWidth={3} />
+                        </button>
                       )}
-                      style={{ backgroundColor: c }}
-                      onClick={() => handleSelectSwatch(c)}
-                      aria-label={`Select ${c}`}
-                    />
+                    </div>
                   );
                 })}
               </div>

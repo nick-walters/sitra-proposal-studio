@@ -77,9 +77,10 @@ interface SortableWPRowProps {
   onToggleLock: (id: string, locked: boolean) => void;
   canEdit: boolean;
   isCoordinator: boolean;
+  proposalId: string;
 }
 
-function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete, onToggleLock, canEdit, isCoordinator }: SortableWPRowProps) {
+function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete, onToggleLock, canEdit, isCoordinator, proposalId }: SortableWPRowProps) {
   const [leadOpen, setLeadOpen] = useState(false);
   const {
     attributes,
@@ -142,7 +143,10 @@ function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete
           onChange={(color) => onUpdate(wp.id, { color } as any)}
           wpNumber={wp.number}
           disabled={!canEdit}
+          proposalId={proposalId}
+          canManageCustom={isCoordinator}
         />
+
 
       )}
 
@@ -850,6 +854,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
                 onToggleLock={handleToggleLock}
                 canEdit={isCoordinator}
                 isCoordinator={isCoordinator}
+                proposalId={proposalId}
               />
             ))}
           </SortableContext>
