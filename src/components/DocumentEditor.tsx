@@ -1331,6 +1331,8 @@ export function DocumentEditor({
 
         {/* Formatting Toolbar - immediately below Features toolbar */}
         <FormattingToolbar 
+          proposalId={proposalId}
+          canManageCustomColors={roleTier === 'coordinator'}
           editor={editor} 
           sectionNumber={section?.number}
           content={content}
