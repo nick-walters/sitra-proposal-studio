@@ -106,7 +106,7 @@ export function InsertWPReferenceDialog({
           ) : (
             <div className="p-1">
               {wpDrafts.map((wp, idx) => {
-                const effectiveColor = getEffectiveColor(wp);
+                const effectiveColor = wp.color;
                 return (
                   <div
                     key={wp.id}
