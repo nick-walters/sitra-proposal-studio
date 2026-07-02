@@ -9,7 +9,8 @@ import { cn } from '@/lib/utils';
 
 // ---------- Format helpers (canonical storage is always hex) ----------
 
-const HEX_RE = /^#([0-9a-fA-F]{6})$/;
+// Accepts 6 hex chars, with or without a leading '#'.
+const HEX_RE = /^#?([0-9a-fA-F]{6})$/;
 
 function normaliseHex(v: string): string | null {
   const m = v.trim().match(HEX_RE);
