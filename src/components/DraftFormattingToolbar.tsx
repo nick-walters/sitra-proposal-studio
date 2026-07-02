@@ -132,6 +132,7 @@ export function DraftFormattingToolbar({
   onOpenCitationDialog,
   crossRefMenuItems,
   trailing,
+  fontColor,
 }: DraftFormattingToolbarProps) {
   if (hideToolbar) return null;
 
