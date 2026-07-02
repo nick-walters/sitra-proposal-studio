@@ -167,6 +167,7 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
           figure_number: figureNumber,
           section_id: data.sectionId,
           title: data.title,
+          caption: data.title,
           figure_type: data.figureType,
           content,
           order_index: figures.length,
