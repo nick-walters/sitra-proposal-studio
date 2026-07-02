@@ -355,6 +355,20 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
   const wpDraftsVisible = (proposal as any)?.wp_drafts_visible !== false;
   const caseDraftsVisible = (proposal as any)?.case_drafts_visible !== false;
 
+  // Compute the FINAL colour for a WP at a given position, matching
+  // reconcileWPColorsForProposal: theme colour (if themes enabled + assigned)
+  // wins over per-position override, which wins over positional default.
+  const resolveFinalColor = useCallback(
+    (orderIndex: number, total: number, themeId: string | null | undefined): string => {
+      if (useWpThemes && themeId) {
+        const t = themes.find((x) => x.id === themeId);
+        if (t?.color) return t.color;
+      }
+      return computeWPColorForPosition(orderIndex, total, positionOverrides);
+    },
+    [useWpThemes, themes, positionOverrides],
+  );
+
   const handleDraftVisibility = async (field: 'wp_drafts_visible' | 'case_drafts_visible', visible: boolean) => {
     await supabase.from('proposals').update({ [field]: visible } as any).eq('id', proposalId);
     queryClient.invalidateQueries({ queryKey: ['proposal-for-themes', proposalId] });
