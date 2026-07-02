@@ -152,8 +152,12 @@ export function B32SectionContent({ proposalId }: Props) {
   if (enabledQ.data?.enabled === false) return null;
   if (!dataQ.data) return null;
 
-  const { rows, cols, cells, participants } = dataQ.data;
+  const { rows: allRows, cols, cells, participants } = dataQ.data;
+  // B3.2 mirror only: skip rows with a blank label. The A2 editor
+  // (ExpertiseMatrixCard) still shows/edits blank rows.
+  const rows = allRows.filter((r) => (r.label || '').trim().length > 0);
   const partById = new Map(participants.map((p) => [p.id, p]));
+
 
   const partCols = cols
     .filter((c) => c.kind === 'participant')
