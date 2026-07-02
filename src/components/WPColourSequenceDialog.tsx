@@ -14,7 +14,7 @@ import {
   reconcileWPColorsForProposal,
   setPositionOverride,
 } from '@/lib/computeWPColors';
-import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
+import { DEFAULT_WP_COLORS, themeLetter } from '@/lib/wpColors';
 import { RotateCcw, Plus, Trash2, GripVertical, Lock } from 'lucide-react';
 import { useWPThemes, isFixedThemeIndex, type WPTheme } from '@/hooks/useWPThemes';
 import {
@@ -394,7 +394,7 @@ function SortableThemeRow({
     disabled: !canEdit || fixed,
   });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
-  const themeLetter = String.fromCharCode(65 + index); // A, B, C…
+  const letter = themeLetter(index);
   return (
     <div
       ref={setNodeRef}
@@ -426,7 +426,7 @@ function SortableThemeRow({
         disabled={!canEdit}
       />
       <div className="flex items-center justify-center">
-        <WPBubble wpColor={theme.color}>{`Theme ${themeLetter}`}</WPBubble>
+        <WPBubble wpColor={theme.color}>{`Theme ${letter}`}</WPBubble>
       </div>
       <div className="flex items-center justify-center">
         <WPColorPicker
