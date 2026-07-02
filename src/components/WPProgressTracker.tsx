@@ -7,8 +7,8 @@ import { useWPDrafts } from '@/hooks/useWPDrafts';
 import { useWPProgress } from '@/hooks/useWPProgress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useMemo } from 'react';
+void useQuery; // retained import will be removed once callers migrate
+
 
 interface WPProgressTrackerProps {
   proposalId: string;
