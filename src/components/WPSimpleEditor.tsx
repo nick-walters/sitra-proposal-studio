@@ -79,6 +79,7 @@ export function WPSimpleEditor({
   onSaveSelection,
   onFocus,
   onBlur,
+  canManageCustomColors = false,
 }: WPSimpleEditorProps) {
 
   const editorRef = useRef<HTMLDivElement>(null);
