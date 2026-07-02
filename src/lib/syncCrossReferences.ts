@@ -99,7 +99,9 @@ export async function syncCrossReferences(
       // are now inline atom NODES (Stages 1–3) — handled by their own
       // descendants passes below.
       case 'figureTableReference':
-        return a.figureId ? { markName: 'figureTableReference', idKey: 'figureId', idValue: a.figureId } : null;
+        if (a.figureId) return { markName: 'figureTableReference', idKey: 'figureId', idValue: a.figureId };
+        if (a.tableKey) return { markName: 'figureTableReference', idKey: 'tableKey', idValue: a.tableKey };
+        return null;
       default:
         return null;
     }
@@ -108,17 +110,29 @@ export async function syncCrossReferences(
   const computeTarget = (mark: any): { newAttrs: Record<string, any>; newLabel: string } | null => {
     const a = mark.attrs;
     switch (mark.type.name) {
-      // wpReference / caseReference / participantReference / inlineReference
-      // are now inline atom NODES (Stages 1–3) — handled by their own
-      // descendants passes below.
       case 'figureTableReference': {
-        const f = data.figureById.get(a.figureId);
-        if (!f) return null;
-        return { newAttrs: { ...a }, newLabel: `Figure ${f.figure_number}` };
+        if (a.figureId) {
+          const f = data.figureById.get(a.figureId);
+          if (!f) return null;
+          return { newAttrs: { ...a }, newLabel: formatFigureLabel(f) };
+        }
+        if (a.tableKey) {
+          // Table refs: rewrite label from persisted table_captions row.
+          // Missing entries (compulsory tables without a captions row) are
+          // left untouched — do NOT delete-mark them.
+          if (!data.tableCaptionMap.has(a.tableKey)) return null;
+          const caption = data.tableCaptionMap.get(a.tableKey) ?? '';
+          return {
+            newAttrs: { ...a },
+            newLabel: formatTableLabel({ table_key: a.tableKey, caption }),
+          };
+        }
+        return null;
       }
     }
     return null;
   };
+
 
   const attrsEqual = (a: Record<string, any>, b: Record<string, any>): boolean => {
     const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
