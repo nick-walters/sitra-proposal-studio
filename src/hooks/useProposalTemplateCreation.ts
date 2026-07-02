@@ -215,12 +215,12 @@ export function useProposalTemplateCreation() {
         );
         const b31SectionId = b31Section ? (sectionIdMap.get(b31Section.id) || '3.1') : '3.1';
 
-        // Check if PERT/Gantt already exist (shouldn't for new proposals, but be safe)
+        // Check if PERT/Gantt/Impact-canvas already exist (shouldn't for new proposals, but be safe)
         const { data: existingFigures } = await supabase
           .from('figures')
           .select('figure_type')
           .eq('proposal_id', proposalId)
-          .in('figure_type', ['pert', 'gantt']);
+          .in('figure_type', ['pert', 'gantt', 'impact-canvas']);
 
         const existingTypes = new Set((existingFigures || []).map(f => f.figure_type));
 
@@ -245,6 +245,20 @@ export function useProposalTemplateCreation() {
             figure_type: 'gantt',
             content: null,
             order_index: 1,
+          });
+        }
+
+        if (!existingTypes.has('impact-canvas')) {
+          // Compulsory figure fixed at the end of B2.1 — content lives in
+          // impact_canvas_columns/rows, edited from the Figures page.
+          await supabase.from('figures').insert({
+            proposal_id: proposalId,
+            figure_number: '2.1.z',
+            section_id: '2.1',
+            title: 'Impact canvas',
+            figure_type: 'impact-canvas',
+            content: null,
+            order_index: 2,
           });
         }
       }

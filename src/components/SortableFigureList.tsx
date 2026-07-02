@@ -1,6 +1,6 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, ArrowRight, BarChart3, Network, Sparkles, Image } from 'lucide-react';
+import { GripVertical, ArrowRight, BarChart3, Network, Sparkles, Image, LayoutTemplate } from 'lucide-react';
 import { StorageImage } from '@/components/StorageImage';
 
 interface Figure {
@@ -67,6 +67,8 @@ export function SortableFigureItem({ figure, onSelect, canEdit }: SortableFigure
             <BarChart3 className="w-5 h-5 text-muted-foreground" />
           ) : figure.figureType === 'pert' ? (
             <Network className="w-5 h-5 text-muted-foreground" />
+          ) : figure.figureType === 'impact-canvas' ? (
+            <LayoutTemplate className="w-5 h-5 text-muted-foreground" />
           ) : figure.figureType === 'ai' ? (
             <Sparkles className="w-5 h-5 text-muted-foreground" />
           ) : (

@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FigureEditor } from '@/components/FigureEditor';
-import { Plus, Image, BarChart3, Network, FileImage, Upload, Sparkles, Loader2, LayoutGrid, List, Library } from 'lucide-react';
+import { Plus, Image, BarChart3, Network, FileImage, Upload, Sparkles, Loader2, LayoutGrid, List, Library, LayoutTemplate } from 'lucide-react';
 import { StorageImage } from '@/components/StorageImage';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -755,6 +755,8 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
                           <BarChart3 className="w-12 h-12 text-muted-foreground" />
                         ) : figure.figureType === 'pert' ? (
                           <Network className="w-12 h-12 text-muted-foreground" />
+                        ) : figure.figureType === 'impact-canvas' ? (
+                          <LayoutTemplate className="w-12 h-12 text-muted-foreground" />
                         ) : figure.figureType === 'ai' ? (
                           <Sparkles className="w-12 h-12 text-muted-foreground" />
                         ) : (
