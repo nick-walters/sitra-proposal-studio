@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -336,7 +336,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
   // Loaded here so optimistic reorder/add/delete updates can compute the FINAL
   // colour (override- and theme-aware) synchronously, avoiding a flash to the
   // positional default before reconcileWPColorsForProposal runs.
-  const { data: positionOverrides = [], isFetched: positionOverridesFetched } = useQuery({
+  const { data: positionOverrides = [], isSuccess: positionOverridesLoaded } = useQuery({
     queryKey: ['wp-position-overrides', proposalId],
     queryFn: () => fetchPositionOverrides(proposalId),
     enabled: !!proposalId,
@@ -380,11 +380,11 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
     [],
   );
 
-  const loadedColorContext: WPColourResolutionContext = {
+  const loadedColorContext: WPColourResolutionContext = useMemo(() => ({
     useThemes: useWpThemes,
     themes,
     overrides: positionOverrides,
-  };
+  }), [useWpThemes, themes, positionOverrides]);
 
   const resolveFinalColor = useCallback(
     (orderIndex: number, total: number, themeId: string | null | undefined): string =>
@@ -415,9 +415,9 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
   }, [proposalId]);
 
   const getOptimisticColourContext = useCallback(async (): Promise<WPColourResolutionContext> => {
-    if (proposal && positionOverridesFetched) return loadedColorContext;
+    if (proposal && positionOverridesLoaded) return loadedColorContext;
     return fetchFreshColourContext();
-  }, [fetchFreshColourContext, loadedColorContext, positionOverridesFetched, proposal]);
+  }, [fetchFreshColourContext, loadedColorContext, positionOverridesLoaded, proposal]);
 
   const buildReorderedWPs = useCallback(
     (reorderedWPs: WPDraft[], colourContext: WPColourResolutionContext): WPDraft[] => {
