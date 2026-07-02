@@ -398,12 +398,13 @@ interface SortableThemeRowProps {
   onColorChange: (hex: string) => void;
   onShortChange: (v: string) => void;
   onNameChange: (v: string) => void;
+  onReset: () => void;
   onDelete: () => void;
 }
 
 function SortableThemeRow({
   theme, index, total, extraColors, canEdit, proposalId,
-  onColorChange, onShortChange, onNameChange, onDelete,
+  onColorChange, onShortChange, onNameChange, onReset, onDelete,
 }: SortableThemeRowProps) {
   const fixed = isFixedThemeIndex(index, total);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -412,11 +413,13 @@ function SortableThemeRow({
   });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
   const letter = themeLetter(index);
+  const defaultColor = defaultThemeColor(index, total).toUpperCase();
+  const hasOverride = (theme.color || '').toUpperCase() !== defaultColor;
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`grid grid-cols-[24px_80px_90px_110px_1fr_70px_20px] gap-2 items-center py-1 border-b ${isDragging ? 'bg-muted shadow-lg' : ''}`}
+      className={`grid grid-cols-[24px_80px_90px_110px_1fr_70px_20px_20px] gap-2 items-center py-1 border-b ${isDragging ? 'bg-muted shadow-lg' : ''}`}
     >
       <div className="flex justify-center">
         {fixed ? (
@@ -455,7 +458,17 @@ function SortableThemeRow({
           disabled={!canEdit}
           excludePaletteColors={['#000000']}
         />
-
+      </div>
+      <div className="w-5 flex justify-end">
+        {hasOverride && canEdit ? (
+          <button
+            className="p-1 rounded hover:bg-muted text-muted-foreground"
+            title="Reset to default theme colour"
+            onClick={onReset}
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+          </button>
+        ) : null}
       </div>
       <div className="w-5 flex justify-end">
         {!fixed && canEdit ? (
