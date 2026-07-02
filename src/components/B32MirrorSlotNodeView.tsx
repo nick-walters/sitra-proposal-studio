@@ -59,7 +59,7 @@ export function B32MirrorSlotLiveView({ slotKey, proposalId }: B32MirrorSlotLive
   if (slotKey === 'infrastructure') {
     return (
       <div data-b32-mirror-slot-nodeview="" data-b32-slot-key="infrastructure">
-        <B32MirrorInfrastructureSlot proposalId={proposalId} />
+        <B32MirrorInfrastructureSlot proposalId={proposalId} interactive={interactive} />
       </div>
     );
   }
