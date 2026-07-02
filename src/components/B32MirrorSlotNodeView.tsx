@@ -119,7 +119,7 @@ export function B32MirrorSlotNodeView(props: NodeViewProps) {
       draggable={false}
       style={{ margin: '8px 0' }}
     >
-      <B32MirrorSlotLiveView proposalId={proposalId} slotKey={slotKey} />
+      <B32MirrorSlotLiveView proposalId={proposalId} slotKey={slotKey} interactive />
     </NodeViewWrapper>
   );
 }
