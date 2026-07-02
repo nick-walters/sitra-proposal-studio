@@ -462,6 +462,8 @@ export function FormattingToolbar({
   figureInsertMode?: 'dialog' | 'urlPrompt' | 'none';
   subheadingPrefix?: string;
   showSubheadingBodyItem?: boolean;
+  proposalId?: string | null;
+  canManageCustomColors?: boolean;
 }) {
   const [tablePopoverOpen, setTablePopoverOpen] = useState(false);
   const [isCropOpen, setIsCropOpen] = useState(false);
