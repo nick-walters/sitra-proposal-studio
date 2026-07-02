@@ -1,5 +1,16 @@
 // WP Color System - Default palette and utilities
 
+/** Convert a theme's zero-based order_index to a display letter: 0 → 'A', 1 → 'B', … */
+export function themeLetter(orderIndex: number): string {
+  if (orderIndex < 0) return '';
+  // Support beyond 'Z' by wrapping (AA, BB…) — rare, but safe.
+  if (orderIndex < 26) return String.fromCharCode(65 + orderIndex);
+  const first = String.fromCharCode(65 + Math.floor(orderIndex / 26) - 1);
+  const second = String.fromCharCode(65 + (orderIndex % 26));
+  return `${first}${second}`;
+}
+
+
 // Content WP colors (used for WPs other than the last two)
 export const WP_CONTENT_COLORS = [
   '#73C92D', // Lime Green
