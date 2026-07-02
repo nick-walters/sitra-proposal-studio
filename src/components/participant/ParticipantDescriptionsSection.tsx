@@ -157,15 +157,10 @@ export function ParticipantDescriptionsSection({
         {visibleFields.map((field) => {
           const label = field.labelTemplate.replace('[name]', shortName);
           const prefixNode = (
-            <>
-              <ParticipantBubble
-                number={participant.participantNumber}
-                shortName={participant.organisationShortName}
-              />
-              {field.prefixWithWill && (
-                <span style={{ marginLeft: '4px' }}>will</span>
-              )}
-            </>
+            <ParticipantBubble
+              number={participant.participantNumber}
+              shortName={participant.organisationShortName}
+            />
           );
           return (
             <div key={field.key} className="space-y-1.5">
