@@ -290,6 +290,7 @@ export function WPColourSequenceDialog({
                     onColorChange={(hex) => updateTheme(t.id, { color: hex })}
                     onShortChange={(v) => updateTheme(t.id, { short_name: v })}
                     onNameChange={(v) => updateTheme(t.id, { name: v })}
+                    onReset={() => updateTheme(t.id, { color: defaultThemeColor(i, themes.length) })}
                     onDelete={() => {
                       if (isFixedThemeIndex(i, themes.length)) {
                         toast.error('Fixed themes cannot be deleted');
