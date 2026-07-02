@@ -45,8 +45,7 @@ declare module '@tiptap/core' {
  */
 function computeLabel(attrs: Record<string, any>): string {
   switch (attrs.refType) {
-function computeLabel(attrs: Record<string, any>): string {
-  switch (attrs.refType) {
+
     case 'task':
       return formatTaskLabel({ wp_number: attrs.wpNumber, number: attrs.taskNumber });
     case 'deliverable':
