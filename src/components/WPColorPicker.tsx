@@ -48,6 +48,14 @@ interface WPColorPickerProps {
   onRemove?: () => void;
   /** Label for the remove-colour button. */
   removeLabel?: string;
+  /**
+   * Palette colours to hide from the displayed swatches (display-only exclusion).
+   * The colour is still valid if entered as hex or present as an in-proposal
+   * colour. Used e.g. to hide black from WP/theme pickers.
+   */
+  excludePaletteColors?: string[];
+  /** Notified when the popover opens/closes (for parent focus retention). */
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function WPColorPicker({
@@ -63,10 +71,11 @@ export function WPColorPicker({
   trigger,
   onRemove,
   removeLabel = 'Remove colour',
+  excludePaletteColors,
+  onOpenChange,
 }: WPColorPickerProps) {
   const [open, setOpen] = useState(false);
-  const [format, setFormat] = useState<ColorFormat>('hex');
-  const [inputValue, setInputValue] = useState(() => formatValue(color, 'hex'));
+  const [inputValue, setInputValue] = useState(() => normaliseHex(color) ?? color.toUpperCase());
 
   const {
     customColors,
@@ -78,8 +87,11 @@ export function WPColorPicker({
   const allowDelete = (canManageCustom ?? !disabled) && !!proposalId;
 
   useEffect(() => {
-    setInputValue(formatValue(color, format));
-  }, [color, format]);
+    setInputValue(normaliseHex(color) ?? color.toUpperCase());
+  }, [color]);
+
+  const excludeSet = new Set((excludePaletteColors ?? []).map((c) => c.toUpperCase()));
+  const displayedPalette = palette.filter((c) => !excludeSet.has((normaliseHex(c) ?? c).toUpperCase()));
 
   // Union of caller-supplied extras + persisted custom colours, deduped and
   // excluded from the default palette.
@@ -94,7 +106,7 @@ export function WPColorPicker({
 
   const commitColor = (newHex: string) => {
     onChange(newHex);
-    setInputValue(formatValue(newHex, format));
+    setInputValue(newHex.toUpperCase());
     // Auto-add non-palette picks to proposals.custom_colors.
     if (proposalId && !paletteSet.has(newHex.toUpperCase())) {
       void addCustomColor(newHex);
@@ -104,21 +116,23 @@ export function WPColorPicker({
   const handleSelectSwatch = (paletteColor: string) => {
     const hex = normaliseHex(paletteColor) ?? paletteColor;
     commitColor(hex);
-    setOpen(false);
+    handleOpenChange(false);
   };
 
   const handleInputBlur = () => {
-    const parsed = parseValue(inputValue, format);
+    const parsed = normaliseHex(inputValue);
     if (parsed) {
       commitColor(parsed);
     } else {
-      setInputValue(formatValue(color, format));
+      setInputValue(normaliseHex(color) ?? color.toUpperCase());
     }
   };
 
-  const cycleFormat = () => {
-    setFormat((f) => (f === 'hex' ? 'rgb' : 'hex'));
+  const handleOpenChange = (next: boolean) => {
+    setOpen(next);
+    onOpenChange?.(next);
   };
+
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
