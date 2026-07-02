@@ -162,8 +162,10 @@ export function useProposalCustomColors(proposalId: string | null | undefined) {
 
     },
     enabled: !!proposalId,
-    staleTime: 60_000,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
+
 
 
   const customColors = customQ.data ?? [];
