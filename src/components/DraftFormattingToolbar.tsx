@@ -91,6 +91,9 @@ export interface DraftFormattingToolbarProps {
   crossRefMenuItems?: ReactNode;
   /** Extra trailing nodes (e.g. <InsertTDMSReferenceDropdowns dialogsOnly />). */
   trailing?: ReactNode;
+
+  /** Font-colour picker (shared per-proposal library). Optional. */
+  fontColor?: DraftToolbarFontColorProps;
 }
 
 function buildDefaultTableHtml(rows: number, cols: number): string {
