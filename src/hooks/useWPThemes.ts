@@ -116,6 +116,10 @@ export interface WPTheme {
            .eq('id', update.id);
          if (error) throw error;
        }
+       // Theme colours are unchanged here, but write-down keeps wp_drafts.color
+       // in sync in case downstream logic ever re-derives from theme numbering.
+       const { reconcileWPColorsForProposal } = await import('@/lib/computeWPColors');
+       await reconcileWPColorsForProposal(proposalId);
      },
      onMutate: async (reorderedThemes) => {
        await queryClient.cancelQueries({ queryKey: ['wp-themes', proposalId] });
