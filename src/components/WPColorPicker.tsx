@@ -273,6 +273,20 @@ export function WPColorPicker({
               {format}
             </button>
           </div>
+
+          {onRemove && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full h-7 text-xs"
+              onClick={() => {
+                onRemove();
+                setOpen(false);
+              }}
+            >
+              {removeLabel}
+            </Button>
+          )}
         </div>
       </PopoverContent>
     </Popover>
