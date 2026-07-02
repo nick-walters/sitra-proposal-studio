@@ -19,8 +19,16 @@ import {
   AlignmentGroup,
   TableGridPicker,
   SubheadingDropdown,
+  FontColorToolbarButton,
   type Alignment,
 } from './toolbar';
+
+export interface DraftToolbarFontColorProps {
+  proposalId?: string | null;
+  canManageCustom?: boolean;
+  /** Resolve the active contentEditable element (for post-remove input dispatch). */
+  getEditableElement?: () => HTMLElement | null;
+}
 
 export interface DraftToolbarSaveProps {
   saving: boolean;
