@@ -834,9 +834,8 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
                 onDelete={handleDeleteWP}
                 onToggleLock={handleToggleLock}
                 canEdit={isCoordinator}
-                isCoordinator={isCoordinator}
-                proposalId={proposalId}
               />
+
             ))}
           </SortableContext>
         </DndContext>
