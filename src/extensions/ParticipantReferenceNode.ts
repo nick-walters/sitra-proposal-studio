@@ -99,7 +99,7 @@ export const ParticipantReferenceNode = Node.create<ParticipantReferenceOptions>
   },
 
   renderHTML({ node, HTMLAttributes }) {
-    const label = node.attrs.shortName || 'Partner';
+    const label = formatParticipantLabel({ organisation_short_name: node.attrs.shortName });
 
     return [
       'span',
