@@ -214,5 +214,5 @@ export function useProposalCustomColors(proposalId: string | null | undefined) {
     [usedColors],
   );
 
-  return { customColors, usedColors, addCustomColor, removeCustomColor, isColorInUse };
+  return { customColors, usedColors, addCustomColor, removeCustomColor, isColorInUse, refetchUsed: usedQ.refetch };
 }
