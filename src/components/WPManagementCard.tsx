@@ -120,7 +120,7 @@ function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete
       {useThemes ? (
         <div className="flex justify-center">
           <WPBubble
-            wpColor={effectiveColor}
+            wpColor={wp.color}
             style={{ fontSize: '12px', height: 'auto', padding: '2px 8px' }}
           >
             WP{wp.number}
