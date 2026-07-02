@@ -1,0 +1,1 @@
+ALTER TABLE public.proposals ADD COLUMN IF NOT EXISTS b32_infrastructure_order jsonb NOT NULL DEFAULT '[]'::jsonb;
