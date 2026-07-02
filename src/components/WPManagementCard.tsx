@@ -526,10 +526,15 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
             .eq('id', lastTwo[i].id);
         }
       }
+
+      // Reassign colours positionally (theme-mode overrides applied on top)
+      const { reconcileWPColorsForProposal } = await import('@/lib/computeWPColors');
+      await reconcileWPColorsForProposal(proposalId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wp-drafts-management', proposalId] });
       queryClient.invalidateQueries({ queryKey: ['wp-drafts', proposalId] });
+      window.dispatchEvent(new CustomEvent('cross-ref-data-changed', { detail: { source: 'WPManagementCard.add' } }));
       onSaveEvent?.();
       toast.success('Work package added');
     },
