@@ -1,11 +1,32 @@
 import { useEffect, useMemo } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { ParticipantBubble } from './B31Pill';
 import { EditableCaption } from '@/components/EditableCaption';
+import { useProposalRole } from '@/hooks/useProposalRole';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { GripVertical } from 'lucide-react';
 
 interface Props {
   proposalId: string;
+  /** true only when rendered in the editor NodeView; false/undefined in export. */
+  interactive?: boolean;
 }
 
 type ParticipantRow = {
@@ -32,8 +53,14 @@ type MergedRow = {
 
 const SEP = '\u241E';
 
-export function B32MirrorInfrastructureSlot({ proposalId }: Props) {
+function mergeKey(name: string, description: string | null | undefined) {
+  return (name || '').trim().toLowerCase() + SEP + (description || '').trim().toLowerCase();
+}
+
+export function B32MirrorInfrastructureSlot({ proposalId, interactive = false }: Props) {
   const qc = useQueryClient();
+  const { roleTier } = useProposalRole(proposalId);
+  const canReorder = interactive && (roleTier === 'coordinator');
 
   const toggleQ = useQuery({
     queryKey: ['b32-mirror-toggles', proposalId],
@@ -42,7 +69,7 @@ export function B32MirrorInfrastructureSlot({ proposalId }: Props) {
       const { data, error } = await supabase
         .from('proposals')
         .select(
-          'mirror_contribution_resources, mirror_infrastructure, mirror_value_chain, mirror_industrial_involvement, mirror_participation_justification',
+          'mirror_contribution_resources, mirror_infrastructure, mirror_value_chain, mirror_industrial_involvement, mirror_participation_justification, b32_infrastructure_order',
         )
         .eq('id', proposalId)
         .maybeSingle();
@@ -52,6 +79,10 @@ export function B32MirrorInfrastructureSlot({ proposalId }: Props) {
   });
 
   const enabled = toggleQ.data ? Boolean(toggleQ.data.mirror_infrastructure) : false;
+  const savedOrder: string[] = useMemo(() => {
+    const raw = (toggleQ.data as any)?.b32_infrastructure_order;
+    return Array.isArray(raw) ? raw.filter((k) => typeof k === 'string') : [];
+  }, [toggleQ.data]);
 
   const dataQ = useQuery({
     queryKey: ['b32-mirror-infrastructure', proposalId],
@@ -91,9 +122,9 @@ export function B32MirrorInfrastructureSlot({ proposalId }: Props) {
     const groups = new Map<string, MergedRow>();
     for (const item of dataQ.data.items) {
       const nameTrim = (item.name || '').trim();
-      if (nameTrim.length === 0) continue; // blank-name items omitted
+      if (nameTrim.length === 0) continue;
       const descTrim = (item.description || '').trim();
-      const key = nameTrim.toLowerCase() + SEP + descTrim.toLowerCase();
+      const key = mergeKey(item.name, item.description);
       const participant = partById.get(item.participant_id);
       if (!participant) continue;
       let group = groups.get(key);
@@ -113,19 +144,81 @@ export function B32MirrorInfrastructureSlot({ proposalId }: Props) {
         if (n < group.minPartNum) group.minPartNum = n;
       }
     }
-    // Sort participants inside each row by participant_number asc.
     for (const g of groups.values()) {
       g.participants.sort(
         (a, b) => (a.participant_number ?? 9999) - (b.participant_number ?? 9999),
       );
     }
-    return Array.from(groups.values()).sort(
-      (a, b) => a.minPartNum - b.minPartNum || a.name.localeCompare(b.name),
-    );
-  }, [dataQ.data]);
+    const all = Array.from(groups.values());
+    const orderIdx = new Map(savedOrder.map((k, i) => [k, i]));
+    // Known keys first (in saved order), unknown keys after (default sort).
+    const known = all
+      .filter((r) => orderIdx.has(r.key))
+      .sort((a, b) => (orderIdx.get(a.key)! - orderIdx.get(b.key)!));
+    const unknown = all
+      .filter((r) => !orderIdx.has(r.key))
+      .sort((a, b) => a.minPartNum - b.minPartNum || a.name.localeCompare(b.name));
+    return [...known, ...unknown];
+  }, [dataQ.data, savedOrder]);
+
+  const persistOrderMut = useMutation({
+    mutationFn: async (newOrder: string[]) => {
+      const { error } = await (supabase as any)
+        .from('proposals')
+        .update({ b32_infrastructure_order: newOrder })
+        .eq('id', proposalId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['b32-mirror-toggles', proposalId] });
+    },
+  });
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = rows.findIndex((r) => r.key === active.id);
+    const newIndex = rows.findIndex((r) => r.key === over.id);
+    if (oldIndex < 0 || newIndex < 0) return;
+    const reordered = arrayMove(rows, oldIndex, newIndex);
+    persistOrderMut.mutate(reordered.map((r) => r.key));
+  };
 
   if (!enabled) return null;
   if (rows.length === 0) return null;
+
+  const tableInner = (
+    <table
+      data-table-key="b32-infrastructure"
+      className="platform-table platform-table--tight"
+      style={{ tableLayout: 'fixed', borderCollapse: 'collapse', width: '100%' }}
+    >
+      <colgroup>
+        <col style={{ width: '75%' }} />
+        <col style={{ width: '25%' }} />
+      </colgroup>
+      <thead>
+        <tr>
+          <th className="cell-pl-0 py-0 text-[11pt] text-left align-bottom">Infrastructure</th>
+          <th className="cell-pl-0 py-0 text-[11pt] text-left align-bottom">Access</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((r) =>
+          canReorder ? (
+            <SortableInfraRow key={r.key} row={r} />
+          ) : (
+            <StaticInfraRow key={r.key} row={r} />
+          ),
+        )}
+      </tbody>
+    </table>
+  );
 
   return (
     <div
@@ -138,46 +231,90 @@ export function B32MirrorInfrastructureSlot({ proposalId }: Props) {
         label="Table 3.2.b."
         defaultCaption="Access to critical infrastructure"
       />
-      <table
-        data-table-key="b32-infrastructure"
-        className="platform-table platform-table--tight"
-        style={{ tableLayout: 'fixed', borderCollapse: 'collapse', width: '100%' }}
-      >
-        <colgroup>
-          <col style={{ width: '75%' }} />
-          <col style={{ width: '25%' }} />
-        </colgroup>
-        <thead>
-          <tr>
-            <th className="cell-pl-0 py-0 text-[11pt] text-left align-bottom">Infrastructure</th>
-            <th className="cell-pl-0 py-0 text-[11pt] text-left align-bottom">Access</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={r.key}>
-              <td className="align-top cell-pl-0 py-0 leading-tight text-[11pt]">
-                <strong>{r.name}</strong>
-                {r.description ? <>: {r.description}</> : null}
-              </td>
-              <td className="align-top cell-pl-0 py-0 leading-tight text-[11pt]">
-                <span
-                  style={{ display: 'inline-flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}
-                >
-                  {r.participants.map((p) => (
-                    <ParticipantBubble
-                      key={p.id}
-                      number={p.participant_number ?? undefined}
-                      shortName={p.organisation_short_name ?? ''}
-                    />
-                  ))}
-                </span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {canReorder ? (
+        <div className="relative w-full [&>div]:overflow-visible">
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={rows.map((r) => r.key)} strategy={verticalListSortingStrategy}>
+              {tableInner}
+            </SortableContext>
+          </DndContext>
+        </div>
+      ) : (
+        tableInner
+      )}
     </div>
+  );
+}
+
+function InfraRowCells({ row }: { row: MergedRow }) {
+  return (
+    <>
+      <td className="align-top cell-pl-0 py-0 leading-tight text-[11pt]" style={{ position: 'relative' }}>
+        <strong>{row.name}</strong>
+        {row.description ? <>: {row.description}</> : null}
+      </td>
+      <td className="align-top cell-pl-0 py-0 leading-tight text-[11pt]">
+        <span style={{ display: 'inline-flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
+          {row.participants.map((p) => (
+            <ParticipantBubble
+              key={p.id}
+              number={p.participant_number ?? undefined}
+              shortName={p.organisation_short_name ?? ''}
+            />
+          ))}
+        </span>
+      </td>
+    </>
+  );
+}
+
+function StaticInfraRow({ row }: { row: MergedRow }) {
+  return (
+    <tr>
+      <InfraRowCells row={row} />
+    </tr>
+  );
+}
+
+function SortableInfraRow({ row }: { row: MergedRow }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: row.key,
+  });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+  return (
+    <tr ref={setNodeRef} style={style} className="group hover:bg-muted/50">
+      <td
+        className="align-top cell-pl-0 py-0 leading-tight text-[11pt]"
+        style={{ position: 'relative' }}
+      >
+        <div
+          className="absolute top-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity z-10"
+          style={{ left: '-20px' }}
+          {...attributes}
+          {...listeners}
+          aria-label="Drag to reorder"
+        >
+          <GripVertical className="h-4 w-4 text-[#2563EB]" />
+        </div>
+        <strong>{row.name}</strong>
+        {row.description ? <>: {row.description}</> : null}
+      </td>
+      <td className="align-top cell-pl-0 py-0 leading-tight text-[11pt]">
+        <span style={{ display: 'inline-flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
+          {row.participants.map((p) => (
+            <ParticipantBubble
+              key={p.id}
+              number={p.participant_number ?? undefined}
+              shortName={p.organisation_short_name ?? ''}
+            />
+          ))}
+        </span>
+      </td>
+    </tr>
   );
 }
 
