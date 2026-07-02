@@ -147,6 +147,13 @@ export function ParticipantDescriptionsSection({
                 onUnderline={() => exec('underline')}
               />
 
+              <FontColorToolbarButton
+                proposalId={proposalId ?? null}
+                canManageCustom={canManageCustomColors}
+              />
+
+
+
 
 
               <div className="ml-auto">
