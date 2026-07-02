@@ -151,7 +151,9 @@ export function WPColorPicker({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        {wpNumber !== undefined ? (
+        {trigger ? (
+          <>{trigger}</>
+        ) : wpNumber !== undefined ? (
           <button
             className={cn(
               'inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold transition-all text-white',
