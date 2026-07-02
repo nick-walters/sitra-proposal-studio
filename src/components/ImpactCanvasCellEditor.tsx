@@ -56,11 +56,6 @@ export function ImpactCanvasCellEditor({ html, onChange, onFocus, onBlur, disabl
   return (
     <div className="w-full">
       <EditorContent editor={editor} />
-      {editor && editor.isEmpty && placeholder && (
-        <div className="px-2 -mt-[76px] text-xs text-muted-foreground italic pointer-events-none h-0">
-          {placeholder}
-        </div>
-      )}
     </div>
   );
 }
