@@ -60,7 +60,9 @@ export function FontColorToolbarButton({
   canManageCustom,
   disabled,
   getEditableElement,
+  onOpenChange,
 }: FontColorToolbarButtonProps) {
+
   const savedRangeRef = useRef<Range | null>(null);
   const [currentColor, setCurrentColor] = useState<string>('');
 
