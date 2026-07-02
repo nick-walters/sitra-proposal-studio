@@ -53,6 +53,9 @@ interface ParticipantDescriptionsSectionProps {
   lastSaved: Date | null;
   saveError?: string | null;
   canEdit: boolean;
+  proposalId?: string;
+  /** Coordinator+? Enables deleting custom colours from the shared library. */
+  canManageCustomColors?: boolean;
 }
 
 export function ParticipantDescriptionsSection({
@@ -63,6 +66,8 @@ export function ParticipantDescriptionsSection({
   lastSaved,
   saveError,
   canEdit,
+  proposalId,
+  canManageCustomColors = false,
 }: ParticipantDescriptionsSectionProps) {
   const [anyFieldFocused, setAnyFieldFocused] = useState(false);
   const blurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
