@@ -203,6 +203,7 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['figures', proposalId] });
+      queryClient.invalidateQueries({ queryKey: ['figure-caption', variables.id] });
       // Sync selectedFigure with the updates so the editor reflects changes immediately
       setSelectedFigure(prev => prev && prev.id === variables.id
         ? { ...prev, ...variables.updates, content: variables.updates.content ?? prev.content }
