@@ -61,6 +61,12 @@ interface WPDraft {
   is_hidden?: boolean;
 }
 
+interface WPColourResolutionContext {
+  useThemes: boolean;
+  themes: Pick<WPTheme, 'id' | 'color'>[];
+  overrides: readonly (string | null | undefined)[];
+}
+
 interface SortableWPRowProps {
   wp: WPDraft;
   participants: ParticipantSummary[];
@@ -330,7 +336,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
   // Loaded here so optimistic reorder/add/delete updates can compute the FINAL
   // colour (override- and theme-aware) synchronously, avoiding a flash to the
   // positional default before reconcileWPColorsForProposal runs.
-  const { data: positionOverrides = [] } = useQuery({
+  const { data: positionOverrides = [], isFetched: positionOverridesFetched } = useQuery({
     queryKey: ['wp-position-overrides', proposalId],
     queryFn: () => fetchPositionOverrides(proposalId),
     enabled: !!proposalId,
@@ -358,15 +364,72 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
   // Compute the FINAL colour for a WP at a given position, matching
   // reconcileWPColorsForProposal: theme colour (if themes enabled + assigned)
   // wins over per-position override, which wins over positional default.
-  const resolveFinalColor = useCallback(
-    (orderIndex: number, total: number, themeId: string | null | undefined): string => {
-      if (useWpThemes && themeId) {
-        const t = themes.find((x) => x.id === themeId);
+  const resolveFinalColorFromContext = useCallback(
+    (
+      orderIndex: number,
+      total: number,
+      themeId: string | null | undefined,
+      context: WPColourResolutionContext,
+    ): string => {
+      if (context.useThemes && themeId) {
+        const t = context.themes.find((x) => x.id === themeId);
         if (t?.color) return t.color;
       }
-      return computeWPColorForPosition(orderIndex, total, positionOverrides);
+      return computeWPColorForPosition(orderIndex, total, context.overrides);
     },
-    [useWpThemes, themes, positionOverrides],
+    [],
+  );
+
+  const loadedColorContext: WPColourResolutionContext = {
+    useThemes: useWpThemes,
+    themes,
+    overrides: positionOverrides,
+  };
+
+  const resolveFinalColor = useCallback(
+    (orderIndex: number, total: number, themeId: string | null | undefined): string =>
+      resolveFinalColorFromContext(orderIndex, total, themeId, loadedColorContext),
+    [resolveFinalColorFromContext, loadedColorContext],
+  );
+
+  const fetchFreshColourContext = useCallback(async (): Promise<WPColourResolutionContext> => {
+    const [propRes, themesRes, overrides] = await Promise.all([
+      supabase
+        .from('proposals')
+        .select('use_wp_themes')
+        .eq('id', proposalId)
+        .single(),
+      supabase
+        .from('wp_themes')
+        .select('id, color')
+        .eq('proposal_id', proposalId),
+      fetchPositionOverrides(proposalId),
+    ]);
+    if (propRes.error) throw propRes.error;
+    if (themesRes.error) throw themesRes.error;
+    return {
+      useThemes: propRes.data?.use_wp_themes ?? false,
+      themes: (themesRes.data || []) as Pick<WPTheme, 'id' | 'color'>[],
+      overrides,
+    };
+  }, [proposalId]);
+
+  const getOptimisticColourContext = useCallback(async (): Promise<WPColourResolutionContext> => {
+    if (proposal && positionOverridesFetched) return loadedColorContext;
+    return fetchFreshColourContext();
+  }, [fetchFreshColourContext, loadedColorContext, positionOverridesFetched, proposal]);
+
+  const buildReorderedWPs = useCallback(
+    (reorderedWPs: WPDraft[], colourContext: WPColourResolutionContext): WPDraft[] => {
+      const total = reorderedWPs.length;
+      return reorderedWPs.map((wp, index) => ({
+        ...wp,
+        order_index: index,
+        number: index + 1,
+        color: resolveFinalColorFromContext(index, total, wp.theme_id, colourContext),
+      }));
+    },
+    [resolveFinalColorFromContext],
   );
 
   const handleDraftVisibility = async (field: 'wp_drafts_visible' | 'case_drafts_visible', visible: boolean) => {
@@ -432,19 +495,23 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
   // colour written by reconcileWPColorsForProposal (no flash to default).
   const reorderMutation = useMutation({
     mutationFn: async (reorderedWPs: WPDraft[]) => {
+      const colourContext = await fetchFreshColourContext();
       const total = reorderedWPs.length;
       const updates = reorderedWPs.map((wp, index) => ({
         id: wp.id,
         order_index: index,
         number: index + 1,
-        color: resolveFinalColor(index, total, wp.theme_id),
+        color: resolveFinalColorFromContext(index, total, wp.theme_id, colourContext),
       }));
 
-      // First pass: set order_index + temp negative number to avoid unique-constraint clashes
+      // First pass: set order_index + temp negative number to avoid unique-constraint clashes.
+      // IMPORTANT: write the FINAL colour here too. Realtime can refetch after
+      // any individual row update, so there must be no DB window where a WP has
+      // its new position but its old/default colour.
       for (const update of updates) {
         const { error } = await supabase
           .from('wp_drafts')
-          .update({ order_index: update.order_index, number: -(update.number + 1000) })
+          .update({ order_index: update.order_index, number: -(update.number + 1000), color: update.color })
           .eq('id', update.id);
         if (error) throw error;
       }
@@ -463,21 +530,38 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
       await reconcileWPColorsForProposal(proposalId);
     },
     onMutate: async (reorderedWPs) => {
-      await queryClient.cancelQueries({ queryKey: ['wp-drafts-management', proposalId] });
+      await Promise.all([
+        queryClient.cancelQueries({ queryKey: ['wp-drafts-management', proposalId] }),
+        queryClient.cancelQueries({ queryKey: ['wp-drafts', proposalId] }),
+      ]);
+      const colourContext = await getOptimisticColourContext();
       const previousWPs = queryClient.getQueryData<WPDraft[]>(['wp-drafts-management', proposalId]);
-      const total = reorderedWPs.length;
-      const optimisticWPs = reorderedWPs.map((wp, index) => ({
-        ...wp,
-        order_index: index,
-        number: index + 1,
-        color: resolveFinalColor(index, total, wp.theme_id),
-      }));
+      const previousNavWPs = queryClient.getQueryData<any[]>(['wp-drafts', proposalId]);
+      const optimisticWPs = buildReorderedWPs(reorderedWPs, colourContext);
       queryClient.setQueryData(['wp-drafts-management', proposalId], optimisticWPs);
-      return { previousWPs };
+      const previousNavById = new Map((previousNavWPs || []).map((wp) => [wp.id, wp]));
+      queryClient.setQueryData(
+        ['wp-drafts', proposalId],
+        optimisticWPs.map((wp) => ({
+          ...(previousNavById.get(wp.id) || {}),
+          id: wp.id,
+          number: wp.number,
+          short_name: wp.short_name,
+          title: wp.title,
+          color: wp.color,
+          order_index: wp.order_index,
+          theme_id: wp.theme_id,
+          is_hidden: wp.is_hidden,
+        })),
+      );
+      return { previousWPs, previousNavWPs };
     },
     onError: (_err, _vars, context) => {
       if (context?.previousWPs) {
         queryClient.setQueryData(['wp-drafts-management', proposalId], context.previousWPs);
+      }
+      if (context?.previousNavWPs) {
+        queryClient.setQueryData(['wp-drafts', proposalId], context.previousNavWPs);
       }
       toast.error('Failed to reorder work packages');
     },
@@ -486,7 +570,6 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
       queryClient.invalidateQueries({ queryKey: ['wp-drafts', proposalId] });
       queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
       queryClient.invalidateQueries({ queryKey: ['wp-drafts-gantt', proposalId] });
-      queryClient.invalidateQueries({ queryKey: ['wp-position-overrides', proposalId] });
       window.dispatchEvent(new CustomEvent('cross-ref-data-changed', { detail: { source: 'WPManagementCard.reorder' } }));
 
       onSaveEvent?.();
