@@ -498,12 +498,12 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
   const addWPMutation = useMutation({
     mutationFn: async () => {
       const total = wpDrafts.length;
-      const { WP_CONTENT_COLORS } = await import('@/lib/wpColors');
 
       if (total < 2) {
         // Less than 2 WPs: just append
         const newNumber = total + 1;
-        const color = WP_CONTENT_COLORS[(newNumber - 1) % WP_CONTENT_COLORS.length];
+        const newTotal = total + 1;
+        const color = resolveFinalColor(newNumber - 1, newTotal, null);
         const { error } = await supabase.from('wp_drafts').insert({
           proposal_id: proposalId,
           number: newNumber,
@@ -515,7 +515,8 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
         // Insert before the last two WPs
         const insertPosition = total - 2; // 0-indexed position for the new WP
         const newWPNumber = insertPosition + 1;
-        const color = WP_CONTENT_COLORS[insertPosition % WP_CONTENT_COLORS.length];
+        const newTotal = total + 1;
+        const color = resolveFinalColor(insertPosition, newTotal, null);
 
         // First pass: shift last two WPs to temporary negative numbers
         const lastTwo = wpDrafts.slice(-2);
@@ -544,8 +545,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
         }
       }
 
-      // Reassign colours positionally (theme-mode overrides applied on top)
-      const { reconcileWPColorsForProposal } = await import('@/lib/computeWPColors');
+      // Authoritative reassignment — safety net.
       await reconcileWPColorsForProposal(proposalId);
     },
     onSuccess: () => {
