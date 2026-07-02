@@ -248,7 +248,9 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
   });
 
   // Fetch themes for the proposal
-  const { data: themesData = [] } = useQuery({
+  // Themes fetched only to keep the realtime cache warm for the WP manager;
+  // colour resolution happens via wp_drafts.color (write-down).
+  const { data: _themesData = [] } = useQuery({
     queryKey: ['wp-themes', proposalId],
     queryFn: async () => {
       if (!proposalId) return [];
@@ -258,15 +260,11 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
         .eq('proposal_id', proposalId)
         .order('order_index');
       if (error) throw error;
-      return data || [];
+      return (data || []) as WPTheme[];
     },
     enabled: !!proposalId,
   });
-
-  const useWpThemes = proposalData?.use_wp_themes ?? false;
-  const themesMap = useMemo(() => {
-    return new Map(themesData.map((t: WPTheme) => [t.id, t]));
-  }, [themesData]);
+  void _themesData;
 
   // Convert WP drafts to sections. wp_drafts.color is now the single
   // authoritative colour (written down from theme colour when themes are
