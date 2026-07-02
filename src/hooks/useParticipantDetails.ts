@@ -150,7 +150,7 @@ export function useParticipantDetails(participantId: string | undefined, proposa
       const { error } = await supabase
         .from('participant_descriptions')
         .upsert(
-          { proposal_id: proposalId, participant_id: participantId, [field]: value },
+          { proposal_id: proposalId, participant_id: participantId, [field]: value } as never,
           { onConflict: 'proposal_id,participant_id' },
         );
       if (error) throw error;

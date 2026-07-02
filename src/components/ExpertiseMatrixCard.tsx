@@ -313,7 +313,7 @@ function B32MirrorToggles({ proposalId, isCoordinator }: { proposalId: string; i
       ...(prev ?? {}),
       [key]: value,
     }));
-    const { error } = await supabase.from('proposals').update({ [key]: value }).eq('id', proposalId);
+    const { error } = await supabase.from('proposals').update({ [key]: value } as never).eq('id', proposalId);
     if (error) qc.invalidateQueries({ queryKey });
     window.dispatchEvent(new CustomEvent('cross-ref-data-changed', { detail: { type: 'b32-mirror-toggles' } }));
   };
