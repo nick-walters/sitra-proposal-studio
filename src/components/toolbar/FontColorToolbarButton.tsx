@@ -20,7 +20,10 @@ interface FontColorToolbarButtonProps {
    * selection.
    */
   getEditableElement?: () => HTMLElement | null;
+  /** Notified when the picker popover opens/closes (for parent focus retention). */
+  onOpenChange?: (open: boolean) => void;
 }
+
 
 function currentColorFromSelection(): string {
   try {
@@ -57,7 +60,9 @@ export function FontColorToolbarButton({
   canManageCustom,
   disabled,
   getEditableElement,
+  onOpenChange,
 }: FontColorToolbarButtonProps) {
+
   const savedRangeRef = useRef<Range | null>(null);
   const [currentColor, setCurrentColor] = useState<string>('');
 
@@ -170,6 +175,8 @@ export function FontColorToolbarButton({
       trigger={trigger}
       label="Text colour"
       disabled={disabled}
+      onOpenChange={onOpenChange}
     />
+
   );
 }

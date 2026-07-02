@@ -9,41 +9,13 @@ import { cn } from '@/lib/utils';
 
 // ---------- Format helpers (canonical storage is always hex) ----------
 
-type ColorFormat = 'hex' | 'rgb';
-
 const HEX_RE = /^#([0-9a-fA-F]{6})$/;
-const RGB_RE = /^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/;
 
 function normaliseHex(v: string): string | null {
   const m = v.trim().match(HEX_RE);
   return m ? `#${m[1].toUpperCase()}` : null;
 }
 
-function hexToRgbString(hex: string): string {
-  const h = hex.replace('#', '');
-  const r = parseInt(h.slice(0, 2), 16);
-  const g = parseInt(h.slice(2, 4), 16);
-  const b = parseInt(h.slice(4, 6), 16);
-  return `rgb(${r}, ${g}, ${b})`;
-}
-
-function rgbStringToHex(v: string): string | null {
-  const m = v.trim().match(RGB_RE);
-  if (!m) return null;
-  const [r, g, b] = [m[1], m[2], m[3]].map((n) => parseInt(n, 10));
-  if ([r, g, b].some((n) => n < 0 || n > 255)) return null;
-  const toHex = (n: number) => n.toString(16).padStart(2, '0').toUpperCase();
-  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-}
-
-function formatValue(hex: string, format: ColorFormat): string {
-  if (format === 'rgb') return hexToRgbString(hex);
-  return hex.toUpperCase();
-}
-
-function parseValue(input: string, format: ColorFormat): string | null {
-  return format === 'rgb' ? rgbStringToHex(input) : normaliseHex(input);
-}
 
 // ---------- Picker ----------
 
@@ -76,6 +48,14 @@ interface WPColorPickerProps {
   onRemove?: () => void;
   /** Label for the remove-colour button. */
   removeLabel?: string;
+  /**
+   * Palette colours to hide from the displayed swatches (display-only exclusion).
+   * The colour is still valid if entered as hex or present as an in-proposal
+   * colour. Used e.g. to hide black from WP/theme pickers.
+   */
+  excludePaletteColors?: string[];
+  /** Notified when the popover opens/closes (for parent focus retention). */
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function WPColorPicker({
@@ -91,10 +71,11 @@ export function WPColorPicker({
   trigger,
   onRemove,
   removeLabel = 'Remove colour',
+  excludePaletteColors,
+  onOpenChange,
 }: WPColorPickerProps) {
   const [open, setOpen] = useState(false);
-  const [format, setFormat] = useState<ColorFormat>('hex');
-  const [inputValue, setInputValue] = useState(() => formatValue(color, 'hex'));
+  const [inputValue, setInputValue] = useState(() => normaliseHex(color) ?? color.toUpperCase());
 
   const {
     customColors,
@@ -106,8 +87,11 @@ export function WPColorPicker({
   const allowDelete = (canManageCustom ?? !disabled) && !!proposalId;
 
   useEffect(() => {
-    setInputValue(formatValue(color, format));
-  }, [color, format]);
+    setInputValue(normaliseHex(color) ?? color.toUpperCase());
+  }, [color]);
+
+  const excludeSet = new Set((excludePaletteColors ?? []).map((c) => c.toUpperCase()));
+  const displayedPalette = palette.filter((c) => !excludeSet.has((normaliseHex(c) ?? c).toUpperCase()));
 
   // Union of caller-supplied extras + persisted custom colours, deduped and
   // excluded from the default palette.
@@ -122,7 +106,7 @@ export function WPColorPicker({
 
   const commitColor = (newHex: string) => {
     onChange(newHex);
-    setInputValue(formatValue(newHex, format));
+    setInputValue(newHex.toUpperCase());
     // Auto-add non-palette picks to proposals.custom_colors.
     if (proposalId && !paletteSet.has(newHex.toUpperCase())) {
       void addCustomColor(newHex);
@@ -132,24 +116,26 @@ export function WPColorPicker({
   const handleSelectSwatch = (paletteColor: string) => {
     const hex = normaliseHex(paletteColor) ?? paletteColor;
     commitColor(hex);
-    setOpen(false);
+    handleOpenChange(false);
   };
 
   const handleInputBlur = () => {
-    const parsed = parseValue(inputValue, format);
+    const parsed = normaliseHex(inputValue);
     if (parsed) {
       commitColor(parsed);
     } else {
-      setInputValue(formatValue(color, format));
+      setInputValue(normaliseHex(color) ?? color.toUpperCase());
     }
   };
 
-  const cycleFormat = () => {
-    setFormat((f) => (f === 'hex' ? 'rgb' : 'hex'));
+  const handleOpenChange = (next: boolean) => {
+    setOpen(next);
+    onOpenChange?.(next);
   };
 
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         {trigger ? (
           trigger
@@ -181,7 +167,7 @@ export function WPColorPicker({
               Sitra&apos;s colour palette
             </div>
             <div className="grid grid-cols-6 gap-1.5">
-              {palette.map((paletteColor, index) => {
+              {displayedPalette.map((paletteColor, index) => {
                 const norm = normaliseHex(paletteColor) ?? paletteColor.toUpperCase();
                 const isSelected = (normaliseHex(color) ?? color.toUpperCase()) === norm;
                 return (
@@ -245,7 +231,7 @@ export function WPColorPicker({
             </div>
           )}
 
-          {/* Free colour value input with HEX/RGB cycle */}
+          {/* Free colour value input (hex only) */}
           <div className="flex items-center gap-2">
             <div
               className="h-8 w-8 rounded-md border flex-shrink-0"
@@ -261,17 +247,12 @@ export function WPColorPicker({
                   handleInputBlur();
                 }
               }}
-              placeholder={format === 'hex' ? '#000000' : 'rgb(0, 0, 0)'}
+              placeholder="#000000"
               className="h-8 font-mono text-xs"
             />
-            <button
-              type="button"
-              onClick={cycleFormat}
-              className="h-8 px-2 rounded-md border text-[11px] font-mono uppercase text-muted-foreground hover:bg-muted transition-colors"
-              title="Cycle colour format"
-            >
-              {format}
-            </button>
+            <span className="h-8 px-2 rounded-md border text-[11px] font-mono uppercase text-muted-foreground flex items-center">
+              hex
+            </span>
           </div>
 
           {onRemove && (
@@ -281,7 +262,8 @@ export function WPColorPicker({
               className="w-full h-7 text-xs"
               onClick={() => {
                 onRemove();
-                setOpen(false);
+                handleOpenChange(false);
+
               }}
             >
               {removeLabel}
