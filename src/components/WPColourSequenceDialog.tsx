@@ -14,7 +14,21 @@ import {
   reconcileWPColorsForProposal,
   setPositionOverride,
 } from '@/lib/computeWPColors';
-import { DEFAULT_WP_COLORS, themeLetter } from '@/lib/wpColors';
+import {
+  DEFAULT_WP_COLORS,
+  themeLetter,
+  WP_CONTENT_COLORS,
+  WP_EXPLOITATION_COLOR,
+  WP_COORDINATION_COLOR,
+} from '@/lib/wpColors';
+
+/** Default colour for a theme at a given position (mirrors seed + fixed-pair rule). */
+function defaultThemeColor(orderIndex: number, total: number): string {
+  if (total >= 2 && orderIndex === total - 1) return WP_COORDINATION_COLOR;
+  if (total >= 2 && orderIndex === total - 2) return WP_EXPLOITATION_COLOR;
+  const idx = ((orderIndex % WP_CONTENT_COLORS.length) + WP_CONTENT_COLORS.length) % WP_CONTENT_COLORS.length;
+  return WP_CONTENT_COLORS[idx];
+}
 import { RotateCcw, Plus, Trash2, GripVertical, Lock } from 'lucide-react';
 import { useWPThemes, isFixedThemeIndex, type WPTheme } from '@/hooks/useWPThemes';
 import {
