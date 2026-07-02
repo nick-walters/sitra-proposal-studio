@@ -379,6 +379,7 @@ interface SortableThemeRowProps {
   total: number;
   extraColors: string[];
   canEdit: boolean;
+  proposalId: string;
   onColorChange: (hex: string) => void;
   onShortChange: (v: string) => void;
   onNameChange: (v: string) => void;
@@ -386,7 +387,7 @@ interface SortableThemeRowProps {
 }
 
 function SortableThemeRow({
-  theme, index, total, extraColors, canEdit,
+  theme, index, total, extraColors, canEdit, proposalId,
   onColorChange, onShortChange, onNameChange, onDelete,
 }: SortableThemeRowProps) {
   const fixed = isFixedThemeIndex(index, total);
@@ -416,6 +417,8 @@ function SortableThemeRow({
           onChange={onColorChange}
           wpNumber={theme.number}
           extraColors={extraColors}
+          proposalId={proposalId}
+          canManageCustom={canEdit}
           disabled={!canEdit}
         />
       </div>
