@@ -433,7 +433,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
     queryFn: async () => {
       const { data, error } = await supabase
         .from('wp_drafts')
-        .select('id, number, short_name, title, lead_participant_id, color, color_locked, order_index, theme_id, is_locked, locked_by, is_hidden')
+        .select('id, number, short_name, title, lead_participant_id, color, order_index, theme_id, is_locked, locked_by, is_hidden')
         .eq('proposal_id', proposalId)
         .order('order_index');
       if (error) throw error;
