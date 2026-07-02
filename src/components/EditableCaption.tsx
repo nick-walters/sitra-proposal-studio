@@ -77,11 +77,24 @@ export function EditableCaption({
       }, { onConflict: 'proposal_id,table_key' });
   }, [editValue, caption, proposalId, tableKey]);
 
+  // Infer caption kind from the label prefix: "Figure ..." → centred figure
+  // caption, anything else (typically "Table ...") → left-aligned table caption.
+  // This matches the app-wide rule enforced by .figure-caption / .table-caption
+  // in index.css; explicit justifyContent is needed here because this <p> is a
+  // flex container and text-align is ignored on flex containers.
+  const isFigure = /^\s*figure\b/i.test(label);
+  const kindClass = isFigure ? 'figure-caption' : 'table-caption';
+
   return (
     <p
-      className={`${tableStyles} italic ${className} relative group/caption`}
+      className={`${tableStyles} italic ${kindClass} ${className} relative group/caption`}
       data-commentable={`caption-${tableKey}`}
-      style={{ display: 'flex', flexWrap: 'nowrap', alignItems: 'baseline' }}
+      style={{
+        display: 'flex',
+        flexWrap: 'nowrap',
+        alignItems: 'baseline',
+        justifyContent: isFigure ? 'center' : 'flex-start',
+      }}
       onFocusCapture={() => setFocused(true)}
       onBlurCapture={(e) => {
         // Only unfocus if focus leaves the entire <p> container
