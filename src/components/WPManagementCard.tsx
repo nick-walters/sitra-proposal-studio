@@ -802,6 +802,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
         onSaved={() => {
           queryClient.invalidateQueries({ queryKey: ['wp-drafts-management', proposalId] });
           queryClient.invalidateQueries({ queryKey: ['wp-drafts', proposalId] });
+          queryClient.invalidateQueries({ queryKey: ['wp-position-overrides', proposalId] });
           queryClient.invalidateQueries({ queryKey: ['wp-themes', proposalId] });
           onSaveEvent?.();
         }}
