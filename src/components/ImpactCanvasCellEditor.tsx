@@ -1,0 +1,66 @@
+import { useEditor, EditorContent, Editor } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Underline from '@tiptap/extension-underline';
+import { useEffect, useRef } from 'react';
+import { wordCleanPasteProps } from '@/lib/tiptapPasteProps';
+
+interface Props {
+  html: string;
+  onChange: (html: string) => void;
+  onFocus: (editor: Editor) => void;
+  onBlur?: () => void;
+  disabled?: boolean;
+  placeholder?: string;
+}
+
+/**
+ * Small rich-text cell editor for the Impact Canvas builder. Focus reports
+ * up so a SHARED toolbar can operate on the currently-focused cell (avoids
+ * spawning a toolbar per cell for large N×6 grids).
+ */
+export function ImpactCanvasCellEditor({ html, onChange, onFocus, onBlur, disabled, placeholder }: Props) {
+  const lastEmitted = useRef(html);
+
+  const editor = useEditor({
+    extensions: [StarterKit.configure({ heading: false }), Underline],
+    content: html || '',
+    editable: !disabled,
+    editorProps: {
+      ...wordCleanPasteProps,
+      attributes: {
+        class: 'prose prose-sm max-w-none focus:outline-none min-h-[80px] px-2 py-1',
+      },
+    },
+    onUpdate: ({ editor }) => {
+      const next = editor.getHTML();
+      if (next === lastEmitted.current) return;
+      lastEmitted.current = next;
+      onChange(next);
+    },
+    onFocus: ({ editor }) => onFocus(editor),
+    onBlur: () => onBlur?.(),
+  });
+
+  // Sync external changes into the editor without clobbering the caret while typing.
+  useEffect(() => {
+    if (!editor) return;
+    if (html === lastEmitted.current) return;
+    lastEmitted.current = html;
+    editor.commands.setContent(html || '', { emitUpdate: false });
+  }, [html, editor]);
+
+  useEffect(() => {
+    if (editor) editor.setEditable(!disabled);
+  }, [disabled, editor]);
+
+  return (
+    <div className="w-full">
+      <EditorContent editor={editor} />
+      {editor && editor.isEmpty && placeholder && (
+        <div className="px-2 -mt-[76px] text-xs text-muted-foreground italic pointer-events-none h-0">
+          {placeholder}
+        </div>
+      )}
+    </div>
+  );
+}
