@@ -135,7 +135,7 @@ export function WPColorPicker({
 
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         {trigger ? (
           trigger
@@ -167,7 +167,7 @@ export function WPColorPicker({
               Sitra&apos;s colour palette
             </div>
             <div className="grid grid-cols-6 gap-1.5">
-              {palette.map((paletteColor, index) => {
+              {displayedPalette.map((paletteColor, index) => {
                 const norm = normaliseHex(paletteColor) ?? paletteColor.toUpperCase();
                 const isSelected = (normaliseHex(color) ?? color.toUpperCase()) === norm;
                 return (
@@ -231,7 +231,7 @@ export function WPColorPicker({
             </div>
           )}
 
-          {/* Free colour value input with HEX/RGB cycle */}
+          {/* Free colour value input (hex only) */}
           <div className="flex items-center gap-2">
             <div
               className="h-8 w-8 rounded-md border flex-shrink-0"
@@ -247,17 +247,12 @@ export function WPColorPicker({
                   handleInputBlur();
                 }
               }}
-              placeholder={format === 'hex' ? '#000000' : 'rgb(0, 0, 0)'}
+              placeholder="#000000"
               className="h-8 font-mono text-xs"
             />
-            <button
-              type="button"
-              onClick={cycleFormat}
-              className="h-8 px-2 rounded-md border text-[11px] font-mono uppercase text-muted-foreground hover:bg-muted transition-colors"
-              title="Cycle colour format"
-            >
-              {format}
-            </button>
+            <span className="h-8 px-2 rounded-md border text-[11px] font-mono uppercase text-muted-foreground flex items-center">
+              hex
+            </span>
           </div>
 
           {onRemove && (
@@ -267,7 +262,8 @@ export function WPColorPicker({
               className="w-full h-7 text-xs"
               onClick={() => {
                 onRemove();
-                setOpen(false);
+                handleOpenChange(false);
+
               }}
             >
               {removeLabel}
