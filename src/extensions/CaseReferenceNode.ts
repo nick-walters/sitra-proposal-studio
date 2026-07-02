@@ -144,15 +144,11 @@ export const CaseReferenceNode = Node.create<CaseReferenceOptions>({
     const caseColor = node.attrs.caseColor || '#000000';
     const includeNumber = node.attrs.includeNumber !== false;
     const includeAbbreviation = node.attrs.includeAbbreviation !== false;
-    const prefix = getCaseTypePrefix(caseType);
-    const label = buildCaseLabel({
-      prefix,
-      number: caseNumber,
-      shortName: caseShortName,
-      includeNumber,
-      includeAbbreviation,
-      withShortName: false,
-    });
+    const label = formatCaseLabel(
+      { number: caseNumber, case_type: caseType, short_name: caseShortName },
+      { includeNumber, includeAbbreviation },
+    );
+
 
     return [
       'span',
