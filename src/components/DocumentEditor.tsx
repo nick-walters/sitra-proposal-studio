@@ -814,22 +814,14 @@ export function DocumentEditor({
       attrs: { src: imageUrl, alt: figure.title, widthPercent: 100, alignment: 'center' }
     });
     
-    // Add the caption
+    // Add the caption — read-only atom node that renders live from figures.caption
     contentToInsert.push({
-      type: 'paragraph',
-      attrs: { class: 'figure-caption', textAlign: 'center' },
-      content: [
-        {
-          type: 'text',
-          marks: [{ type: 'italic' }, { type: 'bold' }],
-          text: figureLabel + '. '
-        },
-        {
-          type: 'text',
-          marks: [{ type: 'italic' }],
-          text: ' ' + (figure.title || '')
-        }
-      ]
+      type: 'figureCaption',
+      attrs: {
+        figureId: figure.id || null,
+        figureNumber: figure.figureNumber,
+        captionText: figure.title || '',
+      },
     });
     
     editor.chain()
