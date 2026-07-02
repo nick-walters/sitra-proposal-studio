@@ -74,8 +74,9 @@ export function useProposalCustomColors(proposalId: string | null | undefined) {
       const [wpRes, thRes, ctRes] = await Promise.all([
         supabase
           .from('wp_drafts')
-          .select('color, objectives, description_before_tasks, b31_objectives, b31_description_before_tasks')
+          .select('id, color, objectives, description_before_tasks, b31_objectives, b31_description_before_tasks')
           .eq('proposal_id', proposalId),
+
         supabase.from('wp_themes').select('color').eq('proposal_id', proposalId),
         supabase.from('proposal_case_types').select('outline_color').eq('proposal_id', proposalId),
       ]);
