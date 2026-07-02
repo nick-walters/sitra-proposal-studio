@@ -428,16 +428,17 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
     },
   });
 
-  // Reorder mutation with optimistic updates — reassigns colours positionally
+  // Reorder mutation with optimistic updates — reassigns colours positionally,
+  // but override- and theme-aware so the optimistic colour equals the final
+  // colour written by reconcileWPColorsForProposal (no flash to default).
   const reorderMutation = useMutation({
     mutationFn: async (reorderedWPs: WPDraft[]) => {
-      const { computeWPColorForPosition } = await import('@/lib/computeWPColors');
       const total = reorderedWPs.length;
       const updates = reorderedWPs.map((wp, index) => ({
         id: wp.id,
         order_index: index,
         number: index + 1,
-        color: computeWPColorForPosition(index, total),
+        color: resolveFinalColor(index, total, wp.theme_id),
       }));
 
       // First pass: set order_index + temp negative number to avoid unique-constraint clashes
@@ -449,7 +450,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
         if (error) throw error;
       }
 
-      // Second pass: set final number AND positional colour
+      // Second pass: set final number AND final (override/theme-aware) colour
       for (const update of updates) {
         const { error } = await supabase
           .from('wp_drafts')
@@ -458,20 +459,19 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
         if (error) throw error;
       }
 
-      // Theme-mode: overwrite positional colour with theme colour where assigned
-      const { reconcileWPColorsForProposal } = await import('@/lib/computeWPColors');
+      // Authoritative pass — safety net; should be a no-op when optimistic
+      // colours already match.
       await reconcileWPColorsForProposal(proposalId);
     },
     onMutate: async (reorderedWPs) => {
       await queryClient.cancelQueries({ queryKey: ['wp-drafts-management', proposalId] });
       const previousWPs = queryClient.getQueryData<WPDraft[]>(['wp-drafts-management', proposalId]);
-      const { computeWPColorForPosition } = await import('@/lib/computeWPColors');
       const total = reorderedWPs.length;
       const optimisticWPs = reorderedWPs.map((wp, index) => ({
         ...wp,
         order_index: index,
         number: index + 1,
-        color: computeWPColorForPosition(index, total),
+        color: resolveFinalColor(index, total, wp.theme_id),
       }));
       queryClient.setQueryData(['wp-drafts-management', proposalId], optimisticWPs);
       return { previousWPs };
@@ -487,6 +487,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
       queryClient.invalidateQueries({ queryKey: ['wp-drafts', proposalId] });
       queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
       queryClient.invalidateQueries({ queryKey: ['wp-drafts-gantt', proposalId] });
+      queryClient.invalidateQueries({ queryKey: ['wp-position-overrides', proposalId] });
       window.dispatchEvent(new CustomEvent('cross-ref-data-changed', { detail: { source: 'WPManagementCard.reorder' } }));
 
       onSaveEvent?.();
