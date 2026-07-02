@@ -539,11 +539,14 @@ export function GeneralInfoForm({
                         onAcronymChange={(newAcronym) => {
                           setEditedProposal({ ...editedProposal, acronym: newAcronym });
                           onUpdateProposal({ acronym: newAcronym });
+                          window.dispatchEvent(new CustomEvent('cross-ref-data-changed', { detail: { source: 'GeneralInfoForm.acronym' } }));
                         }}
                         onChange={(segments) => {
                           setEditedProposal({ ...editedProposal, acronymSegments: segments } as any);
                           onUpdateProposal({ acronymSegments: segments });
+                          window.dispatchEvent(new CustomEvent('cross-ref-data-changed', { detail: { source: 'GeneralInfoForm.acronymSegments' } }));
                         }}
+
                         placeholder="Type acronym…"
                         showHelperText={false}
                       />

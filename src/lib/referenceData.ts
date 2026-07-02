@@ -64,6 +64,11 @@ export interface FigureData {
   title: string;
 }
 
+export interface AcronymSegmentData {
+  text: string;
+  color: string;
+}
+
 export interface RefSnapshot {
   wpById: Map<string, WPData>;
   taskById: Map<string, TaskData>;
@@ -73,7 +78,9 @@ export interface RefSnapshot {
   participantById: Map<string, ParticipantData>;
   figureById: Map<string, FigureData>;
   tableCaptionMap: Map<string, string>;
+  acronymSegments: AcronymSegmentData[];
 }
+
 
 /**
  * Fetches current numbering data for all cross-referenceable items in a
@@ -81,7 +88,7 @@ export interface RefSnapshot {
  * syncCrossReferences.ts.
  */
 export async function fetchReferenceData(proposalId: string): Promise<RefSnapshot> {
-  const [wpRes, taskRes, delRes, msRes, caseRes, caseTypeRes, participantRes, figureRes, tableCaptionRes] = await Promise.all([
+  const [wpRes, taskRes, delRes, msRes, caseRes, caseTypeRes, participantRes, figureRes, tableCaptionRes, proposalRes] = await Promise.all([
     supabase
       .from('wp_drafts')
       .select('id, number, color, short_name')
@@ -122,7 +129,13 @@ export async function fetchReferenceData(proposalId: string): Promise<RefSnapsho
       .from('table_captions')
       .select('table_key, caption')
       .eq('proposal_id', proposalId),
+    supabase
+      .from('proposals')
+      .select('acronym, acronym_segments')
+      .eq('id', proposalId)
+      .maybeSingle(),
   ]);
+
 
   const wps: WPData[] = wpRes.data || [];
   const wpMap = new Map(wps.map(wp => [wp.id, wp]));
@@ -169,6 +182,13 @@ export async function fetchReferenceData(proposalId: string): Promise<RefSnapsho
     tableCaptionMap.set(tc.table_key, tc.caption || '');
   }
 
+  const proposalRow = (proposalRes as any).data as { acronym: string | null; acronym_segments: AcronymSegmentData[] | null } | null;
+  const rawSegs = (proposalRow?.acronym_segments as AcronymSegmentData[] | null) || [];
+  const plainAcronym = proposalRow?.acronym || '';
+  const acronymSegments: AcronymSegmentData[] = rawSegs.length > 0
+    ? rawSegs
+    : (plainAcronym ? [{ text: plainAcronym, color: '#000000' }] : []);
+
   return {
     wpById: wpMap,
     taskById: new Map(tasks.map(t => [t.id, t])),
@@ -178,8 +198,10 @@ export async function fetchReferenceData(proposalId: string): Promise<RefSnapsho
     participantById: new Map(participants.map(p => [p.id, p])),
     figureById: new Map(figures.map(f => [f.id, f])),
     tableCaptionMap,
+    acronymSegments,
   };
 }
+
 
 /**
  * React Query hook wrapping fetchReferenceData. Invalidated by the
