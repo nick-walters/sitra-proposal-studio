@@ -433,6 +433,8 @@ export function FormattingToolbar({
   figureInsertMode = 'dialog',
   subheadingPrefix,
   showSubheadingBodyItem = true,
+  proposalId,
+  canManageCustomColors,
 }: { 
   editor: Editor | null;
   sectionNumber?: string;
