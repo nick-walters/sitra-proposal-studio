@@ -451,6 +451,35 @@ export async function syncCrossReferences(
   }
 
   // ─────────────────────────────────────────────────────────────────────────
+  // acronymReference is an inline atom NODE. Its `segments` attr is baked
+  // in at insertion time, so it drifts when A1's acronym colours change.
+  // Refresh from data.acronymSegments (with the plain-acronym→black-segment
+  // fallback already applied in fetchReferenceData) via setNodeMarkup.
+  // ─────────────────────────────────────────────────────────────────────────
+  type AcronymNodeChange = { pos: number; newAttrs: Record<string, any> };
+  const acronymNodeChanges: AcronymNodeChange[] = [];
+  const targetAcronymSegs = data.acronymSegments;
+  const targetAcronymJson = JSON.stringify(targetAcronymSegs);
+
+  if (targetAcronymSegs.length > 0) {
+    doc.descendants((node, pos) => {
+      if (node.type.name !== 'acronymReference') return;
+      const currentJson = JSON.stringify(node.attrs.segments || []);
+      if (currentJson === targetAcronymJson) return;
+      acronymNodeChanges.push({ pos, newAttrs: { ...node.attrs, segments: targetAcronymSegs } });
+    });
+  }
+
+  acronymNodeChanges.sort((a, b) => b.pos - a.pos);
+  for (const c of acronymNodeChanges) {
+    const targetNode = tr.doc.nodeAt(c.pos);
+    if (!targetNode || targetNode.type.name !== 'acronymReference') continue;
+    tr.setNodeMarkup(c.pos, undefined, c.newAttrs);
+    changed = true;
+  }
+
+
+  // ─────────────────────────────────────────────────────────────────────────
   // Deleted-ref placeholders — apply LAST, highest-pos first so earlier
   // positions stay valid through any size changes (figureTable mark ranges
   // can be multi-char; atom nodes are size 1). Each replacement collapses
