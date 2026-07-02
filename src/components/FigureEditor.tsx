@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { GanttChartFigure } from '@/components/GanttChartFigure';
 import { PERTChartFigure } from '@/components/PERTChartFigure';
+import { ImpactCanvasBuilder } from '@/components/ImpactCanvasBuilder';
 import {
   Dialog,
   DialogContent,
@@ -225,6 +226,8 @@ export function FigureEditor({
             canEdit={canEdit}
           />
         );
+      case 'impact-canvas':
+        return <ImpactCanvasBuilder proposalId={proposalId} canEdit={canEdit} />;
       case 'image':
       case 'ai':
         return (
