@@ -143,7 +143,10 @@ function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete
           onChange={(color) => onUpdate(wp.id, { color } as any)}
           wpNumber={wp.number}
           disabled={!canEdit}
+          proposalId={proposalId}
+          canManageCustom={isCoordinator}
         />
+
 
       )}
 
