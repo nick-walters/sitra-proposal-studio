@@ -29,8 +29,6 @@ import {
 } from '@/components/ui/dialog';
 import { WPBubble, ParticipantBubble } from '@/components/B31Pill';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { WPColorPicker } from '@/components/WPColorPicker';
 
 import { Layers, GripVertical, Plus, Trash2, Lock, LockOpen, Palette } from 'lucide-react';
