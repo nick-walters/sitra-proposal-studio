@@ -1,4 +1,10 @@
 import { Node, mergeAttributes } from '@tiptap/core';
+import {
+  formatTaskLabel,
+  formatDeliverableLabel,
+  formatMilestoneLabel,
+} from '@/lib/referenceLabels';
+
 
 export interface InlineReferenceOptions {
   HTMLAttributes: Record<string, any>;
