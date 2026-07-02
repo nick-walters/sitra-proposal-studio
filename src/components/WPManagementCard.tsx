@@ -700,120 +700,17 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
         open={colourSequenceOpen}
         onOpenChange={setColourSequenceOpen}
         proposalId={proposalId}
+        isCoordinator={isCoordinator}
         onSaved={() => {
           queryClient.invalidateQueries({ queryKey: ['wp-drafts-management', proposalId] });
           queryClient.invalidateQueries({ queryKey: ['wp-drafts', proposalId] });
+          queryClient.invalidateQueries({ queryKey: ['wp-themes', proposalId] });
           onSaveEvent?.();
         }}
       />
 
       <CardContent className="space-y-2">
-        {/* WP Themes Toggle (only for lump sum proposals) */}
-        {isLumpSum && isCoordinator && (
-          <div className="flex items-center space-x-2 pb-3 border-b mb-3">
-            <Switch
-              id="use-wp-themes"
-              checked={useWpThemes}
-              onCheckedChange={(checked) => toggleWpThemesMutation.mutate(checked)}
-            />
-            <Label htmlFor="use-wp-themes" className="text-sm cursor-pointer">
-              Lump sum: Group WPs by themes (one colour per theme)
-            </Label>
-          </div>
-        )}
 
-        {/* Theme Management Table (when themes enabled) */}
-        {useWpThemes && (
-          <div className="mb-4 pb-4 border-b">
-            <h4 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
-              <Paintbrush className="w-4 h-4" />
-              Themes
-            </h4>
-            
-            {/* Theme Table Header */}
-            <div className="grid grid-cols-[24px_50px_100px_1fr_20px] gap-1.5 items-center text-xs font-bold text-muted-foreground border-b pb-1 min-h-[28px]">
-              <div />
-              <div className="text-center">Theme</div>
-              <div>Short name</div>
-              <div>Theme name</div>
-              <div />
-            </div>
-
-            {/* Theme List */}
-            {themes.map((theme) => (
-              <div
-                key={theme.id}
-                className="grid grid-cols-[24px_50px_100px_1fr_20px] gap-1.5 items-center py-1 border-b"
-              >
-                <div />
-                {/* Theme Badge with Color */}
-                <div className="flex justify-center">
-                  <button
-                    className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold text-white cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all"
-                    style={{ backgroundColor: theme.color }}
-                    onClick={() => {
-                      const input = document.createElement('input');
-                      input.type = 'color';
-                      input.value = theme.color;
-                      input.onchange = (e) => updateTheme(theme.id, { color: (e.target as HTMLInputElement).value });
-                      input.click();
-                    }}
-                    disabled={!isCoordinator}
-                    title="Click to change colour"
-                  >
-                    T{theme.number}
-                  </button>
-                </div>
-                {/* Short name */}
-                <DebouncedInput
-                  value={theme.short_name || ''}
-                  onDebouncedChange={(v) => updateTheme(theme.id, { short_name: v })}
-                  placeholder="Short"
-                  className="h-7 text-sm"
-                  disabled={!isCoordinator}
-                />
-                {/* Theme name */}
-                <DebouncedInput
-                  value={theme.name || ''}
-                  onDebouncedChange={(v) => updateTheme(theme.id, { name: v })}
-                  placeholder="Theme name"
-                  className="h-7 text-sm"
-                  disabled={!isCoordinator}
-                />
-                {/* Delete Button */}
-                {isCoordinator && (
-                  <button
-                    onClick={() => {
-                      if (confirm('Delete this theme? WPs using it will have no theme assigned.')) {
-                        deleteTheme(theme.id);
-                      }
-                    }}
-                    className="p-1 text-destructive hover:bg-destructive/10 rounded transition-colors"
-                    title="Delete theme"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                )}
-                {!isCoordinator && <div />}
-              </div>
-            ))}
-
-            {/* Theme Actions */}
-            {isCoordinator && (
-              <div className="flex items-center gap-2 mt-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => addTheme()}
-                  disabled={isAddingTheme}
-                >
-                  <Plus className="w-4 h-4 mr-1" />
-                  Add Theme
-                </Button>
-              </div>
-            )}
-          </div>
-        )}
 
         {/* Table Header */}
         <div className={`grid ${useWpThemes ? 'grid-cols-[24px_50px_100px_90px_1fr_80px_20px_20px]' : 'grid-cols-[24px_50px_90px_1fr_80px_20px_20px]'} gap-x-1.5 items-center text-xs font-bold text-muted-foreground border-b pb-1 min-h-[28px]`}>
