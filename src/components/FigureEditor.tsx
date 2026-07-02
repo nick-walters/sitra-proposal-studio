@@ -102,7 +102,7 @@ export function FigureEditor({
   };
 
   const handleSave = () => {
-    onUpdate({ title });
+    onUpdate({ caption });
   };
 
   const handleRegenerate = async () => {
