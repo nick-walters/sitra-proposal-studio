@@ -29,14 +29,11 @@ import {
 } from '@/components/ui/dialog';
 import { WPBubble, ParticipantBubble } from '@/components/B31Pill';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { WPColorPicker } from '@/components/WPColorPicker';
-
 import { Layers, GripVertical, Plus, Trash2, Lock, LockOpen, Palette } from 'lucide-react';
 import { WPColourSequenceDialog } from '@/components/WPColourSequenceDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
-import { useWPColorPalette } from '@/hooks/useWPColorPalette';
 import { useWPThemes, WPTheme } from '@/hooks/useWPThemes';
 import { themeLetter } from '@/lib/wpColors';
 import {
@@ -54,7 +51,6 @@ interface WPDraft {
   title: string | null;
   lead_participant_id: string | null;
   color: string;
-  color_locked: boolean;
   order_index: number;
   theme_id: string | null;
   is_locked: boolean;
@@ -77,11 +73,9 @@ interface SortableWPRowProps {
   onDelete: (id: string) => void;
   onToggleLock: (id: string, locked: boolean) => void;
   canEdit: boolean;
-  isCoordinator: boolean;
-  proposalId: string;
 }
 
-function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete, onToggleLock, canEdit, isCoordinator, proposalId }: SortableWPRowProps) {
+function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete, onToggleLock, canEdit }: SortableWPRowProps) {
   const [leadOpen, setLeadOpen] = useState(false);
   const {
     attributes,
@@ -128,30 +122,15 @@ function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete
         )}
       </div>
 
-      {/* WP Number Badge - with Color Picker or Theme Color */}
-      {useThemes ? (
-        <div className="flex justify-center">
-          <WPBubble
-            wpColor={wp.color}
-            style={{ fontSize: '12px', height: 'auto', padding: '2px 8px' }}
-          >
-            WP{wp.number}
-          </WPBubble>
-        </div>
-      ) : (
-        <WPColorPicker
-          color={wp.color}
-          onChange={(color) => onUpdate(wp.id, { color } as any)}
-          wpNumber={wp.number}
-          disabled={!canEdit}
-          proposalId={proposalId}
-          canManageCustom={isCoordinator}
-          excludePaletteColors={['#000000']}
-        />
-
-
-
-      )}
+      {/* WP Number Badge — read-only colour swatch (edit via Colour sequence dialogue) */}
+      <div className="flex justify-center">
+        <WPBubble
+          wpColor={wp.color}
+          style={{ fontSize: '12px', height: 'auto', padding: '2px 8px' }}
+        >
+          WP{wp.number}
+        </WPBubble>
+      </div>
 
       {/* Theme selector (only when themes enabled) */}
       {useThemes && (
@@ -326,9 +305,8 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
 
   const [colourSequenceOpen, setColourSequenceOpen] = useState(false);
 
-  // Color palette hook — retained for legacy read; per-position overrides now
-  // live in wp_color_palette.colors indexed by orderIndex (see Stage C).
-  const { colors: wpColors, updatePalette } = useWPColorPalette(proposalId);
+
+
 
 
   const sensors = useSensors(
@@ -455,7 +433,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
     queryFn: async () => {
       const { data, error } = await supabase
         .from('wp_drafts')
-        .select('id, number, short_name, title, lead_participant_id, color, color_locked, order_index, theme_id, is_locked, locked_by, is_hidden')
+        .select('id, number, short_name, title, lead_participant_id, color, order_index, theme_id, is_locked, locked_by, is_hidden')
         .eq('proposal_id', proposalId)
         .order('order_index');
       if (error) throw error;
@@ -856,9 +834,8 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
                 onDelete={handleDeleteWP}
                 onToggleLock={handleToggleLock}
                 canEdit={isCoordinator}
-                isCoordinator={isCoordinator}
-                proposalId={proposalId}
               />
+
             ))}
           </SortableContext>
         </DndContext>
