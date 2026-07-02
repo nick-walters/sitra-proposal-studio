@@ -295,33 +295,21 @@ export function FigureEditor({
           </div>
         </div>
 
-        {/* Title & Caption */}
+        {/* Caption */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Figure details</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="title">Title</Label>
-              <Input
-                id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Figure title"
-                disabled={!canEdit}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="caption">Caption</Label>
+          <CardContent className="pt-4 pb-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="caption" className="text-sm">Caption</Label>
               <Input
                 id="caption"
                 value={caption}
-                placeholder="No caption set. Edit in Part B templates."
-                disabled
-                className="bg-muted/50"
+                onChange={(e) => setCaption(e.target.value)}
+                onBlur={handleSave}
+                placeholder="Enter figure caption"
+                disabled={!canEdit}
               />
               <p className="text-xs text-muted-foreground">
-                Captions are edited in Part B templates where the figure is inserted.
+                Shown as “Figure {figure.figureNumber}. {'{caption}'}” wherever this figure is inserted.
               </p>
             </div>
           </CardContent>
