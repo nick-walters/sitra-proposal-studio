@@ -29,14 +29,11 @@ import {
 } from '@/components/ui/dialog';
 import { WPBubble, ParticipantBubble } from '@/components/B31Pill';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { WPColorPicker } from '@/components/WPColorPicker';
-
 import { Layers, GripVertical, Plus, Trash2, Lock, LockOpen, Palette } from 'lucide-react';
 import { WPColourSequenceDialog } from '@/components/WPColourSequenceDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
-import { useWPColorPalette } from '@/hooks/useWPColorPalette';
 import { useWPThemes, WPTheme } from '@/hooks/useWPThemes';
 import { themeLetter } from '@/lib/wpColors';
 import {
