@@ -83,7 +83,9 @@ export function WPColorPicker({
     addCustomColor,
     removeCustomColor,
     isColorInUse,
+    refetchUsed,
   } = useProposalCustomColors(proposalId);
+
 
   const allowDelete = (canManageCustom ?? !disabled) && !!proposalId;
 
