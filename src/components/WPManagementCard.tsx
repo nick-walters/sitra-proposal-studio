@@ -51,7 +51,6 @@ interface WPDraft {
   title: string | null;
   lead_participant_id: string | null;
   color: string;
-  color_locked: boolean;
   order_index: number;
   theme_id: string | null;
   is_locked: boolean;
