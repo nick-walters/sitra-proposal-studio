@@ -136,12 +136,17 @@ export function DocumentEditor({
   workProgramme,
   destination,
   allSections = [],
-  acronymSegments,
+  acronymSegments: acronymSegmentsProp,
   openPanel,
 }: DocumentEditorProps) {
+  // Fallback: if no acronym colours saved but a plain acronym exists, use a single all-black segment.
+  const acronymSegments = (acronymSegmentsProp && acronymSegmentsProp.length > 0)
+    ? acronymSegmentsProp
+    : (proposalAcronym ? [{ text: proposalAcronym, color: '#000000' }] : []);
   const { user } = useAuth();
   const { roleTier } = useProposalRole(proposalId);
   const { data: caseTypes = [] } = useProposalCaseTypes(proposalId);
+
 
 
   // Fetch profile full_name from DB for reliable author name in track changes
