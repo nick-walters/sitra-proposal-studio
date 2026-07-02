@@ -881,12 +881,11 @@ export function CaseManagementCard({
                             <>
                               <label className="flex items-center gap-1.5 text-xs ml-2">
                                 <span className="text-muted-foreground">Outline:</span>
-                                <input
-                                  type="color"
-                                  value={typeRow.outline_color || '#000000'}
-                                  onChange={(e) => updateTypeMutation.mutate({ typeRowId: typeRow.id, patch: { outline_color: e.target.value } })}
-                                  className="w-7 h-6 rounded border cursor-pointer p-0"
-                                  aria-label="Outline colour"
+                                <WPColorPicker
+                                  color={typeRow.outline_color || '#000000'}
+                                  onChange={(c) => updateTypeMutation.mutate({ typeRowId: typeRow.id, patch: { outline_color: c } })}
+                                  proposalId={proposalId}
+                                  canManageCustom={isCoordinator}
                                 />
                               </label>
                               <label className="flex items-center gap-1 text-xs">
