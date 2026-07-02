@@ -190,7 +190,7 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
   // Update figure mutation
   const updateFigure = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Figure> }) => {
-      const payload: Record<string, unknown> = {};
+      const payload: { title?: string; caption?: string | null; content?: any } = {};
       if (updates.title !== undefined) payload.title = updates.title;
       if (updates.caption !== undefined) payload.caption = updates.caption;
       if (updates.content !== undefined) payload.content = updates.content;
