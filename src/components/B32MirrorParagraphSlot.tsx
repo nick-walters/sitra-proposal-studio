@@ -27,14 +27,12 @@ interface SlotConfig {
     | 'mirror_value_chain'
     | 'mirror_industrial_involvement'
     | 'mirror_participation_justification';
-  prefixWithWill?: boolean;
 }
 
 const SLOT_MAP: Record<B32ParagraphSlotKey, SlotConfig> = {
   capacity: {
     field: 'contribution_resources',
     toggle: 'mirror_contribution_resources',
-    prefixWithWill: true,
   },
   'value-chain': { field: 'value_chain', toggle: 'mirror_value_chain' },
   industrial: { field: 'industrial_involvement', toggle: 'mirror_industrial_involvement' },
@@ -174,7 +172,6 @@ export function B32MirrorParagraphSlot({ proposalId, slotKey }: Props) {
                 number={participant.participant_number ?? undefined}
                 shortName={participant.organisation_short_name ?? ''}
               />
-              {config.prefixWithWill ? <span style={{ marginLeft: 4 }}>will</span> : null}
             </span>
             <span
               data-b32-mirror-body=""
