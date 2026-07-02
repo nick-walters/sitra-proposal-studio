@@ -27,10 +27,8 @@ export function isDefaultPaletteColor(hex: string): boolean {
  * wp_color_palette; centralises auto-add + delete so every WPColorPicker
  * usage contributes.
  *
- * `usedColors` = union of colours currently in use by WPs and themes. The
- * in-use guard used by the picker's delete button consults this set. A future
- * font-colour check would union its own set into `usedColors` here so no
- * other call site needs to change.
+ * `usedColors` = union of colours currently in use by WPs, themes, case types,
+ * and proposal rich text. The picker's delete guard consults this set.
  */
 
 async function fetchProposalUsedColors(proposalId: string): Promise<string[]> {
