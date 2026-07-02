@@ -6,8 +6,6 @@ import { Check, Circle, BarChart3, Users, Package, ListChecks } from 'lucide-rea
 import { useWPDrafts } from '@/hooks/useWPDrafts';
 import { useWPProgress } from '@/hooks/useWPProgress';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useQuery } from '@tanstack/react-query';
-void useQuery; // retained import will be removed once callers migrate
 
 
 interface WPProgressTrackerProps {
