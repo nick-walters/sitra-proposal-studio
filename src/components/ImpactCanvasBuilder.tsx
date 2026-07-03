@@ -104,7 +104,7 @@ export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figure
               </span>
             </div>
             <div ref={graphicRef} style={{ paddingBottom: 8, paddingRight: 8 }}>
-              <ImpactCanvasGraphic proposalId={proposalId} />
+              <ImpactCanvasFreeformEditor proposalId={proposalId} canEdit={canEdit} />
             </div>
           </CardContent>
         </Card>
