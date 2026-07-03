@@ -714,7 +714,7 @@ export function GanttChartFigure({
       )}
 
       <TooltipProvider>
-        <div ref={chartRef} className="overflow-hidden" style={fontStyle}>
+        <div ref={chartRef} className="overflow-hidden" style={{ ...fontStyle, paddingBottom: 8 }}>
           {/* Header block: RP, Year, Month rows with unified outer border */}
           <div className="flex">
             {/* Labels column */}
