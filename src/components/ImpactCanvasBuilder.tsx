@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Plus, Trash2, Settings2, Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, Info, Undo2, Redo2 } from 'lucide-react';
-import DOMPurify from 'dompurify';
 import { useImpactCanvasColumns, useImpactCanvasRows } from '@/hooks/useImpactCanvas';
 import { useProposalRole } from '@/hooks/useProposalRole';
 import { ImpactCanvasCellEditor } from './ImpactCanvasCellEditor';
@@ -12,31 +11,6 @@ import { ImpactCanvasColumnDialog } from './ImpactCanvasColumnDialog';
 import { ImpactCanvasCrossRefDropdown } from './ImpactCanvasCrossRefDropdown';
 import { ImpactCanvasGraphic } from './ImpactCanvasGraphic';
 
-interface Props {
-  proposalId: string;
-  canEdit: boolean;
-}
-
-// Sanitiser preserves cross-reference badge markup produced by the WP /
-// Case / Inline (task, deliverable) TipTap nodes: data-* attrs, inline
-// styles, contenteditable="false", and the SVG pentagon used for
-// deliverable badges. Without these the badges would render as bare
-// text/span shells in the graphic preview.
-const CELL_SANITIZE_CONFIG = {
-  ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'ul', 'ol', 'li', 'span', 'svg', 'path'],
-  ALLOWED_ATTR: [
-    'class',
-    'style',
-    'contenteditable',
-    // svg / path
-    'width', 'height', 'viewBox', 'xmlns', 'd', 'fill', 'stroke', 'stroke-width', 'stroke-linejoin',
-  ],
-  ALLOW_DATA_ATTR: true,
-};
-
-function sanitize(html: string) {
-  return DOMPurify.sanitize(html || '', CELL_SANITIZE_CONFIG);
-}
 
 
 /**
