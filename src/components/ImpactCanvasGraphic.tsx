@@ -88,7 +88,8 @@ export function ImpactCanvasGraphic({ proposalId, className }: Props) {
       {columnOrder.map((c) => (
         <div
           key={`h-${c.id}`}
-          className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground text-center border-b pb-1"
+          className="text-[11px] font-bold text-muted-foreground text-left border-b pb-1 whitespace-pre-line"
+          style={{ fontFamily: '"Arial Black", Arial, sans-serif' }}
         >
           {c.heading}
         </div>
