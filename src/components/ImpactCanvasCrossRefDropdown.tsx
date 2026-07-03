@@ -7,7 +7,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Link2 } from 'lucide-react';
 import { InsertWPReferenceDialog } from './InsertWPReferenceDialog';
 import { InsertCaseReferenceDialog } from './InsertCaseReferenceDialog';
@@ -122,30 +121,32 @@ export function ImpactCanvasCrossRefDropdown({ proposalId, activeEditor, disable
       .run();
   };
 
+  const [menuOpen, setMenuOpen] = useState(false);
+  const triggerDisabled = !activeEditor || !!disabled;
+
   return (
     <>
-      <DropdownMenu>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <DropdownMenuTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7"
-                disabled={!activeEditor || disabled}
-                // Prevent focus loss from the focused cell editor
-                onMouseDown={(e) => e.preventDefault()}
-                aria-label="Insert cross-reference"
-              >
-                <Link2 className="w-4 h-4" />
-              </Button>
-            </DropdownMenuTrigger>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" className="text-xs">
-            Insert cross-reference
-          </TooltipContent>
-        </Tooltip>
+      <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
+        <DropdownMenuTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            disabled={triggerDisabled}
+            // Focus-safe: prevent the cell editor from blurring, then
+            // toggle the menu manually (we can't rely on Radix's own
+            // pointerdown opener because preventDefault suppresses it).
+            onMouseDown={(e) => {
+              e.preventDefault();
+              if (!triggerDisabled) setMenuOpen((o) => !o);
+            }}
+            aria-label="Insert cross-reference"
+            title="Insert cross-reference (WP / task / deliverable / case)"
+          >
+            <Link2 className="w-4 h-4" />
+          </Button>
+        </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-40">
           <DropdownMenuItem onSelect={() => guardedOpen(() => setWpOpen(true))}>
             Work package…
