@@ -869,18 +869,17 @@ export function DocumentEditor({
     
     // Add the caption — editable plain paragraph. Text is the single source
     // and syncs back to figures.caption via the sync effect above.
-    const captionText = (figure as any).caption || figure.title || '';
-    const safeText = String(captionText).replace(/[<>&]/g, (c) =>
-      c === '<' ? '&lt;' : c === '>' ? '&gt;' : '&amp;'
-    );
+    const captionText = String((figure as any).caption || figure.title || '')
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     contentToInsert.push({
       type: 'paragraph',
       attrs: { class: 'figure-caption' },
       content: [
         { type: 'text', marks: [{ type: 'italic' }, { type: 'bold' }], text: `Figure ${figure.figureNumber}. ` },
-        { type: 'text', marks: [{ type: 'italic' }], text: safeText.replace(/&(lt|gt|amp);/g, (m) => m === '&lt;' ? '<' : m === '&gt;' ? '>' : '&') },
+        ...(captionText ? [{ type: 'text', marks: [{ type: 'italic' }], text: String((figure as any).caption || figure.title || '') }] : []),
       ],
     });
+
 
     
     editor.chain()
