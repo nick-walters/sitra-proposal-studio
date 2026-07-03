@@ -274,10 +274,9 @@ export function FigureEditor({
               <ArrowLeft className="w-4 h-4" />
             </Button>
             <div>
-              <h1 className="text-xl font-bold">Figure {figure.figureNumber}</h1>
-              <p className="text-sm text-muted-foreground">
-                {figure.figureType === 'ai' ? 'AI Generated' : figure.figureType === 'image' ? 'Uploaded Image' : `${figure.figureType} figure`} for section {figure.sectionId}
-              </p>
+              <h1 className="text-xl font-bold">
+                Figure {figure.figureNumber}{mirroredCaption ? `. ${mirroredCaption}` : ''}
+              </h1>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -292,39 +291,14 @@ export function FigureEditor({
               </label>
             )}
             {canEdit && (
-              <>
-                <Button variant="outline" size="sm" onClick={onDelete} className="text-destructive">
-                  <Trash2 className="w-4 h-4 mr-1" />
-                  Delete
-                </Button>
-                <Button size="sm" onClick={handleSave}>
-                  <Save className="w-4 h-4 mr-1" />
-                  Save
-                </Button>
-              </>
+              <Button variant="outline" size="sm" onClick={onDelete} className="text-destructive">
+                <Trash2 className="w-4 h-4 mr-1" />
+                Delete
+              </Button>
             )}
           </div>
         </div>
 
-        {/* Caption */}
-        <Card>
-          <CardContent className="pt-4 pb-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="caption" className="text-sm">Caption</Label>
-              <Input
-                id="caption"
-                value={caption}
-                onChange={(e) => setCaption(e.target.value)}
-                onBlur={handleSave}
-                placeholder="Enter figure caption"
-                disabled={!canEdit}
-              />
-              <p className="text-xs text-muted-foreground">
-                Shown as “Figure {figure.figureNumber}. {'{caption}'}” wherever this figure is inserted.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
 
         {/* AI Regeneration */}
         {figure.figureType === 'ai' && canEdit && figure.content?.imageUrl && (
