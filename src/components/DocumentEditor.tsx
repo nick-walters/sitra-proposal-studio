@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { caseWord } from "@/lib/caseTypeLabels";
 import { useProposalCaseTypes } from "@/hooks/useProposalCaseTypes";
 import { useB12CasesTableReconciler } from "@/hooks/useB12CasesTableReconciler";
+import { useUserRole } from "@/hooks/useUserRole";
 import { useB32MirrorsReconciler } from "@/hooks/useB32MirrorsReconciler";
 
 import DOMPurify from "dompurify";
