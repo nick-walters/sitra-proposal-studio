@@ -131,8 +131,8 @@ export function ImpactCanvasCrossRefDropdown({ proposalId, activeEditor, disable
           <Button
             type="button"
             variant="ghost"
-            size="icon"
-            className="h-7 w-7"
+            size="sm"
+            className="h-7 px-2 gap-1 shrink-0"
             disabled={triggerDisabled}
             // Focus-safe: prevent the cell editor from blurring, then
             // toggle the menu manually (we can't rely on Radix's own
@@ -143,8 +143,10 @@ export function ImpactCanvasCrossRefDropdown({ proposalId, activeEditor, disable
             }}
             aria-label="Insert cross-reference"
             title="Insert cross-reference (WP / task / deliverable / case)"
+            data-impact-canvas-crossref-trigger
           >
             <Link2 className="w-4 h-4" />
+            <span className="text-xs">Cross-ref</span>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-40">
