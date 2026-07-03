@@ -79,16 +79,17 @@ function SortableRow({
         </button>
       )}
       <div className="flex-1 space-y-2">
-        <Input
+        <Textarea
           value={heading}
           onChange={(e) => setHeading(e.target.value)}
           onBlur={() => {
-            if (heading.trim() && heading !== col.heading) onChange({ heading: heading.trim() });
+            const next = heading.replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n');
+            if (next.trim() && next !== col.heading) onChange({ heading: next });
             else setHeading(col.heading);
           }}
-          placeholder="Column heading"
+          placeholder="Column heading (multi-line allowed)"
           disabled={!canEdit}
-          className="font-semibold text-sm"
+          className="font-semibold text-sm min-h-[52px] whitespace-pre-wrap"
         />
         <Textarea
           value={guideline}
