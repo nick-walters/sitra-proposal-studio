@@ -9,20 +9,34 @@ import { useImpactCanvasColumns, useImpactCanvasRows } from '@/hooks/useImpactCa
 import { useProposalRole } from '@/hooks/useProposalRole';
 import { ImpactCanvasCellEditor } from './ImpactCanvasCellEditor';
 import { ImpactCanvasColumnDialog } from './ImpactCanvasColumnDialog';
+import { ImpactCanvasCrossRefDropdown } from './ImpactCanvasCrossRefDropdown';
 
 interface Props {
   proposalId: string;
   canEdit: boolean;
 }
 
+// Sanitiser preserves cross-reference badge markup produced by the WP /
+// Case / Inline (task, deliverable) TipTap nodes: data-* attrs, inline
+// styles, contenteditable="false", and the SVG pentagon used for
+// deliverable badges. Without these the badges would render as bare
+// text/span shells in the graphic preview.
 const CELL_SANITIZE_CONFIG = {
-  ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'ul', 'ol', 'li', 'span'],
-  ALLOWED_ATTR: [],
+  ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'ul', 'ol', 'li', 'span', 'svg', 'path'],
+  ALLOWED_ATTR: [
+    'class',
+    'style',
+    'contenteditable',
+    // svg / path
+    'width', 'height', 'viewBox', 'xmlns', 'd', 'fill', 'stroke', 'stroke-width', 'stroke-linejoin',
+  ],
+  ALLOW_DATA_ATTR: true,
 };
 
 function sanitize(html: string) {
   return DOMPurify.sanitize(html || '', CELL_SANITIZE_CONFIG);
 }
+
 
 /**
  * Impact Canvas — dedicated editor page (Phase 1b).
@@ -131,6 +145,13 @@ export function ImpactCanvasBuilder({ proposalId, canEdit }: Props) {
             onClick={() => run((c) => c.toggleOrderedList())}>
             <ListOrdered className="w-4 h-4" />
           </ToolbarBtn>
+          <div className="w-px h-5 bg-border mx-1" />
+          <ImpactCanvasCrossRefDropdown
+            proposalId={proposalId}
+            activeEditor={activeEditor}
+            disabled={!canEdit}
+          />
+
           <div className="flex-1" />
           <span className="text-xs text-muted-foreground pr-2">
             {activeEditor ? 'Editing focused cell' : 'Click a cell to edit'}

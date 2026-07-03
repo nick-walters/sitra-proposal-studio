@@ -3,6 +3,9 @@ import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import { useEffect, useRef } from 'react';
 import { wordCleanPasteProps } from '@/lib/tiptapPasteProps';
+import { WPReferenceNode } from '@/extensions/WPReferenceNode';
+import { CaseReferenceNode } from '@/extensions/CaseReferenceNode';
+import { InlineReferenceNode } from '@/extensions/InlineReferenceNode';
 
 interface Props {
   html: string;
@@ -17,12 +20,24 @@ interface Props {
  * Small rich-text cell editor for the Impact Canvas builder. Focus reports
  * up so a SHARED toolbar can operate on the currently-focused cell (avoids
  * spawning a toolbar per cell for large N×6 grids).
+ *
+ * Reference node extensions (WP/Case/Inline) are registered so the shared
+ * toolbar can insert badges into the focused cell via the standard
+ * `insertWPReference` / `insertCaseReference` / `insertTaskReference` /
+ * `insertDeliverableReference` commands. Without them TipTap would silently
+ * strip the badge markup on serialisation.
  */
 export function ImpactCanvasCellEditor({ html, onChange, onFocus, onBlur, disabled, placeholder }: Props) {
   const lastEmitted = useRef(html);
 
   const editor = useEditor({
-    extensions: [StarterKit.configure({ heading: false }), Underline],
+    extensions: [
+      StarterKit.configure({ heading: false }),
+      Underline,
+      WPReferenceNode,
+      CaseReferenceNode,
+      InlineReferenceNode,
+    ],
     content: html || '',
     editable: !disabled,
     editorProps: {
