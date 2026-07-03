@@ -11,6 +11,7 @@ import { Link2 } from 'lucide-react';
 import { InsertWPReferenceDialog } from './InsertWPReferenceDialog';
 import { InsertCaseReferenceDialog } from './InsertCaseReferenceDialog';
 import { InsertTDMSReferenceDropdowns } from './InsertTDMSReferenceDropdowns';
+import { B31Pill, WPBubble } from './B31Pill';
 
 interface Props {
   proposalId: string;
@@ -149,18 +150,44 @@ export function ImpactCanvasCrossRefDropdown({ proposalId, activeEditor, disable
             <span className="text-xs">Cross-ref</span>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-40">
-          <DropdownMenuItem onSelect={() => guardedOpen(() => setWpOpen(true))}>
-            Work package…
+        <DropdownMenuContent align="start" className="w-64 bg-popover z-50">
+          <DropdownMenuItem
+            onSelect={() => guardedOpen(() => setWpOpen(true))}
+            className="flex items-center gap-2"
+          >
+            <span className="w-16 flex justify-start shrink-0">
+              <WPBubble wpColor="#73C92D" style={{ width: '22px', height: '14px', padding: 0 }}>{' '}</WPBubble>
+            </span>
+            <span>Work package</span>
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => guardedOpen(() => setTaskOpen(true))}>
-            Task…
+          <DropdownMenuItem
+            onSelect={() => guardedOpen(() => setTaskOpen(true))}
+            className="flex items-center gap-2"
+          >
+            <span className="w-16 flex justify-start shrink-0">
+              <B31Pill variant="outline" color="#73C92D" style={{ width: '22px', height: '14px', padding: 0 }}>{' '}</B31Pill>
+            </span>
+            <span>Task</span>
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => guardedOpen(() => setDelOpen(true))}>
-            Deliverable…
+          <DropdownMenuItem
+            onSelect={() => guardedOpen(() => setDelOpen(true))}
+            className="flex items-center gap-2"
+          >
+            <span className="w-16 flex justify-start shrink-0">
+              <span style={{ display: 'inline-block', width: '22px', height: '14px', background: '#73C92D', clipPath: 'polygon(0% 0%, calc(100% - 6px) 0%, 100% 50%, calc(100% - 6px) 100%, 0% 100%)', position: 'relative' }}>
+                <span style={{ position: 'absolute', inset: '1.5px', right: '2px', background: '#ffffff', clipPath: 'polygon(0% 0%, calc(100% - 5px) 0%, 100% 50%, calc(100% - 5px) 100%, 0% 100%)' }} />
+              </span>
+            </span>
+            <span>Deliverable</span>
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => guardedOpen(() => setCaseOpen(true))}>
-            Case…
+          <DropdownMenuItem
+            onSelect={() => guardedOpen(() => setCaseOpen(true))}
+            className="flex items-center gap-2"
+          >
+            <span className="w-16 flex justify-start shrink-0">
+              <span style={{ display: 'inline-block', width: '22px', height: '14px', border: '1.5px solid #000000', borderRadius: '9999px', background: '#ffffff' }} />
+            </span>
+            <span>Case</span>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
