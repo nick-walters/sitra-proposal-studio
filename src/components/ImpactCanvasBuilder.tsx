@@ -215,7 +215,7 @@ export function ImpactCanvasBuilder({ proposalId, canEdit }: Props) {
                                     className="border p-2 bg-muted/30 text-left align-top min-w-[160px]"
                                   >
                                     <div className="flex items-start gap-1">
-                                      <span className="text-xs font-semibold">{c.heading}</span>
+                                      <span className="text-xs font-semibold whitespace-pre-line">{c.heading}</span>
                                       {c.guideline && (
                                         <Tooltip>
                                           <TooltipTrigger asChild>
