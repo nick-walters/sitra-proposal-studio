@@ -145,6 +145,13 @@ export function ImpactCanvasBuilder({ proposalId, canEdit }: Props) {
             onClick={() => run((c) => c.toggleOrderedList())}>
             <ListOrdered className="w-4 h-4" />
           </ToolbarBtn>
+          <div className="w-px h-5 bg-border mx-1" />
+          <ImpactCanvasCrossRefDropdown
+            proposalId={proposalId}
+            activeEditor={activeEditor}
+            disabled={!canEdit}
+          />
+
           <div className="flex-1" />
           <span className="text-xs text-muted-foreground pr-2">
             {activeEditor ? 'Editing focused cell' : 'Click a cell to edit'}
