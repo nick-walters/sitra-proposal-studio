@@ -62,15 +62,15 @@ html, body {
 }
 
 .figure-caption {
-  margin-top: 0 !important;
+  margin-top: 3pt !important;
   margin-bottom: 6pt !important;
   padding-top: 0 !important;
   padding-bottom: 0 !important;
-  text-align: center !important;
+  text-align: left !important;
 }
 
 .table-caption {
-  margin-top: 6pt !important;
+  margin-top: 3pt !important;
   margin-bottom: 1pt !important;
   padding-top: 0 !important;
   padding-bottom: 0 !important;
@@ -630,7 +630,7 @@ html, body {
   display: block !important;
   width: 100% !important;
   clear: both;
-  margin-top: 6pt !important;
+  margin-top: 3pt !important;
   margin-bottom: 1pt !important;
   padding-bottom: 0 !important;
   text-align: left !important;
@@ -639,10 +639,10 @@ html, body {
 
 .ProseMirror .figure-caption,
 .ProseMirror p.figure-caption {
-  margin-top: 0 !important;
+  margin-top: 3pt !important;
   margin-bottom: 6pt !important;
   padding-top: 0 !important;
-  text-align: center !important;
+  text-align: left !important;
 }
 
 .ProseMirror .caption-label {
@@ -906,16 +906,16 @@ table.b31-effort-matrix.first-col-flush {
 
 /* Override spacing for caption paragraphs */
 .ProseMirror p.table-caption {
-  margin-top: 6pt !important;
+  margin-top: 3pt !important;
   margin-bottom: 1pt !important;
   text-align: left !important;
   white-space: normal !important;
 }
 
 .ProseMirror p.figure-caption {
-  margin-top: 0 !important;
+  margin-top: 3pt !important;
   margin-bottom: 6pt !important;
-  text-align: center !important;
+  text-align: left !important;
 }
 
 /* Column resize handle */
@@ -1351,14 +1351,14 @@ table.b31-effort-matrix.first-col-flush {
 }
 
 .print-export-container .figure-caption {
-  text-align: center !important;
-  margin-top: 0 !important;
+  text-align: left !important;
+  margin-top: 3pt !important;
   margin-bottom: 6pt !important;
 }
 
 .print-export-container .table-caption {
   text-align: left !important;
-  margin-top: 6pt !important;
+  margin-top: 3pt !important;
   margin-bottom: 1pt !important;
 }
 
