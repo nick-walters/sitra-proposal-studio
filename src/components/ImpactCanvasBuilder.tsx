@@ -92,8 +92,8 @@ export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figure
         {/* The graphic — shared component also used by B2.1 mirror.
             The PNG download button lives in the FigureEditor action row
             (parent); we expose the wrapper via the `graphicRef` prop.
-            paddingBottom guards against html2canvas trimming the last
-            row of boxes (the graphic ends flush, no intrinsic slack). */}
+            paddingBottom/paddingRight guard against html2canvas trimming
+            the last row/column of boxes (graphic ends flush, no slack). */}
         <Card>
           <CardContent className="py-4 space-y-3">
             <div className="flex items-center justify-between">
@@ -102,7 +102,7 @@ export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figure
                 {rows.length} row{rows.length === 1 ? '' : 's'} · {columnOrder.length} columns
               </span>
             </div>
-            <div ref={graphicRef} style={{ paddingBottom: 8 }}>
+            <div ref={graphicRef} style={{ paddingBottom: 8, paddingRight: 8 }}>
               <ImpactCanvasGraphic proposalId={proposalId} />
             </div>
           </CardContent>
