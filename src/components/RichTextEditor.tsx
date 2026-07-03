@@ -1257,7 +1257,6 @@ StarterKit.configure({
       ParticipantReferenceNode,
       CasesTableNode,
       B32MirrorSlotNode,
-      FigureCaptionNode,
       AcronymReference,
       FigureTableReferenceMark,
       ParenBadgeGlue,
