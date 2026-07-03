@@ -221,11 +221,6 @@ export function ImpactCanvasBuilder({ proposalId, canEdit }: Props) {
                                         </Tooltip>
                                       )}
                                     </div>
-                                    {c.guideline && (
-                                      <p className="text-[10px] italic text-muted-foreground mt-1 font-normal leading-snug">
-                                        {c.guideline}
-                                      </p>
-                                    )}
                                   </th>
                                 ))}
                               </tr>
