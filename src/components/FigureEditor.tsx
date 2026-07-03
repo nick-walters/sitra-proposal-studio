@@ -250,7 +250,7 @@ export function FigureEditor({
           />
         );
       case 'impact-canvas':
-        return <ImpactCanvasBuilder proposalId={proposalId} canEdit={canEdit} figureNumber={figure.figureNumber} />;
+        return <ImpactCanvasBuilder proposalId={proposalId} canEdit={canEdit} figureNumber={figure.figureNumber} graphicRef={impactGraphicRef} />;
       case 'image':
       case 'ai':
         return (
