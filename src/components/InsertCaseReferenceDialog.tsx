@@ -21,6 +21,14 @@ interface CaseDraft {
   color: string;
   case_type: string;
   case_type_id: string | null;
+  /** Resolved from proposal_case_types at select time. Optional so callers
+   *  that don't need them keep working, but insertion paths use them to
+   *  build the initial badge in its correct form (right outline colour +
+   *  include_number / include_abbreviation flags), matching what
+   *  syncCrossReferences would otherwise rewrite on the next edit. */
+  outline_color?: string | null;
+  include_number?: boolean;
+  include_abbreviation?: boolean;
 }
 
 interface TypeRow {
