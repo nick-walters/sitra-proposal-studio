@@ -216,7 +216,7 @@ export function FigureEditor({
             </div>
           )}
           <p className="text-sm text-muted-foreground text-left">
-            <em><strong>Figure {figure.figureNumber}.</strong> {caption}</em>
+            <em><strong>Figure {figure.figureNumber}.</strong> {mirroredCaption}</em>
           </p>
         </div>
       );
