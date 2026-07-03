@@ -244,7 +244,8 @@ export function ImpactCanvasBuilder({ proposalId, canEdit }: Props) {
                                   <td
                                     key={c.id}
                                     data-impact-canvas-cell
-                                    className="border align-top p-0"
+                                    className="border align-top"
+                                    style={{ padding: '0 0.3pt' }}
                                   >
                                     <ImpactCanvasCellEditor
                                       html={row.content[c.key] || ''}
