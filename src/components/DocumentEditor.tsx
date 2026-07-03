@@ -963,15 +963,22 @@ export function DocumentEditor({
   }, [editor]);
   
   // Handle Case reference insertion
-  const handleInsertCaseRef = useCallback((caseItem: { id: string; number: number; short_name: string | null; color: string; case_type: string }) => {
+  const handleInsertCaseRef = useCallback((caseItem: { id: string; number: number; short_name: string | null; color: string; case_type: string; include_number?: boolean; include_abbreviation?: boolean }) => {
     if (!editor) return;
     setTimeout(() => {
       editor.chain().focus().insertCaseReference({
         caseNumber: caseItem.number,
         caseShortName: caseItem.short_name || '',
+        // `caseItem.color` is already the resolved outline colour
+        // (proposal_case_types.outline_color, or the draft's own colour as
+        // fallback) — the dialog resolves it in handleSelect so the badge
+        // is inserted in its correct form and does NOT need
+        // syncCrossReferences to "correct" it on the next edit.
         caseColor: caseItem.color,
         caseId: caseItem.id,
         caseType: caseItem.case_type,
+        includeNumber: caseItem.include_number !== false,
+        includeAbbreviation: caseItem.include_abbreviation !== false,
       }).insertContent(' ').unsetBold().unsetItalic().run();
     }, 150);
   }, [editor]);

@@ -21,6 +21,14 @@ interface CaseDraft {
   color: string;
   case_type: string;
   case_type_id: string | null;
+  /** Resolved from proposal_case_types at select time. Optional so callers
+   *  that don't need them keep working, but insertion paths use them to
+   *  build the initial badge in its correct form (right outline colour +
+   *  include_number / include_abbreviation flags), matching what
+   *  syncCrossReferences would otherwise rewrite on the next edit. */
+  outline_color?: string | null;
+  include_number?: boolean;
+  include_abbreviation?: boolean;
 }
 
 interface TypeRow {
@@ -83,7 +91,17 @@ export function InsertCaseReferenceDialog({
   );
 
   const handleSelect = (caseItem: CaseDraft) => {
-    onSelect(caseItem);
+    const t = caseItem.case_type_id ? typesById.get(caseItem.case_type_id) : null;
+    onSelect({
+      ...caseItem,
+      // Outline colour: prefer the case type's outline_color (this is what
+      // syncCrossReferences uses as caseColor); fall back to the draft's own
+      // colour so nothing regresses when a type isn't configured.
+      color: t?.outline_color || caseItem.color,
+      outline_color: t?.outline_color ?? null,
+      include_number: t?.include_number !== false,
+      include_abbreviation: t?.include_abbreviation !== false,
+    });
     onOpenChange(false);
   };
 
