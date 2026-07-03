@@ -30,7 +30,7 @@ interface Props {
  * Below: rich-text grid builder with ONE shared toolbar bound to the
  *        currently-focused cell (avoids toolbar-per-cell perf hit).
  */
-export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber }: Props) {
+export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figureNumber, graphicRef }: Props) {
   const { roleTier } = useProposalRole(proposalId);
   const isCoordinator = roleTier === 'coordinator';
 
@@ -40,8 +40,7 @@ export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber }: Props
 
   const [activeEditor, setActiveEditor] = useState<Editor | null>(null);
   const [columnDialogOpen, setColumnDialogOpen] = useState(false);
-  const [downloading, setDownloading] = useState(false);
-  const graphicRef = useRef<HTMLDivElement>(null);
+
 
   const handleFocus = useCallback((editor: Editor) => setActiveEditor(editor), []);
 
