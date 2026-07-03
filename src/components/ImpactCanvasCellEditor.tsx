@@ -28,7 +28,7 @@ export function ImpactCanvasCellEditor({ html, onChange, onFocus, onBlur, disabl
     editorProps: {
       ...wordCleanPasteProps,
       attributes: {
-        class: 'prose prose-sm max-w-none focus:outline-none min-h-[80px] px-2 py-1',
+        class: 'prose prose-sm max-w-none focus:outline-none min-h-[80px] px-2 py-1 text-left [&_*]:text-left',
       },
     },
     onUpdate: ({ editor }) => {
