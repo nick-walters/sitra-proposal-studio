@@ -98,7 +98,8 @@ export function ImpactCanvasGraphic({ proposalId, className }: Props) {
         columnOrder.map((c) => (
           <div
             key={`${row.id}-${c.id}`}
-            className="border border-border rounded-md bg-muted/30 p-2 min-h-[80px] text-xs flex items-center"
+            className="border border-border rounded-md bg-muted/30 min-h-[80px] text-xs flex items-center"
+            style={{ padding: '0.1pt' }}
           >
             <div
               className="prose prose-sm max-w-none w-full"
