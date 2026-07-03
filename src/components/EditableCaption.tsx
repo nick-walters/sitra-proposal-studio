@@ -122,7 +122,7 @@ export function EditableCaption({
         display: 'flex',
         flexWrap: 'nowrap',
         alignItems: 'baseline',
-        justifyContent: isFigure ? 'center' : 'flex-start',
+        justifyContent: 'flex-start',
       }}
       onFocusCapture={() => setFocused(true)}
       onBlurCapture={(e) => {
