@@ -828,7 +828,7 @@ export function DocumentEditor({
   }, [content, getSectionNumberWithoutPrefix]);
 
   // Handle inserting a figure image into the document
-  const handleInsertFigureImage = useCallback(async (figure: { id?: string; figureNumber: string; title: string; content: any }) => {
+  const handleInsertFigureImage = useCallback(async (figure: { id?: string; figureNumber: string; title: string; content: any; caption?: string | null }) => {
     if (!editor) return;
     
     const rawImageUrl = figure.content?.imageUrl;
