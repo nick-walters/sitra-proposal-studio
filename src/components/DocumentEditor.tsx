@@ -452,6 +452,11 @@ export function DocumentEditor({
   }, []);
   const getCurrentUserIdForEditor = useCallback(() => user?.id || null, [user?.id]);
 
+  // Caption editing is coordinator+ only (owners and admins included).
+  const { isAdminOrOwner, hasAnyCoordinatorRole } = useUserRole();
+  const canEditCaptionsInEditor = isAdminOrOwner || hasAnyCoordinatorRole;
+
+
   // Use the editor hook for external toolbar control with citation tooltips
   const editor = useRichTextEditor({
     content,
