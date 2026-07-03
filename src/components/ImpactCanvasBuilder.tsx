@@ -90,11 +90,41 @@ export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber }: Props
           <CardContent className="py-4 space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold">Canvas preview</h3>
-              <span className="text-xs text-muted-foreground">
-                {rows.length} row{rows.length === 1 ? '' : 's'} · {columnOrder.length} columns
-              </span>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground">
+                  {rows.length} row{rows.length === 1 ? '' : 's'} · {columnOrder.length} columns
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 gap-1 text-xs"
+                  disabled={downloading || !graphicRef.current}
+                  onClick={async () => {
+                    if (!graphicRef.current) return;
+                    setDownloading(true);
+                    try {
+                      const { exportAsPng } = await import('@/lib/figureExport');
+                      const name = figureNumber
+                        ? `Impact-Canvas-Figure-${figureNumber}`
+                        : 'Impact-Canvas';
+                      await exportAsPng(graphicRef.current, name);
+                      toast.success('PNG downloaded');
+                    } catch (err) {
+                      console.error(err);
+                      toast.error('Failed to export PNG');
+                    } finally {
+                      setDownloading(false);
+                    }
+                  }}
+                >
+                  <Download className="w-3 h-3" />
+                  Download PNG
+                </Button>
+              </div>
             </div>
-            <ImpactCanvasGraphic proposalId={proposalId} />
+            <div ref={graphicRef}>
+              <ImpactCanvasGraphic proposalId={proposalId} />
+            </div>
           </CardContent>
         </Card>
 
