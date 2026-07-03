@@ -88,8 +88,8 @@ export function B31SectionContent({ proposalId }: Props) {
           />
           <EditableCaption
             proposalId={proposalId}
-            tableKey="figure-3.1.a"
-            label="Figure 3.1.a."
+            figureId={pertFigure.id}
+            label={`Figure ${pertFigure.figure_number}.`}
             defaultCaption={pertFigure.caption || pertFigure.title}
             className="mt-1"
           />
@@ -110,9 +110,9 @@ export function B31SectionContent({ proposalId }: Props) {
           />
           <EditableCaption
             proposalId={proposalId}
-            tableKey="figure-3.1.b"
-            label="Figure 3.1.b."
-            defaultCaption="Gantt chart"
+            figureId={ganttFigure.id}
+            label={`Figure ${ganttFigure.figure_number}.`}
+            defaultCaption={ganttFigure.caption || ganttFigure.title || 'Gantt chart'}
             className="mt-1"
           />
         </div>

@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { EditableCaption } from '@/components/EditableCaption';
@@ -9,9 +8,9 @@ interface Props {
 
 /**
  * Impact Canvas — compulsory figure fixed at the end of B2.1.
- * Phase 1a: renders a placeholder + autonumbered caption. Gated by
- * proposals.impact_canvas_enabled (defaults true). The toggle control
- * lives on the canvas builder page (Phase 1b), not here.
+ * Renders a placeholder + autonumbered caption sourced from the
+ * figures row (figure_number + caption). Gated by
+ * proposals.impact_canvas_enabled (defaults true).
  */
 export function ImpactCanvasSection({ proposalId }: Props) {
   const enabledQ = useQuery({
@@ -28,30 +27,26 @@ export function ImpactCanvasSection({ proposalId }: Props) {
     },
   });
 
-  // Fetch B2.1 section content to autonumber the caption letter.
-  const b21ContentQ = useQuery({
-    queryKey: ['impact-canvas-b21-html', proposalId],
+  const figureQ = useQuery({
+    queryKey: ['impact-canvas-figure', proposalId],
     enabled: !!proposalId && enabledQ.data === true,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('section_content')
-        .select('content')
+        .from('figures')
+        .select('id, figure_number, caption, title')
         .eq('proposal_id', proposalId)
-        .eq('section_id', 'b2-1')
+        .eq('figure_type', 'impact-canvas')
         .maybeSingle();
       if (error) throw error;
-      return (data?.content ?? '') as string;
+      return data;
     },
   });
 
-  const letter = useMemo(() => {
-    const html = b21ContentQ.data || '';
-    const matches = html.match(/(Figure)\s+2\.1\.([a-z])\./gim) || [];
-    return String.fromCharCode('a'.charCodeAt(0) + matches.length);
-  }, [b21ContentQ.data]);
-
   if (enabledQ.isLoading) return null;
   if (enabledQ.data !== true) return null;
+  if (!figureQ.data) return null;
+
+  const fig = figureQ.data;
 
   return (
     <div
@@ -66,9 +61,9 @@ export function ImpactCanvasSection({ proposalId }: Props) {
       </div>
       <EditableCaption
         proposalId={proposalId}
-        tableKey="figure-2.1-impact-canvas"
-        label={`Figure 2.1.${letter}.`}
-        defaultCaption="Impact canvas"
+        figureId={fig.id}
+        label={`Figure ${fig.figure_number}.`}
+        defaultCaption={fig.caption || fig.title || 'Impact canvas'}
       />
     </div>
   );
