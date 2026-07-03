@@ -151,6 +151,21 @@ export function ImpactCanvasBuilder({ proposalId, canEdit }: Props) {
           data-impact-canvas-toolbar
           className="sticky top-0 z-10 bg-background border rounded-md p-1 flex items-center gap-1 overflow-visible"
         >
+          <ToolbarBtn
+            label="Undo"
+            disabled={!activeEditor || !canEdit || !(activeEditor?.can().undo() ?? false)}
+            onClick={() => run((c) => c.undo())}
+          >
+            <Undo2 className="w-4 h-4" />
+          </ToolbarBtn>
+          <ToolbarBtn
+            label="Redo"
+            disabled={!activeEditor || !canEdit || !(activeEditor?.can().redo() ?? false)}
+            onClick={() => run((c) => c.redo())}
+          >
+            <Redo2 className="w-4 h-4" />
+          </ToolbarBtn>
+          <div className="w-px h-5 bg-border mx-1" />
           <ToolbarBtn label="Bold" active={isActive('bold')} disabled={!activeEditor || !canEdit}
             onClick={() => run((c) => c.toggleBold())}>
             <Bold className="w-4 h-4" />
