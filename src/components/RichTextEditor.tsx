@@ -1416,6 +1416,8 @@ export function useRichTextEditor({
   // Store delete request handler in ref
   const onBlockDeleteRequestRef = useRef(onBlockDeleteRequest);
   onBlockDeleteRequestRef.current = onBlockDeleteRequest;
+  const canEditCaptionsRef = useRef(canEditCaptions);
+  canEditCaptionsRef.current = canEditCaptions;
   if (!isReady) {
     initialContentRef.current = normalizePartBLoadedContent(content);
     lastSetContentRef.current = initialContentRef.current;
@@ -1696,6 +1698,50 @@ StarterKit.configure({
                 });
 
                 return !affectsLocked;
+              },
+            }),
+          ];
+        },
+      }),
+      // Caption-editing gate: only coordinators+ may modify figure/table caption paragraphs.
+      Extension.create({
+        name: 'captionLocking',
+        addProseMirrorPlugins() {
+          return [
+            new Plugin({
+              key: new PluginKey('captionLocking'),
+              filterTransaction(tr, state) {
+                if (!tr.docChanged) return true;
+                if (canEditCaptionsRef.current) return true;
+
+                const isCaptionPara = (node: any) => {
+                  if (!node || node.type?.name !== 'paragraph') return false;
+                  const cls = (node.attrs?.class || '') as string;
+                  return /\b(figure-caption|table-caption)\b/.test(cls);
+                };
+
+                let touchesCaption = false;
+                tr.steps.forEach((step) => {
+                  if (touchesCaption) return;
+                  const stepMap = step.getMap();
+                  stepMap.forEach((oldStart, oldEnd) => {
+                    if (touchesCaption) return;
+                    const clampedStart = Math.max(0, Math.min(oldStart, state.doc.content.size));
+                    const clampedEnd = Math.max(clampedStart, Math.min(oldEnd, state.doc.content.size));
+                    try {
+                      state.doc.nodesBetween(clampedStart, clampedEnd, (node) => {
+                        if (touchesCaption) return false;
+                        if (isCaptionPara(node)) {
+                          touchesCaption = true;
+                          return false;
+                        }
+                        return true;
+                      });
+                    } catch { /* ignore */ }
+                  });
+                });
+
+                return !touchesCaption;
               },
             }),
           ];
