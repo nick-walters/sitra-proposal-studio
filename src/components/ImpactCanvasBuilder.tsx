@@ -4,37 +4,16 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Plus, Trash2, Settings2, Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, Info, Undo2, Redo2 } from 'lucide-react';
-import DOMPurify from 'dompurify';
 import { useImpactCanvasColumns, useImpactCanvasRows } from '@/hooks/useImpactCanvas';
 import { useProposalRole } from '@/hooks/useProposalRole';
 import { ImpactCanvasCellEditor } from './ImpactCanvasCellEditor';
 import { ImpactCanvasColumnDialog } from './ImpactCanvasColumnDialog';
 import { ImpactCanvasCrossRefDropdown } from './ImpactCanvasCrossRefDropdown';
+import { ImpactCanvasGraphic } from './ImpactCanvasGraphic';
 
 interface Props {
   proposalId: string;
   canEdit: boolean;
-}
-
-// Sanitiser preserves cross-reference badge markup produced by the WP /
-// Case / Inline (task, deliverable) TipTap nodes: data-* attrs, inline
-// styles, contenteditable="false", and the SVG pentagon used for
-// deliverable badges. Without these the badges would render as bare
-// text/span shells in the graphic preview.
-const CELL_SANITIZE_CONFIG = {
-  ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'ul', 'ol', 'li', 'span', 'svg', 'path'],
-  ALLOWED_ATTR: [
-    'class',
-    'style',
-    'contenteditable',
-    // svg / path
-    'width', 'height', 'viewBox', 'xmlns', 'd', 'fill', 'stroke', 'stroke-width', 'stroke-linejoin',
-  ],
-  ALLOW_DATA_ATTR: true,
-};
-
-function sanitize(html: string) {
-  return DOMPurify.sanitize(html || '', CELL_SANITIZE_CONFIG);
 }
 
 
@@ -102,7 +81,7 @@ export function ImpactCanvasBuilder({ proposalId, canEdit }: Props) {
 
 
 
-        {/* The graphic */}
+        {/* The graphic — shared component also used by B2.1 mirror */}
         <Card>
           <CardContent className="py-4 space-y-3">
             <div className="flex items-center justify-between">
@@ -111,40 +90,10 @@ export function ImpactCanvasBuilder({ proposalId, canEdit }: Props) {
                 {rows.length} row{rows.length === 1 ? '' : 's'} · {columnOrder.length} columns
               </span>
             </div>
-            {columnOrder.length === 0 ? (
-              <p className="text-xs text-muted-foreground italic py-6 text-center">
-                No columns defined. Add columns via the manage-columns button below.
-              </p>
-            ) : rows.length === 0 ? (
-              <p className="text-xs text-muted-foreground italic py-6 text-center">
-                No rows yet. Add a row below to start filling the canvas.
-              </p>
-            ) : (
-              <div
-                className="grid gap-2 font-['Times_New_Roman',Times,serif]"
-                style={{ gridTemplateColumns: `repeat(${columnOrder.length}, minmax(0, 1fr))` }}
-              >
-                {columnOrder.map((c) => (
-                  <div
-                    key={`h-${c.id}`}
-                    className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground text-center border-b pb-1"
-                  >
-                    {c.heading}
-                  </div>
-                ))}
-                {rows.map((row) =>
-                  columnOrder.map((c) => (
-                    <div
-                      key={`${row.id}-${c.id}`}
-                      className="border border-border rounded-md bg-muted/30 p-2 min-h-[80px] text-xs prose prose-sm max-w-none"
-                      dangerouslySetInnerHTML={{ __html: sanitize(row.content[c.key] || '') }}
-                    />
-                  )),
-                )}
-              </div>
-            )}
+            <ImpactCanvasGraphic proposalId={proposalId} />
           </CardContent>
         </Card>
+
 
         {/* Shared toolbar */}
         <div
