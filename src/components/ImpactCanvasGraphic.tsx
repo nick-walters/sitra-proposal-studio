@@ -88,7 +88,7 @@ export function ImpactCanvasGraphic({ proposalId, className }: Props) {
       {columnOrder.map((c) => (
         <div
           key={`h-${c.id}`}
-          className="text-[11px] font-bold text-muted-foreground text-left border-b pb-1 whitespace-pre-line"
+          className="text-[11px] font-bold text-black text-left pb-1 whitespace-pre-line flex items-center"
           style={{ fontFamily: '"Arial Black", Arial, sans-serif' }}
         >
           {c.heading}
@@ -98,9 +98,13 @@ export function ImpactCanvasGraphic({ proposalId, className }: Props) {
         columnOrder.map((c) => (
           <div
             key={`${row.id}-${c.id}`}
-            className="border border-border rounded-md bg-muted/30 p-2 min-h-[80px] text-xs prose prose-sm max-w-none"
-            dangerouslySetInnerHTML={{ __html: sanitize(row.content[c.key] || '') }}
-          />
+            className="border border-border rounded-md bg-muted/30 p-2 min-h-[80px] text-xs flex items-center"
+          >
+            <div
+              className="prose prose-sm max-w-none w-full"
+              dangerouslySetInnerHTML={{ __html: sanitize(row.content[c.key] || '') }}
+            />
+          </div>
         )),
       )}
     </div>
