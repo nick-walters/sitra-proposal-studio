@@ -151,6 +151,8 @@ export function DocumentEditor({
 
 
 
+  const queryClient = useQueryClient();
+
   // Fetch profile full_name from DB for reliable author name in track changes
   const [profileFullName, setProfileFullName] = useState<string | null>(null);
   // Cache of all author names resolved from profiles (authorId -> full_name)
