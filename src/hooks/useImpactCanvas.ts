@@ -65,6 +65,7 @@ export function useImpactCanvasColumns(proposalId: string) {
         order_index: existing.length,
       });
       if (error) throw error;
+      await syncBoundElements(proposalId);
     },
     onSettled: invalidate,
     onError: () => toast.error('Failed to add column'),
@@ -74,10 +75,12 @@ export function useImpactCanvasColumns(proposalId: string) {
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('impact_canvas_columns').delete().eq('id', id);
       if (error) throw error;
+      await syncBoundElements(proposalId);
     },
     onSettled: invalidate,
     onError: () => toast.error('Failed to delete column'),
   });
+
 
   const reorder = useMutation({
     mutationFn: async (reordered: ImpactCanvasColumn[]) => {
