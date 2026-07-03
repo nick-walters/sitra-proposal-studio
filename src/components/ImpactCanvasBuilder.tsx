@@ -1,10 +1,11 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, type RefObject } from 'react';
 import type { Editor } from '@tiptap/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Plus, Trash2, Settings2, Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, Info, Undo2, Redo2, Download } from 'lucide-react';
-import { toast } from 'sonner';
+import { Plus, Trash2, Settings2, Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, Info, Undo2, Redo2 } from 'lucide-react';
+
+
 import { useImpactCanvasColumns, useImpactCanvasRows } from '@/hooks/useImpactCanvas';
 import { useProposalRole } from '@/hooks/useProposalRole';
 import { ImpactCanvasCellEditor } from './ImpactCanvasCellEditor';
@@ -16,7 +17,11 @@ interface Props {
   proposalId: string;
   canEdit: boolean;
   figureNumber?: string;
+  /** Optional ref pointing at the wrapper around the shared graphic — used by the
+   * parent (FigureEditor) to trigger a PNG export from its action row. */
+  graphicRef?: RefObject<HTMLDivElement>;
 }
+
 
 
 /**
@@ -25,7 +30,7 @@ interface Props {
  * Below: rich-text grid builder with ONE shared toolbar bound to the
  *        currently-focused cell (avoids toolbar-per-cell perf hit).
  */
-export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber }: Props) {
+export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figureNumber, graphicRef }: Props) {
   const { roleTier } = useProposalRole(proposalId);
   const isCoordinator = roleTier === 'coordinator';
 
@@ -35,8 +40,7 @@ export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber }: Props
 
   const [activeEditor, setActiveEditor] = useState<Editor | null>(null);
   const [columnDialogOpen, setColumnDialogOpen] = useState(false);
-  const [downloading, setDownloading] = useState(false);
-  const graphicRef = useRef<HTMLDivElement>(null);
+
 
   const handleFocus = useCallback((editor: Editor) => setActiveEditor(editor), []);
 
@@ -85,48 +89,25 @@ export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber }: Props
 
 
 
-        {/* The graphic — shared component also used by B2.1 mirror */}
+        {/* The graphic — shared component also used by B2.1 mirror.
+            The PNG download button lives in the FigureEditor action row
+            (parent); we expose the wrapper via the `graphicRef` prop.
+            paddingBottom guards against html2canvas trimming the last
+            row of boxes (the graphic ends flush, no intrinsic slack). */}
         <Card>
           <CardContent className="py-4 space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold">Canvas preview</h3>
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-muted-foreground">
-                  {rows.length} row{rows.length === 1 ? '' : 's'} · {columnOrder.length} columns
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-7 gap-1 text-xs"
-                  disabled={downloading || !graphicRef.current}
-                  onClick={async () => {
-                    if (!graphicRef.current) return;
-                    setDownloading(true);
-                    try {
-                      const { exportAsPng } = await import('@/lib/figureExport');
-                      const name = figureNumber
-                        ? `Impact-Canvas-Figure-${figureNumber}`
-                        : 'Impact-Canvas';
-                      await exportAsPng(graphicRef.current, name);
-                      toast.success('PNG downloaded');
-                    } catch (err) {
-                      console.error(err);
-                      toast.error('Failed to export PNG');
-                    } finally {
-                      setDownloading(false);
-                    }
-                  }}
-                >
-                  <Download className="w-3 h-3" />
-                  Download PNG
-                </Button>
-              </div>
+              <span className="text-xs text-muted-foreground">
+                {rows.length} row{rows.length === 1 ? '' : 's'} · {columnOrder.length} columns
+              </span>
             </div>
-            <div ref={graphicRef}>
+            <div ref={graphicRef} style={{ paddingBottom: 8 }}>
               <ImpactCanvasGraphic proposalId={proposalId} />
             </div>
           </CardContent>
         </Card>
+
 
 
         {/* Shared toolbar */}

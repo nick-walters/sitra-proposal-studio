@@ -13,8 +13,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { ArrowLeft, Trash2, Image, Sparkles, Loader2, Upload } from 'lucide-react';
+import { ArrowLeft, Trash2, Image, Sparkles, Loader2, Upload, Download } from 'lucide-react';
 import { useRef } from 'react';
+
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { generateProposalFilePath, uploadProposalFile } from '@/lib/proposalStorage';
@@ -76,8 +77,11 @@ export function FigureEditor({
   const replaceInputRef = useRef<HTMLInputElement>(null);
   const resolvedImageUrl = useStorageUrl(figure.content?.imageUrl);
   const isImpactCanvas = figure.figureType === 'impact-canvas';
+  const impactGraphicRef = useRef<HTMLDivElement>(null);
+  const [downloadingCanvasPng, setDownloadingCanvasPng] = useState(false);
   const { roleTier } = useProposalRole(proposalId);
   const isCoordinator = roleTier === 'coordinator';
+
   const { enabled: canvasEnabled, setEnabled: setCanvasEnabled } = useImpactCanvasEnabled(
     isImpactCanvas ? proposalId : '',
   );
@@ -246,7 +250,7 @@ export function FigureEditor({
           />
         );
       case 'impact-canvas':
-        return <ImpactCanvasBuilder proposalId={proposalId} canEdit={canEdit} figureNumber={figure.figureNumber} />;
+        return <ImpactCanvasBuilder proposalId={proposalId} canEdit={canEdit} figureNumber={figure.figureNumber} graphicRef={impactGraphicRef} />;
       case 'image':
       case 'ai':
         return (
@@ -290,12 +294,40 @@ export function FigureEditor({
                 <span className="text-muted-foreground">Include in B2.1</span>
               </label>
             )}
+            {isImpactCanvas && (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={downloadingCanvasPng}
+                onClick={async () => {
+                  if (!impactGraphicRef.current) return;
+                  setDownloadingCanvasPng(true);
+                  try {
+                    const { exportAsPng } = await import('@/lib/figureExport');
+                    await exportAsPng(
+                      impactGraphicRef.current,
+                      `Impact-Canvas-Figure-${figure.figureNumber}`,
+                    );
+                    toast.success('PNG downloaded');
+                  } catch (err) {
+                    console.error(err);
+                    toast.error('Failed to export PNG');
+                  } finally {
+                    setDownloadingCanvasPng(false);
+                  }
+                }}
+              >
+                <Download className="w-4 h-4 mr-1" />
+                Download PNG
+              </Button>
+            )}
             {canEdit && (
               <Button variant="outline" size="sm" onClick={onDelete} className="text-destructive">
                 <Trash2 className="w-4 h-4 mr-1" />
                 Delete
               </Button>
             )}
+
           </div>
         </div>
 
