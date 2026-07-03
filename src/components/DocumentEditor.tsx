@@ -641,83 +641,54 @@ export function DocumentEditor({
     return () => clearTimeout(timer);
   }, [editor, proposalId, section?.id, loading, syncTrigger]);
 
-  // Migrate legacy inline figure-caption paragraphs → figureCaption atom nodes.
-  // Matches paragraphs whose text starts with "Figure X.a." against the
-  // proposal's figures by figure_number, then swaps them for the read-only node.
+  // Sync inline caption edits → figures.caption (Part B is the single source
+  // of truth). Debounced scan of `p.figure-caption` paragraphs: extract
+  // "Figure X.Y.z. Text" and upsert figures.caption keyed by figure_number.
   useEffect(() => {
     if (!editor || !proposalId || loading) return;
-    let cancelled = false;
-    const run = async () => {
-      // Find candidate paragraphs (legacy: no data-figure-id, has figure-caption class)
-      const doc = editor.state.doc;
-      const candidates: Array<{ pos: number; size: number; num: string; text: string }> = [];
-      doc.descendants((node, pos) => {
-        if (node.type.name !== 'paragraph') return;
-        const cls = (node.attrs?.class as string | undefined) || '';
-        if (!cls.includes('figure-caption')) return;
-        const text = node.textContent || '';
-        const m = text.match(/^\s*Figure\s+([0-9]+(?:\.[0-9]+)?\.[a-z])\.?\s*(.*)$/i);
-        if (!m) return;
-        candidates.push({ pos, size: node.nodeSize, num: m[1], text: (m[2] || '').trim() });
-      });
-      if (candidates.length === 0) return;
-
-      const nums = Array.from(new Set(candidates.map((c) => c.num)));
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const sync = async () => {
+      const html = editor.getHTML();
+      if (!html.includes('figure-caption')) return;
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(`<div>${html}</div>`, 'text/html');
+      const nodes = Array.from(doc.querySelectorAll('p.figure-caption'));
+      const found = new Map<string, string>(); // number -> caption text
+      for (const p of nodes) {
+        const text = (p.textContent || '').trim();
+        const m = text.match(/^Figure\s+([0-9]+(?:\.[0-9]+)?\.[a-z])\.?\s*(.*)$/i);
+        if (!m) continue;
+        const number = m[1];
+        const caption = (m[2] || '').trim();
+        if (!caption) continue;
+        found.set(number, caption);
+      }
+      if (found.size === 0) return;
       const { data: figs } = await supabase
         .from('figures')
-        .select('id, figure_number, caption, title')
+        .select('id, figure_number, caption')
         .eq('proposal_id', proposalId)
-        .in('figure_number', nums);
-      if (cancelled || !figs) return;
-      const byNum = new Map(figs.map((f) => [f.figure_number, f]));
-
-      // Backfill DB captions from inline text when DB caption is empty.
-      const backfills: Array<{ id: string; caption: string }> = [];
-      for (const c of candidates) {
-        const fig = byNum.get(c.num);
-        if (!fig) continue;
-        const dbCaption = (fig.caption || '').trim();
-        if (!dbCaption && c.text) backfills.push({ id: fig.id, caption: c.text });
+        .in('figure_number', Array.from(found.keys()));
+      if (!figs) return;
+      for (const f of figs) {
+        const newCap = found.get(f.figure_number);
+        if (!newCap || newCap === (f.caption || '')) continue;
+        await supabase.from('figures').update({ caption: newCap }).eq('id', f.id);
+        queryClient.invalidateQueries({ queryKey: ['figure-caption', f.id] });
       }
-      if (backfills.length > 0) {
-        await Promise.all(
-          backfills.map((b) =>
-            supabase.from('figures').update({ caption: b.caption }).eq('id', b.id),
-          ),
-        );
-      }
-
-      // Replace paragraphs with figureCaption nodes (iterate back-to-front so
-      // positions stay valid).
-      const sorted = [...candidates].sort((a, b) => b.pos - a.pos);
-      const nodeType = editor.schema.nodes.figureCaption;
-      if (!nodeType) return;
-      const tr = editor.state.tr;
-      for (const c of sorted) {
-        const fig = byNum.get(c.num);
-        if (!fig) continue;
-        const captionText =
-          (fig.caption && fig.caption.trim()) ||
-          c.text ||
-          (fig.title || '').trim();
-        const newNode = nodeType.create({
-          figureId: fig.id,
-          figureNumber: fig.figure_number,
-          captionText,
-        });
-        tr.replaceWith(c.pos, c.pos + c.size, newNode);
-      }
-      if (tr.docChanged) {
-        editor.view.dispatch(tr);
-      }
+      queryClient.invalidateQueries({ queryKey: ['figures', proposalId] });
     };
-    // Delay slightly so it runs after initial content settle
-    const t = setTimeout(run, 600);
+    const handler = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(sync, 800);
+    };
+    editor.on('update', handler);
     return () => {
-      cancelled = true;
-      clearTimeout(t);
+      if (timer) clearTimeout(timer);
+      editor.off('update', handler);
     };
-  }, [editor, proposalId, section?.id, loading]);
+  }, [editor, proposalId, loading, queryClient]);
+
 
 
   // Check if proposal has cases
