@@ -6,6 +6,7 @@ import { Proposal, Section, Participant } from '@/types/proposal';
 import { prepareExportContainer, ExportData } from '@/lib/printRenderer';
 import { scrubDomForExport } from '@/lib/exportDomScrubber';
 import { convertBadgesForWord } from '@/lib/exportWordBadgeConverter';
+import { swapImpactCanvasForWord } from '@/lib/exportImpactCanvasToWord';
 import { SITRA_LOGO_BASE64 } from '@/lib/sitraLogo';
 
 function buildBannerHtml(acronym: string, title: string): string {
