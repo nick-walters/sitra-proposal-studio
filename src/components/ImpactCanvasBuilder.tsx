@@ -11,7 +11,7 @@ import { useProposalRole } from '@/hooks/useProposalRole';
 import { ImpactCanvasCellEditor } from './ImpactCanvasCellEditor';
 import { ImpactCanvasColumnDialog } from './ImpactCanvasColumnDialog';
 import { ImpactCanvasCrossRefDropdown } from './ImpactCanvasCrossRefDropdown';
-import { ImpactCanvasGraphic } from './ImpactCanvasGraphic';
+import { ImpactCanvasFreeformEditor } from './ImpactCanvasFreeformEditor';
 
 interface Props {
   proposalId: string;
@@ -103,7 +103,7 @@ export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figure
               </span>
             </div>
             <div ref={graphicRef} style={{ paddingBottom: 8, paddingRight: 8 }}>
-              <ImpactCanvasGraphic proposalId={proposalId} />
+              <ImpactCanvasFreeformEditor proposalId={proposalId} canEdit={canEdit} />
             </div>
           </CardContent>
         </Card>
