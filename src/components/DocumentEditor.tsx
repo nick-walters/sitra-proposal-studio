@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Info, Image, MessageSquare, CalendarClock, User, FileText, X, GitCompare, Keyboard, Check, Link2, Table2, AlertTriangle } from "lucide-react";
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { FormattingToolbar, useRichTextEditor } from "./RichTextEditor";
 import { AdvancedToolbar } from "./toolbar/AdvancedToolbar";
 import { ProposalBanner } from "./ProposalBanner";
