@@ -7,7 +7,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Link2 } from 'lucide-react';
 import { InsertWPReferenceDialog } from './InsertWPReferenceDialog';
 import { InsertCaseReferenceDialog } from './InsertCaseReferenceDialog';
