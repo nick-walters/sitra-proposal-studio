@@ -99,7 +99,7 @@ export function ImpactCanvasGraphic({ proposalId, className }: Props) {
           <div
             key={`${row.id}-${c.id}`}
             className="border border-border rounded-md bg-muted/30 min-h-[80px] text-xs flex items-center"
-            style={{ padding: '0.1pt' }}
+            style={{ padding: '2pt' }}
           >
             <div
               className="prose prose-sm max-w-none w-full"

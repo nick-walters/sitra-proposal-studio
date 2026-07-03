@@ -213,7 +213,7 @@ export function ImpactCanvasBuilder({ proposalId, canEdit }: Props) {
                                   <th
                                     key={c.id}
                                     className="border bg-muted/30 text-left align-top min-w-[160px]"
-                                    style={{ padding: '0 0.3pt' }}
+                                    style={{ padding: '1pt 2pt' }}
                                   >
                                     <div className="flex items-start gap-1">
                                       <span className="text-xs font-semibold whitespace-pre-line">{c.heading}</span>
@@ -245,7 +245,7 @@ export function ImpactCanvasBuilder({ proposalId, canEdit }: Props) {
                                     key={c.id}
                                     data-impact-canvas-cell
                                     className="border align-top"
-                                    style={{ padding: '0 0.3pt' }}
+                                    style={{ padding: '1pt 2pt' }}
                                   >
                                     <ImpactCanvasCellEditor
                                       html={row.content[c.key] || ''}
