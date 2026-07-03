@@ -67,7 +67,7 @@ export function FigureEditor({
     refetchOnWindowFocus: true,
   });
   const mirroredCaption = (captionQ.data ?? figure.caption ?? figure.title ?? '').trim();
-  const [caption, setCaption] = useState(figure.caption || figure.title || '');
+  
   
   // AI regeneration state
   const [editPrompt, setEditPrompt] = useState(figure.content?.aiPrompt || '');
