@@ -11,6 +11,10 @@ import { ImpactCanvasColumnDialog } from './ImpactCanvasColumnDialog';
 import { ImpactCanvasCrossRefDropdown } from './ImpactCanvasCrossRefDropdown';
 import { ImpactCanvasGraphic } from './ImpactCanvasGraphic';
 
+interface Props {
+  proposalId: string;
+  canEdit: boolean;
+}
 
 
 /**
