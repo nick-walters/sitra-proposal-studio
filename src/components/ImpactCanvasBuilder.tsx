@@ -3,7 +3,7 @@ import type { Editor } from '@tiptap/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Plus, Trash2, Settings2, Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, Info } from 'lucide-react';
+import { Plus, Trash2, Settings2, Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, Info, Undo2, Redo2 } from 'lucide-react';
 import DOMPurify from 'dompurify';
 import { useImpactCanvasColumns, useImpactCanvasRows } from '@/hooks/useImpactCanvas';
 import { useProposalRole } from '@/hooks/useProposalRole';
@@ -151,6 +151,21 @@ export function ImpactCanvasBuilder({ proposalId, canEdit }: Props) {
           data-impact-canvas-toolbar
           className="sticky top-0 z-10 bg-background border rounded-md p-1 flex items-center gap-1 overflow-visible"
         >
+          <ToolbarBtn
+            label="Undo"
+            disabled={!activeEditor || !canEdit || !(activeEditor?.can().undo() ?? false)}
+            onClick={() => run((c) => c.undo())}
+          >
+            <Undo2 className="w-4 h-4" />
+          </ToolbarBtn>
+          <ToolbarBtn
+            label="Redo"
+            disabled={!activeEditor || !canEdit || !(activeEditor?.can().redo() ?? false)}
+            onClick={() => run((c) => c.redo())}
+          >
+            <Redo2 className="w-4 h-4" />
+          </ToolbarBtn>
+          <div className="w-px h-5 bg-border mx-1" />
           <ToolbarBtn label="Bold" active={isActive('bold')} disabled={!activeEditor || !canEdit}
             onClick={() => run((c) => c.toggleBold())}>
             <Bold className="w-4 h-4" />
