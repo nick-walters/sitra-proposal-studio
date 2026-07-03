@@ -123,7 +123,10 @@ export function ImpactCanvasBuilder({ proposalId, canEdit }: Props) {
         </Card>
 
         {/* Shared toolbar */}
-        <div className="sticky top-0 z-10 bg-background border rounded-md p-1 flex items-center gap-1">
+        <div
+          data-impact-canvas-toolbar
+          className="sticky top-0 z-10 bg-background border rounded-md p-1 flex items-center gap-1 overflow-visible"
+        >
           <ToolbarBtn label="Bold" active={isActive('bold')} disabled={!activeEditor || !canEdit}
             onClick={() => run((c) => c.toggleBold())}>
             <Bold className="w-4 h-4" />
@@ -153,7 +156,7 @@ export function ImpactCanvasBuilder({ proposalId, canEdit }: Props) {
           />
 
           <div className="flex-1" />
-          <span className="text-xs text-muted-foreground pr-2">
+          <span className="text-xs text-muted-foreground pr-2 shrink-0">
             {activeEditor ? 'Editing focused cell' : 'Click a cell to edit'}
           </span>
         </div>
