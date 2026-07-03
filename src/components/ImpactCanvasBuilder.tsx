@@ -57,6 +57,30 @@ export function ImpactCanvasBuilder({ proposalId, canEdit }: Props) {
 
   const handleFocus = useCallback((editor: Editor) => setActiveEditor(editor), []);
 
+  // Clear the focused-cell state when the user clicks outside a cell AND
+  // outside the shared toolbar. Cells and the toolbar carry `data-*` markers.
+  // Radix portals (dropdown menu content, dialogs) are also treated as
+  // "inside" so opening the cross-ref dropdown or a reference dialog does
+  // NOT deselect the active cell (toolbar buttons use onMouseDown+
+  // preventDefault to preserve DOM focus, but React portals live outside
+  // the toolbar subtree so we must exclude them explicitly here).
+  useEffect(() => {
+    const onPointerDown = (e: PointerEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      if (
+        target.closest(
+          '[data-impact-canvas-cell],[data-impact-canvas-toolbar],[data-radix-popper-content-wrapper],[role="menu"],[role="dialog"]',
+        )
+      ) {
+        return;
+      }
+      setActiveEditor(null);
+    };
+    document.addEventListener('pointerdown', onPointerDown, true);
+    return () => document.removeEventListener('pointerdown', onPointerDown, true);
+  }, []);
+
   const isActive = (name: string, attrs?: Record<string, unknown>) =>
     activeEditor?.isActive(name, attrs) ?? false;
 
