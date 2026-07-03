@@ -276,7 +276,11 @@ export function ImpactCanvasBuilder({ proposalId, canEdit }: Props) {
                             <tbody>
                               <tr>
                                 {chunk.map((c) => (
-                                  <td key={c.id} className="border align-top p-0">
+                                  <td
+                                    key={c.id}
+                                    data-impact-canvas-cell
+                                    className="border align-top p-0"
+                                  >
                                     <ImpactCanvasCellEditor
                                       html={row.content[c.key] || ''}
                                       onChange={(html) =>
