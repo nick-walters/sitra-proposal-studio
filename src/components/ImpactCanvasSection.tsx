@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { EditableCaption } from '@/components/EditableCaption';
+import { ImpactCanvasGraphic } from '@/components/ImpactCanvasGraphic';
 
 interface Props {
   proposalId: string;
@@ -8,9 +9,11 @@ interface Props {
 
 /**
  * Impact Canvas — compulsory figure fixed at the end of B2.1.
- * Renders a placeholder + autonumbered caption sourced from the
+ * Renders the real structured graphic (shared with the builder preview
+ * via ImpactCanvasGraphic) + autonumbered caption sourced from the
  * figures row (figure_number + caption). Gated by
- * proposals.impact_canvas_enabled (defaults true).
+ * proposals.impact_canvas_enabled (defaults true). Read-only here —
+ * editing lives on the dedicated figure/builder page.
  */
 export function ImpactCanvasSection({ proposalId }: Props) {
   const enabledQ = useQuery({
@@ -53,12 +56,7 @@ export function ImpactCanvasSection({ proposalId }: Props) {
       data-impact-canvas-mount="true"
       className="space-y-1 [&_p]:!my-0 mt-[2px]"
     >
-      <div
-        className="border-2 border-dashed border-muted-foreground/40 rounded-md p-6 text-center text-sm text-muted-foreground bg-muted/20 font-['Times_New_Roman',Times,serif]"
-        data-impact-canvas-placeholder="true"
-      >
-        [Impact Canvas — builder in Phase 1b]
-      </div>
+      <ImpactCanvasGraphic proposalId={proposalId} />
       <EditableCaption
         proposalId={proposalId}
         figureId={fig.id}
@@ -68,3 +66,4 @@ export function ImpactCanvasSection({ proposalId }: Props) {
     </div>
   );
 }
+
