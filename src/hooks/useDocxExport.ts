@@ -6,6 +6,7 @@ import { Proposal, Section, Participant } from '@/types/proposal';
 import { prepareExportContainer, ExportData } from '@/lib/printRenderer';
 import { scrubDomForExport } from '@/lib/exportDomScrubber';
 import { convertBadgesForWord } from '@/lib/exportWordBadgeConverter';
+import { swapImpactCanvasForWord } from '@/lib/exportImpactCanvasToWord';
 import { SITRA_LOGO_BASE64 } from '@/lib/sitraLogo';
 
 function buildBannerHtml(acronym: string, title: string): string {
@@ -227,8 +228,11 @@ export function useDocxExport() {
           }
         }
 
-        // Clean up editor-only UI and convert badges for Word
+        // Clean up editor-only UI, then swap the Impact Canvas graphic
+        // for a Word-friendly table BEFORE badges are converted (so cell
+        // badges get converted in the container-wide pass).
         scrubDomForExport(container);
+        await swapImpactCanvasForWord(container, proposal.id);
         convertBadgesForWord(container);
 
         // Replace the proposal banner div (flexbox) with a Word-compatible
