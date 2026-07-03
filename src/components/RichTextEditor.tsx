@@ -1377,6 +1377,7 @@ export function useRichTextEditor({
   trackChanges,
   blockLocking,
   onBlockDeleteRequest,
+  canEditCaptions = true,
 }: { 
   content: string; 
   onChange: (content: string) => void;
@@ -1395,6 +1396,7 @@ export function useRichTextEditor({
     getCurrentUserId: () => string | null;
   };
   onBlockDeleteRequest?: (deleteCallback: () => void) => void;
+  canEditCaptions?: boolean;
 }) {
   const initialContentRef = useRef<string>(normalizePartBLoadedContent(content));
 
