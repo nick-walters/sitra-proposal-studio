@@ -139,10 +139,12 @@ export function useImpactCanvasRows(proposalId: string) {
         order_index: existing.length,
       });
       if (error) throw error;
+      await syncBoundElements(proposalId);
     },
     onSettled: invalidate,
     onError: () => toast.error('Failed to add row'),
   });
+
 
   const deleteRow = useMutation({
     mutationFn: async (id: string) => {
