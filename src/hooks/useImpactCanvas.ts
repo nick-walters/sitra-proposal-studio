@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { syncBoundElements } from '@/lib/impactCanvasLayout';
+
 
 export interface ImpactCanvasColumn {
   id: string;
@@ -63,6 +65,7 @@ export function useImpactCanvasColumns(proposalId: string) {
         order_index: existing.length,
       });
       if (error) throw error;
+      await syncBoundElements(proposalId);
     },
     onSettled: invalidate,
     onError: () => toast.error('Failed to add column'),
@@ -72,10 +75,12 @@ export function useImpactCanvasColumns(proposalId: string) {
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('impact_canvas_columns').delete().eq('id', id);
       if (error) throw error;
+      await syncBoundElements(proposalId);
     },
     onSettled: invalidate,
     onError: () => toast.error('Failed to delete column'),
   });
+
 
   const reorder = useMutation({
     mutationFn: async (reordered: ImpactCanvasColumn[]) => {
@@ -134,10 +139,12 @@ export function useImpactCanvasRows(proposalId: string) {
         order_index: existing.length,
       });
       if (error) throw error;
+      await syncBoundElements(proposalId);
     },
     onSettled: invalidate,
     onError: () => toast.error('Failed to add row'),
   });
+
 
   const deleteRow = useMutation({
     mutationFn: async (id: string) => {

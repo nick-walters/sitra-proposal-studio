@@ -1810,6 +1810,78 @@ export type Database = {
           },
         ]
       }
+      impact_canvas_elements: {
+        Row: {
+          bound_col_key: string | null
+          bound_row_id: string | null
+          content: Json
+          created_at: string
+          h: number
+          id: string
+          kind: string
+          order_index: number
+          proposal_id: string
+          rotation: number
+          style: Json
+          updated_at: string
+          w: number
+          x: number
+          y: number
+          z: number
+        }
+        Insert: {
+          bound_col_key?: string | null
+          bound_row_id?: string | null
+          content?: Json
+          created_at?: string
+          h?: number
+          id?: string
+          kind: string
+          order_index?: number
+          proposal_id: string
+          rotation?: number
+          style?: Json
+          updated_at?: string
+          w?: number
+          x?: number
+          y?: number
+          z?: number
+        }
+        Update: {
+          bound_col_key?: string | null
+          bound_row_id?: string | null
+          content?: Json
+          created_at?: string
+          h?: number
+          id?: string
+          kind?: string
+          order_index?: number
+          proposal_id?: string
+          rotation?: number
+          style?: Json
+          updated_at?: string
+          w?: number
+          x?: number
+          y?: number
+          z?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "impact_canvas_elements_bound_row_id_fkey"
+            columns: ["bound_row_id"]
+            isOneToOne: false
+            referencedRelation: "impact_canvas_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "impact_canvas_elements_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       impact_canvas_rows: {
         Row: {
           content: Json
