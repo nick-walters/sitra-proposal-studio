@@ -71,6 +71,8 @@ export function ImpactCanvasCrossRefDropdown({ proposalId, activeEditor, disable
     short_name: string | null;
     color: string;
     case_type: string;
+    include_number?: boolean;
+    include_abbreviation?: boolean;
   }) => {
     if (!activeEditor) return;
     activeEditor
@@ -79,9 +81,15 @@ export function ImpactCanvasCrossRefDropdown({ proposalId, activeEditor, disable
       .insertCaseReference({
         caseNumber: c.number,
         caseShortName: c.short_name || '',
+        // `c.color` is the resolved outline colour from the dialog
+        // (proposal_case_types.outline_color when set). Canvas cells are
+        // NOT walked by syncCrossReferences, so the badge MUST be inserted
+        // in its correct form here — colour + include flags below.
         caseColor: c.color,
         caseId: c.id,
         caseType: c.case_type,
+        includeNumber: c.include_number !== false,
+        includeAbbreviation: c.include_abbreviation !== false,
       })
       .insertContent(' ')
       .unsetBold()
