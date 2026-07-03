@@ -102,7 +102,7 @@ export function ImpactCanvasBuilder({ proposalId, canEdit }: Props) {
 
 
 
-        {/* The graphic */}
+        {/* The graphic — shared component also used by B2.1 mirror */}
         <Card>
           <CardContent className="py-4 space-y-3">
             <div className="flex items-center justify-between">
@@ -111,40 +111,10 @@ export function ImpactCanvasBuilder({ proposalId, canEdit }: Props) {
                 {rows.length} row{rows.length === 1 ? '' : 's'} · {columnOrder.length} columns
               </span>
             </div>
-            {columnOrder.length === 0 ? (
-              <p className="text-xs text-muted-foreground italic py-6 text-center">
-                No columns defined. Add columns via the manage-columns button below.
-              </p>
-            ) : rows.length === 0 ? (
-              <p className="text-xs text-muted-foreground italic py-6 text-center">
-                No rows yet. Add a row below to start filling the canvas.
-              </p>
-            ) : (
-              <div
-                className="grid gap-2 font-['Times_New_Roman',Times,serif]"
-                style={{ gridTemplateColumns: `repeat(${columnOrder.length}, minmax(0, 1fr))` }}
-              >
-                {columnOrder.map((c) => (
-                  <div
-                    key={`h-${c.id}`}
-                    className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground text-center border-b pb-1"
-                  >
-                    {c.heading}
-                  </div>
-                ))}
-                {rows.map((row) =>
-                  columnOrder.map((c) => (
-                    <div
-                      key={`${row.id}-${c.id}`}
-                      className="border border-border rounded-md bg-muted/30 p-2 min-h-[80px] text-xs prose prose-sm max-w-none"
-                      dangerouslySetInnerHTML={{ __html: sanitize(row.content[c.key] || '') }}
-                    />
-                  )),
-                )}
-              </div>
-            )}
+            <ImpactCanvasGraphic proposalId={proposalId} />
           </CardContent>
         </Card>
+
 
         {/* Shared toolbar */}
         <div
