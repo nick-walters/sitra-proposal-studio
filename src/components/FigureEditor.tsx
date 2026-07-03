@@ -77,8 +77,11 @@ export function FigureEditor({
   const replaceInputRef = useRef<HTMLInputElement>(null);
   const resolvedImageUrl = useStorageUrl(figure.content?.imageUrl);
   const isImpactCanvas = figure.figureType === 'impact-canvas';
+  const impactGraphicRef = useRef<HTMLDivElement>(null);
+  const [downloadingCanvasPng, setDownloadingCanvasPng] = useState(false);
   const { roleTier } = useProposalRole(proposalId);
   const isCoordinator = roleTier === 'coordinator';
+
   const { enabled: canvasEnabled, setEnabled: setCanvasEnabled } = useImpactCanvasEnabled(
     isImpactCanvas ? proposalId : '',
   );
