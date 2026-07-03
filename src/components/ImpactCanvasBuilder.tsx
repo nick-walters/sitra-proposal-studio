@@ -89,48 +89,25 @@ export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figure
 
 
 
-        {/* The graphic — shared component also used by B2.1 mirror */}
+        {/* The graphic — shared component also used by B2.1 mirror.
+            The PNG download button lives in the FigureEditor action row
+            (parent); we expose the wrapper via the `graphicRef` prop.
+            paddingBottom guards against html2canvas trimming the last
+            row of boxes (the graphic ends flush, no intrinsic slack). */}
         <Card>
           <CardContent className="py-4 space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold">Canvas preview</h3>
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-muted-foreground">
-                  {rows.length} row{rows.length === 1 ? '' : 's'} · {columnOrder.length} columns
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-7 gap-1 text-xs"
-                  disabled={downloading || !graphicRef.current}
-                  onClick={async () => {
-                    if (!graphicRef.current) return;
-                    setDownloading(true);
-                    try {
-                      const { exportAsPng } = await import('@/lib/figureExport');
-                      const name = figureNumber
-                        ? `Impact-Canvas-Figure-${figureNumber}`
-                        : 'Impact-Canvas';
-                      await exportAsPng(graphicRef.current, name);
-                      toast.success('PNG downloaded');
-                    } catch (err) {
-                      console.error(err);
-                      toast.error('Failed to export PNG');
-                    } finally {
-                      setDownloading(false);
-                    }
-                  }}
-                >
-                  <Download className="w-3 h-3" />
-                  Download PNG
-                </Button>
-              </div>
+              <span className="text-xs text-muted-foreground">
+                {rows.length} row{rows.length === 1 ? '' : 's'} · {columnOrder.length} columns
+              </span>
             </div>
-            <div ref={graphicRef}>
+            <div ref={graphicRef} style={{ paddingBottom: 8 }}>
               <ImpactCanvasGraphic proposalId={proposalId} />
             </div>
           </CardContent>
         </Card>
+
 
 
         {/* Shared toolbar */}
