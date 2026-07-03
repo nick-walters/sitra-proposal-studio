@@ -115,9 +115,6 @@ export function FigureEditor({
     }
   };
 
-  const handleSave = () => {
-    onUpdate({ caption });
-  };
 
   const handleRegenerate = async () => {
     if (!editPrompt.trim()) {
