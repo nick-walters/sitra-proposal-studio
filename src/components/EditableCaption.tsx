@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserRole } from '@/hooks/useUserRole';
 import { RefreshCw } from 'lucide-react';
@@ -7,8 +8,10 @@ const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 
 interface EditableCaptionProps {
   proposalId?: string;
-  tableKey: string;
-  label: string; // e.g. "Table 3.1.a."
+  /** Either tableKey (legacy: table_captions store) OR figureId (figures.caption store) must be provided. */
+  tableKey?: string;
+  figureId?: string;
+  label: string; // e.g. "Table 3.1.a." or "Figure 3.1.a."
   defaultCaption: string; // e.g. "List of work packages"
   /** Extra JSX to render after the editable text (e.g. bubble legends) */
   suffix?: React.ReactNode;
@@ -22,6 +25,7 @@ interface EditableCaptionProps {
 export function EditableCaption({
   proposalId,
   tableKey,
+  figureId,
   label,
   defaultCaption,
   suffix,
@@ -35,9 +39,32 @@ export function EditableCaption({
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
   const [focused, setFocused] = useState(false);
+  const qc = useQueryClient();
+
+  // Figure-caption store (single source): keep in sync with figures.caption via react-query.
+  const figCapQ = useQuery({
+    queryKey: ['figure-caption', figureId],
+    enabled: !!figureId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('figures')
+        .select('caption, title')
+        .eq('id', figureId!)
+        .maybeSingle();
+      return (data?.caption ?? data?.title ?? '') as string;
+    },
+    staleTime: 15_000,
+  });
 
   useEffect(() => {
-    if (!proposalId) return;
+    if (!figureId) return;
+    const v = (figCapQ.data ?? '').trim();
+    if (v) setCaption(v);
+  }, [figureId, figCapQ.data]);
+
+  // Legacy table_captions store — only when tableKey is used (no figureId).
+  useEffect(() => {
+    if (!proposalId || !tableKey || figureId) return;
     const load = async () => {
       const { data } = await supabase
         .from('table_captions')
@@ -45,13 +72,10 @@ export function EditableCaption({
         .eq('proposal_id', proposalId)
         .eq('table_key', tableKey)
         .maybeSingle();
-      if (data?.caption) {
-        setCaption(data.caption);
-      }
-      // loaded
+      if (data?.caption) setCaption(data.caption);
     };
     load();
-  }, [proposalId, tableKey]);
+  }, [proposalId, tableKey, figureId]);
 
   const startEdit = () => {
     if (!canEdit) return;
@@ -62,9 +86,17 @@ export function EditableCaption({
   const save = useCallback(async () => {
     setEditing(false);
     const trimmed = editValue.trim();
-    if (!trimmed || trimmed === caption || !proposalId) return;
+    if (!trimmed || trimmed === caption) return;
     setCaption(trimmed);
 
+    if (figureId) {
+      await supabase.from('figures').update({ caption: trimmed }).eq('id', figureId);
+      qc.invalidateQueries({ queryKey: ['figure-caption', figureId] });
+      if (proposalId) qc.invalidateQueries({ queryKey: ['figures', proposalId] });
+      return;
+    }
+
+    if (!proposalId || !tableKey) return;
     const { data: { user } } = await supabase.auth.getUser();
     await supabase
       .from('table_captions')
@@ -75,20 +107,17 @@ export function EditableCaption({
         updated_at: new Date().toISOString(),
         updated_by: user?.id || null,
       }, { onConflict: 'proposal_id,table_key' });
-  }, [editValue, caption, proposalId, tableKey]);
+  }, [editValue, caption, proposalId, tableKey, figureId, qc]);
 
-  // Infer caption kind from the label prefix: "Figure ..." → centred figure
-  // caption, anything else (typically "Table ...") → left-aligned table caption.
-  // This matches the app-wide rule enforced by .figure-caption / .table-caption
-  // in index.css; explicit justifyContent is needed here because this <p> is a
-  // flex container and text-align is ignored on flex containers.
+  // Infer caption kind from the label prefix.
   const isFigure = /^\s*figure\b/i.test(label);
   const kindClass = isFigure ? 'figure-caption' : 'table-caption';
+  const commentKey = figureId ? `figure-${figureId}` : `caption-${tableKey}`;
 
   return (
     <p
       className={`${tableStyles} italic ${kindClass} ${className} relative group/caption`}
-      data-commentable={`caption-${tableKey}`}
+      data-commentable={commentKey}
       style={{
         display: 'flex',
         flexWrap: 'nowrap',
@@ -97,14 +126,12 @@ export function EditableCaption({
       }}
       onFocusCapture={() => setFocused(true)}
       onBlurCapture={(e) => {
-        // Only unfocus if focus leaves the entire <p> container
         if (!e.currentTarget.contains(e.relatedTarget as Node)) {
           setFocused(false);
         }
       }}
       onClick={() => setFocused(true)}
     >
-      {/* Hover-revealed action buttons in the left margin */}
       {leftButtons && (
         <span
           contentEditable={false}
@@ -117,19 +144,16 @@ export function EditableCaption({
           {leftButtons}
         </span>
       )}
-      {/* Label is uneditable, bold+italic */}
       <span className="font-bold italic select-none" contentEditable={false} suppressContentEditableWarning style={{ flexShrink: 0 }}>
         {label}
       </span>
-      {/* Uneditable non-bold space separator */}
       <span className="font-normal select-none" contentEditable={false} suppressContentEditableWarning style={{ flexShrink: 0 }}>
         {' '}
       </span>
-      {/* Editable caption title (italic, not bold) */}
       {editing ? (
         <input
           type="text"
-          data-commentable={`caption-${tableKey}`}
+          data-commentable={commentKey}
           className={`${tableStyles} italic font-normal bg-transparent outline-none border-0 p-0 m-0 shadow-none ring-0 focus:outline-none focus:ring-0 focus:border-0`}
           value={editValue}
           onChange={e => setEditValue(e.target.value)}
@@ -143,7 +167,7 @@ export function EditableCaption({
         />
       ) : (
         <span
-          data-commentable={`caption-${tableKey}`}
+          data-commentable={commentKey}
           className={`font-normal ${canEdit ? 'cursor-text hover:bg-muted/30 rounded px-0.5' : ''}`}
           onClick={startEdit}
         >
@@ -151,7 +175,6 @@ export function EditableCaption({
         </span>
       )}
       {suffix && <>{' '}{suffix}</>}
-      {/* Refresh icon in the right margin */}
       {onRefresh && (focused || editing) && (
         <button
           type="button"
