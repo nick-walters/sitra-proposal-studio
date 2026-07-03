@@ -1,9 +1,10 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import type { Editor } from '@tiptap/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Plus, Trash2, Settings2, Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, Info, Undo2, Redo2 } from 'lucide-react';
+import { Plus, Trash2, Settings2, Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, Info, Undo2, Redo2, Download } from 'lucide-react';
+import { toast } from 'sonner';
 import { useImpactCanvasColumns, useImpactCanvasRows } from '@/hooks/useImpactCanvas';
 import { useProposalRole } from '@/hooks/useProposalRole';
 import { ImpactCanvasCellEditor } from './ImpactCanvasCellEditor';
@@ -14,6 +15,7 @@ import { ImpactCanvasGraphic } from './ImpactCanvasGraphic';
 interface Props {
   proposalId: string;
   canEdit: boolean;
+  figureNumber?: string;
 }
 
 
@@ -23,16 +25,18 @@ interface Props {
  * Below: rich-text grid builder with ONE shared toolbar bound to the
  *        currently-focused cell (avoids toolbar-per-cell perf hit).
  */
-export function ImpactCanvasBuilder({ proposalId, canEdit }: Props) {
+export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber }: Props) {
   const { roleTier } = useProposalRole(proposalId);
   const isCoordinator = roleTier === 'coordinator';
 
   const { columns, isLoading: colsLoading } = useImpactCanvasColumns(proposalId);
   const { rows, isLoading: rowsLoading, addRow, deleteRow, updateCell } = useImpactCanvasRows(proposalId);
-  
+
 
   const [activeEditor, setActiveEditor] = useState<Editor | null>(null);
   const [columnDialogOpen, setColumnDialogOpen] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const graphicRef = useRef<HTMLDivElement>(null);
 
   const handleFocus = useCallback((editor: Editor) => setActiveEditor(editor), []);
 
@@ -86,11 +90,41 @@ export function ImpactCanvasBuilder({ proposalId, canEdit }: Props) {
           <CardContent className="py-4 space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold">Canvas preview</h3>
-              <span className="text-xs text-muted-foreground">
-                {rows.length} row{rows.length === 1 ? '' : 's'} · {columnOrder.length} columns
-              </span>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground">
+                  {rows.length} row{rows.length === 1 ? '' : 's'} · {columnOrder.length} columns
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 gap-1 text-xs"
+                  disabled={downloading || !graphicRef.current}
+                  onClick={async () => {
+                    if (!graphicRef.current) return;
+                    setDownloading(true);
+                    try {
+                      const { exportAsPng } = await import('@/lib/figureExport');
+                      const name = figureNumber
+                        ? `Impact-Canvas-Figure-${figureNumber}`
+                        : 'Impact-Canvas';
+                      await exportAsPng(graphicRef.current, name);
+                      toast.success('PNG downloaded');
+                    } catch (err) {
+                      console.error(err);
+                      toast.error('Failed to export PNG');
+                    } finally {
+                      setDownloading(false);
+                    }
+                  }}
+                >
+                  <Download className="w-3 h-3" />
+                  Download PNG
+                </Button>
+              </div>
             </div>
-            <ImpactCanvasGraphic proposalId={proposalId} />
+            <div ref={graphicRef}>
+              <ImpactCanvasGraphic proposalId={proposalId} />
+            </div>
           </CardContent>
         </Card>
 
