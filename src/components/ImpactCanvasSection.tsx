@@ -54,7 +54,7 @@ export function ImpactCanvasSection({ proposalId }: Props) {
   return (
     <div
       data-impact-canvas-mount="true"
-      className="space-y-1 [&_p]:!my-0 mt-[2px]"
+      className="mt-[2px]"
     >
       <ImpactCanvasGraphic proposalId={proposalId} />
       <EditableCaption
