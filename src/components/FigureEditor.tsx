@@ -52,6 +52,21 @@ export function FigureEditor({
   onBack,
   canEdit,
 }: FigureEditorProps) {
+  // Live-mirror caption from figures.caption (Part B is the source of truth).
+  const captionQ = useQuery({
+    queryKey: ['figure-caption', figure.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('figures')
+        .select('caption, title')
+        .eq('id', figure.id)
+        .maybeSingle();
+      return (data?.caption ?? data?.title ?? '') as string;
+    },
+    staleTime: 5_000,
+    refetchOnWindowFocus: true,
+  });
+  const mirroredCaption = (captionQ.data ?? figure.caption ?? figure.title ?? '').trim();
   const [caption, setCaption] = useState(figure.caption || figure.title || '');
   
   // AI regeneration state
