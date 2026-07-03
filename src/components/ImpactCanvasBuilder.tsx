@@ -17,7 +17,11 @@ interface Props {
   proposalId: string;
   canEdit: boolean;
   figureNumber?: string;
+  /** Optional ref pointing at the wrapper around the shared graphic — used by the
+   * parent (FigureEditor) to trigger a PNG export from its action row. */
+  graphicRef?: RefObject<HTMLDivElement>;
 }
+
 
 
 /**
