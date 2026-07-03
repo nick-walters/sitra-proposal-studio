@@ -294,12 +294,40 @@ export function FigureEditor({
                 <span className="text-muted-foreground">Include in B2.1</span>
               </label>
             )}
+            {isImpactCanvas && (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={downloadingCanvasPng}
+                onClick={async () => {
+                  if (!impactGraphicRef.current) return;
+                  setDownloadingCanvasPng(true);
+                  try {
+                    const { exportAsPng } = await import('@/lib/figureExport');
+                    await exportAsPng(
+                      impactGraphicRef.current,
+                      `Impact-Canvas-Figure-${figure.figureNumber}`,
+                    );
+                    toast.success('PNG downloaded');
+                  } catch (err) {
+                    console.error(err);
+                    toast.error('Failed to export PNG');
+                  } finally {
+                    setDownloadingCanvasPng(false);
+                  }
+                }}
+              >
+                <Download className="w-4 h-4 mr-1" />
+                Download PNG
+              </Button>
+            )}
             {canEdit && (
               <Button variant="outline" size="sm" onClick={onDelete} className="text-destructive">
                 <Trash2 className="w-4 h-4 mr-1" />
                 Delete
               </Button>
             )}
+
           </div>
         </div>
 
