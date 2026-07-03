@@ -11,6 +11,7 @@ import { Link2 } from 'lucide-react';
 import { InsertWPReferenceDialog } from './InsertWPReferenceDialog';
 import { InsertCaseReferenceDialog } from './InsertCaseReferenceDialog';
 import { InsertTDMSReferenceDropdowns } from './InsertTDMSReferenceDropdowns';
+import { B31Pill, WPBubble } from './B31Pill';
 
 interface Props {
   proposalId: string;
