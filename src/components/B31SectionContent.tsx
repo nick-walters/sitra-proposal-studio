@@ -88,8 +88,8 @@ export function B31SectionContent({ proposalId }: Props) {
           />
           <EditableCaption
             proposalId={proposalId}
-            tableKey="figure-3.1.a"
-            label="Figure 3.1.a."
+            figureId={pertFigure.id}
+            label={`Figure ${pertFigure.figure_number}.`}
             defaultCaption={pertFigure.caption || pertFigure.title}
             className="mt-1"
           />
