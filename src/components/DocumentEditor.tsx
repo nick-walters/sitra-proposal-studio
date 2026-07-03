@@ -867,15 +867,21 @@ export function DocumentEditor({
       attrs: { src: imageUrl, alt: figure.title, widthPercent: 100, alignment: 'center' }
     });
     
-    // Add the caption — read-only atom node that renders live from figures.caption
+    // Add the caption — editable plain paragraph. Text is the single source
+    // and syncs back to figures.caption via the sync effect above.
+    const captionText = (figure as any).caption || figure.title || '';
+    const safeText = String(captionText).replace(/[<>&]/g, (c) =>
+      c === '<' ? '&lt;' : c === '>' ? '&gt;' : '&amp;'
+    );
     contentToInsert.push({
-      type: 'figureCaption',
-      attrs: {
-        figureId: figure.id || null,
-        figureNumber: figure.figureNumber,
-        captionText: figure.title || '',
-      },
+      type: 'paragraph',
+      attrs: { class: 'figure-caption' },
+      content: [
+        { type: 'text', marks: [{ type: 'italic' }, { type: 'bold' }], text: `Figure ${figure.figureNumber}. ` },
+        { type: 'text', marks: [{ type: 'italic' }], text: safeText.replace(/&(lt|gt|amp);/g, (m) => m === '&lt;' ? '<' : m === '&gt;' ? '>' : '&') },
+      ],
     });
+
     
     editor.chain()
       .focus()
