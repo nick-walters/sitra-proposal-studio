@@ -479,6 +479,7 @@ export function DocumentEditor({
         },
       });
     },
+    canEditCaptions: canEditCaptionsInEditor,
   });
 
   // Stage 2 — auto-insert/remove one casesTable per case type with >=1 case (B1.2 only).
