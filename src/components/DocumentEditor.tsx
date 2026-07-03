@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { caseWord } from "@/lib/caseTypeLabels";
 import { useProposalCaseTypes } from "@/hooks/useProposalCaseTypes";
 import { useB12CasesTableReconciler } from "@/hooks/useB12CasesTableReconciler";
+import { useUserRole } from "@/hooks/useUserRole";
 import { useB32MirrorsReconciler } from "@/hooks/useB32MirrorsReconciler";
 
 import DOMPurify from "dompurify";
@@ -451,6 +452,11 @@ export function DocumentEditor({
   }, []);
   const getCurrentUserIdForEditor = useCallback(() => user?.id || null, [user?.id]);
 
+  // Caption editing is coordinator+ only (owners and admins included).
+  const { isAdminOrOwner, hasAnyCoordinatorRole } = useUserRole();
+  const canEditCaptionsInEditor = isAdminOrOwner || hasAnyCoordinatorRole;
+
+
   // Use the editor hook for external toolbar control with citation tooltips
   const editor = useRichTextEditor({
     content,
@@ -478,6 +484,7 @@ export function DocumentEditor({
         },
       });
     },
+    canEditCaptions: canEditCaptionsInEditor,
   });
 
   // Stage 2 — auto-insert/remove one casesTable per case type with >=1 case (B1.2 only).
