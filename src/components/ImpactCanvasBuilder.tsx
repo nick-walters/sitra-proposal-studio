@@ -212,7 +212,8 @@ export function ImpactCanvasBuilder({ proposalId, canEdit }: Props) {
                                 {chunk.map((c) => (
                                   <th
                                     key={c.id}
-                                    className="border p-2 bg-muted/30 text-left align-top min-w-[160px]"
+                                    className="border bg-muted/30 text-left align-top min-w-[160px]"
+                                    style={{ padding: '0 0.3pt' }}
                                   >
                                     <div className="flex items-start gap-1">
                                       <span className="text-xs font-semibold whitespace-pre-line">{c.heading}</span>
