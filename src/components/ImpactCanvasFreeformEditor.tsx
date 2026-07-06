@@ -394,8 +394,26 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     const onUp = () => {
       const finalBox = overridesRef.current[drag.id];
       if (finalBox) persistDebounced(drag.id, finalBox);
+      // Manual resize (any handle that changed h) locks in an explicit
+      // height and disables auto-fit for this bound box.
+      if (
+        drag.mode.kind === 'resize' &&
+        finalBox &&
+        Math.abs(finalBox.h - drag.startBox.h) > 1e-4
+      ) {
+        const el = fetched.find((e) => e.id === drag.id);
+        if (el && el.kind === 'bound') {
+          const cur = { ...readBoundStyle(el.style), ...(styleOverrides[drag.id] ?? {}) };
+          if (cur.autoFitH !== false) {
+            const next = { ...cur, autoFitH: false };
+            setStyleOverrides((o) => ({ ...o, [drag.id]: next }));
+            persistStyleDebounced(drag.id, next);
+          }
+        }
+      }
       setDrag(null);
     };
+
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
     window.addEventListener('pointercancel', onUp);
