@@ -1489,10 +1489,11 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
             </div>
           );
         })}
-        {/* SPIKE (throwaway): mirror the read-only spike inside the editor
-            so the same two test arrows appear on screen for verification.
-            Remove alongside <LinesSpike/> in the renderer. */}
-        <LinesSpike VW={VW} VH={VH} />
+        {/* Line elements — shared SVG overlay (read-only rendering in
+            Stage 1; interaction added in Stage 2). Identical component
+            renders in the read-only renderer for B2.1/PDF/PNG parity. */}
+        <ImpactCanvasLinesOverlay VW={VW} VH={VH} elements={fetched as unknown as LineElement[]} />
+
       </div>
     </div>
   );
