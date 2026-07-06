@@ -260,7 +260,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     | { kind: 'batch'; entries: Array<
         | { kind: 'update'; id: string; before: ElementSnapshot; after: ElementSnapshot }
         | { kind: 'delete'; element: CanvasElement }
-      > };
+      >; group?: string; ts?: number };
   const undoStackRef = useRef<HistoryEntry[]>([]);
   const redoStackRef = useRef<HistoryEntry[]>([]);
   const suppressHistoryRef = useRef(false);
@@ -299,8 +299,31 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     ) {
       last.after = entry.after;
       last.ts = now;
+    } else if (
+      entry.kind === 'batch' &&
+      last?.kind === 'batch' &&
+      group &&
+      last.group === group &&
+      last.ts &&
+      now - last.ts < 600 &&
+      last.entries.length === entry.entries.length &&
+      last.entries.every((e, i) => {
+        const n = entry.entries[i];
+        return e.kind === 'update' && n.kind === 'update' && e.id === n.id;
+      })
+    ) {
+      // Coalesce: keep original `before`, overwrite `after` per entry.
+      entry.entries.forEach((n, i) => {
+        if (n.kind === 'update' && last.entries[i].kind === 'update') {
+          (last.entries[i] as { after: ElementSnapshot }).after = n.after;
+        }
+      });
+      last.ts = now;
     } else {
       if (entry.kind === 'update') {
+        entry.ts = now;
+        entry.group = group;
+      } else if (entry.kind === 'batch') {
         entry.ts = now;
         entry.group = group;
       }
@@ -1623,6 +1646,69 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     [canEdit, fetched, overrides, persistDebounced, styleOverrides, persistStyleDebounced, snapshotOfEl, pushHistory],
   );
 
+  /**
+   * Multi-select group sizing: set W and/or H on each resizable (bound/
+   * header/shape) element in `ids` to the given cm value(s). Lines are
+   * skipped. Clamped per-element to min + canvas bounds. Explicit H on a
+   * bound box disables autoFitH for that box. Pushes ONE batch entry
+   * (coalesced by group key so keystrokes fold into a single undo step).
+   */
+  const setElementBoxMulti = useCallback(
+    (ids: string[], patch: Partial<{ w: number; h: number }>) => {
+      if (!canEdit || ids.length === 0) return;
+      if (patch.w === undefined && patch.h === undefined) return;
+      const targets = ids
+        .map((id) => fetched.find((e) => e.id === id))
+        .filter((e): e is CanvasElement => !!e && (e.kind === 'bound' || e.kind === 'header' || e.kind === 'shape'));
+      if (targets.length === 0) return;
+
+      const entries: Array<{ kind: 'update'; id: string; before: ElementSnapshot; after: ElementSnapshot }> = [];
+      const nextOverrides: Record<string, { x: number; y: number; w: number; h: number }> = {};
+      const nextStyleOverrides: Record<string, ReturnType<typeof readBoundStyle>> = {};
+      const styleWrites: Array<{ id: string; style: ReturnType<typeof readBoundStyle> }> = [];
+
+      for (const el of targets) {
+        const before = snapshotOfEl(el);
+        const current = overrides[el.id] ?? { x: el.x, y: el.y, w: el.w, h: el.h };
+        const next = { ...current };
+        if (patch.w !== undefined) next.w = patch.w;
+        if (patch.h !== undefined) next.h = patch.h;
+        next.w = Math.max(MIN_W, Math.min(CANVAS_WIDTH_CM, next.w));
+        next.h = Math.max(MIN_H, Math.min(CANVAS_MAX_HEIGHT_CM, next.h));
+        next.x = Math.max(0, Math.min(CANVAS_WIDTH_CM - next.w, next.x));
+        next.y = Math.max(0, Math.min(CANVAS_MAX_HEIGHT_CM - next.h, next.y));
+        nextOverrides[el.id] = next;
+        persistDebounced(el.id, next);
+
+        let styleAfter: unknown = before.style;
+        if (patch.h !== undefined && el.kind === 'bound') {
+          const cur = { ...readBoundStyle(el.style), ...(styleOverrides[el.id] ?? {}) };
+          if (cur.autoFitH !== false) {
+            const ns = { ...cur, autoFitH: false };
+            nextStyleOverrides[el.id] = ns;
+            styleWrites.push({ id: el.id, style: ns });
+            styleAfter = ns;
+          }
+        }
+        const after: ElementSnapshot = { ...before, ...next, style: styleAfter };
+        entries.push({ kind: 'update', id: el.id, before, after });
+      }
+
+      if (entries.length === 0) return;
+      setOverrides((o) => ({ ...o, ...nextOverrides }));
+      if (Object.keys(nextStyleOverrides).length) {
+        setStyleOverrides((o) => ({ ...o, ...nextStyleOverrides }));
+      }
+      styleWrites.forEach((s) => persistStyleDebounced(s.id, s.style));
+
+      const sortedIds = targets.map((t) => t.id).slice().sort().join(',');
+      const dim = patch.w !== undefined && patch.h !== undefined ? 'wh' : (patch.w !== undefined ? 'w' : 'h');
+      pushHistory({ kind: 'batch', entries }, `size-multi:${dim}:${sortedIds}`);
+    },
+    [canEdit, fetched, overrides, persistDebounced, styleOverrides, persistStyleDebounced, snapshotOfEl, pushHistory],
+  );
+
+
 
 
   const deleteElement = useCallback(
@@ -1811,7 +1897,31 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     .map((e) => e.id);
   const styleEnabled = fillFontIds.length > 0;
   const outlineEnabled = outlineIds.length > 0;
-  const sizeEnabled = selectedIds.size === 1 && !!selectedEl && !!selectedBox && !selectedIsLine;
+  // Size (W/H) — enabled for single OR multi when at least one resizable
+  // (bound/header/shape) member is present. Lines are skipped by the multi
+  // writer. Handles remain single-select only (see zEnabled below).
+  const sizeIds = selectedEls
+    .filter((e) => e.kind === 'bound' || e.kind === 'header' || e.kind === 'shape')
+    .map((e) => e.id);
+  const isMultiSize = selectedIds.size > 1;
+  const sizeEnabled = canEdit && (
+    (selectedIds.size === 1 && !!selectedEl && !!selectedBox && !selectedIsLine) ||
+    (isMultiSize && sizeIds.length >= 1)
+  );
+  // Multi mixed-value detection for W/H (over resizable members only).
+  const sizeBoxes = sizeIds.map((id) => {
+    const el = fetched.find((e) => e.id === id);
+    if (!el) return null;
+    return overrides[id] ?? { x: el.x, y: el.y, w: el.w, h: el.h };
+  }).filter((b): b is { x: number; y: number; w: number; h: number } => !!b);
+  const roundCm = (v: number) => Math.round(v * 100) / 100;
+  const commonW = sizeBoxes.length ? sizeBoxes.every((b) => roundCm(b.w) === roundCm(sizeBoxes[0].w)) ? sizeBoxes[0].w : undefined : undefined;
+  const commonH = sizeBoxes.length ? sizeBoxes.every((b) => roundCm(b.h) === roundCm(sizeBoxes[0].h)) ? sizeBoxes[0].h : undefined : undefined;
+  const multiSizeBox = isMultiSize && sizeIds.length >= 1
+    ? { x: 0, y: 0, w: commonW ?? 0, h: commonH ?? 0 }
+    : null;
+  const sizeMixedW = isMultiSize && sizeIds.length > 1 && commonW === undefined;
+  const sizeMixedH = isMultiSize && sizeIds.length > 1 && commonH === undefined;
   // Layers: single-selection only. Multi-select z-order re-arrangement is
   // out of Stage 2 scope (it would need a stable relative-order-preserving
   // batch, which is a separate feature). Report as disabled for multi.
@@ -1969,12 +2079,26 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
 
           {/* Group 3: Size (W/H cm fields, arrow icons) — no divider before */}
           <SizeFields
-            box={sizeEnabled && selectedBox ? selectedBox : { x: 0, y: 0, w: 0, h: 0 }}
+            box={
+              sizeEnabled
+                ? (isMultiSize && multiSizeBox ? multiSizeBox : (selectedBox ?? { x: 0, y: 0, w: 0, h: 0 }))
+                : { x: 0, y: 0, w: 0, h: 0 }
+            }
             disabled={!sizeEnabled}
+            mixedW={sizeMixedW}
+            mixedH={sizeMixedH}
             onChange={(patch) => {
-              if (selectedEl) setElementBox(selectedEl.id, patch);
+              if (isMultiSize && sizeIds.length >= 1) {
+                const p: Partial<{ w: number; h: number }> = {};
+                if (patch.w !== undefined) p.w = patch.w;
+                if (patch.h !== undefined) p.h = patch.h;
+                if (p.w !== undefined || p.h !== undefined) setElementBoxMulti(sizeIds, p);
+              } else if (selectedEl) {
+                setElementBox(selectedEl.id, patch);
+              }
             }}
           />
+
 
           {/* Group 4: Layers (PowerPoint-style overlapping-shape icons) */}
           <div className="flex items-center gap-0.5" data-impact-canvas-toolbar>
@@ -2800,10 +2924,16 @@ function SizeFields({
   box,
   onChange,
   disabled = false,
+  mixedW = false,
+  mixedH = false,
 }: {
   box: { x: number; y: number; w: number; h: number };
   onChange: (patch: Partial<{ x: number; y: number; w: number; h: number }>) => void;
   disabled?: boolean;
+  /** Multi-select: elements disagree on width — show empty placeholder. */
+  mixedW?: boolean;
+  /** Multi-select: elements disagree on height — show empty placeholder. */
+  mixedH?: boolean;
 }) {
   const fmt = (v: number) => (Math.round(v * 100) / 100).toString();
   return (
@@ -2813,33 +2943,35 @@ function SizeFields({
         type="number"
         step="0.1"
         min={0}
-        value={disabled ? '' : fmt(box.w)}
+        value={disabled || mixedW ? '' : fmt(box.w)}
+        placeholder={mixedW ? '—' : undefined}
         disabled={disabled}
         onChange={(e) => {
           const v = parseFloat(e.target.value);
           if (Number.isFinite(v)) onChange({ w: v });
         }}
         className="h-7 w-11 px-1 text-xs"
-        title="Width (cm)"
+        title={mixedW ? 'Width (cm) — mixed' : 'Width (cm)'}
       />
       <MoveVertical className={cn('w-3.5 h-3.5 text-muted-foreground ml-0.5', disabled && 'opacity-50')} aria-label="Height" />
       <Input
         type="number"
         step="0.1"
         min={0}
-        value={disabled ? '' : fmt(box.h)}
+        value={disabled || mixedH ? '' : fmt(box.h)}
+        placeholder={mixedH ? '—' : undefined}
         disabled={disabled}
         onChange={(e) => {
           const v = parseFloat(e.target.value);
           if (Number.isFinite(v)) onChange({ h: v });
         }}
         className="h-7 w-11 px-1 text-xs"
-        title="Height (cm)"
+        title={mixedH ? 'Height (cm) — mixed' : 'Height (cm)'}
       />
     </div>
-
   );
 }
+
 
 
 interface BoundStyleToolbarProps {
