@@ -1800,7 +1800,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
                 top: pctY(box.y),
                 width: pctX(box.w),
                 height: pctY(box.h),
-                zIndex: el.z + (selected ? 1000 : 0),
+                zIndex: el.z,
                 padding: '2pt',
                 boxSizing: 'border-box',
                 cursor: canEdit
