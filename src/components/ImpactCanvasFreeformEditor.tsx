@@ -894,6 +894,37 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     return () => window.removeEventListener('keydown', onKey);
   }, [selectedId, editingId, fetched, deleteElement]);
 
+  // Text edit → one canvas-undo step on commit (not per keystroke). Track
+  // the pre-edit snapshot when editingId turns on; on transition to null,
+  // if the html actually changed, push ONE update entry.
+  const prevEditingIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    const prev = prevEditingIdRef.current;
+    const cur = editingId;
+    if (prev === cur) return;
+    if (cur) {
+      const el = fetched.find((e) => e.id === cur);
+      if (el) textEditBeforeRef.current = { id: cur, snap: snapshotOfEl(el) };
+    }
+    if (prev && !cur) {
+      const captured = textEditBeforeRef.current;
+      if (captured && captured.id === prev) {
+        const el = fetched.find((e) => e.id === prev);
+        if (el) {
+          const after = snapshotOfEl(el);
+          const beforeHtml = ((captured.snap.content ?? {}) as { html?: string }).html ?? '';
+          const afterHtml = ((after.content ?? {}) as { html?: string }).html ?? '';
+          if (beforeHtml !== afterHtml) {
+            pushHistory({ kind: 'update', id: prev, before: captured.snap, after, ts: Date.now() });
+          }
+        }
+        textEditBeforeRef.current = null;
+      }
+    }
+    prevEditingIdRef.current = cur;
+  }, [editingId, fetched, snapshotOfEl, pushHistory]);
+
+
   if (colsLoading || rowsLoading || elsLoading) {
     return <div className={className ?? 'p-4 text-xs text-muted-foreground'}>Loading impact canvas…</div>;
   }
