@@ -96,11 +96,10 @@ export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figure
             (parent); we expose the wrapper via the `graphicRef` prop.
             paddingBottom/paddingRight guard against html2canvas trimming
             the last row/column of boxes (graphic ends flush, no slack). */}
-        <Card>
-          <CardContent className="py-4 space-y-3">
-            <div style={{ paddingBottom: 8, paddingRight: 8 }}>
-              <ImpactCanvasFreeformEditor proposalId={proposalId} canEdit={canEdit} />
-            </div>
+        <div className="space-y-3">
+          <div style={{ paddingBottom: 8, paddingRight: 8 }}>
+            <ImpactCanvasFreeformEditor proposalId={proposalId} canEdit={canEdit} />
+          </div>
             {/* Off-screen clean read-only render — this is what PNG export
                 captures via graphicRef, so no editor chrome (toolbar,
                 guidelines, grid) can leak into the PNG. */}
