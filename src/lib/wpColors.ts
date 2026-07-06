@@ -33,20 +33,33 @@ export const STANDARD_COORDINATION_NAME = 'Project coordination & administration
 export const STANDARD_EXPLOITATION_SHORT = 'DEC';
 export const STANDARD_COORDINATION_SHORT = 'COORD';
 
-// Full palette for the palette editor (content colors + special colors + white + black).
-// White and black are display-only swatches for manual selection (font/case pickers);
-// they are NOT part of the positional rotation (see computeWPColorForPosition, which
-// uses WP_CONTENT_COLORS). WP/theme pickers exclude them via `excludePaletteColors`
-// (a white or black WP bubble would be invisible / unreadable).
+// Full palette for the palette editor (content colors + special colors).
+// White and black previously lived here as display swatches; they've been
+// moved to the Greyscale section (see GREYSCALE_COLORS) and removed from the
+// Sitra palette entirely — so WP/theme pickers no longer need to exclude them.
+// Positional WP defaults use WP_CONTENT_COLORS directly and are unaffected.
 export const WHITE_SWATCH = '#FFFFFF';
 export const BLACK_SWATCH = '#000000';
 export const DEFAULT_WP_COLORS = [
   ...WP_CONTENT_COLORS,
   WP_EXPLOITATION_COLOR,
   WP_COORDINATION_COLOR,
-  WHITE_SWATCH,
-  BLACK_SWATCH,
 ];
+
+/**
+ * Greyscale swatches (rendered as a separate section in font-colour and
+ * canvas colour pickers only — NOT in WP/theme pickers). Order matters:
+ * light → dark.
+ */
+export const GREYSCALE_COLORS = [
+  '#FFFFFF',
+  '#DEE2E6',
+  '#ADB5BD',
+  '#6C757D',
+  '#343A40',
+  '#000000',
+] as const;
+
 
 
 /**
