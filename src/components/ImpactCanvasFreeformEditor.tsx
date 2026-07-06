@@ -2079,12 +2079,26 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
 
           {/* Group 3: Size (W/H cm fields, arrow icons) — no divider before */}
           <SizeFields
-            box={sizeEnabled && selectedBox ? selectedBox : { x: 0, y: 0, w: 0, h: 0 }}
+            box={
+              sizeEnabled
+                ? (isMultiSize && multiSizeBox ? multiSizeBox : (selectedBox ?? { x: 0, y: 0, w: 0, h: 0 }))
+                : { x: 0, y: 0, w: 0, h: 0 }
+            }
             disabled={!sizeEnabled}
+            mixedW={sizeMixedW}
+            mixedH={sizeMixedH}
             onChange={(patch) => {
-              if (selectedEl) setElementBox(selectedEl.id, patch);
+              if (isMultiSize && sizeIds.length >= 1) {
+                const p: Partial<{ w: number; h: number }> = {};
+                if (patch.w !== undefined) p.w = patch.w;
+                if (patch.h !== undefined) p.h = patch.h;
+                if (p.w !== undefined || p.h !== undefined) setElementBoxMulti(sizeIds, p);
+              } else if (selectedEl) {
+                setElementBox(selectedEl.id, patch);
+              }
             }}
           />
+
 
           {/* Group 4: Layers (PowerPoint-style overlapping-shape icons) */}
           <div className="flex items-center gap-0.5" data-impact-canvas-toolbar>
