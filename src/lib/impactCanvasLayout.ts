@@ -33,6 +33,24 @@ export const MIN_ELEMENT_W_CM = 1;
 export const MIN_ELEMENT_H_CM = 0.5;
 
 /**
+ * Default bound-box layout (applied to NEW bound elements only —
+ * existing coords are never disturbed).
+ *   - Width fixed at 2 cm.
+ *   - Horizontal gap between adjacent columns = 1.2 cm (step 3.2 cm).
+ *   - Starting x = 0 (left origin of the 18 cm canvas).
+ *   - Default height = 0.8 cm (a single 12pt line) as a MIN — the editor
+ *     grows it via ResizeObserver until the user manually resizes
+ *     (drag / cm-field), which sets style.autoFitH=false.
+ *   - Vertical gap between rows = 0.3 cm.
+ */
+export const DEFAULT_BOUND_W_CM = 2;
+export const DEFAULT_BOUND_H_CM = 0.8;
+export const DEFAULT_BOUND_HGAP_CM = 1.2;
+export const DEFAULT_BOUND_VGAP_CM = 0.3;
+export const DEFAULT_BOUND_START_X_CM = 0;
+
+
+/**
  * Back-compat shim. Some callers still import IMPACT_CANVAS_VIEWPORT /
  * IMPACT_CANVAS_HEADER_HEIGHT — they now receive the cm equivalents so any
  * `pct = value / VW * 100` math still yields correct percentages.
@@ -51,27 +69,32 @@ export interface BoundPosition {
 }
 
 /**
- * Return {x,y,w,h} in cm for a bound cell, replicating the legacy CSS-grid
- * layout: header band at the top, equal-width columns, equal-height body
- * rows filling the (min) canvas height beneath the header.
+ * Return {x,y,w,h} in cm for a NEW bound cell using the compact defaults:
+ *   - width = DEFAULT_BOUND_W_CM (2 cm) fixed
+ *   - height = DEFAULT_BOUND_H_CM (0.8 cm) as a starting min — the editor
+ *     auto-grows h to fit rendered text until the user manually resizes.
+ *   - x steps by (w + hgap) starting at DEFAULT_BOUND_START_X_CM (0).
+ *   - y steps by (default h + vgap) below the header band.
+ *
+ * `nCols`/`nRows` are accepted for backward compatibility with earlier
+ * callers but no longer influence the returned coords — layout is now
+ * driven purely by the fixed 2 cm / 1.2 cm cadence.
  */
 export function computeDefaultBoundPosition(
   rowIndex: number,
   colIndex: number,
-  nCols: number,
-  nRows: number,
+  _nCols?: number,
+  _nRows?: number,
 ): BoundPosition {
-  const safeCols = Math.max(1, nCols);
-  const safeRows = Math.max(1, nRows);
-  const colW = CANVAS_WIDTH_CM / safeCols;
-  const rowH = (CANVAS_MIN_HEIGHT_CM - HEADER_HEIGHT_CM) / safeRows;
-  return {
-    x: colIndex * colW,
-    y: HEADER_HEIGHT_CM + rowIndex * rowH,
-    w: colW,
-    h: rowH,
-  };
+  void _nCols;
+  void _nRows;
+  const w = DEFAULT_BOUND_W_CM;
+  const h = DEFAULT_BOUND_H_CM;
+  const x = DEFAULT_BOUND_START_X_CM + colIndex * (w + DEFAULT_BOUND_HGAP_CM);
+  const y = HEADER_HEIGHT_CM + rowIndex * (h + DEFAULT_BOUND_VGAP_CM);
+  return { x, y, w, h };
 }
+
 
 /**
  * Shared deterministic height function — the parity linchpin.
@@ -157,6 +180,7 @@ export async function syncBoundElements(proposalId: string): Promise<void> {
     y: number;
     w: number;
     h: number;
+    style: { autoFitH: true };
   }> = [];
   for (const r of rows) {
     for (const c of cols) {
@@ -174,9 +198,13 @@ export async function syncBoundElements(proposalId: string): Promise<void> {
         bound_row_id: r.id,
         bound_col_key: c.key,
         ...pos,
+        // Mark NEW bound boxes as auto-fit-height so the editor grows h
+        // to fit the cell's text content until the user manually resizes.
+        style: { autoFitH: true },
       });
     }
   }
+
   if (toInsert.length > 0) {
     const { error } = await supabase.from('impact_canvas_elements').insert(toInsert);
     if (error) throw error;

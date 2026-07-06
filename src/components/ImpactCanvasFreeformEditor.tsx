@@ -11,8 +11,10 @@ import {
   HEADER_HEIGHT_CM,
   MIN_ELEMENT_W_CM,
   MIN_ELEMENT_H_CM,
+  DEFAULT_BOUND_H_CM,
   computeCanvasHeightCm,
 } from '@/lib/impactCanvasLayout';
+
 import { WPColorPicker } from './WPColorPicker';
 import { BOUND_STYLE_DEFAULTS, readBoundStyle, resolveBoundStyle } from '@/lib/impactCanvasBoundStyle';
 import type { BoundBoxStyle } from '@/lib/impactCanvasBoundStyle';
@@ -139,6 +141,12 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
   const pendingStyleTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   /** Optimistic overrides for style (per element id). */
   const [styleOverrides, setStyleOverrides] = useState<Record<string, BoundBoxStyle>>({});
+  /** Refs to per-bound-el hidden probes used to measure natural content
+   *  height for auto-fit bound boxes. */
+  const probeRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  /** Bumped when the wrapper resizes so the auto-fit effect re-measures. */
+  const [wrapperTick, setWrapperTick] = useState(0);
+
 
   // Deselect on outside pointerdown — but keep clicks inside the surface,
   // toolbar, radix portals, dialogs, and the ACTIVE text-box editor from
@@ -314,8 +322,24 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     });
   };
 
+  const overridesRef = useRef(overrides);
+  useEffect(() => {
+    overridesRef.current = overrides;
+  }, [overrides]);
+
+  // Watch wrapper for size changes → re-run auto-fit measurement.
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => setWrapperTick((t) => t + 1));
+    ro.observe(wrapper);
+    return () => ro.disconnect();
+  }, []);
+
+
   useEffect(() => {
     if (!drag) return;
+
     // VW is fixed by the cm model; VH is captured from the wrapper's actual
     // pixel dimensions at drag start (ratio px/cm is stable during drag —
     // if content grows the canvas the ratio doesn't change).
@@ -392,8 +416,26 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     const onUp = () => {
       const finalBox = overridesRef.current[drag.id];
       if (finalBox) persistDebounced(drag.id, finalBox);
+      // Manual resize (any handle that changed h) locks in an explicit
+      // height and disables auto-fit for this bound box.
+      if (
+        drag.mode.kind === 'resize' &&
+        finalBox &&
+        Math.abs(finalBox.h - drag.startBox.h) > 1e-4
+      ) {
+        const el = fetched.find((e) => e.id === drag.id);
+        if (el && el.kind === 'bound') {
+          const cur = { ...readBoundStyle(el.style), ...(styleOverrides[drag.id] ?? {}) };
+          if (cur.autoFitH !== false) {
+            const next = { ...cur, autoFitH: false };
+            setStyleOverrides((o) => ({ ...o, [drag.id]: next }));
+            persistStyleDebounced(drag.id, next);
+          }
+        }
+      }
       setDrag(null);
     };
+
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
     window.addEventListener('pointercancel', onUp);
@@ -402,12 +444,8 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       window.removeEventListener('pointerup', onUp);
       window.removeEventListener('pointercancel', onUp);
     };
-  }, [drag, persistDebounced]);
+  }, [drag, persistDebounced, fetched, styleOverrides, persistStyleDebounced]);
 
-  const overridesRef = useRef(overrides);
-  useEffect(() => {
-    overridesRef.current = overrides;
-  }, [overrides]);
 
   const columnOrder = useMemo(
     () => columns.slice().sort((a, b) => a.order_index - b.order_index),
@@ -420,6 +458,52 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
   );
   const textEls = useMemo(() => fetched.filter((e) => e.kind === 'text'), [fetched]);
   const shapeEls = useMemo(() => fetched.filter((e) => e.kind === 'shape'), [fetched]);
+
+  // Auto-fit height: for every bound box with style.autoFitH !== false,
+  // measure the natural content height from its hidden probe and grow the
+  // stored h (never below DEFAULT_BOUND_H_CM). Manual resize / cm-H entry
+  // sets autoFitH=false and skips this box.
+  const autoFitSignature = boundEls
+    .map((el) => {
+      const bs = readBoundStyle(styleOverrides[el.id] ?? el.style);
+      if (bs.autoFitH === false) return '';
+      const row = rowById.get(el.bound_row_id!);
+      const html = (row?.content?.[el.bound_col_key!] as string) || '';
+      return `${el.id}:${el.w.toFixed(3)}:${html.length}:${html.slice(0, 80)}`;
+    })
+    .join('|');
+
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+    const rectW = wrapper.getBoundingClientRect().width;
+    if (!rectW) return;
+    const pxPerCm = rectW / CANVAS_WIDTH_CM;
+    // Approx vertical padding inside the visible box: 2pt outer + 2pt inner
+    // per side ≈ 8pt total → ~0.28 cm.
+    const V_PAD_CM = 8 / 28.3465;
+    for (const el of boundEls) {
+      const bs = readBoundStyle(styleOverrides[el.id] ?? el.style);
+      if (bs.autoFitH === false) continue;
+      const probe = probeRefs.current[el.id];
+      if (!probe) continue;
+      const naturalPx = probe.offsetHeight;
+      if (!naturalPx) continue;
+      const targetH = Math.max(
+        DEFAULT_BOUND_H_CM,
+        Math.round(((naturalPx / pxPerCm) + V_PAD_CM) * 100) / 100,
+      );
+      const cur = overridesRef.current[el.id] ?? { x: el.x, y: el.y, w: el.w, h: el.h };
+      if (Math.abs(targetH - cur.h) > 0.05) {
+        const nextBox = { ...cur, h: targetH };
+        setOverrides((o) => ({ ...o, [el.id]: nextBox }));
+        persistDebounced(el.id, nextBox);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoFitSignature, wrapperTick, boundEls, styleOverrides, persistDebounced]);
+
+
   const maxZ = useMemo(
     () => fetched.reduce((m, e) => (e.z > m ? e.z : m), 0),
     [fetched],
@@ -514,9 +598,19 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       next.y = Math.max(0, Math.min(CANVAS_MAX_HEIGHT_CM - next.h, next.y));
       setOverrides((o) => ({ ...o, [id]: next }));
       persistDebounced(id, next);
+      // Manual H entry locks explicit height for bound boxes.
+      if (patch.h !== undefined && el.kind === 'bound') {
+        const cur = { ...readBoundStyle(el.style), ...(styleOverrides[id] ?? {}) };
+        if (cur.autoFitH !== false) {
+          const nextStyle = { ...cur, autoFitH: false };
+          setStyleOverrides((o) => ({ ...o, [id]: nextStyle }));
+          persistStyleDebounced(id, nextStyle);
+        }
+      }
     },
-    [canEdit, fetched, overrides, persistDebounced],
+    [canEdit, fetched, overrides, persistDebounced, styleOverrides, persistStyleDebounced],
   );
+
 
   const deleteElement = useCallback(
     async (id: string) => {
@@ -847,6 +941,42 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
             </div>
           );
         })}
+
+        {/* Hidden probes for auto-fit bound boxes — same width & typography
+            as the visible box (height:auto). Their offsetHeight drives the
+            auto-fit measurement effect. */}
+        {boundEls.map((el) => {
+          const bs = readBoundStyle(styleOverrides[el.id] ?? el.style);
+          if (bs.autoFitH === false) return null;
+          const row = rowById.get(el.bound_row_id!);
+          const html = (row?.content?.[el.bound_col_key!] as string) || '';
+          const ov = overrides[el.id];
+          const box = ov ?? { x: el.x, y: el.y, w: el.w, h: el.h };
+          return (
+            <div
+              key={`probe-${el.id}`}
+              ref={(node) => { probeRefs.current[el.id] = node; }}
+              aria-hidden
+              style={{
+                position: 'absolute',
+                left: pctX(box.x),
+                top: 0,
+                width: pctX(box.w),
+                visibility: 'hidden',
+                pointerEvents: 'none',
+                padding: '2pt',
+                boxSizing: 'border-box',
+                fontSize: 12,
+                lineHeight: 1.3,
+                fontFamily: '"Times New Roman", Times, serif',
+              }}
+            >
+              <div style={{ width: '100%', padding: '2pt', boxSizing: 'border-box' }} dangerouslySetInnerHTML={{ __html: sanitize(html) }} />
+            </div>
+          );
+        })}
+
+
 
         {textEls.map((el) => {
           const ov = overrides[el.id];

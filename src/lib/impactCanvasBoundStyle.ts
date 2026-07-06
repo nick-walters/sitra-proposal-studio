@@ -13,7 +13,12 @@ export interface BoundBoxStyle {
   outlineColor?: string;   // hex or 'none'
   outlineWidth?: number;   // pt — one of the preset weights
   fontColor?: string;      // hex — base text colour (inline spans override)
+  /** When true, the stored `h` is auto-grown by the editor to fit the box's
+   *  rendered text content (default width 2 cm). Set to false on any manual
+   *  resize (drag handles or cm H field) — the user then owns the height. */
+  autoFitH?: boolean;
 }
+
 
 /** Predefined outline widths (pt) matching Office's line-weight menu. */
 export const OUTLINE_WIDTH_PRESETS: { value: number; label: string }[] = [
@@ -51,8 +56,10 @@ export function readBoundStyle(raw: unknown): BoundBoxStyle {
     out.outlineWidth = Math.max(0, Math.min(12, s.outlineWidth));
   }
   if (typeof s.fontColor === 'string') out.fontColor = s.fontColor;
+  if (typeof s.autoFitH === 'boolean') out.autoFitH = s.autoFitH;
   return out;
 }
+
 
 export function resolveBoundStyle(raw: unknown) {
   const s = readBoundStyle(raw);
