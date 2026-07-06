@@ -2234,44 +2234,49 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
 function SizeFields({
   box,
   onChange,
+  disabled = false,
 }: {
   box: { x: number; y: number; w: number; h: number };
   onChange: (patch: Partial<{ x: number; y: number; w: number; h: number }>) => void;
+  disabled?: boolean;
 }) {
   const fmt = (v: number) => (Math.round(v * 100) / 100).toString();
   return (
-    <div className="flex items-center gap-1 pr-2 border-r" data-impact-canvas-toolbar>
-      <span className="text-[11px] text-muted-foreground">W</span>
+    <div className="flex items-center gap-1" data-impact-canvas-toolbar>
+      <span className={cn('text-[11px] text-muted-foreground', disabled && 'opacity-50')}>W</span>
       <Input
         type="number"
         step="0.1"
         min={0}
-        value={fmt(box.w)}
+        value={disabled ? '' : fmt(box.w)}
+        disabled={disabled}
         onChange={(e) => {
           const v = parseFloat(e.target.value);
           if (Number.isFinite(v)) onChange({ w: v });
         }}
-        className="h-8 w-16 text-xs"
+        className="h-7 w-14 text-xs"
         title="Width (cm)"
       />
-      <span className="text-[11px] text-muted-foreground">cm</span>
-      <span className="text-[11px] text-muted-foreground ml-1">H</span>
+      <span className={cn('text-[11px] text-muted-foreground', disabled && 'opacity-50')}>cm</span>
+      <span className={cn('text-[11px] text-muted-foreground ml-1', disabled && 'opacity-50')}>H</span>
       <Input
         type="number"
         step="0.1"
         min={0}
-        value={fmt(box.h)}
+        value={disabled ? '' : fmt(box.h)}
+        disabled={disabled}
         onChange={(e) => {
           const v = parseFloat(e.target.value);
           if (Number.isFinite(v)) onChange({ h: v });
         }}
-        className="h-8 w-16 text-xs"
+        className="h-7 w-14 text-xs"
         title="Height (cm)"
       />
-      <span className="text-[11px] text-muted-foreground">cm</span>
+      <span className={cn('text-[11px] text-muted-foreground', disabled && 'opacity-50')}>cm</span>
     </div>
   );
 }
+
 
 interface BoundStyleToolbarProps {
   proposalId: string;
