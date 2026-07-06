@@ -12,6 +12,10 @@ interface Props {
   onWidthChange: (pt: number) => void;
   proposalId?: string | null;
   disabled?: boolean;
+  /** Multi-select indicators: eligible members disagree on colour / width.
+   *  Renders a hatched neutral swatch; applying still writes to all. */
+  mixedColor?: boolean;
+  mixedWidth?: boolean;
 }
 
 /**
