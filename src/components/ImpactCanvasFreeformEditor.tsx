@@ -18,6 +18,9 @@ import { BOUND_STYLE_DEFAULTS, readBoundStyle, resolveBoundStyle } from '@/lib/i
 import type { BoundBoxStyle } from '@/lib/impactCanvasBoundStyle';
 import { ImpactCanvasTextBox } from './ImpactCanvasTextBox';
 import { ImpactCanvasOutlinePicker } from './ImpactCanvasOutlinePicker';
+import { ImpactCanvasShape, type ShapeKind } from './ImpactCanvasShape';
+import { Circle as CircleIcon, Square, Squircle, Triangle } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 
 interface Props {
   proposalId: string;
@@ -409,6 +412,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     [fetched],
   );
   const textEls = useMemo(() => fetched.filter((e) => e.kind === 'text'), [fetched]);
+  const shapeEls = useMemo(() => fetched.filter((e) => e.kind === 'shape'), [fetched]);
   const maxZ = useMemo(
     () => fetched.reduce((m, e) => (e.z > m ? e.z : m), 0),
     [fetched],
@@ -448,6 +452,65 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     setEditingId(data.id);
   }, [canEdit, maxZ, proposalId, qc]);
 
+  const addShape = useCallback(
+    async (shape: ShapeKind) => {
+      if (!canEdit) return;
+      const VW = CANVAS_WIDTH_CM;
+      const VH = canvasHeightCmRef.current;
+      // Default sizes (cm) per shape kind.
+      const size =
+        shape === 'circle' ? { w: 3, h: 3 } :
+        shape === 'triangle' ? { w: 3.5, h: 3 } :
+        { w: 3, h: 2 };
+      const insertBox = {
+        proposal_id: proposalId,
+        kind: 'shape',
+        x: +((VW - size.w) / 2).toFixed(4),
+        y: +((VH - size.h) / 2).toFixed(4),
+        w: size.w,
+        h: size.h,
+        z: maxZ + 1,
+        content: { shape, html: '' },
+        style: {},
+      };
+      const { data, error } = await supabase
+        .from('impact_canvas_elements')
+        .insert(insertBox)
+        .select('id, kind, bound_row_id, bound_col_key, x, y, w, h, z, content, style')
+        .single();
+      if (error || !data) {
+        qc.invalidateQueries({ queryKey: ELS_KEY(proposalId) });
+        return;
+      }
+      qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId), (old) => [
+        ...(old || []),
+        data as CanvasElement,
+      ]);
+      setSelectedId(data.id);
+    },
+    [canEdit, maxZ, proposalId, qc],
+  );
+
+  /** Directly set an element's box in cm (used by the size input fields).
+   *  Optimistic + debounced via the same persist path as drag/resize. */
+  const setElementBox = useCallback(
+    (id: string, patch: Partial<{ x: number; y: number; w: number; h: number }>) => {
+      if (!canEdit) return;
+      const el = fetched.find((e) => e.id === id);
+      if (!el) return;
+      const current = overrides[id] ?? { x: el.x, y: el.y, w: el.w, h: el.h };
+      let next = { ...current, ...patch };
+      // Clamp: element must fit inside 18 cm × 25.5 cm.
+      next.w = Math.max(MIN_W, Math.min(CANVAS_WIDTH_CM, next.w));
+      next.h = Math.max(MIN_H, Math.min(CANVAS_MAX_HEIGHT_CM, next.h));
+      next.x = Math.max(0, Math.min(CANVAS_WIDTH_CM - next.w, next.x));
+      next.y = Math.max(0, Math.min(CANVAS_MAX_HEIGHT_CM - next.h, next.y));
+      setOverrides((o) => ({ ...o, [id]: next }));
+      persistDebounced(id, next);
+    },
+    [canEdit, fetched, overrides, persistDebounced],
+  );
+
   const deleteElement = useCallback(
     async (id: string) => {
       if (!canEdit) return;
@@ -466,11 +529,11 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     [canEdit, proposalId, qc],
   );
 
-  // Keyboard: Delete/Backspace on selected free text box removes it.
+  // Keyboard: Delete/Backspace on selected free element removes it.
   useEffect(() => {
     if (!selectedId || editingId) return;
     const el = fetched.find((e) => e.id === selectedId);
-    if (!el || el.kind !== 'text') return;
+    if (!el || (el.kind !== 'text' && el.kind !== 'shape')) return;
     const onKey = (ev: KeyboardEvent) => {
       if (ev.key !== 'Delete' && ev.key !== 'Backspace') return;
       const t = ev.target as HTMLElement | null;
@@ -512,30 +575,57 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
 
   const colW = VW / columnOrder.length;
 
+  const selectedEl = selectedId ? fetched.find((e) => e.id === selectedId) ?? null : null;
+  const selectedIsBound = selectedEl?.kind === 'bound';
+  const selectedIsShape = selectedEl?.kind === 'shape';
+  const selectedIsText = selectedEl?.kind === 'text';
+  const selectedIsFree = selectedIsShape || selectedIsText;
+  const selectedBox = selectedEl
+    ? (overrides[selectedEl.id] ?? { x: selectedEl.x, y: selectedEl.y, w: selectedEl.w, h: selectedEl.h })
+    : null;
+
   return (
     <div className="space-y-2">
       {canEdit && (
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Bound-box style controls appear FIRST when a bound box is selected. */}
-          {selectedId && boundEls.some((b) => b.id === selectedId) && (
+          {/* Style controls — bound boxes AND shapes share the style model. */}
+          {selectedEl && (selectedIsBound || selectedIsShape) && (
             <BoundStyleToolbar
               proposalId={proposalId}
               canEdit={canEdit}
               style={{
-                ...readBoundStyle(boundEls.find((b) => b.id === selectedId)?.style),
-                ...(styleOverrides[selectedId] ?? {}),
+                ...readBoundStyle(selectedEl.style),
+                ...(styleOverrides[selectedEl.id] ?? {}),
               }}
-              onChange={(patch) => updateBoundStyle(selectedId, patch)}
+              onChange={(patch) => updateBoundStyle(selectedEl.id, patch)}
+            />
+          )}
+
+          {/* cm size fields — any resizable element (bound / text / shape). */}
+          {selectedEl && selectedBox && (
+            <SizeFields
+              box={selectedBox}
+              onChange={(patch) => setElementBox(selectedEl.id, patch)}
             />
           )}
 
           {/*
             Element-adding cluster.
             Reserved order (left→right): shapes, lines/arrows, text box.
-            Only the text-box button exists for now — placed at the end of the
-            cluster so future shape/line/arrow buttons slot in cleanly before it.
           */}
           <div className="flex items-center gap-1" data-impact-canvas-adders>
+            <Button type="button" variant="outline" size="sm" onClick={() => addShape('rect')} className="h-8 w-8 p-0" title="Rectangle" data-impact-canvas-toolbar>
+              <Square className="w-4 h-4" />
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => addShape('roundedRect')} className="h-8 w-8 p-0" title="Rounded rectangle" data-impact-canvas-toolbar>
+              <Squircle className="w-4 h-4" />
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => addShape('circle')} className="h-8 w-8 p-0" title="Circle" data-impact-canvas-toolbar>
+              <CircleIcon className="w-4 h-4" />
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => addShape('triangle')} className="h-8 w-8 p-0" title="Triangle" data-impact-canvas-toolbar>
+              <Triangle className="w-4 h-4" />
+            </Button>
             <Button
               type="button"
               variant="outline"
@@ -574,20 +664,20 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
             </Button>
           </div>
 
-          {selectedId && textEls.some((t) => t.id === selectedId) && (
+          {selectedEl && selectedIsFree && (
             <Button
               type="button"
               variant="ghost"
               size="sm"
               className="text-destructive hover:text-destructive h-8 px-2"
-              onClick={() => void deleteElement(selectedId)}
+              onClick={() => void deleteElement(selectedEl.id)}
               data-impact-canvas-toolbar
             >
-              <Trash2 className="w-4 h-4 mr-1" /> Delete text box
+              <Trash2 className="w-4 h-4 mr-1" /> Delete
             </Button>
           )}
           <span className="text-xs text-muted-foreground">
-            Double-click a text box to edit. Delete / Backspace removes the selected box.
+            Double-click a text box or shape to edit its text. Delete / Backspace removes the selected element.
           </span>
         </div>
       )}
@@ -861,7 +951,144 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
             </div>
           );
         })}
+
+        {shapeEls.map((el) => {
+          const ov = overrides[el.id];
+          const box = ov ?? { x: el.x, y: el.y, w: el.w, h: el.h };
+          const selected = selectedId === el.id;
+          const editing = editingId === el.id;
+          const raw = (el.content ?? {}) as { shape?: ShapeKind; html?: string };
+          const shape: ShapeKind = raw.shape ?? 'rect';
+          const html = contentOverrides[el.id] ?? (raw.html || '');
+          const styleSrc = styleOverrides[el.id] ?? el.style;
+          return (
+            <div
+              key={el.id}
+              style={{
+                position: 'absolute',
+                left: pctX(box.x),
+                top: pctY(box.y),
+                width: pctX(box.w),
+                height: pctY(box.h),
+                zIndex: el.z + (selected ? 1000 : 0),
+                cursor: canEdit
+                  ? editing
+                    ? 'text'
+                    : drag?.id === el.id && drag.mode.kind === 'move'
+                    ? 'grabbing'
+                    : 'grab'
+                  : 'default',
+              }}
+              onPointerDown={(e) => {
+                if (editing) return;
+                beginDrag(e, el.id, { kind: 'move' }, box);
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!canEdit) return;
+                if (selectedId !== el.id) {
+                  setSelectedId(el.id);
+                  return;
+                }
+                if (!editing) setEditingId(el.id);
+              }}
+              onDoubleClick={(e) => {
+                if (!canEdit) return;
+                e.stopPropagation();
+                setSelectedId(el.id);
+                setEditingId(el.id);
+              }}
+            >
+              <ImpactCanvasShape shape={shape} styleRaw={styleSrc} selected={selected}>
+                {editing ? (
+                  <ImpactCanvasTextBox
+                    html={html}
+                    editing
+                    autoFocus
+                    align="center"
+                    onChange={(next) => {
+                      setContentOverrides((o) => ({ ...o, [el.id]: next }));
+                      persistContentDebounced(el.id, next);
+                    }}
+                    onCommit={() => {
+                      setEditingId((cur) => (cur === el.id ? null : cur));
+                    }}
+                  />
+                ) : (
+                  <div
+                    className="prose prose-sm max-w-none"
+                    style={{ width: '100%', textAlign: 'center', pointerEvents: 'none' }}
+                    dangerouslySetInnerHTML={{ __html: sanitize(html) }}
+                  />
+                )}
+              </ImpactCanvasShape>
+
+              {selected && !editing && canEdit && HANDLES.map((h) => (
+                <div
+                  key={h}
+                  onPointerDown={(e) => beginDrag(e, el.id, { kind: 'resize', handle: h }, box)}
+                  style={{
+                    position: 'absolute',
+                    width: 10,
+                    height: 10,
+                    background: 'hsl(var(--primary))',
+                    border: '1px solid white',
+                    borderRadius: 2,
+                    zIndex: 2,
+                    cursor: HANDLE_CURSOR[h],
+                    ...handleStyle(h),
+                  }}
+                />
+              ))}
+            </div>
+          );
+        })}
       </div>
+    </div>
+  );
+}
+
+/** Compact cm width/height numeric fields shown when an element is selected.
+ *  Two-way: reflects the current (possibly drag-in-flight) box and writes
+ *  changes back through setElementBox → optimistic override + debounced save. */
+function SizeFields({
+  box,
+  onChange,
+}: {
+  box: { x: number; y: number; w: number; h: number };
+  onChange: (patch: Partial<{ x: number; y: number; w: number; h: number }>) => void;
+}) {
+  const fmt = (v: number) => (Math.round(v * 100) / 100).toString();
+  return (
+    <div className="flex items-center gap-1 pr-2 border-r" data-impact-canvas-toolbar>
+      <span className="text-[11px] text-muted-foreground">W</span>
+      <Input
+        type="number"
+        step="0.1"
+        min={0}
+        value={fmt(box.w)}
+        onChange={(e) => {
+          const v = parseFloat(e.target.value);
+          if (Number.isFinite(v)) onChange({ w: v });
+        }}
+        className="h-8 w-16 text-xs"
+        title="Width (cm)"
+      />
+      <span className="text-[11px] text-muted-foreground">cm</span>
+      <span className="text-[11px] text-muted-foreground ml-1">H</span>
+      <Input
+        type="number"
+        step="0.1"
+        min={0}
+        value={fmt(box.h)}
+        onChange={(e) => {
+          const v = parseFloat(e.target.value);
+          if (Number.isFinite(v)) onChange({ h: v });
+        }}
+        className="h-8 w-16 text-xs"
+        title="Height (cm)"
+      />
+      <span className="text-[11px] text-muted-foreground">cm</span>
     </div>
   );
 }
