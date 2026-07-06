@@ -252,7 +252,39 @@ export function WPColorPicker({
             </div>
           </div>
 
+          {/* Greyscale section (font-colour + canvas pickers only) */}
+          {showGreyscale && (
+            <div>
+              <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5">
+                Greyscale
+              </div>
+              <div className="grid grid-cols-6 gap-1.5">
+                {GREYSCALE_COLORS.map((g) => {
+                  const norm = g.toUpperCase();
+                  const isSelected = (normaliseHex(color) ?? color.toUpperCase()) === norm;
+                  const needsLightOutline = getContrastingTextColor(norm) === '#000000';
+                  return (
+                    <button
+                      key={g}
+                      className={cn(
+                        'h-7 w-7 rounded-md border-2 transition-all hover:scale-110',
+                        isSelected ? 'border-primary ring-2 ring-primary/20' : 'border-transparent'
+                      )}
+                      style={{
+                        backgroundColor: g,
+                        boxShadow: !isSelected && needsLightOutline ? 'inset 0 0 0 1px rgba(0,0,0,0.2)' : undefined,
+                      }}
+                      onClick={() => handleSelectSwatch(g)}
+                      aria-label={`Select ${g}`}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* In-proposal colours (union of extras + saved custom) */}
+
           {dedupedExtras.length > 0 && (
             <div>
               <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5">
