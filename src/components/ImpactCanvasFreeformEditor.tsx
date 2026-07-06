@@ -2331,6 +2331,8 @@ function BoundStyleToolbar({ proposalId, canEdit, style, onChange }: BoundStyleT
         proposalId={proposalId}
         canManageCustom={canEdit}
         label="Font colour"
+        showGreyscale
+
         trigger={
           <button
             type="button"
