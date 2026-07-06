@@ -1144,7 +1144,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
         h: size.h,
         z: maxZ + 1,
         content: { shape, html: '' },
-        style: { outlineColor: 'none', fillColor: '#9CA3AF' },
+        style: { outlineColor: 'none', fillColor: '#ADB5BD' },
       };
       const { data, error } = await supabase
         .from('impact_canvas_elements')
