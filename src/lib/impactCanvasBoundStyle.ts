@@ -56,8 +56,10 @@ export function readBoundStyle(raw: unknown): BoundBoxStyle {
     out.outlineWidth = Math.max(0, Math.min(12, s.outlineWidth));
   }
   if (typeof s.fontColor === 'string') out.fontColor = s.fontColor;
+  if (typeof s.autoFitH === 'boolean') out.autoFitH = s.autoFitH;
   return out;
 }
+
 
 export function resolveBoundStyle(raw: unknown) {
   const s = readBoundStyle(raw);
