@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { DEFAULT_WP_COLORS, getContrastingTextColor } from '@/lib/wpColors';
+import { DEFAULT_WP_COLORS, GREYSCALE_COLORS, getContrastingTextColor } from '@/lib/wpColors';
 import { useProposalCustomColors } from '@/hooks/useProposalCustomColors';
 import { OUTLINE_WIDTH_PRESETS } from '@/lib/impactCanvasBoundStyle';
 
