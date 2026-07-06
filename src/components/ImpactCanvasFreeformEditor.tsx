@@ -1700,6 +1700,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
               {selected && canEdit && HANDLES.map((h) => (
                 <div
                   key={h}
+                  data-canvas-handle={h}
                   onPointerDown={(e) => beginDrag(e, el.id, { kind: 'resize', handle: h }, box)}
                   style={{
                     position: 'absolute',
@@ -1774,6 +1775,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
               {selected && canEdit && HANDLES.map((h) => (
                 <div
                   key={h}
+                  data-canvas-handle={h}
                   onPointerDown={(e) => beginDrag(e, el.id, { kind: 'resize', handle: h }, box)}
                   style={{
                     position: 'absolute',
@@ -1924,6 +1926,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
               {selected && !editing && canEdit && HANDLES.map((h) => (
                 <div
                   key={h}
+                  data-canvas-handle={h}
                   onPointerDown={(e) => beginDrag(e, el.id, { kind: 'resize', handle: h }, box)}
                   style={{
                     position: 'absolute',
@@ -2022,6 +2025,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
               {selected && !editing && canEdit && HANDLES.map((h) => (
                 <div
                   key={h}
+                  data-canvas-handle={h}
                   onPointerDown={(e) => beginDrag(e, el.id, { kind: 'resize', handle: h }, box)}
                   style={{
                     position: 'absolute',
