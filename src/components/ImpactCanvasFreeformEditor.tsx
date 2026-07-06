@@ -571,7 +571,14 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     e.preventDefault();
     const wrapper = wrapperRef.current;
     if (!wrapper) return;
-    (e.target as Element).setPointerCapture?.(e.pointerId);
+    // Capture on currentTarget (the stable outer draggable), NOT e.target —
+    // e.target is the deepest DOM node under the pointer (often an inner
+    // element that React may remount mid-gesture, e.g. bound-box inner prose
+    // wrappers replaced when selection styling/auto-fit reflows fire). If the
+    // captured element unmounts, the browser fires pointercancel → drag ends
+    // prematurely. currentTarget is the outer <div> that carries the
+    // onPointerDown handler and never unmounts during a drag.
+    (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
     setSelectedId(id);
     // Capture the element's pre-gesture snapshot for canvas-level undo.
     const el = fetched.find((x) => x.id === id);
