@@ -210,7 +210,7 @@ export function ImpactCanvasFreeformRenderer({ proposalId, className, fallback =
                 height: '100%',
                 borderStyle: 'solid',
                 borderColor: bs.borderColor,
-                borderWidth: bs.borderWidth,
+                borderWidth: bs.borderWidth ? `${bs.borderWidth}pt` : 0,
                 borderRadius: 6,
                 background: bs.background,
                 padding: '2pt',
