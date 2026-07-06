@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
 import { supabase } from '@/integrations/supabase/client';
 import { useImpactCanvasColumns, useImpactCanvasRows } from '@/hooks/useImpactCanvas';
-import { CANVAS_WIDTH_CM, HEADER_HEIGHT_CM, computeCanvasHeightCm } from '@/lib/impactCanvasLayout';
+import { CANVAS_WIDTH_CM, computeCanvasHeightCm } from '@/lib/impactCanvasLayout';
 import { ImpactCanvasShape, type ShapeKind } from './ImpactCanvasShape';
 import { resolveBoundStyle } from '@/lib/impactCanvasBoundStyle';
 
