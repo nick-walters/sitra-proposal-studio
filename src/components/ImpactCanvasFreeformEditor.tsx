@@ -1791,25 +1791,26 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
           <BoundStyleToolbar
             proposalId={proposalId}
             canEdit={canEdit && styleEnabled}
-            style={
-              styleEnabled && selectedEl
-                ? { ...readBoundStyle(selectedEl.style), ...(styleOverrides[selectedEl.id] ?? {}) }
-                : (BOUND_STYLE_DEFAULTS as BoundBoxStyle)
-            }
-            onChange={(patch) => {
-              if (selectedEl) updateBoundStyle(selectedEl.id, patch);
-            }}
+            fill={toolbarFill}
+            font={toolbarFont}
+            fillMixed={fillMixed}
+            fontMixed={fontMixed}
+            onFillChange={(c) => applyStylePatch({ fillColor: c }, fillFontIds)}
+            onFontChange={(c) => applyStylePatch({ fontColor: c }, fillFontIds)}
           />
           <div className="flex items-center" data-impact-canvas-toolbar>
             <ImpactCanvasOutlinePicker
-              color={outlineStyleSrc.outlineColor ?? '#000000'}
-              width={outlineStyleSrc.outlineWidth ?? 1.5}
+              color={toolbarOutlineColor ?? '#000000'}
+              width={toolbarOutlineWidth ?? 1.5}
               proposalId={proposalId}
               disabled={!outlineEnabled}
-              onColorChange={(c) => selectedEl && updateBoundStyle(selectedEl.id, { outlineColor: c })}
-              onWidthChange={(w) => selectedEl && updateBoundStyle(selectedEl.id, { outlineWidth: w })}
+              mixedColor={outlineColorMixed}
+              mixedWidth={outlineWidthMixed}
+              onColorChange={(c) => applyStylePatch({ outlineColor: c }, outlineIds)}
+              onWidthChange={(w) => applyStylePatch({ outlineWidth: w }, outlineIds)}
             />
           </div>
+
           <AddShapeDropdown onAddShape={addShape} onAddLine={addLine} />
 
           {/* Group 3: Size (W/H cm fields, arrow icons) — no divider before */}
