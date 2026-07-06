@@ -1363,6 +1363,96 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     [canEdit, fetched, snapshotOfEl, pushHistory, qc, proposalId],
   );
 
+  /**
+   * Group z-order: move all `ids` as a block relative to non-selected
+   * elements while preserving the selection's internal relative order.
+   * Normalises z globally (0..N-1) after the block move and pushes ONE
+   * batch history entry containing only the elements whose z changed.
+   */
+  const changeZOrderMulti = useCallback(
+    (ids: string[], action: 'front' | 'back' | 'forward' | 'backward') => {
+      if (!canEdit || ids.length === 0) return;
+      const selectedSet = new Set(ids);
+      // Stable sort by (z asc, fetched-index) — matches renderer order.
+      const indexed = fetched.map((e, i) => ({ e, i }));
+      indexed.sort((a, b) => (a.e.z - b.e.z) || (a.i - b.i));
+      const sorted = indexed.map((x) => x.e);
+      const selFlags = sorted.map((e) => selectedSet.has(e.id));
+      const anySelected = selFlags.some(Boolean);
+      const anyOther = selFlags.some((f) => !f);
+      if (!anySelected || !anyOther) return;
+
+      const group = sorted.filter((_, i) => selFlags[i]);
+      const remainder = sorted.filter((_, i) => !selFlags[i]);
+      let reordered: CanvasElement[] = [];
+
+      if (action === 'front') {
+        reordered = [...remainder, ...group];
+      } else if (action === 'back') {
+        reordered = [...group, ...remainder];
+      } else if (action === 'forward') {
+        // Find first non-selected index above the group's top.
+        const lastSelIdx = selFlags.lastIndexOf(true);
+        let j = -1;
+        for (let k = lastSelIdx + 1; k < sorted.length; k++) {
+          if (!selFlags[k]) { j = k; break; }
+        }
+        if (j === -1) return; // already at top
+        const neighbour = sorted[j];
+        const jRem = remainder.findIndex((e) => e.id === neighbour.id);
+        reordered = [...remainder.slice(0, jRem + 1), ...group, ...remainder.slice(jRem + 1)];
+      } else if (action === 'backward') {
+        const firstSelIdx = selFlags.indexOf(true);
+        let j = -1;
+        for (let k = firstSelIdx - 1; k >= 0; k--) {
+          if (!selFlags[k]) { j = k; break; }
+        }
+        if (j === -1) return; // already at bottom
+        const neighbour = sorted[j];
+        const jRem = remainder.findIndex((e) => e.id === neighbour.id);
+        reordered = [...remainder.slice(0, jRem), ...group, ...remainder.slice(jRem)];
+      }
+
+      // Assign z = index; only record changes for elements whose z moves.
+      const entries: Array<{ kind: 'update'; id: string; before: ElementSnapshot; after: ElementSnapshot }> = [];
+      const updates: Array<{ id: string; z: number }> = [];
+      reordered.forEach((e, idx) => {
+        if (e.z !== idx) {
+          const before = snapshotOfEl(e);
+          const after: ElementSnapshot = { ...before, z: idx };
+          entries.push({ kind: 'update', id: e.id, before, after });
+          updates.push({ id: e.id, z: idx });
+        }
+      });
+      if (updates.length === 0) return;
+
+      pushHistory({ kind: 'batch', entries });
+      qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId), (old) =>
+        (old || []).map((e) => {
+          const u = updates.find((x) => x.id === e.id);
+          return u ? { ...e, z: u.z } : e;
+        }),
+      );
+      void Promise.all(
+        updates.map((u) =>
+          supabase
+            .from('impact_canvas_elements')
+            .update({ z: u.z })
+            .eq('id', u.id)
+            .then(({ error }) => {
+              if (error) {
+                // eslint-disable-next-line no-console
+                console.error('[impact-canvas] group z-order update failed', { id: u.id, z: u.z, error });
+                qc.invalidateQueries({ queryKey: ELS_KEY(proposalId) });
+              }
+            }),
+        ),
+      );
+    },
+    [canEdit, fetched, snapshotOfEl, pushHistory, qc, proposalId],
+  );
+
+
 
 
   // Text boxes removed — existing kind='text' elements are migrated to
@@ -1725,7 +1815,13 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
   // Layers: single-selection only. Multi-select z-order re-arrangement is
   // out of Stage 2 scope (it would need a stable relative-order-preserving
   // batch, which is a separate feature). Report as disabled for multi.
-  const zEnabled = selectedIds.size === 1 && !!selectedEl && canEdit;
+  const zEnabled = selectedIds.size >= 1 && canEdit;
+  const applyZ = (action: 'front' | 'back' | 'forward' | 'backward') => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    if (ids.length === 1) changeZOrder(ids[0], action);
+    else changeZOrderMulti(ids, action);
+  };
   // Delete: enabled if any selected element is a deletable free element,
   // even in multi-select (Stage 1: batched delete-all-free).
   const deletableSelected = Array.from(selectedIds).filter((sid) => {
@@ -1886,25 +1982,25 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
               type="button" variant="ghost" size="sm" className="h-7 w-7 p-0"
               title="Bring to front" aria-label="Bring to front"
               disabled={!zEnabled}
-              onClick={() => selectedEl && changeZOrder(selectedEl.id, 'front')}
+              onClick={() => applyZ('front')}
             ><LayerIcon variant="front" /></Button>
             <Button
               type="button" variant="ghost" size="sm" className="h-7 w-7 p-0"
               title="Bring forward" aria-label="Bring forward"
               disabled={!zEnabled}
-              onClick={() => selectedEl && changeZOrder(selectedEl.id, 'forward')}
+              onClick={() => applyZ('forward')}
             ><LayerIcon variant="forward" /></Button>
             <Button
               type="button" variant="ghost" size="sm" className="h-7 w-7 p-0"
               title="Send backward" aria-label="Send backward"
               disabled={!zEnabled}
-              onClick={() => selectedEl && changeZOrder(selectedEl.id, 'backward')}
+              onClick={() => applyZ('backward')}
             ><LayerIcon variant="backward" /></Button>
             <Button
               type="button" variant="ghost" size="sm" className="h-7 w-7 p-0"
               title="Send to back" aria-label="Send to back"
               disabled={!zEnabled}
-              onClick={() => selectedEl && changeZOrder(selectedEl.id, 'back')}
+              onClick={() => applyZ('back')}
             ><LayerIcon variant="back" /></Button>
           </div>
 
