@@ -1785,7 +1785,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     <div className="space-y-2">
       {canEdit && (
         <div
-          className="w-full flex items-center gap-0 flex-wrap rounded-md border bg-card p-1.5"
+          className="w-full flex items-center gap-0.5 flex-wrap rounded-md border bg-card p-2"
           data-impact-canvas-toolbar
         >
           {/* Group 1: Undo / Redo / Delete */}
@@ -1827,7 +1827,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
             </span>
           )}
 
-          <Separator orientation="vertical" className="h-5 mx-1" />
+          <Separator orientation="vertical" className="h-5 mx-1.5" />
 
           {/* Group 2: Font colour, Fill colour, Outline colour+width, Add-shape */}
           <BoundStyleToolbar
