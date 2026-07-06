@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
 import { supabase } from '@/integrations/supabase/client';
 import { useImpactCanvasColumns, useImpactCanvasRows } from '@/hooks/useImpactCanvas';
-import { IMPACT_CANVAS_VIEWPORT, IMPACT_CANVAS_HEADER_HEIGHT } from '@/lib/impactCanvasLayout';
+import { CANVAS_WIDTH_CM, HEADER_HEIGHT_CM, computeCanvasHeightCm } from '@/lib/impactCanvasLayout';
 import { resolveBoundStyle } from '@/lib/impactCanvasBoundStyle';
 
 interface Props {
@@ -137,10 +137,11 @@ export function ImpactCanvasFreeformRenderer({ proposalId, className, fallback =
 
 
   const rowById = new Map(rows.map((r) => [r.id, r]));
-  const { width: VW, height: VH } = IMPACT_CANVAS_VIEWPORT;
+  const VW = CANVAS_WIDTH_CM;
+  const VH = computeCanvasHeightCm([...boundEls, ...textEls]);
   const pctX = (x: number) => `${(x / VW) * 100}%`;
   const pctY = (y: number) => `${(y / VH) * 100}%`;
-  const paddingPct = `${(600 / 1000) * 100}%`; // aspect-ratio spacer
+  const paddingPct = `${(VH / VW) * 100}%`;
 
   const colW = VW / columnOrder.length;
 
@@ -167,7 +168,7 @@ export function ImpactCanvasFreeformRenderer({ proposalId, className, fallback =
             left: pctX(ci * colW),
             top: pctY(0),
             width: pctX(colW),
-            height: pctY(IMPACT_CANVAS_HEADER_HEIGHT),
+            height: pctY(HEADER_HEIGHT_CM),
             padding: '0 4px 4px 0',
             display: 'flex',
             alignItems: 'center',
