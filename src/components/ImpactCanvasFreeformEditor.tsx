@@ -21,6 +21,7 @@ import type { BoundBoxStyle } from '@/lib/impactCanvasBoundStyle';
 import { ImpactCanvasTextBox } from './ImpactCanvasTextBox';
 import { ImpactCanvasOutlinePicker } from './ImpactCanvasOutlinePicker';
 import { ImpactCanvasShape, type ShapeKind } from './ImpactCanvasShape';
+import { LinesSpike } from './ImpactCanvasFreeformRenderer';
 import { Circle as CircleIcon, Square, Squircle, Triangle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 
@@ -1488,6 +1489,10 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
             </div>
           );
         })}
+        {/* SPIKE (throwaway): mirror the read-only spike inside the editor
+            so the same two test arrows appear on screen for verification.
+            Remove alongside <LinesSpike/> in the renderer. */}
+        <LinesSpike VW={VW} VH={VH} />
       </div>
     </div>
   );

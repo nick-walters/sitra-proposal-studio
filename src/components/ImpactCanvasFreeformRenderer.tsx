@@ -316,7 +316,7 @@ export function ImpactCanvasFreeformRenderer({ proposalId, className, fallback =
  *
  * Delete this component + its call site after verification.
  */
-function LinesSpike({ VW, VH }: { VW: number; VH: number }) {
+export function LinesSpike({ VW, VH }: { VW: number; VH: number }) {
   // Coords in cm. Positioned in the top band so they render even on short
   // canvases; kept well away from bound headers/cells.
   const straight = { from: { x: 0.6, y: 1.6 }, to: { x: 8.4, y: 3.2 } };
