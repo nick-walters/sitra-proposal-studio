@@ -1610,6 +1610,10 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
               onClick={(e) => {
                 e.stopPropagation();
                 if (!canEdit) return;
+                if (suppressNextClickRef.current === el.id) {
+                  suppressNextClickRef.current = null;
+                  return;
+                }
                 if (selectedId !== el.id) {
                   setSelectedId(el.id);
                   return;
