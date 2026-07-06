@@ -2428,13 +2428,14 @@ function LayerIcon({ variant }: { variant: 'front' | 'forward' | 'backward' | 'b
     );
   }
 
-  // One-step variants: two overlapping 8x8 squares.
+  // One-step variants: two overlapping 8x8 squares. Filled = moving element.
+  // For 'forward', filled is drawn last (on top of outlined).
+  // For 'backward', filled is drawn first (behind outlined).
+  const outlinedRect = <rect x={1.5} y={1.5} width={size} height={size} rx={1} {...outlined} />;
+  const filledRect = <rect x={6.5} y={6.5} width={size} height={size} rx={1} {...filled} />;
   return (
     <svg viewBox="0 0 16 16" width={14} height={14} aria-hidden fill="none" stroke="currentColor" strokeWidth={1.25}>
-      <rect x={1.5} y={1.5} width={size} height={size} rx={1}
-        {...(forwards ? outlined : filled)} />
-      <rect x={6.5} y={6.5} width={size} height={size} rx={1}
-        {...(forwards ? filled : outlined)} />
+      {forwards ? (<>{outlinedRect}{filledRect}</>) : (<>{filledRect}{outlinedRect}</>)}
     </svg>
   );
 }
