@@ -105,6 +105,25 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [drag, setDrag] = useState<DragState | null>(null);
+  // Editor preferences (grid overlay + snap-to-grid) — persisted in
+  // localStorage so they survive reloads on the same device. Defaults: OFF
+  // for both (subtle first-run: an empty canvas with no grid, snap opt-in).
+  const [showGrid, setShowGrid] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.localStorage.getItem('impact-canvas-show-grid') === '1';
+  });
+  const [snap, setSnap] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.localStorage.getItem('impact-canvas-snap') === '1';
+  });
+  useEffect(() => {
+    try { window.localStorage.setItem('impact-canvas-show-grid', showGrid ? '1' : '0'); } catch { /* ignore */ }
+  }, [showGrid]);
+  useEffect(() => {
+    try { window.localStorage.setItem('impact-canvas-snap', snap ? '1' : '0'); } catch { /* ignore */ }
+  }, [snap]);
+  const snapRef = useRef(snap);
+  useEffect(() => { snapRef.current = snap; }, [snap]);
   /** Optimistic overrides for coords in-flight (per element id). */
   const [overrides, setOverrides] = useState<Record<string, { x: number; y: number; w: number; h: number }>>({});
   /** Optimistic overrides for text content (per element id). */
