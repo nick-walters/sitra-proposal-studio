@@ -117,8 +117,7 @@ export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figure
                 <ImpactCanvasFreeformRenderer proposalId={proposalId} fallback="grid" />
               </div>
             </div>
-          </CardContent>
-        </Card>
+        </div>
 
 
         {/* The builder grid */}
