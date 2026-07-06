@@ -2167,13 +2167,15 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
           position: 'relative',
           width: '100%',
           overflow: 'hidden',
-          // Establish a stacking context so negative-z elements (e.g. shapes
-          // sent to back) stay contained and don't render behind the parent
-          // card's background — which would make them disappear entirely.
           isolation: 'isolate',
           fontFamily: '"Times New Roman", Times, serif',
           userSelect: drag ? 'none' : undefined,
           touchAction: 'none',
+          // Container-query context: `cqw` units below scale text with the
+          // rendered canvas width so text-to-box ratio stays constant
+          // across editor / B2.1 / PDF / PNG. Reference: 1000px canvas →
+          // 12px body / 11px header.
+          containerType: 'inline-size',
         }}
         onPointerDownCapture={(e) => {
           // Bug B guard: when several element wrappers overlap, the browser
