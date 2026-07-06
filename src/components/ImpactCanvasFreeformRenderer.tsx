@@ -4,6 +4,7 @@ import DOMPurify from 'dompurify';
 import { supabase } from '@/integrations/supabase/client';
 import { useImpactCanvasColumns, useImpactCanvasRows } from '@/hooks/useImpactCanvas';
 import { CANVAS_WIDTH_CM, HEADER_HEIGHT_CM, computeCanvasHeightCm } from '@/lib/impactCanvasLayout';
+import { ImpactCanvasShape, type ShapeKind } from './ImpactCanvasShape';
 import { resolveBoundStyle } from '@/lib/impactCanvasBoundStyle';
 
 interface Props {
@@ -128,17 +129,18 @@ export function ImpactCanvasFreeformRenderer({ proposalId, className, fallback =
     (e) => e.kind === 'bound' && e.bound_row_id && e.bound_col_key,
   );
   const textEls = elements.filter((e) => e.kind === 'text');
+  const shapeEls = elements.filter((e) => e.kind === 'shape');
 
   // Fallback: pre-backfill proposals with no bound elements fall back to
   // a legacy CSS grid layout so the canvas is never blank.
-  if (boundEls.length === 0 && textEls.length === 0 && fallback === 'grid') {
+  if (boundEls.length === 0 && textEls.length === 0 && shapeEls.length === 0 && fallback === 'grid') {
     return <LegacyGridFallback proposalId={proposalId} className={className} />;
   }
 
 
   const rowById = new Map(rows.map((r) => [r.id, r]));
   const VW = CANVAS_WIDTH_CM;
-  const VH = computeCanvasHeightCm([...boundEls, ...textEls]);
+  const VH = computeCanvasHeightCm([...boundEls, ...textEls, ...shapeEls]);
   const pctX = (x: number) => `${(x / VW) * 100}%`;
   const pctY = (y: number) => `${(y / VH) * 100}%`;
   const paddingPct = `${(VH / VW) * 100}%`;
