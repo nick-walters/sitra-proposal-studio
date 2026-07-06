@@ -221,6 +221,9 @@ export function WPColorPicker({
               {displayedPalette.map((paletteColor, index) => {
                 const norm = normaliseHex(paletteColor) ?? paletteColor.toUpperCase();
                 const isSelected = (normaliseHex(color) ?? color.toUpperCase()) === norm;
+                // Light swatches (e.g. white) would vanish against the popover
+                // background; add a subtle inset ring so they read as a swatch.
+                const needsLightOutline = getContrastingTextColor(norm) === '#000000';
                 return (
                   <button
                     key={`${paletteColor}-${index}`}
@@ -228,7 +231,10 @@ export function WPColorPicker({
                       'h-7 w-7 rounded-md border-2 transition-all hover:scale-110',
                       isSelected ? 'border-primary ring-2 ring-primary/20' : 'border-transparent'
                     )}
-                    style={{ backgroundColor: paletteColor }}
+                    style={{
+                      backgroundColor: paletteColor,
+                      boxShadow: !isSelected && needsLightOutline ? 'inset 0 0 0 1px rgba(0,0,0,0.2)' : undefined,
+                    }}
                     onClick={() => handleSelectSwatch(paletteColor)}
                     aria-label={`Select ${paletteColor}`}
                   />
@@ -256,7 +262,10 @@ export function WPColorPicker({
                           'h-7 w-7 rounded-md border-2 transition-all hover:scale-110',
                           isSelected ? 'border-primary ring-2 ring-primary/20' : 'border-transparent'
                         )}
-                        style={{ backgroundColor: c }}
+                        style={{
+                          backgroundColor: c,
+                          boxShadow: !isSelected && iconColor === '#000000' ? 'inset 0 0 0 1px rgba(0,0,0,0.2)' : undefined,
+                        }}
                         onClick={() => handleSelectSwatch(c)}
                         aria-label={`Select ${c}`}
                       />
