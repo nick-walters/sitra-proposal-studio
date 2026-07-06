@@ -886,13 +886,19 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     [columns],
   );
   const rowById = useMemo(() => new Map(rows.map((r) => [r.id, r])), [rows]);
+  const columnByKey = useMemo(() => new Map(columnOrder.map((c) => [c.key, c])), [columnOrder]);
   const boundEls = useMemo(
     () => fetched.filter((e) => e.kind === 'bound' && e.bound_row_id && e.bound_col_key),
+    [fetched],
+  );
+  const headerEls = useMemo(
+    () => fetched.filter((e) => e.kind === 'header' && e.bound_col_key),
     [fetched],
   );
   const textEls = useMemo(() => fetched.filter((e) => e.kind === 'text'), [fetched]);
   const shapeEls = useMemo(() => fetched.filter((e) => e.kind === 'shape'), [fetched]);
   const lineEls = useMemo(() => fetched.filter((e) => e.kind === 'line'), [fetched]);
+
   /** Line elements merged with any in-flight overrides (bbox + endpoints)
    *  so the shared overlay + interactive layer stay in sync during drag. */
   const lineElsMerged = useMemo(() => {
