@@ -260,7 +260,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     | { kind: 'batch'; entries: Array<
         | { kind: 'update'; id: string; before: ElementSnapshot; after: ElementSnapshot }
         | { kind: 'delete'; element: CanvasElement }
-      > };
+      >; group?: string; ts?: number };
   const undoStackRef = useRef<HistoryEntry[]>([]);
   const redoStackRef = useRef<HistoryEntry[]>([]);
   const suppressHistoryRef = useRef(false);
