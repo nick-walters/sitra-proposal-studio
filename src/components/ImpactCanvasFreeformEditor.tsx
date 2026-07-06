@@ -942,6 +942,42 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
           );
         })}
 
+        {/* Hidden probes for auto-fit bound boxes — same width & typography
+            as the visible box (height:auto). Their offsetHeight drives the
+            auto-fit measurement effect. */}
+        {boundEls.map((el) => {
+          const bs = readBoundStyle(styleOverrides[el.id] ?? el.style);
+          if (bs.autoFitH === false) return null;
+          const row = rowById.get(el.bound_row_id!);
+          const html = (row?.content?.[el.bound_col_key!] as string) || '';
+          const ov = overrides[el.id];
+          const box = ov ?? { x: el.x, y: el.y, w: el.w, h: el.h };
+          return (
+            <div
+              key={`probe-${el.id}`}
+              ref={(node) => { probeRefs.current[el.id] = node; }}
+              aria-hidden
+              style={{
+                position: 'absolute',
+                left: pctX(box.x),
+                top: 0,
+                width: pctX(box.w),
+                visibility: 'hidden',
+                pointerEvents: 'none',
+                padding: '2pt',
+                boxSizing: 'border-box',
+                fontSize: 12,
+                lineHeight: 1.3,
+                fontFamily: '"Times New Roman", Times, serif',
+              }}
+            >
+              <div style={{ width: '100%', padding: '2pt', boxSizing: 'border-box' }} dangerouslySetInnerHTML={{ __html: sanitize(html) }} />
+            </div>
+          );
+        })}
+
+
+
         {textEls.map((el) => {
           const ov = overrides[el.id];
           const box = ov ?? { x: el.x, y: el.y, w: el.w, h: el.h };
