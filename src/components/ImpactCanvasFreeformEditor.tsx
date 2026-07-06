@@ -2478,7 +2478,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
                   alignItems: 'center',
                   justifyContent: 'flex-start',
                   overflow: 'hidden',
-                  fontSize: 12,
+                  fontSize: '1.2cqw',
                   lineHeight: 1.3,
                   color: bs.color,
                   pointerEvents: 'none',
