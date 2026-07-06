@@ -265,7 +265,6 @@ export function WPColorPicker({
                 {GREYSCALE_COLORS.map((g) => {
                   const norm = g.toUpperCase();
                   const isSelected = (normaliseHex(color) ?? color.toUpperCase()) === norm;
-                  const needsLightOutline = getContrastingTextColor(norm) === '#000000';
                   return (
                     <button
                       key={g}
@@ -275,7 +274,7 @@ export function WPColorPicker({
                       )}
                       style={{
                         backgroundColor: g,
-                        boxShadow: !isSelected && needsLightOutline ? 'inset 0 0 0 1px rgba(0,0,0,0.2)' : undefined,
+                        boxShadow: !isSelected ? 'inset 0 0 0 1px rgba(0,0,0,0.2)' : undefined,
                       }}
                       onClick={() => handleSelectSwatch(g)}
                       aria-label={`Select ${g}`}
