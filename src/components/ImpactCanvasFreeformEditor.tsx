@@ -970,6 +970,52 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     [fetched],
   );
 
+  /**
+   * Z-order actions (front/back/forward/backward) — single-element z updates.
+   * Note: the SVG lines overlay renders on a fixed layer at zIndex 900 above
+   * bound/text/shape/header elements — lines cannot interleave by z with
+   * boxes. Within each layer, ordering is by z ascending (higher = on top).
+   */
+  const changeZOrder = useCallback(
+    (id: string, action: 'front' | 'back' | 'forward' | 'backward') => {
+      if (!canEdit) return;
+      const el = fetched.find((e) => e.id === id);
+      if (!el) return;
+      const others = fetched.filter((e) => e.id !== id);
+      if (others.length === 0) return;
+      let newZ = el.z;
+      if (action === 'front') {
+        newZ = Math.max(...others.map((e) => e.z)) + 1;
+      } else if (action === 'back') {
+        newZ = Math.min(...others.map((e) => e.z)) - 1;
+      } else if (action === 'forward') {
+        const higher = others.filter((e) => e.z > el.z).map((e) => e.z);
+        if (higher.length === 0) return;
+        newZ = Math.min(...higher) + 1;
+      } else if (action === 'backward') {
+        const lower = others.filter((e) => e.z < el.z).map((e) => e.z);
+        if (lower.length === 0) return;
+        newZ = Math.max(...lower) - 1;
+      }
+      if (newZ === el.z) return;
+      const before = snapshotOfEl(el);
+      const after: ElementSnapshot = { ...before, z: newZ };
+      pushHistory({ kind: 'update', id, before, after, ts: Date.now() });
+      qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId), (old) =>
+        (old || []).map((e) => (e.id === id ? { ...e, z: newZ } : e)),
+      );
+      void supabase
+        .from('impact_canvas_elements')
+        .update({ z: newZ })
+        .eq('id', id)
+        .then(({ error }) => {
+          if (error) qc.invalidateQueries({ queryKey: ELS_KEY(proposalId) });
+        });
+    },
+    [canEdit, fetched, snapshotOfEl, pushHistory, qc, proposalId],
+  );
+
+
   const addTextBox = useCallback(async () => {
     if (!canEdit) return;
     const VW = CANVAS_WIDTH_CM;
