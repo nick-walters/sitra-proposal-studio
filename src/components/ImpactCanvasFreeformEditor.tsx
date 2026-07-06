@@ -1590,7 +1590,13 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
   const lineStyleEnabled = !!selectedEl && selectedIsLine;
   const sizeEnabled = !!selectedEl && !!selectedBox && !selectedIsLine;
   const zEnabled = !!selectedEl && canEdit;
-  const deleteEnabled = !!selectedEl && selectedIsFree;
+  // Delete: enabled if any selected element is a deletable free element,
+  // even in multi-select (Stage 1: batched delete-all-free).
+  const deletableSelected = Array.from(selectedIds).filter((sid) => {
+    const el = fetched.find((e) => e.id === sid);
+    return !!el && (el.kind === 'text' || el.kind === 'shape' || el.kind === 'line');
+  });
+  const deleteEnabled = deletableSelected.length > 0;
 
   // Combined outline enablement — shared control edits bound/shape/line outline.
   const outlineEnabled = styleEnabled || lineStyleEnabled;
