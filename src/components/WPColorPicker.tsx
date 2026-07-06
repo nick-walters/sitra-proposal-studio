@@ -56,8 +56,15 @@ interface WPColorPickerProps {
    * colour. Used e.g. to hide black from WP/theme pickers.
    */
   excludePaletteColors?: string[];
+  /**
+   * When true, an additional "Greyscale" section (white → black) is rendered
+   * after the Sitra palette. Enable for font-colour and canvas pickers; leave
+   * off for WP/theme pickers.
+   */
+  showGreyscale?: boolean;
   /** Notified when the popover opens/closes (for parent focus retention). */
   onOpenChange?: (open: boolean) => void;
+
   /**
    * Optional live, unsaved rich-text HTML sources. Used by text-colour pickers
    * so delete protection includes the current editor DOM before autosave has
