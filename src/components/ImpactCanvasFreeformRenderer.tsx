@@ -4,6 +4,7 @@ import DOMPurify from 'dompurify';
 import { supabase } from '@/integrations/supabase/client';
 import { useImpactCanvasColumns, useImpactCanvasRows } from '@/hooks/useImpactCanvas';
 import { IMPACT_CANVAS_VIEWPORT, IMPACT_CANVAS_HEADER_HEIGHT } from '@/lib/impactCanvasLayout';
+import { resolveBoundStyle } from '@/lib/impactCanvasBoundStyle';
 
 interface Props {
   proposalId: string;
@@ -187,6 +188,7 @@ export function ImpactCanvasFreeformRenderer({ proposalId, className, fallback =
       {boundEls.map((el) => {
         const row = rowById.get(el.bound_row_id!);
         const html = (row?.content?.[el.bound_col_key!] as string) || '';
+        const bs = resolveBoundStyle(el.style);
         return (
           <div
             key={el.id}
@@ -206,9 +208,11 @@ export function ImpactCanvasFreeformRenderer({ proposalId, className, fallback =
               style={{
                 width: '100%',
                 height: '100%',
-                border: '1px solid hsl(var(--border))',
+                borderStyle: 'solid',
+                borderColor: bs.borderColor,
+                borderWidth: bs.borderWidth,
                 borderRadius: 6,
-                background: 'hsl(var(--muted) / 0.3)',
+                background: bs.background,
                 padding: '2pt',
                 boxSizing: 'border-box',
                 display: 'flex',
@@ -217,7 +221,7 @@ export function ImpactCanvasFreeformRenderer({ proposalId, className, fallback =
                 overflow: 'hidden',
                 fontSize: 12,
                 lineHeight: 1.3,
-                color: '#000',
+                color: bs.color,
               }}
             >
               <div

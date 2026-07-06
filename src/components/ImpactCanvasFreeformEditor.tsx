@@ -3,9 +3,13 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
 import { Trash2, Type } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { useImpactCanvasColumns, useImpactCanvasRows } from '@/hooks/useImpactCanvas';
 import { IMPACT_CANVAS_VIEWPORT, IMPACT_CANVAS_HEADER_HEIGHT } from '@/lib/impactCanvasLayout';
+import { WPColorPicker } from './WPColorPicker';
+import { BOUND_STYLE_DEFAULTS, readBoundStyle, resolveBoundStyle } from '@/lib/impactCanvasBoundStyle';
+import type { BoundBoxStyle } from '@/lib/impactCanvasBoundStyle';
 import { ImpactCanvasTextBox } from './ImpactCanvasTextBox';
 
 interface Props {
@@ -99,6 +103,9 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
   const [contentOverrides, setContentOverrides] = useState<Record<string, string>>({});
   const pendingTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const pendingContentTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const pendingStyleTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  /** Optimistic overrides for style (per element id). */
+  const [styleOverrides, setStyleOverrides] = useState<Record<string, BoundBoxStyle>>({});
 
   // Deselect on outside pointerdown — but keep clicks inside the surface,
   // toolbar, radix portals, dialogs, and the ACTIVE text-box editor from
@@ -185,12 +192,58 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     [proposalId, qc],
   );
 
+  const persistStyleDebounced = useCallback(
+    (id: string, style: BoundBoxStyle) => {
+      const existing = pendingStyleTimers.current[id];
+      if (existing) clearTimeout(existing);
+      pendingStyleTimers.current[id] = setTimeout(async () => {
+        delete pendingStyleTimers.current[id];
+        const { error } = await supabase
+          .from('impact_canvas_elements')
+          .update({ style: style as never })
+          .eq('id', id);
+        if (error) {
+          setStyleOverrides((o) => {
+            const n = { ...o };
+            delete n[id];
+            return n;
+          });
+          qc.invalidateQueries({ queryKey: ELS_KEY(proposalId) });
+        } else {
+          qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId), (old) =>
+            (old || []).map((e) => (e.id === id ? { ...e, style } : e)),
+          );
+          setStyleOverrides((o) => {
+            const n = { ...o };
+            delete n[id];
+            return n;
+          });
+        }
+      }, 250);
+    },
+    [proposalId, qc],
+  );
+
+  const updateBoundStyle = useCallback(
+    (id: string, patch: Partial<BoundBoxStyle>) => {
+      if (!canEdit) return;
+      const el = fetched.find((e) => e.id === id);
+      const current = { ...readBoundStyle(el?.style), ...(styleOverrides[id] ?? {}) };
+      const next = { ...current, ...patch };
+      setStyleOverrides((o) => ({ ...o, [id]: next }));
+      persistStyleDebounced(id, next);
+    },
+    [canEdit, fetched, styleOverrides, persistStyleDebounced],
+  );
+
   useEffect(() => {
     return () => {
       Object.values(pendingTimers.current).forEach(clearTimeout);
       Object.values(pendingContentTimers.current).forEach(clearTimeout);
+      Object.values(pendingStyleTimers.current).forEach(clearTimeout);
       pendingTimers.current = {};
       pendingContentTimers.current = {};
+      pendingStyleTimers.current = {};
     };
   }, []);
 
@@ -413,6 +466,17 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
               <Trash2 className="w-4 h-4 mr-1" /> Delete text box
             </Button>
           )}
+          {selectedId && boundEls.some((b) => b.id === selectedId) && (
+            <BoundStyleToolbar
+              proposalId={proposalId}
+              canEdit={canEdit}
+              style={{
+                ...readBoundStyle(boundEls.find((b) => b.id === selectedId)?.style),
+                ...(styleOverrides[selectedId] ?? {}),
+              }}
+              onChange={(patch) => updateBoundStyle(selectedId, patch)}
+            />
+          )}
           <span className="text-xs text-muted-foreground">
             Double-click a text box to edit. Delete / Backspace removes the selected box.
           </span>
@@ -482,6 +546,8 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
           const ov = overrides[el.id];
           const box = ov ?? { x: el.x, y: el.y, w: el.w, h: el.h };
           const selected = selectedId === el.id;
+          const styleSrc = styleOverrides[el.id] ?? el.style;
+          const bs = resolveBoundStyle(styleSrc);
           return (
             <div
               key={el.id}
@@ -503,9 +569,11 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
                 style={{
                   width: '100%',
                   height: '100%',
-                  border: selected ? '2px solid hsl(var(--primary))' : '1px solid hsl(var(--border))',
+                  borderStyle: 'solid',
+                  borderColor: selected ? 'hsl(var(--primary))' : bs.borderColor,
+                  borderWidth: selected ? Math.max(2, bs.borderWidth) : bs.borderWidth,
                   borderRadius: 6,
-                  background: 'hsl(var(--muted) / 0.3)',
+                  background: bs.background,
                   padding: '2pt',
                   boxSizing: 'border-box',
                   display: 'flex',
@@ -514,7 +582,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
                   overflow: 'hidden',
                   fontSize: 12,
                   lineHeight: 1.3,
-                  color: '#000',
+                  color: bs.color,
                   pointerEvents: 'none',
                 }}
               >
@@ -656,6 +724,87 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     </div>
   );
 }
+
+interface BoundStyleToolbarProps {
+  proposalId: string;
+  canEdit: boolean;
+  style: BoundBoxStyle;
+  onChange: (patch: Partial<BoundBoxStyle>) => void;
+}
+
+function BoundStyleToolbar({ proposalId, canEdit, style, onChange }: BoundStyleToolbarProps) {
+  const width = style.outlineWidth ?? BOUND_STYLE_DEFAULTS.outlineWidth;
+  const fill = style.fillColor ?? '#F5F5F5';
+  const outline = style.outlineColor ?? '#CCCCCC';
+  const font = style.fontColor ?? BOUND_STYLE_DEFAULTS.fontColor;
+  return (
+    <div className="flex items-center gap-2 pl-2 border-l" data-impact-canvas-toolbar>
+      <StylePicker
+        label="Fill"
+        color={fill}
+        proposalId={proposalId}
+        canEdit={canEdit}
+        onChange={(c) => onChange({ fillColor: c })}
+      />
+      <StylePicker
+        label="Outline"
+        color={outline}
+        proposalId={proposalId}
+        canEdit={canEdit}
+        onChange={(c) => onChange({ outlineColor: c })}
+      />
+      <div className="flex items-center gap-1">
+        <span className="text-[11px] text-muted-foreground">Width</span>
+        <Input
+          type="number"
+          min={0}
+          max={12}
+          step={1}
+          disabled={!canEdit}
+          value={width}
+          onChange={(e) => {
+            const v = Number(e.target.value);
+            if (Number.isFinite(v)) onChange({ outlineWidth: Math.max(0, Math.min(12, v)) });
+          }}
+          className="h-7 w-14 text-xs"
+        />
+        <span className="text-[11px] text-muted-foreground">px</span>
+      </div>
+      <StylePicker
+        label="Text"
+        color={font}
+        proposalId={proposalId}
+        canEdit={canEdit}
+        onChange={(c) => onChange({ fontColor: c })}
+      />
+    </div>
+  );
+}
+
+function StylePicker({
+  label, color, proposalId, canEdit, onChange,
+}: {
+  label: string;
+  color: string;
+  proposalId: string;
+  canEdit: boolean;
+  onChange: (hex: string) => void;
+}) {
+  return (
+    <div className="flex items-center gap-1">
+      <span className="text-[11px] text-muted-foreground">{label}</span>
+      <WPColorPicker
+        color={color}
+        onChange={onChange}
+        disabled={!canEdit}
+        proposalId={proposalId}
+        canManageCustom={canEdit}
+        label={`${label} colour`}
+      />
+    </div>
+  );
+}
+
 
 const HANDLES: Handle[] = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
 const HANDLE_CURSOR: Record<Handle, string> = {
