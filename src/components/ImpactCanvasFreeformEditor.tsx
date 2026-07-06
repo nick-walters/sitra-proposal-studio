@@ -1897,7 +1897,31 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     .map((e) => e.id);
   const styleEnabled = fillFontIds.length > 0;
   const outlineEnabled = outlineIds.length > 0;
-  const sizeEnabled = selectedIds.size === 1 && !!selectedEl && !!selectedBox && !selectedIsLine;
+  // Size (W/H) — enabled for single OR multi when at least one resizable
+  // (bound/header/shape) member is present. Lines are skipped by the multi
+  // writer. Handles remain single-select only (see zEnabled below).
+  const sizeIds = selectedEls
+    .filter((e) => e.kind === 'bound' || e.kind === 'header' || e.kind === 'shape')
+    .map((e) => e.id);
+  const isMultiSize = selectedIds.size > 1;
+  const sizeEnabled = canEdit && (
+    (selectedIds.size === 1 && !!selectedEl && !!selectedBox && !selectedIsLine) ||
+    (isMultiSize && sizeIds.length >= 1)
+  );
+  // Multi mixed-value detection for W/H (over resizable members only).
+  const sizeBoxes = sizeIds.map((id) => {
+    const el = fetched.find((e) => e.id === id);
+    if (!el) return null;
+    return overrides[id] ?? { x: el.x, y: el.y, w: el.w, h: el.h };
+  }).filter((b): b is { x: number; y: number; w: number; h: number } => !!b);
+  const roundCm = (v: number) => Math.round(v * 100) / 100;
+  const commonW = sizeBoxes.length ? sizeBoxes.every((b) => roundCm(b.w) === roundCm(sizeBoxes[0].w)) ? sizeBoxes[0].w : undefined : undefined;
+  const commonH = sizeBoxes.length ? sizeBoxes.every((b) => roundCm(b.h) === roundCm(sizeBoxes[0].h)) ? sizeBoxes[0].h : undefined : undefined;
+  const multiSizeBox = isMultiSize && sizeIds.length >= 1
+    ? { x: 0, y: 0, w: commonW ?? 0, h: commonH ?? 0 }
+    : null;
+  const sizeMixedW = isMultiSize && sizeIds.length > 1 && commonW === undefined;
+  const sizeMixedH = isMultiSize && sizeIds.length > 1 && commonH === undefined;
   // Layers: single-selection only. Multi-select z-order re-arrangement is
   // out of Stage 2 scope (it would need a stable relative-order-preserving
   // batch, which is a separate feature). Report as disabled for multi.
