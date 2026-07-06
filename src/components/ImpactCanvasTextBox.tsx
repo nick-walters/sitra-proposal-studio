@@ -10,21 +10,18 @@ interface Props {
   onChange: (html: string) => void;
   onCommit?: () => void;
   autoFocus?: boolean;
+  /** Text alignment inside the editor. 'left' (default) for free text boxes,
+   *  'center' for shape-embedded text. */
+  align?: 'left' | 'center';
 }
 
-/**
- * Minimal in-place TipTap editor for free text-box elements on the
- * Impact Canvas figure page. Bold/italic/lists via keyboard shortcuts;
- * wordCleanPasteProps sanitises pasted content.
- *
- * `editing=false` renders the editor read-only (no caret, non-editable).
- * `editing=true` puts it in edit mode. The wrapping div carries the
- * data-impact-canvas-textbox-editor marker so the outside-click clearer
- * in ImpactCanvasFreeformEditor knows to leave the editor alone while
- * the user is typing inside it (or inside its paste popovers).
- */
-export function ImpactCanvasTextBox({ html, editing, onChange, onCommit, autoFocus }: Props) {
+export function ImpactCanvasTextBox({ html, editing, onChange, onCommit, autoFocus, align = 'left' }: Props) {
   const lastEmitted = useRef(html);
+
+  const alignClass =
+    align === 'center'
+      ? 'text-center [&_*]:text-center'
+      : 'text-left [&_*]:text-left';
 
   const editor = useEditor({
     extensions: [StarterKit.configure({ heading: false }), Underline],
@@ -34,7 +31,7 @@ export function ImpactCanvasTextBox({ html, editing, onChange, onCommit, autoFoc
       ...wordCleanPasteProps,
       attributes: {
         class:
-          'prose prose-sm max-w-none focus:outline-none w-full h-full text-left [&_*]:text-left',
+          `prose prose-sm max-w-none focus:outline-none w-full h-full ${alignClass}`,
       },
     },
     onUpdate: ({ editor }) => {
