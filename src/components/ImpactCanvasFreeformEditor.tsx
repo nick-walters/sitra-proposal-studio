@@ -5,6 +5,8 @@ import { ChevronDown, Grid3x3, Magnet, MoveRight, PaintBucket, Redo2, Trash2, Ty
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+
 import { supabase } from '@/integrations/supabase/client';
 import { useImpactCanvasColumns, useImpactCanvasRows } from '@/hooks/useImpactCanvas';
 import {
