@@ -213,7 +213,7 @@ export function ImpactCanvasFreeformRenderer({ proposalId, className, fallback =
                 justifyContent: 'flex-start',
                 overflow: 'hidden',
                 fontFamily: '"Arial Black", Arial, sans-serif',
-                fontSize: 11,
+                fontSize: '1.1cqw',
                 fontWeight: 700,
                 color: bs.color,
                 whiteSpace: 'pre-line',
