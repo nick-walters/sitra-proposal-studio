@@ -2302,7 +2302,7 @@ function BoundStyleToolbar({ proposalId, canEdit, style, onChange }: BoundStyleT
   const fillIndicator = fillIsNone ? 'transparent' : fill;
 
   return (
-    <div className="flex items-center gap-1 pr-2 border-r" data-impact-canvas-toolbar>
+    <div className="flex items-center gap-1" data-impact-canvas-toolbar>
       {/* Fill — paint bucket icon + current-fill indicator */}
       <WPColorPicker
         color={fillIsNone ? '#FFFFFF' : fill}
