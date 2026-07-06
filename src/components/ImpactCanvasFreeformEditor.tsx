@@ -529,11 +529,11 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     [canEdit, proposalId, qc],
   );
 
-  // Keyboard: Delete/Backspace on selected free text box removes it.
+  // Keyboard: Delete/Backspace on selected free element removes it.
   useEffect(() => {
     if (!selectedId || editingId) return;
     const el = fetched.find((e) => e.id === selectedId);
-    if (!el || el.kind !== 'text') return;
+    if (!el || (el.kind !== 'text' && el.kind !== 'shape')) return;
     const onKey = (ev: KeyboardEvent) => {
       if (ev.key !== 'Delete' && ev.key !== 'Backspace') return;
       const t = ev.target as HTMLElement | null;
