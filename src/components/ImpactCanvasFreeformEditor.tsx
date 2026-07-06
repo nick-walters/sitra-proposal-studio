@@ -2533,7 +2533,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
                 pointerEvents: 'none',
                 padding: '2pt',
                 boxSizing: 'border-box',
-                fontSize: 12,
+                fontSize: '1.2cqw',
                 lineHeight: 1.3,
                 fontFamily: '"Times New Roman", Times, serif',
               }}
