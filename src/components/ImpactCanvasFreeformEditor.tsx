@@ -546,6 +546,8 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
           const ov = overrides[el.id];
           const box = ov ?? { x: el.x, y: el.y, w: el.w, h: el.h };
           const selected = selectedId === el.id;
+          const styleSrc = styleOverrides[el.id] ?? el.style;
+          const bs = resolveBoundStyle(styleSrc);
           return (
             <div
               key={el.id}
@@ -567,9 +569,11 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
                 style={{
                   width: '100%',
                   height: '100%',
-                  border: selected ? '2px solid hsl(var(--primary))' : '1px solid hsl(var(--border))',
+                  borderStyle: 'solid',
+                  borderColor: selected ? 'hsl(var(--primary))' : bs.borderColor,
+                  borderWidth: selected ? Math.max(2, bs.borderWidth) : bs.borderWidth,
                   borderRadius: 6,
-                  background: 'hsl(var(--muted) / 0.3)',
+                  background: bs.background,
                   padding: '2pt',
                   boxSizing: 'border-box',
                   display: 'flex',
@@ -578,7 +582,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
                   overflow: 'hidden',
                   fontSize: 12,
                   lineHeight: 1.3,
-                  color: '#000',
+                  color: bs.color,
                   pointerEvents: 'none',
                 }}
               >
