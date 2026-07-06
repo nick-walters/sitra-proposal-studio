@@ -422,12 +422,8 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       window.removeEventListener('pointerup', onUp);
       window.removeEventListener('pointercancel', onUp);
     };
-  }, [drag, persistDebounced]);
+  }, [drag, persistDebounced, fetched, styleOverrides, persistStyleDebounced]);
 
-  const overridesRef = useRef(overrides);
-  useEffect(() => {
-    overridesRef.current = overrides;
-  }, [overrides]);
 
   const columnOrder = useMemo(
     () => columns.slice().sort((a, b) => a.order_index - b.order_index),
