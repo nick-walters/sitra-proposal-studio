@@ -87,7 +87,9 @@ export function WPColorPicker({
   onRemove,
   removeLabel = 'Remove colour',
   excludePaletteColors,
+  showGreyscale = false,
   onOpenChange,
+
   getLiveHtmlSources,
 }: WPColorPickerProps) {
   const [open, setOpen] = useState(false);
