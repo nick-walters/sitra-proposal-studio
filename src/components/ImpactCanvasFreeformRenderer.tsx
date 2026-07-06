@@ -166,11 +166,13 @@ export function ImpactCanvasFreeformRenderer({ proposalId, className, fallback =
         position: 'relative',
         width: '100%',
         overflow: 'hidden',
-        // Own stacking context: keeps negative-z elements (e.g. shapes sent
-        // to back) contained so they never render behind the surrounding
-        // card/page background — parity with the editor.
         isolation: 'isolate',
         fontFamily: '"Times New Roman", Times, serif',
+        // Container-query context: `cqw` units below scale text with the
+        // rendered canvas width so text/box ratio stays constant across
+        // editor / B2.1 / PDF / PNG (which each render at a different
+        // pixel width). Reference: 1000px canvas → 12px text.
+        containerType: 'inline-size',
       }}
     >
       {/* aspect-ratio spacer */}
@@ -211,7 +213,7 @@ export function ImpactCanvasFreeformRenderer({ proposalId, className, fallback =
                 justifyContent: 'flex-start',
                 overflow: 'hidden',
                 fontFamily: '"Arial Black", Arial, sans-serif',
-                fontSize: 11,
+                fontSize: '1.1cqw',
                 fontWeight: 700,
                 color: bs.color,
                 whiteSpace: 'pre-line',
@@ -260,7 +262,7 @@ export function ImpactCanvasFreeformRenderer({ proposalId, className, fallback =
                 alignItems: 'center',
                 justifyContent: 'flex-start',
                 overflow: 'hidden',
-                fontSize: 12,
+                fontSize: '1.2cqw',
                 lineHeight: 1.3,
                 color: bs.color,
               }}
@@ -294,7 +296,7 @@ export function ImpactCanvasFreeformRenderer({ proposalId, className, fallback =
               zIndex: el.z,
               padding: '2pt',
               boxSizing: 'border-box',
-              fontSize: style.fontSize ?? 12,
+              fontSize: style.fontSize ? `${(style.fontSize / 10)}cqw` : '1.2cqw',
               lineHeight: 1.3,
               color: '#000',
               textAlign: style.textAlign ?? 'left',

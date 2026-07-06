@@ -2167,13 +2167,15 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
           position: 'relative',
           width: '100%',
           overflow: 'hidden',
-          // Establish a stacking context so negative-z elements (e.g. shapes
-          // sent to back) stay contained and don't render behind the parent
-          // card's background — which would make them disappear entirely.
           isolation: 'isolate',
           fontFamily: '"Times New Roman", Times, serif',
           userSelect: drag ? 'none' : undefined,
           touchAction: 'none',
+          // Container-query context: `cqw` units below scale text with the
+          // rendered canvas width so text-to-box ratio stays constant
+          // across editor / B2.1 / PDF / PNG. Reference: 1000px canvas →
+          // 12px body / 11px header.
+          containerType: 'inline-size',
         }}
         onPointerDownCapture={(e) => {
           // Bug B guard: when several element wrappers overlap, the browser
@@ -2398,7 +2400,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
                   justifyContent: 'flex-start',
                   overflow: 'hidden',
                   fontFamily: '"Arial Black", Arial, sans-serif',
-                  fontSize: 11,
+                  fontSize: '1.1cqw',
                   fontWeight: 700,
                   color: bs.color,
                   whiteSpace: 'pre-line',
@@ -2476,7 +2478,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
                   alignItems: 'center',
                   justifyContent: 'flex-start',
                   overflow: 'hidden',
-                  fontSize: 12,
+                  fontSize: '1.2cqw',
                   lineHeight: 1.3,
                   color: bs.color,
                   pointerEvents: 'none',
@@ -2531,7 +2533,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
                 pointerEvents: 'none',
                 padding: '2pt',
                 boxSizing: 'border-box',
-                fontSize: 12,
+                fontSize: '1.2cqw',
                 lineHeight: 1.3,
                 fontFamily: '"Times New Roman", Times, serif',
               }}
@@ -2613,7 +2615,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
                   padding: '2pt',
                   boxSizing: 'border-box',
                   overflow: 'hidden',
-                  fontSize: style.fontSize ?? 12,
+                  fontSize: style.fontSize ? `${(style.fontSize / 10)}cqw` : '1.2cqw',
                   lineHeight: 1.3,
                   color: '#000',
                   textAlign: style.textAlign ?? 'left',
