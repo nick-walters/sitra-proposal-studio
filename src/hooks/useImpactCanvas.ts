@@ -67,7 +67,10 @@ export function useImpactCanvasColumns(proposalId: string) {
       if (error) throw error;
       await syncBoundElements(proposalId);
     },
-    onSettled: invalidate,
+    onSettled: () => {
+      invalidate();
+      qc.invalidateQueries({ queryKey: ['impact-canvas-elements', proposalId] });
+    },
     onError: () => toast.error('Failed to add column'),
   });
 
@@ -77,9 +80,13 @@ export function useImpactCanvasColumns(proposalId: string) {
       if (error) throw error;
       await syncBoundElements(proposalId);
     },
-    onSettled: invalidate,
+    onSettled: () => {
+      invalidate();
+      qc.invalidateQueries({ queryKey: ['impact-canvas-elements', proposalId] });
+    },
     onError: () => toast.error('Failed to delete column'),
   });
+
 
 
   const reorder = useMutation({
