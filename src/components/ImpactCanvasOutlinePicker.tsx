@@ -37,9 +37,14 @@ export function ImpactCanvasOutlinePicker({
   const indicatorColor = isNone ? 'transparent' : color;
 
   const paletteSet = useMemo(
-    () => new Set(DEFAULT_WP_COLORS.map((c) => c.toUpperCase())),
+    () =>
+      new Set([
+        ...DEFAULT_WP_COLORS.map((c) => c.toUpperCase()),
+        ...GREYSCALE_COLORS.map((c) => c.toUpperCase()),
+      ]),
     [],
   );
+
   const extras = useMemo(
     () =>
       Array.from(
