@@ -199,9 +199,15 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       if (existing) clearTimeout(existing);
       pendingContentTimers.current[id] = setTimeout(async () => {
         delete pendingContentTimers.current[id];
+        // Preserve any existing content fields (notably `shape` for shape elements)
+        // by merging into the current cached content instead of replacing it.
+        const current = qc.getQueryData<CanvasElement[]>(ELS_KEY(proposalId)) || [];
+        const el = current.find((e) => e.id === id);
+        const prevContent = (el?.content ?? {}) as Record<string, unknown>;
+        const nextContent = { ...prevContent, html };
         const { error } = await supabase
           .from('impact_canvas_elements')
-          .update({ content: { html } })
+          .update({ content: nextContent as never })
           .eq('id', id);
         if (error) {
           setContentOverrides((o) => {
@@ -212,7 +218,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
           qc.invalidateQueries({ queryKey: ELS_KEY(proposalId) });
         } else {
           qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId), (old) =>
-            (old || []).map((e) => (e.id === id ? { ...e, content: { html } } : e)),
+            (old || []).map((e) => (e.id === id ? { ...e, content: nextContent } : e)),
           );
           setContentOverrides((o) => {
             const n = { ...o };
@@ -224,6 +230,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     },
     [proposalId, qc],
   );
+
 
   const persistStyleDebounced = useCallback(
     (id: string, style: BoundBoxStyle) => {
