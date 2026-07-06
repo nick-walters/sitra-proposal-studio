@@ -1481,7 +1481,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
         endCap: patch.endCap ?? currentCaps.endCap,
       };
       // Drop legacy field once we've written per-end caps.
-      delete (nextContent as Record<string, unknown>).arrow;
+      delete (nextContent as unknown as Record<string, unknown>).arrow;
       qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId), (old) =>
         (old || []).map((e) => (e.id === id ? { ...e, content: nextContent } : e)),
       );
