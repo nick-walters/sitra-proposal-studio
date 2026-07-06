@@ -137,9 +137,9 @@ export async function syncBoundElements(proposalId: string): Promise<void> {
       .order('order_index'),
     supabase
       .from('impact_canvas_elements')
-      .select('bound_row_id, bound_col_key')
+      .select('bound_row_id, bound_col_key, kind')
       .eq('proposal_id', proposalId)
-      .eq('kind', 'bound'),
+      .in('kind', ['bound', 'header']),
   ]);
   if (colsRes.error) throw colsRes.error;
   if (rowsRes.error) throw rowsRes.error;
@@ -147,16 +147,22 @@ export async function syncBoundElements(proposalId: string): Promise<void> {
 
   const cols = colsRes.data ?? [];
   const rows = rowsRes.data ?? [];
-  const existing = new Set(
-    (existingRes.data ?? [])
-      .filter((e) => e.bound_row_id && e.bound_col_key)
+  const existingRows = existingRes.data ?? [];
+  const existingBound = new Set(
+    existingRows
+      .filter((e) => e.kind === 'bound' && e.bound_row_id && e.bound_col_key)
       .map((e) => `${e.bound_row_id}::${e.bound_col_key}`),
+  );
+  const existingHeader = new Set(
+    existingRows
+      .filter((e) => e.kind === 'header' && e.bound_col_key)
+      .map((e) => e.bound_col_key as string),
   );
 
   const validColKeys = new Set(cols.map((c) => c.key));
   const orphanKeys = Array.from(
     new Set(
-      (existingRes.data ?? [])
+      existingRows
         .map((e) => e.bound_col_key)
         .filter((k): k is string => !!k && !validColKeys.has(k)),
     ),
@@ -166,26 +172,44 @@ export async function syncBoundElements(proposalId: string): Promise<void> {
       .from('impact_canvas_elements')
       .delete()
       .eq('proposal_id', proposalId)
-      .eq('kind', 'bound')
+      .in('kind', ['bound', 'header'])
       .in('bound_col_key', orphanKeys);
     if (error) throw error;
   }
 
   const toInsert: Array<{
     proposal_id: string;
-    kind: 'bound';
-    bound_row_id: string;
+    kind: 'bound' | 'header';
+    bound_row_id: string | null;
     bound_col_key: string;
     x: number;
     y: number;
     w: number;
     h: number;
-    style: { autoFitH: true };
+    style: Record<string, unknown>;
   }> = [];
+
+  // Header elements — one per column, at defaults (2 × 1 cm, 3.2 cm apart, top row).
+  for (const c of cols) {
+    if (existingHeader.has(c.key)) continue;
+    toInsert.push({
+      proposal_id: proposalId,
+      kind: 'header',
+      bound_row_id: null,
+      bound_col_key: c.key,
+      x: DEFAULT_BOUND_START_X_CM + c.order_index * (DEFAULT_BOUND_W_CM + DEFAULT_BOUND_HGAP_CM),
+      y: 0,
+      w: DEFAULT_BOUND_W_CM,
+      h: 1,
+      style: {},
+    });
+  }
+
+  // Bound cell elements — one per (row × column).
   for (const r of rows) {
     for (const c of cols) {
       const key = `${r.id}::${c.key}`;
-      if (existing.has(key)) continue;
+      if (existingBound.has(key)) continue;
       const pos = computeDefaultBoundPosition(
         r.order_index,
         c.order_index,
@@ -198,8 +222,6 @@ export async function syncBoundElements(proposalId: string): Promise<void> {
         bound_row_id: r.id,
         bound_col_key: c.key,
         ...pos,
-        // Mark NEW bound boxes as auto-fit-height so the editor grows h
-        // to fit the cell's text content until the user manually resizes.
         style: { autoFitH: true },
       });
     }
@@ -210,3 +232,4 @@ export async function syncBoundElements(proposalId: string): Promise<void> {
     if (error) throw error;
   }
 }
+
