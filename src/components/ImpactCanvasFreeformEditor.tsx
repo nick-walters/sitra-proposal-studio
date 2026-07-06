@@ -2878,10 +2878,8 @@ function handleStyle(h: Handle): React.CSSProperties {
  */
 function AddShapeDropdown({
   onAddShape,
-  onAddLine,
 }: {
   onAddShape: (shape: ShapeKind) => void;
-  onAddLine: (routing: 'straight' | 'elbow', arrow: 'none' | 'end' | 'both') => void;
 }) {
   return (
     <div className="inline-flex" data-impact-canvas-toolbar>
@@ -2911,44 +2909,162 @@ function AddShapeDropdown({
           <DropdownMenuItem onSelect={() => onAddShape('triangle')}>
             <Triangle className="w-3.5 h-3.5 mr-2" /> Triangle
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => onAddLine('straight', 'none')}>
-            <LineVariantIcon routing="straight" arrow="none" /> <span className="ml-2">Straight line</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => onAddLine('elbow', 'none')}>
-            <LineVariantIcon routing="elbow" arrow="none" /> <span className="ml-2">Elbow line</span>
-          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
   );
 }
 
-/** Tiny SVG preview icon for a line/arrow variant used in the popover. */
-function LineVariantIcon({
-  routing,
-  arrow,
-}: {
-  routing: 'straight' | 'elbow';
-  arrow: 'none' | 'end' | 'both';
-}) {
+/** Small SVG preview of a routing (straight / elbow) used in the line dropdown. */
+function LineRoutingIcon({ routing }: { routing: 'straight' | 'elbow' }) {
   const d = routing === 'elbow'
     ? 'M 6 6 L 26 6 L 26 16 L 42 16'
     : 'M 6 10 L 42 10';
-  const head = 6;
   return (
     <svg viewBox="0 0 48 20" width={24} height={10} aria-hidden>
       <path d={d} stroke="currentColor" strokeWidth={1.5} fill="none" strokeLinecap="round" strokeLinejoin="round" />
-      {(arrow === 'end' || arrow === 'both') && (
-        routing === 'elbow'
-          ? <polygon points={`${42},${16} ${42 - head},${16 - head / 2} ${42 - head},${16 + head / 2}`} fill="currentColor" />
-          : <polygon points={`42,10 ${42 - head},${10 - head / 2} ${42 - head},${10 + head / 2}`} fill="currentColor" />
-      )}
-      {arrow === 'both' && (
-        routing === 'elbow'
-          ? <polygon points={`6,6 ${6 + head},${6 - head / 2} ${6 + head},${6 + head / 2}`} fill="currentColor" />
-          : <polygon points={`6,10 ${6 + head},${10 - head / 2} ${6 + head},${10 + head / 2}`} fill="currentColor" />
-      )}
     </svg>
+  );
+}
+
+/** Connector icon for the line-dropdown trigger. */
+function LineConnectorIcon() {
+  return (
+    <svg viewBox="0 0 20 20" width={16} height={16} aria-hidden>
+      <path d="M 3 10 L 14 10" stroke="currentColor" strokeWidth={1.6} fill="none" strokeLinecap="round" />
+      <polygon points="14,10 10,7.5 10,12.5" fill="currentColor" />
+    </svg>
+  );
+}
+
+/** Small preview of a cap kind — drawn at the RIGHT end of a short line. */
+function CapPreview({ cap }: { cap: LineCap }) {
+  const w = 44, h = 16;
+  const tip = { x: 34, y: 8 };
+  const dir = { x: 1, y: 0 };
+  const size = 5.5;
+  const stroke = 1.2;
+  const color = 'currentColor';
+  const retract = cap === 'arrow-open' || cap === 'arrow-filled' || cap === 'arrow-stealth';
+  const lineEndX = retract ? tip.x - size : tip.x;
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} width={44} height={16} aria-hidden>
+      <line x1={6} y1={tip.y} x2={lineEndX} y2={tip.y} stroke={color} strokeWidth={stroke} />
+      {renderCap(cap, tip, dir, size, stroke, color, `cp`)}
+    </svg>
+  );
+}
+
+const CAP_LABELS: Record<LineCap, string> = {
+  'none': 'None',
+  'arrow-open': 'Open arrow',
+  'arrow-filled': 'Filled arrow',
+  'arrow-stealth': 'Stealth arrow',
+  'dot': 'Dot',
+  'square': 'Square',
+};
+
+/**
+ * Line dropdown (to the RIGHT of Add-shape). Top section: add
+ * Straight/Elbow line. Endpoints section: per-end cap pickers that act on
+ * the currently-selected line (greyed when no line selected). The menu
+ * stays open after adding a line so caps can be adjusted immediately;
+ * clicking outside collapses it.
+ */
+function AddLineDropdown({
+  onAddLine,
+  selectedLine,
+  onSetCap,
+}: {
+  onAddLine: (routing: 'straight' | 'elbow') => void;
+  selectedLine: { startCap: LineCap; endCap: LineCap } | null;
+  onSetCap: (which: 'startCap' | 'endCap', cap: LineCap) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const lineEnabled = !!selectedLine;
+  return (
+    <div className="inline-flex" data-impact-canvas-toolbar>
+      <DropdownMenu open={open} onOpenChange={setOpen}>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            className="inline-flex items-center justify-center h-7 w-7 rounded-md bg-transparent hover:bg-accent transition-colors disabled:opacity-50"
+            title="Add line"
+            aria-label="Add line"
+          >
+            <LineConnectorIcon />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-64" onCloseAutoFocus={(e) => e.preventDefault()}>
+          <DropdownMenuLabel>Add line</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {/* Add options DON'T close the menu — user can then tweak caps. */}
+          <DropdownMenuItem onSelect={(e) => { e.preventDefault(); onAddLine('straight'); }}>
+            <LineRoutingIcon routing="straight" /> <span className="ml-2">Straight line</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={(e) => { e.preventDefault(); onAddLine('elbow'); }}>
+            <LineRoutingIcon routing="elbow" /> <span className="ml-2">Elbow line</span>
+          </DropdownMenuItem>
+
+          <DropdownMenuSeparator />
+          <DropdownMenuLabel className={cn(!lineEnabled && 'opacity-50')}>Endpoints</DropdownMenuLabel>
+          <CapRow
+            label="Start"
+            disabled={!lineEnabled}
+            current={selectedLine?.startCap ?? 'none'}
+            onPick={(cap) => onSetCap('startCap', cap)}
+          />
+          <CapRow
+            label="End"
+            disabled={!lineEnabled}
+            current={selectedLine?.endCap ?? 'arrow-filled'}
+            onPick={(cap) => onSetCap('endCap', cap)}
+          />
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+}
+
+function CapRow({
+  label,
+  current,
+  disabled,
+  onPick,
+}: {
+  label: string;
+  current: LineCap;
+  disabled: boolean;
+  onPick: (cap: LineCap) => void;
+}) {
+  return (
+    <div className={cn('px-2 py-1', disabled && 'opacity-50 pointer-events-none')}>
+      <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">{label}</div>
+      <div className="grid grid-cols-3 gap-1">
+        {LINE_CAP_KINDS.map((cap) => {
+          const active = current === cap;
+          return (
+            <button
+              key={cap}
+              type="button"
+              disabled={disabled}
+              onClick={() => onPick(cap)}
+              title={CAP_LABELS[cap]}
+              aria-label={`${label} ${CAP_LABELS[cap]}`}
+              aria-pressed={active}
+              className={cn(
+                'inline-flex items-center justify-center h-7 rounded-md border transition-colors',
+                active ? 'border-primary bg-accent' : 'border-transparent hover:bg-accent',
+              )}
+            >
+              {cap === 'none'
+                ? <span className="text-[10px] text-muted-foreground">none</span>
+                : <CapPreview cap={cap} />}
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
