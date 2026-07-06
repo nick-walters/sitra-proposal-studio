@@ -104,9 +104,27 @@ export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figure
                 {rows.length} row{rows.length === 1 ? '' : 's'} · {columnOrder.length} columns
               </span>
             </div>
-            <div ref={graphicRef} style={{ paddingBottom: 8, paddingRight: 8 }}>
+            <div style={{ paddingBottom: 8, paddingRight: 8 }}>
               <ImpactCanvasFreeformEditor proposalId={proposalId} canEdit={canEdit} />
             </div>
+            {/* Off-screen clean read-only render — this is what PNG export
+                captures via graphicRef, so no editor chrome (toolbar,
+                guidelines, grid) can leak into the PNG. Kept in the DOM
+                with a fixed pixel width so html2canvas has real layout. */}
+            <div
+              ref={graphicRef}
+              aria-hidden="true"
+              style={{
+                position: 'fixed',
+                left: '-100000px',
+                top: 0,
+                width: 1000,
+                pointerEvents: 'none',
+              }}
+            >
+              <ImpactCanvasFreeformRenderer proposalId={proposalId} fallback="grid" />
+            </div>
+
           </CardContent>
         </Card>
 
