@@ -1364,7 +1364,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     <div className="space-y-2">
       {canEdit && (
         <div
-          className="w-full flex items-center gap-1 flex-wrap rounded-md border bg-muted/30 px-2 py-1"
+          className="w-full flex items-center gap-0 flex-wrap rounded-md border bg-card p-1.5"
           data-impact-canvas-toolbar
         >
           {/* Group 1: Undo / Redo / Delete */}
