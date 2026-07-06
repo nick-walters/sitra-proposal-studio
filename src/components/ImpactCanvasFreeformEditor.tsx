@@ -2392,40 +2392,50 @@ function LineVariantIcon({
 }
 
 /**
- * PowerPoint-style layer arrangement icon. Two overlapping rounded squares —
- * one is highlighted (solid) to indicate the "moving" element. `forward` and
- * `backward` variants add a small up/down arrow to distinguish one-step
- * moves from bring-to-front / send-to-back.
+ * PowerPoint-style layer arrangement icon.
+ *   - `front` / `back`      : filled object + TWO outlined objects (extremes)
+ *   - `forward` / `backward`: filled object + ONE outlined object (one-step)
+ * The filled square represents the "moving" element and its position (top-right
+ * for forwards, bottom-left for backwards) shows the resulting z-order.
  */
 function LayerIcon({ variant }: { variant: 'front' | 'forward' | 'backward' | 'back' }) {
-  const front = variant === 'front' || variant === 'forward';
-  const showArrow = variant === 'forward' || variant === 'backward';
+  const forwards = variant === 'front' || variant === 'forward';
+  const extreme = variant === 'front' || variant === 'back';
+
+  // Common rect props
+  const size = extreme ? 6 : 8;
+  const filled = { fill: 'currentColor' as const };
+  const outlined = { fill: 'none' as const };
+
+  if (extreme) {
+    // Three overlapping 6x6 squares at offsets 1, 5, 9 (bottom-left → top-right).
+    // Filled sits at the extreme corresponding to the variant.
+    const filledAt = variant === 'front' ? 9 : 1;
+    const offsets = [1, 5, 9];
+    return (
+      <svg viewBox="0 0 16 16" width={14} height={14} aria-hidden fill="none" stroke="currentColor" strokeWidth={1.25}>
+        {offsets.map((o) => (
+          <rect
+            key={o}
+            x={o} y={o} width={size} height={size} rx={1}
+            {...(o === filledAt ? filled : outlined)}
+          />
+        ))}
+      </svg>
+    );
+  }
+
+  // One-step variants: two overlapping 8x8 squares.
   return (
-    <svg
-      viewBox="0 0 16 16"
-      width={14}
-      height={14}
-      aria-hidden
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.25}
-    >
-      <rect
-        x={1.5} y={1.5} width={8} height={8} rx={1}
-        fill={front ? 'none' : 'currentColor'}
-      />
-      <rect
-        x={6.5} y={6.5} width={8} height={8} rx={1}
-        fill={front ? 'currentColor' : 'none'}
-      />
-      {showArrow && (
-        variant === 'forward'
-          ? <path d="M0.75 5 L0.75 1 M-0.5 2.25 L0.75 1 L2 2.25" strokeLinecap="round" strokeLinejoin="round" />
-          : <path d="M0.75 11 L0.75 15 M-0.5 13.75 L0.75 15 L2 13.75" strokeLinecap="round" strokeLinejoin="round" />
-      )}
+    <svg viewBox="0 0 16 16" width={14} height={14} aria-hidden fill="none" stroke="currentColor" strokeWidth={1.25}>
+      <rect x={1.5} y={1.5} width={size} height={size} rx={1}
+        {...(forwards ? outlined : filled)} />
+      <rect x={6.5} y={6.5} width={size} height={size} rx={1}
+        {...(forwards ? filled : outlined)} />
     </svg>
   );
 }
+
 
 
 
