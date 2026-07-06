@@ -1853,9 +1853,11 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
             />
           </div>
 
-          <AddShapeDropdown onAddShape={addShape} />
-          <AddLineDropdown
+          <AddShapeDropdown
+            onAddShape={addShape}
             onAddLine={(routing) => { void addLine(routing); }}
+          />
+          <ArrowheadDropdown
             selectedLine={
               selectedIsLine && selectedEl
                 ? resolveLineCaps(selectedEl.content as LineContent)
@@ -1867,6 +1869,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
               }
             }}
           />
+
 
           {/* Group 3: Size (W/H cm fields, arrow icons) — no divider before */}
           <SizeFields
