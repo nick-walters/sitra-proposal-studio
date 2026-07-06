@@ -300,13 +300,18 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     (id: string, patch: Partial<BoundBoxStyle>) => {
       if (!canEdit) return;
       const el = fetched.find((e) => e.id === id);
-      const current = { ...readBoundStyle(el?.style), ...(styleOverrides[id] ?? {}) };
+      if (!el) return;
+      const before = snapshotOfEl(el);
+      const current = { ...readBoundStyle(el.style), ...(styleOverrides[id] ?? {}) };
       const next = { ...current, ...patch };
       setStyleOverrides((o) => ({ ...o, [id]: next }));
       persistStyleDebounced(id, next);
+      const after: ElementSnapshot = { ...before, style: next };
+      pushHistory({ kind: 'update', id, before, after, ts: Date.now() }, `style:${id}`);
     },
-    [canEdit, fetched, styleOverrides, persistStyleDebounced],
+    [canEdit, fetched, styleOverrides, persistStyleDebounced, snapshotOfEl, pushHistory],
   );
+
 
   useEffect(() => {
     return () => {
