@@ -270,6 +270,33 @@ export function ImpactCanvasFreeformRenderer({ proposalId, className, fallback =
           </div>
         );
       })}
+
+      {/* Free shape elements — read-only rendering. */}
+      {shapeEls.map((el) => {
+        const content = (el.content ?? {}) as { shape?: ShapeKind; html?: string };
+        const shape: ShapeKind = content.shape ?? 'rect';
+        return (
+          <div
+            key={el.id}
+            style={{
+              position: 'absolute',
+              left: pctX(el.x),
+              top: pctY(el.y),
+              width: pctX(el.w),
+              height: pctY(el.h),
+              zIndex: el.z,
+            }}
+          >
+            <ImpactCanvasShape shape={shape} styleRaw={el.style}>
+              <div
+                className="prose prose-sm max-w-none"
+                style={{ width: '100%', textAlign: 'center' }}
+                dangerouslySetInnerHTML={{ __html: sanitize(content.html || '') }}
+              />
+            </ImpactCanvasShape>
+          </div>
+        );
+      })}
     </div>
   );
 }
