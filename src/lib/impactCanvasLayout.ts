@@ -69,27 +69,32 @@ export interface BoundPosition {
 }
 
 /**
- * Return {x,y,w,h} in cm for a bound cell, replicating the legacy CSS-grid
- * layout: header band at the top, equal-width columns, equal-height body
- * rows filling the (min) canvas height beneath the header.
+ * Return {x,y,w,h} in cm for a NEW bound cell using the compact defaults:
+ *   - width = DEFAULT_BOUND_W_CM (2 cm) fixed
+ *   - height = DEFAULT_BOUND_H_CM (0.8 cm) as a starting min — the editor
+ *     auto-grows h to fit rendered text until the user manually resizes.
+ *   - x steps by (w + hgap) starting at DEFAULT_BOUND_START_X_CM (0).
+ *   - y steps by (default h + vgap) below the header band.
+ *
+ * `nCols`/`nRows` are accepted for backward compatibility with earlier
+ * callers but no longer influence the returned coords — layout is now
+ * driven purely by the fixed 2 cm / 1.2 cm cadence.
  */
 export function computeDefaultBoundPosition(
   rowIndex: number,
   colIndex: number,
-  nCols: number,
-  nRows: number,
+  _nCols?: number,
+  _nRows?: number,
 ): BoundPosition {
-  const safeCols = Math.max(1, nCols);
-  const safeRows = Math.max(1, nRows);
-  const colW = CANVAS_WIDTH_CM / safeCols;
-  const rowH = (CANVAS_MIN_HEIGHT_CM - HEADER_HEIGHT_CM) / safeRows;
-  return {
-    x: colIndex * colW,
-    y: HEADER_HEIGHT_CM + rowIndex * rowH,
-    w: colW,
-    h: rowH,
-  };
+  void _nCols;
+  void _nRows;
+  const w = DEFAULT_BOUND_W_CM;
+  const h = DEFAULT_BOUND_H_CM;
+  const x = DEFAULT_BOUND_START_X_CM + colIndex * (w + DEFAULT_BOUND_HGAP_CM);
+  const y = HEADER_HEIGHT_CM + rowIndex * (h + DEFAULT_BOUND_VGAP_CM);
+  return { x, y, w, h };
 }
+
 
 /**
  * Shared deterministic height function — the parity linchpin.
