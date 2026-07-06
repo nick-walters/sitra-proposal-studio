@@ -2402,24 +2402,24 @@ function LayerIcon({ variant }: { variant: 'front' | 'forward' | 'backward' | 'b
   const forwards = variant === 'front' || variant === 'forward';
   const extreme = variant === 'front' || variant === 'back';
 
-  // Common rect props
-  const size = extreme ? 6 : 8;
+  // Common rect props. Larger overlap makes the stacking order legible at toolbar size.
+  const size = extreme ? 7.5 : 10;
   const filled = { fill: 'currentColor' as const };
   const outlined = { fill: 'none' as const };
 
   if (extreme) {
-    // Three overlapping 6x6 squares at offsets 1, 5, 9 (bottom-left → top-right).
+    // Three overlapping larger squares so front/back stacking is clear at icon size.
     // Filled sits in the MIDDLE between the two outlined squares; the stacking
     // order distinguishes front (filled drawn last → on top of all) from back
     // (filled drawn first → behind the two outlined squares).
     const outlinedRects = (
       <>
         <rect x={1} y={1} width={size} height={size} rx={1} {...outlined} />
-        <rect x={9} y={9} width={size} height={size} rx={1} {...outlined} />
+        <rect x={7.5} y={7.5} width={size} height={size} rx={1} {...outlined} />
       </>
     );
     const filledRect = (
-      <rect x={5} y={5} width={size} height={size} rx={1} {...filled} />
+      <rect x={4.25} y={4.25} width={size} height={size} rx={1} {...filled} />
     );
     return (
       <svg viewBox="0 0 16 16" width={14} height={14} aria-hidden fill="none" stroke="currentColor" strokeWidth={1.25}>
@@ -2428,11 +2428,11 @@ function LayerIcon({ variant }: { variant: 'front' | 'forward' | 'backward' | 'b
     );
   }
 
-  // One-step variants: two overlapping 8x8 squares. Filled = moving element.
+  // One-step variants: two overlapping larger squares. Filled = moving element.
   // For 'forward', filled is drawn last (on top of outlined).
   // For 'backward', filled is drawn first (behind outlined).
-  const outlinedRect = <rect x={1.5} y={1.5} width={size} height={size} rx={1} {...outlined} />;
-  const filledRect = <rect x={6.5} y={6.5} width={size} height={size} rx={1} {...filled} />;
+  const outlinedRect = <rect x={1} y={1} width={size} height={size} rx={1} {...outlined} />;
+  const filledRect = <rect x={5} y={5} width={size} height={size} rx={1} {...filled} />;
   return (
     <svg viewBox="0 0 16 16" width={14} height={14} aria-hidden fill="none" stroke="currentColor" strokeWidth={1.25}>
       {forwards ? (<>{outlinedRect}{filledRect}</>) : (<>{filledRect}{outlinedRect}</>)}
