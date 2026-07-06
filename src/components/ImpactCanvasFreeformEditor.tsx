@@ -1233,7 +1233,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
   const pctY = (y: number) => `${(y / VH) * 100}%`;
   const paddingPct = `${(VH / VW) * 100}%`;
 
-  const colW = VW / columnOrder.length;
+  
 
   const selectedEl = selectedId ? fetched.find((e) => e.id === selectedId) ?? null : null;
   const selectedIsBound = selectedEl?.kind === 'bound';
