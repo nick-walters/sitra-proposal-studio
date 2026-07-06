@@ -2687,28 +2687,46 @@ function SizeFields({
 interface BoundStyleToolbarProps {
   proposalId: string;
   canEdit: boolean;
-  style: BoundBoxStyle;
-  onChange: (patch: Partial<BoundBoxStyle>) => void;
+  /** Fill colour to display in the swatch (undefined → default / neutral). */
+  fill?: string;
+  /** Font colour to display in the swatch (undefined → default / neutral). */
+  font?: string;
+  /** Multi-select mixed-value indicators: render a hatched neutral swatch. */
+  fillMixed?: boolean;
+  fontMixed?: boolean;
+  onFillChange: (c: string) => void;
+  onFontChange: (c: string) => void;
 }
 
 /**
- * MS-Office-style style toolbar: paint-bucket Fill (with "No fill"),
- * combined Outline dropdown (colour + preset widths, with "No outline"),
- * and an "A"-with-underline Font colour picker.
+ * MS-Office-style style toolbar: paint-bucket Fill (with "No fill") and an
+ * "A"-with-underline Font colour picker. In multi-select, when eligible
+ * members disagree on a colour, the swatch renders a diagonal-hatched
+ * neutral pattern (mixed) — applying still writes to all eligible members.
  */
-function BoundStyleToolbar({ proposalId, canEdit, style, onChange }: BoundStyleToolbarProps) {
-  const fill = style.fillColor ?? '#F5F5F5';
-  const font = style.fontColor ?? BOUND_STYLE_DEFAULTS.fontColor;
-
-  const fillIsNone = fill === 'none';
-  const fillIndicator = fillIsNone ? 'transparent' : fill;
+function BoundStyleToolbar({
+  proposalId,
+  canEdit,
+  fill,
+  font,
+  fillMixed,
+  fontMixed,
+  onFillChange,
+  onFontChange,
+}: BoundStyleToolbarProps) {
+  const fillResolved = fill ?? '#F5F5F5';
+  const fontResolved = font ?? BOUND_STYLE_DEFAULTS.fontColor;
+  const fillIsNone = fillResolved === 'none';
+  const fillIndicator = fillIsNone ? 'transparent' : fillResolved;
+  const MIXED_HATCH =
+    'repeating-linear-gradient(45deg, #9CA3AF 0 3px, #E5E7EB 3px 6px)';
 
   return (
     <div className="flex items-center gap-1" data-impact-canvas-toolbar>
       {/* Font colour — "A" with coloured underline */}
       <WPColorPicker
-        color={font}
-        onChange={(c) => onChange({ fontColor: c })}
+        color={fontResolved}
+        onChange={onFontChange}
         disabled={!canEdit}
         proposalId={proposalId}
         canManageCustom={canEdit}
@@ -2719,7 +2737,7 @@ function BoundStyleToolbar({ proposalId, canEdit, style, onChange }: BoundStyleT
             type="button"
             disabled={!canEdit}
             className="inline-flex flex-col items-center justify-center h-7 w-8 rounded-md bg-transparent hover:bg-accent transition-colors disabled:opacity-50"
-            title="Font colour"
+            title={fontMixed ? 'Font colour (mixed)' : 'Font colour'}
             aria-label="Font colour"
           >
             <span
@@ -2728,28 +2746,35 @@ function BoundStyleToolbar({ proposalId, canEdit, style, onChange }: BoundStyleT
             >
               A
             </span>
-            <div className="mt-[2px] rounded-sm" style={{ height: 3, width: 16, background: font }} />
+            <div
+              className="mt-[2px] rounded-sm"
+              style={{
+                height: 3,
+                width: 16,
+                background: fontMixed ? MIXED_HATCH : fontResolved,
+              }}
+            />
           </button>
         }
       />
 
       {/* Fill — paint bucket icon + current-fill indicator */}
       <WPColorPicker
-        color={fillIsNone ? '#FFFFFF' : fill}
-        onChange={(c) => onChange({ fillColor: c })}
+        color={fillIsNone ? '#FFFFFF' : fillResolved}
+        onChange={onFillChange}
         disabled={!canEdit}
         proposalId={proposalId}
         canManageCustom={canEdit}
         label="Fill colour"
         showGreyscale
-        onRemove={() => onChange({ fillColor: 'none' })}
+        onRemove={() => onFillChange('none')}
         removeLabel="No fill"
         trigger={
           <button
             type="button"
             disabled={!canEdit}
             className="inline-flex flex-col items-center justify-center h-7 w-8 rounded-md bg-transparent hover:bg-accent transition-colors disabled:opacity-50"
-            title="Fill"
+            title={fillMixed ? 'Fill (mixed)' : 'Fill'}
             aria-label="Fill colour"
           >
             <PaintBucket className="w-4 h-4 -mb-0.5" strokeWidth={1.75} />
@@ -2758,9 +2783,9 @@ function BoundStyleToolbar({ proposalId, canEdit, style, onChange }: BoundStyleT
               style={{
                 height: 3,
                 width: 16,
-                background: fillIndicator,
-                boxShadow: fillIsNone ? 'inset 0 0 0 1px rgba(0,0,0,0.4)' : undefined,
-                backgroundImage: fillIsNone
+                background: fillMixed ? MIXED_HATCH : fillIndicator,
+                boxShadow: fillIsNone && !fillMixed ? 'inset 0 0 0 1px rgba(0,0,0,0.4)' : undefined,
+                backgroundImage: fillIsNone && !fillMixed
                   ? 'linear-gradient(to top right, transparent 45%, #E11D48 45%, #E11D48 55%, transparent 55%)'
                   : undefined,
               }}
@@ -2771,6 +2796,7 @@ function BoundStyleToolbar({ proposalId, canEdit, style, onChange }: BoundStyleT
     </div>
   );
 }
+
 
 
 
