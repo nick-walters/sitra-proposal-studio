@@ -1094,40 +1094,10 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
 
 
 
-  const addTextBox = useCallback(async () => {
-    if (!canEdit) return;
-    const VW = CANVAS_WIDTH_CM;
-    const VH = canvasHeightCmRef.current;
-    const w = 4;   // cm
-    const h = 1.2; // cm
-    const insertBox = {
-      proposal_id: proposalId,
-      kind: 'text',
-      x: +((VW - w) / 2).toFixed(4),
-      y: +((VH - h) / 2).toFixed(4),
-      w,
-      h,
-      z: maxZ + 1,
-      content: { html: '' },
-      style: {},
-    };
-    const { data, error } = await supabase
-      .from('impact_canvas_elements')
-      .insert(insertBox)
-      .select('id, kind, bound_row_id, bound_col_key, x, y, w, h, z, content, style')
-      .single();
-    if (error || !data) {
-      qc.invalidateQueries({ queryKey: ELS_KEY(proposalId) });
-      return;
-    }
-    qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId), (old) => [
-      ...(old || []),
-      data as CanvasElement,
-    ]);
-    pushHistory({ kind: 'add', element: data as CanvasElement });
-    setSelectedId(data.id);
-    setEditingId(data.id);
-  }, [canEdit, maxZ, proposalId, qc, pushHistory]);
+  // Text boxes removed — existing kind='text' elements are migrated to
+  // no-fill/no-outline shapes at the DB layer. Shape adder now covers
+  // "empty text container" via a plain rectangle with fill:none/outline:none.
+
 
 
   const addShape = useCallback(
