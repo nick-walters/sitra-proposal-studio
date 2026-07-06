@@ -433,11 +433,20 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
           touchAction: 'none',
         }}
         onPointerDown={(e) => {
+          const target = e.target as HTMLElement | null;
+          // Clicking anywhere on the surface that is NOT inside the currently-
+          // editing text box's editor commits (exits edit mode). This coexists
+          // with the document-level outside-click clear: that handler ignores
+          // clicks inside the surface, so we handle intra-surface commits here.
+          if (editingId && target && !target.closest('[data-impact-canvas-textbox-editor]')) {
+            setEditingId(null);
+          }
           if (e.target === e.currentTarget) {
             setSelectedId(null);
             setEditingId(null);
           }
         }}
+
       >
         <div style={{ paddingBottom: paddingPct }} />
 
