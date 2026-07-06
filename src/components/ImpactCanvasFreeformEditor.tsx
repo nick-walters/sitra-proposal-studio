@@ -21,6 +21,7 @@ import type { BoundBoxStyle } from '@/lib/impactCanvasBoundStyle';
 import { ImpactCanvasTextBox } from './ImpactCanvasTextBox';
 import { ImpactCanvasOutlinePicker } from './ImpactCanvasOutlinePicker';
 import { ImpactCanvasShape, type ShapeKind } from './ImpactCanvasShape';
+import { LinesSpike } from './ImpactCanvasFreeformRenderer';
 import { Circle as CircleIcon, Square, Squircle, Triangle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 
