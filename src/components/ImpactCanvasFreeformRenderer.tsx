@@ -43,6 +43,8 @@ interface CanvasElement {
   w: number;
   h: number;
   z: number;
+  content: unknown;
+  style: unknown;
 }
 
 const EMPTY_ELS: CanvasElement[] = [];
@@ -55,13 +57,14 @@ function useImpactCanvasElements(proposalId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('impact_canvas_elements')
-        .select('id, kind, bound_row_id, bound_col_key, x, y, w, h, z')
+        .select('id, kind, bound_row_id, bound_col_key, x, y, w, h, z, content, style')
         .eq('proposal_id', proposalId)
         .order('z');
       if (error) throw error;
       return (data ?? []) as CanvasElement[];
     },
   });
+
 
   // Refresh when upstream reference data changes (badges baked into cells).
   useEffect(() => {
@@ -123,12 +126,14 @@ export function ImpactCanvasFreeformRenderer({ proposalId, className, fallback =
   const boundEls = elements.filter(
     (e) => e.kind === 'bound' && e.bound_row_id && e.bound_col_key,
   );
+  const textEls = elements.filter((e) => e.kind === 'text');
 
   // Fallback: pre-backfill proposals with no bound elements fall back to
   // a legacy CSS grid layout so the canvas is never blank.
-  if (boundEls.length === 0 && fallback === 'grid') {
+  if (boundEls.length === 0 && textEls.length === 0 && fallback === 'grid') {
     return <LegacyGridFallback proposalId={proposalId} className={className} />;
   }
+
 
   const rowById = new Map(rows.map((r) => [r.id, r]));
   const { width: VW, height: VH } = IMPACT_CANVAS_VIEWPORT;
@@ -223,9 +228,45 @@ export function ImpactCanvasFreeformRenderer({ proposalId, className, fallback =
           </div>
         );
       })}
+
+      {/* Free text-box elements — read-only rendering. */}
+      {textEls.map((el) => {
+        const content = (el.content ?? {}) as { html?: string };
+        const style = (el.style ?? {}) as {
+          fontSize?: number;
+          textAlign?: 'left' | 'center' | 'right' | 'justify';
+        };
+        return (
+          <div
+            key={el.id}
+            style={{
+              position: 'absolute',
+              left: pctX(el.x),
+              top: pctY(el.y),
+              width: pctX(el.w),
+              height: pctY(el.h),
+              zIndex: el.z,
+              padding: '2pt',
+              boxSizing: 'border-box',
+              fontSize: style.fontSize ?? 12,
+              lineHeight: 1.3,
+              color: '#000',
+              textAlign: style.textAlign ?? 'left',
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              className="prose prose-sm max-w-none"
+              style={{ width: '100%', height: '100%' }}
+              dangerouslySetInnerHTML={{ __html: sanitize(content.html || '') }}
+            />
+          </div>
+        );
+      })}
     </div>
   );
 }
+
 
 /**
  * Legacy CSS-grid renderer used as a safety fallback when a proposal has

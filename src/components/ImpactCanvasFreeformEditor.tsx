@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
+import { Trash2, Type } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useImpactCanvasColumns, useImpactCanvasRows } from '@/hooks/useImpactCanvas';
 import { IMPACT_CANVAS_VIEWPORT, IMPACT_CANVAS_HEADER_HEIGHT } from '@/lib/impactCanvasLayout';
+import { ImpactCanvasTextBox } from './ImpactCanvasTextBox';
 
 interface Props {
   proposalId: string;
@@ -12,17 +15,17 @@ interface Props {
 }
 
 /**
- * Interactive freeform editor for the Impact Canvas figure page (Phase 2a-3).
+ * Interactive freeform editor for the Impact Canvas figure page
+ * (Phase 2a-3 bound boxes + Phase 2b-1 free text boxes).
  *
- * Mirrors the read-only ImpactCanvasFreeformRenderer layout math (same
- * 1000×600 logical viewport, same aspect-ratio wrapper), and adds:
- *   - single-select on click
- *   - hand-rolled pointer drag to reposition bound boxes
- *   - 8 resize handles (corners + edges)
- *   - debounced optimistic persistence of x/y/w/h to impact_canvas_elements
+ * Bound boxes: drag/resize only (text is table-authoritative).
+ * Free text boxes (kind='text'): add/edit(minimal TipTap)/drag/resize/delete.
  *
- * TEXT stays authoritative in impact_canvas_rows — bound boxes only carry
- * their mirrored cell HTML read-only. Free elements are untouched here.
+ * Focus/outside-click coordination — the document-level pointerdown handler
+ * ignores clicks that land inside the canvas surface, radix portals, or the
+ * active text-box editor (data-impact-canvas-textbox-editor). Clicking on
+ * another element on the surface commits the currently-editing text box
+ * (its editor blurs -> onCommit fires) but keeps canvas selection alive.
  */
 
 const CELL_SANITIZE_CONFIG = {
@@ -45,13 +48,15 @@ interface CanvasElement {
   w: number;
   h: number;
   z: number;
+  content: unknown;
+  style: unknown;
 }
 
 const EMPTY_ELS: CanvasElement[] = [];
 const ELS_KEY = (pid: string) => ['impact-canvas-elements', pid];
 
 const MIN_W = 60;
-const MIN_H = 40;
+const MIN_H = 30;
 
 type Handle = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w';
 type DragMode = { kind: 'move' } | { kind: 'resize'; handle: Handle };
@@ -76,7 +81,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     queryFn: async () => {
       const { data, error } = await supabase
         .from('impact_canvas_elements')
-        .select('id, kind, bound_row_id, bound_col_key, x, y, w, h, z')
+        .select('id, kind, bound_row_id, bound_col_key, x, y, w, h, z, content, style')
         .eq('proposal_id', proposalId)
         .order('z');
       if (error) throw error;
@@ -86,25 +91,31 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
 
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [drag, setDrag] = useState<DragState | null>(null);
   /** Optimistic overrides for coords in-flight (per element id). */
   const [overrides, setOverrides] = useState<Record<string, { x: number; y: number; w: number; h: number }>>({});
+  /** Optimistic overrides for text content (per element id). */
+  const [contentOverrides, setContentOverrides] = useState<Record<string, string>>({});
   const pendingTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const pendingContentTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
-  // Deselect on outside pointerdown — but keep clicks inside the wrapper,
-  // toolbar, radix portals, and dialogs from clearing selection.
+  // Deselect on outside pointerdown — but keep clicks inside the surface,
+  // toolbar, radix portals, dialogs, and the ACTIVE text-box editor from
+  // clearing selection / interrupting edit mode.
   useEffect(() => {
     const onPointerDown = (e: PointerEvent) => {
       const target = e.target as HTMLElement | null;
       if (!target) return;
       if (
         target.closest(
-          '[data-impact-canvas-editor-surface],[data-impact-canvas-toolbar],[data-radix-popper-content-wrapper],[role="menu"],[role="dialog"]',
+          '[data-impact-canvas-editor-surface],[data-impact-canvas-toolbar],[data-impact-canvas-textbox-editor],[data-radix-popper-content-wrapper],[role="menu"],[role="dialog"]',
         )
       ) {
         return;
       }
       setSelectedId(null);
+      setEditingId(null);
     };
     document.addEventListener('pointerdown', onPointerDown, true);
     return () => document.removeEventListener('pointerdown', onPointerDown, true);
@@ -121,7 +132,6 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
           .update({ x: box.x, y: box.y, w: box.w, h: box.h })
           .eq('id', id);
         if (error) {
-          // Rollback and refetch on failure.
           setOverrides((o) => {
             const n = { ...o };
             delete n[id];
@@ -129,7 +139,6 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
           });
           qc.invalidateQueries({ queryKey: ELS_KEY(proposalId) });
         } else {
-          // Fold the override into the cache and clear it.
           qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId), (old) =>
             (old || []).map((e) => (e.id === id ? { ...e, ...box } : e)),
           );
@@ -144,15 +153,55 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     [proposalId, qc],
   );
 
+  const persistContentDebounced = useCallback(
+    (id: string, html: string) => {
+      const existing = pendingContentTimers.current[id];
+      if (existing) clearTimeout(existing);
+      pendingContentTimers.current[id] = setTimeout(async () => {
+        delete pendingContentTimers.current[id];
+        const { error } = await supabase
+          .from('impact_canvas_elements')
+          .update({ content: { html } })
+          .eq('id', id);
+        if (error) {
+          setContentOverrides((o) => {
+            const n = { ...o };
+            delete n[id];
+            return n;
+          });
+          qc.invalidateQueries({ queryKey: ELS_KEY(proposalId) });
+        } else {
+          qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId), (old) =>
+            (old || []).map((e) => (e.id === id ? { ...e, content: { html } } : e)),
+          );
+          setContentOverrides((o) => {
+            const n = { ...o };
+            delete n[id];
+            return n;
+          });
+        }
+      }, 300);
+    },
+    [proposalId, qc],
+  );
+
   useEffect(() => {
     return () => {
       Object.values(pendingTimers.current).forEach(clearTimeout);
+      Object.values(pendingContentTimers.current).forEach(clearTimeout);
       pendingTimers.current = {};
+      pendingContentTimers.current = {};
     };
   }, []);
 
-  const beginDrag = (e: React.PointerEvent, id: string, mode: DragMode, current: { x: number; y: number; w: number; h: number }) => {
+  const beginDrag = (
+    e: React.PointerEvent,
+    id: string,
+    mode: DragMode,
+    current: { x: number; y: number; w: number; h: number },
+  ) => {
     if (!canEdit) return;
+    if (editingId === id) return; // never drag while editing text
     e.stopPropagation();
     e.preventDefault();
     const wrapper = wrapperRef.current;
@@ -196,7 +245,6 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
           h = drag.startBox.h - dy;
           y = drag.startBox.y + dy;
         }
-        // Min-size guard, preserving anchor edges for w/n handles.
         if (w < MIN_W) {
           if (handle.includes('w')) x -= MIN_W - w;
           w = MIN_W;
@@ -206,7 +254,6 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
           h = MIN_H;
         }
       }
-      // Clamp inside viewport.
       w = Math.min(w, VW);
       h = Math.min(h, VH);
       x = Math.max(0, Math.min(x, VW - w));
@@ -229,7 +276,6 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     };
   }, [drag, persistDebounced]);
 
-  // Ref mirror so pointerup handler sees latest overrides without re-binding.
   const overridesRef = useRef(overrides);
   useEffect(() => {
     overridesRef.current = overrides;
@@ -244,6 +290,78 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     () => fetched.filter((e) => e.kind === 'bound' && e.bound_row_id && e.bound_col_key),
     [fetched],
   );
+  const textEls = useMemo(() => fetched.filter((e) => e.kind === 'text'), [fetched]);
+  const maxZ = useMemo(
+    () => fetched.reduce((m, e) => (e.z > m ? e.z : m), 0),
+    [fetched],
+  );
+
+  const addTextBox = useCallback(async () => {
+    if (!canEdit) return;
+    const { width: VW, height: VH } = IMPACT_CANVAS_VIEWPORT;
+    const w = 220;
+    const h = 60;
+    const insertBox = {
+      proposal_id: proposalId,
+      kind: 'text',
+      x: Math.round((VW - w) / 2),
+      y: Math.round((VH - h) / 2),
+      w,
+      h,
+      z: maxZ + 1,
+      content: { html: '' },
+      style: {},
+    };
+    const { data, error } = await supabase
+      .from('impact_canvas_elements')
+      .insert(insertBox)
+      .select('id, kind, bound_row_id, bound_col_key, x, y, w, h, z, content, style')
+      .single();
+    if (error || !data) {
+      qc.invalidateQueries({ queryKey: ELS_KEY(proposalId) });
+      return;
+    }
+    qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId), (old) => [
+      ...(old || []),
+      data as CanvasElement,
+    ]);
+    setSelectedId(data.id);
+    setEditingId(data.id);
+  }, [canEdit, maxZ, proposalId, qc]);
+
+  const deleteElement = useCallback(
+    async (id: string) => {
+      if (!canEdit) return;
+      // Optimistic removal
+      const prev = qc.getQueryData<CanvasElement[]>(ELS_KEY(proposalId));
+      qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId), (old) =>
+        (old || []).filter((e) => e.id !== id),
+      );
+      setSelectedId((s) => (s === id ? null : s));
+      setEditingId((s) => (s === id ? null : s));
+      const { error } = await supabase.from('impact_canvas_elements').delete().eq('id', id);
+      if (error) {
+        if (prev) qc.setQueryData(ELS_KEY(proposalId), prev);
+      }
+    },
+    [canEdit, proposalId, qc],
+  );
+
+  // Keyboard: Delete/Backspace on selected free text box removes it.
+  useEffect(() => {
+    if (!selectedId || editingId) return;
+    const el = fetched.find((e) => e.id === selectedId);
+    if (!el || el.kind !== 'text') return;
+    const onKey = (ev: KeyboardEvent) => {
+      if (ev.key !== 'Delete' && ev.key !== 'Backspace') return;
+      const t = ev.target as HTMLElement | null;
+      if (t && (t.isContentEditable || ['INPUT', 'TEXTAREA'].includes(t.tagName))) return;
+      ev.preventDefault();
+      void deleteElement(selectedId);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selectedId, editingId, fetched, deleteElement]);
 
   if (colsLoading || rowsLoading || elsLoading) {
     return <div className={className ?? 'p-4 text-xs text-muted-foreground'}>Loading impact canvas…</div>;
@@ -271,120 +389,270 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
   const colW = VW / columnOrder.length;
 
   return (
-    <div
-      ref={wrapperRef}
-      className={className}
-      data-impact-canvas-editor-surface
-      data-impact-canvas-graphic="true"
-      style={{
-        position: 'relative',
-        width: '100%',
-        overflow: 'hidden',
-        fontFamily: '"Times New Roman", Times, serif',
-        userSelect: drag ? 'none' : undefined,
-        touchAction: 'none',
-      }}
-      onPointerDown={(e) => {
-        // Empty-canvas click clears selection.
-        if (e.target === e.currentTarget) setSelectedId(null);
-      }}
-    >
-      <div style={{ paddingBottom: paddingPct }} />
-
-      {columnOrder.map((c, ci) => (
-        <div
-          key={`h-${c.id}`}
-          style={{
-            position: 'absolute',
-            left: pctX(ci * colW),
-            top: pctY(0),
-            width: pctX(colW),
-            height: pctY(IMPACT_CANVAS_HEADER_HEIGHT),
-            padding: '0 4px 4px 0',
-            display: 'flex',
-            alignItems: 'center',
-            fontFamily: '"Arial Black", Arial, sans-serif',
-            fontSize: 11,
-            fontWeight: 700,
-            color: '#000',
-            whiteSpace: 'pre-line',
-            textAlign: 'left',
-            lineHeight: 1.15,
-            pointerEvents: 'none',
-          }}
-        >
-          {c.heading}
+    <div className="space-y-2">
+      {canEdit && (
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={addTextBox}
+            data-impact-canvas-toolbar
+          >
+            <Type className="w-4 h-4 mr-1" /> Add text box
+          </Button>
+          {selectedId && textEls.some((t) => t.id === selectedId) && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="text-destructive hover:text-destructive"
+              onClick={() => void deleteElement(selectedId)}
+              data-impact-canvas-toolbar
+            >
+              <Trash2 className="w-4 h-4 mr-1" /> Delete text box
+            </Button>
+          )}
+          <span className="text-xs text-muted-foreground">
+            Double-click a text box to edit. Delete / Backspace removes the selected box.
+          </span>
         </div>
-      ))}
+      )}
 
-      {boundEls.map((el) => {
-        const row = rowById.get(el.bound_row_id!);
-        const html = (row?.content?.[el.bound_col_key!] as string) || '';
-        const ov = overrides[el.id];
-        const box = ov ?? { x: el.x, y: el.y, w: el.w, h: el.h };
-        const selected = selectedId === el.id;
-        return (
+      <div
+        ref={wrapperRef}
+        className={className}
+        data-impact-canvas-editor-surface
+        data-impact-canvas-graphic="true"
+        style={{
+          position: 'relative',
+          width: '100%',
+          overflow: 'hidden',
+          fontFamily: '"Times New Roman", Times, serif',
+          userSelect: drag ? 'none' : undefined,
+          touchAction: 'none',
+        }}
+        onPointerDown={(e) => {
+          const target = e.target as HTMLElement | null;
+          // Clicking anywhere on the surface that is NOT inside the currently-
+          // editing text box's editor commits (exits edit mode). This coexists
+          // with the document-level outside-click clear: that handler ignores
+          // clicks inside the surface, so we handle intra-surface commits here.
+          if (editingId && target && !target.closest('[data-impact-canvas-textbox-editor]')) {
+            setEditingId(null);
+          }
+          if (e.target === e.currentTarget) {
+            setSelectedId(null);
+            setEditingId(null);
+          }
+        }}
+
+      >
+        <div style={{ paddingBottom: paddingPct }} />
+
+        {columnOrder.map((c, ci) => (
           <div
-            key={el.id}
+            key={`h-${c.id}`}
             style={{
               position: 'absolute',
-              left: pctX(box.x),
-              top: pctY(box.y),
-              width: pctX(box.w),
-              height: pctY(box.h),
-              zIndex: el.z + (selected ? 1000 : 0),
-              padding: '2pt',
-              boxSizing: 'border-box',
-              cursor: canEdit ? (drag?.id === el.id && drag.mode.kind === 'move' ? 'grabbing' : 'grab') : 'default',
+              left: pctX(ci * colW),
+              top: pctY(0),
+              width: pctX(colW),
+              height: pctY(IMPACT_CANVAS_HEADER_HEIGHT),
+              padding: '0 4px 4px 0',
+              display: 'flex',
+              alignItems: 'center',
+              fontFamily: '"Arial Black", Arial, sans-serif',
+              fontSize: 11,
+              fontWeight: 700,
+              color: '#000',
+              whiteSpace: 'pre-line',
+              textAlign: 'left',
+              lineHeight: 1.15,
+              pointerEvents: 'none',
             }}
-            onPointerDown={(e) => beginDrag(e, el.id, { kind: 'move' }, box)}
           >
+            {c.heading}
+          </div>
+        ))}
+
+        {boundEls.map((el) => {
+          const row = rowById.get(el.bound_row_id!);
+          const html = (row?.content?.[el.bound_col_key!] as string) || '';
+          const ov = overrides[el.id];
+          const box = ov ?? { x: el.x, y: el.y, w: el.w, h: el.h };
+          const selected = selectedId === el.id;
+          return (
             <div
-              className="prose prose-sm max-w-none"
+              key={el.id}
               style={{
-                width: '100%',
-                height: '100%',
-                border: selected ? '2px solid hsl(var(--primary))' : '1px solid hsl(var(--border))',
-                borderRadius: 6,
-                background: 'hsl(var(--muted) / 0.3)',
+                position: 'absolute',
+                left: pctX(box.x),
+                top: pctY(box.y),
+                width: pctX(box.w),
+                height: pctY(box.h),
+                zIndex: el.z + (selected ? 1000 : 0),
                 padding: '2pt',
                 boxSizing: 'border-box',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'flex-start',
-                overflow: 'hidden',
-                fontSize: 12,
-                lineHeight: 1.3,
-                color: '#000',
-                pointerEvents: 'none',
+                cursor: canEdit ? (drag?.id === el.id && drag.mode.kind === 'move' ? 'grabbing' : 'grab') : 'default',
+              }}
+              onPointerDown={(e) => beginDrag(e, el.id, { kind: 'move' }, box)}
+            >
+              <div
+                className="prose prose-sm max-w-none"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  border: selected ? '2px solid hsl(var(--primary))' : '1px solid hsl(var(--border))',
+                  borderRadius: 6,
+                  background: 'hsl(var(--muted) / 0.3)',
+                  padding: '2pt',
+                  boxSizing: 'border-box',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'flex-start',
+                  overflow: 'hidden',
+                  fontSize: 12,
+                  lineHeight: 1.3,
+                  color: '#000',
+                  pointerEvents: 'none',
+                }}
+              >
+                <div style={{ width: '100%' }} dangerouslySetInnerHTML={{ __html: sanitize(html) }} />
+              </div>
+
+              {selected && canEdit && HANDLES.map((h) => (
+                <div
+                  key={h}
+                  onPointerDown={(e) => beginDrag(e, el.id, { kind: 'resize', handle: h }, box)}
+                  style={{
+                    position: 'absolute',
+                    width: 10,
+                    height: 10,
+                    background: 'hsl(var(--primary))',
+                    border: '1px solid white',
+                    borderRadius: 2,
+                    zIndex: 2,
+                    cursor: HANDLE_CURSOR[h],
+                    ...handleStyle(h),
+                  }}
+                />
+              ))}
+            </div>
+          );
+        })}
+
+        {textEls.map((el) => {
+          const ov = overrides[el.id];
+          const box = ov ?? { x: el.x, y: el.y, w: el.w, h: el.h };
+          const selected = selectedId === el.id;
+          const editing = editingId === el.id;
+          const raw = (el.content ?? {}) as { html?: string };
+          const html = contentOverrides[el.id] ?? (raw.html || '');
+          const style = (el.style ?? {}) as { fontSize?: number; textAlign?: 'left' | 'center' | 'right' | 'justify' };
+          return (
+            <div
+              key={el.id}
+              style={{
+                position: 'absolute',
+                left: pctX(box.x),
+                top: pctY(box.y),
+                width: pctX(box.w),
+                height: pctY(box.h),
+                zIndex: el.z + (selected ? 1000 : 0),
+                padding: '2pt',
+                boxSizing: 'border-box',
+                cursor: canEdit
+                  ? editing
+                    ? 'text'
+                    : drag?.id === el.id && drag.mode.kind === 'move'
+                    ? 'grabbing'
+                    : 'grab'
+                  : 'default',
+              }}
+              onPointerDown={(e) => {
+                if (editing) return;
+                beginDrag(e, el.id, { kind: 'move' }, box);
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!canEdit) return;
+                if (selectedId !== el.id) {
+                  setSelectedId(el.id);
+                  return;
+                }
+                if (!editing) setEditingId(el.id);
+              }}
+              onDoubleClick={(e) => {
+                if (!canEdit) return;
+                e.stopPropagation();
+                setSelectedId(el.id);
+                setEditingId(el.id);
               }}
             >
               <div
-                style={{ width: '100%' }}
-                dangerouslySetInnerHTML={{ __html: sanitize(html) }}
-              />
-            </div>
-
-            {selected && canEdit && HANDLES.map((h) => (
-              <div
-                key={h}
-                onPointerDown={(e) => beginDrag(e, el.id, { kind: 'resize', handle: h }, box)}
                 style={{
-                  position: 'absolute',
-                  width: 10,
-                  height: 10,
-                  background: 'hsl(var(--primary))',
-                  border: '1px solid white',
-                  borderRadius: 2,
-                  zIndex: 2,
-                  cursor: HANDLE_CURSOR[h],
-                  ...handleStyle(h),
+                  width: '100%',
+                  height: '100%',
+                  border: editing
+                    ? '2px dashed hsl(var(--primary))'
+                    : selected
+                    ? '2px solid hsl(var(--primary))'
+                    : '1px dashed hsl(var(--border))',
+                  borderRadius: 4,
+                  background: editing ? 'hsl(var(--background))' : 'transparent',
+                  padding: '2pt',
+                  boxSizing: 'border-box',
+                  overflow: 'hidden',
+                  fontSize: style.fontSize ?? 12,
+                  lineHeight: 1.3,
+                  color: '#000',
+                  textAlign: style.textAlign ?? 'left',
                 }}
-              />
-            ))}
-          </div>
-        );
-      })}
+              >
+                {editing ? (
+                  <ImpactCanvasTextBox
+                    html={html}
+                    editing
+                    autoFocus
+                    onChange={(next) => {
+                      setContentOverrides((o) => ({ ...o, [el.id]: next }));
+                      persistContentDebounced(el.id, next);
+                    }}
+                    onCommit={() => {
+                      setEditingId((cur) => (cur === el.id ? null : cur));
+                    }}
+                  />
+                ) : (
+                  <div
+                    className="prose prose-sm max-w-none"
+                    style={{ width: '100%', height: '100%', pointerEvents: 'none' }}
+                    dangerouslySetInnerHTML={{ __html: sanitize(html) }}
+                  />
+                )}
+              </div>
+
+              {selected && !editing && canEdit && HANDLES.map((h) => (
+                <div
+                  key={h}
+                  onPointerDown={(e) => beginDrag(e, el.id, { kind: 'resize', handle: h }, box)}
+                  style={{
+                    position: 'absolute',
+                    width: 10,
+                    height: 10,
+                    background: 'hsl(var(--primary))',
+                    border: '1px solid white',
+                    borderRadius: 2,
+                    zIndex: 2,
+                    cursor: HANDLE_CURSOR[h],
+                    ...handleStyle(h),
+                  }}
+                />
+              ))}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
