@@ -137,9 +137,10 @@ export async function syncBoundElements(proposalId: string): Promise<void> {
       .order('order_index'),
     supabase
       .from('impact_canvas_elements')
-      .select('bound_row_id, bound_col_key, kind')
+      .select('bound_row_id, bound_col_key, kind, x, y, w, h')
       .eq('proposal_id', proposalId)
       .in('kind', ['bound', 'header']),
+
   ]);
   if (colsRes.error) throw colsRes.error;
   if (rowsRes.error) throw rowsRes.error;
