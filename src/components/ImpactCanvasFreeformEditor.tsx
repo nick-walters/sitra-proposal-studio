@@ -2493,7 +2493,16 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
                     onPointerDown={(e) => {
                       beginDrag(e, el.id, { kind: 'line-move' }, box, { from, to });
                     }}
-                    onClick={(e) => { e.stopPropagation(); selectOnly(el.id); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (suppressNextClickRef.current === el.id) {
+                        suppressNextClickRef.current = null;
+                        return;
+                      }
+                      // Modifier-click was handled in beginDrag (toggle).
+                      // Plain onClick is a safety fallback only.
+                      if (!selectedIdsRef.current.has(el.id)) selectOnly(el.id);
+                    }}
                   />
                   {selected && (
                     <>
