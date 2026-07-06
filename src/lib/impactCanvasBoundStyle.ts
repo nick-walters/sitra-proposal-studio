@@ -34,7 +34,7 @@ export const OUTLINE_WIDTH_PRESETS: { value: number; label: string }[] = [
 ];
 
 export const BOUND_STYLE_DEFAULTS = {
-  fillColor: '#9CA3AF',
+  fillColor: '#ADB5BD',
   outlineColor: 'none',
   outlineWidth: 1, // pt
   fontColor: '#000000',
