@@ -105,6 +105,7 @@ interface DragState {
   startTo?: LinePoint;
   wrapperRect: DOMRect;
   canvasHeightCm: number;
+  traceId?: number;
 }
 
 
@@ -172,6 +173,12 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
   const probeRefs = useRef<Record<string, HTMLDivElement | null>>({});
   /** Bumped when the wrapper resizes so the auto-fit effect re-measures. */
   const [wrapperTick, setWrapperTick] = useState(0);
+  const dragTraceSeqRef = useRef(0);
+  const traceDrag = useCallback((phase: string, payload: Record<string, unknown>) => {
+    // Temporary diagnostic trace for Impact Canvas drag lifecycle.
+    // Remove after confirming the bound-box regression cause.
+    console.log('[ImpactCanvasDrag]', phase, payload);
+  }, []);
 
   // ── Canvas-level UNDO/REDO (session-only, in-memory) ──────────────────
   // Per-element before/after snapshots. Add/delete carry the full element
@@ -578,10 +585,31 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     // captured element unmounts, the browser fires pointercancel → drag ends
     // prematurely. currentTarget is the outer <div> that carries the
     // onPointerDown handler and never unmounts during a drag.
-    (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
+    const el = fetched.find((x) => x.id === id);
+    const captureTarget = e.currentTarget as Element;
+    let captureSucceeded = false;
+    let captureError: string | null = null;
+    try {
+      captureTarget.setPointerCapture?.(e.pointerId);
+      captureSucceeded = captureTarget.hasPointerCapture?.(e.pointerId) ?? true;
+    } catch (err) {
+      captureError = err instanceof Error ? err.message : String(err);
+    }
+    const traceId = ++dragTraceSeqRef.current;
+    traceDrag('pointerdown/beginDrag', {
+      traceId,
+      id,
+      elementKind: el?.kind,
+      mode: mode.kind,
+      target: (e.target as Element | null)?.tagName,
+      currentTarget: captureTarget.tagName,
+      pointerId: e.pointerId,
+      captureSucceeded,
+      captureError,
+      box: current,
+    });
     setSelectedId(id);
     // Capture the element's pre-gesture snapshot for canvas-level undo.
-    const el = fetched.find((x) => x.id === id);
     if (el) dragBeforeRef.current = { id, snap: snapshotOfEl(el) };
     setDrag({
       id,
@@ -593,6 +621,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       startTo: lineStart?.to,
       wrapperRect: wrapper.getBoundingClientRect(),
       canvasHeightCm: canvasHeightCmRef.current,
+      traceId,
     });
 
   };
@@ -667,6 +696,17 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
           newTo = { x: startTo.x + tx, y: startTo.y + ty };
         }
         const bbox = computeLineBBox(newFrom, newTo);
+        traceDrag('pointermove', {
+          traceId: drag.traceId,
+          id: drag.id,
+          mode: drag.mode.kind,
+          eventType: ev.type,
+          clientX: ev.clientX,
+          clientY: ev.clientY,
+          bbox,
+          from: newFrom,
+          to: newTo,
+        });
         setLineOverrides((o) => ({ ...o, [drag.id]: { from: newFrom, to: newTo } }));
         setOverrides((o) => ({ ...o, [drag.id]: bbox }));
         return;
@@ -724,12 +764,31 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       x = Math.max(0, Math.min(x, VW - w));
       y = Math.max(0, Math.min(y, VH_CM - h));
 
+      traceDrag('pointermove', {
+        traceId: drag.traceId,
+        id: drag.id,
+        mode: drag.mode.kind,
+        eventType: ev.type,
+        clientX: ev.clientX,
+        clientY: ev.clientY,
+        box: { x, y, w, h },
+      });
       setOverrides((o) => ({ ...o, [drag.id]: { x, y, w, h } }));
     };
-    const onUp = () => {
+    const onUp = (ev: PointerEvent) => {
       const finalBox = overridesRef.current[drag.id];
       const finalLine = lineOverridesRef.current[drag.id];
       const isLineDrag = drag.mode.kind === 'endpoint' || drag.mode.kind === 'line-move';
+      traceDrag(ev.type === 'pointercancel' ? 'pointercancel/onUp' : 'pointerup/onUp', {
+        traceId: drag.traceId,
+        id: drag.id,
+        mode: drag.mode.kind,
+        eventType: ev.type,
+        target: (ev.target as Element | null)?.tagName,
+        finalBox,
+        finalLine,
+        willPersist: Boolean((isLineDrag && finalBox && finalLine) || (!isLineDrag && finalBox)),
+      });
 
       if (isLineDrag && finalBox && finalLine) {
         persistLineDebounced(drag.id, finalBox, finalLine);
@@ -794,7 +853,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       window.removeEventListener('pointerup', onUp);
       window.removeEventListener('pointercancel', onUp);
     };
-  }, [drag, persistDebounced, persistLineDebounced, fetched, styleOverrides, persistStyleDebounced, pushHistory]);
+  }, [drag, persistDebounced, persistLineDebounced, fetched, styleOverrides, persistStyleDebounced, pushHistory, traceDrag]);
 
 
 
