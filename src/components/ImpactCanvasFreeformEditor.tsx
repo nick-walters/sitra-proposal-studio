@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
-import { PaintBucket, Trash2, Type } from 'lucide-react';
+import { Grid3x3, Magnet, PaintBucket, Trash2, Type } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useImpactCanvasColumns, useImpactCanvasRows } from '@/hooks/useImpactCanvas';
@@ -82,6 +82,9 @@ interface DragState {
   canvasHeightCm: number;
 }
 
+/** Snap-to-grid step (matches the MINOR grid line spacing). */
+const SNAP_STEP_CM = 0.2;
+
 export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: Props) {
   const qc = useQueryClient();
   const { columns, isLoading: colsLoading } = useImpactCanvasColumns(proposalId);
@@ -105,6 +108,25 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [drag, setDrag] = useState<DragState | null>(null);
+  // Editor preferences (grid overlay + snap-to-grid) — persisted in
+  // localStorage so they survive reloads on the same device. Defaults: OFF
+  // for both (subtle first-run: an empty canvas with no grid, snap opt-in).
+  const [showGrid, setShowGrid] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.localStorage.getItem('impact-canvas-show-grid') === '1';
+  });
+  const [snap, setSnap] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.localStorage.getItem('impact-canvas-snap') === '1';
+  });
+  useEffect(() => {
+    try { window.localStorage.setItem('impact-canvas-show-grid', showGrid ? '1' : '0'); } catch { /* ignore */ }
+  }, [showGrid]);
+  useEffect(() => {
+    try { window.localStorage.setItem('impact-canvas-snap', snap ? '1' : '0'); } catch { /* ignore */ }
+  }, [snap]);
+  const snapRef = useRef(snap);
+  useEffect(() => { snapRef.current = snap; }, [snap]);
   /** Optimistic overrides for coords in-flight (per element id). */
   const [overrides, setOverrides] = useState<Record<string, { x: number; y: number; w: number; h: number }>>({});
   /** Optimistic overrides for text content (per element id). */
@@ -326,6 +348,30 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
           h = MIN_H;
         }
       }
+
+      // Snap-to-grid (0.2 cm minor). Snap the coords the user is
+      // actively changing so alignment is deterministic.
+      if (snapRef.current) {
+        const snapTo = (v: number) => Math.round(v / SNAP_STEP_CM) * SNAP_STEP_CM;
+        if (drag.mode.kind === 'move') {
+          x = snapTo(x);
+          y = snapTo(y);
+        } else {
+          const handle = drag.mode.handle;
+          if (handle.includes('e')) w = Math.max(MIN_W, snapTo(w));
+          if (handle.includes('s')) h = Math.max(MIN_H, snapTo(h));
+          if (handle.includes('w')) {
+            const right = drag.startBox.x + drag.startBox.w;
+            x = Math.min(right - MIN_W, snapTo(x));
+            w = right - x;
+          }
+          if (handle.includes('n')) {
+            const bottom = drag.startBox.y + drag.startBox.h;
+            y = Math.min(bottom - MIN_H, snapTo(y));
+            h = bottom - y;
+          }
+        }
+      }
       w = Math.min(w, VW);
       h = Math.min(h, VH_CM);
       x = Math.max(0, Math.min(x, VW - w));
@@ -502,6 +548,32 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
             </Button>
           </div>
 
+          {/* Grid + snap toggles — editor-only preferences (localStorage). */}
+          <div className="flex items-center gap-1" data-impact-canvas-toolbar>
+            <Button
+              type="button"
+              variant={showGrid ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setShowGrid((v) => !v)}
+              className="h-8 px-2 py-1"
+              title="Show grid (0.2 cm minor, 1 cm major)"
+              aria-pressed={showGrid}
+            >
+              <Grid3x3 className="w-4 h-4 mr-1" /> Grid
+            </Button>
+            <Button
+              type="button"
+              variant={snap ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setSnap((v) => !v)}
+              className="h-8 px-2 py-1"
+              title="Snap to grid (0.2 cm)"
+              aria-pressed={snap}
+            >
+              <Magnet className="w-4 h-4 mr-1" /> Snap
+            </Button>
+          </div>
+
           {selectedId && textEls.some((t) => t.id === selectedId) && (
             <Button
               type="button"
@@ -550,6 +622,36 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
 
       >
         <div style={{ paddingBottom: paddingPct }} />
+
+        {/* Grid overlay — editor-only aid, never rendered in read-only. */}
+        {showGrid && (
+          <div
+            aria-hidden
+            style={{
+              position: 'absolute',
+              inset: 0,
+              pointerEvents: 'none',
+              zIndex: 0,
+              // Four layered gradients: major vertical, major horizontal,
+              // minor vertical, minor horizontal. Sized in % of the wrapper
+              // which itself is 18cm : VHcm, so lines stay cm-aligned.
+              backgroundImage: [
+                'linear-gradient(to right, rgba(0,0,0,0.18) 0, rgba(0,0,0,0.18) 1px, transparent 1px)',
+                'linear-gradient(to bottom, rgba(0,0,0,0.18) 0, rgba(0,0,0,0.18) 1px, transparent 1px)',
+                'linear-gradient(to right, rgba(0,0,0,0.07) 0, rgba(0,0,0,0.07) 1px, transparent 1px)',
+                'linear-gradient(to bottom, rgba(0,0,0,0.07) 0, rgba(0,0,0,0.07) 1px, transparent 1px)',
+              ].join(', '),
+              backgroundSize: [
+                `${(1 / VW) * 100}% ${(1 / VH) * 100}%`,
+                `${(1 / VW) * 100}% ${(1 / VH) * 100}%`,
+                `${(0.2 / VW) * 100}% ${(0.2 / VH) * 100}%`,
+                `${(0.2 / VW) * 100}% ${(0.2 / VH) * 100}%`,
+              ].join(', '),
+              backgroundPosition: '0 0, 0 0, 0 0, 0 0',
+            }}
+          />
+        )}
+
 
         {columnOrder.map((c, ci) => (
           <div
