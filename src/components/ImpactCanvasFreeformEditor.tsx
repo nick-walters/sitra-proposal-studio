@@ -725,6 +725,87 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
   );
 }
 
+interface BoundStyleToolbarProps {
+  proposalId: string;
+  canEdit: boolean;
+  style: BoundBoxStyle;
+  onChange: (patch: Partial<BoundBoxStyle>) => void;
+}
+
+function BoundStyleToolbar({ proposalId, canEdit, style, onChange }: BoundStyleToolbarProps) {
+  const width = style.outlineWidth ?? BOUND_STYLE_DEFAULTS.outlineWidth;
+  const fill = style.fillColor ?? '#F5F5F5';
+  const outline = style.outlineColor ?? '#CCCCCC';
+  const font = style.fontColor ?? BOUND_STYLE_DEFAULTS.fontColor;
+  return (
+    <div className="flex items-center gap-2 pl-2 border-l" data-impact-canvas-toolbar>
+      <StylePicker
+        label="Fill"
+        color={fill}
+        proposalId={proposalId}
+        canEdit={canEdit}
+        onChange={(c) => onChange({ fillColor: c })}
+      />
+      <StylePicker
+        label="Outline"
+        color={outline}
+        proposalId={proposalId}
+        canEdit={canEdit}
+        onChange={(c) => onChange({ outlineColor: c })}
+      />
+      <div className="flex items-center gap-1">
+        <span className="text-[11px] text-muted-foreground">Width</span>
+        <Input
+          type="number"
+          min={0}
+          max={12}
+          step={1}
+          disabled={!canEdit}
+          value={width}
+          onChange={(e) => {
+            const v = Number(e.target.value);
+            if (Number.isFinite(v)) onChange({ outlineWidth: Math.max(0, Math.min(12, v)) });
+          }}
+          className="h-7 w-14 text-xs"
+        />
+        <span className="text-[11px] text-muted-foreground">px</span>
+      </div>
+      <StylePicker
+        label="Text"
+        color={font}
+        proposalId={proposalId}
+        canEdit={canEdit}
+        onChange={(c) => onChange({ fontColor: c })}
+      />
+    </div>
+  );
+}
+
+function StylePicker({
+  label, color, proposalId, canEdit, onChange,
+}: {
+  label: string;
+  color: string;
+  proposalId: string;
+  canEdit: boolean;
+  onChange: (hex: string) => void;
+}) {
+  return (
+    <div className="flex items-center gap-1">
+      <span className="text-[11px] text-muted-foreground">{label}</span>
+      <WPColorPicker
+        color={color}
+        onChange={onChange}
+        disabled={!canEdit}
+        proposalId={proposalId}
+        canManageCustom={canEdit}
+        label={`${label} colour`}
+      />
+    </div>
+  );
+}
+
+
 const HANDLES: Handle[] = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
 const HANDLE_CURSOR: Record<Handle, string> = {
   nw: 'nwse-resize', se: 'nwse-resize',
