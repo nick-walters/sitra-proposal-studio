@@ -665,6 +665,15 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       // React might remount mid-gesture).
       try { target.setPointerCapture?.(pointerId); } catch { /* ignore */ }
 
+      // Suppress native text selection for the duration of the drag/resize.
+      // Without this the browser accumulates a text range under the pointer,
+      // which flashes as highlighted canvas text on pointerup.
+      try {
+        document.body.style.userSelect = 'none';
+        (document.body.style as CSSStyleDeclaration & { webkitUserSelect?: string }).webkitUserSelect = 'none';
+      } catch { /* ignore */ }
+      try { window.getSelection()?.removeAllRanges(); } catch { /* ignore */ }
+
       const el = fetchedRef.current.find((x) => x.id === id);
       if (el) dragBeforeRef.current = { id, snap: snapshotOfEl(el) };
       localDrag = {
