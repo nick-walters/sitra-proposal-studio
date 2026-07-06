@@ -2405,7 +2405,7 @@ function LayerIcon({ variant }: { variant: 'front' | 'forward' | 'backward' | 'b
   // Common rect props. Larger overlap makes the stacking order legible at toolbar size.
   const size = extreme ? 7.5 : 10;
   const filled = { fill: 'currentColor' as const };
-  const outlined = { fill: 'none' as const };
+  const outlined = { fill: 'white' as const };
 
   if (extreme) {
     // Three overlapping larger squares so front/back stacking is clear at icon size.
