@@ -444,28 +444,8 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
   return (
     <div className="space-y-2">
       {canEdit && (
-        <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={addTextBox}
-            data-impact-canvas-toolbar
-          >
-            <Type className="w-4 h-4 mr-1" /> Add text box
-          </Button>
-          {selectedId && textEls.some((t) => t.id === selectedId) && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="text-destructive hover:text-destructive"
-              onClick={() => void deleteElement(selectedId)}
-              data-impact-canvas-toolbar
-            >
-              <Trash2 className="w-4 h-4 mr-1" /> Delete text box
-            </Button>
-          )}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Bound-box style controls appear FIRST when a bound box is selected. */}
           {selectedId && boundEls.some((b) => b.id === selectedId) && (
             <BoundStyleToolbar
               proposalId={proposalId}
@@ -476,6 +456,38 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
               }}
               onChange={(patch) => updateBoundStyle(selectedId, patch)}
             />
+          )}
+
+          {/*
+            Element-adding cluster.
+            Reserved order (left→right): shapes, lines/arrows, text box.
+            Only the text-box button exists for now — placed at the end of the
+            cluster so future shape/line/arrow buttons slot in cleanly before it.
+          */}
+          <div className="flex items-center gap-1" data-impact-canvas-adders>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={addTextBox}
+              className="h-8 px-2 py-1"
+              data-impact-canvas-toolbar
+            >
+              <Type className="w-4 h-4 mr-1" /> Text box
+            </Button>
+          </div>
+
+          {selectedId && textEls.some((t) => t.id === selectedId) && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="text-destructive hover:text-destructive h-8 px-2"
+              onClick={() => void deleteElement(selectedId)}
+              data-impact-canvas-toolbar
+            >
+              <Trash2 className="w-4 h-4 mr-1" /> Delete text box
+            </Button>
           )}
           <span className="text-xs text-muted-foreground">
             Double-click a text box to edit. Delete / Backspace removes the selected box.
