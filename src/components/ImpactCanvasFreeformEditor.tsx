@@ -200,7 +200,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
         delete pendingStyleTimers.current[id];
         const { error } = await supabase
           .from('impact_canvas_elements')
-          .update({ style: style as unknown as Record<string, unknown> })
+          .update({ style: style as never })
           .eq('id', id);
         if (error) {
           setStyleOverrides((o) => {
