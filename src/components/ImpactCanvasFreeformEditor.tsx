@@ -409,6 +409,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     [fetched],
   );
   const textEls = useMemo(() => fetched.filter((e) => e.kind === 'text'), [fetched]);
+  const shapeEls = useMemo(() => fetched.filter((e) => e.kind === 'shape'), [fetched]);
   const maxZ = useMemo(
     () => fetched.reduce((m, e) => (e.z > m ? e.z : m), 0),
     [fetched],
@@ -447,6 +448,65 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     setSelectedId(data.id);
     setEditingId(data.id);
   }, [canEdit, maxZ, proposalId, qc]);
+
+  const addShape = useCallback(
+    async (shape: ShapeKind) => {
+      if (!canEdit) return;
+      const VW = CANVAS_WIDTH_CM;
+      const VH = canvasHeightCmRef.current;
+      // Default sizes (cm) per shape kind.
+      const size =
+        shape === 'circle' ? { w: 3, h: 3 } :
+        shape === 'triangle' ? { w: 3.5, h: 3 } :
+        { w: 3, h: 2 };
+      const insertBox = {
+        proposal_id: proposalId,
+        kind: 'shape',
+        x: +((VW - size.w) / 2).toFixed(4),
+        y: +((VH - size.h) / 2).toFixed(4),
+        w: size.w,
+        h: size.h,
+        z: maxZ + 1,
+        content: { shape, html: '' },
+        style: {},
+      };
+      const { data, error } = await supabase
+        .from('impact_canvas_elements')
+        .insert(insertBox)
+        .select('id, kind, bound_row_id, bound_col_key, x, y, w, h, z, content, style')
+        .single();
+      if (error || !data) {
+        qc.invalidateQueries({ queryKey: ELS_KEY(proposalId) });
+        return;
+      }
+      qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId), (old) => [
+        ...(old || []),
+        data as CanvasElement,
+      ]);
+      setSelectedId(data.id);
+    },
+    [canEdit, maxZ, proposalId, qc],
+  );
+
+  /** Directly set an element's box in cm (used by the size input fields).
+   *  Optimistic + debounced via the same persist path as drag/resize. */
+  const setElementBox = useCallback(
+    (id: string, patch: Partial<{ x: number; y: number; w: number; h: number }>) => {
+      if (!canEdit) return;
+      const el = fetched.find((e) => e.id === id);
+      if (!el) return;
+      const current = overrides[id] ?? { x: el.x, y: el.y, w: el.w, h: el.h };
+      let next = { ...current, ...patch };
+      // Clamp: element must fit inside 18 cm × 25.5 cm.
+      next.w = Math.max(MIN_W, Math.min(CANVAS_WIDTH_CM, next.w));
+      next.h = Math.max(MIN_H, Math.min(CANVAS_MAX_HEIGHT_CM, next.h));
+      next.x = Math.max(0, Math.min(CANVAS_WIDTH_CM - next.w, next.x));
+      next.y = Math.max(0, Math.min(CANVAS_MAX_HEIGHT_CM - next.h, next.y));
+      setOverrides((o) => ({ ...o, [id]: next }));
+      persistDebounced(id, next);
+    },
+    [canEdit, fetched, overrides, persistDebounced],
+  );
 
   const deleteElement = useCallback(
     async (id: string) => {
