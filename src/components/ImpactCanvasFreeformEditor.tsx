@@ -585,6 +585,31 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
 
   const canvasHeightCmRef = useRef(CANVAS_MAX_HEIGHT_CM);
 
+  // Refs for values referenced inside the drag lifecycle so that listeners
+  // attached synchronously in beginDrag always see fresh values without
+  // depending on effect deps / re-attachment.
+  const fetchedRef = useRef(fetched);
+  useEffect(() => { fetchedRef.current = fetched; }, [fetched]);
+  const styleOverridesRef = useRef(styleOverrides);
+  useEffect(() => { styleOverridesRef.current = styleOverrides; }, [styleOverrides]);
+  const persistDebouncedRef = useRef(persistDebounced);
+  useEffect(() => { persistDebouncedRef.current = persistDebounced; }, [persistDebounced]);
+  const persistLineDebouncedRef = useRef(persistLineDebounced);
+  useEffect(() => { persistLineDebouncedRef.current = persistLineDebounced; }, [persistLineDebounced]);
+  const persistStyleDebouncedRef = useRef(persistStyleDebounced);
+  useEffect(() => { persistStyleDebouncedRef.current = persistStyleDebounced; }, [persistStyleDebounced]);
+  const pushHistoryRef = useRef(pushHistory);
+  useEffect(() => { pushHistoryRef.current = pushHistory; }, [pushHistory]);
+
+  /** Suppress the next React synthetic click on this element id — set when a
+   *  drag was activated so the trailing click doesn't toggle text-edit mode
+   *  on shapes/textboxes. */
+  const suppressNextClickRef = useRef<string | null>(null);
+
+  /** Minimum pointer travel (CSS px) before a press converts into a drag.
+   *  Below the threshold, pointerup is treated as a click → select only. */
+  const DRAG_THRESHOLD_PX = 4;
+
   const beginDrag = (
     e: React.PointerEvent,
     id: string,
@@ -594,90 +619,82 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
   ) => {
     if (!canEdit) return;
     if (editingId === id) return; // never drag while editing text
+    if (e.button !== 0) return;
     e.stopPropagation();
-    e.preventDefault();
     const wrapper = wrapperRef.current;
     if (!wrapper) return;
-    const existingTimer = pendingTimers.current[id];
-    if (existingTimer) {
-      clearTimeout(existingTimer);
-      delete pendingTimers.current[id];
-    }
-    pendingBoxAbortControllers.current[id]?.abort();
-    delete pendingBoxAbortControllers.current[id];
-    pendingBoxWriteSeqRef.current[id] = (pendingBoxWriteSeqRef.current[id] ?? 0) + 1;
-    // Capture on currentTarget (the stable outer draggable), NOT e.target —
-    // e.target is the deepest DOM node under the pointer (often an inner
-    // element that React may remount mid-gesture, e.g. bound-box inner prose
-    // wrappers replaced when selection styling/auto-fit reflows fire). If the
-    // captured element unmounts, the browser fires pointercancel → drag ends
-    // prematurely. currentTarget is the outer <div> that carries the
-    // onPointerDown handler and never unmounts during a drag.
-    (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
+
+    // Selection happens immediately on press — click alone must select.
     setSelectedId(id);
-    // Capture the element's pre-gesture snapshot for canvas-level undo.
-    const el = fetched.find((x) => x.id === id);
-    if (el) dragBeforeRef.current = { id, snap: snapshotOfEl(el) };
-    setDrag({
-      id,
-      mode,
-      startClientX: e.clientX,
-      startClientY: e.clientY,
-      startBox: current,
-      startFrom: lineStart?.from,
-      startTo: lineStart?.to,
-      wrapperRect: wrapper.getBoundingClientRect(),
-      canvasHeightCm: canvasHeightCmRef.current,
-    });
 
-  };
+    const target = e.currentTarget as Element;
+    const pointerId = e.pointerId;
+    const startClientX = e.clientX;
+    const startClientY = e.clientY;
+    const wrapperRect = wrapper.getBoundingClientRect();
+    const canvasHeightCm = canvasHeightCmRef.current;
 
+    // Activation state. We attach the window listeners RIGHT NOW so that
+    // even the immediate pointerup of a bare click is caught. The drag is
+    // only "activated" (setDrag, snapshot for undo, cancel pending auto-fit
+    // writes, capture pointer) once movement exceeds the threshold.
+    let activated = false;
+    let localDrag: DragState | null = null;
 
-  const overridesRef = useRef(overrides);
-  useEffect(() => {
-    overridesRef.current = overrides;
-  }, [overrides]);
+    const activate = () => {
+      if (activated) return;
+      activated = true;
+      // Cancel/invalidate any in-flight auto-fit write for this id — see the
+      // pendingBoxWriteSeqRef guard elsewhere in this component.
+      const existingTimer = pendingTimers.current[id];
+      if (existingTimer) {
+        clearTimeout(existingTimer);
+        delete pendingTimers.current[id];
+      }
+      pendingBoxAbortControllers.current[id]?.abort();
+      delete pendingBoxAbortControllers.current[id];
+      pendingBoxWriteSeqRef.current[id] = (pendingBoxWriteSeqRef.current[id] ?? 0) + 1;
 
-  // Watch wrapper for size changes → re-run auto-fit measurement.
-  useEffect(() => {
-    const wrapper = wrapperRef.current;
-    if (!wrapper || typeof ResizeObserver === 'undefined') return;
-    const ro = new ResizeObserver(() => setWrapperTick((t) => t + 1));
-    ro.observe(wrapper);
-    return () => ro.disconnect();
-  }, []);
+      // Capture on the stable outer draggable (never an inner element that
+      // React might remount mid-gesture).
+      try { target.setPointerCapture?.(pointerId); } catch { /* ignore */ }
 
+      const el = fetchedRef.current.find((x) => x.id === id);
+      if (el) dragBeforeRef.current = { id, snap: snapshotOfEl(el) };
+      localDrag = {
+        id,
+        mode,
+        startClientX,
+        startClientY,
+        startBox: current,
+        startFrom: lineStart?.from,
+        startTo: lineStart?.to,
+        wrapperRect,
+        canvasHeightCm,
+      };
+      setDrag(localDrag);
+    };
 
-  useEffect(() => {
-    if (!drag) return;
-
-    // VW is fixed by the cm model; VH is captured from the wrapper's actual
-    // pixel dimensions at drag start (ratio px/cm is stable during drag —
-    // if content grows the canvas the ratio doesn't change).
     const VW = CANVAS_WIDTH_CM;
     const VH_CM = CANVAS_MAX_HEIGHT_CM;
-    const VH_render = drag.wrapperRect.width * (drag.canvasHeightCm / VW); // pixels
-    // pxPerCmY: derive from the wrapper rect if possible, else from the
-    // computed pixel height at drag start. wrapperRect.height already
-    // reflects the current computed canvas height because of the
-    // aspect-ratio spacer.
-    const onMove = (ev: PointerEvent) => {
-      const rect = drag.wrapperRect;
+
+    const runMove = (ev: PointerEvent) => {
+      if (!localDrag) return;
+      const rect = localDrag.wrapperRect;
       const pxPerCmX = rect.width / VW;
-      const pxPerCmY = (rect.height || VH_render) / drag.canvasHeightCm;
-      const dxRaw = (ev.clientX - drag.startClientX) / pxPerCmX;
-      const dyRaw = (ev.clientY - drag.startClientY) / pxPerCmY;
+      const pxPerCmY = (rect.height || (rect.width * (localDrag.canvasHeightCm / VW))) / localDrag.canvasHeightCm;
+      const dxRaw = (ev.clientX - localDrag.startClientX) / pxPerCmX;
+      const dyRaw = (ev.clientY - localDrag.startClientY) / pxPerCmY;
       const snapTo = (v: number) => Math.round(v / SNAP_STEP_CM) * SNAP_STEP_CM;
       const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
-      // ── Line drags (endpoint or line-move) ──────────────────────────
-      if (drag.mode.kind === 'endpoint' || drag.mode.kind === 'line-move') {
-        const startFrom = drag.startFrom!;
-        const startTo = drag.startTo!;
+      if (localDrag.mode.kind === 'endpoint' || localDrag.mode.kind === 'line-move') {
+        const startFrom = localDrag.startFrom!;
+        const startTo = localDrag.startTo!;
         let newFrom = { ...startFrom };
         let newTo = { ...startTo };
-        if (drag.mode.kind === 'endpoint') {
-          if (drag.mode.which === 'from') {
+        if (localDrag.mode.kind === 'endpoint') {
+          if (localDrag.mode.which === 'from') {
             newFrom = { x: startFrom.x + dxRaw, y: startFrom.y + dyRaw };
             if (snapRef.current) { newFrom.x = snapTo(newFrom.x); newFrom.y = snapTo(newFrom.y); }
             newFrom.x = clamp(newFrom.x, 0, VW);
@@ -689,8 +706,6 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
             newTo.y = clamp(newTo.y, 0, VH_CM);
           }
         } else {
-          // line-move: translate both endpoints; clamp translation so both
-          // stay inside the canvas.
           const minX = Math.min(startFrom.x, startTo.x);
           const maxX = Math.max(startFrom.x, startTo.x);
           const minY = Math.min(startFrom.y, startTo.y);
@@ -702,53 +717,38 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
           newTo = { x: startTo.x + tx, y: startTo.y + ty };
         }
         const bbox = computeLineBBox(newFrom, newTo);
-        setLineOverrides((o) => ({ ...o, [drag.id]: { from: newFrom, to: newTo } }));
-        setOverrides((o) => ({ ...o, [drag.id]: bbox }));
+        setLineOverrides((o) => ({ ...o, [localDrag!.id]: { from: newFrom, to: newTo } }));
+        setOverrides((o) => ({ ...o, [localDrag!.id]: bbox }));
         return;
       }
 
-      // ── Box drags (move / resize) — original behaviour ──────────────
-      let { x, y, w, h } = drag.startBox;
-      if (drag.mode.kind === 'move') {
-        x = drag.startBox.x + dxRaw;
-        y = drag.startBox.y + dyRaw;
-      } else if (drag.mode.kind === 'resize') {
-        const handle = drag.mode.handle;
-        if (handle.includes('e')) w = drag.startBox.w + dxRaw;
-        if (handle.includes('s')) h = drag.startBox.h + dyRaw;
-        if (handle.includes('w')) {
-          w = drag.startBox.w - dxRaw;
-          x = drag.startBox.x + dxRaw;
-        }
-        if (handle.includes('n')) {
-          h = drag.startBox.h - dyRaw;
-          y = drag.startBox.y + dyRaw;
-        }
-        if (w < MIN_W) {
-          if (handle.includes('w')) x -= MIN_W - w;
-          w = MIN_W;
-        }
-        if (h < MIN_H) {
-          if (handle.includes('n')) y -= MIN_H - h;
-          h = MIN_H;
-        }
+      let { x, y, w, h } = localDrag.startBox;
+      if (localDrag.mode.kind === 'move') {
+        x = localDrag.startBox.x + dxRaw;
+        y = localDrag.startBox.y + dyRaw;
+      } else if (localDrag.mode.kind === 'resize') {
+        const handle = localDrag.mode.handle;
+        if (handle.includes('e')) w = localDrag.startBox.w + dxRaw;
+        if (handle.includes('s')) h = localDrag.startBox.h + dyRaw;
+        if (handle.includes('w')) { w = localDrag.startBox.w - dxRaw; x = localDrag.startBox.x + dxRaw; }
+        if (handle.includes('n')) { h = localDrag.startBox.h - dyRaw; y = localDrag.startBox.y + dyRaw; }
+        if (w < MIN_W) { if (handle.includes('w')) x -= MIN_W - w; w = MIN_W; }
+        if (h < MIN_H) { if (handle.includes('n')) y -= MIN_H - h; h = MIN_H; }
       }
 
       if (snapRef.current) {
-        if (drag.mode.kind === 'move') {
-          x = snapTo(x);
-          y = snapTo(y);
-        } else if (drag.mode.kind === 'resize') {
-          const handle = drag.mode.handle;
+        if (localDrag.mode.kind === 'move') { x = snapTo(x); y = snapTo(y); }
+        else if (localDrag.mode.kind === 'resize') {
+          const handle = localDrag.mode.handle;
           if (handle.includes('e')) w = Math.max(MIN_W, snapTo(w));
           if (handle.includes('s')) h = Math.max(MIN_H, snapTo(h));
           if (handle.includes('w')) {
-            const right = drag.startBox.x + drag.startBox.w;
+            const right = localDrag.startBox.x + localDrag.startBox.w;
             x = Math.min(right - MIN_W, snapTo(x));
             w = right - x;
           }
           if (handle.includes('n')) {
-            const bottom = drag.startBox.y + drag.startBox.h;
+            const bottom = localDrag.startBox.y + localDrag.startBox.h;
             y = Math.min(bottom - MIN_H, snapTo(y));
             h = bottom - y;
           }
@@ -758,43 +758,73 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       h = Math.min(h, VH_CM);
       x = Math.max(0, Math.min(x, VW - w));
       y = Math.max(0, Math.min(y, VH_CM - h));
-
-      setOverrides((o) => ({ ...o, [drag.id]: { x, y, w, h } }));
+      setOverrides((o) => ({ ...o, [localDrag!.id]: { x, y, w, h } }));
     };
-    const onUp = (ev: PointerEvent) => {
-      const finalBox = overridesRef.current[drag.id];
-      const finalLine = lineOverridesRef.current[drag.id];
-      const isLineDrag = drag.mode.kind === 'endpoint' || drag.mode.kind === 'line-move';
+
+    const onMove = (ev: PointerEvent) => {
+      if (!activated) {
+        const dx = ev.clientX - startClientX;
+        const dy = ev.clientY - startClientY;
+        if ((dx * dx + dy * dy) < DRAG_THRESHOLD_PX * DRAG_THRESHOLD_PX) return;
+        activate();
+      }
+      runMove(ev);
+    };
+
+    const cleanup = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
+    };
+
+    const onUp = (_ev: PointerEvent) => {
+      cleanup();
+      try { target.releasePointerCapture?.(pointerId); } catch { /* ignore */ }
+      if (!activated) {
+        // Pure click — no movement. Selection was already applied at press.
+        dragBeforeRef.current = null;
+        return;
+      }
+      // Suppress the trailing React synthetic click so it doesn't toggle
+      // text-edit mode after a move.
+      suppressNextClickRef.current = id;
+      window.setTimeout(() => {
+        if (suppressNextClickRef.current === id) suppressNextClickRef.current = null;
+      }, 0);
+
+      const dragId = localDrag!.id;
+      const finalBox = overridesRef.current[dragId];
+      const finalLine = lineOverridesRef.current[dragId];
+      const isLineDrag = localDrag!.mode.kind === 'endpoint' || localDrag!.mode.kind === 'line-move';
 
       if (isLineDrag && finalBox && finalLine) {
-        persistLineDebounced(drag.id, finalBox, finalLine);
+        persistLineDebouncedRef.current(dragId, finalBox, finalLine);
       } else if (finalBox) {
-        persistDebounced(drag.id, finalBox);
+        persistDebouncedRef.current(dragId, finalBox);
       }
-      // Manual resize (any handle that changed h) locks in an explicit
-      // height and disables auto-fit for this bound box.
+
       let styleAfter: BoundBoxStyle | null = null;
       if (
-        drag.mode.kind === 'resize' &&
+        localDrag!.mode.kind === 'resize' &&
         finalBox &&
-        Math.abs(finalBox.h - drag.startBox.h) > 1e-4
+        Math.abs(finalBox.h - localDrag!.startBox.h) > 1e-4
       ) {
-        const el = fetched.find((e) => e.id === drag.id);
+        const el = fetchedRef.current.find((e) => e.id === dragId);
         if (el && el.kind === 'bound') {
-          const cur = { ...readBoundStyle(el.style), ...(styleOverrides[drag.id] ?? {}) };
+          const cur = { ...readBoundStyle(el.style), ...(styleOverridesRef.current[dragId] ?? {}) };
           if (cur.autoFitH !== false) {
             const next = { ...cur, autoFitH: false };
-            setStyleOverrides((o) => ({ ...o, [drag.id]: next }));
-            persistStyleDebounced(drag.id, next);
+            setStyleOverrides((o) => ({ ...o, [dragId]: next }));
+            persistStyleDebouncedRef.current(dragId, next);
             styleAfter = next;
           }
         }
       }
-      // Push ONE canvas-undo step for the whole drag/resize gesture.
+
       const beforeSnap = dragBeforeRef.current?.snap;
       const gestureId = dragBeforeRef.current?.id;
       dragBeforeRef.current = null;
-      if (beforeSnap && gestureId === drag.id && finalBox) {
+      if (beforeSnap && gestureId === dragId && finalBox) {
         const boxChanged =
           Math.abs(beforeSnap.x - finalBox.x) > 1e-4 ||
           Math.abs(beforeSnap.y - finalBox.y) > 1e-4 ||
@@ -814,22 +844,32 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
             style: styleAfter ?? beforeSnap.style,
             content: afterContent,
           };
-          pushHistory({ kind: 'update', id: drag.id, before: beforeSnap, after, ts: Date.now() });
+          pushHistoryRef.current({ kind: 'update', id: dragId, before: beforeSnap, after, ts: Date.now() });
         }
       }
       setDrag(null);
     };
 
-
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
     window.addEventListener('pointercancel', onUp);
-    return () => {
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
-      window.removeEventListener('pointercancel', onUp);
-    };
-  }, [drag, persistDebounced, persistLineDebounced, fetched, styleOverrides, persistStyleDebounced, pushHistory]);
+  };
+
+
+  const overridesRef = useRef(overrides);
+  useEffect(() => {
+    overridesRef.current = overrides;
+  }, [overrides]);
+
+  // Watch wrapper for size changes → re-run auto-fit measurement.
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => setWrapperTick((t) => t + 1));
+    ro.observe(wrapper);
+    return () => ro.disconnect();
+  }, []);
+
 
 
 
