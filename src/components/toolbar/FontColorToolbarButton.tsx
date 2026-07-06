@@ -177,7 +177,9 @@ export function FontColorToolbarButton({
       canManageCustom={canManageCustom}
       trigger={trigger}
       label="Text colour"
+      showGreyscale
       disabled={disabled}
+
       onOpenChange={onOpenChange}
       getLiveHtmlSources={getLiveHtmlSources ?? (() => {
         const editable = resolveEditable(savedRangeRef.current);
