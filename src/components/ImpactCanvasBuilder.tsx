@@ -12,6 +12,8 @@ import { ImpactCanvasCellEditor } from './ImpactCanvasCellEditor';
 import { ImpactCanvasColumnDialog } from './ImpactCanvasColumnDialog';
 import { ImpactCanvasCrossRefDropdown } from './ImpactCanvasCrossRefDropdown';
 import { ImpactCanvasFreeformEditor } from './ImpactCanvasFreeformEditor';
+import { ImpactCanvasFreeformRenderer } from './ImpactCanvasFreeformRenderer';
+
 
 interface Props {
   proposalId: string;
