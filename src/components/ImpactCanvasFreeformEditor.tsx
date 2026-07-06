@@ -968,6 +968,35 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     <div className="space-y-2">
       {canEdit && (
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Canvas-level Undo / Redo — session-only, resets on reload. */}
+          <div className="flex items-center gap-1 pr-2 border-r" data-impact-canvas-toolbar>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={() => void undo()}
+              disabled={!canUndo}
+              title="Undo (⌘/Ctrl+Z)"
+              aria-label="Undo"
+            >
+              <Undo2 className="w-4 h-4" />
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={() => void redo()}
+              disabled={!canRedo}
+              title="Redo (⇧⌘/Ctrl+Z)"
+              aria-label="Redo"
+            >
+              <Redo2 className="w-4 h-4" />
+            </Button>
+          </div>
+
+
           {/* Style controls — bound boxes AND shapes share the style model. */}
           {selectedEl && (selectedIsBound || selectedIsShape) && (
             <BoundStyleToolbar
