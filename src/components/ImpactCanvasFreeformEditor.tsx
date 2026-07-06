@@ -1419,9 +1419,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
           </div>
           <AddShapeDropdown onAddShape={addShape} onAddLine={addLine} />
 
-          <Separator orientation="vertical" className="h-5 mx-1" />
-
-          {/* Group 3: Size (W/H cm fields, arrow icons) */}
+          {/* Group 3: Size (W/H cm fields, arrow icons) — no divider before */}
           <SizeFields
             box={sizeEnabled && selectedBox ? selectedBox : { x: 0, y: 0, w: 0, h: 0 }}
             disabled={!sizeEnabled}
@@ -1430,59 +1428,59 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
             }}
           />
 
-          {/* Group 4: Layers (PowerPoint-style icons) */}
+          {/* Group 4: Layers (PowerPoint-style overlapping-shape icons) */}
           <div className="flex items-center gap-0.5" data-impact-canvas-toolbar>
             <Button
               type="button" variant="ghost" size="sm" className="h-7 w-7 p-0"
               title="Bring to front" aria-label="Bring to front"
               disabled={!zEnabled}
               onClick={() => selectedEl && changeZOrder(selectedEl.id, 'front')}
-            ><ArrowUpToLine className="w-3.5 h-3.5" /></Button>
+            ><LayerIcon variant="front" /></Button>
             <Button
               type="button" variant="ghost" size="sm" className="h-7 w-7 p-0"
               title="Bring forward" aria-label="Bring forward"
               disabled={!zEnabled}
               onClick={() => selectedEl && changeZOrder(selectedEl.id, 'forward')}
-            ><MoveUp className="w-3.5 h-3.5" /></Button>
+            ><LayerIcon variant="forward" /></Button>
             <Button
               type="button" variant="ghost" size="sm" className="h-7 w-7 p-0"
               title="Send backward" aria-label="Send backward"
               disabled={!zEnabled}
               onClick={() => selectedEl && changeZOrder(selectedEl.id, 'backward')}
-            ><MoveDown className="w-3.5 h-3.5" /></Button>
+            ><LayerIcon variant="backward" /></Button>
             <Button
               type="button" variant="ghost" size="sm" className="h-7 w-7 p-0"
               title="Send to back" aria-label="Send to back"
               disabled={!zEnabled}
               onClick={() => selectedEl && changeZOrder(selectedEl.id, 'back')}
-            ><ArrowDownToLine className="w-3.5 h-3.5" /></Button>
+            ><LayerIcon variant="back" /></Button>
           </div>
 
-          <Separator orientation="vertical" className="h-5 mx-1" />
-
-          {/* Group 5: Snap + Grid (grid retained, placed alongside snap) */}
-          <Button
-            type="button"
-            variant={snap ? 'secondary' : 'ghost'}
-            size="sm"
-            onClick={() => setSnap((v) => !v)}
-            className="h-7 w-7 p-0"
-            title="Snap to grid (0.2 cm)" aria-label="Toggle snap to grid"
-            aria-pressed={snap}
-          >
-            <Magnet className="w-3.5 h-3.5" />
-          </Button>
-          <Button
-            type="button"
-            variant={showGrid ? 'secondary' : 'ghost'}
-            size="sm"
-            onClick={() => setShowGrid((v) => !v)}
-            className="h-7 w-7 p-0"
-            title="Show grid (0.2 cm minor, 1 cm major)" aria-label="Toggle grid"
-            aria-pressed={showGrid}
-          >
-            <Grid3x3 className="w-3.5 h-3.5" />
-          </Button>
+          {/* Group 5: Snap + Grid — pinned to the far right */}
+          <div className="ml-auto flex items-center gap-0.5" data-impact-canvas-toolbar>
+            <Button
+              type="button"
+              variant={snap ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setSnap((v) => !v)}
+              className="h-7 w-7 p-0"
+              title="Snap to grid (0.2 cm)" aria-label="Toggle snap to grid"
+              aria-pressed={snap}
+            >
+              <Magnet className="w-3.5 h-3.5" />
+            </Button>
+            <Button
+              type="button"
+              variant={showGrid ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setShowGrid((v) => !v)}
+              className="h-7 w-7 p-0"
+              title="Show grid (0.2 cm minor, 1 cm major)" aria-label="Toggle grid"
+              aria-pressed={showGrid}
+            >
+              <Grid3x3 className="w-3.5 h-3.5" />
+            </Button>
+          </div>
         </div>
       )}
 
