@@ -1911,7 +1911,11 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
           return (
             <div
               key={el.id}
+              data-canvas-el-id={el.id}
+              data-canvas-el-kind="shape"
               style={{
+                background: 'transparent',
+                pointerEvents: 'auto',
                 position: 'absolute',
                 left: pctX(box.x),
                 top: pctY(box.y),
