@@ -3,7 +3,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { X } from 'lucide-react';
-import { DEFAULT_WP_COLORS, getContrastingTextColor } from '@/lib/wpColors';
+import { DEFAULT_WP_COLORS, GREYSCALE_COLORS, getContrastingTextColor } from '@/lib/wpColors';
 import { useProposalCustomColors } from '@/hooks/useProposalCustomColors';
 import { extractHexTextColorsFromHtml } from '@/lib/extractHexTextColors';
 import { cn } from '@/lib/utils';
@@ -56,8 +56,15 @@ interface WPColorPickerProps {
    * colour. Used e.g. to hide black from WP/theme pickers.
    */
   excludePaletteColors?: string[];
+  /**
+   * When true, an additional "Greyscale" section (white → black) is rendered
+   * after the Sitra palette. Enable for font-colour and canvas pickers; leave
+   * off for WP/theme pickers.
+   */
+  showGreyscale?: boolean;
   /** Notified when the popover opens/closes (for parent focus retention). */
   onOpenChange?: (open: boolean) => void;
+
   /**
    * Optional live, unsaved rich-text HTML sources. Used by text-colour pickers
    * so delete protection includes the current editor DOM before autosave has
@@ -80,7 +87,9 @@ export function WPColorPicker({
   onRemove,
   removeLabel = 'Remove colour',
   excludePaletteColors,
+  showGreyscale = false,
   onOpenChange,
+
   getLiveHtmlSources,
 }: WPColorPickerProps) {
   const [open, setOpen] = useState(false);
@@ -117,13 +126,16 @@ export function WPColorPicker({
   const displayedPalette = palette.filter((c) => !excludeSet.has((normaliseHex(c) ?? c).toUpperCase()));
 
   // Union of caller-supplied extras + persisted custom colours, deduped and
-  // excluded from the default palette.
+  // excluded from the default palette (and greyscale when shown).
   const paletteSet = new Set(palette.map((c) => c.toUpperCase()));
+  const greyscaleSet = new Set(GREYSCALE_COLORS.map((c) => c.toUpperCase()));
+  const isBuiltInSwatch = (hex: string) =>
+    paletteSet.has(hex.toUpperCase()) || (showGreyscale && greyscaleSet.has(hex.toUpperCase()));
   const dedupedExtras = Array.from(
     new Set(
       [...extraColors, ...customColors]
         .map((c) => normaliseHex(c) ?? c.toUpperCase())
-        .filter((c) => HEX_RE.test(c) && !paletteSet.has(c))
+        .filter((c) => HEX_RE.test(c) && !isBuiltInSwatch(c))
     )
   );
 
@@ -131,10 +143,11 @@ export function WPColorPicker({
     onChange(newHex);
     setInputValue(newHex.toUpperCase());
     // Auto-add non-palette picks to proposals.custom_colors.
-    if (proposalId && !paletteSet.has(newHex.toUpperCase())) {
+    if (proposalId && !isBuiltInSwatch(newHex)) {
       void addCustomColor(newHex);
     }
   };
+
 
   const handleSelectSwatch = (paletteColor: string) => {
     const hex = normaliseHex(paletteColor) ?? paletteColor;
@@ -243,7 +256,39 @@ export function WPColorPicker({
             </div>
           </div>
 
+          {/* Greyscale section (font-colour + canvas pickers only) */}
+          {showGreyscale && (
+            <div>
+              <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5">
+                Greyscale
+              </div>
+              <div className="grid grid-cols-6 gap-1.5">
+                {GREYSCALE_COLORS.map((g) => {
+                  const norm = g.toUpperCase();
+                  const isSelected = (normaliseHex(color) ?? color.toUpperCase()) === norm;
+                  const needsLightOutline = getContrastingTextColor(norm) === '#000000';
+                  return (
+                    <button
+                      key={g}
+                      className={cn(
+                        'h-7 w-7 rounded-md border-2 transition-all hover:scale-110',
+                        isSelected ? 'border-primary ring-2 ring-primary/20' : 'border-transparent'
+                      )}
+                      style={{
+                        backgroundColor: g,
+                        boxShadow: !isSelected && needsLightOutline ? 'inset 0 0 0 1px rgba(0,0,0,0.2)' : undefined,
+                      }}
+                      onClick={() => handleSelectSwatch(g)}
+                      aria-label={`Select ${g}`}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* In-proposal colours (union of extras + saved custom) */}
+
           {dedupedExtras.length > 0 && (
             <div>
               <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5">

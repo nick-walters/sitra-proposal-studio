@@ -1144,7 +1144,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
         h: size.h,
         z: maxZ + 1,
         content: { shape, html: '' },
-        style: { outlineColor: 'none', fillColor: '#9CA3AF' },
+        style: { outlineColor: 'none', fillColor: '#ADB5BD' },
       };
       const { data, error } = await supabase
         .from('impact_canvas_elements')
@@ -2284,8 +2284,10 @@ function BoundStyleToolbar({ proposalId, canEdit, style, onChange }: BoundStyleT
         proposalId={proposalId}
         canManageCustom={canEdit}
         label="Fill colour"
+        showGreyscale
         onRemove={() => onChange({ fillColor: 'none' })}
         removeLabel="No fill"
+
         trigger={
           <button
             type="button"
@@ -2329,6 +2331,8 @@ function BoundStyleToolbar({ proposalId, canEdit, style, onChange }: BoundStyleT
         proposalId={proposalId}
         canManageCustom={canEdit}
         label="Font colour"
+        showGreyscale
+
         trigger={
           <button
             type="button"
