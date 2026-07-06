@@ -623,6 +623,36 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       >
         <div style={{ paddingBottom: paddingPct }} />
 
+        {/* Grid overlay — editor-only aid, never rendered in read-only. */}
+        {showGrid && (
+          <div
+            aria-hidden
+            style={{
+              position: 'absolute',
+              inset: 0,
+              pointerEvents: 'none',
+              zIndex: 0,
+              // Four layered gradients: major vertical, major horizontal,
+              // minor vertical, minor horizontal. Sized in % of the wrapper
+              // which itself is 18cm : VHcm, so lines stay cm-aligned.
+              backgroundImage: [
+                'linear-gradient(to right, rgba(0,0,0,0.18) 0, rgba(0,0,0,0.18) 1px, transparent 1px)',
+                'linear-gradient(to bottom, rgba(0,0,0,0.18) 0, rgba(0,0,0,0.18) 1px, transparent 1px)',
+                'linear-gradient(to right, rgba(0,0,0,0.07) 0, rgba(0,0,0,0.07) 1px, transparent 1px)',
+                'linear-gradient(to bottom, rgba(0,0,0,0.07) 0, rgba(0,0,0,0.07) 1px, transparent 1px)',
+              ].join(', '),
+              backgroundSize: [
+                `${(1 / VW) * 100}% ${(1 / VH) * 100}%`,
+                `${(1 / VW) * 100}% ${(1 / VH) * 100}%`,
+                `${(0.2 / VW) * 100}% ${(0.2 / VH) * 100}%`,
+                `${(0.2 / VW) * 100}% ${(0.2 / VH) * 100}%`,
+              ].join(', '),
+              backgroundPosition: '0 0, 0 0, 0 0, 0 0',
+            }}
+          />
+        )}
+
+
         {columnOrder.map((c, ci) => (
           <div
             key={`h-${c.id}`}
