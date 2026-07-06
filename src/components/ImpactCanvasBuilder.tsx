@@ -98,7 +98,34 @@ export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figure
             the last row/column of boxes (graphic ends flush, no slack). */}
         <Card>
           <CardContent className="py-4 space-y-3">
-            {/* Shared toolbar — top of card */}
+            <div style={{ paddingBottom: 8, paddingRight: 8 }}>
+              <ImpactCanvasFreeformEditor proposalId={proposalId} canEdit={canEdit} />
+            </div>
+            {/* Off-screen clean read-only render — this is what PNG export
+                captures via graphicRef, so no editor chrome (toolbar,
+                guidelines, grid) can leak into the PNG. */}
+            <div
+              aria-hidden="true"
+              style={{
+                position: 'fixed',
+                left: '-100000px',
+                top: 0,
+                width: 1000,
+                pointerEvents: 'none',
+              }}
+            >
+              <div ref={graphicRef}>
+                <ImpactCanvasFreeformRenderer proposalId={proposalId} fallback="grid" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+
+        {/* The builder grid */}
+        <Card>
+          <CardContent className="py-4 space-y-3">
+            {/* Shared cell-formatting toolbar — sits above the builder table. */}
             <div
               data-impact-canvas-toolbar
               className="sticky top-0 z-10 bg-background border rounded-md p-1 flex items-center gap-1 overflow-visible"
@@ -151,42 +178,8 @@ export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figure
                 {activeEditor ? 'Editing focused cell' : 'Click a cell to edit'}
               </span>
             </div>
-            {/* Thin grey divider under toolbar */}
             <div className="h-px bg-border" />
 
-            <div style={{ paddingBottom: 8, paddingRight: 8 }}>
-              <ImpactCanvasFreeformEditor proposalId={proposalId} canEdit={canEdit} />
-            </div>
-            {/* Off-screen clean read-only render — this is what PNG export
-                captures via graphicRef, so no editor chrome (toolbar,
-                guidelines, grid) can leak into the PNG. The off-screen
-                positioning lives on the OUTER wrapper so the inner div
-                (graphicRef) carries no positional inline styles — otherwise
-                html2canvas clones them and rasterises the clone off-screen
-                (empty PNG). */}
-            <div
-              aria-hidden="true"
-              style={{
-                position: 'fixed',
-                left: '-100000px',
-                top: 0,
-                width: 1000,
-                pointerEvents: 'none',
-              }}
-            >
-              <div ref={graphicRef}>
-                <ImpactCanvasFreeformRenderer proposalId={proposalId} fallback="grid" />
-              </div>
-            </div>
-
-
-          </CardContent>
-        </Card>
-
-
-        {/* The builder grid */}
-        <Card>
-          <CardContent className="py-4 space-y-3">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-semibold">Table builder</h3>
@@ -200,6 +193,7 @@ export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figure
                 </Button>
               )}
             </div>
+
 
             {columnOrder.length === 0 ? (
               <p className="text-xs text-muted-foreground italic py-6 text-center">

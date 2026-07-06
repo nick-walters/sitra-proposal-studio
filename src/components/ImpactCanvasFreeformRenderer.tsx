@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
 import { supabase } from '@/integrations/supabase/client';
 import { useImpactCanvasColumns, useImpactCanvasRows } from '@/hooks/useImpactCanvas';
-import { CANVAS_WIDTH_CM, HEADER_HEIGHT_CM, computeCanvasHeightCm } from '@/lib/impactCanvasLayout';
+import { CANVAS_WIDTH_CM, computeCanvasHeightCm } from '@/lib/impactCanvasLayout';
 import { ImpactCanvasShape, type ShapeKind } from './ImpactCanvasShape';
 import { resolveBoundStyle } from '@/lib/impactCanvasBoundStyle';
 
@@ -128,24 +128,30 @@ export function ImpactCanvasFreeformRenderer({ proposalId, className, fallback =
   const boundEls = elements.filter(
     (e) => e.kind === 'bound' && e.bound_row_id && e.bound_col_key,
   );
+  const headerEls = elements.filter((e) => e.kind === 'header' && e.bound_col_key);
   const textEls = elements.filter((e) => e.kind === 'text');
   const shapeEls = elements.filter((e) => e.kind === 'shape');
 
-  // Fallback: pre-backfill proposals with no bound elements fall back to
+  // Fallback: pre-backfill proposals with no elements fall back to
   // a legacy CSS grid layout so the canvas is never blank.
-  if (boundEls.length === 0 && textEls.length === 0 && shapeEls.length === 0 && fallback === 'grid') {
+  if (
+    boundEls.length === 0 &&
+    headerEls.length === 0 &&
+    textEls.length === 0 &&
+    shapeEls.length === 0 &&
+    fallback === 'grid'
+  ) {
     return <LegacyGridFallback proposalId={proposalId} className={className} />;
   }
 
 
   const rowById = new Map(rows.map((r) => [r.id, r]));
+  const columnByKey = new Map(columnOrder.map((c) => [c.key, c]));
   const VW = CANVAS_WIDTH_CM;
-  const VH = computeCanvasHeightCm([...boundEls, ...textEls, ...shapeEls]);
+  const VH = computeCanvasHeightCm([...boundEls, ...headerEls, ...textEls, ...shapeEls]);
   const pctX = (x: number) => `${(x / VW) * 100}%`;
   const pctY = (y: number) => `${(y / VH) * 100}%`;
   const paddingPct = `${(VH / VW) * 100}%`;
-
-  const colW = VW / columnOrder.length;
 
   return (
     <div
@@ -158,34 +164,57 @@ export function ImpactCanvasFreeformRenderer({ proposalId, className, fallback =
         fontFamily: '"Times New Roman", Times, serif',
       }}
     >
-      {/* aspect-ratio spacer (60% == 600/1000) */}
+      {/* aspect-ratio spacer */}
       <div style={{ paddingBottom: paddingPct }} />
 
-      {/* Column headers — fixed top band */}
-      {columnOrder.map((c, ci) => (
-        <div
-          key={`h-${c.id}`}
-          style={{
-            position: 'absolute',
-            left: pctX(ci * colW),
-            top: pctY(0),
-            width: pctX(colW),
-            height: pctY(HEADER_HEIGHT_CM),
-            padding: '0 4px 4px 0',
-            display: 'flex',
-            alignItems: 'center',
-            fontFamily: '"Arial Black", Arial, sans-serif',
-            fontSize: 11,
-            fontWeight: 700,
-            color: '#000',
-            whiteSpace: 'pre-line',
-            textAlign: 'left',
-            lineHeight: 1.15,
-          }}
-        >
-          {c.heading}
-        </div>
-      ))}
+      {/* Column-header elements — positionable, text sourced from
+          impact_canvas_columns.heading (not free text). */}
+      {headerEls.map((el) => {
+        const col = columnByKey.get(el.bound_col_key!);
+        const bs = resolveBoundStyle(el.style);
+        return (
+          <div
+            key={el.id}
+            style={{
+              position: 'absolute',
+              left: pctX(el.x),
+              top: pctY(el.y),
+              width: pctX(el.w),
+              height: pctY(el.h),
+              zIndex: el.z,
+              padding: '2pt',
+              boxSizing: 'border-box',
+            }}
+          >
+            <div
+              style={{
+                width: '100%',
+                height: '100%',
+                borderStyle: 'solid',
+                borderColor: bs.borderColor,
+                borderWidth: bs.borderWidth ? `${bs.borderWidth}pt` : 0,
+                borderRadius: 6,
+                background: bs.background,
+                padding: '2pt',
+                boxSizing: 'border-box',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'flex-start',
+                overflow: 'hidden',
+                fontFamily: '"Arial Black", Arial, sans-serif',
+                fontSize: 11,
+                fontWeight: 700,
+                color: bs.color,
+                whiteSpace: 'pre-line',
+                textAlign: 'left',
+                lineHeight: 1.15,
+              }}
+            >
+              {col?.heading ?? ''}
+            </div>
+          </div>
+        );
+      })}
 
       {/* Bound elements */}
       {boundEls.map((el) => {
@@ -235,6 +264,7 @@ export function ImpactCanvasFreeformRenderer({ proposalId, className, fallback =
           </div>
         );
       })}
+
 
       {/* Free text-box elements — read-only rendering. */}
       {textEls.map((el) => {

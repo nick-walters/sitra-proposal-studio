@@ -10,7 +10,7 @@ import { useImpactCanvasColumns, useImpactCanvasRows } from '@/hooks/useImpactCa
 import {
   CANVAS_WIDTH_CM,
   CANVAS_MAX_HEIGHT_CM,
-  HEADER_HEIGHT_CM,
+  
   MIN_ELEMENT_W_CM,
   MIN_ELEMENT_H_CM,
   DEFAULT_BOUND_H_CM,
@@ -886,13 +886,19 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     [columns],
   );
   const rowById = useMemo(() => new Map(rows.map((r) => [r.id, r])), [rows]);
+  const columnByKey = useMemo(() => new Map(columnOrder.map((c) => [c.key, c])), [columnOrder]);
   const boundEls = useMemo(
     () => fetched.filter((e) => e.kind === 'bound' && e.bound_row_id && e.bound_col_key),
+    [fetched],
+  );
+  const headerEls = useMemo(
+    () => fetched.filter((e) => e.kind === 'header' && e.bound_col_key),
     [fetched],
   );
   const textEls = useMemo(() => fetched.filter((e) => e.kind === 'text'), [fetched]);
   const shapeEls = useMemo(() => fetched.filter((e) => e.kind === 'shape'), [fetched]);
   const lineEls = useMemo(() => fetched.filter((e) => e.kind === 'line'), [fetched]);
+
   /** Line elements merged with any in-flight overrides (bbox + endpoints)
    *  so the shared overlay + interactive layer stay in sync during drag. */
   const lineElsMerged = useMemo(() => {
@@ -1227,18 +1233,21 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
   const pctY = (y: number) => `${(y / VH) * 100}%`;
   const paddingPct = `${(VH / VW) * 100}%`;
 
-  const colW = VW / columnOrder.length;
+  
 
   const selectedEl = selectedId ? fetched.find((e) => e.id === selectedId) ?? null : null;
   const selectedIsBound = selectedEl?.kind === 'bound';
+  const selectedIsHeader = selectedEl?.kind === 'header';
   const selectedIsShape = selectedEl?.kind === 'shape';
   const selectedIsText = selectedEl?.kind === 'text';
   const selectedIsLine = selectedEl?.kind === 'line';
   const selectedIsFree = selectedIsShape || selectedIsText || selectedIsLine;
+  const selectedIsBoundLike = selectedIsBound || selectedIsHeader;
 
   const selectedBox = selectedEl
     ? (overrides[selectedEl.id] ?? { x: selectedEl.x, y: selectedEl.y, w: selectedEl.w, h: selectedEl.h })
     : null;
+
 
   return (
     <div className="space-y-2">
@@ -1273,8 +1282,9 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
           </div>
 
 
-          {/* Style controls — bound boxes AND shapes share the style model. */}
-          {selectedEl && (selectedIsBound || selectedIsShape) && (
+          {/* Style controls — bound boxes, header boxes, and shapes share the style model. */}
+          {selectedEl && (selectedIsBoundLike || selectedIsShape) && (
+
             <BoundStyleToolbar
               proposalId={proposalId}
               canEdit={canEdit}
@@ -1449,31 +1459,84 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
         )}
 
 
-        {columnOrder.map((c, ci) => (
-          <div
-            key={`h-${c.id}`}
-            style={{
-              position: 'absolute',
-              left: pctX(ci * colW),
-              top: pctY(0),
-              width: pctX(colW),
-              height: pctY(HEADER_HEIGHT_CM),
-              padding: '0 4px 4px 0',
-              display: 'flex',
-              alignItems: 'center',
-              fontFamily: '"Arial Black", Arial, sans-serif',
-              fontSize: 11,
-              fontWeight: 700,
-              color: '#000',
-              whiteSpace: 'pre-line',
-              textAlign: 'left',
-              lineHeight: 1.15,
-              pointerEvents: 'none',
-            }}
-          >
-            {c.heading}
-          </div>
-        ))}
+        {/* Header elements — bound-style boxes whose text is sourced from
+            impact_canvas_columns.heading (NOT free text). Drag/resize/style
+            like bound cell boxes; not individually deletable (managed via
+            column add/delete). */}
+        {headerEls.map((el) => {
+          const col = columnByKey.get(el.bound_col_key!);
+          const ov = overrides[el.id];
+          const box = ov ?? { x: el.x, y: el.y, w: el.w, h: el.h };
+          const selected = selectedId === el.id;
+          const styleSrc = styleOverrides[el.id] ?? el.style;
+          const bs = resolveBoundStyle(styleSrc);
+          return (
+            <div
+              key={el.id}
+              style={{
+                position: 'absolute',
+                left: pctX(box.x),
+                top: pctY(box.y),
+                width: pctX(box.w),
+                height: pctY(box.h),
+                zIndex: el.z + (selected ? 1000 : 0),
+                padding: '2pt',
+                boxSizing: 'border-box',
+                cursor: canEdit ? (drag?.id === el.id && drag.mode.kind === 'move' ? 'grabbing' : 'grab') : 'default',
+              }}
+              onPointerDown={(e) => beginDrag(e, el.id, { kind: 'move' }, box)}
+            >
+              <div
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  borderStyle: 'solid',
+                  borderColor: selected ? 'hsl(var(--primary))' : bs.borderColor,
+                  borderWidth: selected
+                    ? `${Math.max(1.5, bs.borderWidth)}pt`
+                    : bs.borderWidth ? `${bs.borderWidth}pt` : 0,
+                  borderRadius: 6,
+                  background: bs.background,
+                  padding: '2pt',
+                  boxSizing: 'border-box',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'flex-start',
+                  overflow: 'hidden',
+                  fontFamily: '"Arial Black", Arial, sans-serif',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: bs.color,
+                  whiteSpace: 'pre-line',
+                  textAlign: 'left',
+                  lineHeight: 1.15,
+                  pointerEvents: 'none',
+                }}
+              >
+                {col?.heading ?? ''}
+              </div>
+
+              {selected && canEdit && HANDLES.map((h) => (
+                <div
+                  key={h}
+                  onPointerDown={(e) => beginDrag(e, el.id, { kind: 'resize', handle: h }, box)}
+                  style={{
+                    position: 'absolute',
+                    width: 10,
+                    height: 10,
+                    background: 'hsl(var(--primary))',
+                    border: '1px solid white',
+                    borderRadius: 2,
+                    zIndex: 2,
+                    cursor: HANDLE_CURSOR[h],
+                    ...handleStyle(h),
+                  }}
+                />
+              ))}
+            </div>
+          );
+        })}
+
 
         {boundEls.map((el) => {
           const row = rowById.get(el.bound_row_id!);
