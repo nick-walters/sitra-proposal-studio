@@ -18,7 +18,7 @@ import { BOUND_STYLE_DEFAULTS, readBoundStyle, resolveBoundStyle } from '@/lib/i
 import type { BoundBoxStyle } from '@/lib/impactCanvasBoundStyle';
 import { ImpactCanvasTextBox } from './ImpactCanvasTextBox';
 import { ImpactCanvasOutlinePicker } from './ImpactCanvasOutlinePicker';
-import { ImpactCanvasShape, SHAPE_KINDS, type ShapeKind } from './ImpactCanvasShape';
+import { ImpactCanvasShape, type ShapeKind } from './ImpactCanvasShape';
 import { Circle as CircleIcon, Square, Squircle, Triangle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 
