@@ -298,152 +298,181 @@ export function ImpactCanvasFreeformRenderer({ proposalId, className, fallback =
         );
       })}
 
-      {/* ── SPIKE (throwaway): verify SVG polygon arrowheads across editor / PDF / PNG.
-          Remove this block + <LinesSpike/> below once verified. */}
-      <LinesSpike VW={VW} VH={VH} />
+      {/* Free line elements — shared SVG overlay used by editor + B2.1 + PDF + PNG. */}
+      <ImpactCanvasLinesOverlay VW={VW} VH={VH} elements={elements as unknown as LineElement[]} />
     </div>
   );
 }
 
-/**
- * Throwaway spike — renders two test lines with computed polygon arrowheads
- * (NOT <marker>) so we can eyeball rendering parity across editor screen,
- * PDF export (freezeInteractiveElements) and PNG export (html2canvas).
- *
- * Two stroke-width approaches side-by-side:
- *   BLUE straight   → cm-scaled stroke-width (1.5pt → cm)
- *   RED  elbow      → vector-effect="non-scaling-stroke" + px width (1.5px)
- *
- * Delete this component + its call site after verification.
- */
-export function LinesSpike({ VW, VH }: { VW: number; VH: number }) {
-  // Coords in cm. Positioned in the top band so they render even on short
-  // canvases; kept well away from bound headers/cells.
-  const straight = { from: { x: 0.6, y: 1.6 }, to: { x: 8.4, y: 3.2 } };
-  const elbow = {
-    from: { x: 9.6, y: 1.6 },
-    to: { x: 17.4, y: 4.6 },
-  };
-  // Auto bend: HV routing when |dx| >= |dy|, else VH. Bend at mid of long axis.
-  const dxE = elbow.to.x - elbow.from.x;
-  const dyE = elbow.to.y - elbow.from.y;
-  const bend =
-    Math.abs(dxE) >= Math.abs(dyE)
-      ? { x: elbow.from.x + dxE / 2, y: elbow.from.y }
-      : { x: elbow.from.x, y: elbow.from.y + dyE / 2 };
-  const elbowMid = { x: elbow.to.x, y: bend.y };
+// ─── Line element rendering ──────────────────────────────────────────────
+// Shared by the editor + read-only renderer (used in B2.1/PDF/PNG). Stage 1:
+// read-only. No selection/drag yet — that is Stage 2.
 
-  // Stroke widths.
-  const STROKE_PT = 1.5;
-  const strokeCm = STROKE_PT / 28.3465; // ≈ 0.053 cm — used by BLUE path
+export interface LinePoint { x: number; y: number }
+export interface LineContent {
+  routing: 'straight' | 'elbow';
+  arrow: 'none' | 'end' | 'both';
+  from: LinePoint;
+  to: LinePoint;
+  elbow?: { axis: 'h' | 'v'; at: number };
+}
+export interface LineStyle {
+  outlineColor?: string;
+  outlineWidth?: number; // pt
+}
+export interface LineElement {
+  id: string;
+  kind: string;
+  x: number; y: number; w: number; h: number; z: number;
+  content: LineContent;
+  style: LineStyle;
+}
 
-  // Arrowhead polygon (in cm) — isosceles triangle at tip, base perpendicular
-  // to segment direction. Size scaled to a visible ~4× stroke, min 0.15 cm.
-  const headSize = Math.max(0.15, strokeCm * 4);
-  const arrowPoly = (
-    tip: { x: number; y: number },
-    dir: { x: number; y: number },
-    size: number,
-  ) => {
-    const len = Math.hypot(dir.x, dir.y) || 1;
-    const ux = dir.x / len;
-    const uy = dir.y / len;
-    const px = -uy;
-    const py = ux;
-    const baseX = tip.x - ux * size;
-    const baseY = tip.y - uy * size;
-    const half = size * 0.55;
-    const a = { x: baseX + px * half, y: baseY + py * half };
-    const b = { x: baseX - px * half, y: baseY - py * half };
-    return `${tip.x},${tip.y} ${a.x},${a.y} ${b.x},${b.y}`;
-  };
-  // Retract an endpoint toward the segment origin by `size` (arrowhead length)
-  // so the visible stroke stops at the arrowhead base, not the tip.
-  const retract = (
-    endpoint: { x: number; y: number },
-    dir: { x: number; y: number },
-    size: number,
-  ) => {
-    const len = Math.hypot(dir.x, dir.y) || 1;
-    return { x: endpoint.x - (dir.x / len) * size, y: endpoint.y - (dir.y / len) * size };
-  };
+/** Retract an endpoint toward the segment origin by `size` along `dir`. */
+export function retractPoint(endpoint: LinePoint, dir: LinePoint, size: number): LinePoint {
+  const len = Math.hypot(dir.x, dir.y) || 1;
+  return { x: endpoint.x - (dir.x / len) * size, y: endpoint.y - (dir.y / len) * size };
+}
 
-  // Straight line direction (from → to).
-  const straightDir = { x: straight.to.x - straight.from.x, y: straight.to.y - straight.from.y };
-  // Two-way head on BLUE straight — retract BOTH ends.
-  const straightEndRetracted = retract(straight.to, straightDir, headSize);
-  const straightStartRetracted = retract(
-    straight.from,
-    { x: -straightDir.x, y: -straightDir.y },
-    headSize,
-  );
+/** Points-string for an arrowhead polygon whose TIP is `tip`, oriented along `dir`. */
+export function arrowPolyPoints(tip: LinePoint, dir: LinePoint, size: number): string {
+  const len = Math.hypot(dir.x, dir.y) || 1;
+  const ux = dir.x / len;
+  const uy = dir.y / len;
+  const px = -uy;
+  const py = ux;
+  const baseX = tip.x - ux * size;
+  const baseY = tip.y - uy * size;
+  const half = size * 0.55;
+  return `${tip.x},${tip.y} ${baseX + px * half},${baseY + py * half} ${baseX - px * half},${baseY - py * half}`;
+}
 
-  // RED elbow: only the final leg carries an arrowhead → retract only `to`.
-  const elbowLegDir =
-    Math.abs(dxE) >= Math.abs(dyE)
-      ? { x: 0, y: elbow.to.y - bend.y } // final leg vertical in HV routing
-      : { x: elbow.to.x - bend.x, y: 0 }; // final leg horizontal in VH routing
-  const elbowEndRetracted = retract(elbow.to, elbowLegDir, headSize);
-  const elbowPath = `M ${elbow.from.x} ${elbow.from.y} L ${bend.x} ${bend.y} L ${elbowMid.x} ${elbowMid.y} L ${elbowEndRetracted.x} ${elbowEndRetracted.y}`;
+/** Compute the elbow bend point for an L-shaped connector.
+ *  HV routing (first leg horizontal) when |dx| >= |dy|, else VH. */
+export function computeElbowBend(
+  from: LinePoint,
+  to: LinePoint,
+  override?: { axis: 'h' | 'v'; at: number },
+): { bend: LinePoint; legDir: LinePoint } {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const axis: 'h' | 'v' = override?.axis ?? (Math.abs(dx) >= Math.abs(dy) ? 'h' : 'v');
+  if (axis === 'h') {
+    const at = override?.at ?? from.x + dx / 2;
+    const bend = { x: at, y: from.y };
+    // Path: from → (at, from.y) → (at, to.y) → to. Final leg is (at,to.y)→to (horizontal).
+    // But traditional HV routing goes: from → (at, from.y) → (at, to.y) → to would have
+    // TWO bends. Single-bend HV = from → (to.x, from.y) → to; final leg vertical.
+    return { bend: { x: to.x, y: from.y }, legDir: { x: 0, y: to.y - from.y } };
+  }
+  // VH single-bend: from → (from.x, to.y) → to; final leg horizontal.
+  return { bend: { x: from.x, y: to.y }, legDir: { x: to.x - from.x, y: 0 } };
+}
 
+/** Axis-aligned bounding box of a line's endpoints (with minimum footprint). */
+export function computeLineBBox(from: LinePoint, to: LinePoint): { x: number; y: number; w: number; h: number } {
+  const x = Math.min(from.x, to.x);
+  const y = Math.min(from.y, to.y);
+  const w = Math.max(0.1, Math.abs(to.x - from.x));
+  const h = Math.max(0.1, Math.abs(to.y - from.y));
+  return { x, y, w, h };
+}
+
+const PT_PER_CM = 28.3465;
+
+export function ImpactCanvasLinesOverlay({
+  VW,
+  VH,
+  elements,
+}: {
+  VW: number;
+  VH: number;
+  elements: ReadonlyArray<LineElement>;
+}) {
+  const lines = elements.filter((e) => e.kind === 'line');
+  if (lines.length === 0) return null;
   return (
     <svg
-      data-impact-canvas-lines-spike
+      data-impact-canvas-lines
       viewBox={`0 0 ${VW} ${VH}`}
       preserveAspectRatio="none"
-      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 999 }}
+      style={{
+        position: 'absolute',
+        inset: 0,
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'none',
+        // Above bound/text/shape stacking (which use el.z, typically < 1000).
+        zIndex: 900,
+      }}
     >
-      {/* BLUE — straight, cm-scaled stroke, line stops at arrowhead bases */}
-      <line
-        x1={straightStartRetracted.x}
-        y1={straightStartRetracted.y}
-        x2={straightEndRetracted.x}
-        y2={straightEndRetracted.y}
-        stroke="#1D4ED8"
-        strokeWidth={strokeCm}
-        strokeLinecap="butt"
-      />
-      <polygon
-        points={arrowPoly(straight.to, straightDir, headSize)}
-        fill="#1D4ED8"
-        stroke="none"
-      />
-      <polygon
-        points={arrowPoly(
-          straight.from,
-          { x: -straightDir.x, y: -straightDir.y },
-          headSize,
-        )}
-        fill="#1D4ED8"
-        stroke="none"
-      />
-
-      {/* RED — elbow, non-scaling-stroke px width, line stops at arrowhead base */}
-      <path
-        d={elbowPath}
-        fill="none"
-        stroke="#DC2626"
-        strokeWidth={1.5}
-        vectorEffect="non-scaling-stroke"
-        strokeLinejoin="miter"
-        strokeLinecap="butt"
-      />
-      <polygon
-        points={arrowPoly(elbow.to, elbowLegDir, headSize)}
-        fill="#DC2626"
-        stroke="none"
-      />
-
-      {/* Tiny legend text (cm coords) so PDF/PNG capture is self-labelling */}
-      <text x={0.6} y={0.8} fontSize={0.35} fill="#1D4ED8" fontFamily="Arial, sans-serif">
-        spike: BLUE straight (cm stroke)
-      </text>
-      <text x={9.6} y={0.8} fontSize={0.35} fill="#DC2626" fontFamily="Arial, sans-serif">
-        spike: RED elbow (px non-scaling)
-      </text>
+      {lines.map((el) => (
+        <LineShape key={el.id} el={el} />
+      ))}
     </svg>
   );
 }
+
+function LineShape({ el }: { el: LineElement }) {
+  const c = el.content ?? ({} as LineContent);
+  const from = c.from ?? { x: 0, y: 0 };
+  const to = c.to ?? { x: 0, y: 0 };
+  const routing = c.routing ?? 'straight';
+  const arrow = c.arrow ?? 'none';
+  const color = el.style?.outlineColor ?? '#000';
+  const widthPt = el.style?.outlineWidth ?? 1.5;
+  const widthCm = widthPt / PT_PER_CM;
+  const headSize = Math.max(0.15, widthCm * 4);
+
+  // Determine the segment directions at each end for arrowheads + retract.
+  let endDir: LinePoint;
+  let startDir: LinePoint;
+  let bendPoint: LinePoint | null = null;
+  if (routing === 'elbow') {
+    const { bend, legDir } = computeElbowBend(from, to, c.elbow);
+    bendPoint = bend;
+    endDir = legDir;
+    // Start-side direction = first leg vector (from → bend).
+    startDir = { x: from.x - bend.x, y: from.y - bend.y };
+  } else {
+    endDir = { x: to.x - from.x, y: to.y - from.y };
+    startDir = { x: from.x - to.x, y: from.y - to.y };
+  }
+
+  const hasEndHead = arrow === 'end' || arrow === 'both';
+  const hasStartHead = arrow === 'both';
+  const endTip = to;
+  const startTip = from;
+  const endDraw = hasEndHead ? retractPoint(to, endDir, headSize) : to;
+  const startDraw = hasStartHead ? retractPoint(from, startDir, headSize) : from;
+
+  const d = routing === 'elbow' && bendPoint
+    ? `M ${startDraw.x} ${startDraw.y} L ${bendPoint.x} ${bendPoint.y} L ${endDraw.x} ${endDraw.y}`
+    : `M ${startDraw.x} ${startDraw.y} L ${endDraw.x} ${endDraw.y}`;
+
+  const strokeVisible = color && color !== 'none';
+  return (
+    <g>
+      {strokeVisible && (
+        <path
+          d={d}
+          fill="none"
+          stroke={color}
+          strokeWidth={widthCm}
+          strokeLinecap="butt"
+          strokeLinejoin="miter"
+        />
+      )}
+      {strokeVisible && hasEndHead && (
+        <polygon points={arrowPolyPoints(endTip, endDir, headSize)} fill={color} stroke="none" />
+      )}
+      {strokeVisible && hasStartHead && (
+        <polygon points={arrowPolyPoints(startTip, startDir, headSize)} fill={color} stroke="none" />
+      )}
+    </g>
+  );
+}
+
 
 
 
