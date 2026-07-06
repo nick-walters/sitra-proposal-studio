@@ -5,7 +5,14 @@ import { PaintBucket, Trash2, Type } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useImpactCanvasColumns, useImpactCanvasRows } from '@/hooks/useImpactCanvas';
-import { IMPACT_CANVAS_VIEWPORT, IMPACT_CANVAS_HEADER_HEIGHT } from '@/lib/impactCanvasLayout';
+import {
+  CANVAS_WIDTH_CM,
+  CANVAS_MAX_HEIGHT_CM,
+  HEADER_HEIGHT_CM,
+  MIN_ELEMENT_W_CM,
+  MIN_ELEMENT_H_CM,
+  computeCanvasHeightCm,
+} from '@/lib/impactCanvasLayout';
 import { WPColorPicker } from './WPColorPicker';
 import { BOUND_STYLE_DEFAULTS, readBoundStyle, resolveBoundStyle } from '@/lib/impactCanvasBoundStyle';
 import type { BoundBoxStyle } from '@/lib/impactCanvasBoundStyle';
@@ -59,8 +66,8 @@ interface CanvasElement {
 const EMPTY_ELS: CanvasElement[] = [];
 const ELS_KEY = (pid: string) => ['impact-canvas-elements', pid];
 
-const MIN_W = 60;
-const MIN_H = 30;
+const MIN_W = MIN_ELEMENT_W_CM;
+const MIN_H = MIN_ELEMENT_H_CM;
 
 type Handle = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w';
 type DragMode = { kind: 'move' } | { kind: 'resize'; handle: Handle };
@@ -72,6 +79,7 @@ interface DragState {
   startClientY: number;
   startBox: { x: number; y: number; w: number; h: number };
   wrapperRect: DOMRect;
+  canvasHeightCm: number;
 }
 
 export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: Props) {
@@ -247,6 +255,8 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     };
   }, []);
 
+  const canvasHeightCmRef = useRef(CANVAS_MAX_HEIGHT_CM);
+
   const beginDrag = (
     e: React.PointerEvent,
     id: string,
@@ -268,19 +278,28 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       startClientY: e.clientY,
       startBox: current,
       wrapperRect: wrapper.getBoundingClientRect(),
+      canvasHeightCm: canvasHeightCmRef.current,
     });
   };
 
   useEffect(() => {
     if (!drag) return;
-    const { width: VW, height: VH } = IMPACT_CANVAS_VIEWPORT;
-
+    // VW is fixed by the cm model; VH is captured from the wrapper's actual
+    // pixel dimensions at drag start (ratio px/cm is stable during drag —
+    // if content grows the canvas the ratio doesn't change).
+    const VW = CANVAS_WIDTH_CM;
+    const VH_CM = CANVAS_MAX_HEIGHT_CM;
+    const VH_render = drag.wrapperRect.width * (drag.canvasHeightCm / VW); // pixels
+    // pxPerCmY: derive from the wrapper rect if possible, else from the
+    // computed pixel height at drag start. wrapperRect.height already
+    // reflects the current computed canvas height because of the
+    // aspect-ratio spacer.
     const onMove = (ev: PointerEvent) => {
       const rect = drag.wrapperRect;
-      const pxPerUnitX = rect.width / VW;
-      const pxPerUnitY = rect.height / VH;
-      const dx = (ev.clientX - drag.startClientX) / pxPerUnitX;
-      const dy = (ev.clientY - drag.startClientY) / pxPerUnitY;
+      const pxPerCmX = rect.width / VW;
+      const pxPerCmY = (rect.height || VH_render) / drag.canvasHeightCm;
+      const dx = (ev.clientX - drag.startClientX) / pxPerCmX;
+      const dy = (ev.clientY - drag.startClientY) / pxPerCmY;
 
       let { x, y, w, h } = drag.startBox;
       if (drag.mode.kind === 'move') {
@@ -308,9 +327,9 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
         }
       }
       w = Math.min(w, VW);
-      h = Math.min(h, VH);
+      h = Math.min(h, VH_CM);
       x = Math.max(0, Math.min(x, VW - w));
-      y = Math.max(0, Math.min(y, VH - h));
+      y = Math.max(0, Math.min(y, VH_CM - h));
 
       setOverrides((o) => ({ ...o, [drag.id]: { x, y, w, h } }));
     };
@@ -351,14 +370,15 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
 
   const addTextBox = useCallback(async () => {
     if (!canEdit) return;
-    const { width: VW, height: VH } = IMPACT_CANVAS_VIEWPORT;
-    const w = 220;
-    const h = 60;
+    const VW = CANVAS_WIDTH_CM;
+    const VH = canvasHeightCmRef.current;
+    const w = 4;   // cm
+    const h = 1.2; // cm
     const insertBox = {
       proposal_id: proposalId,
       kind: 'text',
-      x: Math.round((VW - w) / 2),
-      y: Math.round((VH - h) / 2),
+      x: +((VW - w) / 2).toFixed(4),
+      y: +((VH - h) / 2).toFixed(4),
       w,
       h,
       z: maxZ + 1,
@@ -434,7 +454,12 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     );
   }
 
-  const { width: VW, height: VH } = IMPACT_CANVAS_VIEWPORT;
+  // Merge live drag overrides so the canvas height grows in real-time as
+  // the user drags an element toward the bottom edge (still clamped to 25.5cm).
+  const mergedForHeight = fetched.map((e) => ({ ...e, ...(overrides[e.id] ?? {}) }));
+  const VW = CANVAS_WIDTH_CM;
+  const VH = computeCanvasHeightCm(mergedForHeight);
+  canvasHeightCmRef.current = VH;
   const pctX = (x: number) => `${(x / VW) * 100}%`;
   const pctY = (y: number) => `${(y / VH) * 100}%`;
   const paddingPct = `${(VH / VW) * 100}%`;
@@ -534,7 +559,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
               left: pctX(ci * colW),
               top: pctY(0),
               width: pctX(colW),
-              height: pctY(IMPACT_CANVAS_HEADER_HEIGHT),
+              height: pctY(HEADER_HEIGHT_CM),
               padding: '0 4px 4px 0',
               display: 'flex',
               alignItems: 'center',
