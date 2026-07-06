@@ -1388,10 +1388,10 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     <div className="space-y-2">
       {canEdit && (
         <div
-          className="flex items-center gap-1 flex-wrap rounded-md border bg-muted/30 px-2 py-1"
+          className="w-full flex items-center gap-1 flex-wrap bg-muted/30 px-2 py-1"
           data-impact-canvas-toolbar
         >
-          {/* Undo / Redo */}
+          {/* Group 1: Undo / Redo */}
           <Button
             type="button"
             variant="ghost"
@@ -1419,7 +1419,38 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
 
           <Separator orientation="vertical" className="h-5 mx-1" />
 
-          {/* Bound/shape style controls — always present, disabled if inapplicable. */}
+          {/* Group 2: Adders — shapes, line, text (always enabled). */}
+          <div className="flex items-center gap-0.5" data-impact-canvas-adders>
+            <Button type="button" variant="ghost" size="sm" onClick={() => addShape('rect')} className="h-7 w-7 p-0" title="Rectangle" aria-label="Add rectangle" data-impact-canvas-toolbar>
+              <Square className="w-3.5 h-3.5" />
+            </Button>
+            <Button type="button" variant="ghost" size="sm" onClick={() => addShape('roundedRect')} className="h-7 w-7 p-0" title="Rounded rectangle" aria-label="Add rounded rectangle" data-impact-canvas-toolbar>
+              <Squircle className="w-3.5 h-3.5" />
+            </Button>
+            <Button type="button" variant="ghost" size="sm" onClick={() => addShape('circle')} className="h-7 w-7 p-0" title="Circle" aria-label="Add circle" data-impact-canvas-toolbar>
+              <CircleIcon className="w-3.5 h-3.5" />
+            </Button>
+            <Button type="button" variant="ghost" size="sm" onClick={() => addShape('triangle')} className="h-7 w-7 p-0" title="Triangle" aria-label="Add triangle" data-impact-canvas-toolbar>
+              <Triangle className="w-3.5 h-3.5" />
+            </Button>
+            <LineAdderSplitButton onAdd={addLine} />
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={addTextBox}
+              className="h-7 w-7 p-0"
+              title="Text box"
+              aria-label="Add text box"
+              data-impact-canvas-toolbar
+            >
+              <Type className="w-3.5 h-3.5" />
+            </Button>
+          </div>
+
+          <Separator orientation="vertical" className="h-5 mx-1" />
+
+          {/* Group 3: Style — fill, outline, font (bound boxes/shapes + line outline). */}
           <BoundStyleToolbar
             proposalId={proposalId}
             canEdit={canEdit && styleEnabled}
@@ -1432,10 +1463,6 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
               if (selectedEl) updateBoundStyle(selectedEl.id, patch);
             }}
           />
-
-          <Separator orientation="vertical" className="h-5 mx-1" />
-
-          {/* Line outline (colour + width) — disabled unless a line is selected. */}
           <div className="flex items-center" data-impact-canvas-toolbar>
             <ImpactCanvasOutlinePicker
               color={
@@ -1451,7 +1478,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
 
           <Separator orientation="vertical" className="h-5 mx-1" />
 
-          {/* cm size fields — always present, disabled if no sizable selection. */}
+          {/* Group 4: Size (W/H cm fields) */}
           <SizeFields
             box={sizeEnabled && selectedBox ? selectedBox : { x: 0, y: 0, w: 0, h: 0 }}
             disabled={!sizeEnabled}
@@ -1462,29 +1489,33 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
 
           <Separator orientation="vertical" className="h-5 mx-1" />
 
-          {/* Z-order controls */}
+          {/* Group 5: Layers (front / forward / backward / back) */}
           <div className="flex items-center gap-0.5" data-impact-canvas-toolbar>
             <Button
               type="button" variant="ghost" size="sm" className="h-7 px-1.5"
               title="Bring to front"
+              aria-label="Bring to front"
               disabled={!zEnabled}
               onClick={() => selectedEl && changeZOrder(selectedEl.id, 'front')}
             >⤒</Button>
             <Button
               type="button" variant="ghost" size="sm" className="h-7 px-1.5"
               title="Bring forward"
+              aria-label="Bring forward"
               disabled={!zEnabled}
               onClick={() => selectedEl && changeZOrder(selectedEl.id, 'forward')}
             >↑</Button>
             <Button
               type="button" variant="ghost" size="sm" className="h-7 px-1.5"
               title="Send backward"
+              aria-label="Send backward"
               disabled={!zEnabled}
               onClick={() => selectedEl && changeZOrder(selectedEl.id, 'backward')}
             >↓</Button>
             <Button
               type="button" variant="ghost" size="sm" className="h-7 px-1.5"
               title="Send to back"
+              aria-label="Send to back"
               disabled={!zEnabled}
               onClick={() => selectedEl && changeZOrder(selectedEl.id, 'back')}
             >⤓</Button>
@@ -1492,80 +1523,50 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
 
           <Separator orientation="vertical" className="h-5 mx-1" />
 
-          {/* Adders — always enabled. */}
-          <div className="flex items-center gap-0.5" data-impact-canvas-adders>
-            <Button type="button" variant="ghost" size="sm" onClick={() => addShape('rect')} className="h-7 w-7 p-0" title="Rectangle" data-impact-canvas-toolbar>
-              <Square className="w-3.5 h-3.5" />
-            </Button>
-            <Button type="button" variant="ghost" size="sm" onClick={() => addShape('roundedRect')} className="h-7 w-7 p-0" title="Rounded rectangle" data-impact-canvas-toolbar>
-              <Squircle className="w-3.5 h-3.5" />
-            </Button>
-            <Button type="button" variant="ghost" size="sm" onClick={() => addShape('circle')} className="h-7 w-7 p-0" title="Circle" data-impact-canvas-toolbar>
-              <CircleIcon className="w-3.5 h-3.5" />
-            </Button>
-            <Button type="button" variant="ghost" size="sm" onClick={() => addShape('triangle')} className="h-7 w-7 p-0" title="Triangle" data-impact-canvas-toolbar>
-              <Triangle className="w-3.5 h-3.5" />
-            </Button>
-            <LineAdderSplitButton onAdd={addLine} />
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={addTextBox}
-              className="h-7 px-2 text-xs gap-1"
-              data-impact-canvas-toolbar
-            >
-              <Type className="w-3.5 h-3.5" /> Text box
-            </Button>
-          </div>
-
-          <Separator orientation="vertical" className="h-5 mx-1" />
-
-          {/* Grid + snap toggles */}
+          {/* Group 6: Grid + snap toggles (icon-only) */}
           <div className="flex items-center gap-0.5" data-impact-canvas-toolbar>
             <Button
               type="button"
               variant={showGrid ? 'secondary' : 'ghost'}
               size="sm"
               onClick={() => setShowGrid((v) => !v)}
-              className="h-7 px-2 text-xs gap-1"
+              className="h-7 w-7 p-0"
               title="Show grid (0.2 cm minor, 1 cm major)"
+              aria-label="Toggle grid"
               aria-pressed={showGrid}
             >
-              <Grid3x3 className="w-3.5 h-3.5" /> Grid
+              <Grid3x3 className="w-3.5 h-3.5" />
             </Button>
             <Button
               type="button"
               variant={snap ? 'secondary' : 'ghost'}
               size="sm"
               onClick={() => setSnap((v) => !v)}
-              className="h-7 px-2 text-xs gap-1"
+              className="h-7 w-7 p-0"
               title="Snap to grid (0.2 cm)"
+              aria-label="Toggle snap to grid"
               aria-pressed={snap}
             >
-              <Magnet className="w-3.5 h-3.5" /> Snap
+              <Magnet className="w-3.5 h-3.5" />
             </Button>
           </div>
 
           <Separator orientation="vertical" className="h-5 mx-1" />
 
-          {/* Delete — always present, disabled unless a deletable element selected. */}
+          {/* Group 7: Delete (icon-only) */}
           <Button
             type="button"
             variant="ghost"
             size="sm"
-            className="text-destructive hover:text-destructive hover:bg-destructive/10 h-7 px-2 text-xs gap-1"
+            className="text-destructive hover:text-destructive hover:bg-destructive/10 h-7 w-7 p-0"
             onClick={() => selectedEl && void deleteElement(selectedEl.id)}
             disabled={!deleteEnabled}
             data-impact-canvas-toolbar
             title="Delete selected element"
+            aria-label="Delete selected element"
           >
-            <Trash2 className="w-3.5 h-3.5" /> Delete
+            <Trash2 className="w-3.5 h-3.5" />
           </Button>
-
-          <span className="text-xs text-muted-foreground ml-2">
-            Double-click a text box or shape to edit its text. Delete / Backspace removes the selected element.
-          </span>
         </div>
       )}
 
