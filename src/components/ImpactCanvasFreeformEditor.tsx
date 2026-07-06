@@ -626,6 +626,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
 
     // Selection happens immediately on press — click alone must select.
     setSelectedId(id);
+    if (editingId && editingId !== id) setEditingId(null);
 
     const target = e.currentTarget as Element;
     const pointerId = e.pointerId;
@@ -1623,9 +1624,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
                 }
                 if (selectedId !== el.id) {
                   setSelectedId(el.id);
-                  return;
                 }
-                if (!editing) setEditingId(el.id);
               }}
               onDoubleClick={(e) => {
                 if (!canEdit) return;
@@ -1737,9 +1736,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
                 }
                 if (selectedId !== el.id) {
                   setSelectedId(el.id);
-                  return;
                 }
-                if (!editing) setEditingId(el.id);
               }}
               onDoubleClick={(e) => {
                 if (!canEdit) return;
