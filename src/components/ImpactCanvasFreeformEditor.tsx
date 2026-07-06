@@ -471,6 +471,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       y: ov?.y ?? el.y,
       w: ov?.w ?? el.w,
       h: ov?.h ?? el.h,
+      z: el.z,
       content,
       style,
     };
