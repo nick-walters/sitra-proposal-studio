@@ -1796,6 +1796,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
           return (
             <div
               key={el.id}
+              data-canvas-el-id={el.id}
               style={{
                 position: 'absolute',
                 left: pctX(box.x),
