@@ -820,6 +820,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       if (!canEdit) return;
       const el = fetched.find((e) => e.id === id);
       if (!el) return;
+      const before = snapshotOfEl(el);
       const current = overrides[id] ?? { x: el.x, y: el.y, w: el.w, h: el.h };
       let next = { ...current, ...patch };
       // Clamp: element must fit inside 18 cm × 25.5 cm.
@@ -829,6 +830,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       next.y = Math.max(0, Math.min(CANVAS_MAX_HEIGHT_CM - next.h, next.y));
       setOverrides((o) => ({ ...o, [id]: next }));
       persistDebounced(id, next);
+      let styleAfter: unknown = before.style;
       // Manual H entry locks explicit height for bound boxes.
       if (patch.h !== undefined && el.kind === 'bound') {
         const cur = { ...readBoundStyle(el.style), ...(styleOverrides[id] ?? {}) };
@@ -836,11 +838,15 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
           const nextStyle = { ...cur, autoFitH: false };
           setStyleOverrides((o) => ({ ...o, [id]: nextStyle }));
           persistStyleDebounced(id, nextStyle);
+          styleAfter = nextStyle;
         }
       }
+      const after: ElementSnapshot = { ...before, ...next, style: styleAfter };
+      pushHistory({ kind: 'update', id, before, after, ts: Date.now() }, `size:${id}`);
     },
-    [canEdit, fetched, overrides, persistDebounced, styleOverrides, persistStyleDebounced],
+    [canEdit, fetched, overrides, persistDebounced, styleOverrides, persistStyleDebounced, snapshotOfEl, pushHistory],
   );
+
 
 
   const deleteElement = useCallback(
