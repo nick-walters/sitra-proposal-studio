@@ -228,8 +228,11 @@ export async function syncBoundElements(proposalId: string): Promise<void> {
   }
 
   if (toInsert.length > 0) {
-    const { error } = await supabase.from('impact_canvas_elements').insert(toInsert);
+    const { error } = await supabase
+      .from('impact_canvas_elements')
+      .insert(toInsert as never);
     if (error) throw error;
   }
+
 }
 
