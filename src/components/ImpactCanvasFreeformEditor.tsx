@@ -192,12 +192,58 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     [proposalId, qc],
   );
 
+  const persistStyleDebounced = useCallback(
+    (id: string, style: BoundBoxStyle) => {
+      const existing = pendingStyleTimers.current[id];
+      if (existing) clearTimeout(existing);
+      pendingStyleTimers.current[id] = setTimeout(async () => {
+        delete pendingStyleTimers.current[id];
+        const { error } = await supabase
+          .from('impact_canvas_elements')
+          .update({ style: style as unknown as Record<string, unknown> })
+          .eq('id', id);
+        if (error) {
+          setStyleOverrides((o) => {
+            const n = { ...o };
+            delete n[id];
+            return n;
+          });
+          qc.invalidateQueries({ queryKey: ELS_KEY(proposalId) });
+        } else {
+          qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId), (old) =>
+            (old || []).map((e) => (e.id === id ? { ...e, style } : e)),
+          );
+          setStyleOverrides((o) => {
+            const n = { ...o };
+            delete n[id];
+            return n;
+          });
+        }
+      }, 250);
+    },
+    [proposalId, qc],
+  );
+
+  const updateBoundStyle = useCallback(
+    (id: string, patch: Partial<BoundBoxStyle>) => {
+      if (!canEdit) return;
+      const el = fetched.find((e) => e.id === id);
+      const current = { ...readBoundStyle(el?.style), ...(styleOverrides[id] ?? {}) };
+      const next = { ...current, ...patch };
+      setStyleOverrides((o) => ({ ...o, [id]: next }));
+      persistStyleDebounced(id, next);
+    },
+    [canEdit, fetched, styleOverrides, persistStyleDebounced],
+  );
+
   useEffect(() => {
     return () => {
       Object.values(pendingTimers.current).forEach(clearTimeout);
       Object.values(pendingContentTimers.current).forEach(clearTimeout);
+      Object.values(pendingStyleTimers.current).forEach(clearTimeout);
       pendingTimers.current = {};
       pendingContentTimers.current = {};
+      pendingStyleTimers.current = {};
     };
   }, []);
 
