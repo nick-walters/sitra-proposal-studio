@@ -187,6 +187,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
   // captured here — a committed text change (edit exit) pushes ONE step.
   type ElementSnapshot = {
     x: number; y: number; w: number; h: number;
+    z?: number;
     content: unknown; style: unknown;
   };
   type HistoryEntry =
