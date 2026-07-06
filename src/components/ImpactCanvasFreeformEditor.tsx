@@ -141,6 +141,12 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
   const pendingStyleTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   /** Optimistic overrides for style (per element id). */
   const [styleOverrides, setStyleOverrides] = useState<Record<string, BoundBoxStyle>>({});
+  /** Refs to per-bound-el hidden probes used to measure natural content
+   *  height for auto-fit bound boxes. */
+  const probeRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  /** Bumped when the wrapper resizes so the auto-fit effect re-measures. */
+  const [wrapperTick, setWrapperTick] = useState(0);
+
 
   // Deselect on outside pointerdown — but keep clicks inside the surface,
   // toolbar, radix portals, dialogs, and the ACTIVE text-box editor from
