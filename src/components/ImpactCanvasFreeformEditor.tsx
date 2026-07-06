@@ -1368,6 +1368,34 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
             />
           )}
 
+          {/* Z-order controls — coordinator+ only, applies to the selected element. */}
+          {selectedEl && canEdit && (
+            <div className="flex items-center gap-1 pr-2 border-r" data-impact-canvas-toolbar>
+              <Button
+                type="button" variant="outline" size="sm" className="h-8 px-2"
+                title="Bring to front"
+                onClick={() => changeZOrder(selectedEl.id, 'front')}
+              >⤒</Button>
+              <Button
+                type="button" variant="outline" size="sm" className="h-8 px-2"
+                title="Bring forward"
+                onClick={() => changeZOrder(selectedEl.id, 'forward')}
+              >↑</Button>
+              <Button
+                type="button" variant="outline" size="sm" className="h-8 px-2"
+                title="Send backward"
+                onClick={() => changeZOrder(selectedEl.id, 'backward')}
+              >↓</Button>
+              <Button
+                type="button" variant="outline" size="sm" className="h-8 px-2"
+                title="Send to back"
+                onClick={() => changeZOrder(selectedEl.id, 'back')}
+              >⤓</Button>
+            </div>
+          )}
+
+
+
 
           {/*
             Element-adding cluster.
