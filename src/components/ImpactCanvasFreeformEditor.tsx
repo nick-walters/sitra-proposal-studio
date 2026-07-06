@@ -536,9 +536,19 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       next.y = Math.max(0, Math.min(CANVAS_MAX_HEIGHT_CM - next.h, next.y));
       setOverrides((o) => ({ ...o, [id]: next }));
       persistDebounced(id, next);
+      // Manual H entry locks explicit height for bound boxes.
+      if (patch.h !== undefined && el.kind === 'bound') {
+        const cur = { ...readBoundStyle(el.style), ...(styleOverrides[id] ?? {}) };
+        if (cur.autoFitH !== false) {
+          const nextStyle = { ...cur, autoFitH: false };
+          setStyleOverrides((o) => ({ ...o, [id]: nextStyle }));
+          persistStyleDebounced(id, nextStyle);
+        }
+      }
     },
-    [canEdit, fetched, overrides, persistDebounced],
+    [canEdit, fetched, overrides, persistDebounced, styleOverrides, persistStyleDebounced],
   );
+
 
   const deleteElement = useCallback(
     async (id: string) => {
