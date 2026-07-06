@@ -2164,7 +2164,7 @@ function SizeFields({
   const fmt = (v: number) => (Math.round(v * 100) / 100).toString();
   return (
     <div className="flex items-center gap-1" data-impact-canvas-toolbar>
-      <span className={cn('text-[11px] text-muted-foreground', disabled && 'opacity-50')}>W</span>
+      <MoveHorizontal className={cn('w-3.5 h-3.5 text-muted-foreground', disabled && 'opacity-50')} aria-label="Width" />
       <Input
         type="number"
         step="0.1"
@@ -2178,8 +2178,7 @@ function SizeFields({
         className="h-7 w-14 text-xs"
         title="Width (cm)"
       />
-      <span className={cn('text-[11px] text-muted-foreground', disabled && 'opacity-50')}>cm</span>
-      <span className={cn('text-[11px] text-muted-foreground ml-1', disabled && 'opacity-50')}>H</span>
+      <MoveVertical className={cn('w-3.5 h-3.5 text-muted-foreground ml-1', disabled && 'opacity-50')} aria-label="Height" />
       <Input
         type="number"
         step="0.1"
@@ -2193,8 +2192,8 @@ function SizeFields({
         className="h-7 w-14 text-xs"
         title="Height (cm)"
       />
-      <span className={cn('text-[11px] text-muted-foreground', disabled && 'opacity-50')}>cm</span>
     </div>
+
   );
 }
 
