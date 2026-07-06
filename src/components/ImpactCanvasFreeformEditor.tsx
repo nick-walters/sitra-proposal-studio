@@ -1237,14 +1237,17 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
 
   const selectedEl = selectedId ? fetched.find((e) => e.id === selectedId) ?? null : null;
   const selectedIsBound = selectedEl?.kind === 'bound';
+  const selectedIsHeader = selectedEl?.kind === 'header';
   const selectedIsShape = selectedEl?.kind === 'shape';
   const selectedIsText = selectedEl?.kind === 'text';
   const selectedIsLine = selectedEl?.kind === 'line';
   const selectedIsFree = selectedIsShape || selectedIsText || selectedIsLine;
+  const selectedIsBoundLike = selectedIsBound || selectedIsHeader;
 
   const selectedBox = selectedEl
     ? (overrides[selectedEl.id] ?? { x: selectedEl.x, y: selectedEl.y, w: selectedEl.w, h: selectedEl.h })
     : null;
+
 
   return (
     <div className="space-y-2">
