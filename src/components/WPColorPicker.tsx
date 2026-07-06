@@ -234,9 +234,8 @@ export function WPColorPicker({
               {displayedPalette.map((paletteColor, index) => {
                 const norm = normaliseHex(paletteColor) ?? paletteColor.toUpperCase();
                 const isSelected = (normaliseHex(color) ?? color.toUpperCase()) === norm;
-                // Light swatches (e.g. white) would vanish against the popover
-                // background; add a subtle inset ring so they read as a swatch.
-                const needsLightOutline = getContrastingTextColor(norm) === '#000000';
+                // Consistent subtle inset border on all swatches so light and
+                // dark colours read uniformly against the popover background.
                 return (
                   <button
                     key={`${paletteColor}-${index}`}
@@ -246,7 +245,7 @@ export function WPColorPicker({
                     )}
                     style={{
                       backgroundColor: paletteColor,
-                      boxShadow: !isSelected && needsLightOutline ? 'inset 0 0 0 1px rgba(0,0,0,0.2)' : undefined,
+                      boxShadow: !isSelected ? 'inset 0 0 0 1px rgba(0,0,0,0.2)' : undefined,
                     }}
                     onClick={() => handleSelectSwatch(paletteColor)}
                     aria-label={`Select ${paletteColor}`}
@@ -266,7 +265,6 @@ export function WPColorPicker({
                 {GREYSCALE_COLORS.map((g) => {
                   const norm = g.toUpperCase();
                   const isSelected = (normaliseHex(color) ?? color.toUpperCase()) === norm;
-                  const needsLightOutline = getContrastingTextColor(norm) === '#000000';
                   return (
                     <button
                       key={g}
@@ -276,7 +274,7 @@ export function WPColorPicker({
                       )}
                       style={{
                         backgroundColor: g,
-                        boxShadow: !isSelected && needsLightOutline ? 'inset 0 0 0 1px rgba(0,0,0,0.2)' : undefined,
+                        boxShadow: !isSelected ? 'inset 0 0 0 1px rgba(0,0,0,0.2)' : undefined,
                       }}
                       onClick={() => handleSelectSwatch(g)}
                       aria-label={`Select ${g}`}
@@ -309,7 +307,7 @@ export function WPColorPicker({
                         )}
                         style={{
                           backgroundColor: c,
-                          boxShadow: !isSelected && iconColor === '#000000' ? 'inset 0 0 0 1px rgba(0,0,0,0.2)' : undefined,
+                          boxShadow: !isSelected ? 'inset 0 0 0 1px rgba(0,0,0,0.2)' : undefined,
                         }}
                         onClick={() => handleSelectSwatch(c)}
                         aria-label={`Select ${c}`}

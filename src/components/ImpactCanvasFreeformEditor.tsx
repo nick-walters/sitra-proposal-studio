@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
-import { ArrowDownToLine, ArrowUpToLine, Grid3x3, Magnet, MoveHorizontal, MoveVertical, PaintBucket, Redo2, Squircle as SquircleTrigger, Trash2, Undo2, MoveDown, MoveUp } from 'lucide-react';
+import { Grid3x3, Magnet, MoveHorizontal, MoveVertical, PaintBucket, Redo2, Squircle as SquircleTrigger, Trash2, Undo2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 import { Button } from '@/components/ui/button';
@@ -1419,9 +1419,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
           </div>
           <AddShapeDropdown onAddShape={addShape} onAddLine={addLine} />
 
-          <Separator orientation="vertical" className="h-5 mx-1" />
-
-          {/* Group 3: Size (W/H cm fields, arrow icons) */}
+          {/* Group 3: Size (W/H cm fields, arrow icons) — no divider before */}
           <SizeFields
             box={sizeEnabled && selectedBox ? selectedBox : { x: 0, y: 0, w: 0, h: 0 }}
             disabled={!sizeEnabled}
@@ -1430,59 +1428,59 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
             }}
           />
 
-          {/* Group 4: Layers (PowerPoint-style icons) */}
+          {/* Group 4: Layers (PowerPoint-style overlapping-shape icons) */}
           <div className="flex items-center gap-0.5" data-impact-canvas-toolbar>
             <Button
               type="button" variant="ghost" size="sm" className="h-7 w-7 p-0"
               title="Bring to front" aria-label="Bring to front"
               disabled={!zEnabled}
               onClick={() => selectedEl && changeZOrder(selectedEl.id, 'front')}
-            ><ArrowUpToLine className="w-3.5 h-3.5" /></Button>
+            ><LayerIcon variant="front" /></Button>
             <Button
               type="button" variant="ghost" size="sm" className="h-7 w-7 p-0"
               title="Bring forward" aria-label="Bring forward"
               disabled={!zEnabled}
               onClick={() => selectedEl && changeZOrder(selectedEl.id, 'forward')}
-            ><MoveUp className="w-3.5 h-3.5" /></Button>
+            ><LayerIcon variant="forward" /></Button>
             <Button
               type="button" variant="ghost" size="sm" className="h-7 w-7 p-0"
               title="Send backward" aria-label="Send backward"
               disabled={!zEnabled}
               onClick={() => selectedEl && changeZOrder(selectedEl.id, 'backward')}
-            ><MoveDown className="w-3.5 h-3.5" /></Button>
+            ><LayerIcon variant="backward" /></Button>
             <Button
               type="button" variant="ghost" size="sm" className="h-7 w-7 p-0"
               title="Send to back" aria-label="Send to back"
               disabled={!zEnabled}
               onClick={() => selectedEl && changeZOrder(selectedEl.id, 'back')}
-            ><ArrowDownToLine className="w-3.5 h-3.5" /></Button>
+            ><LayerIcon variant="back" /></Button>
           </div>
 
-          <Separator orientation="vertical" className="h-5 mx-1" />
-
-          {/* Group 5: Snap + Grid (grid retained, placed alongside snap) */}
-          <Button
-            type="button"
-            variant={snap ? 'secondary' : 'ghost'}
-            size="sm"
-            onClick={() => setSnap((v) => !v)}
-            className="h-7 w-7 p-0"
-            title="Snap to grid (0.2 cm)" aria-label="Toggle snap to grid"
-            aria-pressed={snap}
-          >
-            <Magnet className="w-3.5 h-3.5" />
-          </Button>
-          <Button
-            type="button"
-            variant={showGrid ? 'secondary' : 'ghost'}
-            size="sm"
-            onClick={() => setShowGrid((v) => !v)}
-            className="h-7 w-7 p-0"
-            title="Show grid (0.2 cm minor, 1 cm major)" aria-label="Toggle grid"
-            aria-pressed={showGrid}
-          >
-            <Grid3x3 className="w-3.5 h-3.5" />
-          </Button>
+          {/* Group 5: Snap + Grid — pinned to the far right */}
+          <div className="ml-auto flex items-center gap-0.5" data-impact-canvas-toolbar>
+            <Button
+              type="button"
+              variant={snap ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setSnap((v) => !v)}
+              className="h-7 w-7 p-0"
+              title="Snap to grid (0.2 cm)" aria-label="Toggle snap to grid"
+              aria-pressed={snap}
+            >
+              <Magnet className="w-3.5 h-3.5" />
+            </Button>
+            <Button
+              type="button"
+              variant={showGrid ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setShowGrid((v) => !v)}
+              className="h-7 w-7 p-0"
+              title="Show grid (0.2 cm minor, 1 cm major)" aria-label="Toggle grid"
+              aria-pressed={showGrid}
+            >
+              <Grid3x3 className="w-3.5 h-3.5" />
+            </Button>
+          </div>
         </div>
       )}
 
@@ -2162,7 +2160,7 @@ function SizeFields({
 }) {
   const fmt = (v: number) => (Math.round(v * 100) / 100).toString();
   return (
-    <div className="flex items-center gap-1" data-impact-canvas-toolbar>
+    <div className="flex items-center gap-0.5" data-impact-canvas-toolbar>
       <MoveHorizontal className={cn('w-3.5 h-3.5 text-muted-foreground', disabled && 'opacity-50')} aria-label="Width" />
       <Input
         type="number"
@@ -2174,10 +2172,10 @@ function SizeFields({
           const v = parseFloat(e.target.value);
           if (Number.isFinite(v)) onChange({ w: v });
         }}
-        className="h-7 w-14 text-xs"
+        className="h-7 w-11 px-1 text-xs"
         title="Width (cm)"
       />
-      <MoveVertical className={cn('w-3.5 h-3.5 text-muted-foreground ml-1', disabled && 'opacity-50')} aria-label="Height" />
+      <MoveVertical className={cn('w-3.5 h-3.5 text-muted-foreground ml-0.5', disabled && 'opacity-50')} aria-label="Height" />
       <Input
         type="number"
         step="0.1"
@@ -2188,7 +2186,7 @@ function SizeFields({
           const v = parseFloat(e.target.value);
           if (Number.isFinite(v)) onChange({ h: v });
         }}
-        className="h-7 w-14 text-xs"
+        className="h-7 w-11 px-1 text-xs"
         title="Height (cm)"
       />
     </div>
@@ -2231,7 +2229,7 @@ function BoundStyleToolbar({ proposalId, canEdit, style, onChange }: BoundStyleT
           <button
             type="button"
             disabled={!canEdit}
-            className="inline-flex flex-col items-center justify-center h-8 w-9 rounded-md border bg-background hover:bg-accent transition-colors disabled:opacity-50"
+            className="inline-flex flex-col items-center justify-center h-7 w-8 rounded-md bg-transparent hover:bg-accent transition-colors disabled:opacity-50"
             title="Font colour"
             aria-label="Font colour"
           >
@@ -2261,7 +2259,7 @@ function BoundStyleToolbar({ proposalId, canEdit, style, onChange }: BoundStyleT
           <button
             type="button"
             disabled={!canEdit}
-            className="inline-flex flex-col items-center justify-center h-8 w-9 rounded-md border bg-background hover:bg-accent transition-colors disabled:opacity-50"
+            className="inline-flex flex-col items-center justify-center h-7 w-8 rounded-md bg-transparent hover:bg-accent transition-colors disabled:opacity-50"
             title="Fill"
             aria-label="Fill colour"
           >
@@ -2392,5 +2390,42 @@ function LineVariantIcon({
     </svg>
   );
 }
+
+/**
+ * PowerPoint-style layer arrangement icon. Two overlapping rounded squares —
+ * one is highlighted (solid) to indicate the "moving" element. `forward` and
+ * `backward` variants add a small up/down arrow to distinguish one-step
+ * moves from bring-to-front / send-to-back.
+ */
+function LayerIcon({ variant }: { variant: 'front' | 'forward' | 'backward' | 'back' }) {
+  const front = variant === 'front' || variant === 'forward';
+  const showArrow = variant === 'forward' || variant === 'backward';
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      width={14}
+      height={14}
+      aria-hidden
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.25}
+    >
+      <rect
+        x={1.5} y={1.5} width={8} height={8} rx={1}
+        fill={front ? 'none' : 'currentColor'}
+      />
+      <rect
+        x={6.5} y={6.5} width={8} height={8} rx={1}
+        fill={front ? 'currentColor' : 'none'}
+      />
+      {showArrow && (
+        variant === 'forward'
+          ? <path d="M0.75 5 L0.75 1 M-0.5 2.25 L0.75 1 L2 2.25" strokeLinecap="round" strokeLinejoin="round" />
+          : <path d="M0.75 11 L0.75 15 M-0.5 13.75 L0.75 15 L2 13.75" strokeLinecap="round" strokeLinejoin="round" />
+      )}
+    </svg>
+  );
+}
+
 
 

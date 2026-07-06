@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { DEFAULT_WP_COLORS, GREYSCALE_COLORS, getContrastingTextColor } from '@/lib/wpColors';
+import { DEFAULT_WP_COLORS, GREYSCALE_COLORS } from '@/lib/wpColors';
 import { useProposalCustomColors } from '@/hooks/useProposalCustomColors';
 import { OUTLINE_WIDTH_PRESETS } from '@/lib/impactCanvasBoundStyle';
 
@@ -71,7 +71,7 @@ export function ImpactCanvasOutlinePicker({
           type="button"
           disabled={disabled}
           className={cn(
-            'inline-flex flex-col items-center justify-center h-8 w-9 rounded-md border bg-background hover:bg-accent transition-colors',
+            'inline-flex flex-col items-center justify-center h-7 w-8 rounded-md bg-transparent hover:bg-accent transition-colors',
             disabled && 'opacity-50 cursor-not-allowed',
           )}
           title="Outline"
@@ -109,7 +109,6 @@ export function ImpactCanvasOutlinePicker({
               {DEFAULT_WP_COLORS.map((c) => {
                 const norm = c.toUpperCase();
                 const isSelected = !isNone && color.toUpperCase() === norm;
-                const needsOutline = getContrastingTextColor(norm) === '#000000';
                 return (
                   <button
                     key={c}
@@ -120,7 +119,7 @@ export function ImpactCanvasOutlinePicker({
                     style={{
                       backgroundColor: c,
                       boxShadow:
-                        !isSelected && needsOutline
+                        !isSelected
                           ? 'inset 0 0 0 1px rgba(0,0,0,0.2)'
                           : undefined,
                     }}
@@ -143,7 +142,6 @@ export function ImpactCanvasOutlinePicker({
               {GREYSCALE_COLORS.map((g) => {
                 const norm = g.toUpperCase();
                 const isSelected = !isNone && color.toUpperCase() === norm;
-                const needsOutline = getContrastingTextColor(norm) === '#000000';
                 return (
                   <button
                     key={g}
@@ -154,7 +152,7 @@ export function ImpactCanvasOutlinePicker({
                     style={{
                       backgroundColor: g,
                       boxShadow:
-                        !isSelected && needsOutline
+                        !isSelected
                           ? 'inset 0 0 0 1px rgba(0,0,0,0.2)'
                           : undefined,
                     }}
@@ -176,7 +174,6 @@ export function ImpactCanvasOutlinePicker({
               <div className="grid grid-cols-6 gap-1.5">
                 {extras.map((c) => {
                   const isSelected = !isNone && color.toUpperCase() === c;
-                  const needsOutline = getContrastingTextColor(c) === '#000000';
                   return (
                     <button
                       key={c}
@@ -187,7 +184,7 @@ export function ImpactCanvasOutlinePicker({
                       style={{
                         backgroundColor: c,
                         boxShadow:
-                          !isSelected && needsOutline
+                          !isSelected
                             ? 'inset 0 0 0 1px rgba(0,0,0,0.2)'
                             : undefined,
                       }}
