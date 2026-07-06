@@ -332,9 +332,6 @@ export function LinesSpike({ VW, VH }: { VW: number; VH: number }) {
       ? { x: elbow.from.x + dxE / 2, y: elbow.from.y }
       : { x: elbow.from.x, y: elbow.from.y + dyE / 2 };
   const elbowMid = { x: elbow.to.x, y: bend.y };
-  // Second leg direction (for arrowhead orientation): from bend to `to`.
-  const legEnd = Math.abs(dxE) >= Math.abs(dyE) ? { x: elbow.to.x, y: bend.y } : bend;
-  const elbowPath = `M ${elbow.from.x} ${elbow.from.y} L ${bend.x} ${bend.y} L ${elbowMid.x} ${elbowMid.y} L ${elbow.to.x} ${elbow.to.y}`;
 
   // Stroke widths.
   const STROKE_PT = 1.5;
@@ -360,12 +357,34 @@ export function LinesSpike({ VW, VH }: { VW: number; VH: number }) {
     const b = { x: baseX - px * half, y: baseY - py * half };
     return `${tip.x},${tip.y} ${a.x},${a.y} ${b.x},${b.y}`;
   };
+  // Retract an endpoint toward the segment origin by `size` (arrowhead length)
+  // so the visible stroke stops at the arrowhead base, not the tip.
+  const retract = (
+    endpoint: { x: number; y: number },
+    dir: { x: number; y: number },
+    size: number,
+  ) => {
+    const len = Math.hypot(dir.x, dir.y) || 1;
+    return { x: endpoint.x - (dir.x / len) * size, y: endpoint.y - (dir.y / len) * size };
+  };
 
+  // Straight line direction (from → to).
   const straightDir = { x: straight.to.x - straight.from.x, y: straight.to.y - straight.from.y };
-  const elbowDir =
+  // Two-way head on BLUE straight — retract BOTH ends.
+  const straightEndRetracted = retract(straight.to, straightDir, headSize);
+  const straightStartRetracted = retract(
+    straight.from,
+    { x: -straightDir.x, y: -straightDir.y },
+    headSize,
+  );
+
+  // RED elbow: only the final leg carries an arrowhead → retract only `to`.
+  const elbowLegDir =
     Math.abs(dxE) >= Math.abs(dyE)
-      ? { x: 0, y: elbow.to.y - bend.y } // final leg is vertical in HV routing
-      : { x: elbow.to.x - bend.x, y: 0 }; // final leg is horizontal in VH routing
+      ? { x: 0, y: elbow.to.y - bend.y } // final leg vertical in HV routing
+      : { x: elbow.to.x - bend.x, y: 0 }; // final leg horizontal in VH routing
+  const elbowEndRetracted = retract(elbow.to, elbowLegDir, headSize);
+  const elbowPath = `M ${elbow.from.x} ${elbow.from.y} L ${bend.x} ${bend.y} L ${elbowMid.x} ${elbowMid.y} L ${elbowEndRetracted.x} ${elbowEndRetracted.y}`;
 
   return (
     <svg
@@ -374,12 +393,12 @@ export function LinesSpike({ VW, VH }: { VW: number; VH: number }) {
       preserveAspectRatio="none"
       style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 999 }}
     >
-      {/* BLUE — straight, cm-scaled stroke */}
+      {/* BLUE — straight, cm-scaled stroke, line stops at arrowhead bases */}
       <line
-        x1={straight.from.x}
-        y1={straight.from.y}
-        x2={straight.to.x}
-        y2={straight.to.y}
+        x1={straightStartRetracted.x}
+        y1={straightStartRetracted.y}
+        x2={straightEndRetracted.x}
+        y2={straightEndRetracted.y}
         stroke="#1D4ED8"
         strokeWidth={strokeCm}
         strokeLinecap="butt"
@@ -389,7 +408,6 @@ export function LinesSpike({ VW, VH }: { VW: number; VH: number }) {
         fill="#1D4ED8"
         stroke="none"
       />
-      {/* Also drop a two-way head at the start of the straight line */}
       <polygon
         points={arrowPoly(
           straight.from,
@@ -400,7 +418,7 @@ export function LinesSpike({ VW, VH }: { VW: number; VH: number }) {
         stroke="none"
       />
 
-      {/* RED — elbow, non-scaling-stroke px width */}
+      {/* RED — elbow, non-scaling-stroke px width, line stops at arrowhead base */}
       <path
         d={elbowPath}
         fill="none"
@@ -411,7 +429,7 @@ export function LinesSpike({ VW, VH }: { VW: number; VH: number }) {
         strokeLinecap="butt"
       />
       <polygon
-        points={arrowPoly(elbow.to, elbowDir, headSize)}
+        points={arrowPoly(elbow.to, elbowLegDir, headSize)}
         fill="#DC2626"
         stroke="none"
       />
@@ -426,6 +444,7 @@ export function LinesSpike({ VW, VH }: { VW: number; VH: number }) {
     </svg>
   );
 }
+
 
 
 
