@@ -571,7 +571,9 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
                   height: '100%',
                   borderStyle: 'solid',
                   borderColor: selected ? 'hsl(var(--primary))' : bs.borderColor,
-                  borderWidth: selected ? Math.max(2, bs.borderWidth) : bs.borderWidth,
+                  borderWidth: selected
+                    ? `${Math.max(1.5, bs.borderWidth)}pt`
+                    : bs.borderWidth ? `${bs.borderWidth}pt` : 0,
                   borderRadius: 6,
                   background: bs.background,
                   padding: '2pt',
