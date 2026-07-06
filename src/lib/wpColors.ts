@@ -33,15 +33,18 @@ export const STANDARD_COORDINATION_NAME = 'Project coordination & administration
 export const STANDARD_EXPLOITATION_SHORT = 'DEC';
 export const STANDARD_COORDINATION_SHORT = 'COORD';
 
-// Full palette for the palette editor (content colors + special colors + black).
-// Black is a display-only swatch for manual selection (font/case pickers); it is
-// NOT part of the positional rotation (see computeWPColorForPosition, which uses
-// WP_CONTENT_COLORS). WP/theme pickers exclude it via `excludePaletteColors`.
+// Full palette for the palette editor (content colors + special colors + white + black).
+// White and black are display-only swatches for manual selection (font/case pickers);
+// they are NOT part of the positional rotation (see computeWPColorForPosition, which
+// uses WP_CONTENT_COLORS). WP/theme pickers exclude them via `excludePaletteColors`
+// (a white or black WP bubble would be invisible / unreadable).
+export const WHITE_SWATCH = '#FFFFFF';
 export const BLACK_SWATCH = '#000000';
 export const DEFAULT_WP_COLORS = [
   ...WP_CONTENT_COLORS,
   WP_EXPLOITATION_COLOR,
   WP_COORDINATION_COLOR,
+  WHITE_SWATCH,
   BLACK_SWATCH,
 ];
 
