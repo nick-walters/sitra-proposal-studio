@@ -1815,7 +1815,13 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
   // Layers: single-selection only. Multi-select z-order re-arrangement is
   // out of Stage 2 scope (it would need a stable relative-order-preserving
   // batch, which is a separate feature). Report as disabled for multi.
-  const zEnabled = selectedIds.size === 1 && !!selectedEl && canEdit;
+  const zEnabled = selectedIds.size >= 1 && canEdit;
+  const applyZ = (action: 'front' | 'back' | 'forward' | 'backward') => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    if (ids.length === 1) changeZOrder(ids[0], action);
+    else changeZOrderMulti(ids, action);
+  };
   // Delete: enabled if any selected element is a deletable free element,
   // even in multi-select (Stage 1: batched delete-all-free).
   const deletableSelected = Array.from(selectedIds).filter((sid) => {
