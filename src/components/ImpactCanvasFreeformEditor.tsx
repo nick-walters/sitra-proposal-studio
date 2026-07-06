@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
-import { Grid3x3, Magnet, PaintBucket, Redo2, Trash2, Type, Undo2 } from 'lucide-react';
+import { ChevronDown, Grid3x3, Magnet, MoveRight, PaintBucket, Redo2, Trash2, Type, Undo2 } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useImpactCanvasColumns, useImpactCanvasRows } from '@/hooks/useImpactCanvas';
@@ -21,7 +23,15 @@ import type { BoundBoxStyle } from '@/lib/impactCanvasBoundStyle';
 import { ImpactCanvasTextBox } from './ImpactCanvasTextBox';
 import { ImpactCanvasOutlinePicker } from './ImpactCanvasOutlinePicker';
 import { ImpactCanvasShape, type ShapeKind } from './ImpactCanvasShape';
-import { ImpactCanvasLinesOverlay, type LineElement } from './ImpactCanvasFreeformRenderer';
+import {
+  ImpactCanvasLinesOverlay,
+  computeLineBBox,
+  computeElbowBend,
+  type LineElement,
+  type LineContent,
+  type LinePoint,
+} from './ImpactCanvasFreeformRenderer';
+
 import { Circle as CircleIcon, Square, Squircle, Triangle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 
@@ -76,7 +86,11 @@ const MIN_W = MIN_ELEMENT_W_CM;
 const MIN_H = MIN_ELEMENT_H_CM;
 
 type Handle = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w';
-type DragMode = { kind: 'move' } | { kind: 'resize'; handle: Handle };
+type DragMode =
+  | { kind: 'move' }
+  | { kind: 'resize'; handle: Handle }
+  | { kind: 'line-move' }
+  | { kind: 'endpoint'; which: 'from' | 'to' };
 
 interface DragState {
   id: string;
@@ -84,9 +98,15 @@ interface DragState {
   startClientX: number;
   startClientY: number;
   startBox: { x: number; y: number; w: number; h: number };
+  /** Only for line drags — snapshot of endpoints at pointerdown so onMove
+   *  can compute new absolute positions from delta without accumulating
+   *  round-off. */
+  startFrom?: LinePoint;
+  startTo?: LinePoint;
   wrapperRect: DOMRect;
   canvasHeightCm: number;
 }
+
 
 /** Snap-to-grid step (matches the MINOR grid line spacing). */
 const SNAP_STEP_CM = 0.2;
@@ -135,6 +155,11 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
   useEffect(() => { snapRef.current = snap; }, [snap]);
   /** Optimistic overrides for coords in-flight (per element id). */
   const [overrides, setOverrides] = useState<Record<string, { x: number; y: number; w: number; h: number }>>({});
+  /** Optimistic overrides for line endpoints in-flight (per element id). */
+  const [lineOverrides, setLineOverrides] = useState<Record<string, { from: LinePoint; to: LinePoint }>>({});
+  const lineOverridesRef = useRef(lineOverrides);
+  useEffect(() => { lineOverridesRef.current = lineOverrides; }, [lineOverrides]);
+
   /** Optimistic overrides for text content (per element id). */
   const [contentOverrides, setContentOverrides] = useState<Record<string, string>>({});
   const pendingTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
@@ -268,6 +293,40 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     },
     [proposalId, qc],
   );
+
+  /** Persist a line drag: writes both bbox (x/y/w/h) and content
+   *  (merged with existing content — preserves routing/arrow/elbow) in
+   *  a single supabase update. Used by endpoint + line-move drags. */
+  const persistLineDebounced = useCallback(
+    (id: string, box: { x: number; y: number; w: number; h: number }, endpoints: { from: LinePoint; to: LinePoint }) => {
+      const existing = pendingTimers.current[id];
+      if (existing) clearTimeout(existing);
+      pendingTimers.current[id] = setTimeout(async () => {
+        delete pendingTimers.current[id];
+        const current = qc.getQueryData<CanvasElement[]>(ELS_KEY(proposalId)) || [];
+        const el = current.find((e) => e.id === id);
+        const prevContent = (el?.content ?? {}) as Record<string, unknown>;
+        const nextContent = { ...prevContent, from: endpoints.from, to: endpoints.to };
+        const { error } = await supabase
+          .from('impact_canvas_elements')
+          .update({ x: box.x, y: box.y, w: box.w, h: box.h, content: nextContent as never })
+          .eq('id', id);
+        if (error) {
+          setOverrides((o) => { const n = { ...o }; delete n[id]; return n; });
+          setLineOverrides((o) => { const n = { ...o }; delete n[id]; return n; });
+          qc.invalidateQueries({ queryKey: ELS_KEY(proposalId) });
+        } else {
+          qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId), (old) =>
+            (old || []).map((e) => (e.id === id ? { ...e, ...box, content: nextContent } : e)),
+          );
+          setOverrides((o) => { const n = { ...o }; delete n[id]; return n; });
+          setLineOverrides((o) => { const n = { ...o }; delete n[id]; return n; });
+        }
+      }, 250);
+    },
+    [proposalId, qc],
+  );
+
 
   const persistContentDebounced = useCallback(
     (id: string, html: string) => {
@@ -504,6 +563,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     id: string,
     mode: DragMode,
     current: { x: number; y: number; w: number; h: number },
+    lineStart?: { from: LinePoint; to: LinePoint },
   ) => {
     if (!canEdit) return;
     if (editingId === id) return; // never drag while editing text
@@ -522,11 +582,14 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       startClientX: e.clientX,
       startClientY: e.clientY,
       startBox: current,
+      startFrom: lineStart?.from,
+      startTo: lineStart?.to,
       wrapperRect: wrapper.getBoundingClientRect(),
       canvasHeightCm: canvasHeightCmRef.current,
     });
 
   };
+
 
   const overridesRef = useRef(overrides);
   useEffect(() => {
@@ -560,24 +623,64 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       const rect = drag.wrapperRect;
       const pxPerCmX = rect.width / VW;
       const pxPerCmY = (rect.height || VH_render) / drag.canvasHeightCm;
-      const dx = (ev.clientX - drag.startClientX) / pxPerCmX;
-      const dy = (ev.clientY - drag.startClientY) / pxPerCmY;
+      const dxRaw = (ev.clientX - drag.startClientX) / pxPerCmX;
+      const dyRaw = (ev.clientY - drag.startClientY) / pxPerCmY;
+      const snapTo = (v: number) => Math.round(v / SNAP_STEP_CM) * SNAP_STEP_CM;
+      const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
+      // ── Line drags (endpoint or line-move) ──────────────────────────
+      if (drag.mode.kind === 'endpoint' || drag.mode.kind === 'line-move') {
+        const startFrom = drag.startFrom!;
+        const startTo = drag.startTo!;
+        let newFrom = { ...startFrom };
+        let newTo = { ...startTo };
+        if (drag.mode.kind === 'endpoint') {
+          if (drag.mode.which === 'from') {
+            newFrom = { x: startFrom.x + dxRaw, y: startFrom.y + dyRaw };
+            if (snapRef.current) { newFrom.x = snapTo(newFrom.x); newFrom.y = snapTo(newFrom.y); }
+            newFrom.x = clamp(newFrom.x, 0, VW);
+            newFrom.y = clamp(newFrom.y, 0, VH_CM);
+          } else {
+            newTo = { x: startTo.x + dxRaw, y: startTo.y + dyRaw };
+            if (snapRef.current) { newTo.x = snapTo(newTo.x); newTo.y = snapTo(newTo.y); }
+            newTo.x = clamp(newTo.x, 0, VW);
+            newTo.y = clamp(newTo.y, 0, VH_CM);
+          }
+        } else {
+          // line-move: translate both endpoints; clamp translation so both
+          // stay inside the canvas.
+          const minX = Math.min(startFrom.x, startTo.x);
+          const maxX = Math.max(startFrom.x, startTo.x);
+          const minY = Math.min(startFrom.y, startTo.y);
+          const maxY = Math.max(startFrom.y, startTo.y);
+          let tx = clamp(dxRaw, -minX, VW - maxX);
+          let ty = clamp(dyRaw, -minY, VH_CM - maxY);
+          if (snapRef.current) { tx = snapTo(tx); ty = snapTo(ty); }
+          newFrom = { x: startFrom.x + tx, y: startFrom.y + ty };
+          newTo = { x: startTo.x + tx, y: startTo.y + ty };
+        }
+        const bbox = computeLineBBox(newFrom, newTo);
+        setLineOverrides((o) => ({ ...o, [drag.id]: { from: newFrom, to: newTo } }));
+        setOverrides((o) => ({ ...o, [drag.id]: bbox }));
+        return;
+      }
+
+      // ── Box drags (move / resize) — original behaviour ──────────────
       let { x, y, w, h } = drag.startBox;
       if (drag.mode.kind === 'move') {
-        x = drag.startBox.x + dx;
-        y = drag.startBox.y + dy;
-      } else {
+        x = drag.startBox.x + dxRaw;
+        y = drag.startBox.y + dyRaw;
+      } else if (drag.mode.kind === 'resize') {
         const handle = drag.mode.handle;
-        if (handle.includes('e')) w = drag.startBox.w + dx;
-        if (handle.includes('s')) h = drag.startBox.h + dy;
+        if (handle.includes('e')) w = drag.startBox.w + dxRaw;
+        if (handle.includes('s')) h = drag.startBox.h + dyRaw;
         if (handle.includes('w')) {
-          w = drag.startBox.w - dx;
-          x = drag.startBox.x + dx;
+          w = drag.startBox.w - dxRaw;
+          x = drag.startBox.x + dxRaw;
         }
         if (handle.includes('n')) {
-          h = drag.startBox.h - dy;
-          y = drag.startBox.y + dy;
+          h = drag.startBox.h - dyRaw;
+          y = drag.startBox.y + dyRaw;
         }
         if (w < MIN_W) {
           if (handle.includes('w')) x -= MIN_W - w;
@@ -589,14 +692,11 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
         }
       }
 
-      // Snap-to-grid (0.2 cm minor). Snap the coords the user is
-      // actively changing so alignment is deterministic.
       if (snapRef.current) {
-        const snapTo = (v: number) => Math.round(v / SNAP_STEP_CM) * SNAP_STEP_CM;
         if (drag.mode.kind === 'move') {
           x = snapTo(x);
           y = snapTo(y);
-        } else {
+        } else if (drag.mode.kind === 'resize') {
           const handle = drag.mode.handle;
           if (handle.includes('e')) w = Math.max(MIN_W, snapTo(w));
           if (handle.includes('s')) h = Math.max(MIN_H, snapTo(h));
@@ -621,7 +721,14 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     };
     const onUp = () => {
       const finalBox = overridesRef.current[drag.id];
-      if (finalBox) persistDebounced(drag.id, finalBox);
+      const finalLine = lineOverridesRef.current[drag.id];
+      const isLineDrag = drag.mode.kind === 'endpoint' || drag.mode.kind === 'line-move';
+
+      if (isLineDrag && finalBox && finalLine) {
+        persistLineDebounced(drag.id, finalBox, finalLine);
+      } else if (finalBox) {
+        persistDebounced(drag.id, finalBox);
+      }
       // Manual resize (any handle that changed h) locks in an explicit
       // height and disables auto-fit for this bound box.
       let styleAfter: BoundBoxStyle | null = null;
@@ -651,11 +758,19 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
           Math.abs(beforeSnap.y - finalBox.y) > 1e-4 ||
           Math.abs(beforeSnap.w - finalBox.w) > 1e-4 ||
           Math.abs(beforeSnap.h - finalBox.h) > 1e-4;
-        if (boxChanged || styleAfter) {
+        const contentChanged =
+          isLineDrag && finalLine &&
+          JSON.stringify(((beforeSnap.content ?? {}) as LineContent).from) !== JSON.stringify(finalLine.from) ||
+          JSON.stringify(((beforeSnap.content ?? {}) as LineContent).to) !== JSON.stringify(finalLine.to);
+        if (boxChanged || styleAfter || contentChanged) {
+          const afterContent = isLineDrag && finalLine
+            ? { ...(beforeSnap.content as LineContent), from: finalLine.from, to: finalLine.to }
+            : beforeSnap.content;
           const after: ElementSnapshot = {
             ...beforeSnap,
             x: finalBox.x, y: finalBox.y, w: finalBox.w, h: finalBox.h,
             style: styleAfter ?? beforeSnap.style,
+            content: afterContent,
           };
           pushHistory({ kind: 'update', id: drag.id, before: beforeSnap, after, ts: Date.now() });
         }
@@ -672,7 +787,8 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       window.removeEventListener('pointerup', onUp);
       window.removeEventListener('pointercancel', onUp);
     };
-  }, [drag, persistDebounced, fetched, styleOverrides, persistStyleDebounced]);
+  }, [drag, persistDebounced, persistLineDebounced, fetched, styleOverrides, persistStyleDebounced, pushHistory]);
+
 
 
   const columnOrder = useMemo(
@@ -686,6 +802,20 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
   );
   const textEls = useMemo(() => fetched.filter((e) => e.kind === 'text'), [fetched]);
   const shapeEls = useMemo(() => fetched.filter((e) => e.kind === 'shape'), [fetched]);
+  const lineEls = useMemo(() => fetched.filter((e) => e.kind === 'line'), [fetched]);
+  /** Line elements merged with any in-flight overrides (bbox + endpoints)
+   *  so the shared overlay + interactive layer stay in sync during drag. */
+  const lineElsMerged = useMemo(() => {
+    return lineEls.map((el) => {
+      const ov = overrides[el.id];
+      const lov = lineOverrides[el.id];
+      const contentBase = (el.content ?? {}) as LineContent;
+      const content = lov ? { ...contentBase, from: lov.from, to: lov.to } : contentBase;
+      const box = ov ?? { x: el.x, y: el.y, w: el.w, h: el.h };
+      return { ...el, ...box, content } as CanvasElement;
+    });
+  }, [lineEls, overrides, lineOverrides]);
+
 
   // Auto-fit height: for every bound box with style.autoFitH !== false,
   // measure the natural content height from its hidden probe and grow the
@@ -813,6 +943,55 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     [canEdit, maxZ, proposalId, qc, pushHistory],
   );
 
+  /** Add a new line element with the given routing + arrow variant.
+   *  Default geometry: a ~4 cm horizontal segment centred on the canvas,
+   *  snapped to 0.2 cm when snap is on. Starts selected. One undo step. */
+  const addLine = useCallback(
+    async (routing: 'straight' | 'elbow', arrow: 'none' | 'end' | 'both') => {
+      if (!canEdit) return;
+      const VW = CANVAS_WIDTH_CM;
+      const VH = canvasHeightCmRef.current;
+      const halfLen = 2; // cm — total 4 cm horizontal default
+      const cy = +(VH / 2).toFixed(2);
+      const cxL = +(VW / 2 - halfLen).toFixed(2);
+      const cxR = +(VW / 2 + halfLen).toFixed(2);
+      const snapTo = (v: number) => Math.round(v / SNAP_STEP_CM) * SNAP_STEP_CM;
+      const from = snapRef.current
+        ? { x: snapTo(cxL), y: snapTo(cy) }
+        : { x: cxL, y: cy };
+      const to = snapRef.current
+        ? { x: snapTo(cxR), y: snapTo(cy) }
+        : { x: cxR, y: cy };
+      const bbox = computeLineBBox(from, to);
+      const insertBox = {
+        proposal_id: proposalId,
+        kind: 'line',
+        x: bbox.x, y: bbox.y, w: bbox.w, h: bbox.h,
+        z: maxZ + 1,
+        content: { routing, arrow, from, to },
+        style: { outlineColor: '#000000', outlineWidth: 1.5 },
+      };
+      const { data, error } = await supabase
+        .from('impact_canvas_elements')
+        .insert(insertBox)
+        .select('id, kind, bound_row_id, bound_col_key, x, y, w, h, z, content, style')
+        .single();
+      if (error || !data) {
+        qc.invalidateQueries({ queryKey: ELS_KEY(proposalId) });
+        return;
+      }
+      qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId), (old) => [
+        ...(old || []),
+        data as CanvasElement,
+      ]);
+      pushHistory({ kind: 'add', element: data as CanvasElement });
+      setSelectedId(data.id);
+    },
+    [canEdit, maxZ, proposalId, qc, pushHistory],
+  );
+
+
+
 
   /** Directly set an element's box in cm (used by the size input fields).
    *  Optimistic + debounced via the same persist path as drag/resize. */
@@ -883,7 +1062,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
   useEffect(() => {
     if (!selectedId || editingId) return;
     const el = fetched.find((e) => e.id === selectedId);
-    if (!el || (el.kind !== 'text' && el.kind !== 'shape')) return;
+    if (!el || (el.kind !== 'text' && el.kind !== 'shape' && el.kind !== 'line')) return;
     const onKey = (ev: KeyboardEvent) => {
       if (ev.key !== 'Delete' && ev.key !== 'Backspace') return;
       const t = ev.target as HTMLElement | null;
@@ -960,7 +1139,9 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
   const selectedIsBound = selectedEl?.kind === 'bound';
   const selectedIsShape = selectedEl?.kind === 'shape';
   const selectedIsText = selectedEl?.kind === 'text';
-  const selectedIsFree = selectedIsShape || selectedIsText;
+  const selectedIsLine = selectedEl?.kind === 'line';
+  const selectedIsFree = selectedIsShape || selectedIsText || selectedIsLine;
+
   const selectedBox = selectedEl
     ? (overrides[selectedEl.id] ?? { x: selectedEl.x, y: selectedEl.y, w: selectedEl.w, h: selectedEl.h })
     : null;
@@ -1011,13 +1192,29 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
             />
           )}
 
-          {/* cm size fields — any resizable element (bound / text / shape). */}
-          {selectedEl && selectedBox && (
+          {/* Outline picker for selected line (no fill; only colour + width). */}
+          {selectedEl && selectedIsLine && (
+            <div className="flex items-center gap-1 pr-2 border-r" data-impact-canvas-toolbar>
+              <ImpactCanvasOutlinePicker
+                color={(selectedEl.style as { outlineColor?: string })?.outlineColor ?? '#000000'}
+                width={(selectedEl.style as { outlineWidth?: number })?.outlineWidth ?? 1.5}
+                proposalId={proposalId}
+                disabled={!canEdit}
+                onColorChange={(c) => updateBoundStyle(selectedEl.id, { outlineColor: c })}
+                onWidthChange={(w) => updateBoundStyle(selectedEl.id, { outlineWidth: w })}
+              />
+            </div>
+          )}
+
+          {/* cm size fields — resizable boxes only (bound / text / shape).
+              Lines size is derived from endpoints; drag the endpoints. */}
+          {selectedEl && selectedBox && !selectedIsLine && (
             <SizeFields
               box={selectedBox}
               onChange={(patch) => setElementBox(selectedEl.id, patch)}
             />
           )}
+
 
           {/*
             Element-adding cluster.
@@ -1036,6 +1233,10 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
             <Button type="button" variant="outline" size="sm" onClick={() => addShape('triangle')} className="h-8 w-8 p-0" title="Triangle" data-impact-canvas-toolbar>
               <Triangle className="w-4 h-4" />
             </Button>
+            {/* Line/arrow split button — primary click adds a straight
+                one-way arrow; chevron opens a 2×3 popover for the six
+                {straight,elbow}×{plain,one-way,two-way} variants. */}
+            <LineAdderSplitButton onAdd={addLine} />
             <Button
               type="button"
               variant="outline"
@@ -1047,6 +1248,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
               <Type className="w-4 h-4 mr-1" /> Text box
             </Button>
           </div>
+
 
           {/* Grid + snap toggles — editor-only preferences (localStorage). */}
           <div className="flex items-center gap-1" data-impact-canvas-toolbar>
