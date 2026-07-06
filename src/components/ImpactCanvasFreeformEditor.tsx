@@ -852,8 +852,18 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
   const deleteElement = useCallback(
     async (id: string) => {
       if (!canEdit) return;
-      // Optimistic removal
+      // Snapshot with merged overrides so undo restores the visible state.
       const prev = qc.getQueryData<CanvasElement[]>(ELS_KEY(proposalId));
+      const target = (prev || []).find((e) => e.id === id);
+      if (target) {
+        const snap = snapshotOfEl(target);
+        const restored: CanvasElement = {
+          ...target,
+          x: snap.x, y: snap.y, w: snap.w, h: snap.h,
+          content: snap.content, style: snap.style,
+        };
+        pushHistory({ kind: 'delete', element: restored });
+      }
       qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId), (old) =>
         (old || []).filter((e) => e.id !== id),
       );
@@ -864,8 +874,9 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
         if (prev) qc.setQueryData(ELS_KEY(proposalId), prev);
       }
     },
-    [canEdit, proposalId, qc],
+    [canEdit, proposalId, qc, snapshotOfEl, pushHistory],
   );
+
 
   // Keyboard: Delete/Backspace on selected free element removes it.
   useEffect(() => {
