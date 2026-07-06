@@ -299,8 +299,31 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     ) {
       last.after = entry.after;
       last.ts = now;
+    } else if (
+      entry.kind === 'batch' &&
+      last?.kind === 'batch' &&
+      group &&
+      last.group === group &&
+      last.ts &&
+      now - last.ts < 600 &&
+      last.entries.length === entry.entries.length &&
+      last.entries.every((e, i) => {
+        const n = entry.entries[i];
+        return e.kind === 'update' && n.kind === 'update' && e.id === n.id;
+      })
+    ) {
+      // Coalesce: keep original `before`, overwrite `after` per entry.
+      entry.entries.forEach((n, i) => {
+        if (n.kind === 'update' && last.entries[i].kind === 'update') {
+          (last.entries[i] as { after: ElementSnapshot }).after = n.after;
+        }
+      });
+      last.ts = now;
     } else {
       if (entry.kind === 'update') {
+        entry.ts = now;
+        entry.group = group;
+      } else if (entry.kind === 'batch') {
         entry.ts = now;
         entry.group = group;
       }
