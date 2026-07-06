@@ -327,6 +327,16 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     overridesRef.current = overrides;
   }, [overrides]);
 
+  // Watch wrapper for size changes → re-run auto-fit measurement.
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => setWrapperTick((t) => t + 1));
+    ro.observe(wrapper);
+    return () => ro.disconnect();
+  }, []);
+
+
   useEffect(() => {
     if (!drag) return;
 
