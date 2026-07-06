@@ -29,9 +29,13 @@ import {
   ImpactCanvasLinesOverlay,
   computeLineBBox,
   computeElbowBend,
+  resolveLineCaps,
+  renderCap,
+  LINE_CAP_KINDS,
   type LineElement,
   type LineContent,
   type LinePoint,
+  type LineCap,
 } from './ImpactCanvasFreeformRenderer';
 
 import { Circle as CircleIcon, Square, Squircle, Triangle } from 'lucide-react';
