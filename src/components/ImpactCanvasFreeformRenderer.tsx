@@ -148,7 +148,12 @@ export function ImpactCanvasFreeformRenderer({ proposalId, className, fallback =
   const rowById = new Map(rows.map((r) => [r.id, r]));
   const columnByKey = new Map(columnOrder.map((c) => [c.key, c]));
   const VW = CANVAS_WIDTH_CM;
-  const VH = computeCanvasHeightCm([...boundEls, ...headerEls, ...textEls, ...shapeEls]);
+  // Parity with the editor's canvas-height calculation: include EVERY
+  // element (lines included — a line's stored w/h is its endpoint bbox).
+  // Previously excluded lines made the read-only wrapper shorter than the
+  // editor whenever a line extended below the lowest box, yielding a
+  // different aspect ratio in B2.1/PDF/PNG.
+  const VH = computeCanvasHeightCm(elements);
   const pctX = (x: number) => `${(x / VW) * 100}%`;
   const pctY = (y: number) => `${(y / VH) * 100}%`;
   const paddingPct = `${(VH / VW) * 100}%`;
