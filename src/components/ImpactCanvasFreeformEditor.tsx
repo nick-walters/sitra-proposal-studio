@@ -575,30 +575,57 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
 
   const colW = VW / columnOrder.length;
 
+  const selectedEl = selectedId ? fetched.find((e) => e.id === selectedId) ?? null : null;
+  const selectedIsBound = selectedEl?.kind === 'bound';
+  const selectedIsShape = selectedEl?.kind === 'shape';
+  const selectedIsText = selectedEl?.kind === 'text';
+  const selectedIsFree = selectedIsShape || selectedIsText;
+  const selectedBox = selectedEl
+    ? (overrides[selectedEl.id] ?? { x: selectedEl.x, y: selectedEl.y, w: selectedEl.w, h: selectedEl.h })
+    : null;
+
   return (
     <div className="space-y-2">
       {canEdit && (
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Bound-box style controls appear FIRST when a bound box is selected. */}
-          {selectedId && boundEls.some((b) => b.id === selectedId) && (
+          {/* Style controls — bound boxes AND shapes share the style model. */}
+          {selectedEl && (selectedIsBound || selectedIsShape) && (
             <BoundStyleToolbar
               proposalId={proposalId}
               canEdit={canEdit}
               style={{
-                ...readBoundStyle(boundEls.find((b) => b.id === selectedId)?.style),
-                ...(styleOverrides[selectedId] ?? {}),
+                ...readBoundStyle(selectedEl.style),
+                ...(styleOverrides[selectedEl.id] ?? {}),
               }}
-              onChange={(patch) => updateBoundStyle(selectedId, patch)}
+              onChange={(patch) => updateBoundStyle(selectedEl.id, patch)}
+            />
+          )}
+
+          {/* cm size fields — any resizable element (bound / text / shape). */}
+          {selectedEl && selectedBox && (
+            <SizeFields
+              box={selectedBox}
+              onChange={(patch) => setElementBox(selectedEl.id, patch)}
             />
           )}
 
           {/*
             Element-adding cluster.
             Reserved order (left→right): shapes, lines/arrows, text box.
-            Only the text-box button exists for now — placed at the end of the
-            cluster so future shape/line/arrow buttons slot in cleanly before it.
           */}
           <div className="flex items-center gap-1" data-impact-canvas-adders>
+            <Button type="button" variant="outline" size="sm" onClick={() => addShape('rect')} className="h-8 w-8 p-0" title="Rectangle" data-impact-canvas-toolbar>
+              <Square className="w-4 h-4" />
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => addShape('roundedRect')} className="h-8 w-8 p-0" title="Rounded rectangle" data-impact-canvas-toolbar>
+              <Squircle className="w-4 h-4" />
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => addShape('circle')} className="h-8 w-8 p-0" title="Circle" data-impact-canvas-toolbar>
+              <CircleIcon className="w-4 h-4" />
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => addShape('triangle')} className="h-8 w-8 p-0" title="Triangle" data-impact-canvas-toolbar>
+              <Triangle className="w-4 h-4" />
+            </Button>
             <Button
               type="button"
               variant="outline"
@@ -637,20 +664,20 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
             </Button>
           </div>
 
-          {selectedId && textEls.some((t) => t.id === selectedId) && (
+          {selectedEl && selectedIsFree && (
             <Button
               type="button"
               variant="ghost"
               size="sm"
               className="text-destructive hover:text-destructive h-8 px-2"
-              onClick={() => void deleteElement(selectedId)}
+              onClick={() => void deleteElement(selectedEl.id)}
               data-impact-canvas-toolbar
             >
-              <Trash2 className="w-4 h-4 mr-1" /> Delete text box
+              <Trash2 className="w-4 h-4 mr-1" /> Delete
             </Button>
           )}
           <span className="text-xs text-muted-foreground">
-            Double-click a text box to edit. Delete / Backspace removes the selected box.
+            Double-click a text box or shape to edit its text. Delete / Backspace removes the selected element.
           </span>
         </div>
       )}
