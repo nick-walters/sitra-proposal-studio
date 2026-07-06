@@ -798,6 +798,14 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     const onUp = (_ev: PointerEvent) => {
       cleanup();
       try { target.releasePointerCapture?.(pointerId); } catch { /* ignore */ }
+      if (activated) {
+        // Restore text selection and clear any range the drag accumulated.
+        try {
+          document.body.style.userSelect = '';
+          (document.body.style as CSSStyleDeclaration & { webkitUserSelect?: string }).webkitUserSelect = '';
+        } catch { /* ignore */ }
+        try { window.getSelection()?.removeAllRanges(); } catch { /* ignore */ }
+      }
       if (!activated) {
         // Pure click — no movement. Selection was already applied at press.
         dragBeforeRef.current = null;
