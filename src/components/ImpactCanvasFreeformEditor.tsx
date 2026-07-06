@@ -169,6 +169,49 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
   const bumpHistory = () => setHistoryTick((t) => t + 1);
   const canUndo = undoStackRef.current.length > 0;
   const canRedo = redoStackRef.current.length > 0;
+  /** Snapshot captured at drag start so onUp can build the update entry. */
+  const dragBeforeRef = useRef<{ id: string; snap: ElementSnapshot } | null>(null);
+  /** Snapshot captured when a text/shape enters edit mode; on commit we
+   *  compare and push ONE update entry if the html actually changed. */
+  const textEditBeforeRef = useRef<{ id: string; snap: ElementSnapshot } | null>(null);
+
+  // Build a snapshot of an element's current visible state (fetched values
+  // overlaid with any pending optimistic overrides).
+  const snapshotOfElRef = useRef<(el: CanvasElement) => ElementSnapshot>(() => ({
+    x: 0, y: 0, w: 0, h: 0, content: null, style: null,
+  }));
+  const snapshotOfEl = useCallback(
+    (el: CanvasElement): ElementSnapshot => snapshotOfElRef.current(el),
+    [],
+  );
+
+  const pushHistory = useCallback((entry: HistoryEntry, group?: string) => {
+    if (suppressHistoryRef.current) return;
+    const stack = undoStackRef.current;
+    const last = stack[stack.length - 1];
+    const now = Date.now();
+    if (
+      entry.kind === 'update' &&
+      last?.kind === 'update' &&
+      group &&
+      last.group === group &&
+      last.id === entry.id &&
+      now - last.ts < 600
+    ) {
+      last.after = entry.after;
+      last.ts = now;
+    } else {
+      if (entry.kind === 'update') {
+        entry.ts = now;
+        entry.group = group;
+      }
+      stack.push(entry);
+      if (stack.length > 200) stack.shift();
+    }
+    redoStackRef.current = [];
+    bumpHistory();
+  }, []);
+
 
 
 
