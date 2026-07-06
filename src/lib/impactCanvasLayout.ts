@@ -137,9 +137,10 @@ export async function syncBoundElements(proposalId: string): Promise<void> {
       .order('order_index'),
     supabase
       .from('impact_canvas_elements')
-      .select('bound_row_id, bound_col_key, kind')
+      .select('bound_row_id, bound_col_key, kind, x, y, w, h')
       .eq('proposal_id', proposalId)
       .in('kind', ['bound', 'header']),
+
   ]);
   if (colsRes.error) throw colsRes.error;
   if (rowsRes.error) throw rowsRes.error;
@@ -206,26 +207,65 @@ export async function syncBoundElements(proposalId: string): Promise<void> {
   }
 
   // Bound cell elements — one per (row × column).
-  for (const r of rows) {
+  // Vertical position rule: a NEW row sits 0.4cm below the LOWEST edge
+  // (max y+h, including auto-fit growth) of the row DIRECTLY ABOVE it. For
+  // the first content row, the "row above" is the header band. Existing
+  // rows keep their coords untouched (additive-only).
+  const NEW_ROW_GAP_CM = 0.4;
+
+  // Compute the current bottom (max y+h) of each existing row, and of headers.
+  const rowBottoms = new Map<string, number>();
+  let headerBottom = HEADER_HEIGHT_CM;
+  for (const e of existingRows) {
+    const bottom = (e.y ?? 0) + (e.h ?? 0);
+    if (e.kind === 'header') {
+      if (bottom > headerBottom) headerBottom = bottom;
+    } else if (e.kind === 'bound' && e.bound_row_id) {
+      const cur = rowBottoms.get(e.bound_row_id) ?? 0;
+      if (bottom > cur) rowBottoms.set(e.bound_row_id, bottom);
+    }
+  }
+
+  const sortedRows = [...rows].sort((a, b) => a.order_index - b.order_index);
+  for (let i = 0; i < sortedRows.length; i++) {
+    const r = sortedRows[i];
+    // Row already has bound elements? Skip position computation; only fill
+    // missing columns at their existing row y (rare case: partial row).
+    const rowHasExisting = rowBottoms.has(r.id);
+    let newRowY: number | null = null;
+    if (!rowHasExisting) {
+      const prev = i > 0 ? sortedRows[i - 1] : null;
+      const baseline = prev ? (rowBottoms.get(prev.id) ?? headerBottom) : headerBottom;
+      newRowY = baseline + NEW_ROW_GAP_CM;
+    }
     for (const c of cols) {
       const key = `${r.id}::${c.key}`;
       if (existingBound.has(key)) continue;
-      const pos = computeDefaultBoundPosition(
-        r.order_index,
-        c.order_index,
-        cols.length,
-        rows.length,
-      );
+      const x = DEFAULT_BOUND_START_X_CM + c.order_index * (DEFAULT_BOUND_W_CM + DEFAULT_BOUND_HGAP_CM);
+      const w = DEFAULT_BOUND_W_CM;
+      const h = DEFAULT_BOUND_H_CM;
+      // If this row already has some existing boxes, align new missing
+      // boxes to that row's top (existing row y is not selected explicitly;
+      // approximate via bottom - default h). Otherwise use computed newRowY.
+      const y = newRowY ?? Math.max(HEADER_HEIGHT_CM, (rowBottoms.get(r.id) ?? HEADER_HEIGHT_CM) - h);
       toInsert.push({
         proposal_id: proposalId,
         kind: 'bound',
         bound_row_id: r.id,
         bound_col_key: c.key,
-        ...pos,
+        x,
+        y,
+        w,
+        h,
         style: { autoFitH: true, outlineColor: 'none', fillColor: '#ADB5BD' },
       });
+      // Track this row's bottom so subsequent new rows stack below it.
+      const bottom = y + h;
+      const cur = rowBottoms.get(r.id) ?? 0;
+      if (bottom > cur) rowBottoms.set(r.id, bottom);
     }
   }
+
 
   if (toInsert.length > 0) {
     const { error } = await supabase
