@@ -1540,6 +1540,10 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
           position: 'relative',
           width: '100%',
           overflow: 'hidden',
+          // Establish a stacking context so negative-z elements (e.g. shapes
+          // sent to back) stay contained and don't render behind the parent
+          // card's background — which would make them disappear entirely.
+          isolation: 'isolate',
           fontFamily: '"Times New Roman", Times, serif',
           userSelect: drag ? 'none' : undefined,
           touchAction: 'none',

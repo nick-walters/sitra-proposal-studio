@@ -161,6 +161,10 @@ export function ImpactCanvasFreeformRenderer({ proposalId, className, fallback =
         position: 'relative',
         width: '100%',
         overflow: 'hidden',
+        // Own stacking context: keeps negative-z elements (e.g. shapes sent
+        // to back) contained so they never render behind the surrounding
+        // card/page background — parity with the editor.
+        isolation: 'isolate',
         fontFamily: '"Times New Roman", Times, serif',
       }}
     >
