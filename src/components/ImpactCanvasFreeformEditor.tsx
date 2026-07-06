@@ -1411,15 +1411,16 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     [canEdit, maxZ, proposalId, qc, pushHistory],
   );
 
-  /** Add a new line element with the given routing + arrow variant.
+  /** Add a new line element with the given routing. Default caps:
+   *  startCap 'none', endCap 'arrow-filled' (right/end arrowhead).
    *  Default geometry: a ~4 cm horizontal segment centred on the canvas,
    *  snapped to 0.2 cm when snap is on. Starts selected. One undo step. */
   const addLine = useCallback(
-    async (routing: 'straight' | 'elbow', arrow: 'none' | 'end' | 'both') => {
+    async (routing: 'straight' | 'elbow') => {
       if (!canEdit) return;
       const VW = CANVAS_WIDTH_CM;
       const VH = canvasHeightCmRef.current;
-      const halfLen = 2; // cm — total 4 cm horizontal default
+      const halfLen = 2;
       const cy = +(VH / 2).toFixed(2);
       const cxL = +(VW / 2 - halfLen).toFixed(2);
       const cxR = +(VW / 2 + halfLen).toFixed(2);
@@ -1436,7 +1437,12 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
         kind: 'line',
         x: bbox.x, y: bbox.y, w: bbox.w, h: bbox.h,
         z: maxZ + 1,
-        content: { routing, arrow, from, to },
+        content: {
+          routing,
+          startCap: 'none' as LineCap,
+          endCap: 'arrow-filled' as LineCap,
+          from, to,
+        },
         style: { outlineColor: '#000000', outlineWidth: 1.5 },
       };
       const { data, error } = await supabase
@@ -1456,6 +1462,38 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       selectOnly(data.id);
     },
     [canEdit, maxZ, proposalId, qc, pushHistory],
+  );
+
+  /** Update start/end cap of a line element. Merges content, optimistic +
+   *  persisted, single undo step per change. */
+  const updateLineCaps = useCallback(
+    async (id: string, patch: Partial<{ startCap: LineCap; endCap: LineCap }>) => {
+      if (!canEdit) return;
+      const list = qc.getQueryData<CanvasElement[]>(ELS_KEY(proposalId)) || [];
+      const el = list.find((e) => e.id === id);
+      if (!el || el.kind !== 'line') return;
+      const before = snapshotOfEl(el);
+      const prevContent = (el.content ?? {}) as LineContent;
+      const currentCaps = resolveLineCaps(prevContent);
+      const nextContent: LineContent = {
+        ...prevContent,
+        startCap: patch.startCap ?? currentCaps.startCap,
+        endCap: patch.endCap ?? currentCaps.endCap,
+      };
+      // Drop legacy field once we've written per-end caps.
+      delete (nextContent as Record<string, unknown>).arrow;
+      qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId), (old) =>
+        (old || []).map((e) => (e.id === id ? { ...e, content: nextContent } : e)),
+      );
+      const after: ElementSnapshot = { ...before, content: nextContent };
+      pushHistory({ kind: 'update', id, before, after, ts: Date.now() }, `caps:${id}`);
+      const { error } = await supabase
+        .from('impact_canvas_elements')
+        .update({ content: nextContent as never })
+        .eq('id', id);
+      if (error) qc.invalidateQueries({ queryKey: ELS_KEY(proposalId) });
+    },
+    [canEdit, proposalId, qc, snapshotOfEl, pushHistory],
   );
 
 
