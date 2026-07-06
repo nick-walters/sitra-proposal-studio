@@ -2211,9 +2211,7 @@ interface BoundStyleToolbarProps {
  * and an "A"-with-underline Font colour picker.
  */
 function BoundStyleToolbar({ proposalId, canEdit, style, onChange }: BoundStyleToolbarProps) {
-  const width = style.outlineWidth ?? BOUND_STYLE_DEFAULTS.outlineWidth;
   const fill = style.fillColor ?? '#F5F5F5';
-  const outline = style.outlineColor ?? '#CCCCCC';
   const font = style.fontColor ?? BOUND_STYLE_DEFAULTS.fontColor;
 
   const fillIsNone = fill === 'none';
@@ -2221,6 +2219,34 @@ function BoundStyleToolbar({ proposalId, canEdit, style, onChange }: BoundStyleT
 
   return (
     <div className="flex items-center gap-1" data-impact-canvas-toolbar>
+      {/* Font colour — "A" with coloured underline */}
+      <WPColorPicker
+        color={font}
+        onChange={(c) => onChange({ fontColor: c })}
+        disabled={!canEdit}
+        proposalId={proposalId}
+        canManageCustom={canEdit}
+        label="Font colour"
+        showGreyscale
+        trigger={
+          <button
+            type="button"
+            disabled={!canEdit}
+            className="inline-flex flex-col items-center justify-center h-8 w-9 rounded-md border bg-background hover:bg-accent transition-colors disabled:opacity-50"
+            title="Font colour"
+            aria-label="Font colour"
+          >
+            <span
+              className="text-[15px] font-semibold leading-none"
+              style={{ fontFamily: 'Georgia, serif', color: '#111' }}
+            >
+              A
+            </span>
+            <div className="mt-[2px] rounded-sm" style={{ height: 3, width: 16, background: font }} />
+          </button>
+        }
+      />
+
       {/* Fill — paint bucket icon + current-fill indicator */}
       <WPColorPicker
         color={fillIsNone ? '#FFFFFF' : fill}
@@ -2232,7 +2258,6 @@ function BoundStyleToolbar({ proposalId, canEdit, style, onChange }: BoundStyleT
         showGreyscale
         onRemove={() => onChange({ fillColor: 'none' })}
         removeLabel="No fill"
-
         trigger={
           <button
             type="button"
@@ -2257,48 +2282,10 @@ function BoundStyleToolbar({ proposalId, canEdit, style, onChange }: BoundStyleT
           </button>
         }
       />
-
-      {/* Outline — combined colour + width dropdown */}
-      <ImpactCanvasOutlinePicker
-        color={outline}
-        width={width}
-        proposalId={proposalId}
-        disabled={!canEdit}
-        onColorChange={(c) => onChange({ outlineColor: c })}
-        onWidthChange={(w) => onChange({ outlineWidth: w })}
-      />
-
-      {/* Font colour — "A" with coloured underline */}
-      <WPColorPicker
-        color={font}
-        onChange={(c) => onChange({ fontColor: c })}
-        disabled={!canEdit}
-        proposalId={proposalId}
-        canManageCustom={canEdit}
-        label="Font colour"
-        showGreyscale
-
-        trigger={
-          <button
-            type="button"
-            disabled={!canEdit}
-            className="inline-flex flex-col items-center justify-center h-8 w-9 rounded-md border bg-background hover:bg-accent transition-colors disabled:opacity-50"
-            title="Font colour"
-            aria-label="Font colour"
-          >
-            <span
-              className="text-[15px] font-semibold leading-none"
-              style={{ fontFamily: 'Georgia, serif', color: '#111' }}
-            >
-              A
-            </span>
-            <div className="mt-[2px] rounded-sm" style={{ height: 3, width: 16, background: font }} />
-          </button>
-        }
-      />
     </div>
   );
 }
+
 
 
 
