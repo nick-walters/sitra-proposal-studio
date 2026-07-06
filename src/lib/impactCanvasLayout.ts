@@ -234,5 +234,26 @@ export async function syncBoundElements(proposalId: string): Promise<void> {
     if (error) throw error;
   }
 
+  // Header-bar backdrop — a black 18×1cm rounded rectangle behind the header
+  // boxes. Only auto-created at INITIAL canvas setup: guarded by
+  // "no existing bound/header elements before this sync". After the user
+  // deletes it, subsequent syncs (add column/row) will find existing headers
+  // and skip re-adding — the shape stays deleted. It is a normal shape
+  // element: repositionable, resizable, restylable, deletable.
+  if (existingRows.length === 0 && cols.length > 0) {
+    const { error } = await supabase.from('impact_canvas_elements').insert({
+      proposal_id: proposalId,
+      kind: 'shape',
+      x: 0,
+      y: 0,
+      w: CANVAS_WIDTH_CM,
+      h: 1,
+      z: -1000, // behind headers (which default to z=0)
+      content: { shape: 'roundedRect', html: '' },
+      style: { fillColor: '#000000', outlineColor: 'none' },
+    } as never);
+    if (error) throw error;
+  }
 }
+
 
