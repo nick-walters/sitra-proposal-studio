@@ -120,7 +120,7 @@ export function ImpactCanvasOutlinePicker({
                     style={{
                       backgroundColor: c,
                       boxShadow:
-                        !isSelected && needsOutline
+                        !isSelected
                           ? 'inset 0 0 0 1px rgba(0,0,0,0.2)'
                           : undefined,
                     }}
@@ -154,7 +154,7 @@ export function ImpactCanvasOutlinePicker({
                     style={{
                       backgroundColor: g,
                       boxShadow:
-                        !isSelected && needsOutline
+                        !isSelected
                           ? 'inset 0 0 0 1px rgba(0,0,0,0.2)'
                           : undefined,
                     }}
@@ -187,7 +187,7 @@ export function ImpactCanvasOutlinePicker({
                       style={{
                         backgroundColor: c,
                         boxShadow:
-                          !isSelected && needsOutline
+                          !isSelected
                             ? 'inset 0 0 0 1px rgba(0,0,0,0.2)'
                             : undefined,
                       }}
