@@ -165,6 +165,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
   const pendingTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const pendingContentTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const pendingStyleTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const pendingBoxAbortControllers = useRef<Record<string, AbortController>>({});
   /** Optimistic overrides for style (per element id). */
   const [styleOverrides, setStyleOverrides] = useState<Record<string, BoundBoxStyle>>({});
   /** Refs to per-bound-el hidden probes used to measure natural content
@@ -172,6 +173,10 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
   const probeRefs = useRef<Record<string, HTMLDivElement | null>>({});
   /** Bumped when the wrapper resizes so the auto-fit effect re-measures. */
   const [wrapperTick, setWrapperTick] = useState(0);
+  /** Monotonic guard for debounced bbox writes (drag/resize/auto-fit/lines).
+   *  Incrementing it invalidates any timer or in-flight write for that element,
+   *  preventing stale auto-fit completions from clearing a live drag override. */
+  const pendingBoxWriteSeqRef = useRef<Record<string, number>>({});
 
   // ── Canvas-level UNDO/REDO (session-only, in-memory) ──────────────────
   // Per-element before/after snapshots. Add/delete carry the full element
@@ -266,12 +271,22 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     (id: string, box: { x: number; y: number; w: number; h: number }) => {
       const existing = pendingTimers.current[id];
       if (existing) clearTimeout(existing);
+      const seq = (pendingBoxWriteSeqRef.current[id] ?? 0) + 1;
+      pendingBoxWriteSeqRef.current[id] = seq;
       pendingTimers.current[id] = setTimeout(async () => {
         delete pendingTimers.current[id];
+        pendingBoxAbortControllers.current[id]?.abort();
+        const controller = new AbortController();
+        pendingBoxAbortControllers.current[id] = controller;
         const { error } = await supabase
           .from('impact_canvas_elements')
           .update({ x: box.x, y: box.y, w: box.w, h: box.h })
-          .eq('id', id);
+          .eq('id', id)
+          .abortSignal(controller.signal);
+        if (pendingBoxAbortControllers.current[id] === controller) {
+          delete pendingBoxAbortControllers.current[id];
+        }
+        if (pendingBoxWriteSeqRef.current[id] !== seq || controller.signal.aborted) return;
         if (error) {
           setOverrides((o) => {
             const n = { ...o };
@@ -301,8 +316,13 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     (id: string, box: { x: number; y: number; w: number; h: number }, endpoints: { from: LinePoint; to: LinePoint }) => {
       const existing = pendingTimers.current[id];
       if (existing) clearTimeout(existing);
+      const seq = (pendingBoxWriteSeqRef.current[id] ?? 0) + 1;
+      pendingBoxWriteSeqRef.current[id] = seq;
       pendingTimers.current[id] = setTimeout(async () => {
         delete pendingTimers.current[id];
+        pendingBoxAbortControllers.current[id]?.abort();
+        const controller = new AbortController();
+        pendingBoxAbortControllers.current[id] = controller;
         const current = qc.getQueryData<CanvasElement[]>(ELS_KEY(proposalId)) || [];
         const el = current.find((e) => e.id === id);
         const prevContent = (el?.content ?? {}) as Record<string, unknown>;
@@ -310,7 +330,12 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
         const { error } = await supabase
           .from('impact_canvas_elements')
           .update({ x: box.x, y: box.y, w: box.w, h: box.h, content: nextContent as never })
-          .eq('id', id);
+          .eq('id', id)
+          .abortSignal(controller.signal);
+        if (pendingBoxAbortControllers.current[id] === controller) {
+          delete pendingBoxAbortControllers.current[id];
+        }
+        if (pendingBoxWriteSeqRef.current[id] !== seq || controller.signal.aborted) return;
         if (error) {
           setOverrides((o) => { const n = { ...o }; delete n[id]; return n; });
           setLineOverrides((o) => { const n = { ...o }; delete n[id]; return n; });
@@ -421,9 +446,11 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       Object.values(pendingTimers.current).forEach(clearTimeout);
       Object.values(pendingContentTimers.current).forEach(clearTimeout);
       Object.values(pendingStyleTimers.current).forEach(clearTimeout);
+      Object.values(pendingBoxAbortControllers.current).forEach((controller) => controller.abort());
       pendingTimers.current = {};
       pendingContentTimers.current = {};
       pendingStyleTimers.current = {};
+      pendingBoxAbortControllers.current = {};
     };
   }, []);
 
@@ -571,6 +598,14 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     e.preventDefault();
     const wrapper = wrapperRef.current;
     if (!wrapper) return;
+    const existingTimer = pendingTimers.current[id];
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+      delete pendingTimers.current[id];
+    }
+    pendingBoxAbortControllers.current[id]?.abort();
+    delete pendingBoxAbortControllers.current[id];
+    pendingBoxWriteSeqRef.current[id] = (pendingBoxWriteSeqRef.current[id] ?? 0) + 1;
     // Capture on currentTarget (the stable outer draggable), NOT e.target —
     // e.target is the deepest DOM node under the pointer (often an inner
     // element that React may remount mid-gesture, e.g. bound-box inner prose
@@ -726,7 +761,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
 
       setOverrides((o) => ({ ...o, [drag.id]: { x, y, w, h } }));
     };
-    const onUp = () => {
+    const onUp = (ev: PointerEvent) => {
       const finalBox = overridesRef.current[drag.id];
       const finalLine = lineOverridesRef.current[drag.id];
       const isLineDrag = drag.mode.kind === 'endpoint' || drag.mode.kind === 'line-move';
