@@ -2044,6 +2044,64 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
             </div>
           );
         })}
+
+        {/* Selected-element resize handles hoisted to a surface-level overlay
+            at a very high z-index. Rendering handles inside each element
+            wrapper is fragile: a wrapper that happens to sit behind (or in
+            the same stacking context as) a covering element loses its
+            handles' hit-testing (this bit shape handles specifically —
+            symptom: no resize cursor / no resize). By painting one shared
+            set of handles at the surface root, they sit above every
+            element wrapper regardless of z-order, so hover always shows
+            the resize cursor and pointerdown always starts a resize.
+            beginDrag is invoked with the selected element's kind-agnostic
+            box; the per-wrapper handles are removed to avoid duplicates. */}
+        {canEdit && (() => {
+          const selEl = fetched.find((e) => e.id === selectedId);
+          if (!selEl) return null;
+          if (selEl.kind !== 'bound' && selEl.kind !== 'header' && selEl.kind !== 'shape' && selEl.kind !== 'text') return null;
+          if (editingId === selEl.id) return null;
+          const ov = overrides[selEl.id];
+          const box = ov ?? { x: selEl.x, y: selEl.y, w: selEl.w, h: selEl.h };
+          const leftPct = (box.x / VW) * 100;
+          const topPct = (box.y / VH) * 100;
+          const widthPct = (box.w / VW) * 100;
+          const heightPct = (box.h / VH) * 100;
+          return (
+            <div
+              aria-hidden
+              style={{
+                position: 'absolute',
+                left: `${leftPct}%`,
+                top: `${topPct}%`,
+                width: `${widthPct}%`,
+                height: `${heightPct}%`,
+                pointerEvents: 'none',
+                zIndex: 950,
+              }}
+            >
+              {HANDLES.map((h) => (
+                <div
+                  key={h}
+                  data-canvas-handle={h}
+                  onPointerDown={(e) => beginDrag(e, selEl.id, { kind: 'resize', handle: h }, box)}
+                  style={{
+                    position: 'absolute',
+                    width: 10,
+                    height: 10,
+                    background: 'hsl(var(--primary))',
+                    border: '1px solid white',
+                    borderRadius: 2,
+                    cursor: HANDLE_CURSOR[h],
+                    pointerEvents: 'auto',
+                    ...handleStyle(h),
+                  }}
+                />
+              ))}
+            </div>
+          );
+        })()}
+
         {/* Line elements — shared SVG overlay renders the visible strokes +
             arrowheads (identical to B2.1/PDF/PNG). We pass the merged
             elements so in-flight endpoint/body drags are reflected live. */}
