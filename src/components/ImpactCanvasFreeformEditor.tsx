@@ -11,8 +11,10 @@ import {
   HEADER_HEIGHT_CM,
   MIN_ELEMENT_W_CM,
   MIN_ELEMENT_H_CM,
+  DEFAULT_BOUND_H_CM,
   computeCanvasHeightCm,
 } from '@/lib/impactCanvasLayout';
+
 import { WPColorPicker } from './WPColorPicker';
 import { BOUND_STYLE_DEFAULTS, readBoundStyle, resolveBoundStyle } from '@/lib/impactCanvasBoundStyle';
 import type { BoundBoxStyle } from '@/lib/impactCanvasBoundStyle';
