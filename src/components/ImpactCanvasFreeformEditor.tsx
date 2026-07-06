@@ -1660,10 +1660,30 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
   // Enablement flags for each toolbar group. Slots stay in fixed positions;
   // controls are disabled (greyed) when they don't apply to the current
   // selection — no reflow when switching elements.
-  const styleEnabled = !!selectedEl && (selectedIsBoundLike || selectedIsShape);
-  const lineStyleEnabled = !!selectedEl && selectedIsLine;
-  const sizeEnabled = !!selectedEl && !!selectedBox && !selectedIsLine;
-  const zEnabled = !!selectedEl && canEdit;
+  //
+  // Stage 2 multi-select styling: fill/font/outline enable for the WHOLE
+  // group and apply to every compatible member. Compatibility (per property):
+  //   • fill / font colour → bound | header | shape (elements with a fill
+  //     surface + text). Lines have no fill and no text.
+  //   • outline colour + width → bound | header | shape | line.
+  // Incompatible members are silently skipped.
+  const selectedIdsArr = Array.from(selectedIds);
+  const selectedEls = selectedIdsArr
+    .map((id) => fetched.find((e) => e.id === id))
+    .filter((e): e is CanvasElement => !!e);
+  const fillFontIds = selectedEls
+    .filter((e) => e.kind === 'bound' || e.kind === 'header' || e.kind === 'shape')
+    .map((e) => e.id);
+  const outlineIds = selectedEls
+    .filter((e) => e.kind === 'bound' || e.kind === 'header' || e.kind === 'shape' || e.kind === 'line')
+    .map((e) => e.id);
+  const styleEnabled = fillFontIds.length > 0;
+  const outlineEnabled = outlineIds.length > 0;
+  const sizeEnabled = selectedIds.size === 1 && !!selectedEl && !!selectedBox && !selectedIsLine;
+  // Layers: single-selection only. Multi-select z-order re-arrangement is
+  // out of Stage 2 scope (it would need a stable relative-order-preserving
+  // batch, which is a separate feature). Report as disabled for multi.
+  const zEnabled = selectedIds.size === 1 && !!selectedEl && canEdit;
   // Delete: enabled if any selected element is a deletable free element,
   // even in multi-select (Stage 1: batched delete-all-free).
   const deletableSelected = Array.from(selectedIds).filter((sid) => {
@@ -1672,11 +1692,52 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
   });
   const deleteEnabled = deletableSelected.length > 0;
 
-  // Combined outline enablement — shared control edits bound/shape/line outline.
-  const outlineEnabled = styleEnabled || lineStyleEnabled;
-  const outlineStyleSrc = outlineEnabled && selectedEl
-    ? ({ ...readBoundStyle(selectedEl.style), ...(styleOverrides[selectedEl.id] ?? {}) })
-    : (BOUND_STYLE_DEFAULTS as BoundBoxStyle);
+  // Per-property "common value" across the eligible members. When all
+  // eligible members share the same value → show that value in the picker;
+  // otherwise → undefined (mixed) and the picker renders a neutral swatch.
+  // Applying a value writes it to every eligible member (batched undo).
+  const commonStyleValue = <K extends keyof BoundBoxStyle>(
+    ids: string[],
+    key: K,
+  ): BoundBoxStyle[K] | undefined => {
+    if (ids.length === 0) return undefined;
+    let first: BoundBoxStyle[K] | undefined;
+    let seen = false;
+    for (const id of ids) {
+      const el = fetched.find((e) => e.id === id);
+      if (!el) continue;
+      const s = { ...readBoundStyle(el.style), ...(styleOverrides[id] ?? {}) };
+      const v = s[key];
+      if (!seen) { first = v; seen = true; }
+      else if (first !== v) return undefined;
+    }
+    return first;
+  };
+
+  const isMulti = selectedIds.size > 1;
+  const toolbarFill = isMulti
+    ? commonStyleValue(fillFontIds, 'fillColor')
+    : (selectedEl && styleEnabled ? { ...readBoundStyle(selectedEl.style), ...(styleOverrides[selectedEl.id] ?? {}) }.fillColor : undefined);
+  const toolbarFont = isMulti
+    ? commonStyleValue(fillFontIds, 'fontColor')
+    : (selectedEl && styleEnabled ? { ...readBoundStyle(selectedEl.style), ...(styleOverrides[selectedEl.id] ?? {}) }.fontColor : undefined);
+  const toolbarOutlineColor = isMulti
+    ? commonStyleValue(outlineIds, 'outlineColor')
+    : (selectedEl && outlineEnabled ? { ...readBoundStyle(selectedEl.style), ...(styleOverrides[selectedEl.id] ?? {}) }.outlineColor : undefined);
+  const toolbarOutlineWidth = isMulti
+    ? commonStyleValue(outlineIds, 'outlineWidth')
+    : (selectedEl && outlineEnabled ? { ...readBoundStyle(selectedEl.style), ...(styleOverrides[selectedEl.id] ?? {}) }.outlineWidth : undefined);
+  const fillMixed = isMulti && toolbarFill === undefined && fillFontIds.length > 1;
+  const fontMixed = isMulti && toolbarFont === undefined && fillFontIds.length > 1;
+  const outlineColorMixed = isMulti && toolbarOutlineColor === undefined && outlineIds.length > 1;
+  const outlineWidthMixed = isMulti && toolbarOutlineWidth === undefined && outlineIds.length > 1;
+
+  const applyStylePatch = (patch: Partial<BoundBoxStyle>, ids: string[]) => {
+    if (ids.length === 0) return;
+    if (ids.length === 1) updateBoundStyle(ids[0], patch);
+    else updateBoundStyleMulti(ids, patch);
+  };
+
 
   return (
     <div className="space-y-2">
