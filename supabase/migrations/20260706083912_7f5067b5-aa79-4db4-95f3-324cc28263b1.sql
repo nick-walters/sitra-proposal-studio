@@ -1,0 +1,2 @@
+ALTER TABLE public.impact_canvas_elements DROP CONSTRAINT impact_canvas_elements_kind_check;
+ALTER TABLE public.impact_canvas_elements ADD CONSTRAINT impact_canvas_elements_kind_check CHECK (kind = ANY (ARRAY['bound'::text, 'shape'::text, 'arrow'::text, 'icon'::text, 'image'::text, 'text'::text, 'line'::text]));
