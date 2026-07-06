@@ -355,7 +355,6 @@ export function WPColourSequenceDialog({
                         canManageCustom={isCoordinator}
                         disabled={saving === `pos-${r.order_index}` || !isCoordinator}
                         label={`${r.label} colour`}
-                        excludePaletteColors={['#000000', '#FFFFFF']}
                       />
 
                     </div>
@@ -457,7 +456,6 @@ function SortableThemeRow({
           proposalId={proposalId}
           canManageCustom={canEdit}
           disabled={!canEdit}
-          excludePaletteColors={['#000000', '#FFFFFF']}
         />
       </div>
       <div className="w-5 flex justify-end">
