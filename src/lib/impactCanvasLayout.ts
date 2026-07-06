@@ -180,6 +180,7 @@ export async function syncBoundElements(proposalId: string): Promise<void> {
     y: number;
     w: number;
     h: number;
+    style: { autoFitH: true };
   }> = [];
   for (const r of rows) {
     for (const c of cols) {
@@ -197,9 +198,13 @@ export async function syncBoundElements(proposalId: string): Promise<void> {
         bound_row_id: r.id,
         bound_col_key: c.key,
         ...pos,
+        // Mark NEW bound boxes as auto-fit-height so the editor grows h
+        // to fit the cell's text content until the user manually resizes.
+        style: { autoFitH: true },
       });
     }
   }
+
   if (toInsert.length > 0) {
     const { error } = await supabase.from('impact_canvas_elements').insert(toInsert);
     if (error) throw error;
