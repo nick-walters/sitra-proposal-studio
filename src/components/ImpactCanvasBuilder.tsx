@@ -109,10 +109,12 @@ export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figure
             </div>
             {/* Off-screen clean read-only render — this is what PNG export
                 captures via graphicRef, so no editor chrome (toolbar,
-                guidelines, grid) can leak into the PNG. Kept in the DOM
-                with a fixed pixel width so html2canvas has real layout. */}
+                guidelines, grid) can leak into the PNG. The off-screen
+                positioning lives on the OUTER wrapper so the inner div
+                (graphicRef) carries no positional inline styles — otherwise
+                html2canvas clones them and rasterises the clone off-screen
+                (empty PNG). */}
             <div
-              ref={graphicRef}
               aria-hidden="true"
               style={{
                 position: 'fixed',
@@ -122,8 +124,11 @@ export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figure
                 pointerEvents: 'none',
               }}
             >
-              <ImpactCanvasFreeformRenderer proposalId={proposalId} fallback="grid" />
+              <div ref={graphicRef}>
+                <ImpactCanvasFreeformRenderer proposalId={proposalId} fallback="grid" />
+              </div>
             </div>
+
 
           </CardContent>
         </Card>
