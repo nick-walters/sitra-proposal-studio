@@ -2018,7 +2018,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
         }}
 
       >
-        <div style={{ paddingBottom: paddingPct }} />
+        <div aria-hidden data-impact-canvas-sizer style={{ paddingBottom: paddingPct, pointerEvents: 'none' }} />
 
         {/* Grid overlay — editor-only aid, never rendered in read-only. */}
         {showGrid && (
