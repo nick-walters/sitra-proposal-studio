@@ -466,6 +466,17 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
               <Trash2 className="w-4 h-4 mr-1" /> Delete text box
             </Button>
           )}
+          {selectedId && boundEls.some((b) => b.id === selectedId) && (
+            <BoundStyleToolbar
+              proposalId={proposalId}
+              canEdit={canEdit}
+              style={{
+                ...readBoundStyle(boundEls.find((b) => b.id === selectedId)?.style),
+                ...(styleOverrides[selectedId] ?? {}),
+              }}
+              onChange={(patch) => updateBoundStyle(selectedId, patch)}
+            />
+          )}
           <span className="text-xs text-muted-foreground">
             Double-click a text box to edit. Delete / Backspace removes the selected box.
           </span>
