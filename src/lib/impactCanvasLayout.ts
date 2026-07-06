@@ -222,7 +222,7 @@ export async function syncBoundElements(proposalId: string): Promise<void> {
         bound_row_id: r.id,
         bound_col_key: c.key,
         ...pos,
-        style: { autoFitH: true, outlineColor: 'none' },
+        style: { autoFitH: true, outlineColor: 'none', fillColor: '#9CA3AF' },
       });
     }
   }
