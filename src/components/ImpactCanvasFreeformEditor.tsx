@@ -10,7 +10,7 @@ import { useImpactCanvasColumns, useImpactCanvasRows } from '@/hooks/useImpactCa
 import {
   CANVAS_WIDTH_CM,
   CANVAS_MAX_HEIGHT_CM,
-  HEADER_HEIGHT_CM,
+  
   MIN_ELEMENT_W_CM,
   MIN_ELEMENT_H_CM,
   DEFAULT_BOUND_H_CM,
