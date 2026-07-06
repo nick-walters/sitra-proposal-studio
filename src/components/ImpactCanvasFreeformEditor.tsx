@@ -345,6 +345,30 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
           h = MIN_H;
         }
       }
+
+      // Snap-to-grid (0.2 cm minor). Snap the coords the user is
+      // actively changing so alignment is deterministic.
+      if (snapRef.current) {
+        const snapTo = (v: number) => Math.round(v / SNAP_STEP_CM) * SNAP_STEP_CM;
+        if (drag.mode.kind === 'move') {
+          x = snapTo(x);
+          y = snapTo(y);
+        } else {
+          const handle = drag.mode.handle;
+          if (handle.includes('e')) w = Math.max(MIN_W, snapTo(w));
+          if (handle.includes('s')) h = Math.max(MIN_H, snapTo(h));
+          if (handle.includes('w')) {
+            const right = drag.startBox.x + drag.startBox.w;
+            x = Math.min(right - MIN_W, snapTo(x));
+            w = right - x;
+          }
+          if (handle.includes('n')) {
+            const bottom = drag.startBox.y + drag.startBox.h;
+            y = Math.min(bottom - MIN_H, snapTo(y));
+            h = bottom - y;
+          }
+        }
+      }
       w = Math.min(w, VW);
       h = Math.min(h, VH_CM);
       x = Math.max(0, Math.min(x, VW - w));
