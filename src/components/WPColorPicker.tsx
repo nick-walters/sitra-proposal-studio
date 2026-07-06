@@ -307,7 +307,7 @@ export function WPColorPicker({
                         )}
                         style={{
                           backgroundColor: c,
-                          boxShadow: !isSelected && iconColor === '#000000' ? 'inset 0 0 0 1px rgba(0,0,0,0.2)' : undefined,
+                          boxShadow: !isSelected ? 'inset 0 0 0 1px rgba(0,0,0,0.2)' : undefined,
                         }}
                         onClick={() => handleSelectSwatch(c)}
                         aria-label={`Select ${c}`}
