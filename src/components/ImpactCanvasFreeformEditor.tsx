@@ -1548,6 +1548,49 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
           userSelect: drag ? 'none' : undefined,
           touchAction: 'none',
         }}
+        onPointerDownCapture={(e) => {
+          // Bug B guard: when several element wrappers overlap, the browser
+          // routes the pointerdown to the sibling whose bounding rect is
+          // topmost in DOM/paint order — that may not be the element the
+          // user visually sees on top (shapes get sent behind bound boxes
+          // that share the same pixel area but were rendered later in DOM).
+          // Use elementsFromPoint (respects zIndex + pointer-events) to
+          // pick the visually topmost canvas element and, if it differs
+          // from the natural target, redirect the gesture there.
+          if (!canEdit || e.button !== 0) return;
+          const target = e.target as HTMLElement | null;
+          if (!target) return;
+          if (
+            target.closest('[data-impact-canvas-toolbar]') ||
+            target.closest('[data-impact-canvas-textbox-editor]') ||
+            target.closest('[data-impact-canvas-line-interactive]')
+          ) return;
+          const naturalWrapper = target.closest('[data-canvas-el-id]') as HTMLElement | null;
+          const stack = document.elementsFromPoint(e.clientX, e.clientY) as HTMLElement[];
+          const topWrapper = stack
+            .map((n) => n.closest('[data-canvas-el-id]') as HTMLElement | null)
+            .find((n): n is HTMLElement => !!n && wrapperRef.current!.contains(n)) ?? null;
+          if (topWrapper && topWrapper !== naturalWrapper) {
+            const id = topWrapper.getAttribute('data-canvas-el-id');
+            const el = fetchedRef.current.find((x) => x.id === id);
+            if (el) {
+              e.stopPropagation();
+              e.preventDefault();
+              const ov = overridesRef.current[el.id];
+              const box = ov ?? { x: el.x, y: el.y, w: el.w, h: el.h };
+              // Dispatch as if the correct wrapper received the event.
+              // Emulate React.PointerEvent shape for beginDrag by patching
+              // currentTarget to the top wrapper for setPointerCapture.
+              const synth = new Proxy(e, {
+                get(t, prop) {
+                  if (prop === 'currentTarget') return topWrapper;
+                  return (t as unknown as Record<string | symbol, unknown>)[prop as string];
+                },
+              }) as unknown as React.PointerEvent;
+              beginDrag(synth, el.id, { kind: 'move' }, box);
+            }
+          }
+        }}
         onPointerDown={(e) => {
           const target = e.target as HTMLElement | null;
           // Clicking anywhere on the surface that is NOT inside the currently-
