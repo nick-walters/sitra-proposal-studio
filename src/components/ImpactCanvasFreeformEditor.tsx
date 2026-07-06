@@ -983,37 +983,93 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       if (!el) return;
       const others = fetched.filter((e) => e.id !== id);
       if (others.length === 0) return;
-      let newZ = el.z;
+
+      // Updates to apply: primary element (id → newZ) plus optionally a
+      // neighbour element to swap with (breaks ties and guarantees a
+      // visible restack when many elements share the same z).
+      const updates: Array<{ id: string; before: number; after: number }> = [];
+
       if (action === 'front') {
-        newZ = Math.max(...others.map((e) => e.z)) + 1;
+        const newZ = Math.max(...others.map((e) => e.z)) + 1;
+        if (newZ === el.z) return;
+        updates.push({ id: el.id, before: el.z, after: newZ });
       } else if (action === 'back') {
-        newZ = Math.min(...others.map((e) => e.z)) - 1;
+        const newZ = Math.min(...others.map((e) => e.z)) - 1;
+        if (newZ === el.z) return;
+        updates.push({ id: el.id, before: el.z, after: newZ });
       } else if (action === 'forward') {
-        const higher = others.filter((e) => e.z > el.z).map((e) => e.z);
-        if (higher.length === 0) return;
-        newZ = Math.min(...higher) + 1;
+        // Find the immediate neighbour above: smallest z strictly greater
+        // than ours, then swap. If everything above is tied at our z (12
+        // headers+bounds all at 0), pick the first sibling at same z that
+        // renders after us in the fetched list — DOM order tie-breaks.
+        const strictlyHigher = others.filter((e) => e.z > el.z);
+        let neighbour = strictlyHigher.length
+          ? strictlyHigher.reduce((a, b) => (a.z <= b.z ? a : b))
+          : null;
+        if (!neighbour) {
+          const selfIdx = fetched.findIndex((e) => e.id === el.id);
+          neighbour = fetched.slice(selfIdx + 1).find((e) => e.z === el.z) ?? null;
+        }
+        if (!neighbour) return;
+        if (neighbour.z === el.z) {
+          // Ties: bump ours by +1 to overtake DOM-order neighbour.
+          updates.push({ id: el.id, before: el.z, after: el.z + 1 });
+        } else {
+          updates.push({ id: el.id, before: el.z, after: neighbour.z });
+          updates.push({ id: neighbour.id, before: neighbour.z, after: el.z });
+        }
       } else if (action === 'backward') {
-        const lower = others.filter((e) => e.z < el.z).map((e) => e.z);
-        if (lower.length === 0) return;
-        newZ = Math.max(...lower) - 1;
+        const strictlyLower = others.filter((e) => e.z < el.z);
+        let neighbour = strictlyLower.length
+          ? strictlyLower.reduce((a, b) => (a.z >= b.z ? a : b))
+          : null;
+        if (!neighbour) {
+          const selfIdx = fetched.findIndex((e) => e.id === el.id);
+          neighbour = [...fetched.slice(0, selfIdx)].reverse().find((e) => e.z === el.z) ?? null;
+        }
+        if (!neighbour) return;
+        if (neighbour.z === el.z) {
+          updates.push({ id: el.id, before: el.z, after: el.z - 1 });
+        } else {
+          updates.push({ id: el.id, before: el.z, after: neighbour.z });
+          updates.push({ id: neighbour.id, before: neighbour.z, after: el.z });
+        }
       }
-      if (newZ === el.z) return;
+
+      if (updates.length === 0) return;
+
+      // History: one step covering all (1 or 2) element z changes.
+      const primary = updates[0];
       const before = snapshotOfEl(el);
-      const after: ElementSnapshot = { ...before, z: newZ };
-      pushHistory({ kind: 'update', id, before, after, ts: Date.now() });
+      const after: ElementSnapshot = { ...before, z: primary.after };
+      pushHistory({ kind: 'update', id: el.id, before, after, ts: Date.now() });
+
       qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId), (old) =>
-        (old || []).map((e) => (e.id === id ? { ...e, z: newZ } : e)),
+        (old || []).map((e) => {
+          const u = updates.find((x) => x.id === e.id);
+          return u ? { ...e, z: u.after } : e;
+        }),
       );
-      void supabase
-        .from('impact_canvas_elements')
-        .update({ z: newZ })
-        .eq('id', id)
-        .then(({ error }) => {
-          if (error) qc.invalidateQueries({ queryKey: ELS_KEY(proposalId) });
-        });
+
+      void Promise.all(
+        updates.map((u) =>
+          supabase
+            .from('impact_canvas_elements')
+            .update({ z: u.after })
+            .eq('id', u.id)
+            .then(({ error }) => {
+              if (error) {
+                // eslint-disable-next-line no-console
+                console.error('[impact-canvas] z-order update failed', { id: u.id, z: u.after, error });
+                qc.invalidateQueries({ queryKey: ELS_KEY(proposalId) });
+              }
+            }),
+        ),
+      );
     },
     [canEdit, fetched, snapshotOfEl, pushHistory, qc, proposalId],
   );
+
 
 
   const addTextBox = useCallback(async () => {
