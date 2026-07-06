@@ -1721,8 +1721,9 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
               const box = { x: el.x, y: el.y, w: el.w, h: el.h };
               let d: string;
               if (routing === 'elbow') {
-                const bend = computeElbowBend(from, to, content.elbow);
+                const { bend } = computeElbowBend(from, to, content.elbow);
                 d = `M ${from.x} ${from.y} L ${bend.x} ${bend.y} L ${to.x} ${to.y}`;
+
               } else {
                 d = `M ${from.x} ${from.y} L ${to.x} ${to.y}`;
               }
