@@ -165,6 +165,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
   const pendingTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const pendingContentTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const pendingStyleTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const pendingBoxAbortControllers = useRef<Record<string, AbortController>>({});
   /** Optimistic overrides for style (per element id). */
   const [styleOverrides, setStyleOverrides] = useState<Record<string, BoundBoxStyle>>({});
   /** Refs to per-bound-el hidden probes used to measure natural content
@@ -274,11 +275,18 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       pendingBoxWriteSeqRef.current[id] = seq;
       pendingTimers.current[id] = setTimeout(async () => {
         delete pendingTimers.current[id];
+        pendingBoxAbortControllers.current[id]?.abort();
+        const controller = new AbortController();
+        pendingBoxAbortControllers.current[id] = controller;
         const { error } = await supabase
           .from('impact_canvas_elements')
           .update({ x: box.x, y: box.y, w: box.w, h: box.h })
-          .eq('id', id);
-        if (pendingBoxWriteSeqRef.current[id] !== seq) return;
+          .eq('id', id)
+          .abortSignal(controller.signal);
+        if (pendingBoxAbortControllers.current[id] === controller) {
+          delete pendingBoxAbortControllers.current[id];
+        }
+        if (pendingBoxWriteSeqRef.current[id] !== seq || controller.signal.aborted) return;
         if (error) {
           setOverrides((o) => {
             const n = { ...o };
@@ -312,6 +320,9 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       pendingBoxWriteSeqRef.current[id] = seq;
       pendingTimers.current[id] = setTimeout(async () => {
         delete pendingTimers.current[id];
+        pendingBoxAbortControllers.current[id]?.abort();
+        const controller = new AbortController();
+        pendingBoxAbortControllers.current[id] = controller;
         const current = qc.getQueryData<CanvasElement[]>(ELS_KEY(proposalId)) || [];
         const el = current.find((e) => e.id === id);
         const prevContent = (el?.content ?? {}) as Record<string, unknown>;
@@ -319,8 +330,12 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
         const { error } = await supabase
           .from('impact_canvas_elements')
           .update({ x: box.x, y: box.y, w: box.w, h: box.h, content: nextContent as never })
-          .eq('id', id);
-        if (pendingBoxWriteSeqRef.current[id] !== seq) return;
+          .eq('id', id)
+          .abortSignal(controller.signal);
+        if (pendingBoxAbortControllers.current[id] === controller) {
+          delete pendingBoxAbortControllers.current[id];
+        }
+        if (pendingBoxWriteSeqRef.current[id] !== seq || controller.signal.aborted) return;
         if (error) {
           setOverrides((o) => { const n = { ...o }; delete n[id]; return n; });
           setLineOverrides((o) => { const n = { ...o }; delete n[id]; return n; });
@@ -431,9 +446,11 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       Object.values(pendingTimers.current).forEach(clearTimeout);
       Object.values(pendingContentTimers.current).forEach(clearTimeout);
       Object.values(pendingStyleTimers.current).forEach(clearTimeout);
+      Object.values(pendingBoxAbortControllers.current).forEach((controller) => controller.abort());
       pendingTimers.current = {};
       pendingContentTimers.current = {};
       pendingStyleTimers.current = {};
+      pendingBoxAbortControllers.current = {};
     };
   }, []);
 
@@ -586,6 +603,8 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       clearTimeout(existingTimer);
       delete pendingTimers.current[id];
     }
+    pendingBoxAbortControllers.current[id]?.abort();
+    delete pendingBoxAbortControllers.current[id];
     pendingBoxWriteSeqRef.current[id] = (pendingBoxWriteSeqRef.current[id] ?? 0) + 1;
     // Capture on currentTarget (the stable outer draggable), NOT e.target —
     // e.target is the deepest DOM node under the pointer (often an inner
