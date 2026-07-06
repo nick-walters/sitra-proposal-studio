@@ -1492,21 +1492,65 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
   );
 
 
-  // Keyboard: Delete/Backspace on selected free element removes it.
+  /** Batched delete: removes every currently-selected free (text/shape/line)
+   *  element with a single undo step. Non-deletable selection members
+   *  (bound/header) are skipped. */
+  const deleteSelectedFree = useCallback(
+    async (ids: string[]) => {
+      if (!canEdit || ids.length === 0) return;
+      const prev = qc.getQueryData<CanvasElement[]>(ELS_KEY(proposalId));
+      const targets = (prev || []).filter(
+        (e) => ids.includes(e.id) && (e.kind === 'text' || e.kind === 'shape' || e.kind === 'line'),
+      );
+      if (targets.length === 0) return;
+      const entries = targets.map((t) => {
+        const snap = snapshotOfEl(t);
+        const restored: CanvasElement = {
+          ...t,
+          x: snap.x, y: snap.y, w: snap.w, h: snap.h,
+          content: snap.content, style: snap.style,
+        };
+        return { kind: 'delete' as const, element: restored };
+      });
+      pushHistory({ kind: 'batch', entries });
+      const targetIdSet = new Set(targets.map((t) => t.id));
+      qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId), (old) =>
+        (old || []).filter((e) => !targetIdSet.has(e.id)),
+      );
+      setSelectedIds((s) => {
+        const n = new Set(s);
+        for (const id of targetIdSet) n.delete(id);
+        return n;
+      });
+      setEditingId((s) => (s && targetIdSet.has(s) ? null : s));
+      const { error } = await supabase
+        .from('impact_canvas_elements')
+        .delete()
+        .in('id', Array.from(targetIdSet));
+      if (error && prev) qc.setQueryData(ELS_KEY(proposalId), prev);
+    },
+    [canEdit, proposalId, qc, snapshotOfEl, pushHistory],
+  );
+
+  // Keyboard: Delete/Backspace removes all deletable selected free elements.
   useEffect(() => {
-    if (!selectedId || editingId) return;
-    const el = fetched.find((e) => e.id === selectedId);
-    if (!el || (el.kind !== 'text' && el.kind !== 'shape' && el.kind !== 'line')) return;
+    if (editingId) return;
+    if (selectedIds.size === 0) return;
+    const ids = Array.from(selectedIds).filter((sid) => {
+      const el = fetched.find((e) => e.id === sid);
+      return !!el && (el.kind === 'text' || el.kind === 'shape' || el.kind === 'line');
+    });
+    if (ids.length === 0) return;
     const onKey = (ev: KeyboardEvent) => {
       if (ev.key !== 'Delete' && ev.key !== 'Backspace') return;
       const t = ev.target as HTMLElement | null;
       if (t && (t.isContentEditable || ['INPUT', 'TEXTAREA'].includes(t.tagName))) return;
       ev.preventDefault();
-      void deleteElement(selectedId);
+      void deleteSelectedFree(ids);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [selectedId, editingId, fetched, deleteElement]);
+  }, [selectedIds, editingId, fetched, deleteSelectedFree]);
 
   // Text edit → one canvas-undo step on commit (not per keystroke). Track
   // the pre-edit snapshot when editingId turns on; on transition to null,
