@@ -141,7 +141,10 @@ export function useImpactCanvasRows(proposalId: string) {
       if (error) throw error;
       await syncBoundElements(proposalId);
     },
-    onSettled: invalidate,
+    onSettled: () => {
+      invalidate();
+      qc.invalidateQueries({ queryKey: ['impact-canvas-elements', proposalId] });
+    },
     onError: () => toast.error('Failed to add row'),
   });
 
@@ -151,9 +154,13 @@ export function useImpactCanvasRows(proposalId: string) {
       const { error } = await supabase.from('impact_canvas_rows').delete().eq('id', id);
       if (error) throw error;
     },
-    onSettled: invalidate,
+    onSettled: () => {
+      invalidate();
+      qc.invalidateQueries({ queryKey: ['impact-canvas-elements', proposalId] });
+    },
     onError: () => toast.error('Failed to delete row'),
   });
+
 
   const updateCell = useMutation({
     mutationFn: async ({ rowId, key, html }: { rowId: string; key: string; html: string }) => {
