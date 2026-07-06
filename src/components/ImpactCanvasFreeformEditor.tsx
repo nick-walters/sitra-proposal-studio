@@ -848,6 +848,10 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     // per side ≈ 8pt total → ~0.28 cm.
     const V_PAD_CM = 8 / 28.3465;
     for (const el of boundEls) {
+      // Suspend auto-fit for the element currently being dragged — writing a
+      // new height mid-gesture would clobber the drag override and can also
+      // trigger DOM churn that breaks pointer capture.
+      if (drag?.id === el.id) continue;
       const bs = readBoundStyle(styleOverrides[el.id] ?? el.style);
       if (bs.autoFitH === false) continue;
       const probe = probeRefs.current[el.id];
