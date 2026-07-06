@@ -96,6 +96,19 @@ type DragMode =
   | { kind: 'line-move' }
   | { kind: 'endpoint'; which: 'from' | 'to' };
 
+interface GroupMemberStart {
+  x: number; y: number; w: number; h: number;
+  /** Lines only. */
+  from?: LinePoint;
+  to?: LinePoint;
+  /** Full pre-drag snapshot so batched history / persistence can restore. */
+  snap: {
+    x: number; y: number; w: number; h: number;
+    z?: number; content: unknown; style: unknown;
+  };
+  kind: string;
+}
+
 interface DragState {
   id: string;
   mode: DragMode;
@@ -109,7 +122,14 @@ interface DragState {
   startTo?: LinePoint;
   wrapperRect: DOMRect;
   canvasHeightCm: number;
+  /** Multi-select group move: ids being moved together and their pre-drag
+   *  state. Set only when the primary drag id is part of a multi-selection
+   *  and the drag mode is 'move' / 'line-move'. Group resize is not
+   *  supported (handles hide when >1 selected). */
+  groupIds?: string[];
+  groupStart?: Record<string, GroupMemberStart>;
 }
+
 
 
 /** Snap-to-grid step (matches the MINOR grid line spacing). */
@@ -135,9 +155,42 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
   });
 
   const wrapperRef = useRef<HTMLDivElement | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Multi-select — selection is a SET of element ids. Single-select is
+  // still the common case: `selectedId` (below) is derived and non-null
+  // only when exactly one element is selected, which keeps the toolbar,
+  // resize handles, and single-el shims working with zero refactor.
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const selectedIdsRef = useRef(selectedIds);
+  useEffect(() => { selectedIdsRef.current = selectedIds; }, [selectedIds]);
+  const selectedId = selectedIds.size === 1
+    ? (selectedIds.values().next().value as string)
+    : null;
+  const selectOnly = useCallback((id: string) => {
+    setSelectedIds((prev) => (prev.size === 1 && prev.has(id) ? prev : new Set([id])));
+  }, []);
+  const clearSelection = useCallback(() => {
+    setSelectedIds((prev) => (prev.size === 0 ? prev : new Set()));
+  }, []);
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id); else n.add(id);
+      return n;
+    });
+  }, []);
+  const removeFromSelection = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      if (!prev.has(id)) return prev;
+      const n = new Set(prev);
+      n.delete(id);
+      return n;
+    });
+  }, []);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [drag, setDrag] = useState<DragState | null>(null);
+  // Marquee (drag-select on empty canvas). CSS-px rectangle relative to
+  // wrapperRef; null when idle. Rendered as dashed overlay.
+  const [marquee, setMarquee] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   // Editor preferences (grid overlay + snap-to-grid) — persisted in
   // localStorage so they survive reloads on the same device. Defaults: OFF
   // for both (subtle first-run: an empty canvas with no grid, snap opt-in).
@@ -197,7 +250,13 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
   type HistoryEntry =
     | { kind: 'update'; id: string; before: ElementSnapshot; after: ElementSnapshot; group?: string; ts: number }
     | { kind: 'add'; element: CanvasElement }
-    | { kind: 'delete'; element: CanvasElement };
+    | { kind: 'delete'; element: CanvasElement }
+    // Batched: multi-select group move OR batched delete-all. One undo/redo
+    // step reverts/replays every entry as a unit.
+    | { kind: 'batch'; entries: Array<
+        | { kind: 'update'; id: string; before: ElementSnapshot; after: ElementSnapshot }
+        | { kind: 'delete'; element: CanvasElement }
+      > };
   const undoStackRef = useRef<HistoryEntry[]>([]);
   const redoStackRef = useRef<HistoryEntry[]>([]);
   const suppressHistoryRef = useRef(false);
@@ -265,7 +324,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       ) {
         return;
       }
-      setSelectedId(null);
+      clearSelection();
       setEditingId(null);
     };
     document.addEventListener('pointerdown', onPointerDown, true);
@@ -534,7 +593,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId), (old) =>
         (old || []).filter((e) => e.id !== id),
       );
-      setSelectedId((s) => (s === id ? null : s));
+      removeFromSelection(id);
       setEditingId((s) => (s === id ? null : s));
       const { error } = await supabase.from('impact_canvas_elements').delete().eq('id', id);
       if (error) qc.invalidateQueries({ queryKey: ELS_KEY(proposalId) });
@@ -552,6 +611,12 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       if (entry.kind === 'update') await writeSnapshot(entry.id, entry.before);
       else if (entry.kind === 'add') await removeElementById(entry.element.id);
       else if (entry.kind === 'delete') await reinsertElement(entry.element);
+      else if (entry.kind === 'batch') {
+        for (const e of entry.entries) {
+          if (e.kind === 'update') await writeSnapshot(e.id, e.before);
+          else if (e.kind === 'delete') await reinsertElement(e.element);
+        }
+      }
     } finally {
       suppressHistoryRef.current = false;
     }
@@ -567,6 +632,12 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       if (entry.kind === 'update') await writeSnapshot(entry.id, entry.after);
       else if (entry.kind === 'add') await reinsertElement(entry.element);
       else if (entry.kind === 'delete') await removeElementById(entry.element.id);
+      else if (entry.kind === 'batch') {
+        for (const e of entry.entries) {
+          if (e.kind === 'update') await writeSnapshot(e.id, e.after);
+          else if (e.kind === 'delete') await removeElementById(e.element.id);
+        }
+      }
     } finally {
       suppressHistoryRef.current = false;
     }
@@ -627,12 +698,44 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     if (!canEdit) return;
     if (editingId === id) return; // never drag while editing text
     if (e.button !== 0) return;
+
+    const mod = e.shiftKey || e.metaKey || e.ctrlKey;
+
+    // Modifier-click on an element (move / line-move contexts) toggles
+    // membership in the multi-selection and never initiates a drag. Resize
+    // and endpoint handles ignore modifiers entirely (single-element ops).
+    const isSelectionGesture = mode.kind === 'move' || mode.kind === 'line-move';
+    if (mod && isSelectionGesture) {
+      e.stopPropagation();
+      toggleSelect(id);
+      if (editingId && editingId !== id) setEditingId(null);
+      // Prevent the trailing React onClick on text/shape/line handlers from
+      // overriding the toggle with a plain selectOnly.
+      suppressNextClickRef.current = id;
+      window.setTimeout(() => {
+        if (suppressNextClickRef.current === id) suppressNextClickRef.current = null;
+      }, 0);
+      return;
+    }
+
     e.stopPropagation();
     const wrapper = wrapperRef.current;
     if (!wrapper) return;
 
-    // Selection happens immediately on press — click alone must select.
-    setSelectedId(id);
+    // Plain-click selection intent (design-tool convention):
+    //  - Not currently in selection → select-only immediately at press.
+    //  - Already in selection (single or multi) → KEEP selection at press so
+    //    a drag can act on the whole group; on pointerup WITHOUT drag, if it
+    //    was a multi-selection, collapse to just this id (standard click).
+    const prevSel = selectedIdsRef.current;
+    const wasMulti = prevSel.size > 1 && prevSel.has(id);
+    const wasSelected = prevSel.has(id);
+    if (!wasSelected) {
+      selectOnly(id);
+    }
+    // Only 'move' / 'line-move' participate in group gestures. Resize /
+    // endpoint always target one element.
+    const groupEligible = isSelectionGesture && wasMulti;
     if (editingId && editingId !== id) setEditingId(null);
 
     const target = e.currentTarget as Element;
@@ -650,6 +753,8 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     let localDrag: DragState | null = null;
     let latestBox: { x: number; y: number; w: number; h: number } | null = null;
     let latestLine: { from: LinePoint; to: LinePoint } | null = null;
+    /** Group move: latest per-id box + optional line endpoints. */
+    let latestGroup: Record<string, { box: { x: number; y: number; w: number; h: number }; endpoints?: { from: LinePoint; to: LinePoint } }> | null = null;
 
     const activate = () => {
       if (activated) return;
@@ -670,8 +775,6 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       try { target.setPointerCapture?.(pointerId); } catch { /* ignore */ }
 
       // Suppress native text selection for the duration of the drag/resize.
-      // Without this the browser accumulates a text range under the pointer,
-      // which flashes as highlighted canvas text on pointerup.
       try {
         document.body.style.userSelect = 'none';
         (document.body.style as CSSStyleDeclaration & { webkitUserSelect?: string }).webkitUserSelect = 'none';
@@ -680,6 +783,34 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
 
       const el = fetchedRef.current.find((x) => x.id === id);
       if (el) dragBeforeRef.current = { id, snap: snapshotOfEl(el) };
+
+      // Build group snapshot for multi-select move.
+      let groupIds: string[] | undefined;
+      let groupStart: Record<string, GroupMemberStart> | undefined;
+      if (groupEligible) {
+        const ids = Array.from(selectedIdsRef.current);
+        const els = ids
+          .map((gid) => fetchedRef.current.find((x) => x.id === gid))
+          .filter((x): x is CanvasElement => !!x);
+        if (els.length > 1) {
+          groupIds = [];
+          groupStart = {};
+          for (const gel of els) {
+            const snap = snapshotOfEl(gel);
+            const box = { x: snap.x, y: snap.y, w: snap.w, h: snap.h };
+            if (gel.kind === 'line') {
+              const lc = (snap.content ?? {}) as LineContent;
+              const from = lineOverridesRef.current[gel.id]?.from ?? lc.from;
+              const to = lineOverridesRef.current[gel.id]?.to ?? lc.to;
+              groupStart[gel.id] = { ...box, from, to, snap, kind: gel.kind };
+            } else {
+              groupStart[gel.id] = { ...box, snap, kind: gel.kind };
+            }
+            groupIds.push(gel.id);
+          }
+        }
+      }
+
       localDrag = {
         id,
         mode,
@@ -690,6 +821,8 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
         startTo: lineStart?.to,
         wrapperRect,
         canvasHeightCm,
+        groupIds,
+        groupStart,
       };
       setDrag(localDrag);
     };
@@ -706,6 +839,70 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       const dyRaw = (ev.clientY - localDrag.startClientY) / pxPerCmY;
       const snapTo = (v: number) => Math.round(v / SNAP_STEP_CM) * SNAP_STEP_CM;
       const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+
+      // ── GROUP MOVE ────────────────────────────────────────────────
+      // Anchor-snap approach: snap the primary element's target (x,y) to the
+      // grid, derive (tx, ty) from that, and translate the entire group by
+      // the same delta. Group bbox is clamped to the canvas so the whole
+      // selection stays inside.
+      if (localDrag.groupIds && localDrag.groupStart && (localDrag.mode.kind === 'move' || localDrag.mode.kind === 'line-move')) {
+        const gStart = localDrag.groupStart;
+        const primary = gStart[localDrag.id];
+        if (!primary) return;
+
+        // Anchor snap on the primary. For a line-move primary, snap the
+        // 'from' endpoint's absolute position; else the primary bbox origin.
+        let tx = dxRaw;
+        let ty = dyRaw;
+        if (localDrag.mode.kind === 'line-move' && primary.from) {
+          if (snapRef.current) {
+            tx = snapTo(primary.from.x + tx) - primary.from.x;
+            ty = snapTo(primary.from.y + ty) - primary.from.y;
+          }
+        } else if (snapRef.current) {
+          tx = snapTo(primary.x + tx) - primary.x;
+          ty = snapTo(primary.y + ty) - primary.y;
+        }
+
+        // Group extents in canvas coords.
+        let gMinX = Infinity, gMinY = Infinity, gMaxX = -Infinity, gMaxY = -Infinity;
+        for (const gid of localDrag.groupIds) {
+          const s = gStart[gid];
+          gMinX = Math.min(gMinX, s.x);
+          gMinY = Math.min(gMinY, s.y);
+          gMaxX = Math.max(gMaxX, s.x + s.w);
+          gMaxY = Math.max(gMaxY, s.y + s.h);
+        }
+        tx = clamp(tx, -gMinX, VW - gMaxX);
+        ty = clamp(ty, -gMinY, VH_CM - gMaxY);
+
+        const nextBoxes: Record<string, { x: number; y: number; w: number; h: number }> = {};
+        const nextLines: Record<string, { from: LinePoint; to: LinePoint }> = {};
+        const gLatest: typeof latestGroup = {};
+        for (const gid of localDrag.groupIds) {
+          const s = gStart[gid];
+          if (s.from && s.to) {
+            const nFrom = { x: s.from.x + tx, y: s.from.y + ty };
+            const nTo = { x: s.to.x + tx, y: s.to.y + ty };
+            const bbox = computeLineBBox(nFrom, nTo);
+            nextBoxes[gid] = bbox;
+            nextLines[gid] = { from: nFrom, to: nTo };
+            gLatest[gid] = { box: bbox, endpoints: { from: nFrom, to: nTo } };
+          } else {
+            const nb = { x: s.x + tx, y: s.y + ty, w: s.w, h: s.h };
+            nextBoxes[gid] = nb;
+            gLatest[gid] = { box: nb };
+          }
+        }
+        setOverrides((o) => ({ ...o, ...nextBoxes }));
+        if (Object.keys(nextLines).length) {
+          setLineOverrides((o) => ({ ...o, ...nextLines }));
+        }
+        latestGroup = gLatest;
+        latestBox = nextBoxes[localDrag.id] ?? null;
+        latestLine = nextLines[localDrag.id] ?? null;
+        return;
+      }
 
       if (localDrag.mode.kind === 'endpoint' || localDrag.mode.kind === 'line-move') {
         const startFrom = localDrag.startFrom!;
@@ -803,7 +1000,6 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       cleanup();
       try { target.releasePointerCapture?.(pointerId); } catch { /* ignore */ }
       if (activated) {
-        // Restore text selection and clear any range the drag accumulated.
         try {
           document.body.style.userSelect = '';
           (document.body.style as CSSStyleDeclaration & { webkitUserSelect?: string }).webkitUserSelect = '';
@@ -811,7 +1007,10 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
         try { window.getSelection()?.removeAllRanges(); } catch { /* ignore */ }
       }
       if (!activated) {
-        // Pure click — no movement. Selection was already applied at press.
+        // Pure click — no drag. Collapse multi-selection to just this id
+        // (standard design-tool behaviour); otherwise selection is already
+        // correct from the press step.
+        if (wasMulti) selectOnly(id);
         dragBeforeRef.current = null;
         setDrag(null);
         return;
@@ -827,6 +1026,44 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       const finalBox = latestBox ?? overridesRef.current[dragId];
       const finalLine = latestLine ?? lineOverridesRef.current[dragId];
       const isLineDrag = localDrag!.mode.kind === 'endpoint' || localDrag!.mode.kind === 'line-move';
+
+      // ── GROUP MOVE COMMIT ────────────────────────────────────────
+      if (localDrag!.groupIds && localDrag!.groupStart && latestGroup) {
+        const gStart = localDrag!.groupStart;
+        const gFinal = latestGroup;
+        const batchEntries: Array<{ kind: 'update'; id: string; before: ElementSnapshot; after: ElementSnapshot }> = [];
+        for (const gid of localDrag!.groupIds) {
+          const s = gStart[gid];
+          const f = gFinal[gid];
+          if (!f) continue;
+          const isLine = !!s.from && !!s.to;
+          if (isLine && f.endpoints) {
+            persistLineDebouncedRef.current(gid, f.box, f.endpoints);
+          } else {
+            persistDebouncedRef.current(gid, f.box);
+          }
+          const before: ElementSnapshot = s.snap;
+          const afterContent = isLine && f.endpoints
+            ? { ...((s.snap.content ?? {}) as LineContent), from: f.endpoints.from, to: f.endpoints.to }
+            : s.snap.content;
+          const boxChanged =
+            Math.abs(before.x - f.box.x) > 1e-4 ||
+            Math.abs(before.y - f.box.y) > 1e-4;
+          if (!boxChanged) continue;
+          const after: ElementSnapshot = {
+            ...before,
+            x: f.box.x, y: f.box.y, w: f.box.w, h: f.box.h,
+            content: afterContent,
+          };
+          batchEntries.push({ kind: 'update', id: gid, before, after });
+        }
+        dragBeforeRef.current = null;
+        if (batchEntries.length > 0) {
+          pushHistoryRef.current({ kind: 'batch', entries: batchEntries });
+        }
+        setDrag(null);
+        return;
+      }
 
       if (isLineDrag && finalBox && finalLine) {
         persistLineDebouncedRef.current(dragId, finalBox, finalLine);
@@ -886,6 +1123,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     window.addEventListener('pointerup', onUp);
     window.addEventListener('pointercancel', onUp);
   };
+
 
 
   const overridesRef = useRef(overrides);
@@ -1134,7 +1372,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
         data as CanvasElement,
       ]);
       pushHistory({ kind: 'add', element: data as CanvasElement });
-      setSelectedId(data.id);
+      selectOnly(data.id);
     },
     [canEdit, maxZ, proposalId, qc, pushHistory],
   );
@@ -1181,7 +1419,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
         data as CanvasElement,
       ]);
       pushHistory({ kind: 'add', element: data as CanvasElement });
-      setSelectedId(data.id);
+      selectOnly(data.id);
     },
     [canEdit, maxZ, proposalId, qc, pushHistory],
   );
@@ -1243,7 +1481,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId), (old) =>
         (old || []).filter((e) => e.id !== id),
       );
-      setSelectedId((s) => (s === id ? null : s));
+      removeFromSelection(id);
       setEditingId((s) => (s === id ? null : s));
       const { error } = await supabase.from('impact_canvas_elements').delete().eq('id', id);
       if (error) {
@@ -1550,15 +1788,76 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
         onPointerDown={(e) => {
           const target = e.target as HTMLElement | null;
           // Clicking anywhere on the surface that is NOT inside the currently-
-          // editing text box's editor commits (exits edit mode). This coexists
-          // with the document-level outside-click clear: that handler ignores
-          // clicks inside the surface, so we handle intra-surface commits here.
+          // editing text box's editor commits (exits edit mode).
           if (editingId && target && !target.closest('[data-impact-canvas-textbox-editor]')) {
             setEditingId(null);
           }
-          if (e.target === e.currentTarget) {
-            setSelectedId(null);
-            setEditingId(null);
+          // Empty-canvas press → start a marquee (drag-select). Only when the
+          // press lands on the wrapper itself (no element / handle / toolbar).
+          if (canEdit && e.button === 0 && e.target === e.currentTarget) {
+            const wrapper = wrapperRef.current;
+            if (!wrapper) return;
+            const rect = wrapper.getBoundingClientRect();
+            const additive = e.shiftKey || e.metaKey || e.ctrlKey;
+            const startX = e.clientX - rect.left;
+            const startY = e.clientY - rect.top;
+            const baseSelection = additive ? new Set(selectedIdsRef.current) : new Set<string>();
+            let active = false;
+            let curX = startX;
+            let curY = startY;
+
+            const onMoveMarquee = (ev: PointerEvent) => {
+              const dx = ev.clientX - (rect.left + startX);
+              const dy = ev.clientY - (rect.top + startY);
+              if (!active) {
+                if (dx * dx + dy * dy < 9) return; // 3px threshold
+                active = true;
+              }
+              curX = ev.clientX - rect.left;
+              curY = ev.clientY - rect.top;
+              const x = Math.min(startX, curX);
+              const y = Math.min(startY, curY);
+              const w = Math.abs(curX - startX);
+              const h = Math.abs(curY - startY);
+              setMarquee({ x, y, w, h });
+            };
+            const onUpMarquee = () => {
+              window.removeEventListener('pointermove', onMoveMarquee);
+              window.removeEventListener('pointerup', onUpMarquee);
+              window.removeEventListener('pointercancel', onUpMarquee);
+              setMarquee(null);
+              if (!active) {
+                // Plain empty-canvas click — clear (unless additive).
+                if (!additive) clearSelection();
+                setEditingId(null);
+                return;
+              }
+              // Convert CSS-px rect to canvas-cm rect and select intersecting
+              // elements. Anchor-agnostic: bbox for boxes/images/text; line
+              // uses its endpoint bbox.
+              const pxPerCmX = rect.width / CANVAS_WIDTH_CM;
+              const pxPerCmY = rect.height / canvasHeightCmRef.current;
+              const mxCm = Math.min(startX, curX) / pxPerCmX;
+              const myCm = Math.min(startY, curY) / pxPerCmY;
+              const mwCm = Math.abs(curX - startX) / pxPerCmX;
+              const mhCm = Math.abs(curY - startY) / pxPerCmY;
+              const mx2 = mxCm + mwCm;
+              const my2 = myCm + mhCm;
+              const next = new Set(baseSelection);
+              for (const el of fetchedRef.current) {
+                const ov = overridesRef.current[el.id];
+                const box = ov ?? { x: el.x, y: el.y, w: el.w, h: el.h };
+                const ex2 = box.x + box.w;
+                const ey2 = box.y + box.h;
+                const intersects = !(ex2 < mxCm || box.x > mx2 || ey2 < myCm || box.y > my2);
+                if (intersects) next.add(el.id);
+              }
+              setSelectedIds(next);
+              setEditingId(null);
+            };
+            window.addEventListener('pointermove', onMoveMarquee);
+            window.addEventListener('pointerup', onUpMarquee);
+            window.addEventListener('pointercancel', onUpMarquee);
           }
         }}
 
@@ -1594,6 +1893,26 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
           />
         )}
 
+        {/* Marquee (drag-select) overlay — dashed rectangle in CSS px. */}
+        {marquee && (
+          <div
+            aria-hidden
+            style={{
+              position: 'absolute',
+              left: marquee.x,
+              top: marquee.y,
+              width: marquee.w,
+              height: marquee.h,
+              border: '1px dashed hsl(var(--primary))',
+              background: 'hsl(var(--primary) / 0.08)',
+              pointerEvents: 'none',
+              zIndex: 960,
+            }}
+          />
+        )}
+
+
+
 
         {/* Header elements — bound-style boxes whose text is sourced from
             impact_canvas_columns.heading (NOT free text). Drag/resize/style
@@ -1603,7 +1922,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
           const col = columnByKey.get(el.bound_col_key!);
           const ov = overrides[el.id];
           const box = ov ?? { x: el.x, y: el.y, w: el.w, h: el.h };
-          const selected = selectedId === el.id;
+          const selected = selectedIds.has(el.id); const isSoleSelection = selectedId === el.id;
           const styleSrc = styleOverrides[el.id] ?? el.style;
           const bs = resolveBoundStyle(styleSrc);
           return (
@@ -1653,7 +1972,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
                 {col?.heading ?? ''}
               </div>
 
-              {selected && canEdit && HANDLES.map((h) => (
+              {isSoleSelection && canEdit && HANDLES.map((h) => (
                 <div
                   key={h}
                   data-canvas-handle={h}
@@ -1681,7 +2000,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
           const html = (row?.content?.[el.bound_col_key!] as string) || '';
           const ov = overrides[el.id];
           const box = ov ?? { x: el.x, y: el.y, w: el.w, h: el.h };
-          const selected = selectedId === el.id;
+          const selected = selectedIds.has(el.id); const isSoleSelection = selectedId === el.id;
           const styleSrc = styleOverrides[el.id] ?? el.style;
           const bs = resolveBoundStyle(styleSrc);
           return (
@@ -1728,7 +2047,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
                 <div style={{ width: '100%' }} dangerouslySetInnerHTML={{ __html: sanitize(html) }} />
               </div>
 
-              {selected && canEdit && HANDLES.map((h) => (
+              {isSoleSelection && canEdit && HANDLES.map((h) => (
                 <div
                   key={h}
                   data-canvas-handle={h}
@@ -1789,7 +2108,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
         {textEls.map((el) => {
           const ov = overrides[el.id];
           const box = ov ?? { x: el.x, y: el.y, w: el.w, h: el.h };
-          const selected = selectedId === el.id;
+          const selected = selectedIds.has(el.id); const isSoleSelection = selectedId === el.id;
           const editing = editingId === el.id;
           const raw = (el.content ?? {}) as { html?: string };
           const html = contentOverrides[el.id] ?? (raw.html || '');
@@ -1827,13 +2146,13 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
                   return;
                 }
                 if (selectedId !== el.id) {
-                  setSelectedId(el.id);
+                  selectOnly(el.id);
                 }
               }}
               onDoubleClick={(e) => {
                 if (!canEdit) return;
                 e.stopPropagation();
-                setSelectedId(el.id);
+                selectOnly(el.id);
                 setEditingId(el.id);
               }}
             >
@@ -1879,7 +2198,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
                 )}
               </div>
 
-              {selected && !editing && canEdit && HANDLES.map((h) => (
+              {isSoleSelection && !editing && canEdit && HANDLES.map((h) => (
                 <div
                   key={h}
                   data-canvas-handle={h}
@@ -1904,7 +2223,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
         {shapeEls.map((el) => {
           const ov = overrides[el.id];
           const box = ov ?? { x: el.x, y: el.y, w: el.w, h: el.h };
-          const selected = selectedId === el.id;
+          const selected = selectedIds.has(el.id); const isSoleSelection = selectedId === el.id;
           const editing = editingId === el.id;
           const raw = (el.content ?? {}) as { shape?: ShapeKind; html?: string };
           const shape: ShapeKind = raw.shape ?? 'rect';
@@ -1944,13 +2263,13 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
                   return;
                 }
                 if (selectedId !== el.id) {
-                  setSelectedId(el.id);
+                  selectOnly(el.id);
                 }
               }}
               onDoubleClick={(e) => {
                 if (!canEdit) return;
                 e.stopPropagation();
-                setSelectedId(el.id);
+                selectOnly(el.id);
                 setEditingId(el.id);
               }}
             >
@@ -1978,7 +2297,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
                 )}
               </ImpactCanvasShape>
 
-              {selected && !editing && canEdit && HANDLES.map((h) => (
+              {isSoleSelection && !editing && canEdit && HANDLES.map((h) => (
                 <div
                   key={h}
                   data-canvas-handle={h}
@@ -2093,7 +2412,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
               } else {
                 d = `M ${from.x} ${from.y} L ${to.x} ${to.y}`;
               }
-              const selected = selectedId === el.id;
+              const selected = selectedIds.has(el.id); const isSoleSelection = selectedId === el.id;
               return (
                 <g key={`li-${el.id}`}>
                   <path
@@ -2110,7 +2429,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
                     onPointerDown={(e) => {
                       beginDrag(e, el.id, { kind: 'line-move' }, box, { from, to });
                     }}
-                    onClick={(e) => { e.stopPropagation(); setSelectedId(el.id); }}
+                    onClick={(e) => { e.stopPropagation(); selectOnly(el.id); }}
                   />
                   {selected && (
                     <>
