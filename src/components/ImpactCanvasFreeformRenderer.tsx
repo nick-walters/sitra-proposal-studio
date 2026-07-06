@@ -262,7 +262,7 @@ export function ImpactCanvasFreeformRenderer({ proposalId, className, fallback =
                 alignItems: 'center',
                 justifyContent: 'flex-start',
                 overflow: 'hidden',
-                fontSize: 12,
+                fontSize: '1.2cqw',
                 lineHeight: 1.3,
                 color: bs.color,
               }}
