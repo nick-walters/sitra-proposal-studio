@@ -126,13 +126,16 @@ export function WPColorPicker({
   const displayedPalette = palette.filter((c) => !excludeSet.has((normaliseHex(c) ?? c).toUpperCase()));
 
   // Union of caller-supplied extras + persisted custom colours, deduped and
-  // excluded from the default palette.
+  // excluded from the default palette (and greyscale when shown).
   const paletteSet = new Set(palette.map((c) => c.toUpperCase()));
+  const greyscaleSet = new Set(GREYSCALE_COLORS.map((c) => c.toUpperCase()));
+  const isBuiltInSwatch = (hex: string) =>
+    paletteSet.has(hex.toUpperCase()) || (showGreyscale && greyscaleSet.has(hex.toUpperCase()));
   const dedupedExtras = Array.from(
     new Set(
       [...extraColors, ...customColors]
         .map((c) => normaliseHex(c) ?? c.toUpperCase())
-        .filter((c) => HEX_RE.test(c) && !paletteSet.has(c))
+        .filter((c) => HEX_RE.test(c) && !isBuiltInSwatch(c))
     )
   );
 
@@ -140,10 +143,11 @@ export function WPColorPicker({
     onChange(newHex);
     setInputValue(newHex.toUpperCase());
     // Auto-add non-palette picks to proposals.custom_colors.
-    if (proposalId && !paletteSet.has(newHex.toUpperCase())) {
+    if (proposalId && !isBuiltInSwatch(newHex)) {
       void addCustomColor(newHex);
     }
   };
+
 
   const handleSelectSwatch = (paletteColor: string) => {
     const hex = normaliseHex(paletteColor) ?? paletteColor;
