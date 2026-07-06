@@ -1947,3 +1947,104 @@ function handleStyle(h: Handle): React.CSSProperties {
     case 'w':  return { left: off, top: mid };
   }
 }
+
+/**
+ * Split-button adder for line/arrow variants.
+ * Primary click = default straight one-way arrow. The chevron opens a
+ * 2×3 popover (rows: straight, elbow; cols: plain, one-way, two-way).
+ */
+function LineAdderSplitButton({
+  onAdd,
+}: {
+  onAdd: (routing: 'straight' | 'elbow', arrow: 'none' | 'end' | 'both') => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const variants: Array<{
+    routing: 'straight' | 'elbow';
+    arrow: 'none' | 'end' | 'both';
+    label: string;
+  }> = [
+    { routing: 'straight', arrow: 'none', label: 'Straight line' },
+    { routing: 'straight', arrow: 'end', label: 'Straight one-way arrow' },
+    { routing: 'straight', arrow: 'both', label: 'Straight two-way arrow' },
+    { routing: 'elbow', arrow: 'none', label: 'Elbow line' },
+    { routing: 'elbow', arrow: 'end', label: 'Elbow one-way arrow' },
+    { routing: 'elbow', arrow: 'both', label: 'Elbow two-way arrow' },
+  ];
+  return (
+    <div className="inline-flex" data-impact-canvas-toolbar>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="h-8 w-8 p-0 rounded-r-none border-r-0"
+        onClick={() => onAdd('straight', 'end')}
+        title="Add line (straight, one-way arrow)"
+        aria-label="Add line"
+      >
+        <MoveRight className="w-4 h-4" />
+      </Button>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8 w-5 p-0 rounded-l-none"
+            title="Line variants"
+            aria-label="Line variants"
+          >
+            <ChevronDown className="w-3 h-3" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-2" align="start">
+          <div className="grid grid-cols-3 gap-1">
+            {variants.map((v) => (
+              <button
+                key={`${v.routing}-${v.arrow}`}
+                type="button"
+                onClick={() => { onAdd(v.routing, v.arrow); setOpen(false); }}
+                className="inline-flex items-center justify-center h-9 w-14 rounded-md border bg-background hover:bg-accent transition-colors"
+                title={v.label}
+                aria-label={v.label}
+              >
+                <LineVariantIcon routing={v.routing} arrow={v.arrow} />
+              </button>
+            ))}
+          </div>
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
+
+/** Tiny SVG preview icon for a line/arrow variant used in the popover. */
+function LineVariantIcon({
+  routing,
+  arrow,
+}: {
+  routing: 'straight' | 'elbow';
+  arrow: 'none' | 'end' | 'both';
+}) {
+  // 48×20 viewBox. Path adjusted so arrowheads fit at each end.
+  const d = routing === 'elbow'
+    ? 'M 6 6 L 26 6 L 26 16 L 42 16'
+    : 'M 6 10 L 42 10';
+  const head = 6;
+  return (
+    <svg viewBox="0 0 48 20" width={40} height={16} aria-hidden>
+      <path d={d} stroke="currentColor" strokeWidth={1.5} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      {(arrow === 'end' || arrow === 'both') && (
+        routing === 'elbow'
+          ? <polygon points={`${42},${16} ${42 - head},${16 - head / 2} ${42 - head},${16 + head / 2}`} fill="currentColor" />
+          : <polygon points={`42,10 ${42 - head},${10 - head / 2} ${42 - head},${10 + head / 2}`} fill="currentColor" />
+      )}
+      {arrow === 'both' && (
+        routing === 'elbow'
+          ? <polygon points={`6,6 ${6 + head},${6 - head / 2} ${6 + head},${6 + head / 2}`} fill="currentColor" />
+          : <polygon points={`6,10 ${6 + head},${10 - head / 2} ${6 + head},${10 + head / 2}`} fill="currentColor" />
+      )}
+    </svg>
+  );
+}
+
