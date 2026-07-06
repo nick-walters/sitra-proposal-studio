@@ -1948,9 +1948,13 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
           if (editingId && target && !target.closest('[data-impact-canvas-textbox-editor]')) {
             setEditingId(null);
           }
-          // Empty-canvas press → start a marquee (drag-select). Only when the
-          // press lands on the wrapper itself (no element / handle / toolbar).
-          if (canEdit && e.button === 0 && e.target === e.currentTarget) {
+          // Empty-canvas press → start a marquee (drag-select). "Empty" means
+          // the wrapper itself OR the inert aspect-ratio sizer child; either
+          // way no element / handle / toolbar / text-editor was hit.
+          const isBackground =
+            e.target === e.currentTarget ||
+            (target?.getAttribute('data-impact-canvas-sizer') === '');
+          if (canEdit && e.button === 0 && isBackground) {
             const wrapper = wrapperRef.current;
             if (!wrapper) return;
             const rect = wrapper.getBoundingClientRect();
@@ -2018,7 +2022,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
         }}
 
       >
-        <div style={{ paddingBottom: paddingPct }} />
+        <div aria-hidden data-impact-canvas-sizer style={{ paddingBottom: paddingPct, pointerEvents: 'none' }} />
 
         {/* Grid overlay — editor-only aid, never rendered in read-only. */}
         {showGrid && (
