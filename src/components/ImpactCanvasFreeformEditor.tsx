@@ -2160,7 +2160,7 @@ function SizeFields({
 }) {
   const fmt = (v: number) => (Math.round(v * 100) / 100).toString();
   return (
-    <div className="flex items-center gap-1" data-impact-canvas-toolbar>
+    <div className="flex items-center gap-0.5" data-impact-canvas-toolbar>
       <MoveHorizontal className={cn('w-3.5 h-3.5 text-muted-foreground', disabled && 'opacity-50')} aria-label="Width" />
       <Input
         type="number"
@@ -2172,10 +2172,10 @@ function SizeFields({
           const v = parseFloat(e.target.value);
           if (Number.isFinite(v)) onChange({ w: v });
         }}
-        className="h-7 w-14 text-xs"
+        className="h-7 w-11 px-1 text-xs"
         title="Width (cm)"
       />
-      <MoveVertical className={cn('w-3.5 h-3.5 text-muted-foreground ml-1', disabled && 'opacity-50')} aria-label="Height" />
+      <MoveVertical className={cn('w-3.5 h-3.5 text-muted-foreground ml-0.5', disabled && 'opacity-50')} aria-label="Height" />
       <Input
         type="number"
         step="0.1"
@@ -2186,7 +2186,7 @@ function SizeFields({
           const v = parseFloat(e.target.value);
           if (Number.isFinite(v)) onChange({ h: v });
         }}
-        className="h-7 w-14 text-xs"
+        className="h-7 w-11 px-1 text-xs"
         title="Height (cm)"
       />
     </div>
