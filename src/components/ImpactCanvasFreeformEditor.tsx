@@ -2209,7 +2209,12 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
                   suppressNextClickRef.current = null;
                   return;
                 }
-                if (selectedId !== el.id) {
+                // Key on the actual selection set (unique id), NOT the single-
+                // select shim `selectedId` (which is null whenever ≥2 elements
+                // are selected). Using the shim here would collapse a valid
+                // multi-selection back to just this element whenever the
+                // trailing click fires after a shift-toggle.
+                if (!selectedIdsRef.current.has(el.id)) {
                   selectOnly(el.id);
                 }
               }}
@@ -2326,7 +2331,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
                   suppressNextClickRef.current = null;
                   return;
                 }
-                if (selectedId !== el.id) {
+                if (!selectedIdsRef.current.has(el.id)) {
                   selectOnly(el.id);
                 }
               }}
