@@ -126,12 +126,14 @@ export function ImpactCanvasFreeformRenderer({ proposalId, className, fallback =
   const boundEls = elements.filter(
     (e) => e.kind === 'bound' && e.bound_row_id && e.bound_col_key,
   );
+  const textEls = elements.filter((e) => e.kind === 'text');
 
   // Fallback: pre-backfill proposals with no bound elements fall back to
   // a legacy CSS grid layout so the canvas is never blank.
-  if (boundEls.length === 0 && fallback === 'grid') {
+  if (boundEls.length === 0 && textEls.length === 0 && fallback === 'grid') {
     return <LegacyGridFallback proposalId={proposalId} className={className} />;
   }
+
 
   const rowById = new Map(rows.map((r) => [r.id, r]));
   const { width: VW, height: VH } = IMPACT_CANVAS_VIEWPORT;
