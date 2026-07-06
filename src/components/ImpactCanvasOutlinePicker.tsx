@@ -33,12 +33,16 @@ export function ImpactCanvasOutlinePicker({
   onWidthChange,
   proposalId,
   disabled = false,
+  mixedColor = false,
+  mixedWidth = false,
 }: Props) {
   const [open, setOpen] = useState(false);
   const { customColors, addCustomColor } = useProposalCustomColors(proposalId ?? null);
 
-  const isNone = color === 'none' || width === 0;
+  const isNone = (color === 'none' || width === 0) && !mixedColor && !mixedWidth;
   const indicatorColor = isNone ? 'transparent' : color;
+  const MIXED_HATCH =
+    'repeating-linear-gradient(45deg, #9CA3AF 0 3px, #E5E7EB 3px 6px)';
 
   const paletteSet = useMemo(
     () =>
