@@ -766,9 +766,11 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       ...(old || []),
       data as CanvasElement,
     ]);
+    pushHistory({ kind: 'add', element: data as CanvasElement });
     setSelectedId(data.id);
     setEditingId(data.id);
-  }, [canEdit, maxZ, proposalId, qc]);
+  }, [canEdit, maxZ, proposalId, qc, pushHistory]);
+
 
   const addShape = useCallback(
     async (shape: ShapeKind) => {
