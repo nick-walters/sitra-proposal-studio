@@ -571,7 +571,14 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     e.preventDefault();
     const wrapper = wrapperRef.current;
     if (!wrapper) return;
-    (e.target as Element).setPointerCapture?.(e.pointerId);
+    // Capture on currentTarget (the stable outer draggable), NOT e.target —
+    // e.target is the deepest DOM node under the pointer (often an inner
+    // element that React may remount mid-gesture, e.g. bound-box inner prose
+    // wrappers replaced when selection styling/auto-fit reflows fire). If the
+    // captured element unmounts, the browser fires pointercancel → drag ends
+    // prematurely. currentTarget is the outer <div> that carries the
+    // onPointerDown handler and never unmounts during a drag.
+    (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
     setSelectedId(id);
     // Capture the element's pre-gesture snapshot for canvas-level undo.
     const el = fetched.find((x) => x.id === id);
@@ -841,6 +848,10 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     // per side ≈ 8pt total → ~0.28 cm.
     const V_PAD_CM = 8 / 28.3465;
     for (const el of boundEls) {
+      // Suspend auto-fit for the element currently being dragged — writing a
+      // new height mid-gesture would clobber the drag override and can also
+      // trigger DOM churn that breaks pointer capture.
+      if (drag?.id === el.id) continue;
       const bs = readBoundStyle(styleOverrides[el.id] ?? el.style);
       if (bs.autoFitH === false) continue;
       const probe = probeRefs.current[el.id];
@@ -859,7 +870,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoFitSignature, wrapperTick, boundEls, styleOverrides, persistDebounced]);
+  }, [autoFitSignature, wrapperTick, boundEls, styleOverrides, persistDebounced, drag?.id]);
 
 
   const maxZ = useMemo(
