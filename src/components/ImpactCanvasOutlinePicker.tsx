@@ -97,7 +97,7 @@ export function ImpactCanvasOutlinePicker({
             style={{
               height: 3,
               width: 16,
-              background: indicatorColor,
+              background: (mixedColor || mixedWidth) ? MIXED_HATCH : indicatorColor,
               boxShadow: isNone ? 'inset 0 0 0 1px rgba(0,0,0,0.4)' : undefined,
               backgroundImage: isNone
                 ? 'linear-gradient(to top right, transparent 45%, #E11D48 45%, #E11D48 55%, transparent 55%)'
