@@ -82,6 +82,9 @@ interface DragState {
   canvasHeightCm: number;
 }
 
+/** Snap-to-grid step (matches the MINOR grid line spacing). */
+const SNAP_STEP_CM = 0.2;
+
 export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: Props) {
   const qc = useQueryClient();
   const { columns, isLoading: colsLoading } = useImpactCanvasColumns(proposalId);
