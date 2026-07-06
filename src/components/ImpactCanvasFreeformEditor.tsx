@@ -255,6 +255,8 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     };
   }, []);
 
+  const canvasHeightCmRef = useRef(CANVAS_MAX_HEIGHT_CM);
+
   const beginDrag = (
     e: React.PointerEvent,
     id: string,
@@ -276,6 +278,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       startClientY: e.clientY,
       startBox: current,
       wrapperRect: wrapper.getBoundingClientRect(),
+      canvasHeightCm: canvasHeightCmRef.current,
     });
   };
 
@@ -367,14 +370,15 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
 
   const addTextBox = useCallback(async () => {
     if (!canEdit) return;
-    const { width: VW, height: VH } = IMPACT_CANVAS_VIEWPORT;
-    const w = 220;
-    const h = 60;
+    const VW = CANVAS_WIDTH_CM;
+    const VH = canvasHeightCmRef.current;
+    const w = 4;   // cm
+    const h = 1.2; // cm
     const insertBox = {
       proposal_id: proposalId,
       kind: 'text',
-      x: Math.round((VW - w) / 2),
-      y: Math.round((VH - h) / 2),
+      x: +((VW - w) / 2).toFixed(4),
+      y: +((VH - h) / 2).toFixed(4),
       w,
       h,
       z: maxZ + 1,
@@ -450,7 +454,12 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     );
   }
 
-  const { width: VW, height: VH } = IMPACT_CANVAS_VIEWPORT;
+  // Merge live drag overrides so the canvas height grows in real-time as
+  // the user drags an element toward the bottom edge (still clamped to 25.5cm).
+  const mergedForHeight = fetched.map((e) => ({ ...e, ...(overrides[e.id] ?? {}) }));
+  const VW = CANVAS_WIDTH_CM;
+  const VH = computeCanvasHeightCm(mergedForHeight);
+  canvasHeightCmRef.current = VH;
   const pctX = (x: number) => `${(x / VW) * 100}%`;
   const pctY = (y: number) => `${(y / VH) * 100}%`;
   const paddingPct = `${(VH / VW) * 100}%`;
@@ -550,7 +559,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
               left: pctX(ci * colW),
               top: pctY(0),
               width: pctX(colW),
-              height: pctY(IMPACT_CANVAS_HEADER_HEIGHT),
+              height: pctY(HEADER_HEIGHT_CM),
               padding: '0 4px 4px 0',
               display: 'flex',
               alignItems: 'center',
