@@ -5,6 +5,8 @@ import { ChevronDown, Grid3x3, Magnet, MoveRight, PaintBucket, Redo2, Trash2, Ty
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+
 import { supabase } from '@/integrations/supabase/client';
 import { useImpactCanvasColumns, useImpactCanvasRows } from '@/hooks/useImpactCanvas';
 import {
@@ -34,6 +36,8 @@ import {
 
 import { Circle as CircleIcon, Square, Squircle, Triangle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
+
 
 interface Props {
   proposalId: string;
@@ -1371,182 +1375,200 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     : null;
 
 
+  // Enablement flags for each toolbar group. Slots stay in fixed positions;
+  // controls are disabled (greyed) when they don't apply to the current
+  // selection — no reflow when switching elements.
+  const styleEnabled = !!selectedEl && (selectedIsBoundLike || selectedIsShape);
+  const lineStyleEnabled = !!selectedEl && selectedIsLine;
+  const sizeEnabled = !!selectedEl && !!selectedBox && !selectedIsLine;
+  const zEnabled = !!selectedEl && canEdit;
+  const deleteEnabled = !!selectedEl && selectedIsFree;
+
   return (
     <div className="space-y-2">
       {canEdit && (
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Canvas-level Undo / Redo — session-only, resets on reload. */}
-          <div className="flex items-center gap-1 pr-2 border-r" data-impact-canvas-toolbar>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-8 w-8 p-0"
-              onClick={() => void undo()}
-              disabled={!canUndo}
-              title="Undo (⌘/Ctrl+Z)"
-              aria-label="Undo"
-            >
-              <Undo2 className="w-4 h-4" />
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-8 w-8 p-0"
-              onClick={() => void redo()}
-              disabled={!canRedo}
-              title="Redo (⇧⌘/Ctrl+Z)"
-              aria-label="Redo"
-            >
-              <Redo2 className="w-4 h-4" />
-            </Button>
-          </div>
+        <div
+          className="flex items-center gap-1 flex-wrap rounded-md border bg-muted/30 px-2 py-1"
+          data-impact-canvas-toolbar
+        >
+          {/* Undo / Redo */}
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 w-7 p-0"
+            onClick={() => void undo()}
+            disabled={!canUndo}
+            title="Undo (⌘/Ctrl+Z)"
+            aria-label="Undo"
+          >
+            <Undo2 className="w-3.5 h-3.5" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 w-7 p-0"
+            onClick={() => void redo()}
+            disabled={!canRedo}
+            title="Redo (⇧⌘/Ctrl+Z)"
+            aria-label="Redo"
+          >
+            <Redo2 className="w-3.5 h-3.5" />
+          </Button>
 
+          <Separator orientation="vertical" className="h-5 mx-1" />
 
-          {/* Style controls — bound boxes, header boxes, and shapes share the style model. */}
-          {selectedEl && (selectedIsBoundLike || selectedIsShape) && (
+          {/* Bound/shape style controls — always present, disabled if inapplicable. */}
+          <BoundStyleToolbar
+            proposalId={proposalId}
+            canEdit={canEdit && styleEnabled}
+            style={
+              styleEnabled && selectedEl
+                ? { ...readBoundStyle(selectedEl.style), ...(styleOverrides[selectedEl.id] ?? {}) }
+                : (BOUND_STYLE_DEFAULTS as BoundBoxStyle)
+            }
+            onChange={(patch) => {
+              if (selectedEl) updateBoundStyle(selectedEl.id, patch);
+            }}
+          />
 
-            <BoundStyleToolbar
+          <Separator orientation="vertical" className="h-5 mx-1" />
+
+          {/* Line outline (colour + width) — disabled unless a line is selected. */}
+          <div className="flex items-center" data-impact-canvas-toolbar>
+            <ImpactCanvasOutlinePicker
+              color={
+                (lineStyleEnabled && (selectedEl?.style as { outlineColor?: string })?.outlineColor) || '#000000'
+              }
+              width={(lineStyleEnabled && (selectedEl?.style as { outlineWidth?: number })?.outlineWidth) || 1.5}
               proposalId={proposalId}
-              canEdit={canEdit}
-              style={{
-                ...readBoundStyle(selectedEl.style),
-                ...(styleOverrides[selectedEl.id] ?? {}),
-              }}
-              onChange={(patch) => updateBoundStyle(selectedEl.id, patch)}
+              disabled={!lineStyleEnabled}
+              onColorChange={(c) => selectedEl && updateBoundStyle(selectedEl.id, { outlineColor: c })}
+              onWidthChange={(w) => selectedEl && updateBoundStyle(selectedEl.id, { outlineWidth: w })}
             />
-          )}
+          </div>
 
-          {/* Outline picker for selected line (no fill; only colour + width). */}
-          {selectedEl && selectedIsLine && (
-            <div className="flex items-center gap-1 pr-2 border-r" data-impact-canvas-toolbar>
-              <ImpactCanvasOutlinePicker
-                color={(selectedEl.style as { outlineColor?: string })?.outlineColor ?? '#000000'}
-                width={(selectedEl.style as { outlineWidth?: number })?.outlineWidth ?? 1.5}
-                proposalId={proposalId}
-                disabled={!canEdit}
-                onColorChange={(c) => updateBoundStyle(selectedEl.id, { outlineColor: c })}
-                onWidthChange={(w) => updateBoundStyle(selectedEl.id, { outlineWidth: w })}
-              />
-            </div>
-          )}
+          <Separator orientation="vertical" className="h-5 mx-1" />
 
-          {/* cm size fields — resizable boxes only (bound / text / shape).
-              Lines size is derived from endpoints; drag the endpoints. */}
-          {selectedEl && selectedBox && !selectedIsLine && (
-            <SizeFields
-              box={selectedBox}
-              onChange={(patch) => setElementBox(selectedEl.id, patch)}
-            />
-          )}
+          {/* cm size fields — always present, disabled if no sizable selection. */}
+          <SizeFields
+            box={sizeEnabled && selectedBox ? selectedBox : { x: 0, y: 0, w: 0, h: 0 }}
+            disabled={!sizeEnabled}
+            onChange={(patch) => {
+              if (selectedEl) setElementBox(selectedEl.id, patch);
+            }}
+          />
 
-          {/* Z-order controls — coordinator+ only, applies to the selected element. */}
-          {selectedEl && canEdit && (
-            <div className="flex items-center gap-1 pr-2 border-r" data-impact-canvas-toolbar>
-              <Button
-                type="button" variant="outline" size="sm" className="h-8 px-2"
-                title="Bring to front"
-                onClick={() => changeZOrder(selectedEl.id, 'front')}
-              >⤒</Button>
-              <Button
-                type="button" variant="outline" size="sm" className="h-8 px-2"
-                title="Bring forward"
-                onClick={() => changeZOrder(selectedEl.id, 'forward')}
-              >↑</Button>
-              <Button
-                type="button" variant="outline" size="sm" className="h-8 px-2"
-                title="Send backward"
-                onClick={() => changeZOrder(selectedEl.id, 'backward')}
-              >↓</Button>
-              <Button
-                type="button" variant="outline" size="sm" className="h-8 px-2"
-                title="Send to back"
-                onClick={() => changeZOrder(selectedEl.id, 'back')}
-              >⤓</Button>
-            </div>
-          )}
+          <Separator orientation="vertical" className="h-5 mx-1" />
 
+          {/* Z-order controls */}
+          <div className="flex items-center gap-0.5" data-impact-canvas-toolbar>
+            <Button
+              type="button" variant="ghost" size="sm" className="h-7 px-1.5"
+              title="Bring to front"
+              disabled={!zEnabled}
+              onClick={() => selectedEl && changeZOrder(selectedEl.id, 'front')}
+            >⤒</Button>
+            <Button
+              type="button" variant="ghost" size="sm" className="h-7 px-1.5"
+              title="Bring forward"
+              disabled={!zEnabled}
+              onClick={() => selectedEl && changeZOrder(selectedEl.id, 'forward')}
+            >↑</Button>
+            <Button
+              type="button" variant="ghost" size="sm" className="h-7 px-1.5"
+              title="Send backward"
+              disabled={!zEnabled}
+              onClick={() => selectedEl && changeZOrder(selectedEl.id, 'backward')}
+            >↓</Button>
+            <Button
+              type="button" variant="ghost" size="sm" className="h-7 px-1.5"
+              title="Send to back"
+              disabled={!zEnabled}
+              onClick={() => selectedEl && changeZOrder(selectedEl.id, 'back')}
+            >⤓</Button>
+          </div>
 
+          <Separator orientation="vertical" className="h-5 mx-1" />
 
-
-          {/*
-            Element-adding cluster.
-            Reserved order (left→right): shapes, lines/arrows, text box.
-          */}
-          <div className="flex items-center gap-1" data-impact-canvas-adders>
-            <Button type="button" variant="outline" size="sm" onClick={() => addShape('rect')} className="h-8 w-8 p-0" title="Rectangle" data-impact-canvas-toolbar>
-              <Square className="w-4 h-4" />
+          {/* Adders — always enabled. */}
+          <div className="flex items-center gap-0.5" data-impact-canvas-adders>
+            <Button type="button" variant="ghost" size="sm" onClick={() => addShape('rect')} className="h-7 w-7 p-0" title="Rectangle" data-impact-canvas-toolbar>
+              <Square className="w-3.5 h-3.5" />
             </Button>
-            <Button type="button" variant="outline" size="sm" onClick={() => addShape('roundedRect')} className="h-8 w-8 p-0" title="Rounded rectangle" data-impact-canvas-toolbar>
-              <Squircle className="w-4 h-4" />
+            <Button type="button" variant="ghost" size="sm" onClick={() => addShape('roundedRect')} className="h-7 w-7 p-0" title="Rounded rectangle" data-impact-canvas-toolbar>
+              <Squircle className="w-3.5 h-3.5" />
             </Button>
-            <Button type="button" variant="outline" size="sm" onClick={() => addShape('circle')} className="h-8 w-8 p-0" title="Circle" data-impact-canvas-toolbar>
-              <CircleIcon className="w-4 h-4" />
+            <Button type="button" variant="ghost" size="sm" onClick={() => addShape('circle')} className="h-7 w-7 p-0" title="Circle" data-impact-canvas-toolbar>
+              <CircleIcon className="w-3.5 h-3.5" />
             </Button>
-            <Button type="button" variant="outline" size="sm" onClick={() => addShape('triangle')} className="h-8 w-8 p-0" title="Triangle" data-impact-canvas-toolbar>
-              <Triangle className="w-4 h-4" />
+            <Button type="button" variant="ghost" size="sm" onClick={() => addShape('triangle')} className="h-7 w-7 p-0" title="Triangle" data-impact-canvas-toolbar>
+              <Triangle className="w-3.5 h-3.5" />
             </Button>
-            {/* Line/arrow split button — primary click adds a straight
-                one-way arrow; chevron opens a 2×3 popover for the six
-                {straight,elbow}×{plain,one-way,two-way} variants. */}
             <LineAdderSplitButton onAdd={addLine} />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={addTextBox}
-              className="h-8 px-2 py-1"
-              data-impact-canvas-toolbar
-            >
-              <Type className="w-4 h-4 mr-1" /> Text box
-            </Button>
-          </div>
-
-
-          {/* Grid + snap toggles — editor-only preferences (localStorage). */}
-          <div className="flex items-center gap-1" data-impact-canvas-toolbar>
-            <Button
-              type="button"
-              variant={showGrid ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setShowGrid((v) => !v)}
-              className="h-8 px-2 py-1"
-              title="Show grid (0.2 cm minor, 1 cm major)"
-              aria-pressed={showGrid}
-            >
-              <Grid3x3 className="w-4 h-4 mr-1" /> Grid
-            </Button>
-            <Button
-              type="button"
-              variant={snap ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setSnap((v) => !v)}
-              className="h-8 px-2 py-1"
-              title="Snap to grid (0.2 cm)"
-              aria-pressed={snap}
-            >
-              <Magnet className="w-4 h-4 mr-1" /> Snap
-            </Button>
-          </div>
-
-          {selectedEl && selectedIsFree && (
             <Button
               type="button"
               variant="ghost"
               size="sm"
-              className="text-destructive hover:text-destructive h-8 px-2"
-              onClick={() => void deleteElement(selectedEl.id)}
+              onClick={addTextBox}
+              className="h-7 px-2 text-xs gap-1"
               data-impact-canvas-toolbar
             >
-              <Trash2 className="w-4 h-4 mr-1" /> Delete
+              <Type className="w-3.5 h-3.5" /> Text box
             </Button>
-          )}
-          <span className="text-xs text-muted-foreground">
+          </div>
+
+          <Separator orientation="vertical" className="h-5 mx-1" />
+
+          {/* Grid + snap toggles */}
+          <div className="flex items-center gap-0.5" data-impact-canvas-toolbar>
+            <Button
+              type="button"
+              variant={showGrid ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setShowGrid((v) => !v)}
+              className="h-7 px-2 text-xs gap-1"
+              title="Show grid (0.2 cm minor, 1 cm major)"
+              aria-pressed={showGrid}
+            >
+              <Grid3x3 className="w-3.5 h-3.5" /> Grid
+            </Button>
+            <Button
+              type="button"
+              variant={snap ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setSnap((v) => !v)}
+              className="h-7 px-2 text-xs gap-1"
+              title="Snap to grid (0.2 cm)"
+              aria-pressed={snap}
+            >
+              <Magnet className="w-3.5 h-3.5" /> Snap
+            </Button>
+          </div>
+
+          <Separator orientation="vertical" className="h-5 mx-1" />
+
+          {/* Delete — always present, disabled unless a deletable element selected. */}
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="text-destructive hover:text-destructive hover:bg-destructive/10 h-7 px-2 text-xs gap-1"
+            onClick={() => selectedEl && void deleteElement(selectedEl.id)}
+            disabled={!deleteEnabled}
+            data-impact-canvas-toolbar
+            title="Delete selected element"
+          >
+            <Trash2 className="w-3.5 h-3.5" /> Delete
+          </Button>
+
+          <span className="text-xs text-muted-foreground ml-2">
             Double-click a text box or shape to edit its text. Delete / Backspace removes the selected element.
           </span>
         </div>
       )}
+
 
       <div
         ref={wrapperRef}
@@ -2214,44 +2236,49 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
 function SizeFields({
   box,
   onChange,
+  disabled = false,
 }: {
   box: { x: number; y: number; w: number; h: number };
   onChange: (patch: Partial<{ x: number; y: number; w: number; h: number }>) => void;
+  disabled?: boolean;
 }) {
   const fmt = (v: number) => (Math.round(v * 100) / 100).toString();
   return (
-    <div className="flex items-center gap-1 pr-2 border-r" data-impact-canvas-toolbar>
-      <span className="text-[11px] text-muted-foreground">W</span>
+    <div className="flex items-center gap-1" data-impact-canvas-toolbar>
+      <span className={cn('text-[11px] text-muted-foreground', disabled && 'opacity-50')}>W</span>
       <Input
         type="number"
         step="0.1"
         min={0}
-        value={fmt(box.w)}
+        value={disabled ? '' : fmt(box.w)}
+        disabled={disabled}
         onChange={(e) => {
           const v = parseFloat(e.target.value);
           if (Number.isFinite(v)) onChange({ w: v });
         }}
-        className="h-8 w-16 text-xs"
+        className="h-7 w-14 text-xs"
         title="Width (cm)"
       />
-      <span className="text-[11px] text-muted-foreground">cm</span>
-      <span className="text-[11px] text-muted-foreground ml-1">H</span>
+      <span className={cn('text-[11px] text-muted-foreground', disabled && 'opacity-50')}>cm</span>
+      <span className={cn('text-[11px] text-muted-foreground ml-1', disabled && 'opacity-50')}>H</span>
       <Input
         type="number"
         step="0.1"
         min={0}
-        value={fmt(box.h)}
+        value={disabled ? '' : fmt(box.h)}
+        disabled={disabled}
         onChange={(e) => {
           const v = parseFloat(e.target.value);
           if (Number.isFinite(v)) onChange({ h: v });
         }}
-        className="h-8 w-16 text-xs"
+        className="h-7 w-14 text-xs"
         title="Height (cm)"
       />
-      <span className="text-[11px] text-muted-foreground">cm</span>
+      <span className={cn('text-[11px] text-muted-foreground', disabled && 'opacity-50')}>cm</span>
     </div>
   );
 }
+
 
 interface BoundStyleToolbarProps {
   proposalId: string;
@@ -2275,7 +2302,7 @@ function BoundStyleToolbar({ proposalId, canEdit, style, onChange }: BoundStyleT
   const fillIndicator = fillIsNone ? 'transparent' : fill;
 
   return (
-    <div className="flex items-center gap-1 pr-2 border-r" data-impact-canvas-toolbar>
+    <div className="flex items-center gap-1" data-impact-canvas-toolbar>
       {/* Fill — paint bucket icon + current-fill indicator */}
       <WPColorPicker
         color={fillIsNone ? '#FFFFFF' : fill}
