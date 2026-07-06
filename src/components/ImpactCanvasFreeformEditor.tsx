@@ -746,78 +746,97 @@ interface BoundStyleToolbarProps {
   onChange: (patch: Partial<BoundBoxStyle>) => void;
 }
 
+/**
+ * MS-Office-style style toolbar: paint-bucket Fill (with "No fill"),
+ * combined Outline dropdown (colour + preset widths, with "No outline"),
+ * and an "A"-with-underline Font colour picker.
+ */
 function BoundStyleToolbar({ proposalId, canEdit, style, onChange }: BoundStyleToolbarProps) {
   const width = style.outlineWidth ?? BOUND_STYLE_DEFAULTS.outlineWidth;
   const fill = style.fillColor ?? '#F5F5F5';
   const outline = style.outlineColor ?? '#CCCCCC';
   const font = style.fontColor ?? BOUND_STYLE_DEFAULTS.fontColor;
+
+  const fillIsNone = fill === 'none';
+  const fillIndicator = fillIsNone ? 'transparent' : fill;
+
   return (
-    <div className="flex items-center gap-2 pl-2 border-l" data-impact-canvas-toolbar>
-      <StylePicker
-        label="Fill"
-        color={fill}
-        proposalId={proposalId}
-        canEdit={canEdit}
+    <div className="flex items-center gap-1 pr-2 border-r" data-impact-canvas-toolbar>
+      {/* Fill — paint bucket icon + current-fill indicator */}
+      <WPColorPicker
+        color={fillIsNone ? '#FFFFFF' : fill}
         onChange={(c) => onChange({ fillColor: c })}
+        disabled={!canEdit}
+        proposalId={proposalId}
+        canManageCustom={canEdit}
+        label="Fill colour"
+        onRemove={() => onChange({ fillColor: 'none' })}
+        removeLabel="No fill"
+        trigger={
+          <button
+            type="button"
+            disabled={!canEdit}
+            className="inline-flex flex-col items-center justify-center h-8 w-9 rounded-md border bg-background hover:bg-accent transition-colors disabled:opacity-50"
+            title="Fill"
+            aria-label="Fill colour"
+          >
+            <PaintBucket className="w-4 h-4 -mb-0.5" strokeWidth={1.75} />
+            <div
+              className="mt-[2px] rounded-sm"
+              style={{
+                height: 3,
+                width: 16,
+                background: fillIndicator,
+                boxShadow: fillIsNone ? 'inset 0 0 0 1px rgba(0,0,0,0.4)' : undefined,
+                backgroundImage: fillIsNone
+                  ? 'linear-gradient(to top right, transparent 45%, #E11D48 45%, #E11D48 55%, transparent 55%)'
+                  : undefined,
+              }}
+            />
+          </button>
+        }
       />
-      <StylePicker
-        label="Outline"
+
+      {/* Outline — combined colour + width dropdown */}
+      <ImpactCanvasOutlinePicker
         color={outline}
+        width={width}
         proposalId={proposalId}
-        canEdit={canEdit}
-        onChange={(c) => onChange({ outlineColor: c })}
+        disabled={!canEdit}
+        onColorChange={(c) => onChange({ outlineColor: c })}
+        onWidthChange={(w) => onChange({ outlineWidth: w })}
       />
-      <div className="flex items-center gap-1">
-        <span className="text-[11px] text-muted-foreground">Width</span>
-        <Input
-          type="number"
-          min={0}
-          max={12}
-          step={1}
-          disabled={!canEdit}
-          value={width}
-          onChange={(e) => {
-            const v = Number(e.target.value);
-            if (Number.isFinite(v)) onChange({ outlineWidth: Math.max(0, Math.min(12, v)) });
-          }}
-          className="h-7 w-14 text-xs"
-        />
-        <span className="text-[11px] text-muted-foreground">px</span>
-      </div>
-      <StylePicker
-        label="Text"
+
+      {/* Font colour — "A" with coloured underline */}
+      <WPColorPicker
         color={font}
-        proposalId={proposalId}
-        canEdit={canEdit}
         onChange={(c) => onChange({ fontColor: c })}
+        disabled={!canEdit}
+        proposalId={proposalId}
+        canManageCustom={canEdit}
+        label="Font colour"
+        trigger={
+          <button
+            type="button"
+            disabled={!canEdit}
+            className="inline-flex flex-col items-center justify-center h-8 w-9 rounded-md border bg-background hover:bg-accent transition-colors disabled:opacity-50"
+            title="Font colour"
+            aria-label="Font colour"
+          >
+            <span
+              className="text-[15px] font-semibold leading-none"
+              style={{ fontFamily: 'Georgia, serif', color: '#111' }}
+            >
+              A
+            </span>
+            <div className="mt-[2px] rounded-sm" style={{ height: 3, width: 16, background: font }} />
+          </button>
+        }
       />
     </div>
   );
 }
 
-function StylePicker({
-  label, color, proposalId, canEdit, onChange,
-}: {
-  label: string;
-  color: string;
-  proposalId: string;
-  canEdit: boolean;
-  onChange: (hex: string) => void;
-}) {
-  return (
-    <div className="flex items-center gap-1">
-      <span className="text-[11px] text-muted-foreground">{label}</span>
-      <WPColorPicker
-        color={color}
-        onChange={onChange}
-        disabled={!canEdit}
-        proposalId={proposalId}
-        canManageCustom={canEdit}
-        label={`${label} colour`}
-      />
-    </div>
-  );
-}
 
 
 const HANDLES: Handle[] = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
