@@ -640,6 +640,8 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     // writes, capture pointer) once movement exceeds the threshold.
     let activated = false;
     let localDrag: DragState | null = null;
+    let latestBox: { x: number; y: number; w: number; h: number } | null = null;
+    let latestLine: { from: LinePoint; to: LinePoint } | null = null;
 
     const activate = () => {
       if (activated) return;
@@ -717,6 +719,8 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
           newTo = { x: startTo.x + tx, y: startTo.y + ty };
         }
         const bbox = computeLineBBox(newFrom, newTo);
+        latestBox = bbox;
+        latestLine = { from: newFrom, to: newTo };
         setLineOverrides((o) => ({ ...o, [localDrag!.id]: { from: newFrom, to: newTo } }));
         setOverrides((o) => ({ ...o, [localDrag!.id]: bbox }));
         return;
@@ -758,6 +762,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       h = Math.min(h, VH_CM);
       x = Math.max(0, Math.min(x, VW - w));
       y = Math.max(0, Math.min(y, VH_CM - h));
+      latestBox = { x, y, w, h };
       setOverrides((o) => ({ ...o, [localDrag!.id]: { x, y, w, h } }));
     };
 
@@ -783,6 +788,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       if (!activated) {
         // Pure click — no movement. Selection was already applied at press.
         dragBeforeRef.current = null;
+        setDrag(null);
         return;
       }
       // Suppress the trailing React synthetic click so it doesn't toggle
@@ -793,8 +799,8 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       }, 0);
 
       const dragId = localDrag!.id;
-      const finalBox = overridesRef.current[dragId];
-      const finalLine = lineOverridesRef.current[dragId];
+      const finalBox = latestBox ?? overridesRef.current[dragId];
+      const finalLine = latestLine ?? lineOverridesRef.current[dragId];
       const isLineDrag = localDrag!.mode.kind === 'endpoint' || localDrag!.mode.kind === 'line-move';
 
       if (isLineDrag && finalBox && finalLine) {
@@ -831,9 +837,10 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
           Math.abs(beforeSnap.w - finalBox.w) > 1e-4 ||
           Math.abs(beforeSnap.h - finalBox.h) > 1e-4;
         const contentChanged =
-          isLineDrag && finalLine &&
-          JSON.stringify(((beforeSnap.content ?? {}) as LineContent).from) !== JSON.stringify(finalLine.from) ||
-          JSON.stringify(((beforeSnap.content ?? {}) as LineContent).to) !== JSON.stringify(finalLine.to);
+          isLineDrag && finalLine
+            ? JSON.stringify(((beforeSnap.content ?? {}) as LineContent).from) !== JSON.stringify(finalLine.from) ||
+              JSON.stringify(((beforeSnap.content ?? {}) as LineContent).to) !== JSON.stringify(finalLine.to)
+            : false;
         if (boxChanged || styleAfter || contentChanged) {
           const afterContent = isLineDrag && finalLine
             ? { ...(beforeSnap.content as LineContent), from: finalLine.from, to: finalLine.to }
