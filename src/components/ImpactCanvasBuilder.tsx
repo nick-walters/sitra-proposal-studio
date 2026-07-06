@@ -98,12 +98,62 @@ export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figure
             the last row/column of boxes (graphic ends flush, no slack). */}
         <Card>
           <CardContent className="py-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold">Canvas preview</h3>
-              <span className="text-xs text-muted-foreground">
-                {rows.length} row{rows.length === 1 ? '' : 's'} · {columnOrder.length} columns
+            {/* Shared toolbar — top of card */}
+            <div
+              data-impact-canvas-toolbar
+              className="sticky top-0 z-10 bg-background border rounded-md p-1 flex items-center gap-1 overflow-visible"
+            >
+              <ToolbarBtn
+                label="Undo"
+                disabled={!activeEditor || !canEdit || !(activeEditor?.can().undo() ?? false)}
+                onClick={() => run((c) => c.undo())}
+              >
+                <Undo2 className="w-4 h-4" />
+              </ToolbarBtn>
+              <ToolbarBtn
+                label="Redo"
+                disabled={!activeEditor || !canEdit || !(activeEditor?.can().redo() ?? false)}
+                onClick={() => run((c) => c.redo())}
+              >
+                <Redo2 className="w-4 h-4" />
+              </ToolbarBtn>
+              <div className="w-px h-5 bg-border mx-1" />
+              <ToolbarBtn label="Bold" active={isActive('bold')} disabled={!activeEditor || !canEdit}
+                onClick={() => run((c) => c.toggleBold())}>
+                <Bold className="w-4 h-4" />
+              </ToolbarBtn>
+              <ToolbarBtn label="Italic" active={isActive('italic')} disabled={!activeEditor || !canEdit}
+                onClick={() => run((c) => c.toggleItalic())}>
+                <Italic className="w-4 h-4" />
+              </ToolbarBtn>
+              <ToolbarBtn label="Underline" active={isActive('underline')} disabled={!activeEditor || !canEdit}
+                onClick={() => run((c) => c.toggleUnderline())}>
+                <UnderlineIcon className="w-4 h-4" />
+              </ToolbarBtn>
+              <div className="w-px h-5 bg-border mx-1" />
+              <ToolbarBtn label="Bullet list" active={isActive('bulletList')} disabled={!activeEditor || !canEdit}
+                onClick={() => run((c) => c.toggleBulletList())}>
+                <List className="w-4 h-4" />
+              </ToolbarBtn>
+              <ToolbarBtn label="Ordered list" active={isActive('orderedList')} disabled={!activeEditor || !canEdit}
+                onClick={() => run((c) => c.toggleOrderedList())}>
+                <ListOrdered className="w-4 h-4" />
+              </ToolbarBtn>
+              <div className="w-px h-5 bg-border mx-1" />
+              <ImpactCanvasCrossRefDropdown
+                proposalId={proposalId}
+                activeEditor={activeEditor}
+                disabled={!canEdit}
+              />
+
+              <div className="flex-1" />
+              <span className="text-xs text-muted-foreground pr-2 shrink-0">
+                {activeEditor ? 'Editing focused cell' : 'Click a cell to edit'}
               </span>
             </div>
+            {/* Thin grey divider under toolbar */}
+            <div className="h-px bg-border" />
+
             <div style={{ paddingBottom: 8, paddingRight: 8 }}>
               <ImpactCanvasFreeformEditor proposalId={proposalId} canEdit={canEdit} />
             </div>
@@ -133,61 +183,6 @@ export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figure
           </CardContent>
         </Card>
 
-
-
-        {/* Shared toolbar */}
-        <div
-          data-impact-canvas-toolbar
-          className="sticky top-0 z-10 bg-background border rounded-md p-1 flex items-center gap-1 overflow-visible"
-        >
-          <ToolbarBtn
-            label="Undo"
-            disabled={!activeEditor || !canEdit || !(activeEditor?.can().undo() ?? false)}
-            onClick={() => run((c) => c.undo())}
-          >
-            <Undo2 className="w-4 h-4" />
-          </ToolbarBtn>
-          <ToolbarBtn
-            label="Redo"
-            disabled={!activeEditor || !canEdit || !(activeEditor?.can().redo() ?? false)}
-            onClick={() => run((c) => c.redo())}
-          >
-            <Redo2 className="w-4 h-4" />
-          </ToolbarBtn>
-          <div className="w-px h-5 bg-border mx-1" />
-          <ToolbarBtn label="Bold" active={isActive('bold')} disabled={!activeEditor || !canEdit}
-            onClick={() => run((c) => c.toggleBold())}>
-            <Bold className="w-4 h-4" />
-          </ToolbarBtn>
-          <ToolbarBtn label="Italic" active={isActive('italic')} disabled={!activeEditor || !canEdit}
-            onClick={() => run((c) => c.toggleItalic())}>
-            <Italic className="w-4 h-4" />
-          </ToolbarBtn>
-          <ToolbarBtn label="Underline" active={isActive('underline')} disabled={!activeEditor || !canEdit}
-            onClick={() => run((c) => c.toggleUnderline())}>
-            <UnderlineIcon className="w-4 h-4" />
-          </ToolbarBtn>
-          <div className="w-px h-5 bg-border mx-1" />
-          <ToolbarBtn label="Bullet list" active={isActive('bulletList')} disabled={!activeEditor || !canEdit}
-            onClick={() => run((c) => c.toggleBulletList())}>
-            <List className="w-4 h-4" />
-          </ToolbarBtn>
-          <ToolbarBtn label="Ordered list" active={isActive('orderedList')} disabled={!activeEditor || !canEdit}
-            onClick={() => run((c) => c.toggleOrderedList())}>
-            <ListOrdered className="w-4 h-4" />
-          </ToolbarBtn>
-          <div className="w-px h-5 bg-border mx-1" />
-          <ImpactCanvasCrossRefDropdown
-            proposalId={proposalId}
-            activeEditor={activeEditor}
-            disabled={!canEdit}
-          />
-
-          <div className="flex-1" />
-          <span className="text-xs text-muted-foreground pr-2 shrink-0">
-            {activeEditor ? 'Editing focused cell' : 'Click a cell to edit'}
-          </span>
-        </div>
 
         {/* The builder grid */}
         <Card>
