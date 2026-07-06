@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
-import { Grid3x3, Magnet, PaintBucket, Trash2, Type } from 'lucide-react';
+import { Grid3x3, Magnet, PaintBucket, Redo2, Trash2, Type, Undo2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useImpactCanvasColumns, useImpactCanvasRows } from '@/hooks/useImpactCanvas';
@@ -147,6 +147,73 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
   /** Bumped when the wrapper resizes so the auto-fit effect re-measures. */
   const [wrapperTick, setWrapperTick] = useState(0);
 
+  // ── Canvas-level UNDO/REDO (session-only, in-memory) ──────────────────
+  // Per-element before/after snapshots. Add/delete carry the full element
+  // (so we can re-insert with the same id on undo/redo). Update entries
+  // for the same element within the same 600 ms coalesce group are merged
+  // (drag / style click / cm-field typing / etc.) — one gesture = one step.
+  // History resets on reload; text-editor (TipTap) keystrokes are NOT
+  // captured here — a committed text change (edit exit) pushes ONE step.
+  type ElementSnapshot = {
+    x: number; y: number; w: number; h: number;
+    content: unknown; style: unknown;
+  };
+  type HistoryEntry =
+    | { kind: 'update'; id: string; before: ElementSnapshot; after: ElementSnapshot; group?: string; ts: number }
+    | { kind: 'add'; element: CanvasElement }
+    | { kind: 'delete'; element: CanvasElement };
+  const undoStackRef = useRef<HistoryEntry[]>([]);
+  const redoStackRef = useRef<HistoryEntry[]>([]);
+  const suppressHistoryRef = useRef(false);
+  const [, setHistoryTick] = useState(0);
+  const bumpHistory = () => setHistoryTick((t) => t + 1);
+  const canUndo = undoStackRef.current.length > 0;
+  const canRedo = redoStackRef.current.length > 0;
+  /** Snapshot captured at drag start so onUp can build the update entry. */
+  const dragBeforeRef = useRef<{ id: string; snap: ElementSnapshot } | null>(null);
+  /** Snapshot captured when a text/shape enters edit mode; on commit we
+   *  compare and push ONE update entry if the html actually changed. */
+  const textEditBeforeRef = useRef<{ id: string; snap: ElementSnapshot } | null>(null);
+
+  // Build a snapshot of an element's current visible state (fetched values
+  // overlaid with any pending optimistic overrides).
+  const snapshotOfElRef = useRef<(el: CanvasElement) => ElementSnapshot>(() => ({
+    x: 0, y: 0, w: 0, h: 0, content: null, style: null,
+  }));
+  const snapshotOfEl = useCallback(
+    (el: CanvasElement): ElementSnapshot => snapshotOfElRef.current(el),
+    [],
+  );
+
+  const pushHistory = useCallback((entry: HistoryEntry, group?: string) => {
+    if (suppressHistoryRef.current) return;
+    const stack = undoStackRef.current;
+    const last = stack[stack.length - 1];
+    const now = Date.now();
+    if (
+      entry.kind === 'update' &&
+      last?.kind === 'update' &&
+      group &&
+      last.group === group &&
+      last.id === entry.id &&
+      now - last.ts < 600
+    ) {
+      last.after = entry.after;
+      last.ts = now;
+    } else {
+      if (entry.kind === 'update') {
+        entry.ts = now;
+        entry.group = group;
+      }
+      stack.push(entry);
+      if (stack.length > 200) stack.shift();
+    }
+    redoStackRef.current = [];
+    bumpHistory();
+  }, []);
+
+
+
 
   // Deselect on outside pointerdown — but keep clicks inside the surface,
   // toolbar, radix portals, dialogs, and the ACTIVE text-box editor from
@@ -276,13 +343,18 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     (id: string, patch: Partial<BoundBoxStyle>) => {
       if (!canEdit) return;
       const el = fetched.find((e) => e.id === id);
-      const current = { ...readBoundStyle(el?.style), ...(styleOverrides[id] ?? {}) };
+      if (!el) return;
+      const before = snapshotOfEl(el);
+      const current = { ...readBoundStyle(el.style), ...(styleOverrides[id] ?? {}) };
       const next = { ...current, ...patch };
       setStyleOverrides((o) => ({ ...o, [id]: next }));
       persistStyleDebounced(id, next);
+      const after: ElementSnapshot = { ...before, style: next };
+      pushHistory({ kind: 'update', id, before, after, ts: Date.now() }, `style:${id}`);
     },
-    [canEdit, fetched, styleOverrides, persistStyleDebounced],
+    [canEdit, fetched, styleOverrides, persistStyleDebounced, snapshotOfEl, pushHistory],
   );
+
 
   useEffect(() => {
     return () => {
@@ -294,6 +366,135 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       pendingStyleTimers.current = {};
     };
   }, []);
+
+  // Keep the snapshot builder ref up-to-date with current overrides so the
+  // forward-declared snapshotOfEl (used by mutations declared above) always
+  // sees the latest optimistic state.
+  snapshotOfElRef.current = (el: CanvasElement): ElementSnapshot => {
+    const ov = overrides[el.id];
+    const so = styleOverrides[el.id];
+    const co = contentOverrides[el.id];
+    const contentBase = (el.content ?? {}) as Record<string, unknown>;
+    const content = co !== undefined ? { ...contentBase, html: co } : el.content;
+    const styleBase = readBoundStyle(el.style);
+    const style = so !== undefined ? { ...styleBase, ...so } : el.style;
+    return {
+      x: ov?.x ?? el.x,
+      y: ov?.y ?? el.y,
+      w: ov?.w ?? el.w,
+      h: ov?.h ?? el.h,
+      content,
+      style,
+    };
+  };
+
+
+  const writeSnapshot = useCallback(
+    async (id: string, snap: ElementSnapshot) => {
+      setOverrides((o) => { if (!(id in o)) return o; const n = { ...o }; delete n[id]; return n; });
+      setStyleOverrides((o) => { if (!(id in o)) return o; const n = { ...o }; delete n[id]; return n; });
+      setContentOverrides((o) => { if (!(id in o)) return o; const n = { ...o }; delete n[id]; return n; });
+      qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId), (old) =>
+        (old || []).map((e) =>
+          e.id === id
+            ? { ...e, x: snap.x, y: snap.y, w: snap.w, h: snap.h, content: snap.content, style: snap.style }
+            : e,
+        ),
+      );
+      const { error } = await supabase
+        .from('impact_canvas_elements')
+        .update({
+          x: snap.x, y: snap.y, w: snap.w, h: snap.h,
+          content: snap.content as never, style: snap.style as never,
+        })
+        .eq('id', id);
+      if (error) qc.invalidateQueries({ queryKey: ELS_KEY(proposalId) });
+    },
+    [proposalId, qc],
+  );
+
+  const reinsertElement = useCallback(
+    async (el: CanvasElement) => {
+      qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId), (old) => {
+        const list = old || [];
+        if (list.some((e) => e.id === el.id)) return list;
+        return [...list, el];
+      });
+      const { error } = await supabase.from('impact_canvas_elements').insert({
+        id: el.id,
+        proposal_id: proposalId,
+        kind: el.kind,
+        bound_row_id: el.bound_row_id,
+        bound_col_key: el.bound_col_key,
+        x: el.x, y: el.y, w: el.w, h: el.h, z: el.z,
+        content: el.content as never,
+        style: el.style as never,
+      });
+      if (error) qc.invalidateQueries({ queryKey: ELS_KEY(proposalId) });
+    },
+    [proposalId, qc],
+  );
+
+  const removeElementById = useCallback(
+    async (id: string) => {
+      qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId), (old) =>
+        (old || []).filter((e) => e.id !== id),
+      );
+      setSelectedId((s) => (s === id ? null : s));
+      setEditingId((s) => (s === id ? null : s));
+      const { error } = await supabase.from('impact_canvas_elements').delete().eq('id', id);
+      if (error) qc.invalidateQueries({ queryKey: ELS_KEY(proposalId) });
+    },
+    [proposalId, qc],
+  );
+
+  const undo = useCallback(async () => {
+    const entry = undoStackRef.current.pop();
+    if (!entry) return;
+    redoStackRef.current.push(entry);
+    bumpHistory();
+    suppressHistoryRef.current = true;
+    try {
+      if (entry.kind === 'update') await writeSnapshot(entry.id, entry.before);
+      else if (entry.kind === 'add') await removeElementById(entry.element.id);
+      else if (entry.kind === 'delete') await reinsertElement(entry.element);
+    } finally {
+      suppressHistoryRef.current = false;
+    }
+  }, [writeSnapshot, removeElementById, reinsertElement]);
+
+  const redo = useCallback(async () => {
+    const entry = redoStackRef.current.pop();
+    if (!entry) return;
+    undoStackRef.current.push(entry);
+    bumpHistory();
+    suppressHistoryRef.current = true;
+    try {
+      if (entry.kind === 'update') await writeSnapshot(entry.id, entry.after);
+      else if (entry.kind === 'add') await reinsertElement(entry.element);
+      else if (entry.kind === 'delete') await removeElementById(entry.element.id);
+    } finally {
+      suppressHistoryRef.current = false;
+    }
+  }, [writeSnapshot, removeElementById, reinsertElement]);
+
+  // Keyboard: Ctrl/Cmd+Z / Shift+Z / Ctrl+Y for canvas undo/redo — but only
+  // when focus is NOT inside a text editor / input / textarea, so TipTap's
+  // own text undo keeps handling typing keystrokes.
+  useEffect(() => {
+    if (!canEdit) return;
+    const onKey = (ev: KeyboardEvent) => {
+      const t = ev.target as HTMLElement | null;
+      if (t && (t.isContentEditable || ['INPUT', 'TEXTAREA'].includes(t.tagName))) return;
+      if (!(ev.metaKey || ev.ctrlKey)) return;
+      const key = ev.key.toLowerCase();
+      if (key === 'z' && !ev.shiftKey) { ev.preventDefault(); void undo(); }
+      else if ((key === 'z' && ev.shiftKey) || key === 'y') { ev.preventDefault(); void redo(); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [canEdit, undo, redo]);
+
 
   const canvasHeightCmRef = useRef(CANVAS_MAX_HEIGHT_CM);
 
@@ -311,6 +512,9 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     if (!wrapper) return;
     (e.target as Element).setPointerCapture?.(e.pointerId);
     setSelectedId(id);
+    // Capture the element's pre-gesture snapshot for canvas-level undo.
+    const el = fetched.find((x) => x.id === id);
+    if (el) dragBeforeRef.current = { id, snap: snapshotOfEl(el) };
     setDrag({
       id,
       mode,
@@ -320,6 +524,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       wrapperRect: wrapper.getBoundingClientRect(),
       canvasHeightCm: canvasHeightCmRef.current,
     });
+
   };
 
   const overridesRef = useRef(overrides);
@@ -418,6 +623,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       if (finalBox) persistDebounced(drag.id, finalBox);
       // Manual resize (any handle that changed h) locks in an explicit
       // height and disables auto-fit for this bound box.
+      let styleAfter: BoundBoxStyle | null = null;
       if (
         drag.mode.kind === 'resize' &&
         finalBox &&
@@ -430,11 +636,32 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
             const next = { ...cur, autoFitH: false };
             setStyleOverrides((o) => ({ ...o, [drag.id]: next }));
             persistStyleDebounced(drag.id, next);
+            styleAfter = next;
           }
+        }
+      }
+      // Push ONE canvas-undo step for the whole drag/resize gesture.
+      const beforeSnap = dragBeforeRef.current?.snap;
+      const gestureId = dragBeforeRef.current?.id;
+      dragBeforeRef.current = null;
+      if (beforeSnap && gestureId === drag.id && finalBox) {
+        const boxChanged =
+          Math.abs(beforeSnap.x - finalBox.x) > 1e-4 ||
+          Math.abs(beforeSnap.y - finalBox.y) > 1e-4 ||
+          Math.abs(beforeSnap.w - finalBox.w) > 1e-4 ||
+          Math.abs(beforeSnap.h - finalBox.h) > 1e-4;
+        if (boxChanged || styleAfter) {
+          const after: ElementSnapshot = {
+            ...beforeSnap,
+            x: finalBox.x, y: finalBox.y, w: finalBox.w, h: finalBox.h,
+            style: styleAfter ?? beforeSnap.style,
+          };
+          pushHistory({ kind: 'update', id: drag.id, before: beforeSnap, after, ts: Date.now() });
         }
       }
       setDrag(null);
     };
+
 
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
@@ -539,9 +766,11 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       ...(old || []),
       data as CanvasElement,
     ]);
+    pushHistory({ kind: 'add', element: data as CanvasElement });
     setSelectedId(data.id);
     setEditingId(data.id);
-  }, [canEdit, maxZ, proposalId, qc]);
+  }, [canEdit, maxZ, proposalId, qc, pushHistory]);
+
 
   const addShape = useCallback(
     async (shape: ShapeKind) => {
@@ -577,10 +806,12 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
         ...(old || []),
         data as CanvasElement,
       ]);
+      pushHistory({ kind: 'add', element: data as CanvasElement });
       setSelectedId(data.id);
     },
-    [canEdit, maxZ, proposalId, qc],
+    [canEdit, maxZ, proposalId, qc, pushHistory],
   );
+
 
   /** Directly set an element's box in cm (used by the size input fields).
    *  Optimistic + debounced via the same persist path as drag/resize. */
@@ -589,6 +820,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       if (!canEdit) return;
       const el = fetched.find((e) => e.id === id);
       if (!el) return;
+      const before = snapshotOfEl(el);
       const current = overrides[id] ?? { x: el.x, y: el.y, w: el.w, h: el.h };
       let next = { ...current, ...patch };
       // Clamp: element must fit inside 18 cm × 25.5 cm.
@@ -598,6 +830,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       next.y = Math.max(0, Math.min(CANVAS_MAX_HEIGHT_CM - next.h, next.y));
       setOverrides((o) => ({ ...o, [id]: next }));
       persistDebounced(id, next);
+      let styleAfter: unknown = before.style;
       // Manual H entry locks explicit height for bound boxes.
       if (patch.h !== undefined && el.kind === 'bound') {
         const cur = { ...readBoundStyle(el.style), ...(styleOverrides[id] ?? {}) };
@@ -605,18 +838,32 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
           const nextStyle = { ...cur, autoFitH: false };
           setStyleOverrides((o) => ({ ...o, [id]: nextStyle }));
           persistStyleDebounced(id, nextStyle);
+          styleAfter = nextStyle;
         }
       }
+      const after: ElementSnapshot = { ...before, ...next, style: styleAfter };
+      pushHistory({ kind: 'update', id, before, after, ts: Date.now() }, `size:${id}`);
     },
-    [canEdit, fetched, overrides, persistDebounced, styleOverrides, persistStyleDebounced],
+    [canEdit, fetched, overrides, persistDebounced, styleOverrides, persistStyleDebounced, snapshotOfEl, pushHistory],
   );
+
 
 
   const deleteElement = useCallback(
     async (id: string) => {
       if (!canEdit) return;
-      // Optimistic removal
+      // Snapshot with merged overrides so undo restores the visible state.
       const prev = qc.getQueryData<CanvasElement[]>(ELS_KEY(proposalId));
+      const target = (prev || []).find((e) => e.id === id);
+      if (target) {
+        const snap = snapshotOfEl(target);
+        const restored: CanvasElement = {
+          ...target,
+          x: snap.x, y: snap.y, w: snap.w, h: snap.h,
+          content: snap.content, style: snap.style,
+        };
+        pushHistory({ kind: 'delete', element: restored });
+      }
       qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId), (old) =>
         (old || []).filter((e) => e.id !== id),
       );
@@ -627,8 +874,9 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
         if (prev) qc.setQueryData(ELS_KEY(proposalId), prev);
       }
     },
-    [canEdit, proposalId, qc],
+    [canEdit, proposalId, qc, snapshotOfEl, pushHistory],
   );
+
 
   // Keyboard: Delete/Backspace on selected free element removes it.
   useEffect(() => {
@@ -645,6 +893,37 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [selectedId, editingId, fetched, deleteElement]);
+
+  // Text edit → one canvas-undo step on commit (not per keystroke). Track
+  // the pre-edit snapshot when editingId turns on; on transition to null,
+  // if the html actually changed, push ONE update entry.
+  const prevEditingIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    const prev = prevEditingIdRef.current;
+    const cur = editingId;
+    if (prev === cur) return;
+    if (cur) {
+      const el = fetched.find((e) => e.id === cur);
+      if (el) textEditBeforeRef.current = { id: cur, snap: snapshotOfEl(el) };
+    }
+    if (prev && !cur) {
+      const captured = textEditBeforeRef.current;
+      if (captured && captured.id === prev) {
+        const el = fetched.find((e) => e.id === prev);
+        if (el) {
+          const after = snapshotOfEl(el);
+          const beforeHtml = ((captured.snap.content ?? {}) as { html?: string }).html ?? '';
+          const afterHtml = ((after.content ?? {}) as { html?: string }).html ?? '';
+          if (beforeHtml !== afterHtml) {
+            pushHistory({ kind: 'update', id: prev, before: captured.snap, after, ts: Date.now() });
+          }
+        }
+        textEditBeforeRef.current = null;
+      }
+    }
+    prevEditingIdRef.current = cur;
+  }, [editingId, fetched, snapshotOfEl, pushHistory]);
+
 
   if (colsLoading || rowsLoading || elsLoading) {
     return <div className={className ?? 'p-4 text-xs text-muted-foreground'}>Loading impact canvas…</div>;
@@ -689,6 +968,35 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     <div className="space-y-2">
       {canEdit && (
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Canvas-level Undo / Redo — session-only, resets on reload. */}
+          <div className="flex items-center gap-1 pr-2 border-r" data-impact-canvas-toolbar>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={() => void undo()}
+              disabled={!canUndo}
+              title="Undo (⌘/Ctrl+Z)"
+              aria-label="Undo"
+            >
+              <Undo2 className="w-4 h-4" />
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={() => void redo()}
+              disabled={!canRedo}
+              title="Redo (⇧⌘/Ctrl+Z)"
+              aria-label="Redo"
+            >
+              <Redo2 className="w-4 h-4" />
+            </Button>
+          </div>
+
+
           {/* Style controls — bound boxes AND shapes share the style model. */}
           {selectedEl && (selectedIsBound || selectedIsShape) && (
             <BoundStyleToolbar
