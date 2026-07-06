@@ -36,6 +36,8 @@ import {
 
 import { Circle as CircleIcon, Square, Squircle, Triangle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
+
 
 interface Props {
   proposalId: string;
