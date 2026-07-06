@@ -1489,6 +1489,10 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
             </div>
           );
         })}
+        {/* SPIKE (throwaway): mirror the read-only spike inside the editor
+            so the same two test arrows appear on screen for verification.
+            Remove alongside <LinesSpike/> in the renderer. */}
+        <LinesSpike VW={VW} VH={VH} />
       </div>
     </div>
   );
