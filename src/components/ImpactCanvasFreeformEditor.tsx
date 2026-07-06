@@ -316,8 +316,14 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     });
   };
 
+  const overridesRef = useRef(overrides);
+  useEffect(() => {
+    overridesRef.current = overrides;
+  }, [overrides]);
+
   useEffect(() => {
     if (!drag) return;
+
     // VW is fixed by the cm model; VH is captured from the wrapper's actual
     // pixel dimensions at drag start (ratio px/cm is stable during drag —
     // if content grows the canvas the ratio doesn't change).
