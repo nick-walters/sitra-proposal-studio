@@ -512,6 +512,9 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     if (!wrapper) return;
     (e.target as Element).setPointerCapture?.(e.pointerId);
     setSelectedId(id);
+    // Capture the element's pre-gesture snapshot for canvas-level undo.
+    const el = fetched.find((x) => x.id === id);
+    if (el) dragBeforeRef.current = { id, snap: snapshotOfEl(el) };
     setDrag({
       id,
       mode,
@@ -521,6 +524,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       wrapperRect: wrapper.getBoundingClientRect(),
       canvasHeightCm: canvasHeightCmRef.current,
     });
+
   };
 
   const overridesRef = useRef(overrides);
