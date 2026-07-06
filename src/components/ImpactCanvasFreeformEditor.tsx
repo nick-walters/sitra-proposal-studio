@@ -623,6 +623,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       if (finalBox) persistDebounced(drag.id, finalBox);
       // Manual resize (any handle that changed h) locks in an explicit
       // height and disables auto-fit for this bound box.
+      let styleAfter: BoundBoxStyle | null = null;
       if (
         drag.mode.kind === 'resize' &&
         finalBox &&
@@ -635,11 +636,32 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
             const next = { ...cur, autoFitH: false };
             setStyleOverrides((o) => ({ ...o, [drag.id]: next }));
             persistStyleDebounced(drag.id, next);
+            styleAfter = next;
           }
+        }
+      }
+      // Push ONE canvas-undo step for the whole drag/resize gesture.
+      const beforeSnap = dragBeforeRef.current?.snap;
+      const gestureId = dragBeforeRef.current?.id;
+      dragBeforeRef.current = null;
+      if (beforeSnap && gestureId === drag.id && finalBox) {
+        const boxChanged =
+          Math.abs(beforeSnap.x - finalBox.x) > 1e-4 ||
+          Math.abs(beforeSnap.y - finalBox.y) > 1e-4 ||
+          Math.abs(beforeSnap.w - finalBox.w) > 1e-4 ||
+          Math.abs(beforeSnap.h - finalBox.h) > 1e-4;
+        if (boxChanged || styleAfter) {
+          const after: ElementSnapshot = {
+            ...beforeSnap,
+            x: finalBox.x, y: finalBox.y, w: finalBox.w, h: finalBox.h,
+            style: styleAfter ?? beforeSnap.style,
+          };
+          pushHistory({ kind: 'update', id: drag.id, before: beforeSnap, after, ts: Date.now() });
         }
       }
       setDrag(null);
     };
+
 
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
