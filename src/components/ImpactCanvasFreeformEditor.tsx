@@ -1096,7 +1096,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
         ref={wrapperRef}
         className={className}
         data-impact-canvas-editor-surface
-        data-impact-canvas-graphic="true"
+
         style={{
           position: 'relative',
           width: '100%',
