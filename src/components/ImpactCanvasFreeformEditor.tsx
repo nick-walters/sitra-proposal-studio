@@ -1673,12 +1673,26 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
           <Button
             type="button" variant="ghost" size="sm"
             className="text-destructive hover:text-destructive hover:bg-destructive/10 h-7 w-7 p-0"
-            onClick={() => selectedEl && void deleteElement(selectedEl.id)}
+            onClick={() => void deleteSelectedFree(deletableSelected)}
             disabled={!deleteEnabled}
-            title="Delete selected element" aria-label="Delete selected element"
+            title={
+              deletableSelected.length > 1
+                ? `Delete ${deletableSelected.length} selected elements`
+                : 'Delete selected element'
+            }
+            aria-label="Delete selected element"
           >
             <Trash2 className="w-3.5 h-3.5" />
           </Button>
+          {selectedIds.size > 1 && (
+            <span
+              className="ml-1 mr-1 text-[11px] text-muted-foreground select-none"
+              data-impact-canvas-toolbar
+              aria-live="polite"
+            >
+              {selectedIds.size} selected
+            </span>
+          )}
 
           <Separator orientation="vertical" className="h-5 mx-1" />
 
