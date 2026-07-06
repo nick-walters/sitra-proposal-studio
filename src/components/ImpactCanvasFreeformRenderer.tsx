@@ -297,9 +297,136 @@ export function ImpactCanvasFreeformRenderer({ proposalId, className, fallback =
           </div>
         );
       })}
+
+      {/* ── SPIKE (throwaway): verify SVG polygon arrowheads across editor / PDF / PNG.
+          Remove this block + <LinesSpike/> below once verified. */}
+      <LinesSpike VW={VW} VH={VH} />
     </div>
   );
 }
+
+/**
+ * Throwaway spike — renders two test lines with computed polygon arrowheads
+ * (NOT <marker>) so we can eyeball rendering parity across editor screen,
+ * PDF export (freezeInteractiveElements) and PNG export (html2canvas).
+ *
+ * Two stroke-width approaches side-by-side:
+ *   BLUE straight   → cm-scaled stroke-width (1.5pt → cm)
+ *   RED  elbow      → vector-effect="non-scaling-stroke" + px width (1.5px)
+ *
+ * Delete this component + its call site after verification.
+ */
+function LinesSpike({ VW, VH }: { VW: number; VH: number }) {
+  // Coords in cm. Positioned in the top band so they render even on short
+  // canvases; kept well away from bound headers/cells.
+  const straight = { from: { x: 0.6, y: 1.6 }, to: { x: 8.4, y: 3.2 } };
+  const elbow = {
+    from: { x: 9.6, y: 1.6 },
+    to: { x: 17.4, y: 4.6 },
+  };
+  // Auto bend: HV routing when |dx| >= |dy|, else VH. Bend at mid of long axis.
+  const dxE = elbow.to.x - elbow.from.x;
+  const dyE = elbow.to.y - elbow.from.y;
+  const bend =
+    Math.abs(dxE) >= Math.abs(dyE)
+      ? { x: elbow.from.x + dxE / 2, y: elbow.from.y }
+      : { x: elbow.from.x, y: elbow.from.y + dyE / 2 };
+  const elbowMid = { x: elbow.to.x, y: bend.y };
+  // Second leg direction (for arrowhead orientation): from bend to `to`.
+  const legEnd = Math.abs(dxE) >= Math.abs(dyE) ? { x: elbow.to.x, y: bend.y } : bend;
+  const elbowPath = `M ${elbow.from.x} ${elbow.from.y} L ${bend.x} ${bend.y} L ${elbowMid.x} ${elbowMid.y} L ${elbow.to.x} ${elbow.to.y}`;
+
+  // Stroke widths.
+  const STROKE_PT = 1.5;
+  const strokeCm = STROKE_PT / 28.3465; // ≈ 0.053 cm — used by BLUE path
+
+  // Arrowhead polygon (in cm) — isosceles triangle at tip, base perpendicular
+  // to segment direction. Size scaled to a visible ~4× stroke, min 0.15 cm.
+  const headSize = Math.max(0.15, strokeCm * 4);
+  const arrowPoly = (
+    tip: { x: number; y: number },
+    dir: { x: number; y: number },
+    size: number,
+  ) => {
+    const len = Math.hypot(dir.x, dir.y) || 1;
+    const ux = dir.x / len;
+    const uy = dir.y / len;
+    const px = -uy;
+    const py = ux;
+    const baseX = tip.x - ux * size;
+    const baseY = tip.y - uy * size;
+    const half = size * 0.55;
+    const a = { x: baseX + px * half, y: baseY + py * half };
+    const b = { x: baseX - px * half, y: baseY - py * half };
+    return `${tip.x},${tip.y} ${a.x},${a.y} ${b.x},${b.y}`;
+  };
+
+  const straightDir = { x: straight.to.x - straight.from.x, y: straight.to.y - straight.from.y };
+  const elbowDir =
+    Math.abs(dxE) >= Math.abs(dyE)
+      ? { x: 0, y: elbow.to.y - bend.y } // final leg is vertical in HV routing
+      : { x: elbow.to.x - bend.x, y: 0 }; // final leg is horizontal in VH routing
+
+  return (
+    <svg
+      data-impact-canvas-lines-spike
+      viewBox={`0 0 ${VW} ${VH}`}
+      preserveAspectRatio="none"
+      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 999 }}
+    >
+      {/* BLUE — straight, cm-scaled stroke */}
+      <line
+        x1={straight.from.x}
+        y1={straight.from.y}
+        x2={straight.to.x}
+        y2={straight.to.y}
+        stroke="#1D4ED8"
+        strokeWidth={strokeCm}
+        strokeLinecap="butt"
+      />
+      <polygon
+        points={arrowPoly(straight.to, straightDir, headSize)}
+        fill="#1D4ED8"
+        stroke="none"
+      />
+      {/* Also drop a two-way head at the start of the straight line */}
+      <polygon
+        points={arrowPoly(
+          straight.from,
+          { x: -straightDir.x, y: -straightDir.y },
+          headSize,
+        )}
+        fill="#1D4ED8"
+        stroke="none"
+      />
+
+      {/* RED — elbow, non-scaling-stroke px width */}
+      <path
+        d={elbowPath}
+        fill="none"
+        stroke="#DC2626"
+        strokeWidth={1.5}
+        vectorEffect="non-scaling-stroke"
+        strokeLinejoin="miter"
+        strokeLinecap="butt"
+      />
+      <polygon
+        points={arrowPoly(elbow.to, elbowDir, headSize)}
+        fill="#DC2626"
+        stroke="none"
+      />
+
+      {/* Tiny legend text (cm coords) so PDF/PNG capture is self-labelling */}
+      <text x={0.6} y={0.8} fontSize={0.35} fill="#1D4ED8" fontFamily="Arial, sans-serif">
+        spike: BLUE straight (cm stroke)
+      </text>
+      <text x={9.6} y={0.8} fontSize={0.35} fill="#DC2626" fontFamily="Arial, sans-serif">
+        spike: RED elbow (px non-scaling)
+      </text>
+    </svg>
+  );
+}
+
 
 
 /**
