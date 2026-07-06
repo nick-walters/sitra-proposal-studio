@@ -2284,8 +2284,10 @@ function BoundStyleToolbar({ proposalId, canEdit, style, onChange }: BoundStyleT
         proposalId={proposalId}
         canManageCustom={canEdit}
         label="Fill colour"
+        showGreyscale
         onRemove={() => onChange({ fillColor: 'none' })}
         removeLabel="No fill"
+
         trigger={
           <button
             type="button"
