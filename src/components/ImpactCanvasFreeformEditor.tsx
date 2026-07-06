@@ -2313,71 +2313,54 @@ function handleStyle(h: Handle): React.CSSProperties {
 }
 
 /**
- * Split-button adder for line/arrow variants.
- * Primary click = default straight one-way arrow. The chevron opens a
- * 2×3 popover (rows: straight, elbow; cols: plain, one-way, two-way).
+ * Combined shape + line adder. Single icon-only trigger (rounded-rect
+ * icon, no chevron, no border), opens a dropdown with an "Add shape"
+ * heading and six options: rectangle, rounded rectangle, circle,
+ * triangle, straight line, elbow line.
  */
-function LineAdderSplitButton({
-  onAdd,
+function AddShapeDropdown({
+  onAddShape,
+  onAddLine,
 }: {
-  onAdd: (routing: 'straight' | 'elbow', arrow: 'none' | 'end' | 'both') => void;
+  onAddShape: (shape: ShapeKind) => void;
+  onAddLine: (routing: 'straight' | 'elbow', arrow: 'none' | 'end' | 'both') => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const variants: Array<{
-    routing: 'straight' | 'elbow';
-    arrow: 'none' | 'end' | 'both';
-    label: string;
-  }> = [
-    { routing: 'straight', arrow: 'none', label: 'Straight line' },
-    { routing: 'straight', arrow: 'end', label: 'Straight one-way arrow' },
-    { routing: 'straight', arrow: 'both', label: 'Straight two-way arrow' },
-    { routing: 'elbow', arrow: 'none', label: 'Elbow line' },
-    { routing: 'elbow', arrow: 'end', label: 'Elbow one-way arrow' },
-    { routing: 'elbow', arrow: 'both', label: 'Elbow two-way arrow' },
-  ];
   return (
     <div className="inline-flex" data-impact-canvas-toolbar>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className="h-8 w-8 p-0 rounded-r-none border-r-0"
-        onClick={() => onAdd('straight', 'end')}
-        title="Add line (straight, one-way arrow)"
-        aria-label="Add line"
-      >
-        <MoveRight className="w-4 h-4" />
-      </Button>
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
             type="button"
-            variant="outline"
-            size="sm"
-            className="h-8 w-5 p-0 rounded-l-none"
-            title="Line variants"
-            aria-label="Line variants"
+            className="inline-flex items-center justify-center h-7 w-7 rounded-md bg-transparent hover:bg-accent transition-colors disabled:opacity-50"
+            title="Add shape"
+            aria-label="Add shape"
           >
-            <ChevronDown className="w-3 h-3" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-2" align="start">
-          <div className="grid grid-cols-3 gap-1">
-            {variants.map((v) => (
-              <button
-                key={`${v.routing}-${v.arrow}`}
-                type="button"
-                onClick={() => { onAdd(v.routing, v.arrow); setOpen(false); }}
-                className="inline-flex items-center justify-center h-9 w-14 rounded-md border bg-background hover:bg-accent transition-colors"
-                title={v.label}
-                aria-label={v.label}
-              >
-                <LineVariantIcon routing={v.routing} arrow={v.arrow} />
-              </button>
-            ))}
-          </div>
-        </PopoverContent>
-      </Popover>
+            <SquircleTrigger className="w-4 h-4" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-44">
+          <DropdownMenuLabel>Add shape</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onSelect={() => onAddShape('rect')}>
+            <Square className="w-3.5 h-3.5 mr-2" /> Rectangle
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => onAddShape('roundedRect')}>
+            <Squircle className="w-3.5 h-3.5 mr-2" /> Rounded rectangle
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => onAddShape('circle')}>
+            <CircleIcon className="w-3.5 h-3.5 mr-2" /> Circle
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => onAddShape('triangle')}>
+            <Triangle className="w-3.5 h-3.5 mr-2" /> Triangle
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => onAddLine('straight', 'none')}>
+            <LineVariantIcon routing="straight" arrow="none" /> <span className="ml-2">Straight line</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => onAddLine('elbow', 'none')}>
+            <LineVariantIcon routing="elbow" arrow="none" /> <span className="ml-2">Elbow line</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }
@@ -2390,13 +2373,12 @@ function LineVariantIcon({
   routing: 'straight' | 'elbow';
   arrow: 'none' | 'end' | 'both';
 }) {
-  // 48×20 viewBox. Path adjusted so arrowheads fit at each end.
   const d = routing === 'elbow'
     ? 'M 6 6 L 26 6 L 26 16 L 42 16'
     : 'M 6 10 L 42 10';
   const head = 6;
   return (
-    <svg viewBox="0 0 48 20" width={40} height={16} aria-hidden>
+    <svg viewBox="0 0 48 20" width={24} height={10} aria-hidden>
       <path d={d} stroke="currentColor" strokeWidth={1.5} fill="none" strokeLinecap="round" strokeLinejoin="round" />
       {(arrow === 'end' || arrow === 'both') && (
         routing === 'elbow'
@@ -2411,4 +2393,5 @@ function LineVariantIcon({
     </svg>
   );
 }
+
 
