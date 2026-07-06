@@ -548,6 +548,32 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
             </Button>
           </div>
 
+          {/* Grid + snap toggles — editor-only preferences (localStorage). */}
+          <div className="flex items-center gap-1" data-impact-canvas-toolbar>
+            <Button
+              type="button"
+              variant={showGrid ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setShowGrid((v) => !v)}
+              className="h-8 px-2 py-1"
+              title="Show grid (0.2 cm minor, 1 cm major)"
+              aria-pressed={showGrid}
+            >
+              <Grid3x3 className="w-4 h-4 mr-1" /> Grid
+            </Button>
+            <Button
+              type="button"
+              variant={snap ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setSnap((v) => !v)}
+              className="h-8 px-2 py-1"
+              title="Snap to grid (0.2 cm)"
+              aria-pressed={snap}
+            >
+              <Magnet className="w-4 h-4 mr-1" /> Snap
+            </Button>
+          </div>
+
           {selectedId && textEls.some((t) => t.id === selectedId) && (
             <Button
               type="button"
