@@ -806,10 +806,12 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
         ...(old || []),
         data as CanvasElement,
       ]);
+      pushHistory({ kind: 'add', element: data as CanvasElement });
       setSelectedId(data.id);
     },
-    [canEdit, maxZ, proposalId, qc],
+    [canEdit, maxZ, proposalId, qc, pushHistory],
   );
+
 
   /** Directly set an element's box in cm (used by the size input fields).
    *  Optimistic + debounced via the same persist path as drag/resize. */
