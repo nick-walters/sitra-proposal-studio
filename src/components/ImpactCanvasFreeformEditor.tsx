@@ -486,7 +486,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId), (old) =>
         (old || []).map((e) =>
           e.id === id
-            ? { ...e, x: snap.x, y: snap.y, w: snap.w, h: snap.h, content: snap.content, style: snap.style }
+            ? { ...e, x: snap.x, y: snap.y, w: snap.w, h: snap.h, z: snap.z ?? e.z, content: snap.content, style: snap.style }
             : e,
         ),
       );
@@ -494,6 +494,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
         .from('impact_canvas_elements')
         .update({
           x: snap.x, y: snap.y, w: snap.w, h: snap.h,
+          ...(snap.z !== undefined ? { z: snap.z } : {}),
           content: snap.content as never, style: snap.style as never,
         })
         .eq('id', id);
