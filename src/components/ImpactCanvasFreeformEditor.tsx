@@ -279,14 +279,22 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
 
   useEffect(() => {
     if (!drag) return;
-    const { width: VW, height: VH } = IMPACT_CANVAS_VIEWPORT;
-
+    // VW is fixed by the cm model; VH is captured from the wrapper's actual
+    // pixel dimensions at drag start (ratio px/cm is stable during drag —
+    // if content grows the canvas the ratio doesn't change).
+    const VW = CANVAS_WIDTH_CM;
+    const VH_CM = CANVAS_MAX_HEIGHT_CM;
+    const VH_render = drag.wrapperRect.width * (drag.canvasHeightCm / VW); // pixels
+    // pxPerCmY: derive from the wrapper rect if possible, else from the
+    // computed pixel height at drag start. wrapperRect.height already
+    // reflects the current computed canvas height because of the
+    // aspect-ratio spacer.
     const onMove = (ev: PointerEvent) => {
       const rect = drag.wrapperRect;
-      const pxPerUnitX = rect.width / VW;
-      const pxPerUnitY = rect.height / VH;
-      const dx = (ev.clientX - drag.startClientX) / pxPerUnitX;
-      const dy = (ev.clientY - drag.startClientY) / pxPerUnitY;
+      const pxPerCmX = rect.width / VW;
+      const pxPerCmY = (rect.height || VH_render) / drag.canvasHeightCm;
+      const dx = (ev.clientX - drag.startClientX) / pxPerCmX;
+      const dy = (ev.clientY - drag.startClientY) / pxPerCmY;
 
       let { x, y, w, h } = drag.startBox;
       if (drag.mode.kind === 'move') {
@@ -314,9 +322,9 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
         }
       }
       w = Math.min(w, VW);
-      h = Math.min(h, VH);
+      h = Math.min(h, VH_CM);
       x = Math.max(0, Math.min(x, VW - w));
-      y = Math.max(0, Math.min(y, VH - h));
+      y = Math.max(0, Math.min(y, VH_CM - h));
 
       setOverrides((o) => ({ ...o, [drag.id]: { x, y, w, h } }));
     };
