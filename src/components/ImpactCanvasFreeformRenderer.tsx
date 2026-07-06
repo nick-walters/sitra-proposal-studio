@@ -343,9 +343,25 @@ export function ImpactCanvasFreeformRenderer({ proposalId, className, fallback =
 // read-only. No selection/drag yet — that is Stage 2.
 
 export interface LinePoint { x: number; y: number }
+/** Per-end decoration kinds. `arrow-filled` matches the legacy solid triangle. */
+export type LineCap =
+  | 'none'
+  | 'arrow-open'
+  | 'arrow-filled'
+  | 'arrow-stealth'
+  | 'dot'
+  | 'square';
+
+export const LINE_CAP_KINDS: readonly LineCap[] = [
+  'none', 'arrow-open', 'arrow-filled', 'arrow-stealth', 'dot', 'square',
+] as const;
+
 export interface LineContent {
   routing: 'straight' | 'elbow';
-  arrow: 'none' | 'end' | 'both';
+  /** @deprecated legacy field — kept for read-migration only. */
+  arrow?: 'none' | 'end' | 'both';
+  startCap?: LineCap;
+  endCap?: LineCap;
   from: LinePoint;
   to: LinePoint;
   elbow?: { axis: 'h' | 'v'; at: number };
@@ -362,13 +378,33 @@ export interface LineElement {
   style: LineStyle;
 }
 
+/** Resolve start/end caps from a line's content, migrating the legacy
+ *  `arrow` field when the per-end fields are absent. */
+export function resolveLineCaps(content: Partial<LineContent> | undefined | null): { startCap: LineCap; endCap: LineCap } {
+  const c = content ?? {};
+  if (c.startCap || c.endCap) {
+    return { startCap: c.startCap ?? 'none', endCap: c.endCap ?? 'none' };
+  }
+  switch (c.arrow) {
+    case 'end':  return { startCap: 'none', endCap: 'arrow-filled' };
+    case 'both': return { startCap: 'arrow-filled', endCap: 'arrow-filled' };
+    default:     return { startCap: 'none', endCap: 'none' };
+  }
+}
+
+/** True when the cap sits at the endpoint AND requires the line to stop
+ *  at its base (arrow variants) rather than run under it (dot/square). */
+export function capRetracts(cap: LineCap): boolean {
+  return cap === 'arrow-open' || cap === 'arrow-filled' || cap === 'arrow-stealth';
+}
+
 /** Retract an endpoint toward the segment origin by `size` along `dir`. */
 export function retractPoint(endpoint: LinePoint, dir: LinePoint, size: number): LinePoint {
   const len = Math.hypot(dir.x, dir.y) || 1;
   return { x: endpoint.x - (dir.x / len) * size, y: endpoint.y - (dir.y / len) * size };
 }
 
-/** Points-string for an arrowhead polygon whose TIP is `tip`, oriented along `dir`. */
+/** Points-string for a solid arrowhead polygon whose TIP is `tip`. */
 export function arrowPolyPoints(tip: LinePoint, dir: LinePoint, size: number): string {
   const len = Math.hypot(dir.x, dir.y) || 1;
   const ux = dir.x / len;
@@ -381,8 +417,7 @@ export function arrowPolyPoints(tip: LinePoint, dir: LinePoint, size: number): s
   return `${tip.x},${tip.y} ${baseX + px * half},${baseY + py * half} ${baseX - px * half},${baseY - py * half}`;
 }
 
-/** Compute the elbow bend point for an L-shaped connector.
- *  HV routing (first leg horizontal) when |dx| >= |dy|, else VH. */
+/** Compute the elbow bend point for an L-shaped connector. */
 export function computeElbowBend(
   from: LinePoint,
   to: LinePoint,
@@ -392,18 +427,11 @@ export function computeElbowBend(
   const dy = to.y - from.y;
   const axis: 'h' | 'v' = override?.axis ?? (Math.abs(dx) >= Math.abs(dy) ? 'h' : 'v');
   if (axis === 'h') {
-    const at = override?.at ?? from.x + dx / 2;
-    const bend = { x: at, y: from.y };
-    // Path: from → (at, from.y) → (at, to.y) → to. Final leg is (at,to.y)→to (horizontal).
-    // But traditional HV routing goes: from → (at, from.y) → (at, to.y) → to would have
-    // TWO bends. Single-bend HV = from → (to.x, from.y) → to; final leg vertical.
     return { bend: { x: to.x, y: from.y }, legDir: { x: 0, y: to.y - from.y } };
   }
-  // VH single-bend: from → (from.x, to.y) → to; final leg horizontal.
   return { bend: { x: from.x, y: to.y }, legDir: { x: to.x - from.x, y: 0 } };
 }
 
-/** Axis-aligned bounding box of a line's endpoints (with minimum footprint). */
 export function computeLineBBox(from: LinePoint, to: LinePoint): { x: number; y: number; w: number; h: number } {
   const x = Math.min(from.x, to.x);
   const y = Math.min(from.y, to.y);
@@ -413,6 +441,77 @@ export function computeLineBBox(from: LinePoint, to: LinePoint): { x: number; y:
 }
 
 const PT_PER_CM = 28.3465;
+
+/** Render a single endpoint decoration as an SVG element. */
+export function renderCap(
+  cap: LineCap,
+  tip: LinePoint,
+  dir: LinePoint,
+  size: number,
+  strokeCm: number,
+  color: string,
+  keyPrefix: string,
+): JSX.Element | null {
+  if (cap === 'none') return null;
+  if (cap === 'arrow-filled') {
+    return <polygon key={keyPrefix} points={arrowPolyPoints(tip, dir, size)} fill={color} stroke="none" />;
+  }
+  if (cap === 'arrow-open') {
+    // Two lines forming a V at the tip.
+    const len = Math.hypot(dir.x, dir.y) || 1;
+    const ux = dir.x / len, uy = dir.y / len;
+    const px = -uy, py = ux;
+    const baseX = tip.x - ux * size, baseY = tip.y - uy * size;
+    const half = size * 0.6;
+    const p1 = { x: baseX + px * half, y: baseY + py * half };
+    const p2 = { x: baseX - px * half, y: baseY - py * half };
+    const sw = Math.max(strokeCm, size * 0.15);
+    return (
+      <g key={keyPrefix} fill="none" stroke={color} strokeWidth={sw} strokeLinecap="butt" strokeLinejoin="miter">
+        <line x1={p1.x} y1={p1.y} x2={tip.x} y2={tip.y} />
+        <line x1={p2.x} y1={p2.y} x2={tip.x} y2={tip.y} />
+      </g>
+    );
+  }
+  if (cap === 'arrow-stealth') {
+    // Concave-back arrow: 4 points (tip, side, notch, other side).
+    const len = Math.hypot(dir.x, dir.y) || 1;
+    const ux = dir.x / len, uy = dir.y / len;
+    const px = -uy, py = ux;
+    const baseX = tip.x - ux * size, baseY = tip.y - uy * size;
+    const notchX = tip.x - ux * (size * 0.55), notchY = tip.y - uy * (size * 0.55);
+    const half = size * 0.55;
+    const pts = [
+      `${tip.x},${tip.y}`,
+      `${baseX + px * half},${baseY + py * half}`,
+      `${notchX},${notchY}`,
+      `${baseX - px * half},${baseY - py * half}`,
+    ].join(' ');
+    return <polygon key={keyPrefix} points={pts} fill={color} stroke="none" />;
+  }
+  if (cap === 'dot') {
+    return <circle key={keyPrefix} cx={tip.x} cy={tip.y} r={size * 0.42} fill={color} stroke="none" />;
+  }
+  if (cap === 'square') {
+    // Axis-aligned square centred on the tip, oriented along the segment.
+    const len = Math.hypot(dir.x, dir.y) || 1;
+    const ux = dir.x / len, uy = dir.y / len;
+    const px = -uy, py = ux;
+    const half = size * 0.38;
+    const c1 = { x: tip.x + ux * half + px * half, y: tip.y + uy * half + py * half };
+    const c2 = { x: tip.x + ux * half - px * half, y: tip.y + uy * half - py * half };
+    const c3 = { x: tip.x - ux * half - px * half, y: tip.y - uy * half - py * half };
+    const c4 = { x: tip.x - ux * half + px * half, y: tip.y - uy * half + py * half };
+    return (
+      <polygon
+        key={keyPrefix}
+        points={`${c1.x},${c1.y} ${c2.x},${c2.y} ${c3.x},${c3.y} ${c4.x},${c4.y}`}
+        fill={color} stroke="none"
+      />
+    );
+  }
+  return null;
+}
 
 export function ImpactCanvasLinesOverlay({
   VW,
@@ -436,7 +535,6 @@ export function ImpactCanvasLinesOverlay({
         width: '100%',
         height: '100%',
         pointerEvents: 'none',
-        // Above bound/text/shape stacking (which use el.z, typically < 1000).
         zIndex: 900,
       }}
     >
@@ -452,13 +550,12 @@ function LineShape({ el }: { el: LineElement }) {
   const from = c.from ?? { x: 0, y: 0 };
   const to = c.to ?? { x: 0, y: 0 };
   const routing = c.routing ?? 'straight';
-  const arrow = c.arrow ?? 'none';
+  const { startCap, endCap } = resolveLineCaps(c);
   const color = el.style?.outlineColor ?? '#000';
   const widthPt = el.style?.outlineWidth ?? 1.5;
   const widthCm = widthPt / PT_PER_CM;
   const headSize = Math.max(0.15, widthCm * 4);
 
-  // Determine the segment directions at each end for arrowheads + retract.
   let endDir: LinePoint;
   let startDir: LinePoint;
   let bendPoint: LinePoint | null = null;
@@ -466,19 +563,14 @@ function LineShape({ el }: { el: LineElement }) {
     const { bend, legDir } = computeElbowBend(from, to, c.elbow);
     bendPoint = bend;
     endDir = legDir;
-    // Start-side direction = first leg vector (from → bend).
     startDir = { x: from.x - bend.x, y: from.y - bend.y };
   } else {
     endDir = { x: to.x - from.x, y: to.y - from.y };
     startDir = { x: from.x - to.x, y: from.y - to.y };
   }
 
-  const hasEndHead = arrow === 'end' || arrow === 'both';
-  const hasStartHead = arrow === 'both';
-  const endTip = to;
-  const startTip = from;
-  const endDraw = hasEndHead ? retractPoint(to, endDir, headSize) : to;
-  const startDraw = hasStartHead ? retractPoint(from, startDir, headSize) : from;
+  const endDraw = capRetracts(endCap) ? retractPoint(to, endDir, headSize) : to;
+  const startDraw = capRetracts(startCap) ? retractPoint(from, startDir, headSize) : from;
 
   const d = routing === 'elbow' && bendPoint
     ? `M ${startDraw.x} ${startDraw.y} L ${bendPoint.x} ${bendPoint.y} L ${endDraw.x} ${endDraw.y}`
@@ -497,12 +589,8 @@ function LineShape({ el }: { el: LineElement }) {
           strokeLinejoin="miter"
         />
       )}
-      {strokeVisible && hasEndHead && (
-        <polygon points={arrowPolyPoints(endTip, endDir, headSize)} fill={color} stroke="none" />
-      )}
-      {strokeVisible && hasStartHead && (
-        <polygon points={arrowPolyPoints(startTip, startDir, headSize)} fill={color} stroke="none" />
-      )}
+      {strokeVisible && renderCap(endCap, to, endDir, headSize, widthCm, color, `end-${el.id}`)}
+      {strokeVisible && renderCap(startCap, from, startDir, headSize, widthCm, color, `start-${el.id}`)}
     </g>
   );
 }
