@@ -951,7 +951,144 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
             </div>
           );
         })}
+
+        {shapeEls.map((el) => {
+          const ov = overrides[el.id];
+          const box = ov ?? { x: el.x, y: el.y, w: el.w, h: el.h };
+          const selected = selectedId === el.id;
+          const editing = editingId === el.id;
+          const raw = (el.content ?? {}) as { shape?: ShapeKind; html?: string };
+          const shape: ShapeKind = raw.shape ?? 'rect';
+          const html = contentOverrides[el.id] ?? (raw.html || '');
+          const styleSrc = styleOverrides[el.id] ?? el.style;
+          return (
+            <div
+              key={el.id}
+              style={{
+                position: 'absolute',
+                left: pctX(box.x),
+                top: pctY(box.y),
+                width: pctX(box.w),
+                height: pctY(box.h),
+                zIndex: el.z + (selected ? 1000 : 0),
+                cursor: canEdit
+                  ? editing
+                    ? 'text'
+                    : drag?.id === el.id && drag.mode.kind === 'move'
+                    ? 'grabbing'
+                    : 'grab'
+                  : 'default',
+              }}
+              onPointerDown={(e) => {
+                if (editing) return;
+                beginDrag(e, el.id, { kind: 'move' }, box);
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!canEdit) return;
+                if (selectedId !== el.id) {
+                  setSelectedId(el.id);
+                  return;
+                }
+                if (!editing) setEditingId(el.id);
+              }}
+              onDoubleClick={(e) => {
+                if (!canEdit) return;
+                e.stopPropagation();
+                setSelectedId(el.id);
+                setEditingId(el.id);
+              }}
+            >
+              <ImpactCanvasShape shape={shape} styleRaw={styleSrc} selected={selected}>
+                {editing ? (
+                  <ImpactCanvasTextBox
+                    html={html}
+                    editing
+                    autoFocus
+                    align="center"
+                    onChange={(next) => {
+                      setContentOverrides((o) => ({ ...o, [el.id]: next }));
+                      persistContentDebounced(el.id, next);
+                    }}
+                    onCommit={() => {
+                      setEditingId((cur) => (cur === el.id ? null : cur));
+                    }}
+                  />
+                ) : (
+                  <div
+                    className="prose prose-sm max-w-none"
+                    style={{ width: '100%', textAlign: 'center', pointerEvents: 'none' }}
+                    dangerouslySetInnerHTML={{ __html: sanitize(html) }}
+                  />
+                )}
+              </ImpactCanvasShape>
+
+              {selected && !editing && canEdit && HANDLES.map((h) => (
+                <div
+                  key={h}
+                  onPointerDown={(e) => beginDrag(e, el.id, { kind: 'resize', handle: h }, box)}
+                  style={{
+                    position: 'absolute',
+                    width: 10,
+                    height: 10,
+                    background: 'hsl(var(--primary))',
+                    border: '1px solid white',
+                    borderRadius: 2,
+                    zIndex: 2,
+                    cursor: HANDLE_CURSOR[h],
+                    ...handleStyle(h),
+                  }}
+                />
+              ))}
+            </div>
+          );
+        })}
       </div>
+    </div>
+  );
+}
+
+/** Compact cm width/height numeric fields shown when an element is selected.
+ *  Two-way: reflects the current (possibly drag-in-flight) box and writes
+ *  changes back through setElementBox → optimistic override + debounced save. */
+function SizeFields({
+  box,
+  onChange,
+}: {
+  box: { x: number; y: number; w: number; h: number };
+  onChange: (patch: Partial<{ x: number; y: number; w: number; h: number }>) => void;
+}) {
+  const fmt = (v: number) => (Math.round(v * 100) / 100).toString();
+  return (
+    <div className="flex items-center gap-1 pr-2 border-r" data-impact-canvas-toolbar>
+      <span className="text-[11px] text-muted-foreground">W</span>
+      <Input
+        type="number"
+        step="0.1"
+        min={0}
+        value={fmt(box.w)}
+        onChange={(e) => {
+          const v = parseFloat(e.target.value);
+          if (Number.isFinite(v)) onChange({ w: v });
+        }}
+        className="h-8 w-16 text-xs"
+        title="Width (cm)"
+      />
+      <span className="text-[11px] text-muted-foreground">cm</span>
+      <span className="text-[11px] text-muted-foreground ml-1">H</span>
+      <Input
+        type="number"
+        step="0.1"
+        min={0}
+        value={fmt(box.h)}
+        onChange={(e) => {
+          const v = parseFloat(e.target.value);
+          if (Number.isFinite(v)) onChange({ h: v });
+        }}
+        className="h-8 w-16 text-xs"
+        title="Height (cm)"
+      />
+      <span className="text-[11px] text-muted-foreground">cm</span>
     </div>
   );
 }
