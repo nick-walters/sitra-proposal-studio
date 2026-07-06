@@ -103,6 +103,9 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
   const [contentOverrides, setContentOverrides] = useState<Record<string, string>>({});
   const pendingTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const pendingContentTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const pendingStyleTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  /** Optimistic overrides for style (per element id). */
+  const [styleOverrides, setStyleOverrides] = useState<Record<string, BoundBoxStyle>>({});
 
   // Deselect on outside pointerdown — but keep clicks inside the surface,
   // toolbar, radix portals, dialogs, and the ACTIVE text-box editor from
