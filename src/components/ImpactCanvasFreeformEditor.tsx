@@ -1563,7 +1563,8 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
           if (
             target.closest('[data-impact-canvas-toolbar]') ||
             target.closest('[data-impact-canvas-textbox-editor]') ||
-            target.closest('[data-impact-canvas-line-interactive]')
+            target.closest('[data-impact-canvas-line-interactive]') ||
+            target.closest('[data-canvas-handle]')
           ) return;
           const naturalWrapper = target.closest('[data-canvas-el-id]') as HTMLElement | null;
           const stack = document.elementsFromPoint(e.clientX, e.clientY) as HTMLElement[];
@@ -1700,6 +1701,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
               {selected && canEdit && HANDLES.map((h) => (
                 <div
                   key={h}
+                  data-canvas-handle={h}
                   onPointerDown={(e) => beginDrag(e, el.id, { kind: 'resize', handle: h }, box)}
                   style={{
                     position: 'absolute',
@@ -1774,6 +1776,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
               {selected && canEdit && HANDLES.map((h) => (
                 <div
                   key={h}
+                  data-canvas-handle={h}
                   onPointerDown={(e) => beginDrag(e, el.id, { kind: 'resize', handle: h }, box)}
                   style={{
                     position: 'absolute',
@@ -1924,6 +1927,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
               {selected && !editing && canEdit && HANDLES.map((h) => (
                 <div
                   key={h}
+                  data-canvas-handle={h}
                   onPointerDown={(e) => beginDrag(e, el.id, { kind: 'resize', handle: h }, box)}
                   style={{
                     position: 'absolute',
@@ -2022,6 +2026,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
               {selected && !editing && canEdit && HANDLES.map((h) => (
                 <div
                   key={h}
+                  data-canvas-handle={h}
                   onPointerDown={(e) => beginDrag(e, el.id, { kind: 'resize', handle: h }, box)}
                   style={{
                     position: 'absolute',
