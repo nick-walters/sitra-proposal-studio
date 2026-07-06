@@ -870,7 +870,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoFitSignature, wrapperTick, boundEls, styleOverrides, persistDebounced]);
+  }, [autoFitSignature, wrapperTick, boundEls, styleOverrides, persistDebounced, drag?.id]);
 
 
   const maxZ = useMemo(
