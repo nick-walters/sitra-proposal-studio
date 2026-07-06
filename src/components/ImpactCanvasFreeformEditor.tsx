@@ -504,6 +504,36 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     [canEdit, fetched, styleOverrides, persistStyleDebounced, snapshotOfEl, pushHistory],
   );
 
+  /** Multi-select style writer. Applies `patch` to every id that supports the
+   *  patched properties, optimistically + debounced-persist + ONE batched
+   *  history entry (single undo step). Callers pass only ids already filtered
+   *  for property compatibility (e.g. fill/font → bound|header|shape;
+   *  outline → bound|header|shape|line). Incompatible ids in the current
+   *  selection are pre-filtered at the call site and simply skipped. */
+  const updateBoundStyleMulti = useCallback(
+    (ids: string[], patch: Partial<BoundBoxStyle>) => {
+      if (!canEdit || ids.length === 0) return;
+      const entries: Array<{ kind: 'update'; id: string; before: ElementSnapshot; after: ElementSnapshot }> = [];
+      const nextOverrides: Record<string, BoundBoxStyle> = {};
+      for (const id of ids) {
+        const el = fetched.find((e) => e.id === id);
+        if (!el) continue;
+        const before = snapshotOfEl(el);
+        const current = { ...readBoundStyle(el.style), ...(styleOverrides[id] ?? {}) };
+        const next = { ...current, ...patch };
+        nextOverrides[id] = next;
+        const after: ElementSnapshot = { ...before, style: next };
+        entries.push({ kind: 'update', id, before, after });
+      }
+      if (entries.length === 0) return;
+      setStyleOverrides((o) => ({ ...o, ...nextOverrides }));
+      for (const { id } of entries) persistStyleDebounced(id, nextOverrides[id]);
+      pushHistory({ kind: 'batch', entries });
+    },
+    [canEdit, fetched, styleOverrides, persistStyleDebounced, snapshotOfEl, pushHistory],
+  );
+
+
 
   useEffect(() => {
     return () => {
