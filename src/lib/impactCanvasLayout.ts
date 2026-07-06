@@ -33,6 +33,24 @@ export const MIN_ELEMENT_W_CM = 1;
 export const MIN_ELEMENT_H_CM = 0.5;
 
 /**
+ * Default bound-box layout (applied to NEW bound elements only —
+ * existing coords are never disturbed).
+ *   - Width fixed at 2 cm.
+ *   - Horizontal gap between adjacent columns = 1.2 cm (step 3.2 cm).
+ *   - Starting x = 0 (left origin of the 18 cm canvas).
+ *   - Default height = 0.8 cm (a single 12pt line) as a MIN — the editor
+ *     grows it via ResizeObserver until the user manually resizes
+ *     (drag / cm-field), which sets style.autoFitH=false.
+ *   - Vertical gap between rows = 0.3 cm.
+ */
+export const DEFAULT_BOUND_W_CM = 2;
+export const DEFAULT_BOUND_H_CM = 0.8;
+export const DEFAULT_BOUND_HGAP_CM = 1.2;
+export const DEFAULT_BOUND_VGAP_CM = 0.3;
+export const DEFAULT_BOUND_START_X_CM = 0;
+
+
+/**
  * Back-compat shim. Some callers still import IMPACT_CANVAS_VIEWPORT /
  * IMPACT_CANVAS_HEADER_HEIGHT — they now receive the cm equivalents so any
  * `pct = value / VW * 100` math still yields correct percentages.
