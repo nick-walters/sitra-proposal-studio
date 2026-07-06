@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
-import { ChevronDown, Grid3x3, Magnet, MoveRight, PaintBucket, Redo2, Trash2, Type, Undo2 } from 'lucide-react';
+import { ArrowDownToLine, ArrowUpToLine, ChevronDown, Grid3x3, Magnet, MoveHorizontal, MoveVertical, PaintBucket, Redo2, Shapes, Squircle as SquircleTrigger, Trash2, Undo2, MoveDown, MoveUp } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
