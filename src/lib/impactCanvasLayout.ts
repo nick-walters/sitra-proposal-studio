@@ -1,13 +1,47 @@
 import { supabase } from '@/integrations/supabase/client';
 
 /**
- * Impact Canvas — logical viewport for the freeform layout (Phase 2a-1).
+ * Impact Canvas — cm coordinate model.
  *
- * All element coordinates are stored in these logical units and mapped to
- * screen pixels by the (future) renderer via aspect-ratio scaling.
+ * All element coordinates (x, y, w, h) in `impact_canvas_elements` are stored
+ * in centimetres. Width is fixed at 18 cm; height adapts to content and is
+ * capped at 25.5 cm. The shared `computeCanvasHeightCm` function is used
+ * IDENTICALLY by the editor and the read-only renderer (B2.1/PDF/PNG) so all
+ * four contexts render at the same aspect ratio for the same elements.
+ *
+ * Legacy migration: element coords were previously stored in unitless
+ * 1000 × 600 logical units. A one-shot SQL migration multiplies old x/y/w/h
+ * by 0.018 (18 cm / 1000 units) — uniform on both axes so aspect is
+ * preserved. The migration is idempotent (guarded per proposal by whether
+ * max coord > 30, which is impossible in the cm model where max = 25.5).
  */
-export const IMPACT_CANVAS_VIEWPORT = { width: 1000, height: 600 } as const;
-export const IMPACT_CANVAS_HEADER_HEIGHT = 60;
+
+export const CANVAS_WIDTH_CM = 18;
+export const CANVAS_MAX_HEIGHT_CM = 25.5;
+/** Minimum canvas height — matches the legacy 600-unit viewport
+ *  (600 * 0.018 cm/unit ≈ 10.8 cm) so pre-migration layouts don't shrink. */
+export const CANVAS_MIN_HEIGHT_CM = 10.8;
+/** Small padding beneath the lowest element bottom before clamping. */
+export const CANVAS_BOTTOM_PAD_CM = 0.3;
+/** Header band height (was 60 units → 60 * 0.018 = 1.08 cm). */
+export const HEADER_HEIGHT_CM = 1.08;
+/** Legacy unit → cm factor (both axes). Exported for the SQL migration + tests. */
+export const CM_PER_LEGACY_UNIT = 0.018;
+
+/** Minimum element footprint (cm) used when resizing / creating boxes. */
+export const MIN_ELEMENT_W_CM = 1;
+export const MIN_ELEMENT_H_CM = 0.5;
+
+/**
+ * Back-compat shim. Some callers still import IMPACT_CANVAS_VIEWPORT /
+ * IMPACT_CANVAS_HEADER_HEIGHT — they now receive the cm equivalents so any
+ * `pct = value / VW * 100` math still yields correct percentages.
+ */
+export const IMPACT_CANVAS_VIEWPORT = {
+  width: CANVAS_WIDTH_CM,
+  height: CANVAS_MAX_HEIGHT_CM,
+} as const;
+export const IMPACT_CANVAS_HEADER_HEIGHT = HEADER_HEIGHT_CM;
 
 export interface BoundPosition {
   x: number;
@@ -17,11 +51,9 @@ export interface BoundPosition {
 }
 
 /**
- * Return {x,y,w,h} in viewport units for a bound cell, replicating the
- * current CSS-grid layout used by ImpactCanvasGraphic:
- *   - a single header row (IMPACT_CANVAS_HEADER_HEIGHT units tall)
- *   - equal-width columns filling the viewport width
- *   - equal-height body rows filling the remaining viewport height
+ * Return {x,y,w,h} in cm for a bound cell, replicating the legacy CSS-grid
+ * layout: header band at the top, equal-width columns, equal-height body
+ * rows filling the (min) canvas height beneath the header.
  */
 export function computeDefaultBoundPosition(
   rowIndex: number,
@@ -31,23 +63,42 @@ export function computeDefaultBoundPosition(
 ): BoundPosition {
   const safeCols = Math.max(1, nCols);
   const safeRows = Math.max(1, nRows);
-  const colW = IMPACT_CANVAS_VIEWPORT.width / safeCols;
-  const rowH = (IMPACT_CANVAS_VIEWPORT.height - IMPACT_CANVAS_HEADER_HEIGHT) / safeRows;
+  const colW = CANVAS_WIDTH_CM / safeCols;
+  const rowH = (CANVAS_MIN_HEIGHT_CM - HEADER_HEIGHT_CM) / safeRows;
   return {
     x: colIndex * colW,
-    y: IMPACT_CANVAS_HEADER_HEIGHT + rowIndex * rowH,
+    y: HEADER_HEIGHT_CM + rowIndex * rowH,
     w: colW,
     h: rowH,
   };
 }
 
 /**
+ * Shared deterministic height function — the parity linchpin.
+ *
+ * Height = lowest element bottom + CANVAS_BOTTOM_PAD_CM,
+ *          clamped to [CANVAS_MIN_HEIGHT_CM, CANVAS_MAX_HEIGHT_CM].
+ *
+ * Editor + read-only renderer both call this over the SAME element set so
+ * they produce identical wrapper heights (and therefore identical aspect
+ * ratios) for the same content.
+ */
+export function computeCanvasHeightCm(
+  elements: ReadonlyArray<{ y: number; h: number }>,
+): number {
+  let bottom = HEADER_HEIGHT_CM;
+  for (const el of elements) {
+    const b = (el.y ?? 0) + (el.h ?? 0);
+    if (b > bottom) bottom = b;
+  }
+  const desired = bottom + CANVAS_BOTTOM_PAD_CM;
+  return Math.min(CANVAS_MAX_HEIGHT_CM, Math.max(CANVAS_MIN_HEIGHT_CM, desired));
+}
+
+/**
  * Additive-only sync helper. Ensures there is exactly one 'bound' element per
  * existing (row × column) for the given proposal, WITHOUT clobbering existing
  * coords/z/style and WITHOUT touching free elements (bound_row_id IS NULL).
- *
- * Called after row/column add or column delete (row delete is handled by the
- * ON DELETE CASCADE on bound_row_id).
  */
 export async function syncBoundElements(proposalId: string): Promise<void> {
   const [colsRes, rowsRes, existingRes] = await Promise.all([
@@ -80,9 +131,6 @@ export async function syncBoundElements(proposalId: string): Promise<void> {
   );
 
   const validColKeys = new Set(cols.map((c) => c.key));
-
-  // Delete bound elements whose column key no longer exists (column deletion).
-  // Row deletions are handled by the FK ON DELETE CASCADE.
   const orphanKeys = Array.from(
     new Set(
       (existingRes.data ?? [])
@@ -100,7 +148,6 @@ export async function syncBoundElements(proposalId: string): Promise<void> {
     if (error) throw error;
   }
 
-  // Insert any missing (row × column) bound elements at grid-matching defaults.
   const toInsert: Array<{
     proposal_id: string;
     kind: 'bound';
@@ -131,9 +178,7 @@ export async function syncBoundElements(proposalId: string): Promise<void> {
     }
   }
   if (toInsert.length > 0) {
-    const { error } = await supabase
-      .from('impact_canvas_elements')
-      .insert(toInsert);
+    const { error } = await supabase.from('impact_canvas_elements').insert(toInsert);
     if (error) throw error;
   }
 }
