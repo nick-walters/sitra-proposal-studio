@@ -109,7 +109,6 @@ export function ImpactCanvasOutlinePicker({
               {DEFAULT_WP_COLORS.map((c) => {
                 const norm = c.toUpperCase();
                 const isSelected = !isNone && color.toUpperCase() === norm;
-                const needsOutline = getContrastingTextColor(norm) === '#000000';
                 return (
                   <button
                     key={c}
@@ -143,7 +142,6 @@ export function ImpactCanvasOutlinePicker({
               {GREYSCALE_COLORS.map((g) => {
                 const norm = g.toUpperCase();
                 const isSelected = !isNone && color.toUpperCase() === norm;
-                const needsOutline = getContrastingTextColor(norm) === '#000000';
                 return (
                   <button
                     key={g}
@@ -176,7 +174,6 @@ export function ImpactCanvasOutlinePicker({
               <div className="grid grid-cols-6 gap-1.5">
                 {extras.map((c) => {
                   const isSelected = !isNone && color.toUpperCase() === c;
-                  const needsOutline = getContrastingTextColor(c) === '#000000';
                   return (
                     <button
                       key={c}
