@@ -201,7 +201,7 @@ export async function syncBoundElements(proposalId: string): Promise<void> {
       y: 0,
       w: DEFAULT_BOUND_W_CM,
       h: 1,
-      style: {},
+      style: { fillColor: '#000000', fontColor: '#FFFFFF' },
     });
   }
 
