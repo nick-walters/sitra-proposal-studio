@@ -367,56 +367,27 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     };
   }, []);
 
-  // Build a snapshot of an element's current visible state (fetched values
-  // overlaid with pending optimistic overrides).
-  const snapshotOfEl = useCallback(
-    (el: CanvasElement): ElementSnapshot => {
-      const ov = overrides[el.id];
-      const so = styleOverrides[el.id];
-      const co = contentOverrides[el.id];
-      const contentBase = (el.content ?? {}) as Record<string, unknown>;
-      const content =
-        co !== undefined ? { ...contentBase, html: co } : el.content;
-      const styleBase = readBoundStyle(el.style);
-      const style = so !== undefined ? { ...styleBase, ...so } : el.style;
-      return {
-        x: ov?.x ?? el.x,
-        y: ov?.y ?? el.y,
-        w: ov?.w ?? el.w,
-        h: ov?.h ?? el.h,
-        content,
-        style,
-      };
-    },
-    [overrides, styleOverrides, contentOverrides],
-  );
+  // Keep the snapshot builder ref up-to-date with current overrides so the
+  // forward-declared snapshotOfEl (used by mutations declared above) always
+  // sees the latest optimistic state.
+  snapshotOfElRef.current = (el: CanvasElement): ElementSnapshot => {
+    const ov = overrides[el.id];
+    const so = styleOverrides[el.id];
+    const co = contentOverrides[el.id];
+    const contentBase = (el.content ?? {}) as Record<string, unknown>;
+    const content = co !== undefined ? { ...contentBase, html: co } : el.content;
+    const styleBase = readBoundStyle(el.style);
+    const style = so !== undefined ? { ...styleBase, ...so } : el.style;
+    return {
+      x: ov?.x ?? el.x,
+      y: ov?.y ?? el.y,
+      w: ov?.w ?? el.w,
+      h: ov?.h ?? el.h,
+      content,
+      style,
+    };
+  };
 
-  const pushHistory = useCallback((entry: HistoryEntry, group?: string) => {
-    if (suppressHistoryRef.current) return;
-    const stack = undoStackRef.current;
-    const last = stack[stack.length - 1];
-    const now = Date.now();
-    if (
-      entry.kind === 'update' &&
-      last?.kind === 'update' &&
-      group &&
-      last.group === group &&
-      last.id === entry.id &&
-      now - last.ts < 600
-    ) {
-      last.after = entry.after;
-      last.ts = now;
-    } else {
-      if (entry.kind === 'update') {
-        entry.ts = now;
-        entry.group = group;
-      }
-      stack.push(entry);
-      if (stack.length > 200) stack.shift();
-    }
-    redoStackRef.current = [];
-    bumpHistory();
-  }, []);
 
   const writeSnapshot = useCallback(
     async (id: string, snap: ElementSnapshot) => {
