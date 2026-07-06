@@ -4,6 +4,7 @@ import DOMPurify from 'dompurify';
 import { supabase } from '@/integrations/supabase/client';
 import { useImpactCanvasColumns, useImpactCanvasRows } from '@/hooks/useImpactCanvas';
 import { IMPACT_CANVAS_VIEWPORT, IMPACT_CANVAS_HEADER_HEIGHT } from '@/lib/impactCanvasLayout';
+import { resolveBoundStyle } from '@/lib/impactCanvasBoundStyle';
 
 interface Props {
   proposalId: string;
