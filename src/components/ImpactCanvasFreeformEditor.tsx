@@ -2409,18 +2409,21 @@ function LayerIcon({ variant }: { variant: 'front' | 'forward' | 'backward' | 'b
 
   if (extreme) {
     // Three overlapping 6x6 squares at offsets 1, 5, 9 (bottom-left → top-right).
-    // Filled sits at the extreme corresponding to the variant.
-    const filledAt = variant === 'front' ? 9 : 1;
-    const offsets = [1, 5, 9];
+    // Filled sits in the MIDDLE between the two outlined squares; the stacking
+    // order distinguishes front (filled drawn last → on top of all) from back
+    // (filled drawn first → behind the two outlined squares).
+    const outlinedRects = (
+      <>
+        <rect x={1} y={1} width={size} height={size} rx={1} {...outlined} />
+        <rect x={9} y={9} width={size} height={size} rx={1} {...outlined} />
+      </>
+    );
+    const filledRect = (
+      <rect x={5} y={5} width={size} height={size} rx={1} {...filled} />
+    );
     return (
       <svg viewBox="0 0 16 16" width={14} height={14} aria-hidden fill="none" stroke="currentColor" strokeWidth={1.25}>
-        {offsets.map((o) => (
-          <rect
-            key={o}
-            x={o} y={o} width={size} height={size} rx={1}
-            {...(o === filledAt ? filled : outlined)}
-          />
-        ))}
+        {variant === 'front' ? (<>{outlinedRects}{filledRect}</>) : (<>{filledRect}{outlinedRects}</>)}
       </svg>
     );
   }
