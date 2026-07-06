@@ -1982,25 +1982,25 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
               type="button" variant="ghost" size="sm" className="h-7 w-7 p-0"
               title="Bring to front" aria-label="Bring to front"
               disabled={!zEnabled}
-              onClick={() => selectedEl && changeZOrder(selectedEl.id, 'front')}
+              onClick={() => applyZ('front')}
             ><LayerIcon variant="front" /></Button>
             <Button
               type="button" variant="ghost" size="sm" className="h-7 w-7 p-0"
               title="Bring forward" aria-label="Bring forward"
               disabled={!zEnabled}
-              onClick={() => selectedEl && changeZOrder(selectedEl.id, 'forward')}
+              onClick={() => applyZ('forward')}
             ><LayerIcon variant="forward" /></Button>
             <Button
               type="button" variant="ghost" size="sm" className="h-7 w-7 p-0"
               title="Send backward" aria-label="Send backward"
               disabled={!zEnabled}
-              onClick={() => selectedEl && changeZOrder(selectedEl.id, 'backward')}
+              onClick={() => applyZ('backward')}
             ><LayerIcon variant="backward" /></Button>
             <Button
               type="button" variant="ghost" size="sm" className="h-7 w-7 p-0"
               title="Send to back" aria-label="Send to back"
               disabled={!zEnabled}
-              onClick={() => selectedEl && changeZOrder(selectedEl.id, 'back')}
+              onClick={() => applyZ('back')}
             ><LayerIcon variant="back" /></Button>
           </div>
 
