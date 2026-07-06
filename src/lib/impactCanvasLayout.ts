@@ -201,7 +201,7 @@ export async function syncBoundElements(proposalId: string): Promise<void> {
       y: 0,
       w: DEFAULT_BOUND_W_CM,
       h: 1,
-      style: { fillColor: '#000000', fontColor: '#FFFFFF' },
+      style: { fillColor: '#000000', fontColor: '#FFFFFF', outlineColor: 'none' },
     });
   }
 
@@ -222,7 +222,7 @@ export async function syncBoundElements(proposalId: string): Promise<void> {
         bound_row_id: r.id,
         bound_col_key: c.key,
         ...pos,
-        style: { autoFitH: true },
+        style: { autoFitH: true, outlineColor: 'none' },
       });
     }
   }
