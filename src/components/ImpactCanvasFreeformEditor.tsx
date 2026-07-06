@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
-import { Plus, Trash2, Type } from 'lucide-react';
+import { Trash2, Type } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useImpactCanvasColumns, useImpactCanvasRows } from '@/hooks/useImpactCanvas';
