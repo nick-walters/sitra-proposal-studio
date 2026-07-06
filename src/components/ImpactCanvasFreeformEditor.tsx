@@ -1282,8 +1282,9 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
           </div>
 
 
-          {/* Style controls — bound boxes AND shapes share the style model. */}
-          {selectedEl && (selectedIsBound || selectedIsShape) && (
+          {/* Style controls — bound boxes, header boxes, and shapes share the style model. */}
+          {selectedEl && (selectedIsBoundLike || selectedIsShape) && (
+
             <BoundStyleToolbar
               proposalId={proposalId}
               canEdit={canEdit}
