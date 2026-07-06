@@ -71,7 +71,7 @@ export function ImpactCanvasOutlinePicker({
           type="button"
           disabled={disabled}
           className={cn(
-            'inline-flex flex-col items-center justify-center h-8 w-9 rounded-md border bg-background hover:bg-accent transition-colors',
+            'inline-flex flex-col items-center justify-center h-7 w-8 rounded-md bg-transparent hover:bg-accent transition-colors',
             disabled && 'opacity-50 cursor-not-allowed',
           )}
           title="Outline"
