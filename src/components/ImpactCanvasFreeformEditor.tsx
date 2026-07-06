@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useImpactCanvasColumns, useImpactCanvasRows } from '@/hooks/useImpactCanvas';
 import {
   CANVAS_WIDTH_CM,
+  CANVAS_MAX_HEIGHT_CM,
   HEADER_HEIGHT_CM,
   MIN_ELEMENT_W_CM,
   MIN_ELEMENT_H_CM,
@@ -78,6 +79,7 @@ interface DragState {
   startClientY: number;
   startBox: { x: number; y: number; w: number; h: number };
   wrapperRect: DOMRect;
+  canvasHeightCm: number;
 }
 
 export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: Props) {
