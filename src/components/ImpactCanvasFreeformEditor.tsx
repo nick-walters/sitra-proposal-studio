@@ -1691,10 +1691,88 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
             </div>
           );
         })}
-        {/* Line elements — shared SVG overlay (read-only rendering in
-            Stage 1; interaction added in Stage 2). Identical component
-            renders in the read-only renderer for B2.1/PDF/PNG parity. */}
-        <ImpactCanvasLinesOverlay VW={VW} VH={VH} elements={fetched as unknown as LineElement[]} />
+        {/* Line elements — shared SVG overlay renders the visible strokes +
+            arrowheads (identical to B2.1/PDF/PNG). We pass the merged
+            elements so in-flight endpoint/body drags are reflected live. */}
+        <ImpactCanvasLinesOverlay
+          VW={VW}
+          VH={VH}
+          elements={lineElsMerged as unknown as LineElement[]}
+        />
+
+        {/* Editor-only interactive layer for lines: invisible thick
+            hit-paths for selection + body-drag; endpoint circles when
+            selected for endpoint-drag. */}
+        {canEdit && lineElsMerged.length > 0 && (
+          <svg
+            viewBox={`0 0 ${VW} ${VH}`}
+            preserveAspectRatio="none"
+            style={{
+              position: 'absolute', inset: 0, width: '100%', height: '100%',
+              pointerEvents: 'none', zIndex: 901,
+            }}
+            data-impact-canvas-line-interactive
+          >
+            {lineElsMerged.map((el) => {
+              const content = el.content as LineContent;
+              const from = content.from;
+              const to = content.to;
+              const routing = content.routing;
+              const box = { x: el.x, y: el.y, w: el.w, h: el.h };
+              let d: string;
+              if (routing === 'elbow') {
+                const bend = computeElbowBend(from, to, content.elbow);
+                d = `M ${from.x} ${from.y} L ${bend.x} ${bend.y} L ${to.x} ${to.y}`;
+              } else {
+                d = `M ${from.x} ${from.y} L ${to.x} ${to.y}`;
+              }
+              const selected = selectedId === el.id;
+              return (
+                <g key={`li-${el.id}`}>
+                  <path
+                    d={d}
+                    fill="none"
+                    stroke="rgba(0,0,0,0)"
+                    strokeWidth={0.4}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    style={{
+                      pointerEvents: 'stroke',
+                      cursor: drag?.id === el.id && drag.mode.kind === 'line-move' ? 'grabbing' : 'grab',
+                    }}
+                    onPointerDown={(e) => {
+                      beginDrag(e, el.id, { kind: 'line-move' }, box, { from, to });
+                    }}
+                    onClick={(e) => { e.stopPropagation(); setSelectedId(el.id); }}
+                  />
+                  {selected && (
+                    <>
+                      <circle
+                        cx={from.x} cy={from.y} r={0.18}
+                        fill="hsl(var(--primary))"
+                        stroke="white" strokeWidth={0.04}
+                        style={{ pointerEvents: 'all', cursor: 'crosshair' }}
+                        onPointerDown={(e) => {
+                          beginDrag(e, el.id, { kind: 'endpoint', which: 'from' }, box, { from, to });
+                        }}
+                      />
+                      <circle
+                        cx={to.x} cy={to.y} r={0.18}
+                        fill="hsl(var(--primary))"
+                        stroke="white" strokeWidth={0.04}
+                        style={{ pointerEvents: 'all', cursor: 'crosshair' }}
+                        onPointerDown={(e) => {
+                          beginDrag(e, el.id, { kind: 'endpoint', which: 'to' }, box, { from, to });
+                        }}
+                      />
+                    </>
+                  )}
+                </g>
+              );
+            })}
+          </svg>
+        )}
+
 
       </div>
     </div>
