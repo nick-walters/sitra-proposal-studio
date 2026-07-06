@@ -670,6 +670,3 @@ function handleStyle(h: Handle): React.CSSProperties {
     case 'w':  return { left: off, top: mid };
   }
 }
-
-// Unused imports kept intentionally out — Plus is not needed here.
-export const _icons = { Plus };
