@@ -1646,6 +1646,69 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     [canEdit, fetched, overrides, persistDebounced, styleOverrides, persistStyleDebounced, snapshotOfEl, pushHistory],
   );
 
+  /**
+   * Multi-select group sizing: set W and/or H on each resizable (bound/
+   * header/shape) element in `ids` to the given cm value(s). Lines are
+   * skipped. Clamped per-element to min + canvas bounds. Explicit H on a
+   * bound box disables autoFitH for that box. Pushes ONE batch entry
+   * (coalesced by group key so keystrokes fold into a single undo step).
+   */
+  const setElementBoxMulti = useCallback(
+    (ids: string[], patch: Partial<{ w: number; h: number }>) => {
+      if (!canEdit || ids.length === 0) return;
+      if (patch.w === undefined && patch.h === undefined) return;
+      const targets = ids
+        .map((id) => fetched.find((e) => e.id === id))
+        .filter((e): e is CanvasElement => !!e && (e.kind === 'bound' || e.kind === 'header' || e.kind === 'shape'));
+      if (targets.length === 0) return;
+
+      const entries: Array<{ kind: 'update'; id: string; before: ElementSnapshot; after: ElementSnapshot }> = [];
+      const nextOverrides: Record<string, { x: number; y: number; w: number; h: number }> = {};
+      const nextStyleOverrides: Record<string, ReturnType<typeof readBoundStyle>> = {};
+      const styleWrites: Array<{ id: string; style: ReturnType<typeof readBoundStyle> }> = [];
+
+      for (const el of targets) {
+        const before = snapshotOfEl(el);
+        const current = overrides[el.id] ?? { x: el.x, y: el.y, w: el.w, h: el.h };
+        const next = { ...current };
+        if (patch.w !== undefined) next.w = patch.w;
+        if (patch.h !== undefined) next.h = patch.h;
+        next.w = Math.max(MIN_W, Math.min(CANVAS_WIDTH_CM, next.w));
+        next.h = Math.max(MIN_H, Math.min(CANVAS_MAX_HEIGHT_CM, next.h));
+        next.x = Math.max(0, Math.min(CANVAS_WIDTH_CM - next.w, next.x));
+        next.y = Math.max(0, Math.min(CANVAS_MAX_HEIGHT_CM - next.h, next.y));
+        nextOverrides[el.id] = next;
+        persistDebounced(el.id, next);
+
+        let styleAfter: unknown = before.style;
+        if (patch.h !== undefined && el.kind === 'bound') {
+          const cur = { ...readBoundStyle(el.style), ...(styleOverrides[el.id] ?? {}) };
+          if (cur.autoFitH !== false) {
+            const ns = { ...cur, autoFitH: false };
+            nextStyleOverrides[el.id] = ns;
+            styleWrites.push({ id: el.id, style: ns });
+            styleAfter = ns;
+          }
+        }
+        const after: ElementSnapshot = { ...before, ...next, style: styleAfter };
+        entries.push({ kind: 'update', id: el.id, before, after });
+      }
+
+      if (entries.length === 0) return;
+      setOverrides((o) => ({ ...o, ...nextOverrides }));
+      if (Object.keys(nextStyleOverrides).length) {
+        setStyleOverrides((o) => ({ ...o, ...nextStyleOverrides }));
+      }
+      styleWrites.forEach((s) => persistStyleDebounced(s.id, s.style));
+
+      const sortedIds = targets.map((t) => t.id).slice().sort().join(',');
+      const dim = patch.w !== undefined && patch.h !== undefined ? 'wh' : (patch.w !== undefined ? 'w' : 'h');
+      pushHistory({ kind: 'batch', entries }, `size-multi:${dim}:${sortedIds}`);
+    },
+    [canEdit, fetched, overrides, persistDebounced, styleOverrides, persistStyleDebounced, snapshotOfEl, pushHistory],
+  );
+
+
 
 
   const deleteElement = useCallback(
