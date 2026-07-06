@@ -2331,7 +2331,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
                   suppressNextClickRef.current = null;
                   return;
                 }
-                if (selectedId !== el.id) {
+                if (!selectedIdsRef.current.has(el.id)) {
                   selectOnly(el.id);
                 }
               }}
