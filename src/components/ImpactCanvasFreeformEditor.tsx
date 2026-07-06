@@ -147,6 +147,30 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
   /** Bumped when the wrapper resizes so the auto-fit effect re-measures. */
   const [wrapperTick, setWrapperTick] = useState(0);
 
+  // ── Canvas-level UNDO/REDO (session-only, in-memory) ──────────────────
+  // Per-element before/after snapshots. Add/delete carry the full element
+  // (so we can re-insert with the same id on undo/redo). Update entries
+  // for the same element within the same 600 ms coalesce group are merged
+  // (drag / style click / cm-field typing / etc.) — one gesture = one step.
+  // History resets on reload; text-editor (TipTap) keystrokes are NOT
+  // captured here — a committed text change (edit exit) pushes ONE step.
+  type ElementSnapshot = {
+    x: number; y: number; w: number; h: number;
+    content: unknown; style: unknown;
+  };
+  type HistoryEntry =
+    | { kind: 'update'; id: string; before: ElementSnapshot; after: ElementSnapshot; group?: string; ts: number }
+    | { kind: 'add'; element: CanvasElement }
+    | { kind: 'delete'; element: CanvasElement };
+  const undoStackRef = useRef<HistoryEntry[]>([]);
+  const redoStackRef = useRef<HistoryEntry[]>([]);
+  const suppressHistoryRef = useRef(false);
+  const [, setHistoryTick] = useState(0);
+  const bumpHistory = () => setHistoryTick((t) => t + 1);
+  const canUndo = undoStackRef.current.length > 0;
+  const canRedo = redoStackRef.current.length > 0;
+
+
 
   // Deselect on outside pointerdown — but keep clicks inside the surface,
   // toolbar, radix portals, dialogs, and the ACTIVE text-box editor from
