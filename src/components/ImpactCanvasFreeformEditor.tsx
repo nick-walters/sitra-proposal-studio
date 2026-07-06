@@ -458,6 +458,52 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
   );
   const textEls = useMemo(() => fetched.filter((e) => e.kind === 'text'), [fetched]);
   const shapeEls = useMemo(() => fetched.filter((e) => e.kind === 'shape'), [fetched]);
+
+  // Auto-fit height: for every bound box with style.autoFitH !== false,
+  // measure the natural content height from its hidden probe and grow the
+  // stored h (never below DEFAULT_BOUND_H_CM). Manual resize / cm-H entry
+  // sets autoFitH=false and skips this box.
+  const autoFitSignature = boundEls
+    .map((el) => {
+      const bs = readBoundStyle(styleOverrides[el.id] ?? el.style);
+      if (bs.autoFitH === false) return '';
+      const row = rowById.get(el.bound_row_id!);
+      const html = (row?.content?.[el.bound_col_key!] as string) || '';
+      return `${el.id}:${el.w.toFixed(3)}:${html.length}:${html.slice(0, 80)}`;
+    })
+    .join('|');
+
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+    const rectW = wrapper.getBoundingClientRect().width;
+    if (!rectW) return;
+    const pxPerCm = rectW / CANVAS_WIDTH_CM;
+    // Approx vertical padding inside the visible box: 2pt outer + 2pt inner
+    // per side ≈ 8pt total → ~0.28 cm.
+    const V_PAD_CM = 8 / 28.3465;
+    for (const el of boundEls) {
+      const bs = readBoundStyle(styleOverrides[el.id] ?? el.style);
+      if (bs.autoFitH === false) continue;
+      const probe = probeRefs.current[el.id];
+      if (!probe) continue;
+      const naturalPx = probe.offsetHeight;
+      if (!naturalPx) continue;
+      const targetH = Math.max(
+        DEFAULT_BOUND_H_CM,
+        Math.round(((naturalPx / pxPerCm) + V_PAD_CM) * 100) / 100,
+      );
+      const cur = overridesRef.current[el.id] ?? { x: el.x, y: el.y, w: el.w, h: el.h };
+      if (Math.abs(targetH - cur.h) > 0.05) {
+        const nextBox = { ...cur, h: targetH };
+        setOverrides((o) => ({ ...o, [el.id]: nextBox }));
+        persistDebounced(el.id, nextBox);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoFitSignature, wrapperTick, boundEls, styleOverrides, persistDebounced]);
+
+
   const maxZ = useMemo(
     () => fetched.reduce((m, e) => (e.z > m ? e.z : m), 0),
     [fetched],
