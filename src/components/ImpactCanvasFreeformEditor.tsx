@@ -1827,7 +1827,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
             </span>
           )}
 
-          <Separator orientation="vertical" className="h-5 mx-1" />
+          <Separator orientation="vertical" className="h-5 mx-1.5" />
 
           {/* Group 2: Font colour, Fill colour, Outline colour+width, Add-shape */}
           <BoundStyleToolbar
