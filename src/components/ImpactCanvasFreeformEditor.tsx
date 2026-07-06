@@ -319,6 +319,164 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     };
   }, []);
 
+  // Build a snapshot of an element's current visible state (fetched values
+  // overlaid with pending optimistic overrides).
+  const snapshotOfEl = useCallback(
+    (el: CanvasElement): ElementSnapshot => {
+      const ov = overrides[el.id];
+      const so = styleOverrides[el.id];
+      const co = contentOverrides[el.id];
+      const contentBase = (el.content ?? {}) as Record<string, unknown>;
+      const content =
+        co !== undefined ? { ...contentBase, html: co } : el.content;
+      const styleBase = readBoundStyle(el.style);
+      const style = so !== undefined ? { ...styleBase, ...so } : el.style;
+      return {
+        x: ov?.x ?? el.x,
+        y: ov?.y ?? el.y,
+        w: ov?.w ?? el.w,
+        h: ov?.h ?? el.h,
+        content,
+        style,
+      };
+    },
+    [overrides, styleOverrides, contentOverrides],
+  );
+
+  const pushHistory = useCallback((entry: HistoryEntry, group?: string) => {
+    if (suppressHistoryRef.current) return;
+    const stack = undoStackRef.current;
+    const last = stack[stack.length - 1];
+    const now = Date.now();
+    if (
+      entry.kind === 'update' &&
+      last?.kind === 'update' &&
+      group &&
+      last.group === group &&
+      last.id === entry.id &&
+      now - last.ts < 600
+    ) {
+      last.after = entry.after;
+      last.ts = now;
+    } else {
+      if (entry.kind === 'update') {
+        entry.ts = now;
+        entry.group = group;
+      }
+      stack.push(entry);
+      if (stack.length > 200) stack.shift();
+    }
+    redoStackRef.current = [];
+    bumpHistory();
+  }, []);
+
+  const writeSnapshot = useCallback(
+    async (id: string, snap: ElementSnapshot) => {
+      setOverrides((o) => { if (!(id in o)) return o; const n = { ...o }; delete n[id]; return n; });
+      setStyleOverrides((o) => { if (!(id in o)) return o; const n = { ...o }; delete n[id]; return n; });
+      setContentOverrides((o) => { if (!(id in o)) return o; const n = { ...o }; delete n[id]; return n; });
+      qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId), (old) =>
+        (old || []).map((e) =>
+          e.id === id
+            ? { ...e, x: snap.x, y: snap.y, w: snap.w, h: snap.h, content: snap.content, style: snap.style }
+            : e,
+        ),
+      );
+      const { error } = await supabase
+        .from('impact_canvas_elements')
+        .update({
+          x: snap.x, y: snap.y, w: snap.w, h: snap.h,
+          content: snap.content as never, style: snap.style as never,
+        })
+        .eq('id', id);
+      if (error) qc.invalidateQueries({ queryKey: ELS_KEY(proposalId) });
+    },
+    [proposalId, qc],
+  );
+
+  const reinsertElement = useCallback(
+    async (el: CanvasElement) => {
+      qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId), (old) => {
+        const list = old || [];
+        if (list.some((e) => e.id === el.id)) return list;
+        return [...list, el];
+      });
+      const { error } = await supabase.from('impact_canvas_elements').insert({
+        id: el.id,
+        proposal_id: proposalId,
+        kind: el.kind,
+        bound_row_id: el.bound_row_id,
+        bound_col_key: el.bound_col_key,
+        x: el.x, y: el.y, w: el.w, h: el.h, z: el.z,
+        content: el.content as never,
+        style: el.style as never,
+      });
+      if (error) qc.invalidateQueries({ queryKey: ELS_KEY(proposalId) });
+    },
+    [proposalId, qc],
+  );
+
+  const removeElementById = useCallback(
+    async (id: string) => {
+      qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId), (old) =>
+        (old || []).filter((e) => e.id !== id),
+      );
+      setSelectedId((s) => (s === id ? null : s));
+      setEditingId((s) => (s === id ? null : s));
+      const { error } = await supabase.from('impact_canvas_elements').delete().eq('id', id);
+      if (error) qc.invalidateQueries({ queryKey: ELS_KEY(proposalId) });
+    },
+    [proposalId, qc],
+  );
+
+  const undo = useCallback(async () => {
+    const entry = undoStackRef.current.pop();
+    if (!entry) return;
+    redoStackRef.current.push(entry);
+    bumpHistory();
+    suppressHistoryRef.current = true;
+    try {
+      if (entry.kind === 'update') await writeSnapshot(entry.id, entry.before);
+      else if (entry.kind === 'add') await removeElementById(entry.element.id);
+      else if (entry.kind === 'delete') await reinsertElement(entry.element);
+    } finally {
+      suppressHistoryRef.current = false;
+    }
+  }, [writeSnapshot, removeElementById, reinsertElement]);
+
+  const redo = useCallback(async () => {
+    const entry = redoStackRef.current.pop();
+    if (!entry) return;
+    undoStackRef.current.push(entry);
+    bumpHistory();
+    suppressHistoryRef.current = true;
+    try {
+      if (entry.kind === 'update') await writeSnapshot(entry.id, entry.after);
+      else if (entry.kind === 'add') await reinsertElement(entry.element);
+      else if (entry.kind === 'delete') await removeElementById(entry.element.id);
+    } finally {
+      suppressHistoryRef.current = false;
+    }
+  }, [writeSnapshot, removeElementById, reinsertElement]);
+
+  // Keyboard: Ctrl/Cmd+Z / Shift+Z / Ctrl+Y for canvas undo/redo — but only
+  // when focus is NOT inside a text editor / input / textarea, so TipTap's
+  // own text undo keeps handling typing keystrokes.
+  useEffect(() => {
+    if (!canEdit) return;
+    const onKey = (ev: KeyboardEvent) => {
+      const t = ev.target as HTMLElement | null;
+      if (t && (t.isContentEditable || ['INPUT', 'TEXTAREA'].includes(t.tagName))) return;
+      if (!(ev.metaKey || ev.ctrlKey)) return;
+      const key = ev.key.toLowerCase();
+      if (key === 'z' && !ev.shiftKey) { ev.preventDefault(); void undo(); }
+      else if ((key === 'z' && ev.shiftKey) || key === 'y') { ev.preventDefault(); void redo(); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [canEdit, undo, redo]);
+
+
   const canvasHeightCmRef = useRef(CANVAS_MAX_HEIGHT_CM);
 
   const beginDrag = (
