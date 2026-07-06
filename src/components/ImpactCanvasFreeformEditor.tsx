@@ -2615,7 +2615,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
                   padding: '2pt',
                   boxSizing: 'border-box',
                   overflow: 'hidden',
-                  fontSize: style.fontSize ?? 12,
+                  fontSize: style.fontSize ? `${(style.fontSize / 10)}cqw` : '1.2cqw',
                   lineHeight: 1.3,
                   color: '#000',
                   textAlign: style.textAlign ?? 'left',
