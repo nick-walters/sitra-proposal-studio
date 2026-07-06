@@ -2924,10 +2924,16 @@ function SizeFields({
   box,
   onChange,
   disabled = false,
+  mixedW = false,
+  mixedH = false,
 }: {
   box: { x: number; y: number; w: number; h: number };
   onChange: (patch: Partial<{ x: number; y: number; w: number; h: number }>) => void;
   disabled?: boolean;
+  /** Multi-select: elements disagree on width — show empty placeholder. */
+  mixedW?: boolean;
+  /** Multi-select: elements disagree on height — show empty placeholder. */
+  mixedH?: boolean;
 }) {
   const fmt = (v: number) => (Math.round(v * 100) / 100).toString();
   return (
@@ -2937,33 +2943,35 @@ function SizeFields({
         type="number"
         step="0.1"
         min={0}
-        value={disabled ? '' : fmt(box.w)}
+        value={disabled || mixedW ? '' : fmt(box.w)}
+        placeholder={mixedW ? '—' : undefined}
         disabled={disabled}
         onChange={(e) => {
           const v = parseFloat(e.target.value);
           if (Number.isFinite(v)) onChange({ w: v });
         }}
         className="h-7 w-11 px-1 text-xs"
-        title="Width (cm)"
+        title={mixedW ? 'Width (cm) — mixed' : 'Width (cm)'}
       />
       <MoveVertical className={cn('w-3.5 h-3.5 text-muted-foreground ml-0.5', disabled && 'opacity-50')} aria-label="Height" />
       <Input
         type="number"
         step="0.1"
         min={0}
-        value={disabled ? '' : fmt(box.h)}
+        value={disabled || mixedH ? '' : fmt(box.h)}
+        placeholder={mixedH ? '—' : undefined}
         disabled={disabled}
         onChange={(e) => {
           const v = parseFloat(e.target.value);
           if (Number.isFinite(v)) onChange({ h: v });
         }}
         className="h-7 w-11 px-1 text-xs"
-        title="Height (cm)"
+        title={mixedH ? 'Height (cm) — mixed' : 'Height (cm)'}
       />
     </div>
-
   );
 }
+
 
 
 interface BoundStyleToolbarProps {
