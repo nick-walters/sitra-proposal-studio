@@ -5,7 +5,13 @@ import { PaintBucket, Trash2, Type } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useImpactCanvasColumns, useImpactCanvasRows } from '@/hooks/useImpactCanvas';
-import { IMPACT_CANVAS_VIEWPORT, IMPACT_CANVAS_HEADER_HEIGHT } from '@/lib/impactCanvasLayout';
+import {
+  CANVAS_WIDTH_CM,
+  HEADER_HEIGHT_CM,
+  MIN_ELEMENT_W_CM,
+  MIN_ELEMENT_H_CM,
+  computeCanvasHeightCm,
+} from '@/lib/impactCanvasLayout';
 import { WPColorPicker } from './WPColorPicker';
 import { BOUND_STYLE_DEFAULTS, readBoundStyle, resolveBoundStyle } from '@/lib/impactCanvasBoundStyle';
 import type { BoundBoxStyle } from '@/lib/impactCanvasBoundStyle';
@@ -59,8 +65,8 @@ interface CanvasElement {
 const EMPTY_ELS: CanvasElement[] = [];
 const ELS_KEY = (pid: string) => ['impact-canvas-elements', pid];
 
-const MIN_W = 60;
-const MIN_H = 30;
+const MIN_W = MIN_ELEMENT_W_CM;
+const MIN_H = MIN_ELEMENT_H_CM;
 
 type Handle = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w';
 type DragMode = { kind: 'move' } | { kind: 'resize'; handle: Handle };
