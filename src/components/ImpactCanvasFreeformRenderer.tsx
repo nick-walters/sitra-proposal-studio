@@ -43,6 +43,8 @@ interface CanvasElement {
   w: number;
   h: number;
   z: number;
+  content: unknown;
+  style: unknown;
 }
 
 const EMPTY_ELS: CanvasElement[] = [];
@@ -55,13 +57,14 @@ function useImpactCanvasElements(proposalId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('impact_canvas_elements')
-        .select('id, kind, bound_row_id, bound_col_key, x, y, w, h, z')
+        .select('id, kind, bound_row_id, bound_col_key, x, y, w, h, z, content, style')
         .eq('proposal_id', proposalId)
         .order('z');
       if (error) throw error;
       return (data ?? []) as CanvasElement[];
     },
   });
+
 
   // Refresh when upstream reference data changes (badges baked into cells).
   useEffect(() => {
