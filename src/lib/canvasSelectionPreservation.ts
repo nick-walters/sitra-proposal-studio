@@ -83,18 +83,15 @@ export function useCanvasSelectionPreservation() {
     },
   } as const;
 
-  // Typed loosely so it spreads onto Radix portal content components
-  // (PopoverContent / SelectContent / DropdownMenuContent, …) whose
-  // prop unions differ. Any unknown handlers Radix ignores.
-  const portalProps: Record<string, unknown> = {
-    // Editors' blur handlers ignore focus moves into this portal.
+  // Shared bits every portalled Radix content wants:
+  //  - data-attribute so the editor's blur handler ignores focus moving
+  //    into the portal.
+  //  - onCloseAutoFocus prevented so focus doesn't jump on close.
+  //  - mousedown guard so clicking the portal chrome (not inputs) doesn't
+  //    steal focus from the editor.
+  const sharedPortal = {
     'data-impact-canvas-toolbar': true,
-    // Radix defaults would focus the portalled content on open/close;
-    // that blurs the editor and clears the selection.
-    onOpenAutoFocus: (e: Event) => e.preventDefault(),
     onCloseAutoFocus: (e: Event) => e.preventDefault(),
-    // Clicks inside the portal (background, labels, non-input surfaces)
-    // must not steal focus from the editor either.
     onMouseDown: (e: React.MouseEvent) => {
       const target = e.target as HTMLElement | null;
       if (target?.closest('input, textarea, [contenteditable="true"]')) return;
@@ -102,5 +99,24 @@ export function useCanvasSelectionPreservation() {
     },
   };
 
-  return { capture, apply, rememberEditor, triggerProps, portalProps };
+  // Popover-flavoured portal (Radix Popover / DropdownMenu content).
+  // Adds `onOpenAutoFocus` — supported by Popover/DropdownMenu, NOT by
+  // Radix Select (Select ignores it and React warns "Unknown event
+  // handler property `onOpenAutoFocus`").
+  const portalProps: Record<string, unknown> = {
+    ...sharedPortal,
+    onOpenAutoFocus: (e: Event) => e.preventDefault(),
+  };
+
+  // Select-flavoured portal. Radix Select manages its own focus (moves
+  // it to the selected item on open); we cannot cancel that via
+  // onOpenAutoFocus. Instead the selection/focus is preserved by:
+  //   1. `triggerProps` snapshotting editor + range on mousedown;
+  //   2. the editor's blur handler ignoring the blur (data-attribute);
+  //   3. `apply()` re-focusing the editor and restoring the range
+  //      before running the command chain.
+  const selectPortalProps: Record<string, unknown> = { ...sharedPortal };
+
+  return { capture, apply, rememberEditor, triggerProps, portalProps, selectPortalProps };
 }
+

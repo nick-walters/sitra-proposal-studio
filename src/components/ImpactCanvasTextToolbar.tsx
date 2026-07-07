@@ -42,7 +42,7 @@ interface Props {
 export function ImpactCanvasTextToolbar({ proposalId, canEdit }: Props) {
   const [editor, setEditor] = useState<Editor | null>(null);
   const [, setTick] = useState(0);
-  const { apply, rememberEditor, triggerProps, portalProps } = useCanvasSelectionPreservation();
+  const { apply, rememberEditor, triggerProps, portalProps, selectPortalProps } = useCanvasSelectionPreservation();
 
   useEffect(() => {
     return subscribeFocusedCanvasEditor((next) => {
@@ -169,7 +169,7 @@ export function ImpactCanvasTextToolbar({ proposalId, canEdit }: Props) {
               <SelectTrigger className="h-7 w-20 text-xs" {...triggerProps}>
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent {...portalProps}>
+              <SelectContent {...selectPortalProps}>
                 {FONT_SIZE_OPTIONS.map((pt) => (
                   <SelectItem key={pt} value={String(pt)}>{pt} pt</SelectItem>
                 ))}

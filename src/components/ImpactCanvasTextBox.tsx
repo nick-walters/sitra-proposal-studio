@@ -1,8 +1,11 @@
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import Underline from '@tiptap/extension-underline';
+// NOTE: TipTap v3 StarterKit already bundles the Underline extension —
+// do NOT import '@tiptap/extension-underline' here or it registers twice
+// and the extension manager warns + destabilises mark resolution.
 import Superscript from '@tiptap/extension-superscript';
 import Subscript from '@tiptap/extension-subscript';
+
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import { useEffect, useRef } from 'react';
@@ -42,7 +45,7 @@ export function ImpactCanvasTextBox({ html, editing, onChange, onCommit, autoFoc
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ heading: false }),
-      Underline,
+      
       Superscript,
       Subscript,
       TextStyle,
