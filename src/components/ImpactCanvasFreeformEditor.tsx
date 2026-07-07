@@ -54,6 +54,12 @@ interface Props {
   proposalId: string;
   canEdit: boolean;
   className?: string;
+  /** When set, this editor renders a Figure Canvas figure (elements scoped
+   *  by figure_id). When undefined, it renders the Impact Canvas singleton
+   *  (elements scoped by proposal_id AND figure_id IS NULL). Stage B: prop
+   *  plumbing + data scoping only — the impact-canvas UI does not pass a
+   *  figureId, so behaviour is byte-identical. */
+  figureId?: string;
 }
 
 /**
