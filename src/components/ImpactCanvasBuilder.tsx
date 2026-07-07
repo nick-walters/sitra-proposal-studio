@@ -13,6 +13,7 @@ import { ImpactCanvasColumnDialog } from './ImpactCanvasColumnDialog';
 import { ImpactCanvasCrossRefDropdown } from './ImpactCanvasCrossRefDropdown';
 import { ImpactCanvasFreeformEditor } from './ImpactCanvasFreeformEditor';
 import { ImpactCanvasFreeformRenderer } from './ImpactCanvasFreeformRenderer';
+import { ImpactCanvasTextToolbar } from './ImpactCanvasTextToolbar';
 
 
 interface Props {
@@ -165,11 +166,15 @@ export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figure
                 <ListOrdered className="w-4 h-4" />
               </ToolbarBtn>
               <div className="w-px h-5 bg-border mx-1" />
+              {/* Sup/sub/size/colour/header run marks — single dropdown */}
+              <ImpactCanvasTextToolbar proposalId={proposalId} canEdit={canEdit} />
+              <div className="w-px h-5 bg-border mx-1" />
               <ImpactCanvasCrossRefDropdown
                 proposalId={proposalId}
                 activeEditor={activeEditor}
                 disabled={!canEdit}
               />
+
 
               <div className="flex-1" />
               <span className="text-xs text-muted-foreground pr-2 shrink-0">
