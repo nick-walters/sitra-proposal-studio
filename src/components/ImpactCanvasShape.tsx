@@ -31,6 +31,8 @@ interface Props {
 }
 
 export function ImpactCanvasShape({ shape, styleRaw, children, selected }: Props) {
+  const pf = useCanvasPtFont();
+
   const bs = resolveBoundStyle(styleRaw);
   const strokeColor = selected ? 'hsl(var(--primary))' : bs.borderColor;
   const strokeWidth = selected ? Math.max(1.5, bs.borderWidth || 0) : bs.borderWidth;
