@@ -13,6 +13,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { ArrowLeft, Trash2, Image, Sparkles, Loader2, Upload, Download } from 'lucide-react';
 import { useRef } from 'react';
 import { ImpactCanvasFreeformEditor } from '@/components/ImpactCanvasFreeformEditor';
@@ -276,13 +287,12 @@ export function FigureEditor({
           </div>
         );
       default:
-        return (
-          <div className="min-h-[300px] border-2 border-dashed rounded-lg flex items-center justify-center text-muted-foreground">
-            Custom figure content editor coming soon
-          </div>
-        );
+        return null;
     }
   };
+
+  const NON_DELETABLE_TYPES = new Set(['pert', 'gantt', 'impact-canvas']);
+  const canDeleteFigure = canEdit && !NON_DELETABLE_TYPES.has(figure.figureType);
 
   return (
     <div className="flex-1 overflow-auto p-6 bg-muted/30">
@@ -337,11 +347,32 @@ export function FigureEditor({
                 Download PNG
               </Button>
             )}
-            {canEdit && (
-              <Button variant="outline" size="sm" onClick={onDelete} className="text-destructive">
-                <Trash2 className="w-4 h-4 mr-1" />
-                Delete
-              </Button>
+            {canDeleteFigure && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="text-destructive">
+                    <Trash2 className="w-4 h-4 mr-1" />
+                    Delete
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete this figure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      onClick={() => onDelete()}
+                    >
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             )}
 
           </div>

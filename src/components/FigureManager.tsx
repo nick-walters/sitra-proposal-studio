@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FigureEditor } from '@/components/FigureEditor';
-import { Plus, Image, BarChart3, Network, FileImage, Upload, Sparkles, Loader2, LayoutGrid, List, Library, LayoutTemplate, Frame } from 'lucide-react';
+import { Plus, Image, BarChart3, Network, Upload, Sparkles, Loader2, LayoutGrid, List, Library, LayoutTemplate, Frame } from 'lucide-react';
 import { FIGURE_SIZE_PRESETS, DEFAULT_FIGURE_SIZE_PRESET_ID, getFigureSizePreset, type FigureSizePresetId } from '@/lib/figureSizePresets';
 import { StorageImage } from '@/components/StorageImage';
 import { supabase } from '@/integrations/supabase/client';
@@ -70,8 +70,19 @@ const FIGURE_TYPES = [
   { id: 'canvas', label: 'Figure Canvas', icon: Frame, description: 'Blank canvas — draw shapes, lines and text at a fixed page size.' },
   { id: 'gantt', label: 'Gantt Chart', icon: BarChart3, description: 'Timeline view of work packages and tasks' },
   { id: 'pert', label: 'PERT Diagram', icon: Network, description: 'Project network diagram' },
-  { id: 'custom', label: 'Custom Figure', icon: FileImage, description: 'Create a custom figure manually' },
 ];
+
+// Custom canvas dimension bounds (cm). Full page is 18 × 25.5.
+const CANVAS_CUSTOM_MAX_WIDTH_CM = 18;
+const CANVAS_CUSTOM_MAX_HEIGHT_CM = 25.5;
+const CANVAS_CUSTOM_MIN_CM = 1;
+const CANVAS_CUSTOM_DEFAULT_WIDTH_CM = 18;
+const CANVAS_CUSTOM_DEFAULT_HEIGHT_CM = 25.5;
+
+function clampCanvasDim(v: number, max: number) {
+  if (!Number.isFinite(v) || v <= 0) return CANVAS_CUSTOM_MIN_CM;
+  return Math.min(Math.max(v, CANVAS_CUSTOM_MIN_CM), max);
+}
 
 // Fallback sections for backward compatibility
 const DEFAULT_SECTION_OPTIONS: SectionOption[] = [
@@ -108,7 +119,11 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
 
   // For canvas figures — which fixed-size preset the new blank canvas uses.
-  const [canvasPresetId, setCanvasPresetId] = useState<FigureSizePresetId>(DEFAULT_FIGURE_SIZE_PRESET_ID);
+  // 'custom' means user-supplied widthCm/heightCm.
+  const [canvasPresetId, setCanvasPresetId] = useState<FigureSizePresetId | 'custom'>(DEFAULT_FIGURE_SIZE_PRESET_ID);
+  const [canvasCustomWidth, setCanvasCustomWidth] = useState<number>(CANVAS_CUSTOM_DEFAULT_WIDTH_CM);
+  const [canvasCustomHeight, setCanvasCustomHeight] = useState<number>(CANVAS_CUSTOM_DEFAULT_HEIGHT_CM);
+  
   
   const [isUploading, setIsUploading] = useState(false);
   const queryClient = useQueryClient();
@@ -461,22 +476,30 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
         setIsUploading(false);
       }
     } else if (newFigureType === 'canvas') {
-      // Blank freeform canvas at a chosen fixed-size preset. Content
+      // Blank freeform canvas. Preset OR custom width/height (cm). Content
       // stores widthCm/heightCm/presetId so the editor + later renderers
-      // know the physical frame; no imageUrl yet (Stage D adds export).
-      const preset = getFigureSizePreset(canvasPresetId);
+      // know the physical frame.
+      let widthCm: number;
+      let heightCm: number;
+      let presetId: string;
+      if (canvasPresetId === 'custom') {
+        widthCm = clampCanvasDim(Number(canvasCustomWidth), CANVAS_CUSTOM_MAX_WIDTH_CM);
+        heightCm = clampCanvasDim(Number(canvasCustomHeight), CANVAS_CUSTOM_MAX_HEIGHT_CM);
+        presetId = 'custom';
+      } else {
+        const preset = getFigureSizePreset(canvasPresetId);
+        widthCm = preset.widthCm;
+        heightCm = preset.heightCm;
+        presetId = preset.id;
+      }
       createFigure.mutate({
         title: newFigureTitle,
         figureType: 'canvas',
         sectionId: newFigureSection,
-        content: {
-          presetId: preset.id,
-          widthCm: preset.widthCm,
-          heightCm: preset.heightCm,
-        },
+        content: { presetId, widthCm, heightCm },
       });
     } else {
-      // For non-image types (gantt, pert, custom)
+      // For non-image types (gantt, pert)
       createFigure.mutate({
         title: newFigureTitle,
         figureType: newFigureType,
@@ -596,7 +619,7 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
       return (
         <div className="space-y-2">
           <Label>Canvas size</Label>
-          <Select value={canvasPresetId} onValueChange={(v) => setCanvasPresetId(v as FigureSizePresetId)}>
+          <Select value={canvasPresetId} onValueChange={(v) => setCanvasPresetId(v as FigureSizePresetId | 'custom')}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
@@ -606,10 +629,41 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
                   {p.label} — {p.widthCm} × {p.heightCm} cm
                 </SelectItem>
               ))}
+              <SelectItem value="custom">Custom…</SelectItem>
             </SelectContent>
           </Select>
+          {canvasPresetId === 'custom' && (
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <div className="space-y-1">
+                <Label htmlFor="canvas-custom-width" className="text-xs">Width (cm)</Label>
+                <Input
+                  id="canvas-custom-width"
+                  type="number"
+                  min={CANVAS_CUSTOM_MIN_CM}
+                  max={CANVAS_CUSTOM_MAX_WIDTH_CM}
+                  step={0.1}
+                  value={canvasCustomWidth}
+                  onChange={(e) => setCanvasCustomWidth(Number(e.target.value))}
+                  onBlur={(e) => setCanvasCustomWidth(clampCanvasDim(Number(e.target.value), CANVAS_CUSTOM_MAX_WIDTH_CM))}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="canvas-custom-height" className="text-xs">Height (cm)</Label>
+                <Input
+                  id="canvas-custom-height"
+                  type="number"
+                  min={CANVAS_CUSTOM_MIN_CM}
+                  max={CANVAS_CUSTOM_MAX_HEIGHT_CM}
+                  step={0.1}
+                  value={canvasCustomHeight}
+                  onChange={(e) => setCanvasCustomHeight(Number(e.target.value))}
+                  onBlur={(e) => setCanvasCustomHeight(clampCanvasDim(Number(e.target.value), CANVAS_CUSTOM_MAX_HEIGHT_CM))}
+                />
+              </div>
+            </div>
+          )}
           <p className="text-xs text-muted-foreground">
-            Fixed size. You can add shapes, lines and text on the canvas after it is created.
+            Fixed size (max {CANVAS_CUSTOM_MAX_WIDTH_CM} × {CANVAS_CUSTOM_MAX_HEIGHT_CM} cm). You can add shapes, lines and text on the canvas after it is created.
           </p>
         </div>
       );
