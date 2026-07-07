@@ -45,7 +45,7 @@ export function ImpactCanvasTextBox({ html, editing, onChange, onCommit, autoFoc
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ heading: false }),
-      Underline,
+      
       Superscript,
       Subscript,
       TextStyle,
