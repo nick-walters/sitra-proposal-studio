@@ -163,7 +163,7 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className }: Pro
 
 
   const { data: fetched = EMPTY_ELS, isLoading: elsLoading } = useQuery({
-    queryKey: ELS_KEY(proposalId),
+    queryKey: ELS_KEY(proposalId, figureId),
     enabled: !!proposalId,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -252,7 +252,7 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className }: Pro
         console.info(
           `[ImpactCanvas] fontColor migration: ${elementsMigrated} element(s) migrated, ${rowsMigrated} row(s) rewrapped, per-object fontColor cleared (single source of truth = run marks).`,
         );
-        qc.invalidateQueries({ queryKey: ELS_KEY(proposalId) });
+        qc.invalidateQueries({ queryKey: ELS_KEY(proposalId, figureId) });
         qc.invalidateQueries({ queryKey: ['impact-canvas-rows', proposalId] });
       }
     })();
@@ -492,9 +492,9 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className }: Pro
             delete n[id];
             return n;
           });
-          qc.invalidateQueries({ queryKey: ELS_KEY(proposalId) });
+          qc.invalidateQueries({ queryKey: ELS_KEY(proposalId, figureId) });
         } else {
-          qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId), (old) =>
+          qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId, figureId), (old) =>
             (old || []).map((e) => (e.id === id ? { ...e, ...box } : e)),
           );
           setOverrides((o) => {
@@ -522,7 +522,7 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className }: Pro
         pendingBoxAbortControllers.current[id]?.abort();
         const controller = new AbortController();
         pendingBoxAbortControllers.current[id] = controller;
-        const current = qc.getQueryData<CanvasElement[]>(ELS_KEY(proposalId)) || [];
+        const current = qc.getQueryData<CanvasElement[]>(ELS_KEY(proposalId, figureId)) || [];
         const el = current.find((e) => e.id === id);
         const prevContent = (el?.content ?? {}) as Record<string, unknown>;
         const nextContent = { ...prevContent, from: endpoints.from, to: endpoints.to };
@@ -538,9 +538,9 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className }: Pro
         if (error) {
           setOverrides((o) => { const n = { ...o }; delete n[id]; return n; });
           setLineOverrides((o) => { const n = { ...o }; delete n[id]; return n; });
-          qc.invalidateQueries({ queryKey: ELS_KEY(proposalId) });
+          qc.invalidateQueries({ queryKey: ELS_KEY(proposalId, figureId) });
         } else {
-          qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId), (old) =>
+          qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId, figureId), (old) =>
             (old || []).map((e) => (e.id === id ? { ...e, ...box, content: nextContent } : e)),
           );
           setOverrides((o) => { const n = { ...o }; delete n[id]; return n; });
@@ -560,7 +560,7 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className }: Pro
         delete pendingContentTimers.current[id];
         // Preserve any existing content fields (notably `shape` for shape elements)
         // by merging into the current cached content instead of replacing it.
-        const current = qc.getQueryData<CanvasElement[]>(ELS_KEY(proposalId)) || [];
+        const current = qc.getQueryData<CanvasElement[]>(ELS_KEY(proposalId, figureId)) || [];
         const el = current.find((e) => e.id === id);
         const prevContent = (el?.content ?? {}) as Record<string, unknown>;
         const nextContent = { ...prevContent, html };
@@ -574,9 +574,9 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className }: Pro
             delete n[id];
             return n;
           });
-          qc.invalidateQueries({ queryKey: ELS_KEY(proposalId) });
+          qc.invalidateQueries({ queryKey: ELS_KEY(proposalId, figureId) });
         } else {
-          qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId), (old) =>
+          qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId, figureId), (old) =>
             (old || []).map((e) => (e.id === id ? { ...e, content: nextContent } : e)),
           );
           setContentOverrides((o) => {
@@ -640,9 +640,9 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className }: Pro
             delete n[id];
             return n;
           });
-          qc.invalidateQueries({ queryKey: ELS_KEY(proposalId) });
+          qc.invalidateQueries({ queryKey: ELS_KEY(proposalId, figureId) });
         } else {
-          qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId), (old) =>
+          qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId, figureId), (old) =>
             (old || []).map((e) => (e.id === id ? { ...e, style } : e)),
           );
           setStyleOverrides((o) => {
@@ -744,7 +744,7 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className }: Pro
       setOverrides((o) => { if (!(id in o)) return o; const n = { ...o }; delete n[id]; return n; });
       setStyleOverrides((o) => { if (!(id in o)) return o; const n = { ...o }; delete n[id]; return n; });
       setContentOverrides((o) => { if (!(id in o)) return o; const n = { ...o }; delete n[id]; return n; });
-      qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId), (old) =>
+      qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId, figureId), (old) =>
         (old || []).map((e) =>
           e.id === id
             ? { ...e, x: snap.x, y: snap.y, w: snap.w, h: snap.h, z: snap.z ?? e.z, content: snap.content, style: snap.style }
@@ -759,14 +759,14 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className }: Pro
           content: snap.content as never, style: snap.style as never,
         })
         .eq('id', id);
-      if (error) qc.invalidateQueries({ queryKey: ELS_KEY(proposalId) });
+      if (error) qc.invalidateQueries({ queryKey: ELS_KEY(proposalId, figureId) });
     },
     [proposalId, qc],
   );
 
   const reinsertElement = useCallback(
     async (el: CanvasElement) => {
-      qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId), (old) => {
+      qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId, figureId), (old) => {
         const list = old || [];
         if (list.some((e) => e.id === el.id)) return list;
         return [...list, el];
@@ -781,20 +781,20 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className }: Pro
         content: el.content as never,
         style: el.style as never,
       });
-      if (error) qc.invalidateQueries({ queryKey: ELS_KEY(proposalId) });
+      if (error) qc.invalidateQueries({ queryKey: ELS_KEY(proposalId, figureId) });
     },
     [proposalId, qc],
   );
 
   const removeElementById = useCallback(
     async (id: string) => {
-      qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId), (old) =>
+      qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId, figureId), (old) =>
         (old || []).filter((e) => e.id !== id),
       );
       removeFromSelection(id);
       setEditingId((s) => (s === id ? null : s));
       const { error } = await supabase.from('impact_canvas_elements').delete().eq('id', id);
-      if (error) qc.invalidateQueries({ queryKey: ELS_KEY(proposalId) });
+      if (error) qc.invalidateQueries({ queryKey: ELS_KEY(proposalId, figureId) });
     },
     [proposalId, qc],
   );
@@ -1501,7 +1501,7 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className }: Pro
       const after: ElementSnapshot = { ...before, z: primary.after };
       pushHistory({ kind: 'update', id: el.id, before, after, ts: Date.now() });
 
-      qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId), (old) =>
+      qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId, figureId), (old) =>
         (old || []).map((e) => {
           const u = updates.find((x) => x.id === e.id);
           return u ? { ...e, z: u.after } : e;
@@ -1518,7 +1518,7 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className }: Pro
               if (error) {
                 // eslint-disable-next-line no-console
                 console.error('[impact-canvas] z-order update failed', { id: u.id, z: u.after, error });
-                qc.invalidateQueries({ queryKey: ELS_KEY(proposalId) });
+                qc.invalidateQueries({ queryKey: ELS_KEY(proposalId, figureId) });
               }
             }),
         ),
@@ -1591,7 +1591,7 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className }: Pro
       if (updates.length === 0) return;
 
       pushHistory({ kind: 'batch', entries });
-      qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId), (old) =>
+      qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId, figureId), (old) =>
         (old || []).map((e) => {
           const u = updates.find((x) => x.id === e.id);
           return u ? { ...e, z: u.z } : e;
@@ -1607,7 +1607,7 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className }: Pro
               if (error) {
                 // eslint-disable-next-line no-console
                 console.error('[impact-canvas] group z-order update failed', { id: u.id, z: u.z, error });
-                qc.invalidateQueries({ queryKey: ELS_KEY(proposalId) });
+                qc.invalidateQueries({ queryKey: ELS_KEY(proposalId, figureId) });
               }
             }),
         ),
@@ -1652,10 +1652,10 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className }: Pro
         .select('id, kind, bound_row_id, bound_col_key, x, y, w, h, z, content, style')
         .single();
       if (error || !data) {
-        qc.invalidateQueries({ queryKey: ELS_KEY(proposalId) });
+        qc.invalidateQueries({ queryKey: ELS_KEY(proposalId, figureId) });
         return;
       }
-      qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId), (old) => [
+      qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId, figureId), (old) => [
         ...(old || []),
         data as CanvasElement,
       ]);
@@ -1705,10 +1705,10 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className }: Pro
         .select('id, kind, bound_row_id, bound_col_key, x, y, w, h, z, content, style')
         .single();
       if (error || !data) {
-        qc.invalidateQueries({ queryKey: ELS_KEY(proposalId) });
+        qc.invalidateQueries({ queryKey: ELS_KEY(proposalId, figureId) });
         return;
       }
-      qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId), (old) => [
+      qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId, figureId), (old) => [
         ...(old || []),
         data as CanvasElement,
       ]);
@@ -1723,7 +1723,7 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className }: Pro
   const updateLineCaps = useCallback(
     async (id: string, patch: Partial<{ startCap: LineCap; endCap: LineCap }>) => {
       if (!canEdit) return;
-      const list = qc.getQueryData<CanvasElement[]>(ELS_KEY(proposalId)) || [];
+      const list = qc.getQueryData<CanvasElement[]>(ELS_KEY(proposalId, figureId)) || [];
       const el = list.find((e) => e.id === id);
       if (!el || el.kind !== 'line') return;
       const before = snapshotOfEl(el);
@@ -1736,7 +1736,7 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className }: Pro
       };
       // Drop legacy field once we've written per-end caps.
       delete (nextContent as unknown as Record<string, unknown>).arrow;
-      qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId), (old) =>
+      qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId, figureId), (old) =>
         (old || []).map((e) => (e.id === id ? { ...e, content: nextContent } : e)),
       );
       const after: ElementSnapshot = { ...before, content: nextContent };
@@ -1745,7 +1745,7 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className }: Pro
         .from('impact_canvas_elements')
         .update({ content: nextContent as never })
         .eq('id', id);
-      if (error) qc.invalidateQueries({ queryKey: ELS_KEY(proposalId) });
+      if (error) qc.invalidateQueries({ queryKey: ELS_KEY(proposalId, figureId) });
     },
     [canEdit, proposalId, qc, snapshotOfEl, pushHistory],
   );
@@ -1856,7 +1856,7 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className }: Pro
     async (id: string) => {
       if (!canEdit) return;
       // Snapshot with merged overrides so undo restores the visible state.
-      const prev = qc.getQueryData<CanvasElement[]>(ELS_KEY(proposalId));
+      const prev = qc.getQueryData<CanvasElement[]>(ELS_KEY(proposalId, figureId));
       const target = (prev || []).find((e) => e.id === id);
       if (target) {
         const snap = snapshotOfEl(target);
@@ -1867,14 +1867,14 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className }: Pro
         };
         pushHistory({ kind: 'delete', element: restored });
       }
-      qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId), (old) =>
+      qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId, figureId), (old) =>
         (old || []).filter((e) => e.id !== id),
       );
       removeFromSelection(id);
       setEditingId((s) => (s === id ? null : s));
       const { error } = await supabase.from('impact_canvas_elements').delete().eq('id', id);
       if (error) {
-        if (prev) qc.setQueryData(ELS_KEY(proposalId), prev);
+        if (prev) qc.setQueryData(ELS_KEY(proposalId, figureId), prev);
       }
     },
     [canEdit, proposalId, qc, snapshotOfEl, pushHistory],
@@ -1887,7 +1887,7 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className }: Pro
   const deleteSelectedFree = useCallback(
     async (ids: string[]) => {
       if (!canEdit || ids.length === 0) return;
-      const prev = qc.getQueryData<CanvasElement[]>(ELS_KEY(proposalId));
+      const prev = qc.getQueryData<CanvasElement[]>(ELS_KEY(proposalId, figureId));
       const targets = (prev || []).filter(
         (e) => ids.includes(e.id) && (e.kind === 'text' || e.kind === 'shape' || e.kind === 'line'),
       );
@@ -1903,7 +1903,7 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className }: Pro
       });
       pushHistory({ kind: 'batch', entries });
       const targetIdSet = new Set(targets.map((t) => t.id));
-      qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId), (old) =>
+      qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId, figureId), (old) =>
         (old || []).filter((e) => !targetIdSet.has(e.id)),
       );
       setSelectedIds((s) => {
@@ -1916,7 +1916,7 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className }: Pro
         .from('impact_canvas_elements')
         .delete()
         .in('id', Array.from(targetIdSet));
-      if (error && prev) qc.setQueryData(ELS_KEY(proposalId), prev);
+      if (error && prev) qc.setQueryData(ELS_KEY(proposalId, figureId), prev);
     },
     [canEdit, proposalId, qc, snapshotOfEl, pushHistory],
   );
