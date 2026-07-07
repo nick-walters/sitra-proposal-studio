@@ -90,13 +90,17 @@ export function ImpactCanvasTextBox({ html, editing, onChange, onCommit, autoFoc
     }
   }, [editing, autoFocus, editor]);
 
-  // Sync external HTML changes without clobbering the caret.
+  // Sync external HTML changes without clobbering the caret. Runs the
+  // one-time collapser for legacy stacked canvasFontSize marks; if it
+  // rewrote the HTML, emit onChange so the cleaned version persists.
   useEffect(() => {
     if (!editor) return;
     if (html === lastEmitted.current) return;
-    lastEmitted.current = html;
-    editor.commands.setContent(html || '', { emitUpdate: false });
-  }, [html, editor]);
+    const cleaned = collapseStackedCanvasFontSize(html || '');
+    lastEmitted.current = cleaned;
+    editor.commands.setContent(cleaned, { emitUpdate: false });
+    if (cleaned !== (html || '')) onChange(cleaned);
+  }, [html, editor, onChange]);
 
   return (
     <div
