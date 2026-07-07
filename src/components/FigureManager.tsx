@@ -153,14 +153,17 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
 
   // Create figure mutation
   const createFigure = useMutation({
-    mutationFn: async (data: { title: string; figureType: string; sectionId: string; imageUrl?: string; aiPrompt?: string }) => {
+    mutationFn: async (data: { title: string; figureType: string; sectionId: string; imageUrl?: string; aiPrompt?: string; content?: any }) => {
       const section = SECTION_OPTIONS.find(s => s.id === data.sectionId);
       const sectionNumber = section?.number.replace('B', '') || '1.1';
       const existingInSection = figures.filter(f => f.sectionId === data.sectionId);
       const letter = String.fromCharCode(97 + existingInSection.length); // a, b, c...
       const figureNumber = `${sectionNumber}.${letter}`;
 
-      const content: any = data.imageUrl ? { imageUrl: data.imageUrl } : null;
+      let content: any = data.content ?? null;
+      if (!content && data.imageUrl) {
+        content = { imageUrl: data.imageUrl };
+      }
       if (content && data.aiPrompt) {
         content.aiPrompt = data.aiPrompt;
       }
