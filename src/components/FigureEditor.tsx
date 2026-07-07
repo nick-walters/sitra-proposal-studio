@@ -28,6 +28,7 @@ import { ArrowLeft, Trash2, Image, Sparkles, Loader2, Upload, Download } from 'l
 import { useRef } from 'react';
 import { ImpactCanvasFreeformEditor } from '@/components/ImpactCanvasFreeformEditor';
 import { getFigureSizePreset } from '@/lib/figureSizePresets';
+import { FigureSizePicker, type FigureSizeValue } from '@/components/FigureSizePicker';
 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -185,30 +186,67 @@ export function FigureEditor({
 
   const renderFigureContent = () => {
     if (figure.content?.imageUrl) {
+      const isImageFigure = figure.figureType === 'image' || figure.figureType === 'ai';
+      const cWidth = Number(figure.content?.widthCm);
+      const cHeight = Number(figure.content?.heightCm);
+      const hasSize = Number.isFinite(cWidth) && cWidth > 0 && Number.isFinite(cHeight) && cHeight > 0;
+      const imgStyle = hasSize
+        ? { maxWidth: `${cWidth}cm`, maxHeight: `${cHeight}cm`, width: 'auto' as const, height: 'auto' as const }
+        : undefined;
+      const sizeValue: FigureSizeValue = {
+        presetId: (figure.content?.presetId as any) || (hasSize ? 'custom' : 'half'),
+        widthCm: hasSize ? cWidth : getFigureSizePreset(figure.content?.presetId).widthCm,
+        heightCm: hasSize ? cHeight : getFigureSizePreset(figure.content?.presetId).heightCm,
+      };
+      const handleSizeChange = (v: FigureSizeValue) => {
+        onUpdate({
+          content: {
+            ...(figure.content || {}),
+            presetId: v.presetId,
+            widthCm: v.widthCm,
+            heightCm: v.heightCm,
+          },
+        });
+      };
       return (
         <div className="space-y-4">
-          <div className="border rounded-lg overflow-hidden bg-muted/30">
+          <div className="border rounded-lg overflow-hidden bg-muted/30 p-2 flex justify-center">
             <Dialog>
               <DialogTrigger asChild>
-                <img 
-                  src={resolvedImageUrl || ''} 
+                <img
+                  src={resolvedImageUrl || ''}
                   alt={figure.title}
                   className="max-w-full h-auto mx-auto cursor-pointer hover:opacity-80 transition-opacity"
                   title="Click to enlarge"
+                  style={imgStyle}
                 />
               </DialogTrigger>
               <DialogContent className="max-w-4xl max-h-[90vh]">
                 <DialogHeader>
                   <DialogTitle>Figure {figure.figureNumber}</DialogTitle>
                 </DialogHeader>
-                <img 
-                  src={resolvedImageUrl || ''} 
+                <img
+                  src={resolvedImageUrl || ''}
                   alt={figure.title}
                   className="w-full h-auto rounded"
                 />
               </DialogContent>
           </Dialog>
           </div>
+          {canEdit && isImageFigure && (
+            <div className="max-w-sm">
+              <FigureSizePicker
+                value={sizeValue}
+                onChange={handleSizeChange}
+                idPrefix={`figure-${figure.id}-size`}
+                helpText={
+                  hasSize
+                    ? 'The image fits inside this box preserving aspect ratio (no crop, no stretch, no padding).'
+                    : 'Pick a size to fit the image inside a fixed box; leave unset for the original 100% width behaviour.'
+                }
+              />
+            </div>
+          )}
           {canEdit && (
             <div className="flex items-center gap-2">
               <input

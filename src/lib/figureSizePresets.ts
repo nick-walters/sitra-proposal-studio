@@ -1,9 +1,14 @@
 /**
  * Shared figure size presets — six fixed page-fraction sizes reused by the
- * Figure Canvas figure type (Stage C) and later by uploaded / AI-generated
- * figures. Each preset is a fixed physical width × height in centimetres
+ * Figure Canvas figure type (Stage C), uploaded images, and AI-generated
+ * images. Each preset is a fixed physical width × height in centimetres
  * (never adaptive) so the same preset always renders at the same aspect
  * ratio across editor / B2.1 mirror / PDF / Word / PNG.
+ *
+ * For uploaded/AI image figures the preset dimensions define a BOUNDING
+ * BOX; the image is scaled to fit inside preserving aspect ratio (contain,
+ * whole image visible, no crop or stretch, no letterbox padding — the
+ * figure occupies the fitted image's dimensions only).
  */
 export type FigureSizePresetId =
   | 'full'
@@ -31,6 +36,18 @@ export const FIGURE_SIZE_PRESETS: readonly FigureSizePreset[] = [
 ] as const;
 
 export const DEFAULT_FIGURE_SIZE_PRESET_ID: FigureSizePresetId = 'half';
+
+// Custom width/height bounds (cm). Match the full-page maxima.
+export const FIGURE_CUSTOM_MAX_WIDTH_CM = 18;
+export const FIGURE_CUSTOM_MAX_HEIGHT_CM = 25.5;
+export const FIGURE_CUSTOM_MIN_CM = 1;
+export const FIGURE_CUSTOM_DEFAULT_WIDTH_CM = 18;
+export const FIGURE_CUSTOM_DEFAULT_HEIGHT_CM = 25.5;
+
+export function clampFigureDim(v: number, max: number): number {
+  if (!Number.isFinite(v) || v <= 0) return FIGURE_CUSTOM_MIN_CM;
+  return Math.min(Math.max(v, FIGURE_CUSTOM_MIN_CM), max);
+}
 
 export function getFigureSizePreset(id: string | null | undefined): FigureSizePreset {
   return (

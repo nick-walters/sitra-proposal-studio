@@ -16,7 +16,17 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FigureEditor } from '@/components/FigureEditor';
 import { Plus, Image, BarChart3, Network, Upload, Sparkles, Loader2, LayoutGrid, List, Library, LayoutTemplate, Frame } from 'lucide-react';
-import { FIGURE_SIZE_PRESETS, DEFAULT_FIGURE_SIZE_PRESET_ID, getFigureSizePreset, type FigureSizePresetId } from '@/lib/figureSizePresets';
+import {
+  DEFAULT_FIGURE_SIZE_PRESET_ID,
+  getFigureSizePreset,
+  FIGURE_CUSTOM_MAX_WIDTH_CM,
+  FIGURE_CUSTOM_MAX_HEIGHT_CM,
+  FIGURE_CUSTOM_DEFAULT_WIDTH_CM,
+  FIGURE_CUSTOM_DEFAULT_HEIGHT_CM,
+  clampFigureDim,
+  type FigureSizePresetId,
+} from '@/lib/figureSizePresets';
+import { FigureSizePicker } from '@/components/FigureSizePicker';
 import { StorageImage } from '@/components/StorageImage';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -72,16 +82,14 @@ const FIGURE_TYPES = [
   { id: 'pert', label: 'PERT Diagram', icon: Network, description: 'Project network diagram' },
 ];
 
-// Custom canvas dimension bounds (cm). Full page is 18 × 25.5.
-const CANVAS_CUSTOM_MAX_WIDTH_CM = 18;
-const CANVAS_CUSTOM_MAX_HEIGHT_CM = 25.5;
-const CANVAS_CUSTOM_MIN_CM = 1;
-const CANVAS_CUSTOM_DEFAULT_WIDTH_CM = 18;
-const CANVAS_CUSTOM_DEFAULT_HEIGHT_CM = 25.5;
+// Custom canvas dimension bounds — mirror shared figure custom bounds.
+const CANVAS_CUSTOM_MAX_WIDTH_CM = FIGURE_CUSTOM_MAX_WIDTH_CM;
+const CANVAS_CUSTOM_MAX_HEIGHT_CM = FIGURE_CUSTOM_MAX_HEIGHT_CM;
+const CANVAS_CUSTOM_DEFAULT_WIDTH_CM = FIGURE_CUSTOM_DEFAULT_WIDTH_CM;
+const CANVAS_CUSTOM_DEFAULT_HEIGHT_CM = FIGURE_CUSTOM_DEFAULT_HEIGHT_CM;
 
 function clampCanvasDim(v: number, max: number) {
-  if (!Number.isFinite(v) || v <= 0) return CANVAS_CUSTOM_MIN_CM;
-  return Math.min(Math.max(v, CANVAS_CUSTOM_MIN_CM), max);
+  return clampFigureDim(v, max);
 }
 
 // Fallback sections for backward compatibility
@@ -617,55 +625,27 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
 
     if (newFigureType === 'canvas') {
       return (
-        <div className="space-y-2">
-          <Label>Canvas size</Label>
-          <Select value={canvasPresetId} onValueChange={(v) => setCanvasPresetId(v as FigureSizePresetId | 'custom')}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {FIGURE_SIZE_PRESETS.map((p) => (
-                <SelectItem key={p.id} value={p.id}>
-                  {p.label} — {p.widthCm} × {p.heightCm} cm
-                </SelectItem>
-              ))}
-              <SelectItem value="custom">Custom…</SelectItem>
-            </SelectContent>
-          </Select>
-          {canvasPresetId === 'custom' && (
-            <div className="grid grid-cols-2 gap-2 pt-1">
-              <div className="space-y-1">
-                <Label htmlFor="canvas-custom-width" className="text-xs">Width (cm)</Label>
-                <Input
-                  id="canvas-custom-width"
-                  type="number"
-                  min={CANVAS_CUSTOM_MIN_CM}
-                  max={CANVAS_CUSTOM_MAX_WIDTH_CM}
-                  step={0.1}
-                  value={canvasCustomWidth}
-                  onChange={(e) => setCanvasCustomWidth(Number(e.target.value))}
-                  onBlur={(e) => setCanvasCustomWidth(clampCanvasDim(Number(e.target.value), CANVAS_CUSTOM_MAX_WIDTH_CM))}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="canvas-custom-height" className="text-xs">Height (cm)</Label>
-                <Input
-                  id="canvas-custom-height"
-                  type="number"
-                  min={CANVAS_CUSTOM_MIN_CM}
-                  max={CANVAS_CUSTOM_MAX_HEIGHT_CM}
-                  step={0.1}
-                  value={canvasCustomHeight}
-                  onChange={(e) => setCanvasCustomHeight(Number(e.target.value))}
-                  onBlur={(e) => setCanvasCustomHeight(clampCanvasDim(Number(e.target.value), CANVAS_CUSTOM_MAX_HEIGHT_CM))}
-                />
-              </div>
-            </div>
-          )}
-          <p className="text-xs text-muted-foreground">
-            Fixed size (max {CANVAS_CUSTOM_MAX_WIDTH_CM} × {CANVAS_CUSTOM_MAX_HEIGHT_CM} cm). You can add shapes, lines and text on the canvas after it is created.
-          </p>
-        </div>
+        <FigureSizePicker
+          label="Canvas size"
+          idPrefix="canvas-custom"
+          helpText={`Fixed size (max ${CANVAS_CUSTOM_MAX_WIDTH_CM} × ${CANVAS_CUSTOM_MAX_HEIGHT_CM} cm). You can add shapes, lines and text on the canvas after it is created.`}
+          value={{
+            presetId: canvasPresetId,
+            widthCm: canvasPresetId === 'custom'
+              ? canvasCustomWidth
+              : getFigureSizePreset(canvasPresetId).widthCm,
+            heightCm: canvasPresetId === 'custom'
+              ? canvasCustomHeight
+              : getFigureSizePreset(canvasPresetId).heightCm,
+          }}
+          onChange={(v) => {
+            setCanvasPresetId(v.presetId);
+            if (v.presetId === 'custom') {
+              setCanvasCustomWidth(v.widthCm);
+              setCanvasCustomHeight(v.heightCm);
+            }
+          }}
+        />
       );
     }
 

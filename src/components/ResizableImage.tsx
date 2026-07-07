@@ -4,13 +4,15 @@ import { useState, useCallback, useRef } from 'react';
 import { useStorageUrl } from '@/hooks/useStorageUrl';
 
 function ResizableImageComponent({ node, updateAttributes, selected }: NodeViewProps) {
-  const { src: rawSrc, alt, width, height, widthPercent, alignment } = node.attrs as { 
-    src: string; 
-    alt?: string; 
-    width?: number | string; 
+  const { src: rawSrc, alt, width, height, widthPercent, alignment, maxWidthCm, maxHeightCm } = node.attrs as {
+    src: string;
+    alt?: string;
+    width?: number | string;
     height?: number | string;
     widthPercent?: number;
     alignment?: 'left' | 'center' | 'right';
+    maxWidthCm?: number | null;
+    maxHeightCm?: number | null;
   };
   const src = useStorageUrl(rawSrc) || rawSrc;
   const [, setIsResizing] = useState(false);
@@ -86,8 +88,16 @@ function ResizableImageComponent({ node, updateAttributes, selected }: NodeViewP
     return undefined;
   };
 
+  // Bounding-box (contain) mode: figure sizing preset assigned on the
+  // figure record. The image scales inside a max-width/max-height box
+  // preserving aspect ratio — no crop, no stretch, no letterbox padding
+  // (the img itself takes the fitted dimensions).
+  const hasBoundingBox =
+    (typeof maxWidthCm === 'number' && maxWidthCm > 0) ||
+    (typeof maxHeightCm === 'number' && maxHeightCm > 0);
+
   // Use percentage width if set and positive, otherwise use pixel dimensions
-  const usePercentage = typeof widthPercent === 'number' && widthPercent > 0;
+  const usePercentage = !hasBoundingBox && typeof widthPercent === 'number' && widthPercent > 0;
   const imgWidth = parseDimension(width);
   const imgHeight = parseDimension(height);
 
@@ -104,30 +114,42 @@ function ResizableImageComponent({ node, updateAttributes, selected }: NodeViewP
     }
   };
 
+  const boxStyle: React.CSSProperties = hasBoundingBox
+    ? { display: 'inline-block' }
+    : {
+        width: usePercentage ? `${widthPercent}%` : (imgWidth ? `${imgWidth}px` : 'auto'),
+        height: usePercentage ? 'auto' : (imgHeight ? `${imgHeight}px` : 'auto'),
+      };
+
+  const imgStyle: React.CSSProperties = hasBoundingBox
+    ? {
+        maxWidth: typeof maxWidthCm === 'number' && maxWidthCm > 0 ? `${maxWidthCm}cm` : 'none',
+        maxHeight: typeof maxHeightCm === 'number' && maxHeightCm > 0 ? `${maxHeightCm}cm` : 'none',
+        width: 'auto',
+        height: 'auto',
+        display: 'block',
+      }
+    : { width: '100%', height: 'auto' };
+
   return (
-    <NodeViewWrapper 
-      className="resizable-image-wrapper w-full flex" 
+    <NodeViewWrapper
+      className="resizable-image-wrapper w-full flex"
       style={getAlignmentStyles()}
     >
-      
-      <div 
+
+      <div
         className={`relative inline-block ${selected ? 'ring-2 ring-primary' : ''}`}
-        style={{ 
-          width: usePercentage ? `${widthPercent}%` : (imgWidth ? `${imgWidth}px` : 'auto'),
-          height: usePercentage ? 'auto' : (imgHeight ? `${imgHeight}px` : 'auto'),
-        }}
+        style={boxStyle}
       >
         <img
           ref={imageRef}
           src={src}
           alt={alt || ''}
           className="max-w-full block"
-          style={{ 
-            width: '100%',
-            height: 'auto',
-          }}
+          style={imgStyle}
           draggable={false}
         />
+
         
         {/* Resize handles - always show when selected */}
         {selected && (
@@ -205,6 +227,27 @@ export const ResizableImage = Node.create({
         },
         renderHTML: () => ({}),
       },
+      // Figure size preset — bounding box in cm. When either is > 0 the
+      // image renders with max-width / max-height (contain: aspect kept,
+      // image fits inside, no crop or stretch). Overrides widthPercent.
+      maxWidthCm: {
+        default: null,
+        parseHTML: (element) => {
+          const style = element.getAttribute('style') || '';
+          const m = style.match(/max-width:\s*([\d.]+)cm/);
+          return m ? parseFloat(m[1]) : null;
+        },
+        renderHTML: () => ({}),
+      },
+      maxHeightCm: {
+        default: null,
+        parseHTML: (element) => {
+          const style = element.getAttribute('style') || '';
+          const m = style.match(/max-height:\s*([\d.]+)cm/);
+          return m ? parseFloat(m[1]) : null;
+        },
+        renderHTML: () => ({}),
+      },
     };
   },
 
@@ -217,9 +260,9 @@ export const ResizableImage = Node.create({
   },
 
   renderHTML({ node }) {
-    const { widthPercent, width, height, alignment, src, alt } = node.attrs;
+    const { widthPercent, width, height, alignment, src, alt, maxWidthCm, maxHeightCm } = node.attrs;
     const styles: string[] = [];
-    
+
     // Add alignment via display block + margin
     if (alignment === 'center') {
       styles.push('display: block', 'margin-left: auto', 'margin-right: auto');
@@ -228,15 +271,28 @@ export const ResizableImage = Node.create({
     } else {
       styles.push('display: block', 'margin-left: 0', 'margin-right: auto');
     }
-    
-    // Add width/height — only use percentage if explicitly > 0
-    if (typeof widthPercent === 'number' && widthPercent > 0) {
+
+    const hasBoundingBox =
+      (typeof maxWidthCm === 'number' && maxWidthCm > 0) ||
+      (typeof maxHeightCm === 'number' && maxHeightCm > 0);
+
+    if (hasBoundingBox) {
+      // Contain inside a bounding box (cm). Aspect ratio preserved by
+      // width/height:auto — the img takes its fitted intrinsic size.
+      if (typeof maxWidthCm === 'number' && maxWidthCm > 0) {
+        styles.push(`max-width: ${maxWidthCm}cm`);
+      }
+      if (typeof maxHeightCm === 'number' && maxHeightCm > 0) {
+        styles.push(`max-height: ${maxHeightCm}cm`);
+      }
+      styles.push('width: auto', 'height: auto');
+    } else if (typeof widthPercent === 'number' && widthPercent > 0) {
       styles.push(`width: ${widthPercent}%`, 'height: auto');
     } else {
       if (width) styles.push(`width: ${width}px`);
       if (height) styles.push(`height: ${height}px`);
     }
-    
+
     const attrs: Record<string, any> = { style: styles.join('; ') };
     if (src) attrs.src = src;
     if (alt) attrs.alt = alt;
@@ -252,7 +308,7 @@ export const ResizableImage = Node.create({
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     resizableImage: {
-      setImage: (options: { src: string; alt?: string; width?: number; height?: number; widthPercent?: number; alignment?: 'left' | 'center' | 'right' }) => ReturnType;
+      setImage: (options: { src: string; alt?: string; width?: number; height?: number; widthPercent?: number; alignment?: 'left' | 'center' | 'right'; maxWidthCm?: number | null; maxHeightCm?: number | null }) => ReturnType;
     };
   }
 }
