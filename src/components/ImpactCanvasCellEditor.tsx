@@ -23,6 +23,10 @@ interface Props {
   placeholder?: string;
 }
 
+function isCanvasToolbarTarget(target: EventTarget | null): boolean {
+  return target instanceof HTMLElement && !!target.closest('[data-impact-canvas-toolbar]');
+}
+
 /**
  * Small rich-text cell editor for the Impact Canvas builder. Focus reports
  * up so the SHARED canvas text toolbar can operate on the currently-
@@ -70,7 +74,8 @@ export function ImpactCanvasCellEditor({ html, onChange, onFocus, onBlur, disabl
       setFocusedCanvasEditor(editor);
       onFocus(editor);
     },
-    onBlur: ({ editor }) => {
+    onBlur: ({ editor, event }) => {
+      if (isCanvasToolbarTarget(event.relatedTarget)) return;
       queueMicrotask(() => {
         if (getFocusedCanvasEditor() === editor) setFocusedCanvasEditor(null);
       });
