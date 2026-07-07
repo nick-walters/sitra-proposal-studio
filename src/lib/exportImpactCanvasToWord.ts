@@ -77,8 +77,8 @@ export async function swapImpactCanvasForWord(
   const cellStyle = [
     'border:1px solid #000',
     'padding:4pt 6pt',
-    'font-family:\'Times New Roman\',Times,serif',
-    'font-size:10pt',
+    'font-family:Arial,sans-serif',
+    'font-size:11pt',
     'color:#000',
     'text-align:left',
     'vertical-align:top',
