@@ -16,7 +16,17 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FigureEditor } from '@/components/FigureEditor';
 import { Plus, Image, BarChart3, Network, Upload, Sparkles, Loader2, LayoutGrid, List, Library, LayoutTemplate, Frame } from 'lucide-react';
-import { FIGURE_SIZE_PRESETS, DEFAULT_FIGURE_SIZE_PRESET_ID, getFigureSizePreset, type FigureSizePresetId } from '@/lib/figureSizePresets';
+import {
+  DEFAULT_FIGURE_SIZE_PRESET_ID,
+  getFigureSizePreset,
+  FIGURE_CUSTOM_MAX_WIDTH_CM,
+  FIGURE_CUSTOM_MAX_HEIGHT_CM,
+  FIGURE_CUSTOM_DEFAULT_WIDTH_CM,
+  FIGURE_CUSTOM_DEFAULT_HEIGHT_CM,
+  clampFigureDim,
+  type FigureSizePresetId,
+} from '@/lib/figureSizePresets';
+import { FigureSizePicker } from '@/components/FigureSizePicker';
 import { StorageImage } from '@/components/StorageImage';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
