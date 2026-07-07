@@ -10,7 +10,9 @@ import { wordCleanPasteProps } from '@/lib/tiptapPasteProps';
 import { CanvasFontSize } from '@/extensions/CanvasFontSize';
 import { CanvasHeader } from '@/extensions/CanvasHeader';
 import { setFocusedCanvasEditor, getFocusedCanvasEditor } from '@/lib/impactCanvasFocusedEditor';
-import { FONT_FAMILY_REGULAR, DEFAULT_TEXT_COLOR, ptFont, DEFAULT_PT } from '@/lib/impactCanvasTextSizing';
+import { FONT_FAMILY_REGULAR, DEFAULT_TEXT_COLOR, DEFAULT_PT } from '@/lib/impactCanvasTextSizing';
+import { useCanvasPtFont } from '@/lib/canvasSize';
+
 
 interface Props {
   html: string;
@@ -28,6 +30,8 @@ function isCanvasToolbarTarget(target: EventTarget | null): boolean {
 }
 
 export function ImpactCanvasTextBox({ html, editing, onChange, onCommit, autoFocus, align = 'left' }: Props) {
+  const pf = useCanvasPtFont();
+
   const lastEmitted = useRef(html);
 
   const alignClass =
@@ -99,7 +103,7 @@ export function ImpactCanvasTextBox({ html, editing, onChange, onCommit, autoFoc
         overflow: 'hidden',
         fontFamily: FONT_FAMILY_REGULAR,
         color: DEFAULT_TEXT_COLOR,
-        fontSize: ptFont(DEFAULT_PT),
+        fontSize: pf(DEFAULT_PT),
         lineHeight: 1.3,
       }}
       // Prevent drag pointerdown from stealing focus while editing.

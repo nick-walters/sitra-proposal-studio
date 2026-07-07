@@ -106,17 +106,32 @@ export function computeDefaultBoundPosition(
  * they produce identical wrapper heights (and therefore identical aspect
  * ratios) for the same content.
  */
+export interface CanvasHeightBounds {
+  minCm?: number;
+  maxCm?: number;
+  headerCm?: number;
+  /** When false, returns maxCm regardless of element bottoms (fixed-size). */
+  adaptive?: boolean;
+}
+
 export function computeCanvasHeightCm(
   elements: ReadonlyArray<{ y: number; h: number }>,
+  bounds?: CanvasHeightBounds,
 ): number {
-  let bottom = HEADER_HEIGHT_CM;
+  const minCm = bounds?.minCm ?? CANVAS_MIN_HEIGHT_CM;
+  const maxCm = bounds?.maxCm ?? CANVAS_MAX_HEIGHT_CM;
+  const headerCm = bounds?.headerCm ?? HEADER_HEIGHT_CM;
+  const adaptive = bounds?.adaptive ?? true;
+  if (!adaptive) return maxCm;
+  let bottom = headerCm;
   for (const el of elements) {
     const b = (el.y ?? 0) + (el.h ?? 0);
     if (b > bottom) bottom = b;
   }
   const desired = bottom + CANVAS_BOTTOM_PAD_CM;
-  return Math.min(CANVAS_MAX_HEIGHT_CM, Math.max(CANVAS_MIN_HEIGHT_CM, desired));
+  return Math.min(maxCm, Math.max(minCm, desired));
 }
+
 
 /**
  * Additive-only sync helper. Ensures there is exactly one 'bound' element per

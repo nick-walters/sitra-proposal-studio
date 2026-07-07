@@ -10,9 +10,6 @@ import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useImpactCanvasColumns, useImpactCanvasRows } from '@/hooks/useImpactCanvas';
 import {
-  CANVAS_WIDTH_CM,
-  CANVAS_MAX_HEIGHT_CM,
-  
   MIN_ELEMENT_W_CM,
   MIN_ELEMENT_H_CM,
   DEFAULT_BOUND_H_CM,
@@ -30,10 +27,11 @@ import {
   FONT_FAMILY_REGULAR,
   FONT_FAMILY_HEADER,
   DEFAULT_TEXT_COLOR,
-  ptFont,
   DEFAULT_PT,
   HEADER_PT,
 } from '@/lib/impactCanvasTextSizing';
+import { CanvasSizeProvider, IMPACT_CANVAS_SIZE, useCanvasSize, useCanvasPtFont } from '@/lib/canvasSize';
+
 import {
   ImpactCanvasLinesOverlay,
   computeLineBBox,
@@ -148,10 +146,21 @@ interface DragState {
 /** Snap-to-grid step (matches the MINOR grid line spacing). */
 const SNAP_STEP_CM = 0.2;
 
-export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: Props) {
+export function ImpactCanvasFreeformEditor(props: Props) {
+  return (
+    <CanvasSizeProvider value={IMPACT_CANVAS_SIZE}>
+      <ImpactCanvasFreeformEditorInner {...props} />
+    </CanvasSizeProvider>
+  );
+}
+
+function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className }: Props) {
+  const { widthCm, minHeightCm, maxHeightCm, headerHeightCm, adaptive } = useCanvasSize();
+  const pf = useCanvasPtFont();
   const qc = useQueryClient();
   const { columns, isLoading: colsLoading } = useImpactCanvasColumns(proposalId);
   const { rows, isLoading: rowsLoading } = useImpactCanvasRows(proposalId);
+
 
   const { data: fetched = EMPTY_ELS, isLoading: elsLoading } = useQuery({
     queryKey: ELS_KEY(proposalId),
@@ -850,7 +859,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
   }, [canEdit, undo, redo]);
 
 
-  const canvasHeightCmRef = useRef(CANVAS_MAX_HEIGHT_CM);
+  const canvasHeightCmRef = useRef(maxHeightCm);
 
   // Refs for values referenced inside the drag lifecycle so that listeners
   // attached synchronously in beginDrag always see fresh values without
@@ -1016,8 +1025,8 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       setDrag(localDrag);
     };
 
-    const VW = CANVAS_WIDTH_CM;
-    const VH_CM = CANVAS_MAX_HEIGHT_CM;
+    const VW = widthCm;
+    const VH_CM = maxHeightCm;
 
     const runMove = (ev: PointerEvent) => {
       if (!localDrag) return;
@@ -1383,7 +1392,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     if (!wrapper) return;
     const rectW = wrapper.getBoundingClientRect().width;
     if (!rectW) return;
-    const pxPerCm = rectW / CANVAS_WIDTH_CM;
+    const pxPerCm = rectW / widthCm;
     // Approx vertical padding inside the visible box: 2pt outer + 2pt inner
     // per side ≈ 8pt total → ~0.28 cm.
     const V_PAD_CM = 8 / 28.3465;
@@ -1619,7 +1628,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
   const addShape = useCallback(
     async (shape: ShapeKind) => {
       if (!canEdit) return;
-      const VW = CANVAS_WIDTH_CM;
+      const VW = widthCm;
       const VH = canvasHeightCmRef.current;
       // Default sizes (cm) per shape kind.
       const size =
@@ -1663,7 +1672,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
   const addLine = useCallback(
     async (routing: 'straight' | 'elbow') => {
       if (!canEdit) return;
-      const VW = CANVAS_WIDTH_CM;
+      const VW = widthCm;
       const VH = canvasHeightCmRef.current;
       const halfLen = 2;
       const cy = +(VH / 2).toFixed(2);
@@ -1755,10 +1764,10 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       const current = overrides[id] ?? { x: el.x, y: el.y, w: el.w, h: el.h };
       let next = { ...current, ...patch };
       // Clamp: element must fit inside 18 cm × 25.5 cm.
-      next.w = Math.max(MIN_W, Math.min(CANVAS_WIDTH_CM, next.w));
-      next.h = Math.max(MIN_H, Math.min(CANVAS_MAX_HEIGHT_CM, next.h));
-      next.x = Math.max(0, Math.min(CANVAS_WIDTH_CM - next.w, next.x));
-      next.y = Math.max(0, Math.min(CANVAS_MAX_HEIGHT_CM - next.h, next.y));
+      next.w = Math.max(MIN_W, Math.min(widthCm, next.w));
+      next.h = Math.max(MIN_H, Math.min(maxHeightCm, next.h));
+      next.x = Math.max(0, Math.min(widthCm - next.w, next.x));
+      next.y = Math.max(0, Math.min(maxHeightCm - next.h, next.y));
       setOverrides((o) => ({ ...o, [id]: next }));
       persistDebounced(id, next);
       let styleAfter: unknown = before.style;
@@ -1805,10 +1814,10 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
         const next = { ...current };
         if (patch.w !== undefined) next.w = patch.w;
         if (patch.h !== undefined) next.h = patch.h;
-        next.w = Math.max(MIN_W, Math.min(CANVAS_WIDTH_CM, next.w));
-        next.h = Math.max(MIN_H, Math.min(CANVAS_MAX_HEIGHT_CM, next.h));
-        next.x = Math.max(0, Math.min(CANVAS_WIDTH_CM - next.w, next.x));
-        next.y = Math.max(0, Math.min(CANVAS_MAX_HEIGHT_CM - next.h, next.y));
+        next.w = Math.max(MIN_W, Math.min(widthCm, next.w));
+        next.h = Math.max(MIN_H, Math.min(maxHeightCm, next.h));
+        next.x = Math.max(0, Math.min(widthCm - next.w, next.x));
+        next.y = Math.max(0, Math.min(maxHeightCm - next.h, next.y));
         nextOverrides[el.id] = next;
         persistDebounced(el.id, next);
 
@@ -1984,8 +1993,8 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
   // Merge live drag overrides so the canvas height grows in real-time as
   // the user drags an element toward the bottom edge (still clamped to 25.5cm).
   const mergedForHeight = fetched.map((e) => ({ ...e, ...(overrides[e.id] ?? {}) }));
-  const VW = CANVAS_WIDTH_CM;
-  const VH = computeCanvasHeightCm(mergedForHeight);
+  const VW = widthCm;
+  const VH = computeCanvasHeightCm(mergedForHeight, { minCm: minHeightCm, maxCm: maxHeightCm, headerCm: headerHeightCm, adaptive });
   canvasHeightCmRef.current = VH;
   const pctX = (x: number) => `${(x / VW) * 100}%`;
   const pctY = (y: number) => `${(y / VH) * 100}%`;
@@ -2404,7 +2413,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
               // Convert CSS-px rect to canvas-cm rect and select intersecting
               // elements. Anchor-agnostic: bbox for boxes/images/text; line
               // uses its endpoint bbox.
-              const pxPerCmX = rect.width / CANVAS_WIDTH_CM;
+              const pxPerCmX = rect.width / widthCm;
               const pxPerCmY = rect.height / canvasHeightCmRef.current;
               const mxCm = Math.min(startX, curX) / pxPerCmX;
               const myCm = Math.min(startY, curY) / pxPerCmY;
@@ -2529,7 +2538,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
                   justifyContent: 'flex-start',
                   overflow: 'hidden',
                   fontFamily: FONT_FAMILY_HEADER,
-                  fontSize: ptFont(HEADER_PT),
+                  fontSize: pf(HEADER_PT),
                   fontWeight: 900,
                   color: bs.color,
                   whiteSpace: 'pre-line',
@@ -2629,7 +2638,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
                   alignItems: 'center',
                   justifyContent: 'flex-start',
                   overflow: 'hidden',
-                  fontSize: ptFont(DEFAULT_PT),
+                  fontSize: pf(DEFAULT_PT),
                   lineHeight: 1.3,
                   color: bs.color ?? DEFAULT_TEXT_COLOR,
                   pointerEvents: editing ? 'auto' : 'none',
@@ -2699,7 +2708,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
                 pointerEvents: 'none',
                 padding: '2pt',
                 boxSizing: 'border-box',
-                fontSize: ptFont(DEFAULT_PT),
+                fontSize: pf(DEFAULT_PT),
                 lineHeight: 1.3,
                 fontFamily: FONT_FAMILY_REGULAR,
               }}
@@ -2781,7 +2790,7 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
                   padding: '2pt',
                   boxSizing: 'border-box',
                   overflow: 'hidden',
-                  fontSize: ptFont(style.fontSize ?? DEFAULT_PT),
+                  fontSize: pf(style.fontSize ?? DEFAULT_PT),
                   lineHeight: 1.3,
                   color: DEFAULT_TEXT_COLOR,
                   textAlign: style.textAlign ?? 'left',

@@ -3,10 +3,13 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
 import { supabase } from '@/integrations/supabase/client';
 import { useImpactCanvasColumns, useImpactCanvasRows } from '@/hooks/useImpactCanvas';
-import { CANVAS_WIDTH_CM, computeCanvasHeightCm } from '@/lib/impactCanvasLayout';
+import { computeCanvasHeightCm } from '@/lib/impactCanvasLayout';
 import { ImpactCanvasShape, type ShapeKind } from './ImpactCanvasShape';
 import { resolveBoundStyle } from '@/lib/impactCanvasBoundStyle';
-import { FONT_FAMILY_REGULAR, FONT_FAMILY_HEADER, DEFAULT_TEXT_COLOR, ptFont, DEFAULT_PT, HEADER_PT } from '@/lib/impactCanvasTextSizing';
+import { FONT_FAMILY_REGULAR, FONT_FAMILY_HEADER, DEFAULT_TEXT_COLOR, DEFAULT_PT, HEADER_PT } from '@/lib/impactCanvasTextSizing';
+import { CanvasSizeProvider, IMPACT_CANVAS_SIZE, useCanvasSize, useCanvasPtFont } from '@/lib/canvasSize';
+
+
 
 interface Props {
   proposalId: string;
@@ -100,7 +103,18 @@ function useImpactCanvasElements(proposalId: string) {
  * via data-impact-canvas-graphic="true" and rebuilds a semantic <table>
  * from columns + rows (layout ignored).
  */
-export function ImpactCanvasFreeformRenderer({ proposalId, className, fallback = 'grid' }: Props) {
+export function ImpactCanvasFreeformRenderer(props: Props) {
+  return (
+    <CanvasSizeProvider value={IMPACT_CANVAS_SIZE}>
+      <ImpactCanvasFreeformRendererInner {...props} />
+    </CanvasSizeProvider>
+  );
+}
+
+function ImpactCanvasFreeformRendererInner({ proposalId, className, fallback = 'grid' }: Props) {
+  const { widthCm, minHeightCm, maxHeightCm, headerHeightCm, adaptive } = useCanvasSize();
+  const pf = useCanvasPtFont();
+
   const { columns, isLoading: colsLoading } = useImpactCanvasColumns(proposalId);
   const { rows, isLoading: rowsLoading } = useImpactCanvasRows(proposalId);
   const { elements, isLoading: elsLoading } = useImpactCanvasElements(proposalId);
@@ -148,13 +162,19 @@ export function ImpactCanvasFreeformRenderer({ proposalId, className, fallback =
 
   const rowById = new Map(rows.map((r) => [r.id, r]));
   const columnByKey = new Map(columnOrder.map((c) => [c.key, c]));
-  const VW = CANVAS_WIDTH_CM;
+  const VW = widthCm;
   // Parity with the editor's canvas-height calculation: include EVERY
   // element (lines included — a line's stored w/h is its endpoint bbox).
   // Previously excluded lines made the read-only wrapper shorter than the
   // editor whenever a line extended below the lowest box, yielding a
   // different aspect ratio in B2.1/PDF/PNG.
-  const VH = computeCanvasHeightCm(elements);
+  const VH = computeCanvasHeightCm(elements, {
+    minCm: minHeightCm,
+    maxCm: maxHeightCm,
+    headerCm: headerHeightCm,
+    adaptive,
+  });
+
   const pctX = (x: number) => `${(x / VW) * 100}%`;
   const pctY = (y: number) => `${(y / VH) * 100}%`;
   const paddingPct = `${(VH / VW) * 100}%`;
@@ -215,7 +235,7 @@ export function ImpactCanvasFreeformRenderer({ proposalId, className, fallback =
                 justifyContent: 'flex-start',
                 overflow: 'hidden',
                 fontFamily: FONT_FAMILY_HEADER,
-                fontSize: ptFont(HEADER_PT),
+                fontSize: pf(HEADER_PT),
                 fontWeight: 900,
                 color: bs.color,
                 whiteSpace: 'pre-line',
@@ -264,7 +284,7 @@ export function ImpactCanvasFreeformRenderer({ proposalId, className, fallback =
                 alignItems: 'center',
                 justifyContent: 'flex-start',
                 overflow: 'hidden',
-                fontSize: ptFont(DEFAULT_PT),
+                fontSize: pf(DEFAULT_PT),
                 lineHeight: 1.3,
                 color: bs.color ?? DEFAULT_TEXT_COLOR,
               }}
@@ -298,7 +318,7 @@ export function ImpactCanvasFreeformRenderer({ proposalId, className, fallback =
               zIndex: el.z,
               padding: '2pt',
               boxSizing: 'border-box',
-              fontSize: ptFont(style.fontSize ?? DEFAULT_PT),
+              fontSize: pf(style.fontSize ?? DEFAULT_PT),
               lineHeight: 1.3,
               color: DEFAULT_TEXT_COLOR,
               textAlign: style.textAlign ?? 'left',
