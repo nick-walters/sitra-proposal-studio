@@ -16,6 +16,7 @@ import { InlineReferenceNode } from '@/extensions/InlineReferenceNode';
 import { CanvasFontSize } from '@/extensions/CanvasFontSize';
 import { CanvasHeader } from '@/extensions/CanvasHeader';
 import { setFocusedCanvasEditor, getFocusedCanvasEditor } from '@/lib/impactCanvasFocusedEditor';
+import { collapseStackedCanvasFontSize } from '@/lib/collapseStackedCanvasFontSize';
 
 interface Props {
   html: string;
