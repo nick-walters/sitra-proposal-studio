@@ -35,7 +35,14 @@ function cqwToPt(cqw: number): number {
 export const CanvasFontSize = Mark.create({
   name: 'canvasFontSize',
   spanning: true,
-  excludes: '',
+  // IMPORTANT: do NOT set `excludes: ''` here. The empty string tells
+  // ProseMirror the mark excludes NOTHING — including itself — which
+  // lets multiple canvasFontSize marks with different `pt` stack on the
+  // same run (observed: setting 9→10→14 grew marksInRange 1→2→3 and
+  // getAttributes returned the first mark's pt forever).
+  // Default `excludes` = the mark's own type (self-exclusion), so
+  // re-applying setMark replaces the existing mark's attrs instead of
+  // stacking. That's exactly what we want: one canvasFontSize per run.
   addAttributes() {
     return {
       pt: {
