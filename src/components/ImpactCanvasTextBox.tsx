@@ -99,7 +99,7 @@ export function ImpactCanvasTextBox({ html, editing, onChange, onCommit, autoFoc
         overflow: 'hidden',
         fontFamily: FONT_FAMILY_REGULAR,
         color: DEFAULT_TEXT_COLOR,
-        fontSize: ptFont(DEFAULT_PT),
+        fontSize: pf(DEFAULT_PT),
         lineHeight: 1.3,
       }}
       // Prevent drag pointerdown from stealing focus while editing.

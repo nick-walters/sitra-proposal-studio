@@ -96,7 +96,7 @@ export function ImpactCanvasShape({ shape, styleRaw, children, selected }: Props
           padding: '4pt',
           boxSizing: 'border-box',
           textAlign: 'center',
-          fontSize: ptFont(DEFAULT_PT),
+          fontSize: pf(DEFAULT_PT),
           lineHeight: 1.3,
           overflow: 'hidden',
         }}
