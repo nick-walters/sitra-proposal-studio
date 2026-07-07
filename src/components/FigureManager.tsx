@@ -82,16 +82,14 @@ const FIGURE_TYPES = [
   { id: 'pert', label: 'PERT Diagram', icon: Network, description: 'Project network diagram' },
 ];
 
-// Custom canvas dimension bounds (cm). Full page is 18 × 25.5.
-const CANVAS_CUSTOM_MAX_WIDTH_CM = 18;
-const CANVAS_CUSTOM_MAX_HEIGHT_CM = 25.5;
-const CANVAS_CUSTOM_MIN_CM = 1;
-const CANVAS_CUSTOM_DEFAULT_WIDTH_CM = 18;
-const CANVAS_CUSTOM_DEFAULT_HEIGHT_CM = 25.5;
+// Custom canvas dimension bounds — mirror shared figure custom bounds.
+const CANVAS_CUSTOM_MAX_WIDTH_CM = FIGURE_CUSTOM_MAX_WIDTH_CM;
+const CANVAS_CUSTOM_MAX_HEIGHT_CM = FIGURE_CUSTOM_MAX_HEIGHT_CM;
+const CANVAS_CUSTOM_DEFAULT_WIDTH_CM = FIGURE_CUSTOM_DEFAULT_WIDTH_CM;
+const CANVAS_CUSTOM_DEFAULT_HEIGHT_CM = FIGURE_CUSTOM_DEFAULT_HEIGHT_CM;
 
 function clampCanvasDim(v: number, max: number) {
-  if (!Number.isFinite(v) || v <= 0) return CANVAS_CUSTOM_MIN_CM;
-  return Math.min(Math.max(v, CANVAS_CUSTOM_MIN_CM), max);
+  return clampFigureDim(v, max);
 }
 
 // Fallback sections for backward compatibility
