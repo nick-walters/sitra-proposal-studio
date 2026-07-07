@@ -25,6 +25,15 @@ import type { BoundBoxStyle } from '@/lib/impactCanvasBoundStyle';
 import { ImpactCanvasTextBox } from './ImpactCanvasTextBox';
 import { ImpactCanvasOutlinePicker } from './ImpactCanvasOutlinePicker';
 import { ImpactCanvasShape, type ShapeKind } from './ImpactCanvasShape';
+import { ImpactCanvasTextToolbar } from './ImpactCanvasTextToolbar';
+import {
+  FONT_FAMILY_REGULAR,
+  FONT_FAMILY_HEADER,
+  DEFAULT_TEXT_COLOR,
+  ptFont,
+  DEFAULT_PT,
+  HEADER_PT,
+} from '@/lib/impactCanvasTextSizing';
 import {
   ImpactCanvasLinesOverlay,
   computeLineBBox,
@@ -64,7 +73,7 @@ interface Props {
  */
 
 const CELL_SANITIZE_CONFIG = {
-  ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'ul', 'ol', 'li', 'span', 'svg', 'path'],
+  ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'ul', 'ol', 'li', 'span', 'sup', 'sub', 'svg', 'path'],
   ALLOWED_ATTR: [
     'class', 'style', 'contenteditable',
     'width', 'height', 'viewBox', 'xmlns', 'd', 'fill', 'stroke', 'stroke-width', 'stroke-linejoin',
@@ -157,6 +166,90 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
       return (data ?? []) as CanvasElement[];
     },
   });
+
+  // ── One-shot migration: per-object style.fontColor → per-run <span>
+  // colour mark on the stored text HTML. See ImpactCanvasTextToolbar
+  // header comment for rationale (single source of truth for colour).
+  //
+  // Header elements are skipped: their text is the column heading (plain
+  // text, not per-element HTML). They retain the fontColor field on their
+  // style until the day we support editing column headings as run text.
+  const migrationRanRef = useRef(false);
+  useEffect(() => {
+    if (migrationRanRef.current) return;
+    if (!fetched.length && !rows.length) return;
+    migrationRanRef.current = true;
+
+    (async () => {
+      const wrap = (html: string, color: string): string => {
+        const safe = color.replace(/[^#0-9a-zA-Z(),. %-]/g, '');
+        if (!html || !html.trim()) return `<span style="color:${safe}"></span>`;
+        return `<span style="color:${safe}">${html}</span>`;
+      };
+      let elementsMigrated = 0;
+      let rowsMigrated = 0;
+      const rowUpdates = new Map<string, Record<string, string>>();
+
+      for (const el of fetched) {
+        const raw = (el.style ?? {}) as Record<string, unknown>;
+        const fc = typeof raw.fontColor === 'string' ? raw.fontColor : null;
+        const alreadyMigrated = raw._fontColorMigratedV1 === true;
+        if (!fc || alreadyMigrated) continue;
+        if (el.kind === 'header') continue; // heading is plain text — see comment above.
+
+        const nextStyle: Record<string, unknown> = { ...raw };
+        delete nextStyle.fontColor;
+        nextStyle._fontColorMigratedV1 = true;
+
+        if (el.kind === 'text' || el.kind === 'shape') {
+          const content = (el.content ?? {}) as Record<string, unknown>;
+          const html = typeof content.html === 'string' ? content.html : '';
+          const nextContent = { ...content, html: wrap(html, fc) };
+          const { error } = await supabase
+            .from('impact_canvas_elements')
+            .update({ style: nextStyle as never, content: nextContent as never })
+            .eq('id', el.id);
+          if (!error) elementsMigrated++;
+        } else if (el.kind === 'bound' && el.bound_row_id && el.bound_col_key) {
+          // Queue a row content update — wraps cell HTML with a colour span.
+          const rowId = el.bound_row_id;
+          const key = el.bound_col_key;
+          const row = rows.find((r) => r.id === rowId);
+          const existing = rowUpdates.get(rowId) ?? { ...(row?.content ?? {}) };
+          const cellHtml = existing[key] ?? '';
+          existing[key] = wrap(cellHtml, fc);
+          rowUpdates.set(rowId, existing);
+          const { error } = await supabase
+            .from('impact_canvas_elements')
+            .update({ style: nextStyle as never })
+            .eq('id', el.id);
+          if (!error) elementsMigrated++;
+        } else {
+          // Line / unknown: just drop fontColor.
+          await supabase.from('impact_canvas_elements').update({ style: nextStyle as never }).eq('id', el.id);
+        }
+      }
+
+      for (const [rowId, content] of rowUpdates) {
+        const { error } = await supabase
+          .from('impact_canvas_rows')
+          .update({ content: content as never })
+          .eq('id', rowId);
+        if (!error) rowsMigrated++;
+      }
+
+      if (elementsMigrated || rowsMigrated) {
+        // eslint-disable-next-line no-console
+        console.info(
+          `[ImpactCanvas] fontColor migration: ${elementsMigrated} element(s) migrated, ${rowsMigrated} row(s) rewrapped, per-object fontColor cleared (single source of truth = run marks).`,
+        );
+        qc.invalidateQueries({ queryKey: ELS_KEY(proposalId) });
+        qc.invalidateQueries({ queryKey: ['impact-canvas-rows', proposalId] });
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetched.length, rows.length, proposalId]);
+
 
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   // Multi-select — selection is a SET of element ids. Single-select is
@@ -1966,9 +2059,6 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
   const toolbarFill = isMulti
     ? commonStyleValue(fillFontIds, 'fillColor')
     : (selectedEl && styleEnabled ? { ...readBoundStyle(selectedEl.style), ...(styleOverrides[selectedEl.id] ?? {}) }.fillColor : undefined);
-  const toolbarFont = isMulti
-    ? commonStyleValue(fillFontIds, 'fontColor')
-    : (selectedEl && styleEnabled ? { ...readBoundStyle(selectedEl.style), ...(styleOverrides[selectedEl.id] ?? {}) }.fontColor : undefined);
   const toolbarOutlineColor = isMulti
     ? commonStyleValue(outlineIds, 'outlineColor')
     : (selectedEl && outlineEnabled ? { ...readBoundStyle(selectedEl.style), ...(styleOverrides[selectedEl.id] ?? {}) }.outlineColor : undefined);
@@ -1976,7 +2066,6 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     ? commonStyleValue(outlineIds, 'outlineWidth')
     : (selectedEl && outlineEnabled ? { ...readBoundStyle(selectedEl.style), ...(styleOverrides[selectedEl.id] ?? {}) }.outlineWidth : undefined);
   const fillMixed = isMulti && toolbarFill === undefined && fillFontIds.length > 1;
-  const fontMixed = isMulti && toolbarFont === undefined && fillFontIds.length > 1;
   const outlineColorMixed = isMulti && toolbarOutlineColor === undefined && outlineIds.length > 1;
   const outlineWidthMixed = isMulti && toolbarOutlineWidth === undefined && outlineIds.length > 1;
 
@@ -2035,17 +2124,17 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
 
           <Separator orientation="vertical" className="h-5 mx-1.5" />
 
-          {/* Group 2: Font colour, Fill colour, Outline colour+width, Add-shape */}
+          {/* Group 2: Text formatting (per-run, replaces old font-colour btn),
+              Fill colour, Outline colour+width, Add-shape */}
+          <ImpactCanvasTextToolbar proposalId={proposalId} canEdit={canEdit} />
           <BoundStyleToolbar
             proposalId={proposalId}
             canEdit={canEdit && styleEnabled}
             fill={toolbarFill}
-            font={toolbarFont}
             fillMixed={fillMixed}
-            fontMixed={fontMixed}
             onFillChange={(c) => applyStylePatch({ fillColor: c }, fillFontIds)}
-            onFontChange={(c) => applyStylePatch({ fontColor: c }, fillFontIds)}
           />
+
           <div className="flex items-center" data-impact-canvas-toolbar>
             <ImpactCanvasOutlinePicker
               color={toolbarOutlineColor ?? '#000000'}
@@ -2168,13 +2257,14 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
           width: '100%',
           overflow: 'hidden',
           isolation: 'isolate',
-          fontFamily: '"Times New Roman", Times, serif',
+          fontFamily: FONT_FAMILY_REGULAR,
+          color: DEFAULT_TEXT_COLOR,
           userSelect: drag ? 'none' : undefined,
           touchAction: 'none',
-          // Container-query context: `cqw` units below scale text with the
-          // rendered canvas width so text-to-box ratio stays constant
-          // across editor / B2.1 / PDF / PNG. Reference: 1000px canvas →
-          // 12px body / 11px header.
+          // Container-query context: pt sizes below (via `ptFont`) resolve
+          // as a fraction of the physical canvas width (18 cm), so a given
+          // pt renders as a genuine, consistent point size on the final
+          // page regardless of the on-screen / render context width.
           containerType: 'inline-size',
         }}
         onPointerDownCapture={(e) => {
@@ -2399,9 +2489,9 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
                   alignItems: 'center',
                   justifyContent: 'flex-start',
                   overflow: 'hidden',
-                  fontFamily: '"Arial Black", Arial, sans-serif',
-                  fontSize: '1.98cqw',
-                  fontWeight: 700,
+                  fontFamily: FONT_FAMILY_HEADER,
+                  fontSize: ptFont(HEADER_PT),
+                  fontWeight: 900,
                   color: bs.color,
                   whiteSpace: 'pre-line',
                   textAlign: 'left',
@@ -2478,9 +2568,9 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
                   alignItems: 'center',
                   justifyContent: 'flex-start',
                   overflow: 'hidden',
-                  fontSize: '2.16cqw',
+                  fontSize: ptFont(DEFAULT_PT),
                   lineHeight: 1.3,
-                  color: bs.color,
+                  color: bs.color ?? DEFAULT_TEXT_COLOR,
                   pointerEvents: 'none',
                 }}
               >
@@ -2533,9 +2623,9 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
                 pointerEvents: 'none',
                 padding: '2pt',
                 boxSizing: 'border-box',
-                fontSize: '2.16cqw',
+                fontSize: ptFont(DEFAULT_PT),
                 lineHeight: 1.3,
-                fontFamily: '"Times New Roman", Times, serif',
+                fontFamily: FONT_FAMILY_REGULAR,
               }}
             >
               <div style={{ width: '100%', padding: '2pt', boxSizing: 'border-box' }} dangerouslySetInnerHTML={{ __html: sanitize(html) }} />
@@ -2615,9 +2705,9 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
                   padding: '2pt',
                   boxSizing: 'border-box',
                   overflow: 'hidden',
-                  fontSize: style.fontSize ? `${(style.fontSize / 10) * 1.8}cqw` : '2.16cqw',
+                  fontSize: ptFont(style.fontSize ?? DEFAULT_PT),
                   lineHeight: 1.3,
-                  color: '#000',
+                  color: DEFAULT_TEXT_COLOR,
                   textAlign: style.textAlign ?? 'left',
                 }}
               >
@@ -2981,33 +3071,29 @@ interface BoundStyleToolbarProps {
   canEdit: boolean;
   /** Fill colour to display in the swatch (undefined → default / neutral). */
   fill?: string;
-  /** Font colour to display in the swatch (undefined → default / neutral). */
-  font?: string;
-  /** Multi-select mixed-value indicators: render a hatched neutral swatch. */
+  /** Multi-select mixed-value indicator: render a hatched neutral swatch. */
   fillMixed?: boolean;
-  fontMixed?: boolean;
   onFillChange: (c: string) => void;
-  onFontChange: (c: string) => void;
 }
 
 /**
- * MS-Office-style style toolbar: paint-bucket Fill (with "No fill") and an
- * "A"-with-underline Font colour picker. In multi-select, when eligible
- * members disagree on a colour, the swatch renders a diagonal-hatched
- * neutral pattern (mixed) — applying still writes to all eligible members.
+ * MS-Office-style style toolbar: paint-bucket Fill (with "No fill").
+ *
+ * NOTE: The per-object Font colour button was REMOVED as part of the
+ * per-run text-formatting overhaul. Font colour is now a per-run mark
+ * applied via the {@link ImpactCanvasTextToolbar} dropdown while editing
+ * a text element. The old `style.fontColor` is migrated to a colour
+ * span on the element's stored text at load time (see the migration
+ * effect in the parent component).
  */
 function BoundStyleToolbar({
   proposalId,
   canEdit,
   fill,
-  font,
   fillMixed,
-  fontMixed,
   onFillChange,
-  onFontChange,
 }: BoundStyleToolbarProps) {
   const fillResolved = fill ?? '#F5F5F5';
-  const fontResolved = font ?? BOUND_STYLE_DEFAULTS.fontColor;
   const fillIsNone = fillResolved === 'none';
   const fillIndicator = fillIsNone ? 'transparent' : fillResolved;
   const MIXED_HATCH =
@@ -3015,41 +3101,6 @@ function BoundStyleToolbar({
 
   return (
     <div className="flex items-center gap-1" data-impact-canvas-toolbar>
-      {/* Font colour — "A" with coloured underline */}
-      <WPColorPicker
-        color={fontResolved}
-        onChange={onFontChange}
-        disabled={!canEdit}
-        proposalId={proposalId}
-        canManageCustom={canEdit}
-        label="Font colour"
-        showGreyscale
-        trigger={
-          <button
-            type="button"
-            disabled={!canEdit}
-            className="inline-flex flex-col items-center justify-center h-7 w-8 rounded-md bg-transparent hover:bg-accent transition-colors disabled:opacity-50"
-            title={fontMixed ? 'Font colour (mixed)' : 'Font colour'}
-            aria-label="Font colour"
-          >
-            <span
-              className="text-[15px] font-semibold leading-none"
-              style={{ fontFamily: 'Georgia, serif', color: '#111' }}
-            >
-              A
-            </span>
-            <div
-              className="mt-[2px] rounded-sm"
-              style={{
-                height: 3,
-                width: 16,
-                background: fontMixed ? MIXED_HATCH : fontResolved,
-              }}
-            />
-          </button>
-        }
-      />
-
       {/* Fill — paint bucket icon + current-fill indicator */}
       <WPColorPicker
         color={fillIsNone ? '#FFFFFF' : fillResolved}

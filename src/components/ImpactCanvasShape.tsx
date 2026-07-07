@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { resolveBoundStyle } from '@/lib/impactCanvasBoundStyle';
+import { FONT_FAMILY_REGULAR, DEFAULT_TEXT_COLOR, ptFont, DEFAULT_PT } from '@/lib/impactCanvasTextSizing';
 
 /**
  * Free "shape" element geometry. Shapes reuse the BoundBoxStyle model
@@ -76,8 +77,8 @@ export function ImpactCanvasShape({ shape, styleRaw, children, selected }: Props
       style={{
         position: 'absolute',
         inset: 0,
-        color: bs.color,
-        fontFamily: '"Times New Roman", Times, serif',
+        color: bs.color ?? DEFAULT_TEXT_COLOR,
+        fontFamily: FONT_FAMILY_REGULAR,
       }}
     >
       {backdrop}
@@ -91,7 +92,7 @@ export function ImpactCanvasShape({ shape, styleRaw, children, selected }: Props
           padding: '4pt',
           boxSizing: 'border-box',
           textAlign: 'center',
-          fontSize: '2.16cqw',
+          fontSize: ptFont(DEFAULT_PT),
           lineHeight: 1.3,
           overflow: 'hidden',
         }}
