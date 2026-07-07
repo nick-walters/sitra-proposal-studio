@@ -592,6 +592,29 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
       );
     }
 
+    if (newFigureType === 'canvas') {
+      return (
+        <div className="space-y-2">
+          <Label>Canvas size</Label>
+          <Select value={canvasPresetId} onValueChange={(v) => setCanvasPresetId(v as FigureSizePresetId)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {FIGURE_SIZE_PRESETS.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.label} — {p.widthCm} × {p.heightCm} cm
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            Fixed size. You can add shapes, lines and text on the canvas after it is created.
+          </p>
+        </div>
+      );
+    }
+
     return null;
   };
 
