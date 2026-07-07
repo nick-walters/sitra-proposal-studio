@@ -10,9 +10,6 @@ import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useImpactCanvasColumns, useImpactCanvasRows } from '@/hooks/useImpactCanvas';
 import {
-  CANVAS_WIDTH_CM,
-  CANVAS_MAX_HEIGHT_CM,
-  
   MIN_ELEMENT_W_CM,
   MIN_ELEMENT_H_CM,
   DEFAULT_BOUND_H_CM,
@@ -30,10 +27,11 @@ import {
   FONT_FAMILY_REGULAR,
   FONT_FAMILY_HEADER,
   DEFAULT_TEXT_COLOR,
-  ptFont,
   DEFAULT_PT,
   HEADER_PT,
 } from '@/lib/impactCanvasTextSizing';
+import { CanvasSizeProvider, IMPACT_CANVAS_SIZE, useCanvasSize, useCanvasPtFont } from '@/lib/canvasSize';
+
 import {
   ImpactCanvasLinesOverlay,
   computeLineBBox,
