@@ -71,21 +71,9 @@ export const CanvasFontSize = Mark.create({
     };
   },
   parseHTML() {
-    return [
-      { tag: 'span[data-canvas-pt]' },
-      // Also match spans whose inline font-size is our cqw form (e.g. after
-      // a sanitizer strips data-* attrs) so pt round-trips regardless.
-      {
-        tag: 'span',
-        getAttrs: (node) => {
-          const el = node as HTMLElement;
-          const fs = el.style?.fontSize || '';
-          if (/[0-9.]+cqw/.test(fs) || /[0-9.]+pt/.test(fs)) return {};
-          return false;
-        },
-      },
-    ];
+    return [{ tag: 'span[data-canvas-pt]' }];
   },
+
   renderHTML({ HTMLAttributes }) {
     return ['span', mergeAttributes(HTMLAttributes), 0];
   },
