@@ -54,7 +54,7 @@ export function ImpactCanvasTextBox({ html, editing, onChange, onCommit, autoFoc
       CanvasFontSize,
       CanvasHeader,
     ],
-    content: html || '',
+    content: collapseStackedCanvasFontSize(html || ''),
     editable: editing,
     editorProps: {
       ...wordCleanPasteProps,
