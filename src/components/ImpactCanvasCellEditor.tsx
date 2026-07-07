@@ -60,7 +60,7 @@ export function ImpactCanvasCellEditor({ html, onChange, onFocus, onBlur, disabl
       CaseReferenceNode,
       InlineReferenceNode,
     ],
-    content: html || '',
+    content: collapseStackedCanvasFontSize(html || ''),
     editable: !disabled,
     editorProps: {
       ...wordCleanPasteProps,
