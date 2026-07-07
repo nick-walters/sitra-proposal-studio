@@ -160,23 +160,34 @@ export function ImpactCanvasFreeformEditor(props: Props) {
   );
 }
 
-function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className }: Props) {
+function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figureId }: Props) {
   const { widthCm, minHeightCm, maxHeightCm, headerHeightCm, adaptive } = useCanvasSize();
   const pf = useCanvasPtFont();
   const qc = useQueryClient();
-  const { columns, isLoading: colsLoading } = useImpactCanvasColumns(proposalId);
-  const { rows, isLoading: rowsLoading } = useImpactCanvasRows(proposalId);
+  // Impact-only machinery: columns/rows tables (and the bound/header sync
+  // they drive) belong to the singleton Impact Canvas. A Figure Canvas
+  // figure (figureId set) must NOT read/write those tables. We still call
+  // the hooks unconditionally to keep hook order stable, but pass an empty
+  // proposal id so they short-circuit (`enabled: !!proposalId`).
+  const impactProposalId = figureId ? '' : proposalId;
+  const { columns, isLoading: colsLoading } = useImpactCanvasColumns(impactProposalId);
+  const { rows, isLoading: rowsLoading } = useImpactCanvasRows(impactProposalId);
 
 
   const { data: fetched = EMPTY_ELS, isLoading: elsLoading } = useQuery({
     queryKey: ELS_KEY(proposalId, figureId),
     enabled: !!proposalId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('impact_canvas_elements')
-        .select('id, kind, bound_row_id, bound_col_key, x, y, w, h, z, content, style')
-        .eq('proposal_id', proposalId)
-        .order('z');
+        .select('id, kind, bound_row_id, bound_col_key, x, y, w, h, z, content, style');
+      // CRITICAL scoping: Impact Canvas MUST filter figure_id IS NULL so
+      // it never sees a Figure Canvas figure's elements. A Figure Canvas
+      // filters purely by figure_id.
+      query = figureId
+        ? query.eq('figure_id', figureId)
+        : query.eq('proposal_id', proposalId).is('figure_id', null);
+      const { data, error } = await query.order('z');
       if (error) throw error;
       return (data ?? []) as CanvasElement[];
     },
