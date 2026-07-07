@@ -30,6 +30,8 @@ function isCanvasToolbarTarget(target: EventTarget | null): boolean {
 }
 
 export function ImpactCanvasTextBox({ html, editing, onChange, onCommit, autoFocus, align = 'left' }: Props) {
+  const pf = useCanvasPtFont();
+
   const lastEmitted = useRef(html);
 
   const alignClass =
