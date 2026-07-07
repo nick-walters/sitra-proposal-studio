@@ -1655,6 +1655,7 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
         { w: 3, h: 2 };
       const insertBox = {
         proposal_id: proposalId,
+        figure_id: figureId ?? null,
         kind: 'shape',
         x: +((VW - size.w) / 2).toFixed(4),
         y: +((VH - size.h) / 2).toFixed(4),
