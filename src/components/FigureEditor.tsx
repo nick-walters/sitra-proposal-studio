@@ -253,6 +253,20 @@ export function FigureEditor({
         );
       case 'impact-canvas':
         return <ImpactCanvasBuilder proposalId={proposalId} canEdit={canEdit} figureNumber={figure.figureNumber} graphicRef={impactGraphicRef} />;
+      case 'canvas': {
+        const preset = getFigureSizePreset(figure.content?.presetId);
+        const widthCm = Number(figure.content?.widthCm) || preset.widthCm;
+        const heightCm = Number(figure.content?.heightCm) || preset.heightCm;
+        return (
+          <ImpactCanvasFreeformEditor
+            proposalId={proposalId}
+            canEdit={canEdit}
+            figureId={figure.id}
+            mode="freeform"
+            canvasSize={{ widthCm, heightCm }}
+          />
+        );
+      }
       case 'image':
       case 'ai':
         return (
