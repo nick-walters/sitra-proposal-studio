@@ -2013,19 +2013,24 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
   if (colsLoading || rowsLoading || elsLoading) {
     return <div className={className ?? 'p-4 text-xs text-muted-foreground'}>Loading impact canvas…</div>;
   }
-  if (columnOrder.length === 0) {
-    return (
-      <p className={`${className ?? ''} text-xs text-muted-foreground italic py-6 text-center`}>
-        No columns defined.
-      </p>
-    );
-  }
-  if (rows.length === 0) {
-    return (
-      <p className={`${className ?? ''} text-xs text-muted-foreground italic py-6 text-center`}>
-        No rows yet.
-      </p>
-    );
+  // Freeform mode has no columns/rows by design — skip the impact-mode
+  // guards below so an empty freeform canvas still renders (blank frame
+  // ready for free elements).
+  if (mode !== 'freeform') {
+    if (columnOrder.length === 0) {
+      return (
+        <p className={`${className ?? ''} text-xs text-muted-foreground italic py-6 text-center`}>
+          No columns defined.
+        </p>
+      );
+    }
+    if (rows.length === 0) {
+      return (
+        <p className={`${className ?? ''} text-xs text-muted-foreground italic py-6 text-center`}>
+          No rows yet.
+        </p>
+      );
+    }
   }
 
   // Merge live drag overrides so the canvas height grows in real-time as
