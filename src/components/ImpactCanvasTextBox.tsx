@@ -23,6 +23,10 @@ interface Props {
   align?: 'left' | 'center';
 }
 
+function isCanvasToolbarTarget(target: EventTarget | null): boolean {
+  return target instanceof HTMLElement && !!target.closest('[data-impact-canvas-toolbar]');
+}
+
 export function ImpactCanvasTextBox({ html, editing, onChange, onCommit, autoFocus, align = 'left' }: Props) {
   const lastEmitted = useRef(html);
 
@@ -58,7 +62,8 @@ export function ImpactCanvasTextBox({ html, editing, onChange, onCommit, autoFoc
       onChange(next);
     },
     onFocus: ({ editor }) => setFocusedCanvasEditor(editor),
-    onBlur: ({ editor }) => {
+    onBlur: ({ editor, event }) => {
+      if (isCanvasToolbarTarget(event.relatedTarget)) return;
       // Defer clearing so a toolbar click that steals focus momentarily
       // doesn't drop the reference before the mark command dispatches.
       queueMicrotask(() => {

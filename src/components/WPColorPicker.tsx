@@ -66,6 +66,14 @@ interface WPColorPickerProps {
   onOpenChange?: (open: boolean) => void;
 
   /**
+   * Keep focus/selection in the originating editor while the popover opens.
+   * Used by the Impact Canvas text toolbar: Radix otherwise auto-focuses the
+   * nested colour popover, which blurs TipTap and clears the saved selection
+   * before the delayed colour command runs.
+   */
+  preserveFocus?: boolean;
+
+  /**
    * Optional live, unsaved rich-text HTML sources. Used by text-colour pickers
    * so delete protection includes the current editor DOM before autosave has
    * reached the database.
@@ -89,6 +97,7 @@ export function WPColorPicker({
   excludePaletteColors,
   showGreyscale = false,
   onOpenChange,
+  preserveFocus = false,
 
   getLiveHtmlSources,
 }: WPColorPickerProps) {
@@ -196,6 +205,16 @@ export function WPColorPicker({
       });
   };
 
+  const handlePopoverMouseDownCapture = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (!preserveFocus) return;
+    const target = event.target as HTMLElement | null;
+    // Palette swatches should not take focus away from the rich-text editor.
+    // The hex input is the one intentional focus target; the canvas text-box
+    // blur handler recognises this portal as toolbar UI and keeps editing open.
+    if (target?.closest('input, textarea, [contenteditable="true"]')) return;
+    event.preventDefault();
+  };
+
 
 
   return (
@@ -221,7 +240,14 @@ export function WPColorPicker({
           </Button>
         )}
       </PopoverTrigger>
-      <PopoverContent className="w-[240px] p-3" align="end">
+      <PopoverContent
+        className="w-[240px] p-3"
+        align="end"
+        data-impact-canvas-toolbar={preserveFocus ? true : undefined}
+        onOpenAutoFocus={preserveFocus ? (event) => event.preventDefault() : undefined}
+        onCloseAutoFocus={preserveFocus ? (event) => event.preventDefault() : undefined}
+        onMouseDownCapture={handlePopoverMouseDownCapture}
+      >
         <div className="space-y-3">
           <div className="text-sm font-medium">{label ?? 'Select colour'}</div>
 
