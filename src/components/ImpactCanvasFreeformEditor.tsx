@@ -146,10 +146,21 @@ interface DragState {
 /** Snap-to-grid step (matches the MINOR grid line spacing). */
 const SNAP_STEP_CM = 0.2;
 
-export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: Props) {
+export function ImpactCanvasFreeformEditor(props: Props) {
+  return (
+    <CanvasSizeProvider value={IMPACT_CANVAS_SIZE}>
+      <ImpactCanvasFreeformEditorInner {...props} />
+    </CanvasSizeProvider>
+  );
+}
+
+function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className }: Props) {
+  const { widthCm, minHeightCm, maxHeightCm, headerHeightCm, adaptive } = useCanvasSize();
+  const pf = useCanvasPtFont();
   const qc = useQueryClient();
   const { columns, isLoading: colsLoading } = useImpactCanvasColumns(proposalId);
   const { rows, isLoading: rowsLoading } = useImpactCanvasRows(proposalId);
+
 
   const { data: fetched = EMPTY_ELS, isLoading: elsLoading } = useQuery({
     queryKey: ELS_KEY(proposalId),
