@@ -35,26 +35,37 @@ export function useCanvasSelectionPreservation() {
   const savedRangeRef = useRef<{ from: number; to: number } | null>(null);
 
   const capture = useCallback(() => {
-    const focused = getFocusedCanvasEditor();
-    const ed = focused ?? editorRef.current;
-    console.log('[csp] capture', { hasFocused: !!focused, hasFallback: !!editorRef.current });
+    const ed = getFocusedCanvasEditor() ?? editorRef.current;
     if (!ed) return;
     editorRef.current = ed;
     const { from, to } = ed.state.selection;
-    savedRangeRef.current = { from, to };
-    console.log('[csp] captured range', { from, to, empty: from === to, isFocused: ed.isFocused });
+    // Only overwrite the saved range with a NEW range when the editor
+    // still has a non-empty selection. After a mark command the PM
+    // selection can end up collapsed even while the run still looks
+    // highlighted; if we snapshotted that collapsed range, the next
+    // apply() would target nothing and no consecutive size/colour
+    // change would ever land. Keeping the previous non-empty range
+    // means repeated changes on the same run stay valid.
+    if (from !== to) {
+      savedRangeRef.current = { from, to };
+    }
   }, []);
 
   const apply = useCallback(
     (fn: (chain: ChainedCommands) => ChainedCommands) => {
       const ed = editorRef.current ?? getFocusedCanvasEditor();
-      console.log('[csp] apply enter', { hasEd: !!ed, saved: savedRangeRef.current, edFocused: ed?.isFocused, edSel: ed ? { from: ed.state.selection.from, to: ed.state.selection.to } : null });
       if (!ed) return;
       const chain = ed.chain().focus();
       const sel = savedRangeRef.current;
       if (sel) chain.setTextSelection(sel);
-      const ok = fn(chain).run();
-      console.log('[csp] apply exit', { ok, afterSel: { from: ed.state.selection.from, to: ed.state.selection.to }, focused: ed.isFocused });
+      fn(chain).run();
+      // Re-assert the saved selection AFTER the command so the run
+      // stays visually + logically selected. Some mark commands can
+      // leave PM's selection collapsed; without this, the second
+      // consecutive apply on the same run would find an empty range.
+      if (sel && sel.from !== sel.to) {
+        ed.chain().focus().setTextSelection(sel).run();
+      }
     },
     []
   );
