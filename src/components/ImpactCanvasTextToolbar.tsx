@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Editor } from '@tiptap/react';
 import { Bold, Italic, Underline as UnderlineIcon, Superscript as SupIcon, Subscript as SubIcon, Type } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { WPColorPicker } from './WPColorPicker';
-import { getFocusedCanvasEditor, subscribeFocusedCanvasEditor } from '@/lib/impactCanvasFocusedEditor';
+import { subscribeFocusedCanvasEditor } from '@/lib/impactCanvasFocusedEditor';
 import { DEFAULT_PT, DEFAULT_TEXT_COLOR, FONT_SIZE_OPTIONS } from '@/lib/impactCanvasTextSizing';
+import { useCanvasSelectionPreservation } from '@/lib/canvasSelectionPreservation';
 import { cn } from '@/lib/utils';
 // Side-effect imports so declaration-merged commands (toggleSubscript,
 // toggleSuperscript, setColor, canvas marks) are visible to TS here too.
@@ -22,12 +23,16 @@ import '@/extensions/CanvasHeader';
  * Impact Canvas text formatting dropdown — SINGLE toolbar control that
  * holds every per-run mark: Bold, Italic, Underline, Superscript,
  * Subscript, Header-style (Arial Black), Font size (9–14pt), Font
- * colour. Replaces the old per-object font-colour button.
+ * colour.
  *
- * Acts on the CURRENTLY-FOCUSED canvas editor's selection (registered
- * via `setFocusedCanvasEditor` on TipTap focus). All controls use
- * `onMouseDown → preventDefault` so clicking the toolbar does NOT
- * blur the underlying editor.
+ * SELECTION PRESERVATION: instant marks (bold/italic/…) act on the
+ * live editor selection. Controls whose activation opens a NESTED
+ * Radix portal (font size Select, font colour Popover) would otherwise
+ * blur the editor and collapse the selection when the portal takes
+ * focus. Both use the shared `useCanvasSelectionPreservation` hook —
+ * spread `triggerProps` on the trigger and `portalProps` on the
+ * portalled content, then commit via `apply((chain) => chain.…)`.
+ * A NEW nested control added to this toolbar opts in the same way.
  */
 interface Props {
   proposalId: string;
@@ -37,38 +42,14 @@ interface Props {
 export function ImpactCanvasTextToolbar({ proposalId, canEdit }: Props) {
   const [editor, setEditor] = useState<Editor | null>(null);
   const [, setTick] = useState(0);
-  const editorRef = useRef<Editor | null>(null);
-  // Saved selection range — captured before opening focus-stealing popovers
-  // (nested colour picker's Radix Popover auto-focuses its content, which
-  // blurs the TipTap editor and collapses the selection). We restore the
-  // range before applying the mark so the colour lands on the intended run.
-  const savedRangeRef = useRef<{ from: number; to: number } | null>(null);
+  const { apply, rememberEditor, triggerProps, portalProps } = useCanvasSelectionPreservation();
 
   useEffect(() => {
-    const updateEditor = (next: Editor | null) => {
+    return subscribeFocusedCanvasEditor((next) => {
       setEditor(next);
-      if (next) editorRef.current = next;
-    };
-    return subscribeFocusedCanvasEditor(updateEditor);
-  }, []);
-
-  const captureSelection = () => {
-    const activeEditor = editor ?? getFocusedCanvasEditor() ?? editorRef.current;
-    if (!activeEditor) return;
-    editorRef.current = activeEditor;
-    const { from, to } = activeEditor.state.selection;
-    savedRangeRef.current = { from, to };
-  };
-
-  const withSavedSelection = (fn: (chain: ReturnType<Editor['chain']>) => ReturnType<Editor['chain']>) => {
-    const activeEditor = editor ?? getFocusedCanvasEditor() ?? editorRef.current;
-    if (!activeEditor) return;
-    editorRef.current = activeEditor;
-    const chain = activeEditor.chain().focus();
-    const sel = savedRangeRef.current;
-    if (sel) chain.setTextSelection(sel);
-    fn(chain).run();
-  };
+      rememberEditor(next);
+    });
+  }, [rememberEditor]);
 
   // Re-render when the editor's selection changes so active marks + current
   // pt/colour reflect the caret position live.
@@ -151,16 +132,13 @@ export function ImpactCanvasTextToolbar({ proposalId, canEdit }: Props) {
               onValueChange={(v) => {
                 const pt = parseInt(v, 10);
                 if (!Number.isFinite(pt)) return;
-                withSavedSelection((chain) => chain.setCanvasFontSize(pt));
+                apply((chain) => chain.setCanvasFontSize(pt));
               }}
             >
-              <SelectTrigger
-                className="h-7 w-20 text-xs"
-                onMouseDown={(e) => { e.preventDefault(); captureSelection(); }}
-              >
+              <SelectTrigger className="h-7 w-20 text-xs" {...triggerProps}>
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent onMouseDown={(e) => e.preventDefault()}>
+              <SelectContent {...portalProps}>
                 {FONT_SIZE_OPTIONS.map((pt) => (
                   <SelectItem key={pt} value={String(pt)}>{pt} pt</SelectItem>
                 ))}
@@ -171,7 +149,7 @@ export function ImpactCanvasTextToolbar({ proposalId, canEdit }: Props) {
               <label className="text-[11px] text-muted-foreground">Colour</label>
               <WPColorPicker
                 color={currentColor}
-                onChange={(c) => withSavedSelection((chain) => chain.setColor(c))}
+                onChange={(c) => apply((chain) => chain.setColor(c))}
                 disabled={disabled}
                 proposalId={proposalId}
                 canManageCustom={canEdit}
@@ -183,14 +161,7 @@ export function ImpactCanvasTextToolbar({ proposalId, canEdit }: Props) {
                     type="button"
                     disabled={disabled}
                     className="inline-flex items-center justify-center h-7 w-7 rounded-md bg-transparent hover:bg-accent transition-colors disabled:opacity-40"
-                    onMouseDown={(e) => {
-                      // Preserve editor focus AND snapshot the current text
-                      // selection — the nested colour picker's Popover
-                      // auto-focuses its content, which blurs the editor and
-                      // collapses the selection before onChange fires.
-                      e.preventDefault();
-                      captureSelection();
-                    }}
+                    {...triggerProps}
                     aria-label="Text colour"
                     title="Text colour"
                   >
