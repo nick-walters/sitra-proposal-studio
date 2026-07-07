@@ -15,6 +15,8 @@ import {
 } from '@/components/ui/dialog';
 import { ArrowLeft, Trash2, Image, Sparkles, Loader2, Upload, Download } from 'lucide-react';
 import { useRef } from 'react';
+import { ImpactCanvasFreeformEditor } from '@/components/ImpactCanvasFreeformEditor';
+import { getFigureSizePreset } from '@/lib/figureSizePresets';
 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -251,6 +253,20 @@ export function FigureEditor({
         );
       case 'impact-canvas':
         return <ImpactCanvasBuilder proposalId={proposalId} canEdit={canEdit} figureNumber={figure.figureNumber} graphicRef={impactGraphicRef} />;
+      case 'canvas': {
+        const preset = getFigureSizePreset(figure.content?.presetId);
+        const widthCm = Number(figure.content?.widthCm) || preset.widthCm;
+        const heightCm = Number(figure.content?.heightCm) || preset.heightCm;
+        return (
+          <ImpactCanvasFreeformEditor
+            proposalId={proposalId}
+            canEdit={canEdit}
+            figureId={figure.id}
+            mode="freeform"
+            canvasSize={{ widthCm, heightCm }}
+          />
+        );
+      }
       case 'image':
       case 'ai':
         return (

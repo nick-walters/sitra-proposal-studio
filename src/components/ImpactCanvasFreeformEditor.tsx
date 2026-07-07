@@ -30,7 +30,7 @@ import {
   DEFAULT_PT,
   HEADER_PT,
 } from '@/lib/impactCanvasTextSizing';
-import { CanvasSizeProvider, IMPACT_CANVAS_SIZE, useCanvasSize, useCanvasPtFont } from '@/lib/canvasSize';
+import { CanvasSizeProvider, IMPACT_CANVAS_SIZE, useCanvasSize, useCanvasPtFont, type CanvasSize } from '@/lib/canvasSize';
 
 import {
   ImpactCanvasLinesOverlay,
@@ -60,6 +60,15 @@ interface Props {
    *  plumbing + data scoping only — the impact-canvas UI does not pass a
    *  figureId, so behaviour is byte-identical. */
   figureId?: string;
+  /** 'impact' (default) = full Impact Canvas behaviour: bound cells, header
+   *  band, adaptive height, guards that require columns+rows. 'freeform' =
+   *  free elements only (shapes/lines/text), fixed height from canvasSize,
+   *  no header band, no bound/column/row dependency. Stage C. */
+  mode?: 'impact' | 'freeform';
+  /** Only used when mode === 'freeform' — the physical canvas dimensions
+   *  for this figure. adaptive is forced to false and headerHeightCm to 0
+   *  so free-only canvases render at exactly widthCm × heightCm. */
+  canvasSize?: { widthCm: number; heightCm: number };
 }
 
 /**
@@ -153,14 +162,23 @@ interface DragState {
 const SNAP_STEP_CM = 0.2;
 
 export function ImpactCanvasFreeformEditor(props: Props) {
+  const size: CanvasSize = props.mode === 'freeform' && props.canvasSize
+    ? {
+        widthCm: props.canvasSize.widthCm,
+        minHeightCm: props.canvasSize.heightCm,
+        maxHeightCm: props.canvasSize.heightCm,
+        headerHeightCm: 0,
+        adaptive: false,
+      }
+    : IMPACT_CANVAS_SIZE;
   return (
-    <CanvasSizeProvider value={IMPACT_CANVAS_SIZE}>
+    <CanvasSizeProvider value={size}>
       <ImpactCanvasFreeformEditorInner {...props} />
     </CanvasSizeProvider>
   );
 }
 
-function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figureId }: Props) {
+function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figureId, mode = 'impact' }: Props) {
   const { widthCm, minHeightCm, maxHeightCm, headerHeightCm, adaptive } = useCanvasSize();
   const pf = useCanvasPtFont();
   const qc = useQueryClient();
@@ -1995,19 +2013,24 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
   if (colsLoading || rowsLoading || elsLoading) {
     return <div className={className ?? 'p-4 text-xs text-muted-foreground'}>Loading impact canvas…</div>;
   }
-  if (columnOrder.length === 0) {
-    return (
-      <p className={`${className ?? ''} text-xs text-muted-foreground italic py-6 text-center`}>
-        No columns defined.
-      </p>
-    );
-  }
-  if (rows.length === 0) {
-    return (
-      <p className={`${className ?? ''} text-xs text-muted-foreground italic py-6 text-center`}>
-        No rows yet.
-      </p>
-    );
+  // Freeform mode has no columns/rows by design — skip the impact-mode
+  // guards below so an empty freeform canvas still renders (blank frame
+  // ready for free elements).
+  if (mode !== 'freeform') {
+    if (columnOrder.length === 0) {
+      return (
+        <p className={`${className ?? ''} text-xs text-muted-foreground italic py-6 text-center`}>
+          No columns defined.
+        </p>
+      );
+    }
+    if (rows.length === 0) {
+      return (
+        <p className={`${className ?? ''} text-xs text-muted-foreground italic py-6 text-center`}>
+          No rows yet.
+        </p>
+      );
+    }
   }
 
   // Merge live drag overrides so the canvas height grows in real-time as

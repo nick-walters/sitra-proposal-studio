@@ -15,7 +15,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FigureEditor } from '@/components/FigureEditor';
-import { Plus, Image, BarChart3, Network, FileImage, Upload, Sparkles, Loader2, LayoutGrid, List, Library, LayoutTemplate } from 'lucide-react';
+import { Plus, Image, BarChart3, Network, FileImage, Upload, Sparkles, Loader2, LayoutGrid, List, Library, LayoutTemplate, Frame } from 'lucide-react';
+import { FIGURE_SIZE_PRESETS, DEFAULT_FIGURE_SIZE_PRESET_ID, getFigureSizePreset, type FigureSizePresetId } from '@/lib/figureSizePresets';
 import { StorageImage } from '@/components/StorageImage';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -66,6 +67,7 @@ interface FigureManagerProps {
 const FIGURE_TYPES = [
   { id: 'image', label: 'Upload image', icon: Upload, description: 'Upload an image file (PNG, JPG, etc.)' },
   { id: 'ai', label: 'AI Generated', icon: Sparkles, description: 'Generate an image using AI' },
+  { id: 'canvas', label: 'Figure Canvas', icon: Frame, description: 'Blank canvas — draw shapes, lines and text at a fixed page size.' },
   { id: 'gantt', label: 'Gantt Chart', icon: BarChart3, description: 'Timeline view of work packages and tasks' },
   { id: 'pert', label: 'PERT Diagram', icon: Network, description: 'Project network diagram' },
   { id: 'custom', label: 'Custom Figure', icon: FileImage, description: 'Create a custom figure manually' },
@@ -104,6 +106,9 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
   const [aiPrompt, setAiPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+
+  // For canvas figures — which fixed-size preset the new blank canvas uses.
+  const [canvasPresetId, setCanvasPresetId] = useState<FigureSizePresetId>(DEFAULT_FIGURE_SIZE_PRESET_ID);
   
   const [isUploading, setIsUploading] = useState(false);
   const queryClient = useQueryClient();
@@ -148,14 +153,17 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
 
   // Create figure mutation
   const createFigure = useMutation({
-    mutationFn: async (data: { title: string; figureType: string; sectionId: string; imageUrl?: string; aiPrompt?: string }) => {
+    mutationFn: async (data: { title: string; figureType: string; sectionId: string; imageUrl?: string; aiPrompt?: string; content?: any }) => {
       const section = SECTION_OPTIONS.find(s => s.id === data.sectionId);
       const sectionNumber = section?.number.replace('B', '') || '1.1';
       const existingInSection = figures.filter(f => f.sectionId === data.sectionId);
       const letter = String.fromCharCode(97 + existingInSection.length); // a, b, c...
       const figureNumber = `${sectionNumber}.${letter}`;
 
-      const content: any = data.imageUrl ? { imageUrl: data.imageUrl } : null;
+      let content: any = data.content ?? null;
+      if (!content && data.imageUrl) {
+        content = { imageUrl: data.imageUrl };
+      }
       if (content && data.aiPrompt) {
         content.aiPrompt = data.aiPrompt;
       }
@@ -452,6 +460,21 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
       } finally {
         setIsUploading(false);
       }
+    } else if (newFigureType === 'canvas') {
+      // Blank freeform canvas at a chosen fixed-size preset. Content
+      // stores widthCm/heightCm/presetId so the editor + later renderers
+      // know the physical frame; no imageUrl yet (Stage D adds export).
+      const preset = getFigureSizePreset(canvasPresetId);
+      createFigure.mutate({
+        title: newFigureTitle,
+        figureType: 'canvas',
+        sectionId: newFigureSection,
+        content: {
+          presetId: preset.id,
+          widthCm: preset.widthCm,
+          heightCm: preset.heightCm,
+        },
+      });
     } else {
       // For non-image types (gantt, pert, custom)
       createFigure.mutate({
@@ -565,6 +588,29 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
               </Dialog>
             </div>
           )}
+        </div>
+      );
+    }
+
+    if (newFigureType === 'canvas') {
+      return (
+        <div className="space-y-2">
+          <Label>Canvas size</Label>
+          <Select value={canvasPresetId} onValueChange={(v) => setCanvasPresetId(v as FigureSizePresetId)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {FIGURE_SIZE_PRESETS.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.label} — {p.widthCm} × {p.heightCm} cm
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            Fixed size. You can add shapes, lines and text on the canvas after it is created.
+          </p>
         </div>
       );
     }
