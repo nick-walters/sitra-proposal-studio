@@ -101,7 +101,7 @@ interface CanvasElement {
 }
 
 const EMPTY_ELS: CanvasElement[] = [];
-const ELS_KEY = (pid: string) => ['impact-canvas-elements', pid];
+const ELS_KEY = (pid: string, fid?: string) => ['canvas-elements', fid ?? `impact:${pid}`];
 
 const MIN_W = MIN_ELEMENT_W_CM;
 const MIN_H = MIN_ELEMENT_H_CM;
