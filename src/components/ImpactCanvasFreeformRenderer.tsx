@@ -102,7 +102,18 @@ function useImpactCanvasElements(proposalId: string) {
  * via data-impact-canvas-graphic="true" and rebuilds a semantic <table>
  * from columns + rows (layout ignored).
  */
-export function ImpactCanvasFreeformRenderer({ proposalId, className, fallback = 'grid' }: Props) {
+export function ImpactCanvasFreeformRenderer(props: Props) {
+  return (
+    <CanvasSizeProvider value={IMPACT_CANVAS_SIZE}>
+      <ImpactCanvasFreeformRendererInner {...props} />
+    </CanvasSizeProvider>
+  );
+}
+
+function ImpactCanvasFreeformRendererInner({ proposalId, className, fallback = 'grid' }: Props) {
+  const { widthCm, minHeightCm, maxHeightCm, headerHeightCm, adaptive } = useCanvasSize();
+  const pf = useCanvasPtFont();
+
   const { columns, isLoading: colsLoading } = useImpactCanvasColumns(proposalId);
   const { rows, isLoading: rowsLoading } = useImpactCanvasRows(proposalId);
   const { elements, isLoading: elsLoading } = useImpactCanvasElements(proposalId);
