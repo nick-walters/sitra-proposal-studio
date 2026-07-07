@@ -868,11 +868,29 @@ export function DocumentEditor({
       });
     }
     
-    // Add the figure image with default 100% width for proper PDF export
-    contentToInsert.push({
-      type: 'image',
-      attrs: { src: imageUrl, alt: figure.title, widthPercent: 100, alignment: 'center' }
-    });
+    // If the figure has a size preset (widthCm/heightCm on its content),
+    // insert with a cm bounding box (contain, aspect preserved). Otherwise
+    // fall back to legacy 100% width so existing image figures are
+    // unaffected until a size is chosen on the figure.
+    const contentWidthCm = Number(figure.content?.widthCm);
+    const contentHeightCm = Number(figure.content?.heightCm);
+    const hasSizePreset =
+      Number.isFinite(contentWidthCm) && contentWidthCm > 0 &&
+      Number.isFinite(contentHeightCm) && contentHeightCm > 0;
+
+    const imageAttrs: Record<string, any> = {
+      src: imageUrl,
+      alt: figure.title,
+      alignment: 'center',
+    };
+    if (hasSizePreset) {
+      imageAttrs.maxWidthCm = contentWidthCm;
+      imageAttrs.maxHeightCm = contentHeightCm;
+      imageAttrs.widthPercent = 0;
+    } else {
+      imageAttrs.widthPercent = 100;
+    }
+    contentToInsert.push({ type: 'image', attrs: imageAttrs });
     
     // Add the caption — editable plain paragraph. Text is the single source
     // and syncs back to figures.caption via the sync effect above.
