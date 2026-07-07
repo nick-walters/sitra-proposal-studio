@@ -15,6 +15,7 @@ import { CanvasHeader } from '@/extensions/CanvasHeader';
 import { setFocusedCanvasEditor, getFocusedCanvasEditor } from '@/lib/impactCanvasFocusedEditor';
 import { FONT_FAMILY_REGULAR, DEFAULT_TEXT_COLOR, DEFAULT_PT } from '@/lib/impactCanvasTextSizing';
 import { useCanvasPtFont } from '@/lib/canvasSize';
+import { collapseStackedCanvasFontSize } from '@/lib/collapseStackedCanvasFontSize';
 
 
 interface Props {
