@@ -316,6 +316,12 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
 
   /** Optimistic overrides for text content (per element id). */
   const [contentOverrides, setContentOverrides] = useState<Record<string, string>>({});
+  /** Optimistic overrides for bound-cell content, keyed by `${rowId}::${colKey}`.
+   *  Bound boxes on the canvas render text from impact_canvas_rows.content and,
+   *  when double-clicked, become editable in-place — writes go to the row, so
+   *  the Builder table below stays in sync. */
+  const [boundCellOverrides, setBoundCellOverrides] = useState<Record<string, string>>({});
+  const pendingBoundCellTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const pendingTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const pendingContentTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const pendingStyleTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
