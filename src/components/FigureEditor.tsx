@@ -287,13 +287,12 @@ export function FigureEditor({
           </div>
         );
       default:
-        return (
-          <div className="min-h-[300px] border-2 border-dashed rounded-lg flex items-center justify-center text-muted-foreground">
-            Custom figure content editor coming soon
-          </div>
-        );
+        return null;
     }
   };
+
+  const NON_DELETABLE_TYPES = new Set(['pert', 'gantt', 'impact-canvas']);
+  const canDeleteFigure = canEdit && !NON_DELETABLE_TYPES.has(figure.figureType);
 
   return (
     <div className="flex-1 overflow-auto p-6 bg-muted/30">
