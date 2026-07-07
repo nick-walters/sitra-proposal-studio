@@ -30,7 +30,7 @@ import {
   DEFAULT_PT,
   HEADER_PT,
 } from '@/lib/impactCanvasTextSizing';
-import { CanvasSizeProvider, IMPACT_CANVAS_SIZE, useCanvasSize, useCanvasPtFont } from '@/lib/canvasSize';
+import { CanvasSizeProvider, IMPACT_CANVAS_SIZE, useCanvasSize, useCanvasPtFont, type CanvasSize } from '@/lib/canvasSize';
 
 import {
   ImpactCanvasLinesOverlay,
