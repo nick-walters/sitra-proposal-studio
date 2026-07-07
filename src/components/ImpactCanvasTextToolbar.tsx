@@ -75,6 +75,37 @@ export function ImpactCanvasTextToolbar({ proposalId, canEdit }: Props) {
   const currentPt = (editor?.getAttributes('canvasFontSize')?.pt as number | null | undefined) ?? DEFAULT_PT;
   const currentColor = (editor?.getAttributes('textStyle')?.color as string | undefined) ?? DEFAULT_TEXT_COLOR;
 
+  // DEV instrumentation — dump the actual stored/displayed pt for the
+  // current selection whenever it changes. Also dumps the rendered
+  // font-size for the first span in the selection so a stored/rendered
+  // mismatch surfaces immediately.
+  if (import.meta.env.DEV && editor) {
+    const { from, to } = editor.state.selection;
+    const attrs = editor.getAttributes('canvasFontSize');
+    // Only log when selection is non-empty to keep the noise down.
+    if (from !== to) {
+      // Read every canvasFontSize mark in the range.
+      const marksInRange: Array<{ pt: unknown; from: number; to: number }> = [];
+      editor.state.doc.nodesBetween(from, to, (node, pos) => {
+        if (!node.isText) return;
+        for (const m of node.marks) {
+          if (m.type.name === 'canvasFontSize') {
+            marksInRange.push({ pt: m.attrs.pt, from: pos, to: pos + node.nodeSize });
+          }
+        }
+      });
+      // eslint-disable-next-line no-console
+      console.debug('[CanvasToolbar] selection', {
+        from,
+        to,
+        displayedPt: currentPt,
+        getAttributesPt: attrs?.pt,
+        marksInRange,
+      });
+    }
+  }
+
+
   const run = (fn: () => void) => {
     if (!editor) return;
     fn();

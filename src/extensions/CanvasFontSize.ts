@@ -1,5 +1,5 @@
 import { Mark, mergeAttributes } from '@tiptap/core';
-import { ptFont } from '@/lib/impactCanvasTextSizing';
+import { ptFont, CANVAS_WIDTH_CM } from '@/lib/impactCanvasTextSizing';
 
 /**
  * Canvas font-size mark — stores a POINT size (e.g. 11) and renders it
@@ -24,6 +24,14 @@ declare module '@tiptap/core' {
   }
 }
 
+const PT_PER_CM = 72 / 2.54;
+const CANVAS_WIDTH_PT = CANVAS_WIDTH_CM * PT_PER_CM;
+
+/** Reverse `ptFont`: given a cqw value produced by ptFont, recover pt. */
+function cqwToPt(cqw: number): number {
+  return (cqw * CANVAS_WIDTH_PT) / 100;
+}
+
 export const CanvasFontSize = Mark.create({
   name: 'canvasFontSize',
   spanning: true,
@@ -33,15 +41,23 @@ export const CanvasFontSize = Mark.create({
       pt: {
         default: null,
         parseHTML: (el) => {
-          const raw = (el as HTMLElement).getAttribute('data-canvas-pt');
+          const node = el as HTMLElement;
+          const raw = node.getAttribute('data-canvas-pt');
           if (raw) {
             const n = parseFloat(raw);
-            return Number.isFinite(n) ? n : null;
+            if (Number.isFinite(n)) return n;
           }
-          // Fallback: parse inline font-size in pt or cqw and infer.
-          const fs = (el as HTMLElement).style?.fontSize || '';
-          const m = fs.match(/([0-9.]+)pt/);
-          if (m) return parseFloat(m[1]);
+          // Fallback: parse inline font-size in pt OR cqw (renderHTML
+          // emits cqw; if data-canvas-pt is stripped, recover pt from cqw).
+          const fs = node.style?.fontSize || '';
+          const mPt = fs.match(/([0-9.]+)pt/);
+          if (mPt) return parseFloat(mPt[1]);
+          const mCqw = fs.match(/([0-9.]+)cqw/);
+          if (mCqw) {
+            const pt = cqwToPt(parseFloat(mCqw[1]));
+            // Snap to nearest whole pt so the dropdown value matches an option.
+            return Math.round(pt);
+          }
           return null;
         },
         renderHTML: (attrs) => {
@@ -55,23 +71,35 @@ export const CanvasFontSize = Mark.create({
     };
   },
   parseHTML() {
-    return [
-      { tag: 'span[data-canvas-pt]' },
-    ];
+    return [{ tag: 'span[data-canvas-pt]' }];
   },
+
   renderHTML({ HTMLAttributes }) {
     return ['span', mergeAttributes(HTMLAttributes), 0];
   },
   addCommands() {
     return {
+      // Uses `extendMarkRange` so applying a new pt to a caret INSIDE an
+      // existing canvasFontSize run replaces the whole run's pt (matching
+      // Word/Docs behaviour); without it, a collapsed selection would
+      // no-op and consecutive changes on the same run would silently fail.
+
       setCanvasFontSize:
         (pt) =>
-        ({ chain }) =>
-          chain().setMark(this.name, { pt }).run(),
+        ({ chain }) => {
+          if (import.meta.env.DEV) {
+            // eslint-disable-next-line no-console
+            console.debug('[CanvasFontSize] setCanvasFontSize', { pt });
+          }
+          return chain()
+            .extendMarkRange('canvasFontSize')
+            .setMark('canvasFontSize', { pt })
+            .run();
+        },
       unsetCanvasFontSize:
         () =>
         ({ chain }) =>
-          chain().unsetMark(this.name).run(),
+          chain().extendMarkRange('canvasFontSize').unsetMark('canvasFontSize').run(),
     };
   },
 });
