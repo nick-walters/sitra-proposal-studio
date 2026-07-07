@@ -28,6 +28,7 @@ import { ArrowLeft, Trash2, Image, Sparkles, Loader2, Upload, Download } from 'l
 import { useRef } from 'react';
 import { ImpactCanvasFreeformEditor } from '@/components/ImpactCanvasFreeformEditor';
 import { getFigureSizePreset } from '@/lib/figureSizePresets';
+import { FigureSizePicker, type FigureSizeValue } from '@/components/FigureSizePicker';
 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
