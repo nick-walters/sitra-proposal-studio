@@ -1707,6 +1707,7 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
       const bbox = computeLineBBox(from, to);
       const insertBox = {
         proposal_id: proposalId,
+        figure_id: figureId ?? null,
         kind: 'line',
         x: bbox.x, y: bbox.y, w: bbox.w, h: bbox.h,
         z: maxZ + 1,
