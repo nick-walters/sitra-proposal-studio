@@ -79,12 +79,11 @@ export const CanvasFontSize = Mark.create({
   },
   addCommands() {
     return {
-      // CRITICAL: use the OUTER chain (from command props) and DO NOT call
-      // `.run()` inside — that would fork the transaction and drop any
-      // steps queued upstream (e.g. the `setTextSelection(preservedRange)`
-      // that useCanvasSelectionPreservation.apply() puts on the chain
-      // before this command). Using the outer chain keeps the mark
-      // application on the same tr as the selection restoration.
+      // Uses `extendMarkRange` so applying a new pt to a caret INSIDE an
+      // existing canvasFontSize run replaces the whole run's pt (matching
+      // Word/Docs behaviour); without it, a collapsed selection would
+      // no-op and consecutive changes on the same run would silently fail.
+
       setCanvasFontSize:
         (pt) =>
         ({ chain }) => {
