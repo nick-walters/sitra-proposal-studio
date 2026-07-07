@@ -186,7 +186,13 @@ export function FigureEditor({
 
   const renderFigureContent = () => {
     if (figure.content?.imageUrl) {
-      return (
+      const isImageFigure = figure.figureType === 'image' || figure.figureType === 'ai';
+      const cWidth = Number(figure.content?.widthCm);
+      const cHeight = Number(figure.content?.heightCm);
+      const hasSize = Number.isFinite(cWidth) && cWidth > 0 && Number.isFinite(cHeight) && cHeight > 0;
+      const imgStyle = hasSize
+        ? { maxWidth: `${cWidth}cm`, maxHeight: `${cHeight}cm`, width: 'auto' as const, height: 'auto' as const }
+        : undefined;
         <div className="space-y-4">
           <div className="border rounded-lg overflow-hidden bg-muted/30">
             <Dialog>
