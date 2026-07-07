@@ -88,8 +88,16 @@ function ResizableImageComponent({ node, updateAttributes, selected }: NodeViewP
     return undefined;
   };
 
+  // Bounding-box (contain) mode: figure sizing preset assigned on the
+  // figure record. The image scales inside a max-width/max-height box
+  // preserving aspect ratio — no crop, no stretch, no letterbox padding
+  // (the img itself takes the fitted dimensions).
+  const hasBoundingBox =
+    (typeof maxWidthCm === 'number' && maxWidthCm > 0) ||
+    (typeof maxHeightCm === 'number' && maxHeightCm > 0);
+
   // Use percentage width if set and positive, otherwise use pixel dimensions
-  const usePercentage = typeof widthPercent === 'number' && widthPercent > 0;
+  const usePercentage = !hasBoundingBox && typeof widthPercent === 'number' && widthPercent > 0;
   const imgWidth = parseDimension(width);
   const imgHeight = parseDimension(height);
 
@@ -106,30 +114,42 @@ function ResizableImageComponent({ node, updateAttributes, selected }: NodeViewP
     }
   };
 
+  const boxStyle: React.CSSProperties = hasBoundingBox
+    ? { display: 'inline-block' }
+    : {
+        width: usePercentage ? `${widthPercent}%` : (imgWidth ? `${imgWidth}px` : 'auto'),
+        height: usePercentage ? 'auto' : (imgHeight ? `${imgHeight}px` : 'auto'),
+      };
+
+  const imgStyle: React.CSSProperties = hasBoundingBox
+    ? {
+        maxWidth: typeof maxWidthCm === 'number' && maxWidthCm > 0 ? `${maxWidthCm}cm` : 'none',
+        maxHeight: typeof maxHeightCm === 'number' && maxHeightCm > 0 ? `${maxHeightCm}cm` : 'none',
+        width: 'auto',
+        height: 'auto',
+        display: 'block',
+      }
+    : { width: '100%', height: 'auto' };
+
   return (
-    <NodeViewWrapper 
-      className="resizable-image-wrapper w-full flex" 
+    <NodeViewWrapper
+      className="resizable-image-wrapper w-full flex"
       style={getAlignmentStyles()}
     >
-      
-      <div 
+
+      <div
         className={`relative inline-block ${selected ? 'ring-2 ring-primary' : ''}`}
-        style={{ 
-          width: usePercentage ? `${widthPercent}%` : (imgWidth ? `${imgWidth}px` : 'auto'),
-          height: usePercentage ? 'auto' : (imgHeight ? `${imgHeight}px` : 'auto'),
-        }}
+        style={boxStyle}
       >
         <img
           ref={imageRef}
           src={src}
           alt={alt || ''}
           className="max-w-full block"
-          style={{ 
-            width: '100%',
-            height: 'auto',
-          }}
+          style={imgStyle}
           draggable={false}
         />
+
         
         {/* Resize handles - always show when selected */}
         {selected && (
