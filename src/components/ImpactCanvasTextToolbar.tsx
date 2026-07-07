@@ -169,7 +169,7 @@ export function ImpactCanvasTextToolbar({ proposalId, canEdit }: Props) {
               <SelectTrigger className="h-7 w-20 text-xs" {...triggerProps}>
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent {...portalProps}>
+              <SelectContent {...selectPortalProps}>
                 {FONT_SIZE_OPTIONS.map((pt) => (
                   <SelectItem key={pt} value={String(pt)}>{pt} pt</SelectItem>
                 ))}
