@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { WPColorPicker } from './WPColorPicker';
-import { subscribeFocusedCanvasEditor } from '@/lib/impactCanvasFocusedEditor';
+import { getFocusedCanvasEditor, subscribeFocusedCanvasEditor } from '@/lib/impactCanvasFocusedEditor';
 import { DEFAULT_PT, DEFAULT_TEXT_COLOR, FONT_SIZE_OPTIONS } from '@/lib/impactCanvasTextSizing';
 import { cn } from '@/lib/utils';
 // Side-effect imports so declaration-merged commands (toggleSubscript,
@@ -37,23 +37,34 @@ interface Props {
 export function ImpactCanvasTextToolbar({ proposalId, canEdit }: Props) {
   const [editor, setEditor] = useState<Editor | null>(null);
   const [, setTick] = useState(0);
+  const editorRef = useRef<Editor | null>(null);
   // Saved selection range — captured before opening focus-stealing popovers
   // (nested colour picker's Radix Popover auto-focuses its content, which
   // blurs the TipTap editor and collapses the selection). We restore the
   // range before applying the mark so the colour lands on the intended run.
   const savedRangeRef = useRef<{ from: number; to: number } | null>(null);
 
-  useEffect(() => subscribeFocusedCanvasEditor(setEditor), []);
+  useEffect(() => {
+    const updateEditor = (next: Editor | null) => {
+      setEditor(next);
+      if (next) editorRef.current = next;
+    };
+    return subscribeFocusedCanvasEditor(updateEditor);
+  }, []);
 
   const captureSelection = () => {
-    if (!editor) return;
-    const { from, to } = editor.state.selection;
+    const activeEditor = editor ?? getFocusedCanvasEditor() ?? editorRef.current;
+    if (!activeEditor) return;
+    editorRef.current = activeEditor;
+    const { from, to } = activeEditor.state.selection;
     savedRangeRef.current = { from, to };
   };
 
   const withSavedSelection = (fn: (chain: ReturnType<Editor['chain']>) => ReturnType<Editor['chain']>) => {
-    if (!editor) return;
-    const chain = editor.chain().focus();
+    const activeEditor = editor ?? getFocusedCanvasEditor() ?? editorRef.current;
+    if (!activeEditor) return;
+    editorRef.current = activeEditor;
+    const chain = activeEditor.chain().focus();
     const sel = savedRangeRef.current;
     if (sel) chain.setTextSelection(sel);
     fn(chain).run();
@@ -166,6 +177,7 @@ export function ImpactCanvasTextToolbar({ proposalId, canEdit }: Props) {
                 canManageCustom={canEdit}
                 label="Text colour"
                 showGreyscale
+                preserveFocus
                 trigger={
                   <button
                     type="button"
