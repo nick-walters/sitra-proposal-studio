@@ -60,6 +60,15 @@ interface Props {
    *  plumbing + data scoping only — the impact-canvas UI does not pass a
    *  figureId, so behaviour is byte-identical. */
   figureId?: string;
+  /** 'impact' (default) = full Impact Canvas behaviour: bound cells, header
+   *  band, adaptive height, guards that require columns+rows. 'freeform' =
+   *  free elements only (shapes/lines/text), fixed height from canvasSize,
+   *  no header band, no bound/column/row dependency. Stage C. */
+  mode?: 'impact' | 'freeform';
+  /** Only used when mode === 'freeform' — the physical canvas dimensions
+   *  for this figure. adaptive is forced to false and headerHeightCm to 0
+   *  so free-only canvases render at exactly widthCm × heightCm. */
+  canvasSize?: { widthCm: number; heightCm: number };
 }
 
 /**
