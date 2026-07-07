@@ -42,7 +42,7 @@ interface Props {
 export function ImpactCanvasTextToolbar({ proposalId, canEdit }: Props) {
   const [editor, setEditor] = useState<Editor | null>(null);
   const [, setTick] = useState(0);
-  const { apply, rememberEditor, triggerProps, portalProps } = useCanvasSelectionPreservation();
+  const { apply, rememberEditor, triggerProps, portalProps, selectPortalProps } = useCanvasSelectionPreservation();
 
   useEffect(() => {
     return subscribeFocusedCanvasEditor((next) => {
