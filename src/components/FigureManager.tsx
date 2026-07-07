@@ -70,8 +70,19 @@ const FIGURE_TYPES = [
   { id: 'canvas', label: 'Figure Canvas', icon: Frame, description: 'Blank canvas — draw shapes, lines and text at a fixed page size.' },
   { id: 'gantt', label: 'Gantt Chart', icon: BarChart3, description: 'Timeline view of work packages and tasks' },
   { id: 'pert', label: 'PERT Diagram', icon: Network, description: 'Project network diagram' },
-  { id: 'custom', label: 'Custom Figure', icon: FileImage, description: 'Create a custom figure manually' },
 ];
+
+// Custom canvas dimension bounds (cm). Full page is 18 × 25.5.
+const CANVAS_CUSTOM_MAX_WIDTH_CM = 18;
+const CANVAS_CUSTOM_MAX_HEIGHT_CM = 25.5;
+const CANVAS_CUSTOM_MIN_CM = 1;
+const CANVAS_CUSTOM_DEFAULT_WIDTH_CM = 18;
+const CANVAS_CUSTOM_DEFAULT_HEIGHT_CM = 25.5;
+
+function clampCanvasDim(v: number, max: number) {
+  if (!Number.isFinite(v) || v <= 0) return CANVAS_CUSTOM_MIN_CM;
+  return Math.min(Math.max(v, CANVAS_CUSTOM_MIN_CM), max);
+}
 
 // Fallback sections for backward compatibility
 const DEFAULT_SECTION_OPTIONS: SectionOption[] = [
