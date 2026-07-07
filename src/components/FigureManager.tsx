@@ -119,7 +119,11 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
 
   // For canvas figures — which fixed-size preset the new blank canvas uses.
-  const [canvasPresetId, setCanvasPresetId] = useState<FigureSizePresetId>(DEFAULT_FIGURE_SIZE_PRESET_ID);
+  // 'custom' means user-supplied widthCm/heightCm.
+  const [canvasPresetId, setCanvasPresetId] = useState<FigureSizePresetId | 'custom'>(DEFAULT_FIGURE_SIZE_PRESET_ID);
+  const [canvasCustomWidth, setCanvasCustomWidth] = useState<number>(CANVAS_CUSTOM_DEFAULT_WIDTH_CM);
+  const [canvasCustomHeight, setCanvasCustomHeight] = useState<number>(CANVAS_CUSTOM_DEFAULT_HEIGHT_CM);
+  
   
   const [isUploading, setIsUploading] = useState(false);
   const queryClient = useQueryClient();
