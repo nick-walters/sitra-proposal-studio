@@ -184,30 +184,55 @@ export function FigureEditor({
     }
   };
 
+  const renderImageSizePicker = () => {
+    const isImageFigure = figure.figureType === 'image' || figure.figureType === 'ai';
+    if (!isImageFigure || !canEdit) return null;
+    const cWidth = Number(figure.content?.widthCm);
+    const cHeight = Number(figure.content?.heightCm);
+    const hasSize = Number.isFinite(cWidth) && cWidth > 0 && Number.isFinite(cHeight) && cHeight > 0;
+    const presetFallback = getFigureSizePreset(figure.content?.presetId);
+    const sizeValue: FigureSizeValue = {
+      presetId: (figure.content?.presetId as any) || (hasSize ? 'custom' : presetFallback.id),
+      widthCm: hasSize ? cWidth : presetFallback.widthCm,
+      heightCm: hasSize ? cHeight : presetFallback.heightCm,
+    };
+    const handleSizeChange = (v: FigureSizeValue) => {
+      onUpdate({
+        content: {
+          ...(figure.content || {}),
+          presetId: v.presetId,
+          widthCm: v.widthCm,
+          heightCm: v.heightCm,
+        },
+      });
+    };
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Figure size</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="max-w-sm">
+            <FigureSizePicker
+              value={sizeValue}
+              onChange={handleSizeChange}
+              idPrefix={`figure-${figure.id}-size`}
+              helpText="The image fits inside this box preserving aspect ratio (no crop, no stretch, no padding)."
+            />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
   const renderFigureContent = () => {
     if (figure.content?.imageUrl) {
-      const isImageFigure = figure.figureType === 'image' || figure.figureType === 'ai';
       const cWidth = Number(figure.content?.widthCm);
       const cHeight = Number(figure.content?.heightCm);
       const hasSize = Number.isFinite(cWidth) && cWidth > 0 && Number.isFinite(cHeight) && cHeight > 0;
       const imgStyle = hasSize
         ? { maxWidth: `${cWidth}cm`, maxHeight: `${cHeight}cm`, width: 'auto' as const, height: 'auto' as const }
         : undefined;
-      const sizeValue: FigureSizeValue = {
-        presetId: (figure.content?.presetId as any) || (hasSize ? 'custom' : 'half'),
-        widthCm: hasSize ? cWidth : getFigureSizePreset(figure.content?.presetId).widthCm,
-        heightCm: hasSize ? cHeight : getFigureSizePreset(figure.content?.presetId).heightCm,
-      };
-      const handleSizeChange = (v: FigureSizeValue) => {
-        onUpdate({
-          content: {
-            ...(figure.content || {}),
-            presetId: v.presetId,
-            widthCm: v.widthCm,
-            heightCm: v.heightCm,
-          },
-        });
-      };
       return (
         <div className="space-y-4">
           <div className="border rounded-lg overflow-hidden bg-muted/30 p-2 flex justify-center">
@@ -233,20 +258,6 @@ export function FigureEditor({
               </DialogContent>
           </Dialog>
           </div>
-          {canEdit && isImageFigure && (
-            <div className="max-w-sm">
-              <FigureSizePicker
-                value={sizeValue}
-                onChange={handleSizeChange}
-                idPrefix={`figure-${figure.id}-size`}
-                helpText={
-                  hasSize
-                    ? 'The image fits inside this box preserving aspect ratio (no crop, no stretch, no padding).'
-                    : 'Pick a size to fit the image inside a fixed box; leave unset for the original 100% width behaviour.'
-                }
-              />
-            </div>
-          )}
           {canEdit && (
             <div className="flex items-center gap-2">
               <input
@@ -276,6 +287,7 @@ export function FigureEditor({
         </div>
       );
     }
+
 
     switch (figure.figureType) {
       case 'gantt':
