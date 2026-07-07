@@ -10,7 +10,9 @@ import { wordCleanPasteProps } from '@/lib/tiptapPasteProps';
 import { CanvasFontSize } from '@/extensions/CanvasFontSize';
 import { CanvasHeader } from '@/extensions/CanvasHeader';
 import { setFocusedCanvasEditor, getFocusedCanvasEditor } from '@/lib/impactCanvasFocusedEditor';
-import { FONT_FAMILY_REGULAR, DEFAULT_TEXT_COLOR, ptFont, DEFAULT_PT } from '@/lib/impactCanvasTextSizing';
+import { FONT_FAMILY_REGULAR, DEFAULT_TEXT_COLOR, DEFAULT_PT } from '@/lib/impactCanvasTextSizing';
+import { useCanvasPtFont } from '@/lib/canvasSize';
+
 
 interface Props {
   html: string;
