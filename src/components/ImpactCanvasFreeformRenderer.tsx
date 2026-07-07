@@ -6,6 +6,7 @@ import { useImpactCanvasColumns, useImpactCanvasRows } from '@/hooks/useImpactCa
 import { CANVAS_WIDTH_CM, computeCanvasHeightCm } from '@/lib/impactCanvasLayout';
 import { ImpactCanvasShape, type ShapeKind } from './ImpactCanvasShape';
 import { resolveBoundStyle } from '@/lib/impactCanvasBoundStyle';
+import { FONT_FAMILY_REGULAR, FONT_FAMILY_HEADER, DEFAULT_TEXT_COLOR, ptFont, DEFAULT_PT, HEADER_PT } from '@/lib/impactCanvasTextSizing';
 
 interface Props {
   proposalId: string;
@@ -167,11 +168,12 @@ export function ImpactCanvasFreeformRenderer({ proposalId, className, fallback =
         width: '100%',
         overflow: 'hidden',
         isolation: 'isolate',
-        fontFamily: '"Times New Roman", Times, serif',
-        // Container-query context: `cqw` units below scale text with the
-        // rendered canvas width so text/box ratio stays constant across
-        // editor / B2.1 / PDF / PNG (which each render at a different
-        // pixel width). Reference: 1000px canvas → 12px text.
+        fontFamily: FONT_FAMILY_REGULAR,
+        color: DEFAULT_TEXT_COLOR,
+        // Container-query context: `cqw` units below (via ptFont) scale text
+        // with the rendered canvas width so a stored pt renders as a genuine,
+        // consistent point size on the final page across editor / B2.1 / PDF
+        // / PNG (which each render at different pixel widths).
         containerType: 'inline-size',
       }}
     >
@@ -212,9 +214,9 @@ export function ImpactCanvasFreeformRenderer({ proposalId, className, fallback =
                 alignItems: 'center',
                 justifyContent: 'flex-start',
                 overflow: 'hidden',
-                fontFamily: '"Arial Black", Arial, sans-serif',
-                fontSize: '1.98cqw',
-                fontWeight: 700,
+                fontFamily: FONT_FAMILY_HEADER,
+                fontSize: ptFont(HEADER_PT),
+                fontWeight: 900,
                 color: bs.color,
                 whiteSpace: 'pre-line',
                 textAlign: 'left',
@@ -262,9 +264,9 @@ export function ImpactCanvasFreeformRenderer({ proposalId, className, fallback =
                 alignItems: 'center',
                 justifyContent: 'flex-start',
                 overflow: 'hidden',
-                fontSize: '2.16cqw',
+                fontSize: ptFont(DEFAULT_PT),
                 lineHeight: 1.3,
-                color: bs.color,
+                color: bs.color ?? DEFAULT_TEXT_COLOR,
               }}
             >
               <div
@@ -296,9 +298,9 @@ export function ImpactCanvasFreeformRenderer({ proposalId, className, fallback =
               zIndex: el.z,
               padding: '2pt',
               boxSizing: 'border-box',
-              fontSize: style.fontSize ? `${(style.fontSize / 10) * 1.8}cqw` : '2.16cqw',
+              fontSize: ptFont(style.fontSize ?? DEFAULT_PT),
               lineHeight: 1.3,
-              color: '#000',
+              color: DEFAULT_TEXT_COLOR,
               textAlign: style.textAlign ?? 'left',
               overflow: 'hidden',
             }}
