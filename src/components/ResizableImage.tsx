@@ -227,6 +227,27 @@ export const ResizableImage = Node.create({
         },
         renderHTML: () => ({}),
       },
+      // Figure size preset — bounding box in cm. When either is > 0 the
+      // image renders with max-width / max-height (contain: aspect kept,
+      // image fits inside, no crop or stretch). Overrides widthPercent.
+      maxWidthCm: {
+        default: null,
+        parseHTML: (element) => {
+          const style = element.getAttribute('style') || '';
+          const m = style.match(/max-width:\s*([\d.]+)cm/);
+          return m ? parseFloat(m[1]) : null;
+        },
+        renderHTML: () => ({}),
+      },
+      maxHeightCm: {
+        default: null,
+        parseHTML: (element) => {
+          const style = element.getAttribute('style') || '';
+          const m = style.match(/max-height:\s*([\d.]+)cm/);
+          return m ? parseFloat(m[1]) : null;
+        },
+        renderHTML: () => ({}),
+      },
     };
   },
 
@@ -239,9 +260,9 @@ export const ResizableImage = Node.create({
   },
 
   renderHTML({ node }) {
-    const { widthPercent, width, height, alignment, src, alt } = node.attrs;
+    const { widthPercent, width, height, alignment, src, alt, maxWidthCm, maxHeightCm } = node.attrs;
     const styles: string[] = [];
-    
+
     // Add alignment via display block + margin
     if (alignment === 'center') {
       styles.push('display: block', 'margin-left: auto', 'margin-right: auto');
@@ -250,15 +271,28 @@ export const ResizableImage = Node.create({
     } else {
       styles.push('display: block', 'margin-left: 0', 'margin-right: auto');
     }
-    
-    // Add width/height — only use percentage if explicitly > 0
-    if (typeof widthPercent === 'number' && widthPercent > 0) {
+
+    const hasBoundingBox =
+      (typeof maxWidthCm === 'number' && maxWidthCm > 0) ||
+      (typeof maxHeightCm === 'number' && maxHeightCm > 0);
+
+    if (hasBoundingBox) {
+      // Contain inside a bounding box (cm). Aspect ratio preserved by
+      // width/height:auto — the img takes its fitted intrinsic size.
+      if (typeof maxWidthCm === 'number' && maxWidthCm > 0) {
+        styles.push(`max-width: ${maxWidthCm}cm`);
+      }
+      if (typeof maxHeightCm === 'number' && maxHeightCm > 0) {
+        styles.push(`max-height: ${maxHeightCm}cm`);
+      }
+      styles.push('width: auto', 'height: auto');
+    } else if (typeof widthPercent === 'number' && widthPercent > 0) {
       styles.push(`width: ${widthPercent}%`, 'height: auto');
     } else {
       if (width) styles.push(`width: ${width}px`);
       if (height) styles.push(`height: ${height}px`);
     }
-    
+
     const attrs: Record<string, any> = { style: styles.join('; ') };
     if (src) attrs.src = src;
     if (alt) attrs.alt = alt;
