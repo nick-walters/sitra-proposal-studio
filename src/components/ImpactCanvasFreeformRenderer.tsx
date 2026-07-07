@@ -7,6 +7,8 @@ import { CANVAS_WIDTH_CM, computeCanvasHeightCm } from '@/lib/impactCanvasLayout
 import { ImpactCanvasShape, type ShapeKind } from './ImpactCanvasShape';
 import { resolveBoundStyle } from '@/lib/impactCanvasBoundStyle';
 import { FONT_FAMILY_REGULAR, FONT_FAMILY_HEADER, DEFAULT_TEXT_COLOR, ptFont, DEFAULT_PT, HEADER_PT } from '@/lib/impactCanvasTextSizing';
+import { CanvasSizeProvider, IMPACT_CANVAS_SIZE, useCanvasSize, useCanvasPtFont } from '@/lib/canvasSize';
+
 
 interface Props {
   proposalId: string;
