@@ -18,6 +18,10 @@ interface Props {
    *  If no bound elements exist, we fall back to a legacy CSS grid so the
    *  canvas never appears empty for pre-backfill proposals. */
   fallback?: 'grid' | 'empty';
+  /** When set, scopes reads to a Figure Canvas figure (figure_id). When
+   *  undefined, reads the Impact Canvas singleton (proposal_id + figure_id
+   *  IS NULL). Stage B: prop plumbing only — no caller passes a figureId. */
+  figureId?: string;
 }
 
 /**
