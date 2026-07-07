@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Editor } from '@tiptap/react';
 import { Bold, Italic, Underline as UnderlineIcon, Superscript as SupIcon, Subscript as SubIcon, Type } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -37,8 +37,27 @@ interface Props {
 export function ImpactCanvasTextToolbar({ proposalId, canEdit }: Props) {
   const [editor, setEditor] = useState<Editor | null>(null);
   const [, setTick] = useState(0);
+  // Saved selection range — captured before opening focus-stealing popovers
+  // (nested colour picker's Radix Popover auto-focuses its content, which
+  // blurs the TipTap editor and collapses the selection). We restore the
+  // range before applying the mark so the colour lands on the intended run.
+  const savedRangeRef = useRef<{ from: number; to: number } | null>(null);
 
   useEffect(() => subscribeFocusedCanvasEditor(setEditor), []);
+
+  const captureSelection = () => {
+    if (!editor) return;
+    const { from, to } = editor.state.selection;
+    savedRangeRef.current = { from, to };
+  };
+
+  const withSavedSelection = (fn: (chain: ReturnType<Editor['chain']>) => ReturnType<Editor['chain']>) => {
+    if (!editor) return;
+    const chain = editor.chain().focus();
+    const sel = savedRangeRef.current;
+    if (sel) chain.setTextSelection(sel);
+    fn(chain).run();
+  };
 
   // Re-render when the editor's selection changes so active marks + current
   // pt/colour reflect the caret position live.
@@ -121,10 +140,13 @@ export function ImpactCanvasTextToolbar({ proposalId, canEdit }: Props) {
               onValueChange={(v) => {
                 const pt = parseInt(v, 10);
                 if (!Number.isFinite(pt)) return;
-                run(() => editor!.chain().focus().setCanvasFontSize(pt).run());
+                withSavedSelection((chain) => chain.setCanvasFontSize(pt));
               }}
             >
-              <SelectTrigger className="h-7 w-20 text-xs" onMouseDown={(e) => e.preventDefault()}>
+              <SelectTrigger
+                className="h-7 w-20 text-xs"
+                onMouseDown={(e) => { e.preventDefault(); captureSelection(); }}
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent onMouseDown={(e) => e.preventDefault()}>
@@ -138,7 +160,7 @@ export function ImpactCanvasTextToolbar({ proposalId, canEdit }: Props) {
               <label className="text-[11px] text-muted-foreground">Colour</label>
               <WPColorPicker
                 color={currentColor}
-                onChange={(c) => run(() => editor!.chain().focus().setColor(c).run())}
+                onChange={(c) => withSavedSelection((chain) => chain.setColor(c))}
                 disabled={disabled}
                 proposalId={proposalId}
                 canManageCustom={canEdit}
@@ -149,7 +171,14 @@ export function ImpactCanvasTextToolbar({ proposalId, canEdit }: Props) {
                     type="button"
                     disabled={disabled}
                     className="inline-flex items-center justify-center h-7 w-7 rounded-md bg-transparent hover:bg-accent transition-colors disabled:opacity-40"
-                    onMouseDown={(e) => e.preventDefault()}
+                    onMouseDown={(e) => {
+                      // Preserve editor focus AND snapshot the current text
+                      // selection — the nested colour picker's Popover
+                      // auto-focuses its content, which blurs the editor and
+                      // collapses the selection before onChange fires.
+                      e.preventDefault();
+                      captureSelection();
+                    }}
                     aria-label="Text colour"
                     title="Text colour"
                   >

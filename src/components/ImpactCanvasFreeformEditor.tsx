@@ -316,6 +316,12 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
 
   /** Optimistic overrides for text content (per element id). */
   const [contentOverrides, setContentOverrides] = useState<Record<string, string>>({});
+  /** Optimistic overrides for bound-cell content, keyed by `${rowId}::${colKey}`.
+   *  Bound boxes on the canvas render text from impact_canvas_rows.content and,
+   *  when double-clicked, become editable in-place — writes go to the row, so
+   *  the Builder table below stays in sync. */
+  const [boundCellOverrides, setBoundCellOverrides] = useState<Record<string, string>>({});
+  const pendingBoundCellTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const pendingTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const pendingContentTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const pendingStyleTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
@@ -574,6 +580,39 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     },
     [proposalId, qc],
   );
+
+  /** Persist edited bound-cell HTML into impact_canvas_rows.content. Same
+   *  optimistic-override + debounced-write pattern as element content, so
+   *  the caret in the in-place TextBox editor isn't clobbered by refetch. */
+  const persistBoundCellDebounced = useCallback(
+    (rowId: string, colKey: string, html: string) => {
+      const cacheKey = `${rowId}::${colKey}`;
+      const existing = pendingBoundCellTimers.current[cacheKey];
+      if (existing) clearTimeout(existing);
+      pendingBoundCellTimers.current[cacheKey] = setTimeout(async () => {
+        delete pendingBoundCellTimers.current[cacheKey];
+        const rowsKey = ['impact-canvas-rows', proposalId];
+        const cached = qc.getQueryData<Array<{ id: string; content: Record<string, string> }>>(rowsKey) || [];
+        const row = cached.find((r) => r.id === rowId);
+        const nextContent = { ...(row?.content || {}), [colKey]: html };
+        const { error } = await supabase
+          .from('impact_canvas_rows')
+          .update({ content: nextContent as never })
+          .eq('id', rowId);
+        if (error) {
+          setBoundCellOverrides((o) => { const n = { ...o }; delete n[cacheKey]; return n; });
+          qc.invalidateQueries({ queryKey: rowsKey });
+        } else {
+          qc.setQueryData(rowsKey, (old: Array<{ id: string; content: Record<string, string> }> | undefined) =>
+            (old || []).map((r) => (r.id === rowId ? { ...r, content: nextContent } : r)),
+          );
+          setBoundCellOverrides((o) => { const n = { ...o }; delete n[cacheKey]; return n; });
+        }
+      }, 300);
+    },
+    [proposalId, qc],
+  );
+
 
 
   const persistStyleDebounced = useCallback(
@@ -2527,12 +2566,17 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
 
         {boundEls.map((el) => {
           const row = rowById.get(el.bound_row_id!);
-          const html = (row?.content?.[el.bound_col_key!] as string) || '';
+          const rowId = el.bound_row_id!;
+          const colKey = el.bound_col_key!;
+          const cacheKey = `${rowId}::${colKey}`;
+          const rawHtml = (row?.content?.[colKey] as string) || '';
+          const html = boundCellOverrides[cacheKey] ?? rawHtml;
           const ov = overrides[el.id];
           const box = ov ?? { x: el.x, y: el.y, w: el.w, h: el.h };
           const selected = selectedIds.has(el.id); const isSoleSelection = selectedId === el.id;
           const styleSrc = styleOverrides[el.id] ?? el.style;
           const bs = resolveBoundStyle(styleSrc);
+          const editing = editingId === el.id;
           return (
             <div
               key={el.id}
@@ -2546,9 +2590,24 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
                 zIndex: el.z,
                 padding: '2pt',
                 boxSizing: 'border-box',
-                cursor: canEdit ? (drag?.id === el.id && drag.mode.kind === 'move' ? 'grabbing' : 'grab') : 'default',
+                cursor: canEdit
+                  ? editing
+                    ? 'text'
+                    : drag?.id === el.id && drag.mode.kind === 'move'
+                    ? 'grabbing'
+                    : 'grab'
+                  : 'default',
               }}
-              onPointerDown={(e) => beginDrag(e, el.id, { kind: 'move' }, box)}
+              onPointerDown={(e) => {
+                if (editing) return;
+                beginDrag(e, el.id, { kind: 'move' }, box);
+              }}
+              onDoubleClick={(e) => {
+                if (!canEdit) return;
+                e.stopPropagation();
+                selectOnly(el.id);
+                setEditingId(el.id);
+              }}
             >
               <div
                 className="prose prose-sm max-w-none"
@@ -2556,8 +2615,10 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
                   width: '100%',
                   height: '100%',
                   borderStyle: 'solid',
-                  borderColor: selected ? 'hsl(var(--primary))' : bs.borderColor,
-                  borderWidth: selected
+                  borderColor: editing
+                    ? 'hsl(var(--primary))'
+                    : selected ? 'hsl(var(--primary))' : bs.borderColor,
+                  borderWidth: editing || selected
                     ? `${Math.max(1.5, bs.borderWidth)}pt`
                     : bs.borderWidth ? `${bs.borderWidth}pt` : 0,
                   borderRadius: 6,
@@ -2571,13 +2632,28 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
                   fontSize: ptFont(DEFAULT_PT),
                   lineHeight: 1.3,
                   color: bs.color ?? DEFAULT_TEXT_COLOR,
-                  pointerEvents: 'none',
+                  pointerEvents: editing ? 'auto' : 'none',
                 }}
               >
-                <div style={{ width: '100%' }} dangerouslySetInnerHTML={{ __html: sanitize(html) }} />
+                {editing ? (
+                  <ImpactCanvasTextBox
+                    html={html}
+                    editing
+                    autoFocus
+                    onChange={(next) => {
+                      setBoundCellOverrides((o) => ({ ...o, [cacheKey]: next }));
+                      persistBoundCellDebounced(rowId, colKey, next);
+                    }}
+                    onCommit={() => {
+                      setEditingId((cur) => (cur === el.id ? null : cur));
+                    }}
+                  />
+                ) : (
+                  <div style={{ width: '100%' }} dangerouslySetInnerHTML={{ __html: sanitize(html) }} />
+                )}
               </div>
 
-              {isSoleSelection && canEdit && HANDLES.map((h) => (
+              {isSoleSelection && !editing && canEdit && HANDLES.map((h) => (
                 <div
                   key={h}
                   data-canvas-handle={h}
