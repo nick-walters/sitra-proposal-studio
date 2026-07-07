@@ -106,6 +106,9 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
   const [aiPrompt, setAiPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+
+  // For canvas figures — which fixed-size preset the new blank canvas uses.
+  const [canvasPresetId, setCanvasPresetId] = useState<FigureSizePresetId>(DEFAULT_FIGURE_SIZE_PRESET_ID);
   
   const [isUploading, setIsUploading] = useState(false);
   const queryClient = useQueryClient();
