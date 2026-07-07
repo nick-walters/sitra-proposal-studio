@@ -162,14 +162,23 @@ interface DragState {
 const SNAP_STEP_CM = 0.2;
 
 export function ImpactCanvasFreeformEditor(props: Props) {
+  const size: CanvasSize = props.mode === 'freeform' && props.canvasSize
+    ? {
+        widthCm: props.canvasSize.widthCm,
+        minHeightCm: props.canvasSize.heightCm,
+        maxHeightCm: props.canvasSize.heightCm,
+        headerHeightCm: 0,
+        adaptive: false,
+      }
+    : IMPACT_CANVAS_SIZE;
   return (
-    <CanvasSizeProvider value={IMPACT_CANVAS_SIZE}>
+    <CanvasSizeProvider value={size}>
       <ImpactCanvasFreeformEditorInner {...props} />
     </CanvasSizeProvider>
   );
 }
 
-function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figureId }: Props) {
+function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figureId, mode = 'impact' }: Props) {
   const { widthCm, minHeightCm, maxHeightCm, headerHeightCm, adaptive } = useCanvasSize();
   const pf = useCanvasPtFont();
   const qc = useQueryClient();
