@@ -476,22 +476,30 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
         setIsUploading(false);
       }
     } else if (newFigureType === 'canvas') {
-      // Blank freeform canvas at a chosen fixed-size preset. Content
+      // Blank freeform canvas. Preset OR custom width/height (cm). Content
       // stores widthCm/heightCm/presetId so the editor + later renderers
-      // know the physical frame; no imageUrl yet (Stage D adds export).
-      const preset = getFigureSizePreset(canvasPresetId);
+      // know the physical frame.
+      let widthCm: number;
+      let heightCm: number;
+      let presetId: string;
+      if (canvasPresetId === 'custom') {
+        widthCm = clampCanvasDim(Number(canvasCustomWidth), CANVAS_CUSTOM_MAX_WIDTH_CM);
+        heightCm = clampCanvasDim(Number(canvasCustomHeight), CANVAS_CUSTOM_MAX_HEIGHT_CM);
+        presetId = 'custom';
+      } else {
+        const preset = getFigureSizePreset(canvasPresetId);
+        widthCm = preset.widthCm;
+        heightCm = preset.heightCm;
+        presetId = preset.id;
+      }
       createFigure.mutate({
         title: newFigureTitle,
         figureType: 'canvas',
         sectionId: newFigureSection,
-        content: {
-          presetId: preset.id,
-          widthCm: preset.widthCm,
-          heightCm: preset.heightCm,
-        },
+        content: { presetId, widthCm, heightCm },
       });
     } else {
-      // For non-image types (gantt, pert, custom)
+      // For non-image types (gantt, pert)
       createFigure.mutate({
         title: newFigureTitle,
         figureType: newFigureType,
