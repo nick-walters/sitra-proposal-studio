@@ -69,7 +69,7 @@ export function useImpactCanvasColumns(proposalId: string) {
     },
     onSettled: () => {
       invalidate();
-      qc.invalidateQueries({ queryKey: ['impact-canvas-elements', proposalId] });
+      qc.invalidateQueries({ queryKey: ['canvas-elements', `impact:${proposalId}`] });
     },
     onError: () => toast.error('Failed to add column'),
   });
@@ -82,7 +82,7 @@ export function useImpactCanvasColumns(proposalId: string) {
     },
     onSettled: () => {
       invalidate();
-      qc.invalidateQueries({ queryKey: ['impact-canvas-elements', proposalId] });
+      qc.invalidateQueries({ queryKey: ['canvas-elements', `impact:${proposalId}`] });
     },
     onError: () => toast.error('Failed to delete column'),
   });
@@ -150,7 +150,7 @@ export function useImpactCanvasRows(proposalId: string) {
     },
     onSettled: () => {
       invalidate();
-      qc.invalidateQueries({ queryKey: ['impact-canvas-elements', proposalId] });
+      qc.invalidateQueries({ queryKey: ['canvas-elements', `impact:${proposalId}`] });
     },
     onError: () => toast.error('Failed to add row'),
   });
@@ -163,7 +163,7 @@ export function useImpactCanvasRows(proposalId: string) {
     },
     onSettled: () => {
       invalidate();
-      qc.invalidateQueries({ queryKey: ['impact-canvas-elements', proposalId] });
+      qc.invalidateQueries({ queryKey: ['canvas-elements', `impact:${proposalId}`] });
     },
     onError: () => toast.error('Failed to delete row'),
   });

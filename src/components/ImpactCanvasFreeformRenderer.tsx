@@ -18,6 +18,10 @@ interface Props {
    *  If no bound elements exist, we fall back to a legacy CSS grid so the
    *  canvas never appears empty for pre-backfill proposals. */
   fallback?: 'grid' | 'empty';
+  /** When set, scopes reads to a Figure Canvas figure (figure_id). When
+   *  undefined, reads the Impact Canvas singleton (proposal_id + figure_id
+   *  IS NULL). Stage B: prop plumbing only — no caller passes a figureId. */
+  figureId?: string;
 }
 
 /**
@@ -55,17 +59,23 @@ interface CanvasElement {
 
 const EMPTY_ELS: CanvasElement[] = [];
 
-function useImpactCanvasElements(proposalId: string) {
+function useImpactCanvasElements(proposalId: string, figureId?: string) {
   const qc = useQueryClient();
+  const queryKey = ['canvas-elements', figureId ?? `impact:${proposalId}`];
   const q = useQuery({
-    queryKey: ['impact-canvas-elements', proposalId],
+    queryKey,
     enabled: !!proposalId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('impact_canvas_elements')
-        .select('id, kind, bound_row_id, bound_col_key, x, y, w, h, z, content, style')
-        .eq('proposal_id', proposalId)
-        .order('z');
+        .select('id, kind, bound_row_id, bound_col_key, x, y, w, h, z, content, style');
+      // CRITICAL: Impact Canvas MUST filter figure_id IS NULL so it never
+      // leaks Figure Canvas figures' elements. Figure Canvas scopes purely
+      // by figure_id.
+      query = figureId
+        ? query.eq('figure_id', figureId)
+        : query.eq('proposal_id', proposalId).is('figure_id', null);
+      const { data, error } = await query.order('z');
       if (error) throw error;
       return (data ?? []) as CanvasElement[];
     },
@@ -73,14 +83,17 @@ function useImpactCanvasElements(proposalId: string) {
 
 
   // Refresh when upstream reference data changes (badges baked into cells).
+  // Impact Canvas only: freeform figures don't embed cross-refs into bound
+  // cells.
   useEffect(() => {
-    if (!proposalId) return;
+    if (!proposalId || figureId) return;
     const handler = () => {
-      qc.invalidateQueries({ queryKey: ['impact-canvas-elements', proposalId] });
+      qc.invalidateQueries({ queryKey });
     };
     window.addEventListener('cross-ref-data-changed', handler);
     return () => window.removeEventListener('cross-ref-data-changed', handler);
-  }, [proposalId, qc]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [proposalId, figureId, qc]);
 
   return { elements: q.data ?? EMPTY_ELS, isLoading: q.isLoading };
 }
@@ -111,13 +124,16 @@ export function ImpactCanvasFreeformRenderer(props: Props) {
   );
 }
 
-function ImpactCanvasFreeformRendererInner({ proposalId, className, fallback = 'grid' }: Props) {
+function ImpactCanvasFreeformRendererInner({ proposalId, className, fallback = 'grid', figureId }: Props) {
   const { widthCm, minHeightCm, maxHeightCm, headerHeightCm, adaptive } = useCanvasSize();
   const pf = useCanvasPtFont();
 
-  const { columns, isLoading: colsLoading } = useImpactCanvasColumns(proposalId);
-  const { rows, isLoading: rowsLoading } = useImpactCanvasRows(proposalId);
-  const { elements, isLoading: elsLoading } = useImpactCanvasElements(proposalId);
+  // Impact-only rows/columns: a Figure Canvas figure has no columns/rows
+  // (no bound cells). Short-circuit the hooks with an empty proposal id.
+  const impactProposalId = figureId ? '' : proposalId;
+  const { columns, isLoading: colsLoading } = useImpactCanvasColumns(impactProposalId);
+  const { rows, isLoading: rowsLoading } = useImpactCanvasRows(impactProposalId);
+  const { elements, isLoading: elsLoading } = useImpactCanvasElements(proposalId, figureId);
 
   if (colsLoading || rowsLoading || elsLoading) {
     return <div className={className ?? 'p-4 text-xs text-muted-foreground'}>Loading impact canvas…</div>;

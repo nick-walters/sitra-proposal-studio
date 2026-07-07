@@ -1816,6 +1816,7 @@ export type Database = {
           bound_row_id: string | null
           content: Json
           created_at: string
+          figure_id: string | null
           h: number
           id: string
           kind: string
@@ -1834,6 +1835,7 @@ export type Database = {
           bound_row_id?: string | null
           content?: Json
           created_at?: string
+          figure_id?: string | null
           h?: number
           id?: string
           kind: string
@@ -1852,6 +1854,7 @@ export type Database = {
           bound_row_id?: string | null
           content?: Json
           created_at?: string
+          figure_id?: string | null
           h?: number
           id?: string
           kind?: string
@@ -1871,6 +1874,13 @@ export type Database = {
             columns: ["bound_row_id"]
             isOneToOne: false
             referencedRelation: "impact_canvas_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "impact_canvas_elements_figure_id_fkey"
+            columns: ["figure_id"]
+            isOneToOne: false
+            referencedRelation: "figures"
             referencedColumns: ["id"]
           },
           {
