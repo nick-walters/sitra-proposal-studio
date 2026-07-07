@@ -581,6 +581,39 @@ export function ImpactCanvasFreeformEditor({ proposalId, canEdit, className }: P
     [proposalId, qc],
   );
 
+  /** Persist edited bound-cell HTML into impact_canvas_rows.content. Same
+   *  optimistic-override + debounced-write pattern as element content, so
+   *  the caret in the in-place TextBox editor isn't clobbered by refetch. */
+  const persistBoundCellDebounced = useCallback(
+    (rowId: string, colKey: string, html: string) => {
+      const cacheKey = `${rowId}::${colKey}`;
+      const existing = pendingBoundCellTimers.current[cacheKey];
+      if (existing) clearTimeout(existing);
+      pendingBoundCellTimers.current[cacheKey] = setTimeout(async () => {
+        delete pendingBoundCellTimers.current[cacheKey];
+        const rowsKey = ['impact-canvas-rows', proposalId];
+        const cached = qc.getQueryData<Array<{ id: string; content: Record<string, string> }>>(rowsKey) || [];
+        const row = cached.find((r) => r.id === rowId);
+        const nextContent = { ...(row?.content || {}), [colKey]: html };
+        const { error } = await supabase
+          .from('impact_canvas_rows')
+          .update({ content: nextContent as never })
+          .eq('id', rowId);
+        if (error) {
+          setBoundCellOverrides((o) => { const n = { ...o }; delete n[cacheKey]; return n; });
+          qc.invalidateQueries({ queryKey: rowsKey });
+        } else {
+          qc.setQueryData(rowsKey, (old: Array<{ id: string; content: Record<string, string> }> | undefined) =>
+            (old || []).map((r) => (r.id === rowId ? { ...r, content: nextContent } : r)),
+          );
+          setBoundCellOverrides((o) => { const n = { ...o }; delete n[cacheKey]; return n; });
+        }
+      }, 300);
+    },
+    [proposalId, qc],
+  );
+
+
 
   const persistStyleDebounced = useCallback(
     (id: string, style: BoundBoxStyle) => {
