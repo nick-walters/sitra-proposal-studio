@@ -150,10 +150,14 @@ export async function syncBoundElements(proposalId: string): Promise<void> {
       .select('id, order_index')
       .eq('proposal_id', proposalId)
       .order('order_index'),
+    // Impact Canvas ONLY (figure_id IS NULL). syncBoundElements is invoked
+    // exclusively for the Impact Canvas singleton — the figure_id filter is
+    // defensive so Figure Canvas elements can never be seen or mutated here.
     supabase
       .from('impact_canvas_elements')
       .select('bound_row_id, bound_col_key, kind, x, y, w, h')
       .eq('proposal_id', proposalId)
+      .is('figure_id', null)
       .in('kind', ['bound', 'header']),
 
   ]);
@@ -188,6 +192,7 @@ export async function syncBoundElements(proposalId: string): Promise<void> {
       .from('impact_canvas_elements')
       .delete()
       .eq('proposal_id', proposalId)
+      .is('figure_id', null)
       .in('kind', ['bound', 'header'])
       .in('bound_col_key', orphanKeys);
     if (error) throw error;
