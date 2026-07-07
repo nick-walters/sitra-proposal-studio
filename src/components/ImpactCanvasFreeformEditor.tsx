@@ -791,6 +791,7 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
       const { error } = await supabase.from('impact_canvas_elements').insert({
         id: el.id,
         proposal_id: proposalId,
+        figure_id: figureId ?? null,
         kind: el.kind,
         bound_row_id: el.bound_row_id,
         bound_col_key: el.bound_col_key,
