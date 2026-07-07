@@ -48,7 +48,7 @@ export function ImpactCanvasCellEditor({ html, onChange, onFocus, onBlur, disabl
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ heading: false }),
-      Underline,
+      
       Superscript,
       Subscript,
       TextStyle,
