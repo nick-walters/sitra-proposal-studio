@@ -79,27 +79,39 @@ export const CanvasFontSize = Mark.create({
   },
   addCommands() {
     return {
-      // Uses `extendMarkRange` so applying a new pt to a caret INSIDE an
-      // existing canvasFontSize run replaces the whole run's pt (matching
-      // Word/Docs behaviour); without it, a collapsed selection would
-      // no-op and consecutive changes on the same run would silently fail.
-
+      // Selection semantics (matches Word / Docs):
+      //   - Non-empty selection → apply pt to exactly that range (partial
+      //     run stays partial). No extendMarkRange, or it would swallow
+      //     the whole surrounding mark (e.g. a bound cell entirely marked
+      //     with a prior pt would be re-marked in full, hijacking the
+      //     user's partial selection).
+      //   - Collapsed caret INSIDE an existing canvasFontSize run →
+      //     extend to the full run so the pt of that run updates as one
+      //     unit (otherwise setMark on an empty range no-ops).
+      //   - Collapsed caret in unmarked text → nothing to extend; the
+      //     mark simply becomes the "stored mark" for the next typing.
       setCanvasFontSize:
         (pt) =>
-        ({ chain }) => {
+        ({ chain, state }) => {
+          const { from, to } = state.selection;
+          const collapsed = from === to;
           if (import.meta.env.DEV) {
             // eslint-disable-next-line no-console
-            console.debug('[CanvasFontSize] setCanvasFontSize', { pt });
+            console.debug('[CanvasFontSize] setCanvasFontSize', { pt, from, to, collapsed });
           }
-          return chain()
-            .extendMarkRange('canvasFontSize')
-            .setMark('canvasFontSize', { pt })
-            .run();
+          const c = chain();
+          if (collapsed) c.extendMarkRange('canvasFontSize');
+          return c.setMark('canvasFontSize', { pt }).run();
         },
       unsetCanvasFontSize:
         () =>
-        ({ chain }) =>
-          chain().extendMarkRange('canvasFontSize').unsetMark('canvasFontSize').run(),
+        ({ chain, state }) => {
+          const { from, to } = state.selection;
+          const c = chain();
+          if (from === to) c.extendMarkRange('canvasFontSize');
+          return c.unsetMark('canvasFontSize').run();
+        },
     };
   },
 });
+
