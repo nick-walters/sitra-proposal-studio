@@ -4,13 +4,15 @@ import { useState, useCallback, useRef } from 'react';
 import { useStorageUrl } from '@/hooks/useStorageUrl';
 
 function ResizableImageComponent({ node, updateAttributes, selected }: NodeViewProps) {
-  const { src: rawSrc, alt, width, height, widthPercent, alignment } = node.attrs as { 
-    src: string; 
-    alt?: string; 
-    width?: number | string; 
+  const { src: rawSrc, alt, width, height, widthPercent, alignment, maxWidthCm, maxHeightCm } = node.attrs as {
+    src: string;
+    alt?: string;
+    width?: number | string;
     height?: number | string;
     widthPercent?: number;
     alignment?: 'left' | 'center' | 'right';
+    maxWidthCm?: number | null;
+    maxHeightCm?: number | null;
   };
   const src = useStorageUrl(rawSrc) || rawSrc;
   const [, setIsResizing] = useState(false);
