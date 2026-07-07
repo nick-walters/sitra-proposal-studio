@@ -1,6 +1,8 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { resolveBoundStyle } from '@/lib/impactCanvasBoundStyle';
-import { FONT_FAMILY_REGULAR, DEFAULT_TEXT_COLOR, ptFont, DEFAULT_PT } from '@/lib/impactCanvasTextSizing';
+import { FONT_FAMILY_REGULAR, DEFAULT_TEXT_COLOR, DEFAULT_PT } from '@/lib/impactCanvasTextSizing';
+import { useCanvasPtFont } from '@/lib/canvasSize';
+
 
 /**
  * Free "shape" element geometry. Shapes reuse the BoundBoxStyle model
