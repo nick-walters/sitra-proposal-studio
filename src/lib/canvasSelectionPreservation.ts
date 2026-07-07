@@ -35,21 +35,26 @@ export function useCanvasSelectionPreservation() {
   const savedRangeRef = useRef<{ from: number; to: number } | null>(null);
 
   const capture = useCallback(() => {
-    const ed = getFocusedCanvasEditor() ?? editorRef.current;
+    const focused = getFocusedCanvasEditor();
+    const ed = focused ?? editorRef.current;
+    console.log('[csp] capture', { hasFocused: !!focused, hasFallback: !!editorRef.current });
     if (!ed) return;
     editorRef.current = ed;
     const { from, to } = ed.state.selection;
     savedRangeRef.current = { from, to };
+    console.log('[csp] captured range', { from, to, empty: from === to, isFocused: ed.isFocused });
   }, []);
 
   const apply = useCallback(
     (fn: (chain: ChainedCommands) => ChainedCommands) => {
       const ed = editorRef.current ?? getFocusedCanvasEditor();
+      console.log('[csp] apply enter', { hasEd: !!ed, saved: savedRangeRef.current, edFocused: ed?.isFocused, edSel: ed ? { from: ed.state.selection.from, to: ed.state.selection.to } : null });
       if (!ed) return;
       const chain = ed.chain().focus();
       const sel = savedRangeRef.current;
       if (sel) chain.setTextSelection(sel);
-      fn(chain).run();
+      const ok = fn(chain).run();
+      console.log('[csp] apply exit', { ok, afterSel: { from: ed.state.selection.from, to: ed.state.selection.to }, focused: ed.isFocused });
     },
     []
   );
