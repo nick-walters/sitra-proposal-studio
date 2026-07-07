@@ -67,6 +67,7 @@ interface FigureManagerProps {
 const FIGURE_TYPES = [
   { id: 'image', label: 'Upload image', icon: Upload, description: 'Upload an image file (PNG, JPG, etc.)' },
   { id: 'ai', label: 'AI Generated', icon: Sparkles, description: 'Generate an image using AI' },
+  { id: 'canvas', label: 'Figure Canvas', icon: Frame, description: 'Blank canvas — draw shapes, lines and text at a fixed page size.' },
   { id: 'gantt', label: 'Gantt Chart', icon: BarChart3, description: 'Timeline view of work packages and tasks' },
   { id: 'pert', label: 'PERT Diagram', icon: Network, description: 'Project network diagram' },
   { id: 'custom', label: 'Custom Figure', icon: FileImage, description: 'Create a custom figure manually' },
