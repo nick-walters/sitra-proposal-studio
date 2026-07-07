@@ -67,7 +67,10 @@ export function useCanvasSelectionPreservation() {
     },
   } as const;
 
-  const portalProps = {
+  // Typed loosely so it spreads onto Radix portal content components
+  // (PopoverContent / SelectContent / DropdownMenuContent, …) whose
+  // prop unions differ. Any unknown handlers Radix ignores.
+  const portalProps: Record<string, unknown> = {
     // Editors' blur handlers ignore focus moves into this portal.
     'data-impact-canvas-toolbar': true,
     // Radix defaults would focus the portalled content on open/close;
@@ -81,7 +84,7 @@ export function useCanvasSelectionPreservation() {
       if (target?.closest('input, textarea, [contenteditable="true"]')) return;
       e.preventDefault();
     },
-  } as const;
+  };
 
   return { capture, apply, rememberEditor, triggerProps, portalProps };
 }
