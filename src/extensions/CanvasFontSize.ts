@@ -102,10 +102,6 @@ export const CanvasFontSize = Mark.create({
         ({ chain, state }) => {
           const { from, to } = state.selection;
           const collapsed = from === to;
-          if (import.meta.env.DEV) {
-            // eslint-disable-next-line no-console
-            console.debug('[CanvasFontSize] setCanvasFontSize', { pt, from, to, collapsed });
-          }
           const c = chain();
           if (collapsed) c.extendMarkRange('canvasFontSize');
           return c.setMark('canvasFontSize', { pt }).run();

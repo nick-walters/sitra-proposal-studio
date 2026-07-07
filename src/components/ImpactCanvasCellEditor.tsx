@@ -16,6 +16,7 @@ import { InlineReferenceNode } from '@/extensions/InlineReferenceNode';
 import { CanvasFontSize } from '@/extensions/CanvasFontSize';
 import { CanvasHeader } from '@/extensions/CanvasHeader';
 import { setFocusedCanvasEditor, getFocusedCanvasEditor } from '@/lib/impactCanvasFocusedEditor';
+import { collapseStackedCanvasFontSize } from '@/lib/collapseStackedCanvasFontSize';
 
 interface Props {
   html: string;
@@ -59,7 +60,7 @@ export function ImpactCanvasCellEditor({ html, onChange, onFocus, onBlur, disabl
       CaseReferenceNode,
       InlineReferenceNode,
     ],
-    content: html || '',
+    content: collapseStackedCanvasFontSize(html || ''),
     editable: !disabled,
     editorProps: {
       ...wordCleanPasteProps,
@@ -86,13 +87,17 @@ export function ImpactCanvasCellEditor({ html, onChange, onFocus, onBlur, disabl
     },
   });
 
-  // Sync external changes into the editor without clobbering the caret while typing.
+  // Sync external changes into the editor without clobbering the caret
+  // while typing. Runs the one-time collapser for legacy stacked
+  // canvasFontSize marks; if it rewrote the HTML, persist via onChange.
   useEffect(() => {
     if (!editor) return;
     if (html === lastEmitted.current) return;
-    lastEmitted.current = html;
-    editor.commands.setContent(html || '', { emitUpdate: false });
-  }, [html, editor]);
+    const cleaned = collapseStackedCanvasFontSize(html || '');
+    lastEmitted.current = cleaned;
+    editor.commands.setContent(cleaned, { emitUpdate: false });
+    if (cleaned !== (html || '')) onChange(cleaned);
+  }, [html, editor, onChange]);
 
   useEffect(() => {
     if (editor) editor.setEditable(!disabled);
