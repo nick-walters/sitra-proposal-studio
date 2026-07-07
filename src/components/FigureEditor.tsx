@@ -468,12 +468,16 @@ export function FigureEditor({
           </Card>
         )}
 
+        {/* Figure size (image / AI figures) */}
+        {renderImageSizePicker()}
+
         {/* Figure Content */}
         <Card>
           <CardContent className="pt-6">
             {renderFigureContent()}
           </CardContent>
         </Card>
+
       </div>
     </div>
   );
