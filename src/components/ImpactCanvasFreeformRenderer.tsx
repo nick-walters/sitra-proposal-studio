@@ -124,13 +124,16 @@ export function ImpactCanvasFreeformRenderer(props: Props) {
   );
 }
 
-function ImpactCanvasFreeformRendererInner({ proposalId, className, fallback = 'grid' }: Props) {
+function ImpactCanvasFreeformRendererInner({ proposalId, className, fallback = 'grid', figureId }: Props) {
   const { widthCm, minHeightCm, maxHeightCm, headerHeightCm, adaptive } = useCanvasSize();
   const pf = useCanvasPtFont();
 
-  const { columns, isLoading: colsLoading } = useImpactCanvasColumns(proposalId);
-  const { rows, isLoading: rowsLoading } = useImpactCanvasRows(proposalId);
-  const { elements, isLoading: elsLoading } = useImpactCanvasElements(proposalId);
+  // Impact-only rows/columns: a Figure Canvas figure has no columns/rows
+  // (no bound cells). Short-circuit the hooks with an empty proposal id.
+  const impactProposalId = figureId ? '' : proposalId;
+  const { columns, isLoading: colsLoading } = useImpactCanvasColumns(impactProposalId);
+  const { rows, isLoading: rowsLoading } = useImpactCanvasRows(impactProposalId);
+  const { elements, isLoading: elsLoading } = useImpactCanvasElements(proposalId, figureId);
 
   if (colsLoading || rowsLoading || elsLoading) {
     return <div className={className ?? 'p-4 text-xs text-muted-foreground'}>Loading impact canvas…</div>;
