@@ -202,6 +202,37 @@ function ResizableImageComponent({ node, updateAttributes, selected, editor, get
         className={`relative inline-block ${selected ? 'ring-2 ring-primary' : ''}`}
         style={boxStyle}
       >
+        {/* Float control — narrow (bounding-box < 18cm) figures only, when
+            the image is selected and the editor is editable (canEdit). */}
+        {selected && canFloat && (
+          <div
+            className="absolute -top-10 left-0 z-20 flex items-center gap-0.5 rounded-md border border-border bg-popover p-0.5 shadow-md"
+            contentEditable={false}
+            onMouseDown={(e) => e.preventDefault()}
+          >
+            {FLOAT_OPTIONS.map(({ side, label, Icon }) => (
+              <Tooltip key={side}>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label={label}
+                    aria-pressed={currentFloat === side}
+                    onClick={() => applyFloat(side)}
+                    className={`flex h-7 w-7 items-center justify-center rounded-sm transition-colors ${
+                      currentFloat === side
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-xs">{label}</TooltipContent>
+              </Tooltip>
+            ))}
+          </div>
+        )}
+
         <img
           ref={imageRef}
           src={src}
@@ -210,6 +241,7 @@ function ResizableImageComponent({ node, updateAttributes, selected, editor, get
           style={imgStyle}
           draggable={false}
         />
+
 
         
         {/* Resize handles — only for free-size images. Figures with a cm
