@@ -27,6 +27,8 @@ import {
 import { ArrowLeft, Trash2, Image, Sparkles, Loader2, Upload, Download } from 'lucide-react';
 import { useRef } from 'react';
 import { ImpactCanvasFreeformEditor } from '@/components/ImpactCanvasFreeformEditor';
+import { CanvasFigureRasteriser } from '@/components/CanvasFigureRasteriser';
+
 import { getFigureSizePreset } from '@/lib/figureSizePresets';
 import { FigureSizePicker, type FigureSizeValue } from '@/components/FigureSizePicker';
 
