@@ -7,6 +7,18 @@ import { FIGURE_COLUMN_WIDTH_CM } from '@/lib/figureSizePresets';
 export type ImageFloat = 'none' | 'left' | 'right';
 
 /**
+ * True when the image is sized by a figure size preset (cm bounding box).
+ * Such images are "contained" at their preset size and must not be turned
+ * into free pixel-sized images by drag handles or the px/% toolbar inputs.
+ */
+export function isBoundingBoxAttrs(attrs: Record<string, any> | null | undefined): boolean {
+  if (!attrs) return false;
+  const w = attrs.maxWidthCm;
+  const h = attrs.maxHeightCm;
+  return (typeof w === 'number' && w > 0) || (typeof h === 'number' && h > 0);
+}
+
+/**
  * Float is only meaningful for NARROW figures (bounding-box width set and
  * smaller than the 18cm text column). Full-width / unsized figures always
  * render as centred blocks, whatever the stored attribute says.
@@ -44,7 +56,12 @@ function ResizableImageComponent({ node, updateAttributes, selected }: NodeViewP
   const handleMouseDown = useCallback((e: React.MouseEvent, corner: string) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
+    // Bounding-box (figure size preset) images are sized by the figure size
+    // picker, never by free dragging — dragging would convert them to pixel
+    // mode and silently discard maxWidthCm/maxHeightCm.
+    if (isBoundingBoxAttrs(node.attrs)) return;
+
     const img = imageRef.current;
     if (!img) return;
 
@@ -99,7 +116,7 @@ function ResizableImageComponent({ node, updateAttributes, selected }: NodeViewP
 
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
-  }, [updateAttributes]);
+  }, [updateAttributes, node.attrs]);
 
   const parseDimension = (value: number | string | undefined): number | undefined => {
     if (typeof value === 'number') return value;
@@ -192,8 +209,9 @@ function ResizableImageComponent({ node, updateAttributes, selected }: NodeViewP
         />
 
         
-        {/* Resize handles - always show when selected */}
-        {selected && (
+        {/* Resize handles — only for free-size images. Figures with a cm
+            bounding box are sized via the figure size picker. */}
+        {selected && !hasBoundingBox && (
           <>
             {/* Corner handles */}
             <div

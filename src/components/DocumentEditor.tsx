@@ -651,6 +651,67 @@ export function DocumentEditor({
     return () => clearTimeout(timer);
   }, [editor, proposalId, section?.id, loading, syncTrigger]);
 
+  // Heal image nodes that lost their figure size preset (cm bounding box) and
+  // fell back to free pixel dimensions — e.g. a stray drag on a resize handle.
+  // The figure record is the source of truth for a sized figure, so restore
+  // maxWidthCm/maxHeightCm and clear the pixel width/height. Idempotent.
+  useEffect(() => {
+    if (!editor || !proposalId || loading) return;
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      const damaged: { pos: number; src: string }[] = [];
+      editor.state.doc.descendants((node, pos) => {
+        if (node.type.name !== 'image') return;
+        const a = node.attrs as Record<string, any>;
+        const hasBox =
+          (typeof a.maxWidthCm === 'number' && a.maxWidthCm > 0) ||
+          (typeof a.maxHeightCm === 'number' && a.maxHeightCm > 0);
+        if (hasBox) return;
+        if (!a.src || (!a.width && !a.height)) return;
+        damaged.push({ pos, src: String(a.src) });
+      });
+      if (damaged.length === 0) return;
+      const { data: figs } = await supabase
+        .from('figures')
+        .select('id, content')
+        .eq('proposal_id', proposalId);
+      if (cancelled || !figs) return;
+      const basename = (v: string) => (v.split('?')[0].split('/').pop() || '').toLowerCase();
+      const byFile = new Map<string, { widthCm: number; heightCm: number }>();
+      for (const f of figs) {
+        const c = (f.content || {}) as Record<string, any>;
+        const w = Number(c.widthCm);
+        const h = Number(c.heightCm);
+        const url = typeof c.imageUrl === 'string' ? c.imageUrl : '';
+        if (!url || !Number.isFinite(w) || w <= 0 || !Number.isFinite(h) || h <= 0) continue;
+        byFile.set(basename(url), { widthCm: w, heightCm: h });
+      }
+      if (byFile.size === 0) return;
+      let tr = editor.state.tr;
+      let changed = false;
+      for (const { pos, src } of damaged) {
+        const size = byFile.get(basename(src));
+        if (!size) continue;
+        const node = tr.doc.nodeAt(pos);
+        if (!node || node.type.name !== 'image') continue;
+        tr = tr.setNodeMarkup(pos, undefined, {
+          ...node.attrs,
+          maxWidthCm: size.widthCm,
+          maxHeightCm: size.heightCm,
+          width: null,
+          height: null,
+          widthPercent: 0,
+        });
+        changed = true;
+      }
+      if (changed && !cancelled) editor.view.dispatch(tr);
+    }, 600);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [editor, proposalId, section?.id, loading]);
+
   // Sync inline caption edits → figures.caption (Part B is the single source
   // of truth). Debounced scan of `p.figure-caption` paragraphs: extract
   // "Figure X.Y.z. Text" and upsert figures.caption keyed by figure_number.
