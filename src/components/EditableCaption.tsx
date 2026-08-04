@@ -20,6 +20,12 @@ interface EditableCaptionProps {
   onRefresh?: () => void;
   /** Buttons rendered to the left of the caption, revealed on hover. */
   leftButtons?: React.ReactNode;
+  /**
+   * Whether the caption text is editable. When omitted, falls back to the
+   * caption-editing role gate (admin/owner or any coordinator role) so
+   * existing call sites keep their current permissions.
+   */
+  canEdit?: boolean;
 }
 
 export function EditableCaption({
@@ -32,9 +38,11 @@ export function EditableCaption({
   className = '',
   onRefresh,
   leftButtons,
+  canEdit: canEditProp,
 }: EditableCaptionProps) {
   const { isAdminOrOwner, hasAnyCoordinatorRole } = useUserRole();
-  const canEdit = isAdminOrOwner || hasAnyCoordinatorRole;
+  const canEdit = canEditProp ?? (isAdminOrOwner || hasAnyCoordinatorRole);
+
   const [caption, setCaption] = useState(defaultCaption || 'Caption');
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState('');

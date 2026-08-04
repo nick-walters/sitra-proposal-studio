@@ -221,9 +221,11 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
   // Update figure mutation
   const updateFigure = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Figure> }) => {
-      const payload: { title?: string; caption?: string | null; content?: any } = {};
-      if (updates.title !== undefined) payload.title = updates.title;
+      // `title` is a read-only mirror of the caption (seeded at creation), so
+      // it is deliberately not updatable here — caption is the editable field.
+      const payload: { caption?: string | null; content?: any } = {};
       if (updates.caption !== undefined) payload.caption = updates.caption;
+
       if (updates.content !== undefined) payload.content = updates.content;
       if (Object.keys(payload).length === 0) return;
       const { error } = await supabase
