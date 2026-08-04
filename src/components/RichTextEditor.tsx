@@ -508,6 +508,7 @@ export function FormattingToolbar({
   const isImageSelected = editor?.isActive('image');
   const selectedImageAttrs = isImageSelected ? editor?.getAttributes('image') : null;
   const currentImageAlignment = selectedImageAttrs?.alignment || 'center';
+  const isBoundingBoxImage = isBoundingBoxAttrs(selectedImageAttrs);
   
   // Update image dimension inputs when selection changes
   useEffect(() => {
@@ -1121,7 +1122,10 @@ export function FormattingToolbar({
             <div className="flex items-center gap-1">
               <ImageIcon className="w-4 h-4 text-muted-foreground" />
               
-              {/* Inline figure dimensions panel */}
+              {/* Inline figure dimensions panel — hidden for figures sized by
+                  a cm bounding box (size preset); those are resized via the
+                  figure size picker so the preset isn't clobbered. */}
+              {!isBoundingBoxImage && (
               <FigureDimensionsPopover
                 width={imageWidth}
                 height={imageHeight}
@@ -1132,6 +1136,7 @@ export function FormattingToolbar({
                 onWidthPercentChange={handleWidthPercentChange}
                 onAspectRatioToggle={() => setAspectRatioLocked(!aspectRatioLocked)}
               />
+              )}
 
               <ToolbarButton
                 icon={<Crop className="w-4 h-4" />}
