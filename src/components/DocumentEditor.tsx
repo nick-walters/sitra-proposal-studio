@@ -711,7 +711,7 @@ export function DocumentEditor({
         if (!node || node.type.name !== 'image') continue;
         const a = node.attrs as Record<string, any>;
         if (isBoundingBoxAttrs(a) || !a.src) continue;
-        if (basename(String(a.src)) !== [...byFile.keys()].find((k) => k === basename(String(a.src)))) continue;
+        if (byFile.get(basename(String(a.src))) !== size) continue;
         tr = tr.setNodeMarkup(pos, undefined, {
           ...node.attrs,
           maxWidthCm: size.widthCm,
