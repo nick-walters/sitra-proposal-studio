@@ -896,14 +896,23 @@ export function DocumentEditor({
     // and syncs back to figures.caption via the sync effect above.
     const captionText = String((figure as any).caption || figure.title || '')
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const { isNarrowFigure, getFigureCaptionWidthCm } = await import('@/lib/figureSizePresets');
+    const narrow = isNarrowFigure(figure.content);
+    const captionWidthCm = narrow ? getFigureCaptionWidthCm(figure.content) : undefined;
+    const captionAttrs: Record<string, any> = { class: 'figure-caption' };
+    if (narrow && captionWidthCm) {
+      captionAttrs.maxWidthCm = captionWidthCm;
+      captionAttrs['data-narrow'] = 'true';
+    }
     contentToInsert.push({
       type: 'paragraph',
-      attrs: { class: 'figure-caption' },
+      attrs: captionAttrs,
       content: [
         { type: 'text', marks: [{ type: 'italic' }, { type: 'bold' }], text: `Figure ${figure.figureNumber}. ` },
         ...(captionText ? [{ type: 'text', marks: [{ type: 'italic' }], text: String((figure as any).caption || figure.title || '') }] : []),
       ],
     });
+
 
 
     
