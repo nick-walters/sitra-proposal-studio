@@ -189,6 +189,17 @@ function buildPrintDocument(
       break-inside: avoid;
       page-break-inside: avoid;
     }
+    /* Narrow figures: caption width-matched to the figure, kept with it */
+    .print-export-container p.figure-caption[data-narrow] {
+      margin-left: auto !important;
+      margin-right: auto !important;
+      break-before: avoid;
+      page-break-before: avoid;
+    }
+    .print-export-container img[style*="max-width"] {
+      break-after: avoid;
+      page-break-after: avoid;
+    }
     .print-export-container p {
       orphans: 3;
       widows: 3;
