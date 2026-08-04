@@ -57,6 +57,19 @@ function ResizableImageComponent({ node, updateAttributes, selected, editor, get
     float?: ImageFloat;
   };
   const activeFloat = resolveImageFloat(float, maxWidthCm);
+  // Float is only offered for narrow figures (cm bounding box < text column),
+  // and only when the document is editable (coordinator/edit gating).
+  const isNarrow =
+    typeof maxWidthCm === 'number' && maxWidthCm > 0 && maxWidthCm < FIGURE_COLUMN_WIDTH_CM;
+  const canFloat = isNarrow && !!editor?.isEditable;
+  const currentFloat: ImageFloat = activeFloat || 'none';
+  const applyFloat = useCallback(
+    (side: ImageFloat) => {
+      const pos = typeof getPos === 'function' ? getPos() : undefined;
+      editor?.chain().focus().setFigureFloat(side, pos).run();
+    },
+    [editor, getPos],
+  );
   const src = useStorageUrl(rawSrc) || rawSrc;
   const [, setIsResizing] = useState(false);
   const imageRef = useRef<HTMLImageElement>(null);
