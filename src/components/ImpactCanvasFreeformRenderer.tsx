@@ -146,20 +146,22 @@ function ImpactCanvasFreeformRendererInner({ proposalId, className, fallback = '
 
   const columnOrder = columns.slice().sort((a, b) => a.order_index - b.order_index);
 
-  if (columnOrder.length === 0) {
+  // Figure Canvas figures have no columns/rows — skip the impact-only guards.
+  if (!figureId && columnOrder.length === 0) {
     return (
       <p className={`${className ?? ''} text-xs text-muted-foreground italic py-6 text-center`}>
         No columns defined.
       </p>
     );
   }
-  if (rows.length === 0) {
+  if (!figureId && rows.length === 0) {
     return (
       <p className={`${className ?? ''} text-xs text-muted-foreground italic py-6 text-center`}>
         No rows yet.
       </p>
     );
   }
+
 
   const boundEls = elements.filter(
     (e) => e.kind === 'bound' && e.bound_row_id && e.bound_col_key,
