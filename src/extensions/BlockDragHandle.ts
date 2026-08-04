@@ -81,8 +81,58 @@ function blockContainsTable(doc: ProseMirrorNode, startPos: number, endPos: numb
   return found;
 }
 
+/**
+ * A floated figure (image or its paired caption) is taken out of the normal
+ * vertical flow: its DOM box sits BESIDE the paragraphs that wrap around it.
+ * Using its geometry to compute a drop position makes drops near the float
+ * unpredictable, so floated boxes are ignored as drop targets and the nearest
+ * in-flow block is used instead.
+ */
+function isFloatedBlockDom(el: unknown): boolean {
+  if (!(el instanceof HTMLElement)) return false;
+  const floatAttr = el.getAttribute('data-float');
+  if (floatAttr === 'left' || floatAttr === 'right') return true;
+  const inline = el.style?.cssFloat || (el.style as unknown as { float?: string })?.float || '';
+  if (inline === 'left' || inline === 'right') return true;
+  const img = el.querySelector?.('img[data-float="left"], img[data-float="right"]');
+  if (img) return true;
+  try {
+    const computed = window.getComputedStyle(el).float;
+    if (computed === 'left' || computed === 'right') return true;
+  } catch {
+    /* noop */
+  }
+  return false;
+}
+
+/**
+ * Nearest in-flow (non-floated) top-level block for a pointer Y coordinate.
+ * Returns its document position, or null if none can be resolved.
+ */
+function findNearestInFlowBlockPos(
+  view: { state: { doc: ProseMirrorNode }; nodeDOM: (pos: number) => Node | null },
+  clientY: number,
+): number | null {
+  const doc = view.state.doc;
+  let best: { pos: number; distance: number } | null = null;
+  let pos = 0;
+  doc.forEach((node) => {
+    const nodePos = pos;
+    pos += node.nodeSize;
+    const dom = view.nodeDOM(nodePos);
+    if (!(dom instanceof HTMLElement)) return;
+    if (isFloatedBlockDom(dom)) return;
+    const rect = dom.getBoundingClientRect();
+    if (rect.height === 0 && rect.width === 0) return;
+    const distance =
+      clientY < rect.top ? rect.top - clientY : clientY > rect.bottom ? clientY - rect.bottom : 0;
+    if (!best || distance < best.distance) best = { pos: nodePos, distance };
+  });
+  return best ? (best as { pos: number }).pos : null;
+}
 
 export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
+
   name: 'blockDragHandle',
 
   addOptions() {
