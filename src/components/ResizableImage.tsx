@@ -38,6 +38,12 @@ export function resolveImageFloat(
   return narrow ? float : null;
 }
 
+const FLOAT_OPTIONS: { side: ImageFloat; label: string; Icon: typeof AlignLeft }[] = [
+  { side: 'left', label: 'Float left (text wraps right)', Icon: AlignLeft },
+  { side: 'none', label: 'Inline block (centred)', Icon: AlignCenter },
+  { side: 'right', label: 'Float right (text wraps left)', Icon: AlignRight },
+];
+
 function ResizableImageComponent({ node, updateAttributes, selected, editor, getPos }: NodeViewProps) {
   const { src: rawSrc, alt, width, height, widthPercent, alignment, maxWidthCm, maxHeightCm, float } = node.attrs as {
     src: string;
