@@ -357,6 +357,7 @@ export const ResizableImage = Node.create({
     }
 
     const attrs: Record<string, any> = { style: styles.join('; ') };
+    if (activeFloat) attrs['data-float'] = activeFloat;
     if (src) attrs.src = src;
     if (alt) attrs.alt = alt;
     return ['img', attrs];
