@@ -55,3 +55,48 @@ export function getFigureSizePreset(id: string | null | undefined): FigureSizePr
     FIGURE_SIZE_PRESETS.find((p) => p.id === DEFAULT_FIGURE_SIZE_PRESET_ID)!
   );
 }
+
+/** Full text-column width used for inline figures. */
+export const FIGURE_COLUMN_WIDTH_CM = 18;
+
+export interface FigureSizeContent {
+  presetId?: string | null;
+  widthCm?: number | null;
+  heightCm?: number | null;
+}
+
+function getFigureEffectiveWidthCm(content: FigureSizeContent | null | undefined): number | null {
+  if (!content) return null;
+  if (Number.isFinite(content.widthCm) && content.widthCm! > 0) {
+    return content.widthCm!;
+  }
+  if (content.presetId) {
+    const preset = FIGURE_SIZE_PRESETS.find((p) => p.id === content.presetId);
+    if (preset) return preset.widthCm;
+  }
+  return null;
+}
+
+/**
+ * Returns true when a figure's effective width is narrower than the full
+ * text-column width. Full-width presets (full/half/third) and unsized figures
+ * are not narrow; quarter/eighth presets and custom widths < 18 cm are.
+ */
+export function isNarrowFigure(content: FigureSizeContent | null | undefined): boolean {
+  const width = getFigureEffectiveWidthCm(content);
+  if (width == null) return false;
+  return width > 0 && width < FIGURE_COLUMN_WIDTH_CM;
+}
+
+/**
+ * Returns the width (in cm) that a narrow figure's caption box should match.
+ * For non-narrow or unsized figures, returns undefined so the existing
+ * full-width caption behaviour is preserved.
+ */
+export function getFigureCaptionWidthCm(
+  content: FigureSizeContent | null | undefined
+): number | undefined {
+  if (!isNarrowFigure(content)) return undefined;
+  const width = getFigureEffectiveWidthCm(content);
+  return width ?? undefined;
+}
