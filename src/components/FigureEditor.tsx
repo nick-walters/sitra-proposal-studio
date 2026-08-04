@@ -187,7 +187,8 @@ export function FigureEditor({
   };
 
   const renderImageSizePicker = () => {
-    const isImageFigure = figure.figureType === 'image' || figure.figureType === 'ai';
+    const isCanvasFigure = figure.figureType === 'canvas';
+    const isImageFigure = figure.figureType === 'image' || figure.figureType === 'ai' || isCanvasFigure;
     if (!isImageFigure || !canEdit) return null;
     const cWidth = Number(figure.content?.widthCm);
     const cHeight = Number(figure.content?.heightCm);
@@ -211,7 +212,7 @@ export function FigureEditor({
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Figure size</CardTitle>
+          <CardTitle className="text-base">{isCanvasFigure ? 'Canvas size' : 'Figure size'}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="max-w-sm">
@@ -219,7 +220,11 @@ export function FigureEditor({
               value={sizeValue}
               onChange={handleSizeChange}
               idPrefix={`figure-${figure.id}-size`}
-              helpText="The image fits inside this box preserving aspect ratio (no crop, no stretch, no padding)."
+              helpText={
+                isCanvasFigure
+                  ? 'Resizes the canvas frame. Elements keep their exact positions and sizes in cm — nothing is scaled or moved; anything outside a smaller frame stays in the data and reappears if you enlarge again.'
+                  : 'The image fits inside this box preserving aspect ratio (no crop, no stretch, no padding).'
+              }
             />
           </div>
         </CardContent>
