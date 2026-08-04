@@ -289,6 +289,19 @@ export const ResizableImage = Node.create({
         },
         renderHTML: () => ({}),
       },
+      // Text-wrap float for NARROW figures ('none' | 'left' | 'right').
+      // Round-trips via the inline style (float: left/right).
+      float: {
+        default: 'none',
+        parseHTML: (element) => {
+          const style = element.getAttribute('style') || '';
+          const m = style.match(/(?:^|[;\s])float:\s*(left|right)/);
+          if (m) return m[1];
+          const attr = element.getAttribute('data-float');
+          return attr === 'left' || attr === 'right' ? attr : 'none';
+        },
+        renderHTML: () => ({}),
+      },
     };
   },
 
