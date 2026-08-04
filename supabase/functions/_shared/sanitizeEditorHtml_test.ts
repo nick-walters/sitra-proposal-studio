@@ -112,6 +112,18 @@ Deno.test("preserves allowed style properties (text-align, width)", () => {
   assertStringIncludes(out, "color: red");
 });
 
+Deno.test("preserves cm-sized figure and caption float metadata", () => {
+  const input = `<img src="figure.png" data-float="right" style="display: block; float: right; max-width: 9cm; max-height: 13.5cm; width: auto; height: auto"><p class="figure-caption" data-narrow="true" data-max-width-cm="9" data-float="right" style="max-width: 9cm; width: 9cm; float: right; clear: right">Figure 1.1.a. Caption</p>`;
+  const out = sanitizeEditorHtml(input);
+  assertStringIncludes(out, 'data-float="right"');
+  assertStringIncludes(out, 'data-narrow="true"');
+  assertStringIncludes(out, 'data-max-width-cm="9"');
+  assertStringIncludes(out, 'max-width: 9cm');
+  assertStringIncludes(out, 'max-height: 13.5cm');
+  assertStringIncludes(out, 'float: right');
+  assertStringIncludes(out, 'clear: right');
+});
+
 // ============================================================================
 // Smoke: empty input is safe
 // ============================================================================
