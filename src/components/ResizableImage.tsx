@@ -7,6 +7,18 @@ import { FIGURE_COLUMN_WIDTH_CM } from '@/lib/figureSizePresets';
 export type ImageFloat = 'none' | 'left' | 'right';
 
 /**
+ * True when the image is sized by a figure size preset (cm bounding box).
+ * Such images are "contained" at their preset size and must not be turned
+ * into free pixel-sized images by drag handles or the px/% toolbar inputs.
+ */
+export function isBoundingBoxAttrs(attrs: Record<string, any> | null | undefined): boolean {
+  if (!attrs) return false;
+  const w = attrs.maxWidthCm;
+  const h = attrs.maxHeightCm;
+  return (typeof w === 'number' && w > 0) || (typeof h === 'number' && h > 0);
+}
+
+/**
  * Float is only meaningful for NARROW figures (bounding-box width set and
  * smaller than the 18cm text column). Full-width / unsized figures always
  * render as centred blocks, whatever the stored attribute says.
