@@ -19,6 +19,8 @@ import { ImageCropDialog } from './ImageCropDialog';
 import { resolveStorageUrl } from '@/hooks/useStorageUrl';
 import { createCitationTooltipPlugin, CitationMark, CitationNode } from './CitationMark';
 import { BlockReordering } from '@/extensions/BlockReordering';
+import { FigureFloat } from '@/extensions/FigureFloat';
+import { reconcileFigureCaptionFloat } from '@/lib/reconcileFigureCaptionFloat';
 import { ParagraphSpacing } from '@/extensions/ParagraphSpacing';
 
 import { InlineReferenceNode } from '@/extensions/InlineReferenceNode';
@@ -407,7 +409,7 @@ function normalizePartBLoadedContent(html: string) {
     }
   });
 
-  return div.innerHTML;
+  return reconcileFigureCaptionFloat(div.innerHTML);
 }
 
 
@@ -1284,6 +1286,7 @@ StarterKit.configure({
       TextStyle,
       Color,
       ParagraphClass,
+      FigureFloat,
       HeadingDataAttributes,
       ParagraphSpacing,
       TextAlign.configure({
@@ -1519,6 +1522,7 @@ StarterKit.configure({
       TextStyle,
       Color,
       ParagraphClass,
+      FigureFloat,
       HeadingDataAttributes,
       
       ParagraphSpacing,
