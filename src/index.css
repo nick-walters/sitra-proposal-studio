@@ -110,18 +110,68 @@ html, body {
   max-width: 100%;
 }
 
-/* TipTap image node styles */
-.ProseMirror img {
+/* TipTap image node styles — block/centred behaviour applies only when the
+   image is NOT floated. Floated (narrow) figures get float + margins from
+   their inline style / node view. */
+.ProseMirror img:not([data-float="left"]):not([data-float="right"]) {
   max-width: 100%;
   height: auto;
   display: block;
   margin: 0 auto;
 }
 
-.ProseMirror .resizable-image-wrapper {
+.ProseMirror img[data-float="left"],
+.ProseMirror img[data-float="right"] {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+.ProseMirror .resizable-image-wrapper:not([data-float="left"]):not([data-float="right"]) {
   display: block;
   text-align: center;
 }
+
+/* Floated narrow figure: wrapper floats at the figure width; body text
+   wraps on the open side. Higher specificity than the centring rules and
+   than the narrow-caption auto-margins, so float always wins. */
+.ProseMirror .resizable-image-wrapper[data-float="left"],
+.document-content .resizable-image-wrapper[data-float="left"],
+.print-export-container .resizable-image-wrapper[data-float="left"] {
+  display: block !important;
+  float: left !important;
+  text-align: left !important;
+  margin: 0 1em 0.3em 0 !important;
+  max-width: 100%;
+}
+
+.ProseMirror .resizable-image-wrapper[data-float="right"],
+.document-content .resizable-image-wrapper[data-float="right"],
+.print-export-container .resizable-image-wrapper[data-float="right"] {
+  display: block !important;
+  float: right !important;
+  text-align: left !important;
+  margin: 0 0 0.3em 1em !important;
+  max-width: 100%;
+}
+
+/* A float must never overhang into the next section or table */
+.ProseMirror h1,
+.ProseMirror h2,
+.ProseMirror h3,
+.document-content h1,
+.document-content h2,
+.document-content h3,
+.print-export-container h1,
+.print-export-container h2,
+.print-export-container h3,
+.he-table,
+.ProseMirror table,
+.document-content table,
+.print-export-container table {
+  clear: both;
+}
+
 
 /* Cross-reference styling */
 .figure-reference,

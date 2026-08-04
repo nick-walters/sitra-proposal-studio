@@ -2,9 +2,29 @@ import { Node } from '@tiptap/core';
 import { NodeViewWrapper, ReactNodeViewRenderer, NodeViewProps } from '@tiptap/react';
 import { useState, useCallback, useRef } from 'react';
 import { useStorageUrl } from '@/hooks/useStorageUrl';
+import { FIGURE_COLUMN_WIDTH_CM } from '@/lib/figureSizePresets';
+
+export type ImageFloat = 'none' | 'left' | 'right';
+
+/**
+ * Float is only meaningful for NARROW figures (bounding-box width set and
+ * smaller than the 18cm text column). Full-width / unsized figures always
+ * render as centred blocks, whatever the stored attribute says.
+ */
+export function resolveImageFloat(
+  float: unknown,
+  maxWidthCm: number | null | undefined,
+): Exclude<ImageFloat, 'none'> | null {
+  if (float !== 'left' && float !== 'right') return null;
+  const narrow =
+    typeof maxWidthCm === 'number' &&
+    maxWidthCm > 0 &&
+    maxWidthCm < FIGURE_COLUMN_WIDTH_CM;
+  return narrow ? float : null;
+}
 
 function ResizableImageComponent({ node, updateAttributes, selected }: NodeViewProps) {
-  const { src: rawSrc, alt, width, height, widthPercent, alignment, maxWidthCm, maxHeightCm } = node.attrs as {
+  const { src: rawSrc, alt, width, height, widthPercent, alignment, maxWidthCm, maxHeightCm, float } = node.attrs as {
     src: string;
     alt?: string;
     width?: number | string;
@@ -13,7 +33,9 @@ function ResizableImageComponent({ node, updateAttributes, selected }: NodeViewP
     alignment?: 'left' | 'center' | 'right';
     maxWidthCm?: number | null;
     maxHeightCm?: number | null;
+    float?: ImageFloat;
   };
+  const activeFloat = resolveImageFloat(float, maxWidthCm);
   const src = useStorageUrl(rawSrc) || rawSrc;
   const [, setIsResizing] = useState(false);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -131,10 +153,29 @@ function ResizableImageComponent({ node, updateAttributes, selected }: NodeViewP
       }
     : { width: '100%', height: 'auto' };
 
+  const floatWrapperStyle: React.CSSProperties | null = activeFloat
+    ? {
+        float: activeFloat,
+        display: 'block',
+        width: `${maxWidthCm}cm`,
+        maxWidth: '100%',
+        margin:
+          activeFloat === 'left'
+            ? '0 1em 0.3em 0'
+            : '0 0 0.3em 1em',
+        textAlign: 'left',
+      }
+    : null;
+
   return (
     <NodeViewWrapper
-      className="resizable-image-wrapper w-full flex"
-      style={getAlignmentStyles()}
+      className={
+        activeFloat
+          ? 'resizable-image-wrapper is-floated'
+          : 'resizable-image-wrapper w-full flex'
+      }
+      data-float={activeFloat || 'none'}
+      style={floatWrapperStyle || getAlignmentStyles()}
     >
 
       <div
@@ -248,6 +289,19 @@ export const ResizableImage = Node.create({
         },
         renderHTML: () => ({}),
       },
+      // Text-wrap float for NARROW figures ('none' | 'left' | 'right').
+      // Round-trips via the inline style (float: left/right).
+      float: {
+        default: 'none',
+        parseHTML: (element) => {
+          const style = element.getAttribute('style') || '';
+          const m = style.match(/(?:^|[;\s])float:\s*(left|right)/);
+          if (m) return m[1];
+          const attr = element.getAttribute('data-float');
+          return attr === 'left' || attr === 'right' ? attr : 'none';
+        },
+        renderHTML: () => ({}),
+      },
     };
   },
 
@@ -260,11 +314,20 @@ export const ResizableImage = Node.create({
   },
 
   renderHTML({ node }) {
-    const { widthPercent, width, height, alignment, src, alt, maxWidthCm, maxHeightCm } = node.attrs;
+    const { widthPercent, width, height, alignment, src, alt, maxWidthCm, maxHeightCm, float } = node.attrs;
     const styles: string[] = [];
+    const activeFloat = resolveImageFloat(float, maxWidthCm);
 
-    // Add alignment via display block + margin
-    if (alignment === 'center') {
+    if (activeFloat) {
+      // Floated narrow figure: text wraps on the open side.
+      styles.push(
+        'display: block',
+        `float: ${activeFloat}`,
+        activeFloat === 'left'
+          ? 'margin: 0 1em 0.3em 0'
+          : 'margin: 0 0 0.3em 1em',
+      );
+    } else if (alignment === 'center') {
       styles.push('display: block', 'margin-left: auto', 'margin-right: auto');
     } else if (alignment === 'right') {
       styles.push('display: block', 'margin-left: auto', 'margin-right: 0');
@@ -294,6 +357,7 @@ export const ResizableImage = Node.create({
     }
 
     const attrs: Record<string, any> = { style: styles.join('; ') };
+    if (activeFloat) attrs['data-float'] = activeFloat;
     if (src) attrs.src = src;
     if (alt) attrs.alt = alt;
     return ['img', attrs];
@@ -308,7 +372,7 @@ export const ResizableImage = Node.create({
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     resizableImage: {
-      setImage: (options: { src: string; alt?: string; width?: number; height?: number; widthPercent?: number; alignment?: 'left' | 'center' | 'right'; maxWidthCm?: number | null; maxHeightCm?: number | null }) => ReturnType;
+      setImage: (options: { src: string; alt?: string; width?: number; height?: number; widthPercent?: number; alignment?: 'left' | 'center' | 'right'; maxWidthCm?: number | null; maxHeightCm?: number | null; float?: ImageFloat }) => ReturnType;
     };
   }
 }
