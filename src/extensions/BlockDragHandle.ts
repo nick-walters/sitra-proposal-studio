@@ -256,9 +256,39 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
             lastDropTarget = null;
           });
 
+          // Figure corner drag handle (rendered by the image node view) starts
+          // a block drag for the figure + its paired caption through the very
+          // same reorder machinery: it only has to seed `draggedBlockRange`,
+          // after which the existing dragover/drop handlers do the work.
+          const onFigureDragStart = (evt: Event) => {
+            const pos = (evt as CustomEvent<{ pos: number }>).detail?.pos;
+            if (typeof pos !== 'number') return;
+            const blockRange = findBlockRange(editorView.state.doc, pos);
+            if (!blockRange || !isReorderableBlock(blockRange.node)) return;
+            const blockId = getBlockIdFromPos(editorView.state.doc, blockRange.startPos);
+            const lockedBlocks = getLockedBlocks();
+            const userId = getCurrentUserId();
+            if (lockedBlocks.some(lock => lock.blockId === blockId && lock.userId !== userId)) return;
+            draggedBlockRange = { startPos: blockRange.startPos, endPos: blockRange.endPos };
+            requestAnimationFrame(() => {
+              const blockDom = editorView.nodeDOM(blockRange.startPos);
+              if (blockDom instanceof HTMLElement) blockDom.classList.add('dragging-block');
+            });
+          };
+          const onFigureDragEnd = () => {
+            if (dropIndicator) dropIndicator.style.display = 'none';
+            document.querySelectorAll('.dragging-block').forEach(el => el.classList.remove('dragging-block'));
+            draggedBlockRange = null;
+            lastDropTarget = null;
+          };
+          window.addEventListener('figure-block-dragstart', onFigureDragStart);
+          window.addEventListener('figure-block-dragend', onFigureDragEnd);
+
           return {
             update() {},
             destroy() {
+              window.removeEventListener('figure-block-dragstart', onFigureDragStart);
+              window.removeEventListener('figure-block-dragend', onFigureDragEnd);
               dragContainer?.remove();
               dropIndicator?.remove();
             },
