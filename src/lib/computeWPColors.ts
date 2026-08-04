@@ -126,12 +126,15 @@ export async function reconcileWPColorsForProposal(proposalId: string): Promise<
   let changed = 0;
   for (const wp of wps) {
     let target: string | null = null;
+    // Theme colours apply ONLY while use_wp_themes is on. When off, theme_id is
+    // preserved in the DB but ignored here: colour is purely positional.
     if (useThemes && wp.theme_id) {
       const t = themesById.get(wp.theme_id);
       if (t) target = t.color;
     }
     if (!target) target = computeWPColorForPosition(wp.order_index, total, overrides);
-    if (target && target !== wp.color) {
+    // Case-insensitive compare: avoid needless rewrites for #75CFEB vs #75cfeb.
+    if (target && target.toUpperCase() !== (wp.color || '').toUpperCase()) {
       const { error } = await supabase
         .from('wp_drafts')
         .update({ color: target })
