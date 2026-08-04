@@ -2,9 +2,29 @@ import { Node } from '@tiptap/core';
 import { NodeViewWrapper, ReactNodeViewRenderer, NodeViewProps } from '@tiptap/react';
 import { useState, useCallback, useRef } from 'react';
 import { useStorageUrl } from '@/hooks/useStorageUrl';
+import { FIGURE_COLUMN_WIDTH_CM } from '@/lib/figureSizePresets';
+
+export type ImageFloat = 'none' | 'left' | 'right';
+
+/**
+ * Float is only meaningful for NARROW figures (bounding-box width set and
+ * smaller than the 18cm text column). Full-width / unsized figures always
+ * render as centred blocks, whatever the stored attribute says.
+ */
+export function resolveImageFloat(
+  float: unknown,
+  maxWidthCm: number | null | undefined,
+): Exclude<ImageFloat, 'none'> | null {
+  if (float !== 'left' && float !== 'right') return null;
+  const narrow =
+    typeof maxWidthCm === 'number' &&
+    maxWidthCm > 0 &&
+    maxWidthCm < FIGURE_COLUMN_WIDTH_CM;
+  return narrow ? float : null;
+}
 
 function ResizableImageComponent({ node, updateAttributes, selected }: NodeViewProps) {
-  const { src: rawSrc, alt, width, height, widthPercent, alignment, maxWidthCm, maxHeightCm } = node.attrs as {
+  const { src: rawSrc, alt, width, height, widthPercent, alignment, maxWidthCm, maxHeightCm, float } = node.attrs as {
     src: string;
     alt?: string;
     width?: number | string;
@@ -13,7 +33,9 @@ function ResizableImageComponent({ node, updateAttributes, selected }: NodeViewP
     alignment?: 'left' | 'center' | 'right';
     maxWidthCm?: number | null;
     maxHeightCm?: number | null;
+    float?: ImageFloat;
   };
+  const activeFloat = resolveImageFloat(float, maxWidthCm);
   const src = useStorageUrl(rawSrc) || rawSrc;
   const [, setIsResizing] = useState(false);
   const imageRef = useRef<HTMLImageElement>(null);
