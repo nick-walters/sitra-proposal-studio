@@ -615,15 +615,26 @@ export function PanelEvaluator({ proposalId }: Props) {
           setStage("panelReview");
         } else {
           // No panel_proposed either — check for a recent failed run with
-          // preserved evaluator results so we can offer Resume.
+          // preserved evaluator results so we can offer Resume. A failure is
+          // only "active" if no successful ('complete') run finished AFTER it.
           const latestFailed = (hist || [])
             .filter((r: any) => r.status === "failed")
             .slice()
             .reverse()[0];
-          if (latestFailed) {
+          const latestComplete = (hist || [])
+            .filter((r: any) => r.status === "complete")
+            .slice()
+            .reverse()[0];
+          const supersededByComplete =
+            !!latestFailed &&
+            !!latestComplete &&
+            new Date((latestComplete as any).created_at).getTime() >
+              new Date((latestFailed as any).created_at).getTime();
+          if (latestFailed && !supersededByComplete) {
             const summary = summarizeFailedRow(latestFailed as any);
             if (summary && summary.failCount > 0) setFailedRun(summary);
           }
+
         }
       }
 
