@@ -22,7 +22,11 @@ interface Props {
    *  undefined, reads the Impact Canvas singleton (proposal_id + figure_id
    *  IS NULL). Stage B: prop plumbing only — no caller passes a figureId. */
   figureId?: string;
+  /** Stage D: fixed physical size for Figure Canvas figures. Omitted for
+   *  the Impact Canvas, which keeps IMPACT_CANVAS_SIZE (adaptive). */
+  canvasSize?: Partial<CanvasSize>;
 }
+
 
 /**
  * Cell HTML sanitiser — preserves cross-reference badge markup produced
