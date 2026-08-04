@@ -9,6 +9,11 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 
 export type ImageFloat = 'none' | 'left' | 'right';
 
+function positiveCm(value: unknown): number | null {
+  const number = typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : NaN;
+  return Number.isFinite(number) && number > 0 ? number : null;
+}
+
 /**
  * True when the image is sized by a figure size preset (cm bounding box).
  * Such images are "contained" at their preset size and must not be turned
@@ -16,9 +21,7 @@ export type ImageFloat = 'none' | 'left' | 'right';
  */
 export function isBoundingBoxAttrs(attrs: Record<string, any> | null | undefined): boolean {
   if (!attrs) return false;
-  const w = attrs.maxWidthCm;
-  const h = attrs.maxHeightCm;
-  return (typeof w === 'number' && w > 0) || (typeof h === 'number' && h > 0);
+  return positiveCm(attrs.maxWidthCm) != null || positiveCm(attrs.maxHeightCm) != null;
 }
 
 /**
@@ -31,10 +34,8 @@ export function resolveImageFloat(
   maxWidthCm: number | null | undefined,
 ): Exclude<ImageFloat, 'none'> | null {
   if (float !== 'left' && float !== 'right') return null;
-  const narrow =
-    typeof maxWidthCm === 'number' &&
-    maxWidthCm > 0 &&
-    maxWidthCm < FIGURE_COLUMN_WIDTH_CM;
+  const widthCm = positiveCm(maxWidthCm);
+  const narrow = widthCm != null && widthCm < FIGURE_COLUMN_WIDTH_CM;
   return narrow ? float : null;
 }
 
@@ -57,10 +58,11 @@ function ResizableImageComponent({ node, updateAttributes, selected, editor, get
     float?: ImageFloat;
   };
   const activeFloat = resolveImageFloat(float, maxWidthCm);
+  const boundingWidthCm = positiveCm(maxWidthCm);
+  const boundingHeightCm = positiveCm(maxHeightCm);
   // Float is only offered for narrow figures (cm bounding box < text column),
   // and only when the document is editable (coordinator/edit gating).
-  const isNarrow =
-    typeof maxWidthCm === 'number' && maxWidthCm > 0 && maxWidthCm < FIGURE_COLUMN_WIDTH_CM;
+  const isNarrow = boundingWidthCm != null && boundingWidthCm < FIGURE_COLUMN_WIDTH_CM;
   const canFloat = isNarrow && !!editor?.isEditable;
   const currentFloat: ImageFloat = activeFloat || 'none';
   const applyFloat = useCallback(
@@ -153,9 +155,7 @@ function ResizableImageComponent({ node, updateAttributes, selected, editor, get
   // figure record. The image scales inside a max-width/max-height box
   // preserving aspect ratio — no crop, no stretch, no letterbox padding
   // (the img itself takes the fitted dimensions).
-  const hasBoundingBox =
-    (typeof maxWidthCm === 'number' && maxWidthCm > 0) ||
-    (typeof maxHeightCm === 'number' && maxHeightCm > 0);
+  const hasBoundingBox = isBoundingBoxAttrs(node.attrs);
 
   // Use percentage width if set and positive, otherwise use pixel dimensions
   const usePercentage = !hasBoundingBox && typeof widthPercent === 'number' && widthPercent > 0;
@@ -184,8 +184,8 @@ function ResizableImageComponent({ node, updateAttributes, selected, editor, get
 
   const imgStyle: React.CSSProperties = hasBoundingBox
     ? {
-        maxWidth: typeof maxWidthCm === 'number' && maxWidthCm > 0 ? `${maxWidthCm}cm` : 'none',
-        maxHeight: typeof maxHeightCm === 'number' && maxHeightCm > 0 ? `${maxHeightCm}cm` : 'none',
+        maxWidth: boundingWidthCm != null ? `${boundingWidthCm}cm` : 'none',
+        maxHeight: boundingHeightCm != null ? `${boundingHeightCm}cm` : 'none',
         width: 'auto',
         height: 'auto',
         display: 'block',
@@ -196,7 +196,7 @@ function ResizableImageComponent({ node, updateAttributes, selected, editor, get
     ? {
         float: activeFloat,
         display: 'block',
-        width: `${maxWidthCm}cm`,
+         width: `${boundingWidthCm}cm`,
         maxWidth: '100%',
         margin:
           activeFloat === 'left'
@@ -407,18 +407,18 @@ export const ResizableImage = Node.create({
       styles.push('display: block', 'margin-left: 0', 'margin-right: auto');
     }
 
-    const hasBoundingBox =
-      (typeof maxWidthCm === 'number' && maxWidthCm > 0) ||
-      (typeof maxHeightCm === 'number' && maxHeightCm > 0);
+    const boundingWidthCm = positiveCm(maxWidthCm);
+    const boundingHeightCm = positiveCm(maxHeightCm);
+    const hasBoundingBox = boundingWidthCm != null || boundingHeightCm != null;
 
     if (hasBoundingBox) {
       // Contain inside a bounding box (cm). Aspect ratio preserved by
       // width/height:auto — the img takes its fitted intrinsic size.
-      if (typeof maxWidthCm === 'number' && maxWidthCm > 0) {
-        styles.push(`max-width: ${maxWidthCm}cm`);
+      if (boundingWidthCm != null) {
+        styles.push(`max-width: ${boundingWidthCm}cm`);
       }
-      if (typeof maxHeightCm === 'number' && maxHeightCm > 0) {
-        styles.push(`max-height: ${maxHeightCm}cm`);
+      if (boundingHeightCm != null) {
+        styles.push(`max-height: ${boundingHeightCm}cm`);
       }
       styles.push('width: auto', 'height: auto');
     } else if (typeof widthPercent === 'number' && widthPercent > 0) {

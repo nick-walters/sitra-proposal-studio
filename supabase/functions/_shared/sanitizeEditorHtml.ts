@@ -90,6 +90,12 @@ export const ALLOWED_DATA_ATTRS = new Set<string>([
   // B3.2 mirror slot binding (heading ↔ slot pairing)
   'data-b32-mirror-slot',
   'data-b32-slot-key',
+  // Narrow figure sizing/float metadata. These must survive the canonical
+  // load sanitiser or TipTap loses cm bounding-box mode before parsing and
+  // incorrectly exposes free pixel resize controls.
+  'data-max-width-cm',
+  'data-narrow',
+  'data-float',
 ]);
 
 export const STYLE_ALLOWLIST = new Set<string>([
@@ -101,12 +107,16 @@ export const STYLE_ALLOWLIST = new Set<string>([
   'vertical-align',
   'width',
   'min-width',
+  'max-width',
   'height',
+  'max-height',
   'margin-left',
   'margin-right',
   'margin-top',
   'margin-bottom',
   'display',
+  'float',
+  'clear',
   'border-color',
   'fill',
   'stroke',
