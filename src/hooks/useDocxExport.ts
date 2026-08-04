@@ -169,12 +169,20 @@ function wrapInWordHtml(bodyHtml: string, title: string): string {
     padding: 3pt 5pt;
   }
   /* Figure captions */
-  figcaption, .caption-label {
+  figcaption, .caption-label, .figure-caption, p.figure-caption {
     font-style: italic;
     text-align: center;
     margin-top: 4pt;
     margin-bottom: 8pt;
+    float: none;
+    clear: both;
   }
+  /* Floated figures degrade to centred blocks in Word */
+  .resizable-image-wrapper {
+    float: none;
+    text-align: center;
+  }
+
 </style>
 </head>
 <body>

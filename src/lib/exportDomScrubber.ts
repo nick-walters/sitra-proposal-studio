@@ -65,4 +65,29 @@ export function scrubDomForExport(container: HTMLElement): void {
       c.style.verticalAlign = 'top';
     });
   });
+
+  // Word's HTML renderer handles CSS floats poorly, so floated (narrow)
+  // figures degrade gracefully to a normal centred block: strip the float
+  // metadata and inline float/clear styling from the image wrapper, the
+  // image itself and its paired caption.
+  container
+    .querySelectorAll('[data-float="left"], [data-float="right"]')
+    .forEach((node) => {
+      const el = node as HTMLElement;
+      el.removeAttribute('data-float');
+      el.style.removeProperty('float');
+      el.style.removeProperty('clear');
+      el.style.removeProperty('cssFloat');
+      const style = el.getAttribute('style') || '';
+      const cleaned = style
+        .replace(/(^|;)\s*(float|clear)\s*:[^;]*/gi, '$1')
+        .replace(/;{2,}/g, ';')
+        .replace(/^;\s*/, '');
+      if (cleaned.trim()) el.setAttribute('style', cleaned);
+      else el.removeAttribute('style');
+      el.style.setProperty('margin-left', 'auto');
+      el.style.setProperty('margin-right', 'auto');
+      el.style.setProperty('text-align', 'center');
+    });
 }
+
