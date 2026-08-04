@@ -663,11 +663,10 @@ export function DocumentEditor({
       editor.state.doc.descendants((node, pos) => {
         if (node.type.name !== 'image') return;
         const a = node.attrs as Record<string, any>;
-        const hasBox =
-          (typeof a.maxWidthCm === 'number' && a.maxWidthCm > 0) ||
-          (typeof a.maxHeightCm === 'number' && a.maxHeightCm > 0);
-        if (hasBox) return;
-        if (!a.src || (!a.width && !a.height)) return;
+        if (isBoundingBoxAttrs(a) || !a.src) return;
+        // Match every unsized representation, not only explicit px mode.
+        // Percentage mode and stale recovery-buffer HTML can otherwise evade
+        // the repair and render full-width with free-resize handles.
         damaged.push({ pos, src: String(a.src) });
       });
       if (damaged.length === 0) return;
@@ -704,13 +703,19 @@ export function DocumentEditor({
         });
         changed = true;
       }
-      if (changed && !cancelled) editor.view.dispatch(tr);
+      if (changed && !cancelled) {
+        editor.view.dispatch(tr);
+        // Do not rely solely on the editor update callback: make the repaired
+        // HTML the section hook's pending value so its normal durable save
+        // writes the cm attrs back and clears any stale px/% representation.
+        setContent(editor.getHTML());
+      }
     }, 600);
     return () => {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [editor, proposalId, section?.id, loading]);
+  }, [editor, proposalId, section?.id, loading, setContent]);
 
   // Sync inline caption edits → figures.caption (Part B is the single source
   // of truth). Debounced scan of `p.figure-caption` paragraphs: extract
