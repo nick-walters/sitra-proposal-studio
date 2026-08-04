@@ -190,7 +190,7 @@ function buildPrintDocument(
       page-break-inside: avoid;
     }
     /* Narrow figures: caption width-matched to the figure, kept with it */
-    .print-export-container p.figure-caption[data-narrow] {
+    .print-export-container p.figure-caption[data-narrow]:not([data-float]) {
       margin-left: auto !important;
       margin-right: auto !important;
       break-before: avoid;

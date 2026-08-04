@@ -1655,9 +1655,9 @@ table.b31-effort-matrix.first-col-flush {
 
 
 /* --- Narrow-figure captions: width-matched to the figure, grouped below --- */
-.ProseMirror p.figure-caption[data-narrow],
-.document-content p.figure-caption[data-narrow],
-.print-export-container p.figure-caption[data-narrow] {
+.ProseMirror p.figure-caption[data-narrow]:not([data-float]),
+.document-content p.figure-caption[data-narrow]:not([data-float]),
+.print-export-container p.figure-caption[data-narrow]:not([data-float]) {
   margin-left: auto !important;
   margin-right: auto !important;
 }
