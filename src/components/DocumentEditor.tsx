@@ -660,22 +660,26 @@ export function DocumentEditor({
     if (!editor || !proposalId || loading) return;
     let cancelled = false;
     const timer = setTimeout(async () => {
-      const damaged: { pos: number; src: string }[] = [];
-      editor.state.doc.descendants((node, pos) => {
+      // Pre-await pass is a CHEAP PROBE ONLY: it decides whether a lookup is
+      // worth doing. No position is carried across the await — positions can
+      // go stale if the user types while the query is in flight.
+      let anyDamaged = false;
+      editor.state.doc.descendants((node) => {
+        if (anyDamaged) return false;
         if (node.type.name !== 'image') return;
         const a = node.attrs as Record<string, any>;
         if (isBoundingBoxAttrs(a) || !a.src) return;
         // Match every unsized representation, not only explicit px mode.
         // Percentage mode and stale recovery-buffer HTML can otherwise evade
         // the repair and render full-width with free-resize handles.
-        damaged.push({ pos, src: String(a.src) });
+        anyDamaged = true;
       });
-      if (damaged.length === 0) return;
+      if (!anyDamaged) return;
       const { data: figs } = await supabase
         .from('figures')
         .select('id, content')
         .eq('proposal_id', proposalId);
-      if (cancelled || !figs) return;
+      if (cancelled || !figs || editor.isDestroyed) return;
       const basename = (v: string) => (v.split('?')[0].split('/').pop() || '').toLowerCase();
       const byFile = new Map<string, { widthCm: number; heightCm: number }>();
       for (const f of figs) {
@@ -687,13 +691,27 @@ export function DocumentEditor({
         byFile.set(basename(url), { widthCm: w, heightCm: h });
       }
       if (byFile.size === 0) return;
+      // Re-find targets in the CURRENT doc at apply time, by identity (src),
+      // and re-verify each node still needs healing before writing.
+      const targets: { pos: number; size: { widthCm: number; heightCm: number } }[] = [];
+      editor.state.doc.descendants((node, pos) => {
+        if (node.type.name !== 'image') return;
+        const a = node.attrs as Record<string, any>;
+        if (isBoundingBoxAttrs(a) || !a.src) return;
+        const size = byFile.get(basename(String(a.src)));
+        if (!size) return;
+        targets.push({ pos, size });
+      });
+      if (targets.length === 0) return;
       let tr = editor.state.tr;
       let changed = false;
-      for (const { pos, src } of damaged) {
-        const size = byFile.get(basename(src));
-        if (!size) continue;
+      for (const { pos, size } of targets) {
         const node = tr.doc.nodeAt(pos);
+        // Identity re-check against the transaction's doc.
         if (!node || node.type.name !== 'image') continue;
+        const a = node.attrs as Record<string, any>;
+        if (isBoundingBoxAttrs(a) || !a.src) continue;
+        if (byFile.get(basename(String(a.src))) !== size) continue;
         tr = tr.setNodeMarkup(pos, undefined, {
           ...node.attrs,
           maxWidthCm: size.widthCm,
@@ -704,13 +722,14 @@ export function DocumentEditor({
         });
         changed = true;
       }
-      if (changed && !cancelled) {
+      if (changed && !cancelled && !editor.isDestroyed) {
         editor.view.dispatch(tr);
         // Do not rely solely on the editor update callback: make the repaired
         // HTML the section hook's pending value so its normal durable save
         // writes the cm attrs back and clears any stale px/% representation.
         setContent(editor.getHTML());
       }
+
     }, 600);
     return () => {
       cancelled = true;
