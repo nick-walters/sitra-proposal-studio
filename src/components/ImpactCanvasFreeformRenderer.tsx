@@ -122,11 +122,12 @@ function useImpactCanvasElements(proposalId: string, figureId?: string) {
  */
 export function ImpactCanvasFreeformRenderer(props: Props) {
   return (
-    <CanvasSizeProvider value={IMPACT_CANVAS_SIZE}>
+    <CanvasSizeProvider value={props.canvasSize ?? IMPACT_CANVAS_SIZE}>
       <ImpactCanvasFreeformRendererInner {...props} />
     </CanvasSizeProvider>
   );
 }
+
 
 function ImpactCanvasFreeformRendererInner({ proposalId, className, fallback = 'grid', figureId }: Props) {
   const { widthCm, minHeightCm, maxHeightCm, headerHeightCm, adaptive } = useCanvasSize();
