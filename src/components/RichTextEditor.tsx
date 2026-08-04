@@ -19,6 +19,8 @@ import { ImageCropDialog } from './ImageCropDialog';
 import { resolveStorageUrl } from '@/hooks/useStorageUrl';
 import { createCitationTooltipPlugin, CitationMark, CitationNode } from './CitationMark';
 import { BlockReordering } from '@/extensions/BlockReordering';
+import { FigureFloat } from '@/extensions/FigureFloat';
+import { reconcileFigureCaptionFloat } from '@/lib/reconcileFigureCaptionFloat';
 import { ParagraphSpacing } from '@/extensions/ParagraphSpacing';
 
 import { InlineReferenceNode } from '@/extensions/InlineReferenceNode';
@@ -116,7 +118,8 @@ const ParagraphClass = Extension.create({
             renderHTML: (attributes) => attributes.class ? { class: attributes.class } : {},
           },
           // Narrow-figure captions: width-matched to the figure (cm) and
-          // centred like the image. Persisted through HTML round-trips.
+          // centred like the image — unless the caption is floated, in which
+          // case it floats on the same side as the image, cleared below it.
           maxWidthCm: {
             default: null,
             parseHTML: (element) => {
@@ -126,6 +129,16 @@ const ParagraphClass = Extension.create({
             },
             renderHTML: (attributes) => {
               if (attributes.maxWidthCm == null) return {};
+              const side = attributes['data-float'];
+              if (side === 'left' || side === 'right') {
+                return {
+                  'data-max-width-cm': String(attributes.maxWidthCm),
+                  style:
+                    `max-width: ${attributes.maxWidthCm}cm; width: ${attributes.maxWidthCm}cm; ` +
+                    `float: ${side}; clear: ${side}; ` +
+                    (side === 'left' ? 'margin: 0 1em 0.6em 0' : 'margin: 0 0 0.6em 1em'),
+                };
+              }
               return {
                 'data-max-width-cm': String(attributes.maxWidthCm),
                 style: `max-width: ${attributes.maxWidthCm}cm; margin-left: auto; margin-right: auto`,
@@ -137,6 +150,29 @@ const ParagraphClass = Extension.create({
             parseHTML: (element) => element.getAttribute('data-narrow'),
             renderHTML: (attributes) =>
               attributes['data-narrow'] ? { 'data-narrow': String(attributes['data-narrow']) } : {},
+          },
+          // Caption float: mirrors the paired image's float side so the
+          // figure + caption float together as one width-matched column.
+          'data-float': {
+            default: null,
+            parseHTML: (element) => {
+              const attr = element.getAttribute('data-float');
+              if (attr === 'left' || attr === 'right') return attr;
+              const style = element.getAttribute('style') || '';
+              const m = style.match(/(?:^|[;\s])float:\s*(left|right)/);
+              return m ? m[1] : null;
+            },
+            renderHTML: (attributes) => {
+              const side = attributes['data-float'];
+              if (side !== 'left' && side !== 'right') return {};
+              // Width/margins come from maxWidthCm when present; keep a
+              // float/clear fallback for captions without a stored width.
+              if (attributes.maxWidthCm != null) return { 'data-float': side };
+              return {
+                'data-float': side,
+                style: `float: ${side}; clear: ${side}`,
+              };
+            },
           },
         },
       },
@@ -373,7 +409,7 @@ function normalizePartBLoadedContent(html: string) {
     }
   });
 
-  return div.innerHTML;
+  return reconcileFigureCaptionFloat(div.innerHTML);
 }
 
 
@@ -1250,6 +1286,7 @@ StarterKit.configure({
       TextStyle,
       Color,
       ParagraphClass,
+      FigureFloat,
       HeadingDataAttributes,
       ParagraphSpacing,
       TextAlign.configure({
@@ -1485,6 +1522,7 @@ StarterKit.configure({
       TextStyle,
       Color,
       ParagraphClass,
+      FigureFloat,
       HeadingDataAttributes,
       
       ParagraphSpacing,

@@ -1655,11 +1655,30 @@ table.b31-effort-matrix.first-col-flush {
 
 
 /* --- Narrow-figure captions: width-matched to the figure, grouped below --- */
-.ProseMirror p.figure-caption[data-narrow],
-.document-content p.figure-caption[data-narrow],
-.print-export-container p.figure-caption[data-narrow] {
+.ProseMirror p.figure-caption[data-narrow]:not([data-float]),
+.document-content p.figure-caption[data-narrow]:not([data-float]),
+.print-export-container p.figure-caption[data-narrow]:not([data-float]) {
   margin-left: auto !important;
   margin-right: auto !important;
+}
+
+/* Floated narrow figure caption: floats on the SAME side as the image with
+   clear:<side>, so it drops directly below it and the pair reads as one
+   width-matched floated column that body text wraps around. */
+.ProseMirror p.figure-caption[data-float="left"],
+.document-content p.figure-caption[data-float="left"],
+.print-export-container p.figure-caption[data-float="left"] {
+  float: left !important;
+  clear: left !important;
+  margin: 0 1em 0.6em 0 !important;
+}
+
+.ProseMirror p.figure-caption[data-float="right"],
+.document-content p.figure-caption[data-float="right"],
+.print-export-container p.figure-caption[data-float="right"] {
+  float: right !important;
+  clear: right !important;
+  margin: 0 0 0.6em 1em !important;
 }
 
 /* Keep a narrow figure and its caption together across page/column breaks */
