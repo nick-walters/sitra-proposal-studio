@@ -322,15 +322,28 @@ export function FigureEditor({
         const widthCm = Number(figure.content?.widthCm) || preset.widthCm;
         const heightCm = Number(figure.content?.heightCm) || preset.heightCm;
         return (
-          <ImpactCanvasFreeformEditor
-            proposalId={proposalId}
-            canEdit={canEdit}
-            figureId={figure.id}
-            mode="freeform"
-            canvasSize={{ widthCm, heightCm }}
-          />
+          <>
+            <ImpactCanvasFreeformEditor
+              proposalId={proposalId}
+              canEdit={canEdit}
+              figureId={figure.id}
+              mode="freeform"
+              canvasSize={{ widthCm, heightCm }}
+            />
+            <CanvasFigureRasteriser
+              proposalId={proposalId}
+              figureId={figure.id}
+              figureNumber={figure.figureNumber}
+              widthCm={widthCm}
+              heightCm={heightCm}
+              content={figure.content}
+              onUpdate={onUpdate}
+              canEdit={canEdit}
+            />
+          </>
         );
       }
+
       case 'image':
       case 'ai':
         return (
