@@ -3,7 +3,7 @@ import { NodeViewWrapper, ReactNodeViewRenderer, NodeViewProps } from '@tiptap/r
 import { useState, useCallback, useRef } from 'react';
 import { useStorageUrl } from '@/hooks/useStorageUrl';
 import { FIGURE_COLUMN_WIDTH_CM } from '@/lib/figureSizePresets';
-import { AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
+import { AlignLeft, AlignCenter, AlignRight, GripVertical } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 
@@ -221,6 +221,43 @@ function ResizableImageComponent({ node, updateAttributes, selected, editor, get
         className={`relative inline-block ${selected ? 'ring-2 ring-primary' : ''}`}
         style={boxStyle}
       >
+        {/* Figure drag handle — top-left corner, floats above wrapping text.
+            Shown for ALL selected figures (floated + block) when editable.
+            Dragging seeds the existing block-reorder machinery so the figure
+            AND its paired caption move to a new anchor point. */}
+        {selected && !!editor?.isEditable && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div
+                role="button"
+                aria-label="Drag to move figure"
+                draggable
+                contentEditable={false}
+                className="absolute -top-3 -left-3 z-30 flex h-7 w-7 cursor-grab items-center justify-center rounded-md border border-border bg-popover text-muted-foreground shadow-md hover:text-foreground active:cursor-grabbing"
+                onMouseDown={(e) => e.stopPropagation()}
+                onDragStart={(e) => {
+                  const pos = typeof getPos === 'function' ? getPos() : undefined;
+                  if (typeof pos !== 'number') {
+                    e.preventDefault();
+                    return;
+                  }
+                  e.dataTransfer.setData('text/plain', 'block-drag');
+                  e.dataTransfer.effectAllowed = 'move';
+                  window.dispatchEvent(
+                    new CustomEvent('figure-block-dragstart', { detail: { pos } }),
+                  );
+                }}
+                onDragEnd={() => {
+                  window.dispatchEvent(new CustomEvent('figure-block-dragend'));
+                }}
+              >
+                <GripVertical className="h-4 w-4" />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="text-xs">Drag to move figure</TooltipContent>
+          </Tooltip>
+        )}
+
         {/* Float control — narrow (bounding-box < 18cm) figures only, when
             the image is selected and the editor is editable (canEdit). */}
         {selected && canFloat && (
@@ -251,6 +288,7 @@ function ResizableImageComponent({ node, updateAttributes, selected, editor, get
             ))}
           </div>
         )}
+
 
         <img
           ref={imageRef}

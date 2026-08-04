@@ -256,9 +256,39 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
             lastDropTarget = null;
           });
 
+          // Figure corner drag handle (rendered by the image node view) starts
+          // a block drag for the figure + its paired caption through the very
+          // same reorder machinery: it only has to seed `draggedBlockRange`,
+          // after which the existing dragover/drop handlers do the work.
+          const onFigureDragStart = (evt: Event) => {
+            const pos = (evt as CustomEvent<{ pos: number }>).detail?.pos;
+            if (typeof pos !== 'number') return;
+            const blockRange = findBlockRange(editorView.state.doc, pos);
+            if (!blockRange || !isReorderableBlock(blockRange.node)) return;
+            const blockId = getBlockIdFromPos(editorView.state.doc, blockRange.startPos);
+            const lockedBlocks = getLockedBlocks();
+            const userId = getCurrentUserId();
+            if (lockedBlocks.some(lock => lock.blockId === blockId && lock.userId !== userId)) return;
+            draggedBlockRange = { startPos: blockRange.startPos, endPos: blockRange.endPos };
+            requestAnimationFrame(() => {
+              const blockDom = editorView.nodeDOM(blockRange.startPos);
+              if (blockDom instanceof HTMLElement) blockDom.classList.add('dragging-block');
+            });
+          };
+          const onFigureDragEnd = () => {
+            if (dropIndicator) dropIndicator.style.display = 'none';
+            document.querySelectorAll('.dragging-block').forEach(el => el.classList.remove('dragging-block'));
+            draggedBlockRange = null;
+            lastDropTarget = null;
+          };
+          window.addEventListener('figure-block-dragstart', onFigureDragStart);
+          window.addEventListener('figure-block-dragend', onFigureDragEnd);
+
           return {
             update() {},
             destroy() {
+              window.removeEventListener('figure-block-dragstart', onFigureDragStart);
+              window.removeEventListener('figure-block-dragend', onFigureDragEnd);
               dragContainer?.remove();
               dropIndicator?.remove();
             },
@@ -276,6 +306,23 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
                 currentHoveredBlockRange = null;
                 return false;
               }
+              // Hovering a FLOATED figure (or its floated caption): the pointer
+              // is over the float, but posAtCoords resolves to the anchoring
+              // paragraph behind it — showing the gutter handle there makes it
+              // look like the figure's handle while it actually drags the text.
+              // Suppress the gutter handle; the figure's own corner handle is
+              // the drag affordance for floated figures.
+              if (
+                eventTarget?.closest?.(
+                  '.resizable-image-wrapper.is-floated, img[data-float="left"], img[data-float="right"], p[data-float="left"], p[data-float="right"]',
+                )
+              ) {
+                dragContainer!.style.display = 'none';
+                currentHoveredBlockPos = null;
+                currentHoveredBlockRange = null;
+                return false;
+              }
+
               const pos = view.posAtCoords({ left: clientX, top: clientY });
               if (!pos || !dragContainer) {
                 dragContainer!.style.display = 'none';
@@ -316,7 +363,7 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
                 const dragHandle = dragContainer!.querySelector('.block-drag-handle') as HTMLElement;
                 const isReorderable = isReorderableBlock(blockRange.node);
 
-                if (!isReorderable) {
+                if (!isReorderable || isFloatedBlockDom(view.nodeDOM(blockRange.startPos))) {
                   dragContainer!.style.display = 'none';
                   currentHoveredBlockPos = null;
                   currentHoveredBlockRange = null;
