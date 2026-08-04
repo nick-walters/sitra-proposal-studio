@@ -15,6 +15,7 @@ import { Info, Image, MessageSquare, CalendarClock, User, FileText, X, GitCompar
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { FormattingToolbar, useRichTextEditor } from "./RichTextEditor";
+import { isBoundingBoxAttrs } from "./ResizableImage";
 import { AdvancedToolbar } from "./toolbar/AdvancedToolbar";
 import { ProposalBanner } from "./ProposalBanner";
 import { B11ParticipantsTable } from "./B11ParticipantsTable";
