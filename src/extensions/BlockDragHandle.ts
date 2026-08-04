@@ -363,7 +363,7 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
                 const dragHandle = dragContainer!.querySelector('.block-drag-handle') as HTMLElement;
                 const isReorderable = isReorderableBlock(blockRange.node);
 
-                if (!isReorderable) {
+                if (!isReorderable || isFloatedBlockDom(view.nodeDOM(blockRange.startPos))) {
                   dragContainer!.style.display = 'none';
                   currentHoveredBlockPos = null;
                   currentHoveredBlockRange = null;
