@@ -196,6 +196,17 @@ function buildPrintDocument(
       break-before: avoid;
       page-break-before: avoid;
     }
+    /* Floated narrow figure captions: float with the image as one column */
+    .print-export-container p.figure-caption[data-float="left"] {
+      float: left !important;
+      clear: left !important;
+      margin: 0 1em 0.6em 0 !important;
+    }
+    .print-export-container p.figure-caption[data-float="right"] {
+      float: right !important;
+      clear: right !important;
+      margin: 0 0 0.6em 1em !important;
+    }
     /* Floated narrow figures: body text wraps on the open side */
     .print-export-container .resizable-image-wrapper[data-float="left"],
     .print-export-container img[data-float="left"] {
