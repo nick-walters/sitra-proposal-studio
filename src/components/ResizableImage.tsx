@@ -3,6 +3,9 @@ import { NodeViewWrapper, ReactNodeViewRenderer, NodeViewProps } from '@tiptap/r
 import { useState, useCallback, useRef } from 'react';
 import { useStorageUrl } from '@/hooks/useStorageUrl';
 import { FIGURE_COLUMN_WIDTH_CM } from '@/lib/figureSizePresets';
+import { AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+
 
 export type ImageFloat = 'none' | 'left' | 'right';
 
@@ -35,7 +38,13 @@ export function resolveImageFloat(
   return narrow ? float : null;
 }
 
-function ResizableImageComponent({ node, updateAttributes, selected }: NodeViewProps) {
+const FLOAT_OPTIONS: { side: ImageFloat; label: string; Icon: typeof AlignLeft }[] = [
+  { side: 'left', label: 'Float left (text wraps right)', Icon: AlignLeft },
+  { side: 'none', label: 'Inline block (centred)', Icon: AlignCenter },
+  { side: 'right', label: 'Float right (text wraps left)', Icon: AlignRight },
+];
+
+function ResizableImageComponent({ node, updateAttributes, selected, editor, getPos }: NodeViewProps) {
   const { src: rawSrc, alt, width, height, widthPercent, alignment, maxWidthCm, maxHeightCm, float } = node.attrs as {
     src: string;
     alt?: string;
@@ -48,6 +57,19 @@ function ResizableImageComponent({ node, updateAttributes, selected }: NodeViewP
     float?: ImageFloat;
   };
   const activeFloat = resolveImageFloat(float, maxWidthCm);
+  // Float is only offered for narrow figures (cm bounding box < text column),
+  // and only when the document is editable (coordinator/edit gating).
+  const isNarrow =
+    typeof maxWidthCm === 'number' && maxWidthCm > 0 && maxWidthCm < FIGURE_COLUMN_WIDTH_CM;
+  const canFloat = isNarrow && !!editor?.isEditable;
+  const currentFloat: ImageFloat = activeFloat || 'none';
+  const applyFloat = useCallback(
+    (side: ImageFloat) => {
+      const pos = typeof getPos === 'function' ? getPos() : undefined;
+      editor?.chain().focus().setFigureFloat(side, pos).run();
+    },
+    [editor, getPos],
+  );
   const src = useStorageUrl(rawSrc) || rawSrc;
   const [, setIsResizing] = useState(false);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -199,6 +221,37 @@ function ResizableImageComponent({ node, updateAttributes, selected }: NodeViewP
         className={`relative inline-block ${selected ? 'ring-2 ring-primary' : ''}`}
         style={boxStyle}
       >
+        {/* Float control — narrow (bounding-box < 18cm) figures only, when
+            the image is selected and the editor is editable (canEdit). */}
+        {selected && canFloat && (
+          <div
+            className="absolute -top-10 left-0 z-20 flex items-center gap-0.5 rounded-md border border-border bg-popover p-0.5 shadow-md"
+            contentEditable={false}
+            onMouseDown={(e) => e.preventDefault()}
+          >
+            {FLOAT_OPTIONS.map(({ side, label, Icon }) => (
+              <Tooltip key={side}>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label={label}
+                    aria-pressed={currentFloat === side}
+                    onClick={() => applyFloat(side)}
+                    className={`flex h-7 w-7 items-center justify-center rounded-sm transition-colors ${
+                      currentFloat === side
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-xs">{label}</TooltipContent>
+              </Tooltip>
+            ))}
+          </div>
+        )}
+
         <img
           ref={imageRef}
           src={src}
@@ -207,6 +260,7 @@ function ResizableImageComponent({ node, updateAttributes, selected }: NodeViewP
           style={imgStyle}
           draggable={false}
         />
+
 
         
         {/* Resize handles — only for free-size images. Figures with a cm
