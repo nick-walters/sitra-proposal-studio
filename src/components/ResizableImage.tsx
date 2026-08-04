@@ -38,7 +38,7 @@ export function resolveImageFloat(
   return narrow ? float : null;
 }
 
-function ResizableImageComponent({ node, updateAttributes, selected }: NodeViewProps) {
+function ResizableImageComponent({ node, updateAttributes, selected, editor, getPos }: NodeViewProps) {
   const { src: rawSrc, alt, width, height, widthPercent, alignment, maxWidthCm, maxHeightCm, float } = node.attrs as {
     src: string;
     alt?: string;
