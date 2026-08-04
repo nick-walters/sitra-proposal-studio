@@ -3,7 +3,7 @@ import { NodeViewWrapper, ReactNodeViewRenderer, NodeViewProps } from '@tiptap/r
 import { useState, useCallback, useRef } from 'react';
 import { useStorageUrl } from '@/hooks/useStorageUrl';
 import { FIGURE_COLUMN_WIDTH_CM } from '@/lib/figureSizePresets';
-import { AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
+import { AlignLeft, AlignCenter, AlignRight, GripVertical } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 
