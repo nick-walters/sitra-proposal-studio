@@ -222,13 +222,27 @@ function buildPrintDocument(
       margin: 0 0 0.3em 1em !important;
       text-align: left !important;
     }
+    /* Keep a floated figure (and its floated caption) on one page where
+       possible. A float taller than the remaining page space may still be
+       pushed to the next page and separate from its wrapping text — a
+       browser-print pagination limitation. */
+    .print-export-container .resizable-image-wrapper[data-float="left"],
+    .print-export-container .resizable-image-wrapper[data-float="right"],
+    .print-export-container p.figure-caption[data-float="left"],
+    .print-export-container p.figure-caption[data-float="right"] {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+    /* A float must never overhang into the next section, heading or table */
     .print-export-container h1,
     .print-export-container h2,
     .print-export-container h3,
+    .print-export-container h4,
     .print-export-container table,
     .print-export-container .he-table {
       clear: both !important;
     }
+
     .print-export-container img[style*="max-width"] {
       break-after: avoid;
       page-break-after: avoid;
