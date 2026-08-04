@@ -314,11 +314,20 @@ export const ResizableImage = Node.create({
   },
 
   renderHTML({ node }) {
-    const { widthPercent, width, height, alignment, src, alt, maxWidthCm, maxHeightCm } = node.attrs;
+    const { widthPercent, width, height, alignment, src, alt, maxWidthCm, maxHeightCm, float } = node.attrs;
     const styles: string[] = [];
+    const activeFloat = resolveImageFloat(float, maxWidthCm);
 
-    // Add alignment via display block + margin
-    if (alignment === 'center') {
+    if (activeFloat) {
+      // Floated narrow figure: text wraps on the open side.
+      styles.push(
+        'display: block',
+        `float: ${activeFloat}`,
+        activeFloat === 'left'
+          ? 'margin: 0 1em 0.3em 0'
+          : 'margin: 0 0 0.3em 1em',
+      );
+    } else if (alignment === 'center') {
       styles.push('display: block', 'margin-left: auto', 'margin-right: auto');
     } else if (alignment === 'right') {
       styles.push('display: block', 'margin-left: auto', 'margin-right: 0');
