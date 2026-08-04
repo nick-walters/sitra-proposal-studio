@@ -372,7 +372,7 @@ export const ResizableImage = Node.create({
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     resizableImage: {
-      setImage: (options: { src: string; alt?: string; width?: number; height?: number; widthPercent?: number; alignment?: 'left' | 'center' | 'right'; maxWidthCm?: number | null; maxHeightCm?: number | null }) => ReturnType;
+      setImage: (options: { src: string; alt?: string; width?: number; height?: number; widthPercent?: number; alignment?: 'left' | 'center' | 'right'; maxWidthCm?: number | null; maxHeightCm?: number | null; float?: ImageFloat }) => ReturnType;
     };
   }
 }
