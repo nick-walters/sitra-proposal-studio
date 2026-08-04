@@ -115,11 +115,35 @@ const ParagraphClass = Extension.create({
             parseHTML: (element) => element.getAttribute('class') || null,
             renderHTML: (attributes) => attributes.class ? { class: attributes.class } : {},
           },
+          // Narrow-figure captions: width-matched to the figure (cm) and
+          // centred like the image. Persisted through HTML round-trips.
+          maxWidthCm: {
+            default: null,
+            parseHTML: (element) => {
+              const raw = element.getAttribute('data-max-width-cm');
+              const n = raw ? parseFloat(raw) : NaN;
+              return Number.isFinite(n) && n > 0 ? n : null;
+            },
+            renderHTML: (attributes) => {
+              if (attributes.maxWidthCm == null) return {};
+              return {
+                'data-max-width-cm': String(attributes.maxWidthCm),
+                style: `max-width: ${attributes.maxWidthCm}cm; margin-left: auto; margin-right: auto`,
+              };
+            },
+          },
+          'data-narrow': {
+            default: null,
+            parseHTML: (element) => element.getAttribute('data-narrow'),
+            renderHTML: (attributes) =>
+              attributes['data-narrow'] ? { 'data-narrow': String(attributes['data-narrow']) } : {},
+          },
         },
       },
     ];
   },
 });
+
 
 const HeadingDataAttributes = Extension.create({
   name: 'headingDataAttributes',
