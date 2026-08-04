@@ -153,10 +153,29 @@ function ResizableImageComponent({ node, updateAttributes, selected }: NodeViewP
       }
     : { width: '100%', height: 'auto' };
 
+  const floatWrapperStyle: React.CSSProperties | null = activeFloat
+    ? {
+        float: activeFloat,
+        display: 'block',
+        width: `${maxWidthCm}cm`,
+        maxWidth: '100%',
+        margin:
+          activeFloat === 'left'
+            ? '0 1em 0.3em 0'
+            : '0 0 0.3em 1em',
+        textAlign: 'left',
+      }
+    : null;
+
   return (
     <NodeViewWrapper
-      className="resizable-image-wrapper w-full flex"
-      style={getAlignmentStyles()}
+      className={
+        activeFloat
+          ? 'resizable-image-wrapper is-floated'
+          : 'resizable-image-wrapper w-full flex'
+      }
+      data-float={activeFloat || 'none'}
+      style={floatWrapperStyle || getAlignmentStyles()}
     >
 
       <div
