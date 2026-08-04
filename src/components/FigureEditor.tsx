@@ -27,6 +27,8 @@ import {
 import { ArrowLeft, Trash2, Image, Sparkles, Loader2, Upload, Download } from 'lucide-react';
 import { useRef } from 'react';
 import { ImpactCanvasFreeformEditor } from '@/components/ImpactCanvasFreeformEditor';
+import { CanvasFigureRasteriser } from '@/components/CanvasFigureRasteriser';
+
 import { getFigureSizePreset } from '@/lib/figureSizePresets';
 import { FigureSizePicker, type FigureSizeValue } from '@/components/FigureSizePicker';
 
@@ -226,7 +228,10 @@ export function FigureEditor({
   };
 
   const renderFigureContent = () => {
-    if (figure.content?.imageUrl) {
+    // Canvas figures store a DERIVED imageUrl (Stage D rasterisation) but must
+    // still open the canvas editor, so they never take the image branch.
+    if (figure.content?.imageUrl && figure.figureType !== 'canvas') {
+
       const cWidth = Number(figure.content?.widthCm);
       const cHeight = Number(figure.content?.heightCm);
       const hasSize = Number.isFinite(cWidth) && cWidth > 0 && Number.isFinite(cHeight) && cHeight > 0;
@@ -319,15 +324,28 @@ export function FigureEditor({
         const widthCm = Number(figure.content?.widthCm) || preset.widthCm;
         const heightCm = Number(figure.content?.heightCm) || preset.heightCm;
         return (
-          <ImpactCanvasFreeformEditor
-            proposalId={proposalId}
-            canEdit={canEdit}
-            figureId={figure.id}
-            mode="freeform"
-            canvasSize={{ widthCm, heightCm }}
-          />
+          <>
+            <ImpactCanvasFreeformEditor
+              proposalId={proposalId}
+              canEdit={canEdit}
+              figureId={figure.id}
+              mode="freeform"
+              canvasSize={{ widthCm, heightCm }}
+            />
+            <CanvasFigureRasteriser
+              proposalId={proposalId}
+              figureId={figure.id}
+              figureNumber={figure.figureNumber}
+              widthCm={widthCm}
+              heightCm={heightCm}
+              content={figure.content}
+              onUpdate={onUpdate}
+              canEdit={canEdit}
+            />
+          </>
         );
       }
+
       case 'image':
       case 'ai':
         return (

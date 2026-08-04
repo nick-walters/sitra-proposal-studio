@@ -7,7 +7,7 @@ import { computeCanvasHeightCm } from '@/lib/impactCanvasLayout';
 import { ImpactCanvasShape, type ShapeKind } from './ImpactCanvasShape';
 import { resolveBoundStyle } from '@/lib/impactCanvasBoundStyle';
 import { FONT_FAMILY_REGULAR, FONT_FAMILY_HEADER, DEFAULT_TEXT_COLOR, DEFAULT_PT, HEADER_PT } from '@/lib/impactCanvasTextSizing';
-import { CanvasSizeProvider, IMPACT_CANVAS_SIZE, useCanvasSize, useCanvasPtFont } from '@/lib/canvasSize';
+import { CanvasSizeProvider, IMPACT_CANVAS_SIZE, useCanvasSize, useCanvasPtFont, type CanvasSize } from '@/lib/canvasSize';
 
 
 
@@ -22,7 +22,11 @@ interface Props {
    *  undefined, reads the Impact Canvas singleton (proposal_id + figure_id
    *  IS NULL). Stage B: prop plumbing only — no caller passes a figureId. */
   figureId?: string;
+  /** Stage D: fixed physical size for Figure Canvas figures. Omitted for
+   *  the Impact Canvas, which keeps IMPACT_CANVAS_SIZE (adaptive). */
+  canvasSize?: Partial<CanvasSize>;
 }
+
 
 /**
  * Cell HTML sanitiser — preserves cross-reference badge markup produced
@@ -118,11 +122,12 @@ function useImpactCanvasElements(proposalId: string, figureId?: string) {
  */
 export function ImpactCanvasFreeformRenderer(props: Props) {
   return (
-    <CanvasSizeProvider value={IMPACT_CANVAS_SIZE}>
+    <CanvasSizeProvider value={props.canvasSize ?? IMPACT_CANVAS_SIZE}>
       <ImpactCanvasFreeformRendererInner {...props} />
     </CanvasSizeProvider>
   );
 }
+
 
 function ImpactCanvasFreeformRendererInner({ proposalId, className, fallback = 'grid', figureId }: Props) {
   const { widthCm, minHeightCm, maxHeightCm, headerHeightCm, adaptive } = useCanvasSize();
@@ -141,20 +146,22 @@ function ImpactCanvasFreeformRendererInner({ proposalId, className, fallback = '
 
   const columnOrder = columns.slice().sort((a, b) => a.order_index - b.order_index);
 
-  if (columnOrder.length === 0) {
+  // Figure Canvas figures have no columns/rows — skip the impact-only guards.
+  if (!figureId && columnOrder.length === 0) {
     return (
       <p className={`${className ?? ''} text-xs text-muted-foreground italic py-6 text-center`}>
         No columns defined.
       </p>
     );
   }
-  if (rows.length === 0) {
+  if (!figureId && rows.length === 0) {
     return (
       <p className={`${className ?? ''} text-xs text-muted-foreground italic py-6 text-center`}>
         No rows yet.
       </p>
     );
   }
+
 
   const boundEls = elements.filter(
     (e) => e.kind === 'bound' && e.bound_row_id && e.bound_col_key,
