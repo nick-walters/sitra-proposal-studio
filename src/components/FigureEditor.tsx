@@ -226,7 +226,10 @@ export function FigureEditor({
   };
 
   const renderFigureContent = () => {
-    if (figure.content?.imageUrl) {
+    // Canvas figures store a DERIVED imageUrl (Stage D rasterisation) but must
+    // still open the canvas editor, so they never take the image branch.
+    if (figure.content?.imageUrl && figure.figureType !== 'canvas') {
+
       const cWidth = Number(figure.content?.widthCm);
       const cHeight = Number(figure.content?.heightCm);
       const hasSize = Number.isFinite(cWidth) && cWidth > 0 && Number.isFinite(cHeight) && cHeight > 0;
