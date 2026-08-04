@@ -306,6 +306,23 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
                 currentHoveredBlockRange = null;
                 return false;
               }
+              // Hovering a FLOATED figure (or its floated caption): the pointer
+              // is over the float, but posAtCoords resolves to the anchoring
+              // paragraph behind it — showing the gutter handle there makes it
+              // look like the figure's handle while it actually drags the text.
+              // Suppress the gutter handle; the figure's own corner handle is
+              // the drag affordance for floated figures.
+              if (
+                eventTarget?.closest?.(
+                  '.resizable-image-wrapper.is-floated, img[data-float="left"], img[data-float="right"], p[data-float="left"], p[data-float="right"]',
+                )
+              ) {
+                dragContainer!.style.display = 'none';
+                currentHoveredBlockPos = null;
+                currentHoveredBlockRange = null;
+                return false;
+              }
+
               const pos = view.posAtCoords({ left: clientX, top: clientY });
               if (!pos || !dragContainer) {
                 dragContainer!.style.display = 'none';
