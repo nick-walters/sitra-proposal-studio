@@ -383,7 +383,16 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
               try {
                 const $pos = view.state.doc.resolve(pos.pos);
                 let blockPos = $pos.depth >= 1 ? $pos.before(1) : $pos.before($pos.depth === 0 ? 1 : $pos.depth);
-                const targetBlock = findBlockRange(view.state.doc, blockPos);
+                let targetBlock = findBlockRange(view.state.doc, blockPos);
+
+                // Floated figures (and their floated captions) sit beside the
+                // text flow, so their geometry cannot be used to place the drop
+                // indicator. Fall back to the nearest in-flow block.
+                if (targetBlock && isFloatedBlockDom(view.nodeDOM(targetBlock.startPos))) {
+                  const fallbackPos = findNearestInFlowBlockPos(view, clientY);
+                  targetBlock = fallbackPos != null ? findBlockRange(view.state.doc, fallbackPos) : null;
+                }
+
                 if (!targetBlock || !isReorderableBlock(targetBlock.node)) {
                   dropIndicator.style.display = 'none';
                   lastDropTarget = null;
@@ -391,6 +400,7 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
                 }
 
                 const blockDom = view.nodeDOM(targetBlock.startPos);
+
                 let insertBefore = true;
                 if (blockDom && blockDom instanceof HTMLElement) {
                   const rect = blockDom.getBoundingClientRect();
