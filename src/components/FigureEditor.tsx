@@ -187,7 +187,8 @@ export function FigureEditor({
   };
 
   const renderImageSizePicker = () => {
-    const isImageFigure = figure.figureType === 'image' || figure.figureType === 'ai';
+    const isCanvasFigure = figure.figureType === 'canvas';
+    const isImageFigure = figure.figureType === 'image' || figure.figureType === 'ai' || isCanvasFigure;
     if (!isImageFigure || !canEdit) return null;
     const cWidth = Number(figure.content?.widthCm);
     const cHeight = Number(figure.content?.heightCm);
