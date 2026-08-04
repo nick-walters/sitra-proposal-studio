@@ -196,6 +196,28 @@ function buildPrintDocument(
       break-before: avoid;
       page-break-before: avoid;
     }
+    /* Floated narrow figures: body text wraps on the open side */
+    .print-export-container .resizable-image-wrapper[data-float="left"],
+    .print-export-container img[data-float="left"] {
+      display: block !important;
+      float: left !important;
+      margin: 0 1em 0.3em 0 !important;
+      text-align: left !important;
+    }
+    .print-export-container .resizable-image-wrapper[data-float="right"],
+    .print-export-container img[data-float="right"] {
+      display: block !important;
+      float: right !important;
+      margin: 0 0 0.3em 1em !important;
+      text-align: left !important;
+    }
+    .print-export-container h1,
+    .print-export-container h2,
+    .print-export-container h3,
+    .print-export-container table,
+    .print-export-container .he-table {
+      clear: both !important;
+    }
     .print-export-container img[style*="max-width"] {
       break-after: avoid;
       page-break-after: avoid;
