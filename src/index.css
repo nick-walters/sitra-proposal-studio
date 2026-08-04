@@ -1603,3 +1603,21 @@ table.b31-effort-matrix.first-col-flush {
   padding-bottom: 4px !important;
 }
 
+
+/* --- Narrow-figure captions: width-matched to the figure, grouped below --- */
+.ProseMirror p.figure-caption[data-narrow],
+.document-content p.figure-caption[data-narrow],
+.print-export-container p.figure-caption[data-narrow] {
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+/* Keep a narrow figure and its caption together across page/column breaks */
+.ProseMirror p.figure-caption[data-narrow],
+.document-content p.figure-caption[data-narrow],
+.print-export-container p.figure-caption[data-narrow] {
+  break-before: avoid;
+  page-break-before: avoid;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
