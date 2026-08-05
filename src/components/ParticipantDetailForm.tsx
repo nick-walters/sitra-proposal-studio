@@ -115,6 +115,7 @@ export function ParticipantDetailForm({
   proposalId,
   proposalAcronym,
   proposalType,
+  onBackToParticipants,
 }: ParticipantDetailFormProps) {
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
