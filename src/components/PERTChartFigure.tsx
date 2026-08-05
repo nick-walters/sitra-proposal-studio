@@ -476,11 +476,17 @@ export function PERTChartFigure({
       )}
 
       <TooltipProvider>
-        <div ref={chartRef} className={canEdit ? "border rounded-lg bg-white overflow-auto" : "bg-white overflow-auto"}>
+        <div
+          ref={scrollRef}
+          className={canEdit ? 'relative border rounded-lg bg-white overflow-auto' : 'bg-white overflow-auto'}
+        >
+          <div className="relative" style={canEdit ? { width: svgWidth * zoom, height: svgHeight * zoom } : undefined}>
+          <div ref={chartRef} className="bg-white">
           <svg
             ref={svgRef}
-            width={canEdit ? svgWidth : '18cm'}
-            height={canEdit ? svgHeight : undefined}
+            width={canEdit ? svgWidth * zoom : '18cm'}
+            height={canEdit ? svgHeight * zoom : undefined}
+
             viewBox={viewBoxStr}
             preserveAspectRatio="xMidYMid meet"
             className="select-none"
