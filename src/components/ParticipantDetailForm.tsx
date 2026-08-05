@@ -335,6 +335,35 @@ export function ParticipantDetailForm({
                 />
               </div>
             </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-2 sm:col-span-2">
+                <Label>Street address</Label>
+                <DebouncedInput
+                  value={participant.street || ''}
+                  onDebouncedChange={(v) => handleFieldUpdate('street', v)}
+                  placeholder="e.g. Campusvej 55"
+                  disabled={!canEdit}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Postcode</Label>
+                <DebouncedInput
+                  value={participant.postcode || ''}
+                  onDebouncedChange={(v) => handleFieldUpdate('postcode', v)}
+                  placeholder="e.g. 5230"
+                  disabled={!canEdit}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>City / town</Label>
+                <DebouncedInput
+                  value={participant.town || ''}
+                  onDebouncedChange={(v) => handleFieldUpdate('town', v)}
+                  placeholder="e.g. Odense"
+                  disabled={!canEdit}
+                />
+              </div>
+            </div>
           </CardContent>
         </Card>
 
