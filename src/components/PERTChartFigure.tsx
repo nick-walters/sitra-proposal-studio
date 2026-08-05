@@ -59,9 +59,29 @@ export function PERTChartFigure({
 }: PERTChartFigureProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const chartRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const [draggingNode, setDraggingNode] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+
+  // Editor preferences (grid overlay + snap-to-grid + zoom) — the grid and
+  // snap flags persist per browser, mirroring the freeform canvas editor.
+  const [showGrid, setShowGrid] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.localStorage.getItem('pert-chart-show-grid') === '1';
+  });
+  const [snap, setSnap] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.localStorage.getItem('pert-chart-snap') === '1';
+  });
+  const [zoom, setZoom] = useState(1);
+  useEffect(() => {
+    try { window.localStorage.setItem('pert-chart-show-grid', showGrid ? '1' : '0'); } catch { /* ignore */ }
+  }, [showGrid]);
+  useEffect(() => {
+    try { window.localStorage.setItem('pert-chart-snap', snap ? '1' : '0'); } catch { /* ignore */ }
+  }, [snap]);
+
 
   // Cache rendered PNG to storage so the backup edge function can include it.
   useEffect(() => {
