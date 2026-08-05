@@ -670,6 +670,7 @@ export function ProposalEditor() {
                   proposalId={id}
                   proposalAcronym={proposal?.acronym}
                   proposalType={proposal?.type}
+                  onBackToParticipants={() => setSelectedParticipantId(null)}
                 />
               </div>
             );
