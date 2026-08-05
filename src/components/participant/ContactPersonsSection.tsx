@@ -516,6 +516,16 @@ export function ContactPersonsSection({
             <CardDescription className="mt-1">
               All contact persons for this organisation in the consortium
             </CardDescription>
+            <div className="mt-2 flex flex-col gap-1 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1.5">
+                <Crown className="w-3.5 h-3.5" />
+                = MCP (main contact person) for this organisation.
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5" />
+                = copy contact person to researchers list.
+              </span>
+            </div>
           </div>
           {canEdit && (
             <Button
