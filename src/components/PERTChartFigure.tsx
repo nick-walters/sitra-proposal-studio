@@ -4,11 +4,18 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Download, Network, Move, Plus, Trash2, ArrowRight, ArrowLeft, ArrowLeftRight, Image, FileDown } from 'lucide-react';
+import { Download, Network, Move, Plus, Trash2, ArrowRight, ArrowLeft, ArrowLeftRight, Image, FileDown, Grid3x3, Magnet, ZoomIn, ZoomOut, Maximize } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { PERTExportData } from '@/lib/figureExport';
 import { toast } from 'sonner';
+
+/** Grid geometry (SVG user units = px at zoom 1). */
+const PERT_MINOR_GRID = 10;
+const PERT_MAJOR_GRID = 50;
+const PERT_MIN_ZOOM = 0.25;
+const PERT_MAX_ZOOM = 3;
+
 
 interface WPNode {
   id: string;
