@@ -147,3 +147,64 @@ export function buildParticipantBadge(p: {
   span.style.border = '1.5px solid #000000';
   return span;
 }
+
+export interface AcronymSegment {
+  text: string;
+  color: string;
+}
+
+export function buildAcronymBadge(segments: AcronymSegment[]): HTMLSpanElement {
+  const wrapper = document.createElement('span');
+  wrapper.setAttribute('data-acronym-reference', '');
+  wrapper.setAttribute('data-acronym-segments', JSON.stringify(segments));
+  wrapper.setAttribute('contenteditable', 'false');
+  Object.assign(wrapper.style, {
+    display: 'inline',
+    fontFamily: "'Arial Black', Arial, sans-serif",
+    fontWeight: '900',
+    fontSize: 'inherit',
+    whiteSpace: 'nowrap',
+    cursor: 'pointer',
+    userSelect: 'none',
+    verticalAlign: 'baseline',
+  } as Partial<CSSStyleDeclaration>);
+  segments.forEach((seg) => {
+    const s = document.createElement('span');
+    s.style.color = seg.color;
+    s.textContent = seg.text;
+    wrapper.appendChild(s);
+  });
+  return wrapper;
+}
+
+export function buildMilestoneBadge(ms: {
+  id: string;
+  number: number;
+  name?: string | null;
+}): HTMLSpanElement {
+  const wrapper = document.createElement('span');
+  wrapper.setAttribute('data-inline-reference', '');
+  wrapper.setAttribute('data-ref-type', 'milestone');
+  wrapper.setAttribute('data-milestone-id', ms.id);
+  wrapper.setAttribute('data-milestone-number', String(ms.number));
+  wrapper.setAttribute('contenteditable', 'false');
+  Object.assign(wrapper.style, {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: '#000000',
+    color: '#ffffff',
+    fontFamily: "'Times New Roman', Times, serif",
+    fontSize: '11pt',
+    fontWeight: '700',
+    lineHeight: '18px',
+    height: '18px',
+    padding: '0 4px',
+    clipPath: 'polygon(12% 0%, 88% 0%, 100% 50%, 88% 100%, 12% 100%, 0% 50%)',
+    verticalAlign: 'baseline',
+    whiteSpace: 'nowrap',
+    userSelect: 'none',
+  } as Partial<CSSStyleDeclaration>);
+  wrapper.textContent = `MS${Number(ms.number) || 0}`;
+  return wrapper;
+}

@@ -56,6 +56,8 @@ interface ParticipantDescriptionsSectionProps {
   saveError?: string | null;
   canEdit: boolean;
   proposalId?: string;
+  /** Acronym segments used when inserting an acronym cross-reference. */
+  acronymSegments?: { text: string; color: string }[];
   /** Coordinator+? Enables deleting custom colours from the shared library. */
   canManageCustomColors?: boolean;
 }
@@ -69,6 +71,7 @@ export function ParticipantDescriptionsSection({
   saveError,
   canEdit,
   proposalId,
+  acronymSegments,
   canManageCustomColors = false,
 }: ParticipantDescriptionsSectionProps) {
   const [anyFieldFocused, setAnyFieldFocused] = useState(false);
@@ -167,6 +170,7 @@ export function ParticipantDescriptionsSection({
                   <Separator orientation="vertical" className="h-5 mx-1.5" />
                   <ParticipantCrossRefDropdown
                     proposalId={proposalId}
+                    acronymSegments={acronymSegments}
                     onOpenChange={setCrossRefOpen}
                   />
                 </>

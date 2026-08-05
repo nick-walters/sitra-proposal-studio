@@ -95,6 +95,8 @@ interface ParticipantDetailFormProps {
   proposalAcronym?: string;
   /** Proposal type (RIA, IA, CSA, etc.) */
   proposalType?: string;
+  /** Acronym segments for cross-reference insertion */
+  acronymSegments?: { text: string; color: string }[];
   /** Callback to return to the A2 participants list */
   onBackToParticipants?: () => void;
 }
@@ -116,6 +118,7 @@ export function ParticipantDetailForm({
   proposalId,
   proposalAcronym,
   proposalType,
+  acronymSegments,
   onBackToParticipants,
 }: ParticipantDetailFormProps) {
   const [saving, setSaving] = useState(false);
@@ -459,6 +462,7 @@ export function ParticipantDetailForm({
           saveError={descriptionsError}
           canEdit={canEdit}
           proposalId={proposalId}
+          acronymSegments={acronymSegments}
           canManageCustomColors={canGrant}
         />
 

@@ -19,11 +19,16 @@ import {
   buildDeliverableBadge,
   buildCaseBadge,
   buildParticipantBadge,
+  buildAcronymBadge,
+  buildMilestoneBadge,
+  type AcronymSegment,
 } from '@/lib/contentEditableRefBadges';
 
 interface Props {
   proposalId: string;
   disabled?: boolean;
+  /** Acronym segments used to build the acronym reference badge. */
+  acronymSegments?: AcronymSegment[];
   /** Keeps the parent toolbar visible while a dialog/menu is open. */
   onOpenChange?: (open: boolean) => void;
 }
@@ -34,13 +39,20 @@ interface Props {
  * button used elsewhere, but inserts static badge markup into the saved
  * caret position instead of TipTap nodes.
  */
-export function ParticipantCrossRefDropdown({ proposalId, disabled, onOpenChange }: Props) {
+export function ParticipantCrossRefDropdown({
+  proposalId,
+  disabled,
+  acronymSegments,
+  onOpenChange,
+}: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [wpOpen, setWpOpen] = useState(false);
   const [taskOpen, setTaskOpen] = useState(false);
   const [delOpen, setDelOpen] = useState(false);
+  const [milestoneOpen, setMilestoneOpen] = useState(false);
   const [caseOpen, setCaseOpen] = useState(false);
   const [participantOpen, setParticipantOpen] = useState(false);
+  const hasAcronym = (acronymSegments ?? []).length > 0;
 
   const savedRangeRef = useRef<Range | null>(null);
   const savedEditorRef = useRef<HTMLElement | null>(null);
@@ -143,6 +155,25 @@ export function ParticipantCrossRefDropdown({ proposalId, disabled, onOpenChange
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-64 bg-popover z-50">
+          {hasAcronym && (
+            <DropdownMenuItem
+              onSelect={() => {
+                if (acronymSegments) {
+                  insertNode(buildAcronymBadge(acronymSegments));
+                }
+              }}
+              className="flex items-center gap-2"
+            >
+              <span className="w-16 flex justify-start shrink-0">
+                <span style={{ fontFamily: "'Arial Black', Arial, sans-serif", fontWeight: 900, fontSize: '9px', whiteSpace: 'nowrap' }}>
+                  {acronymSegments!.map((seg, i) => (
+                    <span key={i} style={{ color: seg.color }}>{seg.text}</span>
+                  ))}
+                </span>
+              </span>
+              <span>Acronym</span>
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem
             onSelect={() => openDialog(setWpOpen)}
             className="flex items-center gap-2"
@@ -171,6 +202,15 @@ export function ParticipantCrossRefDropdown({ proposalId, disabled, onOpenChange
               </span>
             </span>
             <span>Deliverable</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onSelect={() => openDialog(setMilestoneOpen)}
+            className="flex items-center gap-2"
+          >
+            <span className="w-16 flex justify-start shrink-0">
+              <span style={{ display: 'inline-block', width: '22px', height: '14px', background: '#000000', clipPath: 'polygon(12% 0%, 88% 0%, 100% 50%, 88% 100%, 12% 100%, 0% 50%)' }} />
+            </span>
+            <span>Milestone</span>
           </DropdownMenuItem>
           <DropdownMenuItem
             onSelect={() => openDialog(setCaseOpen)}
@@ -238,16 +278,15 @@ export function ParticipantCrossRefDropdown({ proposalId, disabled, onOpenChange
       <InsertTDMSReferenceDropdowns
         proposalId={proposalId}
         dialogsOnly
-        hideMilestone
         openTask={taskOpen}
         onOpenTaskChange={closeDialog(setTaskOpen)}
         openDeliverable={delOpen}
         onOpenDeliverableChange={closeDialog(setDelOpen)}
+        openMilestone={milestoneOpen}
+        onOpenMilestoneChange={closeDialog(setMilestoneOpen)}
         onInsertTask={(t) => insertNode(buildTaskBadge(t))}
         onInsertDeliverable={(d) => insertNode(buildDeliverableBadge(d))}
-        onInsertMilestone={() => {
-          /* not offered */
-        }}
+        onInsertMilestone={(m) => insertNode(buildMilestoneBadge(m))}
       />
     </>
   );

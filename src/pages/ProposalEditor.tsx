@@ -670,6 +670,7 @@ export function ProposalEditor() {
                   proposalId={id}
                   proposalAcronym={proposal?.acronym}
                   proposalType={proposal?.type}
+                  acronymSegments={(proposal as any)?.acronymSegments}
                   onBackToParticipants={() => setSelectedParticipantId(null)}
                 />
               </div>
@@ -859,6 +860,7 @@ export function ProposalEditor() {
                 proposalId={id}
                 proposalAcronym={proposal?.acronym}
                 proposalType={proposal?.type}
+                acronymSegments={(proposal as any)?.acronymSegments}
               />
             </div>
           );
