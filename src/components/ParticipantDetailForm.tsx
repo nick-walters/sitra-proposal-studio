@@ -95,6 +95,8 @@ interface ParticipantDetailFormProps {
   proposalAcronym?: string;
   /** Proposal type (RIA, IA, CSA, etc.) */
   proposalType?: string;
+  /** Acronym segments for cross-reference insertion */
+  acronymSegments?: { text: string; color: string }[];
   /** Callback to return to the A2 participants list */
   onBackToParticipants?: () => void;
 }
