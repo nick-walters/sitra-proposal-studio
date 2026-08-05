@@ -19,11 +19,16 @@ import {
   buildDeliverableBadge,
   buildCaseBadge,
   buildParticipantBadge,
+  buildAcronymBadge,
+  buildMilestoneBadge,
+  type AcronymSegment,
 } from '@/lib/contentEditableRefBadges';
 
 interface Props {
   proposalId: string;
   disabled?: boolean;
+  /** Acronym segments used to build the acronym reference badge. */
+  acronymSegments?: AcronymSegment[];
   /** Keeps the parent toolbar visible while a dialog/menu is open. */
   onOpenChange?: (open: boolean) => void;
 }
