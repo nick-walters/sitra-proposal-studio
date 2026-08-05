@@ -155,6 +155,25 @@ export function ParticipantCrossRefDropdown({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-64 bg-popover z-50">
+          {hasAcronym && (
+            <DropdownMenuItem
+              onSelect={() => {
+                if (acronymSegments) {
+                  insertNode(buildAcronymBadge(acronymSegments));
+                }
+              }}
+              className="flex items-center gap-2"
+            >
+              <span className="w-16 flex justify-start shrink-0">
+                <span style={{ fontFamily: "'Arial Black', Arial, sans-serif", fontWeight: 900, fontSize: '9px', whiteSpace: 'nowrap' }}>
+                  {acronymSegments!.map((seg, i) => (
+                    <span key={i} style={{ color: seg.color }}>{seg.text}</span>
+                  ))}
+                </span>
+              </span>
+              <span>Acronym</span>
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem
             onSelect={() => openDialog(setWpOpen)}
             className="flex items-center gap-2"
@@ -183,6 +202,15 @@ export function ParticipantCrossRefDropdown({
               </span>
             </span>
             <span>Deliverable</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onSelect={() => openDialog(setMilestoneOpen)}
+            className="flex items-center gap-2"
+          >
+            <span className="w-16 flex justify-start shrink-0">
+              <span style={{ display: 'inline-block', width: '22px', height: '14px', background: '#000000', clipPath: 'polygon(12% 0%, 88% 0%, 100% 50%, 88% 100%, 12% 100%, 0% 50%)' }} />
+            </span>
+            <span>Milestone</span>
           </DropdownMenuItem>
           <DropdownMenuItem
             onSelect={() => openDialog(setCaseOpen)}
