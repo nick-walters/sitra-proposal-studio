@@ -9,6 +9,58 @@
 
 const SERIF = "'Times New Roman', Times, serif";
 
+let activeEditor: HTMLElement | null = null;
+let activeRange: Range | null = null;
+
+/**
+ * Persist the last valid selection owned by a plain contentEditable editor.
+ * Dialogs move DOM focus into a portal, so window.getSelection() cannot be
+ * used later when the user chooses a reference.
+ */
+export function rememberContentEditableSelection(editor: HTMLElement): void {
+  activeEditor = editor;
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0) return;
+  const range = selection.getRangeAt(0);
+  if (!editor.contains(range.startContainer) || !editor.contains(range.endContainer)) return;
+  activeRange = range.cloneRange();
+}
+
+/** Insert into the last focused plain contentEditable and emit its input event. */
+export function insertIntoRememberedContentEditable(node: HTMLElement): boolean {
+  const editor = activeEditor;
+  if (!editor || !document.body.contains(editor)) return false;
+
+  editor.focus({ preventScroll: true });
+  const selection = window.getSelection();
+  if (!selection) return false;
+
+  selection.removeAllRanges();
+  if (activeRange && document.body.contains(activeRange.startContainer)) {
+    selection.addRange(activeRange);
+  } else {
+    const fallback = document.createRange();
+    fallback.selectNodeContents(editor);
+    fallback.collapse(false);
+    selection.addRange(fallback);
+  }
+
+  const range = selection.getRangeAt(0);
+  range.deleteContents();
+  range.insertNode(node);
+  const spacer = document.createTextNode('\u00a0');
+  node.after(spacer);
+
+  const after = document.createRange();
+  after.setStart(spacer, 1);
+  after.collapse(true);
+  selection.removeAllRanges();
+  selection.addRange(after);
+  activeRange = after.cloneRange();
+  editor.dispatchEvent(new Event('input', { bubbles: true }));
+  return true;
+}
+
 function baseBubble(el: HTMLSpanElement) {
   el.setAttribute('contenteditable', 'false');
   Object.assign(el.style, {

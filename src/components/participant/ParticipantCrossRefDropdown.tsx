@@ -21,6 +21,8 @@ import {
   buildParticipantBadge,
   buildAcronymBadge,
   buildMilestoneBadge,
+  insertIntoRememberedContentEditable,
+  rememberContentEditableSelection,
   type AcronymSegment,
 } from '@/lib/contentEditableRefBadges';
 
@@ -53,9 +55,6 @@ export function ParticipantCrossRefDropdown({
   const [caseOpen, setCaseOpen] = useState(false);
   const [participantOpen, setParticipantOpen] = useState(false);
   const hasAcronym = (acronymSegments ?? []).length > 0;
-
-  const savedRangeRef = useRef<Range | null>(null);
-  const savedEditorRef = useRef<HTMLElement | null>(null);
 
   const notifyOpen = useCallback(
     (open: boolean) => {
@@ -97,43 +96,12 @@ export function ParticipantCrossRefDropdown({
     const el = node.nodeType === Node.ELEMENT_NODE ? (node as HTMLElement) : node.parentElement;
     const editable = el?.closest('[contenteditable="true"]') as HTMLElement | null;
     if (!editable) return;
-    savedRangeRef.current = sel.getRangeAt(0).cloneRange();
-    savedEditorRef.current = editable;
+    rememberContentEditableSelection(editable);
   }, []);
 
   /** Insert a badge element at the saved caret, then notify the editor. */
   const insertNode = useCallback((node: HTMLElement) => {
-    const editorEl = savedEditorRef.current;
-    const range = savedRangeRef.current;
-    if (!editorEl || !document.body.contains(editorEl)) return;
-
-    editorEl.focus({ preventScroll: true });
-    const sel = window.getSelection();
-    if (!sel) return;
-    sel.removeAllRanges();
-    if (range && document.body.contains(range.startContainer)) {
-      sel.addRange(range);
-    } else {
-      const fallback = document.createRange();
-      fallback.selectNodeContents(editorEl);
-      fallback.collapse(false);
-      sel.addRange(fallback);
-    }
-
-    const active = sel.getRangeAt(0);
-    active.deleteContents();
-    active.insertNode(node);
-    // Trailing space so the caret has a normal text position after the badge.
-    const spacer = document.createTextNode('\u00a0');
-    node.after(spacer);
-    const after = document.createRange();
-    after.setStart(spacer, 1);
-    after.collapse(true);
-    sel.removeAllRanges();
-    sel.addRange(after);
-
-    savedRangeRef.current = after.cloneRange();
-    editorEl.dispatchEvent(new Event('input', { bubbles: true }));
+    insertIntoRememberedContentEditable(node);
   }, []);
 
   const openDialog = (setter: (v: boolean) => void) => {

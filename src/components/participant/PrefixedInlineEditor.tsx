@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import DOMPurify from 'dompurify';
 import { stripWordHtml } from '@/lib/stripWordHtml';
 import { cn } from '@/lib/utils';
+import { rememberContentEditableSelection } from '@/lib/contentEditableRefBadges';
 
 /**
  * A minimal contentEditable field with a non-editable leading prefix
@@ -225,7 +226,11 @@ export function PrefixedInlineEditor({
   // programmatic selection, keyboard nav, etc.
   useEffect(() => {
     if (!isFocused) return;
-    const handler = () => clampCaret();
+    const handler = () => {
+      clampCaret();
+      const editor = editorRef.current;
+      if (editor) rememberContentEditableSelection(editor);
+    };
     document.addEventListener('selectionchange', handler);
     return () => document.removeEventListener('selectionchange', handler);
   }, [isFocused, clampCaret]);
@@ -303,6 +308,10 @@ export function PrefixedInlineEditor({
           onBeforeInput={handleBeforeInput}
           onKeyDown={handleKeyDown}
           onMouseUp={() => clampCaret()}
+          onKeyUp={() => {
+            const editor = editorRef.current;
+            if (editor) rememberContentEditableSelection(editor);
+          }}
           onPaste={(e) => {
             e.preventDefault();
             // Clamp caret so pasted content never lands inside/before the prefix.
@@ -322,7 +331,11 @@ export function PrefixedInlineEditor({
           onFocus={() => {
             setIsFocused(true);
             // Defer so browser's default focus-caret placement lands first.
-            setTimeout(() => clampCaret(), 0);
+            setTimeout(() => {
+              clampCaret();
+              const editor = editorRef.current;
+              if (editor) rememberContentEditableSelection(editor);
+            }, 0);
             onFocus?.();
           }}
           onBlur={() => {
