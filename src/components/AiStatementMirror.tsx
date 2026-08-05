@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { DEFAULT_AI_STATEMENT } from "@/lib/aiStatement";
+import { AI_STATEMENT_PREFIX, DEFAULT_AI_STATEMENT } from "@/lib/aiStatement";
 
 interface AiStatementMirrorProps {
   proposalId: string;
@@ -28,7 +28,8 @@ export function AiStatementMirror({ proposalId }: AiStatementMirrorProps) {
 
   if (!data || data.ai_statement_enabled === false) return null;
 
-  const text = (data.ai_statement_text ?? '').trim() || DEFAULT_AI_STATEMENT;
+  const rawText = (data.ai_statement_text ?? '').trim() || DEFAULT_AI_STATEMENT;
+  const text = rawText.startsWith(AI_STATEMENT_PREFIX) ? rawText : `${AI_STATEMENT_PREFIX}${rawText}`;
 
   return (
     <p

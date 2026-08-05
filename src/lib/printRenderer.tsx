@@ -16,7 +16,7 @@ import { extractFilePathFromUrl } from '@/lib/proposalStorage';
 import { SITRA_LOGO_BASE64 } from '@/lib/sitraLogo';
 import { applyColumnWidthsToTable } from '@/lib/autoFitColumns';
 import { computeBudgetRow } from '@/lib/budgetCompute';
-import { DEFAULT_AI_STATEMENT } from '@/lib/aiStatement';
+import { AI_STATEMENT_PREFIX, DEFAULT_AI_STATEMENT } from '@/lib/aiStatement';
 
 
 /** Escape user-provided strings before interpolating into raw HTML templates. */
@@ -565,8 +565,9 @@ export async function buildPrintContainer(
       .eq('proposal_id', proposal.id)
       .maybeSingle();
     const aiEnabled = (aiRow as { ai_statement_enabled?: boolean | null } | null)?.ai_statement_enabled !== false;
-    const aiText = ((aiRow as { ai_statement_text?: string | null } | null)?.ai_statement_text ?? '').trim()
+    const rawAiText = ((aiRow as { ai_statement_text?: string | null } | null)?.ai_statement_text ?? '').trim()
       || DEFAULT_AI_STATEMENT;
+    const aiText = rawAiText.startsWith(AI_STATEMENT_PREFIX) ? rawAiText : `${AI_STATEMENT_PREFIX}${rawAiText}`;
     if (aiRow && aiEnabled) {
       const aiP = document.createElement('p');
       aiP.style.textAlign = 'justify';
