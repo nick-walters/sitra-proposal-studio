@@ -97,9 +97,34 @@ export function ParticipantDescriptionsSection({
   const isInternationalPartner =
     participant.organisationType === 'international_partner';
 
+  // B3.2 mirror toggles (set by coordinator+ in A2). When a toggle is off the
+  // corresponding description field is hidden on the participant page.
+  const { data: mirrorToggles } = useQuery({
+    queryKey: ['b32-mirror-toggles', proposalId],
+    enabled: !!proposalId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('proposals')
+        .select('mirror_value_chain, mirror_industrial_involvement, mirror_participation_justification')
+        .eq('id', proposalId!)
+        .maybeSingle();
+      if (error) throw error;
+      return (data ?? {}) as Partial<Record<
+        'mirror_value_chain' | 'mirror_industrial_involvement' | 'mirror_participation_justification',
+        boolean
+      >>;
+    },
+  });
+
   const visibleFields = FIELD_ORDER.filter(f => {
-    if (f.key === 'industrial_involvement') return isCompany;
-    if (f.key === 'participation_justification') return isInternationalPartner || isThirdCountry;
+    if (f.key === 'value_chain') return mirrorToggles?.mirror_value_chain ?? true;
+    if (f.key === 'industrial_involvement')
+      return isCompany && (mirrorToggles?.mirror_industrial_involvement ?? true);
+    if (f.key === 'participation_justification')
+      return (
+        (isInternationalPartner || isThirdCountry) &&
+        (mirrorToggles?.mirror_participation_justification ?? true)
+      );
     return true;
   });
 
