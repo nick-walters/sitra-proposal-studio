@@ -16,7 +16,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { User, Plus, Trash2, Crown, Copy, ShieldCheck, ShieldOff, Loader2, Edit2, Check, X } from 'lucide-react';
+import { User, Plus, Trash2, Crown, Copy, ShieldCheck, ShieldOff, Loader2, Edit2, Check, X, Users } from 'lucide-react';
 import { Participant, ParticipantMember } from '@/types/proposal';
 import { ParticipantResearcher } from '@/types/participantDetails';
 import { MCPDetailFields } from './MCPDetailFields';
@@ -751,7 +751,7 @@ export function ContactPersonsSection({
                                 className="h-7 w-7 text-muted-foreground"
                                 onClick={() => handleCopyToResearchers(member)}
                                aria-label="Copy" title="Copy">
-                                <Copy className="w-3.5 h-3.5" />
+                                <Users className="w-3.5 h-3.5" />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>Copy to researchers list</TooltipContent>
