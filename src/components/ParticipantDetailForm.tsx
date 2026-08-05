@@ -94,6 +94,8 @@ interface ParticipantDetailFormProps {
   proposalAcronym?: string;
   /** Proposal type (RIA, IA, CSA, etc.) */
   proposalType?: string;
+  /** Callback to return to the A2 participants list */
+  onBackToParticipants?: () => void;
 }
 
 // Legal entity types use the same ORGANISATION_CATEGORY_LABELS from ParticipantTable
