@@ -111,6 +111,7 @@ export function BudgetParticipantForm({
     addPersonnelBreakdownItem,
     updatePersonnelBreakdownItem,
     deletePersonnelBreakdownItem,
+    reorderPersonnelBreakdownItems,
   } = useBudgetRows(proposalId, proposalType);
 
   const { roleTier } = useProposalRole(proposalId);
@@ -259,6 +260,7 @@ export function BudgetParticipantForm({
             onAdd={() => addPersonnelBreakdownItem(row.id)}
             onUpdate={updatePersonnelBreakdownItem}
             onDelete={deletePersonnelBreakdownItem}
+            onReorder={reorderPersonnelBreakdownItems}
           />
 
           {showReq && (
