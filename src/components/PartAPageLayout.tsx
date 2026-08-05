@@ -39,6 +39,7 @@ export function PartAPageLayout({
   titleLeftAdornment,
   subtitle,
   titleRightSlot,
+  saveIndicatorLeftSlot,
   guidelines,
   saveIndicator,
   maxWidth = 'max-w-7xl',
