@@ -170,6 +170,7 @@ export function ParticipantDescriptionsSection({
                   <Separator orientation="vertical" className="h-5 mx-1.5" />
                   <ParticipantCrossRefDropdown
                     proposalId={proposalId}
+                    acronymSegments={acronymSegments}
                     onOpenChange={setCrossRefOpen}
                   />
                 </>
