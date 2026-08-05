@@ -318,7 +318,7 @@ export function GeneralInfoForm({
       try {
         const { data, error } = await supabase
           .from('part_a1')
-          .select('abstract, fixed_keywords, free_keywords, previous_submission, previous_submission_reference, declarations')
+          .select('abstract, fixed_keywords, free_keywords, previous_submission, previous_submission_reference, declarations, ai_statement_enabled, ai_statement_text')
           .eq('proposal_id', proposalId)
           .maybeSingle();
 
