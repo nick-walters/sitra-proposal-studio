@@ -6,6 +6,7 @@ import { useProposalCaseTypes } from "@/hooks/useProposalCaseTypes";
 import { useB12CasesTableReconciler } from "@/hooks/useB12CasesTableReconciler";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useB32MirrorsReconciler } from "@/hooks/useB32MirrorsReconciler";
+import { useB32HiddenHeadings } from "@/hooks/useB32HiddenHeadings";
 
 import DOMPurify from "dompurify";
 import { toast } from "sonner";
