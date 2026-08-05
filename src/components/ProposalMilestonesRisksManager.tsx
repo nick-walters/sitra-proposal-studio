@@ -393,24 +393,8 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
   }, [proposalId, qc]);
 
 
-  // ── One-shot: strip HTML from existing means_of_verification rows ──
-  const cleanedRef = useRef(new Set<string>());
-  useEffect(() => {
-    const dirty = milestones.filter(m =>
-      m.means_of_verification &&
-      /<[a-z!\/][^>]*>|&[a-z#0-9]+;/i.test(m.means_of_verification) &&
-      !cleanedRef.current.has(m.id)
-    );
-    if (dirty.length === 0) return;
-    (async () => {
-      for (const m of dirty) {
-        cleanedRef.current.add(m.id);
-        const cleaned = stripHtml(m.means_of_verification);
-        await supabase.from('proposal_milestones').update({ means_of_verification: cleaned }).eq('id', m.id);
-      }
-      qc.invalidateQueries({ queryKey: MS_KEY(proposalId) });
-    })();
-  }, [milestones, proposalId, qc]);
+  // Means of verification is rich text (formatting + cross-reference badges).
+
 
   // ── Mutations: milestones ────────────────────────────────────
   const addMilestone = useMutation({
