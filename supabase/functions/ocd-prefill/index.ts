@@ -194,20 +194,9 @@ serve(async (req) => {
       });
     }
 
-    // Open the docx (which is a zip file)
+    // Read the RTF template as text
     const arrayBuffer = await fileData.arrayBuffer();
-    const zip = await JSZip.loadAsync(arrayBuffer);
-
-    // Get document.xml
-    const docXmlFile = zip.file("word/document.xml");
-    if (!docXmlFile) {
-      return new Response(JSON.stringify({ error: "Invalid docx file" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    let xml = await docXmlFile.async("string");
+    let rtf = new TextDecoder("utf-8").decode(new Uint8Array(arrayBuffer));
 
     const projectTitle = proposal.title || "";
     const acronym = proposal.acronym || "";
@@ -215,29 +204,24 @@ serve(async (req) => {
     const picNumber = (participant as any).pic_number || "";
     const shortName = (participant as any).organisation_short_name || "";
 
-    // Replace placeholder text [project title] and [acronym]
-    // These may also be split across runs, so we handle both direct and run-split cases
-    xml = xml.replace(/\[project title\]/gi, escapeXml(projectTitle));
-    xml = xml.replace(/\[acronym\]/gi, escapeXml(acronym));
+    // Replace placeholders and fill in the values next to their labels
+    rtf = rtf.replace(/\[project title\]/gi, escapeRtf(projectTitle));
+    rtf = rtf.replace(/\[acronym\]/gi, escapeRtf(acronym));
+    rtf = rtf.replace(/\[legal name\]/gi, escapeRtf(legalName));
+    rtf = rtf.replace(/\[pic\]/gi, escapeRtf(picNumber));
+    rtf = fillAfterLabel(rtf, "Legal name:", legalName);
+    rtf = fillAfterLabel(rtf, "PIC:", picNumber);
 
-    // Try to inject Legal name and PIC into adjacent cells
-    xml = injectCellValue(xml, "Legal name:", legalName);
-    xml = injectCellValue(xml, "PIC:", picNumber);
-
-    // Save modified XML back
-    zip.file("word/document.xml", xml);
-
-    // Generate the modified docx
-    const modifiedDocx = await zip.generateAsync({ type: "uint8array" });
+    const outBytes = new TextEncoder().encode(rtf);
 
     // Convert to base64
     let binary = "";
-    for (let i = 0; i < modifiedDocx.length; i++) {
-      binary += String.fromCharCode(modifiedDocx[i]);
+    for (let i = 0; i < outBytes.length; i++) {
+      binary += String.fromCharCode(outBytes[i]);
     }
     const fileBase64 = btoa(binary);
 
-    const filename = `OCD_${shortName || legalName.substring(0, 20)}_${acronym}.docx`
+    const filename = `OCD_${shortName || legalName.substring(0, 20)}_${acronym}.rtf`
       .replace(/[^a-zA-Z0-9._-]/g, "_");
 
     return new Response(
