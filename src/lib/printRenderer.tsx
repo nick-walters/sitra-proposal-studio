@@ -565,17 +565,20 @@ export async function buildPrintContainer(
       .eq('proposal_id', proposal.id)
       .maybeSingle();
     const aiEnabled = (aiRow as { ai_statement_enabled?: boolean | null } | null)?.ai_statement_enabled !== false;
-    const rawAiText = ((aiRow as { ai_statement_text?: string | null } | null)?.ai_statement_text ?? '').trim()
-      || DEFAULT_AI_STATEMENT;
-    const aiText = rawAiText.startsWith(AI_STATEMENT_PREFIX) ? rawAiText : `${AI_STATEMENT_PREFIX}${rawAiText}`;
+    const aiHtml = resolveAiStatementHtml(
+      (aiRow as { ai_statement_text?: string | null } | null)?.ai_statement_text,
+    );
     if (aiRow && aiEnabled) {
       const aiP = document.createElement('p');
       aiP.style.textAlign = 'justify';
       aiP.style.marginTop = '6pt';
       aiP.style.marginBottom = '6pt';
-      aiP.textContent = aiText;
+      aiP.style.fontWeight = 'bold';
+      aiP.style.textDecoration = 'underline';
+      aiP.innerHTML = aiHtml;
       container.appendChild(aiP);
     }
+
   } catch (e) {
     console.error('Error loading AI usage statement:', e);
   }
