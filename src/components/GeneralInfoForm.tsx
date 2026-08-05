@@ -32,6 +32,9 @@ import { cn } from "@/lib/utils";
 import declarationsData from "@/data/declarations.json";
 import { htmlToPlainText } from "@/lib/htmlToPlainText";
 import { DEFAULT_AI_STATEMENT } from "@/lib/aiStatement";
+import { InlineRichEditor } from "@/components/InlineRichEditor";
+import { TextFormattingGroup } from "@/components/toolbar";
+
 
 
 interface GeneralInfoFormProps {
