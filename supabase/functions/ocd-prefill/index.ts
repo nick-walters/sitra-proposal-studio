@@ -164,8 +164,8 @@ serve(async (req) => {
     rtf = rtf.replace(/\[acronym\]/gi, escapeRtf(acronym));
     rtf = rtf.replace(/\[legal name\]/gi, escapeRtf(legalName));
     rtf = rtf.replace(/\[pic\]/gi, escapeRtf(picNumber));
-    rtf = fillAfterLabel(rtf, "Legal name:", legalName);
-    rtf = fillAfterLabel(rtf, "PIC:", picNumber);
+    rtf = fillNextCellAfterLabel(rtf, "Legal name:", legalName);
+    rtf = fillNextCellAfterLabel(rtf, "PIC:", picNumber);
 
     const outBytes = new TextEncoder().encode(rtf);
 
