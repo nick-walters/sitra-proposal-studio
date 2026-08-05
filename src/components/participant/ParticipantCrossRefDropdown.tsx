@@ -278,16 +278,15 @@ export function ParticipantCrossRefDropdown({
       <InsertTDMSReferenceDropdowns
         proposalId={proposalId}
         dialogsOnly
-        hideMilestone
         openTask={taskOpen}
         onOpenTaskChange={closeDialog(setTaskOpen)}
         openDeliverable={delOpen}
         onOpenDeliverableChange={closeDialog(setDelOpen)}
+        openMilestone={milestoneOpen}
+        onOpenMilestoneChange={closeDialog(setMilestoneOpen)}
         onInsertTask={(t) => insertNode(buildTaskBadge(t))}
         onInsertDeliverable={(d) => insertNode(buildDeliverableBadge(d))}
-        onInsertMilestone={() => {
-          /* not offered */
-        }}
+        onInsertMilestone={(m) => insertNode(buildMilestoneBadge(m))}
       />
     </>
   );
