@@ -503,6 +503,13 @@ export function DocumentEditor({
     isReady: !loading,
   });
 
+  // Hide B3.2 subsection headings whose A2 mirror toggles are all switched off.
+  useB32HiddenHeadings({
+    editor,
+    proposalId,
+    sectionNumber: section?.number,
+  });
+
   // Note: trackChangesEnabled sync is handled by useRichTextEditor's own effect
 
   // Re-run the citation display patcher after every editor transaction so
