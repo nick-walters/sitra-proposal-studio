@@ -118,6 +118,7 @@ export function ParticipantDetailForm({
   proposalId,
   proposalAcronym,
   proposalType,
+  acronymSegments,
   onBackToParticipants,
 }: ParticipantDetailFormProps) {
   const [saving, setSaving] = useState(false);
