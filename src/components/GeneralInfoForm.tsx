@@ -87,6 +87,9 @@ interface FormData {
     prohibitedResearch: boolean;
     outsideEU: boolean;
   };
+  aiStatementEnabled: boolean;
+  aiStatementText: string;
+
 }
 
 const DECLARATIONS = declarationsData as Declaration[];
