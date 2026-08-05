@@ -358,7 +358,10 @@ export function GeneralInfoForm({
               prohibitedResearch: !!decl.prohibitedResearch,
               outsideEU: !!decl.outsideEU,
             },
+            aiStatementEnabled: (data as { ai_statement_enabled?: boolean | null }).ai_statement_enabled !== false,
+            aiStatementText: (data as { ai_statement_text?: string | null }).ai_statement_text ?? DEFAULT_AI_STATEMENT,
           });
+
         }
       } catch (error) {
         // NEVER dump raw content into the abstract field (that caused the
