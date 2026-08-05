@@ -14,12 +14,23 @@ async function cacheFigurePng(
 ): Promise<void> {
   if (!proposalId || !figureId || !element) return;
   try {
+    // Storage RLS only allows editors to write the figure cache. Viewers would
+    // otherwise fire a background upload that is always rejected.
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data: canEdit } = await supabase.rpc('can_edit_proposal', {
+      _user_id: user.id,
+      _proposal_id: proposalId,
+    });
+    if (!canEdit) return;
+
     const blob = await renderElementToPngBlob(element);
     if (!blob) return;
     const path = `${proposalId}/_figures-cache/${figureId}.png`;
     await supabase.storage
       .from('proposal-backups')
       .upload(path, blob, { contentType: 'image/png', upsert: true });
+
   } catch (e) {
     console.warn('cacheFigurePng failed', e);
   }
