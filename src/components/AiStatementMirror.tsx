@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
+import DOMPurify from "dompurify";
 import { supabase } from "@/integrations/supabase/client";
-import { AI_STATEMENT_PREFIX, DEFAULT_AI_STATEMENT } from "@/lib/aiStatement";
+import { resolveAiStatementHtml } from "@/lib/aiStatement";
 
 interface AiStatementMirrorProps {
   proposalId: string;
@@ -28,15 +29,19 @@ export function AiStatementMirror({ proposalId }: AiStatementMirrorProps) {
 
   if (!data || data.ai_statement_enabled === false) return null;
 
-  const rawText = (data.ai_statement_text ?? '').trim() || DEFAULT_AI_STATEMENT;
-  const text = rawText.startsWith(AI_STATEMENT_PREFIX) ? rawText : `${AI_STATEMENT_PREFIX}${rawText}`;
+  const html = DOMPurify.sanitize(resolveAiStatementHtml(data.ai_statement_text));
 
   return (
     <p
       className="mb-4 text-justify"
-      style={{ fontFamily: '"Times New Roman", Times, serif', fontSize: '11pt', lineHeight: 1.5 }}
-    >
-      {text}
-    </p>
+      style={{
+        fontFamily: '"Times New Roman", Times, serif',
+        fontSize: '11pt',
+        lineHeight: 1.5,
+        fontWeight: 'bold',
+        textDecoration: 'underline',
+      }}
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
   );
 }
