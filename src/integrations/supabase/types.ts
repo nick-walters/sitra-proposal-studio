@@ -2192,6 +2192,8 @@ export type Database = {
       part_a1: {
         Row: {
           abstract: string
+          ai_statement_enabled: boolean
+          ai_statement_text: string | null
           created_at: string
           declarations: Json
           fixed_keywords: string[]
@@ -2204,6 +2206,8 @@ export type Database = {
         }
         Insert: {
           abstract?: string
+          ai_statement_enabled?: boolean
+          ai_statement_text?: string | null
           created_at?: string
           declarations?: Json
           fixed_keywords?: string[]
@@ -2216,6 +2220,8 @@ export type Database = {
         }
         Update: {
           abstract?: string
+          ai_statement_enabled?: boolean
+          ai_statement_text?: string | null
           created_at?: string
           declarations?: Json
           fixed_keywords?: string[]
