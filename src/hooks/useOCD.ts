@@ -99,10 +99,15 @@ export function useOCD(proposalId: string | undefined): UseOCDReturn {
   const uploadTemplate = useCallback(async (file: File) => {
     if (!proposalId) return;
 
-    const filePath = `${proposalId}/ocd/template-${Date.now()}.docx`;
+    if (!file.name.toLowerCase().endsWith('.rtf')) {
+      toast.error('Only RTF files are accepted for the OCD template');
+      return;
+    }
+
+    const filePath = `${proposalId}/ocd/template-${Date.now()}.rtf`;
     const { error } = await uploadProposalFile(file, filePath, {
       upsert: true,
-      contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      contentType: 'application/rtf',
     });
 
     if (error) {
