@@ -62,9 +62,10 @@ export function PartAPageLayout({
             </div>
             {titleRightSlot}
           </div>
-          {(guidelines || saveIndicator) && (
+          {(guidelines || saveIndicatorLeftSlot || saveIndicator) && (
             <div className="flex items-center gap-3">
               {guidelines}
+              {saveIndicatorLeftSlot}
               {saveIndicator}
             </div>
           )}
