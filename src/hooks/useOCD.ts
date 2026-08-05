@@ -202,7 +202,7 @@ export function useOCD(proposalId: string | undefined): UseOCDReturn {
           bytes[i] = binaryString.charCodeAt(i);
         }
         const blob = new Blob([bytes], {
-          type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          type: 'application/rtf',
         });
         saveAs(blob, data.filename);
       } else {
