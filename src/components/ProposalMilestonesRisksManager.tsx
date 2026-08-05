@@ -31,6 +31,11 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { toast } from 'sonner';
 import { SaveIndicator } from '@/components/SaveIndicator';
+import { Separator } from '@/components/ui/separator';
+import { InlineRichEditor } from '@/components/InlineRichEditor';
+import { ParticipantCrossRefDropdown } from '@/components/participant/ParticipantCrossRefDropdown';
+import { TextFormattingGroup } from '@/components/toolbar';
+
 
 // ── Save tracker context: lets AutoTextarea report pending/flush to the page header ──
 interface SaveTrackerCtx {
