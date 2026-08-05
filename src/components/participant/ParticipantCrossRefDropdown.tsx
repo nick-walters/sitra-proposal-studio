@@ -39,13 +39,20 @@ interface Props {
  * button used elsewhere, but inserts static badge markup into the saved
  * caret position instead of TipTap nodes.
  */
-export function ParticipantCrossRefDropdown({ proposalId, disabled, onOpenChange }: Props) {
+export function ParticipantCrossRefDropdown({
+  proposalId,
+  disabled,
+  acronymSegments,
+  onOpenChange,
+}: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [wpOpen, setWpOpen] = useState(false);
   const [taskOpen, setTaskOpen] = useState(false);
   const [delOpen, setDelOpen] = useState(false);
+  const [milestoneOpen, setMilestoneOpen] = useState(false);
   const [caseOpen, setCaseOpen] = useState(false);
   const [participantOpen, setParticipantOpen] = useState(false);
+  const hasAcronym = (acronymSegments ?? []).length > 0;
 
   const savedRangeRef = useRef<Range | null>(null);
   const savedEditorRef = useRef<HTMLElement | null>(null);
