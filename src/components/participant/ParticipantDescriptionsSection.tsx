@@ -71,7 +71,9 @@ export function ParticipantDescriptionsSection({
 }: ParticipantDescriptionsSectionProps) {
   const [anyFieldFocused, setAnyFieldFocused] = useState(false);
   const [colorPickerOpen, setColorPickerOpen] = useState(false);
+  const [crossRefOpen, setCrossRefOpen] = useState(false);
   const blurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
 
 
   const isCompany =
