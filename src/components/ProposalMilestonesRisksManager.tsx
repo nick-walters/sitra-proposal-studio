@@ -89,17 +89,6 @@ interface Risk {
 const MS_KEY = (pid: string) => ['proposal-milestones-mgr', pid];
 const RISK_KEY = (pid: string) => ['proposal-risks-mgr', pid];
 
-// ── Strip HTML to plain text (decodes &nbsp;, &amp; etc via DOMParser) ──
-function stripHtml(s: string | null | undefined): string {
-  if (!s) return '';
-  if (!/<[a-z!\/][^>]*>|&[a-z#0-9]+;/i.test(s)) return s;
-  try {
-    const doc = new DOMParser().parseFromString(s, 'text/html');
-    return (doc.body.textContent || '').replace(/\s+\n/g, '\n').replace(/[ \t]+/g, ' ').trim();
-  } catch {
-    return s.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
-  }
-}
 
 // ── Hexagon MS badge (matches B31TablesEditor.MilestoneBadge) ──
 function MilestoneBadge({ number }: { number: number | null | undefined }) {
