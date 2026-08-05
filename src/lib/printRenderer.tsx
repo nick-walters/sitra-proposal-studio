@@ -16,6 +16,8 @@ import { extractFilePathFromUrl } from '@/lib/proposalStorage';
 import { SITRA_LOGO_BASE64 } from '@/lib/sitraLogo';
 import { applyColumnWidthsToTable } from '@/lib/autoFitColumns';
 import { computeBudgetRow } from '@/lib/budgetCompute';
+import { DEFAULT_AI_STATEMENT } from '@/lib/aiStatement';
+
 
 /** Escape user-provided strings before interpolating into raw HTML templates. */
 const escHtml = (s: string | number | null | undefined): string =>
