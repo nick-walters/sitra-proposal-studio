@@ -551,6 +551,27 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
           <MilestonesGuidelinesInline />
         </CardHeader>
         <CardContent>
+          {canEdit && (
+            <div
+              className="mb-3 p-1.5 border rounded-md bg-card flex items-center gap-0.5 flex-wrap shadow-sm"
+              onMouseDown={(e) => {
+                if (e.target === e.currentTarget) e.preventDefault();
+              }}
+            >
+              <span className="text-xs text-muted-foreground px-1.5">Means of verification:</span>
+              <TextFormattingGroup
+                onBold={() => document.execCommand('bold')}
+                onItalic={() => document.execCommand('italic')}
+                onUnderline={() => document.execCommand('underline')}
+              />
+              <Separator orientation="vertical" className="h-5 mx-1.5" />
+              <ParticipantCrossRefDropdown
+                proposalId={proposalId}
+                acronymSegments={acronymSegments}
+              />
+            </div>
+          )}
+
           <div className="overflow-x-auto">
             <table className="platform-table text-sm">
               <thead>
