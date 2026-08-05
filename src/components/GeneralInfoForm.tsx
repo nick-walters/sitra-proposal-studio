@@ -31,6 +31,8 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import declarationsData from "@/data/declarations.json";
 import { htmlToPlainText } from "@/lib/htmlToPlainText";
+import { DEFAULT_AI_STATEMENT } from "@/lib/aiStatement";
+
 
 interface GeneralInfoFormProps {
   proposalId: string;
@@ -87,6 +89,9 @@ interface FormData {
     prohibitedResearch: boolean;
     outsideEU: boolean;
   };
+  aiStatementEnabled: boolean;
+  aiStatementText: string;
+
 }
 
 const DECLARATIONS = declarationsData as Declaration[];
@@ -240,7 +245,10 @@ export function GeneralInfoForm({
       prohibitedResearch: false,
       outsideEU: false,
     },
+    aiStatementEnabled: true,
+    aiStatementText: DEFAULT_AI_STATEMENT,
   });
+
   const [keywordInput, setKeywordInput] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -310,7 +318,7 @@ export function GeneralInfoForm({
       try {
         const { data, error } = await supabase
           .from('part_a1')
-          .select('abstract, fixed_keywords, free_keywords, previous_submission, previous_submission_reference, declarations')
+          .select('abstract, fixed_keywords, free_keywords, previous_submission, previous_submission_reference, declarations, ai_statement_enabled, ai_statement_text')
           .eq('proposal_id', proposalId)
           .maybeSingle();
 
@@ -352,7 +360,10 @@ export function GeneralInfoForm({
               prohibitedResearch: !!decl.prohibitedResearch,
               outsideEU: !!decl.outsideEU,
             },
+            aiStatementEnabled: (data as { ai_statement_enabled?: boolean | null }).ai_statement_enabled !== false,
+            aiStatementText: (data as { ai_statement_text?: string | null }).ai_statement_text ?? DEFAULT_AI_STATEMENT,
           });
+
         }
       } catch (error) {
         // NEVER dump raw content into the abstract field (that caused the
@@ -381,7 +392,10 @@ export function GeneralInfoForm({
           previous_submission: data.previousSubmission,
           previous_submission_reference: data.previousSubmissionReference,
           declarations: data.declarations as unknown as Record<string, boolean>,
+          ai_statement_enabled: data.aiStatementEnabled,
+          ai_statement_text: data.aiStatementText,
           updated_at: new Date().toISOString(),
+
         }, {
           onConflict: 'proposal_id',
         });
@@ -919,6 +933,43 @@ export function GeneralInfoForm({
             ))}
           </CardContent>
         </Card>
+
+        {/* AI usage statement */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">AI usage statement</CardTitle>
+            <InlineGuideline className="mt-2">
+              When ticked, this statement is mirrored into the proposal document, directly above the “1. Excellence” heading.
+            </InlineGuideline>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-start space-x-3">
+              <Checkbox
+                id="ai-statement-enabled"
+                checked={formData.aiStatementEnabled}
+                onCheckedChange={(checked) =>
+                  setFormData(prev => ({ ...prev, aiStatementEnabled: checked as boolean }))
+                }
+                disabled={!canEdit}
+                className="mt-0.5"
+              />
+              <Label htmlFor="ai-statement-enabled" className="font-normal text-sm leading-relaxed cursor-pointer">
+                Include an AI usage statement in the proposal
+              </Label>
+            </div>
+            {formData.aiStatementEnabled && (
+              <Textarea
+                value={formData.aiStatementText}
+                onChange={(e) => setFormData(prev => ({ ...prev, aiStatementText: e.target.value }))}
+                disabled={!canEdit}
+                rows={4}
+                placeholder={DEFAULT_AI_STATEMENT}
+              />
+            )}
+          </CardContent>
+        </Card>
+
+
 
 
       {/* Delete Proposal - Admins/Owners Only */}

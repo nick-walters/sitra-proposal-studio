@@ -20,6 +20,8 @@ import { isBoundingBoxAttrs } from "./ResizableImage";
 import { AdvancedToolbar } from "./toolbar/AdvancedToolbar";
 import { ProposalBanner } from "./ProposalBanner";
 import { B11ParticipantsTable } from "./B11ParticipantsTable";
+import { AiStatementMirror } from "./AiStatementMirror";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -1702,8 +1704,12 @@ export function DocumentEditor({
 
               {/* Participants list — only on B1.1, mirrors A2, read-only */}
               {section.number === 'B1.1' && (
-                <B11ParticipantsTable proposalId={proposalId} />
+                <>
+                  <B11ParticipantsTable proposalId={proposalId} />
+                  <AiStatementMirror proposalId={proposalId} />
+                </>
               )}
+
 
               {/* Page Header - hidden on B1.1 (banner takes its place) */}
               {section.number !== 'B1.1' && (

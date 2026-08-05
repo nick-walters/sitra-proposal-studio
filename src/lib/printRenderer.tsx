@@ -16,6 +16,8 @@ import { extractFilePathFromUrl } from '@/lib/proposalStorage';
 import { SITRA_LOGO_BASE64 } from '@/lib/sitraLogo';
 import { applyColumnWidthsToTable } from '@/lib/autoFitColumns';
 import { computeBudgetRow } from '@/lib/budgetCompute';
+import { DEFAULT_AI_STATEMENT } from '@/lib/aiStatement';
+
 
 /** Escape user-provided strings before interpolating into raw HTML templates. */
 const escHtml = (s: string | number | null | undefined): string =>
@@ -554,6 +556,30 @@ export async function buildPrintContainer(
     partADiv.innerHTML = partAHtml;
     container.appendChild(partADiv);
   }
+
+  // ── AI usage statement (A1 mirror, directly above "1. Excellence") ──
+  try {
+    const { data: aiRow } = await supabase
+      .from('part_a1')
+      .select('ai_statement_enabled, ai_statement_text')
+      .eq('proposal_id', proposal.id)
+      .maybeSingle();
+    const aiEnabled = (aiRow as { ai_statement_enabled?: boolean | null } | null)?.ai_statement_enabled !== false;
+    const aiText = ((aiRow as { ai_statement_text?: string | null } | null)?.ai_statement_text ?? '').trim()
+      || DEFAULT_AI_STATEMENT;
+    if (aiRow && aiEnabled) {
+      const aiP = document.createElement('p');
+      aiP.style.textAlign = 'justify';
+      aiP.style.marginTop = '6pt';
+      aiP.style.marginBottom = '6pt';
+      aiP.textContent = aiText;
+      container.appendChild(aiP);
+    }
+  } catch (e) {
+    console.error('Error loading AI usage statement:', e);
+  }
+
+
 
   // ── Sections ──
   for (const section of partBSections) {
