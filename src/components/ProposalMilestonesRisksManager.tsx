@@ -399,6 +399,20 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
 
 
   // Means of verification is rich text (formatting + cross-reference badges).
+  const { data: acronymSegments } = useQuery({
+    queryKey: ['proposal-acronym-segments', proposalId],
+    enabled: !!proposalId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('proposals')
+        .select('acronym_segments')
+        .eq('id', proposalId)
+        .maybeSingle();
+      if (error) throw error;
+      return ((data as { acronym_segments?: { text: string; color: string }[] } | null)?.acronym_segments) || [];
+    },
+  });
+
 
 
   // ── Mutations: milestones ────────────────────────────────────
