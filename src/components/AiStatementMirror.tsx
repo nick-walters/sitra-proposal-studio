@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { DEFAULT_AI_STATEMENT } from "@/lib/aiStatement";
+import { AI_STATEMENT_PREFIX, DEFAULT_AI_STATEMENT } from "@/lib/aiStatement";
 
 interface AiStatementMirrorProps {
   proposalId: string;
