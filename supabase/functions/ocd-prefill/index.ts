@@ -1,104 +1,34 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import JSZip from "https://esm.sh/jszip@3.10.1";
 import { corsHeaders } from "../_shared/cors.ts";
 import { requireAuth } from "../_shared/auth.ts";
 
-
-
-
-function escapeXml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
+/** Escape a plain string for safe inclusion in RTF content. */
+function escapeRtf(str: string): string {
+  let out = "";
+  for (const ch of str) {
+    const code = ch.codePointAt(0)!;
+    if (ch === "\\" || ch === "{" || ch === "}") out += "\\" + ch;
+    else if (ch === "\n") out += "\\par ";
+    else if (code > 127) out += `\\u${code > 32767 ? code - 65536 : code}?`;
+    else out += ch;
+  }
+  return out;
 }
 
 /**
- * Find the text content of a label that may be split across multiple <w:r> runs
- * (e.g. bold formatting causes "Legal name:" to be in a separate run).
- * Returns the index in the XML where the label's containing <w:tc> ends,
- * or -1 if not found.
+ * Insert a value immediately after a label in the RTF body, e.g.
+ * "Legal name:" -> "Legal name: ACME Ltd". Only fills the first occurrence
+ * and only when the label is not already followed by text.
  */
-function findLabelCellEnd(xml: string, labelText: string): number {
-  // Strategy: strip all XML tags from segments to find the label text,
-  // then locate its position in the original XML.
-  
-  // Try direct match first (unformatted text)
-  const directIdx = xml.indexOf(labelText);
-  if (directIdx !== -1) {
-    const cellEnd = xml.indexOf("</w:tc>", directIdx);
-    return cellEnd !== -1 ? cellEnd : -1;
-  }
-
-  // For formatted text (bold etc.), the label may be split across runs.
-  // Search for the label by looking at <w:t> content within each <w:tc>.
-  const cellRegex = /<w:tc[\s>]/g;
-  let cellMatch;
-  while ((cellMatch = cellRegex.exec(xml)) !== null) {
-    const cellStart = cellMatch.index;
-    const cellEnd = xml.indexOf("</w:tc>", cellStart);
-    if (cellEnd === -1) continue;
-
-    const cellXml = xml.substring(cellStart, cellEnd);
-    
-    // Extract all text content from <w:t> tags in this cell
-    const textParts: string[] = [];
-    const tRegex = /<w:t[^>]*>([^<]*)<\/w:t>/g;
-    let tMatch;
-    while ((tMatch = tRegex.exec(cellXml)) !== null) {
-      textParts.push(tMatch[1]);
-    }
-    
-    const cellText = textParts.join("");
-    if (cellText.includes(labelText)) {
-      return cellEnd;
-    }
-  }
-
-  return -1;
+function fillAfterLabel(rtf: string, label: string, value: string): string {
+  if (!value) return rtf;
+  const idx = rtf.indexOf(label);
+  if (idx === -1) return rtf;
+  const insertAt = idx + label.length;
+  return rtf.slice(0, insertAt) + " " + escapeRtf(value) + rtf.slice(insertAt);
 }
 
-/**
- * Inject a value into the table cell adjacent to a label cell.
- * Handles labels that may be formatted (bold) and split across multiple runs.
- */
-function injectCellValue(xml: string, labelText: string, value: string): string {
-  const cellEnd = findLabelCellEnd(xml, labelText);
-  if (cellEnd === -1) return xml;
-
-  // Find the label cell's position for row boundary check
-  const labelCellStart = xml.lastIndexOf("<w:tc", cellEnd);
-
-  // Find the next cell after this one
-  const afterCellEnd = cellEnd + "</w:tc>".length;
-  const nextCell = xml.indexOf("<w:tc>", afterCellEnd);
-  const nextCellAlt = xml.indexOf("<w:tc ", afterCellEnd);
-  let nextCellPos = -1;
-
-  if (nextCell === -1 && nextCellAlt === -1) return xml;
-  if (nextCell === -1) nextCellPos = nextCellAlt;
-  else if (nextCellAlt === -1) nextCellPos = nextCell;
-  else nextCellPos = Math.min(nextCell, nextCellAlt);
-
-  // Ensure within the same row
-  const rowEnd = xml.indexOf("</w:tr>", labelCellStart);
-  if (rowEnd !== -1 && nextCellPos > rowEnd) return xml;
-
-  // Find the last </w:p> in the next cell to insert before it
-  const nextCellEnd = xml.indexOf("</w:tc>", nextCellPos);
-  if (nextCellEnd === -1) return xml;
-
-  const cellContent = xml.substring(nextCellPos, nextCellEnd);
-  const lastPEnd = cellContent.lastIndexOf("</w:p>");
-  if (lastPEnd === -1) return xml;
-
-  const insertPos = nextCellPos + lastPEnd;
-  const run = `<w:r><w:rPr><w:b/></w:rPr><w:t>${escapeXml(value)}</w:t></w:r>`;
-  return xml.substring(0, insertPos) + run + xml.substring(insertPos);
-}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -194,20 +124,9 @@ serve(async (req) => {
       });
     }
 
-    // Open the docx (which is a zip file)
+    // Read the RTF template as text
     const arrayBuffer = await fileData.arrayBuffer();
-    const zip = await JSZip.loadAsync(arrayBuffer);
-
-    // Get document.xml
-    const docXmlFile = zip.file("word/document.xml");
-    if (!docXmlFile) {
-      return new Response(JSON.stringify({ error: "Invalid docx file" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    let xml = await docXmlFile.async("string");
+    let rtf = new TextDecoder("utf-8").decode(new Uint8Array(arrayBuffer));
 
     const projectTitle = proposal.title || "";
     const acronym = proposal.acronym || "";
@@ -215,29 +134,24 @@ serve(async (req) => {
     const picNumber = (participant as any).pic_number || "";
     const shortName = (participant as any).organisation_short_name || "";
 
-    // Replace placeholder text [project title] and [acronym]
-    // These may also be split across runs, so we handle both direct and run-split cases
-    xml = xml.replace(/\[project title\]/gi, escapeXml(projectTitle));
-    xml = xml.replace(/\[acronym\]/gi, escapeXml(acronym));
+    // Replace placeholders and fill in the values next to their labels
+    rtf = rtf.replace(/\[project title\]/gi, escapeRtf(projectTitle));
+    rtf = rtf.replace(/\[acronym\]/gi, escapeRtf(acronym));
+    rtf = rtf.replace(/\[legal name\]/gi, escapeRtf(legalName));
+    rtf = rtf.replace(/\[pic\]/gi, escapeRtf(picNumber));
+    rtf = fillAfterLabel(rtf, "Legal name:", legalName);
+    rtf = fillAfterLabel(rtf, "PIC:", picNumber);
 
-    // Try to inject Legal name and PIC into adjacent cells
-    xml = injectCellValue(xml, "Legal name:", legalName);
-    xml = injectCellValue(xml, "PIC:", picNumber);
-
-    // Save modified XML back
-    zip.file("word/document.xml", xml);
-
-    // Generate the modified docx
-    const modifiedDocx = await zip.generateAsync({ type: "uint8array" });
+    const outBytes = new TextEncoder().encode(rtf);
 
     // Convert to base64
     let binary = "";
-    for (let i = 0; i < modifiedDocx.length; i++) {
-      binary += String.fromCharCode(modifiedDocx[i]);
+    for (let i = 0; i < outBytes.length; i++) {
+      binary += String.fromCharCode(outBytes[i]);
     }
     const fileBase64 = btoa(binary);
 
-    const filename = `OCD_${shortName || legalName.substring(0, 20)}_${acronym}.docx`
+    const filename = `OCD_${shortName || legalName.substring(0, 20)}_${acronym}.rtf`
       .replace(/[^a-zA-Z0-9._-]/g, "_");
 
     return new Response(

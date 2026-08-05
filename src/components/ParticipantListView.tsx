@@ -656,7 +656,7 @@ export function ParticipantListView({
                       <input
                         ref={templateInputRef}
                         type="file"
-                        accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        accept=".rtf,application/rtf,text/rtf"
                         className="hidden"
                         onChange={async (e) => {
                           const file = e.target.files?.[0];
