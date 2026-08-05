@@ -31,6 +31,11 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { toast } from 'sonner';
 import { SaveIndicator } from '@/components/SaveIndicator';
+import { Separator } from '@/components/ui/separator';
+import { InlineRichEditor } from '@/components/InlineRichEditor';
+import { ParticipantCrossRefDropdown } from '@/components/participant/ParticipantCrossRefDropdown';
+import { TextFormattingGroup } from '@/components/toolbar';
+
 
 // ── Save tracker context: lets AutoTextarea report pending/flush to the page header ──
 interface SaveTrackerCtx {
@@ -84,17 +89,6 @@ interface Risk {
 const MS_KEY = (pid: string) => ['proposal-milestones-mgr', pid];
 const RISK_KEY = (pid: string) => ['proposal-risks-mgr', pid];
 
-// ── Strip HTML to plain text (decodes &nbsp;, &amp; etc via DOMParser) ──
-function stripHtml(s: string | null | undefined): string {
-  if (!s) return '';
-  if (!/<[a-z!\/][^>]*>|&[a-z#0-9]+;/i.test(s)) return s;
-  try {
-    const doc = new DOMParser().parseFromString(s, 'text/html');
-    return (doc.body.textContent || '').replace(/\s+\n/g, '\n').replace(/[ \t]+/g, ' ').trim();
-  } catch {
-    return s.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
-  }
-}
 
 // ── Hexagon MS badge (matches B31TablesEditor.MilestoneBadge) ──
 function MilestoneBadge({ number }: { number: number | null | undefined }) {
@@ -393,24 +387,22 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
   }, [proposalId, qc]);
 
 
-  // ── One-shot: strip HTML from existing means_of_verification rows ──
-  const cleanedRef = useRef(new Set<string>());
-  useEffect(() => {
-    const dirty = milestones.filter(m =>
-      m.means_of_verification &&
-      /<[a-z!\/][^>]*>|&[a-z#0-9]+;/i.test(m.means_of_verification) &&
-      !cleanedRef.current.has(m.id)
-    );
-    if (dirty.length === 0) return;
-    (async () => {
-      for (const m of dirty) {
-        cleanedRef.current.add(m.id);
-        const cleaned = stripHtml(m.means_of_verification);
-        await supabase.from('proposal_milestones').update({ means_of_verification: cleaned }).eq('id', m.id);
-      }
-      qc.invalidateQueries({ queryKey: MS_KEY(proposalId) });
-    })();
-  }, [milestones, proposalId, qc]);
+  // Means of verification is rich text (formatting + cross-reference badges).
+  const { data: acronymSegments } = useQuery({
+    queryKey: ['proposal-acronym-segments', proposalId],
+    enabled: !!proposalId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('proposals')
+        .select('acronym_segments')
+        .eq('id', proposalId)
+        .maybeSingle();
+      if (error) throw error;
+      return ((data as { acronym_segments?: { text: string; color: string }[] } | null)?.acronym_segments) || [];
+    },
+  });
+
+
 
   // ── Mutations: milestones ────────────────────────────────────
   const addMilestone = useMutation({
@@ -567,6 +559,27 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
           <MilestonesGuidelinesInline />
         </CardHeader>
         <CardContent>
+          {canEdit && (
+            <div
+              className="mb-3 p-1.5 border rounded-md bg-card flex items-center gap-0.5 flex-wrap shadow-sm"
+              onMouseDown={(e) => {
+                if (e.target === e.currentTarget) e.preventDefault();
+              }}
+            >
+              <span className="text-xs text-muted-foreground px-1.5">Means of verification:</span>
+              <TextFormattingGroup
+                onBold={() => document.execCommand('bold')}
+                onItalic={() => document.execCommand('italic')}
+                onUnderline={() => document.execCommand('underline')}
+              />
+              <Separator orientation="vertical" className="h-5 mx-1.5" />
+              <ParticipantCrossRefDropdown
+                proposalId={proposalId}
+                acronymSegments={acronymSegments}
+              />
+            </div>
+          )}
+
           <div className="overflow-x-auto">
             <table className="platform-table text-sm">
               <thead>
@@ -643,13 +656,15 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
                         />
                       </td>
                       <td className="py-1.5 px-1">
-                        <AutoTextarea
-                          value={stripHtml(m.means_of_verification)}
+                        <InlineRichEditor
+                          value={m.means_of_verification || ''}
                           disabled={!canEdit}
                           placeholder="Means of verification"
-                          onChange={(e) => updateMilestone.mutate({ id: m.id, patch: { means_of_verification: e.target.value } })}
+                          minHeight="30px"
+                          onChange={(html) => updateMilestone.mutate({ id: m.id, patch: { means_of_verification: html } })}
                         />
                       </td>
+
                       <td className="py-1.5 px-0 text-center">
                         <Button
                           size="icon" variant="ghost" className="h-7 w-7 text-red-600 hover:text-red-700"
