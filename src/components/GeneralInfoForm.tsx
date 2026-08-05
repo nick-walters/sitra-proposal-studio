@@ -392,7 +392,10 @@ export function GeneralInfoForm({
           previous_submission: data.previousSubmission,
           previous_submission_reference: data.previousSubmissionReference,
           declarations: data.declarations as unknown as Record<string, boolean>,
+          ai_statement_enabled: data.aiStatementEnabled,
+          ai_statement_text: data.aiStatementText,
           updated_at: new Date().toISOString(),
+
         }, {
           onConflict: 'proposal_id',
         });
