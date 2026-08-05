@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Plus, Trash2, AlertTriangle, Copy, Check } from 'lucide-react';
+import { Plus, Trash2, AlertTriangle, Copy, Check, GripVertical } from 'lucide-react';
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,6 +34,29 @@ function CopyCellButton({ value }: { value: number }) {
   );
 }
 
+function SortableRow({ id, editable, children }: { id: string; editable: boolean; children: React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, disabled: !editable });
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
+  return (
+    <tr ref={setNodeRef} style={style} className="border-t">
+      <td className="px-1 py-1 text-center align-middle">
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          disabled={!editable}
+          className="p-1 rounded text-[#2563EB] cursor-grab active:cursor-grabbing disabled:opacity-30 disabled:cursor-not-allowed touch-none"
+          aria-label="Drag to reorder"
+          title="Drag to reorder"
+        >
+          <GripVertical className="w-3.5 h-3.5" />
+        </button>
+      </td>
+      {children}
+    </tr>
+  );
+}
+
 interface Props {
   budgetRowId: string;
   totalPersonMonths: number;
@@ -39,6 +65,7 @@ interface Props {
   onAdd: () => void;
   onUpdate: (id: string, field: 'category' | 'pmCount' | 'pmRate', value: string | number) => void;
   onDelete: (id: string) => void;
+  onReorder: (budgetRowId: string, orderedIds: string[]) => void;
 }
 
 function formatPM(value: number): string {
@@ -54,8 +81,21 @@ export function BudgetPersonnelBreakdown({
   onAdd,
   onUpdate,
   onDelete,
+  onReorder,
 }: Props) {
-  const rows = items.filter(i => i.budgetRowId === budgetRowId);
+  const rows = items
+    .filter(i => i.budgetRowId === budgetRowId)
+    .sort((a, b) => a.orderIndex - b.orderIndex);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+
+  const handleDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const oldIdx = rows.findIndex(i => i.id === active.id);
+    const newIdx = rows.findIndex(i => i.id === over.id);
+    if (oldIdx < 0 || newIdx < 0) return;
+    onReorder(budgetRowId, arrayMove(rows, oldIdx, newIdx).map(i => i.id));
+  };
   const totalPm = rows.reduce((s, i) => s + (i.pmCount || 0), 0);
   const totalCost = rows.reduce((s, i) => s + (i.pmCount || 0) * (i.pmRate || 0), 0);
   const weightedRate = totalPm > 0 ? totalCost / totalPm : 0;
@@ -109,10 +149,13 @@ export function BudgetPersonnelBreakdown({
         </Button>
       </div>
 
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <SortableContext items={rows.map(i => i.id)} strategy={verticalListSortingStrategy}>
       <div className="rounded-md border overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-muted/40">
             <tr className="text-xs text-muted-foreground">
+              <th className="w-[28px]" />
               <th className="text-left font-bold px-2 py-1.5">Personnel category (optional staff name in brackets)</th>
               <th className="text-right font-bold px-2 py-1.5 w-[130px]">PM rate (&euro;)</th>
               <th className="text-right font-bold px-2 py-1.5 w-[90px]">PMs</th>
@@ -122,7 +165,7 @@ export function BudgetPersonnelBreakdown({
           </thead>
           <tbody>
             {rows.map(item => (
-              <tr key={item.id} className="border-t">
+              <SortableRow key={item.id} id={item.id} editable={editable}>
                 <td className="px-2 py-1">
                   <Input
                     value={item.category}
@@ -164,10 +207,11 @@ export function BudgetPersonnelBreakdown({
                     <Trash2 className="w-3.5 h-3.5 text-destructive" />
                   </button>
                 </td>
-              </tr>
+              </SortableRow>
             ))}
             {hasMismatch && (
               <tr className="border-t bg-destructive/5">
+                <td />
                 <td className="px-2 py-1 font-semibold text-destructive">Unallocated PMs</td>
                 <td className="px-2 py-1" />
                 <td className="py-1 pr-5 text-right tabular-nums font-semibold text-destructive">{formatPM(undefinedPm)}</td>
@@ -176,6 +220,7 @@ export function BudgetPersonnelBreakdown({
               </tr>
             )}
             <tr className="border-t bg-muted/30">
+              <td />
               <td className="pl-5 pr-2 py-1 font-semibold">Average weighted PM rate, total PMs &amp; total personnel costs</td>
               <td className="py-1 pr-5 text-right tabular-nums font-semibold">{formatNumber(weightedRate, 2)}</td>
               <td className="py-1 pr-5 text-right tabular-nums font-semibold">{formatNumber(totalPm, 1)}</td>
@@ -188,6 +233,8 @@ export function BudgetPersonnelBreakdown({
           </tbody>
         </table>
       </div>
+      </SortableContext>
+      </DndContext>
 
       {hasMismatch && (
         <Alert className="border-destructive/50 bg-destructive/5 py-2">
