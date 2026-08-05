@@ -462,6 +462,7 @@ export function ParticipantDetailForm({
           saveError={descriptionsError}
           canEdit={canEdit}
           proposalId={proposalId}
+          acronymSegments={acronymSegments}
           canManageCustomColors={canGrant}
         />
 
