@@ -548,8 +548,35 @@ export function PERTChartFigure({
               />
             ))}
           </svg>
+          </div>
+
+          {/* Grid overlay — editor-only aid, kept outside chartRef so exports
+              and cached PNGs never include it. */}
+          {canEdit && showGrid && (
+            <div
+              aria-hidden
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                zIndex: 1,
+                backgroundImage: [
+                  'linear-gradient(to right, rgba(0,0,0,0.18) 0, rgba(0,0,0,0.18) 1px, transparent 1px)',
+                  'linear-gradient(to bottom, rgba(0,0,0,0.18) 0, rgba(0,0,0,0.18) 1px, transparent 1px)',
+                  'linear-gradient(to right, rgba(0,0,0,0.07) 0, rgba(0,0,0,0.07) 1px, transparent 1px)',
+                  'linear-gradient(to bottom, rgba(0,0,0,0.07) 0, rgba(0,0,0,0.07) 1px, transparent 1px)',
+                ].join(', '),
+                backgroundSize: [
+                  `${PERT_MAJOR_GRID * zoom}px ${PERT_MAJOR_GRID * zoom}px`,
+                  `${PERT_MAJOR_GRID * zoom}px ${PERT_MAJOR_GRID * zoom}px`,
+                  `${PERT_MINOR_GRID * zoom}px ${PERT_MINOR_GRID * zoom}px`,
+                  `${PERT_MINOR_GRID * zoom}px ${PERT_MINOR_GRID * zoom}px`,
+                ].join(', '),
+              }}
+            />
+          )}
+          </div>
         </div>
       </TooltipProvider>
+
 
       {/* Legend - only in edit mode */}
       {canEdit && (
