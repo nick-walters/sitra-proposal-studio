@@ -240,7 +240,10 @@ export function GeneralInfoForm({
       prohibitedResearch: false,
       outsideEU: false,
     },
+    aiStatementEnabled: true,
+    aiStatementText: DEFAULT_AI_STATEMENT,
   });
+
   const [keywordInput, setKeywordInput] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
