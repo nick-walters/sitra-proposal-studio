@@ -627,13 +627,15 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
                         />
                       </td>
                       <td className="py-1.5 px-1">
-                        <AutoTextarea
-                          value={stripHtml(m.means_of_verification)}
+                        <InlineRichEditor
+                          value={m.means_of_verification || ''}
                           disabled={!canEdit}
                           placeholder="Means of verification"
-                          onChange={(e) => updateMilestone.mutate({ id: m.id, patch: { means_of_verification: e.target.value } })}
+                          minHeight="30px"
+                          onChange={(html) => updateMilestone.mutate({ id: m.id, patch: { means_of_verification: html } })}
                         />
                       </td>
+
                       <td className="py-1.5 px-0 text-center">
                         <Button
                           size="icon" variant="ghost" className="h-7 w-7 text-red-600 hover:text-red-700"
