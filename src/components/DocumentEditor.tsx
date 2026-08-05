@@ -20,6 +20,8 @@ import { isBoundingBoxAttrs } from "./ResizableImage";
 import { AdvancedToolbar } from "./toolbar/AdvancedToolbar";
 import { ProposalBanner } from "./ProposalBanner";
 import { B11ParticipantsTable } from "./B11ParticipantsTable";
+import { AiStatementMirror } from "./AiStatementMirror";
+
 import {
   AlertDialog,
   AlertDialogAction,
