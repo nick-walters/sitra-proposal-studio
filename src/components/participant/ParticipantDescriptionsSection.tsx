@@ -2,6 +2,8 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { PrefixedInlineEditor } from '@/components/participant/PrefixedInlineEditor';
+import { ParticipantCrossRefDropdown } from '@/components/participant/ParticipantCrossRefDropdown';
+
 import { SaveIndicator } from '@/components/SaveIndicator';
 import { ParticipantBubble } from '@/components/B31Pill';
 import {
@@ -71,7 +73,9 @@ export function ParticipantDescriptionsSection({
 }: ParticipantDescriptionsSectionProps) {
   const [anyFieldFocused, setAnyFieldFocused] = useState(false);
   const [colorPickerOpen, setColorPickerOpen] = useState(false);
+  const [crossRefOpen, setCrossRefOpen] = useState(false);
   const blurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
 
 
   const isCompany =
@@ -127,7 +131,7 @@ export function ParticipantDescriptionsSection({
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
-        {canEdit && (anyFieldFocused || colorPickerOpen) && (
+        {canEdit && (anyFieldFocused || colorPickerOpen || crossRefOpen) && (
           <StickyToolbarWrapper>
             <div
               className="p-1.5 border rounded-md bg-card flex items-center gap-0.5 flex-wrap shadow-sm"
@@ -158,9 +162,15 @@ export function ParticipantDescriptionsSection({
                 onOpenChange={setColorPickerOpen}
               />
 
-
-
-
+              {proposalId && (
+                <>
+                  <Separator orientation="vertical" className="h-5 mx-1.5" />
+                  <ParticipantCrossRefDropdown
+                    proposalId={proposalId}
+                    onOpenChange={setCrossRefOpen}
+                  />
+                </>
+              )}
 
 
               <div className="ml-auto">

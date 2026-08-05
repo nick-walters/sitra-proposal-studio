@@ -14,8 +14,12 @@ import { cn } from '@/lib/utils';
 
 const SANITIZE_CONFIG = {
   ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'ul', 'ol', 'li', 'span', 'a', 'sub', 'sup', 'div'],
-  ALLOWED_ATTR: ['class', 'style', 'href', 'target', 'rel'],
+  ALLOWED_ATTR: ['class', 'style', 'href', 'target', 'rel', 'contenteditable'],
+  // Cross-reference badges carry data-* metadata (WP / task / deliverable /
+  // case / participant) that must survive save + reload.
+  ALLOW_DATA_ATTR: true,
 };
+
 
 const PREFIX_ATTR = 'data-participant-prefix';
 
