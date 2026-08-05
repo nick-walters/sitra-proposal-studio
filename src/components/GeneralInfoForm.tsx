@@ -934,6 +934,43 @@ export function GeneralInfoForm({
           </CardContent>
         </Card>
 
+        {/* AI usage statement */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">AI usage statement</CardTitle>
+            <InlineGuideline className="mt-2">
+              When ticked, this statement is mirrored into the proposal document, directly above the “1. Excellence” heading.
+            </InlineGuideline>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-start space-x-3">
+              <Checkbox
+                id="ai-statement-enabled"
+                checked={formData.aiStatementEnabled}
+                onCheckedChange={(checked) =>
+                  setFormData(prev => ({ ...prev, aiStatementEnabled: checked as boolean }))
+                }
+                disabled={!canEdit}
+                className="mt-0.5"
+              />
+              <Label htmlFor="ai-statement-enabled" className="font-normal text-sm leading-relaxed cursor-pointer">
+                Include an AI usage statement in the proposal
+              </Label>
+            </div>
+            {formData.aiStatementEnabled && (
+              <Textarea
+                value={formData.aiStatementText}
+                onChange={(e) => setFormData(prev => ({ ...prev, aiStatementText: e.target.value }))}
+                disabled={!canEdit}
+                rows={4}
+                placeholder={DEFAULT_AI_STATEMENT}
+              />
+            )}
+          </CardContent>
+        </Card>
+
+
+
 
       {/* Delete Proposal - Admins/Owners Only */}
       {isCoordinator && (
