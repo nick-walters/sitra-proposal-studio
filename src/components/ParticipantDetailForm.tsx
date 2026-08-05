@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { DebouncedInput } from '@/components/ui/debounced-input';
 import { Label } from '@/components/ui/label';
@@ -94,6 +95,8 @@ interface ParticipantDetailFormProps {
   proposalAcronym?: string;
   /** Proposal type (RIA, IA, CSA, etc.) */
   proposalType?: string;
+  /** Callback to return to the A2 participants list */
+  onBackToParticipants?: () => void;
 }
 
 // Legal entity types use the same ORGANISATION_CATEGORY_LABELS from ParticipantTable
@@ -113,6 +116,7 @@ export function ParticipantDetailForm({
   proposalId,
   proposalAcronym,
   proposalType,
+  onBackToParticipants,
 }: ParticipantDetailFormProps) {
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -202,6 +206,20 @@ export function ParticipantDetailForm({
         </p>
       }
       spacing="space-y-4"
+      saveIndicatorLeftSlot={
+        onBackToParticipants ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-7 px-2 text-xs gap-1"
+            onClick={onBackToParticipants}
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Return to A2: Participants
+          </Button>
+        ) : undefined
+      }
       saveIndicator={canEdit ? <SaveIndicator saving={saving} lastSaved={lastSaved} onSaveNow={() => {}} /> : undefined}
     >
 

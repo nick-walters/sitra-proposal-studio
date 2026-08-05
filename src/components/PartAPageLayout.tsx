@@ -15,6 +15,8 @@ interface PartAPageLayoutProps {
   subtitle?: React.ReactNode;
   /** Optional element rendered to the RIGHT of the title row (e.g. status badge, action buttons) */
   titleRightSlot?: React.ReactNode;
+  /** Optional element rendered to the LEFT of the save indicator in the toolbar row below the title */
+  saveIndicatorLeftSlot?: React.ReactNode;
   /** Optional PartAGuidelinesDialog — rendered in the toolbar row below the title */
   guidelines?: React.ReactNode;
   /** Optional SaveIndicator — rendered in the toolbar row below the title */
@@ -37,6 +39,7 @@ export function PartAPageLayout({
   titleLeftAdornment,
   subtitle,
   titleRightSlot,
+  saveIndicatorLeftSlot,
   guidelines,
   saveIndicator,
   maxWidth = 'max-w-7xl',
@@ -59,9 +62,10 @@ export function PartAPageLayout({
             </div>
             {titleRightSlot}
           </div>
-          {(guidelines || saveIndicator) && (
+          {(guidelines || saveIndicatorLeftSlot || saveIndicator) && (
             <div className="flex items-center gap-3">
               {guidelines}
+              {saveIndicatorLeftSlot}
               {saveIndicator}
             </div>
           )}
