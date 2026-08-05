@@ -374,6 +374,69 @@ export function PERTChartFigure({
               <Move className="w-3 h-3" />
               Drag nodes to reposition
             </span>
+
+            {/* Snap + grid */}
+            <div className="flex items-center gap-0.5">
+              <Button
+                type="button"
+                variant={snap ? 'secondary' : 'ghost'}
+                size="sm"
+                className="h-7 w-7 p-0"
+                title="Snap to grid (10 px)" aria-label="Toggle snap to grid"
+                aria-pressed={snap}
+                onClick={() => setSnap((v) => !v)}
+              >
+                <Magnet className="w-3.5 h-3.5" />
+              </Button>
+              <Button
+                type="button"
+                variant={showGrid ? 'secondary' : 'ghost'}
+                size="sm"
+                className="h-7 w-7 p-0"
+                title="Show grid (10 px minor, 50 px major)" aria-label="Toggle grid"
+                aria-pressed={showGrid}
+                onClick={() => setShowGrid((v) => !v)}
+              >
+                <Grid3x3 className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+
+            {/* Zoom */}
+            <div className="flex items-center gap-0.5">
+              <Button
+                type="button" variant="ghost" size="sm" className="h-7 w-7 p-0"
+                title="Zoom out" aria-label="Zoom out"
+                disabled={zoom <= PERT_MIN_ZOOM}
+                onClick={() => applyZoom(zoom / 1.2)}
+              >
+                <ZoomOut className="w-3.5 h-3.5" />
+              </Button>
+              <button
+                type="button"
+                className="h-7 min-w-[3rem] px-1 text-xs text-muted-foreground tabular-nums hover:text-foreground"
+                title="Reset zoom to 100%" aria-label="Reset zoom"
+                onClick={() => applyZoom(1)}
+              >
+                {Math.round(zoom * 100)}%
+              </button>
+              <Button
+                type="button" variant="ghost" size="sm" className="h-7 w-7 p-0"
+                title="Zoom in" aria-label="Zoom in"
+                disabled={zoom >= PERT_MAX_ZOOM}
+                onClick={() => applyZoom(zoom * 1.2)}
+              >
+                <ZoomIn className="w-3.5 h-3.5" />
+              </Button>
+              <Button
+                type="button" variant="ghost" size="sm" className="h-7 w-7 p-0"
+                title="Reset zoom" aria-label="Reset zoom"
+                onClick={() => applyZoom(1)}
+              >
+                <Maximize className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="h-7 gap-1 text-xs">
