@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -64,6 +64,31 @@ export function ParticipantCrossRefDropdown({
     [onOpenChange],
   );
 
+  // Keep the parent toolbar mounted for the entire menu -> dialog transition.
+  // Radix closes the dropdown as an item is selected; notifying the parent
+  // directly from that close event can unmount this component before the
+  // item's onSelect handler inserts the acronym or opens its dialog.
+  useEffect(() => {
+    notifyOpen(
+      menuOpen ||
+        wpOpen ||
+        taskOpen ||
+        delOpen ||
+        milestoneOpen ||
+        caseOpen ||
+        participantOpen,
+    );
+  }, [
+    menuOpen,
+    wpOpen,
+    taskOpen,
+    delOpen,
+    milestoneOpen,
+    caseOpen,
+    participantOpen,
+    notifyOpen,
+  ]);
+
   const saveSelection = useCallback(() => {
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0) return;
@@ -112,13 +137,11 @@ export function ParticipantCrossRefDropdown({
   }, []);
 
   const openDialog = (setter: (v: boolean) => void) => {
-    notifyOpen(true);
     setter(true);
   };
 
   const closeDialog = (setter: (v: boolean) => void) => (open: boolean) => {
     setter(open);
-    if (!open) notifyOpen(false);
   };
 
   return (
@@ -127,7 +150,6 @@ export function ParticipantCrossRefDropdown({
         open={menuOpen}
         onOpenChange={(o) => {
           setMenuOpen(o);
-          notifyOpen(o);
         }}
       >
         <DropdownMenuTrigger asChild>
@@ -142,10 +164,7 @@ export function ParticipantCrossRefDropdown({
               e.preventDefault();
               if (disabled) return;
               saveSelection();
-              setMenuOpen((o) => {
-                notifyOpen(!o);
-                return !o;
-              });
+              setMenuOpen((o) => !o);
             }}
             aria-label="Insert cross-reference"
             title="Insert cross-reference"
