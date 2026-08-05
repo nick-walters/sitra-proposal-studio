@@ -160,9 +160,15 @@ export function ParticipantDescriptionsSection({
                 onOpenChange={setColorPickerOpen}
               />
 
-
-
-
+              {proposalId && (
+                <>
+                  <Separator orientation="vertical" className="h-5 mx-1.5" />
+                  <ParticipantCrossRefDropdown
+                    proposalId={proposalId}
+                    onOpenChange={setCrossRefOpen}
+                  />
+                </>
+              )}
 
 
               <div className="ml-auto">
