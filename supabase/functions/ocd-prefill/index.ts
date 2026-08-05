@@ -125,7 +125,7 @@ serve(async (req) => {
     // Fetch participant info
     const { data: participant, error: participantError } = await supabase
       .from("participants")
-      .select("organisation_name, organisation_short_name, pic_number, participant_number")
+      .select("organisation_name, organisation_short_name, pic_number, participant_number, street, postcode, town, country")
       .eq("id", participantId)
       .eq("proposal_id", proposalId)
       .single();
@@ -159,6 +159,17 @@ serve(async (req) => {
     const picNumber = (participant as any).pic_number || "";
     const shortName = (participant as any).organisation_short_name || "";
 
+    // Place of establishment: street, postcode + city, country (as completed in A2)
+    const p = participant as any;
+    const placeOfEstablishment = [
+      p.street || "",
+      [p.postcode || "", p.town || ""].filter(Boolean).join(" "),
+      p.country || "",
+    ]
+      .map((s: string) => s.trim())
+      .filter(Boolean)
+      .join(", ");
+
     // Replace placeholders and fill in the values next to their labels
     rtf = rtf.replace(/\[project title\]/gi, escapeRtf(projectTitle));
     rtf = rtf.replace(/\[acronym\]/gi, escapeRtf(acronym));
@@ -166,6 +177,9 @@ serve(async (req) => {
     rtf = rtf.replace(/\[pic\]/gi, escapeRtf(picNumber));
     rtf = fillNextCellAfterLabel(rtf, "Legal name:", legalName);
     rtf = fillNextCellAfterLabel(rtf, "PIC:", picNumber);
+    rtf = rtf.replace(/\[place of establishment\]/gi, escapeRtf(placeOfEstablishment));
+    rtf = fillNextCellAfterLabel(rtf, "Place of establishment:", placeOfEstablishment);
+    rtf = fillNextCellAfterLabel(rtf, "Place of establishment", placeOfEstablishment);
 
     const outBytes = new TextEncoder().encode(rtf);
 
