@@ -601,6 +601,33 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
     await syncWeightedPmRate(item.budgetRowId, remaining);
   }, [syncWeightedPmRate]);
 
+  const reorderPersonnelBreakdownItems = useCallback(async (budgetRowId: string, orderedIds: string[]) => {
+    // Optimistic local reorder
+    setPersonnelBreakdown(prev => {
+      const others = prev.filter(i => i.budgetRowId !== budgetRowId);
+      const mine = prev.filter(i => i.budgetRowId === budgetRowId);
+      const reordered = orderedIds
+        .map(id => mine.find(i => i.id === id))
+        .filter((i): i is PersonnelBreakdownItem => Boolean(i))
+        .map((i, idx) => ({ ...i, orderIndex: idx }));
+      return [...others, ...reordered];
+    });
+
+    setSaving(true);
+    for (let idx = 0; idx < orderedIds.length; idx++) {
+      const { error } = await supabase
+        .from('budget_personnel_breakdown')
+        .update({ order_index: idx })
+        .eq('id', orderedIds[idx]);
+      if (error) {
+        toast.error('Failed to reorder personnel rows');
+        break;
+      }
+    }
+    setSaving(false);
+  }, []);
+
+
 
   const updateRow = useCallback((rowId: string, field: string, value: number | string | boolean) => {
     // For hasInKind, ensure local state gets a boolean
@@ -771,6 +798,8 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
     addPersonnelBreakdownItem,
     updatePersonnelBreakdownItem,
     deletePersonnelBreakdownItem,
+    reorderPersonnelBreakdownItems,
+
     refetch: fetchRows,
   };
 }
