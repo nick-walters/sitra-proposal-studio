@@ -272,7 +272,8 @@ export function PERTChartFigure({
   }, [dependencies, nodes, computeArrow]);
 
 
-  // Handle drag
+  // Handle drag — client px are divided by the zoom factor so the pointer
+  // stays glued to the node at any zoom level.
   const handleMouseDown = useCallback((e: React.MouseEvent, nodeId: string) => {
     if (!canEdit) return;
     const node = nodes.find((n) => n.id === nodeId);
@@ -280,18 +281,22 @@ export function PERTChartFigure({
     const svgRect = svgRef.current?.getBoundingClientRect();
     if (!svgRect) return;
     setDraggingNode(nodeId);
-    setDragOffset({ x: e.clientX - svgRect.left - node.x, y: e.clientY - svgRect.top - node.y });
-  }, [canEdit, nodes]);
+    setDragOffset({
+      x: (e.clientX - svgRect.left) / zoom - node.x,
+      y: (e.clientY - svgRect.top) / zoom - node.y,
+    });
+  }, [canEdit, nodes, zoom]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (!draggingNode) return;
     const svgRect = svgRef.current?.getBoundingClientRect();
     if (!svgRect) return;
-    const newX = Math.max(0, e.clientX - svgRect.left - dragOffset.x);
-    const newY = Math.max(0, e.clientY - svgRect.top - dragOffset.y);
+    const snapTo = (v: number) => (snap ? Math.round(v / PERT_MINOR_GRID) * PERT_MINOR_GRID : v);
+    const newX = Math.max(0, snapTo((e.clientX - svgRect.left) / zoom - dragOffset.x));
+    const newY = Math.max(0, snapTo((e.clientY - svgRect.top) / zoom - dragOffset.y));
     const newPositions = { ...(content?.nodePositions || {}), [draggingNode]: { x: newX, y: newY } };
     onContentChange({ ...content, nodePositions: newPositions });
-  }, [draggingNode, dragOffset, content, onContentChange]);
+  }, [draggingNode, dragOffset, content, onContentChange, snap, zoom]);
 
   const handleMouseUp = useCallback(() => { setDraggingNode(null); }, []);
 
@@ -306,6 +311,52 @@ export function PERTChartFigure({
   const svgWidth = canEdit ? Math.max(800, maxX + pad) : Math.max(1, maxX - minX + pad * 2);
   const svgHeight = canEdit ? Math.max(400, maxY + pad) : Math.max(1, maxY - minY + pad * 2);
   const viewBoxStr = canEdit ? `0 0 ${svgWidth} ${svgHeight}` : `${minX - pad} ${minY - pad} ${svgWidth} ${svgHeight}`;
+
+  // ---- Zoom (editor only) --------------------------------------------------
+  const applyZoom = useCallback((next: number, anchor?: { x: number; y: number }) => {
+    setZoom((current) => {
+      const clamped = Math.min(PERT_MAX_ZOOM, Math.max(PERT_MIN_ZOOM, next));
+      const el = scrollRef.current;
+      if (el) {
+        const k = clamped / current;
+        const px = anchor ? anchor.x : el.clientWidth / 2;
+        const py = anchor ? anchor.y : el.clientHeight / 2;
+        // Keep the point under the cursor (or the viewport centre) stationary.
+        const nextLeft = (el.scrollLeft + px) * k - px;
+        const nextTop = (el.scrollTop + py) * k - py;
+        requestAnimationFrame(() => {
+          el.scrollLeft = nextLeft;
+          el.scrollTop = nextTop;
+        });
+      }
+      return clamped;
+    });
+  }, []);
+
+  // Non-passive wheel listener: React's onWheel is passive, so preventDefault
+  // there is ignored and the page would scroll behind the chart.
+  const applyZoomRef = useRef(applyZoom);
+  useEffect(() => { applyZoomRef.current = applyZoom; }, [applyZoom]);
+  const zoomRef = useRef(zoom);
+  useEffect(() => { zoomRef.current = zoom; }, [zoom]);
+  useEffect(() => {
+    if (!canEdit) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return; // plain wheel keeps scrolling
+      e.preventDefault();
+      const dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 100 : 1);
+      const rect = el.getBoundingClientRect();
+      applyZoomRef.current(zoomRef.current * Math.exp(-dy * 0.0015), {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      });
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [canEdit]);
+
 
 
 
