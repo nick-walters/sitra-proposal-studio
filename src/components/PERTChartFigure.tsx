@@ -4,11 +4,18 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Download, Network, Move, Plus, Trash2, ArrowRight, ArrowLeft, ArrowLeftRight, Image, FileDown } from 'lucide-react';
+import { Download, Network, Move, Plus, Trash2, ArrowRight, ArrowLeft, ArrowLeftRight, Image, FileDown, Grid3x3, Magnet, ZoomIn, ZoomOut, Maximize } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { PERTExportData } from '@/lib/figureExport';
 import { toast } from 'sonner';
+
+/** Grid geometry (SVG user units = px at zoom 1). */
+const PERT_MINOR_GRID = 10;
+const PERT_MAJOR_GRID = 50;
+const PERT_MIN_ZOOM = 0.25;
+const PERT_MAX_ZOOM = 3;
+
 
 interface WPNode {
   id: string;
@@ -52,9 +59,29 @@ export function PERTChartFigure({
 }: PERTChartFigureProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const chartRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const [draggingNode, setDraggingNode] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+
+  // Editor preferences (grid overlay + snap-to-grid + zoom) — the grid and
+  // snap flags persist per browser, mirroring the freeform canvas editor.
+  const [showGrid, setShowGrid] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.localStorage.getItem('pert-chart-show-grid') === '1';
+  });
+  const [snap, setSnap] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.localStorage.getItem('pert-chart-snap') === '1';
+  });
+  const [zoom, setZoom] = useState(1);
+  useEffect(() => {
+    try { window.localStorage.setItem('pert-chart-show-grid', showGrid ? '1' : '0'); } catch { /* ignore */ }
+  }, [showGrid]);
+  useEffect(() => {
+    try { window.localStorage.setItem('pert-chart-snap', snap ? '1' : '0'); } catch { /* ignore */ }
+  }, [snap]);
+
 
   // Cache rendered PNG to storage so the backup edge function can include it.
   useEffect(() => {
@@ -245,7 +272,8 @@ export function PERTChartFigure({
   }, [dependencies, nodes, computeArrow]);
 
 
-  // Handle drag
+  // Handle drag — client px are divided by the zoom factor so the pointer
+  // stays glued to the node at any zoom level.
   const handleMouseDown = useCallback((e: React.MouseEvent, nodeId: string) => {
     if (!canEdit) return;
     const node = nodes.find((n) => n.id === nodeId);
@@ -253,18 +281,22 @@ export function PERTChartFigure({
     const svgRect = svgRef.current?.getBoundingClientRect();
     if (!svgRect) return;
     setDraggingNode(nodeId);
-    setDragOffset({ x: e.clientX - svgRect.left - node.x, y: e.clientY - svgRect.top - node.y });
-  }, [canEdit, nodes]);
+    setDragOffset({
+      x: (e.clientX - svgRect.left) / zoom - node.x,
+      y: (e.clientY - svgRect.top) / zoom - node.y,
+    });
+  }, [canEdit, nodes, zoom]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (!draggingNode) return;
     const svgRect = svgRef.current?.getBoundingClientRect();
     if (!svgRect) return;
-    const newX = Math.max(0, e.clientX - svgRect.left - dragOffset.x);
-    const newY = Math.max(0, e.clientY - svgRect.top - dragOffset.y);
+    const snapTo = (v: number) => (snap ? Math.round(v / PERT_MINOR_GRID) * PERT_MINOR_GRID : v);
+    const newX = Math.max(0, snapTo((e.clientX - svgRect.left) / zoom - dragOffset.x));
+    const newY = Math.max(0, snapTo((e.clientY - svgRect.top) / zoom - dragOffset.y));
     const newPositions = { ...(content?.nodePositions || {}), [draggingNode]: { x: newX, y: newY } };
     onContentChange({ ...content, nodePositions: newPositions });
-  }, [draggingNode, dragOffset, content, onContentChange]);
+  }, [draggingNode, dragOffset, content, onContentChange, snap, zoom]);
 
   const handleMouseUp = useCallback(() => { setDraggingNode(null); }, []);
 
@@ -279,6 +311,52 @@ export function PERTChartFigure({
   const svgWidth = canEdit ? Math.max(800, maxX + pad) : Math.max(1, maxX - minX + pad * 2);
   const svgHeight = canEdit ? Math.max(400, maxY + pad) : Math.max(1, maxY - minY + pad * 2);
   const viewBoxStr = canEdit ? `0 0 ${svgWidth} ${svgHeight}` : `${minX - pad} ${minY - pad} ${svgWidth} ${svgHeight}`;
+
+  // ---- Zoom (editor only) --------------------------------------------------
+  const applyZoom = useCallback((next: number, anchor?: { x: number; y: number }) => {
+    setZoom((current) => {
+      const clamped = Math.min(PERT_MAX_ZOOM, Math.max(PERT_MIN_ZOOM, next));
+      const el = scrollRef.current;
+      if (el) {
+        const k = clamped / current;
+        const px = anchor ? anchor.x : el.clientWidth / 2;
+        const py = anchor ? anchor.y : el.clientHeight / 2;
+        // Keep the point under the cursor (or the viewport centre) stationary.
+        const nextLeft = (el.scrollLeft + px) * k - px;
+        const nextTop = (el.scrollTop + py) * k - py;
+        requestAnimationFrame(() => {
+          el.scrollLeft = nextLeft;
+          el.scrollTop = nextTop;
+        });
+      }
+      return clamped;
+    });
+  }, []);
+
+  // Non-passive wheel listener: React's onWheel is passive, so preventDefault
+  // there is ignored and the page would scroll behind the chart.
+  const applyZoomRef = useRef(applyZoom);
+  useEffect(() => { applyZoomRef.current = applyZoom; }, [applyZoom]);
+  const zoomRef = useRef(zoom);
+  useEffect(() => { zoomRef.current = zoom; }, [zoom]);
+  useEffect(() => {
+    if (!canEdit) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return; // plain wheel keeps scrolling
+      e.preventDefault();
+      const dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 100 : 1);
+      const rect = el.getBoundingClientRect();
+      applyZoomRef.current(zoomRef.current * Math.exp(-dy * 0.0015), {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      });
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [canEdit]);
+
 
 
 
@@ -296,6 +374,69 @@ export function PERTChartFigure({
               <Move className="w-3 h-3" />
               Drag nodes to reposition
             </span>
+
+            {/* Snap + grid */}
+            <div className="flex items-center gap-0.5">
+              <Button
+                type="button"
+                variant={snap ? 'secondary' : 'ghost'}
+                size="sm"
+                className="h-7 w-7 p-0"
+                title="Snap to grid (10 px)" aria-label="Toggle snap to grid"
+                aria-pressed={snap}
+                onClick={() => setSnap((v) => !v)}
+              >
+                <Magnet className="w-3.5 h-3.5" />
+              </Button>
+              <Button
+                type="button"
+                variant={showGrid ? 'secondary' : 'ghost'}
+                size="sm"
+                className="h-7 w-7 p-0"
+                title="Show grid (10 px minor, 50 px major)" aria-label="Toggle grid"
+                aria-pressed={showGrid}
+                onClick={() => setShowGrid((v) => !v)}
+              >
+                <Grid3x3 className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+
+            {/* Zoom */}
+            <div className="flex items-center gap-0.5">
+              <Button
+                type="button" variant="ghost" size="sm" className="h-7 w-7 p-0"
+                title="Zoom out" aria-label="Zoom out"
+                disabled={zoom <= PERT_MIN_ZOOM}
+                onClick={() => applyZoom(zoom / 1.2)}
+              >
+                <ZoomOut className="w-3.5 h-3.5" />
+              </Button>
+              <button
+                type="button"
+                className="h-7 min-w-[3rem] px-1 text-xs text-muted-foreground tabular-nums hover:text-foreground"
+                title="Reset zoom to 100%" aria-label="Reset zoom"
+                onClick={() => applyZoom(1)}
+              >
+                {Math.round(zoom * 100)}%
+              </button>
+              <Button
+                type="button" variant="ghost" size="sm" className="h-7 w-7 p-0"
+                title="Zoom in" aria-label="Zoom in"
+                disabled={zoom >= PERT_MAX_ZOOM}
+                onClick={() => applyZoom(zoom * 1.2)}
+              >
+                <ZoomIn className="w-3.5 h-3.5" />
+              </Button>
+              <Button
+                type="button" variant="ghost" size="sm" className="h-7 w-7 p-0"
+                title="Reset zoom" aria-label="Reset zoom"
+                onClick={() => applyZoom(1)}
+              >
+                <Maximize className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="h-7 gap-1 text-xs">
@@ -335,11 +476,17 @@ export function PERTChartFigure({
       )}
 
       <TooltipProvider>
-        <div ref={chartRef} className={canEdit ? "border rounded-lg bg-white overflow-auto" : "bg-white overflow-auto"}>
+        <div
+          ref={scrollRef}
+          className={canEdit ? 'relative border rounded-lg bg-white overflow-auto' : 'bg-white overflow-auto'}
+        >
+          <div className="relative" style={canEdit ? { width: svgWidth * zoom, height: svgHeight * zoom } : undefined}>
+          <div ref={chartRef} className="bg-white">
           <svg
             ref={svgRef}
-            width={canEdit ? svgWidth : '18cm'}
-            height={canEdit ? svgHeight : undefined}
+            width={canEdit ? svgWidth * zoom : '18cm'}
+            height={canEdit ? svgHeight * zoom : undefined}
+
             viewBox={viewBoxStr}
             preserveAspectRatio="xMidYMid meet"
             className="select-none"
@@ -401,8 +548,35 @@ export function PERTChartFigure({
               />
             ))}
           </svg>
+          </div>
+
+          {/* Grid overlay — editor-only aid, kept outside chartRef so exports
+              and cached PNGs never include it. */}
+          {canEdit && showGrid && (
+            <div
+              aria-hidden
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                zIndex: 1,
+                backgroundImage: [
+                  'linear-gradient(to right, rgba(0,0,0,0.18) 0, rgba(0,0,0,0.18) 1px, transparent 1px)',
+                  'linear-gradient(to bottom, rgba(0,0,0,0.18) 0, rgba(0,0,0,0.18) 1px, transparent 1px)',
+                  'linear-gradient(to right, rgba(0,0,0,0.07) 0, rgba(0,0,0,0.07) 1px, transparent 1px)',
+                  'linear-gradient(to bottom, rgba(0,0,0,0.07) 0, rgba(0,0,0,0.07) 1px, transparent 1px)',
+                ].join(', '),
+                backgroundSize: [
+                  `${PERT_MAJOR_GRID * zoom}px ${PERT_MAJOR_GRID * zoom}px`,
+                  `${PERT_MAJOR_GRID * zoom}px ${PERT_MAJOR_GRID * zoom}px`,
+                  `${PERT_MINOR_GRID * zoom}px ${PERT_MINOR_GRID * zoom}px`,
+                  `${PERT_MINOR_GRID * zoom}px ${PERT_MINOR_GRID * zoom}px`,
+                ].join(', '),
+              }}
+            />
+          )}
+          </div>
         </div>
       </TooltipProvider>
+
 
       {/* Legend - only in edit mode */}
       {canEdit && (
