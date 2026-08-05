@@ -958,14 +958,33 @@ export function GeneralInfoForm({
               </Label>
             </div>
             {formData.aiStatementEnabled && (
-              <Textarea
-                value={formData.aiStatementText}
-                onChange={(e) => setFormData(prev => ({ ...prev, aiStatementText: e.target.value }))}
-                disabled={!canEdit}
-                rows={4}
-                placeholder={DEFAULT_AI_STATEMENT}
-              />
+              <div className="space-y-1.5">
+                {canEdit && (
+                  <div
+                    className="p-1.5 border rounded-md bg-card flex items-center gap-0.5 shadow-sm w-fit"
+                    onMouseDown={(e) => {
+                      if (e.target === e.currentTarget) e.preventDefault();
+                    }}
+                  >
+                    <TextFormattingGroup
+                      onBold={() => document.execCommand('bold')}
+                      onItalic={() => document.execCommand('italic')}
+                      onUnderline={() => document.execCommand('underline')}
+                    />
+                  </div>
+                )}
+                <InlineRichEditor
+                  value={formData.aiStatementText}
+                  onChange={(html) => setFormData(prev => ({ ...prev, aiStatementText: html }))}
+                  disabled={!canEdit}
+                  minHeight="90px"
+                  placeholder={DEFAULT_AI_STATEMENT}
+                  editorClassName="p-3 font-bold underline"
+                  style={{ fontFamily: '"Times New Roman", Times, serif', fontSize: '11pt', lineHeight: 1.5 }}
+                />
+              </div>
             )}
+
           </CardContent>
         </Card>
 
