@@ -672,16 +672,33 @@ export async function mountDynamicComponents(
   // If the expertise matrix is disabled, drop the interdisciplinarity slot
   // placeholder so it exports as empty (matches the editor's hide behaviour).
   let matrixEnabled = true;
+  let hideValueChainHeading = false;
+  let hideInternationalHeading = false;
   try {
     const { data } = await supabase
       .from('proposals')
-      .select('expertise_matrix_enabled')
+      .select(
+        'expertise_matrix_enabled, mirror_value_chain, mirror_industrial_involvement, mirror_participation_justification',
+      )
       .eq('id', proposalId)
       .maybeSingle();
     matrixEnabled = data?.expertise_matrix_enabled !== false;
+    hideValueChainHeading =
+      data?.mirror_value_chain === false && data?.mirror_industrial_involvement === false;
+    hideInternationalHeading = data?.mirror_participation_justification === false;
   } catch {
     matrixEnabled = true;
   }
+
+  // Remove B3.2 subsection headings whose mirror toggles are all off in A2.
+  const removeHeading = (key: string) => {
+    container
+      .querySelectorAll<HTMLElement>(`h1[data-b32-slot-key="${key}"], h2[data-b32-slot-key="${key}"], h3[data-b32-slot-key="${key}"]`)
+      .forEach((el) => el.remove());
+  };
+  if (hideValueChainHeading) removeHeading('value-chain');
+  if (hideInternationalHeading) removeHeading('international');
+
   const slotPlaceholders = b32SlotPlaceholders.filter((el) => {
     if (!matrixEnabled && el.getAttribute('data-b32-slot-key') === 'interdisciplinarity') {
       el.remove();

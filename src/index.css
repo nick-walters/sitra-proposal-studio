@@ -1690,3 +1690,15 @@ table.b31-effort-matrix.first-col-flush {
   break-inside: avoid;
   page-break-inside: avoid;
 }
+
+/* B3.2 — hide subsection headings whose mirror toggles are all off in A2.
+   The heading nodes stay in the stored document; only their display is
+   suppressed so re-enabling a toggle brings them straight back. */
+[data-b32-hide-value-chain] h1[data-b32-slot-key="value-chain"],
+[data-b32-hide-value-chain] h2[data-b32-slot-key="value-chain"],
+[data-b32-hide-value-chain] h3[data-b32-slot-key="value-chain"],
+[data-b32-hide-international] h1[data-b32-slot-key="international"],
+[data-b32-hide-international] h2[data-b32-slot-key="international"],
+[data-b32-hide-international] h3[data-b32-slot-key="international"] {
+  display: none;
+}

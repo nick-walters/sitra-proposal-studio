@@ -6,6 +6,7 @@ import { useProposalCaseTypes } from "@/hooks/useProposalCaseTypes";
 import { useB12CasesTableReconciler } from "@/hooks/useB12CasesTableReconciler";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useB32MirrorsReconciler } from "@/hooks/useB32MirrorsReconciler";
+import { useB32HiddenHeadings } from "@/hooks/useB32HiddenHeadings";
 
 import DOMPurify from "dompurify";
 import { toast } from "sonner";
@@ -501,6 +502,13 @@ export function DocumentEditor({
     editor,
     sectionNumber: section?.number,
     isReady: !loading,
+  });
+
+  // Hide B3.2 subsection headings whose A2 mirror toggles are all switched off.
+  useB32HiddenHeadings({
+    editor,
+    proposalId,
+    sectionNumber: section?.number,
   });
 
   // Note: trackChangesEnabled sync is handled by useRichTextEditor's own effect
