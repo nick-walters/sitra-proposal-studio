@@ -17,17 +17,42 @@ function escapeRtf(str: string): string {
 }
 
 /**
- * Insert a value immediately after a label in the RTF body, e.g.
- * "Legal name:" -> "Legal name: ACME Ltd". Only fills the first occurrence
- * and only when the label is not already followed by text.
+ * Fill the table cell to the RIGHT of a label cell.
+ *
+ * In the OCD template the labels ("Legal name:", "PIC:") sit in the
+ * left-hand heading column and the value belongs in the empty cell next
+ * to them. In RTF each cell's content is terminated by a `\cell` control
+ * word, so the value must be written after the label's `\cell` and
+ * immediately before the following `\cell` (i.e. at the end of the next
+ * cell, after that cell's own formatting control words).
+ *
+ * Only the first occurrence is filled, and only when the target cell is
+ * still empty (no plain text between the two `\cell` markers).
  */
-function fillAfterLabel(rtf: string, label: string, value: string): string {
+function fillNextCellAfterLabel(rtf: string, label: string, value: string): string {
   if (!value) return rtf;
   const idx = rtf.indexOf(label);
   if (idx === -1) return rtf;
-  const insertAt = idx + label.length;
-  return rtf.slice(0, insertAt) + " " + escapeRtf(value) + rtf.slice(insertAt);
+
+  const cellRe = /\\cell(?![a-zA-Z])/g;
+  cellRe.lastIndex = idx + label.length;
+  const first = cellRe.exec(rtf);
+  if (!first) return rtf;
+  const second = cellRe.exec(rtf);
+  if (!second) return rtf;
+
+  const between = rtf.slice(first.index + first[0].length, second.index);
+  // Strip control words/groups to see whether the target cell already has text.
+  const plain = between
+    .replace(/\\'[0-9a-fA-F]{2}/g, "x")
+    .replace(/\\[a-zA-Z]+-?\d* ?/g, "")
+    .replace(/[{}]/g, "")
+    .trim();
+  if (plain.length > 0) return rtf;
+
+  return rtf.slice(0, second.index) + escapeRtf(value) + rtf.slice(second.index);
 }
+
 
 
 serve(async (req) => {
