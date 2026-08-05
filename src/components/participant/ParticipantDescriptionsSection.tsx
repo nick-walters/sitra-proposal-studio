@@ -129,7 +129,7 @@ export function ParticipantDescriptionsSection({
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
-        {canEdit && (anyFieldFocused || colorPickerOpen) && (
+        {canEdit && (anyFieldFocused || colorPickerOpen || crossRefOpen) && (
           <StickyToolbarWrapper>
             <div
               className="p-1.5 border rounded-md bg-card flex items-center gap-0.5 flex-wrap shadow-sm"
