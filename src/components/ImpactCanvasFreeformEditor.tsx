@@ -2151,7 +2151,7 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
   // (bound/header/shape) member is present. Lines are skipped by the multi
   // writer. Handles remain single-select only (see zEnabled below).
   const sizeIds = selectedEls
-    .filter((e) => e.kind === 'bound' || e.kind === 'header' || e.kind === 'shape')
+    .filter((e) => e.kind === 'bound' || e.kind === 'header' || e.kind === 'shape' || e.kind === 'image')
     .map((e) => e.id);
   const isMultiSize = selectedIds.size > 1;
   const sizeEnabled = canEdit && (
