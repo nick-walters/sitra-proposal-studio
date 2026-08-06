@@ -608,7 +608,8 @@ function LineShape({ el }: { el: LineElement }) {
   const color = el.style?.outlineColor ?? '#000';
   const widthPt = el.style?.outlineWidth ?? 1.5;
   const widthCm = widthPt / PT_PER_CM;
-  const headSize = Math.max(0.15, widthCm * 4);
+  // Head length = 8 x stroke width, matching the PERT dependency arrowheads.
+  const headSize = Math.max(0.15, widthCm * 8);
 
   let endDir: LinePoint;
   let startDir: LinePoint;
