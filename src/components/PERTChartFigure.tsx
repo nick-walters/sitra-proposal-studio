@@ -718,11 +718,13 @@ export function PERTChartFigure({
             <Input
               type="number" min={pxToCm(NODE_MIN_W).toFixed(1)} step={0.1}
               className="h-7 w-20 text-xs"
-              value={pxToCm((selected ?? nodes[0]).w).toFixed(1)}
+              value={widthDraft ?? pxToCm((selected ?? nodes[0]).w).toFixed(1)}
               onChange={(e) => {
+                setWidthDraft(e.target.value);
                 const v = parseFloat(e.target.value);
                 if (Number.isFinite(v)) setAllNodesSizeCm(v, undefined);
               }}
+              onBlur={() => setWidthDraft(null)}
             />
           </label>
           <label className="flex items-center gap-1">
@@ -730,13 +732,16 @@ export function PERTChartFigure({
             <Input
               type="number" min={pxToCm(NODE_MIN_H).toFixed(1)} step={0.1}
               className="h-7 w-20 text-xs"
-              value={pxToCm((selected ?? nodes[0]).h).toFixed(1)}
+              value={heightDraft ?? pxToCm((selected ?? nodes[0]).h).toFixed(1)}
               onChange={(e) => {
+                setHeightDraft(e.target.value);
                 const v = parseFloat(e.target.value);
                 if (Number.isFinite(v)) setAllNodesSizeCm(undefined, v);
               }}
+              onBlur={() => setHeightDraft(null)}
             />
           </label>
+
           <Button
             variant="ghost" size="sm" className="h-7 text-xs"
             onClick={() => setAllNodesSizeCm(pxToCm(NODE_DEFAULT_W), pxToCm(NODE_DEFAULT_H))}
