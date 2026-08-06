@@ -981,6 +981,33 @@ table.b31-effort-matrix.first-col-flush {
   cursor: col-resize;
 }
 
+/* Word-like column resizing: hovered border indicator */
+.ProseMirror table td.col-resize-hint,
+.ProseMirror table th.col-resize-hint {
+  cursor: col-resize;
+}
+.ProseMirror table td.col-resize-hint::after,
+.ProseMirror table th.col-resize-hint::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: -2px;
+  width: 4px;
+  background-color: hsl(var(--primary) / 0.5);
+  pointer-events: none;
+  z-index: 20;
+}
+.ProseMirror.resize-cursor {
+  cursor: col-resize;
+}
+body.table-col-resizing,
+body.table-col-resizing * {
+  cursor: col-resize !important;
+  user-select: none !important;
+}
+
+
 /* Selected cell styling */
 .ProseMirror .selectedCell {
   background-color: hsl(var(--primary) / 0.1) !important;
