@@ -229,7 +229,7 @@ export function LogoUpload({
           <Button
             variant="outline"
             size="sm"
-            onClick={handleGenerateLogo}
+            onClick={() => setIsGenerateDialogOpen(true)}
             disabled={isGenerating}
             className="gap-1 w-full justify-center h-7 text-xs px-2"
           >
@@ -240,6 +240,44 @@ export function LogoUpload({
             )}
             Generate
           </Button>
+
+          <Dialog open={isGenerateDialogOpen} onOpenChange={setIsGenerateDialogOpen}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Generate logo</DialogTitle>
+                <DialogDescription>
+                  Add any considerations to guide the design — imagery, symbols, mood or things to avoid. Leave blank to generate from the project description alone.
+                </DialogDescription>
+              </DialogHeader>
+              <Textarea
+                value={considerations}
+                onChange={(e) => setConsiderations(e.target.value)}
+                placeholder="e.g. a stylised leaf combined with a circuit motif; avoid globes and handshakes"
+                rows={4}
+                maxLength={600}
+                className="text-sm"
+              />
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsGenerateDialogOpen(false)}
+                  disabled={isGenerating}
+                >
+                  Cancel
+                </Button>
+                <Button size="sm" onClick={handleGenerateLogo} disabled={isGenerating} className="gap-1">
+                  {isGenerating ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-3 h-3" />
+                  )}
+                  Generate
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
 
           {/* File Upload */}
           <Button
