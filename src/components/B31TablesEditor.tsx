@@ -208,16 +208,38 @@ function MirrorTable({
   }, [fitSignature, hasSaved, children]);
 
 
+  // Fit columns always take their measured badge width, even when the user has
+  // saved widths for the table — a badge must never be clipped or wrapped.
+  const effectiveWidths = useMemo(
+    () => columns.map((c, i) => {
+      if (c.fit && fitWidths[i]) return fitWidths[i];
+      if (hasSaved) return colWidths[i];
+      if (c.flex) return undefined;
+      return c.defaultWidth;
+    }),
+    [columns, fitWidths, hasSaved, colWidths],
+  );
+
   const colStyle = useCallback(
     (i: number): React.CSSProperties => {
-      if (hasSaved) return { width: colWidths[i] };
-      const c = columns[i];
-      if (c.fit && fitWidths[i]) return { width: fitWidths[i] };
-      if (c.flex) return {};
-      return c.defaultWidth ? { width: c.defaultWidth } : {};
+      const w = effectiveWidths[i];
+      return w ? { width: w } : {};
     },
-    [hasSaved, colWidths, columns, fitWidths],
+    [effectiveWidths],
   );
+
+  /**
+   * Horizontal cell padding in px. Applied INLINE to the header cells so they
+   * match the body cells exactly — the `.platform-table > thead > tr > th`
+   * rule in index.css sets `padding: 1px 4px` at a higher specificity than the
+   * Tailwind padding utilities, which otherwise indents headers relative to
+   * their column content.
+   */
+  const padPx = (i: number): { left: number; right: number } => {
+    const c = columns[i];
+    if (c.fit) return { left: i === 0 ? 0 : 4, right: 4 };
+    return { left: i === 0 ? 0 : 8, right: i === lastIdx ? 0 : 8 };
+  };
 
   const cellPad = (i: number) => {
     const c = columns[i];
@@ -229,6 +251,10 @@ function MirrorTable({
   };
 
   const fitCols = columns.map((c, i) => (c.fit ? i + 1 : 0)).filter(Boolean);
+
+  const totalWidth = effectiveWidths.every((w) => typeof w === 'number')
+    ? (effectiveWidths as number[]).reduce((a, b) => a + b, 0)
+    : '100%';
 
   return (
     <>
@@ -243,7 +269,7 @@ function MirrorTable({
       className={`platform-table ${tableClassName} ${tableFont}`.trim()}
       style={{
         tableLayout: 'fixed',
-        width: hasSaved ? colWidths.reduce((a, b) => a + b, 0) : '100%',
+        width: totalWidth,
         maxWidth: '100%',
         borderCollapse: 'collapse',
       }}
@@ -256,10 +282,12 @@ function MirrorTable({
           {columns.map((c, i) => (
             <th
               key={i}
+              style={c.padX || c.cellClass ? undefined : { paddingLeft: padPx(i).left, paddingRight: padPx(i).right }}
               className={`${cellPad(i)} ${c.cellClass ?? ''} ${c.fit ? 'cell-fit' : ''} py-0 text-[10pt] align-bottom relative ${c.align === 'center' ? 'text-center' : 'text-left'}`}
             >
               {c.label}
               <ColumnResizer onMouseDown={handleColResizeStart(i)} />
+
             </th>
           ))}
         </tr>
