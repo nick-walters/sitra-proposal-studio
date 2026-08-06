@@ -133,7 +133,7 @@ export function useColumnResize(options: {
 
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
-  }, [colWidths, canResize, saveWidths, minWidth]);
+  }, [colWidths, canResize, saveWidths, minWidth, minWidths, maxTotalWidth]);
 
   return { colWidths, setColWidths, tableRef, handleColResizeStart, saveWidths, loaded };
 }
