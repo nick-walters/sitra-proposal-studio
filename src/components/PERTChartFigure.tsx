@@ -1344,12 +1344,15 @@ export function PERTChartFigure({
               const startDir = elbow
                 ? { x: -(Math.sign(l.x2 - l.x1) || 1), y: 0 }
                 : { x: l.x1 - l.x2, y: l.y1 - l.y2 };
+              // Arrowhead geometry mirrors the dependency-arrow marker
+              // (8 x 7 marker units scaled by the stroke width).
               const arrow = (tip: { x: number; y: number }, dir: { x: number; y: number }) => {
                 const len = Math.hypot(dir.x, dir.y) || 1;
                 const ux = dir.x / len, uy = dir.y / len;
-                const size = Math.max(6, sw * 4);
+                const size = sw * 8;
+                const half = sw * 3.5;
                 const bx = tip.x - ux * size, by = tip.y - uy * size;
-                const px = -uy * size * 0.45, py = ux * size * 0.45;
+                const px = -uy * half, py = ux * half;
                 return `${tip.x},${tip.y} ${bx + px},${by + py} ${bx - px},${by - py}`;
               };
               return (
