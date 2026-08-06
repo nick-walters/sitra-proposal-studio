@@ -278,8 +278,9 @@ function MirrorTable({
   const fitCols = columns.map((c, i) => (c.fit ? i + 1 : 0)).filter(Boolean);
 
   const totalWidth = effectiveWidths.every((w) => typeof w === 'number')
-    ? (effectiveWidths as number[]).reduce((a, b) => a + b, 0)
+    ? Math.min(MAX_TABLE_WIDTH_PX, (effectiveWidths as number[]).reduce((a, b) => a + b, 0))
     : '100%';
+
 
   return (
     <>
