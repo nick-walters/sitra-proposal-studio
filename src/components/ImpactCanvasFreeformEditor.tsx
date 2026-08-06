@@ -2440,6 +2440,30 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
             onAddShape={addShape}
             onAddLine={(routing) => { void addLine(routing); }}
           />
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-8"
+            disabled={!canEdit || uploadingImage}
+            onClick={() => imageInputRef.current?.click()}
+            title="Insert image"
+          >
+            <ImagePlus className="w-4 h-4 mr-1" />
+            {uploadingImage ? 'Uploading…' : 'Image'}
+          </Button>
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              e.target.value = '';
+              if (file) void addImage(file);
+            }}
+          />
+
           <ArrowheadDropdown
             selectedLine={
               selectedIsLine && selectedEl
