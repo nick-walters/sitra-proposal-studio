@@ -84,9 +84,10 @@ function computeAutoLayout(
   const n = ids.length;
   if (n === 0) return { positions, sizes };
 
-  const margin = Math.max(8, Math.min(frameW, frameH) * 0.04);
-  const hGap = Math.max(24, frameW * 0.06);
-  const vGap = Math.max(16, frameH * 0.10);
+  const margin = Math.max(14, Math.min(frameW, frameH) * 0.06);
+  const hGap = Math.max(44, frameW * 0.09);
+  const vGap = Math.max(32, frameH * 0.16);
+
 
   let best = { cols: 1, w: 0, h: 0, score: -Infinity };
   for (let cols = 1; cols <= n; cols++) {
