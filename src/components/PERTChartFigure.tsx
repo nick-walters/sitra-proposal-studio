@@ -68,6 +68,8 @@ interface PertShapeAnnotation {
   strokeWidth: number;   // SVG user units
   text?: string;
   textColor?: string;
+  /** Corner roundedness (mm) — `roundedRect` only. */
+  cornerRadiusMm?: number;
 }
 
 interface PertLineAnnotation {
