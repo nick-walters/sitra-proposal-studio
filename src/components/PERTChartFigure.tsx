@@ -359,21 +359,28 @@ export function PERTChartFigure({
     const newPositions = { ...(content?.nodePositions || {}), [draggingNode]: { x: newX, y: newY } };
     onContentChange({ ...content, nodePositions: newPositions });
 
-  }, [draggingNode, dragOffset, content, onContentChange, snap, zoom]);
+  }, [draggingNode, dragOffset, content, onContentChange, snap, zoom, resizing]);
 
-  const handleMouseUp = useCallback(() => { setDraggingNode(null); }, []);
+  const handleMouseUp = useCallback(() => { setDraggingNode(null); setResizing(null); }, []);
 
-  const nodeW = 84;
-  const nodeH = 35;
-  const hasNodes = nodes.length > 0;
-  const minX = hasNodes ? Math.min(...nodes.map(n => n.x)) : 0;
-  const minY = hasNodes ? Math.min(...nodes.map(n => n.y)) : 0;
-  const maxX = hasNodes ? Math.max(...nodes.map(n => n.x + nodeW)) : nodeW;
-  const maxY = hasNodes ? Math.max(...nodes.map(n => n.y + nodeH)) : nodeH;
-  const pad = canEdit ? 30 : 5;
-  const svgWidth = canEdit ? Math.max(800, maxX + pad) : Math.max(1, maxX - minX + pad * 2);
-  const svgHeight = canEdit ? Math.max(400, maxY + pad) : Math.max(1, maxY - minY + pad * 2);
-  const viewBoxStr = canEdit ? `0 0 ${svgWidth} ${svgHeight}` : `${minX - pad} ${minY - pad} ${svgWidth} ${svgHeight}`;
+  // ---- Physical frame ------------------------------------------------------
+  const frameWidthCm = Number(content?.widthCm) > 0 ? Number(content!.widthCm) : PERT_DEFAULT_WIDTH_CM;
+  const frameHeightCm = Number(content?.heightCm) > 0 ? Number(content!.heightCm) : PERT_DEFAULT_HEIGHT_CM;
+  const svgWidth = Math.round(cmToPx(frameWidthCm));
+  const svgHeight = Math.round(cmToPx(frameHeightCm));
+  const viewBoxStr = `0 0 ${svgWidth} ${svgHeight}`;
+
+  const selected = selectedNode ? nodes.find((n) => n.id === selectedNode) : undefined;
+
+  const setNodeSizeCm = useCallback((node: WPNode, widthCm?: number, heightCm?: number) => {
+    const w = widthCm != null ? Math.max(NODE_MIN_W, cmToPx(widthCm)) : node.w;
+    const h = heightCm != null ? Math.max(NODE_MIN_H, cmToPx(heightCm)) : node.h;
+    onContentChange({
+      ...content,
+      nodeSizes: { ...(content?.nodeSizes || {}), [node.id]: { w, h } },
+    });
+  }, [content, onContentChange]);
+
 
   // ---- Zoom (editor only) --------------------------------------------------
   const applyZoom = useCallback((next: number, anchor?: { x: number; y: number }) => {
