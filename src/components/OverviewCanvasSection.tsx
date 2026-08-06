@@ -80,7 +80,7 @@ export function OverviewCanvasSection({ proposalId, provision = true }: Props) {
         if (cancelled || (data?.length ?? 0) > 0) return;
         return syncBoundElements(proposalId, figure.id).then(() => {
           if (!cancelled) {
-            qc.invalidateQueries({ queryKey: ['canvas-elements', `impact:${proposalId}:${figure.id}`] });
+            qc.invalidateQueries({ queryKey: ['canvas-elements', figure.id] });
           }
         });
       });
