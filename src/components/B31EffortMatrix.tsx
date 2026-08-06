@@ -254,8 +254,8 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
                 <tr key={p.id}>
                   {/* Participant bubble cell — standard participant badge, no elongation */}
                   <td
-                    className="px-[1pt] py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle"
-                    style={{ textAlign: 'left' }}
+                    className={cellStyles}
+                    style={firstColCell}
                   >
                     <ParticipantBubble>
                       {p.participant_number}. {p.organisation_short_name || p.organisation_name}
@@ -271,6 +271,7 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
                         key={wp.id}
                         className={cellStyles}
                         style={{
+                          ...dataColCell,
                           backgroundColor: wpColor,
                           color: '#FFFFFF',
                         }}
@@ -279,7 +280,7 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
                       </td>
                     );
                   })}
-                  <td className={`${cellStyles} font-bold`}>
+                  <td className={`${cellStyles} font-bold`} style={dataColCell}>
                     {formatPM(rowTotal)}
                   </td>
                 </tr>
@@ -287,7 +288,7 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
             })}
             {/* Total row */}
             <tr>
-              <td className="px-[1pt] py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle font-bold" style={{ textAlign: 'left' }}>Total</td>
+              <td className={`${cellStyles} font-bold`} style={firstColCell}>Total</td>
               {wpData.map(wp => {
                 const wpColor = wp.color || '#73C92D';
                 const colTotal = participants.reduce((sum, p) => sum + (matrix.get(p.id)!.get(wp.id) || 0), 0);
@@ -296,8 +297,9 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
                     key={wp.id}
                     className={`${cellStyles} font-bold`}
                     style={{
-                       borderBottomLeftRadius: '12px',
-                       borderBottomRightRadius: '12px',
+                      ...dataColCell,
+                      borderBottomLeftRadius: '12px',
+                      borderBottomRightRadius: '12px',
                       backgroundColor: wpColor,
                       color: '#FFFFFF',
                     }}
@@ -306,7 +308,7 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
                   </td>
                 );
               })}
-              <td className={`${cellStyles} font-bold`}>
+              <td className={`${cellStyles} font-bold`} style={dataColCell}>
                 {(() => {
                   const grandTotal = participants.reduce((sum, p) => {
                     const pMap = matrix.get(p.id)!;
