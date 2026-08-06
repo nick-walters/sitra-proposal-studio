@@ -89,7 +89,7 @@ export async function exportPERTAsPptx(data: PERTExportData, filename: string) {
 
     slide.addText(
       [
-        { text: `WP${node.number}\n${node.shortName}`, options: { fontSize: 10, bold: false, color: fontColor } },
+        { text: `WP${node.number}\n${node.shortName}`, options: { fontSize: 11, bold: false, color: fontColor } },
       ],
       {
         shape: pptx.ShapeType.roundRect,
@@ -97,7 +97,7 @@ export async function exportPERTAsPptx(data: PERTExportData, filename: string) {
         y,
         w,
         h,
-        rectRadius: 0.1,
+        rectRadius: h / 2,
         fill: { color: fillColor },
         align: 'center',
         valign: 'middle',
