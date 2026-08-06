@@ -573,8 +573,6 @@ export async function buildPrintContainer(
       aiP.style.textAlign = 'justify';
       aiP.style.marginTop = '6pt';
       aiP.style.marginBottom = '6pt';
-      aiP.style.fontWeight = 'bold';
-      aiP.style.textDecoration = 'underline';
       aiP.innerHTML = aiHtml;
       container.appendChild(aiP);
     }

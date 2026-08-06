@@ -34,12 +34,11 @@ export function AiStatementMirror({ proposalId }: AiStatementMirrorProps) {
   return (
     <p
       className="mb-4 text-justify"
+      contentEditable={false}
       style={{
         fontFamily: '"Times New Roman", Times, serif',
         fontSize: '11pt',
         lineHeight: 1.5,
-        fontWeight: 'bold',
-        textDecoration: 'underline',
       }}
       dangerouslySetInnerHTML={{ __html: html }}
     />
