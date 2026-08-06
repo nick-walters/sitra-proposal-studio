@@ -15,6 +15,8 @@ interface EditableCaptionProps {
   defaultCaption: string; // e.g. "List of work packages"
   /** Extra JSX to render after the editable text (e.g. bubble legends) */
   suffix?: React.ReactNode;
+  /** When false, the suffix is rendered flush against the caption (no leading space). */
+  suffixSpacing?: boolean;
   className?: string;
   /** If provided, a refresh icon appears when the caption row is hovered */
   onRefresh?: () => void;
@@ -35,6 +37,7 @@ export function EditableCaption({
   label,
   defaultCaption,
   suffix,
+  suffixSpacing = true,
   className = '',
   onRefresh,
   leftButtons,
@@ -182,7 +185,7 @@ export function EditableCaption({
           {caption}
         </span>
       )}
-      {suffix && <>{' '}{suffix}</>}
+      {suffix && <>{suffixSpacing ? ' ' : null}{suffix}</>}
       {onRefresh && (focused || editing) && (
         <button
           type="button"

@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { EditableCaption } from '@/components/EditableCaption';
 import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
 import { RICH_TEXT_CONFIG } from '@/lib/sanitizePresets';
-import { WPBubble, ParticipantBubble, RiskBadge } from './B31Pill';
+import { WPBubble, ParticipantBubble, RiskBadge, AllWPsBubble, isAllWPsSelected } from './B31Pill';
 import { normalizeRefBadges } from '@/lib/normalizeRefBadges';
 import { useColumnResize } from '@/hooks/useColumnResize';
 import { ColumnResizer } from '@/components/ColumnResizer';
@@ -493,9 +493,11 @@ export function B31MilestonesTable({ proposalId }: Props) {
               <MCell index={2} last={last} cellClass="cell-px-0">
                 <div className="flex flex-wrap gap-0.5">
                   {wps.length === 0 && <span className="text-muted-foreground italic">—</span>}
-                  {wps.map((wp: any) => (
-                    <WPBubble key={wp.id} wpNumber={wp.number} wpColor={wp.color} />
-                  ))}
+                  {isAllWPsSelected(wps.length, wpInfo?.list.length ?? 0)
+                    ? <AllWPsBubble />
+                    : wps.map((wp: any) => (
+                        <WPBubble key={wp.id} wpNumber={wp.number} wpColor={wp.color} />
+                      ))}
                 </div>
               </MCell>
               <MCell index={3} last={last}><MonthLabel m={m.due_month} /></MCell>
@@ -592,9 +594,11 @@ export function B31RisksTable({ proposalId }: Props) {
               <MCell index={3} last={last} cellClass="cell-px-0">
                 <div className="flex flex-wrap gap-0.5">
                   {wps.length === 0 && <span className="text-muted-foreground italic">—</span>}
-                  {wps.map((wp: any) => (
-                    <WPBubble key={wp.id} wpNumber={wp.number} wpColor={wp.color} />
-                  ))}
+                  {isAllWPsSelected(wps.length, wpInfo?.list.length ?? 0)
+                    ? <AllWPsBubble />
+                    : wps.map((wp: any) => (
+                        <WPBubble key={wp.id} wpNumber={wp.number} wpColor={wp.color} />
+                      ))}
                 </div>
               </MCell>
               <MCell index={4} last={last} cellClass="cell-pr-0"><ReadOnlyHtmlCell html={r.mitigation} /></MCell>
