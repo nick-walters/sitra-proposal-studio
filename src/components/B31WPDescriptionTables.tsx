@@ -1,3 +1,4 @@
+import { Crown } from 'lucide-react';
 import React from 'react';
 import DOMPurify from 'dompurify';
 import { RICH_TEXT_CONFIG } from '@/lib/sanitizePresets';
@@ -173,6 +174,17 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
         label="Table 3.1.b."
         defaultCaption="Work package descriptions"
         className="mb-0"
+        suffix={
+          <span className="font-normal italic whitespace-nowrap">
+            (
+            <Crown
+              className="h-2.5 w-2.5 inline-block align-baseline fill-black"
+              strokeWidth={0}
+              style={{ position: 'relative', top: '0.5px' }}
+            />
+            {' '}denotes the WP/task leader)
+          </span>
+        }
       />
       {wpData.map((wp) => {
         const shortName = wp.short_name || '';
