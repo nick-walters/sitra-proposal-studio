@@ -1393,6 +1393,7 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
   );
   const textEls = useMemo(() => fetched.filter((e) => e.kind === 'text'), [fetched]);
   const shapeEls = useMemo(() => fetched.filter((e) => e.kind === 'shape'), [fetched]);
+  const imageEls = useMemo(() => fetched.filter((e) => e.kind === 'image'), [fetched]);
   const lineEls = useMemo(() => fetched.filter((e) => e.kind === 'line'), [fetched]);
 
   /** Line elements merged with any in-flight overrides (bbox + endpoints)
