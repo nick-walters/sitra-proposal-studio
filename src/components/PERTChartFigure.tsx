@@ -646,6 +646,33 @@ export function PERTChartFigure({
     const cx = (e.clientX - svgRect.left) / zoom;
     const cy = (e.clientY - svgRect.top) / zoom;
 
+    // Group move: shift the whole multi-selection (boxes + annotations) by one
+    // snapped delta, committed as a single content update.
+    if (groupDrag) {
+      const dx = snapTo(cx - groupDrag.startX);
+      const dy = snapTo(cy - groupDrag.startY);
+      const base = lockedBase();
+      const nextPositions = { ...base.nodePositions };
+      Object.entries(groupDrag.nodes).forEach(([id, o]) => {
+        nextPositions[id] = { x: Math.max(0, o.x + dx), y: Math.max(0, o.y + dy) };
+      });
+      const list = Array.isArray(contentRef.current?.annotations) ? contentRef.current!.annotations! : [];
+      const moved = new Map(groupDrag.anns.map((a) => [a.id, a]));
+      const nextAnns = list.map((a) => {
+        const o = moved.get(a.id);
+        if (!o) return a;
+        return o.kind === 'shape'
+          ? { ...o, x: Math.max(0, o.x + dx), y: Math.max(0, o.y + dy) }
+          : {
+              ...o,
+              x1: Math.max(0, o.x1 + dx), y1: Math.max(0, o.y1 + dy),
+              x2: Math.max(0, o.x2 + dx), y2: Math.max(0, o.y2 + dy),
+            };
+      });
+      onContentChange({ ...base, nodePositions: nextPositions, annotations: nextAnns });
+      return;
+    }
+
     if (annDrag) {
       if (annDrag.mode === 'endpoint') {
         updateAnn(annDrag.id, annDrag.end === 'a'
