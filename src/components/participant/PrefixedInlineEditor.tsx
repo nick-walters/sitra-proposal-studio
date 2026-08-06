@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import DOMPurify from 'dompurify';
 import { stripWordHtml } from '@/lib/stripWordHtml';
 import { cn } from '@/lib/utils';
-import { rememberContentEditableSelection } from '@/lib/contentEditableRefBadges';
+import { rememberContentEditableSelection, REF_BADGE_INSERTED_EVENT } from '@/lib/contentEditableRefBadges';
 
 /**
  * A minimal contentEditable field with a non-editable leading prefix
