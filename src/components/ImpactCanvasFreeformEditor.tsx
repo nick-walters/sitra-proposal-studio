@@ -2226,6 +2226,10 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
   const outlineColorMixed = isMulti && toolbarOutlineColor === undefined && outlineIds.length > 1;
   const outlineWidthMixed = isMulti && toolbarOutlineWidth === undefined && outlineIds.length > 1;
 
+  const cornerRadiusValue = cornerEnabled
+    ? (commonStyleValue(roundedIds, 'cornerRadiusMm') ?? DEFAULT_CORNER_RADIUS_MM)
+    : DEFAULT_CORNER_RADIUS_MM;
+
   const applyStylePatch = (patch: Partial<BoundBoxStyle>, ids: string[]) => {
     if (ids.length === 0) return;
     if (ids.length === 1) updateBoundStyle(ids[0], patch);
