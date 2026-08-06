@@ -123,9 +123,13 @@ export function LogoUpload({
       const colorInstruction = uniqueColors.length > 0
         ? `Use EXACTLY these brand colors: ${uniqueColors.join(', ')}. These are the project's official colors — incorporate them as the primary palette.`
         : 'Use maximum 2 colors only (use one primary color and white or black).';
+      const rawConsiderations = considerations.replace(/\s+/g, ' ').trim();
+      const considerationsInstruction = rawConsiderations
+        ? ` Additional considerations from the user, which take priority: ${rawConsiderations.slice(0, 600)}.`
+        : '';
       const { data, error } = await supabase.functions.invoke('generate-image', {
         body: {
-          prompt: `Create a simple, bold logo icon for "${proposalAcronym}". ${colorInstruction} Flat design with no gradients, the graphic element must be as large as possible filling the entire square canvas edge-to-edge with zero padding. The logo must be a single abstract geometric or symbolic shape -- keep it extremely simple despite the detailed description below. Distill the following project description into one iconic visual concept: ${themeSource}. Professional and modern, suitable for EU research project. No text, no letters, just one iconic symbol. The design must bleed to all edges of the canvas with no whitespace border.`,
+          prompt: `Create a simple, bold logo icon for "${proposalAcronym}". ${colorInstruction} Flat design with no gradients, the graphic element must be as large as possible filling the entire square canvas edge-to-edge with zero padding. The logo must be a single abstract geometric or symbolic shape -- keep it extremely simple despite the detailed description below. Distill the following project description into one iconic visual concept: ${themeSource}.${considerationsInstruction} Professional and modern, suitable for EU research project. No text, no letters, just one iconic symbol. The design must bleed to all edges of the canvas with no whitespace border.`,
         },
       });
 
@@ -146,8 +150,10 @@ export function LogoUpload({
           onUpload(data.imageUrl);
         }
         setGeneratedImageUrl(data.imageUrl);
+        setIsGenerateDialogOpen(false);
         toast.success('Logo generated successfully');
       }
+
     } catch (error) {
       console.error('Failed to generate logo:', error);
       toast.error('Failed to generate logo');
