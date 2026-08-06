@@ -2142,6 +2142,11 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
     .map((e) => e.id);
   const styleEnabled = fillFontIds.length > 0;
   const outlineEnabled = outlineIds.length > 0;
+  // Corner roundedness applies to rounded-rectangle shapes only.
+  const roundedIds = selectedEls
+    .filter((e) => e.kind === 'shape' && ((e.content ?? {}) as { shape?: ShapeKind }).shape === 'roundedRect')
+    .map((e) => e.id);
+  const cornerEnabled = roundedIds.length > 0;
   // Size (W/H) — enabled for single OR multi when at least one resizable
   // (bound/header/shape) member is present. Lines are skipped by the multi
   // writer. Handles remain single-select only (see zEnabled below).
