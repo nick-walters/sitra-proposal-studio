@@ -1056,6 +1056,71 @@ export function PERTChartFigure({
               </marker>
             </defs>
 
+            {/* Annotation shapes — drawn behind the WP boxes */}
+            {annotations.filter((a): a is PertShapeAnnotation => a.kind === 'shape').map((s) => {
+              const isSel = canEdit && selectedAnn === s.id;
+              const fill = s.fill === 'none' ? 'none' : s.fill;
+              const stroke = isSel ? 'hsl(var(--primary))' : (s.stroke === 'none' ? 'none' : s.stroke);
+              const sw = isSel ? Math.max(1.5, s.strokeWidth) : s.strokeWidth;
+              const common = { fill, stroke, strokeWidth: sw };
+              return (
+                <g
+                  key={s.id}
+                  className={canEdit ? 'cursor-move' : ''}
+                  onMouseDown={(e) => startAnnDrag(e, s)}
+                >
+                  {s.shape === 'circle' ? (
+                    <ellipse cx={s.x + s.w / 2} cy={s.y + s.h / 2} rx={s.w / 2} ry={s.h / 2} {...common} />
+                  ) : s.shape === 'triangle' ? (
+                    <polygon
+                      points={`${s.x + s.w / 2},${s.y} ${s.x + s.w},${s.y + s.h} ${s.x},${s.y + s.h}`}
+                      {...common}
+                    />
+                  ) : (
+                    <rect
+                      x={s.x} y={s.y} width={s.w} height={s.h}
+                      rx={s.shape === 'roundedRect' ? 10 : 0} ry={s.shape === 'roundedRect' ? 10 : 0}
+                      {...common}
+                    />
+                  )}
+                  {!!s.text && (
+                    <text
+                      x={s.x + s.w / 2} y={s.y + s.h / 2 + 4}
+                      textAnchor="middle" fontSize={12} fill={s.textColor || '#000000'}
+                    >
+                      {s.text}
+                    </text>
+                  )}
+                  {isSel && (['nw', 'ne', 'sw', 'se'] as Corner[]).map((corner) => {
+                    const hx = corner.includes('w') ? s.x : s.x + s.w;
+                    const hy = corner.includes('n') ? s.y : s.y + s.h;
+                    return (
+                      <rect
+                        key={corner}
+                        x={hx - 4} y={hy - 4} width={8} height={8}
+                        fill="hsl(var(--primary))" stroke="#fff" strokeWidth={1}
+                        style={{ cursor: corner === 'nw' || corner === 'se' ? 'nwse-resize' : 'nesw-resize' }}
+                        onMouseDown={(e) => {
+                          e.stopPropagation();
+                          const r = svgRef.current?.getBoundingClientRect();
+                          if (!r) return;
+                          pushHistory();
+                          setAnnDrag({
+                            id: s.id, mode: 'resize', corner,
+                            startX: (e.clientX - r.left) / zoom,
+                            startY: (e.clientY - r.top) / zoom,
+                            origin: s,
+                          });
+                        }}
+                      />
+                    );
+                  })}
+                </g>
+              );
+            })}
+
+
+
             {/* Render nodes */}
             {nodes.map((node) => {
               const isSelected = canEdit && selectedNode === node.id;
