@@ -1356,7 +1356,7 @@ export function PERTChartFigure({
                   {l.startCap === 'arrow' && (
                     <polygon points={arrow({ x: l.x1, y: l.y1 }, startDir)} fill={stroke} />
                   )}
-                  {isSel && (['a', 'b'] as const).map((end) => (
+                  {isSel && multiSel.nodes.length + multiSel.anns.length <= 1 && (['a', 'b'] as const).map((end) => (
                     <circle
                       key={end}
                       cx={end === 'a' ? l.x1 : l.x2}
