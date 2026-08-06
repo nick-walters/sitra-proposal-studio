@@ -1292,8 +1292,6 @@ export function PERTChartFigure({
                       {...common}
                     />
 
-                      {...common}
-                    />
                   )}
                   {!!s.text && (
                     <text
