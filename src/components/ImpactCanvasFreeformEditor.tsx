@@ -17,7 +17,7 @@ import {
 } from '@/lib/impactCanvasLayout';
 
 import { WPColorPicker } from './WPColorPicker';
-import { BOUND_STYLE_DEFAULTS, readBoundStyle, resolveBoundStyle } from '@/lib/impactCanvasBoundStyle';
+import { BOUND_STYLE_DEFAULTS, DEFAULT_CORNER_RADIUS_MM, MAX_CORNER_RADIUS_MM, readBoundStyle, resolveBoundStyle } from '@/lib/impactCanvasBoundStyle';
 import type { BoundBoxStyle } from '@/lib/impactCanvasBoundStyle';
 import { ImpactCanvasTextBox } from './ImpactCanvasTextBox';
 import { ImpactCanvasOutlinePicker } from './ImpactCanvasOutlinePicker';
