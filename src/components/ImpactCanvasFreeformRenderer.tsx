@@ -170,6 +170,7 @@ function ImpactCanvasFreeformRendererInner({ proposalId, className, fallback = '
   const headerEls = elements.filter((e) => e.kind === 'header' && e.bound_col_key);
   const textEls = elements.filter((e) => e.kind === 'text');
   const shapeEls = elements.filter((e) => e.kind === 'shape');
+  const imageEls = elements.filter((e) => e.kind === 'image');
 
   // Fallback: pre-backfill proposals with no elements fall back to
   // a legacy CSS grid layout so the canvas is never blank.
@@ -178,6 +179,7 @@ function ImpactCanvasFreeformRendererInner({ proposalId, className, fallback = '
     headerEls.length === 0 &&
     textEls.length === 0 &&
     shapeEls.length === 0 &&
+    imageEls.length === 0 &&
     fallback === 'grid'
   ) {
     return <LegacyGridFallback proposalId={proposalId} className={className} />;
