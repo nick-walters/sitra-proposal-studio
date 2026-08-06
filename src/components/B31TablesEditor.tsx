@@ -198,11 +198,15 @@ function MirrorTable({
       if (widest > 0) next[i] = Math.ceil(widest) + 2;
     });
     setFitWidths((prev) => {
+      // Tolerance guard: applying a measured width slightly changes the next
+      // measurement, which would otherwise loop forever.
       const same = Object.keys(next).length === Object.keys(prev).length
-        && Object.entries(next).every(([k, v]) => prev[Number(k)] === v);
+        && Object.entries(next).every(([k, v]) => Math.abs((prev[Number(k)] ?? -999) - v) <= 2);
       return same ? prev : next;
     });
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fitSignature, hasSaved, children]);
+
 
   const colStyle = useCallback(
     (i: number): React.CSSProperties => {
