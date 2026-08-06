@@ -98,27 +98,6 @@ export function FigureSizePicker({
             />
           </div>
           <div className={inlineCustom ? 'flex items-center gap-1' : 'space-y-1'}>
-
-            <Label htmlFor={`${idPrefix}-w`} className="text-xs">Width (cm)</Label>
-            <Input
-              id={`${idPrefix}-w`}
-              type="number"
-              min={FIGURE_CUSTOM_MIN_CM}
-              max={FIGURE_CUSTOM_MAX_WIDTH_CM}
-              step={0.1}
-              disabled={disabled}
-              value={value.widthCm}
-              onChange={(e) => onChange({ ...value, presetId: 'custom', widthCm: Number(e.target.value) })}
-              onBlur={(e) =>
-                onChange({
-                  ...value,
-                  presetId: 'custom',
-                  widthCm: clampFigureDim(Number(e.target.value), FIGURE_CUSTOM_MAX_WIDTH_CM),
-                })
-              }
-            />
-          </div>
-          <div className="space-y-1">
             <Label htmlFor={`${idPrefix}-h`} className="text-xs">Height (cm)</Label>
             <Input
               id={`${idPrefix}-h`}
@@ -127,6 +106,7 @@ export function FigureSizePicker({
               max={FIGURE_CUSTOM_MAX_HEIGHT_CM}
               step={0.1}
               disabled={disabled}
+              className={inlineCustom ? 'h-8 w-20 text-xs' : undefined}
               value={value.heightCm}
               onChange={(e) => onChange({ ...value, presetId: 'custom', heightCm: Number(e.target.value) })}
               onBlur={(e) =>
