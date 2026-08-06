@@ -283,48 +283,47 @@ export function PERTChartFigure({
     },
   });
 
-  // Calculate default positions in a grid layout
-  const defaultPositions = useMemo(() => {
-    const cols = 3;
-    const nodeWidth = 84;
-    const nodeHeight = 42;
-    const hGap = 56;
-    const vGap = 20;
-    const startX = 14;
-    const startY = 14;
+  // ---- Physical frame (needed by the auto-layout) --------------------------
+  const frameWidthCm = Number(content?.widthCm) > 0 ? Number(content!.widthCm) : PERT_DEFAULT_WIDTH_CM;
+  const frameHeightCm = Number(content?.heightCm) > 0 ? Number(content!.heightCm) : PERT_DEFAULT_HEIGHT_CM;
+  const svgWidth = Math.round(cmToPx(frameWidthCm));
+  const svgHeight = Math.round(cmToPx(frameHeightCm));
+  const viewBoxStr = `0 0 ${svgWidth} ${svgHeight}`;
 
-    const positions: Record<string, { x: number; y: number }> = {};
-    wpDrafts.forEach((wp, index) => {
-      const col = index % cols;
-      const row = Math.floor(index / cols);
-      positions[wp.id] = {
-        x: startX + col * (nodeWidth + hGap),
-        y: startY + row * (nodeHeight + vGap),
-      };
-    });
-    return positions;
-  }, [wpDrafts]);
+  // Auto-generated layout filling the whole frame.
+  const autoLayout = useMemo(
+    () => computeAutoLayout(wpDrafts.map((wp) => wp.id), svgWidth, svgHeight),
+    [wpDrafts, svgWidth, svgHeight],
+  );
 
-  // Merge saved positions with defaults
+  /** While unlocked, the auto-layout drives everything. */
+  const layoutLocked = content?.layoutLocked === true;
+
   const nodePositions = useMemo(() => {
-    return { ...defaultPositions, ...(content?.nodePositions || {}) };
-  }, [defaultPositions, content?.nodePositions]);
+    if (!layoutLocked) return autoLayout.positions;
+    return { ...autoLayout.positions, ...(content?.nodePositions || {}) };
+  }, [layoutLocked, autoLayout.positions, content?.nodePositions]);
+
+  const nodeSizeMap = useMemo(() => {
+    if (!layoutLocked) return autoLayout.sizes;
+    return { ...autoLayout.sizes, ...(content?.nodeSizes || {}) };
+  }, [layoutLocked, autoLayout.sizes, content?.nodeSizes]);
 
   // Create node objects (position + per-node box size)
   const nodes: WPNode[] = useMemo(() => {
-    const sizes = content?.nodeSizes || {};
     return wpDrafts.map((wp) => ({
       id: wp.id,
       number: wp.number,
       shortName: wp.short_name || '',
       title: wp.title || '',
       color: wp.color,
-      x: nodePositions[wp.id]?.x || 100,
-      y: nodePositions[wp.id]?.y || 100,
-      w: Math.max(NODE_MIN_W, Number(sizes[wp.id]?.w) || NODE_DEFAULT_W),
-      h: Math.max(NODE_MIN_H, Number(sizes[wp.id]?.h) || NODE_DEFAULT_H),
+      x: nodePositions[wp.id]?.x ?? 100,
+      y: nodePositions[wp.id]?.y ?? 100,
+      w: Math.max(NODE_MIN_W, Number(nodeSizeMap[wp.id]?.w) || NODE_DEFAULT_W),
+      h: Math.max(NODE_MIN_H, Number(nodeSizeMap[wp.id]?.h) || NODE_DEFAULT_H),
     }));
-  }, [wpDrafts, nodePositions, content?.nodeSizes]);
+  }, [wpDrafts, nodePositions, nodeSizeMap]);
+
 
   // Helper to compute arrow between two nodes (respects per-node box sizes)
   const computeArrow = useCallback((fromNode: WPNode, toNode: WPNode) => {
