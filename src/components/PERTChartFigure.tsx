@@ -581,6 +581,7 @@ export function PERTChartFigure({
     commitAnnotations([...annotations, ann]);
     setSelectedNode(null);
     setSelectedAnn(ann.id);
+    setMultiSel({ nodes: [], anns: [ann.id] });
   }, [annotations, commitAnnotations, pushHistory, svgWidth, svgHeight]);
 
   const selectedAnnotation = selectedAnn ? annotations.find((a) => a.id === selectedAnn) : undefined;
