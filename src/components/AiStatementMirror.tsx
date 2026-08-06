@@ -29,16 +29,27 @@ export function AiStatementMirror({ proposalId }: AiStatementMirrorProps) {
 
   if (!data || data.ai_statement_enabled === false) return null;
 
-  const html = DOMPurify.sanitize(resolveAiStatementHtml(data.ai_statement_text));
+  // Flatten any block markup (paragraphs/divs/breaks) so the mirror renders as
+  // a single line-spaced paragraph with no blank-line gap above it.
+  const html = DOMPurify.sanitize(
+    resolveAiStatementHtml(data.ai_statement_text)
+      .replace(/<br\s*\/?>/gi, ' ')
+      .replace(/<\/(p|div)>/gi, ' ')
+      .replace(/<(p|div)[^>]*>/gi, '')
+      .replace(/(&nbsp;|\s)+/g, ' ')
+      .trim(),
+  );
 
   return (
     <p
-      className="mb-4 text-justify"
+      className="text-justify"
       contentEditable={false}
       style={{
         fontFamily: '"Times New Roman", Times, serif',
         fontSize: '11pt',
         lineHeight: 1,
+        marginTop: '3pt',
+        marginBottom: 0,
       }}
       dangerouslySetInnerHTML={{ __html: html }}
     />
