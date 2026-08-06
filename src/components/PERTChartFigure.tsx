@@ -87,6 +87,18 @@ export type PertAnnotation = PertShapeAnnotation | PertLineAnnotation;
 
 const ANN_MIN = 12;
 
+/** Default / maximum corner roundedness (mm) for rounded rectangles. */
+const ANN_CORNER_DEFAULT_MM = 2.5;
+const ANN_CORNER_MAX_MM = 25;
+
+/** Corner radius of a rounded-rectangle annotation in SVG user units (px). */
+const annCornerPx = (s: PertShapeAnnotation) => {
+  const mm = Number.isFinite(s.cornerRadiusMm as number)
+    ? Math.max(0, Math.min(ANN_CORNER_MAX_MM, s.cornerRadiusMm as number))
+    : ANN_CORNER_DEFAULT_MM;
+  return Math.min((mm / 10) * PX_PER_CM, Math.min(s.w, s.h) / 2);
+};
+
 interface PERTContent {
   nodePositions?: Record<string, { x: number; y: number }>;
   /** Per-node box size in SVG user units (px at 100%). */
