@@ -2186,7 +2186,7 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
   // even in multi-select (Stage 1: batched delete-all-free).
   const deletableSelected = Array.from(selectedIds).filter((sid) => {
     const el = fetched.find((e) => e.id === sid);
-    return !!el && (el.kind === 'text' || el.kind === 'shape' || el.kind === 'line');
+    return !!el && (el.kind === 'text' || el.kind === 'shape' || el.kind === 'line' || el.kind === 'image');
   });
   const deleteEnabled = deletableSelected.length > 0;
 
