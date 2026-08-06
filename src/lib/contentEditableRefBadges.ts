@@ -9,6 +9,10 @@
 
 const SERIF = "'Times New Roman', Times, serif";
 
+/** Fired on the editor element right after a badge is inserted, so the
+ *  owning contentEditable component can flush its pending save at once. */
+export const REF_BADGE_INSERTED_EVENT = 'ref-badge-inserted';
+
 let activeEditor: HTMLElement | null = null;
 let activeRange: Range | null = null;
 
