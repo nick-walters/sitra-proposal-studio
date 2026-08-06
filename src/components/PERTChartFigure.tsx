@@ -1185,7 +1185,26 @@ export function PERTChartFigure({
                   onChange={(e) => updateAnn(selectedAnnotation.id, { textColor: e.target.value })}
                 />
               </label>
+              {selectedAnnotation.shape === 'roundedRect' && (
+                <label className="flex items-center gap-1" title="Corner roundedness (mm)">
+                  Corners
+                  <Input
+                    type="number" min={0} max={ANN_CORNER_MAX_MM} step={0.5}
+                    className="h-7 w-16 text-xs"
+                    value={selectedAnnotation.cornerRadiusMm ?? ANN_CORNER_DEFAULT_MM}
+                    onChange={(e) => {
+                      const v = parseFloat(e.target.value);
+                      if (!Number.isFinite(v)) return;
+                      updateAnn(selectedAnnotation.id, {
+                        cornerRadiusMm: Math.max(0, Math.min(ANN_CORNER_MAX_MM, v)),
+                      });
+                    }}
+                  />
+                  mm
+                </label>
+              )}
             </>
+
           )}
           <label className="flex items-center gap-1">
             Outline
