@@ -344,6 +344,8 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
     if (typeof window === 'undefined') return false;
     return window.localStorage.getItem('impact-canvas-show-grid') === '1';
   });
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
   const [snap, setSnap] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     return window.localStorage.getItem('impact-canvas-snap') === '1';
