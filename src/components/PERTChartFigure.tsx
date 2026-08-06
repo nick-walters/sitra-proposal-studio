@@ -748,9 +748,11 @@ export function PERTChartFigure({
     const base = lockedBase();
     onContentChange({ ...base, nodePositions: { ...base.nodePositions, [draggingNode]: { x: newX, y: newY } } });
 
-  }, [draggingNode, dragOffset, onContentChange, snap, zoom, resizing, lockedBase, annDrag, updateAnn]);
+  }, [draggingNode, dragOffset, onContentChange, snap, zoom, resizing, lockedBase, annDrag, updateAnn, groupDrag]);
 
-  const handleMouseUp = useCallback(() => { setDraggingNode(null); setResizing(null); setAnnDrag(null); }, []);
+  const handleMouseUp = useCallback(() => {
+    setDraggingNode(null); setResizing(null); setAnnDrag(null); setGroupDrag(null);
+  }, []);
 
 
   const selected = selectedNode ? nodes.find((n) => n.id === selectedNode) : undefined;
