@@ -8,7 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { WPBubble, RiskBadge } from '@/components/B31Pill';
+import { WPBubble, RiskBadge, AllWPsBubble, isAllWPsSelected } from '@/components/B31Pill';
 import { SingleMonthPicker } from '@/components/SingleMonthPicker';
 import { Plus, Trash2, GripVertical, ArrowUpDown, Check, Star } from 'lucide-react';
 import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
@@ -632,14 +632,16 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
                                 <span className="text-muted-foreground italic">Select WP(s)…</span>
                               ) : (
                                 <span className="flex flex-wrap gap-0.5 items-center">
-                                  {selectedWps.map(wp => (
-                                    <WPBubble
-                                      key={wp.id}
-                                      wpNumber={wp.number}
-                                      wpColor={wp.color}
-                                      showStar={wp.id === m.primary_wp_id}
-                                    />
-                                  ))}
+                                  {isAllWPsSelected(selectedWps.length, wps.length)
+                                    ? <AllWPsBubble />
+                                    : selectedWps.map(wp => (
+                                        <WPBubble
+                                          key={wp.id}
+                                          wpNumber={wp.number}
+                                          wpColor={wp.color}
+                                          showStar={wp.id === m.primary_wp_id}
+                                        />
+                                      ))}
                                 </span>
                               )}
                             </button>
@@ -986,7 +988,9 @@ function WPMultiSelect({
           <span className="flex flex-wrap gap-0.5 w-full">
             {selectedWps.length === 0
               ? <span className="text-muted-foreground">Select…</span>
-              : selectedWps.map(wp => <WPBubble key={wp.id} wpNumber={wp.number} wpColor={wp.color} />)}
+              : isAllWPsSelected(selectedWps.length, ordered.length)
+                ? <AllWPsBubble />
+                : selectedWps.map(wp => <WPBubble key={wp.id} wpNumber={wp.number} wpColor={wp.color} />)}
           </span>
         </Button>
       </PopoverTrigger>
@@ -1243,7 +1247,9 @@ function MsReorderRow({ m, wpsById }: { m: Milestone; wpsById: Map<string, WPRow
       <MilestoneBadge number={m.number} />
       <span className="text-sm truncate flex-1">{m.title || <span className="italic text-muted-foreground">Untitled</span>}</span>
       <span className="flex flex-wrap gap-0.5">
-        {selectedWps.map(wp => <WPBubble key={wp.id} wpNumber={wp.number} wpColor={wp.color} />)}
+        {isAllWPsSelected(selectedWps.length, wpsById.size)
+          ? <AllWPsBubble />
+          : selectedWps.map(wp => <WPBubble key={wp.id} wpNumber={wp.number} wpColor={wp.color} />)}
       </span>
     </div>
   );
