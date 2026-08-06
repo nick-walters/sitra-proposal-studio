@@ -543,7 +543,7 @@ export function PERTChartFigure({
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={async () => {
                   const exportData: PERTExportData = {
-                    nodes: nodes.map(n => ({ id: n.id, number: n.number, shortName: n.shortName, color: n.color, x: n.x, y: n.y })),
+                    nodes: nodes.map(n => ({ id: n.id, number: n.number, shortName: n.shortName, color: n.color, x: n.x, y: n.y, w: n.w, h: n.h })),
                     arrows: dependencies.map(d => ({ fromNodeId: d.fromWpId, toNodeId: d.toWpId, direction: d.direction })),
                     svgWidth,
                     svgHeight,
