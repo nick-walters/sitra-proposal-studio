@@ -84,7 +84,8 @@ function computeAutoLayout(
   const n = ids.length;
   if (n === 0) return { positions, sizes };
 
-  const margin = Math.max(14, Math.min(frameW, frameH) * 0.06);
+  // Boxes run right up to the canvas edges — no outer margin.
+  const margin = 0;
   const hGap = Math.max(44, frameW * 0.09);
   const vGap = Math.max(32, frameH * 0.16);
 
