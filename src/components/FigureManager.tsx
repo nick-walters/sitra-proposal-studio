@@ -840,7 +840,7 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
                           <BarChart3 className="w-12 h-12 text-muted-foreground" />
                         ) : figure.figureType === 'pert' ? (
                           <Network className="w-12 h-12 text-muted-foreground" />
-                        ) : figure.figureType === 'impact-canvas' ? (
+                        ) : figure.figureType === 'impact-canvas' || figure.figureType === 'overview-canvas' ? (
                           <LayoutTemplate className="w-12 h-12 text-muted-foreground" />
                         ) : figure.figureType === 'ai' ? (
                           <Sparkles className="w-12 h-12 text-muted-foreground" />
