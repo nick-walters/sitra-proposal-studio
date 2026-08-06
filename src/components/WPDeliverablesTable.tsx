@@ -85,16 +85,24 @@ const DISSEMINATION_LEVELS = [
   { value: 'EU-SEC', label: 'EU Secret', description: 'Classified with the mention of the classification level SECRET UE/EU SECRET' },
 ];
 
-// ── Sort: due_month ASC (nulls last), then order_index (intra-month manual), then id stable ──
-function sortDeliverables(list: WPDraftDeliverable[]): WPDraftDeliverable[] {
+// ── Sort: due_month ASC (nulls last), then linked task number ASC (unlinked last),
+//    then order_index (intra-month manual), then id stable ──
+function sortDeliverables(
+  list: WPDraftDeliverable[],
+  taskRank?: Map<string, number>,
+): WPDraftDeliverable[] {
   return [...list].sort((a, b) => {
     const am = a.due_month ?? Number.POSITIVE_INFINITY;
     const bm = b.due_month ?? Number.POSITIVE_INFINITY;
     if (am !== bm) return am - bm;
+    const at = taskRank?.get(a.id) ?? Number.POSITIVE_INFINITY;
+    const bt = taskRank?.get(b.id) ?? Number.POSITIVE_INFINITY;
+    if (at !== bt) return at - bt;
     if (a.order_index !== b.order_index) return a.order_index - b.order_index;
     return a.id.localeCompare(b.id);
   });
 }
+
 
 // ── Auto-textarea matching MS/risks tables ──
 function AutoTextarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
