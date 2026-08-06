@@ -1287,7 +1287,11 @@ export function PERTChartFigure({
                   ) : (
                     <rect
                       x={s.x} y={s.y} width={s.w} height={s.h}
-                      rx={s.shape === 'roundedRect' ? 10 : 0} ry={s.shape === 'roundedRect' ? 10 : 0}
+                      rx={s.shape === 'roundedRect' ? annCornerPx(s) : 0}
+                      ry={s.shape === 'roundedRect' ? annCornerPx(s) : 0}
+                      {...common}
+                    />
+
                       {...common}
                     />
                   )}
