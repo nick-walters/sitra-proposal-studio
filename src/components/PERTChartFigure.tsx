@@ -432,7 +432,7 @@ export function PERTChartFigure({
       startY: (e.clientY - svgRect.top) / zoom,
       origin: { x: node.x, y: node.y, w: node.w, h: node.h },
     });
-  }, [canEdit, zoom]);
+  }, [canEdit, zoom, pushHistory]);
 
   /**
    * Base content for a manual edit: freezes the current (possibly
