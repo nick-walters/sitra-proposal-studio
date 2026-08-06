@@ -174,15 +174,16 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
         label="Table 3.1.b."
         defaultCaption="Work package descriptions"
         className="mb-0"
+        suffixSpacing={false}
         suffix={
           <span className="font-normal italic whitespace-nowrap">
-            (
+            , where{' '}
             <Crown
               className="h-2.5 w-2.5 inline-block align-baseline fill-black"
               strokeWidth={0}
               style={{ position: 'relative', top: '0.5px' }}
             />
-            {' '}denotes the WP/task leader)
+            {' '}denotes the WP or task leader
           </span>
         }
       />
