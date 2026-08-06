@@ -11,7 +11,7 @@ describe('badge insertion into InlineRichEditor', () => {
   it('emits HTML containing the deliverable badge', async () => {
     const onChange = vi.fn();
     const { container } = render(
-      <InlineRichEditor value="Existing text" onChange={onChange} debounceMs={0} />,
+      <InlineRichEditor value="Existing text" onChange={onChange} debounceMs={5000} />,
     );
     const editor = container.querySelector('[contenteditable="true"]') as HTMLElement;
     expect(editor).toBeTruthy();
@@ -31,7 +31,7 @@ describe('badge insertion into InlineRichEditor', () => {
     expect(ok).toBe(true);
     expect(editor.innerHTML).toContain('data-deliverable-reference');
 
-    await new Promise((r) => setTimeout(r, 30));
+    // no debounce wait: badge insert must flush immediately
     expect(onChange).toHaveBeenCalled();
     expect(onChange.mock.calls.at(-1)![0]).toContain('data-deliverable-reference');
   });

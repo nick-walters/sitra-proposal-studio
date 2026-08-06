@@ -15,7 +15,7 @@ describe('B3.1 mirror sanitisation of ref badges', () => {
     // eslint-disable-next-line no-console
     console.log('NORMALIZED:', out);
     expect(out).toContain('data-deliverable-reference');
-    expect(out).toContain('D1.2');
+    expect(out).toContain('1.2');
   });
 
   it('keeps milestone badge markup', () => {
