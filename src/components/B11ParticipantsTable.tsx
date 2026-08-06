@@ -202,8 +202,8 @@ export function B11ParticipantsTable({ proposalId }: Props) {
           fontFamily: baseFont,
           fontSize: '11pt',
           color: '#000',
-          margin: '3pt 0 6pt 0',
-          paddingBottom: '6pt',
+          margin: '3pt 0 0 0',
+          paddingBottom: 0,
         }}
       >
         <table
