@@ -215,29 +215,32 @@ export function FigureEditor({
     };
     return (
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{isCanvasFigure || isPertFigure ? 'Canvas size' : 'Figure size'}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="max-w-sm">
+        <CardContent className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
+          <span className="text-sm font-medium shrink-0">
+            {isCanvasFigure || isPertFigure ? 'Canvas size' : 'Figure size'}
+          </span>
+          <div className="w-64 shrink-0">
             <FigureSizePicker
               value={sizeValue}
               onChange={handleSizeChange}
               idPrefix={`figure-${figure.id}-size`}
-              helpText={
-                isPertFigure
-                  ? 'Resizes the PERT frame. Work package boxes keep their exact positions and sizes — nothing is scaled or moved.'
-                  : isCanvasFigure
-                  ? 'Resizes the canvas frame. Elements keep their exact positions and sizes in cm — nothing is scaled or moved; anything outside a smaller frame stays in the data and reappears if you enlarge again.'
-                  : 'The image fits inside this box preserving aspect ratio (no crop, no stretch, no padding).'
-              }
+              hideLabel
+              inlineCustom
             />
           </div>
+          <p className="text-xs text-muted-foreground flex-1 min-w-[16rem]">
+            {isPertFigure
+              ? 'Resizes the PERT frame. Work package boxes keep their exact positions and sizes — nothing is scaled or moved.'
+              : isCanvasFigure
+              ? 'Resizes the canvas frame. Elements keep their exact positions and sizes in cm — nothing is scaled or moved; anything outside a smaller frame stays in the data and reappears if you enlarge again.'
+              : 'The image fits inside this box preserving aspect ratio (no crop, no stretch, no padding).'}
+          </p>
         </CardContent>
       </Card>
     );
 
   };
+
 
   const renderFigureContent = () => {
     // Canvas figures store a DERIVED imageUrl (Stage D rasterisation) but must
