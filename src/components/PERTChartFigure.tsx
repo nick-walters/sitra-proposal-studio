@@ -439,6 +439,26 @@ export function PERTChartFigure({
   }, [dependencies, nodes, computeArrow]);
 
 
+  // ---- Multi-selection (WP boxes + annotations) ----------------------------
+  // Shift / Cmd / Ctrl click adds or removes an item from the selection.
+  // Dragging any member of a multi-selection moves the whole set together.
+  const [multiSel, setMultiSel] = useState<{ nodes: string[]; anns: string[] }>({ nodes: [], anns: [] });
+  const [groupDrag, setGroupDrag] = useState<
+    | { startX: number; startY: number; nodes: Record<string, { x: number; y: number }>; anns: PertAnnotation[] }
+    | null
+  >(null);
+  const isAdditiveClick = (e: React.MouseEvent) => e.shiftKey || e.metaKey || e.ctrlKey;
+  const clearMultiSel = useCallback(() => setMultiSel({ nodes: [], anns: [] }), []);
+
+  /** Origins for a group drag, captured from the current layout. */
+  const buildGroupDrag = useCallback((sel: { nodes: string[]; anns: string[] }, cx: number, cy: number) => {
+    const nodeOrigins: Record<string, { x: number; y: number }> = {};
+    nodes.forEach((n) => { if (sel.nodes.includes(n.id)) nodeOrigins[n.id] = { x: n.x, y: n.y }; });
+    const list = Array.isArray(contentRef.current?.annotations) ? contentRef.current!.annotations! : [];
+    const annOrigins = list.filter((a) => sel.anns.includes(a.id));
+    setGroupDrag({ startX: cx, startY: cy, nodes: nodeOrigins, anns: annOrigins });
+  }, [nodes]);
+
   // Handle drag — client px are divided by the zoom factor so the pointer
   // stays glued to the node at any zoom level.
   const handleMouseDown = useCallback((e: React.MouseEvent, nodeId: string) => {
@@ -449,13 +469,37 @@ export function PERTChartFigure({
     if (!node) return;
     const svgRect = svgRef.current?.getBoundingClientRect();
     if (!svgRect) return;
+    const cx = (e.clientX - svgRect.left) / zoom;
+    const cy = (e.clientY - svgRect.top) / zoom;
+
+    if (isAdditiveClick(e)) {
+      // Toggle membership; no drag starts on an additive click.
+      setMultiSel((cur) => {
+        const has = cur.nodes.includes(nodeId);
+        const nodesNext = has ? cur.nodes.filter((id) => id !== nodeId) : [...cur.nodes, nodeId];
+        // Seed with the previously single-selected box so shift-click grows it.
+        if (!has && cur.nodes.length === 0 && cur.anns.length === 0 && selectedNode && selectedNode !== nodeId) {
+          return { nodes: [selectedNode, nodeId], anns: [] };
+        }
+        return { ...cur, nodes: nodesNext };
+      });
+      return;
+    }
+
+    const inGroup = multiSel.nodes.includes(nodeId);
+    const groupSize = multiSel.nodes.length + multiSel.anns.length;
+    if (inGroup && groupSize > 1) {
+      pushHistory();
+      buildGroupDrag(multiSel, cx, cy);
+      return;
+    }
+
+    setMultiSel({ nodes: [nodeId], anns: [] });
     pushHistory();
     setDraggingNode(nodeId);
-    setDragOffset({
-      x: (e.clientX - svgRect.left) / zoom - node.x,
-      y: (e.clientY - svgRect.top) / zoom - node.y,
-    });
-  }, [canEdit, nodes, zoom, pushHistory]);
+    setDragOffset({ x: cx - node.x, y: cy - node.y });
+  }, [canEdit, nodes, zoom, pushHistory, multiSel, selectedNode, buildGroupDrag]);
+
 
 
 
