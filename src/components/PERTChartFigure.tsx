@@ -537,6 +537,8 @@ export function PERTChartFigure({
     setSelectedAnn(ann.id);
   }, [annotations, commitAnnotations, pushHistory, svgWidth, svgHeight]);
 
+  const selectedAnnotation = selectedAnn ? annotations.find((a) => a.id === selectedAnn) : undefined;
+
   const deleteAnnotation = useCallback((id: string) => {
     pushHistory();
     commitAnnotations(annotations.filter((a) => a.id !== id));
