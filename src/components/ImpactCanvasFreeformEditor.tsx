@@ -1959,6 +1959,65 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
     [canEdit, proposalId, qc, snapshotOfEl, pushHistory],
   );
 
+  /** Arrow-key nudge: shift every selected element by (dx, dy) cm, clamped
+   *  to the canvas. One coalesced undo step per burst of key presses. */
+  const nudgeSelected = useCallback(
+    (dxCm: number, dyCm: number) => {
+      if (!canEdit) return;
+      const ids = Array.from(selectedIdsRef.current);
+      if (ids.length === 0) return;
+      const targets = ids
+        .map((id) => fetched.find((e) => e.id === id))
+        .filter((e): e is CanvasElement => !!e);
+      if (targets.length === 0) return;
+
+      const entries: Array<{ kind: 'update'; id: string; before: ElementSnapshot; after: ElementSnapshot }> = [];
+      const nextOverrides: Record<string, { x: number; y: number; w: number; h: number }> = {};
+      for (const el of targets) {
+        const before = snapshotOfEl(el);
+        const current = overrides[el.id] ?? { x: el.x, y: el.y, w: el.w, h: el.h };
+        const next = {
+          ...current,
+          x: Math.max(0, Math.min(Math.max(0, widthCm - current.w), current.x + dxCm)),
+          y: Math.max(0, Math.min(Math.max(0, maxHeightCm - current.h), current.y + dyCm)),
+        };
+        if (next.x === current.x && next.y === current.y) continue;
+        nextOverrides[el.id] = next;
+        persistDebounced(el.id, next);
+        entries.push({ kind: 'update', id: el.id, before, after: { ...before, ...next } });
+      }
+      if (entries.length === 0) return;
+      setOverrides((o) => ({ ...o, ...nextOverrides }));
+      pushHistory(
+        entries.length === 1 ? entries[0] : { kind: 'batch', entries },
+        `nudge:${ids.slice().sort().join(',')}`,
+      );
+    },
+    [canEdit, fetched, overrides, persistDebounced, snapshotOfEl, pushHistory, widthCm, maxHeightCm],
+  );
+
+  // Keyboard: arrow keys move the selection (⇧ = 1 cm coarse step).
+  useEffect(() => {
+    if (!canEdit || editingId) return;
+    if (selectedIds.size === 0) return;
+    const onKey = (ev: KeyboardEvent) => {
+      const map: Record<string, [number, number]> = {
+        ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1],
+      };
+      const dir = map[ev.key];
+      if (!dir) return;
+      const t = ev.target as HTMLElement | null;
+      if (t && (t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName))) return;
+      if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
+      ev.preventDefault();
+      const step = ev.shiftKey ? 1 : 0.1;
+      nudgeSelected(dir[0] * step, dir[1] * step);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [canEdit, editingId, selectedIds, nudgeSelected]);
+
+
   // Keyboard: Delete/Backspace removes all deletable selected free elements.
   useEffect(() => {
     if (editingId) return;
