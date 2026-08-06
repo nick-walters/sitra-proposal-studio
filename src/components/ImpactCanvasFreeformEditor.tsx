@@ -2305,6 +2305,39 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
             />
           </div>
 
+          {/* Corner roundedness (mm) — rounded rectangles only */}
+          <label
+            className={cn(
+              'flex items-center gap-1 text-[11px] ml-1',
+              !cornerEnabled && 'opacity-50',
+            )}
+            data-impact-canvas-toolbar
+            title="Corner roundedness of rounded rectangles (mm)"
+          >
+            <Squircle className="w-3.5 h-3.5" />
+            <Input
+              type="number"
+              min={0}
+              max={MAX_CORNER_RADIUS_MM}
+              step={0.5}
+              className="h-7 w-14 text-[11px] px-1"
+              disabled={!cornerEnabled}
+              value={cornerRadiusValue}
+              onChange={(e) => {
+                const v = parseFloat(e.target.value);
+                if (!Number.isFinite(v)) return;
+                applyStylePatch(
+                  { cornerRadiusMm: Math.max(0, Math.min(MAX_CORNER_RADIUS_MM, v)) },
+                  roundedIds,
+                );
+              }}
+              aria-label="Corner roundedness in millimetres"
+            />
+            <span className="text-muted-foreground">mm</span>
+          </label>
+
+
+
           <AddShapeDropdown
             onAddShape={addShape}
             onAddLine={(routing) => { void addLine(routing); }}
