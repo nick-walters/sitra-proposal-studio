@@ -537,7 +537,7 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
   return (
     <SaveTrackerContext.Provider value={tracker}>
     <TooltipProvider>
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 compact-ref-badges">
       <div className="flex items-start justify-between gap-4">
         <h1 className="text-xl font-bold text-foreground">Milestones &amp; risks</h1>
         {canEdit && (
