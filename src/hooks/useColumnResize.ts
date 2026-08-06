@@ -14,7 +14,7 @@ export function useColumnResize(options: {
   resizeMode?: 'single' | 'adjacent';
   minWidth?: number;
 } = { tableKey: 'default' }) {
-  const { proposalId, tableKey, canResize = false, resizeMode = 'single', minWidth = 40 } = options;
+  const { proposalId, tableKey, canResize = false, minWidth = 40 } = options;
   const [colWidths, setColWidths] = useState<number[]>([]);
   const [loaded, setLoaded] = useState(false);
   const tableRef = useRef<HTMLTableElement>(null);
@@ -88,18 +88,24 @@ export function useColumnResize(options: {
       const delta = ev.clientX - startX;
       const newWidths = [...startWidths];
 
-      if (resizeMode === 'adjacent' && startWidths.length > 1) {
-        const pairedIdx = colIdx < startWidths.length - 1 ? colIdx + 1 : colIdx - 1;
+      // Word-like semantics:
+      // - internal border: only the two adjacent columns change; total width constant
+      // - last column's right border: total table width changes (never wider than
+      //   the available text column, i.e. 18cm)
+      const isLast = colIdx >= startWidths.length - 1;
+      if (!isLast && startWidths.length > 1) {
         const minDelta = minWidth - startWidths[colIdx];
-        const maxDelta = startWidths[pairedIdx] - minWidth;
+        const maxDelta = startWidths[colIdx + 1] - minWidth;
         const clampedDelta = Math.min(Math.max(delta, minDelta), maxDelta);
         newWidths[colIdx] = startWidths[colIdx] + clampedDelta;
-        newWidths[pairedIdx] = startWidths[pairedIdx] - clampedDelta;
+        newWidths[colIdx + 1] = startWidths[colIdx + 1] - clampedDelta;
       } else {
-        const proposed = Math.max(minWidth, startWidths[colIdx] + delta);
         const containerWidth = tableRef.current?.parentElement?.clientWidth ?? Infinity;
-        const otherWidths = newWidths.reduce((sum, w, i) => i === colIdx ? sum : sum + w, 0);
-        newWidths[colIdx] = Math.min(proposed, Math.max(minWidth, containerWidth - otherWidths));
+        const total = startWidths.reduce((a, b) => a + b, 0);
+        const minDelta = minWidth - startWidths[colIdx];
+        const maxDelta = containerWidth - total;
+        const clampedDelta = Math.min(Math.max(delta, minDelta), Math.max(0, maxDelta));
+        newWidths[colIdx] = startWidths[colIdx] + clampedDelta;
       }
 
       setColWidths(newWidths);
@@ -118,7 +124,7 @@ export function useColumnResize(options: {
 
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
-  }, [colWidths, canResize, saveWidths, resizeMode, minWidth]);
+  }, [colWidths, canResize, saveWidths, minWidth]);
 
   return { colWidths, setColWidths, tableRef, handleColResizeStart, saveWidths, loaded };
 }
