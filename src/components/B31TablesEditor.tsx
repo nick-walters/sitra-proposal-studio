@@ -164,14 +164,24 @@ function MirrorTable({
   tableClassName?: string;
 }) {
 
+  // Measured natural widths for `fit` (badge-only) columns, so a badge is never clipped.
+  const [fitWidths, setFitWidths] = React.useState<Record<number, number>>({});
+  const minWidths = useMemo(
+    () => columns.map((c, i) => (c.fit && fitWidths[i] ? fitWidths[i] : 24)),
+    [columns, fitWidths],
+  );
+
   const { colWidths, tableRef, handleColResizeStart } = useColumnResize({
     proposalId,
     tableKey,
     canResize: true,
     minWidth: 24,
+    minWidths,
+    maxTotalWidth: MAX_TABLE_WIDTH_PX,
   });
   const hasSaved = colWidths.length === columns.length;
   const lastIdx = columns.length - 1;
+
 
   // Measured natural widths for `fit` (badge-only) columns, so a badge is never clipped.
   const [fitWidths, setFitWidths] = React.useState<Record<number, number>>({});
