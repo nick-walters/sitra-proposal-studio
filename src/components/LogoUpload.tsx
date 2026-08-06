@@ -6,6 +6,16 @@ import { Upload, Loader2, Sparkles, X, Download } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useStorageUrl } from '@/hooks/useStorageUrl';
 import { generateLogoPath, uploadProposalFile, extractFilePathFromUrl, deleteProposalFile } from '@/lib/proposalStorage';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+
 
 interface LogoUploadProps {
   currentUrl: string | null;
@@ -49,6 +59,9 @@ export function LogoUpload({
   const [isUploading, setIsUploading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+  const [isGenerateDialogOpen, setIsGenerateDialogOpen] = useState(false);
+  const [considerations, setConsiderations] = useState('');
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -110,9 +123,13 @@ export function LogoUpload({
       const colorInstruction = uniqueColors.length > 0
         ? `Use EXACTLY these brand colors: ${uniqueColors.join(', ')}. These are the project's official colors — incorporate them as the primary palette.`
         : 'Use maximum 2 colors only (use one primary color and white or black).';
+      const rawConsiderations = considerations.replace(/\s+/g, ' ').trim();
+      const considerationsInstruction = rawConsiderations
+        ? ` Additional considerations from the user, which take priority: ${rawConsiderations.slice(0, 600)}.`
+        : '';
       const { data, error } = await supabase.functions.invoke('generate-image', {
         body: {
-          prompt: `Create a simple, bold logo icon for "${proposalAcronym}". ${colorInstruction} Flat design with no gradients, the graphic element must be as large as possible filling the entire square canvas edge-to-edge with zero padding. The logo must be a single abstract geometric or symbolic shape -- keep it extremely simple despite the detailed description below. Distill the following project description into one iconic visual concept: ${themeSource}. Professional and modern, suitable for EU research project. No text, no letters, just one iconic symbol. The design must bleed to all edges of the canvas with no whitespace border.`,
+          prompt: `Create a simple, bold logo icon for "${proposalAcronym}". ${colorInstruction} Flat design with no gradients, the graphic element must be as large as possible filling the entire square canvas edge-to-edge with zero padding. The logo must be a single abstract geometric or symbolic shape -- keep it extremely simple despite the detailed description below. Distill the following project description into one iconic visual concept: ${themeSource}.${considerationsInstruction} Professional and modern, suitable for EU research project. No text, no letters, just one iconic symbol. The design must bleed to all edges of the canvas with no whitespace border.`,
         },
       });
 
@@ -133,8 +150,10 @@ export function LogoUpload({
           onUpload(data.imageUrl);
         }
         setGeneratedImageUrl(data.imageUrl);
+        setIsGenerateDialogOpen(false);
         toast.success('Logo generated successfully');
       }
+
     } catch (error) {
       console.error('Failed to generate logo:', error);
       toast.error('Failed to generate logo');
@@ -229,7 +248,7 @@ export function LogoUpload({
           <Button
             variant="outline"
             size="sm"
-            onClick={handleGenerateLogo}
+            onClick={() => setIsGenerateDialogOpen(true)}
             disabled={isGenerating}
             className="gap-1 w-full justify-center h-7 text-xs px-2"
           >
@@ -240,6 +259,44 @@ export function LogoUpload({
             )}
             Generate
           </Button>
+
+          <Dialog open={isGenerateDialogOpen} onOpenChange={setIsGenerateDialogOpen}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Generate logo</DialogTitle>
+                <DialogDescription>
+                  Add any considerations to guide the design — imagery, symbols, mood or things to avoid. Leave blank to generate from the project description alone.
+                </DialogDescription>
+              </DialogHeader>
+              <Textarea
+                value={considerations}
+                onChange={(e) => setConsiderations(e.target.value)}
+                placeholder="e.g. a stylised leaf combined with a circuit motif; avoid globes and handshakes"
+                rows={4}
+                maxLength={600}
+                className="text-sm"
+              />
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsGenerateDialogOpen(false)}
+                  disabled={isGenerating}
+                >
+                  Cancel
+                </Button>
+                <Button size="sm" onClick={handleGenerateLogo} disabled={isGenerating} className="gap-1">
+                  {isGenerating ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-3 h-3" />
+                  )}
+                  Generate
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
 
           {/* File Upload */}
           <Button
