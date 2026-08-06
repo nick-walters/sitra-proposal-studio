@@ -8,8 +8,25 @@ import { EditableCaption } from '@/components/EditableCaption';
 import { ParticipantBubble } from '@/components/B31Pill';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
-const cellStyles = "px-[1pt] py-[1pt] font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-center align-middle border-none";
-const headerCellStyles = "px-[1pt] py-[1pt] font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-center align-middle border-none";
+const cellStyles = "px-[1pt] py-[1pt] font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle border-none";
+const headerCellStyles = cellStyles;
+/**
+ * Header and body cells must share IDENTICAL horizontal geometry, otherwise the
+ * WP labels sit off-centre above their values and the participant badges are
+ * indented relative to the header row. Applied inline so no cascading rule
+ * (.document-content th/td, Tailwind utilities) can desynchronise the two rows.
+ */
+const firstColCell: React.CSSProperties = {
+  textAlign: 'left',
+  paddingLeft: 0,
+  paddingRight: '1pt',
+};
+const dataColCell: React.CSSProperties = {
+  textAlign: 'center',
+  paddingLeft: '1pt',
+  paddingRight: '1pt',
+};
+
 
 function formatPM(value: number): string {
   if (value === 0) return '0';
@@ -73,7 +90,7 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
         if (w > measured[i]) measured[i] = w;
       });
     });
-    const padded = measured.map((w, i) => Math.ceil(w) + (i === 0 ? 2 : 8));
+    const padded = measured.map((w, i) => Math.ceil(w) + (i === 0 ? 3 : 5));
     setFitWidths(prev => {
       if (prev && prev.length === padded.length && prev.every((w, i) => Math.abs(w - padded[i]) <= 2)) return prev;
       return padded;
@@ -201,7 +218,7 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
              <tr>
                <th
                  className={`${headerCellStyles} relative`}
-                 style={{ textAlign: 'left', fontWeight: 'bold' }}
+                 style={{ ...firstColCell, fontWeight: 'bold' }}
                >
                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(0)} />}
                </th>
@@ -212,10 +229,11 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
                      key={wp.id}
                      className={`${headerCellStyles} relative`}
                      style={{
+                       ...dataColCell,
                        backgroundColor: wpColor,
                        color: '#FFFFFF',
-borderTopLeftRadius: '12px',
-                           borderTopRightRadius: '12px',
+                       borderTopLeftRadius: '12px',
+                       borderTopRightRadius: '12px',
                        fontWeight: 700,
                      }}
                    >
@@ -224,7 +242,7 @@ borderTopLeftRadius: '12px',
                    </th>
                  );
                })}
-               <th className={headerCellStyles} style={{ fontWeight: 'bold' }}>Total</th>
+               <th className={headerCellStyles} style={{ ...dataColCell, fontWeight: 'bold' }}>Total</th>
              </tr>
            </thead>
           <tbody>
@@ -236,8 +254,8 @@ borderTopLeftRadius: '12px',
                 <tr key={p.id}>
                   {/* Participant bubble cell — standard participant badge, no elongation */}
                   <td
-                    className="px-[1pt] py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle"
-                    style={{ textAlign: 'left' }}
+                    className={cellStyles}
+                    style={firstColCell}
                   >
                     <ParticipantBubble>
                       {p.participant_number}. {p.organisation_short_name || p.organisation_name}
@@ -253,6 +271,7 @@ borderTopLeftRadius: '12px',
                         key={wp.id}
                         className={cellStyles}
                         style={{
+                          ...dataColCell,
                           backgroundColor: wpColor,
                           color: '#FFFFFF',
                         }}
@@ -261,7 +280,7 @@ borderTopLeftRadius: '12px',
                       </td>
                     );
                   })}
-                  <td className={`${cellStyles} font-bold`}>
+                  <td className={`${cellStyles} font-bold`} style={dataColCell}>
                     {formatPM(rowTotal)}
                   </td>
                 </tr>
@@ -269,7 +288,7 @@ borderTopLeftRadius: '12px',
             })}
             {/* Total row */}
             <tr>
-              <td className="px-[1pt] py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle font-bold" style={{ textAlign: 'left' }}>Total</td>
+              <td className={`${cellStyles} font-bold`} style={firstColCell}>Total</td>
               {wpData.map(wp => {
                 const wpColor = wp.color || '#73C92D';
                 const colTotal = participants.reduce((sum, p) => sum + (matrix.get(p.id)!.get(wp.id) || 0), 0);
@@ -278,8 +297,9 @@ borderTopLeftRadius: '12px',
                     key={wp.id}
                     className={`${cellStyles} font-bold`}
                     style={{
-                       borderBottomLeftRadius: '12px',
-                       borderBottomRightRadius: '12px',
+                      ...dataColCell,
+                      borderBottomLeftRadius: '12px',
+                      borderBottomRightRadius: '12px',
                       backgroundColor: wpColor,
                       color: '#FFFFFF',
                     }}
@@ -288,7 +308,7 @@ borderTopLeftRadius: '12px',
                   </td>
                 );
               })}
-              <td className={`${cellStyles} font-bold`}>
+              <td className={`${cellStyles} font-bold`} style={dataColCell}>
                 {(() => {
                   const grandTotal = participants.reduce((sum, p) => {
                     const pMap = matrix.get(p.id)!;
