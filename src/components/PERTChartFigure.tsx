@@ -71,6 +71,17 @@ interface PERTChartFigureProps {
   canEdit: boolean;
 }
 
+/** Corner handle identifiers for WP box resizing. */
+type Corner = 'nw' | 'ne' | 'sw' | 'se';
+type ResizeState = {
+  id: string;
+  corner: Corner;
+  startX: number;
+  startY: number;
+  origin: { x: number; y: number; w: number; h: number };
+} | null;
+
+
 export function PERTChartFigure({
   figureId,
   figureNumber,
