@@ -685,7 +685,7 @@ export function B31MilestonesTable({ proposalId }: Props) {
                 </div>
               </MCell>
               <MCell index={3} last={last}><MonthLabel m={m.due_month} /></MCell>
-              <MCell index={4} last={last} cellClass="cell-pr-0"><ReadOnlyHtmlCell html={m.means_of_verification} /></MCell>
+              <MCell index={4} last={last} padX="pl-1 pr-0" cellClass="cell-pr-0"><ReadOnlyHtmlCell html={m.means_of_verification} /></MCell>
 
             </tr>
           );
@@ -801,7 +801,7 @@ export function B31RisksTable({ proposalId }: Props) {
                       ))}
                 </div>
               </MCell>
-              <MCell index={4} last={last} cellClass="cell-pr-0"><ReadOnlyHtmlCell html={r.mitigation} /></MCell>
+              <MCell index={4} last={last} padX="pl-1 pr-0" cellClass="cell-pr-0"><ReadOnlyHtmlCell html={r.mitigation} /></MCell>
 
             </tr>
           );
