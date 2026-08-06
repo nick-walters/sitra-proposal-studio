@@ -1,0 +1,2 @@
+UPDATE public.proposals SET ocd_template_path = NULL WHERE ocd_template_path IS NOT NULL AND ocd_template_path NOT ILIKE '%.rtf';
+DELETE FROM public.participant_ocd_uploads WHERE file_path NOT ILIKE '%.pdf';
