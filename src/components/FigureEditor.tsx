@@ -501,15 +501,16 @@ export function FigureEditor({
           </Card>
         )}
 
-        {/* Figure size (image / AI figures) */}
-        {renderImageSizePicker()}
-
         {/* Figure Content */}
         <Card>
           <CardContent className="pt-6">
             {renderFigureContent()}
           </CardContent>
         </Card>
+
+        {/* Figure / canvas size — compact card at the bottom of the page */}
+        {renderImageSizePicker()}
+
 
       </div>
     </div>
