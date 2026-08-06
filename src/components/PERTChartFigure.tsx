@@ -220,7 +220,6 @@ export function PERTChartFigure({
   const markerUid = useId().replace(/[^a-zA-Z0-9]/g, '');
   const endMarkerId = `pert-arrowhead-${markerUid}`;
   const startMarkerId = `pert-arrowhead-start-${markerUid}`;
-  const legendMarkerId = `pert-arrowhead-legend-${markerUid}`;
   const queryClient = useQueryClient();
   const [draggingNode, setDraggingNode] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
