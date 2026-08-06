@@ -611,15 +611,33 @@ export function PERTChartFigure({
     if (!canEdit) return;
     const svgRect = svgRef.current?.getBoundingClientRect();
     if (!svgRect) return;
+    const cx = (e.clientX - svgRect.left) / zoom;
+    const cy = (e.clientY - svgRect.top) / zoom;
+
+    if (isAdditiveClick(e)) {
+      setMultiSel((cur) => {
+        const has = cur.anns.includes(ann.id);
+        if (!has && cur.nodes.length === 0 && cur.anns.length === 0 && selectedAnn && selectedAnn !== ann.id) {
+          return { nodes: [], anns: [selectedAnn, ann.id] };
+        }
+        return { ...cur, anns: has ? cur.anns.filter((id) => id !== ann.id) : [...cur.anns, ann.id] };
+      });
+      return;
+    }
+
+    const inGroup = multiSel.anns.includes(ann.id);
+    const groupSize = multiSel.nodes.length + multiSel.anns.length;
+    if (inGroup && groupSize > 1) {
+      pushHistory();
+      buildGroupDrag(multiSel, cx, cy);
+      return;
+    }
+
+    setMultiSel({ nodes: [], anns: [ann.id] });
     pushHistory();
-    setAnnDrag({
-      id: ann.id,
-      mode: 'move',
-      startX: (e.clientX - svgRect.left) / zoom,
-      startY: (e.clientY - svgRect.top) / zoom,
-      origin: ann,
-    });
-  }, [canEdit, pushHistory, zoom]);
+    setAnnDrag({ id: ann.id, mode: 'move', startX: cx, startY: cy, origin: ann });
+  }, [canEdit, pushHistory, zoom, multiSel, selectedAnn, buildGroupDrag]);
+
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     const svgRect = svgRef.current?.getBoundingClientRect();
