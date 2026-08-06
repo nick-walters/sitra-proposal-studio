@@ -617,7 +617,9 @@ html, body {
   font-family: "Times New Roman", Times, serif !important;
   font-size: 11pt;
   table-layout: fixed;
-  width: 100% !important;
+  /* No !important: an explicit inline width (set by column resizing) must win,
+     so a table can be narrower than the 18cm text column. */
+  width: 100%;
   max-width: 18cm !important;
 }
 

@@ -19,6 +19,7 @@ import { ImageCropDialog } from './ImageCropDialog';
 import { resolveStorageUrl } from '@/hooks/useStorageUrl';
 import { createCitationTooltipPlugin, CitationMark, CitationNode } from './CitationMark';
 import { BlockReordering } from '@/extensions/BlockReordering';
+import { WordTableResizing } from '@/extensions/WordTableResizing';
 import { FigureFloat } from '@/extensions/FigureFloat';
 import { reconcileFigureCaptionFloat } from '@/lib/reconcileFigureCaptionFloat';
 import { ParagraphSpacing } from '@/extensions/ParagraphSpacing';
@@ -1301,11 +1302,12 @@ StarterKit.configure({
         },
       }),
       Table.configure({
-        resizable: true,
+        resizable: false,
         HTMLAttributes: {
           class: 'he-table',
         },
       }),
+      WordTableResizing,
       TableRow,
       TableHeader.configure({
         HTMLAttributes: {
