@@ -617,7 +617,9 @@ html, body {
   font-family: "Times New Roman", Times, serif !important;
   font-size: 11pt;
   table-layout: fixed;
-  width: 100% !important;
+  /* No !important: an explicit inline width (set by column resizing) must win,
+     so a table can be narrower than the 18cm text column. */
+  width: 100%;
   max-width: 18cm !important;
 }
 
@@ -978,6 +980,33 @@ table.b31-effort-matrix.first-col-flush {
   background-color: hsl(var(--primary) / 0.5);
   cursor: col-resize;
 }
+
+/* Word-like column resizing: hovered border indicator */
+.ProseMirror table td.col-resize-hint,
+.ProseMirror table th.col-resize-hint {
+  cursor: col-resize;
+}
+.ProseMirror table td.col-resize-hint::after,
+.ProseMirror table th.col-resize-hint::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: -2px;
+  width: 4px;
+  background-color: hsl(var(--primary) / 0.5);
+  pointer-events: none;
+  z-index: 20;
+}
+.ProseMirror.resize-cursor {
+  cursor: col-resize;
+}
+body.table-col-resizing,
+body.table-col-resizing * {
+  cursor: col-resize !important;
+  user-select: none !important;
+}
+
 
 /* Selected cell styling */
 .ProseMirror .selectedCell {
