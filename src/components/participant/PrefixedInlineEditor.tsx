@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import DOMPurify from 'dompurify';
 import { stripWordHtml } from '@/lib/stripWordHtml';
 import { cn } from '@/lib/utils';
+import { normalizeRefBadges } from '@/lib/normalizeRefBadges';
 import { rememberContentEditableSelection, REF_BADGE_INSERTED_EVENT } from '@/lib/contentEditableRefBadges';
 
 /**
@@ -84,7 +85,7 @@ export function PrefixedInlineEditor({
   // Initial mount
   useEffect(() => {
     if (editorRef.current && isInitialMount.current) {
-      const bodyHtml = DOMPurify.sanitize(value || '', SANITIZE_CONFIG);
+      const bodyHtml = normalizeRefBadges(DOMPurify.sanitize(value || '', SANITIZE_CONFIG));
       editorRef.current.innerHTML = prefixHtmlRef.current + bodyHtml;
       hasPendingLocalChangesRef.current = false;
       isInitialMount.current = false;
@@ -101,7 +102,7 @@ export function PrefixedInlineEditor({
     if (currentBody === nextBody) return;
 
     editorRef.current.innerHTML =
-      prefixHtmlRef.current + DOMPurify.sanitize(nextBody, SANITIZE_CONFIG);
+      prefixHtmlRef.current + normalizeRefBadges(DOMPurify.sanitize(nextBody, SANITIZE_CONFIG));
   }, [value, isFocused]);
 
   const ensurePrefix = useCallback(() => {
