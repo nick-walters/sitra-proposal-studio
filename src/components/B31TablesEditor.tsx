@@ -171,7 +171,10 @@ function MirrorTable({
   // Measured natural widths for `fit` (badge-only) columns, so a badge is never clipped.
   const [fitWidths, setFitWidths] = React.useState<Record<number, number>>({});
   const minWidths = useMemo(
-    () => columns.map((c, i) => (c.fit && fitWidths[i] ? fitWidths[i] : 24)),
+    // Fit columns may be dragged a little tighter than their measured width
+    // (the measurement includes padding + a safety pixel), so neighbouring
+    // badge columns can be pulled closer together.
+    () => columns.map((c, i) => (c.fit && fitWidths[i] ? Math.max(20, fitWidths[i] - 6) : 24)),
     [columns, fitWidths],
   );
 
@@ -491,7 +494,7 @@ export function B31DeliverablesTable({ proposalId, forExport }: Props & { forExp
     { label: 'No.', fit: true, defaultWidth: 52 },
     { label: 'Deliverable title', flex: true },
     { label: 'WP', fit: true, defaultWidth: 44 },
-    { label: 'Lead', defaultWidth: 78 },
+    { label: 'Lead', fit: true, defaultWidth: 60 },
     { label: 'Type', fit: true, defaultWidth: 46 },
     { label: 'Diss.', fit: true, defaultWidth: 42 },
     { label: 'Due', fit: true, defaultWidth: 40 },
@@ -638,7 +641,7 @@ export function B31MilestonesTable({ proposalId }: Props) {
     { label: 'Milestone', defaultWidth: 220 },
     { label: 'WP(s)', defaultWidth: 113, cellClass: 'cell-px-0' },
     { label: 'Due', fit: true, defaultWidth: 40 },
-    { label: 'Means of verification', flex: true, cellClass: 'cell-pr-0' },
+    { label: 'Means of verification', flex: true, padX: 'pl-1 pr-0', cellClass: 'cell-pr-0' },
   ];
 
   const last = columns.length - 1;
