@@ -124,6 +124,10 @@ function useParticipantLookup(proposalId: string) {
   });
 }
 
+/** The 18cm text column between the page margins, in CSS px at 96dpi. */
+const MAX_TABLE_WIDTH_PX = Math.round((18 / 2.54) * 96);
+
+
 /**
  * Mirror table column descriptor.
  * - `defaultWidth`: fallback width in px when no saved widths exist.
