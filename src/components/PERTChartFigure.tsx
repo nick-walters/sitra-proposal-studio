@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect, useId } from 'react';
 import { scheduleFigurePngCache } from '@/lib/figureCache';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -199,6 +199,14 @@ export function PERTChartFigure({
   const svgRef = useRef<SVGSVGElement>(null);
   const chartRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  // SVG marker ids are document-global: when two PERT instances are mounted
+  // (figure editor + the B3.1 mount, or several charts in a print DOM) a
+  // shared id makes every chart resolve to the FIRST definition in the page,
+  // so an older/other chart's arrowheads win. Scope the ids per instance.
+  const markerUid = useId().replace(/[^a-zA-Z0-9]/g, '');
+  const endMarkerId = `pert-arrowhead-${markerUid}`;
+  const startMarkerId = `pert-arrowhead-start-${markerUid}`;
+  const legendMarkerId = `pert-arrowhead-legend-${markerUid}`;
   const queryClient = useQueryClient();
   const [draggingNode, setDraggingNode] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -1193,10 +1201,10 @@ export function PERTChartFigure({
             onMouseLeave={handleMouseUp}
           >
             <defs>
-              <marker id="arrowhead" markerWidth="8" markerHeight="7" refX="7.5" refY="3.5" orient="auto">
+              <marker id={endMarkerId} markerWidth="8" markerHeight="7" refX="7.5" refY="3.5" orient="auto">
                 <polygon points="0 0, 8 3.5, 0 7" fill="#000000" />
               </marker>
-              <marker id="arrowhead-start" markerWidth="8" markerHeight="7" refX="0.5" refY="3.5" orient="auto">
+              <marker id={startMarkerId} markerWidth="8" markerHeight="7" refX="0.5" refY="3.5" orient="auto">
                 <polygon points="8 0, 0 3.5, 8 7" fill="#000000" />
               </marker>
             </defs>
@@ -1323,8 +1331,8 @@ export function PERTChartFigure({
                 x1={arrow.fromX} y1={arrow.fromY}
                 x2={arrow.toX} y2={arrow.toY}
                 stroke="#000000" strokeWidth="1.5"
-                markerEnd={arrow.direction !== 'reverse' ? 'url(#arrowhead)' : undefined}
-                markerStart={arrow.direction === 'reverse' || arrow.direction === 'bidirectional' ? 'url(#arrowhead-start)' : undefined}
+                markerEnd={arrow.direction !== 'reverse' ? `url(#${endMarkerId})` : undefined}
+                markerStart={arrow.direction === 'reverse' || arrow.direction === 'bidirectional' ? `url(#${startMarkerId})` : undefined}
               />
             ))}
 
@@ -1427,9 +1435,9 @@ export function PERTChartFigure({
           </div>
             <div className="flex items-center gap-1">
             <svg width="24" height="10">
-              <line x1="0" y1="5" x2="18" y2="5" stroke="currentColor" strokeWidth="2" markerEnd="url(#arrowhead-legend)" />
+              <line x1="0" y1="5" x2="18" y2="5" stroke="currentColor" strokeWidth="2" markerEnd={`url(#${legendMarkerId})`} />
               <defs>
-                <marker id="arrowhead-legend" markerWidth="8" markerHeight="5.5" refX="6.5" refY="2.75" orient="auto">
+                <marker id={legendMarkerId} markerWidth="8" markerHeight="5.5" refX="6.5" refY="2.75" orient="auto">
                   <polygon points="0 0, 8 2.75, 0 5.5" fill="currentColor" />
                 </marker>
               </defs>
