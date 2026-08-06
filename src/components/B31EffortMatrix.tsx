@@ -8,8 +8,25 @@ import { EditableCaption } from '@/components/EditableCaption';
 import { ParticipantBubble } from '@/components/B31Pill';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
-const cellStyles = "px-[1pt] py-[1pt] font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-center align-middle border-none";
-const headerCellStyles = "px-[1pt] py-[1pt] font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-center align-middle border-none";
+const cellStyles = "px-[1pt] py-[1pt] font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle border-none";
+const headerCellStyles = cellStyles;
+/**
+ * Header and body cells must share IDENTICAL horizontal geometry, otherwise the
+ * WP labels sit off-centre above their values and the participant badges are
+ * indented relative to the header row. Applied inline so no cascading rule
+ * (.document-content th/td, Tailwind utilities) can desynchronise the two rows.
+ */
+const firstColCell: React.CSSProperties = {
+  textAlign: 'left',
+  paddingLeft: 0,
+  paddingRight: '1pt',
+};
+const dataColCell: React.CSSProperties = {
+  textAlign: 'center',
+  paddingLeft: '1pt',
+  paddingRight: '1pt',
+};
+
 
 function formatPM(value: number): string {
   if (value === 0) return '0';
