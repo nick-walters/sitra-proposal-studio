@@ -767,7 +767,7 @@ export function PERTChartFigure({
           ref={scrollRef}
           className={canEdit ? 'relative border rounded-lg bg-white overflow-auto' : 'bg-white overflow-auto'}
         >
-          <div className="relative" style={canEdit ? { width: svgWidth * zoom, height: svgHeight * zoom } : undefined}>
+          <div className="relative" style={canEdit ? { width: svgWidth * zoom, height: svgHeight * zoom, minWidth: '100%' } : undefined}>
           <div ref={chartRef} className="bg-white">
           <svg
             ref={svgRef}
