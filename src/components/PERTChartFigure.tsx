@@ -576,6 +576,7 @@ export function PERTChartFigure({
       strokeWidth: 1.5,
       text: '',
       textColor: '#000000',
+      cornerRadiusMm: ANN_CORNER_DEFAULT_MM,
     };
     pushHistory();
     commitAnnotations([...annotations, ann]);
