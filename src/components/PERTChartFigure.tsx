@@ -709,52 +709,46 @@ export function PERTChartFigure({
         </div>
       )}
 
-      {/* Selected WP box — exact size in cm */}
-      {canEdit && (
+      {/* Uniform WP box size in cm — applies to every box */}
+      {canEdit && nodes.length > 0 && (
         <div className="flex items-center gap-3 text-xs border rounded-md px-3 py-2 bg-muted/30">
-          {selected ? (
-            <>
-              <span className="font-medium">
-                WP{selected.number}{selected.shortName ? `: ${selected.shortName}` : ''}
-              </span>
-              <label className="flex items-center gap-1">
-                Width (cm)
-                <Input
-                  type="number" min={pxToCm(NODE_MIN_W).toFixed(1)} step={0.1}
-                  className="h-7 w-20 text-xs"
-                  value={pxToCm(selected.w).toFixed(1)}
-                  onChange={(e) => {
-                    const v = parseFloat(e.target.value);
-                    if (Number.isFinite(v)) setNodeSizeCm(selected, v, undefined);
-                  }}
-                />
-              </label>
-              <label className="flex items-center gap-1">
-                Height (cm)
-                <Input
-                  type="number" min={pxToCm(NODE_MIN_H).toFixed(1)} step={0.1}
-                  className="h-7 w-20 text-xs"
-                  value={pxToCm(selected.h).toFixed(1)}
-                  onChange={(e) => {
-                    const v = parseFloat(e.target.value);
-                    if (Number.isFinite(v)) setNodeSizeCm(selected, undefined, v);
-                  }}
-                />
-              </label>
-              <Button
-                variant="ghost" size="sm" className="h-7 text-xs"
-                onClick={() => setNodeSizeCm(selected, pxToCm(NODE_DEFAULT_W), pxToCm(NODE_DEFAULT_H))}
-              >
-                Reset size
-              </Button>
-            </>
-          ) : (
-            <span className="text-muted-foreground">
-              Select a work package box to resize it, or drag its corner handles. Frame: {frameWidthCm} × {frameHeightCm} cm.
-            </span>
-          )}
+          <span className="font-medium">All boxes</span>
+          <label className="flex items-center gap-1">
+            Width (cm)
+            <Input
+              type="number" min={pxToCm(NODE_MIN_W).toFixed(1)} step={0.1}
+              className="h-7 w-20 text-xs"
+              value={pxToCm((selected ?? nodes[0]).w).toFixed(1)}
+              onChange={(e) => {
+                const v = parseFloat(e.target.value);
+                if (Number.isFinite(v)) setAllNodesSizeCm(v, undefined);
+              }}
+            />
+          </label>
+          <label className="flex items-center gap-1">
+            Height (cm)
+            <Input
+              type="number" min={pxToCm(NODE_MIN_H).toFixed(1)} step={0.1}
+              className="h-7 w-20 text-xs"
+              value={pxToCm((selected ?? nodes[0]).h).toFixed(1)}
+              onChange={(e) => {
+                const v = parseFloat(e.target.value);
+                if (Number.isFinite(v)) setAllNodesSizeCm(undefined, v);
+              }}
+            />
+          </label>
+          <Button
+            variant="ghost" size="sm" className="h-7 text-xs"
+            onClick={() => setAllNodesSizeCm(pxToCm(NODE_DEFAULT_W), pxToCm(NODE_DEFAULT_H))}
+          >
+            Reset size
+          </Button>
+          <span className="text-muted-foreground">
+            Box size applies to all work packages. Frame: {frameWidthCm} × {frameHeightCm} cm.
+          </span>
         </div>
       )}
+
 
 
 
