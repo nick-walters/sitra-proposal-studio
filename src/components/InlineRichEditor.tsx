@@ -96,6 +96,16 @@ export function InlineRichEditor({
     if (debounceRef.current) clearTimeout(debounceRef.current);
   }, []);
 
+  // Cross-ref badge insertions must be persisted immediately: focus bounces
+  // back from the picker dialog, which can cut the debounced path short.
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    const handler = () => flushPending();
+    editor.addEventListener(REF_BADGE_INSERTED_EVENT, handler);
+    return () => editor.removeEventListener(REF_BADGE_INSERTED_EVENT, handler);
+  }, [flushPending]);
+
   // Remember the caret so toolbar buttons / cross-ref dialogs can restore it.
   useEffect(() => {
     if (!isFocused) return;
