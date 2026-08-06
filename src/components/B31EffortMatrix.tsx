@@ -90,7 +90,7 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
         if (w > measured[i]) measured[i] = w;
       });
     });
-    const padded = measured.map((w, i) => Math.ceil(w) + (i === 0 ? 2 : 8));
+    const padded = measured.map((w, i) => Math.ceil(w) + (i === 0 ? 3 : 5));
     setFitWidths(prev => {
       if (prev && prev.length === padded.length && prev.every((w, i) => Math.abs(w - padded[i]) <= 2)) return prev;
       return padded;
