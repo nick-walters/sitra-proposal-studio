@@ -152,6 +152,15 @@ export function PrefixedInlineEditor({
     if (debounceRef.current) clearTimeout(debounceRef.current);
   }, []);
 
+  // Cross-ref badge insertions must be persisted immediately.
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    const handler = () => flushPending();
+    editor.addEventListener(REF_BADGE_INSERTED_EVENT, handler);
+    return () => editor.removeEventListener(REF_BADGE_INSERTED_EVENT, handler);
+  }, [flushPending]);
+
   /**
    * Returns the first valid caret position AFTER the prefix island (i.e. after
    * the prefix span AND its trailing NBSP). Null if the editor/prefix aren't
