@@ -583,7 +583,7 @@ export function B31MilestonesTable({ proposalId }: Props) {
     { label: 'No.', fit: true, defaultWidth: 48, cellClass: 'cell-pl-0' },
     { label: 'Milestone', defaultWidth: 220 },
     { label: 'WP(s)', defaultWidth: 113, cellClass: 'cell-px-0' },
-    { label: 'Due', defaultWidth: 40 },
+    { label: 'Due', fit: true, defaultWidth: 40 },
     { label: 'Means of verification', flex: true, cellClass: 'cell-pr-0' },
   ];
 
