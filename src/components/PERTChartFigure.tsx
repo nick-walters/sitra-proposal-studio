@@ -16,6 +16,19 @@ const PERT_MAJOR_GRID = 50;
 const PERT_MIN_ZOOM = 0.25;
 const PERT_MAX_ZOOM = 3;
 
+/** CSS px per cm at 96 dpi — maps the physical frame to SVG user units. */
+const PX_PER_CM = 96 / 2.54;
+/** Default frame: third-page standard size. */
+const PERT_DEFAULT_WIDTH_CM = 18;
+const PERT_DEFAULT_HEIGHT_CM = 8.5;
+/** Default WP box size (SVG user units). */
+const NODE_DEFAULT_W = 84;
+const NODE_DEFAULT_H = 35;
+const NODE_MIN_W = 30;
+const NODE_MIN_H = 18;
+
+const cmToPx = (cm: number) => cm * PX_PER_CM;
+const pxToCm = (px: number) => px / PX_PER_CM;
 
 interface WPNode {
   id: string;
@@ -25,6 +38,8 @@ interface WPNode {
   color: string;
   x: number;
   y: number;
+  w: number;
+  h: number;
 }
 
 interface Dependency {
@@ -38,7 +53,14 @@ type DependencyDirection = Dependency['direction'];
 
 interface PERTContent {
   nodePositions?: Record<string, { x: number; y: number }>;
+  /** Per-node box size in SVG user units (px at 100%). */
+  nodeSizes?: Record<string, { w: number; h: number }>;
+  /** Physical frame size, shared with the figure size picker. */
+  widthCm?: number | null;
+  heightCm?: number | null;
+  presetId?: string | null;
 }
+
 
 interface PERTChartFigureProps {
   figureId?: string;
