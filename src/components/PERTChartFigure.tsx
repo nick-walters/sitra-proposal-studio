@@ -795,6 +795,13 @@ export function PERTChartFigure({
             {/* Render nodes */}
             {nodes.map((node) => {
               const isSelected = canEdit && selectedNode === node.id;
+              // Label size scales with the box so auto-generated (larger) boxes
+              // get proportionally larger, more legible text.
+              const labelFs = Math.round(
+                Math.max(10, Math.min(20, Math.min(node.h * 0.26, node.w * 0.16))),
+              );
+              const subFs = Math.round(Math.max(9, labelFs * 0.85));
+              const hasSub = !!node.shortName;
               return (
                 <Tooltip key={node.id}>
                   <TooltipTrigger asChild>
@@ -805,14 +812,23 @@ export function PERTChartFigure({
                     >
                       <rect width={node.w} height={node.h} rx={6} ry={6} fill={node.color}
                         stroke={draggingNode === node.id || isSelected ? 'hsl(var(--primary))' : 'transparent'} strokeWidth={1.5} className="transition-all" />
-                      <text x={node.w / 2} y={node.h / 2 - 3} textAnchor="middle" fill="#FFFFFF" fontSize="10" fontWeight="bold">
+                      <text
+                        x={node.w / 2}
+                        y={hasSub ? node.h / 2 - labelFs * 0.2 : node.h / 2 + labelFs * 0.35}
+                        textAnchor="middle" fill="#FFFFFF" fontSize={labelFs} fontWeight="bold"
+                      >
                         WP{node.number}
                       </text>
-                      {node.shortName && (
-                        <text x={node.w / 2} y={node.h / 2 + 10} textAnchor="middle" fill="#FFFFFF" fontSize="10" opacity={0.9}>
+                      {hasSub && (
+                        <text
+                          x={node.w / 2}
+                          y={node.h / 2 + subFs * 1.05}
+                          textAnchor="middle" fill="#FFFFFF" fontSize={subFs} opacity={0.9}
+                        >
                           {node.shortName}
                         </text>
                       )}
+
                       {isSelected && ([
                         { c: 'nw' as Corner, x: 0, y: 0 },
                         { c: 'ne' as Corner, x: node.w, y: 0 },
