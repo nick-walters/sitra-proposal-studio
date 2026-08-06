@@ -1323,7 +1323,7 @@ export function PERTChartFigure({
 
             {/* Annotation lines — drawn on top of everything */}
             {annotations.filter((a): a is PertLineAnnotation => a.kind === 'line').map((l) => {
-              const isSel = canEdit && selectedAnn === l.id;
+              const isSel = canEdit && (selectedAnn === l.id || multiSel.anns.includes(l.id));
               const stroke = isSel ? 'hsl(var(--primary))' : l.stroke;
               const sw = isSel ? Math.max(1.5, l.strokeWidth) : l.strokeWidth;
               const elbow = l.routing === 'elbow';
