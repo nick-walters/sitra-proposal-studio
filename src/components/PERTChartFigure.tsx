@@ -1229,7 +1229,7 @@ export function PERTChartFigure({
                       {s.text}
                     </text>
                   )}
-                  {isSel && (['nw', 'ne', 'sw', 'se'] as Corner[]).map((corner) => {
+                  {isSel && multiSel.nodes.length + multiSel.anns.length <= 1 && (['nw', 'ne', 'sw', 'se'] as Corner[]).map((corner) => {
                     const hx = corner.includes('w') ? s.x : s.x + s.w;
                     const hy = corner.includes('n') ? s.y : s.y + s.h;
                     return (
