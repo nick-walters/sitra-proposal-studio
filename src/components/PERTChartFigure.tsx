@@ -621,7 +621,7 @@ export function PERTChartFigure({
                 variant={snap ? 'secondary' : 'ghost'}
                 size="sm"
                 className="h-7 w-7 p-0"
-                title="Snap to grid (10 px)" aria-label="Toggle snap to grid"
+                title="Snap to grid (1 mm)" aria-label="Toggle snap to grid"
                 aria-pressed={snap}
                 onClick={() => setSnap((v) => !v)}
               >
