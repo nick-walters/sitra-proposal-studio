@@ -738,7 +738,7 @@ export function B31RisksTable({ proposalId }: Props) {
     { label: 'i.', defaultWidth: 30, cellClass: 'cell-px-0' },
     { label: 'ii.', defaultWidth: 30, cellClass: 'cell-px-0' },
     { label: 'WP(s)', defaultWidth: 113, cellClass: 'cell-px-0' },
-    { label: 'Mitigation & adaptation measures', flex: true, cellClass: 'cell-pr-0' },
+    { label: 'Mitigation & adaptation measures', flex: true, padX: 'pl-1 pr-0', cellClass: 'cell-pr-0' },
   ];
 
   const last = columns.length - 1;
