@@ -749,9 +749,25 @@ export function B31RisksTable({ proposalId }: Props) {
         proposalId={proposalId}
         tableKey="table-3.1.e"
         label="Table 3.1.e."
-        defaultCaption="Critical risks"
+        defaultCaption="Staff effort in person months"
         className="mb-0"
+        suffixSpacing={false}
+        suffix={
+          <span className="inline-flex items-baseline gap-1 whitespace-nowrap">
+            <span className="italic">;</span>
+            <span className="font-bold italic">i.</span>
+            <span className="italic">likelihood;</span>
+            <span className="font-bold italic">ii.</span>
+            <span className="italic">severity;</span>
+            <span className="not-italic inline-flex items-center gap-1">
+              <RiskBadge level="L" /><span className="italic">= low,</span>
+              <RiskBadge level="M" /><span className="italic">= medium,</span>
+              <RiskBadge level="H" /><span className="italic">= high</span>
+            </span>
+          </span>
+        }
       />
+
       <MirrorTable
         proposalId={proposalId}
         tableKey="b31-3-1-e-risks"
