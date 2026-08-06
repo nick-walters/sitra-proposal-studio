@@ -194,7 +194,12 @@ function MirrorTable({
       ref={tableRef}
       data-table-key={tableKey}
       className={`platform-table ${tableClassName} ${tableFont}`.trim()}
-      style={{ tableLayout: 'fixed', width: '100%', borderCollapse: 'collapse' }}
+      style={{
+        tableLayout: 'fixed',
+        width: hasSaved ? colWidths.reduce((a, b) => a + b, 0) : '100%',
+        maxWidth: '100%',
+        borderCollapse: 'collapse',
+      }}
     >
       <colgroup>
         {columns.map((_, i) => <col key={i} style={colStyle(i)} />)}
@@ -207,7 +212,7 @@ function MirrorTable({
               className={`${cellPad(i)} ${c.cellClass ?? ''} py-0 text-[10pt] align-bottom relative ${c.align === 'center' ? 'text-center' : 'text-left'}`}
             >
               {c.label}
-              {i < lastIdx && <ColumnResizer onMouseDown={handleColResizeStart(i)} />}
+              <ColumnResizer onMouseDown={handleColResizeStart(i)} />
             </th>
           ))}
         </tr>
