@@ -1435,9 +1435,9 @@ export function PERTChartFigure({
           </div>
             <div className="flex items-center gap-1">
             <svg width="24" height="10">
-              <line x1="0" y1="5" x2="18" y2="5" stroke="currentColor" strokeWidth="2" markerEnd="url(#arrowhead-legend)" />
+              <line x1="0" y1="5" x2="18" y2="5" stroke="currentColor" strokeWidth="2" markerEnd={`url(#${legendMarkerId})`} />
               <defs>
-                <marker id="arrowhead-legend" markerWidth="8" markerHeight="5.5" refX="6.5" refY="2.75" orient="auto">
+                <marker id={legendMarkerId} markerWidth="8" markerHeight="5.5" refX="6.5" refY="2.75" orient="auto">
                   <polygon points="0 0, 8 2.75, 0 5.5" fill="currentColor" />
                 </marker>
               </defs>
