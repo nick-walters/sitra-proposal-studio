@@ -8,24 +8,10 @@ import { EditableCaption } from '@/components/EditableCaption';
 import { ParticipantBubble } from '@/components/B31Pill';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
-const cellStyles = "px-[1pt] py-[1pt] font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle border-none";
-const headerCellStyles = cellStyles;
-/**
- * Header and body cells must share IDENTICAL horizontal geometry, otherwise the
- * WP labels sit off-centre above their values and the participant badges are
- * indented relative to the header row. Applied inline so no cascading rule
- * (.document-content th/td, Tailwind utilities) can desynchronise the two rows.
- */
-const firstColCell: React.CSSProperties = {
-  textAlign: 'left',
-  paddingLeft: 0,
-  paddingRight: '1pt',
-};
-const dataColCell: React.CSSProperties = {
-  textAlign: 'center',
-  paddingLeft: '1pt',
-  paddingRight: '1pt',
-};
+const cellStyles = "px-[1pt] py-[1pt] font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-center align-middle border-none";
+const headerCellStyles = "px-[1pt] py-[1pt] font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-center align-middle border-none";
+const firstColCell: React.CSSProperties = { textAlign: 'left' };
+const dataColCell: React.CSSProperties = {};
 
 
 function formatPM(value: number): string {
@@ -90,7 +76,7 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
         if (w > measured[i]) measured[i] = w;
       });
     });
-    const padded = measured.map((w, i) => Math.ceil(w) + (i === 0 ? 3 : 5));
+    const padded = measured.map((w, i) => Math.ceil(w) + (i === 0 ? 2 : 8));
     setFitWidths(prev => {
       if (prev && prev.length === padded.length && prev.every((w, i) => Math.abs(w - padded[i]) <= 2)) return prev;
       return padded;
