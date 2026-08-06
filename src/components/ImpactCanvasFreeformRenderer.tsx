@@ -23,6 +23,10 @@ interface Props {
    *  undefined, reads the Impact Canvas singleton (proposal_id + figure_id
    *  IS NULL). Stage B: prop plumbing only — no caller passes a figureId. */
   figureId?: string;
+  /** 'impact' = table-backed canvas (bound cells + headers driven by
+   *  impact_canvas_columns/rows scoped to figureId). 'freeform' = free
+   *  elements only. Defaults to 'impact' when no figureId is given. */
+  mode?: 'impact' | 'freeform';
   /** Stage D: fixed physical size for Figure Canvas figures. Omitted for
    *  the Impact Canvas, which keeps IMPACT_CANVAS_SIZE (adaptive). */
   canvasSize?: Partial<CanvasSize>;
@@ -130,15 +134,17 @@ export function ImpactCanvasFreeformRenderer(props: Props) {
 }
 
 
-function ImpactCanvasFreeformRendererInner({ proposalId, className, fallback = 'grid', figureId }: Props) {
+function ImpactCanvasFreeformRendererInner({ proposalId, className, fallback = 'grid', figureId, mode }: Props) {
+  const resolvedMode = mode ?? (figureId ? 'freeform' : 'impact');
+  const isTableBacked = resolvedMode === 'impact';
   const { widthCm, minHeightCm, maxHeightCm, headerHeightCm, adaptive } = useCanvasSize();
   const pf = useCanvasPtFont();
 
   // Impact-only rows/columns: a Figure Canvas figure has no columns/rows
   // (no bound cells). Short-circuit the hooks with an empty proposal id.
-  const impactProposalId = figureId ? '' : proposalId;
-  const { columns, isLoading: colsLoading } = useImpactCanvasColumns(impactProposalId);
-  const { rows, isLoading: rowsLoading } = useImpactCanvasRows(impactProposalId);
+  const impactProposalId = isTableBacked ? proposalId : '';
+  const { columns, isLoading: colsLoading } = useImpactCanvasColumns(impactProposalId, figureId ?? null);
+  const { rows, isLoading: rowsLoading } = useImpactCanvasRows(impactProposalId, figureId ?? null);
   const { elements, isLoading: elsLoading } = useImpactCanvasElements(proposalId, figureId);
 
   if (colsLoading || rowsLoading || elsLoading) {
@@ -148,14 +154,14 @@ function ImpactCanvasFreeformRendererInner({ proposalId, className, fallback = '
   const columnOrder = columns.slice().sort((a, b) => a.order_index - b.order_index);
 
   // Figure Canvas figures have no columns/rows — skip the impact-only guards.
-  if (!figureId && columnOrder.length === 0) {
+  if (isTableBacked && columnOrder.length === 0) {
     return (
       <p className={`${className ?? ''} text-xs text-muted-foreground italic py-6 text-center`}>
         No columns defined.
       </p>
     );
   }
-  if (!figureId && rows.length === 0) {
+  if (isTableBacked && rows.length === 0) {
     return (
       <p className={`${className ?? ''} text-xs text-muted-foreground italic py-6 text-center`}>
         No rows yet.
@@ -209,6 +215,7 @@ function ImpactCanvasFreeformRendererInner({ proposalId, className, fallback = '
     <div
       className={className}
       data-impact-canvas-graphic="true"
+      data-canvas-figure-id={figureId ?? ''}
       style={{
         position: 'relative',
         width: '100%',

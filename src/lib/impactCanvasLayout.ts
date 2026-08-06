@@ -138,27 +138,27 @@ export function computeCanvasHeightCm(
  * existing (row × column) for the given proposal, WITHOUT clobbering existing
  * coords/z/style and WITHOUT touching free elements (bound_row_id IS NULL).
  */
-export async function syncBoundElements(proposalId: string): Promise<void> {
+export async function syncBoundElements(proposalId: string, figureId?: string | null): Promise<void> {
+  const fid = figureId ?? null;
+  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+  const scope = (q: any): any => (fid ? q.eq('figure_id', fid) : q.is('figure_id', null));
   const [colsRes, rowsRes, existingRes] = await Promise.all([
-    supabase
+    scope(supabase
       .from('impact_canvas_columns')
       .select('key, order_index')
-      .eq('proposal_id', proposalId)
-      .order('order_index'),
-    supabase
+      .eq('proposal_id', proposalId)).order('order_index'),
+    scope(supabase
       .from('impact_canvas_rows')
       .select('id, order_index')
-      .eq('proposal_id', proposalId)
-      .order('order_index'),
-    // Impact Canvas ONLY (figure_id IS NULL). syncBoundElements is invoked
-    // exclusively for the Impact Canvas singleton — the figure_id filter is
-    // defensive so Figure Canvas elements can never be seen or mutated here.
-    supabase
+      .eq('proposal_id', proposalId)).order('order_index'),
+    // Scoped to ONE canvas: figure_id IS NULL = the Impact Canvas singleton;
+    // a non-null figure_id = a table-backed canvas figure (e.g. the B1.1
+    // project overview canvas).
+    scope(supabase
       .from('impact_canvas_elements')
       .select('bound_row_id, bound_col_key, kind, x, y, w, h')
-      .eq('proposal_id', proposalId)
-      .is('figure_id', null)
-      .in('kind', ['bound', 'header']),
+      .eq('proposal_id', proposalId)).in('kind', ['bound', 'header']),
+
 
   ]);
   if (colsRes.error) throw colsRes.error;
@@ -188,18 +188,19 @@ export async function syncBoundElements(proposalId: string): Promise<void> {
     ),
   );
   if (orphanKeys.length > 0) {
-    const { error } = await supabase
+    const { error } = await scope(supabase
       .from('impact_canvas_elements')
       .delete()
-      .eq('proposal_id', proposalId)
-      .is('figure_id', null)
+      .eq('proposal_id', proposalId))
       .in('kind', ['bound', 'header'])
       .in('bound_col_key', orphanKeys);
+
     if (error) throw error;
   }
 
   const toInsert: Array<{
     proposal_id: string;
+    figure_id: string | null;
     kind: 'bound' | 'header';
     bound_row_id: string | null;
     bound_col_key: string;
@@ -215,6 +216,7 @@ export async function syncBoundElements(proposalId: string): Promise<void> {
     if (existingHeader.has(c.key)) continue;
     toInsert.push({
       proposal_id: proposalId,
+      figure_id: fid,
       kind: 'header',
       bound_row_id: null,
       bound_col_key: c.key,
@@ -270,6 +272,7 @@ export async function syncBoundElements(proposalId: string): Promise<void> {
       const y = newRowY ?? Math.max(HEADER_HEIGHT_CM, (rowBottoms.get(r.id) ?? HEADER_HEIGHT_CM) - h);
       toInsert.push({
         proposal_id: proposalId,
+        figure_id: fid,
         kind: 'bound',
         bound_row_id: r.id,
         bound_col_key: c.key,
@@ -303,6 +306,7 @@ export async function syncBoundElements(proposalId: string): Promise<void> {
   if (existingRows.length === 0 && cols.length > 0) {
     const { error } = await supabase.from('impact_canvas_elements').insert({
       proposal_id: proposalId,
+      figure_id: fid,
       kind: 'shape',
       x: 0,
       y: 0,

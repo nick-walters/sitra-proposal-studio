@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { ensureOverviewCanvas } from '@/lib/overviewCanvas';
 import { ProposalType, BudgetType, SubmissionStage } from '@/types/proposal';
 
 interface CreateProposalTemplateParams {
@@ -269,6 +270,20 @@ export function useProposalTemplateCreation() {
             content: null,
             order_index: (b21Figures?.length ?? 0),
           });
+        }
+      }
+
+      // 8. Project overview canvas (B1.1) — on by default for new proposals.
+      if (submissionStage === 'full') {
+        try {
+          const { data: proposalRow } = await supabase
+            .from('proposals')
+            .select('acronym')
+            .eq('id', proposalId)
+            .maybeSingle();
+          await ensureOverviewCanvas(proposalId, proposalRow?.acronym ?? null);
+        } catch (e) {
+          console.error('Failed to provision overview canvas:', e);
         }
       }
 

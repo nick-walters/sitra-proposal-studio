@@ -192,9 +192,12 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
   // figure (figureId set) must NOT read/write those tables. We still call
   // the hooks unconditionally to keep hook order stable, but pass an empty
   // proposal id so they short-circuit (`enabled: !!proposalId`).
-  const impactProposalId = figureId ? '' : proposalId;
-  const { columns, isLoading: colsLoading } = useImpactCanvasColumns(impactProposalId);
-  const { rows, isLoading: rowsLoading } = useImpactCanvasRows(impactProposalId);
+  // Table-backed canvases (mode 'impact') read columns/rows scoped to their
+  // figure: NULL figure_id = the Impact Canvas singleton, non-null = another
+  // table-backed canvas figure (e.g. the B1.1 project overview canvas).
+  const impactProposalId = mode === 'freeform' ? '' : proposalId;
+  const { columns, isLoading: colsLoading } = useImpactCanvasColumns(impactProposalId, figureId ?? null);
+  const { rows, isLoading: rowsLoading } = useImpactCanvasRows(impactProposalId, figureId ?? null);
 
 
   const { data: fetched = EMPTY_ELS, isLoading: elsLoading } = useQuery({

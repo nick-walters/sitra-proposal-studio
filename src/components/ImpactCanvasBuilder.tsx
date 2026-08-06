@@ -23,6 +23,11 @@ interface Props {
   /** Optional ref pointing at the wrapper around the shared graphic — used by the
    * parent (FigureEditor) to trigger a PNG export from its action row. */
   graphicRef?: RefObject<HTMLDivElement>;
+  /** Scope: undefined = Impact Canvas singleton; a figure id = another
+   *  table-backed canvas figure (e.g. the B1.1 project overview canvas). */
+  figureId?: string;
+  /** 'overview' hides row management (a single content row is fixed). */
+  variant?: 'impact' | 'overview';
 }
 
 
@@ -33,12 +38,13 @@ interface Props {
  * Below: rich-text grid builder with ONE shared toolbar bound to the
  *        currently-focused cell (avoids toolbar-per-cell perf hit).
  */
-export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figureNumber, graphicRef }: Props) {
+export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figureNumber, graphicRef, figureId, variant = 'impact' }: Props) {
+  const singleRow = variant === 'overview';
   const { roleTier } = useProposalRole(proposalId);
   const isCoordinator = roleTier === 'coordinator';
 
-  const { columns, isLoading: colsLoading } = useImpactCanvasColumns(proposalId);
-  const { rows, isLoading: rowsLoading, addRow, deleteRow, updateCell } = useImpactCanvasRows(proposalId);
+  const { columns, isLoading: colsLoading } = useImpactCanvasColumns(proposalId, figureId ?? null);
+  const { rows, isLoading: rowsLoading, addRow, deleteRow, updateCell } = useImpactCanvasRows(proposalId, figureId ?? null);
 
 
   const [activeEditor, setActiveEditor] = useState<Editor | null>(null);
@@ -99,7 +105,7 @@ export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figure
             the last row/column of boxes (graphic ends flush, no slack). */}
         <div className="space-y-3">
           <div style={{ paddingBottom: 8, paddingRight: 8 }}>
-            <ImpactCanvasFreeformEditor proposalId={proposalId} canEdit={canEdit} />
+            <ImpactCanvasFreeformEditor proposalId={proposalId} canEdit={canEdit} figureId={figureId} mode="impact" />
           </div>
             {/* Off-screen clean read-only render — this is what PNG export
                 captures via graphicRef, so no editor chrome (toolbar,
@@ -115,7 +121,7 @@ export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figure
               }}
             >
               <div ref={graphicRef}>
-                <ImpactCanvasFreeformRenderer proposalId={proposalId} fallback="grid" />
+                <ImpactCanvasFreeformRenderer proposalId={proposalId} figureId={figureId} mode="impact" fallback="grid" />
               </div>
             </div>
         </div>
@@ -219,7 +225,7 @@ export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figure
                         <span className="text-xs font-semibold uppercase tracking-wide">
                           Row {rowIdx + 1}
                         </span>
-                        {canEdit && (
+                        {canEdit && !singleRow && (
                           <button
                             onClick={() => {
                               if (confirm('Delete this row?')) deleteRow.mutate(row.id);
@@ -301,7 +307,7 @@ export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figure
             )}
 
 
-            {canEdit && (
+            {canEdit && !singleRow && (
               <Button variant="outline" size="sm" onClick={() => addRow.mutate()} disabled={addRow.isPending}>
                 <Plus className="w-4 h-4 mr-1" /> Add row
               </Button>
@@ -313,6 +319,7 @@ export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figure
           open={columnDialogOpen}
           onOpenChange={setColumnDialogOpen}
           proposalId={proposalId}
+          figureId={figureId}
           canEdit={isCoordinator}
         />
       </div>
