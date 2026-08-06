@@ -15,9 +15,11 @@ import { GanttChartFigure } from './GanttChartFigure';
 
 interface Props {
   proposalId: string;
+  /** Export render: force canonical ordering, hide interactive controls. */
+  forExport?: boolean;
 }
 
-export function B31SectionContent({ proposalId }: Props) {
+export function B31SectionContent({ proposalId, forExport }: Props) {
   const { toggles } = useB31JustificationToggles(proposalId);
   const presence = useB31CostPresence(proposalId);
   const {
@@ -121,7 +123,7 @@ export function B31SectionContent({ proposalId }: Props) {
       )}
 
       <B31WPDescriptionTables wpData={wpData} participants={participants} proposalId={proposalId} projectDuration={projectDuration} />
-      <B31DeliverablesTable proposalId={proposalId} />
+      <B31DeliverablesTable proposalId={proposalId} forExport={forExport} />
       <B31MilestonesTable proposalId={proposalId} />
       <B31RisksTable proposalId={proposalId} />
       <B31EffortMatrix wpData={wpData} participants={participants} proposalId={proposalId} />

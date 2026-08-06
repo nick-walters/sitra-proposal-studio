@@ -278,16 +278,31 @@ function parseWPList(s: string | null | undefined): number[] {
 // ============================================================
 // Table 3.1.c — Deliverables (read-only mirror)
 // ============================================================
-export function B31DeliverablesTable({ proposalId }: Props) {
+type DeliverableOrderMode = 'wp' | 'due';
+
+const orderModeKey = (proposalId: string) => `b31-3-1-c-order:${proposalId}`;
+
+export function B31DeliverablesTable({ proposalId, forExport }: Props & { forExport?: boolean }) {
   const { data: wpInfo } = useWPLookup(proposalId);
   const { data: partInfo } = useParticipantLookup(proposalId);
 
-  const { data: deliverables = [] } = useQuery({
+  const [orderMode, setOrderMode] = React.useState<DeliverableOrderMode>(() => {
+    if (typeof window === 'undefined') return 'wp';
+    return window.localStorage.getItem(orderModeKey(proposalId)) === 'due' ? 'due' : 'wp';
+  });
+  const [showToggle, setShowToggle] = React.useState(false);
+
+  const setMode = (mode: DeliverableOrderMode) => {
+    setOrderMode(mode);
+    try { window.localStorage.setItem(orderModeKey(proposalId), mode); } catch { /* ignore */ }
+  };
+
+  const { data: deliverableData } = useQuery({
     queryKey: ['b31-deliverables-live', proposalId],
     enabled: !!proposalId && !!wpInfo,
     queryFn: async () => {
       const wpIds = wpInfo!.list.map((wp: any) => wp.id);
-      if (wpIds.length === 0) return [];
+      if (wpIds.length === 0) return { rows: [] as any[], taskRank: new Map<string, number>() };
       const { data } = await supabase
         .from('wp_draft_deliverables')
         .select('id, wp_draft_id, number, title, type, dissemination_level, responsible_participant_id, due_month, description, order_index')
@@ -322,25 +337,47 @@ export function B31DeliverablesTable({ proposalId }: Props) {
         }
       }
 
-      return rows
-        .map((d: any) => ({ ...d, wp: wpInfo!.byId.get(d.wp_draft_id) }))
-        .sort((a: any, b: any) => {
-          const wa = a.wp?.number ?? 999;
-          const wb = b.wp?.number ?? 999;
-          if (wa !== wb) return wa - wb;
-          const da = a.due_month ?? Number.POSITIVE_INFINITY;
-          const db = b.due_month ?? Number.POSITIVE_INFINITY;
-          if (da !== db) return da - db;
-          const ta = taskRank.get(a.id) ?? Number.POSITIVE_INFINITY;
-          const tb = taskRank.get(b.id) ?? Number.POSITIVE_INFINITY;
-          if (ta !== tb) return ta - tb;
-          const oa = a.order_index ?? a.number ?? 0;
-          const ob = b.order_index ?? b.number ?? 0;
-          if (oa !== ob) return oa - ob;
-          return (a.number ?? 0) - (b.number ?? 0);
-        });
+      return {
+        rows: rows.map((d: any) => ({ ...d, wp: wpInfo!.byId.get(d.wp_draft_id) })),
+        taskRank,
+      };
     },
   });
+
+  // Exports are always ordered by due date first, then deliverable number.
+  const effectiveMode: DeliverableOrderMode = forExport ? 'due' : orderMode;
+
+  const deliverables = useMemo(() => {
+    const rows = deliverableData?.rows ?? [];
+    const taskRank = deliverableData?.taskRank ?? new Map<string, number>();
+    const month = (d: any) => d.due_month ?? Number.POSITIVE_INFINITY;
+    const wpNum = (d: any) => d.wp?.number ?? 999;
+    return [...rows].sort((a: any, b: any) => {
+      if (effectiveMode === 'due') {
+        const da = month(a);
+        const db = month(b);
+        if (da !== db) return da - db;
+        const wa = wpNum(a);
+        const wb = wpNum(b);
+        if (wa !== wb) return wa - wb;
+        return (a.number ?? 0) - (b.number ?? 0);
+      }
+      const wa = wpNum(a);
+      const wb = wpNum(b);
+      if (wa !== wb) return wa - wb;
+      const da = month(a);
+      const db = month(b);
+      if (da !== db) return da - db;
+      const ta = taskRank.get(a.id) ?? Number.POSITIVE_INFINITY;
+      const tb = taskRank.get(b.id) ?? Number.POSITIVE_INFINITY;
+      if (ta !== tb) return ta - tb;
+      const oa = a.order_index ?? a.number ?? 0;
+      const ob = b.order_index ?? b.number ?? 0;
+      if (oa !== ob) return oa - ob;
+      return (a.number ?? 0) - (b.number ?? 0);
+    });
+  }, [deliverableData, effectiveMode]);
+
 
 
   const columns: Col[] = [
@@ -355,7 +392,36 @@ export function B31DeliverablesTable({ proposalId }: Props) {
   const last = columns.length - 1;
 
   return (
-    <div>
+    <div
+      className="relative"
+      onMouseEnter={() => setShowToggle(true)}
+      onMouseLeave={() => setShowToggle(false)}
+      onFocusCapture={() => setShowToggle(true)}
+    >
+      {!forExport && showToggle && (
+        <div
+          className="absolute -top-2 left-0 z-20 flex items-center gap-1 rounded-md border bg-background px-1 py-0.5 shadow-sm print:hidden"
+          contentEditable={false}
+          onMouseDown={(e) => e.preventDefault()}
+        >
+          <span className="px-1 text-[10px] text-muted-foreground">Order</span>
+          {(['wp', 'due'] as DeliverableOrderMode[]).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => setMode(mode)}
+              className={`rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors ${
+                orderMode === mode
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-muted'
+              }`}
+            >
+              {mode === 'wp' ? 'Work package' : 'Due date'}
+            </button>
+          ))}
+        </div>
+      )}
+
       <EditableCaption
         proposalId={proposalId}
         tableKey="table-3.1.c"

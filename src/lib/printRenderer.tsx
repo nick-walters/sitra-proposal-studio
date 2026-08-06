@@ -751,7 +751,7 @@ export async function mountDynamicComponents(
             'div',
             { className: 'print-b31-content' },
             createElement(B31IntroText, { proposalId, proposalAcronym }),
-            createElement(B31SectionContent, { proposalId }),
+            createElement(B31SectionContent, { proposalId, forExport: true }),
           ),
         ),
       ),
