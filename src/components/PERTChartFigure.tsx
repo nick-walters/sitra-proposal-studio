@@ -85,6 +85,9 @@ export function PERTChartFigure({
   const queryClient = useQueryClient();
   const [draggingNode, setDraggingNode] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [selectedNode, setSelectedNode] = useState<string | null>(null);
+  const [resizing, setResizing] = useState<ResizeState>(null);
+
 
   // Editor preferences (grid overlay + snap-to-grid + zoom) — the grid and
   // snap flags persist per browser, mirroring the freeform canvas editor.
