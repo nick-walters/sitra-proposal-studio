@@ -29,6 +29,10 @@ interface FigureSizePickerProps {
   label?: string;
   helpText?: string;
   idPrefix?: string;
+  /** Hide the "Size" label (compact inline usage where a heading already exists). */
+  hideLabel?: boolean;
+  /** Render the custom width/height inputs on one compact row. */
+  inlineCustom?: boolean;
 }
 
 /** Shared UI for picking one of the six FIGURE_SIZE_PRESETS or a
@@ -41,6 +45,8 @@ export function FigureSizePicker({
   label = 'Size',
   helpText,
   idPrefix = 'figure-size',
+  hideLabel,
+  inlineCustom,
 }: FigureSizePickerProps) {
   const handlePresetChange = (v: string) => {
     if (v === 'custom') {
@@ -53,10 +59,10 @@ export function FigureSizePicker({
   };
 
   return (
-    <div className="space-y-2">
-      <Label>{label}</Label>
+    <div className={inlineCustom ? 'space-y-1.5' : 'space-y-2'}>
+      {!hideLabel && <Label>{label}</Label>}
       <Select value={value.presetId} onValueChange={handlePresetChange} disabled={disabled}>
-        <SelectTrigger>
+        <SelectTrigger className={inlineCustom ? 'h-8 text-xs' : undefined}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -69,8 +75,30 @@ export function FigureSizePicker({
         </SelectContent>
       </Select>
       {value.presetId === 'custom' && (
-        <div className="grid grid-cols-2 gap-2 pt-1">
-          <div className="space-y-1">
+        <div className={inlineCustom ? 'flex items-center gap-2' : 'grid grid-cols-2 gap-2 pt-1'}>
+          <div className={inlineCustom ? 'flex items-center gap-1' : 'space-y-1'}>
+            <Label htmlFor={`${idPrefix}-w`} className="text-xs">Width (cm)</Label>
+            <Input
+              id={`${idPrefix}-w`}
+              type="number"
+              min={FIGURE_CUSTOM_MIN_CM}
+              max={FIGURE_CUSTOM_MAX_WIDTH_CM}
+              step={0.1}
+              disabled={disabled}
+              className={inlineCustom ? 'h-8 w-20 text-xs' : undefined}
+              value={value.widthCm}
+              onChange={(e) => onChange({ ...value, presetId: 'custom', widthCm: Number(e.target.value) })}
+              onBlur={(e) =>
+                onChange({
+                  ...value,
+                  presetId: 'custom',
+                  widthCm: clampFigureDim(Number(e.target.value), FIGURE_CUSTOM_MAX_WIDTH_CM),
+                })
+              }
+            />
+          </div>
+          <div className={inlineCustom ? 'flex items-center gap-1' : 'space-y-1'}>
+
             <Label htmlFor={`${idPrefix}-w`} className="text-xs">Width (cm)</Label>
             <Input
               id={`${idPrefix}-w`}
