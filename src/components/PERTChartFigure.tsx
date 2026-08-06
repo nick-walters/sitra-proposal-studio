@@ -85,16 +85,16 @@ function computeAutoLayout(
   if (n === 0) return { positions, sizes };
 
   // Boxes run right up to the canvas edges — no outer margin.
-  const margin = 0;
-  const hGap = Math.max(44, frameW * 0.09);
-  const vGap = Math.max(32, frameH * 0.16);
-
+  const halfCm = PX_PER_CM / 2;
+  const snapHalf = (px: number) => Math.floor(px / halfCm) * halfCm;
+  const minHGap = Math.max(44, frameW * 0.09);
+  const minVGap = Math.max(32, frameH * 0.16);
 
   let best = { cols: 1, w: 0, h: 0, score: -Infinity };
   for (let cols = 1; cols <= n; cols++) {
     const rows = Math.ceil(n / cols);
-    const w = (frameW - 2 * margin - (cols - 1) * hGap) / cols;
-    const h = (frameH - 2 * margin - (rows - 1) * vGap) / rows;
+    const w = snapHalf((frameW - (cols - 1) * minHGap) / cols);
+    const h = snapHalf((frameH - (rows - 1) * minVGap) / rows);
     if (w < NODE_MIN_W || h < NODE_MIN_H) continue;
     const aspect = w / h;
     const score = w * h / (1 + Math.abs(Math.log(aspect / 2.4)));
@@ -103,14 +103,18 @@ function computeAutoLayout(
   if (best.score === -Infinity) {
     best = {
       cols: n,
-      w: Math.max(NODE_MIN_W, (frameW - 2 * margin - (n - 1) * hGap) / n),
-      h: Math.max(NODE_MIN_H, frameH - 2 * margin),
+      w: Math.max(NODE_MIN_W, snapHalf((frameW - (n - 1) * minHGap) / n)),
+      h: Math.max(NODE_MIN_H, snapHalf(frameH)),
       score: 0,
     };
   }
 
   const { cols, w, h } = best;
   const rows = Math.ceil(n / cols);
+  // Distribute all leftover space into the gaps so the outer boxes touch the frame edges.
+  const hGap = cols > 1 ? (frameW - cols * w) / (cols - 1) : 0;
+  const vGap = rows > 1 ? (frameH - rows * h) / (rows - 1) : 0;
+
   ids.forEach((id, i) => {
     const row = Math.floor(i / cols);
     const col = i % cols;
@@ -120,12 +124,13 @@ function computeAutoLayout(
     const startX = (frameW - rowWidth) / 2;
     positions[id] = {
       x: startX + col * (w + hGap),
-      y: margin + row * (h + vGap),
+      y: row * (h + vGap),
     };
     sizes[id] = { w, h };
   });
   return { positions, sizes };
 }
+
 
 
 
@@ -497,8 +502,9 @@ export function PERTChartFigure({
   const selected = selectedNode ? nodes.find((n) => n.id === selectedNode) : undefined;
 
   const setNodeSizeCm = useCallback((node: WPNode, widthCm?: number, heightCm?: number) => {
-    const w = widthCm != null ? Math.max(NODE_MIN_W, cmToPx(widthCm)) : node.w;
-    const h = heightCm != null ? Math.max(NODE_MIN_H, cmToPx(heightCm)) : node.h;
+    const round1 = (cm: number) => Math.round(cm * 10) / 10;
+    const w = widthCm != null ? Math.max(NODE_MIN_W, cmToPx(round1(widthCm))) : node.w;
+    const h = heightCm != null ? Math.max(NODE_MIN_H, cmToPx(round1(heightCm))) : node.h;
     const base = lockedBase();
     pushHistory();
     onContentChange({
@@ -725,9 +731,9 @@ export function PERTChartFigure({
               <label className="flex items-center gap-1">
                 Width (cm)
                 <Input
-                  type="number" min={pxToCm(NODE_MIN_W).toFixed(2)} step={0.1}
+                  type="number" min={pxToCm(NODE_MIN_W).toFixed(1)} step={0.1}
                   className="h-7 w-20 text-xs"
-                  value={pxToCm(selected.w).toFixed(2)}
+                  value={pxToCm(selected.w).toFixed(1)}
                   onChange={(e) => {
                     const v = parseFloat(e.target.value);
                     if (Number.isFinite(v)) setNodeSizeCm(selected, v, undefined);
@@ -737,9 +743,9 @@ export function PERTChartFigure({
               <label className="flex items-center gap-1">
                 Height (cm)
                 <Input
-                  type="number" min={pxToCm(NODE_MIN_H).toFixed(2)} step={0.1}
+                  type="number" min={pxToCm(NODE_MIN_H).toFixed(1)} step={0.1}
                   className="h-7 w-20 text-xs"
-                  value={pxToCm(selected.h).toFixed(2)}
+                  value={pxToCm(selected.h).toFixed(1)}
                   onChange={(e) => {
                     const v = parseFloat(e.target.value);
                     if (Number.isFinite(v)) setNodeSizeCm(selected, undefined, v);
@@ -768,7 +774,7 @@ export function PERTChartFigure({
           ref={scrollRef}
           className={canEdit ? 'relative border rounded-lg bg-white overflow-auto' : 'bg-white overflow-auto'}
         >
-          <div className="relative" style={canEdit ? { width: svgWidth * zoom, height: svgHeight * zoom, minWidth: '100%' } : undefined}>
+          <div className="relative" style={canEdit ? { width: svgWidth * zoom, height: svgHeight * zoom } : undefined}>
           <div ref={chartRef} className="bg-white">
           <svg
             ref={svgRef}
