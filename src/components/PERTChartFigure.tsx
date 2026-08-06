@@ -423,7 +423,9 @@ export function PERTChartFigure({
     const svgRect = svgRef.current?.getBoundingClientRect();
     if (!svgRect) return;
     setSelectedNode(node.id);
+    pushHistory();
     setResizing({
+
       id: node.id,
       corner,
       startX: (e.clientX - svgRect.left) / zoom,
