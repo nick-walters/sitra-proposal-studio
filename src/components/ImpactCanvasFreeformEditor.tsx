@@ -1703,6 +1703,92 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
     [canEdit, maxZ, proposalId, qc, pushHistory],
   );
 
+  /** Upload an image file and insert it as a free `image` element.
+   *  Sized to fit within half the canvas width, preserving aspect ratio,
+   *  centred; movable/resizable/deletable like shapes. One undo step. */
+  const addImage = useCallback(
+    async (file: File) => {
+      if (!canEdit) return;
+      setUploadingImage(true);
+      try {
+        const isJpeg = /jpe?g$/i.test(file.type) || /\.jpe?g$/i.test(file.name);
+        const compressed = await compressImage(file, {
+          format: isJpeg ? 'jpeg' : 'png',
+          quality: 0.92,
+        });
+        const ext = getFormatExtension(isJpeg ? 'jpeg' : 'png');
+        const filePath = generateProposalFilePath(
+          proposalId,
+          'figures',
+          `canvas-image.${ext}`,
+          { prefix: 'canvas', addTimestamp: true },
+        );
+        const { storagePath, error } = await uploadProposalFile(compressed, filePath, {
+          contentType: isJpeg ? 'image/jpeg' : 'image/png',
+        });
+        if (error || !storagePath) {
+          toast.error('Failed to upload image');
+          return;
+        }
+
+        // Natural size → cm box, capped at half the canvas width.
+        const dims = await new Promise<{ w: number; h: number }>((resolve) => {
+          const url = URL.createObjectURL(compressed);
+          const img = new Image();
+          img.onload = () => {
+            resolve({ w: img.naturalWidth || 1, h: img.naturalHeight || 1 });
+            URL.revokeObjectURL(url);
+          };
+          img.onerror = () => {
+            resolve({ w: 4, h: 3 });
+            URL.revokeObjectURL(url);
+          };
+          img.src = url;
+        });
+        const VW = widthCm;
+        const VH = canvasHeightCmRef.current;
+        const targetW = Math.min(VW / 2, 6);
+        const targetH = +(targetW * (dims.h / dims.w)).toFixed(4);
+        const w = +targetW.toFixed(4);
+        const h = +Math.max(MIN_ELEMENT_H_CM, Math.min(targetH, VH)).toFixed(4);
+
+        const insertBox = {
+          proposal_id: proposalId,
+          figure_id: figureId ?? null,
+          kind: 'image',
+          x: +((VW - w) / 2).toFixed(4),
+          y: +Math.max(0, (VH - h) / 2).toFixed(4),
+          w,
+          h,
+          z: maxZ + 1,
+          content: { src: storagePath, fit: 'contain' },
+          style: {},
+        };
+        const { data, error: insErr } = await supabase
+          .from('impact_canvas_elements')
+          .insert(insertBox)
+          .select('id, kind, bound_row_id, bound_col_key, x, y, w, h, z, content, style')
+          .single();
+        if (insErr || !data) {
+          qc.invalidateQueries({ queryKey: ELS_KEY(proposalId, figureId) });
+          toast.error('Failed to add image');
+          return;
+        }
+        qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId, figureId), (old) => [
+          ...(old || []),
+          data as CanvasElement,
+        ]);
+        pushHistory({ kind: 'add', element: data as CanvasElement });
+        selectOnly(data.id);
+      } finally {
+        setUploadingImage(false);
+      }
+    },
+    [canEdit, maxZ, proposalId, qc, pushHistory, widthCm, figureId],
+  );
+
+
+
   /** Add a new line element with the given routing. Default caps:
    *  startCap 'none', endCap 'arrow-filled' (right/end arrowhead).
    *  Default geometry: a ~4 cm horizontal segment centred on the canvas,
