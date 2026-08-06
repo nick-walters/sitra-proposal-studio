@@ -731,9 +731,9 @@ export function PERTChartFigure({
               <label className="flex items-center gap-1">
                 Width (cm)
                 <Input
-                  type="number" min={pxToCm(NODE_MIN_W).toFixed(2)} step={0.1}
+                  type="number" min={pxToCm(NODE_MIN_W).toFixed(1)} step={0.1}
                   className="h-7 w-20 text-xs"
-                  value={pxToCm(selected.w).toFixed(2)}
+                  value={pxToCm(selected.w).toFixed(1)}
                   onChange={(e) => {
                     const v = parseFloat(e.target.value);
                     if (Number.isFinite(v)) setNodeSizeCm(selected, v, undefined);
@@ -743,9 +743,9 @@ export function PERTChartFigure({
               <label className="flex items-center gap-1">
                 Height (cm)
                 <Input
-                  type="number" min={pxToCm(NODE_MIN_H).toFixed(2)} step={0.1}
+                  type="number" min={pxToCm(NODE_MIN_H).toFixed(1)} step={0.1}
                   className="h-7 w-20 text-xs"
-                  value={pxToCm(selected.h).toFixed(2)}
+                  value={pxToCm(selected.h).toFixed(1)}
                   onChange={(e) => {
                     const v = parseFloat(e.target.value);
                     if (Number.isFinite(v)) setNodeSizeCm(selected, undefined, v);
@@ -774,7 +774,7 @@ export function PERTChartFigure({
           ref={scrollRef}
           className={canEdit ? 'relative border rounded-lg bg-white overflow-auto' : 'bg-white overflow-auto'}
         >
-          <div className="relative" style={canEdit ? { width: svgWidth * zoom, height: svgHeight * zoom, minWidth: '100%' } : undefined}>
+          <div className="relative" style={canEdit ? { width: svgWidth * zoom, height: svgHeight * zoom } : undefined}>
           <div ref={chartRef} className="bg-white">
           <svg
             ref={svgRef}
