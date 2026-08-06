@@ -103,6 +103,13 @@ function TaskGroup({
   const leader = participants.find((p) => p.id === task.lead_participant_id);
   const partnerIds = (task.participants || []).map((p) => p.participant_id).filter((id) => id !== task.lead_participant_id);
   const partners = participants.filter((p) => partnerIds.includes(p.id));
+  // When the leader plus the partners cover every participant, collapse the
+  // partner badges into a single "All other participants" bubble.
+  const coversAllParticipants =
+    participants.length > 0 &&
+    !!leader &&
+    partners.length > 0 &&
+    partners.length >= participants.length - 1;
   const start = formatMonth(task.start_month);
   const end = formatMonth(task.end_month);
 
@@ -133,13 +140,19 @@ function TaskGroup({
           <div className="flex items-center justify-between flex-wrap gap-0.5">
             <div className="flex items-center gap-0.5 flex-wrap">
               <LeaderPill leader={leader} placeholder="No task leader" />
-              {partners.map((p) => (
-                <ParticipantBubble
-                  key={p.id}
-                  shortName={p.organisation_short_name || p.organisation_name}
-                  style={{ fontStyle: 'normal' }}
-                />
-              ))}
+              {coversAllParticipants ? (
+                <ParticipantBubble style={{ fontStyle: 'normal' }}>
+                  All other participants
+                </ParticipantBubble>
+              ) : (
+                partners.map((p) => (
+                  <ParticipantBubble
+                    key={p.id}
+                    shortName={p.organisation_short_name || p.organisation_name}
+                    style={{ fontStyle: 'normal' }}
+                  />
+                ))
+              )}
             </div>
             <span className="font-bold text-[11pt] font-['Times_New_Roman',Times,serif] whitespace-nowrap">
               {start && end ? `${start}–${end}` : start ? `${start}–M??` : (
