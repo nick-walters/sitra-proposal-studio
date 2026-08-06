@@ -17,7 +17,14 @@ export interface BoundBoxStyle {
    *  rendered text content (default width 2 cm). Set to false on any manual
    *  resize (drag handles or cm H field) — the user then owns the height. */
   autoFitH?: boolean;
+  /** Corner roundedness (mm) for `roundedRect` shapes. 0 = square corners. */
+  cornerRadiusMm?: number;
 }
+
+/** Default roundedness (mm) of a rounded rectangle. */
+export const DEFAULT_CORNER_RADIUS_MM = 2.5;
+/** Max roundedness offered in the UI (mm). */
+export const MAX_CORNER_RADIUS_MM = 25;
 
 
 /** Predefined outline widths (pt) matching Office's line-weight menu. */
