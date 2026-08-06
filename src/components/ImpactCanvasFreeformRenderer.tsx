@@ -387,6 +387,28 @@ function ImpactCanvasFreeformRendererInner({ proposalId, className, fallback = '
         );
       })}
 
+      {/* Uploaded image elements — read-only rendering. */}
+      {imageEls.map((el) => {
+        const content = (el.content ?? {}) as { src?: string; fit?: 'fill' | 'contain' };
+        return (
+          <div
+            key={el.id}
+            style={{
+              position: 'absolute',
+              left: pctX(el.x),
+              top: pctY(el.y),
+              width: pctX(el.w),
+              height: pctY(el.h),
+              zIndex: el.z,
+            }}
+          >
+            <ImpactCanvasImage src={content.src || ''} fit={content.fit ?? 'contain'} />
+          </div>
+        );
+      })}
+
+
+
       {/* Free line elements — shared SVG overlay used by editor + B2.1 + PDF + PNG. */}
       <ImpactCanvasLinesOverlay VW={VW} VH={VH} elements={elements as unknown as LineElement[]} />
     </div>
