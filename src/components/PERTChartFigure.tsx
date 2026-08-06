@@ -486,6 +486,9 @@ export function PERTChartFigure({
 
   const selected = selectedNode ? nodes.find((n) => n.id === selectedNode) : undefined;
 
+  const [widthDraft, setWidthDraft] = useState<string | null>(null);
+  const [heightDraft, setHeightDraft] = useState<string | null>(null);
+
   /** Box size is uniform: changing width/height applies to EVERY WP box. */
   const setAllNodesSizeCm = useCallback((widthCm?: number, heightCm?: number) => {
     const round1 = (cm: number) => Math.round(cm * 10) / 10;
