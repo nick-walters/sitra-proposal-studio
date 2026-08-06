@@ -7,7 +7,9 @@
  * DOMPurify allow-lists used by PrefixedInlineEditor and the B3.2 mirror.
  */
 
-const SERIF = "'Times New Roman', Times, serif";
+import { applyDeliverablePentagon, applyMilestoneBadge, BADGE_SERIF } from '@/lib/refBadgeMarkup';
+
+const SERIF = BADGE_SERIF;
 
 /** Fired on the editor element right after a badge is inserted, so the
  *  owning contentEditable component can flush its pending save at once. */
@@ -125,45 +127,18 @@ export function buildTaskBadge(task: {
   return span;
 }
 
-/** Pentagon deliverable badge built from nested clip-path spans (no SVG). */
+/** Pentagon deliverable badge, identical in geometry to Table 3.1.c. */
 export function buildDeliverableBadge(del: {
   id: string;
   number: string;
   wp_color?: string;
 }): HTMLSpanElement {
-  const raw = del.wp_color || '#73C92D';
-  const color = /^#[0-9a-fA-F]{3,8}$/.test(raw) ? raw : '#73C92D';
   const outer = document.createElement('span');
   outer.setAttribute('data-deliverable-reference', '');
   outer.setAttribute('data-deliverable-id', del.id);
+  outer.setAttribute('data-deliverable-label', del.number);
   outer.setAttribute('contenteditable', 'false');
-  Object.assign(outer.style, {
-    display: 'inline-block',
-    background: color,
-    padding: '1.5px',
-    paddingRight: '3px',
-    clipPath: 'polygon(0% 0%, calc(100% - 7px) 0%, 100% 50%, calc(100% - 7px) 100%, 0% 100%)',
-    verticalAlign: 'baseline',
-    whiteSpace: 'nowrap',
-    userSelect: 'none',
-  } as Partial<CSSStyleDeclaration>);
-
-  const inner = document.createElement('span');
-  inner.textContent = del.number;
-  Object.assign(inner.style, {
-    display: 'inline-block',
-    background: '#ffffff',
-    color,
-    padding: '0 8px 0 4px',
-    clipPath: 'polygon(0% 0%, calc(100% - 6px) 0%, 100% 50%, calc(100% - 6px) 100%, 0% 100%)',
-    fontFamily: SERIF,
-    fontSize: '11pt',
-    fontWeight: '700',
-    fontStyle: 'normal',
-    lineHeight: '1.3',
-    whiteSpace: 'nowrap',
-  } as Partial<CSSStyleDeclaration>);
-  outer.appendChild(inner);
+  applyDeliverablePentagon(outer, del.number, del.wp_color || '#73C92D');
   return outer;
 }
 
@@ -248,23 +223,6 @@ export function buildMilestoneBadge(ms: {
   wrapper.setAttribute('data-milestone-id', ms.id);
   wrapper.setAttribute('data-milestone-number', String(ms.number));
   wrapper.setAttribute('contenteditable', 'false');
-  Object.assign(wrapper.style, {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: '#000000',
-    color: '#ffffff',
-    fontFamily: "'Times New Roman', Times, serif",
-    fontSize: '11pt',
-    fontWeight: '700',
-    lineHeight: '18px',
-    height: '18px',
-    padding: '0 4px',
-    clipPath: 'polygon(12% 0%, 88% 0%, 100% 50%, 88% 100%, 12% 100%, 0% 50%)',
-    verticalAlign: 'baseline',
-    whiteSpace: 'nowrap',
-    userSelect: 'none',
-  } as Partial<CSSStyleDeclaration>);
-  wrapper.textContent = `MS${Number(ms.number) || 0}`;
+  applyMilestoneBadge(wrapper, `MS${Number(ms.number) || 0}`);
   return wrapper;
 }
