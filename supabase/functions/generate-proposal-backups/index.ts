@@ -1275,7 +1275,7 @@ async function buildA5(supabase: any, proposal: any): Promise<Uint8Array> {
     .order("participant_number", { ascending: true });
   const partIds = (participants ?? []).map((p: any) => p.id);
   const { data: uploads } = partIds.length
-    ? await supabase.from("participant_ocd_uploads").select("*").in("participant_id", partIds).order("created_at", { ascending: true })
+    ? await supabase.from("participant_ocd_uploads").select("*").in("participant_id", partIds).order("uploaded_at", { ascending: true })
     : { data: [] };
   const byPart = new Map<string, any[]>();
   for (const u of uploads ?? []) {
