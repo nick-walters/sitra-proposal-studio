@@ -1196,7 +1196,7 @@ export function PERTChartFigure({
 
             {/* Annotation shapes — drawn behind the WP boxes */}
             {annotations.filter((a): a is PertShapeAnnotation => a.kind === 'shape').map((s) => {
-              const isSel = canEdit && selectedAnn === s.id;
+              const isSel = canEdit && (selectedAnn === s.id || multiSel.anns.includes(s.id));
               const fill = s.fill === 'none' ? 'none' : s.fill;
               const stroke = isSel ? 'hsl(var(--primary))' : (s.stroke === 'none' ? 'none' : s.stroke);
               const sw = isSel ? Math.max(1.5, s.strokeWidth) : s.strokeWidth;
