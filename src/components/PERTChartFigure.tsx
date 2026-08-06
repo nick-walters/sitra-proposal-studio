@@ -1269,12 +1269,9 @@ export function PERTChartFigure({
             {/* Render nodes */}
             {nodes.map((node) => {
               const isSelected = canEdit && (selectedNode === node.id || multiSel.nodes.includes(node.id));
-              // Label size scales with the box so auto-generated (larger) boxes
-              // get proportionally larger, more legible text.
-              const labelFs = Math.round(
-                Math.max(10, Math.min(20, Math.min(node.h * 0.26, node.w * 0.16))),
-              );
-              const subFs = Math.round(Math.max(9, labelFs * 0.85));
+              // Fixed 11 pt text for WP boxes, matching the document body size.
+              const labelFs = 11;
+              const subFs = 10;
               const hasSub = !!node.shortName;
               return (
                 <Tooltip key={node.id}>
@@ -1284,12 +1281,12 @@ export function PERTChartFigure({
                       className={canEdit ? 'cursor-grab active:cursor-grabbing' : ''}
                       onMouseDown={(e) => handleMouseDown(e, node.id)}
                     >
-                      <rect width={node.w} height={node.h} rx={6} ry={6} fill={node.color}
+                      <rect width={node.w} height={node.h} rx={node.h / 2} ry={node.h / 2} fill={node.color}
                         stroke={draggingNode === node.id || isSelected ? 'hsl(var(--primary))' : 'transparent'} strokeWidth={1.5} className="transition-all" />
                       <text
                         x={node.w / 2}
                         y={hasSub ? node.h / 2 - labelFs * 0.2 : node.h / 2 + labelFs * 0.35}
-                        textAnchor="middle" fill="#FFFFFF" fontSize={labelFs} fontWeight="bold"
+                        textAnchor="middle" fill="#FFFFFF" fontSize={`${labelFs}pt`} fontWeight="bold"
                       >
                         WP{node.number}
                       </text>
@@ -1297,7 +1294,7 @@ export function PERTChartFigure({
                         <text
                           x={node.w / 2}
                           y={node.h / 2 + subFs * 1.05}
-                          textAnchor="middle" fill="#FFFFFF" fontSize={subFs} opacity={0.9}
+                          textAnchor="middle" fill="#FFFFFF" fontSize={`${subFs}pt`} opacity={0.9}
                         >
                           {node.shortName}
                         </text>
