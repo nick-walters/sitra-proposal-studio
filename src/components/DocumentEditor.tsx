@@ -1646,7 +1646,7 @@ export function DocumentEditor({
 
       {isB31Section && b31BannerDismissed === false && (
         <div className="relative bg-red-500/15 border-b border-red-500/30 px-4 py-1 pr-9 text-xs text-red-600">
-          Part B3.1 consists mostly of compulsory tables and figures. The text field before Table 3.1.a is editable, but the remainder of the content is filled via the work packages and milestones and risks pages in the left panel and mirrored to Part B3.1, where it cannot be edited.
+          Part B3.1 consists mostly of compulsory tables and figures. The text field before Table 3.1.a is editable, but the remainder of the content is filled via the content in A3 and the work packages and milestones and risks pages in the left panel, and mirrored to Part B3.1, where it cannot be edited.
           <button
             type="button"
             onClick={dismissB31Banner}
