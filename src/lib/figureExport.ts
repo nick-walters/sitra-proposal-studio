@@ -17,6 +17,8 @@ export interface PERTNode {
   color: string; // hex color
   x: number; // px position in SVG
   y: number;
+  w?: number; // px box size in SVG (defaults applied by the exporter)
+  h?: number;
 }
 
 export interface PERTArrow {
@@ -53,8 +55,10 @@ export async function exportPERTAsPptx(data: PERTExportData, filename: string) {
   const pptx = new PptxGenJS();
   const slide = pptx.addSlide();
 
-  const nodeWidthPx = 120;
-  const nodeHeightPx = 50;
+  const NODE_FALLBACK_W = 84;
+  const NODE_FALLBACK_H = 35;
+  const nodeW = (n: PERTNode) => n.w ?? NODE_FALLBACK_W;
+  const nodeH = (n: PERTNode) => n.h ?? NODE_FALLBACK_H;
 
   // Determine scale: fit the SVG coordinate space into the slide
   const slideW = 10; // inches
@@ -78,8 +82,8 @@ export async function exportPERTAsPptx(data: PERTExportData, filename: string) {
   for (const node of data.nodes) {
     const x = toInchesX(node.x);
     const y = toInchesY(node.y);
-    const w = toInchesW(nodeWidthPx);
-    const h = toInchesW(nodeHeightPx);
+    const w = toInchesW(nodeW(node));
+    const h = toInchesW(nodeH(node));
     const fillColor = hexToRgb(node.color);
     const fontColor = 'FFFFFF';
 
@@ -110,10 +114,10 @@ export async function exportPERTAsPptx(data: PERTExportData, filename: string) {
     if (!fromNode || !toNode) continue;
 
     // Compute center points
-    const fromCX = fromNode.x + nodeWidthPx / 2;
-    const fromCY = fromNode.y + nodeHeightPx / 2;
-    const toCX = toNode.x + nodeWidthPx / 2;
-    const toCY = toNode.y + nodeHeightPx / 2;
+    const fromCX = fromNode.x + nodeW(fromNode) / 2;
+    const fromCY = fromNode.y + nodeH(fromNode) / 2;
+    const toCX = toNode.x + nodeW(toNode) / 2;
+    const toCY = toNode.y + nodeH(toNode) / 2;
 
     const dx = toCX - fromCX;
     const dy = toCY - fromCY;
@@ -121,8 +125,8 @@ export async function exportPERTAsPptx(data: PERTExportData, filename: string) {
     if (dist === 0) continue;
 
     // Get edge intersection points
-    const halfW = nodeWidthPx / 2;
-    const halfH = nodeHeightPx / 2;
+    const halfW = nodeW(fromNode) / 2;
+    const halfH = nodeH(fromNode) / 2;
     const getEdge = (cx: number, cy: number, adx: number, ady: number) => {
       const absDx = Math.abs(adx);
       const absDy = Math.abs(ady);
