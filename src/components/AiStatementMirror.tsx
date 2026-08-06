@@ -38,7 +38,7 @@ export function AiStatementMirror({ proposalId }: AiStatementMirrorProps) {
       style={{
         fontFamily: '"Times New Roman", Times, serif',
         fontSize: '11pt',
-        lineHeight: 1.5,
+        lineHeight: 1,
       }}
       dangerouslySetInnerHTML={{ __html: html }}
     />
