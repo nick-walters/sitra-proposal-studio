@@ -716,7 +716,22 @@ html, body {
 /* Shared platform header style for manager/editor tables (milestones, risks, deliverables, etc.) */
 .platform-table {
   width: 100%;
+  max-width: 18cm;
   border-collapse: collapse;
+  table-layout: fixed;
+}
+/* Hard stop at the right edge: nothing may spill past the table's own width.
+   Long words, URLs and badge rows wrap instead of flowing into the margin. */
+.platform-table > thead > tr > th,
+.platform-table > tbody > tr > td {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  max-width: 100%;
+}
+.platform-table > tbody > tr > td > .flex,
+.platform-table > thead > tr > th > .flex {
+  flex-wrap: wrap;
+  min-width: 0;
 }
 .platform-table > thead > tr > th {
   background-color: transparent;
