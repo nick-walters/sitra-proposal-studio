@@ -392,7 +392,36 @@ export function B31DeliverablesTable({ proposalId, forExport }: Props & { forExp
   const last = columns.length - 1;
 
   return (
-    <div>
+    <div
+      className="relative"
+      onMouseEnter={() => setShowToggle(true)}
+      onMouseLeave={() => setShowToggle(false)}
+      onFocusCapture={() => setShowToggle(true)}
+    >
+      {!forExport && showToggle && (
+        <div
+          className="absolute -top-2 left-0 z-20 flex items-center gap-1 rounded-md border bg-background px-1 py-0.5 shadow-sm print:hidden"
+          contentEditable={false}
+          onMouseDown={(e) => e.preventDefault()}
+        >
+          <span className="px-1 text-[10px] text-muted-foreground">Order</span>
+          {(['wp', 'due'] as DeliverableOrderMode[]).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => setMode(mode)}
+              className={`rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors ${
+                orderMode === mode
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-muted'
+              }`}
+            >
+              {mode === 'wp' ? 'Work package' : 'Due date'}
+            </button>
+          ))}
+        </div>
+      )}
+
       <EditableCaption
         proposalId={proposalId}
         tableKey="table-3.1.c"
