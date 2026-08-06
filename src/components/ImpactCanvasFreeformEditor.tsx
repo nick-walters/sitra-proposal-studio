@@ -3179,6 +3179,52 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
           );
         })}
 
+        {/* Uploaded image elements — movable/resizable/deletable like shapes.
+            Resize handles come from the shared surface-level overlay below. */}
+        {imageEls.map((el) => {
+          const ov = overrides[el.id];
+          const box = ov ?? { x: el.x, y: el.y, w: el.w, h: el.h };
+          const selected = selectedIds.has(el.id);
+          const raw = (el.content ?? {}) as { src?: string; fit?: 'fill' | 'contain' };
+          return (
+            <div
+              key={el.id}
+              data-canvas-el-id={el.id}
+              data-canvas-el-kind="image"
+              style={{
+                position: 'absolute',
+                left: pctX(box.x),
+                top: pctY(box.y),
+                width: pctX(box.w),
+                height: pctY(box.h),
+                zIndex: el.z,
+                pointerEvents: 'auto',
+                outline: selected ? '2px solid hsl(var(--primary))' : 'none',
+                outlineOffset: 1,
+                cursor: canEdit
+                  ? drag?.id === el.id && drag.mode.kind === 'move'
+                    ? 'grabbing'
+                    : 'grab'
+                  : 'default',
+              }}
+              onPointerDown={(e) => beginDrag(e, el.id, { kind: 'move' }, box)}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!canEdit) return;
+                if (suppressNextClickRef.current === el.id) {
+                  suppressNextClickRef.current = null;
+                  return;
+                }
+                if (!selectedIdsRef.current.has(el.id)) selectOnly(el.id);
+              }}
+            >
+              <ImpactCanvasImage src={raw.src || ''} fit={raw.fit ?? 'contain'} />
+            </div>
+          );
+        })}
+
+
+
         {/* Selected-element resize handles hoisted to a surface-level overlay
             at a very high z-index. Rendering handles inside each element
             wrapper is fragile: a wrapper that happens to sit behind (or in
