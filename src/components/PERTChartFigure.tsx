@@ -231,8 +231,9 @@ export function PERTChartFigure({
     return { ...defaultPositions, ...(content?.nodePositions || {}) };
   }, [defaultPositions, content?.nodePositions]);
 
-  // Create node objects
+  // Create node objects (position + per-node box size)
   const nodes: WPNode[] = useMemo(() => {
+    const sizes = content?.nodeSizes || {};
     return wpDrafts.map((wp) => ({
       id: wp.id,
       number: wp.number,
@@ -241,42 +242,33 @@ export function PERTChartFigure({
       color: wp.color,
       x: nodePositions[wp.id]?.x || 100,
       y: nodePositions[wp.id]?.y || 100,
+      w: Math.max(NODE_MIN_W, Number(sizes[wp.id]?.w) || NODE_DEFAULT_W),
+      h: Math.max(NODE_MIN_H, Number(sizes[wp.id]?.h) || NODE_DEFAULT_H),
     }));
-  }, [wpDrafts, nodePositions]);
+  }, [wpDrafts, nodePositions, content?.nodeSizes]);
 
-  // Helper to compute arrow between two nodes
+  // Helper to compute arrow between two nodes (respects per-node box sizes)
   const computeArrow = useCallback((fromNode: WPNode, toNode: WPNode) => {
-    const nodeWidth = 84;
-    const nodeHeight = 35;
-    
-    const fromCenterX = fromNode.x + nodeWidth / 2;
-    const fromCenterY = fromNode.y + nodeHeight / 2;
-    const toCenterX = toNode.x + nodeWidth / 2;
-    const toCenterY = toNode.y + nodeHeight / 2;
+    const fromCenterX = fromNode.x + fromNode.w / 2;
+    const fromCenterY = fromNode.y + fromNode.h / 2;
+    const toCenterX = toNode.x + toNode.w / 2;
+    const toCenterY = toNode.y + toNode.h / 2;
 
     const dx = toCenterX - fromCenterX;
     const dy = toCenterY - fromCenterY;
     const dist = Math.sqrt(dx * dx + dy * dy);
     if (dist === 0) return null;
 
-    // Use rectangle intersection for precise edge contact
-    const halfW = nodeWidth / 2;
-    const halfH = nodeHeight / 2;
-
-    const getEdgePoint = (cx: number, cy: number, adx: number, ady: number) => {
+    // Rectangle intersection for precise edge contact
+    const getEdgePoint = (cx: number, cy: number, adx: number, ady: number, halfW: number, halfH: number) => {
       const absDx = Math.abs(adx);
       const absDy = Math.abs(ady);
-      let scale: number;
-      if (absDx * halfH > absDy * halfW) {
-        scale = halfW / absDx;
-      } else {
-        scale = halfH / absDy;
-      }
+      const scale = absDx * halfH > absDy * halfW ? halfW / absDx : halfH / absDy;
       return { x: cx + adx * scale, y: cy + ady * scale };
     };
 
-    const from = getEdgePoint(fromCenterX, fromCenterY, dx / dist, dy / dist);
-    const to = getEdgePoint(toCenterX, toCenterY, -dx / dist, -dy / dist);
+    const from = getEdgePoint(fromCenterX, fromCenterY, dx / dist, dy / dist, fromNode.w / 2, fromNode.h / 2);
+    const to = getEdgePoint(toCenterX, toCenterY, -dx / dist, -dy / dist, toNode.w / 2, toNode.h / 2);
 
     return { fromX: from.x, fromY: from.y, toX: to.x, toY: to.y };
   }, []);
@@ -297,6 +289,7 @@ export function PERTChartFigure({
   // Handle drag — client px are divided by the zoom factor so the pointer
   // stays glued to the node at any zoom level.
   const handleMouseDown = useCallback((e: React.MouseEvent, nodeId: string) => {
+    setSelectedNode(nodeId);
     if (!canEdit) return;
     const node = nodes.find((n) => n.id === nodeId);
     if (!node) return;
@@ -309,15 +302,63 @@ export function PERTChartFigure({
     });
   }, [canEdit, nodes, zoom]);
 
+  // Start a corner resize on the selected node.
+  const handleResizeStart = useCallback((e: React.MouseEvent, node: WPNode, corner: Corner) => {
+    if (!canEdit) return;
+    e.stopPropagation();
+    const svgRect = svgRef.current?.getBoundingClientRect();
+    if (!svgRect) return;
+    setSelectedNode(node.id);
+    setResizing({
+      id: node.id,
+      corner,
+      startX: (e.clientX - svgRect.left) / zoom,
+      startY: (e.clientY - svgRect.top) / zoom,
+      origin: { x: node.x, y: node.y, w: node.w, h: node.h },
+    });
+  }, [canEdit, zoom]);
+
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!draggingNode) return;
     const svgRect = svgRef.current?.getBoundingClientRect();
     if (!svgRect) return;
     const snapTo = (v: number) => (snap ? Math.round(v / PERT_MINOR_GRID) * PERT_MINOR_GRID : v);
+
+    if (resizing) {
+      const cx = (e.clientX - svgRect.left) / zoom;
+      const cy = (e.clientY - svgRect.top) / zoom;
+      const dx = cx - resizing.startX;
+      const dy = cy - resizing.startY;
+      const o = resizing.origin;
+      let x = o.x;
+      let y = o.y;
+      let w = o.w;
+      let h = o.h;
+      if (resizing.corner.includes('e')) w = Math.max(NODE_MIN_W, snapTo(o.w + dx));
+      if (resizing.corner.includes('s')) h = Math.max(NODE_MIN_H, snapTo(o.h + dy));
+      if (resizing.corner.includes('w')) {
+        const right = o.x + o.w;
+        x = Math.max(0, Math.min(snapTo(o.x + dx), right - NODE_MIN_W));
+        w = right - x;
+      }
+      if (resizing.corner.includes('n')) {
+        const bottom = o.y + o.h;
+        y = Math.max(0, Math.min(snapTo(o.y + dy), bottom - NODE_MIN_H));
+        h = bottom - y;
+      }
+      onContentChange({
+        ...content,
+        nodePositions: { ...(content?.nodePositions || {}), [resizing.id]: { x, y } },
+        nodeSizes: { ...(content?.nodeSizes || {}), [resizing.id]: { w, h } },
+      });
+      return;
+    }
+
+    if (!draggingNode) return;
     const newX = Math.max(0, snapTo((e.clientX - svgRect.left) / zoom - dragOffset.x));
     const newY = Math.max(0, snapTo((e.clientY - svgRect.top) / zoom - dragOffset.y));
     const newPositions = { ...(content?.nodePositions || {}), [draggingNode]: { x: newX, y: newY } };
     onContentChange({ ...content, nodePositions: newPositions });
+
   }, [draggingNode, dragOffset, content, onContentChange, snap, zoom]);
 
   const handleMouseUp = useCallback(() => { setDraggingNode(null); }, []);
