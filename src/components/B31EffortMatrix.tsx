@@ -218,7 +218,7 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
              <tr>
                <th
                  className={`${headerCellStyles} relative`}
-                 style={{ textAlign: 'left', fontWeight: 'bold' }}
+                 style={{ ...firstColCell, fontWeight: 'bold' }}
                >
                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(0)} />}
                </th>
@@ -229,10 +229,11 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
                      key={wp.id}
                      className={`${headerCellStyles} relative`}
                      style={{
+                       ...dataColCell,
                        backgroundColor: wpColor,
                        color: '#FFFFFF',
-borderTopLeftRadius: '12px',
-                           borderTopRightRadius: '12px',
+                       borderTopLeftRadius: '12px',
+                       borderTopRightRadius: '12px',
                        fontWeight: 700,
                      }}
                    >
@@ -241,7 +242,7 @@ borderTopLeftRadius: '12px',
                    </th>
                  );
                })}
-               <th className={headerCellStyles} style={{ fontWeight: 'bold' }}>Total</th>
+               <th className={headerCellStyles} style={{ ...dataColCell, fontWeight: 'bold' }}>Total</th>
              </tr>
            </thead>
           <tbody>
