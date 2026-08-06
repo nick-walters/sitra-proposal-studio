@@ -1,3 +1,4 @@
+import { Crown } from 'lucide-react';
 import React from 'react';
 import DOMPurify from 'dompurify';
 import { RICH_TEXT_CONFIG } from '@/lib/sanitizePresets';
