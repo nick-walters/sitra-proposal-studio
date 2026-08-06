@@ -456,7 +456,9 @@ export function retractPoint(endpoint: LinePoint, dir: LinePoint, size: number):
   return { x: endpoint.x - (dir.x / len) * size, y: endpoint.y - (dir.y / len) * size };
 }
 
-/** Points-string for a solid arrowhead polygon whose TIP is `tip`. */
+/** Points-string for a solid arrowhead polygon whose TIP is `tip`.
+ *  Proportions match the PERT dependency-arrow marker (8 long x 7 wide
+ *  marker units), i.e. half-width = 3.5/8 of the head length. */
 export function arrowPolyPoints(tip: LinePoint, dir: LinePoint, size: number): string {
   const len = Math.hypot(dir.x, dir.y) || 1;
   const ux = dir.x / len;
@@ -465,7 +467,7 @@ export function arrowPolyPoints(tip: LinePoint, dir: LinePoint, size: number): s
   const py = ux;
   const baseX = tip.x - ux * size;
   const baseY = tip.y - uy * size;
-  const half = size * 0.55;
+  const half = size * 0.4375;
   return `${tip.x},${tip.y} ${baseX + px * half},${baseY + py * half} ${baseX - px * half},${baseY - py * half}`;
 }
 
