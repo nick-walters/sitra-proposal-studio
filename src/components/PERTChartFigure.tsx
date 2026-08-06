@@ -1018,7 +1018,7 @@ export function PERTChartFigure({
       {/* Uniform WP box size in cm — applies to every box */}
       {canEdit && nodes.length > 0 && (
         <div className="flex items-center gap-3 text-xs border rounded-md px-3 py-2 bg-muted/30">
-          <span className="font-medium">All boxes</span>
+          <span className="font-medium">WPs</span>
           <label className="flex items-center gap-1">
             Width (cm)
             <Input
