@@ -568,13 +568,14 @@ export function PERTChartFigure({
           <div ref={chartRef} className="bg-white">
           <svg
             ref={svgRef}
-            width={canEdit ? svgWidth * zoom : '18cm'}
-            height={canEdit ? svgHeight * zoom : undefined}
+            width={canEdit ? svgWidth * zoom : `${frameWidthCm}cm`}
+            height={canEdit ? svgHeight * zoom : `${frameHeightCm}cm`}
 
             viewBox={viewBoxStr}
             preserveAspectRatio="xMidYMid meet"
             className="select-none"
             style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '10px' }}
+            onMouseDown={(e) => { if (e.target === e.currentTarget) setSelectedNode(null); }}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
@@ -590,6 +591,7 @@ export function PERTChartFigure({
 
             {/* Render nodes */}
             {nodes.map((node) => {
+              const isSelected = canEdit && selectedNode === node.id;
               return (
                 <Tooltip key={node.id}>
                   <TooltipTrigger asChild>
@@ -598,16 +600,35 @@ export function PERTChartFigure({
                       className={canEdit ? 'cursor-grab active:cursor-grabbing' : ''}
                       onMouseDown={(e) => handleMouseDown(e, node.id)}
                     >
-                      <rect width={84} height={35} rx={6} ry={6} fill={node.color}
-                        stroke={draggingNode === node.id ? 'hsl(var(--primary))' : 'transparent'} strokeWidth={1.5} className="transition-all" />
-                      <text x={42} y={14} textAnchor="middle" fill="#FFFFFF" fontSize="10" fontWeight="bold">
+                      <rect width={node.w} height={node.h} rx={6} ry={6} fill={node.color}
+                        stroke={draggingNode === node.id || isSelected ? 'hsl(var(--primary))' : 'transparent'} strokeWidth={1.5} className="transition-all" />
+                      <text x={node.w / 2} y={node.h / 2 - 3} textAnchor="middle" fill="#FFFFFF" fontSize="10" fontWeight="bold">
                         WP{node.number}
                       </text>
                       {node.shortName && (
-                        <text x={42} y={27} textAnchor="middle" fill="#FFFFFF" fontSize="10" opacity={0.9}>
+                        <text x={node.w / 2} y={node.h / 2 + 10} textAnchor="middle" fill="#FFFFFF" fontSize="10" opacity={0.9}>
                           {node.shortName}
                         </text>
                       )}
+                      {isSelected && ([
+                        { c: 'nw' as Corner, x: 0, y: 0 },
+                        { c: 'ne' as Corner, x: node.w, y: 0 },
+                        { c: 'sw' as Corner, x: 0, y: node.h },
+                        { c: 'se' as Corner, x: node.w, y: node.h },
+                      ]).map((h) => (
+                        <rect
+                          key={h.c}
+                          x={h.x - 3.5}
+                          y={h.y - 3.5}
+                          width={7}
+                          height={7}
+                          fill="#ffffff"
+                          stroke="hsl(var(--primary))"
+                          strokeWidth={1}
+                          style={{ cursor: h.c === 'nw' || h.c === 'se' ? 'nwse-resize' : 'nesw-resize' }}
+                          onMouseDown={(e) => handleResizeStart(e, node, h.c)}
+                        />
+                      ))}
                     </g>
                   </TooltipTrigger>
                   <TooltipContent>
@@ -619,6 +640,7 @@ export function PERTChartFigure({
                 </Tooltip>
               );
             })}
+
 
             {/* Render arrows on top of nodes so arrowheads are always visible */}
             {arrows.map((arrow) => arrow && (
