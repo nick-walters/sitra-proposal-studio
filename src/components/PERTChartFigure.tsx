@@ -55,6 +55,36 @@ interface Dependency {
 
 type DependencyDirection = Dependency['direction'];
 
+/** Free-drawn annotation shapes/lines, mirroring the canvas editor's set. */
+export type PertShapeKind = 'rect' | 'roundedRect' | 'circle' | 'triangle';
+
+interface PertShapeAnnotation {
+  id: string;
+  kind: 'shape';
+  shape: PertShapeKind;
+  x: number; y: number; w: number; h: number;
+  fill: string;          // hex or 'none'
+  stroke: string;        // hex or 'none'
+  strokeWidth: number;   // SVG user units
+  text?: string;
+  textColor?: string;
+}
+
+interface PertLineAnnotation {
+  id: string;
+  kind: 'line';
+  routing: 'straight' | 'elbow';
+  x1: number; y1: number; x2: number; y2: number;
+  stroke: string;
+  strokeWidth: number;
+  startCap: 'none' | 'arrow';
+  endCap: 'none' | 'arrow';
+}
+
+export type PertAnnotation = PertShapeAnnotation | PertLineAnnotation;
+
+const ANN_MIN = 12;
+
 interface PERTContent {
   nodePositions?: Record<string, { x: number; y: number }>;
   /** Per-node box size in SVG user units (px at 100%). */
@@ -63,6 +93,8 @@ interface PERTContent {
   widthCm?: number | null;
   heightCm?: number | null;
   presetId?: string | null;
+  /** User-added shapes and lines drawn on top of the auto-generated chart. */
+  annotations?: PertAnnotation[];
   /**
    * true once the user has manually moved/resized a box (or hit
    * "Auto-regenerate content"). While false, the layout is auto-generated
