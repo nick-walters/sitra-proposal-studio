@@ -407,12 +407,14 @@ export function PERTChartFigure({
     if (!node) return;
     const svgRect = svgRef.current?.getBoundingClientRect();
     if (!svgRect) return;
+    pushHistory();
     setDraggingNode(nodeId);
     setDragOffset({
       x: (e.clientX - svgRect.left) / zoom - node.x,
       y: (e.clientY - svgRect.top) / zoom - node.y,
     });
-  }, [canEdit, nodes, zoom]);
+  }, [canEdit, nodes, zoom, pushHistory]);
+
 
   // Start a corner resize on the selected node.
   const handleResizeStart = useCallback((e: React.MouseEvent, node: WPNode, corner: Corner) => {
