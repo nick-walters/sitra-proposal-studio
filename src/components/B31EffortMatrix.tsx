@@ -220,7 +220,7 @@ borderTopLeftRadius: '12px',
                      }}
                    >
                      WP{wp.number}
-                     {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(i + 1)} />}
+                     {isAdminOrOwner && <ColumnResizer onMouseDown={handleWpResizeStart} />}
                    </th>
                  );
                })}
