@@ -106,6 +106,51 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
     }));
   }, []);
 
+  /**
+   * WP columns are a uniform band: dragging any WP border resizes EVERY WP
+   * column and the Total column to the same width, so the matrix stays a
+   * regular grid. The participant column keeps its width.
+   */
+  const handleWpResizeStart = useCallback(
+    (event: React.MouseEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const table = tableRef.current;
+      if (!table) return;
+      const headerCells = Array.from(
+        table.querySelectorAll<HTMLElement>('thead > tr:first-child > th'),
+      );
+      if (headerCells.length === 0) return;
+      const current = headerCells.map((c) => c.getBoundingClientRect().width);
+      const colCount = current.length;
+      const startX = event.clientX;
+      const startW = current[1] ?? 40;
+
+      const apply = (w: number) => {
+        const next = current.map((cw, i) => (i === 0 ? Math.round(cw) : Math.round(w)));
+        setColWidths(next);
+        return next;
+      };
+
+      let latest = current.map((w) => Math.round(w));
+      const onMove = (e: MouseEvent) => {
+        const w = Math.max(24, Math.min(240, startW + (e.clientX - startX)));
+        latest = apply(w);
+      };
+      const onUp = () => {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+        document.body.style.cursor = '';
+        if (latest.length === colCount) saveWidths(latest);
+      };
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+      document.body.style.cursor = 'col-resize';
+    },
+    [tableRef, setColWidths, saveWidths],
+  );
+
+
   if (wpData.length === 0 || participants.length === 0 || !hasData) return null;
 
   const totalColCount = wpData.length + 2; // participant col + wp cols + total col
@@ -175,7 +220,7 @@ borderTopLeftRadius: '12px',
                      }}
                    >
                      WP{wp.number}
-                     {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(i + 1)} />}
+                     {isAdminOrOwner && <ColumnResizer onMouseDown={handleWpResizeStart} />}
                    </th>
                  );
                })}
