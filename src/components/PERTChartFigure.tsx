@@ -164,6 +164,40 @@ export function PERTChartFigure({
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [resizing, setResizing] = useState<ResizeState>(null);
 
+  // ---- Undo / redo (layout snapshots, session-scoped) ----------------------
+  const [undoStack, setUndoStack] = useState<PERTContent[]>([]);
+  const [redoStack, setRedoStack] = useState<PERTContent[]>([]);
+  const contentRef = useRef<PERTContent | null>(content);
+  useEffect(() => { contentRef.current = content; }, [content]);
+
+  /** Snapshot the current content before a layout-changing action. */
+  const pushHistory = useCallback(() => {
+    setUndoStack((prev) => [...prev.slice(-49), { ...(contentRef.current || {}) }]);
+    setRedoStack([]);
+  }, []);
+
+  const undo = useCallback(() => {
+    setUndoStack((prev) => {
+      if (prev.length === 0) return prev;
+      const last = prev[prev.length - 1];
+      setRedoStack((r) => [...r.slice(-49), { ...(contentRef.current || {}) }]);
+      onContentChange(last);
+      return prev.slice(0, -1);
+    });
+  }, [onContentChange]);
+
+  const redo = useCallback(() => {
+    setRedoStack((prev) => {
+      if (prev.length === 0) return prev;
+      const last = prev[prev.length - 1];
+      setUndoStack((u) => [...u.slice(-49), { ...(contentRef.current || {}) }]);
+      onContentChange(last);
+      return prev.slice(0, -1);
+    });
+  }, [onContentChange]);
+
+
+
 
   // Editor preferences (grid overlay + snap-to-grid + zoom) — the grid and
   // snap flags persist per browser, mirroring the freeform canvas editor.
