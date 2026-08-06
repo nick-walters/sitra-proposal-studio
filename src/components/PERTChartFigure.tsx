@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect, useId } from 'react';
 import { scheduleFigurePngCache } from '@/lib/figureCache';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
