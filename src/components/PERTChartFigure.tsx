@@ -12,9 +12,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { PERTExportData } from '@/lib/figureExport';
 import { toast } from 'sonner';
 
-/** Grid geometry (SVG user units = px at zoom 1). */
-const PERT_MINOR_GRID = 10;
-const PERT_MAJOR_GRID = 50;
+/** Grid geometry (SVG user units = px at zoom 1): 2 mm minor, 1 cm major. */
+const PERT_MINOR_GRID = (96 / 2.54) * 0.2;
+const PERT_MAJOR_GRID = 96 / 2.54;
 const PERT_MIN_ZOOM = 0.25;
 const PERT_MAX_ZOOM = 3;
 
