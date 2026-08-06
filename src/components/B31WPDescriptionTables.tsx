@@ -111,7 +111,7 @@ function TaskGroup({
       {/* Task header */}
       <tr>
         <td colSpan={2} className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight"
-          style={{ padding: '1px 6px 1px 0px', border: 'none' }}
+          style={{ padding: '1px 0', border: 'none' }}
         >
           <div className="flex items-center gap-1">
             <B31Pill variant="outline" color={wp.color}>
@@ -193,7 +193,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                 {/* WP Header */}
                 <tr>
                   <td colSpan={2} className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight"
-                    style={{ padding: '0 2px', border: 'none' }}
+                    style={{ padding: 0, border: 'none' }}
                   >
                     <WPBubble
                       wpColor={wp.color}
