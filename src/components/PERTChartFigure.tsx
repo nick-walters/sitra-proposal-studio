@@ -1511,20 +1511,23 @@ export function PERTChartFigure({
       </TooltipProvider>
 
 
-      {/* Legend - only in edit mode */}
+      {/* Key - only in edit mode */}
       {canEdit && (
         <div className="flex items-center gap-4 text-xs text-muted-foreground border-t pt-2">
-          <span className="font-semibold">Legend:</span>
+          <span className="font-semibold">Key:</span>
           <div className="flex items-center gap-1">
-            <div className="w-6 h-4 bg-primary/20 rounded" />
+            {/* Pill, matching the WP boxes on the chart */}
+            <div className="w-8 h-4 rounded-full bg-[#000000]" />
             <span>Work package</span>
           </div>
             <div className="flex items-center gap-1">
-            <svg width="24" height="10">
-              <line x1="0" y1="5" x2="18" y2="5" stroke="currentColor" strokeWidth="2" markerEnd={`url(#${legendMarkerId})`} />
+            {/* Same arrowhead geometry as the dependency arrows:
+                head length 8× stroke width, total width 7× stroke width. */}
+            <svg width="40" height="12">
+              <line x1="0" y1="6" x2="27" y2="6" stroke="#000000" strokeWidth="1.5" markerEnd={`url(#${legendMarkerId})`} />
               <defs>
-                <marker id={legendMarkerId} markerWidth="8" markerHeight="5.5" refX="6.5" refY="2.75" orient="auto">
-                  <polygon points="0 0, 8 2.75, 0 5.5" fill="currentColor" />
+                <marker id={legendMarkerId} markerWidth="12" markerHeight="10.5" refX="12" refY="5.25" orient="auto">
+                  <polygon points="0 0, 12 5.25, 0 10.5" fill="#000000" />
                 </marker>
               </defs>
             </svg>
@@ -1532,6 +1535,7 @@ export function PERTChartFigure({
           </div>
         </div>
       )}
+
 
       {/* Dependency Manager */}
       {canEdit && (
