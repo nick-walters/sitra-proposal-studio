@@ -290,7 +290,6 @@ export function B31DeliverablesTable({ proposalId, forExport }: Props & { forExp
     if (typeof window === 'undefined') return 'wp';
     return window.localStorage.getItem(orderModeKey(proposalId)) === 'due' ? 'due' : 'wp';
   });
-  const [showToggle, setShowToggle] = React.useState(false);
 
   const setMode = (mode: DeliverableOrderMode) => {
     setOrderMode(mode);
@@ -392,33 +391,31 @@ export function B31DeliverablesTable({ proposalId, forExport }: Props & { forExp
   const last = columns.length - 1;
 
   return (
-    <div
-      className="relative"
-      onMouseEnter={() => setShowToggle(true)}
-      onMouseLeave={() => setShowToggle(false)}
-      onFocusCapture={() => setShowToggle(true)}
-    >
-      {!forExport && showToggle && (
+    <div className="relative">
+      {!forExport && (
         <div
-          className="absolute -top-2 left-0 z-20 flex items-center gap-1 rounded-md border bg-background px-1 py-0.5 shadow-sm print:hidden"
+          className="mb-1 flex items-center gap-1 print:hidden"
           contentEditable={false}
+          suppressContentEditableWarning
           onMouseDown={(e) => e.preventDefault()}
         >
-          <span className="px-1 text-[10px] text-muted-foreground">Order</span>
-          {(['wp', 'due'] as DeliverableOrderMode[]).map((mode) => (
-            <button
-              key={mode}
-              type="button"
-              onClick={() => setMode(mode)}
-              className={`rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors ${
-                orderMode === mode
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:bg-muted'
-              }`}
-            >
-              {mode === 'wp' ? 'Work package' : 'Due date'}
-            </button>
-          ))}
+          <span className="text-[10px] text-muted-foreground">Order</span>
+          <div className="flex items-center gap-0.5 rounded-md border bg-background px-1 py-0.5 shadow-sm">
+            {(['wp', 'due'] as DeliverableOrderMode[]).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => setMode(mode)}
+                className={`rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors ${
+                  orderMode === mode
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:bg-muted'
+                }`}
+              >
+                {mode === 'wp' ? 'Work package' : 'Due date'}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
@@ -429,6 +426,7 @@ export function B31DeliverablesTable({ proposalId, forExport }: Props & { forExp
         defaultCaption="List of deliverables"
         className="mb-0"
       />
+
       <MirrorTable
         proposalId={proposalId}
         tableKey="b31-3-1-c-deliverables"
