@@ -1331,8 +1331,8 @@ export function PERTChartFigure({
                 x1={arrow.fromX} y1={arrow.fromY}
                 x2={arrow.toX} y2={arrow.toY}
                 stroke="#000000" strokeWidth="1.5"
-                markerEnd={arrow.direction !== 'reverse' ? 'url(#arrowhead)' : undefined}
-                markerStart={arrow.direction === 'reverse' || arrow.direction === 'bidirectional' ? 'url(#arrowhead-start)' : undefined}
+                markerEnd={arrow.direction !== 'reverse' ? `url(#${endMarkerId})` : undefined}
+                markerStart={arrow.direction === 'reverse' || arrow.direction === 'bidirectional' ? `url(#${startMarkerId})` : undefined}
               />
             ))}
 
