@@ -1042,7 +1042,7 @@ export function PERTChartFigure({
             preserveAspectRatio="xMidYMid meet"
             className="select-none"
             style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '10px' }}
-            onMouseDown={(e) => { if (e.target === e.currentTarget) setSelectedNode(null); }}
+            onMouseDown={(e) => { if (e.target === e.currentTarget) { setSelectedNode(null); setSelectedAnn(null); } }}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
