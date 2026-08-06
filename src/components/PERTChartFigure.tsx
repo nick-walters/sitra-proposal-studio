@@ -1286,7 +1286,7 @@ export function PERTChartFigure({
       <TooltipProvider>
         <div
           ref={scrollRef}
-          className={canEdit ? 'relative border rounded-lg bg-white overflow-auto mx-auto' : 'bg-white overflow-auto mx-auto'}
+          className={canEdit ? 'relative border bg-white overflow-auto mx-auto' : 'bg-white overflow-auto mx-auto'}
           style={canEdit ? { width: 'fit-content', maxWidth: '100%' } : undefined}
         >
           <div className="relative" style={canEdit ? { width: svgWidth * zoom, height: svgHeight * zoom } : undefined}>
