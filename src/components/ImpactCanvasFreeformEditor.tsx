@@ -2026,7 +2026,7 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
     if (selectedIds.size === 0) return;
     const ids = Array.from(selectedIds).filter((sid) => {
       const el = fetched.find((e) => e.id === sid);
-      return !!el && (el.kind === 'text' || el.kind === 'shape' || el.kind === 'line');
+      return !!el && (el.kind === 'text' || el.kind === 'shape' || el.kind === 'line' || el.kind === 'image');
     });
     if (ids.length === 0) return;
     const onKey = (ev: KeyboardEvent) => {
