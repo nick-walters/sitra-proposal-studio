@@ -188,17 +188,21 @@ export function FigureEditor({
 
   const renderImageSizePicker = () => {
     const isCanvasFigure = figure.figureType === 'canvas';
-    const isImageFigure = figure.figureType === 'image' || figure.figureType === 'ai' || isCanvasFigure;
+    const isPertFigure = figure.figureType === 'pert';
+    const isImageFigure = figure.figureType === 'image' || figure.figureType === 'ai' || isCanvasFigure || isPertFigure;
     if (!isImageFigure || !canEdit) return null;
     const cWidth = Number(figure.content?.widthCm);
     const cHeight = Number(figure.content?.heightCm);
     const hasSize = Number.isFinite(cWidth) && cWidth > 0 && Number.isFinite(cHeight) && cHeight > 0;
-    const presetFallback = getFigureSizePreset(figure.content?.presetId);
+    const presetFallback = isPertFigure
+      ? getFigureSizePreset('third')
+      : getFigureSizePreset(figure.content?.presetId);
     const sizeValue: FigureSizeValue = {
       presetId: (figure.content?.presetId as any) || (hasSize ? 'custom' : presetFallback.id),
       widthCm: hasSize ? cWidth : presetFallback.widthCm,
       heightCm: hasSize ? cHeight : presetFallback.heightCm,
     };
+
     const handleSizeChange = (v: FigureSizeValue) => {
       onUpdate({
         content: {
