@@ -31,7 +31,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import declarationsData from "@/data/declarations.json";
 import { htmlToPlainText } from "@/lib/htmlToPlainText";
-import { DEFAULT_AI_STATEMENT } from "@/lib/aiStatement";
+import { DEFAULT_AI_STATEMENT, resolveAiStatementHtml } from "@/lib/aiStatement";
 import { InlineRichEditor } from "@/components/InlineRichEditor";
 import { TextFormattingGroup } from "@/components/toolbar";
 
@@ -364,7 +364,7 @@ export function GeneralInfoForm({
               outsideEU: !!decl.outsideEU,
             },
             aiStatementEnabled: (data as { ai_statement_enabled?: boolean | null }).ai_statement_enabled !== false,
-            aiStatementText: (data as { ai_statement_text?: string | null }).ai_statement_text ?? DEFAULT_AI_STATEMENT,
+            aiStatementText: resolveAiStatementHtml((data as { ai_statement_text?: string | null }).ai_statement_text),
           });
 
         }
@@ -981,8 +981,8 @@ export function GeneralInfoForm({
                   onChange={(html) => setFormData(prev => ({ ...prev, aiStatementText: html }))}
                   disabled={!canEdit}
                   minHeight="90px"
-                  placeholder={DEFAULT_AI_STATEMENT}
-                  editorClassName="p-3 font-bold underline"
+                  placeholder="Disclaimer: …"
+                  editorClassName="p-3"
                   style={{ fontFamily: '"Times New Roman", Times, serif', fontSize: '11pt', lineHeight: 1.5 }}
                 />
               </div>
