@@ -199,6 +199,14 @@ export function PERTChartFigure({
   const svgRef = useRef<SVGSVGElement>(null);
   const chartRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  // SVG marker ids are document-global: when two PERT instances are mounted
+  // (figure editor + the B3.1 mount, or several charts in a print DOM) a
+  // shared id makes every chart resolve to the FIRST definition in the page,
+  // so an older/other chart's arrowheads win. Scope the ids per instance.
+  const markerUid = useId().replace(/[^a-zA-Z0-9]/g, '');
+  const endMarkerId = `pert-arrowhead-${markerUid}`;
+  const startMarkerId = `pert-arrowhead-start-${markerUid}`;
+  const legendMarkerId = `pert-arrowhead-legend-${markerUid}`;
   const queryClient = useQueryClient();
   const [draggingNode, setDraggingNode] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
