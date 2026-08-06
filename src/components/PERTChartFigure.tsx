@@ -61,7 +61,70 @@ interface PERTContent {
   widthCm?: number | null;
   heightCm?: number | null;
   presetId?: string | null;
+  /**
+   * true once the user has manually moved/resized a box (or hit
+   * "Auto-regenerate content"). While false, the layout is auto-generated
+   * from the current WPs + frame size and fills the whole canvas.
+   */
+  layoutLocked?: boolean;
 }
+
+/**
+ * Auto-layout: spread the WP boxes across the FULL frame in a grid whose
+ * column count is chosen to keep boxes close to a 2.4:1 aspect while
+ * maximising their footprint. Deterministic — same inputs, same output.
+ */
+function computeAutoLayout(
+  ids: string[],
+  frameW: number,
+  frameH: number,
+): { positions: Record<string, { x: number; y: number }>; sizes: Record<string, { w: number; h: number }> } {
+  const positions: Record<string, { x: number; y: number }> = {};
+  const sizes: Record<string, { w: number; h: number }> = {};
+  const n = ids.length;
+  if (n === 0) return { positions, sizes };
+
+  const margin = Math.max(8, Math.min(frameW, frameH) * 0.04);
+  const hGap = Math.max(24, frameW * 0.06);
+  const vGap = Math.max(16, frameH * 0.10);
+
+  let best = { cols: 1, w: 0, h: 0, score: -Infinity };
+  for (let cols = 1; cols <= n; cols++) {
+    const rows = Math.ceil(n / cols);
+    const w = (frameW - 2 * margin - (cols - 1) * hGap) / cols;
+    const h = (frameH - 2 * margin - (rows - 1) * vGap) / rows;
+    if (w < NODE_MIN_W || h < NODE_MIN_H) continue;
+    const aspect = w / h;
+    const score = w * h / (1 + Math.abs(Math.log(aspect / 2.4)));
+    if (score > best.score) best = { cols, w, h, score };
+  }
+  if (best.score === -Infinity) {
+    best = {
+      cols: n,
+      w: Math.max(NODE_MIN_W, (frameW - 2 * margin - (n - 1) * hGap) / n),
+      h: Math.max(NODE_MIN_H, frameH - 2 * margin),
+      score: 0,
+    };
+  }
+
+  const { cols, w, h } = best;
+  const rows = Math.ceil(n / cols);
+  ids.forEach((id, i) => {
+    const row = Math.floor(i / cols);
+    const col = i % cols;
+    // Centre a partially filled final row.
+    const inRow = Math.min(cols, n - row * cols);
+    const rowWidth = inRow * w + (inRow - 1) * hGap;
+    const startX = (frameW - rowWidth) / 2;
+    positions[id] = {
+      x: startX + col * (w + hGap),
+      y: margin + row * (h + vGap),
+    };
+    sizes[id] = { w, h };
+  });
+  return { positions, sizes };
+}
+
 
 
 interface PERTChartFigureProps {
