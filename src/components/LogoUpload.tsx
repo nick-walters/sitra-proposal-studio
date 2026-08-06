@@ -100,7 +100,9 @@ export function LogoUpload({
   const handleGenerateLogo = async () => {
     setIsGenerating(true);
     try {
-      const themeSource = topicContext || proposalTitle;
+      // Keep the theme text short — the edge function caps the prompt length
+      const rawTheme = (topicContext || proposalTitle || '').replace(/\s+/g, ' ').trim();
+      const themeSource = rawTheme.length > 1200 ? `${rawTheme.slice(0, 1200)}…` : rawTheme;
       // Extract unique colors from acronym segments if available
       const uniqueColors = acronymSegments && acronymSegments.length > 0
         ? [...new Set(acronymSegments.map(s => s.color).filter(c => c && c !== '#000000'))]
