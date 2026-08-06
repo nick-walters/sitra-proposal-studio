@@ -1989,7 +1989,9 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
       if (entries.length === 0) return;
       setOverrides((o) => ({ ...o, ...nextOverrides }));
       pushHistory(
-        entries.length === 1 ? entries[0] : { kind: 'batch', entries },
+        entries.length === 1
+          ? { ...entries[0], ts: Date.now() }
+          : { kind: 'batch', entries },
         `nudge:${ids.slice().sort().join(',')}`,
       );
     },
