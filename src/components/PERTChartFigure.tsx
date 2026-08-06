@@ -443,6 +443,7 @@ export function PERTChartFigure({
   // stays glued to the node at any zoom level.
   const handleMouseDown = useCallback((e: React.MouseEvent, nodeId: string) => {
     setSelectedNode(nodeId);
+    setSelectedAnn(null);
     if (!canEdit) return;
     const node = nodes.find((n) => n.id === nodeId);
     if (!node) return;
