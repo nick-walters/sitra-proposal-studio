@@ -58,6 +58,10 @@ export function insertIntoRememberedContentEditable(node: HTMLElement): boolean 
   selection.addRange(after);
   activeRange = after.cloneRange();
   editor.dispatchEvent(new Event('input', { bubbles: true }));
+  // Badge insertions happen while focus is bouncing between a dialog and the
+  // editor, so the debounced React input path can be cut short. Ask the owning
+  // editor to persist its current HTML immediately.
+  editor.dispatchEvent(new CustomEvent(REF_BADGE_INSERTED_EVENT, { bubbles: true }));
   return true;
 }
 
