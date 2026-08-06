@@ -1927,7 +1927,7 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
       if (!canEdit || ids.length === 0) return;
       const prev = qc.getQueryData<CanvasElement[]>(ELS_KEY(proposalId, figureId));
       const targets = (prev || []).filter(
-        (e) => ids.includes(e.id) && (e.kind === 'text' || e.kind === 'shape' || e.kind === 'line'),
+        (e) => ids.includes(e.id) && (e.kind === 'text' || e.kind === 'shape' || e.kind === 'line' || e.kind === 'image'),
       );
       if (targets.length === 0) return;
       const entries = targets.map((t) => {
