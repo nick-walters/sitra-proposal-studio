@@ -13,8 +13,13 @@ export function useColumnResize(options: {
   canResize?: boolean;
   resizeMode?: 'single' | 'adjacent';
   minWidth?: number;
+  /** Per-column minimum widths (e.g. measured badge widths). Falls back to minWidth. */
+  minWidths?: number[];
+  /** Hard cap on the total table width (e.g. the 18cm text column in px). */
+  maxTotalWidth?: number;
 } = { tableKey: 'default' }) {
-  const { proposalId, tableKey, canResize = false, minWidth = 40 } = options;
+  const { proposalId, tableKey, canResize = false, minWidth = 40, minWidths, maxTotalWidth } = options;
+
   const [colWidths, setColWidths] = useState<number[]>([]);
   const [loaded, setLoaded] = useState(false);
   const tableRef = useRef<HTMLTableElement>(null);
