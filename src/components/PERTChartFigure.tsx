@@ -1055,7 +1055,7 @@ export function PERTChartFigure({
             Reset size
           </Button>
           <span className="text-muted-foreground">
-            Box size applies to all work packages. Frame: {frameWidthCm} × {frameHeightCm} cm.
+            WP size applies to all work packages. Frame: {frameWidthCm} × {frameHeightCm} cm.
           </span>
         </div>
       )}
