@@ -571,6 +571,7 @@ export async function buildPrintContainer(
     if (aiRow && aiEnabled) {
       const aiP = document.createElement('p');
       aiP.style.textAlign = 'justify';
+      aiP.style.lineHeight = '1';
       aiP.style.marginTop = '6pt';
       aiP.style.marginBottom = '6pt';
       aiP.innerHTML = aiHtml;
