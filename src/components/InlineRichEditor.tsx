@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import DOMPurify from 'dompurify';
 import { stripWordHtml } from '@/lib/stripWordHtml';
 import { cn } from '@/lib/utils';
-import { rememberContentEditableSelection } from '@/lib/contentEditableRefBadges';
+import { rememberContentEditableSelection, REF_BADGE_INSERTED_EVENT } from '@/lib/contentEditableRefBadges';
 
 /**
  * Minimal contentEditable rich-text field (bold / italic / underline +
