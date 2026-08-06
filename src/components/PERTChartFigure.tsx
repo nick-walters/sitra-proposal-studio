@@ -1,6 +1,8 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { scheduleFigurePngCache } from '@/lib/figureCache';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
