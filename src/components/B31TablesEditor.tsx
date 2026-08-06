@@ -299,8 +299,29 @@ export function B31DeliverablesTable({ proposalId }: Props) {
         !d.responsible_participant_id &&
         d.due_month == null;
 
-      return (data || [])
-        .filter((d: any) => !isEmpty(d))
+      const rows = (data || []).filter((d: any) => !isEmpty(d));
+
+      // Secondary ordering criterion: the task a deliverable is assigned to.
+      const { data: tasks } = await supabase
+        .from('wp_draft_tasks')
+        .select('id, number')
+        .in('wp_draft_id', wpIds);
+      const taskNumById = new Map((tasks || []).map((t: any) => [t.id, t.number]));
+      const taskRank = new Map<string, number>();
+      if (rows.length > 0) {
+        const { data: links } = await supabase
+          .from('wp_draft_deliverable_tasks')
+          .select('deliverable_id, wp_draft_task_id')
+          .in('deliverable_id', rows.map((d: any) => d.id));
+        for (const l of links || []) {
+          const n = taskNumById.get(l.wp_draft_task_id);
+          if (typeof n !== 'number') continue;
+          const cur = taskRank.get(l.deliverable_id);
+          if (cur == null || n < cur) taskRank.set(l.deliverable_id, n);
+        }
+      }
+
+      return rows
         .map((d: any) => ({ ...d, wp: wpInfo!.byId.get(d.wp_draft_id) }))
         .sort((a: any, b: any) => {
           const wa = a.wp?.number ?? 999;
@@ -309,6 +330,9 @@ export function B31DeliverablesTable({ proposalId }: Props) {
           const da = a.due_month ?? Number.POSITIVE_INFINITY;
           const db = b.due_month ?? Number.POSITIVE_INFINITY;
           if (da !== db) return da - db;
+          const ta = taskRank.get(a.id) ?? Number.POSITIVE_INFINITY;
+          const tb = taskRank.get(b.id) ?? Number.POSITIVE_INFINITY;
+          if (ta !== tb) return ta - tb;
           const oa = a.order_index ?? a.number ?? 0;
           const ob = b.order_index ?? b.number ?? 0;
           if (oa !== ob) return oa - ob;
@@ -316,6 +340,7 @@ export function B31DeliverablesTable({ proposalId }: Props) {
         });
     },
   });
+
 
   const columns: Col[] = [
     { label: 'No.', defaultWidth: 44 },
