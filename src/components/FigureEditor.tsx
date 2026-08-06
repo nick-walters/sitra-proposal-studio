@@ -216,7 +216,7 @@ export function FigureEditor({
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">{isCanvasFigure ? 'Canvas size' : 'Figure size'}</CardTitle>
+          <CardTitle className="text-base">{isCanvasFigure || isPertFigure ? 'Canvas size' : 'Figure size'}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="max-w-sm">
@@ -225,7 +225,9 @@ export function FigureEditor({
               onChange={handleSizeChange}
               idPrefix={`figure-${figure.id}-size`}
               helpText={
-                isCanvasFigure
+                isPertFigure
+                  ? 'Resizes the PERT frame. Work package boxes keep their exact positions and sizes — nothing is scaled or moved.'
+                  : isCanvasFigure
                   ? 'Resizes the canvas frame. Elements keep their exact positions and sizes in cm — nothing is scaled or moved; anything outside a smaller frame stays in the data and reappears if you enlarge again.'
                   : 'The image fits inside this box preserving aspect ratio (no crop, no stretch, no padding).'
               }
@@ -234,6 +236,7 @@ export function FigureEditor({
         </CardContent>
       </Card>
     );
+
   };
 
   const renderFigureContent = () => {
