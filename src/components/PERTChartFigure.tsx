@@ -777,6 +777,38 @@ export function PERTChartFigure({
             </div>
 
 
+            {/* Add shape / line */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-7 w-7 p-0" title="Add shape or line" aria-label="Add shape or line">
+                  <Shapes className="w-3.5 h-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-48">
+                <DropdownMenuItem onSelect={() => addShapeAnnotation('rect')}>
+                  <Square className="w-3.5 h-3.5 mr-2" /> Rectangle
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => addShapeAnnotation('roundedRect')}>
+                  <Squircle className="w-3.5 h-3.5 mr-2" /> Rounded rectangle
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => addShapeAnnotation('circle')}>
+                  <Circle className="w-3.5 h-3.5 mr-2" /> Circle
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => addShapeAnnotation('triangle')}>
+                  <Triangle className="w-3.5 h-3.5 mr-2" /> Triangle
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => addShapeAnnotation('rect', true)}>
+                  <Type className="w-3.5 h-3.5 mr-2" /> Text box
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => addLineAnnotation('straight')}>
+                  <Minus className="w-3.5 h-3.5 mr-2" /> Straight line
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => addLineAnnotation('elbow')}>
+                  <CornerDownRight className="w-3.5 h-3.5 mr-2" /> Elbow line
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             {/* Snap + grid */}
             <div className="flex items-center gap-0.5">
               <Button
