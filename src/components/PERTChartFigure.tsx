@@ -472,14 +472,142 @@ export function PERTChartFigure({
     nodeSizes: { ...nodeSizeMap },
   }), [content, nodePositions, nodeSizeMap]);
 
+  // ---- Annotations (user-drawn shapes & lines) -----------------------------
+  const annotations: PertAnnotation[] = useMemo(
+    () => (Array.isArray(content?.annotations) ? content!.annotations! : []),
+    [content?.annotations],
+  );
+  const [selectedAnn, setSelectedAnn] = useState<string | null>(null);
+  const [annDrag, setAnnDrag] = useState<
+    | { id: string; mode: 'move'; startX: number; startY: number; origin: PertAnnotation }
+    | { id: string; mode: 'resize'; corner: Corner; startX: number; startY: number; origin: PertShapeAnnotation }
+    | { id: string; mode: 'endpoint'; end: 'a' | 'b' }
+    | null
+  >(null);
+
+  const commitAnnotations = useCallback((next: PertAnnotation[]) => {
+    onContentChange({ ...(contentRef.current || {}), annotations: next });
+  }, [onContentChange]);
+
+  const updateAnn = useCallback((id: string, patch: Partial<PertShapeAnnotation> & Partial<PertLineAnnotation>) => {
+    const list = Array.isArray(contentRef.current?.annotations) ? contentRef.current!.annotations! : [];
+    commitAnnotations(list.map((a) => (a.id === id ? ({ ...a, ...patch } as PertAnnotation) : a)));
+  }, [commitAnnotations]);
+
+  const addShapeAnnotation = useCallback((shape: PertShapeKind, blank = false) => {
+    const size = shape === 'circle' ? { w: 110, h: 110 } : shape === 'triangle' ? { w: 130, h: 110 } : { w: 130, h: 76 };
+    const ann: PertShapeAnnotation = {
+      id: crypto.randomUUID(),
+      kind: 'shape',
+      shape,
+      x: Math.max(0, Math.round((svgWidth - size.w) / 2)),
+      y: Math.max(0, Math.round((svgHeight - size.h) / 2)),
+      w: size.w,
+      h: size.h,
+      fill: blank ? 'none' : '#ADB5BD',
+      stroke: blank ? 'none' : '#475569',
+      strokeWidth: 1.5,
+      text: '',
+      textColor: '#000000',
+    };
+    pushHistory();
+    commitAnnotations([...annotations, ann]);
+    setSelectedNode(null);
+    setSelectedAnn(ann.id);
+  }, [annotations, commitAnnotations, pushHistory, svgWidth, svgHeight]);
+
+  const addLineAnnotation = useCallback((routing: 'straight' | 'elbow') => {
+    const half = 75;
+    const ann: PertLineAnnotation = {
+      id: crypto.randomUUID(),
+      kind: 'line',
+      routing,
+      x1: Math.max(0, Math.round(svgWidth / 2 - half)),
+      y1: Math.round(svgHeight / 2),
+      x2: Math.min(svgWidth, Math.round(svgWidth / 2 + half)),
+      y2: Math.round(svgHeight / 2) + (routing === 'elbow' ? 50 : 0),
+      stroke: '#000000',
+      strokeWidth: 1.5,
+      startCap: 'none',
+      endCap: 'arrow',
+    };
+    pushHistory();
+    commitAnnotations([...annotations, ann]);
+    setSelectedNode(null);
+    setSelectedAnn(ann.id);
+  }, [annotations, commitAnnotations, pushHistory, svgWidth, svgHeight]);
+
+  const deleteAnnotation = useCallback((id: string) => {
+    pushHistory();
+    commitAnnotations(annotations.filter((a) => a.id !== id));
+    setSelectedAnn((cur) => (cur === id ? null : cur));
+  }, [annotations, commitAnnotations, pushHistory]);
+
+  const startAnnDrag = useCallback((e: React.MouseEvent, ann: PertAnnotation) => {
+    e.stopPropagation();
+    setSelectedNode(null);
+    setSelectedAnn(ann.id);
+    if (!canEdit) return;
+    const svgRect = svgRef.current?.getBoundingClientRect();
+    if (!svgRect) return;
+    pushHistory();
+    setAnnDrag({
+      id: ann.id,
+      mode: 'move',
+      startX: (e.clientX - svgRect.left) / zoom,
+      startY: (e.clientY - svgRect.top) / zoom,
+      origin: ann,
+    });
+  }, [canEdit, pushHistory, zoom]);
+
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     const svgRect = svgRef.current?.getBoundingClientRect();
     if (!svgRect) return;
     const snapTo = (v: number) => (snap ? Math.round(v / PERT_SNAP_STEP) * PERT_SNAP_STEP : v);
+    const cx = (e.clientX - svgRect.left) / zoom;
+    const cy = (e.clientY - svgRect.top) / zoom;
+
+    if (annDrag) {
+      if (annDrag.mode === 'endpoint') {
+        updateAnn(annDrag.id, annDrag.end === 'a'
+          ? { x1: Math.max(0, snapTo(cx)), y1: Math.max(0, snapTo(cy)) }
+          : { x2: Math.max(0, snapTo(cx)), y2: Math.max(0, snapTo(cy)) });
+        return;
+      }
+      const dx = cx - annDrag.startX;
+      const dy = cy - annDrag.startY;
+      if (annDrag.mode === 'move') {
+        const o = annDrag.origin;
+        if (o.kind === 'shape') {
+          updateAnn(o.id, { x: Math.max(0, snapTo(o.x + dx)), y: Math.max(0, snapTo(o.y + dy)) });
+        } else {
+          updateAnn(o.id, {
+            x1: Math.max(0, snapTo(o.x1 + dx)), y1: Math.max(0, snapTo(o.y1 + dy)),
+            x2: Math.max(0, snapTo(o.x2 + dx)), y2: Math.max(0, snapTo(o.y2 + dy)),
+          });
+        }
+        return;
+      }
+      // resize (shape corners)
+      const o = annDrag.origin;
+      let x = o.x, y = o.y, w = o.w, h = o.h;
+      if (annDrag.corner.includes('e')) w = Math.max(ANN_MIN, snapTo(o.w + dx));
+      if (annDrag.corner.includes('s')) h = Math.max(ANN_MIN, snapTo(o.h + dy));
+      if (annDrag.corner.includes('w')) {
+        const right = o.x + o.w;
+        x = Math.max(0, Math.min(snapTo(o.x + dx), right - ANN_MIN));
+        w = right - x;
+      }
+      if (annDrag.corner.includes('n')) {
+        const bottom = o.y + o.h;
+        y = Math.max(0, Math.min(snapTo(o.y + dy), bottom - ANN_MIN));
+        h = bottom - y;
+      }
+      updateAnn(o.id, { x, y, w, h });
+      return;
+    }
 
     if (resizing) {
-      const cx = (e.clientX - svgRect.left) / zoom;
-      const cy = (e.clientY - svgRect.top) / zoom;
       const dx = cx - resizing.startX;
       const dy = cy - resizing.startY;
       const o = resizing.origin;
@@ -509,14 +637,15 @@ export function PERTChartFigure({
     }
 
     if (!draggingNode) return;
-    const newX = Math.max(0, snapTo((e.clientX - svgRect.left) / zoom - dragOffset.x));
-    const newY = Math.max(0, snapTo((e.clientY - svgRect.top) / zoom - dragOffset.y));
+    const newX = Math.max(0, snapTo(cx - dragOffset.x));
+    const newY = Math.max(0, snapTo(cy - dragOffset.y));
     const base = lockedBase();
     onContentChange({ ...base, nodePositions: { ...base.nodePositions, [draggingNode]: { x: newX, y: newY } } });
 
-  }, [draggingNode, dragOffset, onContentChange, snap, zoom, resizing, lockedBase]);
+  }, [draggingNode, dragOffset, onContentChange, snap, zoom, resizing, lockedBase, annDrag, updateAnn]);
 
-  const handleMouseUp = useCallback(() => { setDraggingNode(null); setResizing(null); }, []);
+  const handleMouseUp = useCallback(() => { setDraggingNode(null); setResizing(null); setAnnDrag(null); }, []);
+
 
   const selected = selectedNode ? nodes.find((n) => n.id === selectedNode) : undefined;
 
