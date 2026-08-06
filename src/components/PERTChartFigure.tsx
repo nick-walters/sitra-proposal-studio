@@ -486,17 +486,21 @@ export function PERTChartFigure({
 
   const selected = selectedNode ? nodes.find((n) => n.id === selectedNode) : undefined;
 
-  const setNodeSizeCm = useCallback((node: WPNode, widthCm?: number, heightCm?: number) => {
+  /** Box size is uniform: changing width/height applies to EVERY WP box. */
+  const setAllNodesSizeCm = useCallback((widthCm?: number, heightCm?: number) => {
     const round1 = (cm: number) => Math.round(cm * 10) / 10;
-    const w = widthCm != null ? Math.max(NODE_MIN_W, cmToPx(round1(widthCm))) : node.w;
-    const h = heightCm != null ? Math.max(NODE_MIN_H, cmToPx(round1(heightCm))) : node.h;
     const base = lockedBase();
-    pushHistory();
-    onContentChange({
-      ...base,
-      nodeSizes: { ...base.nodeSizes, [node.id]: { w, h } },
+    const nextSizes: Record<string, { w: number; h: number }> = {};
+    nodes.forEach((n) => {
+      nextSizes[n.id] = {
+        w: widthCm != null ? Math.max(NODE_MIN_W, cmToPx(round1(widthCm))) : n.w,
+        h: heightCm != null ? Math.max(NODE_MIN_H, cmToPx(round1(heightCm))) : n.h,
+      };
     });
-  }, [lockedBase, onContentChange, pushHistory]);
+    pushHistory();
+    onContentChange({ ...base, nodeSizes: { ...base.nodeSizes, ...nextSizes } });
+  }, [lockedBase, nodes, onContentChange, pushHistory]);
+
 
   /** Auto-regenerate: recompute the full-frame layout from current WPs. */
   const regenerateLayout = useCallback(() => {
