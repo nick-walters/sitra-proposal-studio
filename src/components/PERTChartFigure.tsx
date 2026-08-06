@@ -1182,6 +1182,62 @@ export function PERTChartFigure({
                 markerStart={arrow.direction === 'reverse' || arrow.direction === 'bidirectional' ? 'url(#arrowhead-start)' : undefined}
               />
             ))}
+
+            {/* Annotation lines — drawn on top of everything */}
+            {annotations.filter((a): a is PertLineAnnotation => a.kind === 'line').map((l) => {
+              const isSel = canEdit && selectedAnn === l.id;
+              const stroke = isSel ? 'hsl(var(--primary))' : l.stroke;
+              const sw = isSel ? Math.max(1.5, l.strokeWidth) : l.strokeWidth;
+              const elbow = l.routing === 'elbow';
+              const d = elbow
+                ? `M ${l.x1} ${l.y1} L ${l.x2} ${l.y1} L ${l.x2} ${l.y2}`
+                : `M ${l.x1} ${l.y1} L ${l.x2} ${l.y2}`;
+              // Cap direction: last / first segment of the path.
+              const endDir = elbow
+                ? { x: 0, y: Math.sign(l.y2 - l.y1) || 1 }
+                : { x: l.x2 - l.x1, y: l.y2 - l.y1 };
+              const startDir = elbow
+                ? { x: -(Math.sign(l.x2 - l.x1) || 1), y: 0 }
+                : { x: l.x1 - l.x2, y: l.y1 - l.y2 };
+              const arrow = (tip: { x: number; y: number }, dir: { x: number; y: number }) => {
+                const len = Math.hypot(dir.x, dir.y) || 1;
+                const ux = dir.x / len, uy = dir.y / len;
+                const size = Math.max(6, sw * 4);
+                const bx = tip.x - ux * size, by = tip.y - uy * size;
+                const px = -uy * size * 0.45, py = ux * size * 0.45;
+                return `${tip.x},${tip.y} ${bx + px},${by + py} ${bx - px},${by - py}`;
+              };
+              return (
+                <g key={l.id} className={canEdit ? 'cursor-move' : ''} onMouseDown={(e) => startAnnDrag(e, l)}>
+                  <path d={d} fill="none" stroke={stroke} strokeWidth={sw} strokeLinejoin="round" strokeLinecap="round" />
+                  {/* wide invisible hit area */}
+                  <path d={d} fill="none" stroke="transparent" strokeWidth={Math.max(10, sw * 4)} />
+                  {l.endCap === 'arrow' && (
+                    <polygon points={arrow({ x: l.x2, y: l.y2 }, endDir)} fill={stroke} />
+                  )}
+                  {l.startCap === 'arrow' && (
+                    <polygon points={arrow({ x: l.x1, y: l.y1 }, startDir)} fill={stroke} />
+                  )}
+                  {isSel && (['a', 'b'] as const).map((end) => (
+                    <circle
+                      key={end}
+                      cx={end === 'a' ? l.x1 : l.x2}
+                      cy={end === 'a' ? l.y1 : l.y2}
+                      r={4.5}
+                      fill="hsl(var(--primary))" stroke="#fff" strokeWidth={1}
+                      style={{ cursor: 'crosshair' }}
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
+                        setSelectedAnn(l.id);
+                        pushHistory();
+                        setAnnDrag({ id: l.id, mode: 'endpoint', end });
+                      }}
+                    />
+                  ))}
+                </g>
+              );
+            })}
+
           </svg>
           </div>
 
