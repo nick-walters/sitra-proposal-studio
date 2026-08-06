@@ -546,6 +546,20 @@ export function PERTChartFigure({
     setSelectedAnn((cur) => (cur === id ? null : cur));
   }, [annotations, commitAnnotations, pushHistory]);
 
+  // Delete / Backspace removes the selected annotation (never a WP box).
+  useEffect(() => {
+    if (!canEdit || !selectedAnn) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Delete' && e.key !== 'Backspace') return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      e.preventDefault();
+      deleteAnnotation(selectedAnn);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [canEdit, selectedAnn, deleteAnnotation]);
+
   const startAnnDrag = useCallback((e: React.MouseEvent, ann: PertAnnotation) => {
     e.stopPropagation();
     setSelectedNode(null);
