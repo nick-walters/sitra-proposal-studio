@@ -127,7 +127,7 @@ function TaskGroup({
       {/* Meta row: leader + partners + duration */}
       <tr>
         <td className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle py-0"
-          style={{ border: 'none', paddingLeft: '6px', paddingRight: '6px' }}
+          style={{ border: 'none', paddingLeft: 0, paddingRight: 0 }}
         >
           <div className="flex items-center justify-between flex-wrap gap-0.5">
             <div className="flex items-center gap-0.5 flex-wrap">
@@ -152,7 +152,7 @@ function TaskGroup({
       {/* Description */}
       <tr>
         <td colSpan={2} className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-top"
-          style={{ border: 'none', padding: '2px 6px' }}
+          style={{ border: 'none', padding: '2px 0' }}
         >
           <ReadOnlyRichText html={task.description} placeholder="No task description yet" />
         </td>
@@ -212,7 +212,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                 {/* WP leader + duration */}
                 <tr>
                   <td className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle py-0"
-                    style={{ border: 'none', paddingLeft: '6px', paddingRight: '6px' }}
+                    style={{ border: 'none', paddingLeft: 0, paddingRight: 0 }}
                   >
                     <div className="flex items-center justify-between flex-wrap gap-0.5">
                       <div className="flex items-center gap-0.5">
@@ -230,7 +230,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                 {/* Objectives (from wp_drafts.objectives — source of truth) */}
                 <tr>
                   <td colSpan={2} className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-top"
-                    style={{ border: 'none', padding: '2px 6px' }}
+                    style={{ border: 'none', padding: '2px 0' }}
                   >
                     <ReadOnlyRichText html={wp.objectives} placeholder="No objectives in WP draft yet" />
                   </td>
@@ -240,7 +240,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                 {wp.description_before_tasks && wp.description_before_tasks.replace(/<[^>]*>/g, '').trim() !== '' && (
                   <tr>
                     <td colSpan={2} className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-top"
-                      style={{ border: 'none', padding: '2px 6px' }}
+                      style={{ border: 'none', padding: '2px 0' }}
                     >
                       <ReadOnlyRichText html={wp.description_before_tasks} />
                     </td>
