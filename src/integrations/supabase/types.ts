@@ -1772,6 +1772,7 @@ export type Database = {
       impact_canvas_columns: {
         Row: {
           created_at: string
+          figure_id: string | null
           guideline: string | null
           heading: string
           id: string
@@ -1782,6 +1783,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          figure_id?: string | null
           guideline?: string | null
           heading?: string
           id?: string
@@ -1792,6 +1794,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          figure_id?: string | null
           guideline?: string | null
           heading?: string
           id?: string
@@ -1801,6 +1804,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "impact_canvas_columns_figure_id_fkey"
+            columns: ["figure_id"]
+            isOneToOne: false
+            referencedRelation: "figures"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "impact_canvas_columns_proposal_id_fkey"
             columns: ["proposal_id"]
@@ -1896,6 +1906,7 @@ export type Database = {
         Row: {
           content: Json
           created_at: string
+          figure_id: string | null
           id: string
           order_index: number
           proposal_id: string
@@ -1904,6 +1915,7 @@ export type Database = {
         Insert: {
           content?: Json
           created_at?: string
+          figure_id?: string | null
           id?: string
           order_index?: number
           proposal_id: string
@@ -1912,12 +1924,20 @@ export type Database = {
         Update: {
           content?: Json
           created_at?: string
+          figure_id?: string | null
           id?: string
           order_index?: number
           proposal_id?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "impact_canvas_rows_figure_id_fkey"
+            columns: ["figure_id"]
+            isOneToOne: false
+            referencedRelation: "figures"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "impact_canvas_rows_proposal_id_fkey"
             columns: ["proposal_id"]
@@ -3962,6 +3982,7 @@ export type Database = {
           ocd_template_path: string | null
           opening_date: string | null
           outcome_footnotes: Json | null
+          overview_canvas_enabled: boolean
           reporting_periods: Json | null
           requires_ocd: boolean | null
           scope_footnotes: Json | null
@@ -4041,6 +4062,7 @@ export type Database = {
           ocd_template_path?: string | null
           opening_date?: string | null
           outcome_footnotes?: Json | null
+          overview_canvas_enabled?: boolean
           reporting_periods?: Json | null
           requires_ocd?: boolean | null
           scope_footnotes?: Json | null
@@ -4120,6 +4142,7 @@ export type Database = {
           ocd_template_path?: string | null
           opening_date?: string | null
           outcome_footnotes?: Json | null
+          overview_canvas_enabled?: boolean
           reporting_periods?: Json | null
           requires_ocd?: boolean | null
           scope_footnotes?: Json | null

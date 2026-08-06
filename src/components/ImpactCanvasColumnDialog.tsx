@@ -38,6 +38,9 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   proposalId: string;
+  /** Scope: null/undefined = Impact Canvas singleton; a figure id = another
+   *  table-backed canvas figure (e.g. the B1.1 project overview canvas). */
+  figureId?: string | null;
   canEdit: boolean;
 }
 
@@ -115,8 +118,8 @@ function SortableRow({
   );
 }
 
-export function ImpactCanvasColumnDialog({ open, onOpenChange, proposalId, canEdit }: Props) {
-  const { columns, isLoading, updateCol, addCol, deleteCol, reorder } = useImpactCanvasColumns(proposalId);
+export function ImpactCanvasColumnDialog({ open, onOpenChange, proposalId, canEdit, figureId }: Props) {
+  const { columns, isLoading, updateCol, addCol, deleteCol, reorder } = useImpactCanvasColumns(proposalId, figureId ?? null);
   const [localOrder, setLocalOrder] = useState<ImpactCanvasColumn[]>([]);
 
   useEffect(() => setLocalOrder(columns), [columns]);

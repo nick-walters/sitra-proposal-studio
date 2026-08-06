@@ -6,6 +6,8 @@ import { useProposalCaseTypes } from "@/hooks/useProposalCaseTypes";
 import { useB12CasesTableReconciler } from "@/hooks/useB12CasesTableReconciler";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useB32MirrorsReconciler } from "@/hooks/useB32MirrorsReconciler";
+import { useOverviewCanvasSlotReconciler } from "@/hooks/useOverviewCanvasSlotReconciler";
+import { useOverviewCanvasEnabled } from "@/hooks/useImpactCanvas";
 import { useB32HiddenHeadings } from "@/hooks/useB32HiddenHeadings";
 
 import DOMPurify from "dompurify";
@@ -504,6 +506,15 @@ export function DocumentEditor({
     editor,
     sectionNumber: section?.number,
     isReady: !loading,
+  });
+
+  // B1.1 — auto-insert/remove the project overview canvas slot (Objectives).
+  const { enabled: overviewCanvasEnabled } = useOverviewCanvasEnabled(proposalId);
+  useOverviewCanvasSlotReconciler({
+    editor,
+    sectionNumber: section?.number,
+    isReady: !loading,
+    enabled: overviewCanvasEnabled,
   });
 
   // Hide B3.2 subsection headings whose A2 mirror toggles are all switched off.

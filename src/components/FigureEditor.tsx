@@ -37,7 +37,7 @@ import { toast } from 'sonner';
 import { generateProposalFilePath, uploadProposalFile } from '@/lib/proposalStorage';
 import { compressImage, getFormatExtension } from '@/lib/imageCompression';
 import { useStorageUrl } from '@/hooks/useStorageUrl';
-import { useImpactCanvasEnabled } from '@/hooks/useImpactCanvas';
+import { useImpactCanvasEnabled, useOverviewCanvasEnabled } from '@/hooks/useImpactCanvas';
 import { useProposalRole } from '@/hooks/useProposalRole';
 import { Switch } from '@/components/ui/switch';
 
@@ -93,6 +93,7 @@ export function FigureEditor({
   const replaceInputRef = useRef<HTMLInputElement>(null);
   const resolvedImageUrl = useStorageUrl(figure.content?.imageUrl);
   const isImpactCanvas = figure.figureType === 'impact-canvas';
+  const isOverviewCanvas = figure.figureType === 'overview-canvas';
   const impactGraphicRef = useRef<HTMLDivElement>(null);
   const [downloadingCanvasPng, setDownloadingCanvasPng] = useState(false);
   const { roleTier } = useProposalRole(proposalId);
@@ -100,6 +101,9 @@ export function FigureEditor({
 
   const { enabled: canvasEnabled, setEnabled: setCanvasEnabled } = useImpactCanvasEnabled(
     isImpactCanvas ? proposalId : '',
+  );
+  const { enabled: overviewEnabled, setEnabled: setOverviewEnabled } = useOverviewCanvasEnabled(
+    isOverviewCanvas ? proposalId : '',
   );
 
   const handleReplaceImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -334,6 +338,17 @@ export function FigureEditor({
         );
       case 'impact-canvas':
         return <ImpactCanvasBuilder proposalId={proposalId} canEdit={canEdit} figureNumber={figure.figureNumber} graphicRef={impactGraphicRef} />;
+      case 'overview-canvas':
+        return (
+          <ImpactCanvasBuilder
+            proposalId={proposalId}
+            canEdit={canEdit}
+            figureNumber={figure.figureNumber}
+            graphicRef={impactGraphicRef}
+            figureId={figure.id}
+            variant="overview"
+          />
+        );
       case 'canvas': {
         const preset = getFigureSizePreset(figure.content?.presetId);
         const widthCm = Number(figure.content?.widthCm) || preset.widthCm;
@@ -374,7 +389,7 @@ export function FigureEditor({
     }
   };
 
-  const NON_DELETABLE_TYPES = new Set(['pert', 'gantt', 'impact-canvas']);
+  const NON_DELETABLE_TYPES = new Set(['pert', 'gantt', 'impact-canvas', 'overview-canvas']);
   const canDeleteFigure = canEdit && !NON_DELETABLE_TYPES.has(figure.figureType);
 
   return (
@@ -403,7 +418,18 @@ export function FigureEditor({
                 <span className="text-muted-foreground">Include in B2.1</span>
               </label>
             )}
-            {isImpactCanvas && (
+            {isOverviewCanvas && isCoordinator && (
+              <label className="flex items-center gap-2 text-sm mr-1 select-none">
+                <Switch
+                  checked={overviewEnabled}
+                  onCheckedChange={(v) => setOverviewEnabled.mutate(!!v)}
+                  aria-label="Include overview canvas"
+                />
+                <span className="text-muted-foreground">Include in B1.1</span>
+              </label>
+            )}
+            {(isImpactCanvas || isOverviewCanvas) && (
+
               <Button
                 variant="outline"
                 size="sm"
@@ -415,7 +441,7 @@ export function FigureEditor({
                     const { exportAsPng } = await import('@/lib/figureExport');
                     await exportAsPng(
                       impactGraphicRef.current,
-                      `Impact-Canvas-Figure-${figure.figureNumber}`,
+                      `${isOverviewCanvas ? 'Overview' : 'Impact'}-Canvas-Figure-${figure.figureNumber}`,
                     );
                     toast.success('PNG downloaded');
                   } catch (err) {

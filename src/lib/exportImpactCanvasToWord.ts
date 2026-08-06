@@ -20,22 +20,31 @@ export async function swapImpactCanvasForWord(
   container: HTMLElement,
   proposalId: string,
 ): Promise<void> {
-  const graphic = container.querySelector<HTMLElement>(
-    'div[data-impact-canvas-graphic="true"]',
+  const graphics = Array.from(
+    container.querySelectorAll<HTMLElement>('div[data-impact-canvas-graphic="true"]'),
   );
-  if (!graphic) return;
+  if (graphics.length === 0) return;
+  for (const graphic of graphics) {
+    await swapOne(graphic, proposalId);
+  }
+}
+
+/** Swap a single canvas graphic (Impact Canvas or another table-backed
+ *  canvas figure, identified by data-canvas-figure-id). */
+async function swapOne(graphic: HTMLElement, proposalId: string): Promise<void> {
+  const figureId = graphic.getAttribute('data-canvas-figure-id') || '';
+  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+  const scope = (q: any): any => (figureId ? q.eq('figure_id', figureId) : q.is('figure_id', null));
 
   const [colsRes, rowsRes] = await Promise.all([
-    supabase
+    scope(supabase
       .from('impact_canvas_columns')
       .select('id, key, heading, order_index')
-      .eq('proposal_id', proposalId)
-      .order('order_index'),
-    supabase
+      .eq('proposal_id', proposalId)).order('order_index'),
+    scope(supabase
       .from('impact_canvas_rows')
       .select('id, content, order_index')
-      .eq('proposal_id', proposalId)
-      .order('order_index'),
+      .eq('proposal_id', proposalId)).order('order_index'),
   ]);
 
   const columns = (colsRes.data || []) as Array<{

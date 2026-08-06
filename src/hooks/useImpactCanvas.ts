@@ -20,30 +20,33 @@ export interface ImpactCanvasRow {
   order_index: number;
 }
 
-const COLS_KEY = (pid: string) => ['impact-canvas-columns', pid];
-const ROWS_KEY = (pid: string) => ['impact-canvas-rows', pid];
+const COLS_KEY = (pid: string, fid?: string | null) => ['impact-canvas-columns', pid, fid ?? 'impact'];
+const ROWS_KEY = (pid: string, fid?: string | null) => ['impact-canvas-rows', pid, fid ?? 'impact'];
 const ENABLED_KEY = (pid: string) => ['impact-canvas-enabled', pid];
 
 const EMPTY_COLS: ImpactCanvasColumn[] = [];
 const EMPTY_ROWS: ImpactCanvasRow[] = [];
 
-export function useImpactCanvasColumns(proposalId: string) {
+export function useImpactCanvasColumns(proposalId: string, figureId?: string | null) {
   const qc = useQueryClient();
+  const fid = figureId ?? null;
+  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+  const scope = (query: any): any => (fid ? query.eq('figure_id', fid) : query.is('figure_id', null));
   const q = useQuery({
-    queryKey: COLS_KEY(proposalId),
+    queryKey: COLS_KEY(proposalId, fid),
     enabled: !!proposalId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await scope(supabase
         .from('impact_canvas_columns')
         .select('*')
-        .eq('proposal_id', proposalId)
+        .eq('proposal_id', proposalId))
         .order('order_index');
       if (error) throw error;
       return (data || []) as ImpactCanvasColumn[];
     },
   });
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: COLS_KEY(proposalId) });
+  const invalidate = () => qc.invalidateQueries({ queryKey: COLS_KEY(proposalId, fid) });
 
   const updateCol = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<ImpactCanvasColumn> }) => {
@@ -59,17 +62,18 @@ export function useImpactCanvasColumns(proposalId: string) {
       const existing = q.data || [];
       const { error } = await supabase.from('impact_canvas_columns').insert({
         proposal_id: proposalId,
+        figure_id: fid,
         key: `col_${Date.now()}`,
         heading: 'New column',
         guideline: '',
         order_index: existing.length,
       });
       if (error) throw error;
-      await syncBoundElements(proposalId);
+      await syncBoundElements(proposalId, fid);
     },
     onSettled: () => {
       invalidate();
-      qc.invalidateQueries({ queryKey: ['canvas-elements', `impact:${proposalId}`] });
+      qc.invalidateQueries({ queryKey: ['canvas-elements', fid ?? `impact:${proposalId}`] });
     },
     onError: () => toast.error('Failed to add column'),
   });
@@ -78,11 +82,11 @@ export function useImpactCanvasColumns(proposalId: string) {
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('impact_canvas_columns').delete().eq('id', id);
       if (error) throw error;
-      await syncBoundElements(proposalId);
+      await syncBoundElements(proposalId, fid);
     },
     onSettled: () => {
       invalidate();
-      qc.invalidateQueries({ queryKey: ['canvas-elements', `impact:${proposalId}`] });
+      qc.invalidateQueries({ queryKey: ['canvas-elements', fid ?? `impact:${proposalId}`] });
     },
     onError: () => toast.error('Failed to delete column'),
   });
@@ -101,13 +105,13 @@ export function useImpactCanvasColumns(proposalId: string) {
       }
     },
     onMutate: async (reordered) => {
-      await qc.cancelQueries({ queryKey: COLS_KEY(proposalId) });
-      const prev = qc.getQueryData<ImpactCanvasColumn[]>(COLS_KEY(proposalId));
-      qc.setQueryData(COLS_KEY(proposalId), reordered.map((r, i) => ({ ...r, order_index: i })));
+      await qc.cancelQueries({ queryKey: COLS_KEY(proposalId, fid) });
+      const prev = qc.getQueryData<ImpactCanvasColumn[]>(COLS_KEY(proposalId, fid));
+      qc.setQueryData(COLS_KEY(proposalId, fid), reordered.map((r, i) => ({ ...r, order_index: i })));
       return { prev };
     },
     onError: (_e, _v, ctx) => {
-      if (ctx?.prev) qc.setQueryData(COLS_KEY(proposalId), ctx.prev);
+      if (ctx?.prev) qc.setQueryData(COLS_KEY(proposalId, fid), ctx.prev);
       toast.error('Failed to reorder columns');
     },
     onSettled: invalidate,
@@ -116,16 +120,19 @@ export function useImpactCanvasColumns(proposalId: string) {
   return { columns: q.data ?? EMPTY_COLS, isLoading: q.isLoading, updateCol, addCol, deleteCol, reorder };
 }
 
-export function useImpactCanvasRows(proposalId: string) {
+export function useImpactCanvasRows(proposalId: string, figureId?: string | null) {
   const qc = useQueryClient();
+  const fid = figureId ?? null;
+  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+  const scope = (query: any): any => (fid ? query.eq('figure_id', fid) : query.is('figure_id', null));
   const q = useQuery({
-    queryKey: ROWS_KEY(proposalId),
+    queryKey: ROWS_KEY(proposalId, fid),
     enabled: !!proposalId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await scope(supabase
         .from('impact_canvas_rows')
         .select('*')
-        .eq('proposal_id', proposalId)
+        .eq('proposal_id', proposalId))
         .order('order_index');
       if (error) throw error;
       return (data || []).map((r) => ({
@@ -135,22 +142,23 @@ export function useImpactCanvasRows(proposalId: string) {
     },
   });
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: ROWS_KEY(proposalId) });
+  const invalidate = () => qc.invalidateQueries({ queryKey: ROWS_KEY(proposalId, fid) });
 
   const addRow = useMutation({
     mutationFn: async () => {
       const existing = q.data || [];
       const { error } = await supabase.from('impact_canvas_rows').insert({
         proposal_id: proposalId,
+        figure_id: fid,
         content: {},
         order_index: existing.length,
       });
       if (error) throw error;
-      await syncBoundElements(proposalId);
+      await syncBoundElements(proposalId, fid);
     },
     onSettled: () => {
       invalidate();
-      qc.invalidateQueries({ queryKey: ['canvas-elements', `impact:${proposalId}`] });
+      qc.invalidateQueries({ queryKey: ['canvas-elements', fid ?? `impact:${proposalId}`] });
     },
     onError: () => toast.error('Failed to add row'),
   });
@@ -163,7 +171,7 @@ export function useImpactCanvasRows(proposalId: string) {
     },
     onSettled: () => {
       invalidate();
-      qc.invalidateQueries({ queryKey: ['canvas-elements', `impact:${proposalId}`] });
+      qc.invalidateQueries({ queryKey: ['canvas-elements', fid ?? `impact:${proposalId}`] });
     },
     onError: () => toast.error('Failed to delete row'),
   });
@@ -180,15 +188,15 @@ export function useImpactCanvasRows(proposalId: string) {
       if (error) throw error;
     },
     onMutate: async ({ rowId, key, html }) => {
-      await qc.cancelQueries({ queryKey: ROWS_KEY(proposalId) });
-      const prev = qc.getQueryData<ImpactCanvasRow[]>(ROWS_KEY(proposalId));
-      qc.setQueryData<ImpactCanvasRow[]>(ROWS_KEY(proposalId), (old) =>
+      await qc.cancelQueries({ queryKey: ROWS_KEY(proposalId, fid) });
+      const prev = qc.getQueryData<ImpactCanvasRow[]>(ROWS_KEY(proposalId, fid));
+      qc.setQueryData<ImpactCanvasRow[]>(ROWS_KEY(proposalId, fid), (old) =>
         (old || []).map((r) => (r.id === rowId ? { ...r, content: { ...r.content, [key]: html } } : r)),
       );
       return { prev };
     },
     onError: (_e, _v, ctx) => {
-      if (ctx?.prev) qc.setQueryData(ROWS_KEY(proposalId), ctx.prev);
+      if (ctx?.prev) qc.setQueryData(ROWS_KEY(proposalId, fid), ctx.prev);
       toast.error('Failed to save cell');
     },
     onSettled: invalidate,
@@ -232,6 +240,50 @@ export function useImpactCanvasEnabled(proposalId: string) {
       toast.error('Failed to update toggle');
     },
     onSettled: () => qc.invalidateQueries({ queryKey: ENABLED_KEY(proposalId) }),
+  });
+
+  return { enabled: q.data ?? true, isLoading: q.isLoading, setEnabled };
+}
+
+
+/** Overview canvas (B1.1) on/off switch — mirrors useImpactCanvasEnabled. */
+const OVERVIEW_ENABLED_KEY = (pid: string) => ['overview-canvas-enabled', pid];
+
+export function useOverviewCanvasEnabled(proposalId: string) {
+  const qc = useQueryClient();
+  const q = useQuery({
+    queryKey: OVERVIEW_ENABLED_KEY(proposalId),
+    enabled: !!proposalId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('proposals')
+        .select('overview_canvas_enabled')
+        .eq('id', proposalId)
+        .maybeSingle();
+      if (error) throw error;
+      return (data?.overview_canvas_enabled ?? true) as boolean;
+    },
+  });
+
+  const setEnabled = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      const { error } = await supabase
+        .from('proposals')
+        .update({ overview_canvas_enabled: enabled })
+        .eq('id', proposalId);
+      if (error) throw error;
+    },
+    onMutate: async (enabled) => {
+      await qc.cancelQueries({ queryKey: OVERVIEW_ENABLED_KEY(proposalId) });
+      const prev = qc.getQueryData<boolean>(OVERVIEW_ENABLED_KEY(proposalId));
+      qc.setQueryData(OVERVIEW_ENABLED_KEY(proposalId), enabled);
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev !== undefined) qc.setQueryData(OVERVIEW_ENABLED_KEY(proposalId), ctx.prev);
+      toast.error('Failed to update toggle');
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: OVERVIEW_ENABLED_KEY(proposalId) }),
   });
 
   return { enabled: q.data ?? true, isLoading: q.isLoading, setEnabled };
