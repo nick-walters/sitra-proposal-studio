@@ -133,6 +133,8 @@ type Col = {
   label: React.ReactNode;
   defaultWidth?: number;
   flex?: boolean;
+  /** `fit: true`: badge-only column — width is measured from the widest badge so it always fits in full. */
+  fit?: boolean;
   align?: 'left' | 'center';
   /** Optional override for horizontal padding classes (e.g. 'px-0'). When set, replaces the default first/last-column padding logic for this column's header cell. */
   padX?: string;
@@ -171,25 +173,66 @@ function MirrorTable({
   const hasSaved = colWidths.length === columns.length;
   const lastIdx = columns.length - 1;
 
+  // Measured natural widths for `fit` (badge-only) columns, so a badge is never clipped.
+  const [fitWidths, setFitWidths] = React.useState<Record<number, number>>({});
+  const fitSignature = columns.map((c, i) => (c.fit ? i : '')).join(',');
+  React.useLayoutEffect(() => {
+    const table = tableRef.current;
+    if (!table) return;
+    const next: Record<number, number> = {};
+    columns.forEach((c, i) => {
+      if (!c.fit) return;
+      const cells = table.querySelectorAll<HTMLElement>(
+        `tbody > tr > td:nth-child(${i + 1}), thead > tr > th:nth-child(${i + 1})`,
+      );
+      let widest = 0;
+      cells.forEach((cell) => {
+        let content = 0;
+        cell.childNodes.forEach((n) => {
+          if (n instanceof HTMLElement) content = Math.max(content, n.getBoundingClientRect().width);
+        });
+        if (content === 0) content = cell.scrollWidth;
+        const cs = getComputedStyle(cell);
+        widest = Math.max(widest, content + parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight));
+      });
+      if (widest > 0) next[i] = Math.ceil(widest) + 2;
+    });
+    setFitWidths((prev) => {
+      const same = Object.keys(next).length === Object.keys(prev).length
+        && Object.entries(next).every(([k, v]) => prev[Number(k)] === v);
+      return same ? prev : next;
+    });
+  });
+
   const colStyle = useCallback(
     (i: number): React.CSSProperties => {
       if (hasSaved) return { width: colWidths[i] };
       const c = columns[i];
+      if (c.fit && fitWidths[i]) return { width: fitWidths[i] };
       if (c.flex) return {};
       return c.defaultWidth ? { width: c.defaultWidth } : {};
     },
-    [hasSaved, colWidths, columns],
+    [hasSaved, colWidths, columns, fitWidths],
   );
 
   const cellPad = (i: number) => {
     const c = columns[i];
     if (c.padX) return c.padX;
+    if (c.fit) return i === 0 ? 'pl-0 pr-1' : 'px-1';
     const left = i === 0 ? 'pl-0' : 'pl-2';
     const right = i === lastIdx ? 'pr-0' : 'pr-2';
     return `${left} ${right}`;
   };
 
+  const fitCols = columns.map((c, i) => (c.fit ? i + 1 : 0)).filter(Boolean);
+
   return (
+    <>
+    {fitCols.length > 0 && (
+      <style>{fitCols
+        .map((n) => `[data-table-key="${tableKey}"] > tbody > tr > td:nth-child(${n}){white-space:nowrap;overflow-wrap:normal;word-break:normal;padding-left:${n === 1 ? 0 : 4}px;padding-right:4px;}`)
+        .join('\n')}</style>
+    )}
     <table
       ref={tableRef}
       data-table-key={tableKey}
@@ -209,7 +252,7 @@ function MirrorTable({
           {columns.map((c, i) => (
             <th
               key={i}
-              className={`${cellPad(i)} ${c.cellClass ?? ''} py-0 text-[10pt] align-bottom relative ${c.align === 'center' ? 'text-center' : 'text-left'}`}
+              className={`${cellPad(i)} ${c.cellClass ?? ''} ${c.fit ? 'cell-fit' : ''} py-0 text-[10pt] align-bottom relative ${c.align === 'center' ? 'text-center' : 'text-left'}`}
             >
               {c.label}
               <ColumnResizer onMouseDown={handleColResizeStart(i)} />
@@ -234,6 +277,7 @@ function MirrorTable({
         )}
       </tbody>
     </table>
+    </>
   );
 }
 
@@ -386,13 +430,13 @@ export function B31DeliverablesTable({ proposalId, forExport }: Props & { forExp
 
 
   const columns: Col[] = [
-    { label: 'No.', defaultWidth: 44 },
+    { label: 'No.', fit: true, defaultWidth: 52 },
     { label: 'Deliverable title', flex: true },
-    { label: 'WP', defaultWidth: 44 },
-    { label: 'Lead', defaultWidth: 90 },
-    { label: 'Type', defaultWidth: 60 },
-    { label: 'Diss.', defaultWidth: 60 },
-    { label: 'Due', defaultWidth: 50 },
+    { label: 'WP', fit: true, defaultWidth: 44 },
+    { label: 'Lead', defaultWidth: 78 },
+    { label: 'Type', defaultWidth: 46 },
+    { label: 'Diss.', defaultWidth: 42 },
+    { label: 'Due', defaultWidth: 40 },
   ];
   const last = columns.length - 1;
 
@@ -531,10 +575,10 @@ export function B31MilestonesTable({ proposalId }: Props) {
   }, [milestones, wpInfo]);
 
   const columns: Col[] = [
-    { label: 'No.', defaultWidth: 48, cellClass: 'cell-pl-0' },
+    { label: 'No.', fit: true, defaultWidth: 48, cellClass: 'cell-pl-0' },
     { label: 'Milestone', defaultWidth: 220 },
     { label: 'WP(s)', defaultWidth: 113, cellClass: 'cell-px-0' },
-    { label: 'Due', defaultWidth: 50 },
+    { label: 'Due', defaultWidth: 40 },
     { label: 'Means of verification', flex: true, cellClass: 'cell-pr-0' },
   ];
 
