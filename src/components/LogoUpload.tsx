@@ -59,6 +59,9 @@ export function LogoUpload({
   const [isUploading, setIsUploading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+  const [isGenerateDialogOpen, setIsGenerateDialogOpen] = useState(false);
+  const [considerations, setConsiderations] = useState('');
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
