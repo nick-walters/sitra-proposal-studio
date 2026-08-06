@@ -124,6 +124,10 @@ function useParticipantLookup(proposalId: string) {
   });
 }
 
+/** The 18cm text column between the page margins, in CSS px at 96dpi. */
+const MAX_TABLE_WIDTH_PX = Math.round((18 / 2.54) * 96);
+
+
 /**
  * Mirror table column descriptor.
  * - `defaultWidth`: fallback width in px when no saved widths exist.
@@ -164,17 +168,25 @@ function MirrorTable({
   tableClassName?: string;
 }) {
 
+  // Measured natural widths for `fit` (badge-only) columns, so a badge is never clipped.
+  const [fitWidths, setFitWidths] = React.useState<Record<number, number>>({});
+  const minWidths = useMemo(
+    () => columns.map((c, i) => (c.fit && fitWidths[i] ? fitWidths[i] : 24)),
+    [columns, fitWidths],
+  );
+
   const { colWidths, tableRef, handleColResizeStart } = useColumnResize({
     proposalId,
     tableKey,
     canResize: true,
     minWidth: 24,
+    minWidths,
+    maxTotalWidth: MAX_TABLE_WIDTH_PX,
   });
   const hasSaved = colWidths.length === columns.length;
   const lastIdx = columns.length - 1;
 
-  // Measured natural widths for `fit` (badge-only) columns, so a badge is never clipped.
-  const [fitWidths, setFitWidths] = React.useState<Record<number, number>>({});
+
   const fitSignature = columns.map((c, i) => (c.fit ? i : '')).join(',');
   React.useLayoutEffect(() => {
     const table = tableRef.current;
@@ -208,17 +220,30 @@ function MirrorTable({
   }, [fitSignature, hasSaved, children]);
 
 
-  // Fit columns always take their measured badge width, even when the user has
-  // saved widths for the table — a badge must never be clipped or wrapped.
-  const effectiveWidths = useMemo(
-    () => columns.map((c, i) => {
+  /**
+   * Word-like widths: once the user has saved widths, they are the single source
+   * of truth (a drag moves only the two adjacent borders, so no other column
+   * shifts). Fit columns are protected by `minWidths` during the drag instead of
+   * being overridden here, and the total is capped at the 18cm text column so the
+   * last column can never spill into the right margin.
+   */
+  const effectiveWidths = useMemo(() => {
+    if (hasSaved) {
+      const widths = columns.map((c, i) => Math.max(24, colWidths[i]));
+      const total = widths.reduce((a, b) => a + b, 0);
+      if (total > MAX_TABLE_WIDTH_PX) {
+        const scale = MAX_TABLE_WIDTH_PX / total;
+        return widths.map((w) => Math.floor(w * scale));
+      }
+      return widths;
+    }
+    return columns.map((c, i) => {
       if (c.fit && fitWidths[i]) return fitWidths[i];
-      if (hasSaved) return colWidths[i];
       if (c.flex) return undefined;
       return c.defaultWidth;
-    }),
-    [columns, fitWidths, hasSaved, colWidths],
-  );
+    });
+  }, [columns, fitWidths, hasSaved, colWidths]);
+
 
   const colStyle = useCallback(
     (i: number): React.CSSProperties => {
@@ -253,8 +278,9 @@ function MirrorTable({
   const fitCols = columns.map((c, i) => (c.fit ? i + 1 : 0)).filter(Boolean);
 
   const totalWidth = effectiveWidths.every((w) => typeof w === 'number')
-    ? (effectiveWidths as number[]).reduce((a, b) => a + b, 0)
+    ? Math.min(MAX_TABLE_WIDTH_PX, (effectiveWidths as number[]).reduce((a, b) => a + b, 0))
     : '100%';
+
 
   return (
     <>

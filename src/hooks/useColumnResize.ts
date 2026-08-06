@@ -13,8 +13,13 @@ export function useColumnResize(options: {
   canResize?: boolean;
   resizeMode?: 'single' | 'adjacent';
   minWidth?: number;
+  /** Per-column minimum widths (e.g. measured badge widths). Falls back to minWidth. */
+  minWidths?: number[];
+  /** Hard cap on the total table width (e.g. the 18cm text column in px). */
+  maxTotalWidth?: number;
 } = { tableKey: 'default' }) {
-  const { proposalId, tableKey, canResize = false, minWidth = 40 } = options;
+  const { proposalId, tableKey, canResize = false, minWidth = 40, minWidths, maxTotalWidth } = options;
+
   const [colWidths, setColWidths] = useState<number[]>([]);
   const [loaded, setLoaded] = useState(false);
   const tableRef = useRef<HTMLTableElement>(null);
@@ -82,6 +87,8 @@ export function useColumnResize(options: {
     if (currentWidths[index] === undefined || Number.isNaN(currentWidths[index])) return;
     resizingRef.current = { index, startX: e.clientX, startWidths: currentWidths };
 
+    const minOf = (i: number) => Math.max(minWidth, minWidths?.[i] ?? 0);
+
     const onMouseMove = (ev: MouseEvent) => {
       if (!resizingRef.current) return;
       const { index: colIdx, startX, startWidths } = resizingRef.current;
@@ -94,22 +101,24 @@ export function useColumnResize(options: {
       //   the available text column, i.e. 18cm)
       const isLast = colIdx >= startWidths.length - 1;
       if (!isLast && startWidths.length > 1) {
-        const minDelta = minWidth - startWidths[colIdx];
-        const maxDelta = startWidths[colIdx + 1] - minWidth;
-        const clampedDelta = Math.min(Math.max(delta, minDelta), maxDelta);
+        const minDelta = minOf(colIdx) - startWidths[colIdx];
+        const maxDelta = startWidths[colIdx + 1] - minOf(colIdx + 1);
+        const clampedDelta = Math.min(Math.max(delta, minDelta), Math.max(minDelta, maxDelta));
         newWidths[colIdx] = startWidths[colIdx] + clampedDelta;
         newWidths[colIdx + 1] = startWidths[colIdx + 1] - clampedDelta;
       } else {
         const containerWidth = tableRef.current?.parentElement?.clientWidth ?? Infinity;
+        const cap = Math.min(containerWidth, maxTotalWidth ?? Infinity);
         const total = startWidths.reduce((a, b) => a + b, 0);
-        const minDelta = minWidth - startWidths[colIdx];
-        const maxDelta = containerWidth - total;
+        const minDelta = minOf(colIdx) - startWidths[colIdx];
+        const maxDelta = cap - total;
         const clampedDelta = Math.min(Math.max(delta, minDelta), Math.max(0, maxDelta));
         newWidths[colIdx] = startWidths[colIdx] + clampedDelta;
       }
 
       setColWidths(newWidths);
     };
+
 
     const onMouseUp = () => {
       resizingRef.current = null;
@@ -124,7 +133,7 @@ export function useColumnResize(options: {
 
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
-  }, [colWidths, canResize, saveWidths, minWidth]);
+  }, [colWidths, canResize, saveWidths, minWidth, minWidths, maxTotalWidth]);
 
   return { colWidths, setColWidths, tableRef, handleColResizeStart, saveWidths, loaded };
 }
