@@ -1,7 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { resolveBoundStyle } from '@/lib/impactCanvasBoundStyle';
 import { FONT_FAMILY_REGULAR, DEFAULT_TEXT_COLOR, DEFAULT_PT } from '@/lib/impactCanvasTextSizing';
-import { useCanvasPtFont } from '@/lib/canvasSize';
+import { useCanvasPtFont, useCanvasSize } from '@/lib/canvasSize';
 
 
 /**
