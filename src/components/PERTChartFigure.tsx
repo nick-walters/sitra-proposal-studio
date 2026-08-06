@@ -423,23 +423,8 @@ export function PERTChartFigure({
   }, [canEdit, nodes, zoom, pushHistory]);
 
 
-  // Start a corner resize on the selected node.
-  const handleResizeStart = useCallback((e: React.MouseEvent, node: WPNode, corner: Corner) => {
-    if (!canEdit) return;
-    e.stopPropagation();
-    const svgRect = svgRef.current?.getBoundingClientRect();
-    if (!svgRect) return;
-    setSelectedNode(node.id);
-    pushHistory();
-    setResizing({
 
-      id: node.id,
-      corner,
-      startX: (e.clientX - svgRect.left) / zoom,
-      startY: (e.clientY - svgRect.top) / zoom,
-      origin: { x: node.x, y: node.y, w: node.w, h: node.h },
-    });
-  }, [canEdit, zoom, pushHistory]);
+
 
   /**
    * Base content for a manual edit: freezes the current (possibly
