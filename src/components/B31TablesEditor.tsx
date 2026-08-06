@@ -224,7 +224,15 @@ function MirrorTable({
     return `${left} ${right}`;
   };
 
+  const fitCols = columns.map((c, i) => (c.fit ? i + 1 : 0)).filter(Boolean);
+
   return (
+    <>
+    {fitCols.length > 0 && (
+      <style>{fitCols
+        .map((n) => `[data-table-key="${tableKey}"] > tbody > tr > td:nth-child(${n}){white-space:nowrap;overflow-wrap:normal;word-break:normal;padding-left:${n === 1 ? 0 : 4}px;padding-right:4px;}`)
+        .join('\n')}</style>
+    )}
     <table
       ref={tableRef}
       data-table-key={tableKey}
@@ -269,6 +277,7 @@ function MirrorTable({
         )}
       </tbody>
     </table>
+    </>
   );
 }
 
