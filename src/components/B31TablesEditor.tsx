@@ -290,6 +290,7 @@ export function B31DeliverablesTable({ proposalId, forExport }: Props & { forExp
     if (typeof window === 'undefined') return 'wp';
     return window.localStorage.getItem(orderModeKey(proposalId)) === 'due' ? 'due' : 'wp';
   });
+  const [showToggle, setShowToggle] = React.useState(false);
 
   const setMode = (mode: DeliverableOrderMode) => {
     setOrderMode(mode);
