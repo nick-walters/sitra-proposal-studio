@@ -983,7 +983,7 @@ export function GeneralInfoForm({
                   minHeight="90px"
                   placeholder="Disclaimer: …"
                   editorClassName="p-3"
-                  style={{ fontFamily: '"Times New Roman", Times, serif', fontSize: '11pt', lineHeight: 1.5 }}
+                  style={{ fontFamily: '"Times New Roman", Times, serif', fontSize: '11pt', lineHeight: 1 }}
                 />
               </div>
             )}
