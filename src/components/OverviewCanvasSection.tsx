@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { EditableCaption } from '@/components/EditableCaption';
 import { ImpactCanvasFreeformRenderer } from '@/components/ImpactCanvasFreeformRenderer';
 import { ensureOverviewCanvas, OVERVIEW_CANVAS_FIGURE_TYPE, overviewCanvasTitle } from '@/lib/overviewCanvas';
+import { syncBoundElements } from '@/lib/impactCanvasLayout';
 
 interface Props {
   proposalId: string;
@@ -62,6 +63,31 @@ export function OverviewCanvasSection({ proposalId, provision = true }: Props) {
       cancelled = true;
     };
   }, [provision, proposalId, enabled, figure, metaQ.data, qc]);
+
+  // Make sure the bound (table-backed) boxes exist for the figure — the
+  // layout sync runs client-side, so a figure provisioned elsewhere (e.g.
+  // seeded directly) still gets its boxes on first render. Idempotent.
+  useEffect(() => {
+    if (!provision || !enabled || !figure?.id) return;
+    let cancelled = false;
+    supabase
+      .from('impact_canvas_elements')
+      .select('id')
+      .eq('proposal_id', proposalId)
+      .eq('figure_id', figure.id)
+      .limit(1)
+      .then(({ data }) => {
+        if (cancelled || (data?.length ?? 0) > 0) return;
+        return syncBoundElements(proposalId, figure.id).then(() => {
+          if (!cancelled) {
+            qc.invalidateQueries({ queryKey: ['canvas-elements', `impact:${proposalId}:${figure.id}`] });
+          }
+        });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [provision, enabled, figure?.id, proposalId, qc]);
 
   if (metaQ.isLoading) return null;
   if (!enabled) return null;
