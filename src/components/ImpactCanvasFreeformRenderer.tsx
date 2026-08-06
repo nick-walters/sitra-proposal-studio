@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useImpactCanvasColumns, useImpactCanvasRows } from '@/hooks/useImpactCanvas';
 import { computeCanvasHeightCm } from '@/lib/impactCanvasLayout';
 import { ImpactCanvasShape, type ShapeKind } from './ImpactCanvasShape';
+import { ImpactCanvasImage } from './ImpactCanvasImage';
 import { resolveBoundStyle } from '@/lib/impactCanvasBoundStyle';
 import { FONT_FAMILY_REGULAR, FONT_FAMILY_HEADER, DEFAULT_TEXT_COLOR, DEFAULT_PT, HEADER_PT } from '@/lib/impactCanvasTextSizing';
 import { CanvasSizeProvider, IMPACT_CANVAS_SIZE, useCanvasSize, useCanvasPtFont, type CanvasSize } from '@/lib/canvasSize';
@@ -169,6 +170,7 @@ function ImpactCanvasFreeformRendererInner({ proposalId, className, fallback = '
   const headerEls = elements.filter((e) => e.kind === 'header' && e.bound_col_key);
   const textEls = elements.filter((e) => e.kind === 'text');
   const shapeEls = elements.filter((e) => e.kind === 'shape');
+  const imageEls = elements.filter((e) => e.kind === 'image');
 
   // Fallback: pre-backfill proposals with no elements fall back to
   // a legacy CSS grid layout so the canvas is never blank.
@@ -177,6 +179,7 @@ function ImpactCanvasFreeformRendererInner({ proposalId, className, fallback = '
     headerEls.length === 0 &&
     textEls.length === 0 &&
     shapeEls.length === 0 &&
+    imageEls.length === 0 &&
     fallback === 'grid'
   ) {
     return <LegacyGridFallback proposalId={proposalId} className={className} />;
@@ -383,6 +386,28 @@ function ImpactCanvasFreeformRendererInner({ proposalId, className, fallback = '
           </div>
         );
       })}
+
+      {/* Uploaded image elements — read-only rendering. */}
+      {imageEls.map((el) => {
+        const content = (el.content ?? {}) as { src?: string; fit?: 'fill' | 'contain' };
+        return (
+          <div
+            key={el.id}
+            style={{
+              position: 'absolute',
+              left: pctX(el.x),
+              top: pctY(el.y),
+              width: pctX(el.w),
+              height: pctY(el.h),
+              zIndex: el.z,
+            }}
+          >
+            <ImpactCanvasImage src={content.src || ''} fit={content.fit ?? 'contain'} />
+          </div>
+        );
+      })}
+
+
 
       {/* Free line elements — shared SVG overlay used by editor + B2.1 + PDF + PNG. */}
       <ImpactCanvasLinesOverlay VW={VW} VH={VH} elements={elements as unknown as LineElement[]} />

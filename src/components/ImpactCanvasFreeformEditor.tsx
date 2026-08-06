@@ -1,11 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
-import { Grid3x3, Magnet, MoveHorizontal, MoveVertical, PaintBucket, Redo2, Squircle as SquircleTrigger, Trash2, Undo2 } from 'lucide-react';
+import { Grid3x3, ImagePlus, Magnet, MoveHorizontal, MoveVertical, PaintBucket, Redo2, Squircle as SquircleTrigger, Trash2, Undo2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { compressImage, getFormatExtension } from '@/lib/imageCompression';
+import { generateProposalFilePath, uploadProposalFile } from '@/lib/proposalStorage';
+import { ImpactCanvasImage } from './ImpactCanvasImage';
+
 
 import { supabase } from '@/integrations/supabase/client';
 import { useImpactCanvasColumns, useImpactCanvasRows } from '@/hooks/useImpactCanvas';
@@ -339,6 +344,8 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
     if (typeof window === 'undefined') return false;
     return window.localStorage.getItem('impact-canvas-show-grid') === '1';
   });
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
   const [snap, setSnap] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     return window.localStorage.getItem('impact-canvas-snap') === '1';
@@ -1393,6 +1400,7 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
   );
   const textEls = useMemo(() => fetched.filter((e) => e.kind === 'text'), [fetched]);
   const shapeEls = useMemo(() => fetched.filter((e) => e.kind === 'shape'), [fetched]);
+  const imageEls = useMemo(() => fetched.filter((e) => e.kind === 'image'), [fetched]);
   const lineEls = useMemo(() => fetched.filter((e) => e.kind === 'line'), [fetched]);
 
   /** Line elements merged with any in-flight overrides (bbox + endpoints)
@@ -1702,6 +1710,92 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
     [canEdit, maxZ, proposalId, qc, pushHistory],
   );
 
+  /** Upload an image file and insert it as a free `image` element.
+   *  Sized to fit within half the canvas width, preserving aspect ratio,
+   *  centred; movable/resizable/deletable like shapes. One undo step. */
+  const addImage = useCallback(
+    async (file: File) => {
+      if (!canEdit) return;
+      setUploadingImage(true);
+      try {
+        const isJpeg = /jpe?g$/i.test(file.type) || /\.jpe?g$/i.test(file.name);
+        const compressed = await compressImage(file, {
+          format: isJpeg ? 'jpeg' : 'png',
+          quality: 0.92,
+        });
+        const ext = getFormatExtension(isJpeg ? 'jpeg' : 'png');
+        const filePath = generateProposalFilePath(
+          proposalId,
+          'figures',
+          `canvas-image.${ext}`,
+          { prefix: 'canvas', addTimestamp: true },
+        );
+        const { storagePath, error } = await uploadProposalFile(compressed, filePath, {
+          contentType: isJpeg ? 'image/jpeg' : 'image/png',
+        });
+        if (error || !storagePath) {
+          toast.error('Failed to upload image');
+          return;
+        }
+
+        // Natural size → cm box, capped at half the canvas width.
+        const dims = await new Promise<{ w: number; h: number }>((resolve) => {
+          const url = URL.createObjectURL(compressed);
+          const img = new Image();
+          img.onload = () => {
+            resolve({ w: img.naturalWidth || 1, h: img.naturalHeight || 1 });
+            URL.revokeObjectURL(url);
+          };
+          img.onerror = () => {
+            resolve({ w: 4, h: 3 });
+            URL.revokeObjectURL(url);
+          };
+          img.src = url;
+        });
+        const VW = widthCm;
+        const VH = canvasHeightCmRef.current;
+        const targetW = Math.min(VW / 2, 6);
+        const targetH = +(targetW * (dims.h / dims.w)).toFixed(4);
+        const w = +targetW.toFixed(4);
+        const h = +Math.max(MIN_ELEMENT_H_CM, Math.min(targetH, VH)).toFixed(4);
+
+        const insertBox = {
+          proposal_id: proposalId,
+          figure_id: figureId ?? null,
+          kind: 'image',
+          x: +((VW - w) / 2).toFixed(4),
+          y: +Math.max(0, (VH - h) / 2).toFixed(4),
+          w,
+          h,
+          z: maxZ + 1,
+          content: { src: storagePath, fit: 'contain' },
+          style: {},
+        };
+        const { data, error: insErr } = await supabase
+          .from('impact_canvas_elements')
+          .insert(insertBox)
+          .select('id, kind, bound_row_id, bound_col_key, x, y, w, h, z, content, style')
+          .single();
+        if (insErr || !data) {
+          qc.invalidateQueries({ queryKey: ELS_KEY(proposalId, figureId) });
+          toast.error('Failed to add image');
+          return;
+        }
+        qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId, figureId), (old) => [
+          ...(old || []),
+          data as CanvasElement,
+        ]);
+        pushHistory({ kind: 'add', element: data as CanvasElement });
+        selectOnly(data.id);
+      } finally {
+        setUploadingImage(false);
+      }
+    },
+    [canEdit, maxZ, proposalId, qc, pushHistory, widthCm, figureId],
+  );
+
+
+
   /** Add a new line element with the given routing. Default caps:
    *  startCap 'none', endCap 'arrow-filled' (right/end arrowhead).
    *  Default geometry: a ~4 cm horizontal segment centred on the canvas,
@@ -1927,7 +2021,7 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
       if (!canEdit || ids.length === 0) return;
       const prev = qc.getQueryData<CanvasElement[]>(ELS_KEY(proposalId, figureId));
       const targets = (prev || []).filter(
-        (e) => ids.includes(e.id) && (e.kind === 'text' || e.kind === 'shape' || e.kind === 'line'),
+        (e) => ids.includes(e.id) && (e.kind === 'text' || e.kind === 'shape' || e.kind === 'line' || e.kind === 'image'),
       );
       if (targets.length === 0) return;
       const entries = targets.map((t) => {
@@ -2026,7 +2120,7 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
     if (selectedIds.size === 0) return;
     const ids = Array.from(selectedIds).filter((sid) => {
       const el = fetched.find((e) => e.id === sid);
-      return !!el && (el.kind === 'text' || el.kind === 'shape' || el.kind === 'line');
+      return !!el && (el.kind === 'text' || el.kind === 'shape' || el.kind === 'line' || el.kind === 'image');
     });
     if (ids.length === 0) return;
     const onKey = (ev: KeyboardEvent) => {
@@ -2151,7 +2245,7 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
   // (bound/header/shape) member is present. Lines are skipped by the multi
   // writer. Handles remain single-select only (see zEnabled below).
   const sizeIds = selectedEls
-    .filter((e) => e.kind === 'bound' || e.kind === 'header' || e.kind === 'shape')
+    .filter((e) => e.kind === 'bound' || e.kind === 'header' || e.kind === 'shape' || e.kind === 'image')
     .map((e) => e.id);
   const isMultiSize = selectedIds.size > 1;
   const sizeEnabled = canEdit && (
@@ -2186,7 +2280,7 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
   // even in multi-select (Stage 1: batched delete-all-free).
   const deletableSelected = Array.from(selectedIds).filter((sid) => {
     const el = fetched.find((e) => e.id === sid);
-    return !!el && (el.kind === 'text' || el.kind === 'shape' || el.kind === 'line');
+    return !!el && (el.kind === 'text' || el.kind === 'shape' || el.kind === 'line' || el.kind === 'image');
   });
   const deleteEnabled = deletableSelected.length > 0;
 
@@ -2346,6 +2440,30 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
             onAddShape={addShape}
             onAddLine={(routing) => { void addLine(routing); }}
           />
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-8"
+            disabled={!canEdit || uploadingImage}
+            onClick={() => imageInputRef.current?.click()}
+            title="Insert image"
+          >
+            <ImagePlus className="w-4 h-4 mr-1" />
+            {uploadingImage ? 'Uploading…' : 'Image'}
+          </Button>
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              e.target.value = '';
+              if (file) void addImage(file);
+            }}
+          />
+
           <ArrowheadDropdown
             selectedLine={
               selectedIsLine && selectedEl
@@ -3085,6 +3203,52 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
           );
         })}
 
+        {/* Uploaded image elements — movable/resizable/deletable like shapes.
+            Resize handles come from the shared surface-level overlay below. */}
+        {imageEls.map((el) => {
+          const ov = overrides[el.id];
+          const box = ov ?? { x: el.x, y: el.y, w: el.w, h: el.h };
+          const selected = selectedIds.has(el.id);
+          const raw = (el.content ?? {}) as { src?: string; fit?: 'fill' | 'contain' };
+          return (
+            <div
+              key={el.id}
+              data-canvas-el-id={el.id}
+              data-canvas-el-kind="image"
+              style={{
+                position: 'absolute',
+                left: pctX(box.x),
+                top: pctY(box.y),
+                width: pctX(box.w),
+                height: pctY(box.h),
+                zIndex: el.z,
+                pointerEvents: 'auto',
+                outline: selected ? '2px solid hsl(var(--primary))' : 'none',
+                outlineOffset: 1,
+                cursor: canEdit
+                  ? drag?.id === el.id && drag.mode.kind === 'move'
+                    ? 'grabbing'
+                    : 'grab'
+                  : 'default',
+              }}
+              onPointerDown={(e) => beginDrag(e, el.id, { kind: 'move' }, box)}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!canEdit) return;
+                if (suppressNextClickRef.current === el.id) {
+                  suppressNextClickRef.current = null;
+                  return;
+                }
+                if (!selectedIdsRef.current.has(el.id)) selectOnly(el.id);
+              }}
+            >
+              <ImpactCanvasImage src={raw.src || ''} fit={raw.fit ?? 'contain'} />
+            </div>
+          );
+        })}
+
+
+
         {/* Selected-element resize handles hoisted to a surface-level overlay
             at a very high z-index. Rendering handles inside each element
             wrapper is fragile: a wrapper that happens to sit behind (or in
@@ -3099,7 +3263,7 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
         {canEdit && (() => {
           const selEl = fetched.find((e) => e.id === selectedId);
           if (!selEl) return null;
-          if (selEl.kind !== 'bound' && selEl.kind !== 'header' && selEl.kind !== 'shape' && selEl.kind !== 'text') return null;
+          if (selEl.kind !== 'bound' && selEl.kind !== 'header' && selEl.kind !== 'shape' && selEl.kind !== 'text' && selEl.kind !== 'image') return null;
           if (editingId === selEl.id) return null;
           const ov = overrides[selEl.id];
           const box = ov ?? { x: selEl.x, y: selEl.y, w: selEl.w, h: selEl.h };
