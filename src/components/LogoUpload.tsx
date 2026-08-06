@@ -6,6 +6,16 @@ import { Upload, Loader2, Sparkles, X, Download } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useStorageUrl } from '@/hooks/useStorageUrl';
 import { generateLogoPath, uploadProposalFile, extractFilePathFromUrl, deleteProposalFile } from '@/lib/proposalStorage';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+
 
 interface LogoUploadProps {
   currentUrl: string | null;
