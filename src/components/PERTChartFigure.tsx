@@ -769,6 +769,59 @@ export function PERTChartFigure({
     setDraggingNode(null); setResizing(null); setAnnDrag(null); setGroupDrag(null);
   }, []);
 
+  /** Arrow-key nudge: shifts every selected WP box and annotation.
+   *  Step = 1 mm, or 1 cm with Shift held. */
+  const nudgeSelection = useCallback((dx: number, dy: number) => {
+    if (!canEdit) return;
+    const nodeIds = multiSel.nodes.length > 0 ? multiSel.nodes : (selectedNode ? [selectedNode] : []);
+    const annIds = multiSel.anns.length > 0 ? multiSel.anns : (selectedAnn ? [selectedAnn] : []);
+    if (nodeIds.length === 0 && annIds.length === 0) return;
+
+    pushHistory();
+    const base: PERTContent = nodeIds.length > 0 ? lockedBase() : { ...(contentRef.current || {}) };
+    const positions = { ...(base.nodePositions || {}) };
+    nodeIds.forEach((id) => {
+      const n = nodes.find((nn) => nn.id === id);
+      if (!n) return;
+      positions[id] = { x: Math.max(0, n.x + dx), y: Math.max(0, n.y + dy) };
+    });
+    const list = Array.isArray(base.annotations) ? base.annotations : annotations;
+    const nextAnns = list.map((a) => {
+      if (!annIds.includes(a.id)) return a;
+      if (a.kind === 'shape') {
+        return { ...a, x: Math.max(0, a.x + dx), y: Math.max(0, a.y + dy) };
+      }
+      return {
+        ...a,
+        x1: Math.max(0, a.x1 + dx), y1: Math.max(0, a.y1 + dy),
+        x2: Math.max(0, a.x2 + dx), y2: Math.max(0, a.y2 + dy),
+      };
+    });
+    onContentChange({ ...base, nodePositions: positions, annotations: nextAnns });
+  }, [canEdit, multiSel, selectedNode, selectedAnn, nodes, annotations, lockedBase, onContentChange, pushHistory]);
+
+  useEffect(() => {
+    if (!canEdit) return;
+    const hasSelection =
+      multiSel.nodes.length > 0 || multiSel.anns.length > 0 || !!selectedNode || !!selectedAnn;
+    if (!hasSelection) return;
+    const onKey = (e: KeyboardEvent) => {
+      const map: Record<string, [number, number]> = {
+        ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1],
+      };
+      const dir = map[e.key];
+      if (!dir) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName))) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      e.preventDefault();
+      const step = e.shiftKey ? PX_PER_CM : PX_PER_CM / 10;
+      nudgeSelection(dir[0] * step, dir[1] * step);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [canEdit, multiSel, selectedNode, selectedAnn, nudgeSelection]);
+
 
   const selected = selectedNode ? nodes.find((n) => n.id === selectedNode) : undefined;
 
