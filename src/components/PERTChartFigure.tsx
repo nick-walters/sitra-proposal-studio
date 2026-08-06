@@ -920,6 +920,106 @@ export function PERTChartFigure({
         </div>
       )}
 
+      {/* Selected annotation (shape / line) properties */}
+      {canEdit && selectedAnnotation && (
+        <div className="flex flex-wrap items-center gap-3 text-xs border rounded-md px-3 py-2 bg-muted/30">
+          <span className="font-medium">
+            {selectedAnnotation.kind === 'shape' ? 'Shape' : 'Line'}
+          </span>
+          {selectedAnnotation.kind === 'shape' && (
+            <>
+              <label className="flex items-center gap-1">
+                Fill
+                <input
+                  type="color"
+                  className="h-7 w-9 rounded border bg-background p-0.5"
+                  value={selectedAnnotation.fill === 'none' ? '#ffffff' : selectedAnnotation.fill}
+                  onChange={(e) => updateAnn(selectedAnnotation.id, { fill: e.target.value })}
+                />
+              </label>
+              <Button
+                variant={selectedAnnotation.fill === 'none' ? 'secondary' : 'ghost'}
+                size="sm" className="h-7 text-xs"
+                onClick={() => updateAnn(selectedAnnotation.id, {
+                  fill: selectedAnnotation.fill === 'none' ? '#ADB5BD' : 'none',
+                })}
+              >
+                No fill
+              </Button>
+              <label className="flex items-center gap-1">
+                Label
+                <Input
+                  className="h-7 w-40 text-xs"
+                  value={selectedAnnotation.text ?? ''}
+                  onChange={(e) => updateAnn(selectedAnnotation.id, { text: e.target.value })}
+                />
+              </label>
+              <label className="flex items-center gap-1">
+                Text
+                <input
+                  type="color"
+                  className="h-7 w-9 rounded border bg-background p-0.5"
+                  value={selectedAnnotation.textColor || '#000000'}
+                  onChange={(e) => updateAnn(selectedAnnotation.id, { textColor: e.target.value })}
+                />
+              </label>
+            </>
+          )}
+          <label className="flex items-center gap-1">
+            Outline
+            <input
+              type="color"
+              className="h-7 w-9 rounded border bg-background p-0.5"
+              value={selectedAnnotation.stroke === 'none' ? '#000000' : selectedAnnotation.stroke}
+              onChange={(e) => updateAnn(selectedAnnotation.id, { stroke: e.target.value })}
+            />
+          </label>
+          <label className="flex items-center gap-1">
+            Width
+            <Input
+              type="number" min={0} step={0.5}
+              className="h-7 w-16 text-xs"
+              value={selectedAnnotation.strokeWidth}
+              onChange={(e) => {
+                const v = parseFloat(e.target.value);
+                if (Number.isFinite(v)) updateAnn(selectedAnnotation.id, { strokeWidth: Math.max(0, v) });
+              }}
+            />
+          </label>
+          {selectedAnnotation.kind === 'line' && (
+            <>
+              <Button
+                variant={selectedAnnotation.startCap === 'arrow' ? 'secondary' : 'ghost'}
+                size="sm" className="h-7 text-xs gap-1"
+                onClick={() => updateAnn(selectedAnnotation.id, {
+                  startCap: selectedAnnotation.startCap === 'arrow' ? 'none' : 'arrow',
+                })}
+              >
+                <ArrowLeft className="w-3.5 h-3.5" /> Start arrow
+              </Button>
+              <Button
+                variant={selectedAnnotation.endCap === 'arrow' ? 'secondary' : 'ghost'}
+                size="sm" className="h-7 text-xs gap-1"
+                onClick={() => updateAnn(selectedAnnotation.id, {
+                  endCap: selectedAnnotation.endCap === 'arrow' ? 'none' : 'arrow',
+                })}
+              >
+                <ArrowRight className="w-3.5 h-3.5" /> End arrow
+              </Button>
+            </>
+          )}
+          <Button
+            variant="ghost" size="sm"
+            className="h-7 text-xs gap-1 text-destructive hover:text-destructive"
+            onClick={() => deleteAnnotation(selectedAnnotation.id)}
+          >
+            <Trash2 className="w-3.5 h-3.5" /> Delete
+          </Button>
+        </div>
+      )}
+
+
+
 
 
 
