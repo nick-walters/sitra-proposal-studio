@@ -1702,3 +1702,22 @@ table.b31-effort-matrix.first-col-flush {
 [data-b32-hide-international] h3[data-b32-slot-key="international"] {
   display: none;
 }
+
+/* Compact inline cross-reference badges inside platform editing tables
+   (Milestones & risks page). The stored badge markup carries inline 11pt
+   styles for the B3.1 mirrors; on-screen editing rows use a smaller scale. */
+.compact-ref-badges [data-deliverable-reference] > span,
+.compact-ref-badges [data-wp-reference],
+.compact-ref-badges [data-task-reference],
+.compact-ref-badges [data-case-reference],
+.compact-ref-badges [data-participant-reference] {
+  font-size: 8.5pt !important;
+  line-height: 1.25 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+.compact-ref-badges [data-ref-type="milestone"] {
+  font-size: 8.5pt !important;
+  height: 15px !important;
+  line-height: 15px !important;
+}
