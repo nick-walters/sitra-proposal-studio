@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Download, Network, Move, Plus, Trash2, ArrowRight, ArrowLeft, ArrowLeftRight, Image, FileDown, Grid3x3, Magnet, ZoomIn, ZoomOut, Maximize, RefreshCw, Undo2, Redo2 } from 'lucide-react';
+import { Download, Network, Move, Plus, Trash2, ArrowRight, ArrowLeft, ArrowLeftRight, Image, FileDown, Grid3x3, Magnet, ZoomIn, ZoomOut, Maximize, RefreshCw, Undo2, Redo2, Shapes, Square, Squircle, Circle, Triangle, Type, Minus, CornerDownRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { PERTExportData } from '@/lib/figureExport';
@@ -55,6 +55,36 @@ interface Dependency {
 
 type DependencyDirection = Dependency['direction'];
 
+/** Free-drawn annotation shapes/lines, mirroring the canvas editor's set. */
+export type PertShapeKind = 'rect' | 'roundedRect' | 'circle' | 'triangle';
+
+interface PertShapeAnnotation {
+  id: string;
+  kind: 'shape';
+  shape: PertShapeKind;
+  x: number; y: number; w: number; h: number;
+  fill: string;          // hex or 'none'
+  stroke: string;        // hex or 'none'
+  strokeWidth: number;   // SVG user units
+  text?: string;
+  textColor?: string;
+}
+
+interface PertLineAnnotation {
+  id: string;
+  kind: 'line';
+  routing: 'straight' | 'elbow';
+  x1: number; y1: number; x2: number; y2: number;
+  stroke: string;
+  strokeWidth: number;
+  startCap: 'none' | 'arrow';
+  endCap: 'none' | 'arrow';
+}
+
+export type PertAnnotation = PertShapeAnnotation | PertLineAnnotation;
+
+const ANN_MIN = 12;
+
 interface PERTContent {
   nodePositions?: Record<string, { x: number; y: number }>;
   /** Per-node box size in SVG user units (px at 100%). */
@@ -63,6 +93,8 @@ interface PERTContent {
   widthCm?: number | null;
   heightCm?: number | null;
   presetId?: string | null;
+  /** User-added shapes and lines drawn on top of the auto-generated chart. */
+  annotations?: PertAnnotation[];
   /**
    * true once the user has manually moved/resized a box (or hit
    * "Auto-regenerate content"). While false, the layout is auto-generated
@@ -411,6 +443,7 @@ export function PERTChartFigure({
   // stays glued to the node at any zoom level.
   const handleMouseDown = useCallback((e: React.MouseEvent, nodeId: string) => {
     setSelectedNode(nodeId);
+    setSelectedAnn(null);
     if (!canEdit) return;
     const node = nodes.find((n) => n.id === nodeId);
     if (!node) return;
@@ -440,14 +473,158 @@ export function PERTChartFigure({
     nodeSizes: { ...nodeSizeMap },
   }), [content, nodePositions, nodeSizeMap]);
 
+  // ---- Annotations (user-drawn shapes & lines) -----------------------------
+  const annotations: PertAnnotation[] = useMemo(
+    () => (Array.isArray(content?.annotations) ? content!.annotations! : []),
+    [content?.annotations],
+  );
+  const [selectedAnn, setSelectedAnn] = useState<string | null>(null);
+  const [annDrag, setAnnDrag] = useState<
+    | { id: string; mode: 'move'; startX: number; startY: number; origin: PertAnnotation }
+    | { id: string; mode: 'resize'; corner: Corner; startX: number; startY: number; origin: PertShapeAnnotation }
+    | { id: string; mode: 'endpoint'; end: 'a' | 'b' }
+    | null
+  >(null);
+
+  const commitAnnotations = useCallback((next: PertAnnotation[]) => {
+    onContentChange({ ...(contentRef.current || {}), annotations: next });
+  }, [onContentChange]);
+
+  const updateAnn = useCallback((id: string, patch: Partial<PertShapeAnnotation> & Partial<PertLineAnnotation>) => {
+    const list = Array.isArray(contentRef.current?.annotations) ? contentRef.current!.annotations! : [];
+    commitAnnotations(list.map((a) => (a.id === id ? ({ ...a, ...patch } as PertAnnotation) : a)));
+  }, [commitAnnotations]);
+
+  const addShapeAnnotation = useCallback((shape: PertShapeKind, blank = false) => {
+    const size = shape === 'circle' ? { w: 110, h: 110 } : shape === 'triangle' ? { w: 130, h: 110 } : { w: 130, h: 76 };
+    const ann: PertShapeAnnotation = {
+      id: crypto.randomUUID(),
+      kind: 'shape',
+      shape,
+      x: Math.max(0, Math.round((svgWidth - size.w) / 2)),
+      y: Math.max(0, Math.round((svgHeight - size.h) / 2)),
+      w: size.w,
+      h: size.h,
+      fill: blank ? 'none' : '#ADB5BD',
+      stroke: blank ? 'none' : '#475569',
+      strokeWidth: 1.5,
+      text: '',
+      textColor: '#000000',
+    };
+    pushHistory();
+    commitAnnotations([...annotations, ann]);
+    setSelectedNode(null);
+    setSelectedAnn(ann.id);
+  }, [annotations, commitAnnotations, pushHistory, svgWidth, svgHeight]);
+
+  const addLineAnnotation = useCallback((routing: 'straight' | 'elbow') => {
+    const half = 75;
+    const ann: PertLineAnnotation = {
+      id: crypto.randomUUID(),
+      kind: 'line',
+      routing,
+      x1: Math.max(0, Math.round(svgWidth / 2 - half)),
+      y1: Math.round(svgHeight / 2),
+      x2: Math.min(svgWidth, Math.round(svgWidth / 2 + half)),
+      y2: Math.round(svgHeight / 2) + (routing === 'elbow' ? 50 : 0),
+      stroke: '#000000',
+      strokeWidth: 1.5,
+      startCap: 'none',
+      endCap: 'arrow',
+    };
+    pushHistory();
+    commitAnnotations([...annotations, ann]);
+    setSelectedNode(null);
+    setSelectedAnn(ann.id);
+  }, [annotations, commitAnnotations, pushHistory, svgWidth, svgHeight]);
+
+  const selectedAnnotation = selectedAnn ? annotations.find((a) => a.id === selectedAnn) : undefined;
+
+  const deleteAnnotation = useCallback((id: string) => {
+    pushHistory();
+    commitAnnotations(annotations.filter((a) => a.id !== id));
+    setSelectedAnn((cur) => (cur === id ? null : cur));
+  }, [annotations, commitAnnotations, pushHistory]);
+
+  // Delete / Backspace removes the selected annotation (never a WP box).
+  useEffect(() => {
+    if (!canEdit || !selectedAnn) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Delete' && e.key !== 'Backspace') return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      e.preventDefault();
+      deleteAnnotation(selectedAnn);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [canEdit, selectedAnn, deleteAnnotation]);
+
+  const startAnnDrag = useCallback((e: React.MouseEvent, ann: PertAnnotation) => {
+    e.stopPropagation();
+    setSelectedNode(null);
+    setSelectedAnn(ann.id);
+    if (!canEdit) return;
+    const svgRect = svgRef.current?.getBoundingClientRect();
+    if (!svgRect) return;
+    pushHistory();
+    setAnnDrag({
+      id: ann.id,
+      mode: 'move',
+      startX: (e.clientX - svgRect.left) / zoom,
+      startY: (e.clientY - svgRect.top) / zoom,
+      origin: ann,
+    });
+  }, [canEdit, pushHistory, zoom]);
+
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     const svgRect = svgRef.current?.getBoundingClientRect();
     if (!svgRect) return;
     const snapTo = (v: number) => (snap ? Math.round(v / PERT_SNAP_STEP) * PERT_SNAP_STEP : v);
+    const cx = (e.clientX - svgRect.left) / zoom;
+    const cy = (e.clientY - svgRect.top) / zoom;
+
+    if (annDrag) {
+      if (annDrag.mode === 'endpoint') {
+        updateAnn(annDrag.id, annDrag.end === 'a'
+          ? { x1: Math.max(0, snapTo(cx)), y1: Math.max(0, snapTo(cy)) }
+          : { x2: Math.max(0, snapTo(cx)), y2: Math.max(0, snapTo(cy)) });
+        return;
+      }
+      const dx = cx - annDrag.startX;
+      const dy = cy - annDrag.startY;
+      if (annDrag.mode === 'move') {
+        const o = annDrag.origin;
+        if (o.kind === 'shape') {
+          updateAnn(o.id, { x: Math.max(0, snapTo(o.x + dx)), y: Math.max(0, snapTo(o.y + dy)) });
+        } else {
+          updateAnn(o.id, {
+            x1: Math.max(0, snapTo(o.x1 + dx)), y1: Math.max(0, snapTo(o.y1 + dy)),
+            x2: Math.max(0, snapTo(o.x2 + dx)), y2: Math.max(0, snapTo(o.y2 + dy)),
+          });
+        }
+        return;
+      }
+      // resize (shape corners)
+      const o = annDrag.origin;
+      let x = o.x, y = o.y, w = o.w, h = o.h;
+      if (annDrag.corner.includes('e')) w = Math.max(ANN_MIN, snapTo(o.w + dx));
+      if (annDrag.corner.includes('s')) h = Math.max(ANN_MIN, snapTo(o.h + dy));
+      if (annDrag.corner.includes('w')) {
+        const right = o.x + o.w;
+        x = Math.max(0, Math.min(snapTo(o.x + dx), right - ANN_MIN));
+        w = right - x;
+      }
+      if (annDrag.corner.includes('n')) {
+        const bottom = o.y + o.h;
+        y = Math.max(0, Math.min(snapTo(o.y + dy), bottom - ANN_MIN));
+        h = bottom - y;
+      }
+      updateAnn(o.id, { x, y, w, h });
+      return;
+    }
 
     if (resizing) {
-      const cx = (e.clientX - svgRect.left) / zoom;
-      const cy = (e.clientY - svgRect.top) / zoom;
       const dx = cx - resizing.startX;
       const dy = cy - resizing.startY;
       const o = resizing.origin;
@@ -477,14 +654,15 @@ export function PERTChartFigure({
     }
 
     if (!draggingNode) return;
-    const newX = Math.max(0, snapTo((e.clientX - svgRect.left) / zoom - dragOffset.x));
-    const newY = Math.max(0, snapTo((e.clientY - svgRect.top) / zoom - dragOffset.y));
+    const newX = Math.max(0, snapTo(cx - dragOffset.x));
+    const newY = Math.max(0, snapTo(cy - dragOffset.y));
     const base = lockedBase();
     onContentChange({ ...base, nodePositions: { ...base.nodePositions, [draggingNode]: { x: newX, y: newY } } });
 
-  }, [draggingNode, dragOffset, onContentChange, snap, zoom, resizing, lockedBase]);
+  }, [draggingNode, dragOffset, onContentChange, snap, zoom, resizing, lockedBase, annDrag, updateAnn]);
 
-  const handleMouseUp = useCallback(() => { setDraggingNode(null); setResizing(null); }, []);
+  const handleMouseUp = useCallback(() => { setDraggingNode(null); setResizing(null); setAnnDrag(null); }, []);
+
 
   const selected = selectedNode ? nodes.find((n) => n.id === selectedNode) : undefined;
 
@@ -613,6 +791,38 @@ export function PERTChartFigure({
               </Button>
             </div>
 
+
+            {/* Add shape / line */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-7 w-7 p-0" title="Add shape or line" aria-label="Add shape or line">
+                  <Shapes className="w-3.5 h-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-48">
+                <DropdownMenuItem onSelect={() => addShapeAnnotation('rect')}>
+                  <Square className="w-3.5 h-3.5 mr-2" /> Rectangle
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => addShapeAnnotation('roundedRect')}>
+                  <Squircle className="w-3.5 h-3.5 mr-2" /> Rounded rectangle
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => addShapeAnnotation('circle')}>
+                  <Circle className="w-3.5 h-3.5 mr-2" /> Circle
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => addShapeAnnotation('triangle')}>
+                  <Triangle className="w-3.5 h-3.5 mr-2" /> Triangle
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => addShapeAnnotation('rect', true)}>
+                  <Type className="w-3.5 h-3.5 mr-2" /> Text box
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => addLineAnnotation('straight')}>
+                  <Minus className="w-3.5 h-3.5 mr-2" /> Straight line
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => addLineAnnotation('elbow')}>
+                  <CornerDownRight className="w-3.5 h-3.5 mr-2" /> Elbow line
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {/* Snap + grid */}
             <div className="flex items-center gap-0.5">
@@ -759,6 +969,106 @@ export function PERTChartFigure({
         </div>
       )}
 
+      {/* Selected annotation (shape / line) properties */}
+      {canEdit && selectedAnnotation && (
+        <div className="flex flex-wrap items-center gap-3 text-xs border rounded-md px-3 py-2 bg-muted/30">
+          <span className="font-medium">
+            {selectedAnnotation.kind === 'shape' ? 'Shape' : 'Line'}
+          </span>
+          {selectedAnnotation.kind === 'shape' && (
+            <>
+              <label className="flex items-center gap-1">
+                Fill
+                <input
+                  type="color"
+                  className="h-7 w-9 rounded border bg-background p-0.5"
+                  value={selectedAnnotation.fill === 'none' ? '#ffffff' : selectedAnnotation.fill}
+                  onChange={(e) => updateAnn(selectedAnnotation.id, { fill: e.target.value })}
+                />
+              </label>
+              <Button
+                variant={selectedAnnotation.fill === 'none' ? 'secondary' : 'ghost'}
+                size="sm" className="h-7 text-xs"
+                onClick={() => updateAnn(selectedAnnotation.id, {
+                  fill: selectedAnnotation.fill === 'none' ? '#ADB5BD' : 'none',
+                })}
+              >
+                No fill
+              </Button>
+              <label className="flex items-center gap-1">
+                Label
+                <Input
+                  className="h-7 w-40 text-xs"
+                  value={selectedAnnotation.text ?? ''}
+                  onChange={(e) => updateAnn(selectedAnnotation.id, { text: e.target.value })}
+                />
+              </label>
+              <label className="flex items-center gap-1">
+                Text
+                <input
+                  type="color"
+                  className="h-7 w-9 rounded border bg-background p-0.5"
+                  value={selectedAnnotation.textColor || '#000000'}
+                  onChange={(e) => updateAnn(selectedAnnotation.id, { textColor: e.target.value })}
+                />
+              </label>
+            </>
+          )}
+          <label className="flex items-center gap-1">
+            Outline
+            <input
+              type="color"
+              className="h-7 w-9 rounded border bg-background p-0.5"
+              value={selectedAnnotation.stroke === 'none' ? '#000000' : selectedAnnotation.stroke}
+              onChange={(e) => updateAnn(selectedAnnotation.id, { stroke: e.target.value })}
+            />
+          </label>
+          <label className="flex items-center gap-1">
+            Width
+            <Input
+              type="number" min={0} step={0.5}
+              className="h-7 w-16 text-xs"
+              value={selectedAnnotation.strokeWidth}
+              onChange={(e) => {
+                const v = parseFloat(e.target.value);
+                if (Number.isFinite(v)) updateAnn(selectedAnnotation.id, { strokeWidth: Math.max(0, v) });
+              }}
+            />
+          </label>
+          {selectedAnnotation.kind === 'line' && (
+            <>
+              <Button
+                variant={selectedAnnotation.startCap === 'arrow' ? 'secondary' : 'ghost'}
+                size="sm" className="h-7 text-xs gap-1"
+                onClick={() => updateAnn(selectedAnnotation.id, {
+                  startCap: selectedAnnotation.startCap === 'arrow' ? 'none' : 'arrow',
+                })}
+              >
+                <ArrowLeft className="w-3.5 h-3.5" /> Start arrow
+              </Button>
+              <Button
+                variant={selectedAnnotation.endCap === 'arrow' ? 'secondary' : 'ghost'}
+                size="sm" className="h-7 text-xs gap-1"
+                onClick={() => updateAnn(selectedAnnotation.id, {
+                  endCap: selectedAnnotation.endCap === 'arrow' ? 'none' : 'arrow',
+                })}
+              >
+                <ArrowRight className="w-3.5 h-3.5" /> End arrow
+              </Button>
+            </>
+          )}
+          <Button
+            variant="ghost" size="sm"
+            className="h-7 text-xs gap-1 text-destructive hover:text-destructive"
+            onClick={() => deleteAnnotation(selectedAnnotation.id)}
+          >
+            <Trash2 className="w-3.5 h-3.5" /> Delete
+          </Button>
+        </div>
+      )}
+
+
+
 
 
 
@@ -779,7 +1089,7 @@ export function PERTChartFigure({
             preserveAspectRatio="xMidYMid meet"
             className="select-none"
             style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '10px' }}
-            onMouseDown={(e) => { if (e.target === e.currentTarget) setSelectedNode(null); }}
+            onMouseDown={(e) => { if (e.target === e.currentTarget) { setSelectedNode(null); setSelectedAnn(null); } }}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
@@ -792,6 +1102,71 @@ export function PERTChartFigure({
                 <polygon points="8 0, 0 3.5, 8 7" fill="#64748b" />
               </marker>
             </defs>
+
+            {/* Annotation shapes — drawn behind the WP boxes */}
+            {annotations.filter((a): a is PertShapeAnnotation => a.kind === 'shape').map((s) => {
+              const isSel = canEdit && selectedAnn === s.id;
+              const fill = s.fill === 'none' ? 'none' : s.fill;
+              const stroke = isSel ? 'hsl(var(--primary))' : (s.stroke === 'none' ? 'none' : s.stroke);
+              const sw = isSel ? Math.max(1.5, s.strokeWidth) : s.strokeWidth;
+              const common = { fill, stroke, strokeWidth: sw };
+              return (
+                <g
+                  key={s.id}
+                  className={canEdit ? 'cursor-move' : ''}
+                  onMouseDown={(e) => startAnnDrag(e, s)}
+                >
+                  {s.shape === 'circle' ? (
+                    <ellipse cx={s.x + s.w / 2} cy={s.y + s.h / 2} rx={s.w / 2} ry={s.h / 2} {...common} />
+                  ) : s.shape === 'triangle' ? (
+                    <polygon
+                      points={`${s.x + s.w / 2},${s.y} ${s.x + s.w},${s.y + s.h} ${s.x},${s.y + s.h}`}
+                      {...common}
+                    />
+                  ) : (
+                    <rect
+                      x={s.x} y={s.y} width={s.w} height={s.h}
+                      rx={s.shape === 'roundedRect' ? 10 : 0} ry={s.shape === 'roundedRect' ? 10 : 0}
+                      {...common}
+                    />
+                  )}
+                  {!!s.text && (
+                    <text
+                      x={s.x + s.w / 2} y={s.y + s.h / 2 + 4}
+                      textAnchor="middle" fontSize={12} fill={s.textColor || '#000000'}
+                    >
+                      {s.text}
+                    </text>
+                  )}
+                  {isSel && (['nw', 'ne', 'sw', 'se'] as Corner[]).map((corner) => {
+                    const hx = corner.includes('w') ? s.x : s.x + s.w;
+                    const hy = corner.includes('n') ? s.y : s.y + s.h;
+                    return (
+                      <rect
+                        key={corner}
+                        x={hx - 4} y={hy - 4} width={8} height={8}
+                        fill="hsl(var(--primary))" stroke="#fff" strokeWidth={1}
+                        style={{ cursor: corner === 'nw' || corner === 'se' ? 'nwse-resize' : 'nesw-resize' }}
+                        onMouseDown={(e) => {
+                          e.stopPropagation();
+                          const r = svgRef.current?.getBoundingClientRect();
+                          if (!r) return;
+                          pushHistory();
+                          setAnnDrag({
+                            id: s.id, mode: 'resize', corner,
+                            startX: (e.clientX - r.left) / zoom,
+                            startY: (e.clientY - r.top) / zoom,
+                            origin: s,
+                          });
+                        }}
+                      />
+                    );
+                  })}
+                </g>
+              );
+            })}
+
+
 
             {/* Render nodes */}
             {nodes.map((node) => {
@@ -854,6 +1229,62 @@ export function PERTChartFigure({
                 markerStart={arrow.direction === 'reverse' || arrow.direction === 'bidirectional' ? 'url(#arrowhead-start)' : undefined}
               />
             ))}
+
+            {/* Annotation lines — drawn on top of everything */}
+            {annotations.filter((a): a is PertLineAnnotation => a.kind === 'line').map((l) => {
+              const isSel = canEdit && selectedAnn === l.id;
+              const stroke = isSel ? 'hsl(var(--primary))' : l.stroke;
+              const sw = isSel ? Math.max(1.5, l.strokeWidth) : l.strokeWidth;
+              const elbow = l.routing === 'elbow';
+              const d = elbow
+                ? `M ${l.x1} ${l.y1} L ${l.x2} ${l.y1} L ${l.x2} ${l.y2}`
+                : `M ${l.x1} ${l.y1} L ${l.x2} ${l.y2}`;
+              // Cap direction: last / first segment of the path.
+              const endDir = elbow
+                ? { x: 0, y: Math.sign(l.y2 - l.y1) || 1 }
+                : { x: l.x2 - l.x1, y: l.y2 - l.y1 };
+              const startDir = elbow
+                ? { x: -(Math.sign(l.x2 - l.x1) || 1), y: 0 }
+                : { x: l.x1 - l.x2, y: l.y1 - l.y2 };
+              const arrow = (tip: { x: number; y: number }, dir: { x: number; y: number }) => {
+                const len = Math.hypot(dir.x, dir.y) || 1;
+                const ux = dir.x / len, uy = dir.y / len;
+                const size = Math.max(6, sw * 4);
+                const bx = tip.x - ux * size, by = tip.y - uy * size;
+                const px = -uy * size * 0.45, py = ux * size * 0.45;
+                return `${tip.x},${tip.y} ${bx + px},${by + py} ${bx - px},${by - py}`;
+              };
+              return (
+                <g key={l.id} className={canEdit ? 'cursor-move' : ''} onMouseDown={(e) => startAnnDrag(e, l)}>
+                  <path d={d} fill="none" stroke={stroke} strokeWidth={sw} strokeLinejoin="round" strokeLinecap="round" />
+                  {/* wide invisible hit area */}
+                  <path d={d} fill="none" stroke="transparent" strokeWidth={Math.max(10, sw * 4)} />
+                  {l.endCap === 'arrow' && (
+                    <polygon points={arrow({ x: l.x2, y: l.y2 }, endDir)} fill={stroke} />
+                  )}
+                  {l.startCap === 'arrow' && (
+                    <polygon points={arrow({ x: l.x1, y: l.y1 }, startDir)} fill={stroke} />
+                  )}
+                  {isSel && (['a', 'b'] as const).map((end) => (
+                    <circle
+                      key={end}
+                      cx={end === 'a' ? l.x1 : l.x2}
+                      cy={end === 'a' ? l.y1 : l.y2}
+                      r={4.5}
+                      fill="hsl(var(--primary))" stroke="#fff" strokeWidth={1}
+                      style={{ cursor: 'crosshair' }}
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
+                        setSelectedAnn(l.id);
+                        pushHistory();
+                        setAnnDrag({ id: l.id, mode: 'endpoint', end });
+                      }}
+                    />
+                  ))}
+                </g>
+              );
+            })}
+
           </svg>
           </div>
 
