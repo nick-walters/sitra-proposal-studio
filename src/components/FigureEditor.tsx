@@ -188,17 +188,21 @@ export function FigureEditor({
 
   const renderImageSizePicker = () => {
     const isCanvasFigure = figure.figureType === 'canvas';
-    const isImageFigure = figure.figureType === 'image' || figure.figureType === 'ai' || isCanvasFigure;
+    const isPertFigure = figure.figureType === 'pert';
+    const isImageFigure = figure.figureType === 'image' || figure.figureType === 'ai' || isCanvasFigure || isPertFigure;
     if (!isImageFigure || !canEdit) return null;
     const cWidth = Number(figure.content?.widthCm);
     const cHeight = Number(figure.content?.heightCm);
     const hasSize = Number.isFinite(cWidth) && cWidth > 0 && Number.isFinite(cHeight) && cHeight > 0;
-    const presetFallback = getFigureSizePreset(figure.content?.presetId);
+    const presetFallback = isPertFigure
+      ? getFigureSizePreset('third')
+      : getFigureSizePreset(figure.content?.presetId);
     const sizeValue: FigureSizeValue = {
       presetId: (figure.content?.presetId as any) || (hasSize ? 'custom' : presetFallback.id),
       widthCm: hasSize ? cWidth : presetFallback.widthCm,
       heightCm: hasSize ? cHeight : presetFallback.heightCm,
     };
+
     const handleSizeChange = (v: FigureSizeValue) => {
       onUpdate({
         content: {
@@ -212,7 +216,7 @@ export function FigureEditor({
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">{isCanvasFigure ? 'Canvas size' : 'Figure size'}</CardTitle>
+          <CardTitle className="text-base">{isCanvasFigure || isPertFigure ? 'Canvas size' : 'Figure size'}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="max-w-sm">
@@ -221,7 +225,9 @@ export function FigureEditor({
               onChange={handleSizeChange}
               idPrefix={`figure-${figure.id}-size`}
               helpText={
-                isCanvasFigure
+                isPertFigure
+                  ? 'Resizes the PERT frame. Work package boxes keep their exact positions and sizes — nothing is scaled or moved.'
+                  : isCanvasFigure
                   ? 'Resizes the canvas frame. Elements keep their exact positions and sizes in cm — nothing is scaled or moved; anything outside a smaller frame stays in the data and reappears if you enlarge again.'
                   : 'The image fits inside this box preserving aspect ratio (no crop, no stretch, no padding).'
               }
@@ -230,6 +236,7 @@ export function FigureEditor({
         </CardContent>
       </Card>
     );
+
   };
 
   const renderFigureContent = () => {

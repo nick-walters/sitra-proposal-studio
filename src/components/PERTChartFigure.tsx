@@ -1,6 +1,8 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { scheduleFigurePngCache } from '@/lib/figureCache';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -16,6 +18,19 @@ const PERT_MAJOR_GRID = 50;
 const PERT_MIN_ZOOM = 0.25;
 const PERT_MAX_ZOOM = 3;
 
+/** CSS px per cm at 96 dpi — maps the physical frame to SVG user units. */
+const PX_PER_CM = 96 / 2.54;
+/** Default frame: third-page standard size. */
+const PERT_DEFAULT_WIDTH_CM = 18;
+const PERT_DEFAULT_HEIGHT_CM = 8.5;
+/** Default WP box size (SVG user units). */
+const NODE_DEFAULT_W = 84;
+const NODE_DEFAULT_H = 35;
+const NODE_MIN_W = 30;
+const NODE_MIN_H = 18;
+
+const cmToPx = (cm: number) => cm * PX_PER_CM;
+const pxToCm = (px: number) => px / PX_PER_CM;
 
 interface WPNode {
   id: string;
@@ -25,6 +40,8 @@ interface WPNode {
   color: string;
   x: number;
   y: number;
+  w: number;
+  h: number;
 }
 
 interface Dependency {
@@ -38,7 +55,14 @@ type DependencyDirection = Dependency['direction'];
 
 interface PERTContent {
   nodePositions?: Record<string, { x: number; y: number }>;
+  /** Per-node box size in SVG user units (px at 100%). */
+  nodeSizes?: Record<string, { w: number; h: number }>;
+  /** Physical frame size, shared with the figure size picker. */
+  widthCm?: number | null;
+  heightCm?: number | null;
+  presetId?: string | null;
 }
+
 
 interface PERTChartFigureProps {
   figureId?: string;
@@ -48,6 +72,17 @@ interface PERTChartFigureProps {
   onContentChange: (content: PERTContent) => void;
   canEdit: boolean;
 }
+
+/** Corner handle identifiers for WP box resizing. */
+type Corner = 'nw' | 'ne' | 'sw' | 'se';
+type ResizeState = {
+  id: string;
+  corner: Corner;
+  startX: number;
+  startY: number;
+  origin: { x: number; y: number; w: number; h: number };
+} | null;
+
 
 export function PERTChartFigure({
   figureId,
@@ -63,6 +98,9 @@ export function PERTChartFigure({
   const queryClient = useQueryClient();
   const [draggingNode, setDraggingNode] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [selectedNode, setSelectedNode] = useState<string | null>(null);
+  const [resizing, setResizing] = useState<ResizeState>(null);
+
 
   // Editor preferences (grid overlay + snap-to-grid + zoom) — the grid and
   // snap flags persist per browser, mirroring the freeform canvas editor.
@@ -209,8 +247,9 @@ export function PERTChartFigure({
     return { ...defaultPositions, ...(content?.nodePositions || {}) };
   }, [defaultPositions, content?.nodePositions]);
 
-  // Create node objects
+  // Create node objects (position + per-node box size)
   const nodes: WPNode[] = useMemo(() => {
+    const sizes = content?.nodeSizes || {};
     return wpDrafts.map((wp) => ({
       id: wp.id,
       number: wp.number,
@@ -219,42 +258,33 @@ export function PERTChartFigure({
       color: wp.color,
       x: nodePositions[wp.id]?.x || 100,
       y: nodePositions[wp.id]?.y || 100,
+      w: Math.max(NODE_MIN_W, Number(sizes[wp.id]?.w) || NODE_DEFAULT_W),
+      h: Math.max(NODE_MIN_H, Number(sizes[wp.id]?.h) || NODE_DEFAULT_H),
     }));
-  }, [wpDrafts, nodePositions]);
+  }, [wpDrafts, nodePositions, content?.nodeSizes]);
 
-  // Helper to compute arrow between two nodes
+  // Helper to compute arrow between two nodes (respects per-node box sizes)
   const computeArrow = useCallback((fromNode: WPNode, toNode: WPNode) => {
-    const nodeWidth = 84;
-    const nodeHeight = 35;
-    
-    const fromCenterX = fromNode.x + nodeWidth / 2;
-    const fromCenterY = fromNode.y + nodeHeight / 2;
-    const toCenterX = toNode.x + nodeWidth / 2;
-    const toCenterY = toNode.y + nodeHeight / 2;
+    const fromCenterX = fromNode.x + fromNode.w / 2;
+    const fromCenterY = fromNode.y + fromNode.h / 2;
+    const toCenterX = toNode.x + toNode.w / 2;
+    const toCenterY = toNode.y + toNode.h / 2;
 
     const dx = toCenterX - fromCenterX;
     const dy = toCenterY - fromCenterY;
     const dist = Math.sqrt(dx * dx + dy * dy);
     if (dist === 0) return null;
 
-    // Use rectangle intersection for precise edge contact
-    const halfW = nodeWidth / 2;
-    const halfH = nodeHeight / 2;
-
-    const getEdgePoint = (cx: number, cy: number, adx: number, ady: number) => {
+    // Rectangle intersection for precise edge contact
+    const getEdgePoint = (cx: number, cy: number, adx: number, ady: number, halfW: number, halfH: number) => {
       const absDx = Math.abs(adx);
       const absDy = Math.abs(ady);
-      let scale: number;
-      if (absDx * halfH > absDy * halfW) {
-        scale = halfW / absDx;
-      } else {
-        scale = halfH / absDy;
-      }
+      const scale = absDx * halfH > absDy * halfW ? halfW / absDx : halfH / absDy;
       return { x: cx + adx * scale, y: cy + ady * scale };
     };
 
-    const from = getEdgePoint(fromCenterX, fromCenterY, dx / dist, dy / dist);
-    const to = getEdgePoint(toCenterX, toCenterY, -dx / dist, -dy / dist);
+    const from = getEdgePoint(fromCenterX, fromCenterY, dx / dist, dy / dist, fromNode.w / 2, fromNode.h / 2);
+    const to = getEdgePoint(toCenterX, toCenterY, -dx / dist, -dy / dist, toNode.w / 2, toNode.h / 2);
 
     return { fromX: from.x, fromY: from.y, toX: to.x, toY: to.y };
   }, []);
@@ -275,6 +305,7 @@ export function PERTChartFigure({
   // Handle drag — client px are divided by the zoom factor so the pointer
   // stays glued to the node at any zoom level.
   const handleMouseDown = useCallback((e: React.MouseEvent, nodeId: string) => {
+    setSelectedNode(nodeId);
     if (!canEdit) return;
     const node = nodes.find((n) => n.id === nodeId);
     if (!node) return;
@@ -287,30 +318,85 @@ export function PERTChartFigure({
     });
   }, [canEdit, nodes, zoom]);
 
+  // Start a corner resize on the selected node.
+  const handleResizeStart = useCallback((e: React.MouseEvent, node: WPNode, corner: Corner) => {
+    if (!canEdit) return;
+    e.stopPropagation();
+    const svgRect = svgRef.current?.getBoundingClientRect();
+    if (!svgRect) return;
+    setSelectedNode(node.id);
+    setResizing({
+      id: node.id,
+      corner,
+      startX: (e.clientX - svgRect.left) / zoom,
+      startY: (e.clientY - svgRect.top) / zoom,
+      origin: { x: node.x, y: node.y, w: node.w, h: node.h },
+    });
+  }, [canEdit, zoom]);
+
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!draggingNode) return;
     const svgRect = svgRef.current?.getBoundingClientRect();
     if (!svgRect) return;
     const snapTo = (v: number) => (snap ? Math.round(v / PERT_MINOR_GRID) * PERT_MINOR_GRID : v);
+
+    if (resizing) {
+      const cx = (e.clientX - svgRect.left) / zoom;
+      const cy = (e.clientY - svgRect.top) / zoom;
+      const dx = cx - resizing.startX;
+      const dy = cy - resizing.startY;
+      const o = resizing.origin;
+      let x = o.x;
+      let y = o.y;
+      let w = o.w;
+      let h = o.h;
+      if (resizing.corner.includes('e')) w = Math.max(NODE_MIN_W, snapTo(o.w + dx));
+      if (resizing.corner.includes('s')) h = Math.max(NODE_MIN_H, snapTo(o.h + dy));
+      if (resizing.corner.includes('w')) {
+        const right = o.x + o.w;
+        x = Math.max(0, Math.min(snapTo(o.x + dx), right - NODE_MIN_W));
+        w = right - x;
+      }
+      if (resizing.corner.includes('n')) {
+        const bottom = o.y + o.h;
+        y = Math.max(0, Math.min(snapTo(o.y + dy), bottom - NODE_MIN_H));
+        h = bottom - y;
+      }
+      onContentChange({
+        ...content,
+        nodePositions: { ...(content?.nodePositions || {}), [resizing.id]: { x, y } },
+        nodeSizes: { ...(content?.nodeSizes || {}), [resizing.id]: { w, h } },
+      });
+      return;
+    }
+
+    if (!draggingNode) return;
     const newX = Math.max(0, snapTo((e.clientX - svgRect.left) / zoom - dragOffset.x));
     const newY = Math.max(0, snapTo((e.clientY - svgRect.top) / zoom - dragOffset.y));
     const newPositions = { ...(content?.nodePositions || {}), [draggingNode]: { x: newX, y: newY } };
     onContentChange({ ...content, nodePositions: newPositions });
-  }, [draggingNode, dragOffset, content, onContentChange, snap, zoom]);
 
-  const handleMouseUp = useCallback(() => { setDraggingNode(null); }, []);
+  }, [draggingNode, dragOffset, content, onContentChange, snap, zoom, resizing]);
 
-  const nodeW = 84;
-  const nodeH = 35;
-  const hasNodes = nodes.length > 0;
-  const minX = hasNodes ? Math.min(...nodes.map(n => n.x)) : 0;
-  const minY = hasNodes ? Math.min(...nodes.map(n => n.y)) : 0;
-  const maxX = hasNodes ? Math.max(...nodes.map(n => n.x + nodeW)) : nodeW;
-  const maxY = hasNodes ? Math.max(...nodes.map(n => n.y + nodeH)) : nodeH;
-  const pad = canEdit ? 30 : 5;
-  const svgWidth = canEdit ? Math.max(800, maxX + pad) : Math.max(1, maxX - minX + pad * 2);
-  const svgHeight = canEdit ? Math.max(400, maxY + pad) : Math.max(1, maxY - minY + pad * 2);
-  const viewBoxStr = canEdit ? `0 0 ${svgWidth} ${svgHeight}` : `${minX - pad} ${minY - pad} ${svgWidth} ${svgHeight}`;
+  const handleMouseUp = useCallback(() => { setDraggingNode(null); setResizing(null); }, []);
+
+  // ---- Physical frame ------------------------------------------------------
+  const frameWidthCm = Number(content?.widthCm) > 0 ? Number(content!.widthCm) : PERT_DEFAULT_WIDTH_CM;
+  const frameHeightCm = Number(content?.heightCm) > 0 ? Number(content!.heightCm) : PERT_DEFAULT_HEIGHT_CM;
+  const svgWidth = Math.round(cmToPx(frameWidthCm));
+  const svgHeight = Math.round(cmToPx(frameHeightCm));
+  const viewBoxStr = `0 0 ${svgWidth} ${svgHeight}`;
+
+  const selected = selectedNode ? nodes.find((n) => n.id === selectedNode) : undefined;
+
+  const setNodeSizeCm = useCallback((node: WPNode, widthCm?: number, heightCm?: number) => {
+    const w = widthCm != null ? Math.max(NODE_MIN_W, cmToPx(widthCm)) : node.w;
+    const h = heightCm != null ? Math.max(NODE_MIN_H, cmToPx(heightCm)) : node.h;
+    onContentChange({
+      ...content,
+      nodeSizes: { ...(content?.nodeSizes || {}), [node.id]: { w, h } },
+    });
+  }, [content, onContentChange]);
+
 
   // ---- Zoom (editor only) --------------------------------------------------
   const applyZoom = useCallback((next: number, anchor?: { x: number; y: number }) => {
@@ -457,7 +543,7 @@ export function PERTChartFigure({
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={async () => {
                   const exportData: PERTExportData = {
-                    nodes: nodes.map(n => ({ id: n.id, number: n.number, shortName: n.shortName, color: n.color, x: n.x, y: n.y })),
+                    nodes: nodes.map(n => ({ id: n.id, number: n.number, shortName: n.shortName, color: n.color, x: n.x, y: n.y, w: n.w, h: n.h })),
                     arrows: dependencies.map(d => ({ fromNodeId: d.fromWpId, toNodeId: d.toWpId, direction: d.direction })),
                     svgWidth,
                     svgHeight,
@@ -475,6 +561,55 @@ export function PERTChartFigure({
         </div>
       )}
 
+      {/* Selected WP box — exact size in cm */}
+      {canEdit && (
+        <div className="flex items-center gap-3 text-xs border rounded-md px-3 py-2 bg-muted/30">
+          {selected ? (
+            <>
+              <span className="font-medium">
+                WP{selected.number}{selected.shortName ? `: ${selected.shortName}` : ''}
+              </span>
+              <label className="flex items-center gap-1">
+                Width (cm)
+                <Input
+                  type="number" min={pxToCm(NODE_MIN_W).toFixed(2)} step={0.1}
+                  className="h-7 w-20 text-xs"
+                  value={pxToCm(selected.w).toFixed(2)}
+                  onChange={(e) => {
+                    const v = parseFloat(e.target.value);
+                    if (Number.isFinite(v)) setNodeSizeCm(selected, v, undefined);
+                  }}
+                />
+              </label>
+              <label className="flex items-center gap-1">
+                Height (cm)
+                <Input
+                  type="number" min={pxToCm(NODE_MIN_H).toFixed(2)} step={0.1}
+                  className="h-7 w-20 text-xs"
+                  value={pxToCm(selected.h).toFixed(2)}
+                  onChange={(e) => {
+                    const v = parseFloat(e.target.value);
+                    if (Number.isFinite(v)) setNodeSizeCm(selected, undefined, v);
+                  }}
+                />
+              </label>
+              <Button
+                variant="ghost" size="sm" className="h-7 text-xs"
+                onClick={() => setNodeSizeCm(selected, pxToCm(NODE_DEFAULT_W), pxToCm(NODE_DEFAULT_H))}
+              >
+                Reset size
+              </Button>
+            </>
+          ) : (
+            <span className="text-muted-foreground">
+              Select a work package box to resize it, or drag its corner handles. Frame: {frameWidthCm} × {frameHeightCm} cm.
+            </span>
+          )}
+        </div>
+      )}
+
+
+
       <TooltipProvider>
         <div
           ref={scrollRef}
@@ -484,13 +619,14 @@ export function PERTChartFigure({
           <div ref={chartRef} className="bg-white">
           <svg
             ref={svgRef}
-            width={canEdit ? svgWidth * zoom : '18cm'}
-            height={canEdit ? svgHeight * zoom : undefined}
+            width={canEdit ? svgWidth * zoom : `${frameWidthCm}cm`}
+            height={canEdit ? svgHeight * zoom : `${frameHeightCm}cm`}
 
             viewBox={viewBoxStr}
             preserveAspectRatio="xMidYMid meet"
             className="select-none"
             style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '10px' }}
+            onMouseDown={(e) => { if (e.target === e.currentTarget) setSelectedNode(null); }}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
@@ -506,6 +642,7 @@ export function PERTChartFigure({
 
             {/* Render nodes */}
             {nodes.map((node) => {
+              const isSelected = canEdit && selectedNode === node.id;
               return (
                 <Tooltip key={node.id}>
                   <TooltipTrigger asChild>
@@ -514,16 +651,35 @@ export function PERTChartFigure({
                       className={canEdit ? 'cursor-grab active:cursor-grabbing' : ''}
                       onMouseDown={(e) => handleMouseDown(e, node.id)}
                     >
-                      <rect width={84} height={35} rx={6} ry={6} fill={node.color}
-                        stroke={draggingNode === node.id ? 'hsl(var(--primary))' : 'transparent'} strokeWidth={1.5} className="transition-all" />
-                      <text x={42} y={14} textAnchor="middle" fill="#FFFFFF" fontSize="10" fontWeight="bold">
+                      <rect width={node.w} height={node.h} rx={6} ry={6} fill={node.color}
+                        stroke={draggingNode === node.id || isSelected ? 'hsl(var(--primary))' : 'transparent'} strokeWidth={1.5} className="transition-all" />
+                      <text x={node.w / 2} y={node.h / 2 - 3} textAnchor="middle" fill="#FFFFFF" fontSize="10" fontWeight="bold">
                         WP{node.number}
                       </text>
                       {node.shortName && (
-                        <text x={42} y={27} textAnchor="middle" fill="#FFFFFF" fontSize="10" opacity={0.9}>
+                        <text x={node.w / 2} y={node.h / 2 + 10} textAnchor="middle" fill="#FFFFFF" fontSize="10" opacity={0.9}>
                           {node.shortName}
                         </text>
                       )}
+                      {isSelected && ([
+                        { c: 'nw' as Corner, x: 0, y: 0 },
+                        { c: 'ne' as Corner, x: node.w, y: 0 },
+                        { c: 'sw' as Corner, x: 0, y: node.h },
+                        { c: 'se' as Corner, x: node.w, y: node.h },
+                      ]).map((h) => (
+                        <rect
+                          key={h.c}
+                          x={h.x - 3.5}
+                          y={h.y - 3.5}
+                          width={7}
+                          height={7}
+                          fill="#ffffff"
+                          stroke="hsl(var(--primary))"
+                          strokeWidth={1}
+                          style={{ cursor: h.c === 'nw' || h.c === 'se' ? 'nwse-resize' : 'nesw-resize' }}
+                          onMouseDown={(e) => handleResizeStart(e, node, h.c)}
+                        />
+                      ))}
                     </g>
                   </TooltipTrigger>
                   <TooltipContent>
@@ -535,6 +691,7 @@ export function PERTChartFigure({
                 </Tooltip>
               );
             })}
+
 
             {/* Render arrows on top of nodes so arrowheads are always visible */}
             {arrows.map((arrow) => arrow && (
