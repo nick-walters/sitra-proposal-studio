@@ -200,27 +200,6 @@ export function WPDeliverablesTable({
     [wpTasks]
   );
 
-  const sorted = useMemo(() => sortDeliverables(deliverables), [deliverables]);
-
-  // ── Persist D-numbers 1..N to match current sorted order ──
-  const lastSyncRef = useRef<string>('');
-  useEffect(() => {
-    if (readOnly) return;
-    if (sorted.length === 0) return;
-    const desired = sorted.map((d, i) => ({ id: d.id, n: i + 1, current: d.number }));
-    const mismatch = desired.filter(x => x.n !== x.current);
-    if (mismatch.length === 0) return;
-    const signature = mismatch.map(x => `${x.id}:${x.n}`).join('|');
-    if (lastSyncRef.current === signature) return;
-    lastSyncRef.current = signature;
-    // Fire-and-forget per-row updates; local state will reflect via the parent hook.
-    (async () => {
-      for (const m of mismatch) {
-        await onDeliverableUpdate(m.id, { number: m.n });
-      }
-    })();
-  }, [sorted, readOnly, onDeliverableUpdate]);
-
   // ── Load all deliverable→task links for this WP's deliverables in one query ──
   const deliverableIds = deliverables.map(d => d.id).sort().join(',');
   const { data: links = [] } = useQuery({
@@ -247,6 +226,41 @@ export function WPDeliverablesTable({
     }
     return m;
   }, [links]);
+
+  // Rank each deliverable by the lowest task number it is assigned to.
+  const taskRank = useMemo(() => {
+    const numById = new Map(wpTasks.map(t => [t.id, t.number]));
+    const m = new Map<string, number>();
+    for (const [delId, taskIds] of tasksByDeliverable) {
+      const nums = taskIds
+        .map(id => numById.get(id))
+        .filter((n): n is number => typeof n === 'number');
+      if (nums.length > 0) m.set(delId, Math.min(...nums));
+    }
+    return m;
+  }, [tasksByDeliverable, wpTasks]);
+
+  const sorted = useMemo(() => sortDeliverables(deliverables, taskRank), [deliverables, taskRank]);
+
+  // ── Persist D-numbers 1..N to match current sorted order ──
+  const lastSyncRef = useRef<string>('');
+  useEffect(() => {
+    if (readOnly) return;
+    if (sorted.length === 0) return;
+    const desired = sorted.map((d, i) => ({ id: d.id, n: i + 1, current: d.number }));
+    const mismatch = desired.filter(x => x.n !== x.current);
+    if (mismatch.length === 0) return;
+    const signature = mismatch.map(x => `${x.id}:${x.n}`).join('|');
+    if (lastSyncRef.current === signature) return;
+    lastSyncRef.current = signature;
+    // Fire-and-forget per-row updates; local state will reflect via the parent hook.
+    (async () => {
+      for (const m of mismatch) {
+        await onDeliverableUpdate(m.id, { number: m.n });
+      }
+    })();
+  }, [sorted, readOnly, onDeliverableUpdate]);
+
 
   const saveDeliverableTasks = async (deliverableId: string, taskIds: string[]) => {
     const current = tasksByDeliverable.get(deliverableId) || [];
