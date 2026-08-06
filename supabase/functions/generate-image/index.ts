@@ -38,7 +38,7 @@ serve(async (req) => {
       );
     }
 
-    const MAX_PROMPT_CHARS = 2_000;
+    const MAX_PROMPT_CHARS = 6_000;
     if (typeof prompt !== 'string' || prompt.length > MAX_PROMPT_CHARS) {
       return new Response(
         JSON.stringify({ error: `Prompt too long (max ${MAX_PROMPT_CHARS} characters)` }),
@@ -53,7 +53,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image-preview",
+        model: "google/gemini-2.5-flash-image",
         messages: [
           {
             role: "user",
