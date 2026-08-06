@@ -438,9 +438,10 @@ export function B31DeliverablesTable({ proposalId, forExport }: Props & { forExp
     { label: 'Deliverable title', flex: true },
     { label: 'WP', fit: true, defaultWidth: 44 },
     { label: 'Lead', defaultWidth: 78 },
-    { label: 'Type', defaultWidth: 46 },
-    { label: 'Diss.', defaultWidth: 42 },
-    { label: 'Due', defaultWidth: 40 },
+    { label: 'Type', fit: true, defaultWidth: 46 },
+    { label: 'Diss.', fit: true, defaultWidth: 42 },
+    { label: 'Due', fit: true, defaultWidth: 40 },
+
   ];
   const last = columns.length - 1;
 
@@ -582,7 +583,7 @@ export function B31MilestonesTable({ proposalId }: Props) {
     { label: 'No.', fit: true, defaultWidth: 48, cellClass: 'cell-pl-0' },
     { label: 'Milestone', defaultWidth: 220 },
     { label: 'WP(s)', defaultWidth: 113, cellClass: 'cell-px-0' },
-    { label: 'Due', defaultWidth: 40 },
+    { label: 'Due', fit: true, defaultWidth: 40 },
     { label: 'Means of verification', flex: true, cellClass: 'cell-pr-0' },
   ];
 
