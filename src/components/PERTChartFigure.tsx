@@ -1539,15 +1539,12 @@ export function PERTChartFigure({
             <span>Work package</span>
           </div>
             <div className="flex items-center gap-1">
-            {/* Same arrowhead geometry as the dependency arrows:
-                head length 8× stroke width, total width 7× stroke width. */}
-            <svg width="40" height="12">
-              <line x1="0" y1="6" x2="27" y2="6" stroke="#000000" strokeWidth="1.5" markerEnd={`url(#${legendMarkerId})`} />
-              <defs>
-                <marker id={legendMarkerId} markerWidth="12" markerHeight="10.5" refX="12" refY="5.25" orient="auto">
-                  <polygon points="0 0, 12 5.25, 0 10.5" fill="#000000" />
-                </marker>
-              </defs>
+            {/* Same arrowhead geometry as the dependency arrows (head length 8×
+                stroke, total width 7× stroke), drawn directly so it rasterises
+                crisply at any zoom instead of via a scaled marker. */}
+            <svg width="40" height="14" viewBox="0 0 40 14" shapeRendering="geometricPrecision">
+              <line x1="0" y1="7" x2="28" y2="7" stroke="#000000" strokeWidth="1.5" />
+              <polygon points="28,1.75 40,7 28,12.25" fill="#000000" />
             </svg>
             <span>Dependency</span>
           </div>
