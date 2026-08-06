@@ -434,16 +434,34 @@ export function PERTChartFigure({
     const dist = Math.sqrt(dx * dx + dy * dy);
     if (dist === 0) return null;
 
-    // Rectangle intersection for precise edge contact
+    // Pill (stadium) intersection: WP boxes are fully rounded rectangles with
+    // corner radius = h / 2, so a plain rectangle intersection leaves a visible
+    // gap on diagonal directions. Solve the rounded-rect signed distance
+    // (sdf = 0) along the ray by bisection so arrows touch the curved edge.
     const getEdgePoint = (cx: number, cy: number, adx: number, ady: number, halfW: number, halfH: number) => {
-      const absDx = Math.abs(adx);
-      const absDy = Math.abs(ady);
-      const scale = absDx * halfH > absDy * halfW ? halfW / absDx : halfH / absDy;
-      return { x: cx + adx * scale, y: cy + ady * scale };
+      const r = Math.min(halfW, halfH); // pill radius = half the shorter side
+      const bx = Math.max(0, halfW - r);
+      const by = Math.max(0, halfH - r);
+      const sdf = (t: number) => {
+        const px = Math.abs(adx * t) - bx;
+        const py = Math.abs(ady * t) - by;
+        const qx = Math.max(px, 0);
+        const qy = Math.max(py, 0);
+        return Math.hypot(qx, qy) + Math.min(Math.max(px, py), 0) - r;
+      };
+      let lo = 0;
+      let hi = Math.hypot(halfW, halfH) + r;
+      for (let i = 0; i < 40; i++) {
+        const mid = (lo + hi) / 2;
+        if (sdf(mid) < 0) lo = mid; else hi = mid;
+      }
+      const t = (lo + hi) / 2;
+      return { x: cx + adx * t, y: cy + ady * t };
     };
 
     const from = getEdgePoint(fromCenterX, fromCenterY, dx / dist, dy / dist, fromNode.w / 2, fromNode.h / 2);
     const to = getEdgePoint(toCenterX, toCenterY, -dx / dist, -dy / dist, toNode.w / 2, toNode.h / 2);
+
 
     return { fromX: from.x, fromY: from.y, toX: to.x, toY: to.y };
   }, []);
