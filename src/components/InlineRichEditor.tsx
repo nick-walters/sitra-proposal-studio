@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import DOMPurify from 'dompurify';
 import { stripWordHtml } from '@/lib/stripWordHtml';
 import { cn } from '@/lib/utils';
+import { normalizeRefBadges } from '@/lib/normalizeRefBadges';
 import { rememberContentEditableSelection, REF_BADGE_INSERTED_EVENT } from '@/lib/contentEditableRefBadges';
 
 /**
@@ -54,7 +55,7 @@ export function InlineRichEditor({
   // Initial mount
   useEffect(() => {
     if (editorRef.current && isInitialMount.current) {
-      editorRef.current.innerHTML = DOMPurify.sanitize(value || '', INLINE_RICH_SANITIZE_CONFIG);
+      editorRef.current.innerHTML = normalizeRefBadges(DOMPurify.sanitize(value || '', INLINE_RICH_SANITIZE_CONFIG));
       hasPendingLocalChangesRef.current = false;
       isInitialMount.current = false;
     }
@@ -67,7 +68,7 @@ export function InlineRichEditor({
     const current = editorRef.current.innerHTML;
     const next = value || '';
     if (current === next) return;
-    editorRef.current.innerHTML = DOMPurify.sanitize(next, INLINE_RICH_SANITIZE_CONFIG);
+    editorRef.current.innerHTML = normalizeRefBadges(DOMPurify.sanitize(next, INLINE_RICH_SANITIZE_CONFIG));
   }, [value, isFocused]);
 
   const emitChange = useCallback(() => {
