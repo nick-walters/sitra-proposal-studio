@@ -12,9 +12,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { PERTExportData } from '@/lib/figureExport';
 import { toast } from 'sonner';
 
-/** Grid geometry (SVG user units = px at zoom 1). */
-const PERT_MINOR_GRID = 10;
-const PERT_MAJOR_GRID = 50;
+/** Grid geometry (SVG user units = px at zoom 1): 2 mm minor, 1 cm major. */
+const PERT_MINOR_GRID = (96 / 2.54) * 0.2;
+const PERT_MAJOR_GRID = 96 / 2.54;
 const PERT_MIN_ZOOM = 0.25;
 const PERT_MAX_ZOOM = 3;
 
@@ -423,23 +423,8 @@ export function PERTChartFigure({
   }, [canEdit, nodes, zoom, pushHistory]);
 
 
-  // Start a corner resize on the selected node.
-  const handleResizeStart = useCallback((e: React.MouseEvent, node: WPNode, corner: Corner) => {
-    if (!canEdit) return;
-    e.stopPropagation();
-    const svgRect = svgRef.current?.getBoundingClientRect();
-    if (!svgRect) return;
-    setSelectedNode(node.id);
-    pushHistory();
-    setResizing({
 
-      id: node.id,
-      corner,
-      startX: (e.clientX - svgRect.left) / zoom,
-      startY: (e.clientY - svgRect.top) / zoom,
-      origin: { x: node.x, y: node.y, w: node.w, h: node.h },
-    });
-  }, [canEdit, zoom, pushHistory]);
+
 
   /**
    * Base content for a manual edit: freezes the current (possibly
@@ -501,17 +486,21 @@ export function PERTChartFigure({
 
   const selected = selectedNode ? nodes.find((n) => n.id === selectedNode) : undefined;
 
-  const setNodeSizeCm = useCallback((node: WPNode, widthCm?: number, heightCm?: number) => {
+  /** Box size is uniform: changing width/height applies to EVERY WP box. */
+  const setAllNodesSizeCm = useCallback((widthCm?: number, heightCm?: number) => {
     const round1 = (cm: number) => Math.round(cm * 10) / 10;
-    const w = widthCm != null ? Math.max(NODE_MIN_W, cmToPx(round1(widthCm))) : node.w;
-    const h = heightCm != null ? Math.max(NODE_MIN_H, cmToPx(round1(heightCm))) : node.h;
     const base = lockedBase();
-    pushHistory();
-    onContentChange({
-      ...base,
-      nodeSizes: { ...base.nodeSizes, [node.id]: { w, h } },
+    const nextSizes: Record<string, { w: number; h: number }> = {};
+    nodes.forEach((n) => {
+      nextSizes[n.id] = {
+        w: widthCm != null ? Math.max(NODE_MIN_W, cmToPx(round1(widthCm))) : n.w,
+        h: heightCm != null ? Math.max(NODE_MIN_H, cmToPx(round1(heightCm))) : n.h,
+      };
     });
-  }, [lockedBase, onContentChange, pushHistory]);
+    pushHistory();
+    onContentChange({ ...base, nodeSizes: { ...base.nodeSizes, ...nextSizes } });
+  }, [lockedBase, nodes, onContentChange, pushHistory]);
+
 
   /** Auto-regenerate: recompute the full-frame layout from current WPs. */
   const regenerateLayout = useCallback(() => {
@@ -720,59 +709,53 @@ export function PERTChartFigure({
         </div>
       )}
 
-      {/* Selected WP box — exact size in cm */}
-      {canEdit && (
+      {/* Uniform WP box size in cm — applies to every box */}
+      {canEdit && nodes.length > 0 && (
         <div className="flex items-center gap-3 text-xs border rounded-md px-3 py-2 bg-muted/30">
-          {selected ? (
-            <>
-              <span className="font-medium">
-                WP{selected.number}{selected.shortName ? `: ${selected.shortName}` : ''}
-              </span>
-              <label className="flex items-center gap-1">
-                Width (cm)
-                <Input
-                  type="number" min={pxToCm(NODE_MIN_W).toFixed(1)} step={0.1}
-                  className="h-7 w-20 text-xs"
-                  value={pxToCm(selected.w).toFixed(1)}
-                  onChange={(e) => {
-                    const v = parseFloat(e.target.value);
-                    if (Number.isFinite(v)) setNodeSizeCm(selected, v, undefined);
-                  }}
-                />
-              </label>
-              <label className="flex items-center gap-1">
-                Height (cm)
-                <Input
-                  type="number" min={pxToCm(NODE_MIN_H).toFixed(1)} step={0.1}
-                  className="h-7 w-20 text-xs"
-                  value={pxToCm(selected.h).toFixed(1)}
-                  onChange={(e) => {
-                    const v = parseFloat(e.target.value);
-                    if (Number.isFinite(v)) setNodeSizeCm(selected, undefined, v);
-                  }}
-                />
-              </label>
-              <Button
-                variant="ghost" size="sm" className="h-7 text-xs"
-                onClick={() => setNodeSizeCm(selected, pxToCm(NODE_DEFAULT_W), pxToCm(NODE_DEFAULT_H))}
-              >
-                Reset size
-              </Button>
-            </>
-          ) : (
-            <span className="text-muted-foreground">
-              Select a work package box to resize it, or drag its corner handles. Frame: {frameWidthCm} × {frameHeightCm} cm.
-            </span>
-          )}
+          <span className="font-medium">All boxes</span>
+          <label className="flex items-center gap-1">
+            Width (cm)
+            <Input
+              type="number" min={pxToCm(NODE_MIN_W).toFixed(1)} step={0.1}
+              className="h-7 w-20 text-xs"
+              value={pxToCm((selected ?? nodes[0]).w).toFixed(1)}
+              onChange={(e) => {
+                const v = parseFloat(e.target.value);
+                if (Number.isFinite(v)) setAllNodesSizeCm(v, undefined);
+              }}
+            />
+          </label>
+          <label className="flex items-center gap-1">
+            Height (cm)
+            <Input
+              type="number" min={pxToCm(NODE_MIN_H).toFixed(1)} step={0.1}
+              className="h-7 w-20 text-xs"
+              value={pxToCm((selected ?? nodes[0]).h).toFixed(1)}
+              onChange={(e) => {
+                const v = parseFloat(e.target.value);
+                if (Number.isFinite(v)) setAllNodesSizeCm(undefined, v);
+              }}
+            />
+          </label>
+          <Button
+            variant="ghost" size="sm" className="h-7 text-xs"
+            onClick={() => setAllNodesSizeCm(pxToCm(NODE_DEFAULT_W), pxToCm(NODE_DEFAULT_H))}
+          >
+            Reset size
+          </Button>
+          <span className="text-muted-foreground">
+            Box size applies to all work packages. Frame: {frameWidthCm} × {frameHeightCm} cm.
+          </span>
         </div>
       )}
+
 
 
 
       <TooltipProvider>
         <div
           ref={scrollRef}
-          className={canEdit ? 'relative border rounded-lg bg-white overflow-auto' : 'bg-white overflow-auto'}
+          className={canEdit ? 'relative border rounded-lg bg-white overflow-auto mx-auto' : 'bg-white overflow-auto mx-auto'}
           style={canEdit ? { width: 'fit-content', maxWidth: '100%' } : undefined}
         >
           <div className="relative" style={canEdit ? { width: svgWidth * zoom, height: svgHeight * zoom } : undefined}>
@@ -837,25 +820,6 @@ export function PERTChartFigure({
                         </text>
                       )}
 
-                      {isSelected && ([
-                        { c: 'nw' as Corner, x: 0, y: 0 },
-                        { c: 'ne' as Corner, x: node.w, y: 0 },
-                        { c: 'sw' as Corner, x: 0, y: node.h },
-                        { c: 'se' as Corner, x: node.w, y: node.h },
-                      ]).map((h) => (
-                        <rect
-                          key={h.c}
-                          x={h.x - 3.5}
-                          y={h.y - 3.5}
-                          width={7}
-                          height={7}
-                          fill="#ffffff"
-                          stroke="hsl(var(--primary))"
-                          strokeWidth={1}
-                          style={{ cursor: h.c === 'nw' || h.c === 'se' ? 'nwse-resize' : 'nesw-resize' }}
-                          onMouseDown={(e) => handleResizeStart(e, node, h.c)}
-                        />
-                      ))}
                     </g>
                   </TooltipTrigger>
                   <TooltipContent>
