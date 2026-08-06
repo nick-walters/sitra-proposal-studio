@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import { computeAutoFitSmart } from '@/lib/autoFitColumns';
 import type { B31WPData, B31Participant } from '@/hooks/useB31SectionData';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -46,9 +46,39 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
     });
   });
 
+  const [fitWidths, setFitWidths] = useState<number[] | null>(null);
+
   let hasData = false;
   matrix.forEach(pMap => { if (pMap.size > 0) hasData = true; });
 
+
+  // Measure natural content width of each column and hug it (Word-like auto-fit)
+  const fitSignature = [
+    participants.map(p => `${p.participant_number}.${p.organisation_short_name || p.organisation_name}`).join('|'),
+    wpData.map(wp => wp.number).join('|'),
+  ].join('#');
+
+  useLayoutEffect(() => {
+    const table = tableRef.current;
+    if (!table) return;
+    const rows = Array.from(table.querySelectorAll('tr'));
+    if (rows.length === 0) return;
+    const colCount = wpData.length + 2;
+    const measured: number[] = new Array(colCount).fill(0);
+    rows.forEach(row => {
+      Array.from(row.children).forEach((cell, i) => {
+        if (i >= colCount) return;
+        const el = cell as HTMLElement;
+        const w = Math.max(el.scrollWidth, ...Array.from(el.children).map(c => (c as HTMLElement).scrollWidth || 0));
+        if (w > measured[i]) measured[i] = w;
+      });
+    });
+    const padded = measured.map((w, i) => Math.ceil(w) + (i === 0 ? 2 : 8));
+    setFitWidths(prev => {
+      if (prev && prev.length === padded.length && prev.every((w, i) => Math.abs(w - padded[i]) <= 2)) return prev;
+      return padded;
+    });
+  }, [fitSignature, tableRef, wpData.length]);
 
   const autoFitColumns = useCallback(() => {
     const table = tableRef.current;
@@ -80,7 +110,17 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
 
   const totalColCount = wpData.length + 2; // participant col + wp cols + total col
   const hasCustomWidths = colWidths.length === totalColCount;
-  const tableWidth = hasCustomWidths ? `${colWidths.reduce((sum, width) => sum + width, 0)}px` : '100%';
+  const hasFitWidths = !hasCustomWidths && !!fitWidths && fitWidths.length === totalColCount;
+  const widthFor = (i: number) => {
+    if (hasCustomWidths) return `${colWidths[i]}px`;
+    if (hasFitWidths) return `${fitWidths![i]}px`;
+    return i === 0 ? defaultParticipantWidth : i === totalColCount - 1 ? defaultTotalWidth : defaultWpWidth;
+  };
+  const tableWidth = hasCustomWidths
+    ? `${colWidths.reduce((sum, width) => sum + width, 0)}px`
+    : hasFitWidths
+      ? 'auto'
+      : '100%';
 
   return (
     <div onFocusCapture={dispatchToolbarFocus}>
@@ -98,17 +138,19 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
             style={{
              tableLayout: 'fixed',
               width: tableWidth,
+              maxWidth: '100%',
+              whiteSpace: 'nowrap',
              borderCollapse: 'separate',
              borderSpacing: '5pt 0',
            }}
            ref={tableRef}
          >
            <colgroup>
-               <col style={{ width: hasCustomWidths ? `${colWidths[0]}px` : defaultParticipantWidth }} />
+               <col style={{ width: widthFor(0) }} />
               {wpData.map((wp, i) => (
-                 <col key={wp.id} style={{ width: hasCustomWidths ? `${colWidths[i + 1]}px` : defaultWpWidth }} />
+                 <col key={wp.id} style={{ width: widthFor(i + 1) }} />
              ))}
-               <col style={{ width: hasCustomWidths ? `${colWidths[totalColCount - 1]}px` : defaultTotalWidth }} />
+               <col style={{ width: widthFor(totalColCount - 1) }} />
            </colgroup>
            <thead>
              <tr>
