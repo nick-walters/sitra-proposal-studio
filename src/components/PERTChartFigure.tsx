@@ -1261,7 +1261,7 @@ export function PERTChartFigure({
 
             {/* Render nodes */}
             {nodes.map((node) => {
-              const isSelected = canEdit && selectedNode === node.id;
+              const isSelected = canEdit && (selectedNode === node.id || multiSel.nodes.includes(node.id));
               // Label size scales with the box so auto-generated (larger) boxes
               // get proportionally larger, more legible text.
               const labelFs = Math.round(
