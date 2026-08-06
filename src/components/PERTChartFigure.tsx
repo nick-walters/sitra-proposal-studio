@@ -837,25 +837,6 @@ export function PERTChartFigure({
                         </text>
                       )}
 
-                      {isSelected && ([
-                        { c: 'nw' as Corner, x: 0, y: 0 },
-                        { c: 'ne' as Corner, x: node.w, y: 0 },
-                        { c: 'sw' as Corner, x: 0, y: node.h },
-                        { c: 'se' as Corner, x: node.w, y: node.h },
-                      ]).map((h) => (
-                        <rect
-                          key={h.c}
-                          x={h.x - 3.5}
-                          y={h.y - 3.5}
-                          width={7}
-                          height={7}
-                          fill="#ffffff"
-                          stroke="hsl(var(--primary))"
-                          strokeWidth={1}
-                          style={{ cursor: h.c === 'nw' || h.c === 'se' ? 'nwse-resize' : 'nesw-resize' }}
-                          onMouseDown={(e) => handleResizeStart(e, node, h.c)}
-                        />
-                      ))}
                     </g>
                   </TooltipTrigger>
                   <TooltipContent>
