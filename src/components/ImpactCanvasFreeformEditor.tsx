@@ -3099,7 +3099,7 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
         {canEdit && (() => {
           const selEl = fetched.find((e) => e.id === selectedId);
           if (!selEl) return null;
-          if (selEl.kind !== 'bound' && selEl.kind !== 'header' && selEl.kind !== 'shape' && selEl.kind !== 'text') return null;
+          if (selEl.kind !== 'bound' && selEl.kind !== 'header' && selEl.kind !== 'shape' && selEl.kind !== 'text' && selEl.kind !== 'image') return null;
           if (editingId === selEl.id) return null;
           const ov = overrides[selEl.id];
           const box = ov ?? { x: selEl.x, y: selEl.y, w: selEl.w, h: selEl.h };
