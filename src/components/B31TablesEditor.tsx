@@ -735,8 +735,8 @@ export function B31RisksTable({ proposalId }: Props) {
 
   const columns: Col[] = [
     { label: 'Risk', defaultWidth: 240, cellClass: 'cell-pl-0' },
-    { label: 'i.', defaultWidth: 30, align: 'center', cellClass: 'cell-px-0' },
-    { label: 'ii.', defaultWidth: 30, align: 'center', cellClass: 'cell-px-0' },
+    { label: 'i.', defaultWidth: 30, cellClass: 'cell-px-0' },
+    { label: 'ii.', defaultWidth: 30, cellClass: 'cell-px-0' },
     { label: 'WP(s)', defaultWidth: 113, cellClass: 'cell-px-0' },
     { label: 'Mitigation & adaptation measures', flex: true, cellClass: 'cell-pr-0' },
   ];
@@ -785,10 +785,10 @@ export function B31RisksTable({ proposalId }: Props) {
           return (
             <tr key={r.id}>
               <MCell index={0} last={last} cellClass="cell-pl-0"><ReadOnlyHtmlCell html={r.title} /></MCell>
-              <MCell index={1} last={last} cellClass="cell-px-0" className="text-center">
+              <MCell index={1} last={last} cellClass="cell-px-0" className="text-left">
                 {r.likelihood ? <RiskBadge level={r.likelihood as 'L' | 'M' | 'H'} /> : <span className="text-muted-foreground">—</span>}
               </MCell>
-              <MCell index={2} last={last} cellClass="cell-px-0" className="text-center">
+              <MCell index={2} last={last} cellClass="cell-px-0" className="text-left">
                 {r.severity ? <RiskBadge level={r.severity as 'L' | 'M' | 'H'} /> : <span className="text-muted-foreground">—</span>}
               </MCell>
               <MCell index={3} last={last} cellClass="cell-px-0">
