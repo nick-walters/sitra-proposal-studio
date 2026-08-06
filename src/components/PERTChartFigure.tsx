@@ -1201,10 +1201,10 @@ export function PERTChartFigure({
             onMouseLeave={handleMouseUp}
           >
             <defs>
-              <marker id="arrowhead" markerWidth="8" markerHeight="7" refX="7.5" refY="3.5" orient="auto">
+              <marker id={endMarkerId} markerWidth="8" markerHeight="7" refX="7.5" refY="3.5" orient="auto">
                 <polygon points="0 0, 8 3.5, 0 7" fill="#000000" />
               </marker>
-              <marker id="arrowhead-start" markerWidth="8" markerHeight="7" refX="0.5" refY="3.5" orient="auto">
+              <marker id={startMarkerId} markerWidth="8" markerHeight="7" refX="0.5" refY="3.5" orient="auto">
                 <polygon points="8 0, 0 3.5, 8 7" fill="#000000" />
               </marker>
             </defs>
