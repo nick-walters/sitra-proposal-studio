@@ -583,6 +583,35 @@ export function PERTChartFigure({
               Drag nodes to reposition
             </span>
 
+            {/* Auto-regenerate + undo/redo */}
+            <div className="flex items-center gap-0.5">
+              <Button
+                type="button" variant="outline" size="sm" className="h-7 gap-1 text-xs"
+                title="Recompute the layout from the current work packages & dependencies"
+                onClick={regenerateLayout}
+              >
+                <RefreshCw className="w-3 h-3" />
+                Auto-regenerate content
+              </Button>
+              <Button
+                type="button" variant="ghost" size="sm" className="h-7 w-7 p-0"
+                title="Undo" aria-label="Undo"
+                disabled={undoStack.length === 0}
+                onClick={undo}
+              >
+                <Undo2 className="w-3.5 h-3.5" />
+              </Button>
+              <Button
+                type="button" variant="ghost" size="sm" className="h-7 w-7 p-0"
+                title="Redo" aria-label="Redo"
+                disabled={redoStack.length === 0}
+                onClick={redo}
+              >
+                <Redo2 className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+
+
             {/* Snap + grid */}
             <div className="flex items-center gap-0.5">
               <Button
