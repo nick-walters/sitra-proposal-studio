@@ -84,6 +84,8 @@ export function resolveBoundStyle(raw: unknown) {
     /** pt — callers should render as `${borderWidth}pt`. */
     borderWidth: isNoOutline ? 0 : outWidth,
     color: s.fontColor ?? BOUND_STYLE_DEFAULTS.fontColor,
+    /** mm — corner roundedness for rounded rectangles. */
+    cornerRadiusMm: s.cornerRadiusMm ?? DEFAULT_CORNER_RADIUS_MM,
     raw: s,
   };
 }
