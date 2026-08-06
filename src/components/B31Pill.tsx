@@ -136,6 +136,21 @@ export function WPBubble({
   );
 }
 
+/**
+ * "All WPs" bubble — black WP-style pill shown instead of listing every WP
+ * badge when a milestone/risk covers the whole project.
+ */
+export function AllWPsBubble(
+  props: Omit<B31PillProps, 'variant' | 'color' | 'children'>,
+) {
+  return <WPBubble wpColor="#000000" {...props}>All WPs</WPBubble>;
+}
+
+/** True when the selection covers every WP of the project (and there is at least one). */
+export function isAllWPsSelected(selectedCount: number, totalCount: number): boolean {
+  return totalCount > 0 && selectedCount >= totalCount;
+}
+
 /** Participant bubble — filled black pill */
 export function ParticipantBubble({
   number,
