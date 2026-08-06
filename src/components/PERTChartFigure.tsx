@@ -441,7 +441,7 @@ export function PERTChartFigure({
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     const svgRect = svgRef.current?.getBoundingClientRect();
     if (!svgRect) return;
-    const snapTo = (v: number) => (snap ? Math.round(v / PERT_MINOR_GRID) * PERT_MINOR_GRID : v);
+    const snapTo = (v: number) => (snap ? Math.round(v / PERT_SNAP_STEP) * PERT_SNAP_STEP : v);
 
     if (resizing) {
       const cx = (e.clientX - svgRect.left) / zoom;
