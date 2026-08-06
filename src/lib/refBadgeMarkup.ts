@@ -23,7 +23,8 @@ function styleString(pairs: string[]): string {
  * clipped layers (border colour + white fill) and the label on top.
  */
 export function applyDeliverablePentagon(el: HTMLElement, label: string, colour: string): void {
-  const stroke = /^#[0-9a-fA-F]{3,8}$/.test(colour) ? colour : '#000000';
+  const trimmed = (colour || '').trim();
+  const stroke = /^(#[0-9a-fA-F]{3,8}|rgba?\([^)]*\)|[a-zA-Z]+)$/.test(trimmed) ? trimmed : '#000000';
   const doc = el.ownerDocument;
 
   el.setAttribute(
