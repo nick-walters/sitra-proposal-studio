@@ -1,7 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { resolveBoundStyle } from '@/lib/impactCanvasBoundStyle';
 import { FONT_FAMILY_REGULAR, DEFAULT_TEXT_COLOR, DEFAULT_PT } from '@/lib/impactCanvasTextSizing';
-import { useCanvasPtFont } from '@/lib/canvasSize';
+import { useCanvasPtFont, useCanvasSize } from '@/lib/canvasSize';
 
 
 /**
@@ -32,10 +32,14 @@ interface Props {
 
 export function ImpactCanvasShape({ shape, styleRaw, children, selected }: Props) {
   const pf = useCanvasPtFont();
+  const { widthCm } = useCanvasSize();
 
   const bs = resolveBoundStyle(styleRaw);
   const strokeColor = selected ? 'hsl(var(--primary))' : bs.borderColor;
   const strokeWidth = selected ? Math.max(1.5, bs.borderWidth || 0) : bs.borderWidth;
+  // Corner roundedness is a PHYSICAL length (mm) — expressed as a share of
+  // the canvas width so it scales with the rendered canvas in every context.
+  const cornerRadius = `${((bs.cornerRadiusMm / 10) / widthCm) * 100}cqw`;
 
   const boxBase: CSSProperties = {
     position: 'absolute',
@@ -52,7 +56,7 @@ export function ImpactCanvasShape({ shape, styleRaw, children, selected }: Props
   if (shape === 'rect') {
     backdrop = <div style={boxBase} />;
   } else if (shape === 'roundedRect') {
-    backdrop = <div style={{ ...boxBase, borderRadius: 10 }} />;
+    backdrop = <div style={{ ...boxBase, borderRadius: cornerRadius }} />;
   } else if (shape === 'circle') {
     backdrop = <div style={{ ...boxBase, borderRadius: '50%' }} />;
   } else {

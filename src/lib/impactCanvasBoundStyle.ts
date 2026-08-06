@@ -17,7 +17,14 @@ export interface BoundBoxStyle {
    *  rendered text content (default width 2 cm). Set to false on any manual
    *  resize (drag handles or cm H field) — the user then owns the height. */
   autoFitH?: boolean;
+  /** Corner roundedness (mm) for `roundedRect` shapes. 0 = square corners. */
+  cornerRadiusMm?: number;
 }
+
+/** Default roundedness (mm) of a rounded rectangle. */
+export const DEFAULT_CORNER_RADIUS_MM = 2.5;
+/** Max roundedness offered in the UI (mm). */
+export const MAX_CORNER_RADIUS_MM = 25;
 
 
 /** Predefined outline widths (pt) matching Office's line-weight menu. */
@@ -57,6 +64,9 @@ export function readBoundStyle(raw: unknown): BoundBoxStyle {
   }
   if (typeof s.fontColor === 'string') out.fontColor = s.fontColor;
   if (typeof s.autoFitH === 'boolean') out.autoFitH = s.autoFitH;
+  if (typeof s.cornerRadiusMm === 'number' && Number.isFinite(s.cornerRadiusMm)) {
+    out.cornerRadiusMm = Math.max(0, Math.min(MAX_CORNER_RADIUS_MM, s.cornerRadiusMm));
+  }
   return out;
 }
 
@@ -74,6 +84,8 @@ export function resolveBoundStyle(raw: unknown) {
     /** pt — callers should render as `${borderWidth}pt`. */
     borderWidth: isNoOutline ? 0 : outWidth,
     color: s.fontColor ?? BOUND_STYLE_DEFAULTS.fontColor,
+    /** mm — corner roundedness for rounded rectangles. */
+    cornerRadiusMm: s.cornerRadiusMm ?? DEFAULT_CORNER_RADIUS_MM,
     raw: s,
   };
 }

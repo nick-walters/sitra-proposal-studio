@@ -17,7 +17,7 @@ import {
 } from '@/lib/impactCanvasLayout';
 
 import { WPColorPicker } from './WPColorPicker';
-import { BOUND_STYLE_DEFAULTS, readBoundStyle, resolveBoundStyle } from '@/lib/impactCanvasBoundStyle';
+import { BOUND_STYLE_DEFAULTS, DEFAULT_CORNER_RADIUS_MM, MAX_CORNER_RADIUS_MM, readBoundStyle, resolveBoundStyle } from '@/lib/impactCanvasBoundStyle';
 import type { BoundBoxStyle } from '@/lib/impactCanvasBoundStyle';
 import { ImpactCanvasTextBox } from './ImpactCanvasTextBox';
 import { ImpactCanvasOutlinePicker } from './ImpactCanvasOutlinePicker';
@@ -1959,6 +1959,67 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
     [canEdit, proposalId, qc, snapshotOfEl, pushHistory],
   );
 
+  /** Arrow-key nudge: shift every selected element by (dx, dy) cm, clamped
+   *  to the canvas. One coalesced undo step per burst of key presses. */
+  const nudgeSelected = useCallback(
+    (dxCm: number, dyCm: number) => {
+      if (!canEdit) return;
+      const ids = Array.from(selectedIdsRef.current);
+      if (ids.length === 0) return;
+      const targets = ids
+        .map((id) => fetched.find((e) => e.id === id))
+        .filter((e): e is CanvasElement => !!e);
+      if (targets.length === 0) return;
+
+      const entries: Array<{ kind: 'update'; id: string; before: ElementSnapshot; after: ElementSnapshot }> = [];
+      const nextOverrides: Record<string, { x: number; y: number; w: number; h: number }> = {};
+      for (const el of targets) {
+        const before = snapshotOfEl(el);
+        const current = overrides[el.id] ?? { x: el.x, y: el.y, w: el.w, h: el.h };
+        const next = {
+          ...current,
+          x: Math.max(0, Math.min(Math.max(0, widthCm - current.w), current.x + dxCm)),
+          y: Math.max(0, Math.min(Math.max(0, maxHeightCm - current.h), current.y + dyCm)),
+        };
+        if (next.x === current.x && next.y === current.y) continue;
+        nextOverrides[el.id] = next;
+        persistDebounced(el.id, next);
+        entries.push({ kind: 'update', id: el.id, before, after: { ...before, ...next } });
+      }
+      if (entries.length === 0) return;
+      setOverrides((o) => ({ ...o, ...nextOverrides }));
+      pushHistory(
+        entries.length === 1
+          ? { ...entries[0], ts: Date.now() }
+          : { kind: 'batch', entries },
+        `nudge:${ids.slice().sort().join(',')}`,
+      );
+    },
+    [canEdit, fetched, overrides, persistDebounced, snapshotOfEl, pushHistory, widthCm, maxHeightCm],
+  );
+
+  // Keyboard: arrow keys move the selection (⇧ = 1 cm coarse step).
+  useEffect(() => {
+    if (!canEdit || editingId) return;
+    if (selectedIds.size === 0) return;
+    const onKey = (ev: KeyboardEvent) => {
+      const map: Record<string, [number, number]> = {
+        ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1],
+      };
+      const dir = map[ev.key];
+      if (!dir) return;
+      const t = ev.target as HTMLElement | null;
+      if (t && (t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName))) return;
+      if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
+      ev.preventDefault();
+      const step = ev.shiftKey ? 1 : 0.1;
+      nudgeSelected(dir[0] * step, dir[1] * step);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [canEdit, editingId, selectedIds, nudgeSelected]);
+
+
   // Keyboard: Delete/Backspace removes all deletable selected free elements.
   useEffect(() => {
     if (editingId) return;
@@ -2081,6 +2142,11 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
     .map((e) => e.id);
   const styleEnabled = fillFontIds.length > 0;
   const outlineEnabled = outlineIds.length > 0;
+  // Corner roundedness applies to rounded-rectangle shapes only.
+  const roundedIds = selectedEls
+    .filter((e) => e.kind === 'shape' && ((e.content ?? {}) as { shape?: ShapeKind }).shape === 'roundedRect')
+    .map((e) => e.id);
+  const cornerEnabled = roundedIds.length > 0;
   // Size (W/H) — enabled for single OR multi when at least one resizable
   // (bound/header/shape) member is present. Lines are skipped by the multi
   // writer. Handles remain single-select only (see zEnabled below).
@@ -2160,6 +2226,10 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
   const outlineColorMixed = isMulti && toolbarOutlineColor === undefined && outlineIds.length > 1;
   const outlineWidthMixed = isMulti && toolbarOutlineWidth === undefined && outlineIds.length > 1;
 
+  const cornerRadiusValue = cornerEnabled
+    ? (commonStyleValue(roundedIds, 'cornerRadiusMm') ?? DEFAULT_CORNER_RADIUS_MM)
+    : DEFAULT_CORNER_RADIUS_MM;
+
   const applyStylePatch = (patch: Partial<BoundBoxStyle>, ids: string[]) => {
     if (ids.length === 0) return;
     if (ids.length === 1) updateBoundStyle(ids[0], patch);
@@ -2238,6 +2308,39 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
               onWidthChange={(w) => applyStylePatch({ outlineWidth: w }, outlineIds)}
             />
           </div>
+
+          {/* Corner roundedness (mm) — rounded rectangles only */}
+          <label
+            className={cn(
+              'flex items-center gap-1 text-[11px] ml-1',
+              !cornerEnabled && 'opacity-50',
+            )}
+            data-impact-canvas-toolbar
+            title="Corner roundedness of rounded rectangles (mm)"
+          >
+            <Squircle className="w-3.5 h-3.5" />
+            <Input
+              type="number"
+              min={0}
+              max={MAX_CORNER_RADIUS_MM}
+              step={0.5}
+              className="h-7 w-14 text-[11px] px-1"
+              disabled={!cornerEnabled}
+              value={cornerRadiusValue}
+              onChange={(e) => {
+                const v = parseFloat(e.target.value);
+                if (!Number.isFinite(v)) return;
+                applyStylePatch(
+                  { cornerRadiusMm: Math.max(0, Math.min(MAX_CORNER_RADIUS_MM, v)) },
+                  roundedIds,
+                );
+              }}
+              aria-label="Corner roundedness in millimetres"
+            />
+            <span className="text-muted-foreground">mm</span>
+          </label>
+
+
 
           <AddShapeDropdown
             onAddShape={addShape}
