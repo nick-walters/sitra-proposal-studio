@@ -502,8 +502,9 @@ export function PERTChartFigure({
   const selected = selectedNode ? nodes.find((n) => n.id === selectedNode) : undefined;
 
   const setNodeSizeCm = useCallback((node: WPNode, widthCm?: number, heightCm?: number) => {
-    const w = widthCm != null ? Math.max(NODE_MIN_W, cmToPx(widthCm)) : node.w;
-    const h = heightCm != null ? Math.max(NODE_MIN_H, cmToPx(heightCm)) : node.h;
+    const round1 = (cm: number) => Math.round(cm * 10) / 10;
+    const w = widthCm != null ? Math.max(NODE_MIN_W, cmToPx(round1(widthCm))) : node.w;
+    const h = heightCm != null ? Math.max(NODE_MIN_H, cmToPx(round1(heightCm))) : node.h;
     const base = lockedBase();
     pushHistory();
     onContentChange({
