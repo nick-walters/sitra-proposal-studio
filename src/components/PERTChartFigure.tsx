@@ -396,6 +396,18 @@ export function PERTChartFigure({
     });
   }, [canEdit, zoom]);
 
+  /**
+   * Base content for a manual edit: freezes the current (possibly
+   * auto-generated) layout into explicit positions/sizes and locks it so
+   * auto-layout stops overriding the user's work.
+   */
+  const lockedBase = useCallback((): PERTContent => ({
+    ...content,
+    layoutLocked: true,
+    nodePositions: { ...nodePositions },
+    nodeSizes: { ...nodeSizeMap },
+  }), [content, nodePositions, nodeSizeMap]);
+
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     const svgRect = svgRef.current?.getBoundingClientRect();
     if (!svgRect) return;
@@ -423,10 +435,11 @@ export function PERTChartFigure({
         y = Math.max(0, Math.min(snapTo(o.y + dy), bottom - NODE_MIN_H));
         h = bottom - y;
       }
+      const base = lockedBase();
       onContentChange({
-        ...content,
-        nodePositions: { ...(content?.nodePositions || {}), [resizing.id]: { x, y } },
-        nodeSizes: { ...(content?.nodeSizes || {}), [resizing.id]: { w, h } },
+        ...base,
+        nodePositions: { ...base.nodePositions, [resizing.id]: { x, y } },
+        nodeSizes: { ...base.nodeSizes, [resizing.id]: { w, h } },
       });
       return;
     }
@@ -434,30 +447,39 @@ export function PERTChartFigure({
     if (!draggingNode) return;
     const newX = Math.max(0, snapTo((e.clientX - svgRect.left) / zoom - dragOffset.x));
     const newY = Math.max(0, snapTo((e.clientY - svgRect.top) / zoom - dragOffset.y));
-    const newPositions = { ...(content?.nodePositions || {}), [draggingNode]: { x: newX, y: newY } };
-    onContentChange({ ...content, nodePositions: newPositions });
+    const base = lockedBase();
+    onContentChange({ ...base, nodePositions: { ...base.nodePositions, [draggingNode]: { x: newX, y: newY } } });
 
-  }, [draggingNode, dragOffset, content, onContentChange, snap, zoom, resizing]);
+  }, [draggingNode, dragOffset, onContentChange, snap, zoom, resizing, lockedBase]);
 
   const handleMouseUp = useCallback(() => { setDraggingNode(null); setResizing(null); }, []);
-
-  // ---- Physical frame ------------------------------------------------------
-  const frameWidthCm = Number(content?.widthCm) > 0 ? Number(content!.widthCm) : PERT_DEFAULT_WIDTH_CM;
-  const frameHeightCm = Number(content?.heightCm) > 0 ? Number(content!.heightCm) : PERT_DEFAULT_HEIGHT_CM;
-  const svgWidth = Math.round(cmToPx(frameWidthCm));
-  const svgHeight = Math.round(cmToPx(frameHeightCm));
-  const viewBoxStr = `0 0 ${svgWidth} ${svgHeight}`;
 
   const selected = selectedNode ? nodes.find((n) => n.id === selectedNode) : undefined;
 
   const setNodeSizeCm = useCallback((node: WPNode, widthCm?: number, heightCm?: number) => {
     const w = widthCm != null ? Math.max(NODE_MIN_W, cmToPx(widthCm)) : node.w;
     const h = heightCm != null ? Math.max(NODE_MIN_H, cmToPx(heightCm)) : node.h;
+    const base = lockedBase();
+    pushHistory();
+    onContentChange({
+      ...base,
+      nodeSizes: { ...base.nodeSizes, [node.id]: { w, h } },
+    });
+  }, [lockedBase, onContentChange, pushHistory]);
+
+  /** Auto-regenerate: recompute the full-frame layout from current WPs. */
+  const regenerateLayout = useCallback(() => {
+    const fresh = computeAutoLayout(wpDrafts.map((wp) => wp.id), svgWidth, svgHeight);
+    pushHistory();
     onContentChange({
       ...content,
-      nodeSizes: { ...(content?.nodeSizes || {}), [node.id]: { w, h } },
+      layoutLocked: false,
+      nodePositions: fresh.positions,
+      nodeSizes: fresh.sizes,
     });
-  }, [content, onContentChange]);
+    toast.success('Layout regenerated from current work packages');
+  }, [wpDrafts, svgWidth, svgHeight, content, onContentChange, pushHistory]);
+
 
 
   // ---- Zoom (editor only) --------------------------------------------------
