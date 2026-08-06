@@ -34,6 +34,28 @@ function normaliseMilestone(el: HTMLElement) {
   applyMilestoneBadge(el, readBadgeLabel(el) || undefined);
 }
 
+const BADGE_SELECTOR =
+  '[data-deliverable-reference], [data-ref-type="milestone"], [data-milestone-reference], [data-ref-type]';
+
+/**
+ * A badge insertion leaves a non-breaking space after the badge so the gap
+ * survives in contentEditable. When real text follows, that nbsp must become a
+ * normal space, otherwise the space cannot break and gets dragged onto the next
+ * line in front of the wrapped word.
+ */
+function normaliseBadgeSpacing(root: HTMLElement) {
+  root.querySelectorAll<HTMLElement>(BADGE_SELECTOR).forEach((badge) => {
+    const next = badge.nextSibling;
+    if (!next || next.nodeType !== Node.TEXT_NODE) return;
+    const text = next.textContent ?? '';
+    const match = /^[\u00a0 ]+/.exec(text);
+    if (!match) return;
+    const rest = text.slice(match[0].length);
+    if (!rest.trim()) return; // trailing spacer: keep it non-breaking
+    next.textContent = ' ' + rest;
+  });
+}
+
 /**
  * Returns the HTML with all inline reference badges re-styled to the
  * canonical B3.1 mirror presentation. Safe on empty/plain-text input.
@@ -50,6 +72,7 @@ export function normalizeRefBadges(html: string | null | undefined): string {
   container
     .querySelectorAll<HTMLElement>('[data-ref-type="milestone"], [data-milestone-reference]')
     .forEach(normaliseMilestone);
+  normaliseBadgeSpacing(container);
 
   return container.innerHTML;
 }
