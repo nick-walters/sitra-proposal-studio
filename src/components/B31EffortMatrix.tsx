@@ -170,12 +170,12 @@ borderTopLeftRadius: '12px',
                           color: '#FFFFFF',
                         }}
                       >
-                        {val ? formatPM(val) : '—'}
+                        {formatPM(val)}
                       </td>
                     );
                   })}
                   <td className={`${cellStyles} font-bold`}>
-                    {rowTotal ? formatPM(rowTotal) : '—'}
+                    {formatPM(rowTotal)}
                   </td>
                 </tr>
               );
@@ -197,7 +197,7 @@ borderTopLeftRadius: '12px',
                       color: '#FFFFFF',
                     }}
                   >
-                    {colTotal ? formatPM(colTotal) : '—'}
+                    {formatPM(colTotal)}
                   </td>
                 );
               })}
@@ -207,7 +207,7 @@ borderTopLeftRadius: '12px',
                     const pMap = matrix.get(p.id)!;
                     return sum + wpData.reduce((s, wp) => s + (pMap.get(wp.id) || 0), 0);
                   }, 0);
-                  return grandTotal ? formatPM(grandTotal) : '—';
+                  return formatPM(grandTotal);
                 })()}
               </td>
             </tr>
