@@ -592,19 +592,24 @@ export function PERTChartFigure({
     setSelectedAnn((cur) => (cur === id ? null : cur));
   }, [annotations, commitAnnotations, pushHistory]);
 
-  // Delete / Backspace removes the selected annotation (never a WP box).
+  // Delete / Backspace removes the selected annotation(s) (never a WP box).
   useEffect(() => {
-    if (!canEdit || !selectedAnn) return;
+    const ids = multiSel.anns.length > 0 ? multiSel.anns : (selectedAnn ? [selectedAnn] : []);
+    if (!canEdit || ids.length === 0) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Delete' && e.key !== 'Backspace') return;
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
       e.preventDefault();
-      deleteAnnotation(selectedAnn);
+      pushHistory();
+      commitAnnotations(annotations.filter((a) => !ids.includes(a.id)));
+      setSelectedAnn(null);
+      setMultiSel((cur) => ({ ...cur, anns: [] }));
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [canEdit, selectedAnn, deleteAnnotation]);
+  }, [canEdit, selectedAnn, multiSel.anns, annotations, commitAnnotations, pushHistory]);
+
 
   const startAnnDrag = useCallback((e: React.MouseEvent, ann: PertAnnotation) => {
     e.stopPropagation();
