@@ -1360,6 +1360,7 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
           if (!f) continue;
           const isLine = !!s.from && !!s.to;
           const sourceEl = fetchedRef.current.find((candidate) => candidate.id === gid);
+          let afterStyle = s.snap.style;
           if (
             sourceEl &&
             (sourceEl.kind === 'bound' || sourceEl.kind === 'header') &&
@@ -1373,6 +1374,7 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
               const nextStyle = { ...currentStyle, manualX: true };
               setStyleOverrides((o) => ({ ...o, [gid]: nextStyle }));
               persistStyleDebouncedRef.current(gid, nextStyle);
+              afterStyle = nextStyle;
             }
           }
           if (isLine && f.endpoints) {
@@ -1392,6 +1394,7 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
             ...before,
             x: f.box.x, y: f.box.y, w: f.box.w, h: f.box.h,
             content: afterContent,
+            style: afterStyle,
           };
           batchEntries.push({ kind: 'update', id: gid, before, after });
         }
@@ -2288,7 +2291,12 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
             styleWrites.push({ id: el.id, style: nextStyle });
           }
         }
-        entries.push({ kind: 'update', id: el.id, before, after: { ...before, ...next } });
+        entries.push({
+          kind: 'update',
+          id: el.id,
+          before,
+          after: { ...before, ...next, style: nextStyleOverrides[el.id] ?? before.style },
+        });
       }
       if (entries.length === 0) return;
       setOverrides((o) => ({ ...o, ...nextOverrides }));
