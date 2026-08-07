@@ -1082,11 +1082,14 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
       activated = true;
       // Cancel/invalidate any in-flight auto-fit write for this id — see the
       // pendingBoxWriteSeqRef guard elsewhere in this component.
-      const existingTimer = pendingTimers.current[id];
+      const boxKey = `box:${id}`;
+      const existingTimer = pendingWriteTimers.current.get(boxKey);
       if (existingTimer) {
         clearTimeout(existingTimer);
-        delete pendingTimers.current[id];
+        pendingWriteTimers.current.delete(boxKey);
+        pendingWrites.current.delete(boxKey);
       }
+
       pendingBoxAbortControllers.current[id]?.abort();
       delete pendingBoxAbortControllers.current[id];
       pendingBoxWriteSeqRef.current[id] = (pendingBoxWriteSeqRef.current[id] ?? 0) + 1;
