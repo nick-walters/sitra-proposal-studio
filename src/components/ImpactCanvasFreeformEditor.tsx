@@ -2982,9 +2982,10 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
                   borderColor: editing
                     ? 'hsl(var(--primary))'
                     : selected ? 'hsl(var(--primary))' : bs.borderColor,
-                  borderWidth: editing || selected
-                    ? `${Math.max(1.5, bs.borderWidth)}pt`
-                    : bs.borderWidth ? `${bs.borderWidth}pt` : 0,
+                  // Constant border width — selection/editing rings are drawn
+                  // outside via box-shadow so the text never reflows.
+                  borderWidth: bs.borderWidth ? `${bs.borderWidth}pt` : 0,
+                  boxShadow: editing || selected ? '0 0 0 2px hsl(var(--primary))' : undefined,
                   borderRadius: 6,
                   background: bs.background,
                   padding: '2pt',
