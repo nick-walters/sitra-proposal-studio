@@ -31,8 +31,10 @@ export function ptFont(pt: number, canvasWidthCm: number = CANVAS_WIDTH_CM): str
 export const DEFAULT_PT = 11;
 /** Header (Arial Black) default pt size. */
 export const HEADER_PT = 11;
-/** Font size dropdown options — locked to Office-like whole points. */
-export const FONT_SIZE_OPTIONS = [9, 10, 11, 12, 13, 14] as const;
+/** Font size dropdown options — Office-like whole points, up to 60 pt. */
+export const FONT_SIZE_OPTIONS = [
+  8, 9, 10, 11, 12, 13, 14, 16, 18, 20, 24, 28, 32, 36, 40, 44, 48, 54, 60,
+] as const;
 export type CanvasFontPt = typeof FONT_SIZE_OPTIONS[number];
 
 export const FONT_FAMILY_REGULAR = 'Arial, sans-serif';
