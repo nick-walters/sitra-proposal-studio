@@ -100,7 +100,14 @@ export function OverviewCanvasSection({ proposalId, provision = true }: Props) {
 
   return (
     <div data-overview-canvas-mount="true" className="mt-[2px]">
-      <ImpactCanvasFreeformRenderer proposalId={proposalId} figureId={figure.id} mode="impact" />
+      <ImpactCanvasFreeformRenderer
+        proposalId={proposalId}
+        figureId={figure.id}
+        mode="impact"
+        canvasSize={tableCanvasToCanvasSize(
+          resolveTableCanvasSize(OVERVIEW_CANVAS_FIGURE_TYPE, (figure as { content?: never }).content ?? null),
+        )}
+      />
       <EditableCaption
         proposalId={proposalId}
         figureId={figure.id}
