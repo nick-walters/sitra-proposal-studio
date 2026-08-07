@@ -395,10 +395,6 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
    *  when double-clicked, become editable in-place — writes go to the row, so
    *  the Builder table below stays in sync. */
   const [boundCellOverrides, setBoundCellOverrides] = useState<Record<string, string>>({});
-  const pendingBoundCellTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
-  const pendingTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
-  const pendingContentTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
-  const pendingStyleTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const pendingBoxAbortControllers = useRef<Record<string, AbortController>>({});
   /** Optimistic overrides for style (per element id). */
   const [styleOverrides, setStyleOverrides] = useState<Record<string, BoundBoxStyle>>({});
