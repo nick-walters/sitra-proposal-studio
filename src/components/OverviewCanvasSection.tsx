@@ -105,7 +105,10 @@ export function OverviewCanvasSection({ proposalId, provision = true }: Props) {
         figureId={figure.id}
         mode="impact"
         canvasSize={tableCanvasToCanvasSize(
-          resolveTableCanvasSize(OVERVIEW_CANVAS_FIGURE_TYPE, (figure as { content?: never }).content ?? null),
+          resolveTableCanvasSize(
+            OVERVIEW_CANVAS_FIGURE_TYPE,
+            (figure.content ?? null) as { presetId?: string | null; widthCm?: number | null; heightCm?: number | null } | null,
+          ),
         )}
       />
       <EditableCaption
