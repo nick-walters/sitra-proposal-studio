@@ -1345,16 +1345,24 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
       }
 
       let styleAfter: BoundBoxStyle | null = null;
-      if (
-        localDrag!.mode.kind === 'resize' &&
-        finalBox &&
-        Math.abs(finalBox.h - localDrag!.startBox.h) > 1e-4
-      ) {
+      if (localDrag!.mode.kind === 'resize' && finalBox) {
+        const heightChanged = Math.abs(finalBox.h - localDrag!.startBox.h) > 1e-4;
+        const widthChanged = Math.abs(finalBox.w - localDrag!.startBox.w) > 1e-4;
         const el = fetchedRef.current.find((e) => e.id === dragId);
-        if (el && el.kind === 'bound') {
+        if (el && (el.kind === 'bound' || el.kind === 'header')) {
           const cur = { ...readBoundStyle(el.style), ...(styleOverridesRef.current[dragId] ?? {}) };
-          if (cur.autoFitH !== false) {
-            const next = { ...cur, autoFitH: false };
+          const next = { ...cur };
+          let changed = false;
+          if (heightChanged && el.kind === 'bound' && cur.autoFitH !== false) {
+            next.autoFitH = false;
+            changed = true;
+          }
+          // Manual width — full-width canvases must not redistribute it away.
+          if (widthChanged && cur.manualW !== true) {
+            next.manualW = true;
+            changed = true;
+          }
+          if (changed) {
             setStyleOverrides((o) => ({ ...o, [dragId]: next }));
             persistStyleDebouncedRef.current(dragId, next);
             styleAfter = next;
