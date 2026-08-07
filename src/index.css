@@ -1785,7 +1785,6 @@ body.table-col-resizing * {
 .ProseMirror [data-impact-canvas-graphic="true"] li,
 .ProseMirror [data-impact-canvas-graphic="true"] ul,
 .ProseMirror [data-impact-canvas-graphic="true"] ol,
-.ProseMirror [data-impact-canvas-graphic="true"] span,
 .ProseMirror [data-impact-canvas-graphic="true"] div {
   font-family: inherit !important;
   font-size: inherit !important;
