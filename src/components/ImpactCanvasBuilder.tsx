@@ -32,6 +32,8 @@ interface Props {
   figureId?: string;
   /** 'overview' hides row management (a single content row is fixed). */
   variant?: 'impact' | 'overview';
+  /** Physical canvas frame (cm) chosen on the figure's size card. */
+  canvasSize?: { widthCm: number; heightCm: number };
 }
 
 
