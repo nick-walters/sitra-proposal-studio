@@ -167,7 +167,13 @@ export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figure
               }}
             >
               <div ref={graphicRef}>
-                <ImpactCanvasFreeformRenderer proposalId={proposalId} figureId={figureId} mode="impact" fallback="grid" />
+                <ImpactCanvasFreeformRenderer
+                  proposalId={proposalId}
+                  figureId={figureId}
+                  mode="impact"
+                  fallback="grid"
+                  canvasSize={canvasSize ? tableCanvasToCanvasSize(canvasSize) : undefined}
+                />
               </div>
             </div>
         </div>
