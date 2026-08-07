@@ -2130,8 +2130,6 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
       const nextOverrides: Record<string, { x: number; y: number; w: number; h: number }> = {};
       const nextStyleOverrides: Record<string, ReturnType<typeof readBoundStyle>> = {};
       const styleWrites: Array<{ id: string; style: ReturnType<typeof readBoundStyle> }> = [];
-      const nextStyleOverrides: Record<string, ReturnType<typeof readBoundStyle>> = {};
-      const styleWrites: Array<{ id: string; style: ReturnType<typeof readBoundStyle> }> = [];
 
       for (const el of targets) {
         const before = snapshotOfEl(el);
@@ -2269,6 +2267,8 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
 
       const entries: Array<{ kind: 'update'; id: string; before: ElementSnapshot; after: ElementSnapshot }> = [];
       const nextOverrides: Record<string, { x: number; y: number; w: number; h: number }> = {};
+      const nextStyleOverrides: Record<string, ReturnType<typeof readBoundStyle>> = {};
+      const styleWrites: Array<{ id: string; style: ReturnType<typeof readBoundStyle> }> = [];
       for (const el of targets) {
         const before = snapshotOfEl(el);
         const current = overrides[el.id] ?? { x: el.x, y: el.y, w: el.w, h: el.h };
