@@ -39,12 +39,36 @@ interface Props {
  *        currently-focused cell (avoids toolbar-per-cell perf hit).
  */
 export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figureNumber, graphicRef, figureId, variant = 'impact' }: Props) {
-  const singleRow = variant === 'overview';
   const { roleTier } = useProposalRole(proposalId);
   const isCoordinator = roleTier === 'coordinator';
+  const qc = useQueryClient();
 
   const { columns, isLoading: colsLoading } = useImpactCanvasColumns(proposalId, figureId ?? null);
   const { rows, isLoading: rowsLoading, addRow, deleteRow, updateCell } = useImpactCanvasRows(proposalId, figureId ?? null);
+
+  // Self-heal: a figure-scoped canvas (e.g. the B1.1 overview) may have
+  // columns/rows but no bound boxes yet (seeded outside the app). Sync is
+  // additive + idempotent.
+  useEffect(() => {
+    if (!figureId || !canEdit || colsLoading || rowsLoading) return;
+    if (columns.length === 0) return;
+    let cancelled = false;
+    supabase
+      .from('impact_canvas_elements')
+      .select('id')
+      .eq('proposal_id', proposalId)
+      .eq('figure_id', figureId)
+      .limit(1)
+      .then(({ data }) => {
+        if (cancelled || (data?.length ?? 0) > 0) return;
+        return syncBoundElements(proposalId, figureId).then(() => {
+          if (!cancelled) qc.invalidateQueries({ queryKey: ['canvas-elements', figureId] });
+        });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [figureId, canEdit, colsLoading, rowsLoading, columns.length, proposalId, qc]);
 
 
   const [activeEditor, setActiveEditor] = useState<Editor | null>(null);
