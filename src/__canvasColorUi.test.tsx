@@ -33,10 +33,13 @@ describe('canvas colour UI', () => {
     fireEvent.pointerDown(colorBtn, { button: 0 });
     fireEvent.mouseDown(colorBtn); fireEvent.click(colorBtn);
     await new Promise(r => setTimeout(r, 50));
-    const swatches = document.querySelectorAll('[role="dialog"] button');
-    console.log('swatch count', swatches.length);
-    // click a greyscale/palette swatch
-    fireEvent.click(swatches[2]);
+    const dialogs = document.querySelectorAll('[role="dialog"]');
+    console.log('dialog count', dialogs.length);
+    const last = dialogs[dialogs.length - 1];
+    console.log('last dialog text', last.textContent?.slice(0,80));
+    const swatches = last.querySelectorAll('button[style]');
+    console.log('swatch count', swatches.length, (swatches[0] as HTMLElement)?.getAttribute('style'));
+    fireEvent.mouseDown(swatches[0]); fireEvent.click(swatches[0]);
     await new Promise(r => setTimeout(r, 100));
     console.log('onChange calls', onChange.mock.calls.map(c => c[0]));
     expect(onChange.mock.calls.some(c => String(c[0]).includes('color'))).toBe(true);
