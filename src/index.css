@@ -1775,3 +1775,31 @@ body.table-col-resizing * {
 [data-impact-canvas-cell] [style*="colour"] {
   color: inherit !important;
 }
+
+/* Canvas mirrors embedded INSIDE the editor (B1.1 overview canvas, B2.1
+   impact canvas) must render exactly like the figure page. The editor's
+   prose rules (Times New Roman, 11pt, justified, paragraph spacing) would
+   otherwise leak into the canvas boxes and reflow/overflow their text.
+   Everything inside the canvas graphic inherits the canvas's own typography. */
+.ProseMirror [data-impact-canvas-graphic="true"] p,
+.ProseMirror [data-impact-canvas-graphic="true"] li,
+.ProseMirror [data-impact-canvas-graphic="true"] ul,
+.ProseMirror [data-impact-canvas-graphic="true"] ol,
+.ProseMirror [data-impact-canvas-graphic="true"] span,
+.ProseMirror [data-impact-canvas-graphic="true"] div {
+  font-family: inherit !important;
+  font-size: inherit !important;
+  line-height: inherit !important;
+  text-align: inherit !important;
+  text-indent: 0 !important;
+  letter-spacing: normal !important;
+}
+.ProseMirror [data-impact-canvas-graphic="true"] p,
+.ProseMirror [data-impact-canvas-graphic="true"] ul,
+.ProseMirror [data-impact-canvas-graphic="true"] ol {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+.ProseMirror [data-impact-canvas-graphic="true"] p + p {
+  margin-top: 0 !important;
+}
