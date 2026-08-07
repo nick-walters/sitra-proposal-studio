@@ -118,6 +118,6 @@ export async function ensureOverviewCanvas(
     if (error) throw error;
   }
 
-  await syncBoundElements(proposalId, figureId);
+  await syncBoundElements(proposalId, figureId, OVERVIEW_LAYOUT_OPTIONS);
   return figureId;
 }
