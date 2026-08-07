@@ -86,7 +86,7 @@ export function useImpactCanvasColumns(
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('impact_canvas_columns').delete().eq('id', id);
       if (error) throw error;
-      await syncBoundElements(proposalId, fid);
+      await syncBoundElements(proposalId, fid, layoutOptions);
     },
     onSettled: () => {
       invalidate();
