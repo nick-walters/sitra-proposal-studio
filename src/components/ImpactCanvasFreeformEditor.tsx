@@ -2878,9 +2878,12 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
                   height: '100%',
                   borderStyle: 'solid',
                   borderColor: selected ? 'hsl(var(--primary))' : bs.borderColor,
-                  borderWidth: selected
-                    ? `${Math.max(1.5, bs.borderWidth)}pt`
-                    : bs.borderWidth ? `${bs.borderWidth}pt` : 0,
+                  // Border width must NOT change on selection — with
+                  // box-sizing: border-box that would shrink the content
+                  // area and shift the text. The selection ring is drawn
+                  // OUTSIDE via box-shadow instead (zero layout impact).
+                  borderWidth: bs.borderWidth ? `${bs.borderWidth}pt` : 0,
+                  boxShadow: selected ? '0 0 0 2px hsl(var(--primary))' : undefined,
                   borderRadius: 6,
                   background: bs.background,
                   padding: '2pt',
@@ -2979,9 +2982,10 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
                   borderColor: editing
                     ? 'hsl(var(--primary))'
                     : selected ? 'hsl(var(--primary))' : bs.borderColor,
-                  borderWidth: editing || selected
-                    ? `${Math.max(1.5, bs.borderWidth)}pt`
-                    : bs.borderWidth ? `${bs.borderWidth}pt` : 0,
+                  // Constant border width — selection/editing rings are drawn
+                  // outside via box-shadow so the text never reflows.
+                  borderWidth: bs.borderWidth ? `${bs.borderWidth}pt` : 0,
+                  boxShadow: editing || selected ? '0 0 0 2px hsl(var(--primary))' : undefined,
                   borderRadius: 6,
                   background: bs.background,
                   padding: '2pt',
@@ -3132,11 +3136,14 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
                 style={{
                   width: '100%',
                   height: '100%',
+                  // Always a 1px border so the content box never changes size
+                  // on select/edit; the ring is drawn outside via box-shadow.
                   border: editing
-                    ? '2px dashed hsl(var(--primary))'
+                    ? '1px dashed hsl(var(--primary))'
                     : selected
-                    ? '2px solid hsl(var(--primary))'
+                    ? '1px solid hsl(var(--primary))'
                     : '1px dashed hsl(var(--border))',
+                  boxShadow: editing || selected ? '0 0 0 2px hsl(var(--primary))' : undefined,
                   borderRadius: 4,
                   background: editing ? 'hsl(var(--background))' : 'transparent',
                   padding: '2pt',
