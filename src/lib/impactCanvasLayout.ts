@@ -34,7 +34,7 @@ export const MIN_ELEMENT_H_CM = 0.5;
 
 /**
  * Default bound-box layout (applied to NEW bound elements only —
- * existing coords are never disturbed).
+ * existing coords are never disturbed, unless layout = 'fullWidth').
  *   - Width fixed at 2 cm.
  *   - Horizontal gap between adjacent columns = 1.2 cm (step 3.2 cm).
  *   - Starting x = 0 (left origin of the 18 cm canvas).
@@ -49,6 +49,21 @@ export const DEFAULT_BOUND_HGAP_CM = 1.2;
 export const DEFAULT_BOUND_VGAP_CM = 0.3;
 export const DEFAULT_BOUND_START_X_CM = 0;
 
+/** Full-width layout: columns share the whole canvas width with a small gap. */
+export const FULL_WIDTH_HGAP_CM = 0.3;
+export const FULL_WIDTH_MARGIN_CM = 0;
+
+export type BoundLayout = 'compact' | 'fullWidth';
+
+export interface BoundLayoutOptions {
+  layout?: BoundLayout;
+  /** Canvas width in cm; defaults to CANVAS_WIDTH_CM. */
+  canvasWidthCm?: number;
+  /** Horizontal gap between columns in cm. */
+  hgapCm?: number;
+  /** Left/right margin in cm. */
+  marginCm?: number;
+}
 
 /**
  * Back-compat shim. Some callers still import IMPACT_CANVAS_VIEWPORT /
@@ -68,29 +83,42 @@ export interface BoundPosition {
   h: number;
 }
 
+function computeColumnGeometry(nCols: number, options?: BoundLayoutOptions) {
+  const layout = options?.layout ?? 'compact';
+  const canvasWidth = options?.canvasWidthCm ?? CANVAS_WIDTH_CM;
+  if (layout === 'compact') {
+    return {
+      w: DEFAULT_BOUND_W_CM,
+      gap: DEFAULT_BOUND_HGAP_CM,
+      startX: DEFAULT_BOUND_START_X_CM,
+    };
+  }
+  const margin = options?.marginCm ?? FULL_WIDTH_MARGIN_CM;
+  const gap = options?.hgapCm ?? FULL_WIDTH_HGAP_CM;
+  const usable = canvasWidth - 2 * margin;
+  const totalGap = Math.max(0, nCols - 1) * gap;
+  const w = Math.max(MIN_ELEMENT_W_CM, (usable - totalGap) / Math.max(1, nCols));
+  const startX = margin;
+  return { w, gap, startX };
+}
+
 /**
- * Return {x,y,w,h} in cm for a NEW bound cell using the compact defaults:
- *   - width = DEFAULT_BOUND_W_CM (2 cm) fixed
+ * Return {x,y,w,h} in cm for a NEW bound cell.
+ *   - compact (default): width = 2 cm, gap = 1.2 cm, start x = 0.
+ *   - fullWidth: columns share the canvas width evenly with a small gap.
  *   - height = DEFAULT_BOUND_H_CM (0.8 cm) as a starting min — the editor
  *     auto-grows h to fit rendered text until the user manually resizes.
- *   - x steps by (w + hgap) starting at DEFAULT_BOUND_START_X_CM (0).
  *   - y steps by (default h + vgap) below the header band.
- *
- * `nCols`/`nRows` are accepted for backward compatibility with earlier
- * callers but no longer influence the returned coords — layout is now
- * driven purely by the fixed 2 cm / 1.2 cm cadence.
  */
 export function computeDefaultBoundPosition(
   rowIndex: number,
   colIndex: number,
-  _nCols?: number,
-  _nRows?: number,
+  nCols?: number,
+  options?: BoundLayoutOptions,
 ): BoundPosition {
-  void _nCols;
-  void _nRows;
-  const w = DEFAULT_BOUND_W_CM;
+  const { w, gap, startX } = computeColumnGeometry(nCols ?? 1, options);
   const h = DEFAULT_BOUND_H_CM;
-  const x = DEFAULT_BOUND_START_X_CM + colIndex * (w + DEFAULT_BOUND_HGAP_CM);
+  const x = startX + colIndex * (w + gap);
   const y = HEADER_HEIGHT_CM + rowIndex * (h + DEFAULT_BOUND_VGAP_CM);
   return { x, y, w, h };
 }
