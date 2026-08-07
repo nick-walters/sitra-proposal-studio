@@ -5,6 +5,7 @@ import { EditableCaption } from '@/components/EditableCaption';
 import { ImpactCanvasFreeformRenderer } from '@/components/ImpactCanvasFreeformRenderer';
 import { ensureOverviewCanvas, OVERVIEW_CANVAS_FIGURE_TYPE, OVERVIEW_LAYOUT_OPTIONS, overviewCanvasTitle } from '@/lib/overviewCanvas';
 import { syncBoundElements } from '@/lib/impactCanvasLayout';
+import { resolveTableCanvasSize, tableCanvasToCanvasSize } from '@/lib/canvasFigureSize';
 
 interface Props {
   proposalId: string;
@@ -33,7 +34,7 @@ export function OverviewCanvasSection({ proposalId, provision = true }: Props) {
           .maybeSingle(),
         supabase
           .from('figures')
-          .select('id, figure_number, caption, title')
+          .select('id, figure_number, caption, title, content')
           .eq('proposal_id', proposalId)
           .eq('figure_type', OVERVIEW_CANVAS_FIGURE_TYPE)
           .maybeSingle(),
@@ -100,7 +101,17 @@ export function OverviewCanvasSection({ proposalId, provision = true }: Props) {
 
   return (
     <div data-overview-canvas-mount="true" className="mt-[2px]">
-      <ImpactCanvasFreeformRenderer proposalId={proposalId} figureId={figure.id} mode="impact" />
+      <ImpactCanvasFreeformRenderer
+        proposalId={proposalId}
+        figureId={figure.id}
+        mode="impact"
+        canvasSize={tableCanvasToCanvasSize(
+          resolveTableCanvasSize(
+            OVERVIEW_CANVAS_FIGURE_TYPE,
+            (figure.content ?? null) as { presetId?: string | null; widthCm?: number | null; heightCm?: number | null } | null,
+          ),
+        )}
+      />
       <EditableCaption
         proposalId={proposalId}
         figureId={figure.id}

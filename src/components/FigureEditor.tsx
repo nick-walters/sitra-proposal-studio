@@ -30,6 +30,11 @@ import { ImpactCanvasFreeformEditor } from '@/components/ImpactCanvasFreeformEdi
 import { CanvasFigureRasteriser } from '@/components/CanvasFigureRasteriser';
 
 import { getFigureSizePreset } from '@/lib/figureSizePresets';
+import {
+  defaultTableCanvasPresetId,
+  isTableCanvasFigureType,
+  resolveTableCanvasSize,
+} from '@/lib/canvasFigureSize';
 import { FigureSizePicker, type FigureSizeValue } from '@/components/FigureSizePicker';
 
 import { supabase } from '@/integrations/supabase/client';
@@ -193,13 +198,17 @@ export function FigureEditor({
   const renderImageSizePicker = () => {
     const isCanvasFigure = figure.figureType === 'canvas';
     const isPertFigure = figure.figureType === 'pert';
-    const isImageFigure = figure.figureType === 'image' || figure.figureType === 'ai' || isCanvasFigure || isPertFigure;
+    const isTableCanvas = isTableCanvasFigureType(figure.figureType);
+    const isImageFigure =
+      figure.figureType === 'image' || figure.figureType === 'ai' || isCanvasFigure || isPertFigure || isTableCanvas;
     if (!isImageFigure || !canEdit) return null;
     const cWidth = Number(figure.content?.widthCm);
     const cHeight = Number(figure.content?.heightCm);
     const hasSize = Number.isFinite(cWidth) && cWidth > 0 && Number.isFinite(cHeight) && cHeight > 0;
     const presetFallback = isPertFigure
       ? getFigureSizePreset('third')
+      : isTableCanvas
+      ? getFigureSizePreset(defaultTableCanvasPresetId(figure.figureType))
       : getFigureSizePreset(figure.content?.presetId);
     const sizeValue: FigureSizeValue = {
       presetId: (figure.content?.presetId as any) || (hasSize ? 'custom' : presetFallback.id),
@@ -221,7 +230,7 @@ export function FigureEditor({
       <Card>
         <CardContent className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
           <span className="text-sm font-medium shrink-0">
-            {isCanvasFigure || isPertFigure ? 'Canvas size' : 'Figure size'}
+            {isCanvasFigure || isPertFigure || isTableCanvas ? 'Canvas size' : 'Figure size'}
           </span>
           <div className="w-64 shrink-0">
             <FigureSizePicker
@@ -235,6 +244,8 @@ export function FigureEditor({
           <p className="text-xs text-muted-foreground flex-1 min-w-[16rem]">
             {isPertFigure
               ? 'Resizes the PERT frame. Work package boxes keep their exact positions and sizes — nothing is scaled or moved.'
+              : isTableCanvas
+              ? 'Sets the canvas frame. Boxes keep their exact positions and sizes in cm; if any box extends past the chosen height the frame grows to fit it, so nothing is ever clipped.'
               : isCanvasFigure
               ? 'Resizes the canvas frame. Elements keep their exact positions and sizes in cm — nothing is scaled or moved; anything outside a smaller frame stays in the data and reappears if you enlarge again.'
               : 'The image fits inside this box preserving aspect ratio (no crop, no stretch, no padding).'}
@@ -337,7 +348,15 @@ export function FigureEditor({
           />
         );
       case 'impact-canvas':
-        return <ImpactCanvasBuilder proposalId={proposalId} canEdit={canEdit} figureNumber={figure.figureNumber} graphicRef={impactGraphicRef} />;
+        return (
+          <ImpactCanvasBuilder
+            proposalId={proposalId}
+            canEdit={canEdit}
+            figureNumber={figure.figureNumber}
+            graphicRef={impactGraphicRef}
+            canvasSize={resolveTableCanvasSize(figure.figureType, figure.content)}
+          />
+        );
       case 'overview-canvas':
         return (
           <ImpactCanvasBuilder
@@ -347,6 +366,7 @@ export function FigureEditor({
             graphicRef={impactGraphicRef}
             figureId={figure.id}
             variant="overview"
+            canvasSize={resolveTableCanvasSize(figure.figureType, figure.content)}
           />
         );
       case 'canvas': {

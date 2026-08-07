@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useMemo, type RefObject } from 'react
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { syncBoundElements, IMPACT_COLUMNS_PER_BAND, type BoundLayoutOptions } from '@/lib/impactCanvasLayout';
+import { tableCanvasToCanvasSize } from '@/lib/canvasFigureSize';
 
 import type { Editor } from '@tiptap/react';
 import { Button } from '@/components/ui/button';
@@ -32,6 +33,8 @@ interface Props {
   figureId?: string;
   /** 'overview' hides row management (a single content row is fixed). */
   variant?: 'impact' | 'overview';
+  /** Physical canvas frame (cm) chosen on the figure's size card. */
+  canvasSize?: { widthCm: number; heightCm: number };
 }
 
 
@@ -42,7 +45,7 @@ interface Props {
  * Below: rich-text grid builder with ONE shared toolbar bound to the
  *        currently-focused cell (avoids toolbar-per-cell perf hit).
  */
-export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figureNumber, graphicRef, figureId, variant: _variant = 'impact' }: Props) {
+export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figureNumber, graphicRef, figureId, variant: _variant = 'impact', canvasSize }: Props) {
   const { roleTier } = useProposalRole(proposalId);
   const isCoordinator = roleTier === 'coordinator';
   const qc = useQueryClient();
@@ -149,7 +152,7 @@ export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figure
             the last row/column of boxes (graphic ends flush, no slack). */}
         <div className="space-y-3">
           <div style={{ paddingBottom: 8, paddingRight: 8 }}>
-            <ImpactCanvasFreeformEditor proposalId={proposalId} canEdit={canEdit} figureId={figureId} mode="impact" layoutOptions={layoutOptions} />
+            <ImpactCanvasFreeformEditor proposalId={proposalId} canEdit={canEdit} figureId={figureId} mode="impact" layoutOptions={layoutOptions} canvasSize={canvasSize} />
           </div>
             {/* Off-screen clean read-only render — this is what PNG export
                 captures via graphicRef, so no editor chrome (toolbar,
@@ -165,7 +168,13 @@ export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figure
               }}
             >
               <div ref={graphicRef}>
-                <ImpactCanvasFreeformRenderer proposalId={proposalId} figureId={figureId} mode="impact" fallback="grid" />
+                <ImpactCanvasFreeformRenderer
+                  proposalId={proposalId}
+                  figureId={figureId}
+                  mode="impact"
+                  fallback="grid"
+                  canvasSize={canvasSize ? tableCanvasToCanvasSize(canvasSize) : undefined}
+                />
               </div>
             </div>
         </div>

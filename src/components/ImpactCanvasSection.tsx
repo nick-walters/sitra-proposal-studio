@@ -36,7 +36,7 @@ export function ImpactCanvasSection({ proposalId }: Props) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('figures')
-        .select('id, figure_number, caption, title')
+        .select('id, figure_number, caption, title, content')
         .eq('proposal_id', proposalId)
         .eq('figure_type', 'impact-canvas')
         .maybeSingle();
@@ -56,7 +56,10 @@ export function ImpactCanvasSection({ proposalId }: Props) {
       data-impact-canvas-mount="true"
       className="mt-[2px]"
     >
-      <ImpactCanvasGraphic proposalId={proposalId} />
+      <ImpactCanvasGraphic
+        proposalId={proposalId}
+        content={(fig.content ?? null) as { presetId?: string | null; widthCm?: number | null; heightCm?: number | null } | null}
+      />
       <EditableCaption
         proposalId={proposalId}
         figureId={fig.id}
