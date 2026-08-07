@@ -19,7 +19,10 @@ import {
   MIN_ELEMENT_H_CM,
   DEFAULT_BOUND_H_CM,
   computeCanvasHeightCm,
+  computeBandedYs,
+  type BoundLayoutOptions,
 } from '@/lib/impactCanvasLayout';
+
 
 import { WPColorPicker } from './WPColorPicker';
 import { BOUND_STYLE_DEFAULTS, DEFAULT_CORNER_RADIUS_MM, MAX_CORNER_RADIUS_MM, readBoundStyle, resolveBoundStyle } from '@/lib/impactCanvasBoundStyle';
@@ -70,6 +73,11 @@ interface Props {
    *  free elements only (shapes/lines/text), fixed height from canvasSize,
    *  no header band, no bound/column/row dependency. Stage C. */
   mode?: 'impact' | 'freeform';
+  /** Bound-layout options (full-width columns, banded wrapping). When
+   *  `columnsPerBand` is set the canvas stacks the columns into bands that
+   *  reflow vertically as the band above grows. */
+  layoutOptions?: BoundLayoutOptions;
+
   /** Only used when mode === 'freeform' — the physical canvas dimensions
    *  for this figure. adaptive is forced to false and headerHeightCm to 0
    *  so free-only canvases render at exactly widthCm × heightCm. */
@@ -183,7 +191,7 @@ export function ImpactCanvasFreeformEditor(props: Props) {
   );
 }
 
-function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figureId, mode = 'impact' }: Props) {
+function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figureId, mode = 'impact', layoutOptions }: Props) {
   const { widthCm, minHeightCm, maxHeightCm, headerHeightCm, adaptive } = useCanvasSize();
   const pf = useCanvasPtFont();
   const qc = useQueryClient();
@@ -1477,6 +1485,73 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoFitSignature, wrapperTick, boundEls, styleOverrides, persistDebounced, drag?.id]);
+
+  /**
+   * Banded vertical reflow. When `layoutOptions.columnsPerBand` is set the
+   * columns wrap into stacked bands (e.g. 3 + 3 for the Impact Canvas, since
+   * six columns do not fit side by side on an A4 portrait page). Each band is
+   * positioned directly below the tallest content of the band above it, so
+   * growing the top half pushes the bottom half down. There is no divider —
+   * visually it reads as one continuous canvas.
+   */
+  const bandRowOrder = useMemo(
+    () => rows.slice().sort((a, b) => a.order_index - b.order_index).map((r) => r.id),
+    [rows],
+  );
+  const bandBackdrops = useMemo(
+    () =>
+      fetched.filter(
+        (e) => e.kind === 'shape' && typeof ((e.style ?? {}) as { bandBackdrop?: unknown }).bandBackdrop === 'number',
+      ),
+    [fetched],
+  );
+  const bandSignature = useMemo(() => {
+    const parts: string[] = [];
+    for (const e of [...headerEls, ...boundEls, ...bandBackdrops]) {
+      const cur = overrides[e.id] ?? { y: e.y, h: e.h };
+      parts.push(`${e.id}:${cur.y.toFixed(2)}:${cur.h.toFixed(2)}`);
+    }
+    return parts.join('|');
+  }, [headerEls, boundEls, bandBackdrops, overrides]);
+
+  useEffect(() => {
+    if (!canEdit) return;
+    const cpb = layoutOptions?.columnsPerBand ?? 0;
+    if (cpb <= 0) return;
+    if (drag) return;
+    if (columnOrder.length === 0) return;
+    const els = [...headerEls, ...boundEls, ...bandBackdrops].map((e) => {
+      const ov = overridesRef.current[e.id];
+      return {
+        id: e.id,
+        kind: e.kind,
+        bound_col_key: e.bound_col_key ?? null,
+        bound_row_id: e.bound_row_id ?? null,
+        y: ov?.y ?? e.y,
+        h: ov?.h ?? e.h,
+        style: e.style,
+      };
+    });
+    const targets = computeBandedYs({
+      elements: els,
+      columnOrder: columnOrder.map((c) => ({ key: c.key, order_index: c.order_index })),
+      rowOrder: bandRowOrder,
+      options: layoutOptions,
+    });
+    for (const el of els) {
+      const targetY = targets.get(el.id);
+      if (targetY === undefined) continue;
+      const src = fetched.find((e) => e.id === el.id);
+      if (!src) continue;
+      const cur = overridesRef.current[el.id] ?? { x: src.x, y: src.y, w: src.w, h: src.h };
+      if (Math.abs(targetY - cur.y) > 0.02) {
+        const nextBox = { ...cur, y: Math.round(targetY * 100) / 100 };
+        setOverrides((o) => ({ ...o, [el.id]: nextBox }));
+        persistDebounced(el.id, nextBox);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bandSignature, canEdit, layoutOptions, columnOrder, bandRowOrder, drag, persistDebounced]);
 
 
   const maxZ = useMemo(
