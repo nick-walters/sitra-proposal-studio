@@ -5,6 +5,7 @@ import { EditableCaption } from '@/components/EditableCaption';
 import { ImpactCanvasFreeformRenderer } from '@/components/ImpactCanvasFreeformRenderer';
 import { ensureOverviewCanvas, OVERVIEW_CANVAS_FIGURE_TYPE, OVERVIEW_LAYOUT_OPTIONS, overviewCanvasTitle } from '@/lib/overviewCanvas';
 import { syncBoundElements } from '@/lib/impactCanvasLayout';
+import { resolveTableCanvasSize, tableCanvasToCanvasSize } from '@/lib/canvasFigureSize';
 
 interface Props {
   proposalId: string;
