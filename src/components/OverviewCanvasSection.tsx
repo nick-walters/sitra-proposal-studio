@@ -77,7 +77,12 @@ export function OverviewCanvasSection({ proposalId, provision = true }: Props) {
       .eq('figure_id', figure.id)
       .limit(1)
       .then(({ data }) => {
-        if (cancelled || (data?.length ?? 0) > 0) return;
+        if (cancelled) return;
+        const hasElements = (data?.length ?? 0) > 0;
+        // For full-width canvases we always re-sync so that existing boxes
+        // are resized when the column count changes. The sync is idempotent
+        // and only writes when x/w differ.
+        if (hasElements && OVERVIEW_LAYOUT_OPTIONS.layout !== 'fullWidth') return;
         return syncBoundElements(proposalId, figure.id, OVERVIEW_LAYOUT_OPTIONS).then(() => {
           if (!cancelled) {
             qc.invalidateQueries({ queryKey: ['canvas-elements', figure.id] });
