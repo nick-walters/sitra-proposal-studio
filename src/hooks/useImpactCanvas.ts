@@ -186,7 +186,7 @@ export function useImpactCanvasRows(
 
 
   const updateCell = useMutation({
-    mutationFn: async ({ rowId, key, html }: { rowId: string; key: string; html: string }) => {
+    mutationFn: async ({ rowId, key, html, userEdit }: { rowId: string; key: string; html: string; userEdit?: boolean }) => {
       // Always merge against the CURRENT stored content — never against a
       // possibly-stale/empty cache entry, which would wipe sibling cells.
       const { data: current, error: readErr } = await supabase
@@ -198,9 +198,10 @@ export function useImpactCanvasRows(
       const stored = (current?.content ?? {}) as Record<string, string>;
       const cached = (q.data || []).find((r) => r.id === rowId)?.content ?? {};
       // Never let an empty editor (e.g. a cell that mounted before data
-      // arrived) blank out saved text.
+      // arrived) blank out saved text — but a deliberate user deletion
+      // must be allowed to clear the cell.
       const isBlank = (s?: string) => !s || s.replace(/<[^>]*>|&nbsp;|\s/g, '') === '';
-      if (isBlank(html) && !isBlank(stored[key])) return;
+      if (!userEdit && isBlank(html) && !isBlank(stored[key])) return;
       const nextContent = { ...cached, ...stored, [key]: html };
 
       const { error } = await supabase
