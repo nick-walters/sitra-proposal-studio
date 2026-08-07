@@ -239,6 +239,13 @@ export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figure
               <span className="text-xs text-muted-foreground pr-2 shrink-0">
                 {activeEditor ? 'Editing focused cell' : 'Click a cell to edit'}
               </span>
+              <SaveIndicator
+                className="shrink-0 pr-1"
+                saving={isSaving}
+                lastSaved={lastSaved}
+                hasUnsavedChanges={isSaving}
+                onSaveNow={handleSaveNow}
+              />
             </div>
             <div className="h-px bg-border" />
 
