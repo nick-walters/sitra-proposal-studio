@@ -19,6 +19,7 @@ import { ImpactCanvasCrossRefDropdown } from './ImpactCanvasCrossRefDropdown';
 import { ImpactCanvasFreeformEditor } from './ImpactCanvasFreeformEditor';
 import { ImpactCanvasFreeformRenderer } from './ImpactCanvasFreeformRenderer';
 import { ImpactCanvasTextToolbar } from './ImpactCanvasTextToolbar';
+import { SaveIndicator } from './SaveIndicator';
 
 
 interface Props {
