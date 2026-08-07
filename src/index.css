@@ -1777,11 +1777,11 @@ body.table-col-resizing * {
 }
 
 /* Canvas mirrors embedded INSIDE the editor (B1.1 overview canvas, B2.1
-   impact canvas) must render EXACTLY like the figure page. The editor's
-   prose rules (Times New Roman, 11pt, line-height 1, 3pt margins, justified,
-   list indents) would otherwise leak into the canvas boxes and reflow the
-   text. We restore the Tailwind `prose prose-sm` metrics the figure page
-   uses, so both contexts lay text out identically. */
+   impact canvas) must render EXACTLY like the figure page. The canvas box
+   itself owns the font size, 1.3 line-height and alignment. Only the prose
+   block margins/list indents are reproduced below; assigning prose-sm's
+   1.714 line-height to every child made the mirror visibly taller than the
+   figure canvas and clipped otherwise-fitting content. */
 .ProseMirror [data-impact-canvas-graphic="true"] p,
 .ProseMirror [data-impact-canvas-graphic="true"] li,
 .ProseMirror [data-impact-canvas-graphic="true"] ul,
@@ -1789,16 +1789,10 @@ body.table-col-resizing * {
 .ProseMirror [data-impact-canvas-graphic="true"] div {
   font-family: inherit !important;
   font-size: inherit !important;
-  text-align: left !important;
+  line-height: inherit !important;
+  text-align: inherit !important;
   text-indent: 0 !important;
   letter-spacing: normal !important;
-}
-.ProseMirror [data-impact-canvas-graphic="true"] p,
-.ProseMirror [data-impact-canvas-graphic="true"] li,
-.ProseMirror [data-impact-canvas-graphic="true"] ul,
-.ProseMirror [data-impact-canvas-graphic="true"] ol {
-  /* prose-sm metrics */
-  line-height: 1.7142857 !important;
 }
 .ProseMirror [data-impact-canvas-graphic="true"] p,
 .ProseMirror [data-impact-canvas-graphic="true"] ul,
