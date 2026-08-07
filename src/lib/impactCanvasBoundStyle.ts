@@ -68,6 +68,7 @@ export function readBoundStyle(raw: unknown): BoundBoxStyle {
   }
   if (typeof s.fontColor === 'string') out.fontColor = s.fontColor;
   if (typeof s.autoFitH === 'boolean') out.autoFitH = s.autoFitH;
+  if (typeof s.manualW === 'boolean') out.manualW = s.manualW;
   if (typeof s.cornerRadiusMm === 'number' && Number.isFinite(s.cornerRadiusMm)) {
     out.cornerRadiusMm = Math.max(0, Math.min(MAX_CORNER_RADIUS_MM, s.cornerRadiusMm));
   }
