@@ -339,7 +339,9 @@ export async function syncBoundElements(
   // current column count/order by updating x/w. y/h/z/style/content are left
   // untouched so user resizing is preserved.
   if (options?.layout === 'fullWidth' && existingRows.length > 0) {
-    const colByKey = new Map(cols.map((c) => [c.key, c]));
+    const colByKey = new Map<string, { key: string; order_index: number }>(
+      cols.map((c: { key: string; order_index: number }) => [c.key, c]),
+    );
     const updates: Array<{ id: string; x: number; w: number }> = [];
     for (const e of existingRows) {
       const colKey = e.bound_col_key;
