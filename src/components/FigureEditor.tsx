@@ -348,7 +348,15 @@ export function FigureEditor({
           />
         );
       case 'impact-canvas':
-        return <ImpactCanvasBuilder proposalId={proposalId} canEdit={canEdit} figureNumber={figure.figureNumber} graphicRef={impactGraphicRef} />;
+        return (
+          <ImpactCanvasBuilder
+            proposalId={proposalId}
+            canEdit={canEdit}
+            figureNumber={figure.figureNumber}
+            graphicRef={impactGraphicRef}
+            canvasSize={resolveTableCanvasSize(figure.figureType, figure.content)}
+          />
+        );
       case 'overview-canvas':
         return (
           <ImpactCanvasBuilder
@@ -358,6 +366,7 @@ export function FigureEditor({
             graphicRef={impactGraphicRef}
             figureId={figure.id}
             variant="overview"
+            canvasSize={resolveTableCanvasSize(figure.figureType, figure.content)}
           />
         );
       case 'canvas': {
