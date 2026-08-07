@@ -187,14 +187,29 @@ export function useImpactCanvasRows(
 
   const updateCell = useMutation({
     mutationFn: async ({ rowId, key, html }: { rowId: string; key: string; html: string }) => {
-      const row = (q.data || []).find((r) => r.id === rowId);
-      const nextContent = { ...(row?.content || {}), [key]: html };
+      // Always merge against the CURRENT stored content — never against a
+      // possibly-stale/empty cache entry, which would wipe sibling cells.
+      const { data: current, error: readErr } = await supabase
+        .from('impact_canvas_rows')
+        .select('content')
+        .eq('id', rowId)
+        .maybeSingle();
+      if (readErr) throw readErr;
+      const stored = (current?.content ?? {}) as Record<string, string>;
+      const cached = (q.data || []).find((r) => r.id === rowId)?.content ?? {};
+      // Never let an empty editor (e.g. a cell that mounted before data
+      // arrived) blank out saved text.
+      const isBlank = (s?: string) => !s || s.replace(/<[^>]*>|&nbsp;|\s/g, '') === '';
+      if (isBlank(html) && !isBlank(stored[key])) return;
+      const nextContent = { ...cached, ...stored, [key]: html };
+
       const { error } = await supabase
         .from('impact_canvas_rows')
         .update({ content: nextContent })
         .eq('id', rowId);
       if (error) throw error;
     },
+
     onMutate: async ({ rowId, key, html }) => {
       await qc.cancelQueries({ queryKey: ROWS_KEY(proposalId, fid) });
       const prev = qc.getQueryData<ImpactCanvasRow[]>(ROWS_KEY(proposalId, fid));
