@@ -162,7 +162,7 @@ export function useImpactCanvasRows(
         order_index: existing.length,
       });
       if (error) throw error;
-      await syncBoundElements(proposalId, fid);
+      await syncBoundElements(proposalId, fid, layoutOptions);
     },
     onSettled: () => {
       invalidate();
