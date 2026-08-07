@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { syncBoundElements } from '@/lib/impactCanvasLayout';
+import { syncBoundElements, type BoundLayoutOptions } from '@/lib/impactCanvasLayout';
 
 /**
  * Project overview canvas (B1.1) — a duplicate of the Impact Canvas tool
