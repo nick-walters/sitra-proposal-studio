@@ -30,6 +30,11 @@ import { ImpactCanvasFreeformEditor } from '@/components/ImpactCanvasFreeformEdi
 import { CanvasFigureRasteriser } from '@/components/CanvasFigureRasteriser';
 
 import { getFigureSizePreset } from '@/lib/figureSizePresets';
+import {
+  defaultTableCanvasPresetId,
+  isTableCanvasFigureType,
+  resolveTableCanvasSize,
+} from '@/lib/canvasFigureSize';
 import { FigureSizePicker, type FigureSizeValue } from '@/components/FigureSizePicker';
 
 import { supabase } from '@/integrations/supabase/client';
