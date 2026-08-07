@@ -1776,41 +1776,42 @@ body.table-col-resizing * {
   color: inherit !important;
 }
 
-/* Canvas mirrors embedded INSIDE the editor (B1.1 overview canvas, B2.1
-   impact canvas) must render EXACTLY like the figure page. The canvas box
-   itself owns the font size, 1.3 line-height and alignment. Only the prose
-   block margins/list indents are reproduced below; assigning prose-sm's
-   1.714 line-height to every child made the mirror visibly taller than the
-   figure canvas and clipped otherwise-fitting content. */
+/* Canvas text metrics — single source of truth for BOTH the figure page and
+   the mirrors embedded inside the editor (B1.1 overview, B2.1 impact).
+   Line spacing 1, paragraph spacing 0pt. */
+[data-impact-canvas-graphic="true"] p,
+[data-impact-canvas-graphic="true"] li,
+[data-impact-canvas-graphic="true"] ul,
+[data-impact-canvas-graphic="true"] ol,
+[data-impact-canvas-graphic="true"] div,
+[data-impact-canvas-cell] p,
+[data-impact-canvas-cell] li,
+[data-impact-canvas-cell] ul,
+[data-impact-canvas-cell] ol {
+  font-family: inherit !important;
+  font-size: inherit !important;
+  line-height: 1 !important;
+  text-indent: 0 !important;
+  letter-spacing: normal !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
 .ProseMirror [data-impact-canvas-graphic="true"] p,
 .ProseMirror [data-impact-canvas-graphic="true"] li,
 .ProseMirror [data-impact-canvas-graphic="true"] ul,
 .ProseMirror [data-impact-canvas-graphic="true"] ol,
 .ProseMirror [data-impact-canvas-graphic="true"] div {
-  font-family: inherit !important;
-  font-size: inherit !important;
-  line-height: inherit !important;
   text-align: inherit !important;
-  text-indent: 0 !important;
-  letter-spacing: normal !important;
 }
-.ProseMirror [data-impact-canvas-graphic="true"] p,
-.ProseMirror [data-impact-canvas-graphic="true"] ul,
-.ProseMirror [data-impact-canvas-graphic="true"] ol {
-  margin-top: 1.1428571em !important;
-  margin-bottom: 1.1428571em !important;
-  padding-left: 0;
-}
-.ProseMirror [data-impact-canvas-graphic="true"] ul,
-.ProseMirror [data-impact-canvas-graphic="true"] ol {
+[data-impact-canvas-graphic="true"] ul,
+[data-impact-canvas-graphic="true"] ol,
+[data-impact-canvas-cell] ul,
+[data-impact-canvas-cell] ol {
   padding-left: 1.625em !important;
 }
-.ProseMirror [data-impact-canvas-graphic="true"] li {
-  margin-top: 0.2857143em !important;
-  margin-bottom: 0.2857143em !important;
+[data-impact-canvas-graphic="true"] li,
+[data-impact-canvas-cell] li {
   padding-left: 0.4285714em !important;
   margin-left: 0 !important;
 }
-/* NOTE: prose's first/last-child margin reset is NOT replicated here — on the
-   figure page the paragraphs are grandchildren of the `.prose` box, so it
-   never applies there either. Keeping parity means leaving it out. */
+
