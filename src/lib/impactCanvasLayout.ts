@@ -353,19 +353,14 @@ export async function syncBoundElements(
       }
     }
     if (updates.length > 0) {
-      const { error } = await scope(supabase
-        .from('impact_canvas_elements')
-        .upsert(
-          updates.map((u) => ({
-            proposal_id: proposalId,
-            figure_id: fid,
-            id: u.id,
-            x: u.x,
-            w: u.w,
-          })),
-          { onConflict: 'id' },
-        );
-      if (error) throw error;
+      for (const u of updates) {
+        const { error } = await supabase
+          .from('impact_canvas_elements')
+          .update({ x: u.x, w: u.w })
+          .eq('id', u.id)
+          .eq('proposal_id', proposalId);
+        if (error) throw error;
+      }
     }
   }
 
