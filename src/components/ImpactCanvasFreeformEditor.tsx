@@ -412,6 +412,67 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
    *  preventing stale auto-fit completions from clearing a live drag override. */
   const pendingBoxWriteSeqRef = useRef<Record<string, number>>({});
 
+  // ── Save registry ─────────────────────────────────────────────────────
+  // Every debounced write registers its latest payload here. Nothing is
+  // dropped: unmounting, navigating away or hitting "Save" flushes all
+  // outstanding writes immediately (previously pending timers were simply
+  // cleared on unmount, so the last drag/resize/style change was lost).
+  const pendingWrites = useRef<Map<string, () => Promise<void>>>(new Map());
+  const pendingWriteTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const inFlightWrites = useRef(0);
+  const [saveState, setSaveState] = useState<'saved' | 'unsaved' | 'saving'>('saved');
+
+  const syncSaveState = useCallback(() => {
+    if (inFlightWrites.current > 0) setSaveState('saving');
+    else if (pendingWrites.current.size > 0) setSaveState('unsaved');
+    else setSaveState('saved');
+  }, []);
+
+  const runWrite = useCallback(
+    async (key: string) => {
+      const fn = pendingWrites.current.get(key);
+      if (!fn) return;
+      pendingWrites.current.delete(key);
+      const t = pendingWriteTimers.current.get(key);
+      if (t) { clearTimeout(t); pendingWriteTimers.current.delete(key); }
+      inFlightWrites.current += 1;
+      setSaveState('saving');
+      try {
+        await fn();
+      } finally {
+        inFlightWrites.current -= 1;
+        syncSaveState();
+      }
+    },
+    [syncSaveState],
+  );
+
+  /** Debounce `fn` under `key`; the newest payload for a key always wins. */
+  const scheduleWrite = useCallback(
+    (key: string, delay: number, fn: () => Promise<void>) => {
+      const existing = pendingWriteTimers.current.get(key);
+      if (existing) clearTimeout(existing);
+      pendingWrites.current.set(key, fn);
+      setSaveState((s) => (s === 'saving' ? s : 'unsaved'));
+      pendingWriteTimers.current.set(
+        key,
+        setTimeout(() => { void runWrite(key); }, delay),
+      );
+    },
+    [runWrite],
+  );
+
+  /** Run every outstanding write now (Save button / unmount / tab hide). */
+  const flushWrites = useCallback(async () => {
+    const keys = Array.from(pendingWrites.current.keys());
+    await Promise.all(keys.map((k) => runWrite(k)));
+    syncSaveState();
+  }, [runWrite, syncSaveState]);
+
+  const flushWritesRef = useRef(flushWrites);
+  useEffect(() => { flushWritesRef.current = flushWrites; }, [flushWrites]);
+
+
   // ── Canvas-level UNDO/REDO (session-only, in-memory) ──────────────────
   // Per-element before/after snapshots. Add/delete carry the full element
   // (so we can re-insert with the same id on undo/redo). Update entries
