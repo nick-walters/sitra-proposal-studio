@@ -175,14 +175,25 @@ interface DragState {
 const SNAP_STEP_CM = 0.2;
 
 export function ImpactCanvasFreeformEditor(props: Props) {
-  const size: CanvasSize = props.mode === 'freeform' && props.canvasSize
-    ? {
-        widthCm: props.canvasSize.widthCm,
-        minHeightCm: props.canvasSize.heightCm,
-        maxHeightCm: props.canvasSize.heightCm,
-        headerHeightCm: 0,
-        adaptive: false,
-      }
+  const size: CanvasSize = props.canvasSize
+    ? props.mode === 'freeform'
+      ? {
+          widthCm: props.canvasSize.widthCm,
+          minHeightCm: props.canvasSize.heightCm,
+          maxHeightCm: props.canvasSize.heightCm,
+          headerHeightCm: 0,
+          adaptive: false,
+        }
+      : {
+          // Table-backed canvases (impact / overview): the chosen size is the
+          // FRAME. Height stays adaptive above it so boxes taller than the
+          // frame are never clipped.
+          widthCm: props.canvasSize.widthCm,
+          minHeightCm: props.canvasSize.heightCm,
+          maxHeightCm: Math.max(props.canvasSize.heightCm, IMPACT_CANVAS_SIZE.maxHeightCm),
+          headerHeightCm: IMPACT_CANVAS_SIZE.headerHeightCm,
+          adaptive: true,
+        }
     : IMPACT_CANVAS_SIZE;
   return (
     <CanvasSizeProvider value={size}>
