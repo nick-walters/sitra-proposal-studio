@@ -645,10 +645,20 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
       if (existing) clearTimeout(existing);
       pendingBoundCellTimers.current[cacheKey] = setTimeout(async () => {
         delete pendingBoundCellTimers.current[cacheKey];
-        const rowsKey = ['impact-canvas-rows', proposalId];
-        const cached = qc.getQueryData<Array<{ id: string; content: Record<string, string> }>>(rowsKey) || [];
-        const row = cached.find((r) => r.id === rowId);
-        const nextContent = { ...(row?.content || {}), [colKey]: html };
+        // Rows are cached per proposal AND figure (see useImpactCanvas
+        // ROWS_KEY). Using a shorter key here missed the cache entirely,
+        // which (a) wiped sibling columns on save and (b) left the
+        // displayed rows cache stale, so freshly-applied formatting
+        // (e.g. font colour) reverted as soon as the local override was
+        // dropped. Read the authoritative row from the DB before merging.
+        const rowsKey = ['impact-canvas-rows', impactProposalId, figureId ?? 'impact'];
+        const { data: current } = await supabase
+          .from('impact_canvas_rows')
+          .select('content')
+          .eq('id', rowId)
+          .maybeSingle();
+        const prevContent = ((current?.content ?? {}) as Record<string, string>) || {};
+        const nextContent = { ...prevContent, [colKey]: html };
         const { error } = await supabase
           .from('impact_canvas_rows')
           .update({ content: nextContent as never })
@@ -664,7 +674,7 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
         }
       }, 300);
     },
-    [proposalId, qc],
+    [impactProposalId, figureId, qc],
   );
 
 
