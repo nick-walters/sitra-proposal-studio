@@ -825,18 +825,20 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
 
 
 
+  // Never drop a pending write. Leaving the page/tab or unmounting the editor
+  // flushes everything that is still debounced, so the last drag, resize,
+  // style or text change always reaches the database.
   useEffect(() => {
+    const onHide = () => { void flushWritesRef.current(); };
+    window.addEventListener('beforeunload', onHide);
+    document.addEventListener('visibilitychange', onHide);
     return () => {
-      Object.values(pendingTimers.current).forEach(clearTimeout);
-      Object.values(pendingContentTimers.current).forEach(clearTimeout);
-      Object.values(pendingStyleTimers.current).forEach(clearTimeout);
-      Object.values(pendingBoxAbortControllers.current).forEach((controller) => controller.abort());
-      pendingTimers.current = {};
-      pendingContentTimers.current = {};
-      pendingStyleTimers.current = {};
-      pendingBoxAbortControllers.current = {};
+      window.removeEventListener('beforeunload', onHide);
+      document.removeEventListener('visibilitychange', onHide);
+      void flushWritesRef.current();
     };
   }, []);
+
 
   // Keep the snapshot builder ref up-to-date with current overrides so the
   // forward-declared snapshotOfEl (used by mutations declared above) always
