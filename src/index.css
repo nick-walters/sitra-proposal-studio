@@ -1817,12 +1817,6 @@ body.table-col-resizing * {
   padding-left: 0.4285714em !important;
   margin-left: 0 !important;
 }
-/* prose zeroes the first/last child margins inside each box */
-.ProseMirror [data-impact-canvas-graphic="true"] .prose > :first-child,
-.ProseMirror [data-impact-canvas-graphic="true"] .prose > * > :first-child {
-  margin-top: 0 !important;
-}
-.ProseMirror [data-impact-canvas-graphic="true"] .prose > :last-child,
-.ProseMirror [data-impact-canvas-graphic="true"] .prose > * > :last-child {
-  margin-bottom: 0 !important;
-}
+/* NOTE: prose's first/last-child margin reset is NOT replicated here — on the
+   figure page the paragraphs are grandchildren of the `.prose` box, so it
+   never applies there either. Keeping parity means leaving it out. */
