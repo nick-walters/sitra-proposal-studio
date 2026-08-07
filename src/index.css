@@ -1777,10 +1777,11 @@ body.table-col-resizing * {
 }
 
 /* Canvas mirrors embedded INSIDE the editor (B1.1 overview canvas, B2.1
-   impact canvas) must render exactly like the figure page. The editor's
-   prose rules (Times New Roman, 11pt, justified, paragraph spacing) would
-   otherwise leak into the canvas boxes and reflow/overflow their text.
-   Everything inside the canvas graphic inherits the canvas's own typography. */
+   impact canvas) must render EXACTLY like the figure page. The editor's
+   prose rules (Times New Roman, 11pt, line-height 1, 3pt margins, justified,
+   list indents) would otherwise leak into the canvas boxes and reflow the
+   text. We restore the Tailwind `prose prose-sm` metrics the figure page
+   uses, so both contexts lay text out identically. */
 .ProseMirror [data-impact-canvas-graphic="true"] p,
 .ProseMirror [data-impact-canvas-graphic="true"] li,
 .ProseMirror [data-impact-canvas-graphic="true"] ul,
@@ -1788,17 +1789,34 @@ body.table-col-resizing * {
 .ProseMirror [data-impact-canvas-graphic="true"] div {
   font-family: inherit !important;
   font-size: inherit !important;
-  line-height: inherit !important;
-  text-align: inherit !important;
+  text-align: left !important;
   text-indent: 0 !important;
   letter-spacing: normal !important;
 }
 .ProseMirror [data-impact-canvas-graphic="true"] p,
+.ProseMirror [data-impact-canvas-graphic="true"] li,
 .ProseMirror [data-impact-canvas-graphic="true"] ul,
 .ProseMirror [data-impact-canvas-graphic="true"] ol {
-  margin: 0 !important;
-  padding: 0 !important;
+  /* prose-sm metrics */
+  line-height: 1.7142857 !important;
 }
-.ProseMirror [data-impact-canvas-graphic="true"] p + p {
-  margin-top: 0 !important;
+.ProseMirror [data-impact-canvas-graphic="true"] p,
+.ProseMirror [data-impact-canvas-graphic="true"] ul,
+.ProseMirror [data-impact-canvas-graphic="true"] ol {
+  margin-top: 1.1428571em !important;
+  margin-bottom: 1.1428571em !important;
+  padding-left: 0;
 }
+.ProseMirror [data-impact-canvas-graphic="true"] ul,
+.ProseMirror [data-impact-canvas-graphic="true"] ol {
+  padding-left: 1.625em !important;
+}
+.ProseMirror [data-impact-canvas-graphic="true"] li {
+  margin-top: 0.2857143em !important;
+  margin-bottom: 0.2857143em !important;
+  padding-left: 0.4285714em !important;
+  margin-left: 0 !important;
+}
+/* NOTE: prose's first/last-child margin reset is NOT replicated here — on the
+   figure page the paragraphs are grandchildren of the `.prose` box, so it
+   never applies there either. Keeping parity means leaving it out. */
