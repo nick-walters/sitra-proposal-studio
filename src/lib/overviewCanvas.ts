@@ -21,7 +21,11 @@ export const OVERVIEW_DEFAULT_COLUMNS: Array<{ key: string; heading: string; gui
     heading: 'Approaches & key outputs',
     guideline: 'How will the project address them, and what will it produce?',
   },
-  { key: 'impacts', heading: 'Impacts', guideline: 'What wider effects will the results bring about?' },
+  {
+    key: 'impacts',
+    heading: 'Key outcomes & impacts',
+    guideline: 'What wider effects will the results bring about?',
+  },
 ];
 
 export function overviewCanvasTitle(acronym?: string | null): string {

@@ -1,4 +1,7 @@
 import { useState, useCallback, useEffect, type RefObject } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { syncBoundElements } from '@/lib/impactCanvasLayout';
 import type { Editor } from '@tiptap/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -38,13 +41,37 @@ interface Props {
  * Below: rich-text grid builder with ONE shared toolbar bound to the
  *        currently-focused cell (avoids toolbar-per-cell perf hit).
  */
-export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figureNumber, graphicRef, figureId, variant = 'impact' }: Props) {
-  const singleRow = variant === 'overview';
+export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figureNumber, graphicRef, figureId, variant: _variant = 'impact' }: Props) {
   const { roleTier } = useProposalRole(proposalId);
   const isCoordinator = roleTier === 'coordinator';
+  const qc = useQueryClient();
 
   const { columns, isLoading: colsLoading } = useImpactCanvasColumns(proposalId, figureId ?? null);
   const { rows, isLoading: rowsLoading, addRow, deleteRow, updateCell } = useImpactCanvasRows(proposalId, figureId ?? null);
+
+  // Self-heal: a figure-scoped canvas (e.g. the B1.1 overview) may have
+  // columns/rows but no bound boxes yet (seeded outside the app). Sync is
+  // additive + idempotent.
+  useEffect(() => {
+    if (!figureId || !canEdit || colsLoading || rowsLoading) return;
+    if (columns.length === 0) return;
+    let cancelled = false;
+    supabase
+      .from('impact_canvas_elements')
+      .select('id')
+      .eq('proposal_id', proposalId)
+      .eq('figure_id', figureId)
+      .limit(1)
+      .then(({ data }) => {
+        if (cancelled || (data?.length ?? 0) > 0) return;
+        return syncBoundElements(proposalId, figureId).then(() => {
+          if (!cancelled) qc.invalidateQueries({ queryKey: ['canvas-elements', figureId] });
+        });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [figureId, canEdit, colsLoading, rowsLoading, columns.length, proposalId, qc]);
 
 
   const [activeEditor, setActiveEditor] = useState<Editor | null>(null);
@@ -225,7 +252,7 @@ export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figure
                         <span className="text-xs font-semibold uppercase tracking-wide">
                           Row {rowIdx + 1}
                         </span>
-                        {canEdit && !singleRow && (
+                        {canEdit && (
                           <button
                             onClick={() => {
                               if (confirm('Delete this row?')) deleteRow.mutate(row.id);
@@ -307,7 +334,7 @@ export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figure
             )}
 
 
-            {canEdit && !singleRow && (
+            {canEdit && (
               <Button variant="outline" size="sm" onClick={() => addRow.mutate()} disabled={addRow.isPending}>
                 <Plus className="w-4 h-4 mr-1" /> Add row
               </Button>
