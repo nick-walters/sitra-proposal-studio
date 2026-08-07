@@ -2130,6 +2130,8 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
       const nextOverrides: Record<string, { x: number; y: number; w: number; h: number }> = {};
       const nextStyleOverrides: Record<string, ReturnType<typeof readBoundStyle>> = {};
       const styleWrites: Array<{ id: string; style: ReturnType<typeof readBoundStyle> }> = [];
+      const nextStyleOverrides: Record<string, ReturnType<typeof readBoundStyle>> = {};
+      const styleWrites: Array<{ id: string; style: ReturnType<typeof readBoundStyle> }> = [];
 
       for (const el of targets) {
         const before = snapshotOfEl(el);
@@ -2290,6 +2292,10 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
       }
       if (entries.length === 0) return;
       setOverrides((o) => ({ ...o, ...nextOverrides }));
+      if (Object.keys(nextStyleOverrides).length) {
+        setStyleOverrides((o) => ({ ...o, ...nextStyleOverrides }));
+        styleWrites.forEach((s) => persistStyleDebounced(s.id, s.style));
+      }
       pushHistory(
         entries.length === 1
           ? { ...entries[0], ts: Date.now() }
@@ -2297,7 +2303,7 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
         `nudge:${ids.slice().sort().join(',')}`,
       );
     },
-    [canEdit, fetched, overrides, persistDebounced, snapshotOfEl, pushHistory, widthCm, maxHeightCm],
+    [canEdit, fetched, overrides, persistDebounced, styleOverrides, persistStyleDebounced, snapshotOfEl, pushHistory, widthCm, maxHeightCm],
   );
 
   // Keyboard: arrow keys move the selection (⇧ = 1 cm coarse step).
