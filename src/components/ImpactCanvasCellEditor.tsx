@@ -20,7 +20,9 @@ import { collapseStackedCanvasFontSize } from '@/lib/collapseStackedCanvasFontSi
 
 interface Props {
   html: string;
-  onChange: (html: string) => void;
+  /** `userEdit` is true only for real keystrokes/commands in this editor —
+   *  false for programmatic normalisation writes. */
+  onChange: (html: string, userEdit: boolean) => void;
   onFocus: (editor: Editor) => void;
   onBlur?: () => void;
   disabled?: boolean;
