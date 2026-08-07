@@ -483,8 +483,8 @@ export async function syncBoundElements(
     for (const c of cols) {
       const key = `${r.id}::${c.key}`;
       if (existingBound.has(key)) continue;
-      const x = colGeom.startX + columnSlot(c.order_index, options).col * (colGeom.w + colGeom.gap);
-      const w = colGeom.w;
+      const x = colBox(c).x;
+      const w = colBox(c).w;
       const h = DEFAULT_BOUND_H_CM;
       // If this row already has some existing boxes, align new missing
       // boxes to that row's top (existing row y is not selected explicitly;
