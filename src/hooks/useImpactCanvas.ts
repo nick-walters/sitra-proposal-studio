@@ -197,7 +197,12 @@ export function useImpactCanvasRows(
       if (readErr) throw readErr;
       const stored = (current?.content ?? {}) as Record<string, string>;
       const cached = (q.data || []).find((r) => r.id === rowId)?.content ?? {};
+      // Never let an empty editor (e.g. a cell that mounted before data
+      // arrived) blank out saved text.
+      const isBlank = (s?: string) => !s || s.replace(/<[^>]*>|&nbsp;|\s/g, '') === '';
+      if (isBlank(html) && !isBlank(stored[key])) return;
       const nextContent = { ...cached, ...stored, [key]: html };
+
       const { error } = await supabase
         .from('impact_canvas_rows')
         .update({ content: nextContent })
