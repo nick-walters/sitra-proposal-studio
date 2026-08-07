@@ -27,7 +27,11 @@ const ENABLED_KEY = (pid: string) => ['impact-canvas-enabled', pid];
 const EMPTY_COLS: ImpactCanvasColumn[] = [];
 const EMPTY_ROWS: ImpactCanvasRow[] = [];
 
-export function useImpactCanvasColumns(proposalId: string, figureId?: string | null) {
+export function useImpactCanvasColumns(
+  proposalId: string,
+  figureId?: string | null,
+  layoutOptions?: BoundLayoutOptions,
+) {
   const qc = useQueryClient();
   const fid = figureId ?? null;
   /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
