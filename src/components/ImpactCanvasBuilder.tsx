@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useMemo, type RefObject } from 'react
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { syncBoundElements, IMPACT_COLUMNS_PER_BAND, type BoundLayoutOptions } from '@/lib/impactCanvasLayout';
+import { tableCanvasToCanvasSize } from '@/lib/canvasFigureSize';
 
 import type { Editor } from '@tiptap/react';
 import { Button } from '@/components/ui/button';
