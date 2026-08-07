@@ -33,7 +33,7 @@ export function OverviewCanvasSection({ proposalId, provision = true }: Props) {
           .maybeSingle(),
         supabase
           .from('figures')
-          .select('id, figure_number, caption, title')
+          .select('id, figure_number, caption, title, content')
           .eq('proposal_id', proposalId)
           .eq('figure_type', OVERVIEW_CANVAS_FIGURE_TYPE)
           .maybeSingle(),
