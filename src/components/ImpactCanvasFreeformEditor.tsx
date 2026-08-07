@@ -185,14 +185,15 @@ export function ImpactCanvasFreeformEditor(props: Props) {
           adaptive: false,
         }
       : {
-          // Table-backed canvases (impact / overview): the chosen size is the
-          // FRAME. Height stays adaptive above it so boxes taller than the
-          // frame are never clipped.
+          // Table-backed canvases (impact / overview): the chosen size IS the
+          // frame, exactly like every other figure — so resizing is visible.
+          // Boxes are never moved or scaled; anything outside a smaller frame
+          // stays in the data and reappears when the frame is enlarged.
           widthCm: props.canvasSize.widthCm,
           minHeightCm: props.canvasSize.heightCm,
-          maxHeightCm: Math.max(props.canvasSize.heightCm, IMPACT_CANVAS_SIZE.maxHeightCm),
+          maxHeightCm: props.canvasSize.heightCm,
           headerHeightCm: IMPACT_CANVAS_SIZE.headerHeightCm,
-          adaptive: true,
+          adaptive: false,
         }
     : IMPACT_CANVAS_SIZE;
   return (

@@ -245,7 +245,7 @@ export function FigureEditor({
             {isPertFigure
               ? 'Resizes the PERT frame. Work package boxes keep their exact positions and sizes — nothing is scaled or moved.'
               : isTableCanvas
-              ? 'Sets the canvas frame. Boxes keep their exact positions and sizes in cm; if any box extends past the chosen height the frame grows to fit it, so nothing is ever clipped.'
+              ? 'Sets the canvas frame. Boxes keep their exact positions and sizes in cm — nothing is scaled or moved; anything outside a smaller frame stays in the data and reappears if you enlarge again.'
               : isCanvasFigure
               ? 'Resizes the canvas frame. Elements keep their exact positions and sizes in cm — nothing is scaled or moved; anything outside a smaller frame stays in the data and reappears if you enlarge again.'
               : 'The image fits inside this box preserving aspect ratio (no crop, no stretch, no padding).'}
