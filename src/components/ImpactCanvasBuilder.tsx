@@ -1,7 +1,8 @@
-import { useState, useCallback, useEffect, type RefObject } from 'react';
+import { useState, useCallback, useEffect, useMemo, type RefObject } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { syncBoundElements, type BoundLayoutOptions } from '@/lib/impactCanvasLayout';
+import { syncBoundElements, IMPACT_COLUMNS_PER_BAND, type BoundLayoutOptions } from '@/lib/impactCanvasLayout';
+
 import type { Editor } from '@tiptap/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -46,38 +47,48 @@ export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figure
   const isCoordinator = roleTier === 'coordinator';
   const qc = useQueryClient();
 
-  const layoutOptions: BoundLayoutOptions | undefined =
-    _variant === 'overview' ? { layout: 'fullWidth' } : undefined;
+  // Impact Canvas: six columns do not fit side by side on an A4 portrait page,
+  // so the columns wrap into stacked bands of three that share the full canvas
+  // width. The overview canvas keeps a single full-width band.
+  const layoutOptions: BoundLayoutOptions = useMemo(
+    () =>
+      _variant === 'overview'
+        ? { layout: 'fullWidth' }
+        : { layout: 'fullWidth', columnsPerBand: IMPACT_COLUMNS_PER_BAND },
+    [_variant],
+  );
 
   const { columns, isLoading: colsLoading } = useImpactCanvasColumns(proposalId, figureId ?? null, layoutOptions);
   const { rows, isLoading: rowsLoading, addRow, deleteRow, updateCell } = useImpactCanvasRows(proposalId, figureId ?? null, layoutOptions);
 
-  // Self-heal: a figure-scoped canvas (e.g. the B1.1 overview) may have
-  // columns/rows but no bound boxes yet (seeded outside the app). Sync is
-  // additive + idempotent. For full-width canvases we always re-sync so
-  // existing boxes resize to match the current column count.
+  // Self-heal: a table-backed canvas may have columns/rows but no bound boxes
+  // yet (seeded outside the app). Sync is additive + idempotent. For
+  // full-width canvases we always re-sync so existing boxes resize to match
+  // the current column count / band geometry.
   useEffect(() => {
-    if (!figureId || !canEdit || colsLoading || rowsLoading) return;
+    if (!canEdit || colsLoading || rowsLoading) return;
     if (columns.length === 0) return;
     let cancelled = false;
-    supabase
+    let q = supabase
       .from('impact_canvas_elements')
       .select('id')
-      .eq('proposal_id', proposalId)
-      .eq('figure_id', figureId)
-      .limit(1)
-      .then(({ data }) => {
-        if (cancelled) return;
-        const hasElements = (data?.length ?? 0) > 0;
-        if (hasElements && layoutOptions?.layout !== 'fullWidth') return;
-        return syncBoundElements(proposalId, figureId, layoutOptions).then(() => {
-          if (!cancelled) qc.invalidateQueries({ queryKey: ['canvas-elements', figureId] });
-        });
+      .eq('proposal_id', proposalId);
+    q = figureId ? q.eq('figure_id', figureId) : q.is('figure_id', null);
+    q.limit(1).then(({ data }) => {
+      if (cancelled) return;
+      const hasElements = (data?.length ?? 0) > 0;
+      if (hasElements && layoutOptions.layout !== 'fullWidth') return;
+      return syncBoundElements(proposalId, figureId, layoutOptions).then(() => {
+        if (!cancelled) {
+          qc.invalidateQueries({ queryKey: ['canvas-elements', figureId ?? `impact:${proposalId}`] });
+        }
       });
+    });
     return () => {
       cancelled = true;
     };
   }, [figureId, canEdit, colsLoading, rowsLoading, columns.length, proposalId, qc, layoutOptions]);
+
 
 
   const [activeEditor, setActiveEditor] = useState<Editor | null>(null);
@@ -138,7 +149,7 @@ export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figure
             the last row/column of boxes (graphic ends flush, no slack). */}
         <div className="space-y-3">
           <div style={{ paddingBottom: 8, paddingRight: 8 }}>
-            <ImpactCanvasFreeformEditor proposalId={proposalId} canEdit={canEdit} figureId={figureId} mode="impact" />
+            <ImpactCanvasFreeformEditor proposalId={proposalId} canEdit={canEdit} figureId={figureId} mode="impact" layoutOptions={layoutOptions} />
           </div>
             {/* Off-screen clean read-only render — this is what PNG export
                 captures via graphicRef, so no editor chrome (toolbar,

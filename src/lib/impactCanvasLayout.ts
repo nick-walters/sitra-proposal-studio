@@ -55,6 +55,14 @@ export const FULL_WIDTH_MARGIN_CM = 0;
 
 export type BoundLayout = 'compact' | 'fullWidth';
 
+/** Vertical gap between two stacked column bands (cm). */
+export const BAND_GAP_CM = 0.6;
+/** Vertical gap between the header band / rows inside a band (cm). */
+export const BAND_ROW_GAP_CM = 0.3;
+/** Impact Canvas: three columns per band (six columns do not fit side by
+ *  side on an A4 portrait page, so they stack as two 3-column bands). */
+export const IMPACT_COLUMNS_PER_BAND = 3;
+
 export interface BoundLayoutOptions {
   layout?: BoundLayout;
   /** Canvas width in cm; defaults to CANVAS_WIDTH_CM. */
@@ -63,7 +71,21 @@ export interface BoundLayoutOptions {
   hgapCm?: number;
   /** Left/right margin in cm. */
   marginCm?: number;
+  /** When set (> 0), columns wrap into stacked bands of this many columns.
+   *  Band n+1 is positioned below the tallest content of band n. */
+  columnsPerBand?: number;
 }
+
+/** Map a column's global order_index to its band and in-band column index. */
+export function columnSlot(
+  orderIndex: number,
+  options?: BoundLayoutOptions,
+): { band: number; col: number } {
+  const cpb = options?.columnsPerBand ?? 0;
+  if (!cpb || cpb <= 0) return { band: 0, col: orderIndex };
+  return { band: Math.floor(orderIndex / cpb), col: orderIndex % cpb };
+}
+
 
 /**
  * Back-compat shim. Some callers still import IMPACT_CANVAS_VIEWPORT /
@@ -95,12 +117,17 @@ function computeColumnGeometry(nCols: number, options?: BoundLayoutOptions) {
   }
   const margin = options?.marginCm ?? FULL_WIDTH_MARGIN_CM;
   const gap = options?.hgapCm ?? FULL_WIDTH_HGAP_CM;
+  const cpb = options?.columnsPerBand ?? 0;
+  // With banded wrapping, the width is set by the widest band (= columnsPerBand),
+  // not by the total column count.
+  const perRow = cpb && cpb > 0 ? Math.min(Math.max(1, nCols), cpb) : nCols;
   const usable = canvasWidth - 2 * margin;
-  const totalGap = Math.max(0, nCols - 1) * gap;
-  const w = Math.max(MIN_ELEMENT_W_CM, (usable - totalGap) / Math.max(1, nCols));
+  const totalGap = Math.max(0, perRow - 1) * gap;
+  const w = Math.max(MIN_ELEMENT_W_CM, (usable - totalGap) / Math.max(1, perRow));
   const startX = margin;
   return { w, gap, startX };
 }
+
 
 /**
  * Return {x,y,w,h} in cm for a NEW bound cell.
@@ -162,7 +189,84 @@ export function computeCanvasHeightCm(
 
 
 /**
+ * Banded vertical layout — the "two stacked canvases, no divider" model.
+ *
+ * Columns wrap into bands of `options.columnsPerBand`. Band 0 sits at the top;
+ * every following band is placed BELOW the tallest content of the band above
+ * it, so growing the top half automatically pushes the bottom half down.
+ *
+ * Pure + deterministic: given the same element heights it always returns the
+ * same y for every header / bound / band-backdrop element. Returns only the
+ * elements whose y must change (caller decides how to apply / persist).
+ */
+export interface BandLayoutElement {
+  id: string;
+  kind: string;
+  bound_col_key: string | null;
+  bound_row_id: string | null;
+  y: number;
+  h: number;
+  style?: unknown;
+}
+
+export function computeBandedYs(params: {
+  elements: ReadonlyArray<BandLayoutElement>;
+  columnOrder: ReadonlyArray<{ key: string; order_index: number }>;
+  rowOrder: ReadonlyArray<string>;
+  options?: BoundLayoutOptions;
+}): Map<string, number> {
+  const { elements, columnOrder, rowOrder, options } = params;
+  const cpb = options?.columnsPerBand ?? 0;
+  const out = new Map<string, number>();
+  if (!cpb || cpb <= 0 || columnOrder.length === 0) return out;
+
+  const bandOfKey = new Map<string, number>();
+  for (const c of columnOrder) bandOfKey.set(c.key, columnSlot(c.order_index, options).band);
+  const nBands = Math.max(1, ...Array.from(bandOfKey.values()).map((b) => b + 1));
+
+  const backdropBand = (el: BandLayoutElement): number | null => {
+    const s = (el.style ?? {}) as Record<string, unknown>;
+    return typeof s.bandBackdrop === 'number' ? s.bandBackdrop : null;
+  };
+
+  let top = 0;
+  for (let band = 0; band < nBands; band++) {
+    let headerBottom = top;
+    for (const el of elements) {
+      if (el.kind === 'header' && el.bound_col_key && bandOfKey.get(el.bound_col_key) === band) {
+        out.set(el.id, top);
+        headerBottom = Math.max(headerBottom, top + (el.h ?? 0));
+      } else if (backdropBand(el) === band) {
+        out.set(el.id, top);
+        headerBottom = Math.max(headerBottom, top + (el.h ?? 0));
+      }
+    }
+    let cursor = headerBottom + BAND_ROW_GAP_CM;
+    for (const rowId of rowOrder) {
+      let rowBottom = cursor;
+      let any = false;
+      for (const el of elements) {
+        if (
+          el.kind === 'bound' &&
+          el.bound_row_id === rowId &&
+          el.bound_col_key &&
+          bandOfKey.get(el.bound_col_key) === band
+        ) {
+          out.set(el.id, cursor);
+          rowBottom = Math.max(rowBottom, cursor + (el.h ?? 0));
+          any = true;
+        }
+      }
+      if (any) cursor = rowBottom + BAND_ROW_GAP_CM;
+    }
+    top = cursor - BAND_ROW_GAP_CM + BAND_GAP_CM;
+  }
+  return out;
+}
+
+/**
  * Additive-only sync helper. Ensures there is exactly one 'bound' element per
+
  * existing (row × column) for the given proposal, WITHOUT clobbering existing
  * coords/z/style and WITHOUT touching free elements (bound_row_id IS NULL).
  *
@@ -258,7 +362,7 @@ export async function syncBoundElements(
       kind: 'header',
       bound_row_id: null,
       bound_col_key: c.key,
-      x: colGeom.startX + c.order_index * (colGeom.w + colGeom.gap),
+      x: colGeom.startX + columnSlot(c.order_index, options).col * (colGeom.w + colGeom.gap),
       y: 0,
       w: colGeom.w,
       h: 1,
@@ -301,7 +405,7 @@ export async function syncBoundElements(
     for (const c of cols) {
       const key = `${r.id}::${c.key}`;
       if (existingBound.has(key)) continue;
-      const x = colGeom.startX + c.order_index * (colGeom.w + colGeom.gap);
+      const x = colGeom.startX + columnSlot(c.order_index, options).col * (colGeom.w + colGeom.gap);
       const w = colGeom.w;
       const h = DEFAULT_BOUND_H_CM;
       // If this row already has some existing boxes, align new missing
@@ -348,7 +452,7 @@ export async function syncBoundElements(
       if (!colKey) continue;
       const col = colByKey.get(colKey);
       if (!col) continue;
-      const targetX = colGeom.startX + col.order_index * (colGeom.w + colGeom.gap);
+      const targetX = colGeom.startX + columnSlot(col.order_index, options).col * (colGeom.w + colGeom.gap);
       const targetW = colGeom.w;
       if (Math.abs((e.x ?? 0) - targetX) > 0.001 || Math.abs((e.w ?? 0) - targetW) > 0.001) {
         updates.push({ id: e.id, x: targetX, w: targetW });
@@ -387,6 +491,71 @@ export async function syncBoundElements(
     } as never);
     if (error) throw error;
   }
+
+  // Banded canvases: one header backdrop per band. Band 0 adopts the legacy
+  // untagged backdrop (so existing canvases are not duplicated); further bands
+  // get their own tagged shape. If the user deleted every backdrop, none are
+  // recreated. Vertical placement is handled by the banded reflow.
+  const cpb = options?.columnsPerBand ?? 0;
+  if (cpb > 0 && cols.length > 0) {
+    const canvasWidth = options?.canvasWidthCm ?? CANVAS_WIDTH_CM;
+    const nBands = Math.max(1, Math.ceil(cols.length / cpb));
+    const { data: shapes, error: shapeErr } = await scope(
+      supabase
+        .from('impact_canvas_elements')
+        .select('id, x, y, w, h, z, style')
+        .eq('proposal_id', proposalId)
+        .eq('kind', 'shape'),
+    );
+    if (shapeErr) throw shapeErr;
+    const shapeRows = (shapes ?? []) as Array<{ id: string; y: number; w: number; z: number; style: unknown }>;
+    const tagged = new Map<number, string>();
+    for (const s of shapeRows) {
+      const st = (s.style ?? {}) as Record<string, unknown>;
+      if (typeof st.bandBackdrop === 'number') tagged.set(st.bandBackdrop, s.id);
+    }
+    let legacy: (typeof shapeRows)[number] | undefined;
+    if (!tagged.has(0)) {
+      legacy = shapeRows.find((s) => {
+        const st = (s.style ?? {}) as Record<string, unknown>;
+        return (
+          typeof st.bandBackdrop !== 'number' &&
+          Math.abs((s.w ?? 0) - canvasWidth) < 0.5 &&
+          String(st.fillColor ?? '').toLowerCase() === '#000000'
+        );
+      });
+      if (legacy) {
+        const st = { ...((legacy.style ?? {}) as Record<string, unknown>), bandBackdrop: 0 };
+        const { error } = await supabase
+          .from('impact_canvas_elements')
+          .update({ style: st } as never)
+          .eq('id', legacy.id);
+        if (error) throw error;
+        tagged.set(0, legacy.id);
+      }
+    }
+    if (tagged.size > 0) {
+      const template = shapeRows.find((s) => s.id === tagged.get(0)) ?? legacy;
+      for (let band = 1; band < nBands; band++) {
+        if (tagged.has(band)) continue;
+        const baseStyle = { ...((template?.style ?? {}) as Record<string, unknown>) };
+        const { error } = await supabase.from('impact_canvas_elements').insert({
+          proposal_id: proposalId,
+          figure_id: fid,
+          kind: 'shape',
+          x: 0,
+          y: 0,
+          w: canvasWidth,
+          h: 1,
+          z: template?.z ?? -1000,
+          content: { shape: 'roundedRect', html: '' },
+          style: { fillColor: '#000000', outlineColor: 'none', ...baseStyle, bandBackdrop: band },
+        } as never);
+        if (error) throw error;
+      }
+    }
+  }
 }
+
 
 
