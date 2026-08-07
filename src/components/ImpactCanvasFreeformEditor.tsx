@@ -2692,7 +2692,10 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
 
         style={{
           position: 'relative',
-          width: '100%',
+          // Physical width: the canvas renders at its configured cm width
+          // (never wider than the available column), so changing the width
+          // in the size card is visibly reflected.
+          width: `min(100%, ${widthCm}cm)`,
           overflow: 'hidden',
           isolation: 'isolate',
           fontFamily: FONT_FAMILY_REGULAR,
