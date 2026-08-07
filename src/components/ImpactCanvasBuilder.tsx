@@ -151,7 +151,7 @@ export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figure
             the last row/column of boxes (graphic ends flush, no slack). */}
         <div className="space-y-3">
           <div style={{ paddingBottom: 8, paddingRight: 8 }}>
-            <ImpactCanvasFreeformEditor proposalId={proposalId} canEdit={canEdit} figureId={figureId} mode="impact" layoutOptions={layoutOptions} />
+            <ImpactCanvasFreeformEditor proposalId={proposalId} canEdit={canEdit} figureId={figureId} mode="impact" layoutOptions={layoutOptions} canvasSize={canvasSize} />
           </div>
             {/* Off-screen clean read-only render — this is what PNG export
                 captures via graphicRef, so no editor chrome (toolbar,
