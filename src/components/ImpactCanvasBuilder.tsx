@@ -44,7 +44,7 @@ interface Props {
  * Below: rich-text grid builder with ONE shared toolbar bound to the
  *        currently-focused cell (avoids toolbar-per-cell perf hit).
  */
-export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figureNumber, graphicRef, figureId, variant: _variant = 'impact' }: Props) {
+export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figureNumber, graphicRef, figureId, variant: _variant = 'impact', canvasSize }: Props) {
   const { roleTier } = useProposalRole(proposalId);
   const isCoordinator = roleTier === 'coordinator';
   const qc = useQueryClient();
