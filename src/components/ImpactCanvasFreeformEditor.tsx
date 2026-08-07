@@ -2071,10 +2071,19 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
         persistDebounced(el.id, next);
 
         let styleAfter: unknown = before.style;
-        if (patch.h !== undefined && el.kind === 'bound') {
+        if ((patch.h !== undefined || patch.w !== undefined) && (el.kind === 'bound' || el.kind === 'header')) {
           const cur = { ...readBoundStyle(el.style), ...(styleOverrides[el.id] ?? {}) };
-          if (cur.autoFitH !== false) {
-            const ns = { ...cur, autoFitH: false };
+          const ns = { ...cur };
+          let changed = false;
+          if (patch.h !== undefined && el.kind === 'bound' && cur.autoFitH !== false) {
+            ns.autoFitH = false;
+            changed = true;
+          }
+          if (patch.w !== undefined && cur.manualW !== true) {
+            ns.manualW = true;
+            changed = true;
+          }
+          if (changed) {
             nextStyleOverrides[el.id] = ns;
             styleWrites.push({ id: el.id, style: ns });
             styleAfter = ns;
