@@ -2704,8 +2704,41 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
             ><LayerIcon variant="back" /></Button>
           </div>
 
-          {/* Group 5: Snap + Grid — pinned to the far right */}
-          <div className="ml-auto flex items-center gap-0.5" data-impact-canvas-toolbar>
+          {/* Group 5: Autosave status + Save, Snap + Grid — pinned to the far right */}
+          <div className="ml-auto flex items-center gap-1.5" data-impact-canvas-toolbar>
+            <span
+              className="flex items-center gap-1 text-[11px] text-muted-foreground"
+              aria-live="polite"
+              title={
+                saveState === 'saving'
+                  ? 'Saving changes…'
+                  : saveState === 'unsaved'
+                    ? 'Unsaved changes — they save automatically'
+                    : 'All changes saved'
+              }
+            >
+              {saveState === 'saving' ? (
+                <><Loader2 className="w-3.5 h-3.5 animate-spin" />Saving…</>
+              ) : saveState === 'unsaved' ? (
+                <><span className="w-1.5 h-1.5 rounded-full bg-amber-500" />Unsaved changes</>
+              ) : (
+                <><Check className="w-3.5 h-3.5 text-emerald-600" />Saved</>
+              )}
+            </span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2"
+              disabled={!canEdit || saveState === 'saving'}
+              onClick={() => { void flushWrites(); }}
+              title="Save now" aria-label="Save now"
+            >
+              <Save className="w-3.5 h-3.5 mr-1" />
+              Save
+            </Button>
+            <Separator orientation="vertical" className="h-5 mx-0.5" />
+
             <Button
               type="button"
               variant={snap ? 'secondary' : 'ghost'}
