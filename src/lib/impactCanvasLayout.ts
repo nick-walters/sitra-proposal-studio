@@ -397,6 +397,27 @@ export async function syncBoundElements(
 
   const colGeom = computeColumnGeometry(cols.length, options);
 
+  // Widths the user has set by hand (style.manualW) — one per column; the
+  // widest manual box in the column wins. These survive every layout sync.
+  const manualWidths = new Map<string, number>();
+  for (const e of existingRows as Array<{ bound_col_key: string | null; w: number; style?: unknown }>) {
+    const st = (e.style ?? {}) as Record<string, unknown>;
+    if (st.manualW !== true || !e.bound_col_key) continue;
+    const w = Number(e.w);
+    if (!Number.isFinite(w) || w <= 0) continue;
+    const cur = manualWidths.get(e.bound_col_key) ?? 0;
+    if (w > cur) manualWidths.set(e.bound_col_key, w);
+  }
+  const fullWidthBoxes =
+    options?.layout === 'fullWidth'
+      ? computeFullWidthColumnBoxes(cols, manualWidths, options)
+      : null;
+  const colBox = (c: { key: string; order_index: number }) =>
+    fullWidthBoxes?.get(c.key) ?? {
+      x: colGeom.startX + columnSlot(c.order_index, options).col * (colGeom.w + colGeom.gap),
+      w: colGeom.w,
+    };
+
   const toInsert: Array<{
     proposal_id: string;
     figure_id: string | null;
