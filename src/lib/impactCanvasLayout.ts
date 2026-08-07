@@ -440,9 +440,9 @@ export async function syncBoundElements(
       kind: 'header',
       bound_row_id: null,
       bound_col_key: c.key,
-      x: colGeom.startX + columnSlot(c.order_index, options).col * (colGeom.w + colGeom.gap),
+      x: colBox(c).x,
       y: 0,
-      w: colGeom.w,
+      w: colBox(c).w,
       h: 1,
       style: { fillColor: '#000000', fontColor: '#FFFFFF', outlineColor: 'none' },
     });
