@@ -14,6 +14,8 @@ import { syncBoundElements, type BoundLayoutOptions } from '@/lib/impactCanvasLa
 
 export const OVERVIEW_CANVAS_FIGURE_TYPE = 'overview-canvas';
 
+export const OVERVIEW_LAYOUT_OPTIONS: BoundLayoutOptions = { layout: 'fullWidth' };
+
 export const OVERVIEW_DEFAULT_COLUMNS: Array<{ key: string; heading: string; guideline: string }> = [
   { key: 'challenges', heading: 'Challenges', guideline: 'What challenges does the project address?' },
   {
