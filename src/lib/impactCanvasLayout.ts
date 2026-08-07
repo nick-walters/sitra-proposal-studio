@@ -518,8 +518,9 @@ export async function syncBoundElements(
   }
 
   // For full-width canvases, keep existing bound/header boxes aligned with the
-  // current column count/order by updating x/w. y/h/z/style/content are left
-  // untouched so user resizing is preserved.
+  // current column count/order by updating x/w. Columns the user resized keep
+  // their manual width (only their x is re-flowed); y/h/z/style/content are
+  // left untouched so user resizing is preserved.
   if (options?.layout === 'fullWidth' && existingRows.length > 0) {
     const colByKey = new Map<string, { key: string; order_index: number }>(
       cols.map((c: { key: string; order_index: number }) => [c.key, c]),
@@ -530,8 +531,9 @@ export async function syncBoundElements(
       if (!colKey) continue;
       const col = colByKey.get(colKey);
       if (!col) continue;
-      const targetX = colGeom.startX + columnSlot(col.order_index, options).col * (colGeom.w + colGeom.gap);
-      const targetW = colGeom.w;
+      const target = colBox(col);
+      const targetX = target.x;
+      const targetW = target.w;
       if (Math.abs((e.x ?? 0) - targetX) > 0.001 || Math.abs((e.w ?? 0) - targetW) > 0.001) {
         updates.push({ id: e.id, x: targetX, w: targetW });
       }
