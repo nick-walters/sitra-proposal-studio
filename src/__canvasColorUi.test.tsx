@@ -1,0 +1,42 @@
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ImpactCanvasTextBox } from '@/components/ImpactCanvasTextBox';
+import { ImpactCanvasTextToolbar } from '@/components/ImpactCanvasTextToolbar';
+
+describe('canvas colour UI', () => {
+  it('applies colour to the selected run', async () => {
+    const onChange = vi.fn();
+    const qc = new QueryClient();
+    render(
+      <QueryClientProvider client={qc}>
+        <ImpactCanvasTextToolbar proposalId={null as unknown as string} canEdit />
+        <ImpactCanvasTextBox html="<p>hello world</p>" editing autoFocus onChange={onChange} />
+      </QueryClientProvider>
+    );
+    const pm = await waitFor(() => document.querySelector('.ProseMirror') as HTMLElement);
+    pm.focus();
+    // select "hello"
+    const textNode = pm.querySelector('p')!.firstChild!;
+    const sel = window.getSelection()!;
+    const range = document.createRange();
+    range.setStart(textNode, 0); range.setEnd(textNode, 5);
+    sel.removeAllRanges(); sel.addRange(range);
+    document.dispatchEvent(new Event('selectionchange'));
+    await new Promise(r => setTimeout(r, 50));
+
+    const user = userEvent.setup();
+    await user.click(screen.getByLabelText('Text formatting'));
+    const colorBtn = await screen.findByLabelText('Text colour');
+    await user.click(colorBtn);
+    await new Promise(r => setTimeout(r, 50));
+    const swatches = document.querySelectorAll('[role="dialog"] button');
+    console.log('swatch count', swatches.length);
+    // click a greyscale/palette swatch
+    fireEvent.click(swatches[2]);
+    await new Promise(r => setTimeout(r, 100));
+    console.log('onChange calls', onChange.mock.calls.map(c => c[0]));
+    expect(onChange.mock.calls.some(c => String(c[0]).includes('color'))).toBe(true);
+  });
+});
