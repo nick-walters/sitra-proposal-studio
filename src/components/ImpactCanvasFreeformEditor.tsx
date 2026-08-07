@@ -2010,11 +2010,21 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
       setOverrides((o) => ({ ...o, [id]: next }));
       persistDebounced(id, next);
       let styleAfter: unknown = before.style;
-      // Manual H entry locks explicit height for bound boxes.
-      if (patch.h !== undefined && el.kind === 'bound') {
+      // Manual H entry locks explicit height; manual W entry locks the column
+      // width against full-width redistribution.
+      if ((patch.h !== undefined || patch.w !== undefined) && (el.kind === 'bound' || el.kind === 'header')) {
         const cur = { ...readBoundStyle(el.style), ...(styleOverrides[id] ?? {}) };
-        if (cur.autoFitH !== false) {
-          const nextStyle = { ...cur, autoFitH: false };
+        const nextStyle = { ...cur };
+        let changed = false;
+        if (patch.h !== undefined && el.kind === 'bound' && cur.autoFitH !== false) {
+          nextStyle.autoFitH = false;
+          changed = true;
+        }
+        if (patch.w !== undefined && cur.manualW !== true) {
+          nextStyle.manualW = true;
+          changed = true;
+        }
+        if (changed) {
           setStyleOverrides((o) => ({ ...o, [id]: nextStyle }));
           persistStyleDebounced(id, nextStyle);
           styleAfter = nextStyle;
