@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
-import { Grid3x3, ImagePlus, Magnet, MoveHorizontal, MoveVertical, PaintBucket, Redo2, Squircle as SquircleTrigger, Trash2, Undo2 } from 'lucide-react';
+import { Check, Grid3x3, ImagePlus, Loader2, Magnet, MoveHorizontal, MoveVertical, PaintBucket, Redo2, Save, Squircle as SquircleTrigger, Trash2, Undo2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 
@@ -395,10 +395,6 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
    *  when double-clicked, become editable in-place — writes go to the row, so
    *  the Builder table below stays in sync. */
   const [boundCellOverrides, setBoundCellOverrides] = useState<Record<string, string>>({});
-  const pendingBoundCellTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
-  const pendingTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
-  const pendingContentTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
-  const pendingStyleTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const pendingBoxAbortControllers = useRef<Record<string, AbortController>>({});
   /** Optimistic overrides for style (per element id). */
   const [styleOverrides, setStyleOverrides] = useState<Record<string, BoundBoxStyle>>({});
@@ -411,6 +407,67 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
    *  Incrementing it invalidates any timer or in-flight write for that element,
    *  preventing stale auto-fit completions from clearing a live drag override. */
   const pendingBoxWriteSeqRef = useRef<Record<string, number>>({});
+
+  // ── Save registry ─────────────────────────────────────────────────────
+  // Every debounced write registers its latest payload here. Nothing is
+  // dropped: unmounting, navigating away or hitting "Save" flushes all
+  // outstanding writes immediately (previously pending timers were simply
+  // cleared on unmount, so the last drag/resize/style change was lost).
+  const pendingWrites = useRef<Map<string, () => Promise<void>>>(new Map());
+  const pendingWriteTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const inFlightWrites = useRef(0);
+  const [saveState, setSaveState] = useState<'saved' | 'unsaved' | 'saving'>('saved');
+
+  const syncSaveState = useCallback(() => {
+    if (inFlightWrites.current > 0) setSaveState('saving');
+    else if (pendingWrites.current.size > 0) setSaveState('unsaved');
+    else setSaveState('saved');
+  }, []);
+
+  const runWrite = useCallback(
+    async (key: string) => {
+      const fn = pendingWrites.current.get(key);
+      if (!fn) return;
+      pendingWrites.current.delete(key);
+      const t = pendingWriteTimers.current.get(key);
+      if (t) { clearTimeout(t); pendingWriteTimers.current.delete(key); }
+      inFlightWrites.current += 1;
+      setSaveState('saving');
+      try {
+        await fn();
+      } finally {
+        inFlightWrites.current -= 1;
+        syncSaveState();
+      }
+    },
+    [syncSaveState],
+  );
+
+  /** Debounce `fn` under `key`; the newest payload for a key always wins. */
+  const scheduleWrite = useCallback(
+    (key: string, delay: number, fn: () => Promise<void>) => {
+      const existing = pendingWriteTimers.current.get(key);
+      if (existing) clearTimeout(existing);
+      pendingWrites.current.set(key, fn);
+      setSaveState((s) => (s === 'saving' ? s : 'unsaved'));
+      pendingWriteTimers.current.set(
+        key,
+        setTimeout(() => { void runWrite(key); }, delay),
+      );
+    },
+    [runWrite],
+  );
+
+  /** Run every outstanding write now (Save button / unmount / tab hide). */
+  const flushWrites = useCallback(async () => {
+    const keys = Array.from(pendingWrites.current.keys());
+    await Promise.all(keys.map((k) => runWrite(k)));
+    syncSaveState();
+  }, [runWrite, syncSaveState]);
+
+  const flushWritesRef = useRef(flushWrites);
+  useEffect(() => { flushWritesRef.current = flushWrites; }, [flushWrites]);
+
 
   // ── Canvas-level UNDO/REDO (session-only, in-memory) ──────────────────
   // Per-element before/after snapshots. Add/delete carry the full element
@@ -533,12 +590,9 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
 
   const persistDebounced = useCallback(
     (id: string, box: { x: number; y: number; w: number; h: number }) => {
-      const existing = pendingTimers.current[id];
-      if (existing) clearTimeout(existing);
       const seq = (pendingBoxWriteSeqRef.current[id] ?? 0) + 1;
       pendingBoxWriteSeqRef.current[id] = seq;
-      pendingTimers.current[id] = setTimeout(async () => {
-        delete pendingTimers.current[id];
+      scheduleWrite(`box:${id}`, 250, async () => {
         pendingBoxAbortControllers.current[id]?.abort();
         const controller = new AbortController();
         pendingBoxAbortControllers.current[id] = controller;
@@ -558,6 +612,7 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
             return n;
           });
           qc.invalidateQueries({ queryKey: ELS_KEY(proposalId, figureId) });
+
         } else {
           qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId, figureId), (old) =>
             (old || []).map((e) => (e.id === id ? { ...e, ...box } : e)),
@@ -568,9 +623,10 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
             return n;
           });
         }
-      }, 250);
+      });
     },
-    [proposalId, qc],
+    [proposalId, qc, scheduleWrite],
+
   );
 
   /** Persist a line drag: writes both bbox (x/y/w/h) and content
@@ -578,12 +634,9 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
    *  a single supabase update. Used by endpoint + line-move drags. */
   const persistLineDebounced = useCallback(
     (id: string, box: { x: number; y: number; w: number; h: number }, endpoints: { from: LinePoint; to: LinePoint }) => {
-      const existing = pendingTimers.current[id];
-      if (existing) clearTimeout(existing);
       const seq = (pendingBoxWriteSeqRef.current[id] ?? 0) + 1;
       pendingBoxWriteSeqRef.current[id] = seq;
-      pendingTimers.current[id] = setTimeout(async () => {
-        delete pendingTimers.current[id];
+      scheduleWrite(`box:${id}`, 250, async () => {
         pendingBoxAbortControllers.current[id]?.abort();
         const controller = new AbortController();
         pendingBoxAbortControllers.current[id] = controller;
@@ -611,18 +664,16 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
           setOverrides((o) => { const n = { ...o }; delete n[id]; return n; });
           setLineOverrides((o) => { const n = { ...o }; delete n[id]; return n; });
         }
-      }, 250);
+      });
     },
-    [proposalId, qc],
+    [proposalId, qc, scheduleWrite],
   );
+
 
 
   const persistContentDebounced = useCallback(
     (id: string, html: string) => {
-      const existing = pendingContentTimers.current[id];
-      if (existing) clearTimeout(existing);
-      pendingContentTimers.current[id] = setTimeout(async () => {
-        delete pendingContentTimers.current[id];
+      scheduleWrite(`content:${id}`, 300, async () => {
         // Preserve any existing content fields (notably `shape` for shape elements)
         // by merging into the current cached content instead of replacing it.
         const current = qc.getQueryData<CanvasElement[]>(ELS_KEY(proposalId, figureId)) || [];
@@ -650,9 +701,9 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
             return n;
           });
         }
-      }, 300);
+      });
     },
-    [proposalId, qc],
+    [proposalId, qc, scheduleWrite],
   );
 
   /** Persist edited bound-cell HTML into impact_canvas_rows.content. Same
@@ -661,16 +712,10 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
   const persistBoundCellDebounced = useCallback(
     (rowId: string, colKey: string, html: string) => {
       const cacheKey = `${rowId}::${colKey}`;
-      const existing = pendingBoundCellTimers.current[cacheKey];
-      if (existing) clearTimeout(existing);
-      pendingBoundCellTimers.current[cacheKey] = setTimeout(async () => {
-        delete pendingBoundCellTimers.current[cacheKey];
+      scheduleWrite(`cell:${cacheKey}`, 300, async () => {
         // Rows are cached per proposal AND figure (see useImpactCanvas
-        // ROWS_KEY). Using a shorter key here missed the cache entirely,
-        // which (a) wiped sibling columns on save and (b) left the
-        // displayed rows cache stale, so freshly-applied formatting
-        // (e.g. font colour) reverted as soon as the local override was
-        // dropped. Read the authoritative row from the DB before merging.
+        // ROWS_KEY). Read the authoritative row from the DB before merging
+        // so sibling columns are never wiped.
         const rowsKey = ['impact-canvas-rows', impactProposalId, figureId ?? 'impact'];
         const { data: current } = await supabase
           .from('impact_canvas_rows')
@@ -692,19 +737,16 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
           );
           setBoundCellOverrides((o) => { const n = { ...o }; delete n[cacheKey]; return n; });
         }
-      }, 300);
+      });
     },
-    [impactProposalId, figureId, qc],
+    [impactProposalId, figureId, qc, scheduleWrite],
   );
 
 
 
   const persistStyleDebounced = useCallback(
     (id: string, style: BoundBoxStyle) => {
-      const existing = pendingStyleTimers.current[id];
-      if (existing) clearTimeout(existing);
-      pendingStyleTimers.current[id] = setTimeout(async () => {
-        delete pendingStyleTimers.current[id];
+      scheduleWrite(`style:${id}`, 250, async () => {
         const { error } = await supabase
           .from('impact_canvas_elements')
           .update({ style: style as never })
@@ -726,10 +768,11 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
             return n;
           });
         }
-      }, 250);
+      });
     },
-    [proposalId, qc],
+    [proposalId, qc, scheduleWrite],
   );
+
 
   const updateBoundStyle = useCallback(
     (id: string, patch: Partial<BoundBoxStyle>) => {
@@ -778,18 +821,20 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
 
 
 
+  // Never drop a pending write. Leaving the page/tab or unmounting the editor
+  // flushes everything that is still debounced, so the last drag, resize,
+  // style or text change always reaches the database.
   useEffect(() => {
+    const onHide = () => { void flushWritesRef.current(); };
+    window.addEventListener('beforeunload', onHide);
+    document.addEventListener('visibilitychange', onHide);
     return () => {
-      Object.values(pendingTimers.current).forEach(clearTimeout);
-      Object.values(pendingContentTimers.current).forEach(clearTimeout);
-      Object.values(pendingStyleTimers.current).forEach(clearTimeout);
-      Object.values(pendingBoxAbortControllers.current).forEach((controller) => controller.abort());
-      pendingTimers.current = {};
-      pendingContentTimers.current = {};
-      pendingStyleTimers.current = {};
-      pendingBoxAbortControllers.current = {};
+      window.removeEventListener('beforeunload', onHide);
+      document.removeEventListener('visibilitychange', onHide);
+      void flushWritesRef.current();
     };
   }, []);
+
 
   // Keep the snapshot builder ref up-to-date with current overrides so the
   // forward-declared snapshotOfEl (used by mutations declared above) always
@@ -1035,11 +1080,14 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
       activated = true;
       // Cancel/invalidate any in-flight auto-fit write for this id — see the
       // pendingBoxWriteSeqRef guard elsewhere in this component.
-      const existingTimer = pendingTimers.current[id];
+      const boxKey = `box:${id}`;
+      const existingTimer = pendingWriteTimers.current.get(boxKey);
       if (existingTimer) {
         clearTimeout(existingTimer);
-        delete pendingTimers.current[id];
+        pendingWriteTimers.current.delete(boxKey);
+        pendingWrites.current.delete(boxKey);
       }
+
       pendingBoxAbortControllers.current[id]?.abort();
       delete pendingBoxAbortControllers.current[id];
       pendingBoxWriteSeqRef.current[id] = (pendingBoxWriteSeqRef.current[id] ?? 0) + 1;
@@ -2656,8 +2704,41 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
             ><LayerIcon variant="back" /></Button>
           </div>
 
-          {/* Group 5: Snap + Grid — pinned to the far right */}
-          <div className="ml-auto flex items-center gap-0.5" data-impact-canvas-toolbar>
+          {/* Group 5: Autosave status + Save, Snap + Grid — pinned to the far right */}
+          <div className="ml-auto flex items-center gap-1.5" data-impact-canvas-toolbar>
+            <span
+              className="flex items-center gap-1 text-[11px] text-muted-foreground"
+              aria-live="polite"
+              title={
+                saveState === 'saving'
+                  ? 'Saving changes…'
+                  : saveState === 'unsaved'
+                    ? 'Unsaved changes — they save automatically'
+                    : 'All changes saved'
+              }
+            >
+              {saveState === 'saving' ? (
+                <><Loader2 className="w-3.5 h-3.5 animate-spin" />Saving…</>
+              ) : saveState === 'unsaved' ? (
+                <><span className="w-1.5 h-1.5 rounded-full bg-amber-500" />Unsaved changes</>
+              ) : (
+                <><Check className="w-3.5 h-3.5 text-emerald-600" />Saved</>
+              )}
+            </span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2"
+              disabled={!canEdit || saveState === 'saving'}
+              onClick={() => { void flushWrites(); }}
+              title="Save now" aria-label="Save now"
+            >
+              <Save className="w-3.5 h-3.5 mr-1" />
+              Save
+            </Button>
+            <Separator orientation="vertical" className="h-5 mx-0.5" />
+
             <Button
               type="button"
               variant={snap ? 'secondary' : 'ghost'}
