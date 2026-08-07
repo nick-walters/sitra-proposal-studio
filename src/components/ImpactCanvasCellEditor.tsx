@@ -74,7 +74,7 @@ export function ImpactCanvasCellEditor({ html, onChange, onFocus, onBlur, disabl
       const next = editor.getHTML();
       if (next === lastEmitted.current) return;
       lastEmitted.current = next;
-      onChange(next);
+      onChange(next, true);
     },
     onFocus: ({ editor }) => {
       setFocusedCanvasEditor(editor);
@@ -95,10 +95,13 @@ export function ImpactCanvasCellEditor({ html, onChange, onFocus, onBlur, disabl
   useEffect(() => {
     if (!editor) return;
     if (html === lastEmitted.current) return;
+    // Never re-seed the document while the user is typing in this cell: a
+    // background refetch landing mid-keystroke would reset the caret.
+    if (editor.isFocused) return;
     const cleaned = collapseStackedCanvasFontSize(html || '');
     lastEmitted.current = cleaned;
     editor.commands.setContent(cleaned, { emitUpdate: false });
-    if (cleaned !== (html || '')) onChange(cleaned);
+    if (cleaned !== (html || '')) onChange(cleaned, false);
   }, [html, editor, onChange]);
 
   useEffect(() => {
