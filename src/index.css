@@ -1764,3 +1764,14 @@ body.table-col-resizing * {
   height: 15px !important;
   line-height: 15px !important;
 }
+
+/* Impact / Figure Canvas table builder: per-run font colour is a CANVAS-only
+   presentation choice. The table builder and the canvas share the same stored
+   HTML, so colour runs would otherwise repaint the table's cells (e.g. white
+   text on a white table = unreadable). Neutralise colour inside the builder
+   table only — purely visual, the stored colour marks are untouched and still
+   render on the canvas. */
+[data-impact-canvas-cell] [style*="color"],
+[data-impact-canvas-cell] [style*="colour"] {
+  color: inherit !important;
+}
