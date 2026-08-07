@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -48,6 +49,19 @@ export function FigureSizePicker({
   hideLabel,
   inlineCustom,
 }: FigureSizePickerProps) {
+  // Free-text buffers so partial input ("18.", "", "0.") is typeable —
+  // a directly-controlled numeric value would rewrite the field mid-keystroke.
+  const [wText, setWText] = useState(String(value.widthCm));
+  const [hText, setHText] = useState(String(value.heightCm));
+  useEffect(() => {
+    if (Number(wText) !== value.widthCm) setWText(String(value.widthCm));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value.widthCm]);
+  useEffect(() => {
+    if (Number(hText) !== value.heightCm) setHText(String(value.heightCm));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value.heightCm]);
+
   const handlePresetChange = (v: string) => {
     if (v === 'custom') {
       onChange({ presetId: 'custom', widthCm: value.widthCm, heightCm: value.heightCm });
@@ -86,15 +100,19 @@ export function FigureSizePicker({
               step={0.1}
               disabled={disabled}
               className={inlineCustom ? 'h-8 w-20 text-xs' : undefined}
-              value={value.widthCm}
-              onChange={(e) => onChange({ ...value, presetId: 'custom', widthCm: Number(e.target.value) })}
-              onBlur={(e) =>
-                onChange({
-                  ...value,
-                  presetId: 'custom',
-                  widthCm: clampFigureDim(Number(e.target.value), FIGURE_CUSTOM_MAX_WIDTH_CM),
-                })
-              }
+              value={wText}
+              onChange={(e) => {
+                setWText(e.target.value);
+                const n = Number(e.target.value);
+                if (e.target.value.trim() !== '' && Number.isFinite(n) && n > 0) {
+                  onChange({ ...value, presetId: 'custom', widthCm: n });
+                }
+              }}
+              onBlur={() => {
+                const n = clampFigureDim(Number(wText), FIGURE_CUSTOM_MAX_WIDTH_CM);
+                setWText(String(n));
+                onChange({ ...value, presetId: 'custom', widthCm: n });
+              }}
             />
           </div>
           <div className={inlineCustom ? 'flex items-center gap-1' : 'space-y-1'}>
@@ -107,15 +125,19 @@ export function FigureSizePicker({
               step={0.1}
               disabled={disabled}
               className={inlineCustom ? 'h-8 w-20 text-xs' : undefined}
-              value={value.heightCm}
-              onChange={(e) => onChange({ ...value, presetId: 'custom', heightCm: Number(e.target.value) })}
-              onBlur={(e) =>
-                onChange({
-                  ...value,
-                  presetId: 'custom',
-                  heightCm: clampFigureDim(Number(e.target.value), FIGURE_CUSTOM_MAX_HEIGHT_CM),
-                })
-              }
+              value={hText}
+              onChange={(e) => {
+                setHText(e.target.value);
+                const n = Number(e.target.value);
+                if (e.target.value.trim() !== '' && Number.isFinite(n) && n > 0) {
+                  onChange({ ...value, presetId: 'custom', heightCm: n });
+                }
+              }}
+              onBlur={() => {
+                const n = clampFigureDim(Number(hText), FIGURE_CUSTOM_MAX_HEIGHT_CM);
+                setHText(String(n));
+                onChange({ ...value, presetId: 'custom', heightCm: n });
+              }}
             />
           </div>
         </div>

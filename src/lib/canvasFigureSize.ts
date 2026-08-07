@@ -2,7 +2,7 @@ import {
   getFigureSizePreset,
   type FigureSizePresetId,
 } from '@/lib/figureSizePresets';
-import { CANVAS_MAX_HEIGHT_CM, HEADER_HEIGHT_CM } from '@/lib/impactCanvasLayout';
+import { HEADER_HEIGHT_CM } from '@/lib/impactCanvasLayout';
 import type { CanvasSize } from '@/lib/canvasSize';
 
 /**
@@ -57,8 +57,8 @@ export function tableCanvasToCanvasSize(size: { widthCm: number; heightCm: numbe
   return {
     widthCm: size.widthCm,
     minHeightCm: size.heightCm,
-    maxHeightCm: Math.max(size.heightCm, CANVAS_MAX_HEIGHT_CM),
+    maxHeightCm: size.heightCm,
     headerHeightCm: HEADER_HEIGHT_CM,
-    adaptive: true,
+    adaptive: false,
   };
 }

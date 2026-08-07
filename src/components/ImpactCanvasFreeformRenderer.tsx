@@ -218,7 +218,9 @@ function ImpactCanvasFreeformRendererInner({ proposalId, className, fallback = '
       data-canvas-figure-id={figureId ?? ''}
       style={{
         position: 'relative',
-        width: '100%',
+        // Physical width — mirrors the editor so B2.1 / B1.1 / PDF / PNG
+        // reflect the configured canvas width.
+        width: `min(100%, ${widthCm}cm)`,
         overflow: 'hidden',
         isolation: 'isolate',
         fontFamily: FONT_FAMILY_REGULAR,
