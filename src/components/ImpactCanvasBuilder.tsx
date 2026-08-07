@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, type RefObject } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { syncBoundElements } from '@/lib/impactCanvasLayout';
+import { syncBoundElements, type BoundLayoutOptions } from '@/lib/impactCanvasLayout';
 import type { Editor } from '@tiptap/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
