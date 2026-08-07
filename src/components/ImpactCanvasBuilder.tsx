@@ -351,6 +351,7 @@ export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figure
           proposalId={proposalId}
           figureId={figureId}
           canEdit={isCoordinator}
+          layoutOptions={layoutOptions}
         />
       </div>
     </TooltipProvider>
