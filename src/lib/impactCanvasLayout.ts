@@ -335,6 +335,7 @@ export async function syncBoundElements(
   proposalId: string,
   figureId?: string | null,
   options?: BoundLayoutOptions,
+  reflowExisting = true,
 ): Promise<void> {
   const fid = figureId ?? null;
   /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
@@ -521,7 +522,7 @@ export async function syncBoundElements(
   // current column count/order by updating x/w. Columns the user resized keep
   // their manual width (only their x is re-flowed); y/h/z/style/content are
   // left untouched so user resizing is preserved.
-  if (options?.layout === 'fullWidth' && existingRows.length > 0) {
+  if (reflowExisting && options?.layout === 'fullWidth' && existingRows.length > 0) {
     const colByKey = new Map<string, { key: string; order_index: number }>(
       cols.map((c: { key: string; order_index: number }) => [c.key, c]),
     );
@@ -532,7 +533,8 @@ export async function syncBoundElements(
       const col = colByKey.get(colKey);
       if (!col) continue;
       const target = colBox(col);
-      const targetX = target.x;
+      const storedStyle = (e.style ?? {}) as Record<string, unknown>;
+      const targetX = storedStyle.manualX === true ? (e.x ?? target.x) : target.x;
       const targetW = target.w;
       if (Math.abs((e.x ?? 0) - targetX) > 0.001 || Math.abs((e.w ?? 0) - targetW) > 0.001) {
         updates.push({ id: e.id, x: targetX, w: targetW });

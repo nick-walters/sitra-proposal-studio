@@ -21,6 +21,9 @@ export interface BoundBoxStyle {
    *  W field). Full-width canvases then keep that width instead of
    *  redistributing the column evenly on every layout sync. */
   manualW?: boolean;
+  /** True once the user has manually moved this box horizontally. Full-width
+   *  layout syncs must then preserve its stored x coordinate. */
+  manualX?: boolean;
   /** Corner roundedness (mm) for `roundedRect` shapes. 0 = square corners. */
   cornerRadiusMm?: number;
 }
@@ -69,6 +72,7 @@ export function readBoundStyle(raw: unknown): BoundBoxStyle {
   if (typeof s.fontColor === 'string') out.fontColor = s.fontColor;
   if (typeof s.autoFitH === 'boolean') out.autoFitH = s.autoFitH;
   if (typeof s.manualW === 'boolean') out.manualW = s.manualW;
+  if (typeof s.manualX === 'boolean') out.manualX = s.manualX;
   if (typeof s.cornerRadiusMm === 'number' && Number.isFinite(s.cornerRadiusMm)) {
     out.cornerRadiusMm = Math.max(0, Math.min(MAX_CORNER_RADIUS_MM, s.cornerRadiusMm));
   }
