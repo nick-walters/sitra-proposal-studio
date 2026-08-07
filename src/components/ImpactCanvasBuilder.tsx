@@ -46,8 +46,11 @@ export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figure
   const isCoordinator = roleTier === 'coordinator';
   const qc = useQueryClient();
 
-  const { columns, isLoading: colsLoading } = useImpactCanvasColumns(proposalId, figureId ?? null);
-  const { rows, isLoading: rowsLoading, addRow, deleteRow, updateCell } = useImpactCanvasRows(proposalId, figureId ?? null);
+  const layoutOptions: BoundLayoutOptions | undefined =
+    _variant === 'overview' ? { layout: 'fullWidth' } : undefined;
+
+  const { columns, isLoading: colsLoading } = useImpactCanvasColumns(proposalId, figureId ?? null, layoutOptions);
+  const { rows, isLoading: rowsLoading, addRow, deleteRow, updateCell } = useImpactCanvasRows(proposalId, figureId ?? null, layoutOptions);
 
   // Self-heal: a figure-scoped canvas (e.g. the B1.1 overview) may have
   // columns/rows but no bound boxes yet (seeded outside the app). Sync is
@@ -64,14 +67,14 @@ export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figure
       .limit(1)
       .then(({ data }) => {
         if (cancelled || (data?.length ?? 0) > 0) return;
-        return syncBoundElements(proposalId, figureId).then(() => {
+        return syncBoundElements(proposalId, figureId, layoutOptions).then(() => {
           if (!cancelled) qc.invalidateQueries({ queryKey: ['canvas-elements', figureId] });
         });
       });
     return () => {
       cancelled = true;
     };
-  }, [figureId, canEdit, colsLoading, rowsLoading, columns.length, proposalId, qc]);
+  }, [figureId, canEdit, colsLoading, rowsLoading, columns.length, proposalId, qc, layoutOptions]);
 
 
   const [activeEditor, setActiveEditor] = useState<Editor | null>(null);
