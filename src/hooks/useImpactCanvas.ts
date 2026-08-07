@@ -124,7 +124,11 @@ export function useImpactCanvasColumns(
   return { columns: q.data ?? EMPTY_COLS, isLoading: q.isLoading, updateCol, addCol, deleteCol, reorder };
 }
 
-export function useImpactCanvasRows(proposalId: string, figureId?: string | null) {
+export function useImpactCanvasRows(
+  proposalId: string,
+  figureId?: string | null,
+  layoutOptions?: BoundLayoutOptions,
+) {
   const qc = useQueryClient();
   const fid = figureId ?? null;
   /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
