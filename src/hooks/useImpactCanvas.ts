@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { syncBoundElements } from '@/lib/impactCanvasLayout';
+import { syncBoundElements, type BoundLayoutOptions } from '@/lib/impactCanvasLayout';
 
 
 export interface ImpactCanvasColumn {
@@ -27,7 +27,11 @@ const ENABLED_KEY = (pid: string) => ['impact-canvas-enabled', pid];
 const EMPTY_COLS: ImpactCanvasColumn[] = [];
 const EMPTY_ROWS: ImpactCanvasRow[] = [];
 
-export function useImpactCanvasColumns(proposalId: string, figureId?: string | null) {
+export function useImpactCanvasColumns(
+  proposalId: string,
+  figureId?: string | null,
+  layoutOptions?: BoundLayoutOptions,
+) {
   const qc = useQueryClient();
   const fid = figureId ?? null;
   /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
@@ -69,7 +73,7 @@ export function useImpactCanvasColumns(proposalId: string, figureId?: string | n
         order_index: existing.length,
       });
       if (error) throw error;
-      await syncBoundElements(proposalId, fid);
+      await syncBoundElements(proposalId, fid, layoutOptions);
     },
     onSettled: () => {
       invalidate();
@@ -82,7 +86,7 @@ export function useImpactCanvasColumns(proposalId: string, figureId?: string | n
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('impact_canvas_columns').delete().eq('id', id);
       if (error) throw error;
-      await syncBoundElements(proposalId, fid);
+      await syncBoundElements(proposalId, fid, layoutOptions);
     },
     onSettled: () => {
       invalidate();
@@ -120,7 +124,11 @@ export function useImpactCanvasColumns(proposalId: string, figureId?: string | n
   return { columns: q.data ?? EMPTY_COLS, isLoading: q.isLoading, updateCol, addCol, deleteCol, reorder };
 }
 
-export function useImpactCanvasRows(proposalId: string, figureId?: string | null) {
+export function useImpactCanvasRows(
+  proposalId: string,
+  figureId?: string | null,
+  layoutOptions?: BoundLayoutOptions,
+) {
   const qc = useQueryClient();
   const fid = figureId ?? null;
   /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
@@ -154,7 +162,7 @@ export function useImpactCanvasRows(proposalId: string, figureId?: string | null
         order_index: existing.length,
       });
       if (error) throw error;
-      await syncBoundElements(proposalId, fid);
+      await syncBoundElements(proposalId, fid, layoutOptions);
     },
     onSettled: () => {
       invalidate();

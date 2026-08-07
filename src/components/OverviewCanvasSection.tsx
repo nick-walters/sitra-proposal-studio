@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { EditableCaption } from '@/components/EditableCaption';
 import { ImpactCanvasFreeformRenderer } from '@/components/ImpactCanvasFreeformRenderer';
-import { ensureOverviewCanvas, OVERVIEW_CANVAS_FIGURE_TYPE, overviewCanvasTitle } from '@/lib/overviewCanvas';
+import { ensureOverviewCanvas, OVERVIEW_CANVAS_FIGURE_TYPE, OVERVIEW_LAYOUT_OPTIONS, overviewCanvasTitle } from '@/lib/overviewCanvas';
 import { syncBoundElements } from '@/lib/impactCanvasLayout';
 
 interface Props {
@@ -77,8 +77,13 @@ export function OverviewCanvasSection({ proposalId, provision = true }: Props) {
       .eq('figure_id', figure.id)
       .limit(1)
       .then(({ data }) => {
-        if (cancelled || (data?.length ?? 0) > 0) return;
-        return syncBoundElements(proposalId, figure.id).then(() => {
+        if (cancelled) return;
+        const hasElements = (data?.length ?? 0) > 0;
+        // For full-width canvases we always re-sync so that existing boxes
+        // are resized when the column count changes. The sync is idempotent
+        // and only writes when x/w differ.
+        if (hasElements && OVERVIEW_LAYOUT_OPTIONS.layout !== 'fullWidth') return;
+        return syncBoundElements(proposalId, figure.id, OVERVIEW_LAYOUT_OPTIONS).then(() => {
           if (!cancelled) {
             qc.invalidateQueries({ queryKey: ['canvas-elements', figure.id] });
           }
