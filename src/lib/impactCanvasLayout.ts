@@ -165,8 +165,16 @@ export function computeCanvasHeightCm(
  * Additive-only sync helper. Ensures there is exactly one 'bound' element per
  * existing (row × column) for the given proposal, WITHOUT clobbering existing
  * coords/z/style and WITHOUT touching free elements (bound_row_id IS NULL).
+ *
+ * When `options.layout === 'fullWidth'`, existing bound/header x/w are
+ * recalculated so the columns always span the full canvas width. y/h/z/style
+ * are still preserved so user resizing is not lost.
  */
-export async function syncBoundElements(proposalId: string, figureId?: string | null): Promise<void> {
+export async function syncBoundElements(
+  proposalId: string,
+  figureId?: string | null,
+  options?: BoundLayoutOptions,
+): Promise<void> {
   const fid = figureId ?? null;
   /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
   const scope = (q: any): any => (fid ? q.eq('figure_id', fid) : q.is('figure_id', null));
@@ -184,7 +192,7 @@ export async function syncBoundElements(proposalId: string, figureId?: string | 
     // project overview canvas).
     scope(supabase
       .from('impact_canvas_elements')
-      .select('bound_row_id, bound_col_key, kind, x, y, w, h')
+      .select('id, bound_row_id, bound_col_key, kind, x, y, w, h')
       .eq('proposal_id', proposalId)).in('kind', ['bound', 'header']),
 
 
@@ -226,6 +234,8 @@ export async function syncBoundElements(proposalId: string, figureId?: string | 
     if (error) throw error;
   }
 
+  const colGeom = computeColumnGeometry(cols.length, options);
+
   const toInsert: Array<{
     proposal_id: string;
     figure_id: string | null;
@@ -239,7 +249,7 @@ export async function syncBoundElements(proposalId: string, figureId?: string | 
     style: Record<string, unknown>;
   }> = [];
 
-  // Header elements — one per column, at defaults (2 × 1 cm, 3.2 cm apart, top row).
+  // Header elements — one per column, top row.
   for (const c of cols) {
     if (existingHeader.has(c.key)) continue;
     toInsert.push({
@@ -248,9 +258,9 @@ export async function syncBoundElements(proposalId: string, figureId?: string | 
       kind: 'header',
       bound_row_id: null,
       bound_col_key: c.key,
-      x: DEFAULT_BOUND_START_X_CM + c.order_index * (DEFAULT_BOUND_W_CM + DEFAULT_BOUND_HGAP_CM),
+      x: colGeom.startX + c.order_index * (colGeom.w + colGeom.gap),
       y: 0,
-      w: DEFAULT_BOUND_W_CM,
+      w: colGeom.w,
       h: 1,
       style: { fillColor: '#000000', fontColor: '#FFFFFF', outlineColor: 'none' },
     });
@@ -291,8 +301,8 @@ export async function syncBoundElements(proposalId: string, figureId?: string | 
     for (const c of cols) {
       const key = `${r.id}::${c.key}`;
       if (existingBound.has(key)) continue;
-      const x = DEFAULT_BOUND_START_X_CM + c.order_index * (DEFAULT_BOUND_W_CM + DEFAULT_BOUND_HGAP_CM);
-      const w = DEFAULT_BOUND_W_CM;
+      const x = colGeom.startX + c.order_index * (colGeom.w + colGeom.gap);
+      const w = colGeom.w;
       const h = DEFAULT_BOUND_H_CM;
       // If this row already has some existing boxes, align new missing
       // boxes to that row's top (existing row y is not selected explicitly;
@@ -323,6 +333,40 @@ export async function syncBoundElements(proposalId: string, figureId?: string | 
       .from('impact_canvas_elements')
       .insert(toInsert as never);
     if (error) throw error;
+  }
+
+  // For full-width canvases, keep existing bound/header boxes aligned with the
+  // current column count/order by updating x/w. y/h/z/style/content are left
+  // untouched so user resizing is preserved.
+  if (options?.layout === 'fullWidth' && existingRows.length > 0) {
+    const colByKey = new Map(cols.map((c) => [c.key, c]));
+    const updates: Array<{ id: string; x: number; w: number }> = [];
+    for (const e of existingRows) {
+      const colKey = e.bound_col_key;
+      if (!colKey) continue;
+      const col = colByKey.get(colKey);
+      if (!col) continue;
+      const targetX = colGeom.startX + col.order_index * (colGeom.w + colGeom.gap);
+      const targetW = colGeom.w;
+      if (Math.abs((e.x ?? 0) - targetX) > 0.001 || Math.abs((e.w ?? 0) - targetW) > 0.001) {
+        updates.push({ id: e.id, x: targetX, w: targetW });
+      }
+    }
+    if (updates.length > 0) {
+      const { error } = await scope(supabase
+        .from('impact_canvas_elements')
+        .upsert(
+          updates.map((u) => ({
+            proposal_id: proposalId,
+            figure_id: fid,
+            id: u.id,
+            x: u.x,
+            w: u.w,
+          })),
+          { onConflict: 'id' },
+        );
+      if (error) throw error;
+    }
   }
 
   // Header-bar backdrop — a black 18×1cm rounded rectangle behind the header
