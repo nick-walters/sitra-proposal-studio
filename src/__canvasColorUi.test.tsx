@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ImpactCanvasTextBox } from '@/components/ImpactCanvasTextBox';
 import { ImpactCanvasTextToolbar } from '@/components/ImpactCanvasTextToolbar';
@@ -26,10 +26,12 @@ describe('canvas colour UI', () => {
     document.dispatchEvent(new Event('selectionchange'));
     await new Promise(r => setTimeout(r, 50));
 
-    const user = userEvent.setup();
-    await user.click(screen.getByLabelText('Text formatting'));
+    const openBtn = screen.getByLabelText('Text formatting');
+    fireEvent.pointerDown(openBtn, { button: 0, ctrlKey: false });
+    fireEvent.mouseDown(openBtn); fireEvent.click(openBtn);
     const colorBtn = await screen.findByLabelText('Text colour');
-    await user.click(colorBtn);
+    fireEvent.pointerDown(colorBtn, { button: 0 });
+    fireEvent.mouseDown(colorBtn); fireEvent.click(colorBtn);
     await new Promise(r => setTimeout(r, 50));
     const swatches = document.querySelectorAll('[role="dialog"] button');
     console.log('swatch count', swatches.length);
