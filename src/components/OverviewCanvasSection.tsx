@@ -78,7 +78,7 @@ export function OverviewCanvasSection({ proposalId, provision = true }: Props) {
       .limit(1)
       .then(({ data }) => {
         if (cancelled || (data?.length ?? 0) > 0) return;
-        return syncBoundElements(proposalId, figure.id).then(() => {
+        return syncBoundElements(proposalId, figure.id, OVERVIEW_LAYOUT_OPTIONS).then(() => {
           if (!cancelled) {
             qc.invalidateQueries({ queryKey: ['canvas-elements', figure.id] });
           }
