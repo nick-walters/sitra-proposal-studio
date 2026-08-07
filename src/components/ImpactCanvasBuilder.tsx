@@ -98,6 +98,19 @@ export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figure
   const [activeEditor, setActiveEditor] = useState<Editor | null>(null);
   const [columnDialogOpen, setColumnDialogOpen] = useState(false);
 
+  // Autosave status for the table builder (cell/row mutations save immediately).
+  const isSaving = updateCell.isPending || addRow.isPending || deleteRow.isPending;
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  useEffect(() => {
+    if (!isSaving) return;
+    return () => setLastSaved(new Date());
+  }, [isSaving]);
+  const handleSaveNow = useCallback(async () => {
+    await qc.invalidateQueries({ queryKey: ['impact-canvas-rows', proposalId, figureId ?? 'impact'] });
+    setLastSaved(new Date());
+  }, [qc, proposalId, figureId]);
+
+
 
   const handleFocus = useCallback((editor: Editor) => setActiveEditor(editor), []);
 
