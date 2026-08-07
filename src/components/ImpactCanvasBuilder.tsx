@@ -1,4 +1,7 @@
 import { useState, useCallback, useEffect, type RefObject } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { syncBoundElements } from '@/lib/impactCanvasLayout';
 import type { Editor } from '@tiptap/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -38,7 +41,7 @@ interface Props {
  * Below: rich-text grid builder with ONE shared toolbar bound to the
  *        currently-focused cell (avoids toolbar-per-cell perf hit).
  */
-export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figureNumber, graphicRef, figureId, variant = 'impact' }: Props) {
+export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figureNumber, graphicRef, figureId, variant: _variant = 'impact' }: Props) {
   const { roleTier } = useProposalRole(proposalId);
   const isCoordinator = roleTier === 'coordinator';
   const qc = useQueryClient();
@@ -249,7 +252,7 @@ export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figure
                         <span className="text-xs font-semibold uppercase tracking-wide">
                           Row {rowIdx + 1}
                         </span>
-                        {canEdit && !singleRow && (
+                        {canEdit && (
                           <button
                             onClick={() => {
                               if (confirm('Delete this row?')) deleteRow.mutate(row.id);
@@ -331,7 +334,7 @@ export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figure
             )}
 
 
-            {canEdit && !singleRow && (
+            {canEdit && (
               <Button variant="outline" size="sm" onClick={() => addRow.mutate()} disabled={addRow.isPending}>
                 <Plus className="w-4 h-4 mr-1" /> Add row
               </Button>
