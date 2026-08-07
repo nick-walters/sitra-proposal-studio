@@ -320,8 +320,8 @@ export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figure
                                   >
                                     <ImpactCanvasCellEditor
                                       html={row.content[c.key] || ''}
-                                      onChange={(html) =>
-                                        updateCell.mutate({ rowId: row.id, key: c.key, html })
+                                      onChange={(html, userEdit) =>
+                                        updateCell.mutate({ rowId: row.id, key: c.key, html, userEdit })
                                       }
                                       onFocus={handleFocus}
                                       disabled={!canEdit}
