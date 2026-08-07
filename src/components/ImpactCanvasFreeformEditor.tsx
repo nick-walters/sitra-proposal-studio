@@ -3136,11 +3136,14 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
                 style={{
                   width: '100%',
                   height: '100%',
+                  // Always a 1px border so the content box never changes size
+                  // on select/edit; the ring is drawn outside via box-shadow.
                   border: editing
-                    ? '2px dashed hsl(var(--primary))'
+                    ? '1px dashed hsl(var(--primary))'
                     : selected
-                    ? '2px solid hsl(var(--primary))'
+                    ? '1px solid hsl(var(--primary))'
                     : '1px dashed hsl(var(--border))',
+                  boxShadow: editing || selected ? '0 0 0 2px hsl(var(--primary))' : undefined,
                   borderRadius: 4,
                   background: editing ? 'hsl(var(--background))' : 'transparent',
                   padding: '2pt',
