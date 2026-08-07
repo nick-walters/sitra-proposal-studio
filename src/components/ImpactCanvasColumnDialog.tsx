@@ -33,6 +33,7 @@ import {
   useImpactCanvasColumns,
   type ImpactCanvasColumn,
 } from '@/hooks/useImpactCanvas';
+import { type BoundLayoutOptions } from '@/lib/impactCanvasLayout';
 
 interface Props {
   open: boolean;
@@ -42,6 +43,7 @@ interface Props {
    *  table-backed canvas figure (e.g. the B1.1 project overview canvas). */
   figureId?: string | null;
   canEdit: boolean;
+  layoutOptions?: BoundLayoutOptions;
 }
 
 function SortableRow({
