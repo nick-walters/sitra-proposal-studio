@@ -677,10 +677,7 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
 
   const persistContentDebounced = useCallback(
     (id: string, html: string) => {
-      const existing = pendingContentTimers.current[id];
-      if (existing) clearTimeout(existing);
-      pendingContentTimers.current[id] = setTimeout(async () => {
-        delete pendingContentTimers.current[id];
+      scheduleWrite(`content:${id}`, 300, async () => {
         // Preserve any existing content fields (notably `shape` for shape elements)
         // by merging into the current cached content instead of replacing it.
         const current = qc.getQueryData<CanvasElement[]>(ELS_KEY(proposalId, figureId)) || [];
@@ -708,9 +705,9 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
             return n;
           });
         }
-      }, 300);
+      });
     },
-    [proposalId, qc],
+    [proposalId, qc, scheduleWrite],
   );
 
   /** Persist edited bound-cell HTML into impact_canvas_rows.content. Same
@@ -719,16 +716,10 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
   const persistBoundCellDebounced = useCallback(
     (rowId: string, colKey: string, html: string) => {
       const cacheKey = `${rowId}::${colKey}`;
-      const existing = pendingBoundCellTimers.current[cacheKey];
-      if (existing) clearTimeout(existing);
-      pendingBoundCellTimers.current[cacheKey] = setTimeout(async () => {
-        delete pendingBoundCellTimers.current[cacheKey];
+      scheduleWrite(`cell:${cacheKey}`, 300, async () => {
         // Rows are cached per proposal AND figure (see useImpactCanvas
-        // ROWS_KEY). Using a shorter key here missed the cache entirely,
-        // which (a) wiped sibling columns on save and (b) left the
-        // displayed rows cache stale, so freshly-applied formatting
-        // (e.g. font colour) reverted as soon as the local override was
-        // dropped. Read the authoritative row from the DB before merging.
+        // ROWS_KEY). Read the authoritative row from the DB before merging
+        // so sibling columns are never wiped.
         const rowsKey = ['impact-canvas-rows', impactProposalId, figureId ?? 'impact'];
         const { data: current } = await supabase
           .from('impact_canvas_rows')
@@ -750,19 +741,16 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
           );
           setBoundCellOverrides((o) => { const n = { ...o }; delete n[cacheKey]; return n; });
         }
-      }, 300);
+      });
     },
-    [impactProposalId, figureId, qc],
+    [impactProposalId, figureId, qc, scheduleWrite],
   );
 
 
 
   const persistStyleDebounced = useCallback(
     (id: string, style: BoundBoxStyle) => {
-      const existing = pendingStyleTimers.current[id];
-      if (existing) clearTimeout(existing);
-      pendingStyleTimers.current[id] = setTimeout(async () => {
-        delete pendingStyleTimers.current[id];
+      scheduleWrite(`style:${id}`, 250, async () => {
         const { error } = await supabase
           .from('impact_canvas_elements')
           .update({ style: style as never })
@@ -784,10 +772,11 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
             return n;
           });
         }
-      }, 250);
+      });
     },
-    [proposalId, qc],
+    [proposalId, qc, scheduleWrite],
   );
+
 
   const updateBoundStyle = useCallback(
     (id: string, patch: Partial<BoundBoxStyle>) => {
