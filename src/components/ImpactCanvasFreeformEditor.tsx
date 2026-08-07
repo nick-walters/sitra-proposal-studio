@@ -638,12 +638,9 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
    *  a single supabase update. Used by endpoint + line-move drags. */
   const persistLineDebounced = useCallback(
     (id: string, box: { x: number; y: number; w: number; h: number }, endpoints: { from: LinePoint; to: LinePoint }) => {
-      const existing = pendingTimers.current[id];
-      if (existing) clearTimeout(existing);
       const seq = (pendingBoxWriteSeqRef.current[id] ?? 0) + 1;
       pendingBoxWriteSeqRef.current[id] = seq;
-      pendingTimers.current[id] = setTimeout(async () => {
-        delete pendingTimers.current[id];
+      scheduleWrite(`box:${id}`, 250, async () => {
         pendingBoxAbortControllers.current[id]?.abort();
         const controller = new AbortController();
         pendingBoxAbortControllers.current[id] = controller;
@@ -671,10 +668,11 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
           setOverrides((o) => { const n = { ...o }; delete n[id]; return n; });
           setLineOverrides((o) => { const n = { ...o }; delete n[id]; return n; });
         }
-      }, 250);
+      });
     },
-    [proposalId, qc],
+    [proposalId, qc, scheduleWrite],
   );
+
 
 
   const persistContentDebounced = useCallback(
