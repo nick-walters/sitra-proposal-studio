@@ -594,12 +594,9 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
 
   const persistDebounced = useCallback(
     (id: string, box: { x: number; y: number; w: number; h: number }) => {
-      const existing = pendingTimers.current[id];
-      if (existing) clearTimeout(existing);
       const seq = (pendingBoxWriteSeqRef.current[id] ?? 0) + 1;
       pendingBoxWriteSeqRef.current[id] = seq;
-      pendingTimers.current[id] = setTimeout(async () => {
-        delete pendingTimers.current[id];
+      scheduleWrite(`box:${id}`, 250, async () => {
         pendingBoxAbortControllers.current[id]?.abort();
         const controller = new AbortController();
         pendingBoxAbortControllers.current[id] = controller;
@@ -619,6 +616,7 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
             return n;
           });
           qc.invalidateQueries({ queryKey: ELS_KEY(proposalId, figureId) });
+
         } else {
           qc.setQueryData<CanvasElement[]>(ELS_KEY(proposalId, figureId), (old) =>
             (old || []).map((e) => (e.id === id ? { ...e, ...box } : e)),
