@@ -84,7 +84,9 @@ export function OverviewCanvasSection({ proposalId, provision = true }: Props) {
         // are resized when the column count changes. The sync is idempotent
         // and only writes when x/w differ.
         if (hasElements && OVERVIEW_LAYOUT_OPTIONS.layout !== 'fullWidth') return;
-        return syncBoundElements(proposalId, figure.id, OVERVIEW_LAYOUT_OPTIONS).then(() => {
+         // On navigation/remount this is an additive self-heal only. Existing
+         // geometry belongs to the user and must not be recalculated.
+         return syncBoundElements(proposalId, figure.id, OVERVIEW_LAYOUT_OPTIONS, false).then(() => {
           if (!cancelled) {
             qc.invalidateQueries({ queryKey: ['canvas-elements', figure.id] });
           }

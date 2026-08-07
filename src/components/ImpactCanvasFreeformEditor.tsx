@@ -1359,6 +1359,24 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
           const f = gFinal[gid];
           if (!f) continue;
           const isLine = !!s.from && !!s.to;
+          const sourceEl = fetchedRef.current.find((candidate) => candidate.id === gid);
+          let afterStyle = s.snap.style;
+          if (
+            sourceEl &&
+            (sourceEl.kind === 'bound' || sourceEl.kind === 'header') &&
+            Math.abs(s.x - f.box.x) > 1e-4
+          ) {
+            const currentStyle = {
+              ...readBoundStyle(sourceEl.style),
+              ...(styleOverridesRef.current[gid] ?? {}),
+            };
+            if (currentStyle.manualX !== true) {
+              const nextStyle = { ...currentStyle, manualX: true };
+              setStyleOverrides((o) => ({ ...o, [gid]: nextStyle }));
+              persistStyleDebouncedRef.current(gid, nextStyle);
+              afterStyle = nextStyle;
+            }
+          }
           if (isLine && f.endpoints) {
             persistLineDebouncedRef.current(gid, f.box, f.endpoints);
           } else {
@@ -1376,6 +1394,7 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
             ...before,
             x: f.box.x, y: f.box.y, w: f.box.w, h: f.box.h,
             content: afterContent,
+            style: afterStyle,
           };
           batchEntries.push({ kind: 'update', id: gid, before, after });
         }
@@ -1394,21 +1413,26 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
       }
 
       let styleAfter: BoundBoxStyle | null = null;
-      if (localDrag!.mode.kind === 'resize' && finalBox) {
+      if (finalBox) {
         const heightChanged = Math.abs(finalBox.h - localDrag!.startBox.h) > 1e-4;
         const widthChanged = Math.abs(finalBox.w - localDrag!.startBox.w) > 1e-4;
+        const xChanged = Math.abs(finalBox.x - localDrag!.startBox.x) > 1e-4;
         const el = fetchedRef.current.find((e) => e.id === dragId);
         if (el && (el.kind === 'bound' || el.kind === 'header')) {
           const cur = { ...readBoundStyle(el.style), ...(styleOverridesRef.current[dragId] ?? {}) };
           const next = { ...cur };
           let changed = false;
-          if (heightChanged && el.kind === 'bound' && cur.autoFitH !== false) {
+          if (localDrag!.mode.kind === 'resize' && heightChanged && el.kind === 'bound' && cur.autoFitH !== false) {
             next.autoFitH = false;
             changed = true;
           }
           // Manual width — full-width canvases must not redistribute it away.
-          if (widthChanged && cur.manualW !== true) {
+          if (localDrag!.mode.kind === 'resize' && widthChanged && cur.manualW !== true) {
             next.manualW = true;
+            changed = true;
+          }
+          if (xChanged && cur.manualX !== true) {
+            next.manualX = true;
             changed = true;
           }
           if (changed) {
@@ -2061,7 +2085,7 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
       let styleAfter: unknown = before.style;
       // Manual H entry locks explicit height; manual W entry locks the column
       // width against full-width redistribution.
-      if ((patch.h !== undefined || patch.w !== undefined) && (el.kind === 'bound' || el.kind === 'header')) {
+      if ((patch.x !== undefined || patch.h !== undefined || patch.w !== undefined) && (el.kind === 'bound' || el.kind === 'header')) {
         const cur = { ...readBoundStyle(el.style), ...(styleOverrides[id] ?? {}) };
         const nextStyle = { ...cur };
         let changed = false;
@@ -2071,6 +2095,10 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
         }
         if (patch.w !== undefined && cur.manualW !== true) {
           nextStyle.manualW = true;
+          changed = true;
+        }
+        if (patch.x !== undefined && cur.manualX !== true) {
+          nextStyle.manualX = true;
           changed = true;
         }
         if (changed) {
@@ -2242,6 +2270,8 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
 
       const entries: Array<{ kind: 'update'; id: string; before: ElementSnapshot; after: ElementSnapshot }> = [];
       const nextOverrides: Record<string, { x: number; y: number; w: number; h: number }> = {};
+      const nextStyleOverrides: Record<string, ReturnType<typeof readBoundStyle>> = {};
+      const styleWrites: Array<{ id: string; style: ReturnType<typeof readBoundStyle> }> = [];
       for (const el of targets) {
         const before = snapshotOfEl(el);
         const current = overrides[el.id] ?? { x: el.x, y: el.y, w: el.w, h: el.h };
@@ -2253,10 +2283,27 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
         if (next.x === current.x && next.y === current.y) continue;
         nextOverrides[el.id] = next;
         persistDebounced(el.id, next);
-        entries.push({ kind: 'update', id: el.id, before, after: { ...before, ...next } });
+        if ((el.kind === 'bound' || el.kind === 'header') && next.x !== current.x) {
+          const cur = { ...readBoundStyle(el.style), ...(styleOverrides[el.id] ?? {}) };
+          if (cur.manualX !== true) {
+            const nextStyle = { ...cur, manualX: true };
+            nextStyleOverrides[el.id] = nextStyle;
+            styleWrites.push({ id: el.id, style: nextStyle });
+          }
+        }
+        entries.push({
+          kind: 'update',
+          id: el.id,
+          before,
+          after: { ...before, ...next, style: nextStyleOverrides[el.id] ?? before.style },
+        });
       }
       if (entries.length === 0) return;
       setOverrides((o) => ({ ...o, ...nextOverrides }));
+      if (Object.keys(nextStyleOverrides).length) {
+        setStyleOverrides((o) => ({ ...o, ...nextStyleOverrides }));
+        styleWrites.forEach((s) => persistStyleDebounced(s.id, s.style));
+      }
       pushHistory(
         entries.length === 1
           ? { ...entries[0], ts: Date.now() }
@@ -2264,7 +2311,7 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
         `nudge:${ids.slice().sort().join(',')}`,
       );
     },
-    [canEdit, fetched, overrides, persistDebounced, snapshotOfEl, pushHistory, widthCm, maxHeightCm],
+    [canEdit, fetched, overrides, persistDebounced, styleOverrides, persistStyleDebounced, snapshotOfEl, pushHistory, widthCm, maxHeightCm],
   );
 
   // Keyboard: arrow keys move the selection (⇧ = 1 cm coarse step).

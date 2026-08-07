@@ -80,9 +80,12 @@ export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figure
     q = figureId ? q.eq('figure_id', figureId) : q.is('figure_id', null);
     q.limit(1).then(({ data }) => {
       if (cancelled) return;
-      const hasElements = (data?.length ?? 0) > 0;
-      if (hasElements && layoutOptions.layout !== 'fullWidth') return;
-      return syncBoundElements(proposalId, figureId, layoutOptions).then(() => {
+       const hasElements = (data?.length ?? 0) > 0;
+       if (hasElements && layoutOptions.layout !== 'fullWidth') return;
+       // A passive remount may add missing bound boxes, but must never reflow
+       // existing user geometry. Structural column/row mutations explicitly
+       // call syncBoundElements with its reflow-enabled default.
+       return syncBoundElements(proposalId, figureId, layoutOptions, false).then(() => {
         if (!cancelled) {
           qc.invalidateQueries({ queryKey: ['canvas-elements', figureId ?? `impact:${proposalId}`] });
         }
