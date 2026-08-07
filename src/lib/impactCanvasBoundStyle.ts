@@ -17,6 +17,10 @@ export interface BoundBoxStyle {
    *  rendered text content (default width 2 cm). Set to false on any manual
    *  resize (drag handles or cm H field) — the user then owns the height. */
   autoFitH?: boolean;
+  /** True once the user has manually set this box's WIDTH (drag handle or cm
+   *  W field). Full-width canvases then keep that width instead of
+   *  redistributing the column evenly on every layout sync. */
+  manualW?: boolean;
   /** Corner roundedness (mm) for `roundedRect` shapes. 0 = square corners. */
   cornerRadiusMm?: number;
 }
