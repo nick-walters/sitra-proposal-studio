@@ -120,8 +120,8 @@ function SortableRow({
   );
 }
 
-export function ImpactCanvasColumnDialog({ open, onOpenChange, proposalId, canEdit, figureId }: Props) {
-  const { columns, isLoading, updateCol, addCol, deleteCol, reorder } = useImpactCanvasColumns(proposalId, figureId ?? null);
+export function ImpactCanvasColumnDialog({ open, onOpenChange, proposalId, canEdit, figureId, layoutOptions }: Props) {
+  const { columns, isLoading, updateCol, addCol, deleteCol, reorder } = useImpactCanvasColumns(proposalId, figureId ?? null, layoutOptions);
   const [localOrder, setLocalOrder] = useState<ImpactCanvasColumn[]>([]);
 
   useEffect(() => setLocalOrder(columns), [columns]);
