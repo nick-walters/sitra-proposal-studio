@@ -353,7 +353,7 @@ export async function syncBoundElements(
     // project overview canvas).
     scope(supabase
       .from('impact_canvas_elements')
-      .select('id, bound_row_id, bound_col_key, kind, x, y, w, h')
+      .select('id, bound_row_id, bound_col_key, kind, x, y, w, h, style')
       .eq('proposal_id', proposalId)).in('kind', ['bound', 'header']),
 
 
