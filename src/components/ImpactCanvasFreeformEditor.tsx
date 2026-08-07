@@ -1345,16 +1345,24 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
       }
 
       let styleAfter: BoundBoxStyle | null = null;
-      if (
-        localDrag!.mode.kind === 'resize' &&
-        finalBox &&
-        Math.abs(finalBox.h - localDrag!.startBox.h) > 1e-4
-      ) {
+      if (localDrag!.mode.kind === 'resize' && finalBox) {
+        const heightChanged = Math.abs(finalBox.h - localDrag!.startBox.h) > 1e-4;
+        const widthChanged = Math.abs(finalBox.w - localDrag!.startBox.w) > 1e-4;
         const el = fetchedRef.current.find((e) => e.id === dragId);
-        if (el && el.kind === 'bound') {
+        if (el && (el.kind === 'bound' || el.kind === 'header')) {
           const cur = { ...readBoundStyle(el.style), ...(styleOverridesRef.current[dragId] ?? {}) };
-          if (cur.autoFitH !== false) {
-            const next = { ...cur, autoFitH: false };
+          const next = { ...cur };
+          let changed = false;
+          if (heightChanged && el.kind === 'bound' && cur.autoFitH !== false) {
+            next.autoFitH = false;
+            changed = true;
+          }
+          // Manual width — full-width canvases must not redistribute it away.
+          if (widthChanged && cur.manualW !== true) {
+            next.manualW = true;
+            changed = true;
+          }
+          if (changed) {
             setStyleOverrides((o) => ({ ...o, [dragId]: next }));
             persistStyleDebouncedRef.current(dragId, next);
             styleAfter = next;
@@ -2002,11 +2010,21 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
       setOverrides((o) => ({ ...o, [id]: next }));
       persistDebounced(id, next);
       let styleAfter: unknown = before.style;
-      // Manual H entry locks explicit height for bound boxes.
-      if (patch.h !== undefined && el.kind === 'bound') {
+      // Manual H entry locks explicit height; manual W entry locks the column
+      // width against full-width redistribution.
+      if ((patch.h !== undefined || patch.w !== undefined) && (el.kind === 'bound' || el.kind === 'header')) {
         const cur = { ...readBoundStyle(el.style), ...(styleOverrides[id] ?? {}) };
-        if (cur.autoFitH !== false) {
-          const nextStyle = { ...cur, autoFitH: false };
+        const nextStyle = { ...cur };
+        let changed = false;
+        if (patch.h !== undefined && el.kind === 'bound' && cur.autoFitH !== false) {
+          nextStyle.autoFitH = false;
+          changed = true;
+        }
+        if (patch.w !== undefined && cur.manualW !== true) {
+          nextStyle.manualW = true;
+          changed = true;
+        }
+        if (changed) {
           setStyleOverrides((o) => ({ ...o, [id]: nextStyle }));
           persistStyleDebounced(id, nextStyle);
           styleAfter = nextStyle;
@@ -2053,10 +2071,19 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
         persistDebounced(el.id, next);
 
         let styleAfter: unknown = before.style;
-        if (patch.h !== undefined && el.kind === 'bound') {
+        if ((patch.h !== undefined || patch.w !== undefined) && (el.kind === 'bound' || el.kind === 'header')) {
           const cur = { ...readBoundStyle(el.style), ...(styleOverrides[el.id] ?? {}) };
-          if (cur.autoFitH !== false) {
-            const ns = { ...cur, autoFitH: false };
+          const ns = { ...cur };
+          let changed = false;
+          if (patch.h !== undefined && el.kind === 'bound' && cur.autoFitH !== false) {
+            ns.autoFitH = false;
+            changed = true;
+          }
+          if (patch.w !== undefined && cur.manualW !== true) {
+            ns.manualW = true;
+            changed = true;
+          }
+          if (changed) {
             nextStyleOverrides[el.id] = ns;
             styleWrites.push({ id: el.id, style: ns });
             styleAfter = ns;

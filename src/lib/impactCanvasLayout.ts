@@ -128,6 +128,63 @@ function computeColumnGeometry(nCols: number, options?: BoundLayoutOptions) {
   return { w, gap, startX };
 }
 
+/**
+ * Full-width column boxes with MANUAL WIDTH PRESERVATION.
+ *
+ * Columns the user has resized (any bound/header box in that column carrying
+ * style.manualW) keep their width; the remaining space of the band is shared
+ * evenly between the untouched columns. x is laid out cumulatively per band so
+ * columns never overlap, regardless of the manual widths.
+ */
+export function computeFullWidthColumnBoxes(
+  cols: ReadonlyArray<{ key: string; order_index: number }>,
+  manualWidths: ReadonlyMap<string, number>,
+  options?: BoundLayoutOptions,
+): Map<string, { x: number; w: number }> {
+  const canvasWidth = options?.canvasWidthCm ?? CANVAS_WIDTH_CM;
+  const margin = options?.marginCm ?? FULL_WIDTH_MARGIN_CM;
+  const gap = options?.hgapCm ?? FULL_WIDTH_HGAP_CM;
+  const cpb = options?.columnsPerBand ?? 0;
+  const out = new Map<string, { x: number; w: number }>();
+  const sorted = [...cols].sort((a, b) => a.order_index - b.order_index);
+
+  const bands = new Map<number, typeof sorted>();
+  for (const c of sorted) {
+    const band = columnSlot(c.order_index, options).band;
+    const list = bands.get(band) ?? [];
+    list.push(c);
+    bands.set(band, list);
+  }
+  // Slots per band: with banded wrapping every band is laid out on the same
+  // grid width (columnsPerBand), so a short last band keeps column alignment.
+  const slots = cpb && cpb > 0 ? cpb : Math.max(1, sorted.length);
+
+  for (const list of bands.values()) {
+    const usable = canvasWidth - 2 * margin;
+    const totalGap = Math.max(0, slots - 1) * gap;
+    let manualSum = 0;
+    let autoCount = 0;
+    for (const c of list) {
+      const mw = manualWidths.get(c.key);
+      if (mw && mw > 0) manualSum += mw;
+      else autoCount++;
+    }
+    // Empty slots in a short band still consume their even share.
+    autoCount += Math.max(0, slots - list.length);
+    const remaining = usable - totalGap - manualSum;
+    const autoW = autoCount > 0 ? Math.max(MIN_ELEMENT_W_CM, remaining / autoCount) : 0;
+    let x = margin;
+    for (const c of list) {
+      const mw = manualWidths.get(c.key);
+      const w = mw && mw > 0 ? mw : autoW;
+      out.set(c.key, { x, w });
+      x += w + gap;
+    }
+  }
+  return out;
+}
+
+
 
 /**
  * Return {x,y,w,h} in cm for a NEW bound cell.
@@ -296,7 +353,7 @@ export async function syncBoundElements(
     // project overview canvas).
     scope(supabase
       .from('impact_canvas_elements')
-      .select('id, bound_row_id, bound_col_key, kind, x, y, w, h')
+      .select('id, bound_row_id, bound_col_key, kind, x, y, w, h, style')
       .eq('proposal_id', proposalId)).in('kind', ['bound', 'header']),
 
 
@@ -340,6 +397,27 @@ export async function syncBoundElements(
 
   const colGeom = computeColumnGeometry(cols.length, options);
 
+  // Widths the user has set by hand (style.manualW) — one per column; the
+  // widest manual box in the column wins. These survive every layout sync.
+  const manualWidths = new Map<string, number>();
+  for (const e of existingRows as Array<{ bound_col_key: string | null; w: number; style?: unknown }>) {
+    const st = (e.style ?? {}) as Record<string, unknown>;
+    if (st.manualW !== true || !e.bound_col_key) continue;
+    const w = Number(e.w);
+    if (!Number.isFinite(w) || w <= 0) continue;
+    const cur = manualWidths.get(e.bound_col_key) ?? 0;
+    if (w > cur) manualWidths.set(e.bound_col_key, w);
+  }
+  const fullWidthBoxes =
+    options?.layout === 'fullWidth'
+      ? computeFullWidthColumnBoxes(cols, manualWidths, options)
+      : null;
+  const colBox = (c: { key: string; order_index: number }) =>
+    fullWidthBoxes?.get(c.key) ?? {
+      x: colGeom.startX + columnSlot(c.order_index, options).col * (colGeom.w + colGeom.gap),
+      w: colGeom.w,
+    };
+
   const toInsert: Array<{
     proposal_id: string;
     figure_id: string | null;
@@ -362,9 +440,9 @@ export async function syncBoundElements(
       kind: 'header',
       bound_row_id: null,
       bound_col_key: c.key,
-      x: colGeom.startX + columnSlot(c.order_index, options).col * (colGeom.w + colGeom.gap),
+      x: colBox(c).x,
       y: 0,
-      w: colGeom.w,
+      w: colBox(c).w,
       h: 1,
       style: { fillColor: '#000000', fontColor: '#FFFFFF', outlineColor: 'none' },
     });
@@ -405,8 +483,8 @@ export async function syncBoundElements(
     for (const c of cols) {
       const key = `${r.id}::${c.key}`;
       if (existingBound.has(key)) continue;
-      const x = colGeom.startX + columnSlot(c.order_index, options).col * (colGeom.w + colGeom.gap);
-      const w = colGeom.w;
+      const x = colBox(c).x;
+      const w = colBox(c).w;
       const h = DEFAULT_BOUND_H_CM;
       // If this row already has some existing boxes, align new missing
       // boxes to that row's top (existing row y is not selected explicitly;
@@ -440,8 +518,9 @@ export async function syncBoundElements(
   }
 
   // For full-width canvases, keep existing bound/header boxes aligned with the
-  // current column count/order by updating x/w. y/h/z/style/content are left
-  // untouched so user resizing is preserved.
+  // current column count/order by updating x/w. Columns the user resized keep
+  // their manual width (only their x is re-flowed); y/h/z/style/content are
+  // left untouched so user resizing is preserved.
   if (options?.layout === 'fullWidth' && existingRows.length > 0) {
     const colByKey = new Map<string, { key: string; order_index: number }>(
       cols.map((c: { key: string; order_index: number }) => [c.key, c]),
@@ -452,8 +531,9 @@ export async function syncBoundElements(
       if (!colKey) continue;
       const col = colByKey.get(colKey);
       if (!col) continue;
-      const targetX = colGeom.startX + columnSlot(col.order_index, options).col * (colGeom.w + colGeom.gap);
-      const targetW = colGeom.w;
+      const target = colBox(col);
+      const targetX = target.x;
+      const targetW = target.w;
       if (Math.abs((e.x ?? 0) - targetX) > 0.001 || Math.abs((e.w ?? 0) - targetW) > 0.001) {
         updates.push({ id: e.id, x: targetX, w: targetW });
       }
