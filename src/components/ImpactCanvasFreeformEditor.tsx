@@ -627,9 +627,10 @@ function ImpactCanvasFreeformEditorInner({ proposalId, canEdit, className, figur
             return n;
           });
         }
-      }, 250);
+      });
     },
-    [proposalId, qc],
+    [proposalId, qc, scheduleWrite],
+
   );
 
   /** Persist a line drag: writes both bbox (x/y/w/h) and content
