@@ -2081,6 +2081,67 @@ export type Database = {
           },
         ]
       }
+      methodology_items: {
+        Row: {
+          assigned_participant_id: string | null
+          case_type_id: string | null
+          content_html: string | null
+          created_at: string
+          heading: string
+          id: string
+          kind: string
+          order_index: number
+          proposal_id: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_participant_id?: string | null
+          case_type_id?: string | null
+          content_html?: string | null
+          created_at?: string
+          heading?: string
+          id?: string
+          kind?: string
+          order_index?: number
+          proposal_id: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_participant_id?: string | null
+          case_type_id?: string | null
+          content_html?: string | null
+          created_at?: string
+          heading?: string
+          id?: string
+          kind?: string
+          order_index?: number
+          proposal_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "methodology_items_assigned_participant_id_fkey"
+            columns: ["assigned_participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "methodology_items_case_type_id_fkey"
+            columns: ["case_type_id"]
+            isOneToOne: false
+            referencedRelation: "proposal_case_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "methodology_items_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       methodology_subsections: {
         Row: {
           content_html: string | null
