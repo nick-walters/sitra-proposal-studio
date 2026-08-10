@@ -327,26 +327,36 @@ export default function MethodologyItemsList({
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={ordered.map((i) => i.id)} strategy={verticalListSortingStrategy}>
           <div className="space-y-3">
-            {ordered.map((item) => (
-              <SortableItemRow
-                key={item.id}
-                item={item}
-                proposalId={proposalId}
-                canEdit={canEdit}
-                isCoordinator={isCoordinator}
-                participants={participants}
-                onHeadingChange={updateHeading}
-                onContentChange={updateContent}
-                onAssign={(id, pid) =>
-                  setAssignedParticipant(id, pid).catch(() =>
-                    toast.error('Could not save the assignment'),
-                  )
-                }
-                onDelete={(id) =>
-                  deleteItem(id).catch(() => toast.error('Could not delete the methodology'))
-                }
-              />
-            ))}
+            {ordered.map((item) =>
+              item.kind === 'case_placeholder' ? (
+                <SortablePlaceholderRow
+                  key={item.id}
+                  item={item}
+                  canEdit={canEdit}
+                  caseTypes={caseTypes}
+                />
+              ) : (
+                <SortableItemRow
+                  key={item.id}
+                  item={item}
+                  proposalId={proposalId}
+                  canEdit={canEdit}
+                  isCoordinator={isCoordinator}
+                  participants={participants}
+                  onHeadingChange={updateHeading}
+                  onContentChange={updateContent}
+                  onAssign={(id, pid) =>
+                    setAssignedParticipant(id, pid).catch(() =>
+                      toast.error('Could not save the assignment'),
+                    )
+                  }
+                  onDelete={(id) =>
+                    deleteItem(id).catch(() => toast.error('Could not delete the methodology'))
+                  }
+                />
+              ),
+            )}
+
           </div>
         </SortableContext>
       </DndContext>
