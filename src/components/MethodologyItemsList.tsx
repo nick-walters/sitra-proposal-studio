@@ -31,6 +31,12 @@ import { ParticipantBubble } from '@/components/B31Pill';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { MethodologyRichEditor } from '@/components/MethodologyRichEditor';
 import { useMethodologyItems, type MethodologyItem } from '@/hooks/useMethodologyItems';
+import {
+  useMethodologyCasePlaceholders,
+  type CaseTypeLite,
+} from '@/hooks/useMethodologyCasePlaceholders';
+import { getCaseTypeLabel } from '@/lib/caseTypeLabels';
+
 
 interface ParticipantSummary {
   id: string;
