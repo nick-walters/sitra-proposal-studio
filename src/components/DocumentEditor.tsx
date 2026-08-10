@@ -1553,104 +1553,15 @@ export function DocumentEditor({
           b31TableFocus={b31TableFocus}
           onB31AutoResize={b31TableFocus ? handleB31AutoResize : undefined}
           crossRefDropdown={section && !section.isPartA ? (
-            <>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 px-2 gap-1"
-                    disabled={isEffectivelyReadOnly}
-                  >
-                    <Link2 className="w-4 h-4" />
-                    <span className="text-xs">Cross-ref</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-64 bg-popover z-50">
-                  <DropdownMenuItem onClick={() => { setCrossRefFilterType('figure'); setIsCrossRefOpen(true); }} className="flex items-center gap-2">
-                    <span className="w-16 flex justify-start shrink-0"><Image className="w-3.5 h-3.5 text-foreground" /></span>
-                    <span>Figure number</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => { setCrossRefFilterType('table'); setIsCrossRefOpen(true); }} className="flex items-center gap-2">
-                    <span className="w-16 flex justify-start shrink-0"><Table2 className="w-3.5 h-3.5 text-foreground" /></span>
-                    <span>Table number</span>
-                  </DropdownMenuItem>
-                  {acronymSegments && acronymSegments.length > 0 && (
-                    <DropdownMenuItem onClick={handleInsertAcronymRef} className="flex items-center gap-2">
-                      <span className="w-16 flex justify-start shrink-0">
-                        <span style={{ fontFamily: "'Arial Black', Arial, sans-serif", fontWeight: 900, fontSize: '9px', whiteSpace: 'nowrap' }}>
-                          {acronymSegments.map((seg, i) => <span key={i} style={{ color: seg.color }}>{seg.text}</span>)}
-                        </span>
-                      </span>
-                      <span>Acronym</span>
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuItem onClick={() => setIsWPRefOpen(true)} className="flex items-center gap-2">
-                    <span className="w-16 flex justify-start shrink-0">
-                      <WPBubble wpColor="#73C92D" style={{ width: '22px', height: '14px', padding: 0 }}>{' '}</WPBubble>
-                    </span>
-                    <span>Work package</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setIsTaskRefOpen(true)} className="flex items-center gap-2">
-                    <span className="w-16 flex justify-start shrink-0">
-                      <B31Pill variant="outline" color="#73C92D" style={{ width: '22px', height: '14px', padding: 0 }}>{' '}</B31Pill>
-                    </span>
-                    <span>Task</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setIsDeliverableRefOpen(true)} className="flex items-center gap-2">
-                    <span className="w-16 flex justify-start shrink-0">
-                      <span style={{ display: 'inline-block', width: '22px', height: '14px', background: '#73C92D', clipPath: 'polygon(0% 0%, calc(100% - 6px) 0%, 100% 50%, calc(100% - 6px) 100%, 0% 100%)', position: 'relative' }}>
-                        <span style={{ position: 'absolute', inset: '1.5px', right: '2px', background: '#ffffff', clipPath: 'polygon(0% 0%, calc(100% - 5px) 0%, 100% 50%, calc(100% - 5px) 100%, 0% 100%)' }} />
-                      </span>
-                    </span>
-                    <span>Deliverable</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setIsMilestoneRefOpen(true)} className="flex items-center gap-2">
-                    <span className="w-16 flex justify-start shrink-0">
-                      <span style={{ display: 'inline-block', width: '16px', height: '16px', background: '#000', clipPath: 'polygon(100% 0%, 0% 50%, 100% 100%)', margin: '-1px 0' }} />
-                    </span>
-                    <span>Milestone</span>
-                  </DropdownMenuItem>
-                  {hasCases && (
-                  <DropdownMenuItem onClick={() => setIsCaseRefOpen(true)} className="flex items-center gap-2">
-                    <span className="w-16 flex justify-start shrink-0">
-                      <span style={{ display: 'inline-block', width: '22px', height: '14px', border: '1.5px solid #000000', borderRadius: '9999px', background: '#ffffff' }} />
-                    </span>
-                    <span>{caseWord(caseTypes, { capitalize: true })}</span>
-                  </DropdownMenuItem>
-                  )}
-                  <DropdownMenuItem onClick={() => setIsParticipantRefOpen(true)} className="flex items-center gap-2">
-                    <span className="w-16 flex justify-start shrink-0">
-                      <span style={{ display: 'inline-block', width: '22px', height: '14px', backgroundColor: '#000000', border: '1.5px solid #000000', borderRadius: '9999px' }} />
-                    </span>
-                    <span>Participant</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <Separator orientation="vertical" className="h-4 mx-1" />
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsShortcutsOpen(true)} aria-label="Keyboard" title="Keyboard">
-                    <Keyboard className="w-3 h-3" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Keyboard shortcuts</TooltipContent>
-              </Tooltip>
-              <InsertTDMSReferenceDropdowns
-                proposalId={proposalId}
-                disabled={isEffectivelyReadOnly}
-                onInsertTask={handleInsertTaskRef}
-                onInsertDeliverable={handleInsertDeliverableRef}
-                onInsertMilestone={handleInsertMilestoneRef}
-                dialogsOnly
-                openTask={isTaskRefOpen}
-                onOpenTaskChange={setIsTaskRefOpen}
-                openDeliverable={isDeliverableRefOpen}
-                onOpenDeliverableChange={setIsDeliverableRefOpen}
-                openMilestone={isMilestoneRefOpen}
-                onOpenMilestoneChange={setIsMilestoneRefOpen}
-              />
-            </>
+            <PartBCrossRefControls
+              ref={crossRefControlsRef}
+              editor={editor}
+              proposalId={proposalId || ''}
+              sectionNumber={section?.number || ''}
+              disabled={isEffectivelyReadOnly}
+              acronymSegments={acronymSegments}
+              onOpenShortcuts={() => setIsShortcutsOpen(true)}
+            />
           ) : undefined}
         />
       </div>
