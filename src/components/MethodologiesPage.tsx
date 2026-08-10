@@ -228,11 +228,21 @@ export default function MethodologiesPage({
                 isCoordinator={isCoordinator}
                 onRename={handleRename}
                 onToggleVisible={handleToggleVisible}
+                onOpenGuidelines={setGuidelinesId}
               />
             ))}
           </div>
         </SortableContext>
       </DndContext>
+
+      {guidelinesSubsection && (
+        <GuidelinesDialog
+          isOpen
+          onClose={() => setGuidelinesId(null)}
+          sectionTitle={guidelinesSubsection.title}
+          guidelines={getMethodologyGuidelines(guidelinesSubsection.key)}
+        />
+      )}
     </div>
   );
 }
