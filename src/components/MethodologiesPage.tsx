@@ -126,6 +126,21 @@ function SortableMethodologyCard({
             </Badge>
           )}
 
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-6 px-2 text-xs gap-1 text-destructive border-destructive/50 hover:bg-destructive/10 hover:text-destructive"
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenGuidelines(subsection.id);
+            }}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <Info className="w-3 h-3" />
+            Guidelines
+          </Button>
+
+
           {isCoordinator && !isMandatory && (
             <Button
               variant="ghost"
