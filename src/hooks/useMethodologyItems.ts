@@ -135,7 +135,9 @@ export function useMethodologyItems(proposalId: string) {
         try {
           const { error } = await supabase
             .from('methodology_items')
-            .update({ [field]: value })
+            .update(
+              field === 'heading' ? { heading: value } : { content_html: value },
+            )
             .eq('id', id);
           if (error) throw error;
           setLastSaved(new Date());
