@@ -79,7 +79,10 @@ export function useMethodologyCasePlaceholders({
             .from('methodology_items')
             .select('id, kind, case_type_id, order_index')
             .eq('proposal_id', proposalId as string);
-          if (error || !rows) return;
+          if (error || !rows) {
+            if (error) console.warn('[methodology-placeholders] select failed', error);
+            return;
+          }
 
           const placeholders = rows.filter((r) => r.kind === 'case_placeholder');
           const existing = new Set(
@@ -104,7 +107,8 @@ export function useMethodologyCasePlaceholders({
               .from('methodology_items')
               .delete()
               .in('id', toDelete);
-            if (!delErr) changed = true;
+            if (delErr) console.warn('[methodology-placeholders] delete failed', delErr);
+            else changed = true;
           }
 
           if (toInsertTypes.length > 0) {
@@ -120,11 +124,15 @@ export function useMethodologyCasePlaceholders({
             }));
             const { error: insErr } = await supabase
               .from('methodology_items')
-              .upsert(payload, {
-                onConflict: 'proposal_id,case_type_id',
-                ignoreDuplicates: true,
-              });
-            if (!insErr) changed = true;
+              .insert(payload);
+            if (!insErr) {
+              changed = true;
+            } else if (insErr.code === '23505') {
+              // A concurrent run already created the row — benign.
+              changed = true;
+            } else {
+              console.warn('[methodology-placeholders] insert failed', insErr);
+            }
           }
 
           if (changed) {
@@ -132,8 +140,8 @@ export function useMethodologyCasePlaceholders({
               queryKey: ['methodology-items', proposalId],
             });
           }
-        } catch {
-          // best-effort — never throw out of an effect
+        } catch (e) {
+          console.warn('[methodology-placeholders] unexpected error', e);
         } finally {
           runningRef.current = false;
         }

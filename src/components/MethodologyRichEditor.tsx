@@ -22,7 +22,7 @@ export function MethodologyRichEditor({
   onChange,
   canEdit,
   isCoordinator,
-  minHeight = '160px',
+  minHeight = '2.5rem',
 }: MethodologyRichEditorProps) {
   // Stable, unique per mounted instance — several editors live on one page.
   const instanceKey = useId();
@@ -56,8 +56,15 @@ export function MethodologyRichEditor({
         }
       />
       <div
-        className="rounded-md border border-border bg-background px-4 py-3"
+        className="cursor-text overflow-visible rounded-md border border-border bg-background px-4 py-2 [&_.ProseMirror]:!min-h-0 [&_.ProseMirror]:overflow-visible [&_.document-content]:!min-h-0"
         style={{ minHeight }}
+        onMouseDown={(e) => {
+          // Clicking the padding focuses the editor rather than doing nothing.
+          if (e.target === e.currentTarget && editor) {
+            e.preventDefault();
+            editor.chain().focus('end').run();
+          }
+        }}
       >
         <EditorContent editor={editor} />
       </div>
