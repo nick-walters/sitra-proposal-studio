@@ -2081,6 +2081,50 @@ export type Database = {
           },
         ]
       }
+      methodology_subsections: {
+        Row: {
+          content_html: string | null
+          created_at: string
+          id: string
+          is_visible: boolean
+          key: string
+          order_index: number
+          proposal_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content_html?: string | null
+          created_at?: string
+          id?: string
+          is_visible?: boolean
+          key: string
+          order_index?: number
+          proposal_id: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          content_html?: string | null
+          created_at?: string
+          id?: string
+          is_visible?: boolean
+          key?: string
+          order_index?: number
+          proposal_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "methodology_subsections_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string
