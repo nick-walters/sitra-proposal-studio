@@ -11,6 +11,14 @@ export default defineConfig(({ mode }) => ({
     hmr: {
       overlay: false,
     },
+    // The sandbox filesystem is an overlayfs mount where native inotify events
+    // for src/ writes are unreliable, so Vite silently missed file changes and
+    // the browser kept running previously loaded modules. Polling guarantees
+    // change detection.
+    watch: {
+      usePolling: true,
+      interval: 300,
+    },
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {
