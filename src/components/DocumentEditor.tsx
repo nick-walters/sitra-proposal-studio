@@ -1045,78 +1045,6 @@ export function DocumentEditor({
     setContent(restoredContent);
   }, [setContent]);
 
-  // Handle cross-reference insertion (figures/tables as marked bold italic)
-  const handleInsertCrossRef = useCallback((payload: { refText: string; figureId?: string; tableKey?: string; refKind: 'figure' | 'table' }) => {
-    if (!editor) return;
-    // Use setTimeout to ensure Radix dialog has fully unmounted and released focus
-    setTimeout(() => {
-      editor.commands.focus();
-      editor.commands.insertFigureTableReference({
-        refText: payload.refText,
-        figureId: payload.figureId,
-        tableKey: payload.tableKey,
-        refKind: payload.refKind,
-      });
-
-      // Insert a plain space (no marks) after the reference badge and
-      // place the cursor right after it so subsequent typing is unstyled.
-      const { tr, schema } = editor.state;
-      const pos = tr.selection.from;
-      const spaceNode = schema.text(' ');  // no marks → plain text
-      tr.insert(pos, spaceNode);
-      // Place cursor after the space we just inserted
-      tr.setSelection(TextSelection.create(tr.doc, pos + 1));
-      tr.setStoredMarks([]);
-      editor.view.dispatch(tr);
-    }, 150);
-  }, [editor]);
-  
-  // Handle WP reference insertion
-  const handleInsertWPRef = useCallback((wp: { id: string; number: number; short_name: string | null; color: string }) => {
-    if (!editor) return;
-    setTimeout(() => {
-      editor.chain().focus().insertWPReference({
-        wpNumber: wp.number,
-        wpShortName: wp.short_name || '',
-        wpColor: wp.color,
-        wpId: wp.id,
-      }).insertContent(' ').unsetBold().unsetItalic().run();
-    }, 150);
-  }, [editor]);
-  
-  // Handle Participant reference insertion
-  const handleInsertParticipantRef = useCallback((participant: { id: string; participantNumber: number; shortName: string }) => {
-    if (!editor) return;
-    setTimeout(() => {
-      editor.chain().focus().insertParticipantReference({
-        participantNumber: participant.participantNumber,
-        shortName: participant.shortName,
-        participantId: participant.id,
-      }).insertContent(' ').unsetBold().unsetItalic().run();
-    }, 150);
-  }, [editor]);
-  
-  // Handle Case reference insertion
-  const handleInsertCaseRef = useCallback((caseItem: { id: string; number: number; short_name: string | null; color: string; case_type: string; include_number?: boolean; include_abbreviation?: boolean }) => {
-    if (!editor) return;
-    setTimeout(() => {
-      editor.chain().focus().insertCaseReference({
-        caseNumber: caseItem.number,
-        caseShortName: caseItem.short_name || '',
-        // `caseItem.color` is already the resolved outline colour
-        // (proposal_case_types.outline_color, or the draft's own colour as
-        // fallback) — the dialog resolves it in handleSelect so the badge
-        // is inserted in its correct form and does NOT need
-        // syncCrossReferences to "correct" it on the next edit.
-        caseColor: caseItem.color,
-        caseId: caseItem.id,
-        caseType: caseItem.case_type,
-        includeNumber: caseItem.include_number !== false,
-        includeAbbreviation: caseItem.include_abbreviation !== false,
-      }).insertContent(' ').unsetBold().unsetItalic().run();
-    }, 150);
-  }, [editor]);
-
   const handleB31AutoResize = useCallback(() => {
     if (!b31TableFocus || isEffectivelyReadOnly) return;
     window.dispatchEvent(new CustomEvent('b31-table-autoresize', {
@@ -1124,57 +1052,6 @@ export function DocumentEditor({
     }));
   }, [b31TableFocus, isEffectivelyReadOnly]);
 
-  // Handle Acronym reference insertion
-  const handleInsertAcronymRef = useCallback(() => {
-    if (!editor || !acronymSegments || acronymSegments.length === 0) return;
-    // Use longer timeout — acronym is inserted from dropdown menu which needs time to unmount
-    setTimeout(() => {
-      editor.commands.insertAcronymReference({ segments: acronymSegments });
-
-      // Insert a plain space and clear stored marks via direct transaction
-      const { tr } = editor.state;
-      const spaceNode = editor.schema.text(' ');
-      tr.insert(tr.selection.from, spaceNode);
-      tr.setSelection(TextSelection.near(tr.doc.resolve(tr.selection.from + 1)));
-      tr.setStoredMarks([]);
-      editor.view.dispatch(tr);
-
-      // Schedule focus after dropdown fully unmounts
-      requestAnimationFrame(() => {
-        editor.commands.focus();
-      });
-    }, 200);
-  }, [editor, acronymSegments]);
-
-  // Handle Task reference insertion - pill bubble
-  const handleInsertTaskRef = useCallback((task: { id: string; wp_number: number; number: number; title: string; wp_color?: string }) => {
-    if (!editor) return;
-    editor.chain().focus().insertTaskReference({
-      wpNumber: task.wp_number,
-      taskNumber: task.number,
-      taskId: task.id,
-      wpColor: task.wp_color || undefined,
-    }).insertContent(' ').unsetBold().unsetItalic().run();
-  }, [editor]);
-
-  // Handle Deliverable reference insertion - pentagon bubble
-  const handleInsertDeliverableRef = useCallback((del: { id: string; number: string; name: string; wp_color?: string }) => {
-    if (!editor) return;
-    editor.chain().focus().insertDeliverableReference({
-      deliverableNumber: del.number,
-      deliverableId: del.id,
-      wpColor: del.wp_color || undefined,
-    }).insertContent(' ').unsetBold().unsetItalic().run();
-  }, [editor]);
-
-  // Handle Milestone reference insertion - triangle bubble
-  const handleInsertMilestoneRef = useCallback((ms: { id: string; number: number; name: string }) => {
-    if (!editor) return;
-    editor.chain().focus().insertMilestoneReference({
-      milestoneNumber: ms.number,
-      milestoneId: ms.id,
-    }).insertContent(' ').run();
-  }, [editor]);
 
   const handleApplySuggestion = useCallback((originalText: string, suggestedText: string) => {
     if (!originalText || !suggestedText || !content) return;
