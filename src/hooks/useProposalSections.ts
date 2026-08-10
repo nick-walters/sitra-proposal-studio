@@ -551,6 +551,9 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
       fallbackSections.push(wpAndCasesSection);
     }
 
+    // Methodologies tool page (always shown)
+    fallbackSections.push(methodologiesSection);
+
     // Add Milestones & risks manager
     fallbackSections.push(milestonesRisksSection);
 
