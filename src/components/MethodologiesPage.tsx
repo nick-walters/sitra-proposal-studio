@@ -14,12 +14,14 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Eye, EyeOff } from 'lucide-react';
+import { GripVertical, Eye, EyeOff, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { GuidelinesDialog } from '@/components/GuidelinesDialog';
+import { getMethodologyGuidelines } from '@/lib/methodologyGuidelines';
 import {
   useMethodologySubsections,
   type MethodologySubsection,
