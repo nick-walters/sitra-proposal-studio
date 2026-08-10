@@ -20,6 +20,7 @@ import { SaveIndicator } from "@/components/SaveIndicator";
 
 import { CaseManagementCard } from "@/components/CaseManagementCard";
 import { ProposalMilestonesRisksManager } from "@/components/ProposalMilestonesRisksManager";
+import MethodologiesPage from "@/components/MethodologiesPage";
 import { CaseDraftEditor } from "@/components/CaseDraftEditor";
 import { AvailabilityGantt } from "@/components/AvailabilityGantt";
 import { ProposalMessagingBoard } from "@/components/ProposalMessagingBoard";
