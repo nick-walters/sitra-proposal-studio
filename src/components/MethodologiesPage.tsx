@@ -24,6 +24,7 @@ import { GuidelinesDialog } from '@/components/GuidelinesDialog';
 import { SaveIndicator } from '@/components/SaveIndicator';
 import { MethodologyRichEditor } from '@/components/MethodologyRichEditor';
 import MethodologyItemsList from '@/components/MethodologyItemsList';
+import LinkedActivitiesTable from '@/components/LinkedActivitiesTable';
 import { getMethodologyGuidelines } from '@/lib/methodologyGuidelines';
 import {
   useMethodologySubsections,
