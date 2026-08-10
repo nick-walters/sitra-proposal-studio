@@ -2129,32 +2129,6 @@ export function DocumentEditor({
         sectionTitle={`${section?.number || ''} ${section?.title || ''}`}
         guidelines={section?.guidelinesArray || []}
       />
-      <InsertCrossReferenceDialog
-        isOpen={isCrossRefOpen}
-        onClose={() => { setIsCrossRefOpen(false); setCrossRefFilterType(undefined); }}
-        proposalId={proposalId || ''}
-        sectionNumber={section?.number || ''}
-        onInsert={handleInsertCrossRef}
-        filterType={crossRefFilterType}
-      />
-      <InsertWPReferenceDialog
-        open={isWPRefOpen}
-        onOpenChange={setIsWPRefOpen}
-        proposalId={proposalId || ''}
-        onSelect={handleInsertWPRef}
-      />
-      <InsertParticipantReferenceDialog
-        open={isParticipantRefOpen}
-        onOpenChange={setIsParticipantRefOpen}
-        proposalId={proposalId || ''}
-        onSelect={handleInsertParticipantRef}
-      />
-      <InsertCaseReferenceDialog
-        open={isCaseRefOpen}
-        onOpenChange={setIsCaseRefOpen}
-        proposalId={proposalId || ''}
-        onSelect={handleInsertCaseRef}
-      />
       <SectionAssignmentDialog
         open={isAssignmentDialogOpen}
         onOpenChange={setIsAssignmentDialogOpen}
