@@ -359,7 +359,7 @@ export function ImpactCanvasBuilder({ proposalId, canEdit, figureNumber: _figure
                                   <td
                                     key={c.id}
                                     data-impact-canvas-cell
-                                    className="border align-top"
+                                    className="border align-top text-left"
                                     style={{ padding: '1pt 2pt' }}
                                   >
                                     <ImpactCanvasCellEditor
