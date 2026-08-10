@@ -76,7 +76,7 @@ function parseGuidelineContent(content: string): React.ReactNode {
           return (
             <div key={index} className="flex items-start gap-2 mt-3 p-2 bg-blue-50 rounded border border-blue-200">
               <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0 text-blue-500" />
-              <span className="text-sm text-blue-700">{cleanLine}</span>
+              <span className="text-sm text-blue-700">{renderWithLinks(cleanLine)}</span>
             </div>
           );
         }
@@ -84,7 +84,7 @@ function parseGuidelineContent(content: string): React.ReactNode {
         // Regular line
         if (cleanLine) {
           return (
-            <p key={index} className="text-sm text-muted-foreground">{cleanLine}</p>
+            <p key={index} className="text-sm text-muted-foreground">{renderWithLinks(cleanLine)}</p>
           );
         }
         
