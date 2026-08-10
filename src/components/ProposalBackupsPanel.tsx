@@ -13,7 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Download, CheckCircle2, XCircle, MinusCircle, Clock, FileText, RefreshCw, Play, Trash2 } from "lucide-react";
+import { Download, FolderDown, CheckCircle2, XCircle, MinusCircle, Clock, FileText, RefreshCw, Play, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { formatFileSize } from "@/lib/formatNumber";
@@ -46,6 +46,7 @@ export function ProposalBackupsPanel({ proposalId }: Props) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<BackupRow | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [zipping, setZipping] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -93,6 +94,37 @@ export function ProposalBackupsPanel({ proposalId }: Props) {
       return;
     }
     window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+  };
+
+  const downloadAll = async (r: BackupRow) => {
+    const paths = r.bucket_paths ?? [];
+    if (paths.length === 0) {
+      toast.error("This backup has no files");
+      return;
+    }
+    setZipping(r.id);
+    try {
+      const JSZip = (await import("jszip")).default;
+      const zip = new JSZip();
+      for (const path of paths) {
+        const { data, error } = await supabase.storage.from("proposal-backups").download(path);
+        if (error || !data) throw error ?? new Error("Could not download " + path);
+        zip.file(fileNameOf(path), await data.arrayBuffer());
+      }
+      const blob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `backup-${format(new Date(r.backup_timestamp), "yyyy-MM-dd-HHmm")}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not create the zip file");
+    } finally {
+      setZipping(null);
+    }
   };
 
   const fmtSize = (n: number) => formatFileSize(n);
@@ -175,6 +207,18 @@ export function ProposalBackupsPanel({ proposalId }: Props) {
                     <Badge variant="outline" className={`gap-1 ${meta.cls}`}>
                       <Icon className="w-3 h-3" /> {meta.label}
                     </Badge>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 gap-1"
+                      onClick={(e) => { e.stopPropagation(); downloadAll(r); }}
+                      disabled={zipping === r.id || (r.bucket_paths?.length ?? 0) === 0}
+                      aria-label="Download all files in this backup as a zip"
+                      title="Download all files in this backup as a zip"
+                    >
+                      <FolderDown className="w-4 h-4" />
+                      {zipping === r.id ? "Zipping…" : "Download all"}
+                    </Button>
                     <Button
                       size="sm"
                       variant="ghost"
