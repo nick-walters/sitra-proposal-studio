@@ -39,6 +39,7 @@ interface SortableMethodologyCardProps {
   isCoordinator: boolean;
   onRename: (id: string, title: string) => void;
   onToggleVisible: (id: string, isVisible: boolean) => void;
+  onOpenGuidelines: (id: string) => void;
 }
 
 function SortableMethodologyCard({
