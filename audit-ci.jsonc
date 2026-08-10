@@ -13,8 +13,19 @@
   // Every entry MUST carry a reason and a re-evaluation trigger.
   // Do NOT add blanket entries; new/unassessed advisories must still fail CI.
   // ---------------------------------------------------------------------------
-  // (empty) GHSA-qwww-vcr4-c8h2 (React Router RSC CSRF) was removed on
+  // (removed) GHSA-qwww-vcr4-c8h2 (React Router RSC CSRF) was removed on
   // 10th August 2026: react-router / react-router-dom are pinned at 7.18.2,
   // which is the first patched release for that advisory.
-  "allowlist": []
+  //
+  // GHSA-w3rx-r6r6-pgpr — image-size: ICNS parser DoS (infinite loop) (HIGH)
+  // GHSA-5p2g-fcmc-qvqq — image-size: JXL/HEIF parser DoS (infinite loops) (HIGH)
+  // image-size DoS parser advisories (ICNS/JXL/HEIF); reached only via
+  // pptxgenjs, which exports app-generated images only — no untrusted image
+  // input reaches the parser, so not exploitable. No patched version exists
+  // (every published image-size release is in the affected range; npm's only
+  // "fix" is a breaking downgrade to pptxgenjs 1.1.5, itself vulnerable).
+  // RE-EVALUATE IF: pptxgenjs is ever fed user-uploaded/untrusted images, or a
+  // patched image-size ships (then remove these entries and upgrade).
+  "allowlist": ["GHSA-w3rx-r6r6-pgpr", "GHSA-5p2g-fcmc-qvqq"]
 }
+
