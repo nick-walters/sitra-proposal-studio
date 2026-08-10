@@ -20,6 +20,7 @@ import { SaveIndicator } from "@/components/SaveIndicator";
 
 import { CaseManagementCard } from "@/components/CaseManagementCard";
 import { ProposalMilestonesRisksManager } from "@/components/ProposalMilestonesRisksManager";
+import MethodologiesPage from "@/components/MethodologiesPage";
 import { CaseDraftEditor } from "@/components/CaseDraftEditor";
 import { AvailabilityGantt } from "@/components/AvailabilityGantt";
 import { ProposalMessagingBoard } from "@/components/ProposalMessagingBoard";
@@ -815,6 +816,15 @@ export function ProposalEditor() {
           </div>
         );
       },
+      'methodologies': () => (
+        <div className="flex-1 overflow-y-auto">
+          <MethodologiesPage
+            proposalId={id || ''}
+            canEdit={canEdit}
+            isCoordinator={canEdit && isCoordinator}
+          />
+        </div>
+      ),
       'milestones-risks': () => (
         <div className="flex-1 overflow-y-auto">
           <ProposalMilestonesRisksManager proposalId={id || ''} canEdit={canEdit} projectDuration={proposal?.duration || 36} />

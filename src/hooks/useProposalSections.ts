@@ -503,6 +503,15 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
       subsections: [...wpDraftSections, ...caseDraftSections],
     };
 
+    const methodologiesSection: Section = {
+      id: 'methodologies',
+      number: '',
+      title: 'Methodologies',
+      guidelines: {
+        text: 'Write section B1.2 one subsection at a time. Content written here is mirrored into Part B section B1.2. Cards can be reordered, and the coordinator can rename them or hide the ones that do not apply.',
+      },
+    };
+
     if (hasTemplateSections && templateSections.length > 0) {
       // Separate Part A and Part B sections
       const partASections = templateSections.filter(s => s.isPartA);
@@ -522,6 +531,9 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
         result.push(wpAndCasesSection);
       }
 
+      // Methodologies tool page (always shown)
+      result.push(methodologiesSection);
+
       // Add Milestones & risks manager (always shown)
       result.push(milestonesRisksSection);
 
@@ -538,6 +550,9 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
     if (wpDraftSections.length > 0 || caseDraftSections.length > 0) {
       fallbackSections.push(wpAndCasesSection);
     }
+
+    // Methodologies tool page (always shown)
+    fallbackSections.push(methodologiesSection);
 
     // Add Milestones & risks manager
     fallbackSections.push(milestonesRisksSection);
