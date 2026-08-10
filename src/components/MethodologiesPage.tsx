@@ -23,6 +23,7 @@ import { Badge } from '@/components/ui/badge';
 import { GuidelinesDialog } from '@/components/GuidelinesDialog';
 import { SaveIndicator } from '@/components/SaveIndicator';
 import { MethodologyRichEditor } from '@/components/MethodologyRichEditor';
+import MethodologyItemsList from '@/components/MethodologyItemsList';
 import { getMethodologyGuidelines } from '@/lib/methodologyGuidelines';
 import {
   useMethodologySubsections,
