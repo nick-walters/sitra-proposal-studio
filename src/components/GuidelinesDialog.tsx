@@ -25,6 +25,28 @@ interface GuidelinesDialogProps {
   guidelines: Guideline[];
 }
 
+const URL_REGEX = /(https?:\/\/[^\s)]+)/g;
+
+// Render text with bare URLs as clickable links
+function renderWithLinks(text: string): React.ReactNode {
+  const parts = text.split(URL_REGEX);
+  return parts.map((part, i) =>
+    /^https?:\/\//.test(part) ? (
+      <a
+        key={i}
+        href={part}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="underline break-all"
+      >
+        {part}
+      </a>
+    ) : (
+      part
+    )
+  );
+}
+
 // Parse content to handle special markers (e.g., yellow exclamation marks become blue warning triangles)
 function parseGuidelineContent(content: string): React.ReactNode {
   // Split by newlines to handle bullet points
