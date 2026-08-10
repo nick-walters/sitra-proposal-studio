@@ -276,6 +276,8 @@ export default function MethodologyItemsList({
     reorder,
   } = useMethodologyItems(proposalId);
   const [localOrder, setLocalOrder] = useState<string[] | null>(null);
+  const { caseTypes } = useMethodologyCasePlaceholders({ proposalId, canEdit });
+
 
   const { data: participants = [] } = useQuery({
     queryKey: ['participants-for-case', proposalId],
