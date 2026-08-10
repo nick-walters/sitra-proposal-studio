@@ -120,37 +120,48 @@ function SortableMethodologyCard({
             )}
           </div>
 
-          {!subsection.isVisible && (
-            <Badge variant="secondary" className="text-muted-foreground">
-              Hidden
-            </Badge>
-          )}
+          <div className="ml-auto flex items-center gap-2">
+            {!subsection.isVisible && (
+              <Badge variant="secondary" className="text-muted-foreground">
+                Hidden
+              </Badge>
+            )}
 
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-6 px-2 text-xs gap-1 text-destructive border-destructive/50 hover:bg-destructive/10 hover:text-destructive"
-            onClick={(e) => {
-              e.stopPropagation();
-              onOpenGuidelines(subsection.id);
-            }}
-            onMouseDown={(e) => e.stopPropagation()}
-          >
-            <Info className="w-3 h-3" />
-            Guidelines
-          </Button>
-
-
-          {isCoordinator && !isMandatory && (
             <Button
-              variant="ghost"
-              size="icon"
-              aria-label={subsection.isVisible ? 'Hide subsection' : 'Show subsection'}
-              onClick={() => onToggleVisible(subsection.id, !subsection.isVisible)}
+              variant="outline"
+              size="sm"
+              className="h-6 px-2 text-xs gap-1 text-destructive border-destructive/50 hover:bg-destructive/10 hover:text-destructive"
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenGuidelines(subsection.id);
+              }}
+              onMouseDown={(e) => e.stopPropagation()}
             >
-              {subsection.isVisible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+              <Info className="w-3 h-3" />
+              Guidelines
             </Button>
-          )}
+
+            {isCoordinator && !isMandatory ? (
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label={subsection.isVisible ? 'Hide subsection' : 'Show subsection'}
+                onClick={() => onToggleVisible(subsection.id, !subsection.isVisible)}
+              >
+                {subsection.isVisible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+              </Button>
+            ) : (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="invisible pointer-events-none"
+                aria-hidden="true"
+                tabIndex={-1}
+              >
+                <Eye className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           <p className="text-sm italic text-muted-foreground">Editor added in the next step.</p>
