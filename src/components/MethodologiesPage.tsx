@@ -178,7 +178,13 @@ function SortableMethodologyCard({
           </div>
         </CardHeader>
         <CardContent>
-          {NARRATIVE_KEYS.has(subsection.key) ? (
+          {subsection.key === 'methodologies' ? (
+            <MethodologyItemsList
+              proposalId={proposalId}
+              canEdit={canEdit}
+              isCoordinator={isCoordinator}
+            />
+          ) : NARRATIVE_KEYS.has(subsection.key) ? (
             <MethodologyRichEditor
               proposalId={proposalId}
               value={subsection.contentHtml ?? ''}
