@@ -25,6 +25,28 @@ interface GuidelinesDialogProps {
   guidelines: Guideline[];
 }
 
+const URL_REGEX = /(https?:\/\/[^\s)]+)/g;
+
+// Render text with bare URLs as clickable links
+function renderWithLinks(text: string): React.ReactNode {
+  const parts = text.split(URL_REGEX);
+  return parts.map((part, i) =>
+    /^https?:\/\//.test(part) ? (
+      <a
+        key={i}
+        href={part}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="underline break-all"
+      >
+        {part}
+      </a>
+    ) : (
+      part
+    )
+  );
+}
+
 // Parse content to handle special markers (e.g., yellow exclamation marks become blue warning triangles)
 function parseGuidelineContent(content: string): React.ReactNode {
   // Split by newlines to handle bullet points
@@ -54,7 +76,7 @@ function parseGuidelineContent(content: string): React.ReactNode {
           return (
             <div key={index} className="flex items-start gap-2 mt-3 p-2 bg-blue-50 rounded border border-blue-200">
               <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0 text-blue-500" />
-              <span className="text-sm text-blue-700">{cleanLine}</span>
+              <span className="text-sm text-blue-700">{renderWithLinks(cleanLine)}</span>
             </div>
           );
         }
@@ -62,7 +84,7 @@ function parseGuidelineContent(content: string): React.ReactNode {
         // Regular line
         if (cleanLine) {
           return (
-            <p key={index} className="text-sm text-muted-foreground">{cleanLine}</p>
+            <p key={index} className="text-sm text-muted-foreground">{renderWithLinks(cleanLine)}</p>
           );
         }
         

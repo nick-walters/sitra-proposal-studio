@@ -14,12 +14,14 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Eye, EyeOff } from 'lucide-react';
+import { GripVertical, Eye, EyeOff, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { GuidelinesDialog } from '@/components/GuidelinesDialog';
+import { getMethodologyGuidelines } from '@/lib/methodologyGuidelines';
 import {
   useMethodologySubsections,
   type MethodologySubsection,
@@ -37,6 +39,7 @@ interface SortableMethodologyCardProps {
   isCoordinator: boolean;
   onRename: (id: string, title: string) => void;
   onToggleVisible: (id: string, isVisible: boolean) => void;
+  onOpenGuidelines: (id: string) => void;
 }
 
 function SortableMethodologyCard({
@@ -45,6 +48,7 @@ function SortableMethodologyCard({
   isCoordinator,
   onRename,
   onToggleVisible,
+  onOpenGuidelines,
 }: SortableMethodologyCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: subsection.id,
@@ -122,6 +126,21 @@ function SortableMethodologyCard({
             </Badge>
           )}
 
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-6 px-2 text-xs gap-1 text-destructive border-destructive/50 hover:bg-destructive/10 hover:text-destructive"
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenGuidelines(subsection.id);
+            }}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <Info className="w-3 h-3" />
+            Guidelines
+          </Button>
+
+
           {isCoordinator && !isMandatory && (
             <Button
               variant="ghost"
@@ -148,6 +167,9 @@ export default function MethodologiesPage({
 }: MethodologiesPageProps) {
   const { subsections, reorder, updateTitle, setVisible } = useMethodologySubsections(proposalId);
   const [localOrder, setLocalOrder] = useState<string[] | null>(null);
+  const [guidelinesId, setGuidelinesId] = useState<string | null>(null);
+  const guidelinesSubsection = subsections.find((s) => s.id === guidelinesId) ?? null;
+
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
@@ -207,11 +229,21 @@ export default function MethodologiesPage({
                 isCoordinator={isCoordinator}
                 onRename={handleRename}
                 onToggleVisible={handleToggleVisible}
+                onOpenGuidelines={setGuidelinesId}
               />
             ))}
           </div>
         </SortableContext>
       </DndContext>
+
+      {guidelinesSubsection && (
+        <GuidelinesDialog
+          isOpen
+          onClose={() => setGuidelinesId(null)}
+          sectionTitle={guidelinesSubsection.title}
+          guidelines={getMethodologyGuidelines(guidelinesSubsection.key)}
+        />
+      )}
     </div>
   );
 }
