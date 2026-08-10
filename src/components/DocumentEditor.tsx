@@ -1,8 +1,5 @@
-import { TextSelection } from '@tiptap/pm/state';
 import { Section } from "@/types/proposal";
 import { supabase } from "@/integrations/supabase/client";
-import { caseWord } from "@/lib/caseTypeLabels";
-import { useProposalCaseTypes } from "@/hooks/useProposalCaseTypes";
 import { useB12CasesTableReconciler } from "@/hooks/useB12CasesTableReconciler";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useB32MirrorsReconciler } from "@/hooks/useB32MirrorsReconciler";
@@ -14,7 +11,7 @@ import DOMPurify from "dompurify";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Info, Image, MessageSquare, CalendarClock, User, FileText, X, GitCompare, Keyboard, Check, Link2, Table2, AlertTriangle } from "lucide-react";
+import { Info, MessageSquare, CalendarClock, User, FileText, X, GitCompare, Check, AlertTriangle } from "lucide-react";
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { FormattingToolbar, useRichTextEditor } from "./RichTextEditor";
@@ -38,12 +35,7 @@ import { EditorContent } from "@tiptap/react";
 
 import { CitationDialog } from "./CitationDialog";
 import { InsertFigureDialog } from "./InsertFigureDialog";
-import { InsertCrossReferenceDialog } from "./InsertCrossReferenceDialog";
-import { InsertWPReferenceDialog } from "./InsertWPReferenceDialog";
-import { InsertCaseReferenceDialog } from "./InsertCaseReferenceDialog";
-import { InsertParticipantReferenceDialog } from "./InsertParticipantReferenceDialog";
-import { B31Pill, WPBubble } from "./B31Pill";
-import { InsertTDMSReferenceDropdowns } from "./InsertTDMSReferenceDropdowns";
+import { PartBCrossRefControls, type PartBCrossRefControlsHandle } from "./PartBCrossRefControls";
 import { CommentsSidebar } from "./CommentsSidebar";
 import { SectionAssignmentDialog } from "./SectionAssignmentDialog";
 import { ImpactPathwayGenerator } from "./ImpactPathwayGenerator";
@@ -63,13 +55,6 @@ import { useGlobalCitationOrder } from "@/hooks/useGlobalCitationOrder";
 import { FootnoteCitation } from "@/components/FootnoteCitation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format, isPast, isToday, differenceInDays } from "date-fns";
@@ -97,11 +82,6 @@ import { EditorZoomBar } from "./EditorZoomBar";
 import { useAuth } from "@/hooks/useAuth";
 import { useProposalRole } from "@/hooks/useProposalRole";
 import { useProposalUserColors } from "@/hooks/useProposalUserColors";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 
 interface Reference {
   authors: string[];
@@ -154,7 +134,6 @@ export function DocumentEditor({
     : (proposalAcronym ? [{ text: proposalAcronym, color: '#000000' }] : []);
   const { user } = useAuth();
   const { roleTier } = useProposalRole(proposalId);
-  const { data: caseTypes = [] } = useProposalCaseTypes(proposalId);
 
 
 
@@ -176,7 +155,6 @@ export function DocumentEditor({
   const canUseSnippets = roleTier === 'coordinator';
   const [isCitationOpen, setIsCitationOpen] = useState(false);
   const [isFigureDialogOpen, setIsFigureDialogOpen] = useState(false);
-  const [isCrossRefOpen, setIsCrossRefOpen] = useState(false);
   const [isImpactPathwayOpen, setIsImpactPathwayOpen] = useState(false);
   const [isVersionHistoryOpen, setIsVersionHistoryOpen] = useState(false);
   const [isGuidelinesOpen, setIsGuidelinesOpen] = useState(false);
@@ -244,14 +222,7 @@ export function DocumentEditor({
   // Review state removed - moved to Part B Evaluate tab
   const [isSplitViewOpen, setIsSplitViewOpen] = useState(false);
   const [deleteBlockConfirm, setDeleteBlockConfirm] = useState<{ isOpen: boolean; onConfirm: () => void } | null>(null);
-  const [isWPRefOpen, setIsWPRefOpen] = useState(false);
-  const [isParticipantRefOpen, setIsParticipantRefOpen] = useState(false);
-  const [isCaseRefOpen, setIsCaseRefOpen] = useState(false);
-  const [crossRefFilterType, setCrossRefFilterType] = useState<'figure' | 'table' | undefined>(undefined);
-  const [isTaskRefOpen, setIsTaskRefOpen] = useState(false);
-  const [isDeliverableRefOpen, setIsDeliverableRefOpen] = useState(false);
-  const [isMilestoneRefOpen, setIsMilestoneRefOpen] = useState(false);
-  const [hasCases, setHasCases] = useState(false);
+  const crossRefControlsRef = useRef<PartBCrossRefControlsHandle>(null);
   const [b31TableFocus, setB31TableFocus] = useState<string | null>(null);
   
   // Editor container ref for cursor overlays
@@ -807,16 +778,6 @@ export function DocumentEditor({
   }, [editor, proposalId, loading, queryClient]);
 
 
-
-  // Check if proposal has cases
-  useEffect(() => {
-    if (!proposalId) return;
-    supabase
-      .from('case_drafts')
-      .select('id', { count: 'exact', head: true })
-      .eq('proposal_id', proposalId)
-      .then(({ count }) => setHasCases((count ?? 0) > 0));
-  }, [proposalId]);
 
   // Block locking hook - needs editor for position tracking
   const {
@@ -1420,9 +1381,9 @@ export function DocumentEditor({
           onOpenFigureDialog={() => setIsFigureDialogOpen(true)}
           onOpenFormulaDialog={() => setIsFormulaOpen(true)}
           onOpenCitationDialog={() => setIsCitationOpen(true)}
-          onOpenCrossRefDialog={() => setIsCrossRefOpen(true)}
-          onOpenWPRefDialog={() => setIsWPRefOpen(true)}
-          onOpenParticipantRefDialog={() => setIsParticipantRefOpen(true)}
+          onOpenCrossRefDialog={() => crossRefControlsRef.current?.openCrossRefDialog()}
+          onOpenWPRefDialog={() => crossRefControlsRef.current?.openWPRefDialog()}
+          onOpenParticipantRefDialog={() => crossRefControlsRef.current?.openParticipantRefDialog()}
           isPartB={section && !section.isPartA}
           isReadOnly={isEffectivelyReadOnly}
           hideTableInsert={isB31Section}
