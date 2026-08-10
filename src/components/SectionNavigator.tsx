@@ -200,6 +200,7 @@ function SectionItem({
     section.id === 'figures' || section.title === 'Figures' ||
     section.id === 'wp-drafts' ||
     section.id === 'milestones-risks' ||
+    section.id === 'methodologies' ||
     section.id === 'part-b' ||
     (section.number && /^B\d+\.\d/.test(section.number) && section.id !== 'part-b')
   );
