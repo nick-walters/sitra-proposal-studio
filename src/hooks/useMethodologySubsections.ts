@@ -77,11 +77,57 @@ export function useMethodologySubsections(proposalId: string) {
     onSuccess: invalidate,
   });
 
+  // --- Debounced content autosave (per subsection id) ---
+  const timersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const pendingRef = useRef(0);
+  const [saving, setSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+
+  useEffect(() => {
+    const timers = timersRef.current;
+    return () => {
+      Object.values(timers).forEach(clearTimeout);
+    };
+  }, []);
+
+  const updateContent = useCallback(
+    (id: string, contentHtml: string) => {
+      // Update the cache in place so editors are never remounted.
+      queryClient.setQueryData<MethodologySubsection[]>(queryKey, (prev) =>
+        (prev || []).map((s) => (s.id === id ? { ...s, contentHtml } : s)),
+      );
+
+      if (timersRef.current[id]) clearTimeout(timersRef.current[id]);
+      timersRef.current[id] = setTimeout(async () => {
+        delete timersRef.current[id];
+        pendingRef.current += 1;
+        setSaving(true);
+        try {
+          const { error } = await supabase
+            .from('methodology_subsections')
+            .update({ content_html: contentHtml })
+            .eq('id', id);
+          if (error) throw error;
+          setLastSaved(new Date());
+        } finally {
+          pendingRef.current -= 1;
+          if (pendingRef.current <= 0) setSaving(false);
+        }
+      }, 800);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [queryClient, proposalId],
+  );
+
   return {
     subsections,
     isLoading,
+    saving,
+    lastSaved,
+    updateContent,
     updateTitle: (id: string, title: string) => updateTitleMutation.mutateAsync({ id, title }),
     setVisible: (id: string, isVisible: boolean) => setVisibleMutation.mutateAsync({ id, isVisible }),
     reorder: (orderedIds: string[]) => reorderMutation.mutateAsync(orderedIds),
   };
 }
+
