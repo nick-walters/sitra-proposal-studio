@@ -815,6 +815,15 @@ export function ProposalEditor() {
           </div>
         );
       },
+      'methodologies': () => (
+        <div className="flex-1 overflow-y-auto">
+          <MethodologiesPage
+            proposalId={id || ''}
+            canEdit={canEdit}
+            isCoordinator={canEdit && isCoordinator}
+          />
+        </div>
+      ),
       'milestones-risks': () => (
         <div className="flex-1 overflow-y-auto">
           <ProposalMilestonesRisksManager proposalId={id || ''} canEdit={canEdit} projectDuration={proposal?.duration || 36} />
