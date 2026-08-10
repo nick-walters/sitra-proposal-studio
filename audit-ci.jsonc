@@ -13,24 +13,8 @@
   // Every entry MUST carry a reason and a re-evaluation trigger.
   // Do NOT add blanket entries; new/unassessed advisories must still fail CI.
   // ---------------------------------------------------------------------------
-  "allowlist": [
-    // GHSA-qwww-vcr4-c8h2 — react-router / react-router-dom (HIGH)
-    // CSRF in React Router's RSC (React Server Components) mode: the advisory
-    // concerns server-side request handling of RSC actions.
-    //
-    // WHY NOT APPLICABLE: this project is a purely client-side Vite SPA. It uses
-    // BrowserRouter only; there is no React Router server runtime, no RSC mode,
-    // no server actions, no data-router server loaders/actions, and no SSR
-    // entry point. The vulnerable code path is never loaded or reachable.
-    //
-    // WHY NOT PATCHED: the only npm-offered "fix" is `npm audit fix --force`,
-    // which DOWNGRADES react-router-dom to 7.11.0 — a breaking change with no
-    // security benefit for a client-only SPA.
-    //
-    // RE-EVALUATE IF: the app adopts server-side rendering, React Router's
-    // framework/RSC mode, server loaders/actions, or any server-side routing;
-    // or if a non-breaking patched release becomes available (then remove this
-    // entry and upgrade).
-    "GHSA-qwww-vcr4-c8h2"
-  ]
+  // (empty) GHSA-qwww-vcr4-c8h2 (React Router RSC CSRF) was removed on
+  // 10th August 2026: react-router / react-router-dom are pinned at 7.18.2,
+  // which is the first patched release for that advisory.
+  "allowlist": []
 }
