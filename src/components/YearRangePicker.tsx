@@ -31,7 +31,12 @@ export function YearRangePicker({
   className,
 }: YearRangePickerProps) {
   const [open, setOpen] = useState(false);
-  const [pendingStart, setPendingStart] = useState<number | null>(null);
+  const [pendingStart, setPendingStartState] = useState<number | null>(null);
+  const pendingStartRef = useRef<number | null>(null);
+  const setPendingStart = (v: number | null) => {
+    pendingStartRef.current = v;
+    setPendingStartState(v);
+  };
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const currentYearRef = useRef<HTMLButtonElement | null>(null);
 
@@ -56,9 +61,11 @@ export function YearRangePicker({
 
   const handleOpenChange = (next: boolean) => {
     if (disabled) return;
-    if (!next && pendingStart != null) {
+    const pending = pendingStartRef.current;
+    if (!next && pending != null) {
       // Single-click convenience: dismissing with only a start picked saves a one-year range.
-      onChange(pendingStart, pendingStart);
+      setPendingStart(null);
+      onChange(pending, pending);
     }
     setOpen(next);
   };
