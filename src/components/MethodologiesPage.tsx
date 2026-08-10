@@ -21,6 +21,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { GuidelinesDialog } from '@/components/GuidelinesDialog';
+import { SaveIndicator } from '@/components/SaveIndicator';
+import { MethodologyRichEditor } from '@/components/MethodologyRichEditor';
 import { getMethodologyGuidelines } from '@/lib/methodologyGuidelines';
 import {
   useMethodologySubsections,
@@ -33,10 +35,20 @@ interface MethodologiesPageProps {
   isCoordinator: boolean;
 }
 
+const NARRATIVE_KEYS = new Set([
+  'concepts',
+  'interdisciplinarity',
+  'ssh',
+  'gender',
+  'open_science',
+]);
+
 interface SortableMethodologyCardProps {
   subsection: MethodologySubsection;
+  proposalId: string;
   canEdit: boolean;
   isCoordinator: boolean;
+  onContentChange: (id: string, html: string) => void;
   onRename: (id: string, title: string) => void;
   onToggleVisible: (id: string, isVisible: boolean) => void;
   onOpenGuidelines: (id: string) => void;
@@ -44,8 +56,10 @@ interface SortableMethodologyCardProps {
 
 function SortableMethodologyCard({
   subsection,
+  proposalId,
   canEdit,
   isCoordinator,
+  onContentChange,
   onRename,
   onToggleVisible,
   onOpenGuidelines,
@@ -164,7 +178,17 @@ function SortableMethodologyCard({
           </div>
         </CardHeader>
         <CardContent>
-          <p className="text-sm italic text-muted-foreground">Editor added in the next step.</p>
+          {NARRATIVE_KEYS.has(subsection.key) ? (
+            <MethodologyRichEditor
+              proposalId={proposalId}
+              value={subsection.contentHtml ?? ''}
+              onChange={(html) => onContentChange(subsection.id, html)}
+              canEdit={canEdit}
+              isCoordinator={isCoordinator}
+            />
+          ) : (
+            <p className="text-sm italic text-muted-foreground">Editor added in the next step.</p>
+          )}
         </CardContent>
       </Card>
     </div>
@@ -176,7 +200,8 @@ export default function MethodologiesPage({
   canEdit,
   isCoordinator,
 }: MethodologiesPageProps) {
-  const { subsections, reorder, updateTitle, setVisible } = useMethodologySubsections(proposalId);
+  const { subsections, reorder, updateTitle, setVisible, updateContent, saving, lastSaved } =
+    useMethodologySubsections(proposalId);
   const [localOrder, setLocalOrder] = useState<string[] | null>(null);
   const [guidelinesId, setGuidelinesId] = useState<string | null>(null);
   const guidelinesSubsection = subsections.find((s) => s.id === guidelinesId) ?? null;
@@ -222,11 +247,14 @@ export default function MethodologiesPage({
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-4 p-6">
-      <div className="space-y-1">
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-1">
         <h1 className="text-xl font-bold text-foreground">Methodologies</h1>
         <p className="text-sm text-muted-foreground">
           Content written here is mirrored into Part B section B1.2.
         </p>
+        </div>
+        <SaveIndicator saving={saving} lastSaved={lastSaved} />
       </div>
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -236,8 +264,10 @@ export default function MethodologiesPage({
               <SortableMethodologyCard
                 key={s.id}
                 subsection={s}
+                proposalId={proposalId}
                 canEdit={canEdit}
                 isCoordinator={isCoordinator}
+                onContentChange={updateContent}
                 onRename={handleRename}
                 onToggleVisible={handleToggleVisible}
                 onOpenGuidelines={setGuidelinesId}
