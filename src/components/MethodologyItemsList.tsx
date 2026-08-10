@@ -31,6 +31,12 @@ import { ParticipantBubble } from '@/components/B31Pill';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { MethodologyRichEditor } from '@/components/MethodologyRichEditor';
 import { useMethodologyItems, type MethodologyItem } from '@/hooks/useMethodologyItems';
+import {
+  useMethodologyCasePlaceholders,
+  type CaseTypeLite,
+} from '@/hooks/useMethodologyCasePlaceholders';
+import { getCaseTypeLabel } from '@/lib/caseTypeLabels';
+
 
 interface ParticipantSummary {
   id: string;
@@ -205,6 +211,55 @@ function SortableItemRow({
     </div>
   );
 }
+function SortablePlaceholderRow({
+  item,
+  canEdit,
+  caseTypes,
+}: {
+  item: MethodologyItem;
+  canEdit: boolean;
+  caseTypes: CaseTypeLite[];
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: item.id,
+  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+  };
+  const type = caseTypes.find((t) => t.id === item.caseTypeId);
+  const label = `${getCaseTypeLabel(type?.type_code ?? null, type?.custom_type_name ?? null, {
+    plural: true,
+  })} table`;
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex items-center gap-2 rounded-md border border-dashed border-border bg-muted/40 px-3 py-2"
+    >
+      {canEdit && (
+        <button
+          type="button"
+          className="cursor-grab touch-none text-[#2563EB]"
+          aria-label="Reorder table placeholder"
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className="h-4 w-4" />
+        </button>
+      )}
+      <div className="min-w-0">
+        <div className="truncate text-sm font-medium">{label}</div>
+        <div className="truncate text-xs text-muted-foreground">
+          Content comes from the case drafts. Drag to set where this table appears in B1.2.
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 export default function MethodologyItemsList({
   proposalId,
@@ -221,6 +276,8 @@ export default function MethodologyItemsList({
     reorder,
   } = useMethodologyItems(proposalId);
   const [localOrder, setLocalOrder] = useState<string[] | null>(null);
+  const { caseTypes } = useMethodologyCasePlaceholders({ proposalId, canEdit });
+
 
   const { data: participants = [] } = useQuery({
     queryKey: ['participants-for-case', proposalId],
@@ -270,26 +327,36 @@ export default function MethodologyItemsList({
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={ordered.map((i) => i.id)} strategy={verticalListSortingStrategy}>
           <div className="space-y-3">
-            {ordered.map((item) => (
-              <SortableItemRow
-                key={item.id}
-                item={item}
-                proposalId={proposalId}
-                canEdit={canEdit}
-                isCoordinator={isCoordinator}
-                participants={participants}
-                onHeadingChange={updateHeading}
-                onContentChange={updateContent}
-                onAssign={(id, pid) =>
-                  setAssignedParticipant(id, pid).catch(() =>
-                    toast.error('Could not save the assignment'),
-                  )
-                }
-                onDelete={(id) =>
-                  deleteItem(id).catch(() => toast.error('Could not delete the methodology'))
-                }
-              />
-            ))}
+            {ordered.map((item) =>
+              item.kind === 'case_placeholder' ? (
+                <SortablePlaceholderRow
+                  key={item.id}
+                  item={item}
+                  canEdit={canEdit}
+                  caseTypes={caseTypes}
+                />
+              ) : (
+                <SortableItemRow
+                  key={item.id}
+                  item={item}
+                  proposalId={proposalId}
+                  canEdit={canEdit}
+                  isCoordinator={isCoordinator}
+                  participants={participants}
+                  onHeadingChange={updateHeading}
+                  onContentChange={updateContent}
+                  onAssign={(id, pid) =>
+                    setAssignedParticipant(id, pid).catch(() =>
+                      toast.error('Could not save the assignment'),
+                    )
+                  }
+                  onDelete={(id) =>
+                    deleteItem(id).catch(() => toast.error('Could not delete the methodology'))
+                  }
+                />
+              ),
+            )}
+
           </div>
         </SortableContext>
       </DndContext>

@@ -45,6 +45,11 @@ export function useMethodologyItems(proposalId: string) {
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey });
 
+  const isPlaceholder = (id: string) => {
+    const current = queryClient.getQueryData<MethodologyItem[]>(queryKey) || [];
+    return current.find((i) => i.id === id)?.kind === 'case_placeholder';
+  };
+
   const addMutation = useMutation({
     mutationFn: async () => {
       const current =
@@ -80,14 +85,17 @@ export function useMethodologyItems(proposalId: string) {
       id: string;
       participantId: string | null;
     }) => {
+      if (isPlaceholder(id)) return;
       const { error } = await supabase
         .from('methodology_items')
         .update({ assigned_participant_id: participantId })
-        .eq('id', id);
+        .eq('id', id)
+        .eq('kind', 'methodology');
       if (error) throw error;
     },
     onSuccess: invalidate,
   });
+
 
   const reorderMutation = useMutation({
     mutationFn: async (orderedIds: string[]) => {
@@ -122,6 +130,7 @@ export function useMethodologyItems(proposalId: string) {
       value: string,
       patch: Partial<MethodologyItem>,
     ) => {
+      if (isPlaceholder(id)) return;
       queryClient.setQueryData<MethodologyItem[]>(queryKey, (prev) =>
         (prev || []).map((i) => (i.id === id ? { ...i, ...patch } : i)),
       );
@@ -138,8 +147,10 @@ export function useMethodologyItems(proposalId: string) {
             .update(
               field === 'heading' ? { heading: value } : { content_html: value },
             )
-            .eq('id', id);
+            .eq('id', id)
+            .eq('kind', 'methodology');
           if (error) throw error;
+
           setLastSaved(new Date());
         } finally {
           pendingRef.current -= 1;
