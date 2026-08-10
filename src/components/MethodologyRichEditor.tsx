@@ -73,3 +73,5 @@ export function MethodologyRichEditor({
 }
 
 export default MethodologyRichEditor;
+
+// hmr-probe
