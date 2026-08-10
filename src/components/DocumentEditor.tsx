@@ -1,8 +1,5 @@
-import { TextSelection } from '@tiptap/pm/state';
 import { Section } from "@/types/proposal";
 import { supabase } from "@/integrations/supabase/client";
-import { caseWord } from "@/lib/caseTypeLabels";
-import { useProposalCaseTypes } from "@/hooks/useProposalCaseTypes";
 import { useB12CasesTableReconciler } from "@/hooks/useB12CasesTableReconciler";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useB32MirrorsReconciler } from "@/hooks/useB32MirrorsReconciler";
@@ -14,7 +11,7 @@ import DOMPurify from "dompurify";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Info, Image, MessageSquare, CalendarClock, User, FileText, X, GitCompare, Keyboard, Check, Link2, Table2, AlertTriangle } from "lucide-react";
+import { Info, MessageSquare, CalendarClock, User, FileText, X, GitCompare, Check, AlertTriangle } from "lucide-react";
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { FormattingToolbar, useRichTextEditor } from "./RichTextEditor";
@@ -38,12 +35,7 @@ import { EditorContent } from "@tiptap/react";
 
 import { CitationDialog } from "./CitationDialog";
 import { InsertFigureDialog } from "./InsertFigureDialog";
-import { InsertCrossReferenceDialog } from "./InsertCrossReferenceDialog";
-import { InsertWPReferenceDialog } from "./InsertWPReferenceDialog";
-import { InsertCaseReferenceDialog } from "./InsertCaseReferenceDialog";
-import { InsertParticipantReferenceDialog } from "./InsertParticipantReferenceDialog";
-import { B31Pill, WPBubble } from "./B31Pill";
-import { InsertTDMSReferenceDropdowns } from "./InsertTDMSReferenceDropdowns";
+import { PartBCrossRefControls, type PartBCrossRefControlsHandle } from "./PartBCrossRefControls";
 import { CommentsSidebar } from "./CommentsSidebar";
 import { SectionAssignmentDialog } from "./SectionAssignmentDialog";
 import { ImpactPathwayGenerator } from "./ImpactPathwayGenerator";
@@ -63,13 +55,6 @@ import { useGlobalCitationOrder } from "@/hooks/useGlobalCitationOrder";
 import { FootnoteCitation } from "@/components/FootnoteCitation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format, isPast, isToday, differenceInDays } from "date-fns";
@@ -97,11 +82,6 @@ import { EditorZoomBar } from "./EditorZoomBar";
 import { useAuth } from "@/hooks/useAuth";
 import { useProposalRole } from "@/hooks/useProposalRole";
 import { useProposalUserColors } from "@/hooks/useProposalUserColors";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 
 interface Reference {
   authors: string[];
@@ -154,7 +134,6 @@ export function DocumentEditor({
     : (proposalAcronym ? [{ text: proposalAcronym, color: '#000000' }] : []);
   const { user } = useAuth();
   const { roleTier } = useProposalRole(proposalId);
-  const { data: caseTypes = [] } = useProposalCaseTypes(proposalId);
 
 
 
@@ -176,7 +155,6 @@ export function DocumentEditor({
   const canUseSnippets = roleTier === 'coordinator';
   const [isCitationOpen, setIsCitationOpen] = useState(false);
   const [isFigureDialogOpen, setIsFigureDialogOpen] = useState(false);
-  const [isCrossRefOpen, setIsCrossRefOpen] = useState(false);
   const [isImpactPathwayOpen, setIsImpactPathwayOpen] = useState(false);
   const [isVersionHistoryOpen, setIsVersionHistoryOpen] = useState(false);
   const [isGuidelinesOpen, setIsGuidelinesOpen] = useState(false);
@@ -244,14 +222,7 @@ export function DocumentEditor({
   // Review state removed - moved to Part B Evaluate tab
   const [isSplitViewOpen, setIsSplitViewOpen] = useState(false);
   const [deleteBlockConfirm, setDeleteBlockConfirm] = useState<{ isOpen: boolean; onConfirm: () => void } | null>(null);
-  const [isWPRefOpen, setIsWPRefOpen] = useState(false);
-  const [isParticipantRefOpen, setIsParticipantRefOpen] = useState(false);
-  const [isCaseRefOpen, setIsCaseRefOpen] = useState(false);
-  const [crossRefFilterType, setCrossRefFilterType] = useState<'figure' | 'table' | undefined>(undefined);
-  const [isTaskRefOpen, setIsTaskRefOpen] = useState(false);
-  const [isDeliverableRefOpen, setIsDeliverableRefOpen] = useState(false);
-  const [isMilestoneRefOpen, setIsMilestoneRefOpen] = useState(false);
-  const [hasCases, setHasCases] = useState(false);
+  const crossRefControlsRef = useRef<PartBCrossRefControlsHandle>(null);
   const [b31TableFocus, setB31TableFocus] = useState<string | null>(null);
   
   // Editor container ref for cursor overlays
@@ -808,16 +779,6 @@ export function DocumentEditor({
 
 
 
-  // Check if proposal has cases
-  useEffect(() => {
-    if (!proposalId) return;
-    supabase
-      .from('case_drafts')
-      .select('id', { count: 'exact', head: true })
-      .eq('proposal_id', proposalId)
-      .then(({ count }) => setHasCases((count ?? 0) > 0));
-  }, [proposalId]);
-
   // Block locking hook - needs editor for position tracking
   const {
     blockLocks,
@@ -1045,78 +1006,6 @@ export function DocumentEditor({
     setContent(restoredContent);
   }, [setContent]);
 
-  // Handle cross-reference insertion (figures/tables as marked bold italic)
-  const handleInsertCrossRef = useCallback((payload: { refText: string; figureId?: string; tableKey?: string; refKind: 'figure' | 'table' }) => {
-    if (!editor) return;
-    // Use setTimeout to ensure Radix dialog has fully unmounted and released focus
-    setTimeout(() => {
-      editor.commands.focus();
-      editor.commands.insertFigureTableReference({
-        refText: payload.refText,
-        figureId: payload.figureId,
-        tableKey: payload.tableKey,
-        refKind: payload.refKind,
-      });
-
-      // Insert a plain space (no marks) after the reference badge and
-      // place the cursor right after it so subsequent typing is unstyled.
-      const { tr, schema } = editor.state;
-      const pos = tr.selection.from;
-      const spaceNode = schema.text(' ');  // no marks → plain text
-      tr.insert(pos, spaceNode);
-      // Place cursor after the space we just inserted
-      tr.setSelection(TextSelection.create(tr.doc, pos + 1));
-      tr.setStoredMarks([]);
-      editor.view.dispatch(tr);
-    }, 150);
-  }, [editor]);
-  
-  // Handle WP reference insertion
-  const handleInsertWPRef = useCallback((wp: { id: string; number: number; short_name: string | null; color: string }) => {
-    if (!editor) return;
-    setTimeout(() => {
-      editor.chain().focus().insertWPReference({
-        wpNumber: wp.number,
-        wpShortName: wp.short_name || '',
-        wpColor: wp.color,
-        wpId: wp.id,
-      }).insertContent(' ').unsetBold().unsetItalic().run();
-    }, 150);
-  }, [editor]);
-  
-  // Handle Participant reference insertion
-  const handleInsertParticipantRef = useCallback((participant: { id: string; participantNumber: number; shortName: string }) => {
-    if (!editor) return;
-    setTimeout(() => {
-      editor.chain().focus().insertParticipantReference({
-        participantNumber: participant.participantNumber,
-        shortName: participant.shortName,
-        participantId: participant.id,
-      }).insertContent(' ').unsetBold().unsetItalic().run();
-    }, 150);
-  }, [editor]);
-  
-  // Handle Case reference insertion
-  const handleInsertCaseRef = useCallback((caseItem: { id: string; number: number; short_name: string | null; color: string; case_type: string; include_number?: boolean; include_abbreviation?: boolean }) => {
-    if (!editor) return;
-    setTimeout(() => {
-      editor.chain().focus().insertCaseReference({
-        caseNumber: caseItem.number,
-        caseShortName: caseItem.short_name || '',
-        // `caseItem.color` is already the resolved outline colour
-        // (proposal_case_types.outline_color, or the draft's own colour as
-        // fallback) — the dialog resolves it in handleSelect so the badge
-        // is inserted in its correct form and does NOT need
-        // syncCrossReferences to "correct" it on the next edit.
-        caseColor: caseItem.color,
-        caseId: caseItem.id,
-        caseType: caseItem.case_type,
-        includeNumber: caseItem.include_number !== false,
-        includeAbbreviation: caseItem.include_abbreviation !== false,
-      }).insertContent(' ').unsetBold().unsetItalic().run();
-    }, 150);
-  }, [editor]);
-
   const handleB31AutoResize = useCallback(() => {
     if (!b31TableFocus || isEffectivelyReadOnly) return;
     window.dispatchEvent(new CustomEvent('b31-table-autoresize', {
@@ -1124,57 +1013,6 @@ export function DocumentEditor({
     }));
   }, [b31TableFocus, isEffectivelyReadOnly]);
 
-  // Handle Acronym reference insertion
-  const handleInsertAcronymRef = useCallback(() => {
-    if (!editor || !acronymSegments || acronymSegments.length === 0) return;
-    // Use longer timeout — acronym is inserted from dropdown menu which needs time to unmount
-    setTimeout(() => {
-      editor.commands.insertAcronymReference({ segments: acronymSegments });
-
-      // Insert a plain space and clear stored marks via direct transaction
-      const { tr } = editor.state;
-      const spaceNode = editor.schema.text(' ');
-      tr.insert(tr.selection.from, spaceNode);
-      tr.setSelection(TextSelection.near(tr.doc.resolve(tr.selection.from + 1)));
-      tr.setStoredMarks([]);
-      editor.view.dispatch(tr);
-
-      // Schedule focus after dropdown fully unmounts
-      requestAnimationFrame(() => {
-        editor.commands.focus();
-      });
-    }, 200);
-  }, [editor, acronymSegments]);
-
-  // Handle Task reference insertion - pill bubble
-  const handleInsertTaskRef = useCallback((task: { id: string; wp_number: number; number: number; title: string; wp_color?: string }) => {
-    if (!editor) return;
-    editor.chain().focus().insertTaskReference({
-      wpNumber: task.wp_number,
-      taskNumber: task.number,
-      taskId: task.id,
-      wpColor: task.wp_color || undefined,
-    }).insertContent(' ').unsetBold().unsetItalic().run();
-  }, [editor]);
-
-  // Handle Deliverable reference insertion - pentagon bubble
-  const handleInsertDeliverableRef = useCallback((del: { id: string; number: string; name: string; wp_color?: string }) => {
-    if (!editor) return;
-    editor.chain().focus().insertDeliverableReference({
-      deliverableNumber: del.number,
-      deliverableId: del.id,
-      wpColor: del.wp_color || undefined,
-    }).insertContent(' ').unsetBold().unsetItalic().run();
-  }, [editor]);
-
-  // Handle Milestone reference insertion - triangle bubble
-  const handleInsertMilestoneRef = useCallback((ms: { id: string; number: number; name: string }) => {
-    if (!editor) return;
-    editor.chain().focus().insertMilestoneReference({
-      milestoneNumber: ms.number,
-      milestoneId: ms.id,
-    }).insertContent(' ').run();
-  }, [editor]);
 
   const handleApplySuggestion = useCallback((originalText: string, suggestedText: string) => {
     if (!originalText || !suggestedText || !content) return;
@@ -1543,9 +1381,9 @@ export function DocumentEditor({
           onOpenFigureDialog={() => setIsFigureDialogOpen(true)}
           onOpenFormulaDialog={() => setIsFormulaOpen(true)}
           onOpenCitationDialog={() => setIsCitationOpen(true)}
-          onOpenCrossRefDialog={() => setIsCrossRefOpen(true)}
-          onOpenWPRefDialog={() => setIsWPRefOpen(true)}
-          onOpenParticipantRefDialog={() => setIsParticipantRefOpen(true)}
+          onOpenCrossRefDialog={() => crossRefControlsRef.current?.openCrossRefDialog()}
+          onOpenWPRefDialog={() => crossRefControlsRef.current?.openWPRefDialog()}
+          onOpenParticipantRefDialog={() => crossRefControlsRef.current?.openParticipantRefDialog()}
           isPartB={section && !section.isPartA}
           isReadOnly={isEffectivelyReadOnly}
           hideTableInsert={isB31Section}
@@ -1553,104 +1391,15 @@ export function DocumentEditor({
           b31TableFocus={b31TableFocus}
           onB31AutoResize={b31TableFocus ? handleB31AutoResize : undefined}
           crossRefDropdown={section && !section.isPartA ? (
-            <>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 px-2 gap-1"
-                    disabled={isEffectivelyReadOnly}
-                  >
-                    <Link2 className="w-4 h-4" />
-                    <span className="text-xs">Cross-ref</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-64 bg-popover z-50">
-                  <DropdownMenuItem onClick={() => { setCrossRefFilterType('figure'); setIsCrossRefOpen(true); }} className="flex items-center gap-2">
-                    <span className="w-16 flex justify-start shrink-0"><Image className="w-3.5 h-3.5 text-foreground" /></span>
-                    <span>Figure number</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => { setCrossRefFilterType('table'); setIsCrossRefOpen(true); }} className="flex items-center gap-2">
-                    <span className="w-16 flex justify-start shrink-0"><Table2 className="w-3.5 h-3.5 text-foreground" /></span>
-                    <span>Table number</span>
-                  </DropdownMenuItem>
-                  {acronymSegments && acronymSegments.length > 0 && (
-                    <DropdownMenuItem onClick={handleInsertAcronymRef} className="flex items-center gap-2">
-                      <span className="w-16 flex justify-start shrink-0">
-                        <span style={{ fontFamily: "'Arial Black', Arial, sans-serif", fontWeight: 900, fontSize: '9px', whiteSpace: 'nowrap' }}>
-                          {acronymSegments.map((seg, i) => <span key={i} style={{ color: seg.color }}>{seg.text}</span>)}
-                        </span>
-                      </span>
-                      <span>Acronym</span>
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuItem onClick={() => setIsWPRefOpen(true)} className="flex items-center gap-2">
-                    <span className="w-16 flex justify-start shrink-0">
-                      <WPBubble wpColor="#73C92D" style={{ width: '22px', height: '14px', padding: 0 }}>{' '}</WPBubble>
-                    </span>
-                    <span>Work package</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setIsTaskRefOpen(true)} className="flex items-center gap-2">
-                    <span className="w-16 flex justify-start shrink-0">
-                      <B31Pill variant="outline" color="#73C92D" style={{ width: '22px', height: '14px', padding: 0 }}>{' '}</B31Pill>
-                    </span>
-                    <span>Task</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setIsDeliverableRefOpen(true)} className="flex items-center gap-2">
-                    <span className="w-16 flex justify-start shrink-0">
-                      <span style={{ display: 'inline-block', width: '22px', height: '14px', background: '#73C92D', clipPath: 'polygon(0% 0%, calc(100% - 6px) 0%, 100% 50%, calc(100% - 6px) 100%, 0% 100%)', position: 'relative' }}>
-                        <span style={{ position: 'absolute', inset: '1.5px', right: '2px', background: '#ffffff', clipPath: 'polygon(0% 0%, calc(100% - 5px) 0%, 100% 50%, calc(100% - 5px) 100%, 0% 100%)' }} />
-                      </span>
-                    </span>
-                    <span>Deliverable</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setIsMilestoneRefOpen(true)} className="flex items-center gap-2">
-                    <span className="w-16 flex justify-start shrink-0">
-                      <span style={{ display: 'inline-block', width: '16px', height: '16px', background: '#000', clipPath: 'polygon(100% 0%, 0% 50%, 100% 100%)', margin: '-1px 0' }} />
-                    </span>
-                    <span>Milestone</span>
-                  </DropdownMenuItem>
-                  {hasCases && (
-                  <DropdownMenuItem onClick={() => setIsCaseRefOpen(true)} className="flex items-center gap-2">
-                    <span className="w-16 flex justify-start shrink-0">
-                      <span style={{ display: 'inline-block', width: '22px', height: '14px', border: '1.5px solid #000000', borderRadius: '9999px', background: '#ffffff' }} />
-                    </span>
-                    <span>{caseWord(caseTypes, { capitalize: true })}</span>
-                  </DropdownMenuItem>
-                  )}
-                  <DropdownMenuItem onClick={() => setIsParticipantRefOpen(true)} className="flex items-center gap-2">
-                    <span className="w-16 flex justify-start shrink-0">
-                      <span style={{ display: 'inline-block', width: '22px', height: '14px', backgroundColor: '#000000', border: '1.5px solid #000000', borderRadius: '9999px' }} />
-                    </span>
-                    <span>Participant</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <Separator orientation="vertical" className="h-4 mx-1" />
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsShortcutsOpen(true)} aria-label="Keyboard" title="Keyboard">
-                    <Keyboard className="w-3 h-3" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Keyboard shortcuts</TooltipContent>
-              </Tooltip>
-              <InsertTDMSReferenceDropdowns
-                proposalId={proposalId}
-                disabled={isEffectivelyReadOnly}
-                onInsertTask={handleInsertTaskRef}
-                onInsertDeliverable={handleInsertDeliverableRef}
-                onInsertMilestone={handleInsertMilestoneRef}
-                dialogsOnly
-                openTask={isTaskRefOpen}
-                onOpenTaskChange={setIsTaskRefOpen}
-                openDeliverable={isDeliverableRefOpen}
-                onOpenDeliverableChange={setIsDeliverableRefOpen}
-                openMilestone={isMilestoneRefOpen}
-                onOpenMilestoneChange={setIsMilestoneRefOpen}
-              />
-            </>
+            <PartBCrossRefControls
+              ref={crossRefControlsRef}
+              editor={editor}
+              proposalId={proposalId || ''}
+              sectionNumber={section?.number || ''}
+              disabled={isEffectivelyReadOnly}
+              acronymSegments={acronymSegments}
+              onOpenShortcuts={() => setIsShortcutsOpen(true)}
+            />
           ) : undefined}
         />
       </div>
@@ -2217,32 +1966,6 @@ export function DocumentEditor({
         onClose={() => setIsGuidelinesOpen(false)}
         sectionTitle={`${section?.number || ''} ${section?.title || ''}`}
         guidelines={section?.guidelinesArray || []}
-      />
-      <InsertCrossReferenceDialog
-        isOpen={isCrossRefOpen}
-        onClose={() => { setIsCrossRefOpen(false); setCrossRefFilterType(undefined); }}
-        proposalId={proposalId || ''}
-        sectionNumber={section?.number || ''}
-        onInsert={handleInsertCrossRef}
-        filterType={crossRefFilterType}
-      />
-      <InsertWPReferenceDialog
-        open={isWPRefOpen}
-        onOpenChange={setIsWPRefOpen}
-        proposalId={proposalId || ''}
-        onSelect={handleInsertWPRef}
-      />
-      <InsertParticipantReferenceDialog
-        open={isParticipantRefOpen}
-        onOpenChange={setIsParticipantRefOpen}
-        proposalId={proposalId || ''}
-        onSelect={handleInsertParticipantRef}
-      />
-      <InsertCaseReferenceDialog
-        open={isCaseRefOpen}
-        onOpenChange={setIsCaseRefOpen}
-        proposalId={proposalId || ''}
-        onSelect={handleInsertCaseRef}
       />
       <SectionAssignmentDialog
         open={isAssignmentDialogOpen}
