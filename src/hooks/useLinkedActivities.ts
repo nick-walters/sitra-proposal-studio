@@ -149,7 +149,11 @@ export function useLinkedActivities(proposalId: string) {
     pendingRef.current += 1;
     setSaving(true);
     try {
-      const { error } = await supabase.from(TABLE).update(dbPatch).eq('id', id);
+      const { error } = await supabase
+        .from(TABLE)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .update(dbPatch as any)
+        .eq('id', id);
       if (error) throw error;
       setLastSaved(new Date());
     } finally {
