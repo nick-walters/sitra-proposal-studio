@@ -252,6 +252,7 @@ function SectionItem({
     section.id === 'wp-progress-tracker' ||
     section.id === 'wp-drafts' ||
     section.id === 'milestones-risks' ||
+    section.id === 'methodologies' ||
     section.id === 'proposal-management';
   
   // Note: Guideline icons removed from navigation hover to reduce visual clutter
@@ -346,6 +347,8 @@ function SectionItem({
           ) : section.id === 'wp-drafts' ? (
             <PencilRuler className="w-4 h-4 text-muted-foreground shrink-0" />
           ) : section.id === 'milestones-risks' ? (
+            null
+          ) : section.id === 'methodologies' ? (
             null
           ) : section.id === 'figures' || section.title === 'Figures' ? (
             null
