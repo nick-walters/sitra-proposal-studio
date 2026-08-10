@@ -167,6 +167,8 @@ export default function MethodologiesPage({
 }: MethodologiesPageProps) {
   const { subsections, reorder, updateTitle, setVisible } = useMethodologySubsections(proposalId);
   const [localOrder, setLocalOrder] = useState<string[] | null>(null);
+  const [guidelinesId, setGuidelinesId] = useState<string | null>(null);
+
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
