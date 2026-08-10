@@ -28,12 +28,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -44,11 +38,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { ParticipantBubble } from '@/components/B31Pill';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { MethodologyRichEditor } from '@/components/MethodologyRichEditor';
-import {
-  FUNDING_INSTRUMENTS,
-  getInstrumentAbbreviation,
-  formatDurationShort,
-} from '@/lib/fundingInstruments';
+import { FUNDING_INSTRUMENTS, getInstrumentAbbreviation } from '@/lib/fundingInstruments';
+import { YearRangePicker, formatYearRange } from '@/components/YearRangePicker';
 import { useLinkedActivities, type LinkedActivity } from '@/hooks/useLinkedActivities';
 
 interface ParticipantSummary {
@@ -65,45 +56,9 @@ interface LinkedActivitiesTableProps {
   isCoordinator: boolean;
 }
 
-const GRID = 'grid items-center gap-2 grid-cols-[1.25rem_minmax(6rem,1fr)_minmax(11rem,1.3fr)_minmax(10rem,1fr)_minmax(9rem,1fr)_1.5rem]';
+const GRID = 'grid items-center gap-2 grid-cols-[1.25rem_minmax(7rem,1.3fr)_minmax(11rem,1.3fr)_minmax(7rem,0.7fr)_minmax(11rem,1.4fr)_1.5rem]';
 
-const CURRENT_YEAR = new Date().getFullYear();
-const YEARS = Array.from({ length: CURRENT_YEAR + 10 - 2000 + 1 }, (_, i) => 2000 + i);
 const NONE = '__none__';
-
-function YearSelect({
-  value,
-  onChange,
-  invalid,
-  label,
-}: {
-  value: number | null;
-  onChange: (year: number | null) => void;
-  invalid: boolean;
-  label: string;
-}) {
-  return (
-    <Select
-      value={value == null ? NONE : String(value)}
-      onValueChange={(v) => onChange(v === NONE ? null : Number(v))}
-    >
-      <SelectTrigger
-        aria-label={label}
-        className={`h-8 w-[5.5rem] text-xs ${invalid ? 'border-destructive' : ''}`}
-      >
-        <SelectValue placeholder="—" />
-      </SelectTrigger>
-      <SelectContent className="max-h-64">
-        <SelectItem value={NONE}>—</SelectItem>
-        {YEARS.map((y) => (
-          <SelectItem key={y} value={String(y)}>
-            {y}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
-}
 
 interface RowProps {
   activity: LinkedActivity;
@@ -137,10 +92,6 @@ function SortableActivityRow({
 
   const selected = participants.find((p) => p.id === activity.responsibleParticipantId);
   const isOther = activity.instrumentCode === 'OTHER';
-  const rangeInvalid =
-    activity.durationStart != null &&
-    activity.durationEnd != null &&
-    activity.durationEnd < activity.durationStart;
 
   return (
     <div ref={setNodeRef} style={style} className="space-y-2 rounded-md border border-border p-3">
@@ -213,31 +164,16 @@ function SortableActivityRow({
 
         {/* Duration */}
         {canEdit ? (
-          <TooltipProvider>
-            <Tooltip open={rangeInvalid ? undefined : false}>
-              <TooltipTrigger asChild>
-                <div className="flex items-center gap-1">
-                  <YearSelect
-                    value={activity.durationStart}
-                    invalid={rangeInvalid}
-                    label="Start year"
-                    onChange={(y) => onUpdate(activity.id, { durationStart: y })}
-                  />
-                  <span aria-hidden="true">–</span>
-                  <YearSelect
-                    value={activity.durationEnd}
-                    invalid={rangeInvalid}
-                    label="End year"
-                    onChange={(y) => onUpdate(activity.id, { durationEnd: y })}
-                  />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>The end year is earlier than the start year.</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <YearRangePicker
+            startYear={activity.durationStart}
+            endYear={activity.durationEnd}
+            onChange={(start, end) =>
+              onUpdate(activity.id, { durationStart: start, durationEnd: end })
+            }
+          />
         ) : (
           <span className="truncate text-xs">
-            {formatDurationShort(activity.durationStart, activity.durationEnd) || '—'}
+            {formatYearRange(activity.durationStart, activity.durationEnd) ?? '—'}
           </span>
         )}
 
