@@ -211,6 +211,55 @@ function SortableItemRow({
     </div>
   );
 }
+function SortablePlaceholderRow({
+  item,
+  canEdit,
+  caseTypes,
+}: {
+  item: MethodologyItem;
+  canEdit: boolean;
+  caseTypes: CaseTypeLite[];
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: item.id,
+  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+  };
+  const type = caseTypes.find((t) => t.id === item.caseTypeId);
+  const label = `${getCaseTypeLabel(type?.type_code ?? null, type?.custom_type_name ?? null, {
+    plural: true,
+  })} table`;
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex items-center gap-2 rounded-md border border-dashed border-border bg-muted/40 px-3 py-2"
+    >
+      {canEdit && (
+        <button
+          type="button"
+          className="cursor-grab touch-none text-[#2563EB]"
+          aria-label="Reorder table placeholder"
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className="h-4 w-4" />
+        </button>
+      )}
+      <div className="min-w-0">
+        <div className="truncate text-sm font-medium">{label}</div>
+        <div className="truncate text-xs text-muted-foreground">
+          Content comes from the case drafts. Drag to set where this table appears in B1.2.
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 export default function MethodologyItemsList({
   proposalId,
