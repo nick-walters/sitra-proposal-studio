@@ -23,6 +23,7 @@ import { Badge } from '@/components/ui/badge';
 import { GuidelinesDialog } from '@/components/GuidelinesDialog';
 import { SaveIndicator } from '@/components/SaveIndicator';
 import { MethodologyRichEditor } from '@/components/MethodologyRichEditor';
+import MethodologyItemsList from '@/components/MethodologyItemsList';
 import { getMethodologyGuidelines } from '@/lib/methodologyGuidelines';
 import {
   useMethodologySubsections,
@@ -178,7 +179,13 @@ function SortableMethodologyCard({
           </div>
         </CardHeader>
         <CardContent>
-          {NARRATIVE_KEYS.has(subsection.key) ? (
+          {subsection.key === 'methodologies' ? (
+            <MethodologyItemsList
+              proposalId={proposalId}
+              canEdit={canEdit}
+              isCoordinator={isCoordinator}
+            />
+          ) : NARRATIVE_KEYS.has(subsection.key) ? (
             <MethodologyRichEditor
               proposalId={proposalId}
               value={subsection.contentHtml ?? ''}
