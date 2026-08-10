@@ -531,6 +531,9 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
         result.push(wpAndCasesSection);
       }
 
+      // Methodologies tool page (always shown)
+      result.push(methodologiesSection);
+
       // Add Milestones & risks manager (always shown)
       result.push(milestonesRisksSection);
 
