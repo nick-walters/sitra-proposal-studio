@@ -48,6 +48,7 @@ function SortableMethodologyCard({
   isCoordinator,
   onRename,
   onToggleVisible,
+  onOpenGuidelines,
 }: SortableMethodologyCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: subsection.id,
