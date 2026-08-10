@@ -185,6 +185,12 @@ function SortableMethodologyCard({
               canEdit={canEdit}
               isCoordinator={isCoordinator}
             />
+          ) : subsection.key === 'linked_activities' ? (
+            <LinkedActivitiesTable
+              proposalId={proposalId}
+              canEdit={canEdit}
+              isCoordinator={isCoordinator}
+            />
           ) : NARRATIVE_KEYS.has(subsection.key) ? (
             <MethodologyRichEditor
               proposalId={proposalId}
