@@ -130,6 +130,7 @@ export function useMethodologyItems(proposalId: string) {
       value: string,
       patch: Partial<MethodologyItem>,
     ) => {
+      if (isPlaceholder(id)) return;
       queryClient.setQueryData<MethodologyItem[]>(queryKey, (prev) =>
         (prev || []).map((i) => (i.id === id ? { ...i, ...patch } : i)),
       );
@@ -146,8 +147,10 @@ export function useMethodologyItems(proposalId: string) {
             .update(
               field === 'heading' ? { heading: value } : { content_html: value },
             )
-            .eq('id', id);
+            .eq('id', id)
+            .eq('kind', 'methodology');
           if (error) throw error;
+
           setLastSaved(new Date());
         } finally {
           pendingRef.current -= 1;
