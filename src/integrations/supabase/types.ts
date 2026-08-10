@@ -2142,6 +2142,66 @@ export type Database = {
           },
         ]
       }
+      methodology_linked_activities: {
+        Row: {
+          acronym: string
+          created_at: string
+          duration_end: number | null
+          duration_start: number | null
+          id: string
+          instrument_code: string | null
+          instrument_custom: string | null
+          link_description_html: string | null
+          order_index: number
+          proposal_id: string
+          responsible_participant_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          acronym?: string
+          created_at?: string
+          duration_end?: number | null
+          duration_start?: number | null
+          id?: string
+          instrument_code?: string | null
+          instrument_custom?: string | null
+          link_description_html?: string | null
+          order_index?: number
+          proposal_id: string
+          responsible_participant_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          acronym?: string
+          created_at?: string
+          duration_end?: number | null
+          duration_start?: number | null
+          id?: string
+          instrument_code?: string | null
+          instrument_custom?: string | null
+          link_description_html?: string | null
+          order_index?: number
+          proposal_id?: string
+          responsible_participant_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "methodology_linked_activities_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "methodology_linked_activities_responsible_participant_id_fkey"
+            columns: ["responsible_participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       methodology_subsections: {
         Row: {
           content_html: string | null
