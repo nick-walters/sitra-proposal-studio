@@ -12,9 +12,6 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
-const DELIBERATE_HMR_ERROR = (
-
-
 // Route-level code splitting for heavy / less-frequently visited pages.
 const Dashboard = lazy(() => import("./pages/Dashboard").then(m => ({ default: m.Dashboard })));
 const ProposalEditor = lazy(() => import("./pages/ProposalEditor").then(m => ({ default: m.ProposalEditor })));
