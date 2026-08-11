@@ -213,12 +213,18 @@ function SortableItemRow({
 }
 function SortablePlaceholderRow({
   item,
+  proposalId,
   canEdit,
+  isCoordinator,
   caseTypes,
+  onContentChange,
 }: {
   item: MethodologyItem;
+  proposalId: string;
   canEdit: boolean;
+  isCoordinator: boolean;
   caseTypes: CaseTypeLite[];
+  onContentChange: (id: string, html: string) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id,
@@ -229,36 +235,50 @@ function SortablePlaceholderRow({
     opacity: isDragging ? 0.6 : 1,
   };
   const type = caseTypes.find((t) => t.id === item.caseTypeId);
-  const label = `${getCaseTypeLabel(type?.type_code ?? null, type?.custom_type_name ?? null, {
+  const label = getCaseTypeLabel(type?.type_code ?? null, type?.custom_type_name ?? null, {
     plural: true,
-  })} table`;
+  });
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className="flex items-center gap-2 rounded-md border border-dashed border-border bg-muted/40 px-3 py-2"
+      className="space-y-2 rounded-md border border-dashed border-border bg-muted/40 px-3 py-2"
     >
-      {canEdit && (
-        <button
-          type="button"
-          className="cursor-grab touch-none text-[#2563EB]"
-          aria-label="Reorder table placeholder"
-          {...attributes}
-          {...listeners}
-        >
-          <GripVertical className="h-4 w-4" />
-        </button>
-      )}
-      <div className="min-w-0">
-        <div className="truncate text-sm font-medium">{label}</div>
-        <div className="truncate text-xs text-muted-foreground">
-          Content comes from the case drafts. Drag to set where this table appears in B1.2.
+      <div className="flex items-center gap-2">
+        {canEdit && (
+          <button
+            type="button"
+            className="cursor-grab touch-none text-[#2563EB]"
+            aria-label="Reorder table placeholder"
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
+        )}
+        <div className="min-w-0 flex-1">
+          <span className="font-bold italic">{label}:</span>
         </div>
+      </div>
+
+      <MethodologyRichEditor
+        proposalId={proposalId}
+        value={item.contentHtml ?? ''}
+        onChange={(html) => onContentChange(item.id, html)}
+        canEdit={canEdit}
+        isCoordinator={isCoordinator}
+        minHeight="2.5rem"
+      />
+
+      <div className="text-xs text-muted-foreground">
+        The text written here appears above the {label.toLowerCase()} table in B1.2. The table itself
+        is built from the case drafts. Drag to set where this table appears.
       </div>
     </div>
   );
 }
+
 
 
 export default function MethodologyItemsList({
