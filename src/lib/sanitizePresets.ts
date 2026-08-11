@@ -46,3 +46,33 @@ export const RICH_TEXT_WITH_DIFF_CONFIG = {
     'src', 'alt', 'width', 'height', 'data-diff',
   ],
 };
+
+/**
+ * Read-only rich text that may contain cross-reference badges (participant,
+ * work package, case, task, deliverable, milestone, acronym, figure/table).
+ *
+ * Badges keep their identity in `data-*` attributes; their presentation is
+ * rebuilt from those attributes by `hydrateRefBadges`. Without these attrs
+ * surviving the sanitiser, the badge renders as an unstyled — effectively
+ * blank — span. Only the exact reference attributes are added; the shared
+ * RICH_TEXT_CONFIG is deliberately left untouched.
+ */
+export const CROSS_REF_RICH_TEXT_CONFIG = {
+  ALLOWED_TAGS: [...RICH_TEXT_CONFIG.ALLOWED_TAGS],
+  ALLOWED_ATTR: [
+    ...RICH_TEXT_CONFIG.ALLOWED_ATTR,
+    'data-participant-reference', 'data-participant-id', 'data-participant-number',
+    'data-participant-short-name',
+    'data-wp-reference', 'data-wp-id', 'data-wp-number', 'data-wp-short-name', 'data-wp-color',
+    'data-case-reference', 'data-case-id', 'data-case-number', 'data-case-short-name',
+    'data-case-color', 'data-case-type',
+    'data-task-reference', 'data-task-id', 'data-task-number',
+    'data-deliverable-reference', 'data-deliverable-id', 'data-deliverable-number',
+    'data-deliverable-label', 'data-deliverable-color',
+    'data-milestone-reference', 'data-milestone-id', 'data-milestone-number',
+    'data-inline-reference', 'data-ref-type', 'data-ref-kind',
+    'data-acronym-reference', 'data-acronym-segments',
+    'data-fig-table-ref', 'data-figure-id', 'data-table-key',
+  ],
+};
+

@@ -10,7 +10,8 @@ import {
 } from '@/lib/caseTypeLabels';
 
 import { supabase } from '@/integrations/supabase/client';
-import { RICH_TEXT_CONFIG } from '@/lib/sanitizePresets';
+import { CROSS_REF_RICH_TEXT_CONFIG } from '@/lib/sanitizePresets';
+import { hydrateRefBadges } from '@/lib/hydrateRefBadges';
 import { stripWordHtml } from '@/lib/stripWordHtml';
 import { ParticipantBubble } from './B31Pill';
 
@@ -191,7 +192,7 @@ function ReadOnlyRichBody({ html, headingPrefixHtml }: { html: string | null | u
       return (
         <div
           className="font-['Times_New_Roman',Times,serif] text-[11pt] text-justify [&_p]:mt-[3pt] [&_p]:mb-[3pt] [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-[calc(1.5em-4pt)] [&_ol]:pl-[calc(1.5em-4pt)] [&_li::marker]:text-[0.85em] [&_li]:my-[1pt]"
-          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(`<p>${headingPrefixHtml}</p>`, RICH_TEXT_CONFIG) }}
+          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(`<p>${headingPrefixHtml}</p>`, CROSS_REF_RICH_TEXT_CONFIG) }}
         />
       );
     }
@@ -233,7 +234,7 @@ function ReadOnlyRichBody({ html, headingPrefixHtml }: { html: string | null | u
   return (
     <div
       className="font-['Times_New_Roman',Times,serif] text-[11pt] text-justify [&_p]:mt-[3pt] [&_p]:mb-[3pt] [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-[calc(1.5em-4pt)] [&_ol]:pl-[calc(1.5em-4pt)] [&_li::marker]:text-[0.85em] [&_li]:my-[1pt]"
-      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(finalHtml, RICH_TEXT_CONFIG) }}
+      dangerouslySetInnerHTML={{ __html: hydrateRefBadges(DOMPurify.sanitize(finalHtml, CROSS_REF_RICH_TEXT_CONFIG)) }}
     />
   );
 }
