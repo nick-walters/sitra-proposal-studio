@@ -106,7 +106,6 @@ function buildLegend(activities: ActivityRow[]): string {
 
 export interface B12LinkedActivitiesSlotContentProps {
   proposalId: string;
-  interactive?: boolean;
 }
 
 export function B12LinkedActivitiesSlotContent({
