@@ -156,11 +156,18 @@ export function useLinkedActivities(proposalId: string) {
         .eq('id', id);
       if (error) throw error;
       setLastSaved(new Date());
+    } catch (err) {
+      toast({
+        title: 'Change not saved',
+        description: err instanceof Error ? err.message : 'Please try again.',
+        variant: 'destructive',
+      });
+      queryClient.invalidateQueries({ queryKey });
     } finally {
       pendingRef.current -= 1;
       if (pendingRef.current <= 0) setSaving(false);
     }
-  }, []);
+  }, [queryClient, queryKey]);
 
   /**
    * Optimistically patches the cache in place (never remounts editors), then
