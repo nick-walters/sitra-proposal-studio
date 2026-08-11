@@ -2,6 +2,8 @@ import { useEffect, useRef } from 'react';
 import type { Editor } from '@tiptap/react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { methodologyRunCount } from '@/lib/b12MethodologyRuns';
+
 
 /**
  * B1.2 Methodologies mirror reconciler — stage 5a.
