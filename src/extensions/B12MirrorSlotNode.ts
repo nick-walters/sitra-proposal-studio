@@ -31,7 +31,10 @@ export const DEFAULT_B12_SLOT_KEYS = [
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     b12MirrorSlot: {
-      insertB12MirrorSlot: (attributes: { slotKey: B12SlotKey }) => ReturnType;
+      insertB12MirrorSlot: (attributes: {
+        slotKey: B12SlotKey;
+        runIndex?: number | null;
+      }) => ReturnType;
     };
   }
 }
@@ -52,8 +55,26 @@ export const B12MirrorSlotNode = Node.create({
         renderHTML: (attrs) =>
           attrs.slotKey ? { 'data-b12-slot-key': attrs.slotKey } : {},
       },
+      /**
+       * Index of the methodology run this slot renders (0-based). Only slots
+       * with slotKey 'methodologies' carry it; all others leave it null.
+       */
+      runIndex: {
+        default: null as number | null,
+        parseHTML: (el) => {
+          const raw = el.getAttribute('data-b12-run-index');
+          if (raw == null || raw === '') return null;
+          const n = parseInt(raw, 10);
+          return Number.isFinite(n) ? n : null;
+        },
+        renderHTML: (attrs) =>
+          attrs.runIndex === null || attrs.runIndex === undefined
+            ? {}
+            : { 'data-b12-run-index': String(attrs.runIndex) },
+      },
     };
   },
+
 
   parseHTML() {
     return [{ tag: 'div[data-b12-mirror-slot]' }];
