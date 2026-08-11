@@ -296,20 +296,7 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
   });
 
   // Per-type display flags + outline colour live on proposal_case_types.
-  const { data: caseTypeFlags = [] } = useQuery({
-    queryKey: ['proposal-case-types', proposalId],
-    queryFn: async () => {
-      if (!proposalId) return [];
-      const { data, error } = await supabase
-        .from('proposal_case_types')
-        .select('id, include_number, include_abbreviation, outline_color, type_code, custom_type_name, order_index')
-        .eq('proposal_id', proposalId)
-        .order('order_index');
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!proposalId,
-  });
+  const { data: caseTypeFlags = [] } = useProposalCaseTypesQuery(proposalId);
 
   // cases_enabled flag — drives the WP/case manager title.
   const { data: casesEnabled = false } = useQuery({
