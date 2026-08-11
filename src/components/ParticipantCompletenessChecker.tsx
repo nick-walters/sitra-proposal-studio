@@ -15,6 +15,9 @@ import {
   Globe,
   Mail,
   MapPin,
+  Award,
+  FolderKanban,
+  Table2,
   Loader2,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -74,9 +77,36 @@ export function ParticipantCompletenessChecker({ proposalId }: ParticipantComple
       }
 
       const parts = participants || [];
+      const partIds = parts.map((p: any) => p.id);
       const mems = members || [];
+
+      // Achievements, previous projects and expertise-matrix ticks
+      const [{ data: achievements }, { data: prevProjects }, { data: matrixColumns }] = await Promise.all([
+        supabase.from('participant_achievements').select('participant_id').in('participant_id', partIds) as any,
+        supabase.from('participant_previous_projects').select('participant_id').in('participant_id', partIds) as any,
+        supabase.from('expertise_matrix_columns').select('id, participant_id').eq('proposal_id', proposalId).eq('kind', 'participant') as any,
+      ]);
+
+      const achievementSet = new Set<string>((achievements || []).map((a: any) => a.participant_id));
+      const prevProjectSet = new Set<string>((prevProjects || []).map((r: any) => r.participant_id));
+
+      const columnsByParticipant = new Map<string, string>();
+      (matrixColumns || []).forEach((c: any) => { if (c.participant_id) columnsByParticipant.set(c.participant_id, c.id); });
+      const checkedColumnSet = new Set<string>();
+      const columnIds = Array.from(columnsByParticipant.values());
+      if (columnIds.length > 0) {
+        const { data: cells } = await supabase
+          .from('expertise_matrix_cells')
+          .select('column_id, checked')
+          .in('column_id', columnIds)
+          .eq('checked', true) as any;
+        (cells || []).forEach((c: any) => checkedColumnSet.add(c.column_id));
+      }
+
       setParticipantCount(parts.length);
       const found: CompletionIssue[] = [];
+
+
 
       parts.forEach(p => {
         const name = p.organisation_short_name || p.organisation_name || `Participant ${p.participant_number}`;
@@ -137,6 +167,16 @@ export function ParticipantCompletenessChecker({ proposalId }: ParticipantComple
         const memberCount = mems.filter(m => m.participant_id === p.id).length;
         if (memberCount === 0)
           found.push({ participantNumber: num, participantName: name, field: 'Team', severity: 'warning', message: 'No team members added', icon: <User className="w-3.5 h-3.5" /> });
+
+        if (!achievementSet.has(p.id))
+          found.push({ participantNumber: num, participantName: name, field: 'Achievements', severity: 'warning', message: 'No publications, datasets, software, goods, services or other achievements added', icon: <Award className="w-3.5 h-3.5" /> });
+
+        if (!prevProjectSet.has(p.id))
+          found.push({ participantNumber: num, participantName: name, field: 'Previous projects', severity: 'warning', message: 'No relevant previous projects or activities added', icon: <FolderKanban className="w-3.5 h-3.5" /> });
+
+        const matrixColumnId = columnsByParticipant.get(p.id);
+        if (!matrixColumnId || !checkedColumnSet.has(matrixColumnId))
+          found.push({ participantNumber: num, participantName: name, field: 'Capacity matrix', severity: 'warning', message: 'No expertise ticked in the Capacity of participants & consortium table', icon: <Table2 className="w-3.5 h-3.5" /> });
       });
 
       const severityRank = { error: 0, warning: 1, info: 2 } as const;
@@ -175,7 +215,7 @@ export function ParticipantCompletenessChecker({ proposalId }: ParticipantComple
 
   const completionPercentage = useMemo(() => {
     if (participantCount === 0) return 100;
-    const totalChecks = participantCount * 8;
+    const totalChecks = participantCount * 11;
     const passed = totalChecks - issues.length;
     return Math.max(0, Math.round((passed / totalChecks) * 100));
   }, [participantCount, issues]);
