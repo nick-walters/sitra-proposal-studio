@@ -24,6 +24,9 @@
   // input reaches the parser, so not exploitable. No patched version exists
   // (every published image-size release is in the affected range; npm's only
   // "fix" is a breaking downgrade to pptxgenjs 1.1.5, itself vulnerable).
+  // Re-checked 11th August 2026: pptxgenjs 4.0.1 is the latest release and
+  // still resolves image-size 1.2.1; advisory range is still "<= 2.0.2" with
+  // no first_patched_version, i.e. every published release remains affected.
   // RE-EVALUATE IF: pptxgenjs is ever fed user-uploaded/untrusted images, or a
   // patched image-size ships (then remove these entries and upgrade).
   "allowlist": ["GHSA-w3rx-r6r6-pgpr", "GHSA-5p2g-fcmc-qvqq"]
