@@ -106,7 +106,7 @@ export function useB12MethodologyMirrorsReconciler({
 }
 
 
-function reconcile(editor: Editor, rows: Row[]) {
+function reconcile(editor: Editor, rows: Row[], methodologyRuns = 1) {
   const doc = editor.state.doc;
   if (doc.content.size <= 2) return;
 
@@ -120,6 +120,7 @@ function reconcile(editor: Editor, rows: Row[]) {
   // which are NOT immediately followed by a b12MirrorSlot node.
   if (cleanupOrphanHeadings(editor, rows)) return;
 
+  const runCount = Math.max(1, methodologyRuns);
 
   const desired = rows
     .filter((r) => r.is_visible)
@@ -127,12 +128,16 @@ function reconcile(editor: Editor, rows: Row[]) {
     .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
   const titleByKey = new Map(desired.map((r) => [r.key, r.title]));
 
+  /** Slot identity: methodologies slots are (key, runIndex) pairs. */
+  const slotId = (key: string, runIndex: number | null) =>
+    key === 'methodologies' ? `${key}#${runIndex ?? ''}` : key;
+
   type Hit = { pos: number; size: number; node: any };
   const headingByKey = new Map<string, Hit>();
-  const slotByKey = new Map<string, Hit>();
+  const slotById = new Map<string, Hit>();
   const removals: { pos: number; size: number }[] = [];
   const managedPositions: number[] = [];
-  const docOrder: { key: string; kind: 'heading' | 'slot'; pos: number }[] = [];
+  const docOrder: { id: string; kind: 'heading' | 'slot'; pos: number }[] = [];
 
   doc.descendants((node, pos) => {
     if (node.type?.name === 'heading') {
@@ -143,33 +148,46 @@ function reconcile(editor: Editor, rows: Row[]) {
           removals.push({ pos, size: node.nodeSize });
         } else {
           headingByKey.set(key, { pos, size: node.nodeSize, node });
-          docOrder.push({ key, kind: 'heading', pos });
+          docOrder.push({ id: key, kind: 'heading', pos });
         }
       }
       return false;
     }
     if (node.type?.name === 'b12MirrorSlot') {
       const key = (node.attrs?.slotKey as string | null) || null;
+      const runIndex =
+        typeof node.attrs?.runIndex === 'number' ? (node.attrs.runIndex as number) : null;
       managedPositions.push(pos);
-      if (!key || !titleByKey.has(key) || slotByKey.has(key)) {
+      const id = key ? slotId(key, runIndex) : '';
+      const outOfRange =
+        key === 'methodologies' && (runIndex === null || runIndex < 0 || runIndex >= runCount);
+      if (!key || !titleByKey.has(key) || slotById.has(id) || outOfRange) {
         removals.push({ pos, size: node.nodeSize });
       } else {
-        slotByKey.set(key, { pos, size: node.nodeSize, node });
-        docOrder.push({ key, kind: 'slot', pos });
+        slotById.set(id, { pos, size: node.nodeSize, node });
+        docOrder.push({ id, kind: 'slot', pos });
       }
       return false;
     }
     return true;
   });
 
-  // Is the surviving managed sequence exactly heading/slot pairs in order?
+  // Is the surviving managed sequence exactly the expected heading/slot(s)?
   const expectedSeq: string[] = [];
-  for (const r of desired) expectedSeq.push(`${r.key}:heading`, `${r.key}:slot`);
+  for (const r of desired) {
+    expectedSeq.push(`${r.key}:heading`);
+    if (r.key === 'methodologies') {
+      for (let i = 0; i < runCount; i++) expectedSeq.push(`${slotId(r.key, i)}:slot`);
+    } else {
+      expectedSeq.push(`${r.key}:slot`);
+    }
+  }
   const actualSeq = docOrder
     .slice()
     .sort((a, b) => a.pos - b.pos)
-    .map((e) => `${e.key}:${e.kind}`);
+    .map((e) => `${e.id}:${e.kind}`);
   const needsRebuild = expectedSeq.join('|') !== actualSeq.join('|');
+
 
   if (!needsRebuild) {
     // Only heading-text refreshes may be needed.
