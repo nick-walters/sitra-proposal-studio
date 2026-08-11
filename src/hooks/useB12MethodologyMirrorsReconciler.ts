@@ -257,9 +257,18 @@ function reconcile(editor: Editor, rows: Row[], methodologyRuns = 1) {
         },
         r.title ? schema.text(r.title) : undefined,
       ),
-      slotType.create({ slotKey: r.key }),
     );
+    if (r.key === 'methodologies') {
+      // One slot per run of consecutive methodology items, contiguous for now
+      // (the cases tables are placed between them in a later stage).
+      for (let i = 0; i < runCount; i++) {
+        nodes.push(slotType.create({ slotKey: r.key, runIndex: i }));
+      }
+    } else {
+      nodes.push(slotType.create({ slotKey: r.key, runIndex: null }));
+    }
   }
+
   let at = anchor;
   for (const n of nodes) {
     tr = tr.insert(at, n);
