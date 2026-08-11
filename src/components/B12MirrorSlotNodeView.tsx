@@ -95,8 +95,10 @@ export function B12MirrorSlotLiveView({
   const { data: subsections = [] } = useMethodologySubsectionsMirror(proposalId);
   const row = slotKey ? subsections.find((s) => s.key === slotKey) : undefined;
 
-  const isPlaceholder = !!slotKey && PLACEHOLDER_SLOTS.includes(slotKey);
   const html = row?.contentHtml ? sanitizeEditorHtml(row.contentHtml) : '';
+
+  const isMethodologies = slotKey === 'methodologies';
+  const isLinkedActivities = slotKey === 'linked_activities';
 
   return (
     <div
@@ -105,10 +107,10 @@ export function B12MirrorSlotLiveView({
       style={{ userSelect: 'text' }}
     >
       {interactive && proposalId ? <EditOnMethodologiesLink proposalId={proposalId} /> : null}
-      {isPlaceholder ? (
-        <p className="text-muted-foreground italic text-sm">
-          Mirrored content added in the next step.
-        </p>
+      {isMethodologies ? (
+        <B12MethodologiesSlotContent proposalId={proposalId} interactive={interactive} />
+      ) : isLinkedActivities ? (
+        <B12LinkedActivitiesSlotContent proposalId={proposalId} interactive={interactive} />
       ) : html ? (
         <div className="ProseMirror-mirrored" dangerouslySetInnerHTML={{ __html: html }} />
       ) : (
@@ -118,6 +120,7 @@ export function B12MirrorSlotLiveView({
       )}
     </div>
   );
+
 }
 
 export function B12MirrorSlotNodeView(props: NodeViewProps) {
