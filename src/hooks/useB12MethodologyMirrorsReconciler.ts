@@ -243,10 +243,24 @@ function reconcile(editor: Editor, rows: Row[]) {
  * Returns true when a cleanup transaction was dispatched (the caller then
  * defers the rest of the reconcile to the next pass).
  */
+function normaliseTitle(raw: string): string {
+  // Decode HTML entities (stored orphans carry "&amp;") and normalise whitespace.
+  let s = raw ?? '';
+  if (s.includes('&')) {
+    const el = typeof document !== 'undefined' ? document.createElement('textarea') : null;
+    if (el) {
+      el.innerHTML = s;
+      s = el.value;
+    }
+  }
+  return s.replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
 function cleanupOrphanHeadings(editor: Editor, rows: Row[]): boolean {
   const doc = editor.state.doc;
+  // Match against the CURRENT title of every subsection — visible or hidden.
   const titles = new Set(
-    rows.filter((r) => r.is_visible).map((r) => (r.title || '').trim()).filter(Boolean),
+    rows.map((r) => normaliseTitle(r.title || '')).filter(Boolean),
   );
   if (titles.size === 0) return false;
 
@@ -254,10 +268,12 @@ function cleanupOrphanHeadings(editor: Editor, rows: Row[]): boolean {
   doc.forEach((node, offset) => top.push({ node, pos: offset }));
 
   const removals: { pos: number; size: number }[] = [];
+  let orphanHeadings = 0;
+  let emptyParagraphs = 0;
   for (let i = 0; i < top.length; i++) {
     const { node, pos } = top[i];
     if (node.type?.name !== 'heading' || node.attrs?.level !== 3) continue;
-    const text = (node.textContent || '').trim();
+    const text = normaliseTitle(node.textContent || '');
     if (!titles.has(text)) continue;
 
     const next = top[i + 1];
@@ -265,6 +281,7 @@ function cleanupOrphanHeadings(editor: Editor, rows: Row[]): boolean {
     if (next && next.node.type?.name === 'b12MirrorSlot') continue;
 
     removals.push({ pos, size: node.nodeSize });
+    orphanHeadings += 1;
 
     // Also drop a trailing empty paragraph that belonged to the orphan.
     if (
@@ -274,15 +291,19 @@ function cleanupOrphanHeadings(editor: Editor, rows: Row[]): boolean {
       next.node.childCount === 0
     ) {
       removals.push({ pos: next.pos, size: next.node.nodeSize });
+      emptyParagraphs += 1;
       i += 1;
     }
   }
 
   if (removals.length === 0) return false;
-  if (removals.length > 20) {
+  if (removals.length > 60) {
     console.warn('[b12-mirror] refusing bulk removal', removals.length);
+    console.info('[b12-mirror] cleanup', { orphanHeadings, emptyParagraphs, removed: false });
     return false;
   }
+  console.info('[b12-mirror] cleanup', { orphanHeadings, emptyParagraphs, removed: true });
+
 
   let tr = editor.state.tr;
   removals.sort((a, b) => b.pos - a.pos);
