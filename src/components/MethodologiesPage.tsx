@@ -314,46 +314,54 @@ export default function MethodologiesPage({
   };
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-4 p-6">
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-1">
-        <h1 className="text-xl font-bold text-foreground">Methodologies</h1>
-        <p className="text-sm text-muted-foreground">
-          Content written here is mirrored into Part B section B1.2.
-        </p>
-        </div>
-        <SaveIndicator saving={saving} lastSaved={lastSaved} />
-      </div>
-
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={visible.map((s) => s.id)} strategy={verticalListSortingStrategy}>
-          <div className="space-y-3">
-            {visible.map((s) => (
-              <SortableMethodologyCard
-                key={s.id}
-                subsection={s}
-                proposalId={proposalId}
-                canEdit={canEdit}
-                isCoordinator={isCoordinator}
-                onContentChange={updateContent}
-                onRename={handleRename}
-                onToggleVisible={handleToggleVisible}
-                onOpenGuidelines={setGuidelinesId}
-              />
-            ))}
+    <MethodologyEditorFocusProvider>
+      <div className="mx-auto w-full max-w-4xl space-y-4 p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-1">
+            <h1 className="text-xl font-bold text-foreground">Methodologies</h1>
+            <p className="text-sm text-muted-foreground">
+              Content written here is mirrored into Part B section B1.2.
+            </p>
           </div>
-        </SortableContext>
-      </DndContext>
+          <SaveIndicator saving={saving} lastSaved={lastSaved} />
+        </div>
 
-      {guidelinesSubsection && (
-        <GuidelinesDialog
-          isOpen
-          onClose={() => setGuidelinesId(null)}
-          sectionTitle={guidelinesSubsection.title}
-          guidelines={getMethodologyGuidelines(guidelinesSubsection.key)}
+        <MethodologiesToolbar
+          proposalId={proposalId}
+          canEdit={canEdit}
+          isCoordinator={isCoordinator}
         />
-      )}
-    </div>
+
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={visible.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+            <div className="space-y-3">
+              {visible.map((s) => (
+                <SortableMethodologyCard
+                  key={s.id}
+                  subsection={s}
+                  proposalId={proposalId}
+                  canEdit={canEdit}
+                  isCoordinator={isCoordinator}
+                  onContentChange={updateContent}
+                  onRename={handleRename}
+                  onToggleVisible={handleToggleVisible}
+                  onOpenGuidelines={setGuidelinesId}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+
+        {guidelinesSubsection && (
+          <GuidelinesDialog
+            isOpen
+            onClose={() => setGuidelinesId(null)}
+            sectionTitle={guidelinesSubsection.title}
+            guidelines={getMethodologyGuidelines(guidelinesSubsection.key)}
+          />
+        )}
+      </div>
+    </MethodologyEditorFocusProvider>
   );
 }
 
