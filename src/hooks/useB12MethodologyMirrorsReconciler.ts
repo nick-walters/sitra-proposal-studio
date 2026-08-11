@@ -3,6 +3,8 @@ import type { Editor } from '@tiptap/react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { methodologyRunCount, METHODOLOGY_PLACEHOLDER_KIND } from '@/lib/b12MethodologyRuns';
+import { useMethodologyItemsQuery } from '@/hooks/useMethodologyItems';
+
 
 
 /**

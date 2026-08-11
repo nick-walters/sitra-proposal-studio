@@ -15,39 +15,8 @@ import { getCaseTypeLabel } from '@/lib/caseTypeLabels';
  * label, so it labels the cases table beneath.
  */
 
-interface MethodologyItemRow {
-  id: string;
-  kind: string;
-  caseTypeId: string | null;
-  heading: string;
-  contentHtml: string | null;
-  orderIndex: number;
-}
+import { useMethodologyItemsQuery } from '@/hooks/useMethodologyItems';
 
-/** Same query key as the Methodologies page, so edits propagate live. */
-function useMethodologyItemsMirror(proposalId: string) {
-  return useQuery({
-    queryKey: ['methodology-items', proposalId],
-    enabled: !!proposalId,
-    queryFn: async (): Promise<MethodologyItemRow[]> => {
-      if (!proposalId) return [];
-      const { data, error } = await supabase
-        .from('methodology_items')
-        .select('id, proposal_id, kind, case_type_id, heading, content_html, assigned_participant_id, order_index')
-        .eq('proposal_id', proposalId)
-        .order('order_index');
-      if (error) throw error;
-      return (data || []).map((r) => ({
-        id: r.id,
-        kind: r.kind,
-        caseTypeId: r.case_type_id,
-        heading: r.heading,
-        contentHtml: r.content_html,
-        orderIndex: r.order_index,
-      }));
-    },
-  });
-}
 
 interface CaseTypeRow {
   id: string;
