@@ -15,39 +15,8 @@ import { getCaseTypeLabel } from '@/lib/caseTypeLabels';
  * label, so it labels the cases table beneath.
  */
 
-interface MethodologyItemRow {
-  id: string;
-  kind: string;
-  caseTypeId: string | null;
-  heading: string;
-  contentHtml: string | null;
-  orderIndex: number;
-}
+import { useMethodologyItemsQuery } from '@/hooks/useMethodologyItems';
 
-/** Same query key as the Methodologies page, so edits propagate live. */
-function useMethodologyItemsMirror(proposalId: string) {
-  return useQuery({
-    queryKey: ['methodology-items', proposalId],
-    enabled: !!proposalId,
-    queryFn: async (): Promise<MethodologyItemRow[]> => {
-      if (!proposalId) return [];
-      const { data, error } = await supabase
-        .from('methodology_items')
-        .select('id, proposal_id, kind, case_type_id, heading, content_html, assigned_participant_id, order_index')
-        .eq('proposal_id', proposalId)
-        .order('order_index');
-      if (error) throw error;
-      return (data || []).map((r) => ({
-        id: r.id,
-        kind: r.kind,
-        caseTypeId: r.case_type_id,
-        heading: r.heading,
-        contentHtml: r.content_html,
-        orderIndex: r.order_index,
-      }));
-    },
-  });
-}
 
 interface CaseTypeRow {
   id: string;
@@ -145,7 +114,7 @@ export function B12MethodologiesSlotContent({
   proposalId,
   runIndex = 0,
 }: B12MethodologiesSlotContentProps) {
-  const { data: items = [] } = useMethodologyItemsMirror(proposalId);
+  const { data: items = [] } = useMethodologyItemsQuery(proposalId);
   const { data: caseTypes = [] } = useCaseTypesMirror(proposalId);
 
   const runs = splitMethodologyRunsWithPlaceholder(items);
@@ -156,52 +125,20 @@ export function B12MethodologiesSlotContent({
     .filter((b) => b.html);
 
   const placeholder = run.placeholder;
-  let matchedType: CaseTypeRow | null = null;
-  let resolvedLabel: string | null = null;
-  let placeholderHtml: string | null = null;
   if (placeholder) {
     const type = caseTypes.find((t) => t.id === placeholder.caseTypeId) ?? null;
-    matchedType = type;
     if (type) {
       const label = getCaseTypeLabel(type.type_code, type.custom_type_name, { plural: true });
-      resolvedLabel = label;
       // Heading is derived and always rendered — it labels the table beneath.
       const html = buildItemHtml(label, placeholder.contentHtml);
-      placeholderHtml = html;
       if (html) blocks.push({ id: placeholder.id, html });
     }
   }
 
-  // TEMPORARY ON-SCREEN DIAGNOSTIC — remove after diagnosis.
-  const debugBlock = (
-    <div
-      className="print:hidden font-mono text-[10px] leading-[1.35] bg-amber-100 text-amber-950 border border-amber-400 rounded p-2 my-2 whitespace-pre-wrap"
-      data-b12-debug=""
-    >
-      {[
-        `DEBUG b12-methodologies`,
-        `runIndex received: ${String(runIndex)} (${runIndex === null ? 'null' : runIndex === undefined ? 'undefined' : typeof runIndex})`,
-        `items.length: ${items.length} | kinds: [${items.map((i) => i.kind).join(', ')}]`,
-        `caseTypes.length: ${caseTypes.length} | ${caseTypes.map((t) => `${t.id.slice(0, 8)}:${t.type_code ?? 'null'}`).join(' , ')}`,
-        `runs computed: ${runs.length}`,
-        `this run: items=${run.items.length} placeholderIsNull=${!placeholder}`,
-        placeholder
-          ? `placeholder.caseTypeId: ${placeholder.caseTypeId ?? 'null'} | matched: ${!!matchedType} | label: ${resolvedLabel ?? '(none)'}`
-          : `placeholder: none for this run`,
-        placeholder
-          ? `content_html length: ${(placeholder.contentHtml ?? '').length} | isBlank: ${isBlank(placeholder.contentHtml)}`
-          : ``,
-        `blocks.length: ${blocks.length}`,
-        placeholderHtml ? `placeholder html[0..80]: ${placeholderHtml.slice(0, 80)}` : `placeholder html: (none)`,
-      ]
-        .filter(Boolean)
-        .join('\n')}
-    </div>
-  );
+  if (!blocks.length) return null;
 
   return (
     <div data-b12-methodologies-mirror="">
-      {debugBlock}
       {blocks.map((b) => (
         <div
           key={b.id}
@@ -213,6 +150,7 @@ export function B12MethodologiesSlotContent({
     </div>
   );
 }
+
 
 
 export default B12MethodologiesSlotContent;
