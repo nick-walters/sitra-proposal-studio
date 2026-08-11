@@ -62,16 +62,32 @@ export function useB12MethodologyMirrorsReconciler({
     },
   });
 
+  /** Same query key as the mirror content + Methodologies page: live updates. */
+  const { data: items } = useQuery({
+    queryKey: ['methodology-items', proposalId],
+    enabled: active,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('methodology_items')
+        .select('id, proposal_id, kind, case_type_id, heading, content_html, assigned_participant_id, order_index')
+        .eq('proposal_id', proposalId as string)
+        .order('order_index');
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!active || !editor || !rows) return;
+    const runCount = methodologyRunCount((items ?? []) as { kind: string }[]);
     const schedule = () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
         try {
           if (!editor || editor.isDestroyed || !editor.schema) return;
-          reconcile(editor, rows);
+          reconcile(editor, rows, runCount);
         } catch {
           // best-effort — never throw out of an effect
         }
@@ -86,8 +102,9 @@ export function useB12MethodologyMirrorsReconciler({
         debounceRef.current = null;
       }
     };
-  }, [active, editor, rows]);
+  }, [active, editor, rows, items]);
 }
+
 
 function reconcile(editor: Editor, rows: Row[]) {
   const doc = editor.state.doc;
