@@ -165,7 +165,6 @@ export function B12LinkedActivitiesSlotContent({
                 <td className="align-top cell-pl-0 py-0 leading-tight text-[11pt]">
                   {participant ? (
                     <ParticipantBubble
-                      number={participant.participant_number}
                       shortName={
                         participant.organisation_short_name ||
                         participant.organisation_name ||
