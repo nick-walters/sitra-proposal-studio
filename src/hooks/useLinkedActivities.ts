@@ -158,10 +158,8 @@ export function useLinkedActivities(proposalId: string) {
       if (error) throw error;
       setLastSaved(new Date());
     } catch (err) {
-      toast({
-        title: 'Change not saved',
+      toast.error('Change not saved', {
         description: err instanceof Error ? err.message : 'Please try again.',
-        variant: 'destructive',
       });
       queryClient.invalidateQueries({ queryKey });
     } finally {
