@@ -95,7 +95,10 @@ export const B12MirrorSlotNode = Node.create({
         ({ commands }) =>
           commands.insertContent({
             type: this.name,
-            attrs: { slotKey: attributes.slotKey },
+            attrs: {
+              slotKey: attributes.slotKey,
+              runIndex: attributes.runIndex ?? null,
+            },
           }),
     };
   },
@@ -103,12 +106,25 @@ export const B12MirrorSlotNode = Node.create({
   addProseMirrorPlugins() {
     const nodeName = this.name;
 
+    /**
+     * Identity of a slot for guard purposes: methodologies slots are compared
+     * by the (slotKey, runIndex) PAIR so that adding/removing a run is seen
+     * correctly, while other slots are compared by slotKey alone.
+     */
+    const slotIdentity = (node: PMNode): string => {
+      const key = String(node.attrs.slotKey ?? '');
+      if (key === 'methodologies') {
+        return `${key}#${node.attrs.runIndex ?? ''}`;
+      }
+      return key;
+    };
+
     const collectSlotKeys = (doc: PMNode): Map<string, number> => {
       const counts = new Map<string, number>();
       doc.descendants((node) => {
         if (node.type.name === nodeName) {
-          const key = String(node.attrs.slotKey ?? '');
-          counts.set(key, (counts.get(key) ?? 0) + 1);
+          const id = slotIdentity(node);
+          counts.set(id, (counts.get(id) ?? 0) + 1);
           return false;
         }
         return true;
@@ -134,6 +150,10 @@ export const B12MirrorSlotNode = Node.create({
           }
           return true;
         },
+      }),
+    ];
+  },
+
       }),
     ];
   },
