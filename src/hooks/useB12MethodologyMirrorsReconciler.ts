@@ -208,7 +208,13 @@ function reconcile(
         updates.push({ pos: hit.pos, node: hit.node, text: title });
       }
     }
-    if (updates.length === 0 && removals.length === 0) return;
+    if (updates.length === 0 && removals.length === 0) {
+      // Structure is settled — only then do we move the cases tables into
+      // their placeholder positions.
+      placeCasesTables(editor, placeholderTypeIds);
+      return;
+    }
+
 
     let tr = editor.state.tr;
     for (const u of updates) {
