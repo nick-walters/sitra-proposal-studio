@@ -1,5 +1,6 @@
 import { Node, Extension, mergeAttributes } from '@tiptap/core';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
+import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import type { Node as PMNode } from '@tiptap/pm/model';
 import { ReactNodeViewRenderer } from '@tiptap/react';
 import { B12MirrorSlotNodeView } from '@/components/B12MirrorSlotNodeView';
@@ -141,6 +142,69 @@ export const B12HeadingSubsectionKey = Extension.create({
       },
     ];
   },
+
+  addProseMirrorPlugins() {
+    /** Map of subsection key -> concatenated text content of managed headings. */
+    const collectManagedHeadings = (doc: PMNode): Map<string, string> => {
+      const map = new Map<string, string>();
+      doc.descendants((node) => {
+        if (node.type.name === 'heading') {
+          const key = node.attrs?.['data-b12-subsection-key'];
+          if (typeof key === 'string' && key.length > 0) {
+            // Multiple headings sharing a key are concatenated, so removing one
+            // of them still registers as a change.
+            map.set(key, (map.get(key) ?? '') + '\u0000' + node.textContent);
+          }
+          return false;
+        }
+        return true;
+      });
+      return map;
+    };
+
+    return [
+      new Plugin({
+        key: new PluginKey('b12ManagedHeadingGuard'),
+        props: {
+          decorations: (state) => {
+            const decos: Decoration[] = [];
+            state.doc.descendants((node, pos) => {
+              if (node.type.name === 'heading') {
+                const key = node.attrs?.['data-b12-subsection-key'];
+                if (typeof key === 'string' && key.length > 0) {
+                  decos.push(
+                    Decoration.node(pos, pos + node.nodeSize, {
+                      contenteditable: 'false',
+                      class: 'b12-managed-heading',
+                    }),
+                  );
+                }
+                return false;
+              }
+              return true;
+            });
+            return decos.length ? DecorationSet.create(state.doc, decos) : DecorationSet.empty;
+          },
+        },
+        filterTransaction: (tr) => {
+          if (!tr.docChanged) return true;
+          if (tr.getMeta('b12MirrorManaged')) return true;
+
+          const before = collectManagedHeadings(tr.before);
+          if (before.size === 0) return true;
+          const after = collectManagedHeadings(tr.doc);
+
+          for (const [key, text] of before) {
+            // Covers edits, deletions and merges: a removed heading yields
+            // undefined, a merged/typed-over one yields different text.
+            if (after.get(key) !== text) return false;
+          }
+          return true;
+        },
+      }),
+    ];
+  },
 });
+
 
 export default B12MirrorSlotNode;
