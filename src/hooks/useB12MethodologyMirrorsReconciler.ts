@@ -62,30 +62,19 @@ export function useB12MethodologyMirrorsReconciler({
     },
   });
 
-  /** Same query key as the mirror content + Methodologies page: live updates. */
-  const { data: items } = useQuery({
-    queryKey: ['methodology-items', proposalId],
-    enabled: active,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('methodology_items')
-        .select('id, proposal_id, kind, case_type_id, heading, content_html, assigned_participant_id, order_index')
-        .eq('proposal_id', proposalId as string)
-        .order('order_index');
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
+  /** Canonical shared query (camelCase rows) — same key as the Methodologies page. */
+  const { data: items } = useMethodologyItemsQuery(proposalId, { enabled: active });
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!active || !editor || !rows) return;
-    const ordered = (items ?? []) as { kind: string; case_type_id: string | null }[];
+    const ordered = items ?? [];
     const runCount = methodologyRunCount(ordered);
     const placeholderTypeIds = ordered
       .filter((i) => i.kind === METHODOLOGY_PLACEHOLDER_KIND)
-      .map((i) => i.case_type_id ?? null);
+      .map((i) => i.caseTypeId ?? null);
+
     const schedule = () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
