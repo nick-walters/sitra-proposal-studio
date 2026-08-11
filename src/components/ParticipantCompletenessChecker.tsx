@@ -164,6 +164,16 @@ export function ParticipantCompletenessChecker({ proposalId }: ParticipantComple
         const memberCount = mems.filter(m => m.participant_id === p.id).length;
         if (memberCount === 0)
           found.push({ participantNumber: num, participantName: name, field: 'Team', severity: 'warning', message: 'No team members added', icon: <User className="w-3.5 h-3.5" /> });
+
+        if (!achievementSet.has(p.id))
+          found.push({ participantNumber: num, participantName: name, field: 'Achievements', severity: 'warning', message: 'No publications, datasets, software, goods, services or other achievements added', icon: <Award className="w-3.5 h-3.5" /> });
+
+        if (!prevProjectSet.has(p.id))
+          found.push({ participantNumber: num, participantName: name, field: 'Previous projects', severity: 'warning', message: 'No relevant previous projects or activities added', icon: <FolderKanban className="w-3.5 h-3.5" /> });
+
+        const matrixColumnId = columnsByParticipant.get(p.id);
+        if (!matrixColumnId || !checkedColumnSet.has(matrixColumnId))
+          found.push({ participantNumber: num, participantName: name, field: 'Capacity matrix', severity: 'warning', message: 'No expertise ticked in the Capacity of participants & consortium table', icon: <Table2 className="w-3.5 h-3.5" /> });
       });
 
       const severityRank = { error: 0, warning: 1, info: 2 } as const;
