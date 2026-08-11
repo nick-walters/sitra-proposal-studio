@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { sanitizeEditorHtml } from '@/lib/editorContentSanitizer';
+import { splitMethodologyRuns } from '@/lib/b12MethodologyRuns';
+
 
 /**
  * B1.2 mirror — 'methodologies' slot.
