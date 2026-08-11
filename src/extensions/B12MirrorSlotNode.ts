@@ -1,4 +1,6 @@
 import { Node, Extension, mergeAttributes } from '@tiptap/core';
+import { Plugin, PluginKey } from '@tiptap/pm/state';
+import type { Node as PMNode } from '@tiptap/pm/model';
 import { ReactNodeViewRenderer } from '@tiptap/react';
 import { B12MirrorSlotNodeView } from '@/components/B12MirrorSlotNodeView';
 
