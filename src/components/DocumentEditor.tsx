@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useB12CasesTableReconciler } from "@/hooks/useB12CasesTableReconciler";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useB32MirrorsReconciler } from "@/hooks/useB32MirrorsReconciler";
+import { useB12MethodologyMirrorsReconciler } from "@/hooks/useB12MethodologyMirrorsReconciler";
 import { useOverviewCanvasSlotReconciler } from "@/hooks/useOverviewCanvasSlotReconciler";
 import { useOverviewCanvasEnabled } from "@/hooks/useImpactCanvas";
 import { useB32HiddenHeadings } from "@/hooks/useB32HiddenHeadings";
@@ -470,6 +471,15 @@ export function DocumentEditor({
     proposalId,
     sectionNumber: section?.number,
     isReady: !loading,
+  });
+
+  // Stage 5a — mirror the Methodologies subsections into B1.2.
+  useB12MethodologyMirrorsReconciler({
+    editor,
+    proposalId,
+    sectionNumber: section?.number,
+    isReady: !loading,
+    readOnly: isEffectivelyReadOnly,
   });
 
   // Stage 3a — auto-insert/remove one b32MirrorSlot per slot key (B3.2 only).

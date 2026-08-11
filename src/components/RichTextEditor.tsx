@@ -32,6 +32,7 @@ import { WPReferenceNode } from '@/extensions/WPReferenceNode';
 import { CaseReferenceNode } from '@/extensions/CaseReferenceNode';
 import { CasesTableNode } from '@/extensions/CasesTableNode';
 import { B32MirrorSlotNode } from '@/extensions/B32MirrorSlotNode';
+import { B12MirrorSlotNode, B12HeadingSubsectionKey } from '@/extensions/B12MirrorSlotNode';
 import { OverviewCanvasSlotNode } from '@/extensions/OverviewCanvasSlotNode';
 
 import { ParticipantReferenceNode } from '@/extensions/ParticipantReferenceNode';
@@ -1328,6 +1329,8 @@ StarterKit.configure({
       ParticipantReferenceNode,
       CasesTableNode,
       B32MirrorSlotNode,
+      B12MirrorSlotNode,
+      B12HeadingSubsectionKey,
       OverviewCanvasSlotNode,
       AcronymReference,
       FigureTableReferenceMark,
@@ -1573,6 +1576,8 @@ StarterKit.configure({
       CasesTableNode,
       // B3.2 mirror slot block node
       B32MirrorSlotNode,
+      B12MirrorSlotNode,
+      B12HeadingSubsectionKey,
       OverviewCanvasSlotNode,
       
       // Acronym reference for colored acronym insertion
