@@ -31,7 +31,10 @@ export const DEFAULT_B12_SLOT_KEYS = [
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     b12MirrorSlot: {
-      insertB12MirrorSlot: (attributes: { slotKey: B12SlotKey }) => ReturnType;
+      insertB12MirrorSlot: (attributes: {
+        slotKey: B12SlotKey;
+        runIndex?: number | null;
+      }) => ReturnType;
     };
   }
 }
@@ -52,8 +55,26 @@ export const B12MirrorSlotNode = Node.create({
         renderHTML: (attrs) =>
           attrs.slotKey ? { 'data-b12-slot-key': attrs.slotKey } : {},
       },
+      /**
+       * Index of the methodology run this slot renders (0-based). Only slots
+       * with slotKey 'methodologies' carry it; all others leave it null.
+       */
+      runIndex: {
+        default: null as number | null,
+        parseHTML: (el) => {
+          const raw = el.getAttribute('data-b12-run-index');
+          if (raw == null || raw === '') return null;
+          const n = parseInt(raw, 10);
+          return Number.isFinite(n) ? n : null;
+        },
+        renderHTML: (attrs) =>
+          attrs.runIndex === null || attrs.runIndex === undefined
+            ? {}
+            : { 'data-b12-run-index': String(attrs.runIndex) },
+      },
     };
   },
+
 
   parseHTML() {
     return [{ tag: 'div[data-b12-mirror-slot]' }];
@@ -74,7 +95,10 @@ export const B12MirrorSlotNode = Node.create({
         ({ commands }) =>
           commands.insertContent({
             type: this.name,
-            attrs: { slotKey: attributes.slotKey },
+            attrs: {
+              slotKey: attributes.slotKey,
+              runIndex: attributes.runIndex ?? null,
+            },
           }),
     };
   },
@@ -82,12 +106,25 @@ export const B12MirrorSlotNode = Node.create({
   addProseMirrorPlugins() {
     const nodeName = this.name;
 
+    /**
+     * Identity of a slot for guard purposes: methodologies slots are compared
+     * by the (slotKey, runIndex) PAIR so that adding/removing a run is seen
+     * correctly, while other slots are compared by slotKey alone.
+     */
+    const slotIdentity = (node: PMNode): string => {
+      const key = String(node.attrs.slotKey ?? '');
+      if (key === 'methodologies') {
+        return `${key}#${node.attrs.runIndex ?? ''}`;
+      }
+      return key;
+    };
+
     const collectSlotKeys = (doc: PMNode): Map<string, number> => {
       const counts = new Map<string, number>();
       doc.descendants((node) => {
         if (node.type.name === nodeName) {
-          const key = String(node.attrs.slotKey ?? '');
-          counts.set(key, (counts.get(key) ?? 0) + 1);
+          const id = slotIdentity(node);
+          counts.set(id, (counts.get(id) ?? 0) + 1);
           return false;
         }
         return true;

@@ -57,16 +57,19 @@ export function useMethodologySubsectionsMirror(proposalId: string) {
 export interface B12MirrorSlotLiveViewProps {
   proposalId: string;
   slotKey: B12SlotKey | null;
+  /** Methodologies slots only: which run of items this slot renders. */
+  runIndex?: number | null;
 }
 
 /**
  * Read-only mirror of one methodology subsection's content.
- * Narrative keys render stored content_html; 'methodologies' and
- * 'linked_activities' render a placeholder until stage 5b.
+ * The 'methodologies' key renders one RUN of methodology items; the runs are
+ * split at the case placeholders so cases tables can sit between the slots.
  */
 export function B12MirrorSlotLiveView({
   slotKey,
   proposalId,
+  runIndex = null,
 }: B12MirrorSlotLiveViewProps) {
   const { data: subsections = [] } = useMethodologySubsectionsMirror(proposalId);
   const row = slotKey ? subsections.find((s) => s.key === slotKey) : undefined;
@@ -80,10 +83,11 @@ export function B12MirrorSlotLiveView({
     <div
       data-b12-mirror-slot-nodeview=""
       data-b12-slot-key={slotKey ?? ''}
+      data-b12-run-index={runIndex === null ? undefined : String(runIndex)}
       style={{ userSelect: 'text' }}
     >
       {isMethodologies ? (
-        <B12MethodologiesSlotContent proposalId={proposalId} />
+        <B12MethodologiesSlotContent proposalId={proposalId} runIndex={runIndex ?? 0} />
       ) : isLinkedActivities ? (
         <B12LinkedActivitiesSlotContent proposalId={proposalId} />
       ) : html ? (
@@ -101,6 +105,8 @@ export function B12MirrorSlotLiveView({
 export function B12MirrorSlotNodeView(props: NodeViewProps) {
   const { node } = props;
   const slotKey = (node.attrs?.slotKey as string | null) ?? null;
+  const runIndex =
+    typeof node.attrs?.runIndex === 'number' ? (node.attrs.runIndex as number) : null;
   const params = useParams<{ proposalId?: string; id?: string }>();
   const proposalId = params.proposalId || params.id || proposalIdFromUrl();
 
@@ -109,13 +115,15 @@ export function B12MirrorSlotNodeView(props: NodeViewProps) {
       as="div"
       data-b12-mirror-slot-wrapper=""
       data-b12-slot-key={slotKey ?? ''}
+      data-b12-run-index={runIndex === null ? undefined : String(runIndex)}
       contentEditable={false}
       draggable={false}
       style={{ margin: '4px 0' }}
     >
-      <B12MirrorSlotLiveView proposalId={proposalId} slotKey={slotKey} />
+      <B12MirrorSlotLiveView proposalId={proposalId} slotKey={slotKey} runIndex={runIndex} />
     </NodeViewWrapper>
   );
 }
+
 
 export default B12MirrorSlotNodeView;

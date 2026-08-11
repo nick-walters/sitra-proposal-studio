@@ -96,6 +96,7 @@ export const ALLOWED_DATA_ATTRS = new Set<string>([
   // managed set on every reload.
   'data-b12-mirror-slot',
   'data-b12-slot-key',
+  'data-b12-run-index',
   'data-b12-subsection-key',
   // Narrow figure sizing/float metadata. These must survive the canonical
   // load sanitiser or TipTap loses cm bounding-box mode before parsing and
