@@ -58,6 +58,7 @@ export function useMethodologyItemsQuery(
 
 export function useMethodologyItems(proposalId: string) {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const queryKey = methodologyItemsQueryKey(proposalId);
 
   const { data: items = [], isLoading } = useMethodologyItemsQuery(proposalId);
