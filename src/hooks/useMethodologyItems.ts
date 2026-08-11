@@ -104,15 +104,33 @@ export function useMethodologyItems(proposalId: string) {
       participantId: string | null;
     }) => {
       if (isPlaceholder(id)) return;
+      const current = queryClient.getQueryData<MethodologyItem[]>(queryKey) || [];
+      const item = current.find((i) => i.id === id);
+      const previousParticipantId = item?.assignedParticipantId ?? null;
+      // No actual change — nothing to write, nothing to notify.
+      if (previousParticipantId === participantId) return;
+
       const { error } = await supabase
         .from('methodology_items')
         .update({ assigned_participant_id: participantId })
         .eq('id', id)
         .eq('kind', 'methodology');
       if (error) throw error;
+
+      // Notify only when an assignment is SET (clearing sends nothing, and the
+      // previous organisation is not told — matching section assignments).
+      if (participantId && user?.id) {
+        await createMethodologyAssignmentNotification({
+          proposalId,
+          participantId,
+          assignedBy: user.id,
+          methodologyHeading: item?.heading ?? null,
+        });
+      }
     },
     onSuccess: invalidate,
   });
+
 
 
   const reorderMutation = useMutation({
