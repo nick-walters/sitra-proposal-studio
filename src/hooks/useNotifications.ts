@@ -314,6 +314,83 @@ export async function createAssignmentNotification(params: {
   }
 }
 
+/**
+ * Notify a participant organisation's main contact that a methodology item has
+ * been assigned to them.
+ *
+ * The organisation -> user mapping follows the established pattern in this
+ * codebase (ContactPersonsSection.handleGrantAccess): resolve the stored
+ * main-contact email against profiles.email (lowercased). If no profile exists,
+ * the main contact has no account and this is a legitimate no-op.
+ *
+ * Never throws — failures are logged only, so an assignment is never blocked.
+ */
+export async function createMethodologyAssignmentNotification(params: {
+  proposalId: string;
+  participantId: string;
+  assignedBy: string;
+  methodologyHeading: string | null;
+}) {
+  const { proposalId, participantId, assignedBy, methodologyHeading } = params;
+
+  try {
+    const { data: participant, error: participantError } = await supabase
+      .from('participants')
+      .select('main_contact_email, organisation_short_name, organisation_name')
+      .eq('id', participantId)
+      .maybeSingle();
+
+    if (participantError) {
+      console.error('Error loading participant for methodology notification:', participantError);
+      return;
+    }
+
+    const email = participant?.main_contact_email?.trim().toLowerCase();
+    if (!email) return; // No main contact recorded — no-op.
+
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('email', email)
+      .maybeSingle();
+
+    if (profileError) {
+      console.error('Error resolving main contact profile:', profileError);
+      return;
+    }
+
+    // Main contact has no account yet — legitimate no-op.
+    if (!profile?.id) return;
+
+    // Never notify a user of their own action.
+    if (profile.id === assignedBy) return;
+
+    const heading = methodologyHeading?.trim();
+    const label = heading ? `"${heading}"` : 'an unnamed methodology';
+
+    const { error } = await supabase.from('notifications').insert({
+      user_id: profile.id,
+      proposal_id: proposalId,
+      type: 'assignment',
+      title: 'Methodology Assigned',
+      message: `Your organisation has been assigned ${label} in the Methodologies section`,
+      section_id: 'methodologies',
+      section_title: 'Methodologies',
+      metadata: {
+        assigned_by: assignedBy,
+        source: 'methodology',
+        participant_id: participantId,
+      },
+    });
+
+    if (error) {
+      console.error('Error creating methodology assignment notification:', error);
+    }
+  } catch (err) {
+    console.error('Error creating methodology assignment notification:', err);
+  }
+}
+
 // Helper to create due date reminder notifications
 export async function createDueDateNotification(params: {
   proposalId: string;
