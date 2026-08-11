@@ -482,7 +482,7 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
     // Combined WPs & cases section — dynamic title based on cases_enabled + case types.
     const wpCaseManagerTitle = buildWpCaseManagerTitle({
       casesEnabled,
-      types: caseTypeFlags as any,
+      types: caseTypeFlags,
     });
     const wpAndCasesSection: Section = {
       id: 'wp-drafts',

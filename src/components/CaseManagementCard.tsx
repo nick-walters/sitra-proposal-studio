@@ -64,19 +64,9 @@ interface CaseDraft {
   locked_by: string | null;
 }
 
-interface CaseTypeRow {
-  id: string;
-  proposal_id: string;
-  type_code: string | null;
-  custom_type_name: string | null;
-  outline_color: string;
-  include_number: boolean;
-  include_abbreviation: boolean;
-  order_index: number;
-  caption_text: string | null;
-}
 
 import { CASE_TYPE_DEFS, getCaseTypeLabel, getCaseTypePrefix as getCasePrefix, caseWord } from '@/lib/caseTypeLabels';
+import { useProposalCaseTypesQuery, type ProposalCaseType as CaseTypeRow } from '@/hooks/useProposalCaseTypesQuery';
 
 const CASE_TYPES = CASE_TYPE_DEFS.map((d) => ({
   value: d.code,
@@ -376,19 +366,7 @@ export function CaseManagementCard({
   );
 
   // Proposal-level case type rows
-  const { data: caseTypeRows = [], isLoading: typesLoading } = useQuery({
-    queryKey: ['proposal-case-types', proposalId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('proposal_case_types')
-        .select('id, proposal_id, type_code, custom_type_name, outline_color, include_number, include_abbreviation, order_index, caption_text')
-        .eq('proposal_id', proposalId)
-        .order('order_index');
-      if (error) throw error;
-      return data as CaseTypeRow[];
-    },
-    enabled: casesEnabled,
-  });
+  const { data: caseTypeRows = [], isLoading: typesLoading } = useProposalCaseTypesQuery(proposalId, { enabled: casesEnabled });
 
 
   const { data: caseDrafts = [], isLoading: casesLoading } = useQuery({

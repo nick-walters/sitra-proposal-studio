@@ -8,6 +8,7 @@ import { useProposalRole } from '@/hooks/useProposalRole';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { B31Pill, WPBubble, ParticipantBubble } from './B31Pill';
 import { getCaseTypePrefix, buildCaseLabel } from '@/lib/caseTypeLabels';
+import { useProposalCaseTypesQuery, type ProposalCaseType } from '@/hooks/useProposalCaseTypesQuery';
 
 interface Props {
   proposalId: string;
@@ -112,19 +113,9 @@ export function B11ParticipantsTable({ proposalId }: Props) {
     },
   });
 
-  const { data: caseTypeFlags = [] } = useQuery({
-    queryKey: ['proposal-case-types', proposalId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('proposal_case_types')
-        .select('id, include_number, include_abbreviation, outline_color')
-        .eq('proposal_id', proposalId);
-      if (error) throw error;
-      return data || [];
-    },
-  });
+  const { data: caseTypeFlags = [] } = useProposalCaseTypesQuery(proposalId);
   const caseTypeById = useMemo(
-    () => new Map(caseTypeFlags.map((t: any) => [t.id, t])),
+    () => new Map<string, ProposalCaseType>(caseTypeFlags.map((t) => [t.id, t])),
     [caseTypeFlags],
   );
 
@@ -169,7 +160,7 @@ export function B11ParticipantsTable({ proposalId }: Props) {
     const m: Record<string, { number: number; shortName: string | null; color: string; prefix: string; includeNumber: boolean; includeAbbreviation: boolean }[]> = {};
     for (const c of caseLeads) {
       if (!c.lead_participant_id) continue;
-      const t = c.case_type_id ? (caseTypeById.get(c.case_type_id) as any) : null;
+      const t = c.case_type_id ? caseTypeById.get(c.case_type_id) : undefined;
       (m[c.lead_participant_id] ||= []).push({
         number: c.number,
         shortName: c.short_name,
