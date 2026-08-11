@@ -96,6 +96,12 @@ function reconcile(editor: Editor, rows: Row[]) {
   const slotType = schema.nodes.b12MirrorSlot;
   if (!headingType || !slotType) return;
 
+  // Self-healing cleanup first: orphan heading duplicates (and legacy seeded
+  // subheadings) are H3s whose text matches a current subsection title but
+  // which are NOT immediately followed by a b12MirrorSlot node.
+  if (cleanupOrphanHeadings(editor, rows)) return;
+
+
   const desired = rows
     .filter((r) => r.is_visible)
     .slice()
