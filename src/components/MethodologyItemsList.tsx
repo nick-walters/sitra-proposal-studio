@@ -352,9 +352,13 @@ export default function MethodologyItemsList({
                 <SortablePlaceholderRow
                   key={item.id}
                   item={item}
+                  proposalId={proposalId}
                   canEdit={canEdit}
+                  isCoordinator={isCoordinator}
                   caseTypes={caseTypes}
+                  onContentChange={updateContent}
                 />
+
               ) : (
                 <SortableItemRow
                   key={item.id}
