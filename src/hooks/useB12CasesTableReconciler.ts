@@ -138,15 +138,10 @@ function reconcile(
     if (node.type?.name === 'heading') {
       const tid =
         (node.attrs?.['data-case-type-heading-id'] as string | null) || null;
-      if (tid) {
-        if (!shouldExist.has(tid) || !typeById.has(tid)) {
-          dupRemovals.push({ pos, size: node.nodeSize });
-        } else if (headingsByType.has(tid)) {
-          dupRemovals.push({ pos, size: node.nodeSize });
-        } else {
-          headingsByType.set(tid, { pos, size: node.nodeSize, node });
-        }
-      }
+      // Legacy headings are retired unconditionally — the table's own caption
+      // identifies it, and an H3 here would nest wrongly inside the
+      // Methodologies subsection.
+      if (tid) dupRemovals.push({ pos, size: node.nodeSize });
       return false;
     }
     if (node.type?.name === 'casesTable') {
@@ -185,42 +180,22 @@ function reconcile(
     }
   }
 
-  // Headings whose text drifted from the current plural name.
-  const headingTextUpdates: { pos: number; newText: string; node: any }[] = [];
-  for (const [tid, hit] of headingsByType) {
-    const t = typeById.get(tid);
-    if (!t) continue;
-    const desired = pluralFor(t);
-    const current = (hit.node.textContent || '').trim();
-    if (desired && current !== desired) {
-      headingTextUpdates.push({ pos: hit.pos, newText: desired, node: hit.node });
-    }
-  }
-
   // Build insertion list: ordered by proposal_case_types.order_index for
-  // a stable initial appearance.
+  // a stable initial appearance. Only tables are created here — placement is
+  // owned by the methodologies mirror reconciler.
   const orderedTypes = typeRows
     .filter((t) => shouldExist.has(t.id))
     .slice()
     .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
 
-  type Insert =
-    | { kind: 'unit'; tid: string }
-    | { kind: 'heading'; tid: string }
-    | { kind: 'table'; tid: string };
-  const inserts: Insert[] = [];
+  const inserts: { tid: string }[] = [];
   for (const t of orderedTypes) {
-    const hasH = headingsByType.has(t.id);
-    const hasT = tablesByType.has(t.id);
-    if (!hasH && !hasT) inserts.push({ kind: 'unit', tid: t.id });
-    else if (!hasH) inserts.push({ kind: 'heading', tid: t.id });
-    else if (!hasT) inserts.push({ kind: 'table', tid: t.id });
+    if (!tablesByType.has(t.id)) inserts.push({ tid: t.id });
   }
 
   if (
     dupRemovals.length === 0 &&
     extraEmptyParaRemovals.length === 0 &&
-    headingTextUpdates.length === 0 &&
     inserts.length === 0
   ) {
     return;
@@ -228,59 +203,29 @@ function reconcile(
 
   let tr = editor.state.tr;
 
-  // 1. Heading text rewrites (preserve attrs; replace text content).
-  for (const u of headingTextUpdates) {
-    const textNode = schema.text(u.newText);
-    tr = tr.replaceWith(u.pos + 1, u.pos + 1 + u.node.content.size, textNode);
-  }
-
-  // 2. Removals — combine + sort in reverse document order.
+  // 1. Removals — combine + sort in reverse document order.
   const allRemovals = [...dupRemovals, ...extraEmptyParaRemovals].sort(
     (a, b) => b.pos - a.pos,
   );
   for (const r of allRemovals) {
-    // Map positions through prior steps (text rewrites can shift).
     const from = tr.mapping.map(r.pos);
     const to = tr.mapping.map(r.pos + r.size);
     if (to > from) tr = tr.delete(from, to);
   }
 
-  // 3. Insertions — append at end of doc.
+  // 2. Insertions — append at end of doc; the methodologies reconciler moves
+  //    them into their placeholder positions on the next pass.
   for (const ins of inserts) {
     const t = typeById.get(ins.tid);
     if (!t) continue;
-    const plural = pluralFor(t) || 'Cases';
-    const nodes: any[] = [];
-    if (ins.kind === 'unit' || ins.kind === 'heading') {
-      nodes.push(
-        headingType.create(
-          {
-            level: 3,
-            'data-default-subheading': 'true',
-            'data-case-type-heading-id': ins.tid,
-          },
-          schema.text(plural),
-        ),
-      );
-      if (ins.kind === 'unit') {
-        nodes.push(paragraphType.create());
-      }
-    }
-    if (ins.kind === 'unit' || ins.kind === 'table') {
-      nodes.push(
-        casesNodeType.create({
-          caseTypeId: ins.tid,
-          caseIds: [],
-          caption: null,
-        }),
-      );
-    }
-    for (const n of nodes) {
-      tr = tr.insert(tr.doc.content.size, n);
-    }
+    tr = tr.insert(
+      tr.doc.content.size,
+      casesNodeType.create({ caseTypeId: ins.tid, caseIds: [], caption: null }),
+    );
   }
 
   tr.setMeta('addToHistory', false);
   tr.setMeta('trackChangesInternal', true);
   editor.view.dispatch(tr);
 }
+
