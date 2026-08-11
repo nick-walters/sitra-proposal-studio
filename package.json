@@ -72,7 +72,6 @@
     "jspdf": "^4.2.1",
     "jszip": "^3.10.1",
     "lucide-react": "^0.462.0",
-    "nanoid": "^6.0.1",
     "next-themes": "^0.3.0",
     "pptxgenjs": "^4.0.1",
     "prosemirror-model": "^1.23.0",
@@ -128,7 +127,8 @@
     "ajv": "^6.12.6",
     "js-yaml": "^4.1.0",
     "yaml": "^2.6.0",
-    "esbuild": "^0.25.0"
+    "esbuild": "^0.25.0",
+    "nanoid": "^3.3.17"
   },
   "resolutions": {
     "lodash": "^4.17.21",
