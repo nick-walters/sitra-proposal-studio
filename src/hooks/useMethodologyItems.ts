@@ -130,7 +130,8 @@ export function useMethodologyItems(proposalId: string) {
       value: string,
       patch: Partial<MethodologyItem>,
     ) => {
-      if (isPlaceholder(id)) return;
+      // Headings are derived for placeholders; descriptions are editable.
+      if (field === 'heading' && isPlaceholder(id)) return;
       queryClient.setQueryData<MethodologyItem[]>(queryKey, (prev) =>
         (prev || []).map((i) => (i.id === id ? { ...i, ...patch } : i)),
       );
@@ -142,13 +143,15 @@ export function useMethodologyItems(proposalId: string) {
         pendingRef.current += 1;
         setSaving(true);
         try {
-          const { error } = await supabase
+          let q = supabase
             .from('methodology_items')
             .update(
               field === 'heading' ? { heading: value } : { content_html: value },
             )
-            .eq('id', id)
-            .eq('kind', 'methodology');
+            .eq('id', id);
+          // Heading writes stay restricted to real methodology rows.
+          if (field === 'heading') q = q.eq('kind', 'methodology');
+          const { error } = await q;
           if (error) throw error;
 
           setLastSaved(new Date());
@@ -161,6 +164,7 @@ export function useMethodologyItems(proposalId: string) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [queryClient, proposalId],
   );
+
 
   const updateHeading = useCallback(
     (id: string, heading: string) => debouncedSave(id, 'heading', heading, { heading }),
