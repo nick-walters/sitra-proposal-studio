@@ -1,4 +1,6 @@
 import { Node, Extension, mergeAttributes } from '@tiptap/core';
+import { Plugin, PluginKey } from '@tiptap/pm/state';
+import type { Node as PMNode } from '@tiptap/pm/model';
 import { ReactNodeViewRenderer } from '@tiptap/react';
 import { B12MirrorSlotNodeView } from '@/components/B12MirrorSlotNodeView';
 
@@ -37,7 +39,7 @@ export const B12MirrorSlotNode = Node.create({
   name: 'b12MirrorSlot',
   group: 'block',
   atom: true,
-  selectable: true,
+  selectable: false,
   draggable: false,
   defining: true,
 
@@ -74,6 +76,44 @@ export const B12MirrorSlotNode = Node.create({
             attrs: { slotKey: attributes.slotKey },
           }),
     };
+  },
+
+  addProseMirrorPlugins() {
+    const nodeName = this.name;
+
+    const collectSlotKeys = (doc: PMNode): Map<string, number> => {
+      const counts = new Map<string, number>();
+      doc.descendants((node) => {
+        if (node.type.name === nodeName) {
+          const key = String(node.attrs.slotKey ?? '');
+          counts.set(key, (counts.get(key) ?? 0) + 1);
+          return false;
+        }
+        return true;
+      });
+      return counts;
+    };
+
+    return [
+      new Plugin({
+        key: new PluginKey('b12MirrorSlotGuard'),
+        filterTransaction: (tr) => {
+          // Only doc-changing transactions can remove a slot.
+          if (!tr.docChanged) return true;
+          // Reconciler-owned transactions are always allowed.
+          if (tr.getMeta('b12MirrorManaged')) return true;
+
+          const before = collectSlotKeys(tr.before);
+          if (before.size === 0) return true;
+          const after = collectSlotKeys(tr.doc);
+
+          for (const [key, count] of before) {
+            if ((after.get(key) ?? 0) < count) return false; // silent reject
+          }
+          return true;
+        },
+      }),
+    ];
   },
 });
 

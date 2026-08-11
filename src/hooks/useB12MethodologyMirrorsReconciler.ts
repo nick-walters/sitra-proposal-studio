@@ -174,6 +174,7 @@ function reconcile(editor: Editor, rows: Row[]) {
       if (to > from) tr = tr.delete(from, to);
     }
     tr.setMeta('addToHistory', false);
+    tr.setMeta('b12MirrorManaged', true);
     tr.setMeta('trackChangesInternal', true);
     editor.view.dispatch(tr);
     return;
@@ -229,6 +230,7 @@ function reconcile(editor: Editor, rows: Row[]) {
   }
 
   tr.setMeta('addToHistory', false);
+  tr.setMeta('b12MirrorManaged', true);
   tr.setMeta('trackChangesInternal', true);
   editor.view.dispatch(tr);
 }
@@ -313,6 +315,7 @@ function cleanupOrphanHeadings(editor: Editor, rows: Row[]): boolean {
     if (to > from) tr = tr.delete(from, to);
   }
   tr.setMeta('addToHistory', false);
+  tr.setMeta('b12MirrorManaged', true);
   tr.setMeta('trackChangesInternal', true);
   editor.view.dispatch(tr);
   return true;
