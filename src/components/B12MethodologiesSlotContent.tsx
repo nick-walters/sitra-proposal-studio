@@ -156,15 +156,34 @@ export function B12MethodologiesSlotContent({
     .filter((b) => b.html);
 
   const placeholder = run.placeholder;
+  let debugType: unknown = null;
+  let debugLabel: string | null = null;
   if (placeholder) {
     const type = caseTypes.find((t) => t.id === placeholder.caseTypeId);
+    debugType = type ?? null;
     if (type) {
       const label = getCaseTypeLabel(type.type_code, type.custom_type_name, { plural: true });
+      debugLabel = label;
       // Heading is derived and always rendered — it labels the table beneath.
       const html = buildItemHtml(label, placeholder.contentHtml);
       if (html) blocks.push({ id: placeholder.id, html });
     }
   }
+
+  // TEMPORARY INSTRUMENTATION — remove after diagnosis.
+  console.info('[b12-methodologies]', {
+    proposalId,
+    runIndex,
+    itemsLength: items.length,
+    itemKinds: items.map((i) => i.kind),
+    caseTypesLength: caseTypes.length,
+    runsComputed: runs.length,
+    placeholderIsNull: !placeholder,
+    placeholderCaseTypeId: placeholder ? (placeholder as { caseTypeId: string | null }).caseTypeId : null,
+    matchedType: !!debugType,
+    resolvedLabel: debugLabel,
+    blocksLength: blocks.length,
+  });
 
   if (blocks.length === 0) return null;
 
