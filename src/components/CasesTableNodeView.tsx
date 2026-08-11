@@ -10,7 +10,8 @@ import {
 } from '@/lib/caseTypeLabels';
 
 import { supabase } from '@/integrations/supabase/client';
-import { RICH_TEXT_CONFIG } from '@/lib/sanitizePresets';
+import { CROSS_REF_RICH_TEXT_CONFIG } from '@/lib/sanitizePresets';
+import { hydrateRefBadges } from '@/lib/hydrateRefBadges';
 import { stripWordHtml } from '@/lib/stripWordHtml';
 import { ParticipantBubble } from './B31Pill';
 
