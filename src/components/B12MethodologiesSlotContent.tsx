@@ -1,22 +1,24 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { sanitizeEditorHtml } from '@/lib/editorContentSanitizer';
-import { splitMethodologyRuns } from '@/lib/b12MethodologyRuns';
+import { splitMethodologyRunsWithPlaceholder } from '@/lib/b12MethodologyRuns';
+import { getCaseTypeLabel } from '@/lib/caseTypeLabels';
 
 
 /**
  * B1.2 mirror — 'methodologies' slot.
  *
- * Read-only mirror of methodology_items (kind = 'methodology'). Each item is
- * rendered as an inline bold-italic heading + colon, with the first paragraph
- * of the stored body continuing on the same line and any further blocks
- * following underneath. Case placeholders and participant assignments are
- * never rendered here.
+ * Read-only mirror of methodology_items. Each methodology item is rendered as
+ * an inline bold-italic heading + colon, with the first paragraph of the stored
+ * body continuing on the same line. A case placeholder that follows the run is
+ * rendered the same way, with a heading DERIVED from the case type's plural
+ * label, so it labels the cases table beneath.
  */
 
 interface MethodologyItemRow {
   id: string;
   kind: string;
+  caseTypeId: string | null;
   heading: string;
   contentHtml: string | null;
   orderIndex: number;
@@ -38,6 +40,7 @@ function useMethodologyItemsMirror(proposalId: string) {
       return (data || []).map((r) => ({
         id: r.id,
         kind: r.kind,
+        caseTypeId: r.case_type_id,
         heading: r.heading,
         contentHtml: r.content_html,
         orderIndex: r.order_index,
@@ -45,6 +48,30 @@ function useMethodologyItemsMirror(proposalId: string) {
     },
   });
 }
+
+interface CaseTypeRow {
+  id: string;
+  type_code: string | null;
+  custom_type_name: string | null;
+  order_index: number | null;
+}
+
+/** Same query key as the Methodologies page, so renames propagate live. */
+function useCaseTypesMirror(proposalId: string) {
+  return useQuery({
+    queryKey: ['proposal-case-types-methodology-placeholders', proposalId],
+    enabled: !!proposalId,
+    queryFn: async (): Promise<CaseTypeRow[]> => {
+      const { data } = await supabase
+        .from('proposal_case_types')
+        .select('id, type_code, custom_type_name, order_index')
+        .eq('proposal_id', proposalId)
+        .order('order_index', { ascending: true, nullsFirst: false });
+      return (data ?? []) as CaseTypeRow[];
+    },
+  });
+}
+
 
 function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
