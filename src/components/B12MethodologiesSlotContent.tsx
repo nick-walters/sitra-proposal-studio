@@ -156,41 +156,52 @@ export function B12MethodologiesSlotContent({
     .filter((b) => b.html);
 
   const placeholder = run.placeholder;
-  let debugType: unknown = null;
-  let debugLabel: string | null = null;
+  let matchedType: CaseTypeRow | null = null;
+  let resolvedLabel: string | null = null;
+  let placeholderHtml: string | null = null;
   if (placeholder) {
-    const type = caseTypes.find((t) => t.id === placeholder.caseTypeId);
-    debugType = type ?? null;
+    const type = caseTypes.find((t) => t.id === placeholder.caseTypeId) ?? null;
+    matchedType = type;
     if (type) {
       const label = getCaseTypeLabel(type.type_code, type.custom_type_name, { plural: true });
-      debugLabel = label;
+      resolvedLabel = label;
       // Heading is derived and always rendered — it labels the table beneath.
       const html = buildItemHtml(label, placeholder.contentHtml);
+      placeholderHtml = html;
       if (html) blocks.push({ id: placeholder.id, html });
     }
   }
 
-  // TEMPORARY INSTRUMENTATION — remove after diagnosis.
-  console.info('[b12-methodologies]', {
-    proposalId,
-    runIndex,
-    itemsLength: items.length,
-    itemKinds: items.map((i) => i.kind),
-    caseTypesLength: caseTypes.length,
-    runsComputed: runs.length,
-    placeholderIsNull: !placeholder,
-    placeholderCaseTypeId: placeholder ? (placeholder as { caseTypeId: string | null }).caseTypeId : null,
-    matchedType: !!debugType,
-    resolvedLabel: debugLabel,
-    blocksLength: blocks.length,
-  });
-
-  if (blocks.length === 0) return null;
-
-
+  // TEMPORARY ON-SCREEN DIAGNOSTIC — remove after diagnosis.
+  const debugBlock = (
+    <div
+      className="print:hidden font-mono text-[10px] leading-[1.35] bg-amber-100 text-amber-950 border border-amber-400 rounded p-2 my-2 whitespace-pre-wrap"
+      data-b12-debug=""
+    >
+      {[
+        `DEBUG b12-methodologies`,
+        `runIndex received: ${String(runIndex)} (${runIndex === null ? 'null' : runIndex === undefined ? 'undefined' : typeof runIndex})`,
+        `items.length: ${items.length} | kinds: [${items.map((i) => i.kind).join(', ')}]`,
+        `caseTypes.length: ${caseTypes.length} | ${caseTypes.map((t) => `${t.id.slice(0, 8)}:${t.type_code ?? 'null'}`).join(' , ')}`,
+        `runs computed: ${runs.length}`,
+        `this run: items=${run.items.length} placeholderIsNull=${!placeholder}`,
+        placeholder
+          ? `placeholder.caseTypeId: ${placeholder.caseTypeId ?? 'null'} | matched: ${!!matchedType} | label: ${resolvedLabel ?? '(none)'}`
+          : `placeholder: none for this run`,
+        placeholder
+          ? `content_html length: ${(placeholder.contentHtml ?? '').length} | isBlank: ${isBlank(placeholder.contentHtml)}`
+          : ``,
+        `blocks.length: ${blocks.length}`,
+        placeholderHtml ? `placeholder html[0..80]: ${placeholderHtml.slice(0, 80)}` : `placeholder html: (none)`,
+      ]
+        .filter(Boolean)
+        .join('\n')}
+    </div>
+  );
 
   return (
     <div data-b12-methodologies-mirror="">
+      {debugBlock}
       {blocks.map((b) => (
         <div
           key={b.id}
@@ -202,5 +213,6 @@ export function B12MethodologiesSlotContent({
     </div>
   );
 }
+
 
 export default B12MethodologiesSlotContent;
