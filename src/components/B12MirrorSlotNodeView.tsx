@@ -4,9 +4,9 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { sanitizeEditorHtml } from '@/lib/editorContentSanitizer';
 import type { B12SlotKey } from '@/extensions/B12MirrorSlotNode';
+import { B12MethodologiesSlotContent } from '@/components/B12MethodologiesSlotContent';
+import { B12LinkedActivitiesSlotContent } from '@/components/B12LinkedActivitiesSlotContent';
 
-/** Keys whose mirrored content arrives in stage 5b. */
-const PLACEHOLDER_SLOTS: readonly string[] = ['methodologies', 'linked_activities'];
 
 function proposalIdFromUrl(): string {
   if (typeof window === 'undefined') return '';
