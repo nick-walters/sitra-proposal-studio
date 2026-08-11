@@ -1,0 +1,1 @@
+REVOKE ALL ON FUNCTION public.seed_methodology_subsections() FROM PUBLIC, anon, authenticated;
