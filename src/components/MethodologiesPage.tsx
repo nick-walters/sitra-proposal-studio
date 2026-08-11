@@ -23,6 +23,13 @@ import { Badge } from '@/components/ui/badge';
 import { GuidelinesDialog } from '@/components/GuidelinesDialog';
 import { SaveIndicator } from '@/components/SaveIndicator';
 import { MethodologyRichEditor } from '@/components/MethodologyRichEditor';
+import { FormattingToolbar } from '@/components/RichTextEditor';
+import { PartBCrossRefControls } from '@/components/PartBCrossRefControls';
+import { StickyToolbarWrapper } from '@/components/StickyToolbarWrapper';
+import {
+  MethodologyEditorFocusProvider,
+  useMethodologyEditorFocus,
+} from '@/components/MethodologyEditorFocusContext';
 import MethodologyItemsList from '@/components/MethodologyItemsList';
 import LinkedActivitiesTable from '@/components/LinkedActivitiesTable';
 import { getMethodologyGuidelines } from '@/lib/methodologyGuidelines';
