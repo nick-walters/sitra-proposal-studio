@@ -90,6 +90,13 @@ export const ALLOWED_DATA_ATTRS = new Set<string>([
   // B3.2 mirror slot binding (heading ↔ slot pairing)
   'data-b32-mirror-slot',
   'data-b32-slot-key',
+  // B1.2 Methodologies mirror slot binding (heading ↔ slot pairing). Without
+  // these the load sanitiser turns the slot div into a bare <div> (TipTap then
+  // drops it) and orphans the heading, so the reconciler appends a duplicate
+  // managed set on every reload.
+  'data-b12-mirror-slot',
+  'data-b12-slot-key',
+  'data-b12-subsection-key',
   // Narrow figure sizing/float metadata. These must survive the canonical
   // load sanitiser or TipTap loses cm bounding-box mode before parsing and
   // incorrectly exposes free pixel resize controls.

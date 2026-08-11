@@ -56,15 +56,22 @@ export function useMethodologySubsectionsMirror(proposalId: string) {
 function EditOnMethodologiesLink({ proposalId }: { proposalId: string }) {
   const navigate = useNavigate();
   return (
-    <button
-      type="button"
-      contentEditable={false}
-      className="mb-1 text-[11px] text-muted-foreground hover:text-foreground underline underline-offset-2 print:hidden"
-      onMouseDown={(e) => e.preventDefault()}
-      onClick={() => navigate(`/proposal/${proposalId}?section=methodologies`)}
-    >
-      Edit on the Methodologies page
-    </button>
+    <>
+      {/* Belt-and-braces print suppression: the Tailwind `print:hidden` variant
+          is not guaranteed to be present in every print/PDF render context, so
+          an explicit media rule is emitted alongside it. */}
+      <style>{`@media print{[data-b12-edit-link]{display:none !important}}`}</style>
+      <button
+        type="button"
+        data-b12-edit-link=""
+        contentEditable={false}
+        className="mb-1 text-[11px] text-muted-foreground hover:text-foreground underline underline-offset-2 print:hidden"
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => navigate(`/proposal/${proposalId}?section=methodologies`)}
+      >
+        Edit on the Methodologies page
+      </button>
+    </>
   );
 }
 
