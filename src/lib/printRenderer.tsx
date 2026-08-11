@@ -37,7 +37,7 @@ const safeColor = (c: string | null | undefined): string => {
 /** Sanitiser config for rich-text content rendered into the export DOM. */
 const PRINT_SANITIZE_CONFIG = {
   ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'ul', 'ol', 'li', 'span', 'a', 'h1', 'h2', 'h3', 'h4', 'sub', 'sup', 'table', 'colgroup', 'col', 'thead', 'tbody', 'tr', 'th', 'td', 'img', 'figure', 'figcaption', 'div', 'svg', 'path', 'g', 'rect', 'circle', 'line', 'polyline', 'polygon', 'text', 'tspan', 'defs', 'marker', 'use'],
-  ALLOWED_ATTR: ['class', 'style', 'href', 'target', 'rel', 'src', 'alt', 'width', 'height', 'colwidth', 'colspan', 'rowspan', 'crossorigin', 'data-type', 'data-id', 'data-wp-number', 'data-wp-short-name', 'data-wp-color', 'data-task-number', 'data-deliverable-number', 'data-milestone-number', 'data-participant-number', 'data-short-name', 'data-case-number', 'data-case-short-name', 'data-case-color', 'data-case-type', 'data-include-number', 'data-include-abbreviation', 'data-figure-id', 'data-table-key', 'data-ref-type', 'data-ref-id', 'data-citation-id', 'data-acronym', 'data-figure-wrapper', 'data-block-id', 'data-section-name', 'data-proposal-banner', 'data-cases-table-node', 'data-case-ids', 'data-caption', 'data-case-type-id', 'data-case-type-heading-id', 'data-b32-mirror-slot', 'data-b32-slot-key', 'data-overview-canvas-slot', 'viewBox', 'fill', 'stroke', 'stroke-width', 'd', 'x', 'y', 'x1', 'y1', 'x2', 'y2', 'cx', 'cy', 'r', 'rx', 'ry', 'points', 'transform', 'opacity', 'fill-opacity', 'stroke-opacity', 'stroke-linejoin', 'stroke-linecap', 'text-anchor', 'font-family', 'font-size', 'font-weight'],
+  ALLOWED_ATTR: ['class', 'style', 'href', 'target', 'rel', 'src', 'alt', 'width', 'height', 'colwidth', 'colspan', 'rowspan', 'crossorigin', 'data-type', 'data-id', 'data-wp-number', 'data-wp-short-name', 'data-wp-color', 'data-task-number', 'data-deliverable-number', 'data-milestone-number', 'data-participant-number', 'data-short-name', 'data-case-number', 'data-case-short-name', 'data-case-color', 'data-case-type', 'data-include-number', 'data-include-abbreviation', 'data-figure-id', 'data-table-key', 'data-ref-type', 'data-ref-id', 'data-citation-id', 'data-acronym', 'data-figure-wrapper', 'data-block-id', 'data-section-name', 'data-proposal-banner', 'data-cases-table-node', 'data-case-ids', 'data-caption', 'data-case-type-id', 'data-case-type-heading-id', 'data-b32-mirror-slot', 'data-b32-slot-key', 'data-b12-mirror-slot', 'data-b12-slot-key', 'data-b12-subsection-key', 'data-overview-canvas-slot', 'viewBox', 'fill', 'stroke', 'stroke-width', 'd', 'x', 'y', 'x1', 'y1', 'x2', 'y2', 'cx', 'cy', 'r', 'rx', 'ry', 'points', 'transform', 'opacity', 'fill-opacity', 'stroke-opacity', 'stroke-linejoin', 'stroke-linecap', 'text-anchor', 'font-family', 'font-size', 'font-weight'],
 };
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -673,6 +673,9 @@ export async function mountDynamicComponents(
   const b32SlotPlaceholders = Array.from(
     container.querySelectorAll<HTMLElement>('div[data-b32-mirror-slot]'),
   );
+  const b12SlotPlaceholders = Array.from(
+    container.querySelectorAll<HTMLElement>('div[data-b12-mirror-slot]'),
+  );
   const overviewCanvasPlaceholders = Array.from(
     container.querySelectorAll<HTMLElement>('div[data-overview-canvas-slot]'),
   );
@@ -682,6 +685,7 @@ export async function mountDynamicComponents(
     !impactCanvasMount &&
     casesPlaceholders.length === 0 &&
     b32SlotPlaceholders.length === 0 &&
+    b12SlotPlaceholders.length === 0 &&
     overviewCanvasPlaceholders.length === 0
   ) return;
 
@@ -690,6 +694,7 @@ export async function mountDynamicComponents(
     { B31SectionContent },
     { CasesTableLiveView },
     { B32MirrorSlotLiveView },
+    { B12MirrorSlotLiveView },
     { ImpactCanvasSection },
     { OverviewCanvasSection },
   ] = await Promise.all([
@@ -697,6 +702,7 @@ export async function mountDynamicComponents(
     import('@/components/B31SectionContent'),
     import('@/components/CasesTableNodeView'),
     import('@/components/B32MirrorSlotNodeView'),
+    import('@/components/B12MirrorSlotNodeView'),
     import('@/components/ImpactCanvasSection'),
     import('@/components/OverviewCanvasSection'),
   ]);
@@ -826,6 +832,27 @@ export async function mountDynamicComponents(
           AuthProvider,
           null,
           createElement(B32MirrorSlotLiveView, {
+            proposalId,
+            slotKey,
+          }),
+        ),
+      ),
+    );
+    roots.push({ root, el: placeholder });
+  });
+
+  // Mount each B1.2 Methodologies mirror slot placeholder.
+  b12SlotPlaceholders.forEach((placeholder) => {
+    const slotKey = placeholder.getAttribute('data-b12-slot-key') || null;
+    const root = createRoot(placeholder);
+    root.render(
+      createElement(
+        QueryClientProvider,
+        { client: queryClient },
+        createElement(
+          AuthProvider,
+          null,
+          createElement(B12MirrorSlotLiveView, {
             proposalId,
             slotKey,
           }),
