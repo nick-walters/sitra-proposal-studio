@@ -232,3 +232,67 @@ function reconcile(editor: Editor, rows: Row[]) {
   tr.setMeta('trackChangesInternal', true);
   editor.view.dispatch(tr);
 }
+
+/**
+ * Removes orphan H3 headings left behind by the pre-fix duplication bug and by
+ * legacy seeded subheadings: an H3 whose text exactly matches a current
+ * subsection title but which is NOT immediately followed by a b12MirrorSlot
+ * node. The empty paragraph immediately after such a heading is removed too so
+ * no blank gap is left. Idempotent — a clean document produces no removals.
+ *
+ * Returns true when a cleanup transaction was dispatched (the caller then
+ * defers the rest of the reconcile to the next pass).
+ */
+function cleanupOrphanHeadings(editor: Editor, rows: Row[]): boolean {
+  const doc = editor.state.doc;
+  const titles = new Set(
+    rows.filter((r) => r.is_visible).map((r) => (r.title || '').trim()).filter(Boolean),
+  );
+  if (titles.size === 0) return false;
+
+  const top: { node: any; pos: number }[] = [];
+  doc.forEach((node, offset) => top.push({ node, pos: offset }));
+
+  const removals: { pos: number; size: number }[] = [];
+  for (let i = 0; i < top.length; i++) {
+    const { node, pos } = top[i];
+    if (node.type?.name !== 'heading' || node.attrs?.level !== 3) continue;
+    const text = (node.textContent || '').trim();
+    if (!titles.has(text)) continue;
+
+    const next = top[i + 1];
+    // A correctly managed heading is immediately followed by its slot.
+    if (next && next.node.type?.name === 'b12MirrorSlot') continue;
+
+    removals.push({ pos, size: node.nodeSize });
+
+    // Also drop a trailing empty paragraph that belonged to the orphan.
+    if (
+      next &&
+      next.node.type?.name === 'paragraph' &&
+      (next.node.textContent || '').trim() === '' &&
+      next.node.childCount === 0
+    ) {
+      removals.push({ pos: next.pos, size: next.node.nodeSize });
+      i += 1;
+    }
+  }
+
+  if (removals.length === 0) return false;
+  if (removals.length > 20) {
+    console.warn('[b12-mirror] refusing bulk removal', removals.length);
+    return false;
+  }
+
+  let tr = editor.state.tr;
+  removals.sort((a, b) => b.pos - a.pos);
+  for (const r of removals) {
+    const from = tr.mapping.map(r.pos);
+    const to = tr.mapping.map(r.pos + r.size);
+    if (to > from) tr = tr.delete(from, to);
+  }
+  tr.setMeta('addToHistory', false);
+  tr.setMeta('trackChangesInternal', true);
+  editor.view.dispatch(tr);
+  return true;
+}
