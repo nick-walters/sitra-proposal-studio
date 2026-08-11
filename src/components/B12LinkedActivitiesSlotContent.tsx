@@ -95,7 +95,12 @@ function buildLegend(activities: ActivityRow[]): string {
   );
   const parts = FUNDING_INSTRUMENTS.filter(
     (i) => used.has(i.code) && i.abbreviation && i.fullName,
-  ).map((i) => `${i.abbreviation} = ${i.fullName}`);
+  )
+    .slice()
+    .sort((a, b) =>
+      a.abbreviation.localeCompare(b.abbreviation, undefined, { sensitivity: 'base' }),
+    )
+    .map((i) => `${i.abbreviation} = ${i.fullName}`);
   return parts.join('; ');
 }
 
