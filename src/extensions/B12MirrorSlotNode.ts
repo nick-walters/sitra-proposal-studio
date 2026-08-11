@@ -39,7 +39,7 @@ export const B12MirrorSlotNode = Node.create({
   name: 'b12MirrorSlot',
   group: 'block',
   atom: true,
-  selectable: true,
+  selectable: false,
   draggable: false,
   defining: true,
 
