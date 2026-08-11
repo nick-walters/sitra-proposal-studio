@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
     hmr: {
-      overlay: false,
+      overlay: true,
     },
     // The sandbox filesystem is an overlayfs mount where native inotify events
     // for src/ writes are unreliable, so Vite silently missed file changes and
