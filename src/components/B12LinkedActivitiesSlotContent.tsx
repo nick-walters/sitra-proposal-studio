@@ -170,7 +170,6 @@ export function B12LinkedActivitiesSlotContent({
                         participant.organisation_name ||
                         ''
                       }
-                      style={{ fontStyle: 'normal' }}
                     />
                   ) : null}
                 </td>
