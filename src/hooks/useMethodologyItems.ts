@@ -13,12 +13,23 @@ export interface MethodologyItem {
   orderIndex: number;
 }
 
-export function useMethodologyItems(proposalId: string) {
-  const queryClient = useQueryClient();
-  const queryKey = ['methodology-items', proposalId];
+export const methodologyItemsQueryKey = (proposalId: string | undefined | null) => [
+  'methodology-items',
+  proposalId,
+];
 
-  const { data: items = [], isLoading } = useQuery({
-    queryKey,
+/**
+ * Canonical fetch for methodology_items. This is the ONLY place that owns the
+ * query key, the select list and the snake_case -> camelCase mapping, so every
+ * consumer of ['methodology-items', proposalId] sees the same row shape.
+ */
+export function useMethodologyItemsQuery(
+  proposalId: string | undefined | null,
+  options?: { enabled?: boolean },
+) {
+  return useQuery({
+    queryKey: methodologyItemsQueryKey(proposalId),
+    enabled: !!proposalId && (options?.enabled ?? true),
     queryFn: async (): Promise<MethodologyItem[]> => {
       if (!proposalId) return [];
       const { data, error } = await supabase
@@ -40,8 +51,15 @@ export function useMethodologyItems(proposalId: string) {
         orderIndex: r.order_index,
       }));
     },
-    enabled: !!proposalId,
   });
+}
+
+export function useMethodologyItems(proposalId: string) {
+  const queryClient = useQueryClient();
+  const queryKey = methodologyItemsQueryKey(proposalId);
+
+  const { data: items = [], isLoading } = useMethodologyItemsQuery(proposalId);
+
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey });
 
