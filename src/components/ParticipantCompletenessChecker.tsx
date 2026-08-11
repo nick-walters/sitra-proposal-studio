@@ -74,9 +74,36 @@ export function ParticipantCompletenessChecker({ proposalId }: ParticipantComple
       }
 
       const parts = participants || [];
+      const partIds = parts.map((p: any) => p.id);
       const mems = members || [];
+
+      // Achievements, previous projects and expertise-matrix ticks
+      const [{ data: achievements }, { data: prevProjects }, { data: matrixColumns }] = await Promise.all([
+        supabase.from('participant_achievements').select('participant_id').in('participant_id', partIds) as any,
+        supabase.from('participant_previous_projects').select('participant_id').in('participant_id', partIds) as any,
+        supabase.from('expertise_matrix_columns').select('id, participant_id').eq('proposal_id', proposalId).eq('kind', 'participant') as any,
+      ]);
+
+      const achievementSet = new Set<string>((achievements || []).map((a: any) => a.participant_id));
+      const prevProjectSet = new Set<string>((prevProjects || []).map((r: any) => r.participant_id));
+
+      const columnsByParticipant = new Map<string, string>();
+      (matrixColumns || []).forEach((c: any) => { if (c.participant_id) columnsByParticipant.set(c.participant_id, c.id); });
+      const checkedColumnSet = new Set<string>();
+      const columnIds = Array.from(columnsByParticipant.values());
+      if (columnIds.length > 0) {
+        const { data: cells } = await supabase
+          .from('expertise_matrix_cells')
+          .select('column_id, checked')
+          .in('column_id', columnIds)
+          .eq('checked', true) as any;
+        (cells || []).forEach((c: any) => checkedColumnSet.add(c.column_id));
+      }
+
       setParticipantCount(parts.length);
       const found: CompletionIssue[] = [];
+
+
 
       parts.forEach(p => {
         const name = p.organisation_short_name || p.organisation_name || `Participant ${p.participant_number}`;
