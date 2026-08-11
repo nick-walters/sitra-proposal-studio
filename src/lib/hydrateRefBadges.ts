@@ -37,7 +37,7 @@ function markMissing(el: HTMLElement) {
       'font-style:italic',
       'color:#6b7280',
       'white-space:nowrap',
-    ].join(';'),
+    ].join('; '),
   );
   el.textContent = MISSING_LABEL;
 }
@@ -48,20 +48,20 @@ function pill(el: HTMLElement, opts: { label: string; background: string; text: 
     [
       'display:inline-flex',
       'align-items:center',
-      `background-color:${opts.background}`,
-      `border:1.5px solid ${opts.border}`,
+      `background-color: ${opts.background}`,
+      `border: 1.5px solid ${opts.border}`,
       'padding:0 5px',
-      'border-radius:9999px',
+      'border-radius: 9999px',
       `font-family:${BADGE_SERIF}`,
       'font-size:11pt',
       'font-weight:700',
       'font-style:normal',
       'line-height:1',
-      `color:${opts.text}`,
+      `color: ${opts.text}`,
       'white-space:nowrap',
       'vertical-align:baseline',
       'user-select:none',
-    ].join(';'),
+    ].join('; '),
   );
   el.textContent = opts.label;
 }
@@ -156,7 +156,7 @@ function hydrateAcronym(el: HTMLElement) {
       'white-space:nowrap',
       'vertical-align:baseline',
       'user-select:none',
-    ].join(';'),
+    ].join('; '),
   );
   if (segments.length > 0) {
     el.textContent = '';
@@ -179,7 +179,7 @@ function hydrateFigTableRef(el: HTMLElement) {
       'font-weight:700',
       'white-space:nowrap',
       'vertical-align:baseline',
-    ].join(';'),
+    ].join('; '),
   );
 }
 
