@@ -108,18 +108,25 @@ function buildItemHtml(headingText: string, bodyHtml: string | null): string {
 
 export interface B12MethodologiesSlotContentProps {
   proposalId: string;
-  interactive?: boolean;
+  /** Which run of methodology items to render (0-based). */
+  runIndex?: number | null;
 }
 
-export function B12MethodologiesSlotContent({ proposalId }: B12MethodologiesSlotContentProps) {
+export function B12MethodologiesSlotContent({
+  proposalId,
+  runIndex = 0,
+}: B12MethodologiesSlotContentProps) {
   const { data: items = [] } = useMethodologyItemsMirror(proposalId);
 
-  const blocks = items
-    .filter((i) => i.kind === 'methodology')
+  const runs = splitMethodologyRuns(items);
+  const run = runs[runIndex ?? 0] ?? [];
+
+  const blocks = run
     .map((i) => ({ id: i.id, html: buildItemHtml(i.heading, i.contentHtml) }))
     .filter((b) => b.html);
 
   if (blocks.length === 0) return null;
+
 
   return (
     <div data-b12-methodologies-mirror="">
