@@ -1,0 +1,138 @@
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { sanitizeEditorHtml } from '@/lib/editorContentSanitizer';
+
+/**
+ * B1.2 mirror — 'methodologies' slot.
+ *
+ * Read-only mirror of methodology_items (kind = 'methodology'). Each item is
+ * rendered as an inline bold-italic heading + colon, with the first paragraph
+ * of the stored body continuing on the same line and any further blocks
+ * following underneath. Case placeholders and participant assignments are
+ * never rendered here.
+ */
+
+interface MethodologyItemRow {
+  id: string;
+  kind: string;
+  heading: string;
+  contentHtml: string | null;
+  orderIndex: number;
+}
+
+/** Same query key as the Methodologies page, so edits propagate live. */
+function useMethodologyItemsMirror(proposalId: string) {
+  return useQuery({
+    queryKey: ['methodology-items', proposalId],
+    enabled: !!proposalId,
+    queryFn: async (): Promise<MethodologyItemRow[]> => {
+      if (!proposalId) return [];
+      const { data, error } = await supabase
+        .from('methodology_items')
+        .select('id, proposal_id, kind, case_type_id, heading, content_html, assigned_participant_id, order_index')
+        .eq('proposal_id', proposalId)
+        .order('order_index');
+      if (error) throw error;
+      return (data || []).map((r) => ({
+        id: r.id,
+        kind: r.kind,
+        heading: r.heading,
+        contentHtml: r.content_html,
+        orderIndex: r.order_index,
+      }));
+    },
+  });
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function isBlank(html: string | null | undefined): boolean {
+  const s = (html ?? '').toString();
+  return s.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, '').replace(/\u00a0/g, '').trim() === '';
+}
+
+const BLOCK_TAGS = new Set([
+  'P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6',
+  'UL', 'OL', 'LI', 'BLOCKQUOTE', 'PRE', 'TABLE', 'SECTION', 'ARTICLE',
+]);
+
+function firstContentBlock(root: ParentNode): Element | null {
+  for (const child of Array.from(root.children) as Element[]) {
+    if (!BLOCK_TAGS.has(child.tagName)) return null;
+    const text = (child.textContent || '').replace(/\u00a0/g, ' ').trim();
+    if (!text) continue;
+    return child;
+  }
+  return null;
+}
+
+/**
+ * Splices `prefixHtml` (the bold italic heading + colon) into the first
+ * paragraph-like block of the body so they share a line. Lists and tables
+ * cannot host inline content, so the heading stays on its own line above.
+ */
+function buildItemHtml(headingText: string, bodyHtml: string | null): string {
+  const heading = (headingText || '').trim();
+  const prefixHtml = heading
+    ? `<strong><em>${escapeHtml(heading)}:</em></strong>`
+    : '';
+  const body = isBlank(bodyHtml) ? '' : sanitizeEditorHtml((bodyHtml ?? '').toString());
+
+  if (!prefixHtml && !body) return '';
+  if (!body) return `<p>${prefixHtml}</p>`;
+  if (!prefixHtml) return body;
+
+  if (typeof document === 'undefined') {
+    return `<p>${prefixHtml}</p>${body}`;
+  }
+
+  const tpl = document.createElement('template');
+  tpl.innerHTML = body;
+  const first = firstContentBlock(tpl.content);
+
+  if (first && first.tagName !== 'UL' && first.tagName !== 'OL' && first.tagName !== 'LI' && first.tagName !== 'TABLE') {
+    const prefixTpl = document.createElement('template');
+    prefixTpl.innerHTML = `${prefixHtml} `;
+    const nodes = Array.from(prefixTpl.content.childNodes);
+    for (let i = nodes.length - 1; i >= 0; i--) {
+      first.insertBefore(nodes[i], first.firstChild);
+    }
+    return tpl.innerHTML;
+  }
+
+  if (first) return `<p>${prefixHtml}</p>${body}`;
+  return `<p>${prefixHtml} ${body}</p>`;
+}
+
+export interface B12MethodologiesSlotContentProps {
+  proposalId: string;
+  interactive?: boolean;
+}
+
+export function B12MethodologiesSlotContent({ proposalId }: B12MethodologiesSlotContentProps) {
+  const { data: items = [] } = useMethodologyItemsMirror(proposalId);
+
+  const blocks = items
+    .filter((i) => i.kind === 'methodology')
+    .map((i) => ({ id: i.id, html: buildItemHtml(i.heading, i.contentHtml) }))
+    .filter((b) => b.html);
+
+  if (blocks.length === 0) return null;
+
+  return (
+    <div data-b12-methodologies-mirror="">
+      {blocks.map((b) => (
+        <div
+          key={b.id}
+          data-b12-methodology-item={b.id}
+          className="font-['Times_New_Roman',Times,serif] text-[11pt] text-justify [&_p]:mt-[3pt] [&_p]:mb-[3pt] [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-[calc(1.5em-4pt)] [&_ol]:pl-[calc(1.5em-4pt)] [&_li::marker]:text-[0.85em] [&_li]:my-[1pt]"
+          dangerouslySetInnerHTML={{ __html: b.html }}
+        />
+      ))}
+    </div>
+  );
+}
+
+export default B12MethodologiesSlotContent;
