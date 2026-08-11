@@ -15,6 +15,9 @@ import {
   Globe,
   Mail,
   MapPin,
+  Award,
+  FolderKanban,
+  Table2,
   Loader2,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
