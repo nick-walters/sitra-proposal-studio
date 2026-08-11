@@ -216,6 +216,53 @@ function SortableMethodologyCard({
   );
 }
 
+/** Single page-wide formatting bar, bound to the last-focused editor. */
+function MethodologiesToolbar({
+  proposalId,
+  canEdit,
+  isCoordinator,
+}: MethodologiesPageProps) {
+  const { activeEditor } = useMethodologyEditorFocus();
+
+  return (
+    <StickyToolbarWrapper>
+      <div
+        className="rounded-md border border-border bg-card shadow-sm"
+        // Keep the active editor's DOM focus (and therefore its selection)
+        // when any toolbar chrome is clicked, including Radix Select /
+        // DropdownMenu triggers, which otherwise move focus on open.
+        onMouseDown={(e) => {
+          const target = e.target as HTMLElement | null;
+          if (target?.closest('input, textarea, [contenteditable="true"]')) return;
+          e.preventDefault();
+        }}
+      >
+        {activeEditor ? (
+          <FormattingToolbar
+            editor={activeEditor}
+            proposalId={proposalId}
+            canManageCustomColors={isCoordinator}
+            isPartB
+            isReadOnly={!canEdit}
+            crossRefDropdown={
+              <PartBCrossRefControls
+                editor={activeEditor}
+                proposalId={proposalId}
+                disabled={!canEdit}
+                showKeyboardButton={false}
+              />
+            }
+          />
+        ) : (
+          <div className="px-3 py-2 text-sm italic text-muted-foreground">
+            Click into a field to start formatting
+          </div>
+        )}
+      </div>
+    </StickyToolbarWrapper>
+  );
+}
+
 export default function MethodologiesPage({
   proposalId,
   canEdit,
