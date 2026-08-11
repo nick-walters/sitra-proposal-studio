@@ -3,6 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { sanitizeEditorHtml } from '@/lib/editorContentSanitizer';
 import { splitMethodologyRunsWithPlaceholder } from '@/lib/b12MethodologyRuns';
 import { getCaseTypeLabel } from '@/lib/caseTypeLabels';
+import { useMethodologyItemsQuery } from '@/hooks/useMethodologyItems';
+
 
 
 /**
