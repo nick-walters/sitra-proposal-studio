@@ -153,10 +153,6 @@ export const B12MirrorSlotNode = Node.create({
       }),
     ];
   },
-
-      }),
-    ];
-  },
 });
 
 /**
