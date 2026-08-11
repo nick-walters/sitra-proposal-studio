@@ -215,7 +215,7 @@ export function ParticipantCompletenessChecker({ proposalId }: ParticipantComple
 
   const completionPercentage = useMemo(() => {
     if (participantCount === 0) return 100;
-    const totalChecks = participantCount * 8;
+    const totalChecks = participantCount * 11;
     const passed = totalChecks - issues.length;
     return Math.max(0, Math.round((passed / totalChecks) * 100));
   }, [participantCount, issues]);
