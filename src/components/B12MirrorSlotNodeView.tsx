@@ -1,5 +1,5 @@
 import { NodeViewWrapper, NodeViewProps } from '@tiptap/react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { sanitizeEditorHtml } from '@/lib/editorContentSanitizer';
@@ -53,33 +53,10 @@ export function useMethodologySubsectionsMirror(proposalId: string) {
   });
 }
 
-function EditOnMethodologiesLink({ proposalId }: { proposalId: string }) {
-  const navigate = useNavigate();
-  return (
-    <>
-      {/* Belt-and-braces print suppression: the Tailwind `print:hidden` variant
-          is not guaranteed to be present in every print/PDF render context, so
-          an explicit media rule is emitted alongside it. */}
-      <style>{`@media print{[data-b12-edit-link]{display:none !important}}`}</style>
-      <button
-        type="button"
-        data-b12-edit-link=""
-        contentEditable={false}
-        className="mb-1 text-[11px] text-muted-foreground hover:text-foreground underline underline-offset-2 print:hidden"
-        onMouseDown={(e) => e.preventDefault()}
-        onClick={() => navigate(`/proposal/${proposalId}?section=methodologies`)}
-      >
-        Edit on the Methodologies page
-      </button>
-    </>
-  );
-}
 
 export interface B12MirrorSlotLiveViewProps {
   proposalId: string;
   slotKey: B12SlotKey | null;
-  /** true when mounted inside the editor NodeView. */
-  interactive?: boolean;
 }
 
 /**
@@ -90,7 +67,6 @@ export interface B12MirrorSlotLiveViewProps {
 export function B12MirrorSlotLiveView({
   slotKey,
   proposalId,
-  interactive = false,
 }: B12MirrorSlotLiveViewProps) {
   const { data: subsections = [] } = useMethodologySubsectionsMirror(proposalId);
   const row = slotKey ? subsections.find((s) => s.key === slotKey) : undefined;
@@ -106,11 +82,10 @@ export function B12MirrorSlotLiveView({
       data-b12-slot-key={slotKey ?? ''}
       style={{ userSelect: 'text' }}
     >
-      {interactive && proposalId ? <EditOnMethodologiesLink proposalId={proposalId} /> : null}
       {isMethodologies ? (
-        <B12MethodologiesSlotContent proposalId={proposalId} interactive={interactive} />
+        <B12MethodologiesSlotContent proposalId={proposalId} />
       ) : isLinkedActivities ? (
-        <B12LinkedActivitiesSlotContent proposalId={proposalId} interactive={interactive} />
+        <B12LinkedActivitiesSlotContent proposalId={proposalId} />
       ) : html ? (
         <div className="ProseMirror-mirrored" dangerouslySetInnerHTML={{ __html: html }} />
       ) : (
@@ -138,7 +113,7 @@ export function B12MirrorSlotNodeView(props: NodeViewProps) {
       draggable={false}
       style={{ margin: '4px 0' }}
     >
-      <B12MirrorSlotLiveView proposalId={proposalId} slotKey={slotKey} interactive />
+      <B12MirrorSlotLiveView proposalId={proposalId} slotKey={slotKey} />
     </NodeViewWrapper>
   );
 }
