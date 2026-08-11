@@ -382,3 +382,67 @@ function cleanupOrphanHeadings(editor: Editor, rows: Row[]): boolean {
   editor.view.dispatch(tr);
   return true;
 }
+
+/**
+ * Moves each existing casesTable node to sit immediately after the mirror slot
+ * whose runIndex equals the number of placeholders preceding it.
+ *
+ * - Never creates or deletes a casesTable: nodes are moved verbatim (same
+ *   attrs, caseIds and caption), so caption numbering and cross-references
+ *   survive.
+ * - A placeholder whose type has no table yet is skipped (next pass places it).
+ * - A casesTable whose type has no placeholder row is left untouched.
+ * - IDEMPOTENT: it first compares the actual node following each slot with the
+ *   desired table and returns without dispatching when they already match, and
+ *   it performs at most ONE move per pass, so the sequence converges instead of
+ *   ping-ponging.
+ *
+ * Returns true when a transaction was dispatched.
+ */
+function placeCasesTables(editor: Editor, placeholderTypeIds: (string | null)[]): boolean {
+  if (placeholderTypeIds.length === 0) return false;
+  const doc = editor.state.doc;
+
+  // Top-level scan: slots by runIndex, cases tables by caseTypeId.
+  const slotAt = new Map<number, { pos: number; size: number }>();
+  const tableByType = new Map<string, { pos: number; size: number; node: any }>();
+  doc.forEach((node, offset) => {
+    if (node.type?.name === 'b12MirrorSlot') {
+      const key = node.attrs?.slotKey;
+      const runIndex = node.attrs?.runIndex;
+      if (key === 'methodologies' && typeof runIndex === 'number') {
+        if (!slotAt.has(runIndex)) slotAt.set(runIndex, { pos: offset, size: node.nodeSize });
+      }
+    } else if (node.type?.name === 'casesTable') {
+      const tid = (node.attrs?.caseTypeId as string | null) || null;
+      if (tid && !tableByType.has(tid)) {
+        tableByType.set(tid, { pos: offset, size: node.nodeSize, node });
+      }
+    }
+  });
+
+  for (let i = 0; i < placeholderTypeIds.length; i++) {
+    const tid = placeholderTypeIds[i];
+    if (!tid) continue;
+    const table = tableByType.get(tid);
+    if (!table) continue; // not created yet — the cases reconciler owns that
+    const slot = slotAt.get(i);
+    if (!slot) continue; // slot missing — the structural pass will add it
+
+    const targetPos = slot.pos + slot.size;
+    if (table.pos === targetPos) continue; // already in place — no dispatch
+
+    // Move exactly one table per pass, preserving the node verbatim.
+    const copy = table.node;
+    let tr = editor.state.tr;
+    tr = tr.delete(table.pos, table.pos + table.size);
+    const insertAt = tr.mapping.map(targetPos);
+    tr = tr.insert(Math.min(insertAt, tr.doc.content.size), copy);
+    tr.setMeta('addToHistory', false);
+    tr.setMeta('b12MirrorManaged', true);
+    tr.setMeta('trackChangesInternal', true);
+    editor.view.dispatch(tr);
+    return true;
+  }
+  return false;
+}
