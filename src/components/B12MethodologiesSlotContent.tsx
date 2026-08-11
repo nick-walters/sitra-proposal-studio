@@ -17,7 +17,7 @@ import { useMethodologyItemsQuery } from '@/hooks/useMethodologyItems';
  * label, so it labels the cases table beneath.
  */
 
-import { useMethodologyItemsQuery } from '@/hooks/useMethodologyItems';
+
 
 
 interface CaseTypeRow {
