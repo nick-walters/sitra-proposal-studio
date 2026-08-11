@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Section } from '@/types/proposal';
 import { PART_A_SECTIONS, HORIZON_EUROPE_SECTIONS } from '@/types/proposal';
 import { getCaseTypePrefix, buildCaseLabel, buildWpCaseManagerTitle } from '@/lib/caseTypeLabels';
+import { useProposalCaseTypesQuery, type ProposalCaseType } from '@/hooks/useProposalCaseTypesQuery';
 
 interface WPTheme {
   id: string;
@@ -296,20 +297,7 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
   });
 
   // Per-type display flags + outline colour live on proposal_case_types.
-  const { data: caseTypeFlags = [] } = useQuery({
-    queryKey: ['proposal-case-types', proposalId],
-    queryFn: async () => {
-      if (!proposalId) return [];
-      const { data, error } = await supabase
-        .from('proposal_case_types')
-        .select('id, include_number, include_abbreviation, outline_color, type_code, custom_type_name, order_index')
-        .eq('proposal_id', proposalId)
-        .order('order_index');
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!proposalId,
-  });
+  const { data: caseTypeFlags = [] } = useProposalCaseTypesQuery(proposalId);
 
   // cases_enabled flag — drives the WP/case manager title.
   const { data: casesEnabled = false } = useQuery({
@@ -328,14 +316,14 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
   });
 
   const caseDraftSections: CaseSection[] = useMemo(() => {
-    const flagsById = new Map(caseTypeFlags.map((t: any) => [t.id, t]));
+    const flagsById = new Map<string, ProposalCaseType>(caseTypeFlags.map((t) => [t.id, t]));
     return caseDraftsData.map(c => {
       const flags = (c as any).case_type_id ? flagsById.get((c as any).case_type_id) : undefined;
       // Prefer the type's code (from proposal_case_types) over the
       // denormalised case_drafts.case_type — keeps prefix resolution
       // working even if the row's case_type column is stale/missing.
-      const typeCode = (flags as any)?.type_code ?? c.case_type ?? null;
-      const customName = (flags as any)?.custom_type_name ?? null;
+      const typeCode = flags?.type_code ?? c.case_type ?? null;
+      const customName = flags?.custom_type_name ?? null;
       const prefix = getCaseTypePrefix(typeCode, customName);
       const includeNumber = flags?.include_number !== false;
       const includeAbbreviation = flags?.include_abbreviation !== false;
@@ -494,7 +482,7 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
     // Combined WPs & cases section — dynamic title based on cases_enabled + case types.
     const wpCaseManagerTitle = buildWpCaseManagerTitle({
       casesEnabled,
-      types: caseTypeFlags as any,
+      types: caseTypeFlags,
     });
     const wpAndCasesSection: Section = {
       id: 'wp-drafts',
