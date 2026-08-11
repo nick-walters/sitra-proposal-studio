@@ -23,6 +23,13 @@ import { Badge } from '@/components/ui/badge';
 import { GuidelinesDialog } from '@/components/GuidelinesDialog';
 import { SaveIndicator } from '@/components/SaveIndicator';
 import { MethodologyRichEditor } from '@/components/MethodologyRichEditor';
+import { FormattingToolbar } from '@/components/RichTextEditor';
+import { PartBCrossRefControls } from '@/components/PartBCrossRefControls';
+import { StickyToolbarWrapper } from '@/components/StickyToolbarWrapper';
+import {
+  MethodologyEditorFocusProvider,
+  useMethodologyEditorFocus,
+} from '@/components/MethodologyEditorFocusContext';
 import MethodologyItemsList from '@/components/MethodologyItemsList';
 import LinkedActivitiesTable from '@/components/LinkedActivitiesTable';
 import { getMethodologyGuidelines } from '@/lib/methodologyGuidelines';
@@ -209,6 +216,53 @@ function SortableMethodologyCard({
   );
 }
 
+/** Single page-wide formatting bar, bound to the last-focused editor. */
+function MethodologiesToolbar({
+  proposalId,
+  canEdit,
+  isCoordinator,
+}: MethodologiesPageProps) {
+  const { activeEditor } = useMethodologyEditorFocus();
+
+  return (
+    <StickyToolbarWrapper>
+      <div
+        className="rounded-md border border-border bg-card shadow-sm"
+        // Keep the active editor's DOM focus (and therefore its selection)
+        // when any toolbar chrome is clicked, including Radix Select /
+        // DropdownMenu triggers, which otherwise move focus on open.
+        onMouseDown={(e) => {
+          const target = e.target as HTMLElement | null;
+          if (target?.closest('input, textarea, [contenteditable="true"]')) return;
+          e.preventDefault();
+        }}
+      >
+        {activeEditor ? (
+          <FormattingToolbar
+            editor={activeEditor}
+            proposalId={proposalId}
+            canManageCustomColors={isCoordinator}
+            isPartB
+            isReadOnly={!canEdit}
+            crossRefDropdown={
+              <PartBCrossRefControls
+                editor={activeEditor}
+                proposalId={proposalId}
+                disabled={!canEdit}
+                showKeyboardButton={false}
+              />
+            }
+          />
+        ) : (
+          <div className="px-3 py-2 text-sm italic text-muted-foreground">
+            Click into a field to start formatting
+          </div>
+        )}
+      </div>
+    </StickyToolbarWrapper>
+  );
+}
+
 export default function MethodologiesPage({
   proposalId,
   canEdit,
@@ -260,46 +314,54 @@ export default function MethodologiesPage({
   };
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-4 p-6">
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-1">
-        <h1 className="text-xl font-bold text-foreground">Methodologies</h1>
-        <p className="text-sm text-muted-foreground">
-          Content written here is mirrored into Part B section B1.2.
-        </p>
-        </div>
-        <SaveIndicator saving={saving} lastSaved={lastSaved} />
-      </div>
-
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={visible.map((s) => s.id)} strategy={verticalListSortingStrategy}>
-          <div className="space-y-3">
-            {visible.map((s) => (
-              <SortableMethodologyCard
-                key={s.id}
-                subsection={s}
-                proposalId={proposalId}
-                canEdit={canEdit}
-                isCoordinator={isCoordinator}
-                onContentChange={updateContent}
-                onRename={handleRename}
-                onToggleVisible={handleToggleVisible}
-                onOpenGuidelines={setGuidelinesId}
-              />
-            ))}
+    <MethodologyEditorFocusProvider>
+      <div className="mx-auto w-full max-w-4xl space-y-4 p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-1">
+            <h1 className="text-xl font-bold text-foreground">Methodologies</h1>
+            <p className="text-sm text-muted-foreground">
+              Content written here is mirrored into Part B section B1.2.
+            </p>
           </div>
-        </SortableContext>
-      </DndContext>
+          <SaveIndicator saving={saving} lastSaved={lastSaved} />
+        </div>
 
-      {guidelinesSubsection && (
-        <GuidelinesDialog
-          isOpen
-          onClose={() => setGuidelinesId(null)}
-          sectionTitle={guidelinesSubsection.title}
-          guidelines={getMethodologyGuidelines(guidelinesSubsection.key)}
+        <MethodologiesToolbar
+          proposalId={proposalId}
+          canEdit={canEdit}
+          isCoordinator={isCoordinator}
         />
-      )}
-    </div>
+
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={visible.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+            <div className="space-y-3">
+              {visible.map((s) => (
+                <SortableMethodologyCard
+                  key={s.id}
+                  subsection={s}
+                  proposalId={proposalId}
+                  canEdit={canEdit}
+                  isCoordinator={isCoordinator}
+                  onContentChange={updateContent}
+                  onRename={handleRename}
+                  onToggleVisible={handleToggleVisible}
+                  onOpenGuidelines={setGuidelinesId}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+
+        {guidelinesSubsection && (
+          <GuidelinesDialog
+            isOpen
+            onClose={() => setGuidelinesId(null)}
+            sectionTitle={guidelinesSubsection.title}
+            guidelines={getMethodologyGuidelines(guidelinesSubsection.key)}
+          />
+        )}
+      </div>
+    </MethodologyEditorFocusProvider>
   );
 }
 
