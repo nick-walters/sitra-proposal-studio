@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import type { Editor } from '@tiptap/react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { methodologyRunCount } from '@/lib/b12MethodologyRuns';
+import { methodologyRunCount, METHODOLOGY_PLACEHOLDER_KIND } from '@/lib/b12MethodologyRuns';
 
 
 /**
@@ -81,13 +81,17 @@ export function useB12MethodologyMirrorsReconciler({
 
   useEffect(() => {
     if (!active || !editor || !rows) return;
-    const runCount = methodologyRunCount((items ?? []) as { kind: string }[]);
+    const ordered = (items ?? []) as { kind: string; case_type_id: string | null }[];
+    const runCount = methodologyRunCount(ordered);
+    const placeholderTypeIds = ordered
+      .filter((i) => i.kind === METHODOLOGY_PLACEHOLDER_KIND)
+      .map((i) => i.case_type_id ?? null);
     const schedule = () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
         try {
           if (!editor || editor.isDestroyed || !editor.schema) return;
-          reconcile(editor, rows, runCount);
+          reconcile(editor, rows, runCount, placeholderTypeIds);
         } catch {
           // best-effort — never throw out of an effect
         }
@@ -106,7 +110,12 @@ export function useB12MethodologyMirrorsReconciler({
 }
 
 
-function reconcile(editor: Editor, rows: Row[], methodologyRuns = 1) {
+function reconcile(
+  editor: Editor,
+  rows: Row[],
+  methodologyRuns = 1,
+  placeholderTypeIds: (string | null)[] = [],
+) {
   const doc = editor.state.doc;
   if (doc.content.size <= 2) return;
 
@@ -121,6 +130,7 @@ function reconcile(editor: Editor, rows: Row[], methodologyRuns = 1) {
   if (cleanupOrphanHeadings(editor, rows)) return;
 
   const runCount = Math.max(1, methodologyRuns);
+
 
   const desired = rows
     .filter((r) => r.is_visible)
@@ -198,7 +208,13 @@ function reconcile(editor: Editor, rows: Row[], methodologyRuns = 1) {
         updates.push({ pos: hit.pos, node: hit.node, text: title });
       }
     }
-    if (updates.length === 0 && removals.length === 0) return;
+    if (updates.length === 0 && removals.length === 0) {
+      // Structure is settled — only then do we move the cases tables into
+      // their placeholder positions.
+      placeCasesTables(editor, placeholderTypeIds);
+      return;
+    }
+
 
     let tr = editor.state.tr;
     for (const u of updates) {
@@ -365,4 +381,68 @@ function cleanupOrphanHeadings(editor: Editor, rows: Row[]): boolean {
   tr.setMeta('trackChangesInternal', true);
   editor.view.dispatch(tr);
   return true;
+}
+
+/**
+ * Moves each existing casesTable node to sit immediately after the mirror slot
+ * whose runIndex equals the number of placeholders preceding it.
+ *
+ * - Never creates or deletes a casesTable: nodes are moved verbatim (same
+ *   attrs, caseIds and caption), so caption numbering and cross-references
+ *   survive.
+ * - A placeholder whose type has no table yet is skipped (next pass places it).
+ * - A casesTable whose type has no placeholder row is left untouched.
+ * - IDEMPOTENT: it first compares the actual node following each slot with the
+ *   desired table and returns without dispatching when they already match, and
+ *   it performs at most ONE move per pass, so the sequence converges instead of
+ *   ping-ponging.
+ *
+ * Returns true when a transaction was dispatched.
+ */
+function placeCasesTables(editor: Editor, placeholderTypeIds: (string | null)[]): boolean {
+  if (placeholderTypeIds.length === 0) return false;
+  const doc = editor.state.doc;
+
+  // Top-level scan: slots by runIndex, cases tables by caseTypeId.
+  const slotAt = new Map<number, { pos: number; size: number }>();
+  const tableByType = new Map<string, { pos: number; size: number; node: any }>();
+  doc.forEach((node, offset) => {
+    if (node.type?.name === 'b12MirrorSlot') {
+      const key = node.attrs?.slotKey;
+      const runIndex = node.attrs?.runIndex;
+      if (key === 'methodologies' && typeof runIndex === 'number') {
+        if (!slotAt.has(runIndex)) slotAt.set(runIndex, { pos: offset, size: node.nodeSize });
+      }
+    } else if (node.type?.name === 'casesTable') {
+      const tid = (node.attrs?.caseTypeId as string | null) || null;
+      if (tid && !tableByType.has(tid)) {
+        tableByType.set(tid, { pos: offset, size: node.nodeSize, node });
+      }
+    }
+  });
+
+  for (let i = 0; i < placeholderTypeIds.length; i++) {
+    const tid = placeholderTypeIds[i];
+    if (!tid) continue;
+    const table = tableByType.get(tid);
+    if (!table) continue; // not created yet — the cases reconciler owns that
+    const slot = slotAt.get(i);
+    if (!slot) continue; // slot missing — the structural pass will add it
+
+    const targetPos = slot.pos + slot.size;
+    if (table.pos === targetPos) continue; // already in place — no dispatch
+
+    // Move exactly one table per pass, preserving the node verbatim.
+    const copy = table.node;
+    let tr = editor.state.tr;
+    tr = tr.delete(table.pos, table.pos + table.size);
+    const insertAt = tr.mapping.map(targetPos);
+    tr = tr.insert(Math.min(insertAt, tr.doc.content.size), copy);
+    tr.setMeta('addToHistory', false);
+    tr.setMeta('b12MirrorManaged', true);
+    tr.setMeta('trackChangesInternal', true);
+    editor.view.dispatch(tr);
+    return true;
+  }
+  return false;
 }

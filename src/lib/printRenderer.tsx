@@ -844,6 +844,8 @@ export async function mountDynamicComponents(
   // Mount each B1.2 Methodologies mirror slot placeholder.
   b12SlotPlaceholders.forEach((placeholder) => {
     const slotKey = placeholder.getAttribute('data-b12-slot-key') || null;
+    const runAttr = placeholder.getAttribute('data-b12-run-index');
+    const runIndex = runAttr !== null && runAttr !== '' ? Number(runAttr) : null;
     const root = createRoot(placeholder);
     root.render(
       createElement(
@@ -855,6 +857,7 @@ export async function mountDynamicComponents(
           createElement(B12MirrorSlotLiveView, {
             proposalId,
             slotKey,
+            runIndex: Number.isFinite(runIndex as number) ? (runIndex as number) : null,
           }),
         ),
       ),
