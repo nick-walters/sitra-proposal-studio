@@ -81,13 +81,17 @@ export function useB12MethodologyMirrorsReconciler({
 
   useEffect(() => {
     if (!active || !editor || !rows) return;
-    const runCount = methodologyRunCount((items ?? []) as { kind: string }[]);
+    const ordered = (items ?? []) as { kind: string; case_type_id: string | null }[];
+    const runCount = methodologyRunCount(ordered);
+    const placeholderTypeIds = ordered
+      .filter((i) => i.kind === METHODOLOGY_PLACEHOLDER_KIND)
+      .map((i) => i.case_type_id ?? null);
     const schedule = () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
         try {
           if (!editor || editor.isDestroyed || !editor.schema) return;
-          reconcile(editor, rows, runCount);
+          reconcile(editor, rows, runCount, placeholderTypeIds);
         } catch {
           // best-effort — never throw out of an effect
         }
@@ -106,7 +110,12 @@ export function useB12MethodologyMirrorsReconciler({
 }
 
 
-function reconcile(editor: Editor, rows: Row[], methodologyRuns = 1) {
+function reconcile(
+  editor: Editor,
+  rows: Row[],
+  methodologyRuns = 1,
+  placeholderTypeIds: (string | null)[] = [],
+) {
   const doc = editor.state.doc;
   if (doc.content.size <= 2) return;
 
@@ -121,6 +130,7 @@ function reconcile(editor: Editor, rows: Row[], methodologyRuns = 1) {
   if (cleanupOrphanHeadings(editor, rows)) return;
 
   const runCount = Math.max(1, methodologyRuns);
+
 
   const desired = rows
     .filter((r) => r.is_visible)
