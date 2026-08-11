@@ -2,7 +2,6 @@ import { useEffect, useRef } from 'react';
 import type { Editor } from '@tiptap/react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { getCaseTypeLabel } from '@/lib/caseTypeLabels';
 
 /**
  * B1.2 cases-table reconciler — Stage 3a.
@@ -101,10 +100,6 @@ interface TypeRow {
   order_index: number | null;
 }
 
-function pluralFor(t: TypeRow): string {
-  return getCaseTypeLabel(t.type_code, t.custom_type_name, { plural: true });
-}
-
 function reconcile(
   editor: Editor,
   typeRows: TypeRow[],
@@ -130,7 +125,6 @@ function reconcile(
 
   // Scan top-level (and one level deep for safety) for matching nodes.
   type Hit = { pos: number; size: number; node: any };
-  const headingsByType = new Map<string, Hit>(); // typeId -> first heading
   const tablesByType = new Map<string, Hit>(); // typeId -> first table
   const dupRemovals: { pos: number; size: number }[] = [];
 
