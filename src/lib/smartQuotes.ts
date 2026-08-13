@@ -96,5 +96,4 @@ export function installSmartQuotes() {
   if (installed || typeof document === 'undefined') return;
   installed = true;
   document.addEventListener("beforeinput", handleBeforeInput, true);
-  (window as any).__smartQuotes = true;
 }
