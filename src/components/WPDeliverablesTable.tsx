@@ -21,6 +21,8 @@ import {
 import type { WPDraftDeliverable, WPDraftTask } from '@/hooks/useWPDrafts';
 import type { ParticipantSummary } from '@/types/proposal';
 import { ParticipantBubble, WPBubble, B31Pill } from '@/components/B31Pill';
+import { InlineRichEditor } from '@/components/InlineRichEditor';
+import { htmlToPlainText } from '@/lib/htmlToPlainText';
 import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
 import {
   DndContext,
