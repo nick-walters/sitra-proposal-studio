@@ -7,8 +7,8 @@ describe('hydrate wp draft badges', () => {
   it('rebuilds pills', () => {
     const out = hydrateRefBadges(stored);
     console.log(out);
-    expect(out).toContain('background-color: rgb(0, 0, 0)');
-    expect(out).toMatch(/background-color: rgb\(232, 17, 75\)/);
+    expect(out).toContain('background-color: #000000');
+    expect(out).toContain("background-color: #E8114B");
     expect(hydrateRefBadges(out)).toBe(out); // idempotent
   });
 });
