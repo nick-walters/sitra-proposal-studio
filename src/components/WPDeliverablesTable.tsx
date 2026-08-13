@@ -126,11 +126,10 @@ function AutoTextarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) 
 }
 
 /**
- * Title cell with a LOCAL buffer + debounced save. Fixes the typing bug where
- * every keystroke round-trips through onUpdate → DB → refetch, causing
- * character loss / cursor jumps when the async refetch overwrites the
- * controlled value mid-keystroke. Persistence is debounced (400ms) and also
- * flushed on blur.
+ * Title cell — rich text (bold / italic / underline etc. via the WP draft
+ * formatting bar, which applies document.execCommand to the focused field).
+ * A local buffer + debounced save avoids round-tripping every keystroke
+ * through the DB.
  */
 function DeliverableTitleCell({
   value,
@@ -152,18 +151,20 @@ function DeliverableTitleCell({
   useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
 
   return (
-    <AutoTextarea
+    <InlineRichEditor
       value={local}
       disabled={disabled}
       placeholder="Deliverable title & short description"
-      onChange={(e) => {
-        const next = e.target.value;
+      minHeight="28px"
+      debounceMs={300}
+      editorClassName="text-sm"
+      onChange={(html) => {
         dirtyRef.current = true;
-        setLocal(next);
+        setLocal(html);
         if (timerRef.current) clearTimeout(timerRef.current);
         timerRef.current = setTimeout(() => {
           dirtyRef.current = false;
-          onCommit(next);
+          onCommit(html);
         }, 400);
       }}
       onBlur={() => {
@@ -176,6 +177,7 @@ function DeliverableTitleCell({
     />
   );
 }
+
 
 export function WPDeliverablesTable({
   wpDraftId,
