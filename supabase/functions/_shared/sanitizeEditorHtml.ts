@@ -252,6 +252,11 @@ export function sanitizeEditorHtml(html: string): string {
       USE_PROFILES: { html: true, svg: true },
       ALLOWED_TAGS,
       ALLOWED_ATTR,
+      // USE_PROFILES re-applies its default attribute profile over
+      // ALLOWED_ATTR, so non-standard attrs must also be added explicitly.
+      // `colwidth` is TipTap's per-cell column width — without it every
+      // user-resized editor table resets on reload.
+      ADD_ATTR: ['colwidth'],
     }) as string;
   } finally {
     DOMPurify.removeHook('uponSanitizeAttribute');
