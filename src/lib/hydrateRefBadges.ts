@@ -70,12 +70,22 @@ function pill(el: HTMLElement, opts: { label: string; background: string; text: 
 function retainedColour(el: HTMLElement, fallback: string): string {
   const own = el.style.color;
   const inner = (el.firstElementChild as HTMLElement | null)?.style?.color;
-  const candidate = (own || inner || '').trim();
+  let candidate = (own || inner || '').trim();
+  if (!candidate) {
+    // Deliverable pentagons keep their colour on the SVG stroke or on a
+    // nested label span rather than on the wrapper itself.
+    const stroke = el.querySelector('[stroke]')?.getAttribute('stroke');
+    const nested = Array.from(el.querySelectorAll<HTMLElement>('[style]'))
+      .map((n) => n.style.color)
+      .find((c) => c && c.trim());
+    candidate = (stroke || nested || '').trim();
+  }
   if (!candidate) return fallback;
   // White text means the colour lived on a stripped background — useless here.
   if (/^(#fff(fff)?|rgba?\(\s*255\s*,\s*255\s*,\s*255)/i.test(candidate)) return fallback;
   return candidate;
 }
+
 
 function hydrateParticipant(el: HTMLElement) {
   const label =
