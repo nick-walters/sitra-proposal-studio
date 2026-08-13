@@ -6,7 +6,7 @@ import { ParticipantBubble } from './B31Pill';
 
 /** Sanitiser preset — mirrors PrefixedInlineEditor. */
 const SANITIZE_CONFIG = {
-  ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'ul', 'ol', 'li', 'span', 'a', 'sub', 'sup', 'div'],
+  ALLOWED_TAGS: ['p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'ul', 'ol', 'li', 'span', 'a', 'sub', 'sup', 'div'],
   ALLOWED_ATTR: ['class', 'style', 'href', 'target', 'rel', 'contenteditable'],
   ALLOW_DATA_ATTR: true,
 };
