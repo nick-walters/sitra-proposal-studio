@@ -98,7 +98,7 @@ function SortableMethodologyCard({
     else setDraft(subsection.title);
   };
 
-  const isMandatory = subsection.key === 'methodologies';
+  
 
   return (
     <div ref={setNodeRef} style={style}>
@@ -166,7 +166,7 @@ function SortableMethodologyCard({
               Guidelines
             </Button>
 
-            {isCoordinator && !isMandatory ? (
+            {isCoordinator ? (
               <Button
                 variant="ghost"
                 size="icon"
