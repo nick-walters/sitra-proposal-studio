@@ -98,7 +98,7 @@ function SortableMethodologyCard({
     else setDraft(subsection.title);
   };
 
-  const isMandatory = subsection.key === 'methodologies';
+  
 
   return (
     <div ref={setNodeRef} style={style}>
@@ -189,34 +189,28 @@ function SortableMethodologyCard({
           </div>
         </CardHeader>
         <CardContent>
-          {subsection.isVisible || isCoordinator ? (
-            <>
-              {subsection.key === 'methodologies' ? (
-                <MethodologyItemsList
-                  proposalId={proposalId}
-                  canEdit={canEdit}
-                  isCoordinator={isCoordinator}
-                />
-              ) : subsection.key === 'linked_activities' ? (
-                <LinkedActivitiesTable
-                  proposalId={proposalId}
-                  canEdit={canEdit}
-                  isCoordinator={isCoordinator}
-                />
-              ) : NARRATIVE_KEYS.has(subsection.key) ? (
-                <MethodologyRichEditor
-                  proposalId={proposalId}
-                  value={subsection.contentHtml ?? ''}
-                  onChange={(html) => onContentChange(subsection.id, html)}
-                  canEdit={canEdit}
-                  isCoordinator={isCoordinator}
-                />
-              ) : (
-                <p className="text-sm italic text-muted-foreground">Editor added in the next step.</p>
-              )}
-            </>
+          {subsection.key === 'methodologies' ? (
+            <MethodologyItemsList
+              proposalId={proposalId}
+              canEdit={canEdit}
+              isCoordinator={isCoordinator}
+            />
+          ) : subsection.key === 'linked_activities' ? (
+            <LinkedActivitiesTable
+              proposalId={proposalId}
+              canEdit={canEdit}
+              isCoordinator={isCoordinator}
+            />
+          ) : NARRATIVE_KEYS.has(subsection.key) ? (
+            <MethodologyRichEditor
+              proposalId={proposalId}
+              value={subsection.contentHtml ?? ''}
+              onChange={(html) => onContentChange(subsection.id, html)}
+              canEdit={canEdit}
+              isCoordinator={isCoordinator}
+            />
           ) : (
-            <div className="text-sm italic text-muted-foreground">This subsection is hidden from the proposal.</div>
+            <p className="text-sm italic text-muted-foreground">Editor added in the next step.</p>
           )}
         </CardContent>
       </Card>
