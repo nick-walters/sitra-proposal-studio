@@ -96,7 +96,9 @@ export function WPSimpleEditor({
   // Set initial content
   useEffect(() => {
     if (editorRef.current && isInitialMount.current) {
-      editorRef.current.innerHTML = DOMPurify.sanitize(value || '', SIMPLE_SANITIZE_CONFIG);
+      editorRef.current.innerHTML = hydrateRefBadges(
+        DOMPurify.sanitize(value || '', SIMPLE_SANITIZE_CONFIG),
+      );
       hasPendingLocalChangesRef.current = false;
       isInitialMount.current = false;
     }
@@ -118,8 +120,11 @@ export function WPSimpleEditor({
       return;
     }
 
-    editorRef.current.innerHTML = DOMPurify.sanitize(nextValue, SIMPLE_SANITIZE_CONFIG);
+    editorRef.current.innerHTML = hydrateRefBadges(
+      DOMPurify.sanitize(nextValue, SIMPLE_SANITIZE_CONFIG),
+    );
   }, [value, isFocused]);
+
 
   const emitChange = useCallback((nextValue: string) => {
     hasPendingLocalChangesRef.current = true;
