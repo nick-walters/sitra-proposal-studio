@@ -152,7 +152,7 @@ export const ALLOWED_TAGS = [
 export const ALLOWED_ATTR = [
   // HTML
   'class', 'style', 'href', 'target', 'rel', 'src', 'alt',
-  'width', 'height', 'colspan', 'rowspan',
+  'width', 'height', 'colspan', 'rowspan', 'colwidth',
   // SVG
   'viewBox', 'xmlns', 'fill', 'stroke', 'stroke-width', 'stroke-linecap',
   'stroke-linejoin', 'd', 'cx', 'cy', 'r', 'x', 'y', 'x1', 'y1', 'x2', 'y2',
