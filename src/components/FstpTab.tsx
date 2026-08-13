@@ -7,6 +7,7 @@ import { HeadingExitOnEnter } from '@/extensions/HeadingExitOnEnter';
 import { HeadingNumberLabel } from '@/extensions/HeadingNumberLabel';
 
 import Underline from '@tiptap/extension-underline';
+import Typography from '@tiptap/extension-typography';
 import TextAlign from '@tiptap/extension-text-align';
 import Link from '@tiptap/extension-link';
 import { OrderedListStyled } from '@/extensions/OrderedListStyled';
@@ -60,6 +61,7 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, f
   // Only create the editor once loading is done so we have DB content
   const editor = useEditor({
     extensions: [
+      Typography,
       StarterKit.configure({ orderedList: false }),
       OrderedListStyled,
       Underline,
