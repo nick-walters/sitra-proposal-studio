@@ -207,11 +207,17 @@ export function hydrateRefBadges(html: string | null | undefined): string {
   tpl.innerHTML = raw;
   const root = tpl.content;
 
+  // `data-*-id` variants cover badges inserted into plain contentEditable
+  // fields (WP drafts), which carry only the identity attribute.
+  const NOT_OTHER = ':not([data-task-id]):not([data-deliverable-id]):not([data-milestone-id])';
   root
     .querySelectorAll<HTMLElement>('[data-participant-reference], [data-participant-id]')
     .forEach(hydrateParticipant);
-  root.querySelectorAll<HTMLElement>('[data-wp-reference], [data-wp-id]').forEach(hydrateWp);
+  root
+    .querySelectorAll<HTMLElement>(`[data-wp-reference], [data-wp-id]${NOT_OTHER}:not([data-ref-type])`)
+    .forEach(hydrateWp);
   root.querySelectorAll<HTMLElement>('[data-case-reference], [data-case-id]').forEach(hydrateCase);
+
   root
     .querySelectorAll<HTMLElement>(
       '[data-task-reference], [data-task-id], [data-inline-reference][data-ref-type="task"]',
