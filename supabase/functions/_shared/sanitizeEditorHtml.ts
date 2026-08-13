@@ -137,7 +137,10 @@ export const ALLOWED_TAGS = [
   // Block / inline HTML
   'p', 'br', 'strong', 'em', 'u', 's', 'ul', 'ol', 'li', 'span', 'a',
   'h1', 'h2', 'h3', 'h4', 'sub', 'sup',
-  'table', 'thead', 'tbody', 'tr', 'th', 'td',
+  // `colgroup`/`col` (and the per-cell `colwidth` attr below) carry TipTap's
+  // persisted table column widths — stripping them silently resets every
+  // user-resized table on reload.
+  'table', 'colgroup', 'col', 'thead', 'tbody', 'tr', 'th', 'td',
   'img', 'blockquote',
   // Wrapper for the casesTable NodeView (B1.2)
   'div',
