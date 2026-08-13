@@ -5,6 +5,7 @@ import StarterKit from '@tiptap/starter-kit';
 // and the extension manager warns + destabilises mark resolution.
 import Superscript from '@tiptap/extension-superscript';
 import Subscript from '@tiptap/extension-subscript';
+import Typography from '@tiptap/extension-typography';
 
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
@@ -45,6 +46,7 @@ export function ImpactCanvasTextBox({ html, editing, onChange, onCommit, autoFoc
 
   const editor = useEditor({
     extensions: [
+      Typography,
       StarterKit.configure({ heading: false }),
       
       Superscript,

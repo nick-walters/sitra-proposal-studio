@@ -6,6 +6,7 @@ import StarterKit from '@tiptap/starter-kit';
 
 import Superscript from '@tiptap/extension-superscript';
 import Subscript from '@tiptap/extension-subscript';
+import Typography from '@tiptap/extension-typography';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import { useEffect, useRef } from 'react';
@@ -50,6 +51,7 @@ export function ImpactCanvasCellEditor({ html, onChange, onFocus, onBlur, disabl
 
   const editor = useEditor({
     extensions: [
+      Typography,
       StarterKit.configure({ heading: false }),
       
       Superscript,
