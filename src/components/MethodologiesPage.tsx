@@ -42,6 +42,8 @@ interface MethodologiesPageProps {
   proposalId: string;
   canEdit: boolean;
   isCoordinator: boolean;
+  proposalAcronym?: string;
+  acronymSegments?: { text: string; color: string }[];
 }
 
 const NARRATIVE_KEYS = new Set([
@@ -221,8 +223,14 @@ function MethodologiesToolbar({
   proposalId,
   canEdit,
   isCoordinator,
+  proposalAcronym,
+  acronymSegments: acronymSegmentsProp,
 }: MethodologiesPageProps) {
   const { activeEditor } = useMethodologyEditorFocus();
+  // Fallback: if no acronym colours saved but a plain acronym exists, use a single all-black segment.
+  const acronymSegments = (acronymSegmentsProp && acronymSegmentsProp.length > 0)
+    ? acronymSegmentsProp
+    : (proposalAcronym ? [{ text: proposalAcronym, color: '#000000' }] : []);
 
   return (
     <StickyToolbarWrapper>
@@ -250,6 +258,7 @@ function MethodologiesToolbar({
                 proposalId={proposalId}
                 disabled={!canEdit}
                 showKeyboardButton={false}
+                acronymSegments={acronymSegments}
               />
             }
           />
@@ -267,6 +276,8 @@ export default function MethodologiesPage({
   proposalId,
   canEdit,
   isCoordinator,
+  proposalAcronym,
+  acronymSegments,
 }: MethodologiesPageProps) {
   const { subsections, reorder, updateTitle, setVisible, updateContent, saving, lastSaved } =
     useMethodologySubsections(proposalId);
@@ -330,6 +341,8 @@ export default function MethodologiesPage({
           proposalId={proposalId}
           canEdit={canEdit}
           isCoordinator={isCoordinator}
+          proposalAcronym={proposalAcronym}
+          acronymSegments={acronymSegments}
         />
 
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
