@@ -819,7 +819,7 @@ function ReorderRow({ d, wpNumber, wpColor }: { d: WPDraftDeliverable; wpNumber:
         <GripVertical className="w-4 h-4 text-blue-500" />
       </button>
       <B31Pill variant="outline" color={wpColor}>D{wpNumber}.{d.number}</B31Pill>
-      <span className="text-sm truncate flex-1">{d.title || <span className="italic text-muted-foreground">Untitled</span>}</span>
+      <span className="text-sm truncate flex-1">{htmlToPlainText(d.title || '') || <span className="italic text-muted-foreground">Untitled</span>}</span>
     </div>
   );
 }
