@@ -166,7 +166,7 @@ function SortableMethodologyCard({
               Guidelines
             </Button>
 
-            {isCoordinator && !isMandatory ? (
+            {isCoordinator ? (
               <Button
                 variant="ghost"
                 size="icon"
@@ -189,28 +189,34 @@ function SortableMethodologyCard({
           </div>
         </CardHeader>
         <CardContent>
-          {subsection.key === 'methodologies' ? (
-            <MethodologyItemsList
-              proposalId={proposalId}
-              canEdit={canEdit}
-              isCoordinator={isCoordinator}
-            />
-          ) : subsection.key === 'linked_activities' ? (
-            <LinkedActivitiesTable
-              proposalId={proposalId}
-              canEdit={canEdit}
-              isCoordinator={isCoordinator}
-            />
-          ) : NARRATIVE_KEYS.has(subsection.key) ? (
-            <MethodologyRichEditor
-              proposalId={proposalId}
-              value={subsection.contentHtml ?? ''}
-              onChange={(html) => onContentChange(subsection.id, html)}
-              canEdit={canEdit}
-              isCoordinator={isCoordinator}
-            />
+          {subsection.isVisible || isCoordinator ? (
+            <>
+              {subsection.key === 'methodologies' ? (
+                <MethodologyItemsList
+                  proposalId={proposalId}
+                  canEdit={canEdit}
+                  isCoordinator={isCoordinator}
+                />
+              ) : subsection.key === 'linked_activities' ? (
+                <LinkedActivitiesTable
+                  proposalId={proposalId}
+                  canEdit={canEdit}
+                  isCoordinator={isCoordinator}
+                />
+              ) : NARRATIVE_KEYS.has(subsection.key) ? (
+                <MethodologyRichEditor
+                  proposalId={proposalId}
+                  value={subsection.contentHtml ?? ''}
+                  onChange={(html) => onContentChange(subsection.id, html)}
+                  canEdit={canEdit}
+                  isCoordinator={isCoordinator}
+                />
+              ) : (
+                <p className="text-sm italic text-muted-foreground">Editor added in the next step.</p>
+              )}
+            </>
           ) : (
-            <p className="text-sm italic text-muted-foreground">Editor added in the next step.</p>
+            <div className="text-sm italic text-muted-foreground">This subsection is hidden from the proposal.</div>
           )}
         </CardContent>
       </Card>
