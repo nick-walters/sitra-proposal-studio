@@ -3,6 +3,8 @@ import DOMPurify from 'dompurify';
 import { stripWordHtml } from '@/lib/stripWordHtml';
 import { cn } from '@/lib/utils';
 import { normalizeRefBadges } from '@/lib/normalizeRefBadges';
+import { hydrateRefBadges } from '@/lib/hydrateRefBadges';
+
 import { rememberContentEditableSelection, REF_BADGE_INSERTED_EVENT } from '@/lib/contentEditableRefBadges';
 
 /**
