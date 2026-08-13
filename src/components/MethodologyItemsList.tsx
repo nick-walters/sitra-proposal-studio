@@ -114,8 +114,18 @@ function SortableItemRow({
 
         <div className="flex min-w-0 flex-1 items-center">
           <input
-            value={item.heading}
-            onChange={(e) => onHeadingChange(item.id, e.target.value)}
+            value={headingDraft}
+            onFocus={() => {
+              headingFocusedRef.current = true;
+            }}
+            onBlur={() => {
+              headingFocusedRef.current = false;
+              setHeadingDraft(item.heading);
+            }}
+            onChange={(e) => {
+              setHeadingDraft(e.target.value);
+              onHeadingChange(item.id, e.target.value);
+            }}
             placeholder="Methodology name"
             disabled={!canEdit}
             className="min-w-0 flex-1 bg-transparent font-bold italic outline-none placeholder:font-normal placeholder:not-italic placeholder:text-muted-foreground"
