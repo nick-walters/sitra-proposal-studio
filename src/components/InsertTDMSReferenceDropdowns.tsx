@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { htmlToPlainText } from '@/lib/htmlToPlainText';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { B31Pill } from '@/components/B31Pill';
@@ -268,7 +269,7 @@ export function InsertTDMSReferenceDropdowns({
             allDeliverables.push({
               id: d.id,
               number: `D${wpNum ?? '?'}.${d.number}`,
-              name: d.title || '',
+              name: htmlToPlainText(d.title || ''),
               wp_number: wpNum,
               wp_color: wpNum ? wpColorMap.get(wpNum) || '#000000' : '#000000',
             });

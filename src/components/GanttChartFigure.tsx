@@ -4,6 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Download, BarChart3, Image, FileDown } from 'lucide-react';
+import { htmlToPlainText } from '@/lib/htmlToPlainText';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { getContrastingTextColor, lightenColor } from '@/lib/wpColors';
@@ -503,7 +504,7 @@ export function GanttChartFigure({
           anchorRow = taskRowIdxById.get(sortedIds[0]);
         }
         const wpNum = wpNumberById.get(d.wp_draft_id) ?? wp.number;
-        const tooltipParts = [`D${wpNum}.${d.number}: ${d.title || ''}`];
+        const tooltipParts = [`D${wpNum}.${d.number}: ${htmlToPlainText(d.title || '')}`];
         if (d.type) tooltipParts.push(`Type: ${d.type}`);
         if (d.dissemination_level) tooltipParts.push(`Dissemination: ${d.dissemination_level}`);
         if (d.responsible_participant_id) {

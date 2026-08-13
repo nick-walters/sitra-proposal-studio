@@ -564,7 +564,7 @@ export function B31DeliverablesTable({ proposalId, forExport }: Props & { forExp
               <MCell index={0} last={last} style={{ whiteSpace: 'nowrap' }}>
                 <DeliverablePentagon label={delLabel} color={wp?.color} />
               </MCell>
-              <MCell index={1} last={last}><ReadOnlyTextCell text={d.title} /></MCell>
+              <MCell index={1} last={last}><ReadOnlyHtmlCell html={d.title} /></MCell>
               <MCell index={2} last={last}>
                 {wp ? <WPBubble wpNumber={wp.number} wpColor={wp.color} /> : <span className="text-muted-foreground italic">—</span>}
               </MCell>
