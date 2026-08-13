@@ -822,6 +822,8 @@ export function ProposalEditor() {
             proposalId={id || ''}
             canEdit={canEdit}
             isCoordinator={canEdit && isCoordinator}
+            proposalAcronym={proposal?.acronym}
+            acronymSegments={(proposal as any)?.acronymSegments}
           />
         </div>
       ),
