@@ -13,7 +13,7 @@ export const FOOTNOTE_CONFIG = {
 
 export const RICH_TEXT_CONFIG = {
   ALLOWED_TAGS: [
-    'p', 'br', 'strong', 'em', 'u', 's', 'ul', 'ol', 'li', 'span', 'a',
+    'p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'ul', 'ol', 'li', 'span', 'a',
     'h1', 'h2', 'h3', 'h4', 'sub', 'sup',
     'table', 'thead', 'tbody', 'tr', 'th', 'td',
   ],

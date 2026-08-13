@@ -135,7 +135,7 @@ export const STYLE_ALLOWLIST = new Set<string>([
 
 export const ALLOWED_TAGS = [
   // Block / inline HTML
-  'p', 'br', 'strong', 'em', 'u', 's', 'ul', 'ol', 'li', 'span', 'a',
+  'p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'ul', 'ol', 'li', 'span', 'a',
   'h1', 'h2', 'h3', 'h4', 'sub', 'sup',
   // `colgroup`/`col` (and the per-cell `colwidth` attr below) carry TipTap's
   // persisted table column widths — stripping them silently resets every

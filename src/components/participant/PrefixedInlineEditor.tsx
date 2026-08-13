@@ -15,7 +15,7 @@ import { rememberContentEditableSelection, REF_BADGE_INSERTED_EVENT } from '@/li
  */
 
 const SANITIZE_CONFIG = {
-  ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'ul', 'ol', 'li', 'span', 'a', 'sub', 'sup', 'div'],
+  ALLOWED_TAGS: ['p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'ul', 'ol', 'li', 'span', 'a', 'sub', 'sup', 'div'],
   ALLOWED_ATTR: ['class', 'style', 'href', 'target', 'rel', 'contenteditable'],
   // Cross-reference badges carry data-* metadata (WP / task / deliverable /
   // case / participant) that must survive save + reload.

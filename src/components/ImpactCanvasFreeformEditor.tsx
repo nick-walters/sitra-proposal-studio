@@ -99,7 +99,7 @@ interface Props {
  */
 
 const CELL_SANITIZE_CONFIG = {
-  ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'ul', 'ol', 'li', 'span', 'sup', 'sub', 'svg', 'path'],
+  ALLOWED_TAGS: ['p', 'br', 'strong', 'b', 'em', 'i', 'u', 'ul', 'ol', 'li', 'span', 'sup', 'sub', 'svg', 'path'],
   ALLOWED_ATTR: [
     'class', 'style', 'contenteditable',
     'width', 'height', 'viewBox', 'xmlns', 'd', 'fill', 'stroke', 'stroke-width', 'stroke-linejoin',
