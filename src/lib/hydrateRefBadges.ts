@@ -207,24 +207,29 @@ export function hydrateRefBadges(html: string | null | undefined): string {
   tpl.innerHTML = raw;
   const root = tpl.content;
 
-  root.querySelectorAll<HTMLElement>('[data-participant-reference]').forEach(hydrateParticipant);
-  root.querySelectorAll<HTMLElement>('[data-wp-reference]').forEach(hydrateWp);
-  root.querySelectorAll<HTMLElement>('[data-case-reference]').forEach(hydrateCase);
   root
-    .querySelectorAll<HTMLElement>('[data-task-reference], [data-inline-reference][data-ref-type="task"]')
+    .querySelectorAll<HTMLElement>('[data-participant-reference], [data-participant-id]')
+    .forEach(hydrateParticipant);
+  root.querySelectorAll<HTMLElement>('[data-wp-reference], [data-wp-id]').forEach(hydrateWp);
+  root.querySelectorAll<HTMLElement>('[data-case-reference], [data-case-id]').forEach(hydrateCase);
+  root
+    .querySelectorAll<HTMLElement>(
+      '[data-task-reference], [data-task-id], [data-inline-reference][data-ref-type="task"]',
+    )
     .forEach(hydrateTask);
   root
     .querySelectorAll<HTMLElement>(
-      '[data-deliverable-reference], [data-inline-reference][data-ref-type="deliverable"]',
+      '[data-deliverable-reference], [data-deliverable-id], [data-inline-reference][data-ref-type="deliverable"]',
     )
     .forEach(hydrateDeliverable);
   root
     .querySelectorAll<HTMLElement>(
-      '[data-milestone-reference], [data-inline-reference][data-ref-type="milestone"]',
+      '[data-milestone-reference], [data-milestone-id], [data-inline-reference][data-ref-type="milestone"]',
     )
     .forEach(hydrateMilestone);
   root.querySelectorAll<HTMLElement>('[data-acronym-reference]').forEach(hydrateAcronym);
   root.querySelectorAll<HTMLElement>('[data-fig-table-ref]').forEach(hydrateFigTableRef);
+
 
   const out = document.createElement('div');
   out.appendChild(root.cloneNode(true));
