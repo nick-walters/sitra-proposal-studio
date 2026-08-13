@@ -1,6 +1,8 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import DOMPurify from 'dompurify';
 import { stripWordHtml } from '@/lib/stripWordHtml';
+import { hydrateRefBadges } from '@/lib/hydrateRefBadges';
+
 import { Image as ImageLucide, Table2 } from 'lucide-react';
 import {
   DropdownMenuItem,
