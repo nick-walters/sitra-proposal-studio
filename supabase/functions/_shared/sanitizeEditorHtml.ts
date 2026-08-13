@@ -137,7 +137,10 @@ export const ALLOWED_TAGS = [
   // Block / inline HTML
   'p', 'br', 'strong', 'em', 'u', 's', 'ul', 'ol', 'li', 'span', 'a',
   'h1', 'h2', 'h3', 'h4', 'sub', 'sup',
-  'table', 'thead', 'tbody', 'tr', 'th', 'td',
+  // `colgroup`/`col` (and the per-cell `colwidth` attr below) carry TipTap's
+  // persisted table column widths — stripping them silently resets every
+  // user-resized table on reload.
+  'table', 'colgroup', 'col', 'thead', 'tbody', 'tr', 'th', 'td',
   'img', 'blockquote',
   // Wrapper for the casesTable NodeView (B1.2)
   'div',
@@ -149,7 +152,7 @@ export const ALLOWED_TAGS = [
 export const ALLOWED_ATTR = [
   // HTML
   'class', 'style', 'href', 'target', 'rel', 'src', 'alt',
-  'width', 'height', 'colspan', 'rowspan',
+  'width', 'height', 'colspan', 'rowspan', 'colwidth',
   // SVG
   'viewBox', 'xmlns', 'fill', 'stroke', 'stroke-width', 'stroke-linecap',
   'stroke-linejoin', 'd', 'cx', 'cy', 'r', 'x', 'y', 'x1', 'y1', 'x2', 'y2',
@@ -249,6 +252,11 @@ export function sanitizeEditorHtml(html: string): string {
       USE_PROFILES: { html: true, svg: true },
       ALLOWED_TAGS,
       ALLOWED_ATTR,
+      // USE_PROFILES re-applies its default attribute profile over
+      // ALLOWED_ATTR, so non-standard attrs must also be added explicitly.
+      // `colwidth` is TipTap's per-cell column width — without it every
+      // user-resized editor table resets on reload.
+      ADD_ATTR: ['colwidth'],
     }) as string;
   } finally {
     DOMPurify.removeHook('uponSanitizeAttribute');
