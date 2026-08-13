@@ -80,6 +80,15 @@ function SortableItemRow({
   });
   const [assignOpen, setAssignOpen] = useState(false);
 
+  // Locally controlled title: keeps the caret where the user is typing even if
+  // a background refetch briefly returns a stale heading.
+  const [headingDraft, setHeadingDraft] = useState(item.heading);
+  const headingFocusedRef = useRef(false);
+
+  useEffect(() => {
+    if (!headingFocusedRef.current) setHeadingDraft(item.heading);
+  }, [item.heading]);
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
