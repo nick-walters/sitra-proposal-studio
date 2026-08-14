@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -14,7 +14,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Eye, EyeOff, Info } from 'lucide-react';
+import { GripVertical, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,8 @@ import { SaveIndicator } from '@/components/SaveIndicator';
 import { MethodologyRichEditor } from '@/components/MethodologyRichEditor';
 import { FormattingToolbar } from '@/components/RichTextEditor';
 import { PartBCrossRefControls } from '@/components/PartBCrossRefControls';
-import { StickyToolbarWrapper } from '@/components/StickyToolbarWrapper';
+import { EditorChrome, EditorFeatureBar } from '@/components/EditorChrome';
+import { supabase } from '@/integrations/supabase/client';
 import {
   MethodologyEditorFocusProvider,
   useMethodologyEditorFocus,
@@ -62,7 +63,7 @@ interface SortableMethodologyCardProps {
   onContentChange: (id: string, html: string) => void;
   onRename: (id: string, title: string) => void;
   onToggleVisible: (id: string, isVisible: boolean) => void;
-  onOpenGuidelines: (id: string) => void;
+  onFocusField: (id: string) => void;
 }
 
 function SortableMethodologyCard({
@@ -73,7 +74,7 @@ function SortableMethodologyCard({
   onContentChange,
   onRename,
   onToggleVisible,
-  onOpenGuidelines,
+  onFocusField,
 }: SortableMethodologyCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: subsection.id,
@@ -101,7 +102,12 @@ function SortableMethodologyCard({
   
 
   return (
-    <div ref={setNodeRef} style={style}>
+    <div
+      ref={setNodeRef}
+      style={style}
+      onFocusCapture={() => onFocusField(subsection.id)}
+      onMouseDownCapture={() => onFocusField(subsection.id)}
+    >
       <Card>
         <CardHeader className="flex flex-row items-center gap-2 space-y-0 py-3">
           {canEdit && (
@@ -152,19 +158,6 @@ function SortableMethodologyCard({
               </Badge>
             )}
 
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-6 px-2 text-xs gap-1 text-destructive border-destructive/50 hover:bg-destructive/10 hover:text-destructive"
-              onClick={(e) => {
-                e.stopPropagation();
-                onOpenGuidelines(subsection.id);
-              }}
-              onMouseDown={(e) => e.stopPropagation()}
-            >
-              <Info className="w-3 h-3" />
-              Guidelines
-            </Button>
 
             {isCoordinator ? (
               <Button
@@ -233,9 +226,9 @@ function MethodologiesToolbar({
     : (proposalAcronym ? [{ text: proposalAcronym, color: '#000000' }] : []);
 
   return (
-    <StickyToolbarWrapper>
+    <div>
       <div
-        className="rounded-md border border-border bg-card shadow-sm"
+        className=""
         // Keep the active editor's DOM focus (and therefore its selection)
         // when any toolbar chrome is clicked, including Radix Select /
         // DropdownMenu triggers, which otherwise move focus on open.
@@ -268,7 +261,7 @@ function MethodologiesToolbar({
           </div>
         )}
       </div>
-    </StickyToolbarWrapper>
+    </div>
   );
 }
 
@@ -283,7 +276,46 @@ export default function MethodologiesPage({
     useMethodologySubsections(proposalId);
   const [localOrder, setLocalOrder] = useState<string[] | null>(null);
   const [guidelinesId, setGuidelinesId] = useState<string | null>(null);
+  const [focusedId, setFocusedId] = useState<string | null>(null);
   const guidelinesSubsection = subsections.find((s) => s.id === guidelinesId) ?? null;
+  const focusedSubsection = subsections.find((s) => s.id === focusedId) ?? null;
+
+  // Track edited content so the manual save button can flush immediately.
+  const dirtyRef = useRef<Record<string, string>>({});
+  const [manualSaving, setManualSaving] = useState(false);
+  const [manualSavedAt, setManualSavedAt] = useState<Date | null>(null);
+  const [savedMode, setSavedMode] = useState<'auto' | 'manual'>('auto');
+
+  const handleContentChange = (id: string, html: string) => {
+    dirtyRef.current[id] = html;
+    setSavedMode('auto');
+    updateContent(id, html);
+  };
+
+  useEffect(() => {
+    if (lastSaved) setSavedMode((m) => (m === 'manual' ? m : 'auto'));
+  }, [lastSaved]);
+
+  const handleSaveNow = async () => {
+    const entries = Object.entries(dirtyRef.current);
+    setManualSaving(true);
+    try {
+      for (const [id, html] of entries) {
+        const { error } = await supabase
+          .from('methodology_subsections')
+          .update({ content_html: html })
+          .eq('id', id);
+        if (error) throw error;
+      }
+      dirtyRef.current = {};
+      setManualSavedAt(new Date());
+      setSavedMode('manual');
+    } catch {
+      toast.error('Could not save');
+    } finally {
+      setManualSaving(false);
+    }
+  };
 
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
@@ -337,33 +369,48 @@ export default function MethodologiesPage({
           <SaveIndicator saving={saving} lastSaved={lastSaved} />
         </div>
 
-        <MethodologiesToolbar
+        <EditorChrome
           proposalId={proposalId}
-          canEdit={canEdit}
-          isCoordinator={isCoordinator}
-          proposalAcronym={proposalAcronym}
-          acronymSegments={acronymSegments}
-        />
-
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <SortableContext items={visible.map((s) => s.id)} strategy={verticalListSortingStrategy}>
-            <div className="space-y-3">
-              {visible.map((s) => (
-                <SortableMethodologyCard
-                  key={s.id}
-                  subsection={s}
-                  proposalId={proposalId}
-                  canEdit={canEdit}
-                  isCoordinator={isCoordinator}
-                  onContentChange={updateContent}
-                  onRename={handleRename}
-                  onToggleVisible={handleToggleVisible}
-                  onOpenGuidelines={setGuidelinesId}
-                />
-              ))}
-            </div>
-          </SortableContext>
-        </DndContext>
+          featureBar={
+            <EditorFeatureBar
+              hasFocusedField={!!focusedSubsection}
+              onOpenGuidelines={() => focusedSubsection && setGuidelinesId(focusedSubsection.id)}
+              saving={saving || manualSaving}
+              lastSaved={savedMode === 'manual' ? manualSavedAt ?? lastSaved : lastSaved}
+              savedMode={savedMode}
+              onSaveNow={handleSaveNow}
+            />
+          }
+          formattingBar={
+            <MethodologiesToolbar
+              proposalId={proposalId}
+              canEdit={canEdit}
+              isCoordinator={isCoordinator}
+              proposalAcronym={proposalAcronym}
+              acronymSegments={acronymSegments}
+            />
+          }
+        >
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={visible.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+              <div className="space-y-3 pt-4">
+                {visible.map((s) => (
+                  <SortableMethodologyCard
+                    key={s.id}
+                    subsection={s}
+                    proposalId={proposalId}
+                    canEdit={canEdit}
+                    isCoordinator={isCoordinator}
+                    onContentChange={handleContentChange}
+                    onRename={handleRename}
+                    onToggleVisible={handleToggleVisible}
+                    onFocusField={setFocusedId}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
+        </EditorChrome>
 
         {guidelinesSubsection && (
           <GuidelinesDialog
