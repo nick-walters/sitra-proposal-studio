@@ -30,53 +30,69 @@ interface FeatureButtonProps {
   secondarySmall?: boolean;
   tone?: 'default' | 'destructive' | 'muted' | 'success';
   disabled?: boolean;
+  asDiv?: boolean;
   onClick?: () => void;
 }
 
-export function FeatureButton({
-  icon,
-  leading,
-  primary,
-  secondary,
-  secondarySmall,
-  tone = 'default',
-  disabled,
-  onClick,
-}: FeatureButtonProps) {
-  const toneClass =
-    tone === 'destructive'
-      ? 'border-destructive/50 text-destructive hover:bg-destructive/10'
-      : tone === 'success'
-        ? 'border-success/50 text-success hover:bg-success/10'
-        : tone === 'muted'
-          ? 'border-border text-muted-foreground'
-          : 'border-border text-foreground hover:bg-accent';
+export const FeatureButton = forwardRef<HTMLButtonElement | HTMLDivElement, FeatureButtonProps>(
+  function FeatureButton(
+    {
+      icon,
+      leading,
+      primary,
+      secondary,
+      secondarySmall,
+      tone = 'default',
+      disabled,
+      asDiv,
+      onClick,
+    },
+    ref,
+  ) {
+    const toneClass =
+      tone === 'destructive'
+        ? 'border-destructive/50 text-destructive hover:bg-destructive/10'
+        : tone === 'success'
+          ? 'border-success/50 text-success hover:bg-success/10'
+          : tone === 'muted'
+            ? 'border-border text-muted-foreground'
+            : 'border-border text-foreground hover:bg-accent';
 
-
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={onClick}
-      onMouseDown={(e) => e.preventDefault()}
-      className={cn(
+    const commonProps = {
+      ref: ref as Ref<HTMLButtonElement & HTMLDivElement>,
+      className: cn(
         'flex items-center gap-1.5 self-stretch rounded-md border bg-transparent px-2 py-1 text-left transition-colors',
         toneClass,
         disabled && 'cursor-default opacity-70 hover:bg-transparent',
-      )}
-    >
-      <span className="flex shrink-0 items-center justify-center">{leading ?? icon}</span>
-      <span className="flex flex-col leading-tight">
-        <span className="text-[11px] font-medium">{primary}</span>
-        {secondary && (
-          <span className={secondarySmall ? 'text-[9px] opacity-80' : 'text-[11px] opacity-80'}>
-            {secondary}
-          </span>
-        )}
-      </span>
-    </button>
-  );
-}
+        asDiv && 'cursor-default',
+      ),
+      onClick,
+      onMouseDown: (e: MouseEvent<HTMLElement>) => e.preventDefault(),
+    };
+
+    const content = (
+      <>
+        <span className="flex shrink-0 items-center justify-center">{leading ?? icon}</span>
+        <span className="flex flex-col leading-tight">
+          <span className="text-[11px] font-medium">{primary}</span>
+          {secondary && (
+            <span className={secondarySmall ? 'text-[9px] opacity-80' : 'text-[11px] opacity-80'}>
+              {secondary}
+            </span>
+          )}
+        </span>
+      </>
+    );
+
+    return asDiv ? (
+      <div {...commonProps}>{content}</div>
+    ) : (
+      <button type="button" disabled={disabled} {...commonProps}>
+        {content}
+      </button>
+    );
+  },
+);
 
 /* ------------------------------------------------------------------ */
 /* Standard feature bar                                                */
