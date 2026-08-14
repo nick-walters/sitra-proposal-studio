@@ -26,7 +26,7 @@ interface FeatureButtonProps {
   primary: string;
   secondary?: string;
   secondarySmall?: boolean;
-  tone?: 'default' | 'destructive' | 'muted';
+  tone?: 'default' | 'destructive' | 'muted' | 'success';
   disabled?: boolean;
   onClick?: () => void;
 }
@@ -44,9 +44,12 @@ export function FeatureButton({
   const toneClass =
     tone === 'destructive'
       ? 'border-destructive/50 text-destructive hover:bg-destructive/10'
-      : tone === 'muted'
-        ? 'border-border text-muted-foreground'
-        : 'border-border text-foreground hover:bg-accent';
+      : tone === 'success'
+        ? 'border-success/50 text-success hover:bg-success/10'
+        : tone === 'muted'
+          ? 'border-border text-muted-foreground'
+          : 'border-border text-foreground hover:bg-accent';
+
 
   return (
     <button
