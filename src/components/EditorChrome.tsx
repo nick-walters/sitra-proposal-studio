@@ -196,17 +196,19 @@ interface EditorChromeProps {
 export function EditorChrome({ featureBar, formattingBar, children }: EditorChromeProps) {
   return (
     <>
-      <StickyToolbarWrapper>
+      {/* Permanently pinned: present from first paint, never scroll-triggered. */}
+      <div data-editor-chrome className="sticky top-0 z-40 -mx-1 px-1 py-1 bg-background">
         <div className="rounded-md border border-border bg-card shadow-sm">
           <div className="border-b border-border">
             <ScrollableToolbarRow>{featureBar}</ScrollableToolbarRow>
           </div>
           <ScrollableToolbarRow>{formattingBar}</ScrollableToolbarRow>
         </div>
-      </StickyToolbarWrapper>
+      </div>
       {children}
     </>
   );
 }
+
 
 export default EditorChrome;
