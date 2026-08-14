@@ -495,16 +495,29 @@ export function BudgetParticipantForm({
             onDelete={deleteJustificationItem}
             onReorder={reorderJustificationItems}
           />
-          <CostInputRow
-            label="D.2. Internally invoiced goods & services"
-            totalValue={row.internallyInvoiced}
-            requestedValue={row.requestedInternallyInvoiced}
-            defaultRequested={row.internallyInvoiced}
-            showRequested={showReq}
-            editable={editable}
-            onTotalChange={(v) => updateRow(row.id, 'internallyInvoiced', v)}
-            onRequestedChange={(v) => updateRow(row.id, 'requestedInternallyInvoiced', v)}
-          />
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium w-[220px] shrink-0">D.2. Internally invoiced goods &amp; services</label>
+            <div className="flex items-center gap-1 flex-1 justify-end">
+              <span className="text-sm font-medium tabular-nums">{formatCurrency(row.internallyInvoiced)}</span>
+              <span className="text-xs text-muted-foreground">(sum)</span>
+              <CopyButton value={row.internallyInvoiced} />
+            </div>
+            {showReq && (
+              <>
+                <FormattedNumberInput
+                  value={row.requestedInternallyInvoiced ?? row.internallyInvoiced}
+                  onChange={(v) => updateRow(row.id, 'requestedInternallyInvoiced', v)}
+                  disabled={!editable}
+                  allowZero
+                  decimals={2}
+                  className="h-8 text-sm text-right flex-1"
+                />
+                <span className="text-xs text-muted-foreground w-4">€</span>
+                <CopyButton value={row.requestedInternallyInvoiced ?? row.internallyInvoiced} />
+              </>
+            )}
+          </div>
+
           <JustificationItemsEditor
             budgetRowId={row.id}
             category="internally_invoiced"
