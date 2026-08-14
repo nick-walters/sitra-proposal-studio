@@ -476,7 +476,7 @@ export function BudgetParticipantForm({
             category="fstp"
             items={justificationItems}
             editable={editable}
-            helpText="Optional. Used only if the coordinator opts to include the D.1 justification table in B3.1."
+            helpText="Provide concise descriptions of each cost and what they cover. These are used if the coordinator opts to include the D.1 justification table in B3.1."
             onAdd={addJustificationItem}
             onUpdate={updateJustificationItem}
             onDelete={deleteJustificationItem}
