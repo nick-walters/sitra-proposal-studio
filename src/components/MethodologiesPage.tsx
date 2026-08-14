@@ -221,18 +221,8 @@ function MethodologiesToolbar({
   isCoordinator,
   proposalAcronym,
   acronymSegments: acronymSegmentsProp,
-  onOpenShortcuts,
-}: MethodologiesPageProps & { onOpenShortcuts: () => void }) {
+}: MethodologiesPageProps) {
   const { activeEditor } = useMethodologyEditorFocus();
-  const rowRef = useRef<HTMLDivElement>(null);
-  const [reservedHeight, setReservedHeight] = useState(40);
-
-  useEffect(() => {
-    if (activeEditor && rowRef.current) {
-      const h = rowRef.current.offsetHeight;
-      if (h > 0) setReservedHeight(h);
-    }
-  }, [activeEditor]);
 
   // Fallback: if no acronym colours saved but a plain acronym exists, use a single all-black segment.
   const acronymSegments = (acronymSegmentsProp && acronymSegmentsProp.length > 0)
@@ -240,14 +230,12 @@ function MethodologiesToolbar({
     : (proposalAcronym ? [{ text: proposalAcronym, color: '#000000' }] : []);
 
   if (!activeEditor) {
-    // Keep the chrome height stable so page content never jumps.
-    return <div aria-hidden style={{ height: reservedHeight }} />;
+    return null;
   }
 
   return (
     <div>
       <div
-        ref={rowRef}
         // Keep the active editor's DOM focus (and therefore its selection)
         // when any toolbar chrome is clicked, including Radix Select /
         // DropdownMenu triggers, which otherwise move focus on open.
@@ -268,8 +256,7 @@ function MethodologiesToolbar({
               editor={activeEditor}
               proposalId={proposalId}
               disabled={!canEdit}
-              showKeyboardButton
-              onOpenShortcuts={onOpenShortcuts}
+              showKeyboardButton={false}
               acronymSegments={acronymSegments}
             />
           }
@@ -444,7 +431,6 @@ export default function MethodologiesPage({
               isCoordinator={isCoordinator}
               proposalAcronym={proposalAcronym}
               acronymSegments={acronymSegments}
-              onOpenShortcuts={() => setShortcutsOpen(true)}
             />
           }
         >

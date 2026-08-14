@@ -122,17 +122,6 @@ export function EditorFeatureBar({
 
   return (
     <div className="flex items-stretch gap-1.5 px-2 py-1.5">
-      {hasFocusedField && (
-        <FeatureButton
-          icon={<Info className="h-3.5 w-3.5" />}
-          primary="Guidelines"
-          secondary="for this field"
-          secondarySmall
-          tone="destructive"
-          onClick={onOpenGuidelines}
-        />
-      )}
-
       {/* Save state is page-wide, so it stays visible with no field focused. */}
       <FeatureButton
         icon={
@@ -149,13 +138,31 @@ export function EditorFeatureBar({
         onClick={onSaveNow}
       />
 
-
-      <FeatureButton icon={<History className="h-3.5 w-3.5" />} primary="Version" secondary="history" />
-
-      <FeatureButton icon={<Search className="h-3.5 w-3.5" />} primary="Find &" secondary="replace" />
+      {onOpenShortcuts && (
+        <FeatureButton
+          icon={<Keyboard className="h-3.5 w-3.5" />}
+          primary="Keyboard"
+          secondary="shortcuts"
+          secondarySmall
+          onClick={onOpenShortcuts}
+        />
+      )}
 
       {hasFocusedField && (
         <>
+          <FeatureButton
+            icon={<Info className="h-3.5 w-3.5" />}
+            primary="Guidelines"
+            secondary="for this field"
+            secondarySmall
+            tone="destructive"
+            onClick={onOpenGuidelines}
+          />
+
+          <FeatureButton icon={<History className="h-3.5 w-3.5" />} primary="Version" secondary="history" />
+
+          <FeatureButton icon={<Search className="h-3.5 w-3.5" />} primary="Find &" secondary="replace" />
+
           <FeatureButton
             leading={<Switch checked={trackChangesOn} className="pointer-events-none scale-75" />}
             primary="Track my"
@@ -188,23 +195,13 @@ export function EditorFeatureBar({
         secondary={previewLabel}
         secondarySmall
       />
-
-      {!hasFocusedField && onOpenShortcuts && (
-        <FeatureButton
-          icon={<Keyboard className="h-3.5 w-3.5" />}
-          primary="Keyboard"
-          secondary="shortcuts"
-          secondarySmall
-          onClick={onOpenShortcuts}
-        />
-      )}
     </div>
   );
 }
 
 
 /* ------------------------------------------------------------------ */
-/* Chrome                                                              */
+/* Chrome                                                                */
 /* ------------------------------------------------------------------ */
 
 interface EditorChromeProps {
