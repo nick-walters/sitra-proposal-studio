@@ -1,7 +1,8 @@
 import { Crown } from 'lucide-react';
 import React from 'react';
 import DOMPurify from 'dompurify';
-import { RICH_TEXT_CONFIG } from '@/lib/sanitizePresets';
+import { CROSS_REF_RICH_TEXT_CONFIG } from '@/lib/sanitizePresets';
+import { hydrateRefBadges } from '@/lib/hydrateRefBadges';
 import { EditableCaption } from '@/components/EditableCaption';
 
 import type { B31WPData, B31Participant, B31Task } from '@/hooks/useB31SectionData';
@@ -25,7 +26,7 @@ function ReadOnlyRichText({ html, placeholder }: { html: string | null | undefin
       <span className="text-muted-foreground italic">{placeholder}</span>
     ) : null;
   }
-  const safe = DOMPurify.sanitize(raw, RICH_TEXT_CONFIG);
+  const safe = hydrateRefBadges(String(DOMPurify.sanitize(raw, CROSS_REF_RICH_TEXT_CONFIG)));
   return (
     <div
       className="font-['Times_New_Roman',Times,serif] text-[11pt] text-justify [&_p]:mt-[3pt] [&_p]:mb-[3pt] [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-[calc(1.5em-4pt)] [&_ol]:pl-[calc(1.5em-4pt)] [&_li::marker]:text-[0.85em] [&_li]:my-[1pt]"

@@ -4,9 +4,9 @@ import DOMPurify from 'dompurify';
 import { supabase } from '@/integrations/supabase/client';
 import { EditableCaption } from '@/components/EditableCaption';
 import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
-import { RICH_TEXT_CONFIG } from '@/lib/sanitizePresets';
+import { CROSS_REF_RICH_TEXT_CONFIG } from '@/lib/sanitizePresets';
+import { hydrateRefBadges } from '@/lib/hydrateRefBadges';
 import { WPBubble, ParticipantBubble, RiskBadge, AllWPsBubble, isAllWPsSelected } from './B31Pill';
-import { normalizeRefBadges } from '@/lib/normalizeRefBadges';
 import { useColumnResize } from '@/hooks/useColumnResize';
 import { ColumnResizer } from '@/components/ColumnResizer';
 
@@ -36,7 +36,7 @@ function ReadOnlyHtmlCell({ html }: { html: string | null | undefined }) {
   return (
     <div
       className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight [&_p]:my-0"
-      dangerouslySetInnerHTML={{ __html: normalizeRefBadges(DOMPurify.sanitize(raw, RICH_TEXT_CONFIG)) }}
+      dangerouslySetInnerHTML={{ __html: hydrateRefBadges(String(DOMPurify.sanitize(raw, CROSS_REF_RICH_TEXT_CONFIG))) }}
     />
   );
 }
