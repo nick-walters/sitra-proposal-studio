@@ -180,6 +180,7 @@ export function EditorFeatureBar({
           <FeatureButton icon={<Search className="h-3.5 w-3.5" />} primary="Find &" secondary="replace" />
 
           <FeatureButton
+            asDiv
             leading={<Switch checked={trackChangesOn} className="pointer-events-none scale-75" />}
             primary="Track my"
             secondary="changes"
