@@ -7,7 +7,6 @@ import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
 import { CROSS_REF_RICH_TEXT_CONFIG } from '@/lib/sanitizePresets';
 import { hydrateRefBadges } from '@/lib/hydrateRefBadges';
 import { WPBubble, ParticipantBubble, RiskBadge, AllWPsBubble, isAllWPsSelected } from './B31Pill';
-import { normalizeRefBadges } from '@/lib/normalizeRefBadges';
 import { useColumnResize } from '@/hooks/useColumnResize';
 import { ColumnResizer } from '@/components/ColumnResizer';
 
