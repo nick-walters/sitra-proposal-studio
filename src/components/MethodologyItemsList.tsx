@@ -62,6 +62,7 @@ interface SortableItemRowProps {
   onContentChange: (id: string, html: string) => void;
   onAssign: (id: string, participantId: string | null) => void;
   onDelete: (id: string) => void;
+  collapsed: boolean;
 }
 
 function SortableItemRow({
@@ -74,6 +75,7 @@ function SortableItemRow({
   onContentChange,
   onAssign,
   onDelete,
+  collapsed,
 }: SortableItemRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id,
@@ -219,14 +221,17 @@ function SortableItemRow({
         </DialogContent>
       </Dialog>
 
-      <MethodologyRichEditor
-        proposalId={proposalId}
-        value={item.contentHtml ?? ''}
-        onChange={(html) => onContentChange(item.id, html)}
-        canEdit={canEdit}
-        isCoordinator={isCoordinator}
-        minHeight="120px"
-      />
+      {/* Hidden (not unmounted) while dragging so unsaved text survives. */}
+      <div className={collapsed ? 'hidden' : undefined}>
+        <MethodologyRichEditor
+          proposalId={proposalId}
+          value={item.contentHtml ?? ''}
+          onChange={(html) => onContentChange(item.id, html)}
+          canEdit={canEdit}
+          isCoordinator={isCoordinator}
+          minHeight="120px"
+        />
+      </div>
     </div>
   );
 }
@@ -237,6 +242,7 @@ function SortablePlaceholderRow({
   isCoordinator,
   caseTypes,
   onContentChange,
+  collapsed,
 }: {
   item: MethodologyItem;
   proposalId: string;
@@ -244,6 +250,7 @@ function SortablePlaceholderRow({
   isCoordinator: boolean;
   caseTypes: CaseTypeLite[];
   onContentChange: (id: string, html: string) => void;
+  collapsed: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id,
@@ -281,16 +288,18 @@ function SortablePlaceholderRow({
         </div>
       </div>
 
-      <MethodologyRichEditor
-        proposalId={proposalId}
-        value={item.contentHtml ?? ''}
-        onChange={(html) => onContentChange(item.id, html)}
-        canEdit={canEdit}
-        isCoordinator={isCoordinator}
-        minHeight="2.5rem"
-      />
+      <div className={collapsed ? 'hidden' : undefined}>
+        <MethodologyRichEditor
+          proposalId={proposalId}
+          value={item.contentHtml ?? ''}
+          onChange={(html) => onContentChange(item.id, html)}
+          canEdit={canEdit}
+          isCoordinator={isCoordinator}
+          minHeight="2.5rem"
+        />
+      </div>
 
-      <div className="text-xs text-muted-foreground">
+      <div className={collapsed ? 'hidden' : 'text-xs text-muted-foreground'}>
         The text written here appears above the {label.toLowerCase()} table in B1.2. The table itself
         is built from the case drafts. Drag to set where this table appears.
       </div>
@@ -315,6 +324,7 @@ export default function MethodologyItemsList({
     reorder,
   } = useMethodologyItems(proposalId);
   const [localOrder, setLocalOrder] = useState<string[] | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const { caseTypes } = useMethodologyCasePlaceholders({ proposalId, canEdit });
 
 
@@ -342,6 +352,7 @@ export default function MethodologyItemsList({
   })();
 
   const handleDragEnd = (event: DragEndEvent) => {
+    setIsDragging(false);
     const { active, over } = event;
     if (!over || active.id === over.id) return;
     const ids = ordered.map((i) => i.id);
@@ -363,7 +374,13 @@ export default function MethodologyItemsList({
         assigned participant is for task allocation only and is never mirrored into Part B.
       </p>
 
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={() => setIsDragging(true)}
+        onDragCancel={() => setIsDragging(false)}
+        onDragEnd={handleDragEnd}
+      >
         <SortableContext items={ordered.map((i) => i.id)} strategy={verticalListSortingStrategy}>
           <div className="space-y-3">
             {ordered.map((item) =>
@@ -376,6 +393,7 @@ export default function MethodologyItemsList({
                   isCoordinator={isCoordinator}
                   caseTypes={caseTypes}
                   onContentChange={updateContent}
+                  collapsed={isDragging}
                 />
 
               ) : (
@@ -396,6 +414,7 @@ export default function MethodologyItemsList({
                   onDelete={(id) =>
                     deleteItem(id).catch(() => toast.error('Could not delete the methodology'))
                   }
+                  collapsed={isDragging}
                 />
               ),
             )}
