@@ -1,0 +1,2 @@
+ALTER TABLE public.budget_cost_justification_items DROP CONSTRAINT IF EXISTS budget_cost_justification_items_category_check;
+ALTER TABLE public.budget_cost_justification_items ADD CONSTRAINT budget_cost_justification_items_category_check CHECK (category = ANY (ARRAY['subcontracting'::text,'travel'::text,'equipment'::text,'other_goods'::text,'fstp'::text,'internally_invoiced'::text]));
