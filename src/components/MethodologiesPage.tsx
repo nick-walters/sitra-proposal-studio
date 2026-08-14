@@ -14,7 +14,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Eye, EyeOff, Info } from 'lucide-react';
+import { GripVertical, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,8 @@ import { SaveIndicator } from '@/components/SaveIndicator';
 import { MethodologyRichEditor } from '@/components/MethodologyRichEditor';
 import { FormattingToolbar } from '@/components/RichTextEditor';
 import { PartBCrossRefControls } from '@/components/PartBCrossRefControls';
-import { StickyToolbarWrapper } from '@/components/StickyToolbarWrapper';
+import { EditorChrome, EditorFeatureBar } from '@/components/EditorChrome';
+import { supabase } from '@/integrations/supabase/client';
 import {
   MethodologyEditorFocusProvider,
   useMethodologyEditorFocus,
@@ -62,7 +63,6 @@ interface SortableMethodologyCardProps {
   onContentChange: (id: string, html: string) => void;
   onRename: (id: string, title: string) => void;
   onToggleVisible: (id: string, isVisible: boolean) => void;
-  onOpenGuidelines: (id: string) => void;
 }
 
 function SortableMethodologyCard({
@@ -73,7 +73,6 @@ function SortableMethodologyCard({
   onContentChange,
   onRename,
   onToggleVisible,
-  onOpenGuidelines,
 }: SortableMethodologyCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: subsection.id,
@@ -152,19 +151,6 @@ function SortableMethodologyCard({
               </Badge>
             )}
 
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-6 px-2 text-xs gap-1 text-destructive border-destructive/50 hover:bg-destructive/10 hover:text-destructive"
-              onClick={(e) => {
-                e.stopPropagation();
-                onOpenGuidelines(subsection.id);
-              }}
-              onMouseDown={(e) => e.stopPropagation()}
-            >
-              <Info className="w-3 h-3" />
-              Guidelines
-            </Button>
 
             {isCoordinator ? (
               <Button
@@ -233,9 +219,9 @@ function MethodologiesToolbar({
     : (proposalAcronym ? [{ text: proposalAcronym, color: '#000000' }] : []);
 
   return (
-    <StickyToolbarWrapper>
+    <div>
       <div
-        className="rounded-md border border-border bg-card shadow-sm"
+        className=""
         // Keep the active editor's DOM focus (and therefore its selection)
         // when any toolbar chrome is clicked, including Radix Select /
         // DropdownMenu triggers, which otherwise move focus on open.
@@ -268,7 +254,7 @@ function MethodologiesToolbar({
           </div>
         )}
       </div>
-    </StickyToolbarWrapper>
+    </div>
   );
 }
 
@@ -358,7 +344,6 @@ export default function MethodologiesPage({
                   onContentChange={updateContent}
                   onRename={handleRename}
                   onToggleVisible={handleToggleVisible}
-                  onOpenGuidelines={setGuidelinesId}
                 />
               ))}
             </div>
