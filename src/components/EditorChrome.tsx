@@ -13,8 +13,8 @@ import {
 import { cn } from '@/lib/utils';
 import { Switch } from '@/components/ui/switch';
 import { ScrollableToolbarRow } from '@/components/ScrollableToolbarRow';
-import { StickyToolbarWrapper } from '@/components/StickyToolbarWrapper';
 import { formatTime } from '@/lib/formatDate';
+
 
 /* ------------------------------------------------------------------ */
 /* Feature bar button primitive                                        */
