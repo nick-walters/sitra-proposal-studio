@@ -132,9 +132,6 @@ function SortableItemRow({
             disabled={!canEdit}
             className="min-w-0 flex-1 bg-transparent font-bold italic outline-none placeholder:font-normal placeholder:not-italic placeholder:text-muted-foreground"
           />
-          <span className="font-bold italic" aria-hidden="true">
-            :
-          </span>
         </div>
 
         {selected ? (
