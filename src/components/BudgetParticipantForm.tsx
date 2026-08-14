@@ -461,16 +461,29 @@ export function BudgetParticipantForm({
           <CardTitle className="text-sm font-semibold">D. Other Direct Cost Categories</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <CostInputRow
-            label="D.1. Financial support to third parties"
-            totalValue={row.financialSupportThirdParties}
-            requestedValue={row.requestedFstp}
-            defaultRequested={row.financialSupportThirdParties}
-            showRequested={showReq}
-            editable={editable}
-            onTotalChange={(v) => updateRow(row.id, 'financialSupportThirdParties', v)}
-            onRequestedChange={(v) => updateRow(row.id, 'requestedFstp', v)}
-          />
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium w-[220px] shrink-0">D.1. Financial support to third parties</label>
+            <div className="flex items-center gap-1 flex-1 justify-end">
+              <span className="text-sm font-medium tabular-nums">{formatCurrency(row.financialSupportThirdParties)}</span>
+              <span className="text-xs text-muted-foreground">(sum)</span>
+              <CopyButton value={row.financialSupportThirdParties} />
+            </div>
+            {showReq && (
+              <>
+                <FormattedNumberInput
+                  value={row.requestedFstp ?? row.financialSupportThirdParties}
+                  onChange={(v) => updateRow(row.id, 'requestedFstp', v)}
+                  disabled={!editable}
+                  allowZero
+                  decimals={2}
+                  className="h-8 text-sm text-right flex-1"
+                />
+                <span className="text-xs text-muted-foreground w-4">€</span>
+                <CopyButton value={row.requestedFstp ?? row.financialSupportThirdParties} />
+              </>
+            )}
+          </div>
+
           <JustificationItemsEditor
             budgetRowId={row.id}
             category="fstp"
