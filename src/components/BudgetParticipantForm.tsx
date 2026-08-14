@@ -47,48 +47,8 @@ function CopyButton({ value }: { value: string | number }) {
   );
 }
 
-interface CostRowProps {
-  label: string;
-  totalValue: number;
-  requestedValue: number | null;
-  defaultRequested: number;
-  showRequested: boolean;
-  editable: boolean;
-  onTotalChange: (v: number) => void;
-  onRequestedChange: (v: number) => void;
-  decimals?: number;
-}
 
-function CostInputRow({ label, totalValue, requestedValue, defaultRequested, showRequested, editable, onTotalChange, onRequestedChange, decimals = 2 }: CostRowProps) {
-  return (
-    <div className="flex items-center gap-2">
-      <label className="text-sm text-muted-foreground w-[220px] shrink-0">{label}</label>
-      <FormattedNumberInput
-        value={totalValue}
-        onChange={onTotalChange}
-        disabled={!editable}
-        decimals={decimals}
-        className="h-8 text-sm text-right flex-1"
-      />
-      <span className="text-xs text-muted-foreground w-4">€</span>
-      <CopyButton value={totalValue} />
-      {showRequested && (
-        <>
-          <FormattedNumberInput
-            value={requestedValue ?? defaultRequested}
-            onChange={onRequestedChange}
-            disabled={!editable}
-            allowZero
-            decimals={decimals}
-            className="h-8 text-sm text-right flex-1"
-          />
-          <span className="text-xs text-muted-foreground w-4">€</span>
-          <CopyButton value={requestedValue ?? defaultRequested} />
-        </>
-      )}
-    </div>
-  );
-}
+
 
 export function BudgetParticipantForm({
   proposalId,
