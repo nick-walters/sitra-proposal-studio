@@ -431,7 +431,6 @@ export default function MethodologiesPage({
               isCoordinator={isCoordinator}
               proposalAcronym={proposalAcronym}
               acronymSegments={acronymSegments}
-              onOpenShortcuts={() => setShortcutsOpen(true)}
             />
           }
         >
