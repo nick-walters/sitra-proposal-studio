@@ -93,6 +93,7 @@ export interface EditorFeatureBarProps {
   pendingChangeCount?: number;
   commentCount?: number;
   previewLabel?: string;
+  onOpenShortcuts?: () => void;
 }
 
 export function EditorFeatureBar({
@@ -107,6 +108,7 @@ export function EditorFeatureBar({
   pendingChangeCount,
   commentCount,
   previewLabel = 'Part B1.2',
+  onOpenShortcuts,
 }: EditorFeatureBarProps) {
   const savePrimary = saving
     ? 'Saving…'
@@ -118,16 +120,18 @@ export function EditorFeatureBar({
 
   return (
     <div className="flex items-stretch gap-1.5 px-2 py-1.5">
-      <FeatureButton
-        icon={<Info className="h-3.5 w-3.5" />}
-        primary="Guidelines"
-        secondary={hasFocusedField ? 'for this field' : 'Select a field'}
-        secondarySmall
-        tone={hasFocusedField ? 'destructive' : 'muted'}
-        disabled={!hasFocusedField}
-        onClick={onOpenGuidelines}
-      />
+      {hasFocusedField && (
+        <FeatureButton
+          icon={<Info className="h-3.5 w-3.5" />}
+          primary="Guidelines"
+          secondary="for this field"
+          secondarySmall
+          tone="destructive"
+          onClick={onOpenGuidelines}
+        />
+      )}
 
+      {/* Save state is page-wide, so it stays visible with no field focused. */}
       <FeatureButton
         icon={
           saving ? (
@@ -148,29 +152,33 @@ export function EditorFeatureBar({
 
       <FeatureButton icon={<Search className="h-3.5 w-3.5" />} primary="Find &" secondary="replace" />
 
-      <FeatureButton
-        leading={<Switch checked={trackChangesOn} className="pointer-events-none scale-75" />}
-        primary="Track my"
-        secondary="changes"
-      />
+      {hasFocusedField && (
+        <>
+          <FeatureButton
+            leading={<Switch checked={trackChangesOn} className="pointer-events-none scale-75" />}
+            primary="Track my"
+            secondary="changes"
+          />
 
-      <FeatureButton
-        icon={<GitCompare className="h-3.5 w-3.5" />}
-        primary="Review"
-        secondary={
-          typeof pendingChangeCount === 'number' ? `changes · ${pendingChangeCount}` : 'changes'
-        }
-        secondarySmall
-      />
+          <FeatureButton
+            icon={<GitCompare className="h-3.5 w-3.5" />}
+            primary="Review"
+            secondary={
+              typeof pendingChangeCount === 'number' ? `changes · ${pendingChangeCount}` : 'changes'
+            }
+            secondarySmall
+          />
 
-      <FeatureButton
-        icon={<MessageSquare className="h-3.5 w-3.5" />}
-        primary="Comment"
-        secondary={typeof commentCount === 'number' ? `panel · ${commentCount}` : 'panel'}
-        secondarySmall
-      />
+          <FeatureButton
+            icon={<MessageSquare className="h-3.5 w-3.5" />}
+            primary="Comment"
+            secondary={typeof commentCount === 'number' ? `panel · ${commentCount}` : 'panel'}
+            secondarySmall
+          />
 
-      <FeatureButton icon={<Sparkles className="h-3.5 w-3.5" />} primary="AI" secondary="tools" />
+          <FeatureButton icon={<Sparkles className="h-3.5 w-3.5" />} primary="AI" secondary="tools" />
+        </>
+      )}
 
       <FeatureButton
         icon={<FileText className="h-3.5 w-3.5" />}
@@ -178,9 +186,20 @@ export function EditorFeatureBar({
         secondary={previewLabel}
         secondarySmall
       />
+
+      {!hasFocusedField && onOpenShortcuts && (
+        <FeatureButton
+          icon={<Keyboard className="h-3.5 w-3.5" />}
+          primary="Keyboard"
+          secondary="shortcuts"
+          secondarySmall
+          onClick={onOpenShortcuts}
+        />
+      )}
     </div>
   );
 }
+
 
 /* ------------------------------------------------------------------ */
 /* Chrome                                                              */
