@@ -13,8 +13,8 @@ import {
 import { cn } from '@/lib/utils';
 import { Switch } from '@/components/ui/switch';
 import { ScrollableToolbarRow } from '@/components/ScrollableToolbarRow';
-import { StickyToolbarWrapper } from '@/components/StickyToolbarWrapper';
 import { formatTime } from '@/lib/formatDate';
+
 
 /* ------------------------------------------------------------------ */
 /* Feature bar button primitive                                        */
@@ -26,7 +26,7 @@ interface FeatureButtonProps {
   primary: string;
   secondary?: string;
   secondarySmall?: boolean;
-  tone?: 'default' | 'destructive' | 'muted';
+  tone?: 'default' | 'destructive' | 'muted' | 'success';
   disabled?: boolean;
   onClick?: () => void;
 }
@@ -44,9 +44,12 @@ export function FeatureButton({
   const toneClass =
     tone === 'destructive'
       ? 'border-destructive/50 text-destructive hover:bg-destructive/10'
-      : tone === 'muted'
-        ? 'border-border text-muted-foreground'
-        : 'border-border text-foreground hover:bg-accent';
+      : tone === 'success'
+        ? 'border-success/50 text-success hover:bg-success/10'
+        : tone === 'muted'
+          ? 'border-border text-muted-foreground'
+          : 'border-border text-foreground hover:bg-accent';
+
 
   return (
     <button
@@ -84,6 +87,8 @@ export interface EditorFeatureBarProps {
   lastSaved: Date | null;
   savedMode: 'auto' | 'manual';
   onSaveNow?: () => void;
+  /** True when there are edits not yet persisted; drives the grey/green state. */
+  isDirty?: boolean;
   trackChangesOn?: boolean;
   pendingChangeCount?: number;
   commentCount?: number;
@@ -97,6 +102,7 @@ export function EditorFeatureBar({
   lastSaved,
   savedMode,
   onSaveNow,
+  isDirty = false,
   trackChangesOn = false,
   pendingChangeCount,
   commentCount,
@@ -107,6 +113,8 @@ export function EditorFeatureBar({
     : lastSaved
       ? `${savedMode === 'manual' ? 'Saved' : 'Autosaved'} at ${formatTime(lastSaved)}`
       : 'Not saved yet';
+
+  const saveTone: 'muted' | 'success' = !saving && !isDirty && lastSaved ? 'success' : 'muted';
 
   return (
     <div className="flex items-stretch gap-1.5 px-2 py-1.5">
@@ -131,8 +139,10 @@ export function EditorFeatureBar({
         primary={savePrimary}
         secondary="Click to save now"
         secondarySmall
+        tone={saveTone}
         onClick={onSaveNow}
       />
+
 
       <FeatureButton icon={<History className="h-3.5 w-3.5" />} primary="Version" secondary="history" />
 
@@ -186,17 +196,19 @@ interface EditorChromeProps {
 export function EditorChrome({ featureBar, formattingBar, children }: EditorChromeProps) {
   return (
     <>
-      <StickyToolbarWrapper>
+      {/* Permanently pinned: present from first paint, never scroll-triggered. */}
+      <div data-editor-chrome className="sticky top-0 z-40 -mx-1 px-1 py-1 bg-background">
         <div className="rounded-md border border-border bg-card shadow-sm">
           <div className="border-b border-border">
             <ScrollableToolbarRow>{featureBar}</ScrollableToolbarRow>
           </div>
           <ScrollableToolbarRow>{formattingBar}</ScrollableToolbarRow>
         </div>
-      </StickyToolbarWrapper>
+      </div>
       {children}
     </>
   );
 }
+
 
 export default EditorChrome;
