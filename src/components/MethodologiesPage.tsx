@@ -21,7 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { GuidelinesDialog } from '@/components/GuidelinesDialog';
-import { SaveIndicator } from '@/components/SaveIndicator';
+import { KeyboardShortcutsDialog } from '@/components/KeyboardShortcutsDialog';
 import { MethodologyRichEditor } from '@/components/MethodologyRichEditor';
 import { FormattingToolbar } from '@/components/RichTextEditor';
 import { PartBCrossRefControls } from '@/components/PartBCrossRefControls';
@@ -64,6 +64,7 @@ interface SortableMethodologyCardProps {
   onRename: (id: string, title: string) => void;
   onToggleVisible: (id: string, isVisible: boolean) => void;
   onFocusField: (id: string) => void;
+  collapsed: boolean;
 }
 
 function SortableMethodologyCard({
@@ -75,6 +76,7 @@ function SortableMethodologyCard({
   onRename,
   onToggleVisible,
   onFocusField,
+  collapsed,
 }: SortableMethodologyCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: subsection.id,
@@ -181,7 +183,8 @@ function SortableMethodologyCard({
             )}
           </div>
         </CardHeader>
-        <CardContent>
+        {/* Hidden (not unmounted) while dragging so unsaved text survives. */}
+        <CardContent className={collapsed ? 'hidden' : undefined}>
           {subsection.key === 'methodologies' ? (
             <MethodologyItemsList
               proposalId={proposalId}
@@ -218,7 +221,8 @@ function MethodologiesToolbar({
   isCoordinator,
   proposalAcronym,
   acronymSegments: acronymSegmentsProp,
-}: MethodologiesPageProps) {
+  onOpenShortcuts,
+}: MethodologiesPageProps & { onOpenShortcuts: () => void }) {
   const { activeEditor } = useMethodologyEditorFocus();
   // Fallback: if no acronym colours saved but a plain acronym exists, use a single all-black segment.
   const acronymSegments = (acronymSegmentsProp && acronymSegmentsProp.length > 0)
@@ -250,7 +254,8 @@ function MethodologiesToolbar({
                 editor={activeEditor}
                 proposalId={proposalId}
                 disabled={!canEdit}
-                showKeyboardButton={false}
+                showKeyboardButton
+                onOpenShortcuts={onOpenShortcuts}
                 acronymSegments={acronymSegments}
               />
             }
@@ -265,6 +270,35 @@ function MethodologiesToolbar({
   );
 }
 
+/**
+ * Clears the active field when the user clicks empty space. Clicks inside an
+ * editor surface, the chrome bars or any dialog keep the current target so
+ * toolbar actions never lose their editor.
+ */
+function OutsideClickClear({ onClear }: { onClear: () => void }) {
+  const { activeEditor, unregister } = useMethodologyEditorFocus();
+
+  useEffect(() => {
+    const handler = (e: PointerEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      if (
+        target.closest(
+          '[data-editor-chrome], .ProseMirror, [contenteditable="true"], [role="dialog"], [data-radix-popper-content-wrapper]',
+        )
+      ) {
+        return;
+      }
+      onClear();
+      if (activeEditor) unregister(activeEditor);
+    };
+    document.addEventListener('pointerdown', handler, true);
+    return () => document.removeEventListener('pointerdown', handler, true);
+  }, [activeEditor, unregister, onClear]);
+
+  return null;
+}
+
 export default function MethodologiesPage({
   proposalId,
   canEdit,
@@ -277,6 +311,9 @@ export default function MethodologiesPage({
   const [localOrder, setLocalOrder] = useState<string[] | null>(null);
   const [guidelinesId, setGuidelinesId] = useState<string | null>(null);
   const [focusedId, setFocusedId] = useState<string | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const guidelinesSubsection = subsections.find((s) => s.id === guidelinesId) ?? null;
   const focusedSubsection = subsections.find((s) => s.id === focusedId) ?? null;
 
@@ -288,12 +325,16 @@ export default function MethodologiesPage({
 
   const handleContentChange = (id: string, html: string) => {
     dirtyRef.current[id] = html;
+    setIsDirty(true);
     setSavedMode('auto');
     updateContent(id, html);
   };
 
   useEffect(() => {
-    if (lastSaved) setSavedMode((m) => (m === 'manual' ? m : 'auto'));
+    if (lastSaved) {
+      setSavedMode((m) => (m === 'manual' ? m : 'auto'));
+      setIsDirty(false);
+    }
   }, [lastSaved]);
 
   const handleSaveNow = async () => {
@@ -310,6 +351,7 @@ export default function MethodologiesPage({
       dirtyRef.current = {};
       setManualSavedAt(new Date());
       setSavedMode('manual');
+      setIsDirty(false);
     } catch {
       toast.error('Could not save');
     } finally {
@@ -334,6 +376,7 @@ export default function MethodologiesPage({
   const visible = ordered.filter((s) => s.isVisible || isCoordinator);
 
   const handleDragEnd = (event: DragEndEvent) => {
+    setIsDragging(false);
     const { active, over } = event;
     if (!over || active.id === over.id) return;
     const ids = visible.map((s) => s.id);
@@ -358,6 +401,7 @@ export default function MethodologiesPage({
 
   return (
     <MethodologyEditorFocusProvider>
+      <OutsideClickClear onClear={() => setFocusedId(null)} />
       <div className="mx-auto w-full max-w-4xl space-y-4 p-6">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
@@ -366,7 +410,6 @@ export default function MethodologiesPage({
               Content written here is mirrored into Part B section B1.2.
             </p>
           </div>
-          <SaveIndicator saving={saving} lastSaved={lastSaved} />
         </div>
 
         <EditorChrome
@@ -378,6 +421,7 @@ export default function MethodologiesPage({
               saving={saving || manualSaving}
               lastSaved={savedMode === 'manual' ? manualSavedAt ?? lastSaved : lastSaved}
               savedMode={savedMode}
+              isDirty={isDirty}
               onSaveNow={handleSaveNow}
             />
           }
@@ -388,10 +432,17 @@ export default function MethodologiesPage({
               isCoordinator={isCoordinator}
               proposalAcronym={proposalAcronym}
               acronymSegments={acronymSegments}
+              onOpenShortcuts={() => setShortcutsOpen(true)}
             />
           }
         >
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={() => setIsDragging(true)}
+            onDragCancel={() => setIsDragging(false)}
+            onDragEnd={handleDragEnd}
+          >
             <SortableContext items={visible.map((s) => s.id)} strategy={verticalListSortingStrategy}>
               <div className="space-y-3 pt-4">
                 {visible.map((s) => (
@@ -405,12 +456,15 @@ export default function MethodologiesPage({
                     onRename={handleRename}
                     onToggleVisible={handleToggleVisible}
                     onFocusField={setFocusedId}
+                    collapsed={isDragging}
                   />
                 ))}
               </div>
             </SortableContext>
           </DndContext>
         </EditorChrome>
+
+        <KeyboardShortcutsDialog isOpen={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
 
         {guidelinesSubsection && (
           <GuidelinesDialog
