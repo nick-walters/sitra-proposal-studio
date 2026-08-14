@@ -433,6 +433,8 @@ export default function MethodologiesPage({
               savedMode={savedMode}
               isDirty={isDirty}
               onSaveNow={handleSaveNow}
+              onOpenShortcuts={() => setShortcutsOpen(true)}
+
             />
           }
           formattingBar={
