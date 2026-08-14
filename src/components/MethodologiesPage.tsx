@@ -224,15 +224,30 @@ function MethodologiesToolbar({
   onOpenShortcuts,
 }: MethodologiesPageProps & { onOpenShortcuts: () => void }) {
   const { activeEditor } = useMethodologyEditorFocus();
+  const rowRef = useRef<HTMLDivElement>(null);
+  const [reservedHeight, setReservedHeight] = useState(40);
+
+  useEffect(() => {
+    if (activeEditor && rowRef.current) {
+      const h = rowRef.current.offsetHeight;
+      if (h > 0) setReservedHeight(h);
+    }
+  }, [activeEditor]);
+
   // Fallback: if no acronym colours saved but a plain acronym exists, use a single all-black segment.
   const acronymSegments = (acronymSegmentsProp && acronymSegmentsProp.length > 0)
     ? acronymSegmentsProp
     : (proposalAcronym ? [{ text: proposalAcronym, color: '#000000' }] : []);
 
+  if (!activeEditor) {
+    // Keep the chrome height stable so page content never jumps.
+    return <div aria-hidden style={{ height: reservedHeight }} />;
+  }
+
   return (
     <div>
       <div
-        className=""
+        ref={rowRef}
         // Keep the active editor's DOM focus (and therefore its selection)
         // when any toolbar chrome is clicked, including Radix Select /
         // DropdownMenu triggers, which otherwise move focus on open.
@@ -242,33 +257,28 @@ function MethodologiesToolbar({
           e.preventDefault();
         }}
       >
-        {activeEditor ? (
-          <FormattingToolbar
-            editor={activeEditor}
-            proposalId={proposalId}
-            canManageCustomColors={isCoordinator}
-            isPartB
-            isReadOnly={!canEdit}
-            crossRefDropdown={
-              <PartBCrossRefControls
-                editor={activeEditor}
-                proposalId={proposalId}
-                disabled={!canEdit}
-                showKeyboardButton
-                onOpenShortcuts={onOpenShortcuts}
-                acronymSegments={acronymSegments}
-              />
-            }
-          />
-        ) : (
-          <div className="px-3 py-2 text-sm italic text-muted-foreground">
-            Click into a field to start formatting
-          </div>
-        )}
+        <FormattingToolbar
+          editor={activeEditor}
+          proposalId={proposalId}
+          canManageCustomColors={isCoordinator}
+          isPartB
+          isReadOnly={!canEdit}
+          crossRefDropdown={
+            <PartBCrossRefControls
+              editor={activeEditor}
+              proposalId={proposalId}
+              disabled={!canEdit}
+              showKeyboardButton
+              onOpenShortcuts={onOpenShortcuts}
+              acronymSegments={acronymSegments}
+            />
+          }
+        />
       </div>
     </div>
   );
 }
+
 
 /**
  * Clears the active field when the user clicks empty space. Clicks inside an
