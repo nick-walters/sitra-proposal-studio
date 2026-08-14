@@ -87,6 +87,8 @@ export interface EditorFeatureBarProps {
   lastSaved: Date | null;
   savedMode: 'auto' | 'manual';
   onSaveNow?: () => void;
+  /** True when there are edits not yet persisted; drives the grey/green state. */
+  isDirty?: boolean;
   trackChangesOn?: boolean;
   pendingChangeCount?: number;
   commentCount?: number;
@@ -100,6 +102,7 @@ export function EditorFeatureBar({
   lastSaved,
   savedMode,
   onSaveNow,
+  isDirty = false,
   trackChangesOn = false,
   pendingChangeCount,
   commentCount,
@@ -110,6 +113,8 @@ export function EditorFeatureBar({
     : lastSaved
       ? `${savedMode === 'manual' ? 'Saved' : 'Autosaved'} at ${formatTime(lastSaved)}`
       : 'Not saved yet';
+
+  const saveTone: 'muted' | 'success' = !saving && !isDirty && lastSaved ? 'success' : 'muted';
 
   return (
     <div className="flex items-stretch gap-1.5 px-2 py-1.5">
@@ -134,8 +139,10 @@ export function EditorFeatureBar({
         primary={savePrimary}
         secondary="Click to save now"
         secondarySmall
+        tone={saveTone}
         onClick={onSaveNow}
       />
+
 
       <FeatureButton icon={<History className="h-3.5 w-3.5" />} primary="Version" secondary="history" />
 
