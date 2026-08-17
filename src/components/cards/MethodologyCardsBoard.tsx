@@ -830,7 +830,11 @@ function BoardInner({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => createCard.mutate(undefined)}
+                onClick={() =>
+                  createCard.mutate(undefined, {
+                    onSuccess: (newCardId) => jumpToRestored('card', newCardId),
+                  })
+                }
                 disabled={createCard.isPending}
               >
                 <Plus className="mr-1 h-3.5 w-3.5" />
