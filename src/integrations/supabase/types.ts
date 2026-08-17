@@ -6362,6 +6362,19 @@ export type Database = {
       }
       capture_scope_predicates: { Args: never; Returns: Json }
       card_html_is_blank: { Args: { p_html: string }; Returns: boolean }
+      create_card_field: {
+        Args: {
+          p_card_id: string
+          p_content_html?: string
+          p_field_role?: string
+          p_heading?: string
+        }
+        Returns: string
+      }
+      create_manual_text_card: {
+        Args: { p_section_id: string }
+        Returns: string
+      }
       create_proposal_snapshot: {
         Args: { p_label?: string; p_proposal_id: string; p_source?: string }
         Returns: {
@@ -6447,6 +6460,10 @@ export type Database = {
       reorder_section_cards: {
         Args: { p_card_ids: string[]; p_section_id: string }
         Returns: number
+      }
+      resequence_card_fields: {
+        Args: { p_card_id: string }
+        Returns: undefined
       }
       restore_card: { Args: { p_card_id: string }; Returns: undefined }
       restore_card_field: { Args: { p_field_id: string }; Returns: Json }
