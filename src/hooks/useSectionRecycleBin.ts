@@ -32,19 +32,39 @@ export function useSectionRecycleBin(proposalId: string, sectionId?: string) {
       const fieldIds = rows.filter((r) => r.target_type === 'field').map((r) => r.target_id);
 
       const labels = new Map<string, string | null>();
+      const previews = new Map<string, string>();
+      const fieldCounts = new Map<string, number>();
+
       if (cardIds.length) {
         const { data: cards } = await supabase
           .from('proposal_cards')
-          .select('id, title, kind')
+          .select('id, title')
           .in('id', cardIds);
-        for (const c of cards || []) labels.set(c.id, c.title || `Untitled ${c.kind} card`);
+        for (const c of cards || []) labels.set(c.id, c.title || null);
+
+        const { data: cardFields } = await supabase
+          .from('card_fields')
+          .select('card_id, content_html, order_index')
+          .in('card_id', cardIds)
+          .order('order_index');
+        for (const f of cardFields || []) {
+          fieldCounts.set(f.card_id, (fieldCounts.get(f.card_id) ?? 0) + 1);
+          previews.set(
+            f.card_id,
+            `${previews.get(f.card_id) ?? ''}${f.content_html ?? ''}`,
+          );
+        }
       }
+
       if (fieldIds.length) {
         const { data: fields } = await supabase
           .from('card_fields')
-          .select('id, heading')
+          .select('id, heading, content_html')
           .in('id', fieldIds);
-        for (const f of fields || []) labels.set(f.id, f.heading || 'Untitled field');
+        for (const f of fields || []) {
+          labels.set(f.id, f.heading || null);
+          previews.set(f.id, f.content_html ?? '');
+        }
       }
 
       return rows.map((r) => ({
@@ -60,7 +80,10 @@ export function useSectionRecycleBin(proposalId: string, sectionId?: string) {
         restoredAt: r.restored_at ?? null,
         restoredBy: r.restored_by ?? null,
         label: labels.get(r.target_id) ?? null,
+        contentHtml: previews.get(r.target_id) ?? null,
+        fieldCount: r.target_type === 'card' ? (fieldCounts.get(r.target_id) ?? 0) : null,
       }));
+
     },
     enabled: !!proposalId,
   });

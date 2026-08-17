@@ -70,8 +70,13 @@ export interface CardDeletionEntry {
   purgeAfter: string | null;
   restoredAt: string | null;
   restoredBy: string | null;
-  /** Resolved label for display in the recycle bin. */
+  /** Resolved heading for display in the recycle bin, null when it has none. */
   label: string | null;
+  /** Stored HTML used for the collapsed preview. */
+  contentHtml?: string | null;
+  /** Number of fields held by a deleted card. */
+  fieldCount?: number | null;
+
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */

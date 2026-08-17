@@ -224,20 +224,9 @@ function FieldRow({
               }}
               className="h-8 flex-1 font-bold"
             />
-            {canEdit && field.heading && (
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="Remove heading"
-                className="h-7 w-7"
-                onClick={() => {
-                  setHeadingDraft('');
-                  onHeadingChange(field, null);
-                }}
-              >
-                <X className="h-3.5 w-3.5" />
-              </Button>
-            )}
+            {/* Clearing the heading is done by emptying the input, so no ambiguous
+                icon sits next to the destructive delete control. */}
+
             <FieldHistoryButton field={field} canEdit={canEdit} />
             {isCoordinator && (
               <AlertDialog>
@@ -461,17 +450,9 @@ function CardBlock({
               </Badge>
             )}
 
-            {isCoordinator && card.title && (
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="Remove title"
-                className="h-7 w-7"
-                onClick={() => onRename(card, null)}
-              >
-                <X className="h-3.5 w-3.5" />
-              </Button>
-            )}
+            {/* The title is cleared by editing it inline; no icon that could be
+                mistaken for the delete control. */}
+
 
             {isCoordinator && card.isHideable && (
               <Button
@@ -586,6 +567,8 @@ function BoardInner({
   const cardIds = useMemo(() => cards.map((c) => c.id), [cards]);
   const { fieldsByCard } = useCardFieldsForCards(cardIds);
   const {
+    createCard,
+
     updateCard,
     reorderCards,
     createField,
@@ -638,11 +621,28 @@ function BoardInner({
     setLocalOrder(null);
   }, [freeCards.length]);
 
+  /** Append a version snapshot so the history dialog has something to list. */
+  const snapshotVersion = useCallback(
+    async (fieldId: string, cardId: string, html: string | null, isAutoSave: boolean) => {
+      const heading =
+        (fieldsByCard[cardId] ?? []).find((f) => f.id === fieldId)?.heading ?? null;
+      const { error } = await supabase.rpc('save_card_field_version', {
+        p_field_id: fieldId,
+        p_content_html: html,
+        p_heading: heading,
+        p_is_auto_save: isAutoSave,
+      });
+      if (error) toast.error(error.message || 'Could not save a version');
+    },
+    [fieldsByCard],
+  );
+
   const persistField = useCallback(
-    async (fieldId: string, cardId: string, html: string) => {
+    async (fieldId: string, cardId: string, html: string, isAutoSave = true) => {
       setSaving(true);
       try {
         await updateField.mutateAsync({ fieldId, cardId, contentHtml: html });
+        await snapshotVersion(fieldId, cardId, html, isAutoSave);
         delete dirtyRef.current[fieldId];
         setLastSaved(new Date());
         if (Object.keys(dirtyRef.current).length === 0) setIsDirty(false);
@@ -650,8 +650,9 @@ function BoardInner({
         setSaving(false);
       }
     },
-    [updateField],
+    [updateField, snapshotVersion],
   );
+
 
   const handleContentChange = (field: CardField, html: string) => {
     dirtyRef.current[field.id] = { cardId: field.cardId, html };
@@ -671,12 +672,13 @@ function BoardInner({
         clearTimeout(timersRef.current[fieldId]);
         delete timersRef.current[fieldId];
       }
-      await persistField(fieldId, cardId, dirtyRef.current[fieldId]?.html ?? '');
+      await persistField(fieldId, cardId, dirtyRef.current[fieldId]?.html ?? '', false);
     }
     setSavedMode('manual');
     setLastSaved(new Date());
     setIsDirty(false);
   };
+
 
   const orderedFree = useMemo(() => {
     if (!localOrder) return freeCards;
@@ -720,7 +722,17 @@ function BoardInner({
     onReorderFields: (c: ProposalCard, orderedIds: string[]) =>
       reorderFields.mutate({ cardId: c.id, orderedFieldIds: orderedIds }),
     onHeadingChange: (f: CardField, heading: string | null) =>
-      updateField.mutate({ fieldId: f.id, cardId: f.cardId, heading }),
+      void updateField
+        .mutateAsync({ fieldId: f.id, cardId: f.cardId, heading })
+        .then(() =>
+          supabase.rpc('save_card_field_version', {
+            p_field_id: f.id,
+            p_content_html: f.contentHtml ?? '',
+            p_heading: heading,
+            p_is_auto_save: false,
+          }),
+        ),
+
     onContentChange: handleContentChange,
     onDeleteField: (f: CardField) => deleteField.mutate({ fieldId: f.id, cardId: f.cardId }),
     onFocusField: setFocusedFieldId,
@@ -803,6 +815,20 @@ function BoardInner({
                 </div>
               </SortableContext>
             </DndContext>
+
+            {canEdit && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => createCard.mutate(undefined)}
+                disabled={createCard.isPending}
+              >
+                <Plus className="mr-1 h-3.5 w-3.5" />
+                Add card
+              </Button>
+            )}
+
+
 
             {tailCards.filter(visibleCard).map((c) => (
               <CardBlock key={c.id} {...cardProps(c, false)} />
