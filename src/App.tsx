@@ -120,6 +120,10 @@ const AppRoutes = () => {
         <Route path="/feedback" element={<ProtectedRoute><Feedback /></ProtectedRoute>} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="/typst-spike" element={<TypstSpike />} />
+        <Route
+          path="/proposals/:id/methodologies-cards"
+          element={<ProtectedRoute><MethodologiesCardsPage /></ProtectedRoute>}
+        />
         <Route path="*" element={<NotFound />} />
 
       </Routes>
