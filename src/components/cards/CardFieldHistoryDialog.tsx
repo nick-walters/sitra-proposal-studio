@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { formatDateLong } from '@/lib/formatDate';
+import { formatDateTime } from '@/lib/formatDate';
 import { useCardFieldVersions } from '@/hooks/useCardFieldVersions';
 
 interface CardFieldHistoryDialogProps {
@@ -43,7 +43,7 @@ export function CardFieldHistoryDialog({
                     <p className="flex-1 text-sm font-medium">
                       Version {v.versionNumber}
                       <span className="ml-2 text-[11px] font-normal text-muted-foreground">
-                        {formatDateLong(new Date(v.createdAt))} · {v.isAutoSave ? 'autosave' : 'manual'}
+                        {formatDateTime(new Date(v.createdAt))} · {v.isAutoSave ? 'autosave' : 'manual'}
                       </span>
                     </p>
                     {canEdit && (

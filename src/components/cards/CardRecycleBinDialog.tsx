@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { RotateCcw } from 'lucide-react';
-import { formatDateLong } from '@/lib/formatDate';
+import { formatDateTime } from '@/lib/formatDate';
 import { useSectionRecycleBin } from '@/hooks/useSectionRecycleBin';
 
 interface CardRecycleBinDialogProps {
@@ -56,9 +56,9 @@ export function CardRecycleBinDialog({
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm">{e.label ?? 'Untitled card'}</p>
                         <p className="text-[11px] text-muted-foreground">
-                          Deleted {formatDateLong(new Date(e.deletedAt))}
+                          Deleted {formatDateTime(new Date(e.deletedAt))}
                           {e.purgeAfter
-                            ? ` · purged after ${formatDateLong(new Date(e.purgeAfter))}`
+                            ? ` · purged after ${formatDateTime(new Date(e.purgeAfter))}`
                             : ''}
                         </p>
                       </div>
@@ -87,7 +87,7 @@ export function CardRecycleBinDialog({
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm">{e.label ?? 'Untitled field'}</p>
                         <p className="text-[11px] text-muted-foreground">
-                          Deleted {formatDateLong(new Date(e.deletedAt))}
+                          Deleted {formatDateTime(new Date(e.deletedAt))}
                         </p>
                       </div>
                       <Button
