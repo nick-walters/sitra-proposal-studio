@@ -6429,6 +6429,7 @@ export type Database = {
         Args: { _proposal_id: string; _user_id: string }
         Returns: boolean
       }
+      migrate_b12_to_cards: { Args: { p_proposal_id: string }; Returns: Json }
       normalise_section_card_order: {
         Args: { p_section_id: string }
         Returns: undefined
