@@ -639,6 +639,132 @@ export type Database = {
           },
         ]
       }
+      card_guideline_sections: {
+        Row: {
+          created_at: string
+          guideline_id: string
+          id: string
+          section_source_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          guideline_id: string
+          id?: string
+          section_source_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          guideline_id?: string
+          id?: string
+          section_source_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_guideline_sections_guideline_id_fkey"
+            columns: ["guideline_id"]
+            isOneToOne: false
+            referencedRelation: "card_guidelines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "card_guideline_sections_section_source_id_fkey"
+            columns: ["section_source_id"]
+            isOneToOne: false
+            referencedRelation: "template_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      card_guideline_templates: {
+        Row: {
+          card_template_id: string
+          created_at: string
+          guideline_id: string
+          id: string
+          order_index: number
+          updated_at: string
+        }
+        Insert: {
+          card_template_id: string
+          created_at?: string
+          guideline_id: string
+          id?: string
+          order_index?: number
+          updated_at?: string
+        }
+        Update: {
+          card_template_id?: string
+          created_at?: string
+          guideline_id?: string
+          id?: string
+          order_index?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_guideline_templates_card_template_id_fkey"
+            columns: ["card_template_id"]
+            isOneToOne: false
+            referencedRelation: "card_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "card_guideline_templates_guideline_id_fkey"
+            columns: ["guideline_id"]
+            isOneToOne: false
+            referencedRelation: "card_guidelines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      card_guidelines: {
+        Row: {
+          condition_budget_type:
+            | Database["public"]["Enums"]["budget_type"]
+            | null
+          condition_uses_fstp: boolean | null
+          content: string
+          created_at: string
+          guideline_type: string
+          id: string
+          is_active: boolean
+          order_index: number
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          condition_budget_type?:
+            | Database["public"]["Enums"]["budget_type"]
+            | null
+          condition_uses_fstp?: boolean | null
+          content: string
+          created_at?: string
+          guideline_type: string
+          id?: string
+          is_active?: boolean
+          order_index?: number
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          condition_budget_type?:
+            | Database["public"]["Enums"]["budget_type"]
+            | null
+          condition_uses_fstp?: boolean | null
+          content?: string
+          created_at?: string
+          guideline_type?: string
+          id?: string
+          is_active?: boolean
+          order_index?: number
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       card_target_locks: {
         Row: {
           acquired_at: string
