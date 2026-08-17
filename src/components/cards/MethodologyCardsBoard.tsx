@@ -224,20 +224,9 @@ function FieldRow({
               }}
               className="h-8 flex-1 font-bold"
             />
-            {canEdit && field.heading && (
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="Remove heading"
-                className="h-7 w-7"
-                onClick={() => {
-                  setHeadingDraft('');
-                  onHeadingChange(field, null);
-                }}
-              >
-                <X className="h-3.5 w-3.5" />
-              </Button>
-            )}
+            {/* Clearing the heading is done by emptying the input, so no ambiguous
+                icon sits next to the destructive delete control. */}
+
             <FieldHistoryButton field={field} canEdit={canEdit} />
             {isCoordinator && (
               <AlertDialog>
