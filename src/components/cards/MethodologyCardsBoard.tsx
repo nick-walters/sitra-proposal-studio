@@ -619,11 +619,28 @@ function BoardInner({
     setLocalOrder(null);
   }, [freeCards.length]);
 
+  /** Append a version snapshot so the history dialog has something to list. */
+  const snapshotVersion = useCallback(
+    async (fieldId: string, cardId: string, html: string | null, isAutoSave: boolean) => {
+      const heading =
+        (fieldsByCard[cardId] ?? []).find((f) => f.id === fieldId)?.heading ?? null;
+      const { error } = await supabase.rpc('save_card_field_version', {
+        p_field_id: fieldId,
+        p_content_html: html,
+        p_heading: heading,
+        p_is_auto_save: isAutoSave,
+      });
+      if (error) toast.error(error.message || 'Could not save a version');
+    },
+    [fieldsByCard],
+  );
+
   const persistField = useCallback(
-    async (fieldId: string, cardId: string, html: string) => {
+    async (fieldId: string, cardId: string, html: string, isAutoSave = true) => {
       setSaving(true);
       try {
         await updateField.mutateAsync({ fieldId, cardId, contentHtml: html });
+        await snapshotVersion(fieldId, cardId, html, isAutoSave);
         delete dirtyRef.current[fieldId];
         setLastSaved(new Date());
         if (Object.keys(dirtyRef.current).length === 0) setIsDirty(false);
@@ -631,8 +648,9 @@ function BoardInner({
         setSaving(false);
       }
     },
-    [updateField],
+    [updateField, snapshotVersion],
   );
+
 
   const handleContentChange = (field: CardField, html: string) => {
     dirtyRef.current[field.id] = { cardId: field.cardId, html };
