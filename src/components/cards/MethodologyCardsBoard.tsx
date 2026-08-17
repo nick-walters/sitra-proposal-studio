@@ -14,7 +14,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Eye, EyeOff, GripVertical, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
@@ -775,6 +775,7 @@ function BoardInner({
     proposalId,
     sectionId,
   );
+  const queryClient = useQueryClient();
   const cardIds = useMemo(() => cards.map((c) => c.id), [cards]);
   const { fieldsByCard } = useCardFieldsForCards(cardIds);
   const { entries: binEntries } = useSectionRecycleBin(proposalId, sectionId);
@@ -799,6 +800,12 @@ function BoardInner({
     null,
   );
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [lostText, setLostText] = useState<LostTextPayload | null>(null);
+  const [reloadNonce, setReloadNonce] = useState(0);
+  const { warning } = useCardLocks();
+
+  /** Last known version per text box, for the save-time version check. */
+  const versionsRef = useRef<Record<string, number>>({});
 
   // Page-wide save state.
   const [saving, setSaving] = useState(false);
@@ -829,6 +836,24 @@ function BoardInner({
   }, [caseTypes]);
 
   useEffect(() => {
+    for (const list of Object.values(fieldsByCard)) {
+      for (const f of list) {
+        const ck = `${f.id}:content`;
+        const hk = `${f.id}:header`;
+        versionsRef.current[ck] = Math.max(versionsRef.current[ck] ?? 0, f.contentVersion);
+        versionsRef.current[hk] = Math.max(versionsRef.current[hk] ?? 0, f.headingVersion);
+      }
+    }
+  }, [fieldsByCard]);
+
+  useEffect(() => {
+    for (const c of cards) {
+      const k = `card:${c.id}:title`;
+      versionsRef.current[k] = Math.max(versionsRef.current[k] ?? 0, c.titleVersion);
+    }
+  }, [cards]);
+
+  useEffect(() => {
     const timers = timersRef.current;
     return () => Object.values(timers).forEach(clearTimeout);
   }, []);
@@ -837,36 +862,62 @@ function BoardInner({
     setLocalOrder(null);
   }, [freeCards.length]);
 
-  /** Append a version snapshot for ONE text box of a module. */
-  const snapshotVersion = useCallback(
-    async (fieldId: string, textBox: CardTextBox, value: string | null, isAutoSave: boolean) => {
-      const { error } = await supabase.rpc('save_card_field_version', {
-        p_field_id: fieldId,
-        p_text_box: textBox,
-        p_value: value ?? '',
-        p_is_auto_save: isAutoSave,
-      });
-      if (error) toast.error(error.message || 'Could not save a version');
-    },
-    [],
-  );
-
-  const persistField = useCallback(
-    async (fieldId: string, cardId: string, html: string, isAutoSave = true) => {
+  /**
+   * Version-checked write of one text box. The server rejects the write if the
+   * stored value changed since this client loaded it — the backstop that keeps
+   * data safe when locking fails (network drop, suspended tab).
+   */
+  const saveTextBox = useCallback(
+    async (
+      fieldId: string,
+      cardId: string,
+      textBox: CardTextBox,
+      value: string,
+      isAutoSave: boolean,
+    ): Promise<boolean> => {
+      const key = `${fieldId}:${textBox}`;
       setSaving(true);
       try {
-        await updateField.mutateAsync({ fieldId, cardId, contentHtml: html });
-        await snapshotVersion(fieldId, 'content', html, isAutoSave);
+        const { data, error } = await supabase.rpc('save_card_text', {
+          p_field_id: fieldId,
+          p_text_box: textBox,
+          p_value: value,
+          p_expected_version: versionsRef.current[key] ?? null,
+          p_is_auto_save: isAutoSave,
+        });
+        if (error) {
+          toast.error(error.message || 'Could not save');
+          return false;
+        }
+        const res = (data ?? {}) as { ok?: boolean; conflict?: boolean; version?: number };
+        if (res.version) versionsRef.current[key] = res.version;
+        if (!res.ok) {
+          // Somebody else wrote this text box first — offer a backup copy and
+          // reload the authoritative content.
+          setLostText({ text: value, reason: 'conflict' });
+          delete dirtyRef.current[fieldId];
+          queryClient.invalidateQueries({ queryKey: ['card-fields-batch'] });
+          setReloadNonce((n) => n + 1);
+          return false;
+        }
         delete dirtyRef.current[fieldId];
         setLastSaved(new Date());
         if (Object.keys(dirtyRef.current).length === 0) setIsDirty(false);
+        queryClient.invalidateQueries({ queryKey: ['card-fields-batch'] });
+        return true;
       } finally {
         setSaving(false);
       }
     },
-    [updateField, snapshotVersion],
+    [queryClient],
   );
 
+  const persistField = useCallback(
+    async (fieldId: string, cardId: string, html: string, isAutoSave = true) => {
+      await saveTextBox(fieldId, cardId, 'content', html, isAutoSave);
+    },
+    [saveTextBox],
+  );
 
   const handleContentChange = (field: CardField, html: string) => {
     dirtyRef.current[field.id] = { cardId: field.cardId, html };
@@ -965,8 +1016,22 @@ function BoardInner({
     collapsed: isDragging,
     binCount: deletedModulesByCard[card.id] ?? 0,
     onOpenBin: (c: ProposalCard) => setModuleBinCardId(c.id),
-    onRename: (c: ProposalCard, title: string | null) =>
-      updateCard.mutate({ cardId: c.id, title }),
+    onRename: async (c: ProposalCard, title: string | null) => {
+      const key = `card:${c.id}:title`;
+      const { data, error } = await supabase.rpc('save_card_title', {
+        p_card_id: c.id,
+        p_title: title ?? '',
+        p_expected_version: versionsRef.current[key] ?? null,
+      });
+      if (error) {
+        toast.error(error.message || 'Could not rename the block');
+        return;
+      }
+      const res = (data ?? {}) as { ok?: boolean; version?: number };
+      if (res.version) versionsRef.current[key] = res.version;
+      if (!res.ok) setLostText({ text: title ?? '', reason: 'conflict' });
+      queryClient.invalidateQueries({ queryKey: sectionCardsKey(proposalId, sectionId) });
+    },
     onToggleVisible: (c: ProposalCard) =>
       updateCard.mutate({ cardId: c.id, isVisible: !c.isVisible }),
     onDeleteCard: (c: ProposalCard) => deleteCard.mutate(c.id),
@@ -974,9 +1039,7 @@ function BoardInner({
     onReorderFields: (c: ProposalCard, orderedIds: string[]) =>
       reorderFields.mutate({ cardId: c.id, orderedFieldIds: orderedIds }),
     onHeadingChange: (f: CardField, heading: string | null) =>
-      void updateField
-        .mutateAsync({ fieldId: f.id, cardId: f.cardId, heading })
-        .then(() => snapshotVersion(f.id, 'header', heading, false)),
+      void saveTextBox(f.id, f.cardId, 'header', heading ?? '', false),
     onToggleHeading: (f: CardField, enabled: boolean) =>
       updateField.mutate({ fieldId: f.id, cardId: f.cardId, headingEnabled: enabled }),
 
@@ -984,6 +1047,8 @@ function BoardInner({
     onDeleteField: (f: CardField) => deleteField.mutate({ fieldId: f.id, cardId: f.cardId }),
     onFocusField: (fieldId: string, textBox: CardTextBox) =>
       setFocusedBox({ fieldId, textBox }),
+    onLostText: setLostText,
+    reloadNonce,
   });
 
   if (isLoading) {
