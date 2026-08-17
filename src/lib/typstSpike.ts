@@ -211,7 +211,7 @@ collected as an endnote and not pushed onto the previous or following page.]
     chip("T5." + str(i), "#0f766e"),
     [Task #i — #lorem(calc.rem(i, 5) * 6 + 8)],
     [Partner #(calc.rem(i, 9) + 1)],
-    [M#(i) – M#(i + 6)],
+    [M#(i) – M#(i + 6)#if i == 30 [#footnote[Third footnote, anchored inside a table cell late in the long table. It must render at the foot of whichever page that row lands on.]]],
   )),
 )
 
