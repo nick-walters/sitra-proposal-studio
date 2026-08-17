@@ -94,35 +94,26 @@ export function useCardMutations(proposalId: string, sectionId: string) {
 
   const createField = useMutation({
     mutationFn: async (input: CreateFieldInput): Promise<CardField> => {
-      const { data: existing, error: qErr } = await supabase
-        .from('card_fields')
-        .select('order_index')
-        .eq('card_id', input.cardId)
-        .is('deleted_at', null)
-        .order('order_index', { ascending: false })
-        .limit(1);
-      if (qErr) throw qErr;
-      const orderIndex = (existing?.[0]?.order_index ?? -1) + 1;
-
-      const { data, error } = await supabase
-        .from('card_fields')
-        .insert({
-          card_id: input.cardId,
-          proposal_id: proposalId,
-          heading: input.heading ?? null,
-          content_html: input.contentHtml ?? '',
-          order_index: orderIndex,
-          field_role: input.fieldRole ?? 'narrative',
-          origin: 'manual',
-        })
-        .select()
-        .single();
+      // Server-side so the index accounts for soft-deleted rows still holding a slot.
+      const { data: newId, error } = await supabase.rpc('create_card_field', {
+        p_card_id: input.cardId,
+        p_heading: input.heading ?? null,
+        p_content_html: input.contentHtml ?? '',
+        p_field_role: input.fieldRole ?? 'narrative',
+      });
       if (error) throw error;
+      const { data, error: readErr } = await supabase
+        .from('card_fields')
+        .select('*')
+        .eq('id', newId as string)
+        .single();
+      if (readErr) throw readErr;
       return mapField(data);
     },
     onSuccess: (field) => invalidateFields(field.cardId),
     onError: (e: Error) => toast.error(e.message || 'Could not add the field'),
   });
+
 
   const updateField = useMutation({
     mutationFn: async ({
