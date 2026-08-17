@@ -27,6 +27,7 @@ const OrganisationRegistryAdmin = lazy(() => import("./pages/admin/OrganisationR
 const Feedback = lazy(() => import("./pages/Feedback").then(m => ({ default: m.Feedback })));
 // THROWAWAY SPIKE — reachable only by typing /typst-spike. No nav link.
 const TypstSpike = lazy(() => import("./pages/TypstSpike"));
+const MethodologiesCardsPage = lazy(() => import("./pages/MethodologiesCardsPage"));
 
 const RouteFallback = () => (
   <div className="flex h-dvh items-center justify-center" role="status" aria-label="Loading">
@@ -119,6 +120,10 @@ const AppRoutes = () => {
         <Route path="/feedback" element={<ProtectedRoute><Feedback /></ProtectedRoute>} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="/typst-spike" element={<TypstSpike />} />
+        <Route
+          path="/proposals/:id/methodologies-cards"
+          element={<ProtectedRoute><MethodologiesCardsPage /></ProtectedRoute>}
+        />
         <Route path="*" element={<NotFound />} />
 
       </Routes>
