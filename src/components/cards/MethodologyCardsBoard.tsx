@@ -814,6 +814,20 @@ function BoardInner({
               </SortableContext>
             </DndContext>
 
+            {canEdit && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => createCard.mutate(undefined)}
+                disabled={createCard.isPending}
+              >
+                <Plus className="mr-1 h-3.5 w-3.5" />
+                Add card
+              </Button>
+            )}
+
+
+
             {tailCards.filter(visibleCard).map((c) => (
               <CardBlock key={c.id} {...cardProps(c, false)} />
             ))}
