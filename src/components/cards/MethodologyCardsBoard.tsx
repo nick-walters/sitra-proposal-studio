@@ -567,6 +567,8 @@ function BoardInner({
   const cardIds = useMemo(() => cards.map((c) => c.id), [cards]);
   const { fieldsByCard } = useCardFieldsForCards(cardIds);
   const {
+    createCard,
+
     updateCard,
     reorderCards,
     createField,
