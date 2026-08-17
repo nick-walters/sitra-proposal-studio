@@ -1245,7 +1245,7 @@ export function MethodologyCardsBoard(props: BoardProps) {
       <CardLockProvider
         proposalId={props.proposalId}
         sectionId={props.sectionId}
-        enabled={props.canEdit}
+        enabled
       >
         <BoardInner {...props} />
       </CardLockProvider>
