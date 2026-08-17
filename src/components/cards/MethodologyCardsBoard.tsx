@@ -670,12 +670,13 @@ function BoardInner({
         clearTimeout(timersRef.current[fieldId]);
         delete timersRef.current[fieldId];
       }
-      await persistField(fieldId, cardId, dirtyRef.current[fieldId]?.html ?? '');
+      await persistField(fieldId, cardId, dirtyRef.current[fieldId]?.html ?? '', false);
     }
     setSavedMode('manual');
     setLastSaved(new Date());
     setIsDirty(false);
   };
+
 
   const orderedFree = useMemo(() => {
     if (!localOrder) return freeCards;
