@@ -42,7 +42,7 @@ function BinEntry({
     <div className="rounded-md border border-border p-2">
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1 space-y-1">
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
             <Badge variant="secondary" className="text-[11px] font-bold">
               {entry.targetType === 'card' ? 'Block' : 'Module'}
             </Badge>
@@ -51,17 +51,20 @@ function BinEntry({
                 {entry.fieldCount} {entry.fieldCount === 1 ? 'module' : 'modules'}
               </span>
             )}
-            {entry.label && <span className="truncate text-sm font-bold">{entry.label}</span>}
+            {entry.label && (
+              <span className="min-w-0 max-w-full truncate text-sm font-bold">{entry.label}</span>
+            )}
           </div>
           <p className="text-[11px] text-muted-foreground">
             Deleted {formatDateTime(new Date(entry.deletedAt))}
             {entry.purgeAfter ? ` · purged after ${formatDateTime(new Date(entry.purgeAfter))}` : ''}
           </p>
         </div>
-        <Button size="sm" variant="outline" onClick={onRestore} disabled={isRestoring}>
+        <Button size="sm" variant="outline" className="shrink-0" onClick={onRestore} disabled={isRestoring}>
           <RotateCcw className="mr-1 h-3.5 w-3.5" />
           Restore
         </Button>
+
       </div>
 
       {hasContent && (
