@@ -500,6 +500,13 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
       },
     };
 
+    // Temporary parallel card-model copy of B1.2 (beta, additive only).
+    const methodologiesCardsSection: Section = {
+      id: 'methodologies-cards',
+      number: '',
+      title: 'Methodologies (cards — beta)',
+    };
+
     if (hasTemplateSections && templateSections.length > 0) {
       // Separate Part A and Part B sections
       const partASections = templateSections.filter(s => s.isPartA);
