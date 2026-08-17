@@ -694,6 +694,15 @@ function BoardInner({
     return list.length === freeCards.length ? list : freeCards;
   }, [freeCards, localOrder]);
 
+  const focusedFieldLabel = useMemo(() => {
+    if (!focusedBox) return '';
+    for (const list of Object.values(fieldsByCard)) {
+      const found = list.find((f) => f.id === focusedBox.fieldId);
+      if (found) return (found.headingEnabled && found.heading) || 'Untitled module';
+    }
+    return 'Untitled module';
+  }, [fieldsByCard, focusedBox]);
+
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
   const handleCardDragEnd = (event: DragEndEvent) => {
@@ -764,12 +773,25 @@ function BoardInner({
               Parallel block-model copy of B1.2. The original Methodologies page is unaffected.
             </p>
           </div>
-          {isCoordinator && (
-            <Button variant="outline" size="sm" onClick={() => setBinOpen(true)}>
-              <Trash2 className="mr-1 h-3.5 w-3.5" />
-              Recycle bin
-            </Button>
-          )}
+          <div className="flex shrink-0 items-center gap-2">
+            {canEdit && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => createCard.mutate(undefined)}
+                disabled={createCard.isPending}
+              >
+                <Plus className="mr-1 h-3.5 w-3.5" />
+                Add block
+              </Button>
+            )}
+            {isCoordinator && (
+              <Button variant="outline" size="sm" onClick={() => setBinOpen(true)}>
+                <Trash2 className="mr-1 h-3.5 w-3.5" />
+                Recycle bin
+              </Button>
+            )}
+          </div>
         </div>
 
         <EditorChrome
@@ -820,20 +842,6 @@ function BoardInner({
               </SortableContext>
             </DndContext>
 
-            {canEdit && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => createCard.mutate(undefined)}
-                disabled={createCard.isPending}
-              >
-                <Plus className="mr-1 h-3.5 w-3.5" />
-                Add card
-              </Button>
-            )}
-
-
-
             {tailCards.filter(visibleCard).map((c) => (
               <CardBlock key={c.id} {...cardProps(c, false)} />
             ))}
@@ -841,6 +849,17 @@ function BoardInner({
         </EditorChrome>
 
         <KeyboardShortcutsDialog isOpen={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+
+        {historyOpen && focusedBox && (
+          <CardFieldHistoryDialog
+            isOpen
+            fieldId={focusedBox.fieldId}
+            textBox={focusedBox.textBox}
+            fieldLabel={focusedFieldLabel}
+            canEdit={canEdit}
+            onClose={() => setHistoryOpen(false)}
+          />
+        )}
 
         {binOpen && (
           <CardRecycleBinDialog
