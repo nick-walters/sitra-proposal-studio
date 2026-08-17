@@ -841,7 +841,7 @@ function BoardInner({
                 Add block
               </Button>
             )}
-            {isCoordinator && (
+            {canEdit && (
               <Button variant="outline" size="sm" onClick={() => setBinOpen(true)}>
                 <Trash2 className="mr-1 h-3.5 w-3.5" />
                 Recycle bin
