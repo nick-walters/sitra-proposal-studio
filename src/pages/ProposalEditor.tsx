@@ -21,6 +21,7 @@ import { SaveIndicator } from "@/components/SaveIndicator";
 import { CaseManagementCard } from "@/components/CaseManagementCard";
 import { ProposalMilestonesRisksManager } from "@/components/ProposalMilestonesRisksManager";
 import MethodologiesPage from "@/components/MethodologiesPage";
+import MethodologiesCardsPanel from "@/components/MethodologiesCardsPanel";
 import { CaseDraftEditor } from "@/components/CaseDraftEditor";
 import { AvailabilityGantt } from "@/components/AvailabilityGantt";
 import { ProposalMessagingBoard } from "@/components/ProposalMessagingBoard";
@@ -819,6 +820,17 @@ export function ProposalEditor() {
       'methodologies': () => (
         <div className="flex-1 overflow-y-auto">
           <MethodologiesPage
+            proposalId={id || ''}
+            canEdit={canEdit}
+            isCoordinator={canEdit && isCoordinator}
+            proposalAcronym={proposal?.acronym}
+            acronymSegments={(proposal as any)?.acronymSegments}
+          />
+        </div>
+      ),
+      'methodologies-cards': () => (
+        <div className="flex-1 overflow-y-auto">
+          <MethodologiesCardsPanel
             proposalId={id || ''}
             canEdit={canEdit}
             isCoordinator={canEdit && isCoordinator}

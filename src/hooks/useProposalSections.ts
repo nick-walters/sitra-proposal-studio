@@ -528,6 +528,7 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
 
       // Methodologies tool page (always shown)
       result.push(methodologiesSection);
+      result.push(methodologiesCardsSection);
 
       // Add Milestones & risks manager (always shown)
       result.push(milestonesRisksSection);
@@ -548,6 +549,7 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
 
     // Methodologies tool page (always shown)
     fallbackSections.push(methodologiesSection);
+    fallbackSections.push(methodologiesCardsSection);
 
     // Add Milestones & risks manager
     fallbackSections.push(milestonesRisksSection);
