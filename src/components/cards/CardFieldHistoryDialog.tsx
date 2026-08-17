@@ -3,30 +3,38 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { formatDateTime } from '@/lib/formatDate';
 import { useCardFieldVersions } from '@/hooks/useCardFieldVersions';
+import type { CardTextBox } from '@/types/cards';
 
 interface CardFieldHistoryDialogProps {
   fieldId: string;
+  textBox: CardTextBox;
+  /** Human label for the module the text box belongs to. */
   fieldLabel: string;
   isOpen: boolean;
   canEdit: boolean;
   onClose: () => void;
 }
 
-/** Version history for a single card field. */
+/** Version history for a single text box of a module. */
 export function CardFieldHistoryDialog({
   fieldId,
+  textBox,
   fieldLabel,
   isOpen,
   canEdit,
   onClose,
 }: CardFieldHistoryDialogProps) {
-  const { versions, isLoading, revertToVersion } = useCardFieldVersions(fieldId, { enabled: isOpen });
+  const { versions, isLoading, revertToVersion } = useCardFieldVersions(fieldId, textBox, {
+    enabled: isOpen,
+  });
+
+  const boxLabel = textBox === 'header' ? 'Header text box' : 'Content text box';
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Version history</DialogTitle>
+          <DialogTitle>Version history — {boxLabel.toLowerCase()}</DialogTitle>
           <DialogDescription>{fieldLabel}</DialogDescription>
         </DialogHeader>
 
@@ -34,7 +42,9 @@ export function CardFieldHistoryDialog({
           {isLoading ? (
             <p className="text-sm text-muted-foreground">Loading…</p>
           ) : versions.length === 0 ? (
-            <p className="text-sm italic text-muted-foreground">No versions saved yet.</p>
+            <p className="text-sm italic text-muted-foreground">
+              No versions saved for this text box yet.
+            </p>
           ) : (
             <div className="space-y-2">
               {versions.map((v) => (
@@ -57,10 +67,16 @@ export function CardFieldHistoryDialog({
                       </Button>
                     )}
                   </div>
-                  <div
-                    className="prose prose-sm mt-2 max-w-none text-sm text-muted-foreground"
-                    dangerouslySetInnerHTML={{ __html: v.contentHtml ?? '' }}
-                  />
+                  {textBox === 'header' ? (
+                    <p className="mt-2 text-sm font-bold text-muted-foreground">
+                      {v.heading || <span className="italic font-normal">(empty)</span>}
+                    </p>
+                  ) : (
+                    <div
+                      className="prose prose-sm mt-2 max-w-none text-sm text-muted-foreground"
+                      dangerouslySetInnerHTML={{ __html: v.contentHtml ?? '' }}
+                    />
+                  )}
                 </div>
               ))}
             </div>

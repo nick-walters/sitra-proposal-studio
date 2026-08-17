@@ -15,12 +15,14 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useQuery } from '@tanstack/react-query';
-import { Eye, EyeOff, GripVertical, History, Plus, Trash2, X } from 'lucide-react';
+import { Eye, EyeOff, GripVertical, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,7 +50,7 @@ import { useSectionCards } from '@/hooks/useSectionCards';
 import { useCardFieldsForCards } from '@/hooks/useCardFields';
 import { useCardMutations } from '@/hooks/useCardMutations';
 import { getCaseTypeLabel } from '@/lib/caseTypeLabels';
-import type { CardField, ProposalCard } from '@/types/cards';
+import type { CardField, CardTextBox, ProposalCard } from '@/types/cards';
 
 interface BoardProps {
   proposalId: string;
@@ -146,7 +148,8 @@ interface FieldRowProps {
   onHeadingChange: (field: CardField, heading: string | null) => void;
   onContentChange: (field: CardField, html: string) => void;
   onDelete: (field: CardField) => void;
-  onFocusField: (fieldId: string) => void;
+  onToggleHeading: (field: CardField, enabled: boolean) => void;
+  onFocusField: (fieldId: string, textBox: CardTextBox) => void;
   collapsed: boolean;
 }
 
@@ -159,6 +162,7 @@ function FieldRow({
   onHeadingChange,
   onContentChange,
   onDelete,
+  onToggleHeading,
   onFocusField,
   collapsed,
 }: FieldRowProps) {
@@ -187,15 +191,13 @@ function FieldRow({
       ref={setNodeRef}
       style={style}
       className="space-y-2 rounded-md border border-border p-3"
-      onFocusCapture={() => onFocusField(field.id)}
-      onMouseDownCapture={() => onFocusField(field.id)}
     >
       <div className="flex items-center gap-2">
         {canEdit && (
           <button
             type="button"
             className="cursor-grab touch-none text-[#2563EB]"
-            aria-label="Reorder field"
+            aria-label="Reorder module"
             {...attributes}
             {...listeners}
           >
@@ -209,32 +211,54 @@ function FieldRow({
           </p>
         ) : (
           <>
-            <Input
-              value={headingDraft}
-              placeholder="Heading (optional)"
-              disabled={!canEdit}
-              onFocus={() => {
-                headingFocused.current = true;
-              }}
-              onChange={(e) => setHeadingDraft(e.target.value)}
-              onBlur={() => {
-                headingFocused.current = false;
-                const next = headingDraft.trim();
-                if ((field.heading ?? '') !== next) onHeadingChange(field, next || null);
-              }}
-              className="h-8 flex-1 font-bold"
-            />
-            {/* Clearing the heading is done by emptying the input, so no ambiguous
-                icon sits next to the destructive delete control. */}
+            {field.headingEnabled ? (
+              <Input
+                value={headingDraft}
+                placeholder="Header"
+                disabled={!canEdit}
+                onFocus={() => {
+                  headingFocused.current = true;
+                  onFocusField(field.id, 'header');
+                }}
+                onMouseDown={() => onFocusField(field.id, 'header')}
+                onChange={(e) => setHeadingDraft(e.target.value)}
+                onBlur={() => {
+                  headingFocused.current = false;
+                  const next = headingDraft.trim();
+                  if ((field.heading ?? '') !== next) onHeadingChange(field, next || null);
+                }}
+                className="h-8 flex-1 font-bold"
+              />
+            ) : (
+              <span className="flex-1 text-sm italic text-muted-foreground">
+                Header hidden
+              </span>
+            )}
 
-            <FieldHistoryButton field={field} canEdit={canEdit} />
-            {isCoordinator && (
+            {canEdit && (
+              <div className="flex shrink-0 items-center gap-1.5">
+                <Switch
+                  id={`include-header-${field.id}`}
+                  checked={field.headingEnabled}
+                  onCheckedChange={(v) => onToggleHeading(field, v)}
+                  className="scale-75"
+                />
+                <Label
+                  htmlFor={`include-header-${field.id}`}
+                  className="cursor-pointer whitespace-nowrap text-[11px] text-muted-foreground"
+                >
+                  Include header
+                </Label>
+              </div>
+            )}
+
+            {canEdit && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button
                     variant="ghost"
                     size="icon"
-                    aria-label="Delete field"
+                    aria-label="Delete module"
                     className="h-7 w-7 text-destructive"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
@@ -243,10 +267,11 @@ function FieldRow({
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>
-                      Delete “{field.heading || 'this field'}”?
+                      Delete “{(field.headingEnabled && field.heading) || 'this module'}”?
                     </AlertDialogTitle>
                     <AlertDialogDescription>
-                      It moves to the recycle bin and can be restored.
+                      The whole module — both text boxes and their version histories — moves to
+                      the recycle bin and can be restored in full.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -261,7 +286,11 @@ function FieldRow({
       </div>
 
       {!isPlaceholder && (
-        <div className={collapsed ? 'hidden' : undefined}>
+        <div
+          className={collapsed ? 'hidden' : undefined}
+          onFocusCapture={() => onFocusField(field.id, 'content')}
+          onMouseDownCapture={() => onFocusField(field.id, 'content')}
+        >
           <MethodologyRichEditor
             proposalId={proposalId}
             value={initialHtml.current}
@@ -272,32 +301,6 @@ function FieldRow({
         </div>
       )}
     </div>
-  );
-}
-
-function FieldHistoryButton({ field, canEdit }: { field: CardField; canEdit: boolean }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      <Button
-        variant="ghost"
-        size="icon"
-        aria-label="Version history"
-        className="h-7 w-7"
-        onClick={() => setOpen(true)}
-      >
-        <History className="h-3.5 w-3.5" />
-      </Button>
-      {open && (
-        <CardFieldHistoryDialog
-          isOpen
-          fieldId={field.id}
-          fieldLabel={field.heading || 'Untitled field'}
-          canEdit={canEdit}
-          onClose={() => setOpen(false)}
-        />
-      )}
-    </>
   );
 }
 

@@ -49,9 +49,9 @@ export function useCardMutations(proposalId: string, sectionId: string) {
     onSuccess: (cardId) => {
       invalidateCards();
       invalidateFields(cardId);
-      toast.success('Card added');
+      toast.success('Block added');
     },
-    onError: (e: Error) => toast.error(e.message || 'Could not create the card'),
+    onError: (e: Error) => toast.error(e.message || 'Could not create the block'),
   });
 
 
@@ -76,7 +76,7 @@ export function useCardMutations(proposalId: string, sectionId: string) {
       if (error) throw error;
     },
     onSuccess: invalidateCards,
-    onError: (e: Error) => toast.error(e.message || 'Could not update the card'),
+    onError: (e: Error) => toast.error(e.message || 'Could not update the block'),
   });
 
   /** Reorder the free band. `orderedFreeCardIds` is the full new order of free cards. */
@@ -89,7 +89,7 @@ export function useCardMutations(proposalId: string, sectionId: string) {
       if (error) throw error;
     },
     onSuccess: invalidateCards,
-    onError: (e: Error) => toast.error(e.message || 'Could not reorder the cards'),
+    onError: (e: Error) => toast.error(e.message || 'Could not reorder the blocks'),
   });
 
   const createField = useMutation({
@@ -111,7 +111,7 @@ export function useCardMutations(proposalId: string, sectionId: string) {
       return mapField(data);
     },
     onSuccess: (field) => invalidateFields(field.cardId),
-    onError: (e: Error) => toast.error(e.message || 'Could not add the field'),
+    onError: (e: Error) => toast.error(e.message || 'Could not add the module'),
   });
 
 
@@ -120,21 +120,25 @@ export function useCardMutations(proposalId: string, sectionId: string) {
       fieldId,
       cardId: _cardId,
       heading,
+      headingEnabled,
       contentHtml,
       assignedParticipantId,
     }: {
       fieldId: string;
       cardId: string;
       heading?: string | null;
+      headingEnabled?: boolean;
       contentHtml?: string | null;
       assignedParticipantId?: string | null;
     }) => {
       const patch: Partial<{
         heading: string | null;
+        heading_enabled: boolean;
         content_html: string | null;
         assigned_participant_id: string | null;
       }> = {};
       if (heading !== undefined) patch.heading = heading;
+      if (headingEnabled !== undefined) patch.heading_enabled = headingEnabled;
       if (contentHtml !== undefined) patch.content_html = contentHtml;
       if (assignedParticipantId !== undefined) patch.assigned_participant_id = assignedParticipantId;
       if (Object.keys(patch).length === 0) return;
@@ -142,7 +146,7 @@ export function useCardMutations(proposalId: string, sectionId: string) {
       if (error) throw error;
     },
     onSuccess: (_data, vars) => invalidateFields(vars.cardId),
-    onError: (e: Error) => toast.error(e.message || 'Could not save the field'),
+    onError: (e: Error) => toast.error(e.message || 'Could not save the module'),
   });
 
   const reorderFields = useMutation({
@@ -154,7 +158,7 @@ export function useCardMutations(proposalId: string, sectionId: string) {
       if (error) throw error;
     },
     onSuccess: (_data, vars) => invalidateFields(vars.cardId),
-    onError: (e: Error) => toast.error(e.message || 'Could not reorder the fields'),
+    onError: (e: Error) => toast.error(e.message || 'Could not reorder the modules'),
   });
 
   const deleteCard = useMutation({
@@ -166,9 +170,9 @@ export function useCardMutations(proposalId: string, sectionId: string) {
       invalidateCards();
       invalidateFields(cardId);
       invalidateBin();
-      toast.success('Card moved to the recycle bin');
+      toast.success('Block moved to the recycle bin');
     },
-    onError: (e: Error) => toast.error(e.message || 'Could not delete the card'),
+    onError: (e: Error) => toast.error(e.message || 'Could not delete the block'),
   });
 
   const deleteField = useMutation({
@@ -179,9 +183,9 @@ export function useCardMutations(proposalId: string, sectionId: string) {
     onSuccess: (_d, vars) => {
       invalidateFields(vars.cardId);
       invalidateBin();
-      toast.success('Field moved to the recycle bin');
+      toast.success('Module moved to the recycle bin');
     },
-    onError: (e: Error) => toast.error(e.message || 'Could not delete the field'),
+    onError: (e: Error) => toast.error(e.message || 'Could not delete the module'),
   });
 
 
@@ -192,7 +196,7 @@ export function useCardMutations(proposalId: string, sectionId: string) {
       return (data as number) ?? 0;
     },
     onSuccess: invalidateCards,
-    onError: (e: Error) => toast.error(e.message || 'Could not seed the cards'),
+    onError: (e: Error) => toast.error(e.message || 'Could not seed the blocks'),
   });
 
   return {
