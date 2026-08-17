@@ -21,6 +21,7 @@ export interface ProposalCard {
   isSourceFed: boolean;
   isFixedPosition: boolean;
   isVisible: boolean;
+  titleVersion: number;
   sourceKey: string | null;
   renderGroup: string | null;
   origin: CardOrigin;
@@ -40,6 +41,9 @@ export interface CardField {
   /** When false the header text box is collapsed; `heading` is retained. */
   headingEnabled: boolean;
   contentHtml: string | null;
+  /** Optimistic-concurrency counters, one per text box. */
+  contentVersion: number;
+  headingVersion: number;
   orderIndex: number;
   fieldRole: CardFieldRole;
   placeholderCaseTypeId: string | null;
@@ -103,6 +107,7 @@ export function mapCard(row: any): ProposalCard {
     isSourceFed: row.is_source_fed,
     isFixedPosition: row.is_fixed_position,
     isVisible: row.is_visible,
+    titleVersion: row.title_version ?? 1,
     sourceKey: row.source_key ?? null,
     renderGroup: row.render_group ?? null,
     origin: row.origin,
@@ -120,6 +125,8 @@ export function mapField(row: any): CardField {
     heading: row.heading ?? null,
     headingEnabled: row.heading_enabled ?? true,
     contentHtml: row.content_html ?? null,
+    contentVersion: row.content_version ?? 1,
+    headingVersion: row.heading_version ?? 1,
     orderIndex: row.order_index,
     fieldRole: row.field_role,
     placeholderCaseTypeId: row.placeholder_case_type_id ?? null,

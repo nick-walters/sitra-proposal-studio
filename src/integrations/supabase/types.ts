@@ -552,6 +552,7 @@ export type Database = {
           assigned_participant_id: string | null
           card_id: string
           content_html: string | null
+          content_version: number
           created_at: string
           deleted_at: string | null
           deleted_by: string | null
@@ -559,6 +560,7 @@ export type Database = {
           field_role: string
           heading: string | null
           heading_enabled: boolean
+          heading_version: number
           id: string
           order_index: number
           origin: string
@@ -570,6 +572,7 @@ export type Database = {
           assigned_participant_id?: string | null
           card_id: string
           content_html?: string | null
+          content_version?: number
           created_at?: string
           deleted_at?: string | null
           deleted_by?: string | null
@@ -577,6 +580,7 @@ export type Database = {
           field_role?: string
           heading?: string | null
           heading_enabled?: boolean
+          heading_version?: number
           id?: string
           order_index: number
           origin?: string
@@ -588,6 +592,7 @@ export type Database = {
           assigned_participant_id?: string | null
           card_id?: string
           content_html?: string | null
+          content_version?: number
           created_at?: string
           deleted_at?: string | null
           deleted_by?: string | null
@@ -595,6 +600,7 @@ export type Database = {
           field_role?: string
           heading?: string | null
           heading_enabled?: boolean
+          heading_version?: number
           id?: string
           order_index?: number
           origin?: string
@@ -626,6 +632,56 @@ export type Database = {
           },
           {
             foreignKeyName: "card_fields_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      card_target_locks: {
+        Row: {
+          acquired_at: string
+          avatar_url: string | null
+          expires_at: string
+          id: string
+          last_heartbeat_at: string
+          proposal_id: string
+          section_id: string | null
+          target_id: string
+          target_type: string
+          user_id: string
+          user_name: string | null
+        }
+        Insert: {
+          acquired_at?: string
+          avatar_url?: string | null
+          expires_at?: string
+          id?: string
+          last_heartbeat_at?: string
+          proposal_id: string
+          section_id?: string | null
+          target_id: string
+          target_type: string
+          user_id: string
+          user_name?: string | null
+        }
+        Update: {
+          acquired_at?: string
+          avatar_url?: string | null
+          expires_at?: string
+          id?: string
+          last_heartbeat_at?: string
+          proposal_id?: string
+          section_id?: string | null
+          target_id?: string
+          target_type?: string
+          user_id?: string
+          user_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_target_locks_proposal_id_fkey"
             columns: ["proposal_id"]
             isOneToOne: false
             referencedRelation: "proposals"
@@ -3693,6 +3749,7 @@ export type Database = {
           source_key: string | null
           template_key: string | null
           title: string | null
+          title_version: number
           updated_at: string
         }
         Insert: {
@@ -3716,6 +3773,7 @@ export type Database = {
           source_key?: string | null
           template_key?: string | null
           title?: string | null
+          title_version?: number
           updated_at?: string
         }
         Update: {
@@ -3739,6 +3797,7 @@ export type Database = {
           source_key?: string | null
           template_key?: string | null
           title?: string | null
+          title_version?: number
           updated_at?: string
         }
         Relationships: [
@@ -6362,6 +6421,15 @@ export type Database = {
       }
     }
     Functions: {
+      acquire_card_lock: {
+        Args: {
+          p_proposal_id: string
+          p_section_id?: string
+          p_target_id: string
+          p_target_type: string
+        }
+        Returns: Json
+      }
       can_edit_proposal: {
         Args: { _proposal_id: string; _user_id: string }
         Returns: boolean
@@ -6428,6 +6496,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      heartbeat_card_lock: {
+        Args: { p_target_id: string; p_target_type: string }
+        Returns: boolean
+      }
       insert_section_version: {
         Args: {
           p_content: string
@@ -6459,6 +6531,10 @@ export type Database = {
         Returns: Json
       }
       purge_deleted_cards: { Args: never; Returns: number }
+      release_card_lock: {
+        Args: { p_target_id: string; p_target_type: string }
+        Returns: undefined
+      }
       reorder_card_fields: {
         Args: { p_card_id: string; p_field_ids: string[] }
         Returns: number
@@ -6492,6 +6568,20 @@ export type Database = {
           p_value: string
         }
         Returns: number
+      }
+      save_card_text: {
+        Args: {
+          p_expected_version: number
+          p_field_id: string
+          p_is_auto_save?: boolean
+          p_text_box: string
+          p_value: string
+        }
+        Returns: Json
+      }
+      save_card_title: {
+        Args: { p_card_id: string; p_expected_version: number; p_title: string }
+        Returns: Json
       }
       seed_proposal_cards: { Args: { p_proposal_id: string }; Returns: number }
       soft_delete_card: { Args: { p_card_id: string }; Returns: undefined }
