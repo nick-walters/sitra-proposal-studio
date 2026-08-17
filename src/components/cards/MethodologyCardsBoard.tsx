@@ -45,7 +45,18 @@ import {
 import { KeyboardShortcutsDialog } from '@/components/KeyboardShortcutsDialog';
 import { CardRecycleBinDialog } from '@/components/cards/CardRecycleBinDialog';
 import { CardFieldHistoryDialog } from '@/components/cards/CardFieldHistoryDialog';
+import DOMPurify from 'dompurify';
 import { supabase } from '@/integrations/supabase/client';
+import {
+  CardLockProvider,
+  cardTitleTargetId,
+  fieldTargetId,
+  useCardLocks,
+  useTargetLock,
+} from '@/hooks/useCardLocks';
+import { LockHolderBadge } from '@/components/cards/LockHolderBadge';
+import { LockTimeoutWarning } from '@/components/cards/LockTimeoutWarning';
+import { LostTextDialog, type LostTextPayload } from '@/components/cards/LostTextDialog';
 import { useSectionCards } from '@/hooks/useSectionCards';
 import { useSectionRecycleBin } from '@/hooks/useSectionRecycleBin';
 import { useCardFieldsForCards } from '@/hooks/useCardFields';
@@ -134,6 +145,66 @@ function OutsideClickClear({ onClear }: { onClear: () => void }) {
   }, [activeEditor, unregister, onClear]);
 
   return null;
+}
+
+/* ------------------------------------------------------------------ */
+/* Per-text-box lock wiring                                            */
+/* ------------------------------------------------------------------ */
+
+interface LockedBoxOptions {
+  /** Current locally typed value, used if the lock race is lost. */
+  getTyped: () => string;
+  /** Called when another user won the race: revert to authoritative text. */
+  onLoseRace: (typed: string) => void;
+  /** Flushes this text box to the database (used before a timeout release). */
+  save?: () => Promise<void>;
+  /** Current value, answered to viewers that join mid-edit. */
+  snapshot?: () => string;
+}
+
+/**
+ * Locking for one addressable text box. The lock is taken on the first
+ * keystroke, refreshed on every later one, and released on blur.
+ */
+function useLockedBox(targetId: string, opts: LockedBoxOptions) {
+  const { claim, noteKeystroke, release, registerSaver, registerSnapshotSource, stream, useStreamedValue } =
+    useCardLocks();
+  const { holder, isMine, lockedByOther } = useTargetLock(targetId);
+  const streamed = useStreamedValue(targetId, lockedByOther);
+  const optsRef = useRef(opts);
+  optsRef.current = opts;
+
+  useEffect(() => {
+    if (!optsRef.current.save) return;
+    return registerSaver(targetId, () => optsRef.current.save!());
+  }, [registerSaver, targetId]);
+
+  useEffect(() => {
+    if (!optsRef.current.snapshot) return;
+    return registerSnapshotSource(targetId, () => optsRef.current.snapshot!());
+  }, [registerSnapshotSource, targetId]);
+
+  const onType = useCallback(() => {
+    noteKeystroke(targetId);
+    void claim(targetId).then((ok) => {
+      if (!ok) optsRef.current.onLoseRace(optsRef.current.getTyped());
+    });
+  }, [claim, noteKeystroke, targetId]);
+
+  const onBlur = useCallback(() => {
+    if (isMine) void release(targetId, { save: true });
+  }, [isMine, release, targetId]);
+
+  const push = useCallback((html: string) => stream(targetId, html), [stream, targetId]);
+
+  return { holder, isMine, lockedByOther, streamed, onType, onBlur, push };
+}
+
+/** Green when held by me, red when held by someone else. */
+function lockBorderClass(isMine: boolean, lockedByOther: boolean) {
+  if (lockedByOther) return 'border-destructive ring-1 ring-destructive/40';
+  if (isMine) return 'border-emerald-600 ring-1 ring-emerald-600/40';
+  return '';
 }
 
 /* ------------------------------------------------------------------ */
