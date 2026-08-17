@@ -107,7 +107,7 @@ export function useCardMutations(proposalId: string, sectionId: string) {
       isVisible?: boolean;
       renderGroup?: string | null;
     }) => {
-      const patch: Record<string, unknown> = {};
+      const patch: Partial<{ title: string | null; is_visible: boolean; render_group: string | null }> = {};
       if (title !== undefined) patch.title = title;
       if (isVisible !== undefined) patch.is_visible = isVisible;
       if (renderGroup !== undefined) patch.render_group = renderGroup;
@@ -178,7 +178,11 @@ export function useCardMutations(proposalId: string, sectionId: string) {
       contentHtml?: string | null;
       assignedParticipantId?: string | null;
     }) => {
-      const patch: Record<string, unknown> = {};
+      const patch: Partial<{
+        heading: string | null;
+        content_html: string | null;
+        assigned_participant_id: string | null;
+      }> = {};
       if (heading !== undefined) patch.heading = heading;
       if (contentHtml !== undefined) patch.content_html = contentHtml;
       if (assignedParticipantId !== undefined) patch.assigned_participant_id = assignedParticipantId;
