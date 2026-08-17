@@ -222,6 +222,9 @@ interface FieldRowProps {
   onDelete: (field: CardField) => void;
   onToggleHeading: (field: CardField, enabled: boolean) => void;
   onFocusField: (fieldId: string, textBox: CardTextBox) => void;
+  onLostText: (payload: LostTextPayload) => void;
+  /** Bumped when authoritative content is reloaded, to remount the editor. */
+  reloadNonce: number;
   collapsed: boolean;
 }
 
@@ -236,6 +239,8 @@ function FieldRow({
   onDelete,
   onToggleHeading,
   onFocusField,
+  onLostText,
+  reloadNonce,
   collapsed,
 }: FieldRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -249,6 +254,38 @@ function FieldRow({
   useEffect(() => {
     if (!headingFocused.current) setHeadingDraft(field.heading ?? '');
   }, [field.heading]);
+
+  const contentRef = useRef(field.contentHtml ?? '');
+  useEffect(() => {
+    initialHtml.current = field.contentHtml ?? '';
+    contentRef.current = field.contentHtml ?? '';
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reloadNonce]);
+
+  const headerTarget = fieldTargetId(field.id, 'header');
+  const contentTarget = fieldTargetId(field.id, 'content');
+
+  const headerLock = useLockedBox(headerTarget, {
+    getTyped: () => headingDraft,
+    onLoseRace: (typed) => {
+      setHeadingDraft(field.heading ?? '');
+      onLostText({ text: typed, reason: 'race' });
+    },
+    save: async () => {
+      const next = headingDraft.trim();
+      if ((field.heading ?? '') !== next) onHeadingChange(field, next || null);
+    },
+    snapshot: () => headingDraft,
+  });
+
+  const contentLock = useLockedBox(contentTarget, {
+    getTyped: () => contentRef.current,
+    onLoseRace: (typed) => {
+      contentRef.current = field.contentHtml ?? '';
+      onLostText({ text: typed, reason: 'race' });
+    },
+    snapshot: () => contentRef.current,
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -285,23 +322,43 @@ function FieldRow({
         ) : (
           <>
             {field.headingEnabled ? (
-              <Input
-                value={headingDraft}
-                placeholder="Header"
-                disabled={!canEdit}
-                onFocus={() => {
-                  headingFocused.current = true;
-                  onFocusField(field.id, 'header');
-                }}
-                onMouseDown={() => onFocusField(field.id, 'header')}
-                onChange={(e) => setHeadingDraft(e.target.value)}
-                onBlur={() => {
-                  headingFocused.current = false;
-                  const next = headingDraft.trim();
-                  if ((field.heading ?? '') !== next) onHeadingChange(field, next || null);
-                }}
-                className="h-8 flex-1 font-bold"
-              />
+              <div className="flex min-w-0 flex-1 items-center gap-2">
+                <Input
+                  value={
+                    headerLock.lockedByOther && headerLock.streamed !== null
+                      ? headerLock.streamed
+                      : headingDraft
+                  }
+                  placeholder="Header"
+                  readOnly={headerLock.lockedByOther}
+                  disabled={!canEdit}
+                  onFocus={() => {
+                    headingFocused.current = true;
+                    onFocusField(field.id, 'header');
+                  }}
+                  onMouseDown={() => onFocusField(field.id, 'header')}
+                  onKeyDown={() => {
+                    if (!headerLock.lockedByOther) headerLock.onType();
+                  }}
+                  onChange={(e) => {
+                    if (headerLock.lockedByOther) return;
+                    setHeadingDraft(e.target.value);
+                    headerLock.push(e.target.value);
+                  }}
+                  onBlur={() => {
+                    headingFocused.current = false;
+                    const next = headingDraft.trim();
+                    if (!headerLock.lockedByOther && (field.heading ?? '') !== next) {
+                      onHeadingChange(field, next || null);
+                    }
+                    headerLock.onBlur();
+                  }}
+                  className={`h-8 flex-1 font-bold ${lockBorderClass(headerLock.isMine, headerLock.lockedByOther)}`}
+                />
+                {headerLock.lockedByOther && headerLock.holder && (
+                  <LockHolderBadge holder={headerLock.holder} />
+                )}
+              </div>
             ) : (
               <span className="flex-1" aria-hidden="true" />
             )}
@@ -356,16 +413,44 @@ function FieldRow({
         )}
       </div>
 
-      {!isPlaceholder && (
+      {!isPlaceholder && contentLock.lockedByOther && contentLock.holder && (
+        <div className={collapsed ? 'hidden' : 'flex items-start gap-2'}>
+          <div
+            className="prose prose-sm min-w-0 flex-1 max-w-none rounded-md border border-destructive px-4 py-2 ring-1 ring-destructive/40"
+            aria-readonly="true"
+            dangerouslySetInnerHTML={{
+              __html: DOMPurify.sanitize(contentLock.streamed ?? field.contentHtml ?? ''),
+            }}
+          />
+          <LockHolderBadge holder={contentLock.holder} />
+        </div>
+      )}
+
+      {!isPlaceholder && !contentLock.lockedByOther && (
         <div
-          className={collapsed ? 'hidden' : undefined}
+          className={
+            collapsed
+              ? 'hidden'
+              : `rounded-md ${contentLock.isMine ? 'ring-1 ring-emerald-600/60' : ''}`
+          }
           onFocusCapture={() => onFocusField(field.id, 'content')}
           onMouseDownCapture={() => onFocusField(field.id, 'content')}
+          onKeyDownCapture={() => contentLock.onType()}
+          onBlurCapture={(e) => {
+            const next = e.relatedTarget as Node | null;
+            if (next && e.currentTarget.contains(next)) return;
+            contentLock.onBlur();
+          }}
         >
           <MethodologyRichEditor
+            key={`${field.id}-${reloadNonce}`}
             proposalId={proposalId}
             value={initialHtml.current}
-            onChange={(html) => onContentChange(field, html)}
+            onChange={(html) => {
+              contentRef.current = html;
+              contentLock.push(html);
+              onContentChange(field, html);
+            }}
             canEdit={canEdit}
             isCoordinator={isCoordinator}
           />
