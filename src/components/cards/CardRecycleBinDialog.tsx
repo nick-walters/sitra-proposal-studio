@@ -36,11 +36,11 @@ function BinEntry({
         <div className="min-w-0 flex-1 space-y-1">
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="secondary" className="text-[11px] font-bold">
-              {entry.targetType === 'card' ? 'Card' : 'Field'}
+              {entry.targetType === 'card' ? 'Block' : 'Module'}
             </Badge>
             {entry.targetType === 'card' && entry.fieldCount != null && (
               <span className="text-[11px] text-muted-foreground">
-                {entry.fieldCount} {entry.fieldCount === 1 ? 'field' : 'fields'}
+                {entry.fieldCount} {entry.fieldCount === 1 ? 'module' : 'modules'}
               </span>
             )}
             {entry.label && <span className="truncate text-sm font-bold">{entry.label}</span>}
@@ -87,7 +87,7 @@ function BinEntry({
   );
 }
 
-/** Deleted cards and individually deleted fields for one section, with restore. */
+/** Deleted blocks and individually deleted modules for one section, with restore. */
 export function CardRecycleBinDialog({
   proposalId,
   sectionId,
@@ -109,7 +109,7 @@ export function CardRecycleBinDialog({
         <DialogHeader>
           <DialogTitle>Recycle bin</DialogTitle>
           <DialogDescription>
-            Deleted cards and fields for this section. Restore puts them back where they were.
+            Deleted blocks and modules for this section. Restore puts them back where they were.
           </DialogDescription>
         </DialogHeader>
 
@@ -122,7 +122,7 @@ export function CardRecycleBinDialog({
             <div className="space-y-4">
               {cardEntries.length > 0 && (
                 <div className="space-y-2">
-                  <h4 className="text-xs font-bold uppercase text-muted-foreground">Cards</h4>
+                  <h4 className="text-xs font-bold uppercase text-muted-foreground">Blocks</h4>
                   {cardEntries.map((e) => (
                     <BinEntry
                       key={e.id}
@@ -136,7 +136,7 @@ export function CardRecycleBinDialog({
 
               {standaloneFields.length > 0 && (
                 <div className="space-y-2">
-                  <h4 className="text-xs font-bold uppercase text-muted-foreground">Fields</h4>
+                  <h4 className="text-xs font-bold uppercase text-muted-foreground">Modules</h4>
                   {standaloneFields.map((e) => (
                     <BinEntry
                       key={e.id}

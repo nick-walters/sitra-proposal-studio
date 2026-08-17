@@ -59,10 +59,10 @@ export function useSectionRecycleBin(proposalId: string, sectionId?: string) {
       if (fieldIds.length) {
         const { data: fields } = await supabase
           .from('card_fields')
-          .select('id, heading, content_html')
+          .select('id, heading, heading_enabled, content_html')
           .in('id', fieldIds);
         for (const f of fields || []) {
-          labels.set(f.id, f.heading || null);
+          labels.set(f.id, f.heading_enabled ? (f.heading || null) : null);
           previews.set(f.id, f.content_html ?? '');
         }
       }
@@ -107,9 +107,9 @@ export function useSectionRecycleBin(proposalId: string, sectionId?: string) {
     },
     onSuccess: (_d, cardId) => {
       invalidateAll(cardId);
-      toast.success('Card restored');
+      toast.success('Block restored');
     },
-    onError: (e: Error) => toast.error(e.message || 'Could not restore the card'),
+    onError: (e: Error) => toast.error(e.message || 'Could not restore the block'),
   });
 
   const restoreField = useMutation({
@@ -121,10 +121,10 @@ export function useSectionRecycleBin(proposalId: string, sectionId?: string) {
     onSuccess: (data) => {
       invalidateAll(data?.card_id ?? null);
       toast.success(
-        data?.restored_parent_card ? 'Field restored, along with its card' : 'Field restored',
+        data?.restored_parent_card ? 'Module restored, along with its block' : 'Module restored',
       );
     },
-    onError: (e: Error) => toast.error(e.message || 'Could not restore the field'),
+    onError: (e: Error) => toast.error(e.message || 'Could not restore the module'),
   });
 
   return {

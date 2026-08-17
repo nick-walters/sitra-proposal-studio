@@ -29,11 +29,16 @@ export interface ProposalCard {
   updatedAt: string;
 }
 
+/** Which of a module's two text boxes a value belongs to. */
+export type CardTextBox = 'header' | 'content';
+
 export interface CardField {
   id: string;
   cardId: string;
   proposalId: string;
   heading: string | null;
+  /** When false the header text box is collapsed; `heading` is retained. */
+  headingEnabled: boolean;
   contentHtml: string | null;
   orderIndex: number;
   fieldRole: CardFieldRole;
@@ -50,6 +55,7 @@ export interface CardFieldVersion {
   id: string;
   fieldId: string;
   proposalId: string;
+  textBox: CardTextBox;
   versionNumber: number;
   contentHtml: string | null;
   heading: string | null;
@@ -57,6 +63,7 @@ export interface CardFieldVersion {
   createdBy: string | null;
   createdAt: string;
 }
+
 
 export interface CardDeletionEntry {
   id: string;
@@ -111,6 +118,7 @@ export function mapField(row: any): CardField {
     cardId: row.card_id,
     proposalId: row.proposal_id,
     heading: row.heading ?? null,
+    headingEnabled: row.heading_enabled ?? true,
     contentHtml: row.content_html ?? null,
     orderIndex: row.order_index,
     fieldRole: row.field_role,
@@ -129,6 +137,7 @@ export function mapFieldVersion(row: any): CardFieldVersion {
     id: row.id,
     fieldId: row.field_id,
     proposalId: row.proposal_id,
+    textBox: (row.text_box ?? 'content') as CardTextBox,
     versionNumber: row.version_number,
     contentHtml: row.content_html ?? null,
     heading: row.heading ?? null,

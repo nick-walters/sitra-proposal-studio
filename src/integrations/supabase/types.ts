@@ -503,6 +503,7 @@ export type Database = {
           id: string
           is_auto_save: boolean
           proposal_id: string
+          text_box: string
           version_number: number
         }
         Insert: {
@@ -514,6 +515,7 @@ export type Database = {
           id?: string
           is_auto_save?: boolean
           proposal_id: string
+          text_box?: string
           version_number: number
         }
         Update: {
@@ -525,6 +527,7 @@ export type Database = {
           id?: string
           is_auto_save?: boolean
           proposal_id?: string
+          text_box?: string
           version_number?: number
         }
         Relationships: [
@@ -555,6 +558,7 @@ export type Database = {
           deleted_with_card: boolean
           field_role: string
           heading: string | null
+          heading_enabled: boolean
           id: string
           order_index: number
           origin: string
@@ -572,6 +576,7 @@ export type Database = {
           deleted_with_card?: boolean
           field_role?: string
           heading?: string | null
+          heading_enabled?: boolean
           id?: string
           order_index: number
           origin?: string
@@ -589,6 +594,7 @@ export type Database = {
           deleted_with_card?: boolean
           field_role?: string
           heading?: string | null
+          heading_enabled?: boolean
           id?: string
           order_index?: number
           origin?: string
@@ -6476,10 +6482,10 @@ export type Database = {
       restore_scope_predicates: { Args: never; Returns: Json }
       save_card_field_version: {
         Args: {
-          p_content_html: string
           p_field_id: string
-          p_heading?: string
           p_is_auto_save?: boolean
+          p_text_box: string
+          p_value: string
         }
         Returns: number
       }

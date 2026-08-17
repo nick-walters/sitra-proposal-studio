@@ -15,12 +15,14 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useQuery } from '@tanstack/react-query';
-import { Eye, EyeOff, GripVertical, History, Plus, Trash2, X } from 'lucide-react';
+import { Eye, EyeOff, GripVertical, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,7 +50,7 @@ import { useSectionCards } from '@/hooks/useSectionCards';
 import { useCardFieldsForCards } from '@/hooks/useCardFields';
 import { useCardMutations } from '@/hooks/useCardMutations';
 import { getCaseTypeLabel } from '@/lib/caseTypeLabels';
-import type { CardField, ProposalCard } from '@/types/cards';
+import type { CardField, CardTextBox, ProposalCard } from '@/types/cards';
 
 interface BoardProps {
   proposalId: string;
@@ -146,7 +148,8 @@ interface FieldRowProps {
   onHeadingChange: (field: CardField, heading: string | null) => void;
   onContentChange: (field: CardField, html: string) => void;
   onDelete: (field: CardField) => void;
-  onFocusField: (fieldId: string) => void;
+  onToggleHeading: (field: CardField, enabled: boolean) => void;
+  onFocusField: (fieldId: string, textBox: CardTextBox) => void;
   collapsed: boolean;
 }
 
@@ -159,6 +162,7 @@ function FieldRow({
   onHeadingChange,
   onContentChange,
   onDelete,
+  onToggleHeading,
   onFocusField,
   collapsed,
 }: FieldRowProps) {
@@ -187,15 +191,13 @@ function FieldRow({
       ref={setNodeRef}
       style={style}
       className="space-y-2 rounded-md border border-border p-3"
-      onFocusCapture={() => onFocusField(field.id)}
-      onMouseDownCapture={() => onFocusField(field.id)}
     >
       <div className="flex items-center gap-2">
         {canEdit && (
           <button
             type="button"
             className="cursor-grab touch-none text-[#2563EB]"
-            aria-label="Reorder field"
+            aria-label="Reorder module"
             {...attributes}
             {...listeners}
           >
@@ -209,32 +211,54 @@ function FieldRow({
           </p>
         ) : (
           <>
-            <Input
-              value={headingDraft}
-              placeholder="Heading (optional)"
-              disabled={!canEdit}
-              onFocus={() => {
-                headingFocused.current = true;
-              }}
-              onChange={(e) => setHeadingDraft(e.target.value)}
-              onBlur={() => {
-                headingFocused.current = false;
-                const next = headingDraft.trim();
-                if ((field.heading ?? '') !== next) onHeadingChange(field, next || null);
-              }}
-              className="h-8 flex-1 font-bold"
-            />
-            {/* Clearing the heading is done by emptying the input, so no ambiguous
-                icon sits next to the destructive delete control. */}
+            {field.headingEnabled ? (
+              <Input
+                value={headingDraft}
+                placeholder="Header"
+                disabled={!canEdit}
+                onFocus={() => {
+                  headingFocused.current = true;
+                  onFocusField(field.id, 'header');
+                }}
+                onMouseDown={() => onFocusField(field.id, 'header')}
+                onChange={(e) => setHeadingDraft(e.target.value)}
+                onBlur={() => {
+                  headingFocused.current = false;
+                  const next = headingDraft.trim();
+                  if ((field.heading ?? '') !== next) onHeadingChange(field, next || null);
+                }}
+                className="h-8 flex-1 font-bold"
+              />
+            ) : (
+              <span className="flex-1 text-sm italic text-muted-foreground">
+                Header hidden
+              </span>
+            )}
 
-            <FieldHistoryButton field={field} canEdit={canEdit} />
-            {isCoordinator && (
+            {canEdit && (
+              <div className="flex shrink-0 items-center gap-1.5">
+                <Switch
+                  id={`include-header-${field.id}`}
+                  checked={field.headingEnabled}
+                  onCheckedChange={(v) => onToggleHeading(field, v)}
+                  className="scale-75"
+                />
+                <Label
+                  htmlFor={`include-header-${field.id}`}
+                  className="cursor-pointer whitespace-nowrap text-[11px] text-muted-foreground"
+                >
+                  Include header
+                </Label>
+              </div>
+            )}
+
+            {canEdit && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button
                     variant="ghost"
                     size="icon"
-                    aria-label="Delete field"
+                    aria-label="Delete module"
                     className="h-7 w-7 text-destructive"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
@@ -243,10 +267,11 @@ function FieldRow({
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>
-                      Delete “{field.heading || 'this field'}”?
+                      Delete “{(field.headingEnabled && field.heading) || 'this module'}”?
                     </AlertDialogTitle>
                     <AlertDialogDescription>
-                      It moves to the recycle bin and can be restored.
+                      The whole module — both text boxes and their version histories — moves to
+                      the recycle bin and can be restored in full.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -261,7 +286,11 @@ function FieldRow({
       </div>
 
       {!isPlaceholder && (
-        <div className={collapsed ? 'hidden' : undefined}>
+        <div
+          className={collapsed ? 'hidden' : undefined}
+          onFocusCapture={() => onFocusField(field.id, 'content')}
+          onMouseDownCapture={() => onFocusField(field.id, 'content')}
+        >
           <MethodologyRichEditor
             proposalId={proposalId}
             value={initialHtml.current}
@@ -272,32 +301,6 @@ function FieldRow({
         </div>
       )}
     </div>
-  );
-}
-
-function FieldHistoryButton({ field, canEdit }: { field: CardField; canEdit: boolean }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      <Button
-        variant="ghost"
-        size="icon"
-        aria-label="Version history"
-        className="h-7 w-7"
-        onClick={() => setOpen(true)}
-      >
-        <History className="h-3.5 w-3.5" />
-      </Button>
-      {open && (
-        <CardFieldHistoryDialog
-          isOpen
-          fieldId={field.id}
-          fieldLabel={field.heading || 'Untitled field'}
-          canEdit={canEdit}
-          onClose={() => setOpen(false)}
-        />
-      )}
-    </>
   );
 }
 
@@ -322,7 +325,8 @@ interface CardBlockProps {
   onHeadingChange: (field: CardField, heading: string | null) => void;
   onContentChange: (field: CardField, html: string) => void;
   onDeleteField: (field: CardField) => void;
-  onFocusField: (fieldId: string) => void;
+  onToggleHeading: (field: CardField, enabled: boolean) => void;
+  onFocusField: (fieldId: string, textBox: CardTextBox) => void;
 }
 
 function CardBlock({
@@ -342,6 +346,7 @@ function CardBlock({
   onHeadingChange,
   onContentChange,
   onDeleteField,
+  onToggleHeading,
   onFocusField,
 }: CardBlockProps) {
   const sortable = useSortable({ id: card.id, disabled: !draggable });
@@ -402,7 +407,7 @@ function CardBlock({
             <button
               type="button"
               className="cursor-grab touch-none text-[#2563EB]"
-              aria-label="Reorder card"
+              aria-label="Reorder block"
               {...sortable.attributes}
               {...sortable.listeners}
             >
@@ -454,24 +459,24 @@ function CardBlock({
                 mistaken for the delete control. */}
 
 
-            {isCoordinator && card.isHideable && (
+            {canEdit && card.isHideable && (
               <Button
                 variant="ghost"
                 size="icon"
-                aria-label={card.isVisible ? 'Hide card' : 'Show card'}
+                aria-label={card.isVisible ? 'Hide block' : 'Show block'}
                 onClick={() => onToggleVisible(card)}
               >
                 {card.isVisible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
               </Button>
             )}
 
-            {isCoordinator && card.isDeletable && (
+            {canEdit && card.isDeletable && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button
                     variant="ghost"
                     size="icon"
-                    aria-label="Delete card"
+                    aria-label="Delete block"
                     className="text-destructive"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -480,10 +485,10 @@ function CardBlock({
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>
-                      Delete “{card.title || 'this card'}”?
+                      Delete “{card.title || 'this block'}”?
                     </AlertDialogTitle>
                     <AlertDialogDescription>
-                      The card and its fields move to the recycle bin and can be restored.
+                      The block and its modules move to the recycle bin and can be restored.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -526,6 +531,7 @@ function CardBlock({
                         onHeadingChange={onHeadingChange}
                         onContentChange={onContentChange}
                         onDelete={onDeleteField}
+                        onToggleHeading={onToggleHeading}
                         onFocusField={onFocusField}
                         collapsed={collapsed}
                       />
@@ -537,7 +543,7 @@ function CardBlock({
               {canEdit && (
                 <Button variant="outline" size="sm" onClick={() => onAddField(card)}>
                   <Plus className="mr-1 h-3.5 w-3.5" />
-                  Add field
+                  Add module
                 </Button>
               )}
             </>
@@ -582,7 +588,10 @@ function BoardInner({
   const [isDragging, setIsDragging] = useState(false);
   const [binOpen, setBinOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
-  const [focusedFieldId, setFocusedFieldId] = useState<string | null>(null);
+  const [focusedBox, setFocusedBox] = useState<{ fieldId: string; textBox: CardTextBox } | null>(
+    null,
+  );
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   // Page-wide save state.
   const [saving, setSaving] = useState(false);
@@ -621,20 +630,18 @@ function BoardInner({
     setLocalOrder(null);
   }, [freeCards.length]);
 
-  /** Append a version snapshot so the history dialog has something to list. */
+  /** Append a version snapshot for ONE text box of a module. */
   const snapshotVersion = useCallback(
-    async (fieldId: string, cardId: string, html: string | null, isAutoSave: boolean) => {
-      const heading =
-        (fieldsByCard[cardId] ?? []).find((f) => f.id === fieldId)?.heading ?? null;
+    async (fieldId: string, textBox: CardTextBox, value: string | null, isAutoSave: boolean) => {
       const { error } = await supabase.rpc('save_card_field_version', {
         p_field_id: fieldId,
-        p_content_html: html,
-        p_heading: heading,
+        p_text_box: textBox,
+        p_value: value ?? '',
         p_is_auto_save: isAutoSave,
       });
       if (error) toast.error(error.message || 'Could not save a version');
     },
-    [fieldsByCard],
+    [],
   );
 
   const persistField = useCallback(
@@ -642,7 +649,7 @@ function BoardInner({
       setSaving(true);
       try {
         await updateField.mutateAsync({ fieldId, cardId, contentHtml: html });
-        await snapshotVersion(fieldId, cardId, html, isAutoSave);
+        await snapshotVersion(fieldId, 'content', html, isAutoSave);
         delete dirtyRef.current[fieldId];
         setLastSaved(new Date());
         if (Object.keys(dirtyRef.current).length === 0) setIsDirty(false);
@@ -687,6 +694,15 @@ function BoardInner({
     return list.length === freeCards.length ? list : freeCards;
   }, [freeCards, localOrder]);
 
+  const focusedFieldLabel = useMemo(() => {
+    if (!focusedBox) return '';
+    for (const list of Object.values(fieldsByCard)) {
+      const found = list.find((f) => f.id === focusedBox.fieldId);
+      if (found) return (found.headingEnabled && found.heading) || 'Untitled module';
+    }
+    return 'Untitled module';
+  }, [fieldsByCard, focusedBox]);
+
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
   const handleCardDragEnd = (event: DragEndEvent) => {
@@ -724,62 +740,72 @@ function BoardInner({
     onHeadingChange: (f: CardField, heading: string | null) =>
       void updateField
         .mutateAsync({ fieldId: f.id, cardId: f.cardId, heading })
-        .then(() =>
-          supabase.rpc('save_card_field_version', {
-            p_field_id: f.id,
-            p_content_html: f.contentHtml ?? '',
-            p_heading: heading,
-            p_is_auto_save: false,
-          }),
-        ),
+        .then(() => snapshotVersion(f.id, 'header', heading, false)),
+    onToggleHeading: (f: CardField, enabled: boolean) =>
+      updateField.mutate({ fieldId: f.id, cardId: f.cardId, headingEnabled: enabled }),
 
     onContentChange: handleContentChange,
     onDeleteField: (f: CardField) => deleteField.mutate({ fieldId: f.id, cardId: f.cardId }),
-    onFocusField: setFocusedFieldId,
+    onFocusField: (fieldId: string, textBox: CardTextBox) =>
+      setFocusedBox({ fieldId, textBox }),
   });
 
   if (isLoading) {
-    return <p className="p-6 text-sm text-muted-foreground">Loading cards…</p>;
+    return <p className="p-6 text-sm text-muted-foreground">Loading blocks…</p>;
   }
 
   if (cards.length === 0) {
     return (
       <p className="p-6 text-sm italic text-muted-foreground">
-        No cards have been created for this section yet.
+        No blocks have been created for this section yet.
       </p>
     );
   }
 
   return (
     <>
-      <OutsideClickClear onClear={() => setFocusedFieldId(null)} />
+      <OutsideClickClear onClear={() => setFocusedBox(null)} />
       <div className="mx-auto w-full max-w-4xl space-y-4 p-6">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
             <h1 className="text-xl font-bold text-foreground">Methodologies (cards)</h1>
             <p className="text-sm text-muted-foreground">
-              Parallel card-model copy of B1.2. The original Methodologies page is unaffected.
+              Parallel block-model copy of B1.2. The original Methodologies page is unaffected.
             </p>
           </div>
-          {isCoordinator && (
-            <Button variant="outline" size="sm" onClick={() => setBinOpen(true)}>
-              <Trash2 className="mr-1 h-3.5 w-3.5" />
-              Recycle bin
-            </Button>
-          )}
+          <div className="flex shrink-0 items-center gap-2">
+            {canEdit && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => createCard.mutate(undefined)}
+                disabled={createCard.isPending}
+              >
+                <Plus className="mr-1 h-3.5 w-3.5" />
+                Add block
+              </Button>
+            )}
+            {isCoordinator && (
+              <Button variant="outline" size="sm" onClick={() => setBinOpen(true)}>
+                <Trash2 className="mr-1 h-3.5 w-3.5" />
+                Recycle bin
+              </Button>
+            )}
+          </div>
         </div>
 
         <EditorChrome
           proposalId={proposalId}
           featureBar={
             <EditorFeatureBar
-              hasFocusedField={!!focusedFieldId}
+              hasFocusedField={!!focusedBox}
               saving={saving}
               lastSaved={lastSaved}
               savedMode={savedMode}
               isDirty={isDirty}
               onSaveNow={handleSaveNow}
               onOpenShortcuts={() => setShortcutsOpen(true)}
+              onOpenVersionHistory={() => setHistoryOpen(true)}
             />
           }
           formattingBar={
@@ -816,20 +842,6 @@ function BoardInner({
               </SortableContext>
             </DndContext>
 
-            {canEdit && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => createCard.mutate(undefined)}
-                disabled={createCard.isPending}
-              >
-                <Plus className="mr-1 h-3.5 w-3.5" />
-                Add card
-              </Button>
-            )}
-
-
-
             {tailCards.filter(visibleCard).map((c) => (
               <CardBlock key={c.id} {...cardProps(c, false)} />
             ))}
@@ -837,6 +849,17 @@ function BoardInner({
         </EditorChrome>
 
         <KeyboardShortcutsDialog isOpen={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+
+        {historyOpen && focusedBox && (
+          <CardFieldHistoryDialog
+            isOpen
+            fieldId={focusedBox.fieldId}
+            textBox={focusedBox.textBox}
+            fieldLabel={focusedFieldLabel}
+            canEdit={canEdit}
+            onClose={() => setHistoryOpen(false)}
+          />
+        )}
 
         {binOpen && (
           <CardRecycleBinDialog

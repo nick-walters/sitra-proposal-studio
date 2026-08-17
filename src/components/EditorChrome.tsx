@@ -112,6 +112,8 @@ export interface EditorFeatureBarProps {
   commentCount?: number;
   previewLabel?: string;
   onOpenShortcuts?: () => void;
+  /** Opens version history for the text box that currently has the cursor. */
+  onOpenVersionHistory?: () => void;
 }
 
 export function EditorFeatureBar({
@@ -127,6 +129,7 @@ export function EditorFeatureBar({
   commentCount,
   previewLabel = 'Part B1.2',
   onOpenShortcuts,
+  onOpenVersionHistory,
 }: EditorFeatureBarProps) {
   const savePrimary = saving
     ? 'Saving…'
@@ -175,7 +178,12 @@ export function EditorFeatureBar({
             onClick={onOpenGuidelines}
           />
 
-          <FeatureButton icon={<History className="h-3.5 w-3.5" />} primary="Version" secondary="history" />
+          <FeatureButton
+            icon={<History className="h-3.5 w-3.5" />}
+            primary="Version"
+            secondary="history"
+            onClick={onOpenVersionHistory}
+          />
 
           <FeatureButton icon={<Search className="h-3.5 w-3.5" />} primary="Find &" secondary="replace" />
 
