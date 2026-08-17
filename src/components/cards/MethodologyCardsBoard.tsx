@@ -57,7 +57,7 @@ import {
 import { LockHolderBadge } from '@/components/cards/LockHolderBadge';
 import { LockTimeoutWarning } from '@/components/cards/LockTimeoutWarning';
 import { LostTextDialog, type LostTextPayload } from '@/components/cards/LostTextDialog';
-import { useSectionCards } from '@/hooks/useSectionCards';
+import { useSectionCards, sectionCardsKey } from '@/hooks/useSectionCards';
 import { useSectionRecycleBin } from '@/hooks/useSectionRecycleBin';
 import { useCardFieldsForCards } from '@/hooks/useCardFields';
 import { useCardMutations } from '@/hooks/useCardMutations';
@@ -223,6 +223,8 @@ interface FieldRowProps {
   onToggleHeading: (field: CardField, enabled: boolean) => void;
   onFocusField: (fieldId: string, textBox: CardTextBox) => void;
   onLostText: (payload: LostTextPayload) => void;
+  /** Flushes the content text box immediately (used before a lock release). */
+  onFlushContent: (field: CardField, html: string) => Promise<void>;
   /** Bumped when authoritative content is reloaded, to remount the editor. */
   reloadNonce: number;
   collapsed: boolean;
@@ -240,6 +242,7 @@ function FieldRow({
   onToggleHeading,
   onFocusField,
   onLostText,
+  onFlushContent,
   reloadNonce,
   collapsed,
 }: FieldRowProps) {
@@ -284,6 +287,7 @@ function FieldRow({
       contentRef.current = field.contentHtml ?? '';
       onLostText({ text: typed, reason: 'race' });
     },
+    save: () => onFlushContent(field, contentRef.current),
     snapshot: () => contentRef.current,
   });
 
@@ -486,6 +490,7 @@ interface CardBlockProps {
   onToggleHeading: (field: CardField, enabled: boolean) => void;
   onFocusField: (fieldId: string, textBox: CardTextBox) => void;
   onLostText: (payload: LostTextPayload) => void;
+  onFlushContent: (field: CardField, html: string) => Promise<void>;
   reloadNonce: number;
 }
 
@@ -511,6 +516,7 @@ function CardBlock({
   onToggleHeading,
   onFocusField,
   onLostText,
+  onFlushContent,
   reloadNonce,
 }: CardBlockProps) {
   const sortable = useSortable({ id: card.id, disabled: !draggable });
@@ -737,6 +743,7 @@ function CardBlock({
                         onToggleHeading={onToggleHeading}
                         onFocusField={onFocusField}
                         onLostText={onLostText}
+                        onFlushContent={onFlushContent}
                         reloadNonce={reloadNonce}
                         collapsed={collapsed}
                       />
@@ -1048,6 +1055,14 @@ function BoardInner({
     onFocusField: (fieldId: string, textBox: CardTextBox) =>
       setFocusedBox({ fieldId, textBox }),
     onLostText: setLostText,
+    onFlushContent: async (f: CardField, html: string) => {
+      if (timersRef.current[f.id]) {
+        clearTimeout(timersRef.current[f.id]);
+        delete timersRef.current[f.id];
+      }
+      if (!dirtyRef.current[f.id]) return;
+      await persistField(f.id, f.cardId, html, false);
+    },
     reloadNonce,
   });
 
@@ -1160,6 +1175,10 @@ function BoardInner({
 
         <KeyboardShortcutsDialog isOpen={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
 
+        {warning && <LockTimeoutWarning secondsLeft={warning.secondsLeft} />}
+
+        <LostTextDialog payload={lostText} onClose={() => setLostText(null)} />
+
         {historyOpen && focusedBox && (
           <CardFieldHistoryDialog
             isOpen
@@ -1202,7 +1221,13 @@ function BoardInner({
 export function MethodologyCardsBoard(props: BoardProps) {
   return (
     <MethodologyEditorFocusProvider>
-      <BoardInner {...props} />
+      <CardLockProvider
+        proposalId={props.proposalId}
+        sectionId={props.sectionId}
+        enabled={props.canEdit}
+      >
+        <BoardInner {...props} />
+      </CardLockProvider>
     </MethodologyEditorFocusProvider>
   );
 }
