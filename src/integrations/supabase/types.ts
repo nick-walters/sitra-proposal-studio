@@ -6495,6 +6495,10 @@ export type Database = {
         Args: { p_field_id: string }
         Returns: undefined
       }
+      thin_card_field_versions: {
+        Args: { p_proposal_id: string }
+        Returns: number
+      }
       thin_proposal_snapshots: {
         Args: {
           p_keep_auto?: number

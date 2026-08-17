@@ -1,11 +1,14 @@
+import { useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { formatDateTime } from '@/lib/formatDate';
+import { supabase } from '@/integrations/supabase/client';
 import { useCardFieldVersions } from '@/hooks/useCardFieldVersions';
 import type { CardTextBox } from '@/types/cards';
 
 interface CardFieldHistoryDialogProps {
+  proposalId: string;
   fieldId: string;
   textBox: CardTextBox;
   /** Human label for the module the text box belongs to. */
@@ -17,6 +20,7 @@ interface CardFieldHistoryDialogProps {
 
 /** Version history for a single text box of a module. */
 export function CardFieldHistoryDialog({
+  proposalId,
   fieldId,
   textBox,
   fieldLabel,
@@ -27,6 +31,12 @@ export function CardFieldHistoryDialog({
   const { versions, isLoading, revertToVersion } = useCardFieldVersions(fieldId, textBox, {
     enabled: isOpen,
   });
+
+  // Same trigger as the legacy section history: prune on open.
+  useEffect(() => {
+    if (!isOpen || !proposalId) return;
+    void supabase.rpc('thin_card_field_versions', { p_proposal_id: proposalId }).then(() => undefined);
+  }, [isOpen, proposalId]);
 
   const boxLabel = textBox === 'header' ? 'Header text box' : 'Content text box';
 
