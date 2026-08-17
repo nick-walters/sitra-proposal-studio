@@ -38,62 +38,22 @@ export function useCardMutations(proposalId: string, sectionId: string) {
   const invalidateBin = () =>
     queryClient.invalidateQueries({ queryKey: ['card-recycle-bin', proposalId] });
 
-  const nextFreeIndex = async (): Promise<number> => {
-    const { data, error } = await supabase
-      .from('proposal_cards')
-      .select('order_index')
-      .eq('section_id', sectionId)
-      .eq('anchor', 'free')
-      .is('deleted_at', null)
-      .order('order_index', { ascending: false })
-      .limit(1);
-    if (error) throw error;
-    const max = data?.[0]?.order_index ?? 99;
-    return Math.max(100, max + 1);
-  };
-
   const createCard = useMutation({
-    mutationFn: async (input: CreateCardInput): Promise<ProposalCard> => {
-      const orderIndex = await nextFreeIndex();
-      const { data, error } = await supabase
-        .from('proposal_cards')
-        .insert({
-          proposal_id: proposalId,
-          section_id: sectionId,
-          document: input.document ?? 'part_b',
-          kind: input.kind,
-          title: input.title ?? null,
-          order_index: orderIndex,
-          anchor: input.anchor ?? 'free',
-          is_hideable: input.isHideable ?? true,
-          render_group: input.renderGroup ?? null,
-          origin: 'manual',
-        })
-        .select()
-        .single();
+    mutationFn: async (_input?: CreateCardInput): Promise<string> => {
+      const { data, error } = await supabase.rpc('create_manual_text_card', {
+        p_section_id: sectionId,
+      });
       if (error) throw error;
-
-      const card = mapCard(data);
-      if (input.fields?.length) {
-        const rows = input.fields.map((f, i) => ({
-          card_id: card.id,
-          proposal_id: proposalId,
-          heading: f.heading ?? null,
-          content_html: f.contentHtml ?? '',
-          order_index: i,
-          origin: 'manual',
-        }));
-        const { error: fErr } = await supabase.from('card_fields').insert(rows);
-        if (fErr) throw fErr;
-      }
-      return card;
+      return data as string;
     },
-    onSuccess: (card) => {
+    onSuccess: (cardId) => {
       invalidateCards();
-      invalidateFields(card.id);
+      invalidateFields(cardId);
+      toast.success('Card added');
     },
     onError: (e: Error) => toast.error(e.message || 'Could not create the card'),
   });
+
 
   const updateCard = useMutation({
     mutationFn: async ({
