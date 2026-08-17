@@ -325,7 +325,8 @@ interface CardBlockProps {
   onHeadingChange: (field: CardField, heading: string | null) => void;
   onContentChange: (field: CardField, html: string) => void;
   onDeleteField: (field: CardField) => void;
-  onFocusField: (fieldId: string) => void;
+  onToggleHeading: (field: CardField, enabled: boolean) => void;
+  onFocusField: (fieldId: string, textBox: CardTextBox) => void;
 }
 
 function CardBlock({
@@ -345,6 +346,7 @@ function CardBlock({
   onHeadingChange,
   onContentChange,
   onDeleteField,
+  onToggleHeading,
   onFocusField,
 }: CardBlockProps) {
   const sortable = useSortable({ id: card.id, disabled: !draggable });
@@ -405,7 +407,7 @@ function CardBlock({
             <button
               type="button"
               className="cursor-grab touch-none text-[#2563EB]"
-              aria-label="Reorder card"
+              aria-label="Reorder block"
               {...sortable.attributes}
               {...sortable.listeners}
             >
@@ -457,24 +459,24 @@ function CardBlock({
                 mistaken for the delete control. */}
 
 
-            {isCoordinator && card.isHideable && (
+            {canEdit && card.isHideable && (
               <Button
                 variant="ghost"
                 size="icon"
-                aria-label={card.isVisible ? 'Hide card' : 'Show card'}
+                aria-label={card.isVisible ? 'Hide block' : 'Show block'}
                 onClick={() => onToggleVisible(card)}
               >
                 {card.isVisible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
               </Button>
             )}
 
-            {isCoordinator && card.isDeletable && (
+            {canEdit && card.isDeletable && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button
                     variant="ghost"
                     size="icon"
-                    aria-label="Delete card"
+                    aria-label="Delete block"
                     className="text-destructive"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -483,10 +485,10 @@ function CardBlock({
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>
-                      Delete “{card.title || 'this card'}”?
+                      Delete “{card.title || 'this block'}”?
                     </AlertDialogTitle>
                     <AlertDialogDescription>
-                      The card and its fields move to the recycle bin and can be restored.
+                      The block and its modules move to the recycle bin and can be restored.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -529,6 +531,7 @@ function CardBlock({
                         onHeadingChange={onHeadingChange}
                         onContentChange={onContentChange}
                         onDelete={onDeleteField}
+                        onToggleHeading={onToggleHeading}
                         onFocusField={onFocusField}
                         collapsed={collapsed}
                       />
@@ -540,7 +543,7 @@ function CardBlock({
               {canEdit && (
                 <Button variant="outline" size="sm" onClick={() => onAddField(card)}>
                   <Plus className="mr-1 h-3.5 w-3.5" />
-                  Add field
+                  Add module
                 </Button>
               )}
             </>
@@ -585,7 +588,10 @@ function BoardInner({
   const [isDragging, setIsDragging] = useState(false);
   const [binOpen, setBinOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
-  const [focusedFieldId, setFocusedFieldId] = useState<string | null>(null);
+  const [focusedBox, setFocusedBox] = useState<{ fieldId: string; textBox: CardTextBox } | null>(
+    null,
+  );
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   // Page-wide save state.
   const [saving, setSaving] = useState(false);
@@ -624,20 +630,18 @@ function BoardInner({
     setLocalOrder(null);
   }, [freeCards.length]);
 
-  /** Append a version snapshot so the history dialog has something to list. */
+  /** Append a version snapshot for ONE text box of a module. */
   const snapshotVersion = useCallback(
-    async (fieldId: string, cardId: string, html: string | null, isAutoSave: boolean) => {
-      const heading =
-        (fieldsByCard[cardId] ?? []).find((f) => f.id === fieldId)?.heading ?? null;
+    async (fieldId: string, textBox: CardTextBox, value: string | null, isAutoSave: boolean) => {
       const { error } = await supabase.rpc('save_card_field_version', {
         p_field_id: fieldId,
-        p_content_html: html,
-        p_heading: heading,
+        p_text_box: textBox,
+        p_value: value ?? '',
         p_is_auto_save: isAutoSave,
       });
       if (error) toast.error(error.message || 'Could not save a version');
     },
-    [fieldsByCard],
+    [],
   );
 
   const persistField = useCallback(
@@ -645,7 +649,7 @@ function BoardInner({
       setSaving(true);
       try {
         await updateField.mutateAsync({ fieldId, cardId, contentHtml: html });
-        await snapshotVersion(fieldId, cardId, html, isAutoSave);
+        await snapshotVersion(fieldId, 'content', html, isAutoSave);
         delete dirtyRef.current[fieldId];
         setLastSaved(new Date());
         if (Object.keys(dirtyRef.current).length === 0) setIsDirty(false);
@@ -727,41 +731,37 @@ function BoardInner({
     onHeadingChange: (f: CardField, heading: string | null) =>
       void updateField
         .mutateAsync({ fieldId: f.id, cardId: f.cardId, heading })
-        .then(() =>
-          supabase.rpc('save_card_field_version', {
-            p_field_id: f.id,
-            p_content_html: f.contentHtml ?? '',
-            p_heading: heading,
-            p_is_auto_save: false,
-          }),
-        ),
+        .then(() => snapshotVersion(f.id, 'header', heading, false)),
+    onToggleHeading: (f: CardField, enabled: boolean) =>
+      updateField.mutate({ fieldId: f.id, cardId: f.cardId, headingEnabled: enabled }),
 
     onContentChange: handleContentChange,
     onDeleteField: (f: CardField) => deleteField.mutate({ fieldId: f.id, cardId: f.cardId }),
-    onFocusField: setFocusedFieldId,
+    onFocusField: (fieldId: string, textBox: CardTextBox) =>
+      setFocusedBox({ fieldId, textBox }),
   });
 
   if (isLoading) {
-    return <p className="p-6 text-sm text-muted-foreground">Loading cards…</p>;
+    return <p className="p-6 text-sm text-muted-foreground">Loading blocks…</p>;
   }
 
   if (cards.length === 0) {
     return (
       <p className="p-6 text-sm italic text-muted-foreground">
-        No cards have been created for this section yet.
+        No blocks have been created for this section yet.
       </p>
     );
   }
 
   return (
     <>
-      <OutsideClickClear onClear={() => setFocusedFieldId(null)} />
+      <OutsideClickClear onClear={() => setFocusedBox(null)} />
       <div className="mx-auto w-full max-w-4xl space-y-4 p-6">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
             <h1 className="text-xl font-bold text-foreground">Methodologies (cards)</h1>
             <p className="text-sm text-muted-foreground">
-              Parallel card-model copy of B1.2. The original Methodologies page is unaffected.
+              Parallel block-model copy of B1.2. The original Methodologies page is unaffected.
             </p>
           </div>
           {isCoordinator && (
@@ -776,13 +776,14 @@ function BoardInner({
           proposalId={proposalId}
           featureBar={
             <EditorFeatureBar
-              hasFocusedField={!!focusedFieldId}
+              hasFocusedField={!!focusedBox}
               saving={saving}
               lastSaved={lastSaved}
               savedMode={savedMode}
               isDirty={isDirty}
               onSaveNow={handleSaveNow}
               onOpenShortcuts={() => setShortcutsOpen(true)}
+              onOpenVersionHistory={() => setHistoryOpen(true)}
             />
           }
           formattingBar={
