@@ -450,17 +450,9 @@ function CardBlock({
               </Badge>
             )}
 
-            {isCoordinator && card.title && (
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="Remove title"
-                className="h-7 w-7"
-                onClick={() => onRename(card, null)}
-              >
-                <X className="h-3.5 w-3.5" />
-              </Button>
-            )}
+            {/* The title is cleared by editing it inline; no icon that could be
+                mistaken for the delete control. */}
+
 
             {isCoordinator && card.isHideable && (
               <Button
