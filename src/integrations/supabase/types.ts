@@ -6471,6 +6471,10 @@ export type Database = {
         Args: { p_card_id: string }
         Returns: undefined
       }
+      resequence_section_cards: {
+        Args: { p_section_id: string }
+        Returns: undefined
+      }
       restore_card: { Args: { p_card_id: string }; Returns: undefined }
       restore_card_field: { Args: { p_field_id: string }; Returns: Json }
       restore_excluded_tables: { Args: never; Returns: string[] }
