@@ -720,7 +720,17 @@ function BoardInner({
     onReorderFields: (c: ProposalCard, orderedIds: string[]) =>
       reorderFields.mutate({ cardId: c.id, orderedFieldIds: orderedIds }),
     onHeadingChange: (f: CardField, heading: string | null) =>
-      updateField.mutate({ fieldId: f.id, cardId: f.cardId, heading }),
+      void updateField
+        .mutateAsync({ fieldId: f.id, cardId: f.cardId, heading })
+        .then(() =>
+          supabase.rpc('save_card_field_version', {
+            p_field_id: f.id,
+            p_content_html: f.contentHtml ?? '',
+            p_heading: heading,
+            p_is_auto_save: false,
+          }),
+        ),
+
     onContentChange: handleContentChange,
     onDeleteField: (f: CardField) => deleteField.mutate({ fieldId: f.id, cardId: f.cardId }),
     onFocusField: setFocusedFieldId,
