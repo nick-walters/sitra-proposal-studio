@@ -34,8 +34,8 @@ export default function MethodologiesCardsPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from('proposal_template_sections')
-        .select('id')
-        .eq('proposal_id', proposalId)
+        .select('id, proposal_templates!inner(proposal_id)')
+        .eq('proposal_templates.proposal_id', proposalId)
         .eq('source_section_id', B12_SOURCE_SECTION_ID)
         .maybeSingle();
       return data?.id ?? null;
