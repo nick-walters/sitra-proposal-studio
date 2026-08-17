@@ -14,6 +14,14 @@ interface CardRecycleBinDialogProps {
   sectionId: string;
   isOpen: boolean;
   onClose: () => void;
+  /**
+   * 'blocks' — page-level bin: deleted blocks of this section only.
+   * 'modules' — block-level bin: deleted modules of `cardId` only.
+   */
+  mode?: 'blocks' | 'modules';
+  cardId?: string;
+  /** Fired after a successful restore so the board can jump to the item. */
+  onRestored?: (targetType: 'card' | 'field', targetId: string) => void;
 }
 
 /** One bin row: type, optional heading, collapsed preview with fade, expander. */
@@ -87,66 +95,66 @@ function BinEntry({
   );
 }
 
-/** Deleted blocks and individually deleted modules for one section, with restore. */
+/**
+ * One underlying bin, two filtered views: deleted blocks for the section, or
+ * deleted modules of a single block.
+ */
 export function CardRecycleBinDialog({
   proposalId,
   sectionId,
   isOpen,
   onClose,
+  mode = 'blocks',
+  cardId,
+  onRestored,
 }: CardRecycleBinDialogProps) {
   const { cardEntries, fieldEntries, isLoading, restoreCard, restoreField } = useSectionRecycleBin(
     proposalId,
     sectionId,
   );
 
-  const standaloneFields = fieldEntries.filter(
-    (f) => !cardEntries.some((c) => c.targetId === f.parentCardId),
-  );
+  const isModules = mode === 'modules';
+  const entries = isModules
+    ? fieldEntries.filter((f) => f.parentCardId === cardId)
+    : cardEntries;
+
+  const handleRestore = (entry: CardDeletionEntry) => {
+    const mutation = entry.targetType === 'card' ? restoreCard : restoreField;
+    mutation.mutate(entry.targetId, {
+      onSuccess: () => {
+        onClose();
+        onRestored?.(entry.targetType, entry.targetId);
+      },
+    });
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Recycle bin</DialogTitle>
+          <DialogTitle>{isModules ? 'Recycle bin — this block' : 'Recycle bin'}</DialogTitle>
           <DialogDescription>
-            Deleted blocks and modules for this section. Restore puts them back where they were.
+            {isModules
+              ? 'Modules deleted from this block. Restore puts them back where they were.'
+              : 'Blocks deleted from this section. Restore puts them back where they were.'}
           </DialogDescription>
         </DialogHeader>
 
         <ScrollArea className="max-h-[60vh] pr-3">
           {isLoading ? (
             <p className="text-sm text-muted-foreground">Loading…</p>
-          ) : cardEntries.length === 0 && standaloneFields.length === 0 ? (
+          ) : entries.length === 0 ? (
             <p className="text-sm italic text-muted-foreground">The bin is empty.</p>
           ) : (
-            <div className="space-y-4">
-              {cardEntries.length > 0 && (
-                <div className="space-y-2">
-                  <h4 className="text-xs font-bold uppercase text-muted-foreground">Blocks</h4>
-                  {cardEntries.map((e) => (
-                    <BinEntry
-                      key={e.id}
-                      entry={e}
-                      isRestoring={restoreCard.isPending}
-                      onRestore={() => restoreCard.mutate(e.targetId)}
-                    />
-                  ))}
-                </div>
-              )}
-
-              {standaloneFields.length > 0 && (
-                <div className="space-y-2">
-                  <h4 className="text-xs font-bold uppercase text-muted-foreground">Modules</h4>
-                  {standaloneFields.map((e) => (
-                    <BinEntry
-                      key={e.id}
-                      entry={e}
-                      isRestoring={restoreField.isPending}
-                      onRestore={() => restoreField.mutate(e.targetId)}
-                    />
-                  ))}
-                </div>
-              )}
+            <div className="space-y-2">
+              {entries.map((e) => (
+                <BinEntry
+                  key={e.id}
+                  entry={e}
+                  isRestoring={restoreCard.isPending || restoreField.isPending}
+                  onRestore={() => handleRestore(e)}
+                />
+              ))}
             </div>
           )}
         </ScrollArea>
