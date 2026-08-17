@@ -485,6 +485,8 @@ interface CardBlockProps {
   onDeleteField: (field: CardField) => void;
   onToggleHeading: (field: CardField, enabled: boolean) => void;
   onFocusField: (fieldId: string, textBox: CardTextBox) => void;
+  onLostText: (payload: LostTextPayload) => void;
+  reloadNonce: number;
 }
 
 function CardBlock({
@@ -508,6 +510,8 @@ function CardBlock({
   onDeleteField,
   onToggleHeading,
   onFocusField,
+  onLostText,
+  reloadNonce,
 }: CardBlockProps) {
   const sortable = useSortable({ id: card.id, disabled: !draggable });
   const [editingTitle, setEditingTitle] = useState(false);
@@ -521,6 +525,21 @@ function CardBlock({
   useEffect(() => {
     if (!editingTitle) setTitleDraft(card.title ?? '');
   }, [card.title, editingTitle]);
+
+  const titleTarget = cardTitleTargetId(card.id);
+  const titleLock = useLockedBox(titleTarget, {
+    getTyped: () => titleDraft,
+    onLoseRace: (typed) => {
+      setTitleDraft(card.title ?? '');
+      setEditingTitle(false);
+      onLostText({ text: typed, reason: 'race' });
+    },
+    save: async () => {
+      const next = titleDraft.trim();
+      if (next !== (card.title ?? '')) onRename(card, next || null);
+    },
+    snapshot: () => titleDraft,
+  });
 
   useEffect(() => {
     setLocalFieldOrder(null);
@@ -578,12 +597,19 @@ function CardBlock({
           )}
 
           <div className="min-w-0 flex-1">
-            {isCoordinator && editingTitle ? (
+            {isCoordinator && editingTitle && !titleLock.lockedByOther ? (
               <Input
                 autoFocus
                 value={titleDraft}
-                onChange={(e) => setTitleDraft(e.target.value)}
-                onBlur={commitTitle}
+                onKeyDownCapture={() => titleLock.onType()}
+                onChange={(e) => {
+                  setTitleDraft(e.target.value);
+                  titleLock.push(e.target.value);
+                }}
+                onBlur={() => {
+                  commitTitle();
+                  titleLock.onBlur();
+                }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
@@ -594,17 +620,22 @@ function CardBlock({
                     setEditingTitle(false);
                   }
                 }}
-                className="h-8"
+                className={`h-8 ${lockBorderClass(titleLock.isMine, false)}`}
               />
             ) : (
-              <h3
-                className={`truncate font-bold underline ${isCoordinator ? 'cursor-text' : ''} ${
-                  card.title ? '' : 'italic text-muted-foreground no-underline'
-                }`}
-                onClick={() => isCoordinator && setEditingTitle(true)}
-              >
-                {card.title ?? 'No title'}
-              </h3>
+              <div className="flex min-w-0 items-center gap-2">
+                <h3
+                  className={`truncate font-bold underline ${isCoordinator && !titleLock.lockedByOther ? 'cursor-text' : ''} ${
+                    card.title ? '' : 'italic text-muted-foreground no-underline'
+                  } ${titleLock.lockedByOther ? 'rounded border border-destructive px-1' : ''}`}
+                  onClick={() => isCoordinator && !titleLock.lockedByOther && setEditingTitle(true)}
+                >
+                  {(titleLock.lockedByOther ? titleLock.streamed : null) ?? card.title ?? 'No title'}
+                </h3>
+                {titleLock.lockedByOther && titleLock.holder && (
+                  <LockHolderBadge holder={titleLock.holder} />
+                )}
+              </div>
             )}
           </div>
 
@@ -705,6 +736,8 @@ function CardBlock({
                         onDelete={onDeleteField}
                         onToggleHeading={onToggleHeading}
                         onFocusField={onFocusField}
+                        onLostText={onLostText}
+                        reloadNonce={reloadNonce}
                         collapsed={collapsed}
                       />
                     ))}
