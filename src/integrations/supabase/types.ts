@@ -6438,6 +6438,14 @@ export type Database = {
         Returns: Json
       }
       purge_deleted_cards: { Args: never; Returns: number }
+      reorder_card_fields: {
+        Args: { p_card_id: string; p_field_ids: string[] }
+        Returns: number
+      }
+      reorder_section_cards: {
+        Args: { p_card_ids: string[]; p_section_id: string }
+        Returns: number
+      }
       restore_card: { Args: { p_card_id: string }; Returns: undefined }
       restore_card_field: { Args: { p_field_id: string }; Returns: Json }
       restore_excluded_tables: { Args: never; Returns: string[] }
@@ -6447,6 +6455,15 @@ export type Database = {
         Returns: Json
       }
       restore_scope_predicates: { Args: never; Returns: Json }
+      save_card_field_version: {
+        Args: {
+          p_content_html: string
+          p_field_id: string
+          p_heading?: string
+          p_is_auto_save?: boolean
+        }
+        Returns: number
+      }
       seed_proposal_cards: { Args: { p_proposal_id: string }; Returns: number }
       soft_delete_card: { Args: { p_card_id: string }; Returns: undefined }
       soft_delete_card_field: {
