@@ -6361,6 +6361,7 @@ export type Database = {
         Returns: boolean
       }
       capture_scope_predicates: { Args: never; Returns: Json }
+      card_html_is_blank: { Args: { p_html: string }; Returns: boolean }
       create_proposal_snapshot: {
         Args: { p_label?: string; p_proposal_id: string; p_source?: string }
         Returns: {
