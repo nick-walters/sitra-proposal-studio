@@ -268,6 +268,12 @@ function FieldRow({
   const headerTarget = fieldTargetId(field.id, 'header');
   const contentTarget = fieldTargetId(field.id, 'content');
 
+  // Avoids a duplicate write when blur commits and then releases the lock.
+  const lastCommittedHeading = useRef(field.heading ?? '');
+  useEffect(() => {
+    lastCommittedHeading.current = field.heading ?? '';
+  }, [field.heading]);
+
   const headerLock = useLockedBox(headerTarget, {
     getTyped: () => headingDraft,
     onLoseRace: (typed) => {
@@ -276,7 +282,10 @@ function FieldRow({
     },
     save: async () => {
       const next = headingDraft.trim();
-      if ((field.heading ?? '') !== next) onHeadingChange(field, next || null);
+      if (lastCommittedHeading.current !== next) {
+        lastCommittedHeading.current = next;
+        onHeadingChange(field, next || null);
+      }
     },
     snapshot: () => headingDraft,
   });
@@ -352,7 +361,8 @@ function FieldRow({
                   onBlur={() => {
                     headingFocused.current = false;
                     const next = headingDraft.trim();
-                    if (!headerLock.lockedByOther && (field.heading ?? '') !== next) {
+                    if (!headerLock.lockedByOther && lastCommittedHeading.current !== next) {
+                      lastCommittedHeading.current = next;
                       onHeadingChange(field, next || null);
                     }
                     headerLock.onBlur();
@@ -532,6 +542,11 @@ function CardBlock({
     if (!editingTitle) setTitleDraft(card.title ?? '');
   }, [card.title, editingTitle]);
 
+  const lastCommittedTitle = useRef(card.title ?? '');
+  useEffect(() => {
+    lastCommittedTitle.current = card.title ?? '';
+  }, [card.title]);
+
   const titleTarget = cardTitleTargetId(card.id);
   const titleLock = useLockedBox(titleTarget, {
     getTyped: () => titleDraft,
@@ -542,7 +557,10 @@ function CardBlock({
     },
     save: async () => {
       const next = titleDraft.trim();
-      if (next !== (card.title ?? '')) onRename(card, next || null);
+      if (next !== lastCommittedTitle.current) {
+        lastCommittedTitle.current = next;
+        onRename(card, next || null);
+      }
     },
     snapshot: () => titleDraft,
   });
@@ -567,7 +585,10 @@ function CardBlock({
   const commitTitle = () => {
     setEditingTitle(false);
     const next = titleDraft.trim();
-    if (next !== (card.title ?? '')) onRename(card, next || null);
+    if (next !== lastCommittedTitle.current) {
+      lastCommittedTitle.current = next;
+      onRename(card, next || null);
+    }
   };
 
   const isPlaceholderCard = card.kind === 'references' || card.isSourceFed;
