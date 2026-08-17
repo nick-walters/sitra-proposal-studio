@@ -4,7 +4,7 @@ export type CardKind = 'text' | 'figure' | 'table' | 'outcome_list';
 export type CardAnchor = 'head' | 'free' | 'tail';
 export type CardDocument = 'part_b' | 'fstp_annex';
 export type CardOrigin = 'auto' | 'manual';
-export type CardFieldRole = 'narrative' | 'placeholder' | 'source_fed';
+export type CardFieldRole = 'narrative' | 'case_placeholder';
 
 export interface ProposalCard {
   id: string;
