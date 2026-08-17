@@ -1,0 +1,135 @@
+// Shared types for the generic Part B card model (Phase 1 data layer).
+
+export type CardKind = 'text' | 'figure' | 'table' | 'outcome_list';
+export type CardAnchor = 'head' | 'free' | 'tail';
+export type CardDocument = 'part_b' | 'fstp_annex';
+export type CardOrigin = 'auto' | 'manual';
+export type CardFieldRole = 'narrative' | 'placeholder' | 'source_fed';
+
+export interface ProposalCard {
+  id: string;
+  proposalId: string;
+  sectionId: string;
+  document: CardDocument;
+  kind: CardKind;
+  templateKey: string | null;
+  title: string | null;
+  orderIndex: number;
+  anchor: CardAnchor;
+  isDeletable: boolean;
+  isHideable: boolean;
+  isSourceFed: boolean;
+  isFixedPosition: boolean;
+  isVisible: boolean;
+  sourceKey: string | null;
+  renderGroup: string | null;
+  origin: CardOrigin;
+  deletedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CardField {
+  id: string;
+  cardId: string;
+  proposalId: string;
+  heading: string | null;
+  contentHtml: string | null;
+  orderIndex: number;
+  fieldRole: CardFieldRole;
+  placeholderCaseTypeId: string | null;
+  assignedParticipantId: string | null;
+  origin: CardOrigin;
+  deletedAt: string | null;
+  deletedWithCard: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CardFieldVersion {
+  id: string;
+  fieldId: string;
+  proposalId: string;
+  versionNumber: number;
+  contentHtml: string | null;
+  heading: string | null;
+  isAutoSave: boolean;
+  createdBy: string | null;
+  createdAt: string;
+}
+
+export interface CardDeletionEntry {
+  id: string;
+  proposalId: string;
+  sectionId: string | null;
+  targetType: 'card' | 'field';
+  targetId: string;
+  parentCardId: string | null;
+  deletedAt: string;
+  deletedBy: string | null;
+  purgeAfter: string | null;
+  restoredAt: string | null;
+  restoredBy: string | null;
+  /** Resolved label for display in the recycle bin. */
+  label: string | null;
+}
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+export function mapCard(row: any): ProposalCard {
+  return {
+    id: row.id,
+    proposalId: row.proposal_id,
+    sectionId: row.section_id,
+    document: row.document,
+    kind: row.kind,
+    templateKey: row.template_key ?? null,
+    title: row.title ?? null,
+    orderIndex: row.order_index,
+    anchor: row.anchor,
+    isDeletable: row.is_deletable,
+    isHideable: row.is_hideable,
+    isSourceFed: row.is_source_fed,
+    isFixedPosition: row.is_fixed_position,
+    isVisible: row.is_visible,
+    sourceKey: row.source_key ?? null,
+    renderGroup: row.render_group ?? null,
+    origin: row.origin,
+    deletedAt: row.deleted_at ?? null,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+export function mapField(row: any): CardField {
+  return {
+    id: row.id,
+    cardId: row.card_id,
+    proposalId: row.proposal_id,
+    heading: row.heading ?? null,
+    contentHtml: row.content_html ?? null,
+    orderIndex: row.order_index,
+    fieldRole: row.field_role,
+    placeholderCaseTypeId: row.placeholder_case_type_id ?? null,
+    assignedParticipantId: row.assigned_participant_id ?? null,
+    origin: row.origin,
+    deletedAt: row.deleted_at ?? null,
+    deletedWithCard: row.deleted_with_card,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+export function mapFieldVersion(row: any): CardFieldVersion {
+  return {
+    id: row.id,
+    fieldId: row.field_id,
+    proposalId: row.proposal_id,
+    versionNumber: row.version_number,
+    contentHtml: row.content_html ?? null,
+    heading: row.heading ?? null,
+    isAutoSave: row.is_auto_save,
+    createdBy: row.created_by ?? null,
+    createdAt: row.created_at,
+  };
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */

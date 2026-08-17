@@ -436,6 +436,299 @@ export type Database = {
           },
         ]
       }
+      card_deletions: {
+        Row: {
+          deleted_at: string
+          deleted_by: string | null
+          id: string
+          parent_card_id: string | null
+          proposal_id: string
+          purge_after: string | null
+          restored_at: string | null
+          restored_by: string | null
+          section_id: string | null
+          target_id: string
+          target_type: string
+        }
+        Insert: {
+          deleted_at?: string
+          deleted_by?: string | null
+          id?: string
+          parent_card_id?: string | null
+          proposal_id: string
+          purge_after?: string | null
+          restored_at?: string | null
+          restored_by?: string | null
+          section_id?: string | null
+          target_id: string
+          target_type: string
+        }
+        Update: {
+          deleted_at?: string
+          deleted_by?: string | null
+          id?: string
+          parent_card_id?: string | null
+          proposal_id?: string
+          purge_after?: string | null
+          restored_at?: string | null
+          restored_by?: string | null
+          section_id?: string | null
+          target_id?: string
+          target_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_deletions_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "card_deletions_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "proposal_template_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      card_field_versions: {
+        Row: {
+          content_html: string | null
+          created_at: string
+          created_by: string | null
+          field_id: string
+          heading: string | null
+          id: string
+          is_auto_save: boolean
+          proposal_id: string
+          version_number: number
+        }
+        Insert: {
+          content_html?: string | null
+          created_at?: string
+          created_by?: string | null
+          field_id: string
+          heading?: string | null
+          id?: string
+          is_auto_save?: boolean
+          proposal_id: string
+          version_number: number
+        }
+        Update: {
+          content_html?: string | null
+          created_at?: string
+          created_by?: string | null
+          field_id?: string
+          heading?: string | null
+          id?: string
+          is_auto_save?: boolean
+          proposal_id?: string
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_field_versions_field_id_fkey"
+            columns: ["field_id"]
+            isOneToOne: false
+            referencedRelation: "card_fields"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "card_field_versions_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      card_fields: {
+        Row: {
+          assigned_participant_id: string | null
+          card_id: string
+          content_html: string | null
+          created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
+          deleted_with_card: boolean
+          field_role: string
+          heading: string | null
+          id: string
+          order_index: number
+          origin: string
+          placeholder_case_type_id: string | null
+          proposal_id: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_participant_id?: string | null
+          card_id: string
+          content_html?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_with_card?: boolean
+          field_role?: string
+          heading?: string | null
+          id?: string
+          order_index: number
+          origin?: string
+          placeholder_case_type_id?: string | null
+          proposal_id: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_participant_id?: string | null
+          card_id?: string
+          content_html?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_with_card?: boolean
+          field_role?: string
+          heading?: string | null
+          id?: string
+          order_index?: number
+          origin?: string
+          placeholder_case_type_id?: string | null
+          proposal_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_fields_assigned_participant_id_fkey"
+            columns: ["assigned_participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "card_fields_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "proposal_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "card_fields_placeholder_case_type_id_fkey"
+            columns: ["placeholder_case_type_id"]
+            isOneToOne: false
+            referencedRelation: "proposal_case_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "card_fields_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      card_templates: {
+        Row: {
+          anchor: string
+          condition_budget_type:
+            | Database["public"]["Enums"]["budget_type"]
+            | null
+          condition_uses_fstp: boolean | null
+          created_at: string
+          default_fields: Json | null
+          default_table: Json | null
+          default_title: string | null
+          default_visible: boolean
+          document: string
+          id: string
+          is_active: boolean
+          is_deletable: boolean
+          is_fixed_position: boolean
+          is_hideable: boolean
+          is_source_fed: boolean
+          key: string
+          kind: string
+          order_index: number
+          render_group: string | null
+          section_number: string
+          section_source_id: string | null
+          source_key: string | null
+          template_type_id: string
+          updated_at: string
+        }
+        Insert: {
+          anchor?: string
+          condition_budget_type?:
+            | Database["public"]["Enums"]["budget_type"]
+            | null
+          condition_uses_fstp?: boolean | null
+          created_at?: string
+          default_fields?: Json | null
+          default_table?: Json | null
+          default_title?: string | null
+          default_visible?: boolean
+          document?: string
+          id?: string
+          is_active?: boolean
+          is_deletable?: boolean
+          is_fixed_position?: boolean
+          is_hideable?: boolean
+          is_source_fed?: boolean
+          key: string
+          kind: string
+          order_index: number
+          render_group?: string | null
+          section_number: string
+          section_source_id?: string | null
+          source_key?: string | null
+          template_type_id: string
+          updated_at?: string
+        }
+        Update: {
+          anchor?: string
+          condition_budget_type?:
+            | Database["public"]["Enums"]["budget_type"]
+            | null
+          condition_uses_fstp?: boolean | null
+          created_at?: string
+          default_fields?: Json | null
+          default_table?: Json | null
+          default_title?: string | null
+          default_visible?: boolean
+          document?: string
+          id?: string
+          is_active?: boolean
+          is_deletable?: boolean
+          is_fixed_position?: boolean
+          is_hideable?: boolean
+          is_source_fed?: boolean
+          key?: string
+          kind?: string
+          order_index?: number
+          render_group?: string | null
+          section_number?: string
+          section_source_id?: string | null
+          source_key?: string | null
+          template_type_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_templates_section_source_id_fkey"
+            columns: ["section_source_id"]
+            isOneToOne: false
+            referencedRelation: "template_sections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "card_templates_template_type_id_fkey"
+            columns: ["template_type_id"]
+            isOneToOne: false
+            referencedRelation: "template_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       case_drafts: {
         Row: {
           b12_populated: boolean
@@ -3372,6 +3665,93 @@ export type Database = {
           },
         ]
       }
+      proposal_cards: {
+        Row: {
+          anchor: string
+          created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
+          document: string
+          id: string
+          is_deletable: boolean
+          is_fixed_position: boolean
+          is_hideable: boolean
+          is_source_fed: boolean
+          is_visible: boolean
+          kind: string
+          order_index: number
+          origin: string
+          proposal_id: string
+          render_group: string | null
+          section_id: string
+          source_key: string | null
+          template_key: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          anchor?: string
+          created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          document?: string
+          id?: string
+          is_deletable?: boolean
+          is_fixed_position?: boolean
+          is_hideable?: boolean
+          is_source_fed?: boolean
+          is_visible?: boolean
+          kind: string
+          order_index: number
+          origin?: string
+          proposal_id: string
+          render_group?: string | null
+          section_id: string
+          source_key?: string | null
+          template_key?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          anchor?: string
+          created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          document?: string
+          id?: string
+          is_deletable?: boolean
+          is_fixed_position?: boolean
+          is_hideable?: boolean
+          is_source_fed?: boolean
+          is_visible?: boolean
+          kind?: string
+          order_index?: number
+          origin?: string
+          proposal_id?: string
+          render_group?: string | null
+          section_id?: string
+          source_key?: string | null
+          template_key?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_cards_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_cards_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "proposal_template_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proposal_case_types: {
         Row: {
           caption_text: string | null
@@ -6049,10 +6429,25 @@ export type Database = {
         Args: { _proposal_id: string; _user_id: string }
         Returns: boolean
       }
+      normalise_section_card_order: {
+        Args: { p_section_id: string }
+        Returns: undefined
+      }
       preview_proposal_restore: {
         Args: { p_proposal_id: string; p_snapshot_id: string }
         Returns: Json
       }
+      purge_deleted_cards: { Args: never; Returns: number }
+      reorder_card_fields: {
+        Args: { p_card_id: string; p_field_ids: string[] }
+        Returns: number
+      }
+      reorder_section_cards: {
+        Args: { p_card_ids: string[]; p_section_id: string }
+        Returns: number
+      }
+      restore_card: { Args: { p_card_id: string }; Returns: undefined }
+      restore_card_field: { Args: { p_field_id: string }; Returns: Json }
       restore_excluded_tables: { Args: never; Returns: string[] }
       restore_in_scope_tables: { Args: never; Returns: string[] }
       restore_proposal_snapshot: {
@@ -6060,6 +6455,21 @@ export type Database = {
         Returns: Json
       }
       restore_scope_predicates: { Args: never; Returns: Json }
+      save_card_field_version: {
+        Args: {
+          p_content_html: string
+          p_field_id: string
+          p_heading?: string
+          p_is_auto_save?: boolean
+        }
+        Returns: number
+      }
+      seed_proposal_cards: { Args: { p_proposal_id: string }; Returns: number }
+      soft_delete_card: { Args: { p_card_id: string }; Returns: undefined }
+      soft_delete_card_field: {
+        Args: { p_field_id: string }
+        Returns: undefined
+      }
       thin_proposal_snapshots: {
         Args: {
           p_keep_auto?: number

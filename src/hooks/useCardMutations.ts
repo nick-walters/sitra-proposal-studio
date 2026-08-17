@@ -1,0 +1,255 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { cardFieldsKey } from './useCardFields';
+import { sectionCardsKey } from './useSectionCards';
+import { mapCard, mapField, type CardAnchor, type CardField, type CardKind, type ProposalCard } from '@/types/cards';
+
+interface CreateCardInput {
+  kind: CardKind;
+  title?: string | null;
+  document?: 'part_b' | 'fstp_annex';
+  /** Cards created from the UI always land at the bottom of the free band. */
+  anchor?: CardAnchor;
+  isHideable?: boolean;
+  renderGroup?: string | null;
+  fields?: { heading?: string | null; contentHtml?: string | null }[];
+}
+
+interface CreateFieldInput {
+  cardId: string;
+  heading?: string | null;
+  contentHtml?: string | null;
+  fieldRole?: CardField['fieldRole'];
+}
+
+/**
+ * Create / update / reorder / bin operations for cards and their fields.
+ */
+export function useCardMutations(proposalId: string, sectionId: string) {
+  const queryClient = useQueryClient();
+  const cardsKey = sectionCardsKey(proposalId, sectionId);
+
+  const invalidateCards = () => queryClient.invalidateQueries({ queryKey: cardsKey });
+  const invalidateFields = (cardId: string) => {
+    queryClient.invalidateQueries({ queryKey: cardFieldsKey(cardId) });
+    queryClient.invalidateQueries({ queryKey: ['card-fields-batch'] });
+  };
+  const invalidateBin = () =>
+    queryClient.invalidateQueries({ queryKey: ['card-recycle-bin', proposalId] });
+
+  const nextFreeIndex = async (): Promise<number> => {
+    const { data, error } = await supabase
+      .from('proposal_cards')
+      .select('order_index')
+      .eq('section_id', sectionId)
+      .eq('anchor', 'free')
+      .is('deleted_at', null)
+      .order('order_index', { ascending: false })
+      .limit(1);
+    if (error) throw error;
+    const max = data?.[0]?.order_index ?? 99;
+    return Math.max(100, max + 1);
+  };
+
+  const createCard = useMutation({
+    mutationFn: async (input: CreateCardInput): Promise<ProposalCard> => {
+      const orderIndex = await nextFreeIndex();
+      const { data, error } = await supabase
+        .from('proposal_cards')
+        .insert({
+          proposal_id: proposalId,
+          section_id: sectionId,
+          document: input.document ?? 'part_b',
+          kind: input.kind,
+          title: input.title ?? null,
+          order_index: orderIndex,
+          anchor: input.anchor ?? 'free',
+          is_hideable: input.isHideable ?? true,
+          render_group: input.renderGroup ?? null,
+          origin: 'manual',
+        })
+        .select()
+        .single();
+      if (error) throw error;
+
+      const card = mapCard(data);
+      if (input.fields?.length) {
+        const rows = input.fields.map((f, i) => ({
+          card_id: card.id,
+          proposal_id: proposalId,
+          heading: f.heading ?? null,
+          content_html: f.contentHtml ?? '',
+          order_index: i,
+          origin: 'manual',
+        }));
+        const { error: fErr } = await supabase.from('card_fields').insert(rows);
+        if (fErr) throw fErr;
+      }
+      return card;
+    },
+    onSuccess: (card) => {
+      invalidateCards();
+      invalidateFields(card.id);
+    },
+    onError: (e: Error) => toast.error(e.message || 'Could not create the card'),
+  });
+
+  const updateCard = useMutation({
+    mutationFn: async ({
+      cardId,
+      title,
+      isVisible,
+      renderGroup,
+    }: {
+      cardId: string;
+      title?: string | null;
+      isVisible?: boolean;
+      renderGroup?: string | null;
+    }) => {
+      const patch: Partial<{ title: string | null; is_visible: boolean; render_group: string | null }> = {};
+      if (title !== undefined) patch.title = title;
+      if (isVisible !== undefined) patch.is_visible = isVisible;
+      if (renderGroup !== undefined) patch.render_group = renderGroup;
+      if (Object.keys(patch).length === 0) return;
+      const { error } = await supabase.from('proposal_cards').update(patch).eq('id', cardId);
+      if (error) throw error;
+    },
+    onSuccess: invalidateCards,
+    onError: (e: Error) => toast.error(e.message || 'Could not update the card'),
+  });
+
+  /** Reorder the free band. `orderedFreeCardIds` is the full new order of free cards. */
+  const reorderCards = useMutation({
+    mutationFn: async (orderedFreeCardIds: string[]) => {
+      const { error } = await supabase.rpc('reorder_section_cards', {
+        p_section_id: sectionId,
+        p_card_ids: orderedFreeCardIds,
+      });
+      if (error) throw error;
+    },
+    onSuccess: invalidateCards,
+    onError: (e: Error) => toast.error(e.message || 'Could not reorder the cards'),
+  });
+
+  const createField = useMutation({
+    mutationFn: async (input: CreateFieldInput): Promise<CardField> => {
+      const { data: existing, error: qErr } = await supabase
+        .from('card_fields')
+        .select('order_index')
+        .eq('card_id', input.cardId)
+        .is('deleted_at', null)
+        .order('order_index', { ascending: false })
+        .limit(1);
+      if (qErr) throw qErr;
+      const orderIndex = (existing?.[0]?.order_index ?? -1) + 1;
+
+      const { data, error } = await supabase
+        .from('card_fields')
+        .insert({
+          card_id: input.cardId,
+          proposal_id: proposalId,
+          heading: input.heading ?? null,
+          content_html: input.contentHtml ?? '',
+          order_index: orderIndex,
+          field_role: input.fieldRole ?? 'narrative',
+          origin: 'manual',
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return mapField(data);
+    },
+    onSuccess: (field) => invalidateFields(field.cardId),
+    onError: (e: Error) => toast.error(e.message || 'Could not add the field'),
+  });
+
+  const updateField = useMutation({
+    mutationFn: async ({
+      fieldId,
+      cardId: _cardId,
+      heading,
+      contentHtml,
+      assignedParticipantId,
+    }: {
+      fieldId: string;
+      cardId: string;
+      heading?: string | null;
+      contentHtml?: string | null;
+      assignedParticipantId?: string | null;
+    }) => {
+      const patch: Partial<{
+        heading: string | null;
+        content_html: string | null;
+        assigned_participant_id: string | null;
+      }> = {};
+      if (heading !== undefined) patch.heading = heading;
+      if (contentHtml !== undefined) patch.content_html = contentHtml;
+      if (assignedParticipantId !== undefined) patch.assigned_participant_id = assignedParticipantId;
+      if (Object.keys(patch).length === 0) return;
+      const { error } = await supabase.from('card_fields').update(patch).eq('id', fieldId);
+      if (error) throw error;
+    },
+    onSuccess: (_data, vars) => invalidateFields(vars.cardId),
+    onError: (e: Error) => toast.error(e.message || 'Could not save the field'),
+  });
+
+  const reorderFields = useMutation({
+    mutationFn: async ({ cardId, orderedFieldIds }: { cardId: string; orderedFieldIds: string[] }) => {
+      const { error } = await supabase.rpc('reorder_card_fields', {
+        p_card_id: cardId,
+        p_field_ids: orderedFieldIds,
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_data, vars) => invalidateFields(vars.cardId),
+    onError: (e: Error) => toast.error(e.message || 'Could not reorder the fields'),
+  });
+
+  const deleteCard = useMutation({
+    mutationFn: async (cardId: string) => {
+      const { error } = await supabase.rpc('soft_delete_card', { p_card_id: cardId });
+      if (error) throw error;
+    },
+    onSuccess: (_d, cardId) => {
+      invalidateCards();
+      invalidateFields(cardId);
+      invalidateBin();
+    },
+    onError: (e: Error) => toast.error(e.message || 'Could not delete the card'),
+  });
+
+  const deleteField = useMutation({
+    mutationFn: async ({ fieldId, cardId: _cardId }: { fieldId: string; cardId: string }) => {
+      const { error } = await supabase.rpc('soft_delete_card_field', { p_field_id: fieldId });
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      invalidateFields(vars.cardId);
+      invalidateBin();
+    },
+    onError: (e: Error) => toast.error(e.message || 'Could not delete the field'),
+  });
+
+  const seedCards = useMutation({
+    mutationFn: async (): Promise<number> => {
+      const { data, error } = await supabase.rpc('seed_proposal_cards', { p_proposal_id: proposalId });
+      if (error) throw error;
+      return (data as number) ?? 0;
+    },
+    onSuccess: invalidateCards,
+    onError: (e: Error) => toast.error(e.message || 'Could not seed the cards'),
+  });
+
+  return {
+    createCard,
+    updateCard,
+    reorderCards,
+    createField,
+    updateField,
+    reorderFields,
+    deleteCard,
+    deleteField,
+    seedCards,
+  };
+}
