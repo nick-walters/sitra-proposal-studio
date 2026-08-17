@@ -6429,10 +6429,17 @@ export type Database = {
         Args: { _proposal_id: string; _user_id: string }
         Returns: boolean
       }
+      normalise_section_card_order: {
+        Args: { p_section_id: string }
+        Returns: undefined
+      }
       preview_proposal_restore: {
         Args: { p_proposal_id: string; p_snapshot_id: string }
         Returns: Json
       }
+      purge_deleted_cards: { Args: never; Returns: number }
+      restore_card: { Args: { p_card_id: string }; Returns: undefined }
+      restore_card_field: { Args: { p_field_id: string }; Returns: Json }
       restore_excluded_tables: { Args: never; Returns: string[] }
       restore_in_scope_tables: { Args: never; Returns: string[] }
       restore_proposal_snapshot: {
@@ -6440,6 +6447,12 @@ export type Database = {
         Returns: Json
       }
       restore_scope_predicates: { Args: never; Returns: Json }
+      seed_proposal_cards: { Args: { p_proposal_id: string }; Returns: number }
+      soft_delete_card: { Args: { p_card_id: string }; Returns: undefined }
+      soft_delete_card_field: {
+        Args: { p_field_id: string }
+        Returns: undefined
+      }
       thin_proposal_snapshots: {
         Args: {
           p_keep_auto?: number
