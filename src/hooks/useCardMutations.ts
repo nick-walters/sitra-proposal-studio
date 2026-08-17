@@ -166,6 +166,7 @@ export function useCardMutations(proposalId: string, sectionId: string) {
       invalidateCards();
       invalidateFields(cardId);
       invalidateBin();
+      toast.success('Card moved to the recycle bin');
     },
     onError: (e: Error) => toast.error(e.message || 'Could not delete the card'),
   });
@@ -178,9 +179,11 @@ export function useCardMutations(proposalId: string, sectionId: string) {
     onSuccess: (_d, vars) => {
       invalidateFields(vars.cardId);
       invalidateBin();
+      toast.success('Field moved to the recycle bin');
     },
     onError: (e: Error) => toast.error(e.message || 'Could not delete the field'),
   });
+
 
   const seedCards = useMutation({
     mutationFn: async (): Promise<number> => {
