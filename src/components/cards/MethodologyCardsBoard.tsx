@@ -47,6 +47,7 @@ import { CardRecycleBinDialog } from '@/components/cards/CardRecycleBinDialog';
 import { CardFieldHistoryDialog } from '@/components/cards/CardFieldHistoryDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useSectionCards } from '@/hooks/useSectionCards';
+import { useSectionRecycleBin } from '@/hooks/useSectionRecycleBin';
 import { useCardFieldsForCards } from '@/hooks/useCardFields';
 import { useCardMutations } from '@/hooks/useCardMutations';
 import { getCaseTypeLabel } from '@/lib/caseTypeLabels';
@@ -189,8 +190,9 @@ function FieldRow({
   return (
     <div
       ref={setNodeRef}
+      id={`card-module-${field.id}`}
       style={style}
-      className="space-y-2 rounded-md border border-border p-3"
+      className="space-y-2 rounded-md border border-border p-3 transition-shadow"
     >
       <div className="flex items-center gap-2">
         {canEdit && (
@@ -230,9 +232,7 @@ function FieldRow({
                 className="h-8 flex-1 font-bold"
               />
             ) : (
-              <span className="flex-1 text-sm italic text-muted-foreground">
-                Header hidden
-              </span>
+              <span className="flex-1" aria-hidden="true" />
             )}
 
             {canEdit && (
@@ -317,6 +317,8 @@ interface CardBlockProps {
   draggable: boolean;
   caseTypeLabels: Record<string, string>;
   collapsed: boolean;
+  binCount: number;
+  onOpenBin: (card: ProposalCard) => void;
   onRename: (card: ProposalCard, title: string | null) => void;
   onToggleVisible: (card: ProposalCard) => void;
   onDeleteCard: (card: ProposalCard) => void;
@@ -338,6 +340,8 @@ function CardBlock({
   draggable,
   caseTypeLabels,
   collapsed,
+  binCount,
+  onOpenBin,
   onRename,
   onToggleVisible,
   onDeleteCard,
@@ -400,7 +404,7 @@ function CardBlock({
   };
 
   return (
-    <div ref={sortable.setNodeRef} style={style}>
+    <div ref={sortable.setNodeRef} id={`card-block-${card.id}`} style={style} className="transition-shadow">
       <Card>
         <CardHeader className="flex flex-row items-center gap-2 space-y-0 py-3">
           {draggable && canEdit ? (
@@ -467,6 +471,18 @@ function CardBlock({
                 onClick={() => onToggleVisible(card)}
               >
                 {card.isVisible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+              </Button>
+            )}
+
+            {canEdit && binCount > 0 && (
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Open this block's recycle bin"
+                title={`${binCount} deleted ${binCount === 1 ? 'module' : 'modules'}`}
+                onClick={() => onOpenBin(card)}
+              >
+                <Trash2 className="h-4 w-4" />
               </Button>
             )}
 
@@ -572,6 +588,7 @@ function BoardInner({
   );
   const cardIds = useMemo(() => cards.map((c) => c.id), [cards]);
   const { fieldsByCard } = useCardFieldsForCards(cardIds);
+  const { entries: binEntries } = useSectionRecycleBin(proposalId, sectionId);
   const {
     createCard,
 
@@ -587,6 +604,7 @@ function BoardInner({
   const [localOrder, setLocalOrder] = useState<string[] | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [binOpen, setBinOpen] = useState(false);
+  const [moduleBinCardId, setModuleBinCardId] = useState<string | null>(null);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [focusedBox, setFocusedBox] = useState<{ fieldId: string; textBox: CardTextBox } | null>(
     null,
@@ -720,6 +738,33 @@ function BoardInner({
 
   const visibleCard = (c: ProposalCard) => c.isVisible || isCoordinator;
 
+  /** Deleted modules per live block, for the per-block bin icon. */
+  const deletedModulesByCard = useMemo(() => {
+    const map: Record<string, number> = {};
+    const deletedCardIds = new Set(binEntries.filter((e) => e.targetType === 'card').map((e) => e.targetId));
+    for (const e of binEntries) {
+      if (e.targetType !== 'field' || !e.parentCardId) continue;
+      if (deletedCardIds.has(e.parentCardId)) continue;
+      map[e.parentCardId] = (map[e.parentCardId] ?? 0) + 1;
+    }
+    return map;
+  }, [binEntries]);
+
+  /** Scroll a restored block/module into view and flash it briefly. */
+  const jumpToRestored = useCallback((targetType: 'card' | 'field', targetId: string) => {
+    const domId = targetType === 'card' ? `card-block-${targetId}` : `card-module-${targetId}`;
+    window.setTimeout(() => {
+      const el = document.getElementById(domId);
+      if (!el) return;
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('ring-2', 'ring-primary', 'ring-offset-2', 'rounded-lg');
+      window.setTimeout(
+        () => el.classList.remove('ring-2', 'ring-primary', 'ring-offset-2', 'rounded-lg'),
+        2000,
+      );
+    }, 350);
+  }, []);
+
   const cardProps = (card: ProposalCard, draggable: boolean) => ({
     card,
     fields: fieldsByCard[card.id] ?? [],
@@ -729,6 +774,8 @@ function BoardInner({
     draggable,
     caseTypeLabels,
     collapsed: isDragging,
+    binCount: deletedModulesByCard[card.id] ?? 0,
+    onOpenBin: (c: ProposalCard) => setModuleBinCardId(c.id),
     onRename: (c: ProposalCard, title: string | null) =>
       updateCard.mutate({ cardId: c.id, title }),
     onToggleVisible: (c: ProposalCard) =>
@@ -764,7 +811,12 @@ function BoardInner({
 
   return (
     <>
-      <OutsideClickClear onClear={() => setFocusedBox(null)} />
+      <OutsideClickClear
+        onClear={() => {
+          setFocusedBox(null);
+          setHistoryOpen(false);
+        }}
+      />
       <div className="mx-auto w-full max-w-4xl space-y-4 p-6">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
@@ -853,6 +905,7 @@ function BoardInner({
         {historyOpen && focusedBox && (
           <CardFieldHistoryDialog
             isOpen
+            proposalId={proposalId}
             fieldId={focusedBox.fieldId}
             textBox={focusedBox.textBox}
             fieldLabel={focusedFieldLabel}
@@ -864,9 +917,23 @@ function BoardInner({
         {binOpen && (
           <CardRecycleBinDialog
             isOpen
+            mode="blocks"
             proposalId={proposalId}
             sectionId={sectionId}
             onClose={() => setBinOpen(false)}
+            onRestored={jumpToRestored}
+          />
+        )}
+
+        {moduleBinCardId && (
+          <CardRecycleBinDialog
+            isOpen
+            mode="modules"
+            cardId={moduleBinCardId}
+            proposalId={proposalId}
+            sectionId={sectionId}
+            onClose={() => setModuleBinCardId(null)}
+            onRestored={jumpToRestored}
           />
         )}
       </div>
