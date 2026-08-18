@@ -463,7 +463,12 @@ function FieldRow({
               ? 'hidden'
               : `rounded-md ${contentLock.isMine ? 'ring-1 ring-emerald-600/60' : ''}`
           }
-          onFocusCapture={() => onFocusField(field.id, 'content')}
+          onFocusCapture={() => {
+            // Mount-time normalisation by the editor must never count as an
+            // edit — only content changed after the user focused the box does.
+            touchedRef.current = true;
+            onFocusField(field.id, 'content');
+          }}
           onMouseDownCapture={() => onFocusField(field.id, 'content')}
           onKeyDownCapture={() => contentLock.onType()}
           onBlurCapture={(e) => {
@@ -478,14 +483,16 @@ function FieldRow({
             value={initialHtml.current}
             onChange={(html) => {
               contentRef.current = html;
+              if (!touchedRef.current) return;
               contentLock.push(html);
               onContentChange(field, html);
             }}
-            canEdit={canEdit}
+            canEdit={canEdit && !contentLock.lockedByOther}
             isCoordinator={isCoordinator}
           />
         </div>
       )}
+
     </div>
   );
 }
