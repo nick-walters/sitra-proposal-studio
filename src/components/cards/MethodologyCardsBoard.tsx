@@ -1085,6 +1085,7 @@ function BoardInner({
     onOpenBin: (c: ProposalCard) => setModuleBinCardId(c.id),
     onRename: async (c: ProposalCard, title: string | null) => {
       const key = `card:${c.id}:title`;
+      if (heldByOther(cardTitleTargetId(c.id))) return;
       const { data, error } = await supabase.rpc('save_card_title', {
         p_card_id: c.id,
         p_title: title ?? '',
@@ -1096,7 +1097,8 @@ function BoardInner({
       }
       const res = (data ?? {}) as { ok?: boolean; version?: number };
       if (res.version) versionsRef.current[key] = res.version;
-      if (!res.ok) setLostText({ text: title ?? '', reason: 'conflict' });
+      if (!res.ok && (title ?? '').trim()) setLostText({ text: title ?? '', reason: 'conflict' });
+
       queryClient.invalidateQueries({ queryKey: sectionCardsKey(proposalId, sectionId) });
     },
     onToggleVisible: (c: ProposalCard) =>
