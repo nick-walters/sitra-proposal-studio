@@ -195,9 +195,18 @@ function useLockedBox(targetId: string, opts: LockedBoxOptions) {
     });
   }, [claim, noteKeystroke, targetId]);
 
+  // A browser fires editor blur when the WINDOW loses focus (alt-tab, desktop
+  // switch, clicking another browser). That must never surrender the lock —
+  // only a genuine in-app focus move away from this box does. The deferred
+  // `document.hasFocus()` check distinguishes the two.
   const onBlur = useCallback(() => {
-    if (isMine) void release(targetId, { save: true });
+    if (!isMine) return;
+    window.setTimeout(() => {
+      if (!document.hasFocus()) return; // window/app blur — keep the lock
+      void release(targetId, { save: true });
+    }, 0);
   }, [isMine, release, targetId]);
+
 
   const push = useCallback((html: string) => stream(targetId, html), [stream, targetId]);
 

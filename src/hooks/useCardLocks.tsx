@@ -41,8 +41,11 @@ export interface LockHolder {
   expiresAt: string;
 }
 
-/** Lock lifetime on the server; refreshed by the heartbeat below. */
+/** Lock lifetime on the server is 150s; refreshed by the heartbeat below.
+ *  Background tabs throttle `setInterval` to roughly once per minute, so the
+ *  server window is deliberately far longer than the heartbeat period. */
 const HEARTBEAT_MS = 15_000;
+
 /** Idle timeout measured from the last keystroke. */
 const IDLE_TIMEOUT_MS = 5 * 60_000;
 /** Warning appears this long before the timeout. */
@@ -267,19 +270,29 @@ export function CardLockProvider({
     [claim, warning],
   );
 
-  // Heartbeat: keeps the server-side expiry in the future while held.
+  // Heartbeat: keeps the server-side expiry in the future while held. The
+  // interval is throttled to ~1/min in background tabs, which the 150s server
+  // window absorbs; an extra beat fires whenever the tab or window returns.
   useEffect(() => {
     if (!enabled) return;
-    const id = window.setInterval(() => {
+    const beat = () => {
       const target = myTargetRef.current;
       if (!target) return;
       void supabase.rpc('heartbeat_card_lock', {
         p_target_type: 'text_box' as LockTargetType,
         p_target_id: target,
       });
-    }, HEARTBEAT_MS);
-    return () => window.clearInterval(id);
+    };
+    const id = window.setInterval(beat, HEARTBEAT_MS);
+    document.addEventListener('visibilitychange', beat);
+    window.addEventListener('focus', beat);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener('visibilitychange', beat);
+      window.removeEventListener('focus', beat);
+    };
   }, [enabled]);
+
 
   // Idle timer: warning at one minute remaining, save-then-release at zero.
   useEffect(() => {
