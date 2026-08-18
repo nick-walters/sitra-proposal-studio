@@ -62,6 +62,7 @@ import { useSectionRecycleBin } from '@/hooks/useSectionRecycleBin';
 import { useCardFieldsForCards } from '@/hooks/useCardFields';
 import { useCardMutations } from '@/hooks/useCardMutations';
 import { getCaseTypeLabel } from '@/lib/caseTypeLabels';
+import { jumpToElementId } from '@/lib/jumpToElement';
 import type { CardField, CardTextBox, ProposalCard } from '@/types/cards';
 
 interface BoardProps {
@@ -1018,19 +1019,10 @@ function BoardInner({
     return map;
   }, [binEntries]);
 
-  /** Scroll a restored block/module into view and flash it briefly. */
+  /** Scroll a restored/created block or module into view and flash it briefly. */
   const jumpToRestored = useCallback((targetType: 'card' | 'field', targetId: string) => {
     const domId = targetType === 'card' ? `card-block-${targetId}` : `card-module-${targetId}`;
-    window.setTimeout(() => {
-      const el = document.getElementById(domId);
-      if (!el) return;
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      el.classList.add('ring-2', 'ring-primary', 'ring-offset-2', 'rounded-lg');
-      window.setTimeout(
-        () => el.classList.remove('ring-2', 'ring-primary', 'ring-offset-2', 'rounded-lg'),
-        2000,
-      );
-    }, 350);
+    void jumpToElementId(domId);
   }, []);
 
   const cardProps = (card: ProposalCard, draggable: boolean) => ({
