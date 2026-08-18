@@ -45,7 +45,6 @@ import {
 import { KeyboardShortcutsDialog } from '@/components/KeyboardShortcutsDialog';
 import { CardRecycleBinDialog } from '@/components/cards/CardRecycleBinDialog';
 import { CardFieldHistoryDialog } from '@/components/cards/CardFieldHistoryDialog';
-import DOMPurify from 'dompurify';
 import { supabase } from '@/integrations/supabase/client';
 import {
   CardLockProvider,
@@ -328,6 +327,17 @@ function FieldRow({
 
   const isPlaceholder = field.fieldRole === 'case_placeholder';
 
+  // While another user holds the lock the same editor instance stays mounted
+  // (non-editable) and mirrors their live text; when the lock is released the
+  // last mirrored value is kept so the box does not snap back to stale text.
+  const lockedView = contentLock.lockedByOther
+    ? (contentLock.streamed ?? field.contentHtml ?? '')
+    : null;
+  const mirroredHtml = useRef(initialHtml.current);
+  if (lockedView !== null) mirroredHtml.current = lockedView;
+  const contentViewHtml = lockedView ?? mirroredHtml.current;
+
+
   return (
     <div
       ref={setNodeRef}
@@ -356,44 +366,48 @@ function FieldRow({
           <>
             {field.headingEnabled ? (
               <div className="flex min-w-0 flex-1 items-center gap-2">
-                <Input
-                  value={
-                    headerLock.lockedByOther && headerLock.streamed !== null
-                      ? headerLock.streamed
-                      : headingDraft
-                  }
-                  placeholder="Header"
-                  readOnly={headerLock.lockedByOther}
-                  disabled={!canEdit}
-                  onFocus={() => {
-                    headingFocused.current = true;
-                    onFocusField(field.id, 'header');
-                  }}
-                  onMouseDown={() => onFocusField(field.id, 'header')}
-                  onKeyDown={() => {
-                    if (!headerLock.lockedByOther) headerLock.onType();
-                  }}
-                  onChange={(e) => {
-                    if (headerLock.lockedByOther) return;
-                    setHeadingDraft(e.target.value);
-                    headerLock.push(e.target.value);
-                  }}
-                  onBlur={() => {
-                    headingFocused.current = false;
-                    const next = headingDraft.trim();
-                    if (!headerLock.lockedByOther && lastCommittedHeading.current !== next) {
-                      lastCommittedHeading.current = next;
-                      onHeadingChange(field, next || null);
-                    }
-                    headerLock.onBlur();
-                  }}
-                  className={`h-8 flex-1 font-bold ${lockBorderClass(headerLock.isMine, headerLock.lockedByOther)}`}
-                />
+                {headerLock.lockedByOther ? (
+                  // Read-only surface: a plain element, so no caret can be
+                  // placed, while the text stays selectable for copying.
+                  <div
+                    className="h-8 flex-1 select-text truncate rounded-md border border-destructive bg-background px-3 py-1 text-sm font-bold ring-1 ring-destructive/40"
+                    aria-readonly="true"
+                  >
+                    {headerLock.streamed ?? headingDraft}
+                  </div>
+                ) : (
+                  <Input
+                    value={headingDraft}
+                    placeholder="Header"
+                    disabled={!canEdit}
+                    onFocus={() => {
+                      headingFocused.current = true;
+                      onFocusField(field.id, 'header');
+                    }}
+                    onMouseDown={() => onFocusField(field.id, 'header')}
+                    onKeyDown={() => headerLock.onType()}
+                    onChange={(e) => {
+                      setHeadingDraft(e.target.value);
+                      headerLock.push(e.target.value);
+                    }}
+                    onBlur={() => {
+                      headingFocused.current = false;
+                      const next = headingDraft.trim();
+                      if (lastCommittedHeading.current !== next) {
+                        lastCommittedHeading.current = next;
+                        onHeadingChange(field, next || null);
+                      }
+                      headerLock.onBlur();
+                    }}
+                    className={`h-8 flex-1 font-bold ${lockBorderClass(headerLock.isMine, false)}`}
+                  />
+                )}
                 {headerLock.lockedByOther && headerLock.holder && (
                   <LockHolderBadge holder={headerLock.holder} />
                 )}
               </div>
             ) : (
+
               <span className="flex-1" aria-hidden="true" />
             )}
 
@@ -447,55 +461,61 @@ function FieldRow({
         )}
       </div>
 
-      {!isPlaceholder && contentLock.lockedByOther && contentLock.holder && (
+      {!isPlaceholder && (
         <div className={collapsed ? 'hidden' : 'flex items-start gap-2'}>
           <div
-            className="prose prose-sm min-w-0 flex-1 max-w-none rounded-md border border-destructive px-4 py-2 ring-1 ring-destructive/40"
-            aria-readonly="true"
-            dangerouslySetInnerHTML={{
-              __html: DOMPurify.sanitize(contentLock.streamed ?? field.contentHtml ?? ''),
+            className={`min-w-0 flex-1 rounded-md ${
+              contentLock.lockedByOther
+                ? 'border border-destructive ring-1 ring-destructive/40'
+                : contentLock.isMine
+                  ? 'ring-1 ring-emerald-600/60'
+                  : ''
+            }`}
+            onFocusCapture={() => {
+              if (contentLock.lockedByOther) return;
+              // Mount-time normalisation by the editor must never count as an
+              // edit — only content changed after the user focused the box does.
+              touchedRef.current = true;
+              onFocusField(field.id, 'content');
             }}
-          />
-          <LockHolderBadge holder={contentLock.holder} />
+            onMouseDownCapture={() => {
+              if (contentLock.lockedByOther) return;
+              onFocusField(field.id, 'content');
+            }}
+            onKeyDownCapture={() => {
+              if (contentLock.lockedByOther) return;
+              contentLock.onType();
+            }}
+            onBlurCapture={(e) => {
+              const next = e.relatedTarget as Node | null;
+              if (next && e.currentTarget.contains(next)) return;
+              contentLock.onBlur();
+            }}
+          >
+            <MethodologyRichEditor
+              key={`${field.id}-${reloadNonce}`}
+              proposalId={proposalId}
+              value={contentViewHtml}
+              onChange={(html) => {
+                // A non-holder never contributes content: the editor is
+                // non-editable, and any programmatic normalisation it emits
+                // while showing someone else's live text must be discarded.
+                if (contentLock.lockedByOther) return;
+                contentRef.current = html;
+                if (!touchedRef.current) return;
+                contentLock.push(html);
+                onContentChange(field, html);
+              }}
+              canEdit={canEdit && !contentLock.lockedByOther}
+              isCoordinator={isCoordinator}
+            />
+          </div>
+          {contentLock.lockedByOther && contentLock.holder && (
+            <LockHolderBadge holder={contentLock.holder} />
+          )}
         </div>
       )}
 
-      {!isPlaceholder && !contentLock.lockedByOther && (
-        <div
-          className={
-            collapsed
-              ? 'hidden'
-              : `rounded-md ${contentLock.isMine ? 'ring-1 ring-emerald-600/60' : ''}`
-          }
-          onFocusCapture={() => {
-            // Mount-time normalisation by the editor must never count as an
-            // edit — only content changed after the user focused the box does.
-            touchedRef.current = true;
-            onFocusField(field.id, 'content');
-          }}
-          onMouseDownCapture={() => onFocusField(field.id, 'content')}
-          onKeyDownCapture={() => contentLock.onType()}
-          onBlurCapture={(e) => {
-            const next = e.relatedTarget as Node | null;
-            if (next && e.currentTarget.contains(next)) return;
-            contentLock.onBlur();
-          }}
-        >
-          <MethodologyRichEditor
-            key={`${field.id}-${reloadNonce}`}
-            proposalId={proposalId}
-            value={initialHtml.current}
-            onChange={(html) => {
-              contentRef.current = html;
-              if (!touchedRef.current) return;
-              contentLock.push(html);
-              onContentChange(field, html);
-            }}
-            canEdit={canEdit && !contentLock.lockedByOther}
-            isCoordinator={isCoordinator}
-          />
-        </div>
-      )}
 
     </div>
   );
