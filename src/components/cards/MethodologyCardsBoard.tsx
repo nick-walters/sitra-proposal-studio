@@ -946,6 +946,11 @@ function BoardInner({
       isAutoSave: boolean,
     ): Promise<boolean> => {
       const key = `${fieldId}:${textBox}`;
+      // Defence in depth: never write a text box held by another user.
+      if (heldByOther(fieldTargetId(fieldId, textBox))) {
+        delete dirtyRef.current[fieldId];
+        return false;
+      }
       setSaving(true);
       try {
         const { data, error } = await supabase.rpc('save_card_text', {
@@ -963,8 +968,8 @@ function BoardInner({
         if (res.version) versionsRef.current[key] = res.version;
         if (!res.ok) {
           // Somebody else wrote this text box first — offer a backup copy and
-          // reload the authoritative content.
-          setLostText({ text: value, reason: 'conflict' });
+          // reload the authoritative content. Nothing typed ⇒ no dialog.
+          if (!isHtmlBlank(value)) setLostText({ text: value, reason: 'conflict' });
           delete dirtyRef.current[fieldId];
           queryClient.invalidateQueries({ queryKey: ['card-fields-batch'] });
           setReloadNonce((n) => n + 1);
@@ -979,8 +984,9 @@ function BoardInner({
         setSaving(false);
       }
     },
-    [queryClient],
+    [heldByOther, queryClient],
   );
+
 
   const persistField = useCallback(
     async (fieldId: string, cardId: string, html: string, isAutoSave = true) => {
