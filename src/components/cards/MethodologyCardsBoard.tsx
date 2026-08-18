@@ -156,7 +156,7 @@ interface LockedBoxOptions {
   /** Current locally typed value, used if the lock race is lost. */
   getTyped: () => string;
   /** Called when another user won the race: revert to authoritative text. */
-  onLoseRace: (typed: string) => void;
+  onLoseRace: (typed: string, holderName: string | null) => void;
   /** Flushes this text box to the database (used before a timeout release). */
   save?: () => Promise<void>;
   /** Current value, answered to viewers that join mid-edit. */
@@ -174,6 +174,8 @@ function useLockedBox(targetId: string, opts: LockedBoxOptions) {
   const streamed = useStreamedValue(targetId, lockedByOther);
   const optsRef = useRef(opts);
   optsRef.current = opts;
+  const holderRef = useRef(holder);
+  holderRef.current = holder;
 
   useEffect(() => {
     if (!optsRef.current.save) return;
@@ -188,7 +190,7 @@ function useLockedBox(targetId: string, opts: LockedBoxOptions) {
   const onType = useCallback(() => {
     noteKeystroke(targetId);
     void claim(targetId).then((ok) => {
-      if (!ok) optsRef.current.onLoseRace(optsRef.current.getTyped());
+      if (!ok) optsRef.current.onLoseRace(optsRef.current.getTyped(), holderRef.current?.userName ?? null);
     });
   }, [claim, noteKeystroke, targetId]);
 
@@ -200,6 +202,7 @@ function useLockedBox(targetId: string, opts: LockedBoxOptions) {
 
   return { holder, isMine, lockedByOther, streamed, onType, onBlur, push };
 }
+
 
 /** Green when held by me, red when held by someone else. */
 function lockBorderClass(isMine: boolean, lockedByOther: boolean) {
