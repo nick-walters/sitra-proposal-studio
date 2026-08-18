@@ -270,19 +270,29 @@ export function CardLockProvider({
     [claim, warning],
   );
 
-  // Heartbeat: keeps the server-side expiry in the future while held.
+  // Heartbeat: keeps the server-side expiry in the future while held. The
+  // interval is throttled to ~1/min in background tabs, which the 150s server
+  // window absorbs; an extra beat fires whenever the tab or window returns.
   useEffect(() => {
     if (!enabled) return;
-    const id = window.setInterval(() => {
+    const beat = () => {
       const target = myTargetRef.current;
       if (!target) return;
       void supabase.rpc('heartbeat_card_lock', {
         p_target_type: 'text_box' as LockTargetType,
         p_target_id: target,
       });
-    }, HEARTBEAT_MS);
-    return () => window.clearInterval(id);
+    };
+    const id = window.setInterval(beat, HEARTBEAT_MS);
+    document.addEventListener('visibilitychange', beat);
+    window.addEventListener('focus', beat);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener('visibilitychange', beat);
+      window.removeEventListener('focus', beat);
+    };
   }, [enabled]);
+
 
   // Idle timer: warning at one minute remaining, save-then-release at zero.
   useEffect(() => {
