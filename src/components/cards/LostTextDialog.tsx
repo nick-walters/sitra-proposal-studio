@@ -12,10 +12,15 @@ import {
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
 
 export interface LostTextPayload {
-  /** The text the user typed and is about to lose. */
+  /** The text the user typed and is about to lose. Empty for 'blocked'. */
   text: string;
-  /** 'race' — another user took the lock first. 'conflict' — save rejected. */
-  reason: 'race' | 'conflict';
+  /**
+   * 'race' — another user took the lock first. 'conflict' — save rejected.
+   * 'blocked' — the field is held by someone else and nothing was typed.
+   */
+  reason: 'race' | 'conflict' | 'blocked';
+  /** Name of the user currently holding the lock, when known. */
+  holderName?: string | null;
 }
 
 /**
@@ -32,7 +37,8 @@ export function LostTextDialog({
   const [copied, setCopied] = useState(false);
   if (!payload) return null;
 
-  const plain = htmlToPlainText(payload.text) || payload.text;
+  const blocked = payload.reason === 'blocked';
+  const plain = blocked ? '' : htmlToPlainText(payload.text) || '';
 
   const copy = async () => {
     try {
@@ -44,36 +50,47 @@ export function LostTextDialog({
     }
   };
 
+  const title = blocked
+    ? 'This text box is being edited'
+    : payload.reason === 'race'
+      ? 'Another user started typing first'
+      : 'This field changed elsewhere';
+
+  const description = blocked
+    ? `This text box is currently being edited by ${payload.holderName || 'another user'} and cannot be edited until they finish.`
+    : payload.reason === 'race'
+      ? 'Another user started typing before you, and your edits may be lost. Below is the text you might lose. Would you like to copy the text to a note on your device as a backup?'
+      : 'This text box was changed by someone else since you loaded it, so your save was not applied. Below is the text you might lose. Would you like to copy the text to a note on your device as a backup?';
+
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="left-auto right-6 top-auto bottom-6 max-w-sm translate-x-0 translate-y-0">
         <DialogHeader>
-          <DialogTitle>
-            {payload.reason === 'race' ? 'Another user started typing first' : 'This field changed elsewhere'}
-          </DialogTitle>
-          <DialogDescription>
-            {payload.reason === 'race'
-              ? 'Another user started typing before you, and your edits may be lost. Below is the text you might lose. Would you like to copy the text to a note on your device as a backup?'
-              : 'This text box was changed by someone else since you loaded it, so your save was not applied. Below is the text you might lose. Would you like to copy the text to a note on your device as a backup?'}
-          </DialogDescription>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
-        <div className="max-h-48 overflow-auto rounded-md border border-border bg-muted/40 p-2 text-[12px] whitespace-pre-wrap">
-          {plain || <span className="italic text-muted-foreground">(empty)</span>}
-        </div>
+        {!blocked && (
+          <div className="max-h-48 overflow-auto rounded-md border border-border bg-muted/40 p-2 text-[12px] whitespace-pre-wrap">
+            {plain}
+          </div>
+        )}
 
         <DialogFooter>
           <Button variant="outline" size="sm" onClick={onClose}>
-            Dismiss
+            {blocked ? 'Close' : 'Dismiss'}
           </Button>
-          <Button size="sm" onClick={copy}>
-            {copied ? <Check className="mr-1 h-3.5 w-3.5" /> : <Copy className="mr-1 h-3.5 w-3.5" />}
-            {copied ? 'Copied' : 'Copy'}
-          </Button>
+          {!blocked && (
+            <Button size="sm" onClick={copy}>
+              {copied ? <Check className="mr-1 h-3.5 w-3.5" /> : <Copy className="mr-1 h-3.5 w-3.5" />}
+              {copied ? 'Copied' : 'Copy'}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
+
 
 export default LostTextDialog;

@@ -63,6 +63,8 @@ import { useCardFieldsForCards } from '@/hooks/useCardFields';
 import { useCardMutations } from '@/hooks/useCardMutations';
 import { getCaseTypeLabel } from '@/lib/caseTypeLabels';
 import { jumpToElementId } from '@/lib/jumpToElement';
+import { isHtmlBlank } from '@/lib/htmlBlank';
+
 import type { CardField, CardTextBox, ProposalCard } from '@/types/cards';
 
 interface BoardProps {
@@ -156,7 +158,7 @@ interface LockedBoxOptions {
   /** Current locally typed value, used if the lock race is lost. */
   getTyped: () => string;
   /** Called when another user won the race: revert to authoritative text. */
-  onLoseRace: (typed: string) => void;
+  onLoseRace: (typed: string, holderName: string | null) => void;
   /** Flushes this text box to the database (used before a timeout release). */
   save?: () => Promise<void>;
   /** Current value, answered to viewers that join mid-edit. */
@@ -174,6 +176,8 @@ function useLockedBox(targetId: string, opts: LockedBoxOptions) {
   const streamed = useStreamedValue(targetId, lockedByOther);
   const optsRef = useRef(opts);
   optsRef.current = opts;
+  const holderRef = useRef(holder);
+  holderRef.current = holder;
 
   useEffect(() => {
     if (!optsRef.current.save) return;
@@ -188,7 +192,7 @@ function useLockedBox(targetId: string, opts: LockedBoxOptions) {
   const onType = useCallback(() => {
     noteKeystroke(targetId);
     void claim(targetId).then((ok) => {
-      if (!ok) optsRef.current.onLoseRace(optsRef.current.getTyped());
+      if (!ok) optsRef.current.onLoseRace(optsRef.current.getTyped(), holderRef.current?.userName ?? null);
     });
   }, [claim, noteKeystroke, targetId]);
 
@@ -200,6 +204,16 @@ function useLockedBox(targetId: string, opts: LockedBoxOptions) {
 
   return { holder, isMine, lockedByOther, streamed, onType, onBlur, push };
 }
+/**
+ * Chooses the right dialog for a lost race: the copy-to-backup dialog only
+ * when the user genuinely typed something, otherwise a plain "locked" notice.
+ */
+function lostTextPayload(typed: string, holderName: string | null): LostTextPayload {
+  if (isHtmlBlank(typed)) return { text: '', reason: 'blocked', holderName };
+  return { text: typed, reason: 'race', holderName };
+}
+
+
 
 /** Green when held by me, red when held by someone else. */
 function lockBorderClass(isMine: boolean, lockedByOther: boolean) {
@@ -260,11 +274,15 @@ function FieldRow({
   }, [field.heading]);
 
   const contentRef = useRef(field.contentHtml ?? '');
+  /** False until the user focuses this editor — blocks mount-time writes. */
+  const touchedRef = useRef(false);
   useEffect(() => {
     initialHtml.current = field.contentHtml ?? '';
     contentRef.current = field.contentHtml ?? '';
+    touchedRef.current = false;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reloadNonce]);
+
 
   const headerTarget = fieldTargetId(field.id, 'header');
   const contentTarget = fieldTargetId(field.id, 'content');
@@ -277,9 +295,9 @@ function FieldRow({
 
   const headerLock = useLockedBox(headerTarget, {
     getTyped: () => headingDraft,
-    onLoseRace: (typed) => {
+    onLoseRace: (typed, holderName) => {
       setHeadingDraft(field.heading ?? '');
-      onLostText({ text: typed, reason: 'race' });
+      onLostText(lostTextPayload(typed, holderName));
     },
     save: async () => {
       const next = headingDraft.trim();
@@ -293,13 +311,14 @@ function FieldRow({
 
   const contentLock = useLockedBox(contentTarget, {
     getTyped: () => contentRef.current,
-    onLoseRace: (typed) => {
+    onLoseRace: (typed, holderName) => {
       contentRef.current = field.contentHtml ?? '';
-      onLostText({ text: typed, reason: 'race' });
+      onLostText(lostTextPayload(typed, holderName));
     },
     save: () => onFlushContent(field, contentRef.current),
     snapshot: () => contentRef.current,
   });
+
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -448,7 +467,12 @@ function FieldRow({
               ? 'hidden'
               : `rounded-md ${contentLock.isMine ? 'ring-1 ring-emerald-600/60' : ''}`
           }
-          onFocusCapture={() => onFocusField(field.id, 'content')}
+          onFocusCapture={() => {
+            // Mount-time normalisation by the editor must never count as an
+            // edit — only content changed after the user focused the box does.
+            touchedRef.current = true;
+            onFocusField(field.id, 'content');
+          }}
           onMouseDownCapture={() => onFocusField(field.id, 'content')}
           onKeyDownCapture={() => contentLock.onType()}
           onBlurCapture={(e) => {
@@ -463,14 +487,16 @@ function FieldRow({
             value={initialHtml.current}
             onChange={(html) => {
               contentRef.current = html;
+              if (!touchedRef.current) return;
               contentLock.push(html);
               onContentChange(field, html);
             }}
-            canEdit={canEdit}
+            canEdit={canEdit && !contentLock.lockedByOther}
             isCoordinator={isCoordinator}
           />
         </div>
       )}
+
     </div>
   );
 }
@@ -551,11 +577,12 @@ function CardBlock({
   const titleTarget = cardTitleTargetId(card.id);
   const titleLock = useLockedBox(titleTarget, {
     getTyped: () => titleDraft,
-    onLoseRace: (typed) => {
+    onLoseRace: (typed, holderName) => {
       setTitleDraft(card.title ?? '');
       setEditingTitle(false);
-      onLostText({ text: typed, reason: 'race' });
+      onLostText(lostTextPayload(typed, holderName));
     },
+
     save: async () => {
       const next = titleDraft.trim();
       if (next !== lastCommittedTitle.current) {
@@ -831,7 +858,21 @@ function BoardInner({
   const [historyOpen, setHistoryOpen] = useState(false);
   const [lostText, setLostText] = useState<LostTextPayload | null>(null);
   const [reloadNonce, setReloadNonce] = useState(0);
-  const { warning } = useCardLocks();
+  const { warning, locks, myUserId } = useCardLocks();
+
+  /**
+   * Live view of the lock table for the save path: this client must never
+   * write to a text box held by somebody else, whatever the version check says.
+   */
+  const locksRef = useRef(locks);
+  locksRef.current = locks;
+  const myUserIdRef = useRef(myUserId);
+  myUserIdRef.current = myUserId;
+  const heldByOther = useCallback((targetId: string) => {
+    const holder = locksRef.current[targetId];
+    return !!holder && holder.userId !== myUserIdRef.current;
+  }, []);
+
 
   /** Last known version per text box, for the save-time version check. */
   const versionsRef = useRef<Record<string, number>>({});
@@ -905,6 +946,11 @@ function BoardInner({
       isAutoSave: boolean,
     ): Promise<boolean> => {
       const key = `${fieldId}:${textBox}`;
+      // Defence in depth: never write a text box held by another user.
+      if (heldByOther(fieldTargetId(fieldId, textBox))) {
+        delete dirtyRef.current[fieldId];
+        return false;
+      }
       setSaving(true);
       try {
         const { data, error } = await supabase.rpc('save_card_text', {
@@ -922,8 +968,8 @@ function BoardInner({
         if (res.version) versionsRef.current[key] = res.version;
         if (!res.ok) {
           // Somebody else wrote this text box first — offer a backup copy and
-          // reload the authoritative content.
-          setLostText({ text: value, reason: 'conflict' });
+          // reload the authoritative content. Nothing typed ⇒ no dialog.
+          if (!isHtmlBlank(value)) setLostText({ text: value, reason: 'conflict' });
           delete dirtyRef.current[fieldId];
           queryClient.invalidateQueries({ queryKey: ['card-fields-batch'] });
           setReloadNonce((n) => n + 1);
@@ -938,8 +984,9 @@ function BoardInner({
         setSaving(false);
       }
     },
-    [queryClient],
+    [heldByOther, queryClient],
   );
+
 
   const persistField = useCallback(
     async (fieldId: string, cardId: string, html: string, isAutoSave = true) => {
@@ -1038,6 +1085,7 @@ function BoardInner({
     onOpenBin: (c: ProposalCard) => setModuleBinCardId(c.id),
     onRename: async (c: ProposalCard, title: string | null) => {
       const key = `card:${c.id}:title`;
+      if (heldByOther(cardTitleTargetId(c.id))) return;
       const { data, error } = await supabase.rpc('save_card_title', {
         p_card_id: c.id,
         p_title: title ?? '',
@@ -1049,7 +1097,8 @@ function BoardInner({
       }
       const res = (data ?? {}) as { ok?: boolean; version?: number };
       if (res.version) versionsRef.current[key] = res.version;
-      if (!res.ok) setLostText({ text: title ?? '', reason: 'conflict' });
+      if (!res.ok && (title ?? '').trim()) setLostText({ text: title ?? '', reason: 'conflict' });
+
       queryClient.invalidateQueries({ queryKey: sectionCardsKey(proposalId, sectionId) });
     },
     onToggleVisible: (c: ProposalCard) =>
