@@ -41,8 +41,11 @@ export interface LockHolder {
   expiresAt: string;
 }
 
-/** Lock lifetime on the server; refreshed by the heartbeat below. */
+/** Lock lifetime on the server is 150s; refreshed by the heartbeat below.
+ *  Background tabs throttle `setInterval` to roughly once per minute, so the
+ *  server window is deliberately far longer than the heartbeat period. */
 const HEARTBEAT_MS = 15_000;
+
 /** Idle timeout measured from the last keystroke. */
 const IDLE_TIMEOUT_MS = 5 * 60_000;
 /** Warning appears this long before the timeout. */
