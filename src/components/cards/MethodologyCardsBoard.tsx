@@ -62,6 +62,7 @@ import { useSectionRecycleBin } from '@/hooks/useSectionRecycleBin';
 import { useCardFieldsForCards } from '@/hooks/useCardFields';
 import { useCardMutations } from '@/hooks/useCardMutations';
 import { getCaseTypeLabel } from '@/lib/caseTypeLabels';
+import { jumpToElementId } from '@/lib/jumpToElement';
 import type { CardField, CardTextBox, ProposalCard } from '@/types/cards';
 
 interface BoardProps {
