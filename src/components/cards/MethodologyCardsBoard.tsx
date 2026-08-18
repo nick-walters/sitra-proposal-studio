@@ -280,9 +280,9 @@ function FieldRow({
 
   const headerLock = useLockedBox(headerTarget, {
     getTyped: () => headingDraft,
-    onLoseRace: (typed) => {
+    onLoseRace: (typed, holderName) => {
       setHeadingDraft(field.heading ?? '');
-      onLostText({ text: typed, reason: 'race' });
+      onLostText(lostTextPayload(typed, holderName));
     },
     save: async () => {
       const next = headingDraft.trim();
@@ -296,13 +296,14 @@ function FieldRow({
 
   const contentLock = useLockedBox(contentTarget, {
     getTyped: () => contentRef.current,
-    onLoseRace: (typed) => {
+    onLoseRace: (typed, holderName) => {
       contentRef.current = field.contentHtml ?? '';
-      onLostText({ text: typed, reason: 'race' });
+      onLostText(lostTextPayload(typed, holderName));
     },
     save: () => onFlushContent(field, contentRef.current),
     snapshot: () => contentRef.current,
   });
+
 
   const style = {
     transform: CSS.Transform.toString(transform),
