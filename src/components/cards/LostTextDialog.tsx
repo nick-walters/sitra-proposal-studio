@@ -64,11 +64,21 @@ export function LostTextDialog({
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="left-auto right-6 top-auto bottom-6 max-w-sm translate-x-0 translate-y-0">
+      <DialogContent
+        className="max-w-sm"
+        // Nothing is auto-focused, so a stray Space/Enter mid-typing cannot
+        // activate a button; only Escape or an explicit click closes this.
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        onKeyDown={(e) => {
+          if (e.key !== 'Escape') e.stopPropagation();
+          if (e.key === ' ' || e.key === 'Spacebar' || e.key === 'Enter') e.preventDefault();
+        }}
+      >
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
+
 
         {!blocked && (
           <div className="max-h-48 overflow-auto rounded-md border border-border bg-muted/40 p-2 text-[12px] whitespace-pre-wrap">
