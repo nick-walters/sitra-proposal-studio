@@ -639,6 +639,41 @@ export type Database = {
           },
         ]
       }
+      card_guideline_documents: {
+        Row: {
+          created_at: string
+          document: string
+          guideline_id: string
+          id: string
+          order_index: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          document: string
+          guideline_id: string
+          id?: string
+          order_index?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          document?: string
+          guideline_id?: string
+          id?: string
+          order_index?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_guideline_documents_guideline_id_fkey"
+            columns: ["guideline_id"]
+            isOneToOne: false
+            referencedRelation: "card_guidelines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       card_guideline_sections: {
         Row: {
           created_at: string
