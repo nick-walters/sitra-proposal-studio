@@ -202,6 +202,15 @@ function useLockedBox(targetId: string, opts: LockedBoxOptions) {
 
   return { holder, isMine, lockedByOther, streamed, onType, onBlur, push };
 }
+/**
+ * Chooses the right dialog for a lost race: the copy-to-backup dialog only
+ * when the user genuinely typed something, otherwise a plain "locked" notice.
+ */
+function lostTextPayload(typed: string, holderName: string | null): LostTextPayload {
+  if (isHtmlBlank(typed)) return { text: '', reason: 'blocked', holderName };
+  return { text: typed, reason: 'race', holderName };
+}
+
 
 
 /** Green when held by me, red when held by someone else. */
