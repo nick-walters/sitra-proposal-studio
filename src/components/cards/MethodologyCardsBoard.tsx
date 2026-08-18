@@ -274,11 +274,15 @@ function FieldRow({
   }, [field.heading]);
 
   const contentRef = useRef(field.contentHtml ?? '');
+  /** False until the user focuses this editor — blocks mount-time writes. */
+  const touchedRef = useRef(false);
   useEffect(() => {
     initialHtml.current = field.contentHtml ?? '';
     contentRef.current = field.contentHtml ?? '';
+    touchedRef.current = false;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reloadNonce]);
+
 
   const headerTarget = fieldTargetId(field.id, 'header');
   const contentTarget = fieldTargetId(field.id, 'content');
