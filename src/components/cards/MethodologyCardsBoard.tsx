@@ -858,7 +858,21 @@ function BoardInner({
   const [historyOpen, setHistoryOpen] = useState(false);
   const [lostText, setLostText] = useState<LostTextPayload | null>(null);
   const [reloadNonce, setReloadNonce] = useState(0);
-  const { warning } = useCardLocks();
+  const { warning, locks, myUserId } = useCardLocks();
+
+  /**
+   * Live view of the lock table for the save path: this client must never
+   * write to a text box held by somebody else, whatever the version check says.
+   */
+  const locksRef = useRef(locks);
+  locksRef.current = locks;
+  const myUserIdRef = useRef(myUserId);
+  myUserIdRef.current = myUserId;
+  const heldByOther = useCallback((targetId: string) => {
+    const holder = locksRef.current[targetId];
+    return !!holder && holder.userId !== myUserIdRef.current;
+  }, []);
+
 
   /** Last known version per text box, for the save-time version check. */
   const versionsRef = useRef<Record<string, number>>({});
