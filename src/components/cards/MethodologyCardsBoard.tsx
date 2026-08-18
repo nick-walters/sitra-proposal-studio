@@ -577,11 +577,12 @@ function CardBlock({
   const titleTarget = cardTitleTargetId(card.id);
   const titleLock = useLockedBox(titleTarget, {
     getTyped: () => titleDraft,
-    onLoseRace: (typed) => {
+    onLoseRace: (typed, holderName) => {
       setTitleDraft(card.title ?? '');
       setEditingTitle(false);
-      onLostText({ text: typed, reason: 'race' });
+      onLostText(lostTextPayload(typed, holderName));
     },
+
     save: async () => {
       const next = titleDraft.trim();
       if (next !== lastCommittedTitle.current) {
