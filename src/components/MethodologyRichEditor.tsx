@@ -36,9 +36,14 @@ export function MethodologyRichEditor({
     instanceKey,
   });
 
+  // TipTap's `editable` is instance state, not a reactive prop: it MUST be
+  // pushed onto the live instance whenever the lock state changes, in both
+  // directions. This also flips the DOM contenteditable attribute, so a
+  // blocked user gets no caret while the text stays selectable.
   useEffect(() => {
     if (editor) editor.setEditable(canEdit);
   }, [editor, canEdit]);
+
 
   // Register on focus (DOM listener on the ProseMirror element — the shared
   // useRichTextEditor hook does not expose TipTap's onFocus option).
@@ -61,21 +66,44 @@ export function MethodologyRichEditor({
 
   return (
     <div
-      className={`cursor-text overflow-visible rounded-md border bg-background px-4 py-2 transition-colors [&_.ProseMirror]:!min-h-0 [&_.ProseMirror]:overflow-visible [&_.document-content]:!min-h-0 ${
-        isActive ? 'border-primary ring-1 ring-primary/40' : 'border-border'
-      }`}
+      className={`overflow-visible rounded-md border bg-background px-4 py-2 transition-colors [&_.ProseMirror]:!min-h-0 [&_.ProseMirror]:overflow-visible [&_.document-content]:!min-h-0 ${
+        canEdit ? 'cursor-text' : 'cursor-default select-text'
+      } ${isActive && canEdit ? 'border-primary ring-1 ring-primary/40' : 'border-border'}`}
       style={{ minHeight }}
       onMouseDown={(e) => {
+        if (!canEdit) return;
         // Clicking the padding focuses the editor rather than doing nothing.
         if (e.target === e.currentTarget && editor) {
           e.preventDefault();
           editor.chain().focus('end').run();
         }
       }}
+      // Belt and braces: even if focus is somehow acquired, typing does
+      // nothing while read-only. Copy/select shortcuts stay available.
+      onKeyDownCapture={(e) => {
+        if (canEdit) return;
+        if (e.ctrlKey || e.metaKey) return;
+        const navigational =
+          e.key.startsWith('Arrow') ||
+          ['Home', 'End', 'PageUp', 'PageDown', 'Tab', 'Shift', 'Control', 'Alt', 'Meta'].includes(
+            e.key,
+          );
+        if (!navigational) e.preventDefault();
+      }}
+      onBeforeInputCapture={(e) => {
+        if (!canEdit) e.preventDefault();
+      }}
+      onPasteCapture={(e) => {
+        if (!canEdit) e.preventDefault();
+      }}
+      onDropCapture={(e) => {
+        if (!canEdit) e.preventDefault();
+      }}
     >
       <EditorContent editor={editor} />
     </div>
   );
+
 }
 
 export default MethodologyRichEditor;
