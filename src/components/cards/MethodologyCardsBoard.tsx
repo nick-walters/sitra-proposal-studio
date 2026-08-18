@@ -63,6 +63,8 @@ import { useCardFieldsForCards } from '@/hooks/useCardFields';
 import { useCardMutations } from '@/hooks/useCardMutations';
 import { getCaseTypeLabel } from '@/lib/caseTypeLabels';
 import { jumpToElementId } from '@/lib/jumpToElement';
+import { isHtmlBlank } from '@/lib/htmlBlank';
+
 import type { CardField, CardTextBox, ProposalCard } from '@/types/cards';
 
 interface BoardProps {
