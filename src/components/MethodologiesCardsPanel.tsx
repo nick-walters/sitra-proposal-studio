@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { MethodologyCardsBoard } from '@/components/cards/MethodologyCardsBoard';
+import { useUserRole } from '@/hooks/useUserRole';
 
 /** B1.2 source section id in the Part B template (RIA/IA full proposal). */
 const B12_SOURCE_SECTION_ID = '00000000-0003-0001-0002-000000000002';
@@ -24,9 +25,15 @@ export default function MethodologiesCardsPanel({
   proposalAcronym,
   acronymSegments,
 }: MethodologiesCardsPanelProps) {
+  // TEMPORARY (beta): platform owners only. `isAdminOrOwner` mirrors the
+  // server-side `is_global_admin()` check (user_roles row with
+  // proposal_id IS NULL); proposal coordinators must not reach this board.
+  // Relax at cutover, together with the RPC guards.
+  const { isAdminOrOwner: isPlatformOwner, loading: roleLoading } = useUserRole();
+
   const { data: sectionId, isLoading } = useQuery({
     queryKey: ['methodologies-cards-section', proposalId],
-    enabled: !!proposalId,
+    enabled: !!proposalId && isPlatformOwner,
     queryFn: async () => {
       const { data } = await supabase
         .from('proposal_template_sections')
@@ -37,6 +44,18 @@ export default function MethodologiesCardsPanel({
       return data?.id ?? null;
     },
   });
+
+  if (roleLoading) {
+    return <p className="p-6 text-sm text-muted-foreground">Loading…</p>;
+  }
+
+  if (!isPlatformOwner) {
+    return (
+      <p className="p-6 text-sm text-muted-foreground">
+        This page is not available.
+      </p>
+    );
+  }
 
   if (isLoading) {
     return <p className="p-6 text-sm text-muted-foreground">Loading…</p>;

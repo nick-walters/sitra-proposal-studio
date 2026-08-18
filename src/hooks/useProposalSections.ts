@@ -5,6 +5,7 @@ import type { Section } from '@/types/proposal';
 import { PART_A_SECTIONS, HORIZON_EUROPE_SECTIONS } from '@/types/proposal';
 import { getCaseTypePrefix, buildCaseLabel, buildWpCaseManagerTitle } from '@/lib/caseTypeLabels';
 import { useProposalCaseTypesQuery, type ProposalCaseType } from '@/hooks/useProposalCaseTypesQuery';
+import { useUserRole } from '@/hooks/useUserRole';
 
 interface WPTheme {
   id: string;
@@ -148,6 +149,10 @@ function buildSectionHierarchy(sections: TemplateSectionData[]): Section[] {
 }
 
 export function useProposalSections(templateTypeId: string | null, proposalId?: string | null, proposalLoaded?: boolean, isCoordinator?: boolean) {
+  // TEMPORARY (beta): the card-model Methodologies page is platform-owner only.
+  // `isAdminOrOwner` mirrors the server-side `is_global_admin()` helper — a
+  // user_roles row with proposal_id IS NULL. Proposal coordinators never qualify.
+  const { isAdminOrOwner: isPlatformOwner } = useUserRole();
   const [loading, setLoading] = useState(true);
   const [templateSections, setTemplateSections] = useState<Section[]>([]);
   const [hasTemplateSections, setHasTemplateSections] = useState(false);
@@ -528,7 +533,7 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
 
       // Methodologies tool page (always shown)
       result.push(methodologiesSection);
-      result.push(methodologiesCardsSection);
+      if (isPlatformOwner) result.push(methodologiesCardsSection);
 
       // Add Milestones & risks manager (always shown)
       result.push(milestonesRisksSection);
@@ -549,7 +554,7 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
 
     // Methodologies tool page (always shown)
     fallbackSections.push(methodologiesSection);
-    fallbackSections.push(methodologiesCardsSection);
+    if (isPlatformOwner) fallbackSections.push(methodologiesCardsSection);
 
     // Add Milestones & risks manager
     fallbackSections.push(milestonesRisksSection);
@@ -559,7 +564,7 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
     
     return fallbackSections;
 
-  }, [templateSections, hasTemplateSections, wpDraftSections, caseDraftSections, casesEnabled, caseTypeFlags]);
+  }, [templateSections, hasTemplateSections, wpDraftSections, caseDraftSections, casesEnabled, caseTypeFlags, isPlatformOwner]);
 
   // Create a refetch function that can be called externally
   const refetch = useCallback(async () => {
