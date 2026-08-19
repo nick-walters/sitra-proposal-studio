@@ -991,6 +991,50 @@ export function GeneralInfoForm({
   );
 }
 
+/** A1 AI-usage statement — bold / italic / underline only, lazy-mounted TipTap. */
+function AiStatementField({
+  proposalId,
+  canEdit,
+  value,
+  onChange,
+}: {
+  proposalId: string;
+  canEdit: boolean;
+  value: string;
+  onChange: (html: string) => void;
+}) {
+  const { activeEditor } = useMethodologyEditorFocus();
+  return (
+    <div className="space-y-1.5">
+      {canEdit && (
+        <div
+          data-ai-statement-toolbar="1"
+          className="p-1.5 border rounded-md bg-card flex items-center gap-0.5 shadow-sm w-fit"
+          onMouseDown={(e) => e.preventDefault()}
+        >
+          <TextFormattingGroup
+            onBold={() => activeEditor?.chain().focus().toggleBold().run()}
+            onItalic={() => activeEditor?.chain().focus().toggleItalic().run()}
+            onUnderline={() => activeEditor?.chain().focus().toggleUnderline().run()}
+          />
+        </div>
+      )}
+      <LazyRichField
+        value={value}
+        onChange={onChange}
+        disabled={!canEdit}
+        minHeight="90px"
+        proposalId={proposalId}
+        staticExtensions={LAZY_RICH_FIELD_EXTENSIONS}
+        shouldStayMounted={() =>
+          !!(document.activeElement as HTMLElement | null)?.closest('[data-ai-statement-toolbar]')
+        }
+      />
+    </div>
+  );
+}
+
+
 function DeleteProposalSection({ proposalId, proposalTitle }: { proposalId: string; proposalTitle: string }) {
   const navigate = useNavigate();
   const [isDeleting, setIsDeleting] = useState(false);
