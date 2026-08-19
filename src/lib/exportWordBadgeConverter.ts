@@ -231,8 +231,15 @@ export function convertBadgesForWord(container: HTMLElement): void {
   expandColourVars(container);
   container.querySelectorAll<HTMLElement>('[style*="color"]').forEach((el) => {
     const colour = el.style.color;
-    if (colour && isWhiteish(colour) && isWhiteish(el.style.backgroundColor || '')) {
-      el.style.color = wpColourOf(el) || '#000';
+    if (!colour || !isWhiteish(colour)) return;
+    if (!el.textContent?.trim()) return;
+    // White text is fine when something behind it is dark; only rescue text
+    // that would land on Word's white page.
+    let node: HTMLElement | null = el;
+    while (node && node !== container) {
+      if (!isWhiteish(node.style.backgroundColor || '')) return;
+      node = node.parentElement;
     }
+    el.style.color = wpColourOf(el) || '#000';
   });
 }
