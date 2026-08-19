@@ -41,10 +41,12 @@ export interface LockHolder {
   expiresAt: string;
 }
 
-/** Lock lifetime on the server is 150s; refreshed by the heartbeat below.
- *  Background/minimised windows throttle `setInterval` to roughly once per
- *  minute, so the server window is deliberately far longer. */
-const HEARTBEAT_MS = 10_000;
+/** Lock lifetime on the server is 300s — deliberately equal to the idle
+ *  timeout below, so the idle timeout is the single authority on release and
+ *  the server window can never expire under a live holder. The heartbeat runs
+ *  on a Worker timer so minimised windows keep it alive. */
+const HEARTBEAT_MS = 15_000;
+
 
 /** How often a viewer re-reads the lock table from the server. Viewers must
  *  never decide on their own that a lock has gone: realtime events can be
