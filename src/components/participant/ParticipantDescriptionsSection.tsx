@@ -64,7 +64,7 @@ interface ParticipantDescriptionsSectionProps {
   proposalId?: string;
   /** Acronym segments used when inserting an acronym cross-reference. */
   acronymSegments?: { text: string; color: string }[];
-  /** Coordinator+? Enables deleting custom colours from the shared library. */
+  /** Retained for API compatibility; colour control is not exposed here. */
   canManageCustomColors?: boolean;
 }
 
@@ -86,10 +86,8 @@ function ParticipantDescriptionsSectionInner({
   canEdit,
   proposalId,
   acronymSegments,
-  canManageCustomColors = false,
 }: ParticipantDescriptionsSectionProps) {
-  const [anyFieldFocused, setAnyFieldFocused] = useState(false);
-  const [colorPickerOpen, setColorPickerOpen] = useState(false);
+  const [, setAnyFieldFocused] = useState(false);
   const [crossRefOpen, setCrossRefOpen] = useState(false);
   const blurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -170,8 +168,8 @@ function ParticipantDescriptionsSectionInner({
 
   // Toolbar interactions and cross-ref dialogs must not unmount the editor.
   const shouldStayMounted = useCallback(
-    () => crossRefOpen || colorPickerOpen,
-    [crossRefOpen, colorPickerOpen],
+    () => crossRefOpen,
+    [crossRefOpen],
   );
 
   if (visibleFields.length === 0) return null;
