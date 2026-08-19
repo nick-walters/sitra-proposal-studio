@@ -854,11 +854,13 @@ function SortableRiskRow({
         />
       </td>
       <td className="py-1.5 px-1">
-        <AutoTextarea
+        <LazyRichField
           value={risk.mitigation || ''}
           disabled={!canEdit}
-          placeholder="Mitigation & adaptation measures"
-          onChange={(e) => onUpdate({ mitigation: e.target.value })}
+          minHeight="30px"
+          proposalId={proposalId}
+          staticExtensions={WP_DRAFT_FIELD_EXTENSIONS}
+          onChange={(html) => onUpdate({ mitigation: html })}
         />
       </td>
       <td className="py-1.5 px-0 text-center">
