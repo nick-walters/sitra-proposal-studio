@@ -4,6 +4,7 @@ import { stripWordHtml } from '@/lib/stripWordHtml';
 import { cn } from '@/lib/utils';
 import { normalizeRefBadges } from '@/lib/normalizeRefBadges';
 import { hydrateRefBadges } from '@/lib/hydrateRefBadges';
+import { handleBadgeKeydown } from '@/lib/badgeKeydownGuard';
 
 import { rememberContentEditableSelection, REF_BADGE_INSERTED_EVENT } from '@/lib/contentEditableRefBadges';
 
@@ -139,6 +140,9 @@ export function InlineRichEditor({
         contentEditable={!disabled}
         suppressContentEditableWarning
         onInput={handleInput}
+        onKeyDown={(e) => {
+          if (handleBadgeKeydown(e, editorRef.current)) handleInput();
+        }}
         onKeyUp={() => {
           const editor = editorRef.current;
           if (editor) rememberContentEditableSelection(editor);
