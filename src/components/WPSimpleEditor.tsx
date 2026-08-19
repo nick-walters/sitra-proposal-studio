@@ -15,9 +15,36 @@ import { useProposalCaseTypes } from '@/hooks/useProposalCaseTypes';
 
 
 const SIMPLE_SANITIZE_CONFIG = {
-  ALLOWED_TAGS: ['p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'ul', 'ol', 'li', 'span', 'a', 'h1', 'h2', 'h3', 'h4', 'sub', 'sup', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'img', 'figure', 'figcaption', 'div'],
-  ALLOWED_ATTR: ['class', 'style', 'href', 'target', 'rel', 'colspan', 'rowspan', 'src', 'alt', 'data-type', 'data-id', 'data-wp-number', 'data-wp-short-name', 'data-wp-color', 'data-task-number', 'data-deliverable-number', 'data-milestone-number', 'data-participant-number', 'data-short-name', 'data-case-number', 'data-case-short-name', 'data-case-color', 'data-case-type', 'data-figure-id', 'data-table-key', 'data-ref-type', 'data-ref-id', 'data-citation-id', 'data-acronym', 'contenteditable'],
+  ALLOWED_TAGS: [
+    'p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'ul', 'ol', 'li', 'span', 'a', 'h1', 'h2', 'h3', 'h4',
+    'sub', 'sup', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'img', 'figure', 'figcaption', 'div',
+    // The deliverable pentagon is drawn with an inline SVG. Without these the
+    // shape is stripped on every save cycle and degrades to nested spans.
+    'svg', 'path',
+  ],
+  ALLOWED_ATTR: [
+    'class', 'style', 'href', 'target', 'rel', 'colspan', 'rowspan', 'src', 'alt',
+    'data-type', 'data-id', 'data-badge',
+    'data-wp-reference', 'data-wp-id', 'data-wp-number', 'data-wp-short-name', 'data-wp-color',
+    'data-wp-show-short-name',
+    'data-task-reference', 'data-task-id', 'data-task-number',
+    'data-deliverable-reference', 'data-deliverable-id', 'data-deliverable-number',
+    'data-deliverable-label', 'data-deliverable-color',
+    'data-milestone-reference', 'data-milestone-id', 'data-milestone-number',
+    'data-participant-reference', 'data-participant-id', 'data-participant-number',
+    'data-participant-short-name', 'data-short-name',
+    'data-case-reference', 'data-case-id', 'data-case-number', 'data-case-short-name',
+    'data-case-color', 'data-case-type',
+    'data-inline-reference', 'data-figure-id', 'data-table-key', 'data-ref-type', 'data-ref-kind',
+    'data-ref-id', 'data-citation', 'data-citation-id',
+    'data-acronym', 'data-acronym-reference', 'data-acronym-segments',
+    'data-fig-table-ref',
+    'contenteditable',
+    // SVG geometry for the deliverable pentagon
+    'viewBox', 'width', 'height', 'fill', 'stroke', 'stroke-width', 'stroke-linejoin', 'd',
+  ],
 };
+
 
 interface AcronymSegment {
   text: string;
