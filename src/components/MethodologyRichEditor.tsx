@@ -10,7 +10,14 @@ interface MethodologyRichEditorProps {
   canEdit: boolean;
   isCoordinator: boolean;
   minHeight?: string;
+  /**
+   * Border/ring classes used while this editor is the focused one. Defaults to
+   * the ordinary blue focus chrome; the cards board overrides it with green
+   * when the current user holds the lock on this text box.
+   */
+  activeRingClass?: string;
 }
+
 
 /**
  * Editor surface for a single Methodologies field. The formatting bar lives
@@ -24,6 +31,8 @@ export function MethodologyRichEditor({
   canEdit,
   isCoordinator,
   minHeight = '2.5rem',
+  activeRingClass = 'border-primary ring-1 ring-primary/40',
+
 }: MethodologyRichEditorProps) {
   // Stable, unique per mounted instance — several editors live on one page.
   const instanceKey = useId();
@@ -68,7 +77,7 @@ export function MethodologyRichEditor({
     <div
       className={`overflow-visible rounded-md border bg-background px-4 py-2 transition-colors [&_.ProseMirror]:!min-h-0 [&_.ProseMirror]:overflow-visible [&_.document-content]:!min-h-0 ${
         canEdit ? 'cursor-text' : 'cursor-default select-text'
-      } ${isActive && canEdit ? 'border-primary ring-1 ring-primary/40' : 'border-border'}`}
+      } ${isActive && canEdit ? activeRingClass : 'border-border'}`}
       style={{ minHeight }}
       onMouseDown={(e) => {
         if (!canEdit) return;

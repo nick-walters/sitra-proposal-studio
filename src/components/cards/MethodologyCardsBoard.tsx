@@ -223,12 +223,19 @@ function lostTextPayload(typed: string, holderName: string | null): LostTextPayl
 
 
 
-/** Green when held by me, red when held by someone else. */
+/**
+ * Green when held by me, red when held by someone else.
+ * The `focus-visible:` overrides matter: shadcn inputs paint the ordinary blue
+ * focus ring on focus, which would otherwise win over the green lock border
+ * exactly when the holder is typing.
+ */
 function lockBorderClass(isMine: boolean, lockedByOther: boolean) {
   if (lockedByOther) return 'border-destructive ring-1 ring-destructive/40';
-  if (isMine) return 'border-emerald-600 ring-1 ring-emerald-600/40';
+  if (isMine)
+    return 'border-emerald-600 ring-1 ring-emerald-600/40 focus-visible:border-emerald-600 focus-visible:ring-emerald-600/60 focus-visible:ring-offset-0';
   return '';
 }
+
 
 /* ------------------------------------------------------------------ */
 /* Field row                                                           */
@@ -327,6 +334,30 @@ function FieldRow({
     snapshot: () => contentRef.current,
   });
 
+  // Header mirroring — same rule as the content box below. Keep the last
+  // streamed value so that when the holder moves on, the header settles on
+  // their final text instead of snapping back to the pre-stream draft (the
+  // saved value only arrives later, on the next query refetch).
+  const mirroredHeading = useRef<string | null>(null);
+  if (headerLock.lockedByOther && headerLock.streamed !== null) {
+    mirroredHeading.current = headerLock.streamed;
+  }
+  const wasHeaderLocked = useRef(false);
+  useEffect(() => {
+    if (headerLock.lockedByOther) {
+      wasHeaderLocked.current = true;
+      return;
+    }
+    if (!wasHeaderLocked.current) return;
+    wasHeaderLocked.current = false;
+    if (mirroredHeading.current !== null) {
+      setHeadingDraft(mirroredHeading.current);
+      lastCommittedHeading.current = mirroredHeading.current.trim();
+    }
+  }, [headerLock.lockedByOther]);
+  const headingView = headerLock.streamed ?? mirroredHeading.current ?? headingDraft;
+
+
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -382,7 +413,7 @@ function FieldRow({
                     className="h-8 flex-1 select-text truncate rounded-md border border-destructive bg-background px-3 py-1 text-sm font-bold ring-1 ring-destructive/40"
                     aria-readonly="true"
                   >
-                    {headerLock.streamed ?? headingDraft}
+                    {headingView}
                   </div>
                 ) : (
                   <Input
@@ -517,6 +548,11 @@ function FieldRow({
               }}
               canEdit={canEdit && !contentLock.lockedByOther}
               isCoordinator={isCoordinator}
+              activeRingClass={
+                contentLock.isMine
+                  ? 'border-emerald-600 ring-1 ring-emerald-600/60'
+                  : 'border-primary ring-1 ring-primary/40'
+              }
             />
           </div>
           {contentLock.lockedByOther && contentLock.holder && (
@@ -622,6 +658,39 @@ function CardBlock({
     snapshot: () => titleDraft,
   });
 
+  // Title mirroring — as for module headers and content boxes: keep the last
+  // streamed value after the holder releases, so the heading does not appear
+  // to empty out while the saved value is still in flight.
+  const mirroredTitle = useRef<string | null>(null);
+  if (titleLock.lockedByOther && titleLock.streamed !== null) {
+    mirroredTitle.current = titleLock.streamed;
+  }
+  const [titleView, setTitleView] = useState<string | null>(null);
+  const wasTitleLocked = useRef(false);
+  useEffect(() => {
+    if (titleLock.lockedByOther) {
+      wasTitleLocked.current = true;
+      return;
+    }
+    if (!wasTitleLocked.current) return;
+    wasTitleLocked.current = false;
+    if (mirroredTitle.current !== null) {
+      setTitleView(mirroredTitle.current);
+      setTitleDraft(mirroredTitle.current);
+      lastCommittedTitle.current = mirroredTitle.current.trim();
+    }
+  }, [titleLock.lockedByOther]);
+  // The authoritative value, once it lands, takes over again.
+  useEffect(() => {
+    setTitleView(null);
+  }, [card.title]);
+
+  const displayedTitle =
+    (titleLock.lockedByOther ? (titleLock.streamed ?? mirroredTitle.current) : titleView) ??
+    card.title ??
+    null;
+
+
   useEffect(() => {
     setLocalFieldOrder(null);
   }, [fields]);
@@ -710,11 +779,11 @@ function CardBlock({
               <div className="flex min-w-0 items-center gap-2">
                 <h3
                   className={`truncate font-bold underline ${isCoordinator && !titleLock.lockedByOther ? 'cursor-text' : ''} ${
-                    card.title ? '' : 'italic text-muted-foreground no-underline'
+                    displayedTitle ? '' : 'italic text-muted-foreground no-underline'
                   } ${titleLock.lockedByOther ? 'rounded border border-destructive px-1' : ''}`}
                   onClick={() => isCoordinator && !titleLock.lockedByOther && setEditingTitle(true)}
                 >
-                  {(titleLock.lockedByOther ? titleLock.streamed : null) ?? card.title ?? 'No title'}
+                  {displayedTitle ?? 'No title'}
                 </h3>
                 {titleLock.lockedByOther && titleLock.holder && (
                   <LockHolderBadge holder={titleLock.holder} />

@@ -42,14 +42,24 @@ export interface LockHolder {
 }
 
 /** Lock lifetime on the server is 150s; refreshed by the heartbeat below.
- *  Background tabs throttle `setInterval` to roughly once per minute, so the
- *  server window is deliberately far longer than the heartbeat period. */
-const HEARTBEAT_MS = 15_000;
+ *  Background/minimised windows throttle `setInterval` to roughly once per
+ *  minute, so the server window is deliberately far longer. */
+const HEARTBEAT_MS = 10_000;
+
+/** How often a viewer re-reads the lock table from the server. Viewers must
+ *  never decide on their own that a lock has gone: realtime events can be
+ *  missed, so the displayed state is re-derived from server rows. */
+const LOCK_POLL_MS = 8_000;
+
+/** Tolerance for clock skew between this browser and the database when
+ *  judging `expires_at`. Well under the 150s server window. */
+const EXPIRY_SKEW_MS = 20_000;
 
 /** Idle timeout measured from the last keystroke. */
 const IDLE_TIMEOUT_MS = 5 * 60_000;
 /** Warning appears this long before the timeout. */
 const WARNING_LEAD_MS = 60_000;
+
 
 interface CardLockContextValue {
   enabled: boolean;
@@ -115,13 +125,16 @@ export function CardLockProvider({
 
   const refreshLocks = useCallback(async () => {
     if (!proposalId) return;
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('card_target_locks')
       .select('target_id, user_id, user_name, avatar_url, expires_at')
       .eq('proposal_id', proposalId);
+    // A failed read must never be mistaken for "no locks" — keep what we have.
+    if (error) return;
     const next: Record<string, LockHolder> = {};
+    const cutoff = Date.now() - EXPIRY_SKEW_MS;
     for (const row of data ?? []) {
-      if (new Date(row.expires_at).getTime() < Date.now()) continue;
+      if (new Date(row.expires_at).getTime() < cutoff) continue;
       next[row.target_id] = mapRow(row);
     }
     setLocks(next);
@@ -143,24 +156,21 @@ export function CardLockProvider({
         () => void refreshLocks(),
       )
       .subscribe();
-    // Sweep locally so an expired lock stops showing even without an event.
-    const sweep = window.setInterval(() => {
-      setLocks((prev) => {
-        const now = Date.now();
-        const next: Record<string, LockHolder> = {};
-        let changed = false;
-        for (const [k, v] of Object.entries(prev)) {
-          if (new Date(v.expiresAt).getTime() < now) changed = true;
-          else next[k] = v;
-        }
-        return changed ? next : prev;
-      });
-    }, 5000);
+    // Poll as the authority. Realtime events can be missed (dropped socket,
+    // throttled tab), and a viewer must never expire a lock on its own clock:
+    // the displayed state is always what the server last reported.
+    const poll = window.setInterval(() => void refreshLocks(), LOCK_POLL_MS);
+    const onWake = () => void refreshLocks();
+    document.addEventListener('visibilitychange', onWake);
+    window.addEventListener('focus', onWake);
     return () => {
-      window.clearInterval(sweep);
+      window.clearInterval(poll);
+      document.removeEventListener('visibilitychange', onWake);
+      window.removeEventListener('focus', onWake);
       supabase.removeChannel(channel);
     };
   }, [enabled, proposalId, refreshLocks]);
+
 
   /* ---------------- streaming channel ---------------- */
 
