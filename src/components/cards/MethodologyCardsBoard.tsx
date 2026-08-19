@@ -779,11 +779,11 @@ function CardBlock({
               <div className="flex min-w-0 items-center gap-2">
                 <h3
                   className={`truncate font-bold underline ${isCoordinator && !titleLock.lockedByOther ? 'cursor-text' : ''} ${
-                    card.title ? '' : 'italic text-muted-foreground no-underline'
+                    displayedTitle ? '' : 'italic text-muted-foreground no-underline'
                   } ${titleLock.lockedByOther ? 'rounded border border-destructive px-1' : ''}`}
                   onClick={() => isCoordinator && !titleLock.lockedByOther && setEditingTitle(true)}
                 >
-                  {(titleLock.lockedByOther ? titleLock.streamed : null) ?? card.title ?? 'No title'}
+                  {displayedTitle ?? 'No title'}
                 </h3>
                 {titleLock.lockedByOther && titleLock.holder && (
                   <LockHolderBadge holder={titleLock.holder} />
