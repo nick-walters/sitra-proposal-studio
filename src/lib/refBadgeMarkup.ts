@@ -18,6 +18,30 @@ function styleString(pairs: string[]): string {
 }
 
 /**
+ * Marks an element as an atomic, non-editable badge.
+ *
+ * Every badge builder MUST call this on the OUTER element and on each nested
+ * presentation layer. Without `contenteditable="false"` on every layer the
+ * caret can be placed inside a badge, typing is absorbed into it, and
+ * Backspace walks into its decorative spans — the markup corruption this
+ * guards against.
+ */
+export function markBadgeElement(el: Element, kind?: string): void {
+  el.setAttribute('contenteditable', 'false');
+  if (kind) el.setAttribute('data-badge', kind);
+  else if (!el.hasAttribute('data-badge')) el.setAttribute('data-badge', '');
+}
+
+/** Marks the outer badge plus every descendant element as non-editable. */
+export function markBadgeTree(el: Element, kind?: string): void {
+  markBadgeElement(el, kind);
+  el.querySelectorAll('*').forEach((child) => {
+    child.setAttribute('contenteditable', 'false');
+  });
+}
+
+
+/**
  * Rewrites `el` into the layered pentagon used by Table 3.1.c:
  * a relatively positioned inline-flex wrapper with two absolutely positioned
  * clipped layers (border colour + white fill) and the label on top.
