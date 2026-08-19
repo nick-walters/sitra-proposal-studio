@@ -140,7 +140,7 @@ export function CardRecycleBinDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg overflow-hidden">
         <DialogHeader>
           <DialogTitle>{isModules ? 'Recycle bin — this block' : 'Recycle bin'}</DialogTitle>
           <DialogDescription>
@@ -150,13 +150,13 @@ export function CardRecycleBinDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[60vh] pr-3">
+        <ScrollArea className="max-h-[60vh] w-full min-w-0 pr-3">
           {isLoading ? (
             <p className="text-sm text-muted-foreground">Loading…</p>
           ) : entries.length === 0 ? (
             <p className="text-sm italic text-muted-foreground">The bin is empty.</p>
           ) : (
-            <div className="space-y-2">
+            <div className="w-full min-w-0 space-y-2">
               {entries.map((e) => (
                 <BinEntry
                   key={e.id}
