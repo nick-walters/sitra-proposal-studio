@@ -10,7 +10,14 @@ interface MethodologyRichEditorProps {
   canEdit: boolean;
   isCoordinator: boolean;
   minHeight?: string;
+  /**
+   * Border/ring classes used while this editor is the focused one. Defaults to
+   * the ordinary blue focus chrome; the cards board overrides it with green
+   * when the current user holds the lock on this text box.
+   */
+  activeRingClass?: string;
 }
+
 
 /**
  * Editor surface for a single Methodologies field. The formatting bar lives
