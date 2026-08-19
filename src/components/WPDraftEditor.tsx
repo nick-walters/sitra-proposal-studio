@@ -609,25 +609,39 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
 
   const leadParticipant = participants.find(p => p.id === wpDraft.lead_participant_id);
 
+  // Toolbar commands now run against the focused TipTap editor instead of
+  // document.execCommand, which no longer applies to these fields.
   const execCommand = (command: string, cmdValue?: string) => {
-    document.execCommand(command, false, cmdValue);
-  };
-  
-  const insertTable = (rows: number, cols: number) => {
-    let tableHtml = '<table style="width:100%; border-collapse:collapse; margin:8px 0;">';
-    for (let r = 0; r < rows; r++) {
-      tableHtml += '<tr>';
-      for (let c = 0; c < cols; c++) {
-        if (r === 0) {
-          tableHtml += '<th style="border:1px solid #000; padding:4px; background:#000; color:#fff; font-weight:bold;">&nbsp;</th>';
-        } else {
-          tableHtml += '<td style="border:1px solid #000; padding:4px;">&nbsp;</td>';
-        }
-      }
-      tableHtml += '</tr>';
+    const editor = getEditor();
+    if (!editor) return;
+    const chain = editor.chain().focus();
+    switch (command) {
+      case 'bold': chain.toggleBold().run(); break;
+      case 'italic': chain.toggleItalic().run(); break;
+      case 'underline': chain.toggleUnderline().run(); break;
+      case 'strikeThrough': chain.toggleStrike().run(); break;
+      case 'superscript': chain.toggleSuperscript().run(); break;
+      case 'subscript': chain.toggleSubscript().run(); break;
+      case 'insertUnorderedList': chain.toggleBulletList().run(); break;
+      case 'insertOrderedList': chain.toggleOrderedList().run(); break;
+      case 'justifyLeft': chain.setTextAlign('left').run(); break;
+      case 'justifyCenter': chain.setTextAlign('center').run(); break;
+      case 'justifyRight': chain.setTextAlign('right').run(); break;
+      case 'justifyFull': chain.setTextAlign('justify').run(); break;
+      case 'foreColor': chain.setColor(cmdValue || '#000000').run(); break;
+      case 'removeFormat': chain.unsetAllMarks().run(); break;
+      case 'insertHTML': chain.insertContent(cmdValue || '').run(); break;
+      default: break;
     }
-    tableHtml += '</table><p><br></p>';
-    execCommand('insertHTML', tableHtml);
+  };
+
+  const insertTable = (rows: number, cols: number) => {
+    const editor = getEditor();
+    if (!editor) {
+      toast.error('Click into a text box first, then insert the table.');
+      return;
+    }
+    editor.chain().focus().insertTable({ rows, cols, withHeaderRow: true }).run();
     setTablePopoverOpen(false);
   };
 
