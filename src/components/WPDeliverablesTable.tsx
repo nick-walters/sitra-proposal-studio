@@ -461,6 +461,8 @@ function DeliverableRow({
           value={deliverable.title || ''}
           disabled={readOnly}
           onCommit={(v) => onUpdate(deliverable.id, { title: v })}
+          proposalId={proposalId}
+          shouldStayMounted={shouldStayMounted}
         />
       </td>
 
