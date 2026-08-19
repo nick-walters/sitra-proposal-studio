@@ -208,7 +208,7 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
     span.setAttribute('data-wp-id', wpId);
     span.setAttribute('data-wp-color', wpColor);
     span.setAttribute('data-wp-short-name', wpShortName || '');
-    span.setAttribute('contenteditable', 'false');
+    markBadgeElement(span, 'wp');
     Object.assign(span.style, {
       backgroundColor: wpColor, color: '#ffffff', border: `1.5px solid ${wpColor}`,
       padding: '0px 5px', borderRadius: '9999px', fontFamily: "'Times New Roman', Times, serif",
@@ -226,7 +226,7 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
     span.setAttribute('data-participant-number', String(participantNumber));
     span.setAttribute('data-participant-id', participantId);
     span.setAttribute('data-participant-short-name', shortName || '');
-    span.setAttribute('contenteditable', 'false');
+    markBadgeElement(span, 'participant');
     Object.assign(span.style, {
       backgroundColor: '#000000', color: '#ffffff', border: '1.5px solid #000000',
       padding: '0px 5px', borderRadius: '9999px', fontFamily: "'Times New Roman', Times, serif",
@@ -243,8 +243,9 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
     const color = task.wp_color || '#73C92D';
     const span = document.createElement('span');
     span.textContent = `T${task.wp_number}.${task.number}`;
-    span.setAttribute('contenteditable', 'false');
+    span.setAttribute('data-task-reference', '');
     span.setAttribute('data-task-id', task.id);
+    markBadgeElement(span, 'task');
     Object.assign(span.style, { display: 'inline-flex', alignItems: 'center', height: '17px', padding: '0 4px', borderRadius: '9999px', border: `1.5px solid ${color}`, color, fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: '700', lineHeight: '1', whiteSpace: 'nowrap', verticalAlign: 'baseline', userSelect: 'none' });
     insertNodeAtCursor(span);
     toast.success(`T${task.wp_number}.${task.number} reference inserted`);
@@ -257,18 +258,21 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
     const textWidth = Math.max(36, label.length * 8 + 8);
     const totalWidth = textWidth + 8;
     const wrapper = document.createElement('span');
-    wrapper.setAttribute('contenteditable', 'false');
+    wrapper.setAttribute('data-deliverable-reference', '');
     wrapper.setAttribute('data-deliverable-id', del.id);
+    wrapper.setAttribute('data-deliverable-label', String(del.number));
     Object.assign(wrapper.style, { display: 'inline-block', verticalAlign: 'baseline', position: 'relative', width: `${totalWidth}px`, height: '17px', userSelect: 'none' });
     wrapper.innerHTML = `<svg width="${totalWidth}" height="17" viewBox="0 0 ${totalWidth} 17" style="position:absolute;top:0;left:0;overflow:visible;"><path d="M 0,0 L ${textWidth},0 L ${totalWidth},8.5 L ${textWidth},17 L 0,17 Z" fill="#ffffff" stroke="${color}" stroke-width="1.5" stroke-linejoin="round"/></svg><span style="position:absolute;top:0;left:0;width:${textWidth}px;height:17px;display:flex;align-items:center;justify-content:center;font-family:'Times New Roman',Times,serif;font-size:11pt;font-weight:700;line-height:1;color:${color};white-space:nowrap;">${label}</span>`;
+    markBadgeTree(wrapper, 'deliverable');
     insertNodeAtCursor(wrapper);
     toast.success(`${del.number} reference inserted`);
   }, [insertNodeAtCursor]);
 
   const insertMilestoneRefAtCursor = useCallback((ms: { id: string; number: number; name: string }) => {
     const wrapper = document.createElement('span');
-    wrapper.setAttribute('contenteditable', 'false');
+    wrapper.setAttribute('data-milestone-reference', '');
     wrapper.setAttribute('data-milestone-id', ms.id);
+    wrapper.setAttribute('data-milestone-number', String(ms.number));
     Object.assign(wrapper.style, {
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
       background: '#000', color: '#ffffff',
@@ -278,6 +282,7 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
       verticalAlign: 'baseline', whiteSpace: 'nowrap', userSelect: 'none',
     });
     wrapper.textContent = `MS${Number(ms.number) || 0}`;
+    markBadgeTree(wrapper, 'milestone');
     insertNodeAtCursor(wrapper);
     toast.success(`MS${ms.number} reference inserted`);
   }, [insertNodeAtCursor]);
@@ -286,7 +291,6 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
     if (!acronymSegments || acronymSegments.length === 0) return;
     const wrapper = document.createElement('span');
     wrapper.setAttribute('data-acronym-reference', '');
-    wrapper.setAttribute('contenteditable', 'false');
     wrapper.setAttribute('data-acronym-segments', JSON.stringify(acronymSegments));
     Object.assign(wrapper.style, {
       display: 'inline', fontFamily: "'Arial Black', Arial, sans-serif",
@@ -298,6 +302,7 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
       s.textContent = seg.text;
       wrapper.appendChild(s);
     });
+    markBadgeTree(wrapper, 'acronym');
     insertNodeAtCursor(wrapper);
     toast.success('Acronym reference inserted');
   }, [acronymSegments, insertNodeAtCursor]);
@@ -312,7 +317,7 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
     span.setAttribute('data-case-number', String(caseItem.number));
     span.setAttribute('data-case-type', caseItem.case_type);
     if (caseItem.short_name) span.setAttribute('data-case-short-name', caseItem.short_name);
-    span.setAttribute('contenteditable', 'false');
+    markBadgeElement(span, 'case');
     Object.assign(span.style, {
       display: 'inline-flex', alignItems: 'center', backgroundColor: '#ffffff', color: '#000000',
       border: '1.5px solid #000000', padding: '0 0.4rem', borderRadius: '9999px',
