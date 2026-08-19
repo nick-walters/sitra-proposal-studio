@@ -822,15 +822,21 @@ function CardBlock({
             )}
 
             {canEdit && binCount > 0 && (
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="Open this block's recycle bin"
-                title={`${binCount} deleted ${binCount === 1 ? 'module' : 'modules'}`}
-                onClick={() => onOpenBin(card)}
-              >
-                <Recycle className="h-4 w-4 text-emerald-600" strokeWidth={2.5} />
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Restore a module"
+                    onClick={() => onOpenBin(card)}
+                  >
+                    <Recycle className="h-4 w-4 text-emerald-600" strokeWidth={2.5} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  Restore a module ({binCount} deleted {binCount === 1 ? 'module' : 'modules'})
+                </TooltipContent>
+              </Tooltip>
             )}
 
             {canEdit && card.isDeletable && (
