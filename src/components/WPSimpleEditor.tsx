@@ -356,6 +356,10 @@ export function WPSimpleEditor({
           ref={editorRef}
           contentEditable={!disabled}
           onInput={handleInput}
+          onKeyDown={(e) => {
+            if (handleBadgeKeydown(e, editorRef.current)) handleInput();
+          }}
+
           onPaste={(e: React.ClipboardEvent) => {
             e.preventDefault();
             const html = e.clipboardData.getData('text/html');
