@@ -5,6 +5,8 @@ import { CROSS_REF_RICH_TEXT_CONFIG } from '@/lib/sanitizePresets';
 import { cn } from '@/lib/utils';
 import { MethodologyRichEditor } from '@/components/MethodologyRichEditor';
 import { LAZY_RICH_FIELD_EXTENSIONS } from './lazyRichFieldExtensions';
+import { useReferenceData, type RefSnapshot } from '@/lib/referenceData';
+import { resolveReferenceJson } from '@/lib/resolveReferenceJson';
 
 export interface LazyRichFieldProps {
   /** Stored HTML for this field. */
@@ -34,11 +36,22 @@ export interface LazyRichFieldProps {
   staticExtensions?: Extensions;
 }
 
-/** Render stored HTML through the TipTap schema, then sanitise. */
-function renderStatic(html: string, extensions: Extensions): string {
+/**
+ * Render stored HTML through the TipTap schema, resolving every cross
+ * reference against live proposal data, then sanitise.
+ *
+ * Resolution happens on the intermediate JSON, so the number AND the colour
+ * of each badge come from the id whenever it resolves; stored text is only a
+ * fallback for ids that no longer exist.
+ */
+function renderStatic(
+  html: string,
+  extensions: Extensions,
+  refData: RefSnapshot | undefined,
+): string {
   if (!html || !html.trim()) return '';
   try {
-    const json = generateJSON(html, extensions);
+    const json = resolveReferenceJson(generateJSON(html, extensions), refData);
     const out = generateHTML(json, extensions);
     return DOMPurify.sanitize(out, CROSS_REF_RICH_TEXT_CONFIG);
   } catch {
@@ -46,6 +59,7 @@ function renderStatic(html: string, extensions: Extensions): string {
     return DOMPurify.sanitize(html, CROSS_REF_RICH_TEXT_CONFIG);
   }
 }
+
 
 
 /**
