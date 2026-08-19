@@ -32,7 +32,11 @@ import { CSS } from '@dnd-kit/utilities';
 import { toast } from 'sonner';
 import { SaveIndicator } from '@/components/SaveIndicator';
 import { Separator } from '@/components/ui/separator';
-import { InlineRichEditor } from '@/components/InlineRichEditor';
+import { LazyRichField } from '@/components/participant/LazyRichField';
+import {
+  WP_DRAFT_FIELD_EXTENSIONS,
+  WP_TITLE_FIELD_EXTENSIONS,
+} from '@/components/wp/wpDraftFieldExtensions';
 import { ParticipantCrossRefDropdown } from '@/components/participant/ParticipantCrossRefDropdown';
 import { TextFormattingGroup } from '@/components/toolbar';
 
