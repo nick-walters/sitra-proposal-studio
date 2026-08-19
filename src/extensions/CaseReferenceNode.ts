@@ -133,6 +133,12 @@ export const CaseReferenceNode = Node.create<CaseReferenceOptions>({
     return [
       {
         tag: 'span[data-case-reference]',
+        priority: 60,
+      },
+      {
+        tag: 'span[data-case-id]:not([data-task-id]):not([data-task-reference]):not([data-deliverable-id]):not([data-deliverable-reference]):not([data-milestone-id]):not([data-milestone-reference]):not([data-inline-reference]):not([data-ref-type])',
+        priority: 60,
+        getAttrs: (el) => ((el as HTMLElement).hasAttribute('data-case-reference') ? false : {}),
       },
     ];
   },

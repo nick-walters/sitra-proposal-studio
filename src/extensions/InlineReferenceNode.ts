@@ -115,13 +115,27 @@ export const InlineReferenceNode = Node.create<InlineReferenceOptions>({
     return {
       refType: {
         default: 'task',
-        parseHTML: (el) => el.getAttribute('data-ref-type') || 'task',
+        // Legacy contentEditable badges have no `data-ref-type`; infer the
+        // variant from the identity attribute the badge does carry.
+        parseHTML: (el) => {
+          const explicit = el.getAttribute('data-ref-type');
+          if (explicit) return explicit;
+          if (el.hasAttribute('data-deliverable-id') || el.hasAttribute('data-deliverable-reference')) {
+            return 'deliverable';
+          }
+          if (el.hasAttribute('data-milestone-id') || el.hasAttribute('data-milestone-reference')) {
+            return 'milestone';
+          }
+          return 'task';
+        },
         renderHTML: (attrs) => ({ 'data-ref-type': attrs.refType }),
       },
       wpNumber: {
         default: null,
         parseHTML: (el) => {
-          const raw = el.getAttribute('data-wp-number');
+          const raw =
+            el.getAttribute('data-wp-number') ??
+            ((el.textContent || '').trim().match(/T\s*(\d+)\.\d+/i)?.[1] ?? null);
           if (raw === null || raw === '') return null;
           const n = Number(raw);
           return Number.isFinite(n) ? n : raw;
@@ -134,7 +148,9 @@ export const InlineReferenceNode = Node.create<InlineReferenceOptions>({
       taskNumber: {
         default: null,
         parseHTML: (el) => {
-          const raw = el.getAttribute('data-task-number');
+          const raw =
+            el.getAttribute('data-task-number') ??
+            ((el.textContent || '').trim().match(/T\s*\d+\.(\d+)/i)?.[1] ?? null);
           if (raw === null || raw === '') return null;
           const n = Number(raw);
           return Number.isFinite(n) ? n : raw;
@@ -152,7 +168,14 @@ export const InlineReferenceNode = Node.create<InlineReferenceOptions>({
       },
       deliverableNumber: {
         default: null,
-        parseHTML: (el) => el.getAttribute('data-deliverable-number'),
+        // Generation 1 badges bake the label into a nested span; generation 2
+        // keeps it in `data-deliverable-label`.
+        parseHTML: (el) =>
+          el.getAttribute('data-deliverable-number') ||
+          el.getAttribute('data-deliverable-label') ||
+          ((el.hasAttribute('data-deliverable-id') || el.hasAttribute('data-deliverable-reference'))
+            ? (el.textContent || '').trim() || null
+            : null),
         renderHTML: (attrs) =>
           attrs.deliverableNumber
             ? { 'data-deliverable-number': attrs.deliverableNumber }
@@ -167,7 +190,9 @@ export const InlineReferenceNode = Node.create<InlineReferenceOptions>({
       milestoneNumber: {
         default: null,
         parseHTML: (el) => {
-          const raw = el.getAttribute('data-milestone-number');
+          const raw =
+            el.getAttribute('data-milestone-number') ??
+            ((el.textContent || '').trim().match(/MS\s*(\d+)/i)?.[1] ?? null);
           if (raw === null || raw === '') return null;
           const n = Number(raw);
           return Number.isFinite(n) ? n : raw;
@@ -185,7 +210,11 @@ export const InlineReferenceNode = Node.create<InlineReferenceOptions>({
       },
       wpColor: {
         default: null,
-        parseHTML: (el) => el.getAttribute('data-wp-color'),
+        parseHTML: (el) =>
+          el.getAttribute('data-wp-color') ||
+          el.getAttribute('data-deliverable-color') ||
+          el.querySelector('[stroke]')?.getAttribute('stroke') ||
+          null,
         renderHTML: (attrs) =>
           attrs.wpColor ? { 'data-wp-color': attrs.wpColor } : {},
       },
@@ -199,12 +228,74 @@ export const InlineReferenceNode = Node.create<InlineReferenceOptions>({
   },
 
   parseHTML() {
+    // Legacy contentEditable badges (WP drafts, case drafts, A2 fields) carry
+    // only their identity attribute and bake the label into text / nested
+    // presentation layers. Because this node is `atom: true`, ProseMirror
+    // discards those children and re-renders from attributes, so the SVG,
+    // the nested spans and the stale baked label all disappear on parse.
     return [
       {
         tag: 'span[data-inline-reference]',
+        priority: 60,
+      },
+      // --- Task -------------------------------------------------------
+      {
+        tag: 'span[data-task-reference], span[data-task-id]',
+        priority: 60,
+        getAttrs: (el) => {
+          const node = el as HTMLElement;
+          if (node.hasAttribute('data-inline-reference')) return false;
+          const text = (node.textContent || '').trim();
+          const m = text.match(/T\s*(\d+)\.(\d+)/i);
+          const attrs: Record<string, any> = { refType: 'task' };
+          if (m) {
+            if (!node.getAttribute('data-wp-number')) attrs.wpNumber = Number(m[1]);
+            if (!node.getAttribute('data-task-number')) attrs.taskNumber = Number(m[2]);
+          }
+          return attrs;
+        },
+      },
+      // --- Deliverable (generation 1: SVG pentagon; generation 2: nested
+      //     border/fill/label spans) -------------------------------------
+      {
+        tag: 'span[data-deliverable-reference], span[data-deliverable-id]',
+        priority: 60,
+        getAttrs: (el) => {
+          const node = el as HTMLElement;
+          if (node.hasAttribute('data-inline-reference')) return false;
+          const attrs: Record<string, any> = { refType: 'deliverable' };
+          const label =
+            node.getAttribute('data-deliverable-label') ||
+            node.getAttribute('data-deliverable-number') ||
+            (node.textContent || '').trim();
+          if (label) attrs.deliverableNumber = label;
+          const colour =
+            node.getAttribute('data-wp-color') ||
+            node.getAttribute('data-deliverable-color') ||
+            node.querySelector('[stroke]')?.getAttribute('stroke') ||
+            null;
+          if (colour) attrs.wpColor = colour;
+          return attrs;
+        },
+      },
+      // --- Milestone ---------------------------------------------------
+      {
+        tag: 'span[data-milestone-reference], span[data-milestone-id]',
+        priority: 60,
+        getAttrs: (el) => {
+          const node = el as HTMLElement;
+          if (node.hasAttribute('data-inline-reference')) return false;
+          const attrs: Record<string, any> = { refType: 'milestone' };
+          if (!node.getAttribute('data-milestone-number')) {
+            const m = (node.textContent || '').trim().match(/MS\s*(\d+)/i);
+            if (m) attrs.milestoneNumber = Number(m[1]);
+          }
+          return attrs;
+        },
       },
     ];
   },
+
 
   renderHTML({ node, HTMLAttributes }) {
     const refType = (node.attrs.refType as string) || 'task';

@@ -76,6 +76,11 @@ export const CROSS_REF_RICH_TEXT_CONFIG = {
     'data-inline-reference', 'data-ref-type', 'data-ref-kind',
     'data-acronym-reference', 'data-acronym-segments',
     'data-fig-table-ref', 'data-figure-id', 'data-table-key',
+    // Badges are atomic: `contenteditable="false"` and the `data-badge` marker
+    // must survive, or the caret can be placed inside a badge and typing is
+    // absorbed into it.
+    'contenteditable', 'data-badge',
   ],
+
 };
 

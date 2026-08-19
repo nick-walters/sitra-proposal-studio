@@ -119,9 +119,27 @@ export const WPReferenceNode = Node.create<WPReferenceOptions>({
   },
 
   parseHTML() {
+    // Legacy contentEditable badges carry only `data-wp-id`. The `:not()`
+    // guards mirror hydrateRefBadges so a deliverable/task/milestone span
+    // that also carries a WP colour is never claimed by this rule.
     return [
       {
         tag: 'span[data-wp-reference]',
+        priority: 60,
+      },
+      {
+        tag: 'span[data-wp-id]:not([data-task-id]):not([data-task-reference]):not([data-deliverable-id]):not([data-deliverable-reference]):not([data-milestone-id]):not([data-milestone-reference]):not([data-inline-reference]):not([data-ref-type])',
+        priority: 60,
+        getAttrs: (el) => {
+          const node = el as HTMLElement;
+          if (node.hasAttribute('data-wp-reference')) return false;
+          const attrs: Record<string, any> = {};
+          if (!node.getAttribute('data-wp-number')) {
+            const m = (node.textContent || '').trim().match(/WP\s*(\d+)/i);
+            if (m) attrs.wpNumber = Number(m[1]);
+          }
+          return attrs;
+        },
       },
     ];
   },

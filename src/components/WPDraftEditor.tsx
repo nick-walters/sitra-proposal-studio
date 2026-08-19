@@ -30,6 +30,7 @@ import { Lightbulb, Table2, Image as ImageLucide, Crown, ChevronsUpDown, Check, 
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { markBadgeElement, markBadgeTree } from '@/lib/refBadgeMarkup';
 import { toast } from 'sonner';
 import type { ParticipantSummary } from '@/types/proposal';
 
@@ -413,7 +414,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
       wpSpan.setAttribute('data-wp-id', wpId);
       wpSpan.setAttribute('data-wp-color', wpColor);
       wpSpan.setAttribute('data-wp-short-name', wpShortName || '');
-      wpSpan.setAttribute('contenteditable', 'false');
+      markBadgeElement(wpSpan, 'wp');
       wpSpan.style.backgroundColor = wpColor;
       wpSpan.style.color = '#ffffff';
       wpSpan.style.border = `1.5px solid ${wpColor}`;
@@ -449,7 +450,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
       partSpan.setAttribute('data-participant-number', String(participantNumber));
       partSpan.setAttribute('data-participant-id', participantId);
       partSpan.setAttribute('data-participant-short-name', shortName || '');
-      partSpan.setAttribute('contenteditable', 'false');
+      markBadgeElement(partSpan, 'participant');
       partSpan.style.backgroundColor = '#000000';
       partSpan.style.color = '#ffffff';
       partSpan.style.border = '1.5px solid #000000';
@@ -504,8 +505,9 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
       const color = task.wp_color || '#73C92D';
       const span = document.createElement('span');
       span.textContent = `T${task.wp_number}.${task.number}`;
-      span.setAttribute('contenteditable', 'false');
+      span.setAttribute('data-task-reference', '');
       span.setAttribute('data-task-id', task.id);
+      markBadgeElement(span, 'task');
       Object.assign(span.style, { display: 'inline-flex', alignItems: 'center', height: '17px', padding: '0 4px', borderRadius: '9999px', border: `1.5px solid ${color}`, color: color, fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: '700', lineHeight: '1', whiteSpace: 'nowrap', verticalAlign: 'baseline', userSelect: 'none' });
       range.insertNode(span);
       range.setStartAfter(span);
@@ -529,10 +531,12 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
       const textWidth = Math.max(36, label.length * 8 + 8);
       const totalWidth = textWidth + 8;
       const wrapper = document.createElement('span');
-      wrapper.setAttribute('contenteditable', 'false');
+      wrapper.setAttribute('data-deliverable-reference', '');
       wrapper.setAttribute('data-deliverable-id', del.id);
+      wrapper.setAttribute('data-deliverable-label', String(del.number));
       Object.assign(wrapper.style, { display: 'inline-block', verticalAlign: 'baseline', position: 'relative', width: `${totalWidth}px`, height: '17px', userSelect: 'none' });
       wrapper.innerHTML = `<svg width="${totalWidth}" height="17" viewBox="0 0 ${totalWidth} 17" style="position:absolute;top:0;left:0;overflow:visible;"><path d="M 0,0 L ${textWidth},0 L ${totalWidth},8.5 L ${textWidth},17 L 0,17 Z" fill="#ffffff" stroke="${color}" stroke-width="1.5" stroke-linejoin="round"/></svg><span style="position:absolute;top:0;left:0;width:${textWidth}px;height:17px;display:flex;align-items:center;justify-content:center;font-family:'Times New Roman',Times,serif;font-size:11pt;font-weight:700;line-height:1;color:${color};white-space:nowrap;">${label}</span>`;
+    markBadgeTree(wrapper, 'deliverable');
       range.insertNode(wrapper);
       range.setStartAfter(wrapper);
       range.collapse(true);
@@ -550,8 +554,9 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
     if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
       const wrapper = document.createElement('span');
-      wrapper.setAttribute('contenteditable', 'false');
+      wrapper.setAttribute('data-milestone-reference', '');
       wrapper.setAttribute('data-milestone-id', ms.id);
+      wrapper.setAttribute('data-milestone-number', String(ms.number));
       Object.assign(wrapper.style, {
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
         background: '#000', color: '#ffffff',
@@ -561,6 +566,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
         verticalAlign: 'baseline', whiteSpace: 'nowrap', userSelect: 'none',
       });
       wrapper.textContent = `MS${Number(ms.number) || 0}`;
+    markBadgeTree(wrapper, 'milestone');
       range.insertNode(wrapper);
       range.setStartAfter(wrapper);
       range.collapse(true);
@@ -580,7 +586,6 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
       const range = selection.getRangeAt(0);
       const wrapper = document.createElement('span');
       wrapper.setAttribute('data-acronym-reference', '');
-      wrapper.setAttribute('contenteditable', 'false');
       wrapper.setAttribute('data-acronym-segments', JSON.stringify(acronymSegments));
       Object.assign(wrapper.style, {
         display: 'inline',
@@ -596,6 +601,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
         s.textContent = seg.text;
         wrapper.appendChild(s);
       });
+      markBadgeTree(wrapper, 'acronym');
       range.insertNode(wrapper);
       range.setStartAfter(wrapper);
       range.collapse(true);
@@ -621,7 +627,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
       span.setAttribute('data-case-number', String(caseItem.number));
       span.setAttribute('data-case-type', caseItem.case_type);
       if (caseItem.short_name) span.setAttribute('data-case-short-name', caseItem.short_name);
-      span.setAttribute('contenteditable', 'false');
+      markBadgeElement(span, 'case');
       Object.assign(span.style, {
         display: 'inline-flex', alignItems: 'center', backgroundColor: '#ffffff', color: '#000000',
         border: '1.5px solid #000000', padding: '0 0.4rem', borderRadius: '9999px',

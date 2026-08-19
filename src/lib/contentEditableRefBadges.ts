@@ -7,7 +7,13 @@
  * DOMPurify allow-lists used by PrefixedInlineEditor and the B3.2 mirror.
  */
 
-import { applyDeliverablePentagon, applyMilestoneBadge, BADGE_SERIF } from '@/lib/refBadgeMarkup';
+import {
+  applyDeliverablePentagon,
+  applyMilestoneBadge,
+  markBadgeElement,
+  markBadgeTree,
+  BADGE_SERIF,
+} from '@/lib/refBadgeMarkup';
 
 const SERIF = BADGE_SERIF;
 
@@ -71,8 +77,8 @@ export function insertIntoRememberedContentEditable(node: HTMLElement): boolean 
   return true;
 }
 
-function baseBubble(el: HTMLSpanElement) {
-  el.setAttribute('contenteditable', 'false');
+function baseBubble(el: HTMLSpanElement, kind: string) {
+  markBadgeElement(el, kind);
   Object.assign(el.style, {
     display: 'inline-flex',
     alignItems: 'center',
@@ -102,7 +108,7 @@ export function buildWPBadge(wp: {
   span.setAttribute('data-wp-number', String(wp.number));
   span.setAttribute('data-wp-short-name', wp.short_name || '');
   span.setAttribute('data-wp-color', wp.color);
-  baseBubble(span);
+  baseBubble(span, 'wp');
   span.style.backgroundColor = wp.color;
   span.style.color = '#ffffff';
   span.style.border = `1.5px solid ${wp.color}`;
@@ -120,7 +126,7 @@ export function buildTaskBadge(task: {
   span.textContent = `T${task.wp_number}.${task.number}`;
   span.setAttribute('data-task-reference', '');
   span.setAttribute('data-task-id', task.id);
-  baseBubble(span);
+  baseBubble(span, 'task');
   span.style.backgroundColor = '#ffffff';
   span.style.color = color;
   span.style.border = `1.5px solid ${color}`;
@@ -137,7 +143,7 @@ export function buildDeliverableBadge(del: {
   outer.setAttribute('data-deliverable-reference', '');
   outer.setAttribute('data-deliverable-id', del.id);
   outer.setAttribute('data-deliverable-label', del.number);
-  outer.setAttribute('contenteditable', 'false');
+  markBadgeElement(outer, 'deliverable');
   applyDeliverablePentagon(outer, del.number, del.wp_color || '#73C92D');
   return outer;
 }
@@ -158,7 +164,7 @@ export function buildCaseBadge(c: {
   span.setAttribute('data-case-number', String(c.number));
   span.setAttribute('data-case-type', c.case_type);
   if (c.short_name) span.setAttribute('data-case-short-name', c.short_name);
-  baseBubble(span);
+  baseBubble(span, 'case');
   span.style.backgroundColor = '#ffffff';
   span.style.color = color;
   span.style.border = `1.5px solid ${color}`;
@@ -176,7 +182,7 @@ export function buildParticipantBadge(p: {
   span.setAttribute('data-participant-id', p.id);
   span.setAttribute('data-participant-number', String(p.participantNumber));
   span.setAttribute('data-participant-short-name', p.shortName || '');
-  baseBubble(span);
+  baseBubble(span, 'participant');
   span.style.backgroundColor = '#000000';
   span.style.color = '#ffffff';
   span.style.border = '1.5px solid #000000';
@@ -192,7 +198,7 @@ export function buildAcronymBadge(segments: AcronymSegment[]): HTMLSpanElement {
   const wrapper = document.createElement('span');
   wrapper.setAttribute('data-acronym-reference', '');
   wrapper.setAttribute('data-acronym-segments', JSON.stringify(segments));
-  wrapper.setAttribute('contenteditable', 'false');
+  markBadgeElement(wrapper, 'acronym');
   Object.assign(wrapper.style, {
     display: 'inline',
     fontFamily: "'Arial Black', Arial, sans-serif",
@@ -209,6 +215,7 @@ export function buildAcronymBadge(segments: AcronymSegment[]): HTMLSpanElement {
     s.textContent = seg.text;
     wrapper.appendChild(s);
   });
+  markBadgeTree(wrapper, 'acronym');
   return wrapper;
 }
 
@@ -222,7 +229,7 @@ export function buildMilestoneBadge(ms: {
   wrapper.setAttribute('data-ref-type', 'milestone');
   wrapper.setAttribute('data-milestone-id', ms.id);
   wrapper.setAttribute('data-milestone-number', String(ms.number));
-  wrapper.setAttribute('contenteditable', 'false');
+  markBadgeElement(wrapper, 'milestone');
   applyMilestoneBadge(wrapper, `MS${Number(ms.number) || 0}`);
   return wrapper;
 }
