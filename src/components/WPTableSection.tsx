@@ -15,7 +15,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ParticipantMultiSelect } from '@/components/ParticipantMultiSelect';
-import { WPSimpleEditor } from '@/components/WPSimpleEditor';
+import { LazyRichField } from '@/components/participant/LazyRichField';
+import { WP_DRAFT_FIELD_EXTENSIONS } from '@/components/wp/wpDraftFieldExtensions';
 import type { WPDraftTask } from '@/hooks/useWPDrafts';
 import type { ParticipantSummary } from '@/types/proposal';
 import {
