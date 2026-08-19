@@ -36,7 +36,7 @@ describe('case draft static render schema', () => {
     expect(out).toContain('<em>');
     expect(out).toContain('<u>');
     expect(out).toContain('<sub>');
-    expect(out).toContain('#ff0000');
+    expect(out).toMatch(/#ff0000|rgb\(255, 0, 0\)/);
   });
 
   it('keeps paragraph spacing attributes', () => {
