@@ -2,7 +2,53 @@
  * Converts visual badges and cross-references to plain styled text for Word export.
  * Word can't render CSS clip-path, complex inline-flex, or SVG.
  */
+
+/** True for white / near-white / unset colours, which are illegible on Word's white page. */
+function isWhiteish(colour: string): boolean {
+  const c = colour.trim().toLowerCase();
+  if (!c) return true;
+  if (c === '#fff' || c === '#ffffff' || c === 'white' || c === 'transparent') return true;
+  const m = c.match(/^rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)/);
+  if (m) {
+    const [r, g, b] = [Number(m[1]), Number(m[2]), Number(m[3])];
+    return r > 240 && g > 240 && b > 240;
+  }
+  return false;
+}
+
+/**
+ * The work-package colour for a chip: taken from the chip itself or the nearest
+ * ancestor carrying it. Word supports no CSS custom properties, so every colour
+ * must end up as a literal before export.
+ */
+function wpColourOf(el: HTMLElement): string | null {
+  let node: HTMLElement | null = el;
+  while (node) {
+    const attr = node.getAttribute?.('data-wp-color');
+    if (attr && !isWhiteish(attr)) return attr;
+    const varColour = node.style?.getPropertyValue('--wp-color');
+    if (varColour && !isWhiteish(varColour)) return varColour.trim();
+    node = node.parentElement;
+  }
+  return null;
+}
+
+/** Replaces `var(--wp-color, …)` in any descendant style with a literal colour. */
+function expandColourVars(root: HTMLElement): void {
+  const nodes = [root, ...Array.from(root.querySelectorAll<HTMLElement>('[style*="var("]'))];
+  nodes.forEach((node) => {
+    const style = node.getAttribute('style');
+    if (!style || !style.includes('var(')) return;
+    const literal = wpColourOf(node) || '#000';
+    node.setAttribute(
+      'style',
+      style.replace(/var\(\s*--wp-color\s*(?:,[^)]*)?\)/g, literal).replace(/var\([^)]*\)/g, literal),
+    );
+  });
+}
+
 export function convertBadgesForWord(container: HTMLElement): void {
+
   // 1. Inline reference badges
   container
     .querySelectorAll(
@@ -16,11 +62,16 @@ export function convertBadgesForWord(container: HTMLElement): void {
         return;
       }
 
-      const wpColor =
+      const rawWpColor =
         span.style.getPropertyValue('--wp-color') ||
         span.getAttribute('data-wp-color') ||
         span.style.borderColor ||
-        '#000';
+        '';
+      // Never let a chip end up white on Word's white page.
+      const wpColor = isWhiteish(rawWpColor)
+        ? wpColourOf(span) || '#000'
+        : rawWpColor.trim();
+
 
       const isWP =
         span.classList.contains('inline-ref-wp') || span.hasAttribute('data-wp-reference');

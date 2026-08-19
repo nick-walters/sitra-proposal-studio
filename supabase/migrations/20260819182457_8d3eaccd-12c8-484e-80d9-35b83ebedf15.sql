@@ -1,0 +1,1 @@
+UPDATE public.wp_draft_deliverables SET title = '<b>Report on policy &amp; operational landscapes</b>, incl. HSC data protection &amp; cryptographic regulation &amp; sector-specific constraints' WHERE id = 'f8b9fbbd-1cfc-4478-8ff9-6d098dbb018b';
