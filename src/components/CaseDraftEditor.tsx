@@ -607,16 +607,15 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
             onInsert: insertTable,
           }}
           paragraphSpacingContainer={() =>
-            (document.activeElement && (document.activeElement as HTMLElement).closest('[contenteditable="true"]')) as HTMLElement | null
-            || (document.querySelector('.case-draft-editor [contenteditable="true"]') as HTMLElement | null)
+            (getEditor()?.view.dom as HTMLElement | undefined) ?? null
           }
           fontColor={{
             proposalId,
             canManageCustom: isCoordinator,
             getEditableElement: () =>
-              (document.activeElement && (document.activeElement as HTMLElement).closest('[contenteditable="true"]')) as HTMLElement | null
-              ?? (document.querySelector('.case-draft-editor [contenteditable="true"]') as HTMLElement | null),
+              (getEditor()?.view.dom as HTMLElement | undefined) ?? null,
           }}
+
           onSaveSelection={saveSelection}
           onOpenFigureDialog={() => setIsFigureDialogOpen(true)}
           onOpenCitationDialog={() => setIsCitationOpen(true)}
