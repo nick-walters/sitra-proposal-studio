@@ -92,6 +92,7 @@ export function WPTableSection({
   currentWpDraftId,
   proposalId,
   canManageCustomColors = false,
+  shouldStayMounted,
 }: WPTableSectionProps) {
   const sensors = useSensors(
     useSensor(PointerSensor),
