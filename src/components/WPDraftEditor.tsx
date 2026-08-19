@@ -295,65 +295,35 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
   const acronymSegments = proposalMeta?.acronymSegments || [];
   const hasCases = !!proposalMeta?.hasCases;
 
-  // Save the selection range before opening dialogs so we can restore it when inserting
-  const savedRangeRef = useRef<Range | null>(null);
-  const savedEditorRef = useRef<HTMLElement | null>(null);
-  const saveSelection = useCallback(() => {
-    const sel = window.getSelection();
-    if (sel && sel.rangeCount > 0) {
-      const node = sel.anchorNode;
-      if (node) {
-        const el = node.nodeType === Node.ELEMENT_NODE ? node as HTMLElement : node.parentElement;
-        const editable = el?.closest('[contenteditable="true"]') as HTMLElement | null;
+  // The toolbar acts on whichever LazyRichField last mounted an editor
+  // (MethodologyEditorFocusContext). The legacy contentEditable/execCommand
+  // selection bookkeeping is gone — TipTap keeps its own selection.
+  const { activeEditor } = useMethodologyEditorFocus();
+  const activeEditorRef = useRef(activeEditor);
+  activeEditorRef.current = activeEditor;
 
-        if (editable) {
-          savedRangeRef.current = sel.getRangeAt(0).cloneRange();
-          savedEditorRef.current = editable;
-        }
-      }
+  const getEditor = useCallback(() => {
+    const editor = activeEditorRef.current;
+    if (!editor || editor.isDestroyed) return null;
+    return editor;
+  }, []);
+
+  /** Kept for API compatibility with the shared toolbar. */
+  const saveSelection = useCallback(() => {}, []);
+
+  /** Insert a badge/element by handing its markup to TipTap's parser. */
+  const insertNodeAtCursor = useCallback((node: Node) => {
+    const editor = getEditor();
+    if (!editor) {
+      toast.error('Click into a text box first, then insert the reference.');
+      return;
     }
-  }, []);
-  const restoreSelection = useCallback((): { range: Range | null; editorEl: HTMLElement | null } => {
-    const range = savedRangeRef.current;
-    const editorEl = savedEditorRef.current;
-    const clearSavedSelection = () => {
-      savedRangeRef.current = null;
-      savedEditorRef.current = null;
-    };
-
-    if (range && editorEl && document.body.contains(editorEl)) {
-      // Validate that the range's containers are still in the DOM
-      if (document.body.contains(range.startContainer)) {
-        editorEl.focus({ preventScroll: true });
-        const sel = window.getSelection();
-        if (sel) {
-          sel.removeAllRanges();
-          sel.addRange(range);
-        }
-        clearSavedSelection();
-        return { range, editorEl };
-      }
-      // Range is stale – place cursor at end of the editor element instead
-      editorEl.focus({ preventScroll: true });
-      const sel = window.getSelection();
-      if (sel) {
-        sel.removeAllRanges();
-        const fallbackRange = document.createRange();
-        fallbackRange.selectNodeContents(editorEl);
-        fallbackRange.collapse(false);
-        sel.addRange(fallbackRange);
-        clearSavedSelection();
-        return { range: fallbackRange, editorEl };
-      }
-    }
-    clearSavedSelection();
-    return { range: null, editorEl: null };
-  }, []);
-
-  const notifyEditorInput = useCallback((editorEl: HTMLElement | null) => {
-    if (!editorEl || !document.body.contains(editorEl)) return;
-    editorEl.dispatchEvent(new Event('input', { bubbles: true }));
-  }, []);
+    const html =
+      node.nodeType === Node.ELEMENT_NODE
+        ? (node as HTMLElement).outerHTML
+        : (node.textContent || '');
+    editor.chain().focus().insertContent(html).run();
+  }, [getEditor]);
   
   // Table insertion for toolbar (moved to top with other hooks)
   const [tablePopoverOpen, setTablePopoverOpen] = useState(false);
