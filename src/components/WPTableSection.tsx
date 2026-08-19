@@ -15,7 +15,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ParticipantMultiSelect } from '@/components/ParticipantMultiSelect';
-import { WPSimpleEditor } from '@/components/WPSimpleEditor';
+import { LazyRichField } from '@/components/participant/LazyRichField';
+import { WP_DRAFT_FIELD_EXTENSIONS } from '@/components/wp/wpDraftFieldExtensions';
 import type { WPDraftTask } from '@/hooks/useWPDrafts';
 import type { ParticipantSummary } from '@/types/proposal';
 import {
@@ -65,6 +66,8 @@ interface WPTableSectionProps {
   currentWpDraftId?: string;
   proposalId?: string | null;
   canManageCustomColors?: boolean;
+  /** Keep the focused editor mounted while an insert dialog is open. */
+  shouldStayMounted?: () => boolean;
 }
 
 export function WPTableSection({
@@ -89,6 +92,7 @@ export function WPTableSection({
   currentWpDraftId,
   proposalId,
   canManageCustomColors = false,
+  shouldStayMounted,
 }: WPTableSectionProps) {
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -122,15 +126,14 @@ export function WPTableSection({
         {/* Objectives section */}
         <div className="space-y-2">
           <label className="text-draft font-medium">Objective</label>
-          <WPSimpleEditor
+          <LazyRichField
             value={objectives || ''}
             onChange={onObjectivesChange}
-            placeholder="State the overall objective of this work package..."
             disabled={readOnly}
             minHeight="80px"
-            hideToolbar={hideToolbar}
-            proposalId={proposalId ?? undefined}
-            canManageCustomColors={canManageCustomColors}
+            proposalId={proposalId ?? ''}
+            staticExtensions={WP_DRAFT_FIELD_EXTENSIONS}
+            shouldStayMounted={shouldStayMounted}
           />
           <p className="text-draft text-muted-foreground">Describe the main objective of this work package. Use the bullet list button if you need multiple objectives.</p>
         </div>
@@ -138,15 +141,14 @@ export function WPTableSection({
         {/* Optional field before tasks */}
         <div className="space-y-2">
           <label className="text-draft font-medium">Optional field before tasks</label>
-          <WPSimpleEditor
+          <LazyRichField
             value={descriptionBeforeTasks || ''}
             onChange={onDescriptionBeforeTasksChange}
-            placeholder="Optional additional content before the tasks list..."
             disabled={readOnly}
             minHeight="60px"
-            hideToolbar={hideToolbar}
-            proposalId={proposalId ?? undefined}
-            canManageCustomColors={canManageCustomColors}
+            proposalId={proposalId ?? ''}
+            staticExtensions={WP_DRAFT_FIELD_EXTENSIONS}
+            shouldStayMounted={shouldStayMounted}
           />
         </div>
 
@@ -181,6 +183,7 @@ export function WPTableSection({
                     currentWpDraftId={currentWpDraftId}
                     proposalId={proposalId}
                     canManageCustomColors={canManageCustomColors}
+                    shouldStayMounted={shouldStayMounted}
                   />
                 ))}
               </div>
@@ -222,6 +225,7 @@ interface SortableTaskCardProps {
   currentWpDraftId?: string;
   proposalId?: string | null;
   canManageCustomColors?: boolean;
+  shouldStayMounted?: () => boolean;
 }
 
 function SortableTaskCard({
@@ -243,6 +247,7 @@ function SortableTaskCard({
   currentWpDraftId,
   proposalId,
   canManageCustomColors = false,
+  shouldStayMounted,
 }: SortableTaskCardProps) {
   const {
     attributes,
@@ -416,15 +421,14 @@ function SortableTaskCard({
 
       {/* Row 3: Description editor */}
       <div className="mt-2 ml-5">
-        <WPSimpleEditor
+        <LazyRichField
           value={task.description || ''}
           onChange={handleDescriptionChange}
-          placeholder="Task description..."
           disabled={readOnly}
           minHeight="60px"
-          hideToolbar={hideToolbar}
-          proposalId={proposalId ?? undefined}
-          canManageCustomColors={canManageCustomColors}
+          proposalId={proposalId ?? ''}
+          staticExtensions={WP_DRAFT_FIELD_EXTENSIONS}
+          shouldStayMounted={shouldStayMounted}
         />
       </div>
     </div>

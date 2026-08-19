@@ -21,7 +21,8 @@ import {
 import type { WPDraftDeliverable, WPDraftTask } from '@/hooks/useWPDrafts';
 import type { ParticipantSummary } from '@/types/proposal';
 import { ParticipantBubble, WPBubble, B31Pill } from '@/components/B31Pill';
-import { InlineRichEditor } from '@/components/InlineRichEditor';
+import { LazyRichField } from '@/components/participant/LazyRichField';
+import { WP_TITLE_FIELD_EXTENSIONS } from '@/components/wp/wpDraftFieldExtensions';
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
 import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
 import {
@@ -66,6 +67,9 @@ interface WPDeliverablesTableProps {
   readOnly?: boolean;
   projectDuration?: number;
   allWpDrafts?: WPOption[];
+  proposalId?: string | null;
+  /** Keep the focused editor mounted while the page toolbar has focus. */
+  shouldStayMounted?: () => boolean;
 }
 
 const DELIVERABLE_TYPES = [
@@ -128,53 +132,43 @@ function AutoTextarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) 
 }
 
 /**
- * Title cell — rich text (bold / italic / underline etc. via the WP draft
- * formatting bar, which applies document.execCommand to the focused field).
- * A local buffer + debounced save avoids round-tripping every keystroke
- * through the DB.
+ * Title cell — rich text limited to BOLD and ITALIC (see
+ * WP_TITLE_FIELD_EXTENSIONS). Lazily mounts a TipTap instance on focus and
+ * commits the HTML when the editor unmounts.
  */
 function DeliverableTitleCell({
   value,
   disabled,
   onCommit,
+  proposalId,
+  shouldStayMounted,
 }: {
   value: string;
   disabled?: boolean;
   onCommit: (v: string) => void;
+  proposalId?: string | null;
+  shouldStayMounted?: () => boolean;
 }) {
   const [local, setLocal] = useState(value || '');
   const dirtyRef = useRef(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!dirtyRef.current) setLocal(value || '');
   }, [value]);
 
-  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
-
   return (
-    <InlineRichEditor
+    <LazyRichField
       value={local}
       disabled={disabled}
-      placeholder="Deliverable title & short description"
       minHeight="28px"
-      debounceMs={300}
-      editorClassName="text-sm"
+      proposalId={proposalId ?? ''}
+      staticExtensions={WP_TITLE_FIELD_EXTENSIONS}
+      shouldStayMounted={shouldStayMounted}
       onChange={(html) => {
         dirtyRef.current = true;
         setLocal(html);
-        if (timerRef.current) clearTimeout(timerRef.current);
-        timerRef.current = setTimeout(() => {
-          dirtyRef.current = false;
-          onCommit(html);
-        }, 400);
-      }}
-      onBlur={() => {
-        if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
-        if (dirtyRef.current) {
-          dirtyRef.current = false;
-          onCommit(local);
-        }
+        onCommit(html);
+        dirtyRef.current = false;
       }}
     />
   );
@@ -196,6 +190,8 @@ export function WPDeliverablesTable({
   readOnly = false,
   projectDuration = 36,
   allWpDrafts = [],
+  proposalId,
+  shouldStayMounted,
 }: WPDeliverablesTableProps) {
   const qc = useQueryClient();
   const resolvedWpColor = wpColor || DEFAULT_WP_COLORS[(wpNumber - 1) % DEFAULT_WP_COLORS.length];
@@ -388,6 +384,8 @@ export function WPDeliverablesTable({
                     onSaveTasks={saveDeliverableTasks}
                     readOnly={readOnly}
                     otherWpDrafts={otherWpDrafts}
+                    proposalId={proposalId}
+                    shouldStayMounted={shouldStayMounted}
                   />
                 ))}
               </tbody>
@@ -423,6 +421,8 @@ interface DeliverableRowProps {
   onSaveTasks: (deliverableId: string, taskIds: string[]) => Promise<void>;
   readOnly: boolean;
   otherWpDrafts: WPOption[];
+  proposalId?: string | null;
+  shouldStayMounted?: () => boolean;
 }
 
 function DeliverableRow({
@@ -439,6 +439,8 @@ function DeliverableRow({
   onSaveTasks,
   readOnly,
   otherWpDrafts,
+  proposalId,
+  shouldStayMounted,
 }: DeliverableRowProps) {
   const number = `D${wpNumber}.${deliverable.number}`;
   const selectedTasks = wpTasks.filter(t => selectedTaskIds.includes(t.id));
@@ -463,6 +465,8 @@ function DeliverableRow({
           value={deliverable.title || ''}
           disabled={readOnly}
           onCommit={(v) => onUpdate(deliverable.id, { title: v })}
+          proposalId={proposalId}
+          shouldStayMounted={shouldStayMounted}
         />
       </td>
 

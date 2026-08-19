@@ -32,7 +32,11 @@ import { CSS } from '@dnd-kit/utilities';
 import { toast } from 'sonner';
 import { SaveIndicator } from '@/components/SaveIndicator';
 import { Separator } from '@/components/ui/separator';
-import { InlineRichEditor } from '@/components/InlineRichEditor';
+import { LazyRichField } from '@/components/participant/LazyRichField';
+import {
+  WP_DRAFT_FIELD_EXTENSIONS,
+  WP_TITLE_FIELD_EXTENSIONS,
+} from '@/components/wp/wpDraftFieldExtensions';
 import { ParticipantCrossRefDropdown } from '@/components/participant/ParticipantCrossRefDropdown';
 import { TextFormattingGroup } from '@/components/toolbar';
 
@@ -607,11 +611,13 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
                         <MilestoneBadge number={m.number} />
                       </td>
                       <td className="py-1.5 px-1">
-                        <AutoTextarea
+                        <LazyRichField
                           value={m.title || ''}
                           disabled={!canEdit}
-                          placeholder="Milestone name"
-                          onChange={(e) => updateMilestone.mutate({ id: m.id, patch: { title: e.target.value } })}
+                          minHeight="30px"
+                          proposalId={proposalId}
+                          staticExtensions={WP_TITLE_FIELD_EXTENSIONS}
+                          onChange={(html) => updateMilestone.mutate({ id: m.id, patch: { title: html } })}
                         />
                       </td>
                       <td className="py-1.5 px-1">
@@ -658,11 +664,12 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
                         />
                       </td>
                       <td className="py-1.5 px-1">
-                        <InlineRichEditor
+                        <LazyRichField
                           value={m.means_of_verification || ''}
                           disabled={!canEdit}
-                          placeholder="Means of verification"
                           minHeight="30px"
+                          proposalId={proposalId}
+                          staticExtensions={WP_DRAFT_FIELD_EXTENSIONS}
                           onChange={(html) => updateMilestone.mutate({ id: m.id, patch: { means_of_verification: html } })}
                         />
                       </td>
@@ -744,6 +751,7 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
                         onUpdate={(patch) => updateRisk.mutate({ id: r.id, patch })}
                         onSetWps={(ids) => setRiskWps.mutate({ id: r.id, wpIds: ids })}
                         onDelete={() => deleteRisk.mutate(r.id)}
+                        proposalId={proposalId}
                       />
                     ))}
                   </tbody>
@@ -779,7 +787,7 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
 
 // ── Sortable row for the risks table (drag-handle in first cell) ──
 function SortableRiskRow({
-  risk, wps, canEdit, onUpdate, onSetWps, onDelete,
+  risk, wps, canEdit, onUpdate, onSetWps, onDelete, proposalId,
 }: {
   risk: Risk;
   wps: WPRow[];
@@ -787,6 +795,7 @@ function SortableRiskRow({
   onUpdate: (patch: Partial<Risk>) => void;
   onSetWps: (ids: string[]) => void;
   onDelete: () => void;
+  proposalId: string;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: risk.id,
@@ -813,11 +822,13 @@ function SortableRiskRow({
         )}
       </td>
       <td className="py-1.5 px-1">
-        <AutoTextarea
+        <LazyRichField
           value={risk.title || ''}
           disabled={!canEdit}
-          placeholder="Risk description"
-          onChange={(e) => onUpdate({ title: e.target.value })}
+          minHeight="30px"
+          proposalId={proposalId}
+          staticExtensions={WP_TITLE_FIELD_EXTENSIONS}
+          onChange={(html) => onUpdate({ title: html })}
         />
       </td>
       <td className="py-1.5 px-1 text-center">
@@ -843,11 +854,13 @@ function SortableRiskRow({
         />
       </td>
       <td className="py-1.5 px-1">
-        <AutoTextarea
+        <LazyRichField
           value={risk.mitigation || ''}
           disabled={!canEdit}
-          placeholder="Mitigation & adaptation measures"
-          onChange={(e) => onUpdate({ mitigation: e.target.value })}
+          minHeight="30px"
+          proposalId={proposalId}
+          staticExtensions={WP_DRAFT_FIELD_EXTENSIONS}
+          onChange={(html) => onUpdate({ mitigation: html })}
         />
       </td>
       <td className="py-1.5 px-0 text-center">

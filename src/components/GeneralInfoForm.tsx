@@ -32,7 +32,12 @@ import { cn } from "@/lib/utils";
 import declarationsData from "@/data/declarations.json";
 import { htmlToPlainText } from "@/lib/htmlToPlainText";
 import { DEFAULT_AI_STATEMENT, resolveAiStatementHtml } from "@/lib/aiStatement";
-import { InlineRichEditor } from "@/components/InlineRichEditor";
+import { LazyRichField } from "@/components/participant/LazyRichField";
+import { LAZY_RICH_FIELD_EXTENSIONS } from "@/components/participant/lazyRichFieldExtensions";
+import {
+  MethodologyEditorFocusProvider,
+  useMethodologyEditorFocus,
+} from "@/components/MethodologyEditorFocusContext";
 import { TextFormattingGroup } from "@/components/toolbar";
 
 
@@ -961,31 +966,14 @@ export function GeneralInfoForm({
               </Label>
             </div>
             {formData.aiStatementEnabled && (
-              <div className="space-y-1.5">
-                {canEdit && (
-                  <div
-                    className="p-1.5 border rounded-md bg-card flex items-center gap-0.5 shadow-sm w-fit"
-                    onMouseDown={(e) => {
-                      if (e.target === e.currentTarget) e.preventDefault();
-                    }}
-                  >
-                    <TextFormattingGroup
-                      onBold={() => document.execCommand('bold')}
-                      onItalic={() => document.execCommand('italic')}
-                      onUnderline={() => document.execCommand('underline')}
-                    />
-                  </div>
-                )}
-                <InlineRichEditor
+              <MethodologyEditorFocusProvider>
+                <AiStatementField
+                  proposalId={proposalId}
+                  canEdit={canEdit}
                   value={formData.aiStatementText}
                   onChange={(html) => setFormData(prev => ({ ...prev, aiStatementText: html }))}
-                  disabled={!canEdit}
-                  minHeight="90px"
-                  placeholder="Disclaimer: …"
-                  editorClassName="p-3"
-                  style={{ fontFamily: '"Times New Roman", Times, serif', fontSize: '11pt', lineHeight: 1 }}
                 />
-              </div>
+              </MethodologyEditorFocusProvider>
             )}
 
           </CardContent>
@@ -1002,6 +990,50 @@ export function GeneralInfoForm({
 
   );
 }
+
+/** A1 AI-usage statement — bold / italic / underline only, lazy-mounted TipTap. */
+function AiStatementField({
+  proposalId,
+  canEdit,
+  value,
+  onChange,
+}: {
+  proposalId: string;
+  canEdit: boolean;
+  value: string;
+  onChange: (html: string) => void;
+}) {
+  const { activeEditor } = useMethodologyEditorFocus();
+  return (
+    <div className="space-y-1.5">
+      {canEdit && (
+        <div
+          data-ai-statement-toolbar="1"
+          className="p-1.5 border rounded-md bg-card flex items-center gap-0.5 shadow-sm w-fit"
+          onMouseDown={(e) => e.preventDefault()}
+        >
+          <TextFormattingGroup
+            onBold={() => activeEditor?.chain().focus().toggleBold().run()}
+            onItalic={() => activeEditor?.chain().focus().toggleItalic().run()}
+            onUnderline={() => activeEditor?.chain().focus().toggleUnderline().run()}
+          />
+        </div>
+      )}
+      <LazyRichField
+        value={value}
+        onChange={onChange}
+        disabled={!canEdit}
+        minHeight="90px"
+        proposalId={proposalId}
+        staticExtensions={LAZY_RICH_FIELD_EXTENSIONS}
+        shouldStayMounted={() =>
+          !!(document.activeElement as HTMLElement | null)?.closest('[data-ai-statement-toolbar]')
+        }
+      />
+    </div>
+  );
+}
+
 
 function DeleteProposalSection({ proposalId, proposalTitle }: { proposalId: string; proposalTitle: string }) {
   const navigate = useNavigate();
