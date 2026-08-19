@@ -276,12 +276,15 @@ export async function syncCrossReferences(
       ...a,
       wpNumber: wp.number,
       wpColor: wp.color,
-      wpShortName: wp.short_name || a.wpShortName,
+      // Keep the short name current, but NEVER touch `showShortName` — the
+      // label form is chosen at insertion and is not reconciliation's business.
+      wpShortName: wp.short_name ?? a.wpShortName ?? null,
     };
     const attrsDiffer =
       a.wpNumber !== newAttrs.wpNumber ||
       a.wpColor !== newAttrs.wpColor ||
       a.wpShortName !== newAttrs.wpShortName;
+
     if (!attrsDiffer) return;
     wpNodeChanges.push({ pos, newAttrs });
   });
