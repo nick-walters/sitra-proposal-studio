@@ -12,6 +12,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { createWorkerInterval } from '@/lib/workerInterval';
+import { unloadRpc } from '@/lib/unloadRpc';
 import {
   acquireStream,
   broadcastContent,
@@ -98,8 +99,12 @@ export function CardLockProvider({
   enabled?: boolean;
   children: ReactNode;
 }) {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const myUserId = user?.id ?? null;
+
+  /** Kept in a ref so the unload handler can read the token synchronously. */
+  const accessTokenRef = useRef<string | null>(null);
+  accessTokenRef.current = session?.access_token ?? null;
 
   const [locks, setLocks] = useState<Record<string, LockHolder>>({});
   const [warning, setWarning] = useState<{ targetId: string; secondsLeft: number } | null>(null);
