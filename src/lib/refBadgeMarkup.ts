@@ -135,7 +135,9 @@ export function applyMilestoneBadge(el: HTMLElement, label?: string): void {
     ]),
   );
   if (label != null) el.textContent = label;
+  markBadgeTree(el, 'milestone');
 }
+
 
 /** Reads the visible label of a badge, ignoring the decorative layers. */
 export function readBadgeLabel(el: HTMLElement): string {
