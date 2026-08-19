@@ -787,7 +787,7 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
 
 // ── Sortable row for the risks table (drag-handle in first cell) ──
 function SortableRiskRow({
-  risk, wps, canEdit, onUpdate, onSetWps, onDelete,
+  risk, wps, canEdit, onUpdate, onSetWps, onDelete, proposalId,
 }: {
   risk: Risk;
   wps: WPRow[];
@@ -795,6 +795,7 @@ function SortableRiskRow({
   onUpdate: (patch: Partial<Risk>) => void;
   onSetWps: (ids: string[]) => void;
   onDelete: () => void;
+  proposalId: string;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: risk.id,
