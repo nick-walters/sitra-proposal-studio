@@ -793,6 +793,8 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
             />
           }
         />
+        </div>
+
 
 
         {/* Header: pill badge + metadata row */}
