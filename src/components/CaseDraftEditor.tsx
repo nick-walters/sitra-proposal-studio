@@ -787,14 +787,16 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
                   <p className="text-xs text-muted-foreground italic px-1">{guideline}</p>
                 )}
 
-                <WPSimpleEditor
+                <LazyRichField
                   value={content}
                   onChange={(v) => updateSubsectionContent(sub.key, v, sub.heading)}
-                  placeholder={`Write about ${sub.heading.toLowerCase()}...`}
                   disabled={readOnly}
                   minHeight="150px"
-                  hideToolbar={true}
+                  proposalId={proposalId}
+                  staticExtensions={CASE_DRAFT_FIELD_EXTENSIONS}
+                  shouldStayMounted={shouldStayMounted}
                 />
+
               </CardContent>
             </Card>
           );
