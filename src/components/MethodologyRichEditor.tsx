@@ -16,6 +16,8 @@ interface MethodologyRichEditorProps {
    * when the current user holds the lock on this text box.
    */
   activeRingClass?: string;
+  /** Called once with the live TipTap instance when it is created. */
+  onEditorReady?: (editor: Editor) => void;
 }
 
 
