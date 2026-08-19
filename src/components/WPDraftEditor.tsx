@@ -1046,6 +1046,8 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
           readOnly={readOnly}
           projectDuration={projectDuration}
           allWpDrafts={wpDrafts}
+          proposalId={proposalId}
+          shouldStayMounted={shouldStayMounted}
         />
 
 
