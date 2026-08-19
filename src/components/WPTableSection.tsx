@@ -421,15 +421,14 @@ function SortableTaskCard({
 
       {/* Row 3: Description editor */}
       <div className="mt-2 ml-5">
-        <WPSimpleEditor
+        <LazyRichField
           value={task.description || ''}
           onChange={handleDescriptionChange}
-          placeholder="Task description..."
           disabled={readOnly}
           minHeight="60px"
-          hideToolbar={hideToolbar}
-          proposalId={proposalId ?? undefined}
-          canManageCustomColors={canManageCustomColors}
+          proposalId={proposalId ?? ''}
+          staticExtensions={WP_DRAFT_FIELD_EXTENSIONS}
+          shouldStayMounted={shouldStayMounted}
         />
       </div>
     </div>
