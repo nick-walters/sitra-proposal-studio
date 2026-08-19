@@ -1306,7 +1306,7 @@ function BoardInner({
             )}
             {canEdit && (
               <Button variant="outline" size="sm" onClick={() => setBinOpen(true)}>
-                <Recycle className="mr-1 h-3.5 w-3.5" />
+                <Recycle className="mr-1 h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
                 Recycle bin
               </Button>
             )}
