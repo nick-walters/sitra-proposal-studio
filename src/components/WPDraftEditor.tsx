@@ -6,6 +6,10 @@ import { DraftFormattingToolbar } from '@/components/DraftFormattingToolbar';
 import { useWPDraftEditor } from '@/hooks/useWPDrafts';
 import { useWPDraftUndoRedo } from '@/hooks/useWPDraftUndoRedo';
 import { WPTableSection } from '@/components/WPTableSection';
+import {
+  MethodologyEditorFocusProvider,
+  useMethodologyEditorFocus,
+} from '@/components/MethodologyEditorFocusContext';
 
 import { WPDeliverablesTable } from '@/components/WPDeliverablesTable';
 import { CitationDialog } from '@/components/CitationDialog';
