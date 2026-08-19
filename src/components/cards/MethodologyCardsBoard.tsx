@@ -933,6 +933,40 @@ function BoardInner({
   const cardIds = useMemo(() => cards.map((c) => c.id), [cards]);
   const { fieldsByCard } = useCardFieldsForCards(cardIds);
   const { entries: binEntries } = useSectionRecycleBin(proposalId, sectionId);
+
+  // Structural changes (add / delete / restore / reorder of blocks and
+  // modules) made by other sessions. Content already streams; this covers the
+  // shape of the board so nobody has to refresh.
+  useEffect(() => {
+    if (!proposalId) return;
+    const invalidate = () => {
+      queryClient.invalidateQueries({ queryKey: sectionCardsKey(proposalId, sectionId) });
+      queryClient.invalidateQueries({ queryKey: ['card-fields-batch'] });
+      queryClient.invalidateQueries({ queryKey: ['card-recycle-bin', proposalId] });
+    };
+    const channel = supabase
+      .channel(`card-structure:${proposalId}:${sectionId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'card_fields', filter: `proposal_id=eq.${proposalId}` },
+        invalidate,
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'proposal_cards', filter: `section_id=eq.${sectionId}` },
+        invalidate,
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'card_deletions', filter: `proposal_id=eq.${proposalId}` },
+        invalidate,
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [proposalId, sectionId, queryClient]);
+
   const {
     createCard,
 

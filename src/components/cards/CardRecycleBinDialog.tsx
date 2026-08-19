@@ -125,11 +125,15 @@ export function CardRecycleBinDialog({
     const mutation = entry.targetType === 'card' ? restoreCard : restoreField;
     mutation.mutate(entry.targetId, {
       onSuccess: () => {
+        // Close first: Radix holds a body scroll lock while the dialog is
+        // mounted, which would silently swallow the jump. The jump helper
+        // additionally waits for the lock to clear before scrolling.
         onClose();
-        onRestored?.(entry.targetType, entry.targetId);
+        window.setTimeout(() => onRestored?.(entry.targetType, entry.targetId), 0);
       },
     });
   };
+
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>

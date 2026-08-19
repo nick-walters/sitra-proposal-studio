@@ -11,6 +11,7 @@ import {
 } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { createWorkerInterval } from '@/lib/workerInterval';
 import {
   acquireStream,
   broadcastContent,
@@ -41,10 +42,12 @@ export interface LockHolder {
   expiresAt: string;
 }
 
-/** Lock lifetime on the server is 150s; refreshed by the heartbeat below.
- *  Background/minimised windows throttle `setInterval` to roughly once per
- *  minute, so the server window is deliberately far longer. */
-const HEARTBEAT_MS = 10_000;
+/** Lock lifetime on the server is 300s — deliberately equal to the idle
+ *  timeout below, so the idle timeout is the single authority on release and
+ *  the server window can never expire under a live holder. The heartbeat runs
+ *  on a Worker timer so minimised windows keep it alive. */
+const HEARTBEAT_MS = 15_000;
+
 
 /** How often a viewer re-reads the lock table from the server. Viewers must
  *  never decide on their own that a lock has gone: realtime events can be
@@ -52,7 +55,7 @@ const HEARTBEAT_MS = 10_000;
 const LOCK_POLL_MS = 8_000;
 
 /** Tolerance for clock skew between this browser and the database when
- *  judging `expires_at`. Well under the 150s server window. */
+ *  judging `expires_at`. Well under the 300s server window. */
 const EXPIRY_SKEW_MS = 20_000;
 
 /** Idle timeout measured from the last keystroke. */
@@ -280,28 +283,46 @@ export function CardLockProvider({
     [claim, warning],
   );
 
-  // Heartbeat: keeps the server-side expiry in the future while held. The
-  // interval is throttled to ~1/min in background tabs, which the 150s server
-  // window absorbs; an extra beat fires whenever the tab or window returns.
+  // Heartbeat: keeps the server-side expiry in the future while held. It runs
+  // on a Worker timer because main-thread `setInterval` is clamped (and on
+  // minimise sometimes suspended) by the browser; extra beats fire whenever
+  // the tab or window returns.
   useEffect(() => {
     if (!enabled) return;
+    let lastBeatAt = 0;
     const beat = () => {
       const target = myTargetRef.current;
       if (!target) return;
+      if (import.meta.env.DEV) {
+        const now = Date.now();
+        // eslint-disable-next-line no-console
+        console.debug(
+          '[card-lock heartbeat]',
+          new Date(now).toISOString(),
+          'gap',
+          lastBeatAt ? `${Math.round((now - lastBeatAt) / 1000)}s` : 'first',
+          'hidden',
+          document.hidden,
+        );
+        lastBeatAt = now;
+      }
       void supabase.rpc('heartbeat_card_lock', {
         p_target_type: 'text_box' as LockTargetType,
         p_target_id: target,
       });
     };
-    const id = window.setInterval(beat, HEARTBEAT_MS);
+    const stop = createWorkerInterval(HEARTBEAT_MS, beat);
     document.addEventListener('visibilitychange', beat);
     window.addEventListener('focus', beat);
+    window.addEventListener('pageshow', beat);
     return () => {
-      window.clearInterval(id);
+      stop();
       document.removeEventListener('visibilitychange', beat);
       window.removeEventListener('focus', beat);
+      window.removeEventListener('pageshow', beat);
     };
   }, [enabled]);
+
 
 
   // Idle timer: warning at one minute remaining, save-then-release at zero.
