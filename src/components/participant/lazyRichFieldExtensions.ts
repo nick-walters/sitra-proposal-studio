@@ -1,6 +1,7 @@
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import { TextStyle } from '@tiptap/extension-text-style';
+import Color from '@tiptap/extension-color';
 import type { Extensions } from '@tiptap/core';
 
 import { WPReferenceNode } from '@/extensions/WPReferenceNode';
@@ -41,8 +42,10 @@ export const LAZY_RICH_FIELD_EXTENSIONS: Extensions = [
     undoRedo: { depth: 100, newGroupDelay: 1200 },
   }),
   Underline,
-  // Legacy stored content carries inline <span style="..."> wrappers.
+  // Legacy stored content carries inline <span style="color:..."> wrappers.
+  // Read-only fidelity only — no colour control is exposed on these fields.
   TextStyle,
+  Color,
   WPReferenceNode,
   CaseReferenceNode,
   ParticipantReferenceNode,
