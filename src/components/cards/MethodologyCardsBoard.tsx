@@ -1312,9 +1312,14 @@ function BoardInner({
               </Button>
             )}
             {canEdit && (
-              <Button variant="outline" size="sm" onClick={() => setBinOpen(true)}>
+              <Button
+                variant="outline"
+                size="sm"
+                aria-label="Restore a block"
+                onClick={() => setBinOpen(true)}
+              >
                 <Recycle className="mr-1 h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
-                Recycle bin
+                Restore a block
               </Button>
             )}
           </div>
