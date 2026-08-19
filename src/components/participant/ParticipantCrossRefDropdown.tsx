@@ -13,18 +13,7 @@ import { InsertParticipantReferenceDialog } from '@/components/InsertParticipant
 import { InsertTDMSReferenceDropdowns } from '@/components/InsertTDMSReferenceDropdowns';
 import { WPBubble, B31Pill } from '@/components/B31Pill';
 import { buildCaseLabel, getCaseTypePrefix } from '@/lib/caseTypeLabels';
-import {
-  buildWPBadge,
-  buildTaskBadge,
-  buildDeliverableBadge,
-  buildCaseBadge,
-  buildParticipantBadge,
-  buildAcronymBadge,
-  buildMilestoneBadge,
-  insertIntoRememberedContentEditable,
-  rememberContentEditableSelection,
-  type AcronymSegment,
-} from '@/lib/contentEditableRefBadges';
+import type { AcronymSegment } from '@/extensions/AcronymReference';
 import type { Editor } from '@tiptap/react';
 
 interface Props {
@@ -96,23 +85,7 @@ export function ParticipantCrossRefDropdown({
     notifyOpen,
   ]);
 
-  const saveSelection = useCallback(() => {
-    const sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0) return;
-    const node = sel.anchorNode;
-    if (!node) return;
-    const el = node.nodeType === Node.ELEMENT_NODE ? (node as HTMLElement) : node.parentElement;
-    const editable = el?.closest('[contenteditable="true"]') as HTMLElement | null;
-    if (!editable) return;
-    rememberContentEditableSelection(editable);
-  }, []);
-
-  /** Insert a badge element at the saved caret, then notify the editor. */
-  const insertNode = useCallback((node: HTMLElement) => {
-    insertIntoRememberedContentEditable(node);
-  }, []);
-
-  /** True when this dropdown drives a TipTap instance rather than a div. */
+  /** Every surface now inserts into TipTap; nothing to do without an editor. */
   const hasEditor = Boolean(editor && !editor.isDestroyed);
 
   const openDialog = (setter: (v: boolean) => void) => {
@@ -142,7 +115,6 @@ export function ParticipantCrossRefDropdown({
               // Keep the caret in the focused description field.
               e.preventDefault();
               if (disabled) return;
-              saveSelection();
               setMenuOpen((o) => !o);
             }}
             aria-label="Insert cross-reference"
@@ -157,12 +129,9 @@ export function ParticipantCrossRefDropdown({
             <DropdownMenuItem
               onSelect={() => {
                 if (!acronymSegments) return;
-                if (hasEditor) {
-                  editor!.chain().focus().insertAcronymReference({ segments: acronymSegments })
-                    .insertContent(' ').run();
-                } else {
-                  insertNode(buildAcronymBadge(acronymSegments));
-                }
+                if (!hasEditor) return;
+                editor!.chain().focus().insertAcronymReference({ segments: acronymSegments })
+                  .insertContent(' ').run();
               }}
               className="flex items-center gap-2"
             >
@@ -240,16 +209,13 @@ export function ParticipantCrossRefDropdown({
         onOpenChange={closeDialog(setWpOpen)}
         proposalId={proposalId}
         onSelect={(wp) => {
-          if (hasEditor) {
-            editor!.chain().focus().insertWPReference({
-              wpNumber: wp.number,
-              wpShortName: wp.short_name || '',
-              wpColor: wp.color,
-              wpId: wp.id,
-            }).insertContent(' ').unsetBold().unsetItalic().run();
-            return;
-          }
-          insertNode(buildWPBadge({ id: wp.id, number: wp.number, short_name: wp.short_name, color: wp.color }));
+          if (!hasEditor) return;
+          editor!.chain().focus().insertWPReference({
+            wpNumber: wp.number,
+            wpShortName: wp.short_name || '',
+            wpColor: wp.color,
+            wpId: wp.id,
+          }).insertContent(' ').unsetBold().unsetItalic().run();
         }}
       />
 
@@ -266,28 +232,16 @@ export function ParticipantCrossRefDropdown({
             includeAbbreviation: c.include_abbreviation !== false,
             withShortName: false,
           });
-          if (hasEditor) {
-            editor!.chain().focus().insertCaseReference({
-              caseNumber: c.number,
-              caseShortName: c.short_name || '',
-              caseColor: c.color,
-              caseId: c.id,
-              caseType: c.case_type,
-              includeNumber: c.include_number !== false,
-              includeAbbreviation: c.include_abbreviation !== false,
-            }).insertContent(' ').unsetBold().unsetItalic().run();
-            return;
-          }
-          insertNode(
-            buildCaseBadge({
-              id: c.id,
-              number: c.number,
-              short_name: c.short_name,
-              case_type: c.case_type,
-              color: c.color,
-              label,
-            }),
-          );
+          if (!hasEditor) return;
+          editor!.chain().focus().insertCaseReference({
+            caseNumber: c.number,
+            caseShortName: c.short_name || '',
+            caseColor: c.color,
+            caseId: c.id,
+            caseType: c.case_type,
+            includeNumber: c.include_number !== false,
+            includeAbbreviation: c.include_abbreviation !== false,
+          }).insertContent(' ').unsetBold().unsetItalic().run();
         }}
       />
 
@@ -296,15 +250,12 @@ export function ParticipantCrossRefDropdown({
         onOpenChange={closeDialog(setParticipantOpen)}
         proposalId={proposalId}
         onSelect={(p) => {
-          if (hasEditor) {
-            editor!.chain().focus().insertParticipantReference({
-              participantNumber: p.participantNumber,
-              shortName: p.shortName,
-              participantId: p.id,
-            }).insertContent(' ').unsetBold().unsetItalic().run();
-            return;
-          }
-          insertNode(buildParticipantBadge(p));
+          if (!hasEditor) return;
+          editor!.chain().focus().insertParticipantReference({
+            participantNumber: p.participantNumber,
+            shortName: p.shortName,
+            participantId: p.id,
+          }).insertContent(' ').unsetBold().unsetItalic().run();
         }}
       />
 
@@ -318,37 +269,28 @@ export function ParticipantCrossRefDropdown({
         openMilestone={milestoneOpen}
         onOpenMilestoneChange={closeDialog(setMilestoneOpen)}
         onInsertTask={(t) => {
-          if (hasEditor) {
-            editor!.chain().focus().insertTaskReference({
-              wpNumber: t.wp_number,
-              taskNumber: t.number,
-              taskId: t.id,
-              wpColor: t.wp_color || undefined,
-            }).insertContent(' ').unsetBold().unsetItalic().run();
-            return;
-          }
-          insertNode(buildTaskBadge(t));
+          if (!hasEditor) return;
+          editor!.chain().focus().insertTaskReference({
+            wpNumber: t.wp_number,
+            taskNumber: t.number,
+            taskId: t.id,
+            wpColor: t.wp_color || undefined,
+          }).insertContent(' ').unsetBold().unsetItalic().run();
         }}
         onInsertDeliverable={(d) => {
-          if (hasEditor) {
-            editor!.chain().focus().insertDeliverableReference({
-              deliverableNumber: d.number,
-              deliverableId: d.id,
-              wpColor: d.wp_color || undefined,
-            }).insertContent(' ').unsetBold().unsetItalic().run();
-            return;
-          }
-          insertNode(buildDeliverableBadge(d));
+          if (!hasEditor) return;
+          editor!.chain().focus().insertDeliverableReference({
+            deliverableNumber: d.number,
+            deliverableId: d.id,
+            wpColor: d.wp_color || undefined,
+          }).insertContent(' ').unsetBold().unsetItalic().run();
         }}
         onInsertMilestone={(m) => {
-          if (hasEditor) {
-            editor!.chain().focus().insertMilestoneReference({
-              milestoneNumber: m.number,
-              milestoneId: m.id,
-            }).insertContent(' ').run();
-            return;
-          }
-          insertNode(buildMilestoneBadge(m));
+          if (!hasEditor) return;
+          editor!.chain().focus().insertMilestoneReference({
+            milestoneNumber: m.number,
+            milestoneId: m.id,
+          }).insertContent(' ').run();
         }}
       />
     </>
