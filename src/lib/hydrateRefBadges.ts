@@ -183,6 +183,7 @@ function hydrateAcronym(el: HTMLElement) {
       el.appendChild(s);
     }
   }
+  markBadgeTree(el, 'acronym');
 }
 
 function hydrateFigTableRef(el: HTMLElement) {
@@ -195,9 +196,12 @@ function hydrateFigTableRef(el: HTMLElement) {
       'font-weight:700',
       'white-space:nowrap',
       'vertical-align:baseline',
+      'user-select:none',
     ].join('; '),
   );
+  markBadgeElement(el, 'fig-table');
 }
+
 
 /**
  * Returns the HTML with every inline reference badge re-styled to its
