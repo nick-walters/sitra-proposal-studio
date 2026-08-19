@@ -68,6 +68,7 @@ export function LazyRichField({
   onFocus,
   onBlur,
   shouldStayMounted,
+  staticExtensions = LAZY_RICH_FIELD_EXTENSIONS,
 }: LazyRichFieldProps) {
   const [mounted, setMounted] = useState(false);
   const clickCoordsRef = useRef<{ left: number; top: number } | null>(null);
@@ -76,7 +77,11 @@ export function LazyRichField({
   const valueRef = useRef(value);
   valueRef.current = value;
 
-  const staticHtml = useMemo(() => (mounted ? '' : renderStatic(value)), [value, mounted]);
+  const staticHtml = useMemo(
+    () => (mounted ? '' : renderStatic(value, staticExtensions)),
+    [value, mounted, staticExtensions],
+  );
+
 
   useEffect(() => () => {
     if (unmountTimerRef.current) clearTimeout(unmountTimerRef.current);
