@@ -68,11 +68,14 @@ function BinEntry({
       </div>
 
       {hasContent && (
-        <div className="mt-2">
-          <div className="relative">
+        <div className="mt-2 min-w-0 max-w-full">
+          <div className="relative min-w-0 max-w-full overflow-hidden">
+            {/* Deleted modules can contain wide, unbreakable content (cross-reference
+                chips, tables). Left unconstrained it widens the whole bin row inside
+                the Radix scroll viewport, pushing the Restore button out of view. */}
             <div
-              className={`prose prose-sm max-w-none text-sm text-muted-foreground ${
-                expanded ? '' : 'max-h-[7.5rem] overflow-hidden'
+              className={`prose prose-sm w-full max-w-full break-words text-sm text-muted-foreground [&_*]:max-w-full [&_table]:block [&_table]:overflow-x-auto ${
+                expanded ? 'overflow-x-auto' : 'max-h-[7.5rem] overflow-hidden'
               }`}
               dangerouslySetInnerHTML={{ __html: html }}
             />
