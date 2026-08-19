@@ -338,294 +338,131 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
     getNextCitationNumber 
   } = useProposalReferences(proposalId);
   
-  // Editor insertion callbacks (these insert HTML into active contentEditable)
+  // Editor insertion callbacks. Each builds the same badge markup as before and
+  // hands it to the focused TipTap editor, which parses it back into the
+  // matching reference NODE — so labels resolve live from ids afterwards.
   const insertCitationAtCursor = useCallback((citationNumber: number) => {
-    const { editorEl } = restoreSelection();
-    const selection = window.getSelection();
-    if (selection && selection.rangeCount > 0) {
-      const range = selection.getRangeAt(0);
-      const citationSpan = document.createElement('sup');
-      citationSpan.textContent = `${citationNumber}`;
-      citationSpan.setAttribute('data-citation', String(citationNumber));
-      citationSpan.style.color = 'blue';
-      citationSpan.style.cursor = 'pointer';
-      range.insertNode(citationSpan);
-      range.setStartAfter(citationSpan);
-      range.collapse(true);
-      selection.removeAllRanges();
-      selection.addRange(range);
-      notifyEditorInput(editorEl);
-    }
+    const citationSpan = document.createElement('sup');
+    citationSpan.textContent = `${citationNumber}`;
+    citationSpan.setAttribute('data-citation', String(citationNumber));
+    citationSpan.style.color = 'blue';
+    citationSpan.style.cursor = 'pointer';
+    insertNodeAtCursor(citationSpan);
     toast.success(`Citation ${citationNumber} inserted`);
-  }, [notifyEditorInput, restoreSelection]);
-  
+  }, [insertNodeAtCursor]);
+
   const insertCrossRefAtCursor = useCallback((payload: { refText: string; figureId?: string; tableKey?: string; refKind: 'figure' | 'table' }) => {
-    const { editorEl } = restoreSelection();
-    const selection = window.getSelection();
-    if (selection && selection.rangeCount > 0) {
-      const range = selection.getRangeAt(0);
-      const refSpan = document.createElement('span');
-      refSpan.textContent = payload.refText;
-      refSpan.setAttribute('data-fig-table-ref', '');
-      if (payload.figureId) refSpan.setAttribute('data-figure-id', payload.figureId);
-      if (payload.tableKey) refSpan.setAttribute('data-table-key', payload.tableKey);
-      if (payload.refKind) refSpan.setAttribute('data-ref-kind', payload.refKind);
-      refSpan.style.fontWeight = 'bold';
-      refSpan.style.fontStyle = 'normal';
-      refSpan.style.fontFamily = "'Times New Roman', Times, serif";
-      refSpan.style.cursor = 'pointer';
-      range.insertNode(refSpan);
-      range.setStartAfter(refSpan);
-      range.collapse(true);
-      selection.removeAllRanges();
-      selection.addRange(range);
-      notifyEditorInput(editorEl);
-    }
+    const refSpan = document.createElement('span');
+    refSpan.textContent = payload.refText;
+    refSpan.setAttribute('data-fig-table-ref', '');
+    if (payload.figureId) refSpan.setAttribute('data-figure-id', payload.figureId);
+    if (payload.tableKey) refSpan.setAttribute('data-table-key', payload.tableKey);
+    if (payload.refKind) refSpan.setAttribute('data-ref-kind', payload.refKind);
+    refSpan.style.fontWeight = 'bold';
+    refSpan.style.fontStyle = 'normal';
+    refSpan.style.fontFamily = "'Times New Roman', Times, serif";
+    refSpan.style.cursor = 'pointer';
+    insertNodeAtCursor(refSpan);
     toast.success('Cross-reference inserted');
-  }, [notifyEditorInput, restoreSelection]);
-  
+  }, [insertNodeAtCursor]);
+
   const insertWPRefAtCursor = useCallback((wpNumber: number, wpShortName: string, wpColor: string, wpId: string) => {
-    const { editorEl } = restoreSelection();
-    const selection = window.getSelection();
-    if (selection && selection.rangeCount > 0) {
-      const range = selection.getRangeAt(0);
-      const wpSpan = document.createElement('span');
-      wpSpan.textContent = `WP${wpNumber}${wpShortName ? `: ${wpShortName}` : ''}`;
-      wpSpan.setAttribute('data-wp-reference', '');
-      wpSpan.setAttribute('data-wp-number', String(wpNumber));
-      wpSpan.setAttribute('data-wp-id', wpId);
-      wpSpan.setAttribute('data-wp-color', wpColor);
-      wpSpan.setAttribute('data-wp-short-name', wpShortName || '');
-      markBadgeElement(wpSpan, 'wp');
-      wpSpan.style.backgroundColor = wpColor;
-      wpSpan.style.color = '#ffffff';
-      wpSpan.style.border = `1.5px solid ${wpColor}`;
-      wpSpan.style.padding = '0px 5px';
-      wpSpan.style.borderRadius = '9999px';
-      wpSpan.style.fontFamily = "'Times New Roman', Times, serif";
-      wpSpan.style.fontWeight = '700';
-      wpSpan.style.fontSize = '11pt';
-      wpSpan.style.lineHeight = '1';
-      wpSpan.style.verticalAlign = 'baseline';
-      wpSpan.style.display = 'inline-flex';
-      wpSpan.style.alignItems = 'center';
-      wpSpan.style.whiteSpace = 'nowrap';
-      wpSpan.style.userSelect = 'none';
-      range.insertNode(wpSpan);
-      range.setStartAfter(wpSpan);
-      range.collapse(true);
-      selection.removeAllRanges();
-      selection.addRange(range);
-      notifyEditorInput(editorEl);
-    }
+    const wpSpan = document.createElement('span');
+    wpSpan.textContent = `WP${wpNumber}${wpShortName ? `: ${wpShortName}` : ''}`;
+    wpSpan.setAttribute('data-wp-reference', '');
+    wpSpan.setAttribute('data-wp-number', String(wpNumber));
+    wpSpan.setAttribute('data-wp-id', wpId);
+    wpSpan.setAttribute('data-wp-color', wpColor);
+    wpSpan.setAttribute('data-wp-short-name', wpShortName || '');
+    if (wpShortName) wpSpan.setAttribute('data-wp-show-short-name', 'true');
+    markBadgeElement(wpSpan, 'wp');
+    insertNodeAtCursor(wpSpan);
     toast.success(`WP${wpNumber} reference inserted`);
-  }, [notifyEditorInput, restoreSelection]);
+  }, [insertNodeAtCursor]);
 
   const insertParticipantRefAtCursor = useCallback((participantNumber: number, shortName: string, participantId: string) => {
-    const { editorEl } = restoreSelection();
-    const selection = window.getSelection();
-    if (selection && selection.rangeCount > 0) {
-      const range = selection.getRangeAt(0);
-      const partSpan = document.createElement('span');
-      partSpan.textContent = shortName || 'Partner';
-      partSpan.setAttribute('data-participant-reference', '');
-      partSpan.setAttribute('data-participant-number', String(participantNumber));
-      partSpan.setAttribute('data-participant-id', participantId);
-      partSpan.setAttribute('data-participant-short-name', shortName || '');
-      markBadgeElement(partSpan, 'participant');
-      partSpan.style.backgroundColor = '#000000';
-      partSpan.style.color = '#ffffff';
-      partSpan.style.border = '1.5px solid #000000';
-      partSpan.style.padding = '0px 5px';
-      partSpan.style.borderRadius = '9999px';
-      partSpan.style.fontFamily = "'Times New Roman', Times, serif";
-      partSpan.style.fontWeight = '700';
-      partSpan.style.setProperty('font-style', 'normal', 'important');
-      partSpan.style.fontSize = '11pt';
-      partSpan.style.lineHeight = '1';
-      partSpan.style.verticalAlign = 'baseline';
-      partSpan.style.display = 'inline-flex';
-      partSpan.style.alignItems = 'center';
-      partSpan.style.whiteSpace = 'nowrap';
-      partSpan.style.userSelect = 'none';
-      range.insertNode(partSpan);
-      range.setStartAfter(partSpan);
-      range.collapse(true);
-      selection.removeAllRanges();
-      selection.addRange(range);
-      notifyEditorInput(editorEl);
-    }
+    const partSpan = document.createElement('span');
+    partSpan.textContent = shortName || 'Partner';
+    partSpan.setAttribute('data-participant-reference', '');
+    partSpan.setAttribute('data-participant-number', String(participantNumber));
+    partSpan.setAttribute('data-participant-id', participantId);
+    partSpan.setAttribute('data-participant-short-name', shortName || '');
+    markBadgeElement(partSpan, 'participant');
+    insertNodeAtCursor(partSpan);
     toast.success(`${shortName} reference inserted`);
-  }, [notifyEditorInput, restoreSelection]);
-  
+  }, [insertNodeAtCursor]);
+
   const insertFigureAtCursor = useCallback((figure: any) => {
-    const { editorEl } = restoreSelection();
-    const selection = window.getSelection();
-    if (selection && selection.rangeCount > 0) {
-      const range = selection.getRangeAt(0);
-      // Insert just a cross-reference text
-      const refSpan = document.createElement('span');
-      refSpan.textContent = `(see ${figure.figure_number})`;
-      refSpan.style.color = 'blue';
-      refSpan.style.textDecoration = 'underline';
-      range.insertNode(refSpan);
-      range.setStartAfter(refSpan);
-      range.collapse(true);
-      selection.removeAllRanges();
-      selection.addRange(range);
-      notifyEditorInput(editorEl);
-    }
-    toast.success(`Figure reference inserted`);
-  }, [notifyEditorInput, restoreSelection]);
+    const refSpan = document.createElement('span');
+    refSpan.textContent = `(see ${figure.figure_number})`;
+    refSpan.style.color = 'blue';
+    refSpan.style.textDecoration = 'underline';
+    insertNodeAtCursor(refSpan);
+    toast.success('Figure reference inserted');
+  }, [insertNodeAtCursor]);
 
-  // Handle Task reference insertion (contentEditable) - pill bubble
   const insertTaskRefAtCursor = useCallback((task: { id: string; wp_number: number; number: number; title: string; wp_color?: string }) => {
-    const { editorEl } = restoreSelection();
-    const selection = window.getSelection();
-    if (selection && selection.rangeCount > 0) {
-      const range = selection.getRangeAt(0);
-      const color = task.wp_color || '#73C92D';
-      const span = document.createElement('span');
-      span.textContent = `T${task.wp_number}.${task.number}`;
-      span.setAttribute('data-task-reference', '');
-      span.setAttribute('data-task-id', task.id);
-      markBadgeElement(span, 'task');
-      Object.assign(span.style, { display: 'inline-flex', alignItems: 'center', height: '17px', padding: '0 4px', borderRadius: '9999px', border: `1.5px solid ${color}`, color: color, fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: '700', lineHeight: '1', whiteSpace: 'nowrap', verticalAlign: 'baseline', userSelect: 'none' });
-      range.insertNode(span);
-      range.setStartAfter(span);
-      range.collapse(true);
-      selection.removeAllRanges();
-      selection.addRange(range);
-      notifyEditorInput(editorEl);
-    }
+    const span = document.createElement('span');
+    span.textContent = `T${task.wp_number}.${task.number}`;
+    span.setAttribute('data-task-reference', '');
+    span.setAttribute('data-task-id', task.id);
+    markBadgeElement(span, 'task');
+    insertNodeAtCursor(span);
     toast.success(`T${task.wp_number}.${task.number} reference inserted`);
-  }, [notifyEditorInput, restoreSelection]);
+  }, [insertNodeAtCursor]);
 
-  // Handle Deliverable reference insertion - pentagon bubble matching 3.1.c
   const insertDeliverableRefAtCursor = useCallback((del: { id: string; number: string; name: string; wp_color?: string }) => {
-    const { editorEl } = restoreSelection();
-    const selection = window.getSelection();
-    if (selection && selection.rangeCount > 0) {
-      const range = selection.getRangeAt(0);
-      const rawColor = del.wp_color || '#73C92D';
-      const color = /^#[0-9a-fA-F]{3,8}$/.test(rawColor) ? rawColor : '#73C92D';
-      const label = String(del.number).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-      const textWidth = Math.max(36, label.length * 8 + 8);
-      const totalWidth = textWidth + 8;
-      const wrapper = document.createElement('span');
-      wrapper.setAttribute('data-deliverable-reference', '');
-      wrapper.setAttribute('data-deliverable-id', del.id);
-      wrapper.setAttribute('data-deliverable-label', String(del.number));
-      Object.assign(wrapper.style, { display: 'inline-block', verticalAlign: 'baseline', position: 'relative', width: `${totalWidth}px`, height: '17px', userSelect: 'none' });
-      wrapper.innerHTML = `<svg width="${totalWidth}" height="17" viewBox="0 0 ${totalWidth} 17" style="position:absolute;top:0;left:0;overflow:visible;"><path d="M 0,0 L ${textWidth},0 L ${totalWidth},8.5 L ${textWidth},17 L 0,17 Z" fill="#ffffff" stroke="${color}" stroke-width="1.5" stroke-linejoin="round"/></svg><span style="position:absolute;top:0;left:0;width:${textWidth}px;height:17px;display:flex;align-items:center;justify-content:center;font-family:'Times New Roman',Times,serif;font-size:11pt;font-weight:700;line-height:1;color:${color};white-space:nowrap;">${label}</span>`;
+    const wrapper = document.createElement('span');
+    wrapper.setAttribute('data-deliverable-reference', '');
+    wrapper.setAttribute('data-deliverable-id', del.id);
+    wrapper.setAttribute('data-deliverable-label', String(del.number));
+    wrapper.textContent = String(del.number);
     markBadgeTree(wrapper, 'deliverable');
-      range.insertNode(wrapper);
-      range.setStartAfter(wrapper);
-      range.collapse(true);
-      selection.removeAllRanges();
-      selection.addRange(range);
-      notifyEditorInput(editorEl);
-    }
+    insertNodeAtCursor(wrapper);
     toast.success(`${del.number} reference inserted`);
-  }, [notifyEditorInput, restoreSelection]);
+  }, [insertNodeAtCursor]);
 
-  // Handle Milestone reference insertion - elongated hexagon matching the rest of the app
   const insertMilestoneRefAtCursor = useCallback((ms: { id: string; number: number; name: string }) => {
-    const { editorEl } = restoreSelection();
-    const selection = window.getSelection();
-    if (selection && selection.rangeCount > 0) {
-      const range = selection.getRangeAt(0);
-      const wrapper = document.createElement('span');
-      wrapper.setAttribute('data-milestone-reference', '');
-      wrapper.setAttribute('data-milestone-id', ms.id);
-      wrapper.setAttribute('data-milestone-number', String(ms.number));
-      Object.assign(wrapper.style, {
-        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        background: '#000', color: '#ffffff',
-        fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: '700',
-        lineHeight: '18px', height: '18px', padding: '0 4px',
-        clipPath: 'polygon(12% 0%, 88% 0%, 100% 50%, 88% 100%, 12% 100%, 0% 50%)',
-        verticalAlign: 'baseline', whiteSpace: 'nowrap', userSelect: 'none',
-      });
-      wrapper.textContent = `MS${Number(ms.number) || 0}`;
+    const wrapper = document.createElement('span');
+    wrapper.setAttribute('data-milestone-reference', '');
+    wrapper.setAttribute('data-milestone-id', ms.id);
+    wrapper.setAttribute('data-milestone-number', String(ms.number));
+    wrapper.textContent = `MS${Number(ms.number) || 0}`;
     markBadgeTree(wrapper, 'milestone');
-      range.insertNode(wrapper);
-      range.setStartAfter(wrapper);
-      range.collapse(true);
-      selection.removeAllRanges();
-      selection.addRange(range);
-      notifyEditorInput(editorEl);
-    }
+    insertNodeAtCursor(wrapper);
     toast.success(`MS${ms.number} reference inserted`);
-  }, [notifyEditorInput, restoreSelection]);
+  }, [insertNodeAtCursor]);
 
-  // Handle Acronym reference insertion - colored letters mimicking AcronymReference extension
   const insertAcronymRefAtCursor = useCallback(() => {
     if (!acronymSegments || acronymSegments.length === 0) return;
-    const { editorEl } = restoreSelection();
-    const selection = window.getSelection();
-    if (selection && selection.rangeCount > 0) {
-      const range = selection.getRangeAt(0);
-      const wrapper = document.createElement('span');
-      wrapper.setAttribute('data-acronym-reference', '');
-      wrapper.setAttribute('data-acronym-segments', JSON.stringify(acronymSegments));
-      Object.assign(wrapper.style, {
-        display: 'inline',
-        fontFamily: "'Arial Black', Arial, sans-serif",
-        fontWeight: '900',
-        fontSize: 'inherit',
-        whiteSpace: 'nowrap',
-        cursor: 'pointer',
-      });
-      acronymSegments.forEach((seg) => {
-        const s = document.createElement('span');
-        s.style.color = seg.color;
-        s.textContent = seg.text;
-        wrapper.appendChild(s);
-      });
-      markBadgeTree(wrapper, 'acronym');
-      range.insertNode(wrapper);
-      range.setStartAfter(wrapper);
-      range.collapse(true);
-      selection.removeAllRanges();
-      selection.addRange(range);
-      notifyEditorInput(editorEl);
-    }
+    const wrapper = document.createElement('span');
+    wrapper.setAttribute('data-acronym-reference', '');
+    wrapper.setAttribute('data-acronym-segments', JSON.stringify(acronymSegments));
+    acronymSegments.forEach((seg) => {
+      const s = document.createElement('span');
+      s.style.color = seg.color;
+      s.textContent = seg.text;
+      wrapper.appendChild(s);
+    });
+    markBadgeTree(wrapper, 'acronym');
+    insertNodeAtCursor(wrapper);
     toast.success('Acronym reference inserted');
-  }, [acronymSegments, notifyEditorInput, restoreSelection]);
+  }, [acronymSegments, insertNodeAtCursor]);
 
-  // Handle Case reference insertion - rounded outline badge matching CaseReferenceMark
   const insertCaseRefAtCursor = useCallback((caseItem: { id: string; number: number; short_name: string | null; case_type: string }) => {
-    const { editorEl } = restoreSelection();
-    const selection = window.getSelection();
-    if (selection && selection.rangeCount > 0) {
-      const range = selection.getRangeAt(0);
-      const prefix = getCaseTypePrefix(caseItem.case_type);
-      const label = prefix ? `${prefix}${caseItem.number}` : (caseItem.short_name || String(caseItem.number));
-      const span = document.createElement('span');
-      span.textContent = label;
-      span.setAttribute('data-case-reference', '');
-      span.setAttribute('data-case-id', caseItem.id);
-      span.setAttribute('data-case-number', String(caseItem.number));
-      span.setAttribute('data-case-type', caseItem.case_type);
-      if (caseItem.short_name) span.setAttribute('data-case-short-name', caseItem.short_name);
-      markBadgeElement(span, 'case');
-      Object.assign(span.style, {
-        display: 'inline-flex', alignItems: 'center', backgroundColor: '#ffffff', color: '#000000',
-        border: '1.5px solid #000000', padding: '0 0.4rem', borderRadius: '9999px',
-        fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: '700',
-        fontStyle: 'normal', lineHeight: '1', whiteSpace: 'nowrap', verticalAlign: 'baseline',
-        cursor: 'pointer', userSelect: 'none',
-      });
-      range.insertNode(span);
-      range.setStartAfter(span);
-      range.collapse(true);
-      selection.removeAllRanges();
-      selection.addRange(range);
-      notifyEditorInput(editorEl);
-    }
+    const prefix = getCaseTypePrefix(caseItem.case_type);
+    const label = prefix ? `${prefix}${caseItem.number}` : (caseItem.short_name || String(caseItem.number));
+    const span = document.createElement('span');
+    span.textContent = label;
+    span.setAttribute('data-case-reference', '');
+    span.setAttribute('data-case-id', caseItem.id);
+    span.setAttribute('data-case-number', String(caseItem.number));
+    span.setAttribute('data-case-type', caseItem.case_type);
+    if (caseItem.short_name) span.setAttribute('data-case-short-name', caseItem.short_name);
+    markBadgeElement(span, 'case');
+    insertNodeAtCursor(span);
     toast.success(`${caseWord(caseTypes, { capitalize: true })} reference inserted`);
-  }, [notifyEditorInput, restoreSelection, caseTypes]);
+  }, [insertNodeAtCursor, caseTypes]);
 
 
 
