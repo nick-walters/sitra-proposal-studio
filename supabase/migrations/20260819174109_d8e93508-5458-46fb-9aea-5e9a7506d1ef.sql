@@ -1,0 +1,1 @@
+update wp_draft_tasks set description=replace(description,'>D9.9<','>D5.6<') where id='d7f29273-fe7c-4196-b23a-8a0d4d2f3d24';
