@@ -664,11 +664,12 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
                         />
                       </td>
                       <td className="py-1.5 px-1">
-                        <InlineRichEditor
+                        <LazyRichField
                           value={m.means_of_verification || ''}
                           disabled={!canEdit}
-                          placeholder="Means of verification"
                           minHeight="30px"
+                          proposalId={proposalId}
+                          staticExtensions={WP_DRAFT_FIELD_EXTENSIONS}
                           onChange={(html) => updateMilestone.mutate({ id: m.id, patch: { means_of_verification: html } })}
                         />
                       </td>
