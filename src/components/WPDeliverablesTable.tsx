@@ -417,6 +417,8 @@ interface DeliverableRowProps {
   onSaveTasks: (deliverableId: string, taskIds: string[]) => Promise<void>;
   readOnly: boolean;
   otherWpDrafts: WPOption[];
+  proposalId?: string | null;
+  shouldStayMounted?: () => boolean;
 }
 
 function DeliverableRow({
