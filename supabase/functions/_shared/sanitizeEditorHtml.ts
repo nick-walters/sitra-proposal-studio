@@ -31,6 +31,14 @@ export const ALLOWED_CLASSES = new Set<string>([
 export const ALLOWED_DATA_ATTRS = new Set<string>([
   'data-list-style',
   'data-inline-reference',
+  // Atomic-badge marker (see refBadgeMarkup.markBadgeElement)
+  'data-badge',
+  'data-task-reference',
+  'data-deliverable-reference',
+  'data-deliverable-label',
+  'data-deliverable-color',
+  'data-milestone-reference',
+  'data-task-color',
   'data-wp-reference',
   'data-case-reference',
   'data-participant-reference',
@@ -155,7 +163,7 @@ export const ALLOWED_TAGS = [
 
 export const ALLOWED_ATTR = [
   // HTML
-  'class', 'style', 'href', 'target', 'rel', 'src', 'alt',
+  'class', 'style', 'href', 'target', 'rel', 'src', 'alt', 'contenteditable',
   'width', 'height', 'colspan', 'rowspan', 'colwidth',
   // SVG
   'viewBox', 'xmlns', 'fill', 'stroke', 'stroke-width', 'stroke-linecap',
@@ -163,6 +171,20 @@ export const ALLOWED_ATTR = [
   'points', 'transform', 'preserveAspectRatio',
   // Data attrs (whitelisted set)
   ...Array.from(ALLOWED_DATA_ATTRS),
+];
+
+/** Attributes that identify an element as an atomic cross-reference badge. */
+const BADGE_MARKER_ATTRS = [
+  'data-badge',
+  'data-inline-reference',
+  'data-wp-reference', 'data-wp-id',
+  'data-task-reference', 'data-task-id',
+  'data-deliverable-reference', 'data-deliverable-id',
+  'data-milestone-reference', 'data-milestone-id',
+  'data-participant-reference', 'data-participant-id',
+  'data-case-reference', 'data-case-id',
+  'data-acronym-reference',
+  'data-fig-table-ref',
 ];
 
 function cleanStorageSrc(src: string): string {
@@ -207,8 +229,29 @@ export function sanitizeEditorHtml(html: string): string {
 
     // Strip event handlers and editor-state attrs.
     if (name.startsWith('on') ||
-        ['contenteditable', 'draggable', 'spellcheck', 'tabindex', 'role'].includes(name)) {
+        ['draggable', 'spellcheck', 'tabindex', 'role'].includes(name)) {
       data.keepAttr = false;
+      return;
+    }
+
+    // `contenteditable` is editor state everywhere EXCEPT on cross-reference
+    // badges, which are atomic islands and must stay non-editable. Losing it
+    // here is what lets the caret enter a badge and typing be absorbed into it.
+    if (name === 'contenteditable') {
+      const isBadge =
+        value.toLowerCase() === 'false' &&
+        !!node &&
+        typeof node.hasAttribute === 'function' &&
+        BADGE_MARKER_ATTRS.some((attr: string) => node.hasAttribute(attr));
+      // Nested badge layers carry only `contenteditable`; their parent chain
+      // is a badge, so keep the attribute whenever the value is `false` and
+      // the element sits inside a badge.
+      const insideBadge =
+        value.toLowerCase() === 'false' &&
+        !!node &&
+        typeof node.closest === 'function' &&
+        !!node.closest(BADGE_MARKER_ATTRS.map((a: string) => `[${a}]`).join(','));
+      data.keepAttr = isBadge || insideBadge;
       return;
     }
 
@@ -260,7 +303,7 @@ export function sanitizeEditorHtml(html: string): string {
       // ALLOWED_ATTR, so non-standard attrs must also be added explicitly.
       // `colwidth` is TipTap's per-cell column width — without it every
       // user-resized editor table resets on reload.
-      ADD_ATTR: ['colwidth'],
+      ADD_ATTR: ['colwidth', 'contenteditable'],
     }) as string;
   } finally {
     DOMPurify.removeHook('uponSanitizeAttribute');
