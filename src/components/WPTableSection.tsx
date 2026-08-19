@@ -66,6 +66,8 @@ interface WPTableSectionProps {
   currentWpDraftId?: string;
   proposalId?: string | null;
   canManageCustomColors?: boolean;
+  /** Keep the focused editor mounted while an insert dialog is open. */
+  shouldStayMounted?: () => boolean;
 }
 
 export function WPTableSection({
