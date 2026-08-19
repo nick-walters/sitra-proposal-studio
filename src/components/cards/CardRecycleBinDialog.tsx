@@ -150,7 +150,11 @@ export function CardRecycleBinDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[60vh] w-full min-w-0 pr-3">
+        {/* Radix renders the scroll viewport with `display: table`, so its width
+            is driven by content: one wide deleted module stretched every row and
+            pushed Restore outside the dialog. Force the viewport back to block. */}
+        <ScrollArea className="max-h-[60vh] w-full min-w-0 pr-3 [&>[data-radix-scroll-area-viewport]>div]:!block [&>[data-radix-scroll-area-viewport]>div]:!w-full [&>[data-radix-scroll-area-viewport]]:!block [&>[data-radix-scroll-area-viewport]]:w-full">
+
           {isLoading ? (
             <p className="text-sm text-muted-foreground">Loading…</p>
           ) : entries.length === 0 ? (
