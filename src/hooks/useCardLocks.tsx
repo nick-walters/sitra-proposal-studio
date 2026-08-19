@@ -282,28 +282,46 @@ export function CardLockProvider({
     [claim, warning],
   );
 
-  // Heartbeat: keeps the server-side expiry in the future while held. The
-  // interval is throttled to ~1/min in background tabs, which the 150s server
-  // window absorbs; an extra beat fires whenever the tab or window returns.
+  // Heartbeat: keeps the server-side expiry in the future while held. It runs
+  // on a Worker timer because main-thread `setInterval` is clamped (and on
+  // minimise sometimes suspended) by the browser; extra beats fire whenever
+  // the tab or window returns.
   useEffect(() => {
     if (!enabled) return;
+    let lastBeatAt = 0;
     const beat = () => {
       const target = myTargetRef.current;
       if (!target) return;
+      if (import.meta.env.DEV) {
+        const now = Date.now();
+        // eslint-disable-next-line no-console
+        console.debug(
+          '[card-lock heartbeat]',
+          new Date(now).toISOString(),
+          'gap',
+          lastBeatAt ? `${Math.round((now - lastBeatAt) / 1000)}s` : 'first',
+          'hidden',
+          document.hidden,
+        );
+        lastBeatAt = now;
+      }
       void supabase.rpc('heartbeat_card_lock', {
         p_target_type: 'text_box' as LockTargetType,
         p_target_id: target,
       });
     };
-    const id = window.setInterval(beat, HEARTBEAT_MS);
+    const stop = createWorkerInterval(HEARTBEAT_MS, beat);
     document.addEventListener('visibilitychange', beat);
     window.addEventListener('focus', beat);
+    window.addEventListener('pageshow', beat);
     return () => {
-      window.clearInterval(id);
+      stop();
       document.removeEventListener('visibilitychange', beat);
       window.removeEventListener('focus', beat);
+      window.removeEventListener('pageshow', beat);
     };
   }, [enabled]);
+
 
 
   // Idle timer: warning at one minute remaining, save-then-release at zero.
