@@ -822,7 +822,7 @@ function CardBlock({
                 title={`${binCount} deleted ${binCount === 1 ? 'module' : 'modules'}`}
                 onClick={() => onOpenBin(card)}
               >
-                <Recycle className="h-4 w-4" />
+                <Recycle className="h-4 w-4 text-emerald-600" strokeWidth={2.5} />
               </Button>
             )}
 
@@ -1306,7 +1306,7 @@ function BoardInner({
             )}
             {canEdit && (
               <Button variant="outline" size="sm" onClick={() => setBinOpen(true)}>
-                <Recycle className="mr-1 h-3.5 w-3.5" />
+                <Recycle className="mr-1 h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
                 Recycle bin
               </Button>
             )}
