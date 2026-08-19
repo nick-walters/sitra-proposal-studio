@@ -13,7 +13,18 @@ import { InsertParticipantReferenceDialog } from '@/components/InsertParticipant
 import { InsertTDMSReferenceDropdowns } from '@/components/InsertTDMSReferenceDropdowns';
 import { WPBubble, B31Pill } from '@/components/B31Pill';
 import { buildCaseLabel, getCaseTypePrefix } from '@/lib/caseTypeLabels';
-import type { AcronymSegment } from '@/extensions/AcronymReference';
+import {
+  buildWPBadge,
+  buildTaskBadge,
+  buildDeliverableBadge,
+  buildCaseBadge,
+  buildParticipantBadge,
+  buildAcronymBadge,
+  buildMilestoneBadge,
+  insertIntoRememberedContentEditable,
+  rememberContentEditableSelection,
+  type AcronymSegment,
+} from '@/lib/contentEditableRefBadges';
 import type { Editor } from '@tiptap/react';
 
 interface Props {
@@ -146,95 +157,99 @@ export function ParticipantCrossRefDropdown({
             <DropdownMenuItem
               onSelect={() => {
                 if (!acronymSegments) return;
-                                editor!.chain().focus().insertAcronymReference({ segments: acronymSegments })
-                  .insertContent(' ').run();
-              } else {
-                insertNode(buildAcronymBadge(acronymSegments));
-              }
-            }}
+                if (hasEditor) {
+                  editor!.chain().focus().insertAcronymReference({ segments: acronymSegments })
+                    .insertContent(' ').run();
+                } else {
+                  insertNode(buildAcronymBadge(acronymSegments));
+                }
+              }}
+              className="flex items-center gap-2"
+            >
+              <span className="w-16 flex justify-start shrink-0">
+                <span style={{ fontFamily: "'Arial Black', Arial, sans-serif", fontWeight: 900, fontSize: '9px', whiteSpace: 'nowrap' }}>
+                  {acronymSegments!.map((seg, i) => (
+                    <span key={i} style={{ color: seg.color }}>{seg.text}</span>
+                  ))}
+                </span>
+              </span>
+              <span>Acronym</span>
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuItem
+            onSelect={() => openDialog(setWpOpen)}
             className="flex items-center gap-2"
           >
             <span className="w-16 flex justify-start shrink-0">
-              <span style={{ fontFamily: "'Arial Black', Arial, sans-serif", fontWeight: 900, fontSize: '9px', whiteSpace: 'nowrap' }}>
-                {acronymSegments!.map((seg, i) => (
-                  <span key={i} style={{ color: seg.color }}>{seg.text}</span>
-                ))}
+              <WPBubble wpColor="#73C92D" style={{ width: '22px', height: '14px', padding: 0 }}>{' '}</WPBubble>
+            </span>
+            <span>Work package</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onSelect={() => openDialog(setTaskOpen)}
+            className="flex items-center gap-2"
+          >
+            <span className="w-16 flex justify-start shrink-0">
+              <B31Pill variant="outline" color="#73C92D" style={{ width: '22px', height: '14px', padding: 0 }}>{' '}</B31Pill>
+            </span>
+            <span>Task</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onSelect={() => openDialog(setDelOpen)}
+            className="flex items-center gap-2"
+          >
+            <span className="w-16 flex justify-start shrink-0">
+              <span style={{ display: 'inline-block', width: '22px', height: '14px', background: '#73C92D', clipPath: 'polygon(0% 0%, calc(100% - 6px) 0%, 100% 50%, calc(100% - 6px) 100%, 0% 100%)', position: 'relative' }}>
+                <span style={{ position: 'absolute', inset: '1.5px', right: '2px', background: '#ffffff', clipPath: 'polygon(0% 0%, calc(100% - 5px) 0%, 100% 50%, calc(100% - 5px) 100%, 0% 100%)' }} />
               </span>
             </span>
-            <span>Acronym</span>
+            <span>Deliverable</span>
           </DropdownMenuItem>
-        )}
-        <DropdownMenuItem
-          onSelect={() => openDialog(setWpOpen)}
-          className="flex items-center gap-2"
-        >
-          <span className="w-16 flex justify-start shrink-0">
-            <WPBubble wpColor="#73C92D" style={{ width: '22px', height: '14px', padding: 0 }}>{' '}</WPBubble>
-          </span>
-          <span>Work package</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onSelect={() => openDialog(setTaskOpen)}
-          className="flex items-center gap-2"
-        >
-          <span className="w-16 flex justify-start shrink-0">
-            <B31Pill variant="outline" color="#73C92D" style={{ width: '22px', height: '14px', padding: 0 }}>{' '}</B31Pill>
-          </span>
-          <span>Task</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onSelect={() => openDialog(setDelOpen)}
-          className="flex items-center gap-2"
-        >
-          <span className="w-16 flex justify-start shrink-0">
-            <span style={{ display: 'inline-block', width: '22px', height: '14px', background: '#73C92D', clipPath: 'polygon(0% 0%, calc(100% - 6px) 0%, 100% 50%, calc(100% - 6px) 100%, 0% 100%)', position: 'relative' }}>
-              <span style={{ position: 'absolute', inset: '1.5px', right: '2px', background: '#ffffff', clipPath: 'polygon(0% 0%, calc(100% - 5px) 0%, 100% 50%, calc(100% - 5px) 100%, 0% 100%)' }} />
+          <DropdownMenuItem
+            onSelect={() => openDialog(setMilestoneOpen)}
+            className="flex items-center gap-2"
+          >
+            <span className="w-16 flex justify-start shrink-0">
+              <span style={{ display: 'inline-block', width: '22px', height: '14px', background: '#000000', clipPath: 'polygon(12% 0%, 88% 0%, 100% 50%, 88% 100%, 12% 100%, 0% 50%)' }} />
             </span>
-          </span>
-          <span>Deliverable</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onSelect={() => openDialog(setMilestoneOpen)}
-          className="flex items-center gap-2"
-        >
-          <span className="w-16 flex justify-start shrink-0">
-            <span style={{ display: 'inline-block', width: '22px', height: '14px', background: '#000000', clipPath: 'polygon(12% 0%, 88% 0%, 100% 50%, 88% 100%, 12% 100%, 0% 50%)' }} />
-          </span>
-          <span>Milestone</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onSelect={() => openDialog(setCaseOpen)}
-          className="flex items-center gap-2"
-        >
-          <span className="w-16 flex justify-start shrink-0">
-            <span style={{ display: 'inline-block', width: '22px', height: '14px', border: '1.5px solid #000000', borderRadius: '9999px', background: '#ffffff' }} />
-          </span>
-          <span>Case</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onSelect={() => openDialog(setParticipantOpen)}
-          className="flex items-center gap-2"
-        >
-          <span className="w-16 flex justify-start shrink-0">
-            <span style={{ display: 'inline-block', width: '22px', height: '14px', border: '1.5px solid #000000', borderRadius: '9999px', background: '#000000' }} />
-          </span>
-          <span>Participant</span>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+            <span>Milestone</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onSelect={() => openDialog(setCaseOpen)}
+            className="flex items-center gap-2"
+          >
+            <span className="w-16 flex justify-start shrink-0">
+              <span style={{ display: 'inline-block', width: '22px', height: '14px', border: '1.5px solid #000000', borderRadius: '9999px', background: '#ffffff' }} />
+            </span>
+            <span>Case</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onSelect={() => openDialog(setParticipantOpen)}
+            className="flex items-center gap-2"
+          >
+            <span className="w-16 flex justify-start shrink-0">
+              <span style={{ display: 'inline-block', width: '22px', height: '14px', border: '1.5px solid #000000', borderRadius: '9999px', background: '#000000' }} />
+            </span>
+            <span>Participant</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
-    <InsertWPReferenceDialog
-      open={wpOpen}
-      onOpenChange={closeDialog(setWpOpen)}
-      proposalId={proposalId}
-      onSelect={(wp) => {
-        if (hasEditor) {
-          editor!.chain().focus().insertWPReference({
-            wpNumber: wp.number,
-            wpShortName: wp.short_name || '',
-            wpColor: wp.color,
-            wpId: wp.id,
-          }).insertContent(' ').unsetBold().unsetItalic().run();
+      <InsertWPReferenceDialog
+        open={wpOpen}
+        onOpenChange={closeDialog(setWpOpen)}
+        proposalId={proposalId}
+        onSelect={(wp) => {
+          if (hasEditor) {
+            editor!.chain().focus().insertWPReference({
+              wpNumber: wp.number,
+              wpShortName: wp.short_name || '',
+              wpColor: wp.color,
+              wpId: wp.id,
+            }).insertContent(' ').unsetBold().unsetItalic().run();
+            return;
+          }
+          insertNode(buildWPBadge({ id: wp.id, number: wp.number, short_name: wp.short_name, color: wp.color }));
         }}
       />
 
@@ -251,15 +266,28 @@ export function ParticipantCrossRefDropdown({
             includeAbbreviation: c.include_abbreviation !== false,
             withShortName: false,
           });
-                    editor!.chain().focus().insertCaseReference({
-            caseNumber: c.number,
-            caseShortName: c.short_name || '',
-            caseColor: c.color,
-            caseId: c.id,
-            caseType: c.case_type,
-            includeNumber: c.include_number !== false,
-            includeAbbreviation: c.include_abbreviation !== false,
-          }).insertContent(' ').unsetBold().unsetItalic().run();
+          if (hasEditor) {
+            editor!.chain().focus().insertCaseReference({
+              caseNumber: c.number,
+              caseShortName: c.short_name || '',
+              caseColor: c.color,
+              caseId: c.id,
+              caseType: c.case_type,
+              includeNumber: c.include_number !== false,
+              includeAbbreviation: c.include_abbreviation !== false,
+            }).insertContent(' ').unsetBold().unsetItalic().run();
+            return;
+          }
+          insertNode(
+            buildCaseBadge({
+              id: c.id,
+              number: c.number,
+              short_name: c.short_name,
+              case_type: c.case_type,
+              color: c.color,
+              label,
+            }),
+          );
         }}
       />
 
@@ -268,11 +296,15 @@ export function ParticipantCrossRefDropdown({
         onOpenChange={closeDialog(setParticipantOpen)}
         proposalId={proposalId}
         onSelect={(p) => {
-                    editor!.chain().focus().insertParticipantReference({
-            participantNumber: p.participantNumber,
-            shortName: p.shortName,
-            participantId: p.id,
-          }).insertContent(' ').unsetBold().unsetItalic().run();
+          if (hasEditor) {
+            editor!.chain().focus().insertParticipantReference({
+              participantNumber: p.participantNumber,
+              shortName: p.shortName,
+              participantId: p.id,
+            }).insertContent(' ').unsetBold().unsetItalic().run();
+            return;
+          }
+          insertNode(buildParticipantBadge(p));
         }}
       />
 
@@ -286,25 +318,37 @@ export function ParticipantCrossRefDropdown({
         openMilestone={milestoneOpen}
         onOpenMilestoneChange={closeDialog(setMilestoneOpen)}
         onInsertTask={(t) => {
-                    editor!.chain().focus().insertTaskReference({
-            wpNumber: t.wp_number,
-            taskNumber: t.number,
-            taskId: t.id,
-            wpColor: t.wp_color || undefined,
-          }).insertContent(' ').unsetBold().unsetItalic().run();
+          if (hasEditor) {
+            editor!.chain().focus().insertTaskReference({
+              wpNumber: t.wp_number,
+              taskNumber: t.number,
+              taskId: t.id,
+              wpColor: t.wp_color || undefined,
+            }).insertContent(' ').unsetBold().unsetItalic().run();
+            return;
+          }
+          insertNode(buildTaskBadge(t));
         }}
         onInsertDeliverable={(d) => {
-                    editor!.chain().focus().insertDeliverableReference({
-            deliverableNumber: d.number,
-            deliverableId: d.id,
-            wpColor: d.wp_color || undefined,
-          }).insertContent(' ').unsetBold().unsetItalic().run();
+          if (hasEditor) {
+            editor!.chain().focus().insertDeliverableReference({
+              deliverableNumber: d.number,
+              deliverableId: d.id,
+              wpColor: d.wp_color || undefined,
+            }).insertContent(' ').unsetBold().unsetItalic().run();
+            return;
+          }
+          insertNode(buildDeliverableBadge(d));
         }}
         onInsertMilestone={(m) => {
-                    editor!.chain().focus().insertMilestoneReference({
-            milestoneNumber: m.number,
-            milestoneId: m.id,
-          }).insertContent(' ').run();
+          if (hasEditor) {
+            editor!.chain().focus().insertMilestoneReference({
+              milestoneNumber: m.number,
+              milestoneId: m.id,
+            }).insertContent(' ').run();
+            return;
+          }
+          insertNode(buildMilestoneBadge(m));
         }}
       />
     </>
