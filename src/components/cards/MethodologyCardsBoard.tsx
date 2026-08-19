@@ -1198,6 +1198,13 @@ function BoardInner({
     return map;
   }, [binEntries]);
 
+  /** Deleted blocks in this section, for the page-level bin button. */
+  const deletedBlockCount = useMemo(
+    () => binEntries.filter((e) => e.targetType === 'card').length,
+    [binEntries],
+  );
+
+
   /** Scroll a restored/created block or module into view and flash it briefly. */
   const jumpToRestored = useCallback((targetType: 'card' | 'field', targetId: string) => {
     const domId = targetType === 'card' ? `card-block-${targetId}` : `card-module-${targetId}`;
