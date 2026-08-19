@@ -39,8 +39,8 @@ function BinEntry({
   const hasContent = html.replace(/<[^>]*>/g, '').trim().length > 0;
 
   return (
-    <div className="rounded-md border border-border p-2">
-      <div className="flex items-start gap-2">
+    <div className="w-full min-w-0 max-w-full overflow-hidden rounded-md border border-border p-2">
+      <div className="flex min-w-0 items-start gap-2">
         <div className="min-w-0 flex-1 space-y-1">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             <Badge variant="secondary" className="text-[11px] font-bold">
