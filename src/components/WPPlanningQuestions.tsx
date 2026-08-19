@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { WPSimpleEditor } from '@/components/WPSimpleEditor';
+import { LazyRichField } from '@/components/participant/LazyRichField';
+import { WP_DRAFT_FIELD_EXTENSIONS } from '@/components/wp/wpDraftFieldExtensions';
 import { HelpCircle } from 'lucide-react';
 
 interface WPPlanningQuestionsProps {
@@ -11,6 +12,10 @@ interface WPPlanningQuestionsProps {
   onOutputsChange: (value: string) => void;
   onBottlenecksChange: (value: string) => void;
   readOnly?: boolean;
+  /** Proposal the WP belongs to — required by the shared rich field. */
+  proposalId?: string | null;
+  /** Keep the mounted editor alive while a picker dialog is open. */
+  shouldStayMounted?: () => boolean;
 }
 
 interface QuestionFieldProps {
@@ -19,22 +24,33 @@ interface QuestionFieldProps {
   question: string;
   value: string | null;
   onChange: (value: string) => void;
-  placeholder: string;
   readOnly: boolean;
+  proposalId?: string | null;
+  shouldStayMounted?: () => boolean;
 }
 
-function QuestionField({ id, label, question, value, onChange, placeholder, readOnly }: QuestionFieldProps) {
+function QuestionField({
+  id,
+  label,
+  question,
+  value,
+  onChange,
+  readOnly,
+  proposalId,
+  shouldStayMounted,
+}: QuestionFieldProps) {
   return (
-    <div className="space-y-2">
-      <Label htmlFor={id} className="text-draft font-medium">{label}</Label>
+    <div className="space-y-2" id={id}>
+      <Label className="text-draft font-medium">{label}</Label>
       <p className="text-draft text-muted-foreground">{question}</p>
-      <WPSimpleEditor
+      <LazyRichField
         value={value || ''}
         onChange={onChange}
-        placeholder={placeholder}
         disabled={readOnly}
         minHeight="80px"
-        hideToolbar={true}
+        proposalId={proposalId ?? ''}
+        staticExtensions={WP_DRAFT_FIELD_EXTENSIONS}
+        shouldStayMounted={shouldStayMounted}
       />
     </div>
   );
@@ -48,6 +64,8 @@ export function WPPlanningQuestions({
   onOutputsChange,
   onBottlenecksChange,
   readOnly = false,
+  proposalId,
+  shouldStayMounted,
 }: WPPlanningQuestionsProps) {
   return (
     <Card>
@@ -64,8 +82,9 @@ export function WPPlanningQuestions({
           question="What are the main inputs this WP needs from other WPs or external sources?"
           value={inputs}
           onChange={onInputsChange}
-          placeholder="e.g. Requirements from WP1, Data from external stakeholders..."
           readOnly={readOnly}
+          proposalId={proposalId}
+          shouldStayMounted={shouldStayMounted}
         />
 
         <QuestionField
@@ -74,8 +93,9 @@ export function WPPlanningQuestions({
           question="What are the main outputs this WP will produce that feed other WPs?"
           value={outputs}
           onChange={onOutputsChange}
-          placeholder="e.g. Design specifications for WP3, Validated models for WP4..."
           readOnly={readOnly}
+          proposalId={proposalId}
+          shouldStayMounted={shouldStayMounted}
         />
 
         <QuestionField
@@ -84,8 +104,9 @@ export function WPPlanningQuestions({
           question="What major bottlenecks could slow progress of the project's implementation if not completed on time?"
           value={bottlenecks}
           onChange={onBottlenecksChange}
-          placeholder="e.g. Ethical approval for data collection, Hardware procurement lead times..."
           readOnly={readOnly}
+          proposalId={proposalId}
+          shouldStayMounted={shouldStayMounted}
         />
       </CardContent>
     </Card>
