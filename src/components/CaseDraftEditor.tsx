@@ -332,17 +332,14 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
     toast.success('Figure reference inserted');
   }, [insertNodeAtCursor]);
 
-  // Browser-level undo/redo for contentEditable surfaces in the case draft
+  // Scoped TipTap history for the focused subsection editor.
   const handleUndo = useCallback(() => {
-    const { editorEl } = restoreSelection();
-    if (editorEl) editorEl.focus({ preventScroll: true });
-    document.execCommand('undo');
-  }, [restoreSelection]);
+    getEditor()?.chain().focus().undo().run();
+  }, [getEditor]);
   const handleRedo = useCallback(() => {
-    const { editorEl } = restoreSelection();
-    if (editorEl) editorEl.focus({ preventScroll: true });
-    document.execCommand('redo');
-  }, [restoreSelection]);
+    getEditor()?.chain().focus().redo().run();
+  }, [getEditor]);
+
 
 
 
