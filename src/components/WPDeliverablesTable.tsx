@@ -382,6 +382,8 @@ export function WPDeliverablesTable({
                     onSaveTasks={saveDeliverableTasks}
                     readOnly={readOnly}
                     otherWpDrafts={otherWpDrafts}
+                    proposalId={proposalId}
+                    shouldStayMounted={shouldStayMounted}
                   />
                 ))}
               </tbody>
