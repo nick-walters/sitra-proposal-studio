@@ -413,7 +413,7 @@ function FieldRow({
                     className="h-8 flex-1 select-text truncate rounded-md border border-destructive bg-background px-3 py-1 text-sm font-bold ring-1 ring-destructive/40"
                     aria-readonly="true"
                   >
-                    {headerLock.streamed ?? headingDraft}
+                    {headingView}
                   </div>
                 ) : (
                   <Input
