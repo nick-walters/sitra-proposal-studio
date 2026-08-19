@@ -11,7 +11,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DebouncedInput } from '@/components/ui/debounced-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { WPSimpleEditor } from '@/components/WPSimpleEditor';
+import { LazyRichField } from '@/components/participant/LazyRichField';
+import { CASE_DRAFT_FIELD_EXTENSIONS } from '@/components/cases/caseDraftFieldExtensions';
+import {
+  MethodologyEditorFocusProvider,
+  useMethodologyEditorFocus,
+} from '@/components/MethodologyEditorFocusContext';
 import { SitraTipsBox } from '@/components/SitraTipsBox';
 import { BookOpen, Lock, Image as ImageLucide, Table2 } from 'lucide-react';
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
@@ -72,7 +77,15 @@ interface CaseDraftEditorProps {
   isCoordinator: boolean;
 }
 
-export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCoordinator }: CaseDraftEditorProps) {
+export function CaseDraftEditor(props: CaseDraftEditorProps) {
+  return (
+    <MethodologyEditorFocusProvider>
+      <CaseDraftEditorInner {...props} />
+    </MethodologyEditorFocusProvider>
+  );
+}
+
+function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoordinator }: CaseDraftEditorProps) {
   const queryClient = useQueryClient();
   const [guidelinesOpen, setGuidelinesOpen] = useState(false);
   const [tablePopoverOpen, setTablePopoverOpen] = useState(false);
@@ -127,68 +140,47 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
   const { data: caseTypes = [] } = useProposalCaseTypes(proposalId);
 
 
-  // Save/restore selection across multiple WPSimpleEditor subsections
-  const savedRangeRef = useRef<Range | null>(null);
-  const savedEditorRef = useRef<HTMLElement | null>(null);
-  const saveSelection = useCallback(() => {
-    const sel = window.getSelection();
-    if (sel && sel.rangeCount > 0) {
-      const node = sel.anchorNode;
-      if (node) {
-        const el = node.nodeType === Node.ELEMENT_NODE ? (node as HTMLElement) : node.parentElement;
-        const editable = el?.closest('[contenteditable="true"]') as HTMLElement | null;
-        if (editable) {
-          savedRangeRef.current = sel.getRangeAt(0).cloneRange();
-          savedEditorRef.current = editable;
-        }
-      }
-    }
-  }, []);
-  const restoreSelection = useCallback((): { editorEl: HTMLElement | null } => {
-    const range = savedRangeRef.current;
-    const editorEl = savedEditorRef.current;
-    const clear = () => { savedRangeRef.current = null; savedEditorRef.current = null; };
-    if (range && editorEl && document.body.contains(editorEl)) {
-      if (document.body.contains(range.startContainer)) {
-        editorEl.focus({ preventScroll: true });
-        const sel = window.getSelection();
-        if (sel) { sel.removeAllRanges(); sel.addRange(range); }
-        clear();
-        return { editorEl };
-      }
-      editorEl.focus({ preventScroll: true });
-      const sel = window.getSelection();
-      if (sel) {
-        sel.removeAllRanges();
-        const fallback = document.createRange();
-        fallback.selectNodeContents(editorEl);
-        fallback.collapse(false);
-        sel.addRange(fallback);
-        clear();
-        return { editorEl };
-      }
-    }
-    clear();
-    return { editorEl: null };
-  }, []);
-  const notifyEditorInput = useCallback((editorEl: HTMLElement | null) => {
-    if (!editorEl || !document.body.contains(editorEl)) return;
-    editorEl.dispatchEvent(new Event('input', { bubbles: true }));
+  // The toolbar acts on whichever LazyRichField subsection last mounted an
+  // editor (MethodologyEditorFocusContext). Everything below routes through
+  // that instance; the legacy contentEditable/execCommand paths are gone.
+  const { activeEditor } = useMethodologyEditorFocus();
+  const activeEditorRef = useRef(activeEditor);
+  activeEditorRef.current = activeEditor;
+
+  const getEditor = useCallback(() => {
+    const editor = activeEditorRef.current;
+    if (!editor || editor.isDestroyed) return null;
+    return editor;
   }, []);
 
+  /** Kept for API compatibility with the toolbar — TipTap keeps its own selection. */
+  const saveSelection = useCallback(() => {}, []);
+
+  // Any open insert dialog / picker must keep the focused editor mounted so
+  // the insertion has somewhere to land. Read through a ref: the LazyRichField
+  // focus-out listener is attached once and would otherwise see stale state.
+  const dialogOpenRef = useRef(false);
+  dialogOpenRef.current =
+    isCrossRefOpen || isWPRefOpen || isParticipantRefOpen || isTaskRefOpen ||
+    isDeliverableRefOpen || isMilestoneRefOpen || isCaseRefOpen || isCitationOpen ||
+    isFigureDialogOpen || tablePopoverOpen;
+  const shouldStayMounted = useCallback(() => dialogOpenRef.current, []);
+
+
+  /** Insert a badge/element by handing its markup to TipTap's parser. */
   const insertNodeAtCursor = useCallback((node: Node) => {
-    const { editorEl } = restoreSelection();
-    const selection = window.getSelection();
-    if (selection && selection.rangeCount > 0) {
-      const range = selection.getRangeAt(0);
-      range.insertNode(node);
-      range.setStartAfter(node);
-      range.collapse(true);
-      selection.removeAllRanges();
-      selection.addRange(range);
-      notifyEditorInput(editorEl);
+    const editor = getEditor();
+    if (!editor) {
+      toast.error('Click into a text box first, then insert the reference.');
+      return;
     }
-  }, [notifyEditorInput, restoreSelection]);
+    const html =
+      node.nodeType === Node.ELEMENT_NODE
+        ? (node as HTMLElement).outerHTML
+        : (node.textContent || '');
+    editor.chain().focus().insertContent(html).run();
+  }, [getEditor]);
+
 
   const insertCrossRefAtCursor = useCallback((payload: { refText: string; figureId?: string; tableKey?: string; refKind: 'figure' | 'table' }) => {
     const span = document.createElement('span');
@@ -351,17 +343,14 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
     toast.success('Figure reference inserted');
   }, [insertNodeAtCursor]);
 
-  // Browser-level undo/redo for contentEditable surfaces in the case draft
+  // Scoped TipTap history for the focused subsection editor.
   const handleUndo = useCallback(() => {
-    const { editorEl } = restoreSelection();
-    if (editorEl) editorEl.focus({ preventScroll: true });
-    document.execCommand('undo');
-  }, [restoreSelection]);
+    getEditor()?.chain().focus().undo().run();
+  }, [getEditor]);
   const handleRedo = useCallback(() => {
-    const { editorEl } = restoreSelection();
-    if (editorEl) editorEl.focus({ preventScroll: true });
-    document.execCommand('redo');
-  }, [restoreSelection]);
+    getEditor()?.chain().focus().redo().run();
+  }, [getEditor]);
+
 
 
 
@@ -491,27 +480,41 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
     [caseDraft, updateMutation],
   );
 
+  /**
+   * The shared toolbar still speaks the legacy execCommand vocabulary; map it
+   * onto TipTap commands run against the focused subsection editor.
+   */
   const execCommand = (command: string, value?: string) => {
-    document.execCommand(command, false, value);
+    const editor = getEditor();
+    if (!editor) return;
+    const chain = editor.chain().focus();
+    switch (command) {
+      case 'bold': chain.toggleBold().run(); break;
+      case 'italic': chain.toggleItalic().run(); break;
+      case 'underline': chain.toggleUnderline().run(); break;
+      case 'insertUnorderedList': chain.toggleBulletList().run(); break;
+      case 'insertOrderedList': chain.toggleOrderedList().run(); break;
+      case 'justifyLeft': chain.setTextAlign('left').run(); break;
+      case 'justifyCenter': chain.setTextAlign('center').run(); break;
+      case 'justifyRight': chain.setTextAlign('right').run(); break;
+      case 'justifyFull': chain.setTextAlign('justify').run(); break;
+      case 'superscript': chain.toggleSuperscript().run(); break;
+      case 'subscript': chain.toggleSubscript().run(); break;
+      case 'insertHTML': if (value) chain.insertContent(value).run(); break;
+      default: break;
+    }
   };
 
   const insertTable = (rows: number, cols: number) => {
-    let tableHtml = '<table style="width:100%; border-collapse:collapse; margin:8px 0;">';
-    for (let r = 0; r < rows; r++) {
-      tableHtml += '<tr>';
-      for (let c = 0; c < cols; c++) {
-        if (r === 0) {
-          tableHtml += '<th style="border:1px solid #000; padding:4px; background:#000; color:#fff; font-weight:bold;">&nbsp;</th>';
-        } else {
-          tableHtml += '<td style="border:1px solid #000; padding:4px;">&nbsp;</td>';
-        }
-      }
-      tableHtml += '</tr>';
-    }
-    tableHtml += '</table><p><br></p>';
-    execCommand('insertHTML', tableHtml);
+    const editor = getEditor();
     setTablePopoverOpen(false);
+    if (!editor) {
+      toast.error('Click into a text box first, then insert the table.');
+      return;
+    }
+    editor.chain().focus().insertTable({ rows, cols, withHeaderRow: true }).run();
   };
+
 
   if (isLoading) {
     return (
@@ -604,16 +607,15 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
             onInsert: insertTable,
           }}
           paragraphSpacingContainer={() =>
-            (document.activeElement && (document.activeElement as HTMLElement).closest('[contenteditable="true"]')) as HTMLElement | null
-            || (document.querySelector('.case-draft-editor [contenteditable="true"]') as HTMLElement | null)
+            (getEditor()?.view.dom as HTMLElement | undefined) ?? null
           }
           fontColor={{
             proposalId,
             canManageCustom: isCoordinator,
             getEditableElement: () =>
-              (document.activeElement && (document.activeElement as HTMLElement).closest('[contenteditable="true"]')) as HTMLElement | null
-              ?? (document.querySelector('.case-draft-editor [contenteditable="true"]') as HTMLElement | null),
+              (getEditor()?.view.dom as HTMLElement | undefined) ?? null,
           }}
+
           onSaveSelection={saveSelection}
           onOpenFigureDialog={() => setIsFigureDialogOpen(true)}
           onOpenCitationDialog={() => setIsCitationOpen(true)}
@@ -795,14 +797,16 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
                   <p className="text-xs text-muted-foreground italic px-1">{guideline}</p>
                 )}
 
-                <WPSimpleEditor
+                <LazyRichField
                   value={content}
                   onChange={(v) => updateSubsectionContent(sub.key, v, sub.heading)}
-                  placeholder={`Write about ${sub.heading.toLowerCase()}...`}
                   disabled={readOnly}
                   minHeight="150px"
-                  hideToolbar={true}
+                  proposalId={proposalId}
+                  staticExtensions={CASE_DRAFT_FIELD_EXTENSIONS}
+                  shouldStayMounted={shouldStayMounted}
                 />
+
               </CardContent>
             </Card>
           );
