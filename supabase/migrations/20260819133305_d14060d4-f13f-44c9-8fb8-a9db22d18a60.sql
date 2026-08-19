@@ -1,0 +1,1 @@
+DROP TABLE IF EXISTS public._badge_ce_repair_report;

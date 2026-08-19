@@ -14,24 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      _badge_ce_repair_report: {
-        Row: {
-          column_name: string | null
-          rows_changed: number | null
-          table_name: string | null
-        }
-        Insert: {
-          column_name?: string | null
-          rows_changed?: number | null
-          table_name?: string | null
-        }
-        Update: {
-          column_name?: string | null
-          rows_changed?: number | null
-          table_name?: string | null
-        }
-        Relationships: []
-      }
       ai_platform_config: {
         Row: {
           display_name: string | null
