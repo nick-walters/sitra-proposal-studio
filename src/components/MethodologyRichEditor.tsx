@@ -1,5 +1,5 @@
-import { useEffect, useId } from 'react';
-import { EditorContent } from '@tiptap/react';
+import { useEffect, useId, useRef } from 'react';
+import { EditorContent, type Editor } from '@tiptap/react';
 import { useRichTextEditor } from './RichTextEditor';
 import { useMethodologyEditorFocus } from './MethodologyEditorFocusContext';
 
