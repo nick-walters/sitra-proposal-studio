@@ -548,6 +548,11 @@ function FieldRow({
               }}
               canEdit={canEdit && !contentLock.lockedByOther}
               isCoordinator={isCoordinator}
+              activeRingClass={
+                contentLock.isMine
+                  ? 'border-emerald-600 ring-1 ring-emerald-600/60'
+                  : 'border-primary ring-1 ring-primary/40'
+              }
             />
           </div>
           {contentLock.lockedByOther && contentLock.holder && (
