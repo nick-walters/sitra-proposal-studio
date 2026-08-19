@@ -210,14 +210,30 @@ export const InlineReferenceNode = Node.create<InlineReferenceOptions>({
       },
       wpColor: {
         default: null,
-        parseHTML: (el) =>
-          el.getAttribute('data-wp-color') ||
-          el.getAttribute('data-deliverable-color') ||
-          el.querySelector('[stroke]')?.getAttribute('stroke') ||
-          null,
+        // Legacy contentEditable chips carry no colour data-attribute at all:
+        // generation 1 painted an SVG pentagon (`[stroke]`), generation 2 put
+        // the colour in the outer span's inline `color` / in the nested
+        // clip-path layer's `background-color`. Read all of them so the badge
+        // keeps its work-package colour even before live data resolves.
+        parseHTML: (el) => {
+          const direct =
+            el.getAttribute('data-wp-color') ||
+            el.getAttribute('data-deliverable-color') ||
+            el.querySelector('[stroke]')?.getAttribute('stroke');
+          if (direct) return direct;
+          const inline = (el as HTMLElement).style?.color;
+          if (inline && inline !== 'inherit') return inline;
+          const layer = el.querySelector<HTMLElement>('span[style*="background-color"]');
+          const bg = layer?.style?.backgroundColor;
+          if (bg && bg !== 'transparent' && !/^(#fff(fff)?|rgb\(255,\s*255,\s*255\))$/i.test(bg)) {
+            return bg;
+          }
+          return null;
+        },
         renderHTML: (attrs) =>
           attrs.wpColor ? { 'data-wp-color': attrs.wpColor } : {},
       },
+
       deletedKind: {
         default: null,
         parseHTML: (el) => el.getAttribute('data-deleted-kind'),
