@@ -25,6 +25,7 @@ import {
   rememberContentEditableSelection,
   type AcronymSegment,
 } from '@/lib/contentEditableRefBadges';
+import type { Editor } from '@tiptap/react';
 
 interface Props {
   proposalId: string;
@@ -33,6 +34,12 @@ interface Props {
   acronymSegments?: AcronymSegment[];
   /** Keeps the parent toolbar visible while a dialog/menu is open. */
   onOpenChange?: (open: boolean) => void;
+  /**
+   * When supplied, references are inserted as TipTap nodes into this editor
+   * instead of as static badge markup into a contentEditable. Used by the
+   * migrated A2 participant-description fields (LazyRichField).
+   */
+  editor?: Editor | null;
 }
 
 /**
@@ -46,6 +53,7 @@ export function ParticipantCrossRefDropdown({
   disabled,
   acronymSegments,
   onOpenChange,
+  editor,
 }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [wpOpen, setWpOpen] = useState(false);
@@ -104,6 +112,9 @@ export function ParticipantCrossRefDropdown({
     insertIntoRememberedContentEditable(node);
   }, []);
 
+  /** True when this dropdown drives a TipTap instance rather than a div. */
+  const hasEditor = Boolean(editor && !editor.isDestroyed);
+
   const openDialog = (setter: (v: boolean) => void) => {
     setter(true);
   };
@@ -145,7 +156,11 @@ export function ParticipantCrossRefDropdown({
           {hasAcronym && (
             <DropdownMenuItem
               onSelect={() => {
-                if (acronymSegments) {
+                if (!acronymSegments) return;
+                if (hasEditor) {
+                  editor!.chain().focus().insertAcronymReference({ segments: acronymSegments })
+                    .insertContent(' ').run();
+                } else {
                   insertNode(buildAcronymBadge(acronymSegments));
                 }
               }}
@@ -225,6 +240,15 @@ export function ParticipantCrossRefDropdown({
         onOpenChange={closeDialog(setWpOpen)}
         proposalId={proposalId}
         onSelect={(wp) => {
+          if (hasEditor) {
+            editor!.chain().focus().insertWPReference({
+              wpNumber: wp.number,
+              wpShortName: wp.short_name || '',
+              wpColor: wp.color,
+              wpId: wp.id,
+            }).insertContent(' ').unsetBold().unsetItalic().run();
+            return;
+          }
           insertNode(buildWPBadge({ id: wp.id, number: wp.number, short_name: wp.short_name, color: wp.color }));
         }}
       />
@@ -242,6 +266,18 @@ export function ParticipantCrossRefDropdown({
             includeAbbreviation: c.include_abbreviation !== false,
             withShortName: false,
           });
+          if (hasEditor) {
+            editor!.chain().focus().insertCaseReference({
+              caseNumber: c.number,
+              caseShortName: c.short_name || '',
+              caseColor: c.color,
+              caseId: c.id,
+              caseType: c.case_type,
+              includeNumber: c.include_number !== false,
+              includeAbbreviation: c.include_abbreviation !== false,
+            }).insertContent(' ').unsetBold().unsetItalic().run();
+            return;
+          }
           insertNode(
             buildCaseBadge({
               id: c.id,
@@ -259,7 +295,17 @@ export function ParticipantCrossRefDropdown({
         open={participantOpen}
         onOpenChange={closeDialog(setParticipantOpen)}
         proposalId={proposalId}
-        onSelect={(p) => insertNode(buildParticipantBadge(p))}
+        onSelect={(p) => {
+          if (hasEditor) {
+            editor!.chain().focus().insertParticipantReference({
+              participantNumber: p.participantNumber,
+              shortName: p.shortName,
+              participantId: p.id,
+            }).insertContent(' ').unsetBold().unsetItalic().run();
+            return;
+          }
+          insertNode(buildParticipantBadge(p));
+        }}
       />
 
       <InsertTDMSReferenceDropdowns
@@ -271,9 +317,39 @@ export function ParticipantCrossRefDropdown({
         onOpenDeliverableChange={closeDialog(setDelOpen)}
         openMilestone={milestoneOpen}
         onOpenMilestoneChange={closeDialog(setMilestoneOpen)}
-        onInsertTask={(t) => insertNode(buildTaskBadge(t))}
-        onInsertDeliverable={(d) => insertNode(buildDeliverableBadge(d))}
-        onInsertMilestone={(m) => insertNode(buildMilestoneBadge(m))}
+        onInsertTask={(t) => {
+          if (hasEditor) {
+            editor!.chain().focus().insertTaskReference({
+              wpNumber: t.wp_number,
+              taskNumber: t.number,
+              taskId: t.id,
+              wpColor: t.wp_color || undefined,
+            }).insertContent(' ').unsetBold().unsetItalic().run();
+            return;
+          }
+          insertNode(buildTaskBadge(t));
+        }}
+        onInsertDeliverable={(d) => {
+          if (hasEditor) {
+            editor!.chain().focus().insertDeliverableReference({
+              deliverableNumber: d.number,
+              deliverableId: d.id,
+              wpColor: d.wp_color || undefined,
+            }).insertContent(' ').unsetBold().unsetItalic().run();
+            return;
+          }
+          insertNode(buildDeliverableBadge(d));
+        }}
+        onInsertMilestone={(m) => {
+          if (hasEditor) {
+            editor!.chain().focus().insertMilestoneReference({
+              milestoneNumber: m.number,
+              milestoneId: m.id,
+            }).insertContent(' ').run();
+            return;
+          }
+          insertNode(buildMilestoneBadge(m));
+        }}
       />
     </>
   );

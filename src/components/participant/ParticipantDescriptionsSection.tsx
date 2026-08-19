@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { PrefixedInlineEditor } from '@/components/participant/PrefixedInlineEditor';
+import { LazyRichField } from '@/components/participant/LazyRichField';
 import { ParticipantCrossRefDropdown } from '@/components/participant/ParticipantCrossRefDropdown';
 
 import { SaveIndicator } from '@/components/SaveIndicator';
@@ -11,16 +11,20 @@ import { ParticipantBubble } from '@/components/B31Pill';
 import {
   ToolbarButton,
   TextFormattingGroup,
-  FontColorToolbarButton,
 } from '@/components/toolbar';
 import { Undo2, Redo2 } from 'lucide-react';
 import { StickyToolbarWrapper } from '@/components/StickyToolbarWrapper';
+import {
+  MethodologyEditorFocusProvider,
+  useMethodologyEditorFocus,
+} from '@/components/MethodologyEditorFocusContext';
 import { Participant } from '@/types/proposal';
 import { ALL_COUNTRIES } from '@/lib/countries';
 import type {
   ParticipantDescriptionField,
   ParticipantDescriptions,
 } from '@/hooks/useParticipantDetails';
+
 
 interface FieldDef {
   key: ParticipantDescriptionField;
@@ -60,11 +64,19 @@ interface ParticipantDescriptionsSectionProps {
   proposalId?: string;
   /** Acronym segments used when inserting an acronym cross-reference. */
   acronymSegments?: { text: string; color: string }[];
-  /** Coordinator+? Enables deleting custom colours from the shared library. */
+  /** Retained for API compatibility; colour control is not exposed here. */
   canManageCustomColors?: boolean;
 }
 
-export function ParticipantDescriptionsSection({
+export function ParticipantDescriptionsSection(props: ParticipantDescriptionsSectionProps) {
+  return (
+    <MethodologyEditorFocusProvider>
+      <ParticipantDescriptionsSectionInner {...props} />
+    </MethodologyEditorFocusProvider>
+  );
+}
+
+function ParticipantDescriptionsSectionInner({
   participant,
   descriptions,
   onUpdateField,
@@ -74,10 +86,8 @@ export function ParticipantDescriptionsSection({
   canEdit,
   proposalId,
   acronymSegments,
-  canManageCustomColors = false,
 }: ParticipantDescriptionsSectionProps) {
-  const [anyFieldFocused, setAnyFieldFocused] = useState(false);
-  const [colorPickerOpen, setColorPickerOpen] = useState(false);
+  const [, setAnyFieldFocused] = useState(false);
   const [crossRefOpen, setCrossRefOpen] = useState(false);
   const blurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -144,9 +154,23 @@ export function ParticipantDescriptionsSection({
     }, 150);
   }, []);
 
-  const exec = useCallback((command: string) => {
-    document.execCommand(command, false, undefined);
+  // The shared toolbar acts on whichever LazyRichField last mounted/focused
+  // an editor (MethodologyEditorFocusContext).
+  const { activeEditor } = useMethodologyEditorFocus();
+  const activeEditorRef = useRef(activeEditor);
+  activeEditorRef.current = activeEditor;
+
+  const run = useCallback((fn: (chain: ReturnType<NonNullable<typeof activeEditor>['chain']>) => void) => {
+    const editor = activeEditorRef.current;
+    if (!editor || editor.isDestroyed) return;
+    fn(editor.chain().focus());
   }, []);
+
+  // Toolbar interactions and cross-ref dialogs must not unmount the editor.
+  const shouldStayMounted = useCallback(
+    () => crossRefOpen,
+    [crossRefOpen],
+  );
 
   if (visibleFields.length === 0) return null;
 
@@ -172,24 +196,18 @@ export function ParticipantDescriptionsSection({
               <ToolbarButton
                 icon={<Undo2 className="h-3.5 w-3.5" />}
                 label="Undo"
-                onClick={() => exec('undo')}
+                onClick={() => run((c) => c.undo().run())}
               />
               <ToolbarButton
                 icon={<Redo2 className="h-3.5 w-3.5" />}
                 label="Redo"
-                onClick={() => exec('redo')}
+                onClick={() => run((c) => c.redo().run())}
               />
               <Separator orientation="vertical" className="h-5 mx-1.5" />
               <TextFormattingGroup
-                onBold={() => exec('bold')}
-                onItalic={() => exec('italic')}
-                onUnderline={() => exec('underline')}
-              />
-
-              <FontColorToolbarButton
-                proposalId={proposalId ?? null}
-                canManageCustom={canManageCustomColors}
-                onOpenChange={setColorPickerOpen}
+                onBold={() => run((c) => c.toggleBold().run())}
+                onItalic={() => run((c) => c.toggleItalic().run())}
+                onUnderline={() => run((c) => c.toggleUnderline().run())}
               />
 
               {proposalId && (
@@ -199,6 +217,7 @@ export function ParticipantDescriptionsSection({
                     proposalId={proposalId}
                     acronymSegments={acronymSegments}
                     onOpenChange={setCrossRefOpen}
+                    editor={activeEditor}
                   />
                 </>
               )}
@@ -226,14 +245,16 @@ export function ParticipantDescriptionsSection({
           return (
             <div key={field.key} className="space-y-1.5">
               <div className="text-sm text-foreground/90">{label}</div>
-              <PrefixedInlineEditor
+              <LazyRichField
                 value={descriptions[field.key] || ''}
                 onChange={(v) => onUpdateField(field.key, v)}
                 disabled={!canEdit}
                 prefix={prefixNode}
                 minHeight="90px"
+                proposalId={proposalId ?? ''}
                 onFocus={handleFocus}
                 onBlur={handleBlur}
+                shouldStayMounted={shouldStayMounted}
               />
             </div>
           );
