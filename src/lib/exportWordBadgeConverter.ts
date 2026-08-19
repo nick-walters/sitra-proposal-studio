@@ -155,12 +155,29 @@ export function convertBadgesForWord(container: HTMLElement): void {
     const span = el as HTMLElement;
     const text = span.textContent?.trim() || '';
     if (!text) return;
-    const bgColor = span.style.backgroundColor || '#000';
+    // A pill is either coloured background + white text (use the background) or
+    // white background + coloured text (use the text colour). Picking the
+    // background blindly exported white-on-white chips.
+    const bgColor = span.style.backgroundColor || '';
+    const fgColor = span.style.color || '';
+    const colour = !isWhiteish(bgColor)
+      ? bgColor
+      : !isWhiteish(fgColor)
+        ? fgColor
+        : wpColourOf(span) || '#000';
     span.setAttribute(
       'style',
-      `font-weight: bold; color: ${bgColor}; font-family: 'Times New Roman', Times, serif; font-size: 11pt;`
+      `font-weight: bold; color: ${colour}; font-family: 'Times New Roman', Times, serif; font-size: 11pt;`
     );
+    span.querySelectorAll<HTMLElement>('[style], [class]').forEach((child) => {
+      child.className = '';
+      child.setAttribute(
+        'style',
+        `font-weight: bold; color: ${colour}; font-family: 'Times New Roman', Times, serif; font-size: 11pt;`
+      );
+    });
   });
+
 
   // 5. Flatten inline-flex containers
   container.querySelectorAll('span.inline-flex, [class*="inline-flex"]').forEach((el) => {
