@@ -469,27 +469,41 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
     [caseDraft, updateMutation],
   );
 
+  /**
+   * The shared toolbar still speaks the legacy execCommand vocabulary; map it
+   * onto TipTap commands run against the focused subsection editor.
+   */
   const execCommand = (command: string, value?: string) => {
-    document.execCommand(command, false, value);
+    const editor = getEditor();
+    if (!editor) return;
+    const chain = editor.chain().focus();
+    switch (command) {
+      case 'bold': chain.toggleBold().run(); break;
+      case 'italic': chain.toggleItalic().run(); break;
+      case 'underline': chain.toggleUnderline().run(); break;
+      case 'insertUnorderedList': chain.toggleBulletList().run(); break;
+      case 'insertOrderedList': chain.toggleOrderedList().run(); break;
+      case 'justifyLeft': chain.setTextAlign('left').run(); break;
+      case 'justifyCenter': chain.setTextAlign('center').run(); break;
+      case 'justifyRight': chain.setTextAlign('right').run(); break;
+      case 'justifyFull': chain.setTextAlign('justify').run(); break;
+      case 'superscript': chain.toggleSuperscript().run(); break;
+      case 'subscript': chain.toggleSubscript().run(); break;
+      case 'insertHTML': if (value) chain.insertContent(value).run(); break;
+      default: break;
+    }
   };
 
   const insertTable = (rows: number, cols: number) => {
-    let tableHtml = '<table style="width:100%; border-collapse:collapse; margin:8px 0;">';
-    for (let r = 0; r < rows; r++) {
-      tableHtml += '<tr>';
-      for (let c = 0; c < cols; c++) {
-        if (r === 0) {
-          tableHtml += '<th style="border:1px solid #000; padding:4px; background:#000; color:#fff; font-weight:bold;">&nbsp;</th>';
-        } else {
-          tableHtml += '<td style="border:1px solid #000; padding:4px;">&nbsp;</td>';
-        }
-      }
-      tableHtml += '</tr>';
-    }
-    tableHtml += '</table><p><br></p>';
-    execCommand('insertHTML', tableHtml);
+    const editor = getEditor();
     setTablePopoverOpen(false);
+    if (!editor) {
+      toast.error('Click into a text box first, then insert the table.');
+      return;
+    }
+    editor.chain().focus().insertTable({ rows, cols, withHeaderRow: true }).run();
   };
+
 
   if (isLoading) {
     return (
