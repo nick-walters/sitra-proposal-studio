@@ -1027,6 +1027,7 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
           currentWpDraftId={wpDraft.id}
           proposalId={proposalId}
           canManageCustomColors={isCoordinator}
+          shouldStayMounted={shouldStayMounted}
         />
 
         {/* Deliverables */}
