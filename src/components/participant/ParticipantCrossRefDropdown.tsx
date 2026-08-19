@@ -25,6 +25,7 @@ import {
   rememberContentEditableSelection,
   type AcronymSegment,
 } from '@/lib/contentEditableRefBadges';
+import type { Editor } from '@tiptap/react';
 
 interface Props {
   proposalId: string;
@@ -33,6 +34,12 @@ interface Props {
   acronymSegments?: AcronymSegment[];
   /** Keeps the parent toolbar visible while a dialog/menu is open. */
   onOpenChange?: (open: boolean) => void;
+  /**
+   * When supplied, references are inserted as TipTap nodes into this editor
+   * instead of as static badge markup into a contentEditable. Used by the
+   * migrated A2 participant-description fields (LazyRichField).
+   */
+  editor?: Editor | null;
 }
 
 /**
@@ -46,6 +53,7 @@ export function ParticipantCrossRefDropdown({
   disabled,
   acronymSegments,
   onOpenChange,
+  editor,
 }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [wpOpen, setWpOpen] = useState(false);
