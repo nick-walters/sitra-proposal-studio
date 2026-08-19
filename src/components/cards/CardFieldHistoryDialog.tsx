@@ -16,6 +16,8 @@ interface CardFieldHistoryDialogProps {
   isOpen: boolean;
   canEdit: boolean;
   onClose: () => void;
+  /** Fired after a successful revert so the board can jump to the text box. */
+  onReverted?: () => void;
 }
 
 /** Version history for a single text box of a module. */
@@ -27,6 +29,7 @@ export function CardFieldHistoryDialog({
   isOpen,
   canEdit,
   onClose,
+  onReverted,
 }: CardFieldHistoryDialogProps) {
   const { versions, isLoading, revertToVersion } = useCardFieldVersions(fieldId, textBox, {
     enabled: isOpen,
@@ -70,7 +73,18 @@ export function CardFieldHistoryDialog({
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => revertToVersion.mutate(v.id)}
+                        onClick={() =>
+                          revertToVersion.mutate(v.id, {
+                            onSuccess: () => {
+                              // Close first: Radix holds a body scroll lock
+                              // while the dialog is mounted, which would
+                              // swallow the jump. Defer the callback a tick so
+                              // the lock is fully released before scrolling.
+                              onClose();
+                              window.setTimeout(() => onReverted?.(), 0);
+                            },
+                          })
+                        }
                         disabled={revertToVersion.isPending}
                       >
                         Restore

@@ -15,7 +15,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Eye, EyeOff, GripVertical, Plus, Trash2 } from 'lucide-react';
+import { Eye, EyeOff, GripVertical, Plus, Recycle, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -822,7 +822,7 @@ function CardBlock({
                 title={`${binCount} deleted ${binCount === 1 ? 'module' : 'modules'}`}
                 onClick={() => onOpenBin(card)}
               >
-                <Trash2 className="h-4 w-4" />
+                <Recycle className="h-4 w-4" />
               </Button>
             )}
 
@@ -1306,7 +1306,7 @@ function BoardInner({
             )}
             {canEdit && (
               <Button variant="outline" size="sm" onClick={() => setBinOpen(true)}>
-                <Trash2 className="mr-1 h-3.5 w-3.5" />
+                <Recycle className="mr-1 h-3.5 w-3.5" />
                 Recycle bin
               </Button>
             )}
@@ -1382,6 +1382,7 @@ function BoardInner({
             fieldLabel={focusedFieldLabel}
             canEdit={canEdit}
             onClose={() => setHistoryOpen(false)}
+            onReverted={() => jumpToRestored('field', focusedBox.fieldId)}
           />
         )}
 
