@@ -19,7 +19,13 @@ declare module '@tiptap/core' {
         wpShortName: string;
         wpColor: string;
         wpId: string;
+        /**
+         * Which label form was chosen at insertion. When omitted it is
+         * derived from whether a short name was supplied.
+         */
+        showShortName?: boolean;
       }) => ReturnType;
+
     };
   }
 }
