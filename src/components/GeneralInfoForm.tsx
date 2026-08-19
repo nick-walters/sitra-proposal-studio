@@ -966,31 +966,14 @@ export function GeneralInfoForm({
               </Label>
             </div>
             {formData.aiStatementEnabled && (
-              <div className="space-y-1.5">
-                {canEdit && (
-                  <div
-                    className="p-1.5 border rounded-md bg-card flex items-center gap-0.5 shadow-sm w-fit"
-                    onMouseDown={(e) => {
-                      if (e.target === e.currentTarget) e.preventDefault();
-                    }}
-                  >
-                    <TextFormattingGroup
-                      onBold={() => document.execCommand('bold')}
-                      onItalic={() => document.execCommand('italic')}
-                      onUnderline={() => document.execCommand('underline')}
-                    />
-                  </div>
-                )}
-                <InlineRichEditor
+              <MethodologyEditorFocusProvider>
+                <AiStatementField
+                  proposalId={proposalId}
+                  canEdit={canEdit}
                   value={formData.aiStatementText}
                   onChange={(html) => setFormData(prev => ({ ...prev, aiStatementText: html }))}
-                  disabled={!canEdit}
-                  minHeight="90px"
-                  placeholder="Disclaimer: …"
-                  editorClassName="p-3"
-                  style={{ fontFamily: '"Times New Roman", Times, serif', fontSize: '11pt', lineHeight: 1 }}
                 />
-              </div>
+              </MethodologyEditorFocusProvider>
             )}
 
           </CardContent>
