@@ -117,9 +117,21 @@ export function LazyRichField({
           if (current.isFocused) return;
           if (shouldStayMounted?.()) return;
           if (dom.contains(document.activeElement)) return;
+          // Focus sitting inside a dialog, dropdown or popover (cross-reference
+          // pickers, colour popovers) must not tear the editor down — the user
+          // is about to insert into it.
+          const active = document.activeElement as HTMLElement | null;
+          if (
+            active?.closest(
+              '[role="dialog"],[role="menu"],[data-radix-popper-content-wrapper],[data-radix-portal]',
+            )
+          ) {
+            return;
+          }
           unmountEditor();
         }, 180);
       };
+
 
       dom.addEventListener('focusout', handleFocusOut);
       editor.on('destroy', () => dom.removeEventListener('focusout', handleFocusOut));
