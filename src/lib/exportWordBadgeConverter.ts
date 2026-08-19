@@ -119,9 +119,10 @@ export function convertBadgesForWord(container: HTMLElement): void {
     const text = textEl?.textContent?.trim() || el.textContent?.trim() || '';
     if (text && el.parentElement) {
       const replacement = document.createElement('span');
+      const chevronColour = wpColourOf(el as HTMLElement) || '#000';
       replacement.setAttribute(
         'style',
-        `font-weight: bold; font-family: 'Times New Roman', Times, serif; font-size: 11pt;`
+        `font-weight: bold; color: ${chevronColour}; font-family: 'Times New Roman', Times, serif; font-size: 11pt;`
       );
       replacement.textContent = text;
       const outerBadge =
@@ -223,5 +224,15 @@ export function convertBadgesForWord(container: HTMLElement): void {
   container.querySelectorAll('p[class*="text-[8pt]"], .footnote-text').forEach((el) => {
     const p = el as HTMLElement;
     p.setAttribute('style', (p.getAttribute('style') || '') + '; font-size: 8pt; font-family: "Times New Roman", Times, serif;');
+  });
+
+  // 9. Word understands no CSS custom properties: expand any survivors and make
+  // sure nothing was left white-on-white.
+  expandColourVars(container);
+  container.querySelectorAll<HTMLElement>('[style*="color"]').forEach((el) => {
+    const colour = el.style.color;
+    if (colour && isWhiteish(colour) && isWhiteish(el.style.backgroundColor || '')) {
+      el.style.color = wpColourOf(el) || '#000';
+    }
   });
 }
