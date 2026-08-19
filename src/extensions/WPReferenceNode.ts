@@ -101,6 +101,20 @@ export const WPReferenceNode = Node.create<WPReferenceOptions>({
           return { 'data-wp-id': attributes.wpId };
         },
       },
+      /**
+       * Label form chosen at insertion: false → "WP1", true → "WP1: Needs".
+       * Legacy chips carry no `data-wp-show-short-name` attribute and default
+       * to NUMBER-ONLY, which is what they display today. Reconciliation keeps
+       * the number/short name current but must never change this flag.
+       */
+      showShortName: {
+        default: false,
+        parseHTML: (element) =>
+          element.getAttribute('data-wp-show-short-name') === 'true',
+        renderHTML: (attributes) => ({
+          'data-wp-show-short-name': attributes.showShortName ? 'true' : 'false',
+        }),
+      },
     };
   },
 
@@ -115,8 +129,9 @@ export const WPReferenceNode = Node.create<WPReferenceOptions>({
   renderHTML({ node, HTMLAttributes }) {
     const color = node.attrs.wpColor || '#2563EB';
     const wpNumber = node.attrs.wpNumber;
-    const wpShortName = node.attrs.wpShortName;
+    const wpShortName = node.attrs.showShortName ? node.attrs.wpShortName : null;
     const label = formatWPLabel({ number: wpNumber, short_name: wpShortName });
+
 
 
     return [
