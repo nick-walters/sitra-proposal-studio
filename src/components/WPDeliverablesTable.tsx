@@ -435,6 +435,8 @@ function DeliverableRow({
   onSaveTasks,
   readOnly,
   otherWpDrafts,
+  proposalId,
+  shouldStayMounted,
 }: DeliverableRowProps) {
   const number = `D${wpNumber}.${deliverable.number}`;
   const selectedTasks = wpTasks.filter(t => selectedTaskIds.includes(t.id));
