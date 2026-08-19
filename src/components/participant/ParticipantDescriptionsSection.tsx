@@ -68,7 +68,15 @@ interface ParticipantDescriptionsSectionProps {
   canManageCustomColors?: boolean;
 }
 
-export function ParticipantDescriptionsSection({
+export function ParticipantDescriptionsSection(props: ParticipantDescriptionsSectionProps) {
+  return (
+    <MethodologyEditorFocusProvider>
+      <ParticipantDescriptionsSectionInner {...props} />
+    </MethodologyEditorFocusProvider>
+  );
+}
+
+function ParticipantDescriptionsSectionInner({
   participant,
   descriptions,
   onUpdateField,
@@ -148,9 +156,23 @@ export function ParticipantDescriptionsSection({
     }, 150);
   }, []);
 
-  const exec = useCallback((command: string) => {
-    document.execCommand(command, false, undefined);
+  // The shared toolbar acts on whichever LazyRichField last mounted/focused
+  // an editor (MethodologyEditorFocusContext).
+  const { activeEditor } = useMethodologyEditorFocus();
+  const activeEditorRef = useRef(activeEditor);
+  activeEditorRef.current = activeEditor;
+
+  const run = useCallback((fn: (chain: ReturnType<NonNullable<typeof activeEditor>['chain']>) => void) => {
+    const editor = activeEditorRef.current;
+    if (!editor || editor.isDestroyed) return;
+    fn(editor.chain().focus());
   }, []);
+
+  // Toolbar interactions and cross-ref dialogs must not unmount the editor.
+  const shouldStayMounted = useCallback(
+    () => crossRefOpen || colorPickerOpen,
+    [crossRefOpen, colorPickerOpen],
+  );
 
   if (visibleFields.length === 0) return null;
 
@@ -176,24 +198,18 @@ export function ParticipantDescriptionsSection({
               <ToolbarButton
                 icon={<Undo2 className="h-3.5 w-3.5" />}
                 label="Undo"
-                onClick={() => exec('undo')}
+                onClick={() => run((c) => c.undo().run())}
               />
               <ToolbarButton
                 icon={<Redo2 className="h-3.5 w-3.5" />}
                 label="Redo"
-                onClick={() => exec('redo')}
+                onClick={() => run((c) => c.redo().run())}
               />
               <Separator orientation="vertical" className="h-5 mx-1.5" />
               <TextFormattingGroup
-                onBold={() => exec('bold')}
-                onItalic={() => exec('italic')}
-                onUnderline={() => exec('underline')}
-              />
-
-              <FontColorToolbarButton
-                proposalId={proposalId ?? null}
-                canManageCustom={canManageCustomColors}
-                onOpenChange={setColorPickerOpen}
+                onBold={() => run((c) => c.toggleBold().run())}
+                onItalic={() => run((c) => c.toggleItalic().run())}
+                onUnderline={() => run((c) => c.toggleUnderline().run())}
               />
 
               {proposalId && (
@@ -203,6 +219,7 @@ export function ParticipantDescriptionsSection({
                     proposalId={proposalId}
                     acronymSegments={acronymSegments}
                     onOpenChange={setCrossRefOpen}
+                    editor={activeEditor}
                   />
                 </>
               )}
@@ -230,14 +247,16 @@ export function ParticipantDescriptionsSection({
           return (
             <div key={field.key} className="space-y-1.5">
               <div className="text-sm text-foreground/90">{label}</div>
-              <PrefixedInlineEditor
+              <LazyRichField
                 value={descriptions[field.key] || ''}
                 onChange={(v) => onUpdateField(field.key, v)}
                 disabled={!canEdit}
                 prefix={prefixNode}
                 minHeight="90px"
+                proposalId={proposalId ?? ''}
                 onFocus={handleFocus}
                 onBlur={handleBlur}
+                shouldStayMounted={shouldStayMounted}
               />
             </div>
           );
