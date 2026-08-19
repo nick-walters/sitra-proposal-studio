@@ -88,13 +88,28 @@ export function LazyRichField({
   const clickCoordsRef = useRef<{ left: number; top: number } | null>(null);
   const editorRef = useRef<Editor | null>(null);
   const unmountTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const valueRef = useRef(value);
-  valueRef.current = value;
+
+  // One shared fetch per proposal: React Query dedupes the
+  // ['reference-data', proposalId] key, so all fields on the page read the
+  // same snapshot and a single network request serves them all.
+  const { data: refData } = useReferenceData(proposalId);
 
   const staticHtml = useMemo(
-    () => (mounted ? '' : renderStatic(value, staticExtensions)),
-    [value, mounted, staticExtensions],
+    () => (mounted ? '' : renderStatic(value, staticExtensions, refData)),
+    [value, mounted, staticExtensions, refData],
   );
+
+  // The mounted editor is fed the SAME resolved markup, so focusing a field
+  // never changes a label or colour. Purely render-time: a save only happens
+  // when the user actually edits (see unmountEditor's comparison below).
+  const resolvedValue = useMemo(
+    () => (mounted ? renderStatic(value, staticExtensions, refData) : value),
+    [value, mounted, staticExtensions, refData],
+  );
+
+  const valueRef = useRef(resolvedValue);
+  valueRef.current = resolvedValue;
+
 
 
   useEffect(() => () => {
