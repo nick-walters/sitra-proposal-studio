@@ -203,7 +203,7 @@ export function LazyRichField({
       {mounted ? (
         <MethodologyRichEditor
           proposalId={proposalId}
-          value={value}
+          value={resolvedValue}
           onChange={onChange}
           canEdit={!disabled}
           isCoordinator={false}
