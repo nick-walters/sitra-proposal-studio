@@ -225,6 +225,7 @@ interface SortableTaskCardProps {
   currentWpDraftId?: string;
   proposalId?: string | null;
   canManageCustomColors?: boolean;
+  shouldStayMounted?: () => boolean;
 }
 
 function SortableTaskCard({
