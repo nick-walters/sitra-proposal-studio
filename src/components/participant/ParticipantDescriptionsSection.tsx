@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { PrefixedInlineEditor } from '@/components/participant/PrefixedInlineEditor';
+import { LazyRichField } from '@/components/participant/LazyRichField';
 import { ParticipantCrossRefDropdown } from '@/components/participant/ParticipantCrossRefDropdown';
 
 import { SaveIndicator } from '@/components/SaveIndicator';
@@ -11,16 +11,20 @@ import { ParticipantBubble } from '@/components/B31Pill';
 import {
   ToolbarButton,
   TextFormattingGroup,
-  FontColorToolbarButton,
 } from '@/components/toolbar';
 import { Undo2, Redo2 } from 'lucide-react';
 import { StickyToolbarWrapper } from '@/components/StickyToolbarWrapper';
+import {
+  MethodologyEditorFocusProvider,
+  useMethodologyEditorFocus,
+} from '@/components/MethodologyEditorFocusContext';
 import { Participant } from '@/types/proposal';
 import { ALL_COUNTRIES } from '@/lib/countries';
 import type {
   ParticipantDescriptionField,
   ParticipantDescriptions,
 } from '@/hooks/useParticipantDetails';
+
 
 interface FieldDef {
   key: ParticipantDescriptionField;
