@@ -311,6 +311,15 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
   /** Kept for API compatibility with the shared toolbar. */
   const saveSelection = useCallback(() => {}, []);
 
+  /**
+   * Clicking a toolbar button blurs the field. Keep the editor mounted while
+   * focus sits inside the page toolbar so the command still has a target.
+   */
+  const shouldStayMounted = useCallback(() => {
+    const active = document.activeElement as HTMLElement | null;
+    return !!active?.closest('[data-wp-draft-toolbar]');
+  }, []);
+
   /** Insert a badge/element by handing its markup to TipTap's parser. */
   const insertNodeAtCursor = useCallback((node: Node) => {
     const editor = getEditor();
