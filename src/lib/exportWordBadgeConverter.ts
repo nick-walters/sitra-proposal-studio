@@ -2,7 +2,71 @@
  * Converts visual badges and cross-references to plain styled text for Word export.
  * Word can't render CSS clip-path, complex inline-flex, or SVG.
  */
+
+/** True for white / near-white / unset colours, which are illegible on Word's white page. */
+function isWhiteish(colour: string): boolean {
+  const c = colour.trim().toLowerCase();
+  if (!c) return true;
+  if (c === '#fff' || c === '#ffffff' || c === 'white' || c === 'transparent') return true;
+  const m = c.match(/^rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)/);
+  if (m) {
+    const [r, g, b] = [Number(m[1]), Number(m[2]), Number(m[3])];
+    return r > 240 && g > 240 && b > 240;
+  }
+  return false;
+}
+
+
+/** Light backgrounds (white, near-white, pale greys) can't carry white text in Word. */
+function isLight(colour: string): boolean {
+  const c = colour.trim().toLowerCase();
+  if (!c || c === 'transparent') return true;
+  const m = c.match(/^rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)/);
+  if (m) {
+    const [r, g, b] = [Number(m[1]), Number(m[2]), Number(m[3])];
+    return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.7;
+  }
+  if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/.test(c)) {
+    const hex = c.length === 4 ? c.slice(1).split('').map((h) => h + h).join('') : c.slice(1);
+    const [r, g, b] = [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16));
+    return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.7;
+  }
+  return c === 'white';
+}
+
+/**
+ * The work-package colour for a chip: taken from the chip itself or the nearest
+ * ancestor carrying it. Word supports no CSS custom properties, so every colour
+ * must end up as a literal before export.
+ */
+function wpColourOf(el: HTMLElement): string | null {
+  let node: HTMLElement | null = el;
+  while (node) {
+    const attr = node.getAttribute?.('data-wp-color');
+    if (attr && !isWhiteish(attr)) return attr;
+    const varColour = node.style?.getPropertyValue('--wp-color');
+    if (varColour && !isWhiteish(varColour)) return varColour.trim();
+    node = node.parentElement;
+  }
+  return null;
+}
+
+/** Replaces `var(--wp-color, …)` in any descendant style with a literal colour. */
+function expandColourVars(root: HTMLElement): void {
+  const nodes = [root, ...Array.from(root.querySelectorAll<HTMLElement>('[style*="var("]'))];
+  nodes.forEach((node) => {
+    const style = node.getAttribute('style');
+    if (!style || !style.includes('var(')) return;
+    const literal = wpColourOf(node) || '#000';
+    node.setAttribute(
+      'style',
+      style.replace(/var\(\s*--wp-color\s*(?:,[^)]*)?\)/g, literal).replace(/var\([^)]*\)/g, literal),
+    );
+  });
+}
+
 export function convertBadgesForWord(container: HTMLElement): void {
+
   // 1. Inline reference badges
   container
     .querySelectorAll(
@@ -16,11 +80,16 @@ export function convertBadgesForWord(container: HTMLElement): void {
         return;
       }
 
-      const wpColor =
+      const rawWpColor =
         span.style.getPropertyValue('--wp-color') ||
         span.getAttribute('data-wp-color') ||
         span.style.borderColor ||
-        '#000';
+        '';
+      // Never let a chip end up white on Word's white page.
+      const wpColor = isWhiteish(rawWpColor)
+        ? wpColourOf(span) || '#000'
+        : rawWpColor.trim();
+
 
       const isWP =
         span.classList.contains('inline-ref-wp') || span.hasAttribute('data-wp-reference');
@@ -38,26 +107,27 @@ export function convertBadgesForWord(container: HTMLElement): void {
       const isAcronym = span.hasAttribute('data-acronym-reference');
       const isFigTable = span.hasAttribute('data-fig-table-ref');
 
-      if (isWP || isTask || isDeliverable) {
-        span.setAttribute(
+      const colour = isWP || isTask || isDeliverable ? wpColor : '#000';
+      void isParticipant;
+      void isCase;
+      void isAcronym;
+      void isFigTable;
+      span.setAttribute(
+        'style',
+        `font-weight: bold; color: ${colour}; font-family: 'Times New Roman', Times, serif; font-size: 11pt;`
+      );
+      span.className = '';
+      // Inner pill parts carry their own colours (often white text on a coloured
+      // pill, or `var(--wp-color)`), which would render invisibly in Word.
+      span.querySelectorAll<HTMLElement>('[style], [class]').forEach((child) => {
+        child.className = '';
+        child.setAttribute(
           'style',
-          `font-weight: bold; color: ${wpColor}; font-family: 'Times New Roman', Times, serif; font-size: 11pt;`
+          `font-weight: bold; color: ${colour}; font-family: 'Times New Roman', Times, serif; font-size: 11pt;`
         );
-        span.className = '';
-      } else if (isParticipant || isCase || isAcronym || isFigTable) {
-        span.setAttribute(
-          'style',
-          `font-weight: bold; color: #000; font-family: 'Times New Roman', Times, serif; font-size: 11pt;`
-        );
-        span.className = '';
-      } else {
-        span.setAttribute(
-          'style',
-          `font-weight: bold; color: #000; font-family: 'Times New Roman', Times, serif; font-size: 11pt;`
-        );
-        span.className = '';
-      }
+      });
     });
+
 
   // 2. B3.1 deliverable badges (clip-path chevrons)
   container.querySelectorAll('[style*="clip-path"]').forEach((el) => {
@@ -67,9 +137,10 @@ export function convertBadgesForWord(container: HTMLElement): void {
     const text = textEl?.textContent?.trim() || el.textContent?.trim() || '';
     if (text && el.parentElement) {
       const replacement = document.createElement('span');
+      const chevronColour = wpColourOf(el as HTMLElement) || '#000';
       replacement.setAttribute(
         'style',
-        `font-weight: bold; font-family: 'Times New Roman', Times, serif; font-size: 11pt;`
+        `font-weight: bold; color: ${chevronColour}; font-family: 'Times New Roman', Times, serif; font-size: 11pt;`
       );
       replacement.textContent = text;
       const outerBadge =
@@ -103,12 +174,29 @@ export function convertBadgesForWord(container: HTMLElement): void {
     const span = el as HTMLElement;
     const text = span.textContent?.trim() || '';
     if (!text) return;
-    const bgColor = span.style.backgroundColor || '#000';
+    // A pill is either coloured background + white text (use the background) or
+    // white background + coloured text (use the text colour). Picking the
+    // background blindly exported white-on-white chips.
+    const bgColor = span.style.backgroundColor || '';
+    const fgColor = span.style.color || '';
+    const colour = !isWhiteish(bgColor)
+      ? bgColor
+      : !isWhiteish(fgColor)
+        ? fgColor
+        : wpColourOf(span) || '#000';
     span.setAttribute(
       'style',
-      `font-weight: bold; color: ${bgColor}; font-family: 'Times New Roman', Times, serif; font-size: 11pt;`
+      `font-weight: bold; color: ${colour}; font-family: 'Times New Roman', Times, serif; font-size: 11pt;`
     );
+    span.querySelectorAll<HTMLElement>('[style], [class]').forEach((child) => {
+      child.className = '';
+      child.setAttribute(
+        'style',
+        `font-weight: bold; color: ${colour}; font-family: 'Times New Roman', Times, serif; font-size: 11pt;`
+      );
+    });
   });
+
 
   // 5. Flatten inline-flex containers
   container.querySelectorAll('span.inline-flex, [class*="inline-flex"]').forEach((el) => {
@@ -154,5 +242,22 @@ export function convertBadgesForWord(container: HTMLElement): void {
   container.querySelectorAll('p[class*="text-[8pt]"], .footnote-text').forEach((el) => {
     const p = el as HTMLElement;
     p.setAttribute('style', (p.getAttribute('style') || '') + '; font-size: 8pt; font-family: "Times New Roman", Times, serif;');
+  });
+
+  // 9. Word understands no CSS custom properties: expand any survivors and make
+  // sure nothing was left white-on-white.
+  expandColourVars(container);
+  container.querySelectorAll<HTMLElement>('[style*="color"]').forEach((el) => {
+    const colour = el.style.color;
+    if (!colour || !isWhiteish(colour)) return;
+    if (!el.textContent?.trim()) return;
+    // White text is fine when something behind it is dark; only rescue text
+    // that would land on Word's white page.
+    let node: HTMLElement | null = el;
+    while (node && node !== container) {
+      if (!isLight(node.style.backgroundColor || '')) return;
+      node = node.parentElement;
+    }
+    el.style.color = wpColourOf(el) || '#000';
   });
 }

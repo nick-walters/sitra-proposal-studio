@@ -99,16 +99,22 @@ export function LazyRichField({
     [value, mounted, staticExtensions, refData],
   );
 
-  // The mounted editor is fed the SAME resolved markup, so focusing a field
-  // never changes a label or colour. Purely render-time: a save only happens
-  // when the user actually edits (see unmountEditor's comparison below).
-  const resolvedValue = useMemo(
-    () => (mounted ? renderStatic(value, staticExtensions, refData) : value),
-    [value, mounted, staticExtensions, refData],
-  );
+  // Reference resolution must NEVER run against the live document while the
+  // user types. Resolution rewrites markup (labels, colours, sanitiser
+  // normalisation), so a resolved string computed from the value the editor
+  // itself just emitted differs from the editor's own HTML — the shared
+  // editor hook would then treat it as an external change and `setContent`,
+  // destroying the selection on every keystroke.
+  //
+  // So: resolve ONCE, at mount time, and hand that frozen string to the
+  // editor. While mounted the editor owns its content; resolution resumes on
+  // unmount, when the static render recomputes from fresh data.
+  const mountedContentRef = useRef<string>('');
+  const resolvedValue = mounted ? mountedContentRef.current : value;
 
   const valueRef = useRef(resolvedValue);
   valueRef.current = resolvedValue;
+
 
 
 
@@ -183,11 +189,15 @@ export function LazyRichField({
     (coords: { left: number; top: number } | null) => {
       if (disabled || mounted) return;
       clickCoordsRef.current = coords;
+      // Freeze the resolved markup the editor will start from, so focusing a
+      // field still shows live numbers and colours without re-resolving mid-typing.
+      mountedContentRef.current = renderStatic(value, staticExtensions, refData);
       setMounted(true);
       onFocus?.();
     },
-    [disabled, mounted, onFocus],
+    [disabled, mounted, onFocus, value, staticExtensions, refData],
   );
+
 
   return (
     <div className={cn('relative', className)}>
