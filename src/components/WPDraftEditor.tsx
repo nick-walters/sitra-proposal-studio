@@ -703,14 +703,12 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
             onInsert: insertTable,
           }}
           paragraphSpacingContainer={() =>
-            document.querySelector('.wp-draft-editor [contenteditable="true"]') as HTMLElement | null
+            (getEditor()?.view.dom as HTMLElement | undefined) ?? null
           }
           fontColor={{
             proposalId,
             canManageCustom: isCoordinator,
-            getEditableElement: () =>
-              (document.activeElement && (document.activeElement as HTMLElement).closest('[contenteditable="true"]')) as HTMLElement | null
-              ?? (document.querySelector('.wp-draft-editor [contenteditable="true"]') as HTMLElement | null),
+            getEditableElement: () => (getEditor()?.view.dom as HTMLElement | undefined) ?? null,
           }}
           onSaveSelection={saveSelection}
           onOpenFigureDialog={() => setIsFigureDialogOpen(true)}
