@@ -607,11 +607,13 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
                         <MilestoneBadge number={m.number} />
                       </td>
                       <td className="py-1.5 px-1">
-                        <AutoTextarea
+                        <LazyRichField
                           value={m.title || ''}
                           disabled={!canEdit}
-                          placeholder="Milestone name"
-                          onChange={(e) => updateMilestone.mutate({ id: m.id, patch: { title: e.target.value } })}
+                          minHeight="30px"
+                          proposalId={proposalId}
+                          staticExtensions={WP_TITLE_FIELD_EXTENSIONS}
+                          onChange={(html) => updateMilestone.mutate({ id: m.id, patch: { title: html } })}
                         />
                       </td>
                       <td className="py-1.5 px-1">
