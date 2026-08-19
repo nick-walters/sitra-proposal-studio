@@ -77,7 +77,15 @@ interface CaseDraftEditorProps {
   isCoordinator: boolean;
 }
 
-export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCoordinator }: CaseDraftEditorProps) {
+export function CaseDraftEditor(props: CaseDraftEditorProps) {
+  return (
+    <MethodologyEditorFocusProvider>
+      <CaseDraftEditorInner {...props} />
+    </MethodologyEditorFocusProvider>
+  );
+}
+
+function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoordinator }: CaseDraftEditorProps) {
   const queryClient = useQueryClient();
   const [guidelinesOpen, setGuidelinesOpen] = useState(false);
   const [tablePopoverOpen, setTablePopoverOpen] = useState(false);
