@@ -64,6 +64,9 @@ export const CROSS_REF_RICH_TEXT_CONFIG = {
     'data-participant-reference', 'data-participant-id', 'data-participant-number',
     'data-participant-short-name',
     'data-wp-reference', 'data-wp-id', 'data-wp-number', 'data-wp-short-name', 'data-wp-color',
+    // Label form chosen at insertion ("WP1" vs "WP1: Needs"). Must survive the
+    // sanitiser or the chip silently changes form on reload.
+    'data-wp-show-short-name',
     'data-case-reference', 'data-case-id', 'data-case-number', 'data-case-short-name',
     'data-case-color', 'data-case-type',
     'data-task-reference', 'data-task-id', 'data-task-number',
