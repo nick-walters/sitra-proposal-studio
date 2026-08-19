@@ -34,13 +34,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-
-
 import { EditorChrome, EditorFeatureBar } from '@/components/EditorChrome';
 import { FormattingToolbar } from '@/components/RichTextEditor';
 import { PartBCrossRefControls } from '@/components/PartBCrossRefControls';
@@ -822,21 +815,15 @@ function CardBlock({
             )}
 
             {canEdit && binCount > 0 && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label="Restore a module"
-                    onClick={() => onOpenBin(card)}
-                  >
-                    <Recycle className="h-4 w-4 text-emerald-600" strokeWidth={2.5} />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="top">
-                  Restore a module ({binCount} deleted {binCount === 1 ? 'module' : 'modules'})
-                </TooltipContent>
-              </Tooltip>
+              <Button
+                variant="outline"
+                size="sm"
+                aria-label={`Restore a module (${binCount})`}
+                onClick={() => onOpenBin(card)}
+              >
+                <Recycle className="mr-1 h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
+                Restore a module ({binCount})
+              </Button>
             )}
 
             {canEdit && card.isDeletable && (
