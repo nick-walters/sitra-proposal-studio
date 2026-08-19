@@ -94,6 +94,13 @@ export const ParticipantReferenceNode = Node.create<ParticipantReferenceOptions>
     return [
       {
         tag: 'span[data-participant-reference]',
+        priority: 60,
+      },
+      {
+        tag: 'span[data-participant-id]:not([data-task-id]):not([data-task-reference]):not([data-deliverable-id]):not([data-deliverable-reference]):not([data-milestone-id]):not([data-milestone-reference]):not([data-inline-reference]):not([data-ref-type])',
+        priority: 60,
+        getAttrs: (el) =>
+          ((el as HTMLElement).hasAttribute('data-participant-reference') ? false : {}),
       },
     ];
   },
