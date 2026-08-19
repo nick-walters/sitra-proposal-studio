@@ -1311,17 +1311,18 @@ function BoardInner({
                 Add block
               </Button>
             )}
-            {canEdit && (
+            {canEdit && deletedBlockCount > 0 && (
               <Button
                 variant="outline"
                 size="sm"
-                aria-label="Restore a block"
+                aria-label={`Restore a block (${deletedBlockCount})`}
                 onClick={() => setBinOpen(true)}
               >
                 <Recycle className="mr-1 h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
-                Restore a block
+                Restore a block ({deletedBlockCount})
               </Button>
             )}
+
           </div>
         </div>
 
