@@ -822,7 +822,7 @@ function CardBlock({
                 title={`${binCount} deleted ${binCount === 1 ? 'module' : 'modules'}`}
                 onClick={() => onOpenBin(card)}
               >
-                <Recycle className="h-4 w-4" />
+                <Recycle className="h-4 w-4 text-emerald-600" strokeWidth={2.5} />
               </Button>
             )}
 
