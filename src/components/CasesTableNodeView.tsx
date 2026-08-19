@@ -11,7 +11,8 @@ import {
 
 import { supabase } from '@/integrations/supabase/client';
 import { CROSS_REF_RICH_TEXT_CONFIG } from '@/lib/sanitizePresets';
-import { hydrateRefBadges } from '@/lib/hydrateRefBadges';
+import { renderRefBadges } from '@/lib/renderRefBadges';
+import { RefDataProvider, useRefSnapshot } from '@/lib/refDataContext';
 import { stripWordHtml } from '@/lib/stripWordHtml';
 import { ParticipantBubble } from './B31Pill';
 
@@ -180,6 +181,7 @@ function bodyStartsWithList(html: string | null | undefined): boolean {
 }
 
 function ReadOnlyRichBody({ html, headingPrefixHtml }: { html: string | null | undefined; headingPrefixHtml?: string }) {
+  const refData = useRefSnapshot();
   const raw = (html ?? '').toString();
 
   // 1. Sanitize first — strips MSO comments / <o:p> / MsoNormal etc.
@@ -234,7 +236,7 @@ function ReadOnlyRichBody({ html, headingPrefixHtml }: { html: string | null | u
   return (
     <div
       className="font-['Times_New_Roman',Times,serif] text-[11pt] text-justify [&_p]:mt-[3pt] [&_p]:mb-[3pt] [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-[calc(1.5em-4pt)] [&_ol]:pl-[calc(1.5em-4pt)] [&_li::marker]:text-[0.85em] [&_li]:my-[1pt]"
-      dangerouslySetInnerHTML={{ __html: hydrateRefBadges(DOMPurify.sanitize(finalHtml, CROSS_REF_RICH_TEXT_CONFIG)) }}
+      dangerouslySetInnerHTML={{ __html: renderRefBadges(DOMPurify.sanitize(finalHtml, CROSS_REF_RICH_TEXT_CONFIG), refData) }}
     />
   );
 }
@@ -578,11 +580,13 @@ export function CasesTableNodeView(props: NodeViewProps) {
       }}
       style={{ margin: 0 }}
     >
-      <CasesTableLiveView
-        proposalId={proposalId}
-        caseTypeId={caseTypeId}
-        letterIndex={nodeLetterIndex}
-      />
+      <RefDataProvider proposalId={proposalId}>
+        <CasesTableLiveView
+          proposalId={proposalId}
+          caseTypeId={caseTypeId}
+          letterIndex={nodeLetterIndex}
+        />
+      </RefDataProvider>
     </NodeViewWrapper>
   );
 }

@@ -38,6 +38,10 @@ import {
   WP_TITLE_FIELD_EXTENSIONS,
 } from '@/components/wp/wpDraftFieldExtensions';
 import { ParticipantCrossRefDropdown } from '@/components/participant/ParticipantCrossRefDropdown';
+import {
+  MethodologyEditorFocusProvider,
+  useMethodologyEditorFocus,
+} from '@/components/MethodologyEditorFocusContext';
 import { TextFormattingGroup } from '@/components/toolbar';
 
 
@@ -203,7 +207,21 @@ function AutoTextarea({ value, onChange, debounceMs = 500, onBlur, onFocus, ...r
 }
 
 
-export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDuration = 36 }: Props) {
+export function ProposalMilestonesRisksManager(props: Props) {
+  // The toolbar drives whichever LazyRichField was last focused.
+  return (
+    <MethodologyEditorFocusProvider>
+      <ProposalMilestonesRisksManagerInner {...props} />
+    </MethodologyEditorFocusProvider>
+  );
+}
+
+function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDuration = 36 }: Props) {
+  const { activeEditor } = useMethodologyEditorFocus();
+  const runOnActiveEditor = (fn: (chain: ReturnType<NonNullable<typeof activeEditor>['chain']>) => void) => {
+    if (!activeEditor || activeEditor.isDestroyed) return;
+    fn(activeEditor.chain().focus());
+  };
   const qc = useQueryClient();
 
   // ── Save-state tracking for the page-header SaveIndicator ────
@@ -572,14 +590,15 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
             >
               <span className="text-xs text-muted-foreground px-1.5">Means of verification:</span>
               <TextFormattingGroup
-                onBold={() => document.execCommand('bold')}
-                onItalic={() => document.execCommand('italic')}
-                onUnderline={() => document.execCommand('underline')}
+                onBold={() => runOnActiveEditor((c) => c.toggleBold().run())}
+                onItalic={() => runOnActiveEditor((c) => c.toggleItalic().run())}
+                onUnderline={() => runOnActiveEditor((c) => c.toggleUnderline().run())}
               />
               <Separator orientation="vertical" className="h-5 mx-1.5" />
               <ParticipantCrossRefDropdown
                 proposalId={proposalId}
                 acronymSegments={acronymSegments}
+                editor={activeEditor}
               />
             </div>
           )}

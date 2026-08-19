@@ -3,6 +3,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
 import { supabase } from '@/integrations/supabase/client';
 import { ParticipantBubble } from './B31Pill';
+import { renderRefBadges } from '@/lib/renderRefBadges';
+import { useReferenceData } from '@/lib/referenceData';
 
 /** Sanitiser preset — mirrors PrefixedInlineEditor. */
 const SANITIZE_CONFIG = {
@@ -76,6 +78,8 @@ function isBlank(html: string | null | undefined): boolean {
 
 export function B32MirrorParagraphSlot({ proposalId, slotKey }: Props) {
   const qc = useQueryClient();
+  // One snapshot for the whole slot; chips resolve from their ids.
+  const { data: refData } = useReferenceData(proposalId);
   const config = SLOT_MAP[slotKey];
 
   const toggleQ = useQuery({
@@ -160,7 +164,7 @@ export function B32MirrorParagraphSlot({ proposalId, slotKey }: Props) {
       }}
     >
       {rows.map(({ participant, html }) => {
-        const safe = DOMPurify.sanitize(html || '', SANITIZE_CONFIG);
+        const safe = renderRefBadges(DOMPurify.sanitize(html || '', SANITIZE_CONFIG), refData);
         return (
           <div
             key={participant.id}

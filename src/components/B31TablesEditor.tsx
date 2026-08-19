@@ -5,7 +5,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { EditableCaption } from '@/components/EditableCaption';
 import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
 import { CROSS_REF_RICH_TEXT_CONFIG } from '@/lib/sanitizePresets';
-import { hydrateRefBadges } from '@/lib/hydrateRefBadges';
+import { renderRefBadges } from '@/lib/renderRefBadges';
+import { RefDataProvider, useRefSnapshot } from '@/lib/refDataContext';
 import { WPBubble, ParticipantBubble, RiskBadge, AllWPsBubble, isAllWPsSelected } from './B31Pill';
 import { useColumnResize } from '@/hooks/useColumnResize';
 import { ColumnResizer } from '@/components/ColumnResizer';
@@ -29,6 +30,7 @@ const tableFont = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 const cellBase = "align-middle px-2 py-0 leading-tight";
 
 function ReadOnlyHtmlCell({ html }: { html: string | null | undefined }) {
+  const refData = useRefSnapshot();
   const raw = (html ?? '').toString();
   if (!raw || raw.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, '').trim() === '') {
     return <span className="text-muted-foreground italic">—</span>;
@@ -36,7 +38,7 @@ function ReadOnlyHtmlCell({ html }: { html: string | null | undefined }) {
   return (
     <div
       className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight [&_p]:my-0"
-      dangerouslySetInnerHTML={{ __html: hydrateRefBadges(String(DOMPurify.sanitize(raw, CROSS_REF_RICH_TEXT_CONFIG))) }}
+      dangerouslySetInnerHTML={{ __html: renderRefBadges(String(DOMPurify.sanitize(raw, CROSS_REF_RICH_TEXT_CONFIG)), refData) }}
     />
   );
 }
@@ -392,7 +394,15 @@ type DeliverableOrderMode = 'wp' | 'due';
 
 const orderModeKey = (proposalId: string) => `b31-3-1-c-order:${proposalId}`;
 
-export function B31DeliverablesTable({ proposalId, forExport }: Props & { forExport?: boolean }) {
+export function B31DeliverablesTable(props: Props & { forExport?: boolean }) {
+  return (
+    <RefDataProvider proposalId={props.proposalId}>
+      <B31DeliverablesTableInner {...props} />
+    </RefDataProvider>
+  );
+}
+
+function B31DeliverablesTableInner({ proposalId, forExport }: Props & { forExport?: boolean }) {
   const { data: wpInfo } = useWPLookup(proposalId);
   const { data: partInfo } = useParticipantLookup(proposalId);
 
@@ -589,7 +599,15 @@ export function B31DeliverablesTable({ proposalId, forExport }: Props & { forExp
 // ============================================================
 // Table 3.1.d — Milestones (read-only mirror, proposal_milestones)
 // ============================================================
-export function B31MilestonesTable({ proposalId }: Props) {
+export function B31MilestonesTable(props: Props) {
+  return (
+    <RefDataProvider proposalId={props.proposalId}>
+      <B31MilestonesTableInner {...props} />
+    </RefDataProvider>
+  );
+}
+
+function B31MilestonesTableInner({ proposalId }: Props) {
   const { data: wpInfo } = useWPLookup(proposalId);
 
   const { data: milestones = [] } = useQuery({
@@ -699,7 +717,15 @@ export function B31MilestonesTable({ proposalId }: Props) {
 // ============================================================
 // Table 3.1.e — Critical risks (read-only mirror, proposal_risks)
 // ============================================================
-export function B31RisksTable({ proposalId }: Props) {
+export function B31RisksTable(props: Props) {
+  return (
+    <RefDataProvider proposalId={props.proposalId}>
+      <B31RisksTableInner {...props} />
+    </RefDataProvider>
+  );
+}
+
+function B31RisksTableInner({ proposalId }: Props) {
   const { data: wpInfo } = useWPLookup(proposalId);
 
   const { data: risks = [] } = useQuery({
