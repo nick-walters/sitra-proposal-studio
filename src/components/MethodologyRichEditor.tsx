@@ -34,7 +34,7 @@ export function MethodologyRichEditor({
   isCoordinator,
   minHeight = '2.5rem',
   activeRingClass = 'border-primary ring-1 ring-primary/40',
-
+  onEditorReady,
 }: MethodologyRichEditorProps) {
   // Stable, unique per mounted instance — several editors live on one page.
   const instanceKey = useId();
@@ -54,6 +54,18 @@ export function MethodologyRichEditor({
   useEffect(() => {
     if (editor) editor.setEditable(canEdit);
   }, [editor, canEdit]);
+
+  // Hand the live instance to the parent exactly once (LazyRichField uses it
+  // to place the caret at the click point and to watch for focus loss).
+  const readyRef = useRef(false);
+  const onEditorReadyRef = useRef(onEditorReady);
+  onEditorReadyRef.current = onEditorReady;
+  useEffect(() => {
+    if (!editor || readyRef.current) return;
+    readyRef.current = true;
+    onEditorReadyRef.current?.(editor);
+  }, [editor]);
+
 
 
   // Register on focus (DOM listener on the ProseMirror element — the shared
