@@ -169,9 +169,16 @@ export const WPReferenceNode = Node.create<WPReferenceOptions>({
         (attributes) =>
         ({ tr, dispatch }) => {
           if (dispatch) {
-            const node = this.type.create(attributes);
+            const node = this.type.create({
+              ...attributes,
+              // Dropdown "number only" passes an empty short name; the
+              // "WPn: Short name" option passes a non-empty one.
+              showShortName:
+                attributes.showShortName ?? Boolean(attributes.wpShortName),
+            });
             tr.replaceSelectionWith(node);
           }
+
           return true;
         },
     };
