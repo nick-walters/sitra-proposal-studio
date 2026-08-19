@@ -658,6 +658,39 @@ function CardBlock({
     snapshot: () => titleDraft,
   });
 
+  // Title mirroring — as for module headers and content boxes: keep the last
+  // streamed value after the holder releases, so the heading does not appear
+  // to empty out while the saved value is still in flight.
+  const mirroredTitle = useRef<string | null>(null);
+  if (titleLock.lockedByOther && titleLock.streamed !== null) {
+    mirroredTitle.current = titleLock.streamed;
+  }
+  const [titleView, setTitleView] = useState<string | null>(null);
+  const wasTitleLocked = useRef(false);
+  useEffect(() => {
+    if (titleLock.lockedByOther) {
+      wasTitleLocked.current = true;
+      return;
+    }
+    if (!wasTitleLocked.current) return;
+    wasTitleLocked.current = false;
+    if (mirroredTitle.current !== null) {
+      setTitleView(mirroredTitle.current);
+      setTitleDraft(mirroredTitle.current);
+      lastCommittedTitle.current = mirroredTitle.current.trim();
+    }
+  }, [titleLock.lockedByOther]);
+  // The authoritative value, once it lands, takes over again.
+  useEffect(() => {
+    setTitleView(null);
+  }, [card.title]);
+
+  const displayedTitle =
+    (titleLock.lockedByOther ? (titleLock.streamed ?? mirroredTitle.current) : titleView) ??
+    card.title ??
+    null;
+
+
   useEffect(() => {
     setLocalFieldOrder(null);
   }, [fields]);
