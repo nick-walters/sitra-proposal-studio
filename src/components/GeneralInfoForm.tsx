@@ -32,7 +32,12 @@ import { cn } from "@/lib/utils";
 import declarationsData from "@/data/declarations.json";
 import { htmlToPlainText } from "@/lib/htmlToPlainText";
 import { DEFAULT_AI_STATEMENT, resolveAiStatementHtml } from "@/lib/aiStatement";
-import { InlineRichEditor } from "@/components/InlineRichEditor";
+import { LazyRichField } from "@/components/participant/LazyRichField";
+import { LAZY_RICH_FIELD_EXTENSIONS } from "@/components/participant/lazyRichFieldExtensions";
+import {
+  MethodologyEditorFocusProvider,
+  useMethodologyEditorFocus,
+} from "@/components/MethodologyEditorFocusContext";
 import { TextFormattingGroup } from "@/components/toolbar";
 
 
