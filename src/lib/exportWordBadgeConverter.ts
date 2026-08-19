@@ -16,6 +16,24 @@ function isWhiteish(colour: string): boolean {
   return false;
 }
 
+
+/** Light backgrounds (white, near-white, pale greys) can't carry white text in Word. */
+function isLight(colour: string): boolean {
+  const c = colour.trim().toLowerCase();
+  if (!c || c === 'transparent') return true;
+  const m = c.match(/^rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)/);
+  if (m) {
+    const [r, g, b] = [Number(m[1]), Number(m[2]), Number(m[3])];
+    return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.7;
+  }
+  if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/.test(c)) {
+    const hex = c.length === 4 ? c.slice(1).split('').map((h) => h + h).join('') : c.slice(1);
+    const [r, g, b] = [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16));
+    return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.7;
+  }
+  return c === 'white';
+}
+
 /**
  * The work-package colour for a chip: taken from the chip itself or the nearest
  * ancestor carrying it. Word supports no CSS custom properties, so every colour
@@ -237,7 +255,7 @@ export function convertBadgesForWord(container: HTMLElement): void {
     // that would land on Word's white page.
     let node: HTMLElement | null = el;
     while (node && node !== container) {
-      if (!isWhiteish(node.style.backgroundColor || '')) return;
+      if (!isLight(node.style.backgroundColor || '')) return;
       node = node.parentElement;
     }
     el.style.color = wpColourOf(el) || '#000';
