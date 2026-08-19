@@ -23,6 +23,8 @@ import {
   applyDeliverablePentagon,
   applyMilestoneBadge,
   readBadgeLabel,
+  markBadgeElement,
+  markBadgeTree,
   BADGE_SERIF,
 } from '@/lib/refBadgeMarkup';
 
@@ -37,9 +39,11 @@ function markMissing(el: HTMLElement) {
       'font-style:italic',
       'color:#6b7280',
       'white-space:nowrap',
+      'user-select:none',
     ].join('; '),
   );
   el.textContent = MISSING_LABEL;
+  markBadgeElement(el, 'missing');
 }
 
 function pill(el: HTMLElement, opts: { label: string; background: string; text: string; border: string }) {
@@ -64,7 +68,9 @@ function pill(el: HTMLElement, opts: { label: string; background: string; text: 
     ].join('; '),
   );
   el.textContent = opts.label;
+  markBadgeElement(el, 'pill');
 }
+
 
 /** Colour retained from the stored style (`color` survives the sanitiser). */
 function retainedColour(el: HTMLElement, fallback: string): string {
