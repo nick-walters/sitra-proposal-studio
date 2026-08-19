@@ -5,6 +5,8 @@
  */
 import { createElement } from 'react';
 import { createRoot } from 'react-dom/client';
+import { fetchReferenceData } from '@/lib/referenceData';
+import { resolveRefBadgesInDom } from '@/lib/renderRefBadges';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/hooks/useAuth';
 import DOMPurify from 'dompurify';
@@ -1311,6 +1313,19 @@ export async function prepareExportContainer(
 
   // Mount B3.1 tables, B3.2 expertise matrix, and B1.2 cases-table placeholders
   await mountDynamicComponents(container, options.proposal.id, options.proposal.acronym, appQueryClient);
+
+  // Resolve every cross-reference chip in the finished container against ONE
+  // live snapshot. This is the single resolution pass for both exports (Word
+  // reuses this container), and it runs after the React mirrors have mounted
+  // so their chips are covered too. Ids win; unresolvable ids keep their
+  // stored label.
+  try {
+    const refData = await fetchReferenceData(options.proposal.id);
+    resolveRefBadgesInDom(container, refData);
+  } catch (e) {
+    console.error('Cross-reference resolution failed; exporting stored labels', e);
+    resolveRefBadgesInDom(container);
+  }
 
 
   // Refresh any expired signed URLs before waiting for images to load

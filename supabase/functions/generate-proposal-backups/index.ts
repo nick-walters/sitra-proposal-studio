@@ -37,6 +37,12 @@ import xlsxNs from "npm:xlsx-js-style@1.2.0";
 const XLSX: any = (xlsxNs as any)?.utils ? xlsxNs : (xlsxNs as any)?.default ?? xlsxNs;
 import { parse as parseHtml } from "npm:node-html-parser@6.1.13";
 import { corsHeaders } from "../_shared/cors.ts";
+import {
+  emptySnapshot,
+  isRefChip,
+  resolveChipLabel,
+  type RefSnapshotServer,
+} from "../_shared/referenceResolution.ts";
 
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -131,12 +137,91 @@ function htmlToText(s: any): string {
 // markup. Inline tag attributes are kept (parser ignores them anyway).
 function cleanHtml(html: string | null | undefined): string {
   if (!html) return "";
-  return String(html)
+  const stripped = String(html)
     .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
     .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
     .replace(/<!--[\s\S]*?-->/g, "")
     .replace(/<o:p\b[^>]*>[\s\S]*?<\/o:p>/gi, "")
     .replace(/<\/?o:[^>]+>/gi, "");
+  // Single choke point: every html→docx / html→text path goes through here,
+  // so chips resolve once, consistently, for the whole backup.
+  return resolveChipsInHtml(stripped);
+}
+
+// ---------- cross-reference resolution ----------
+
+/**
+ * Live reference snapshot for the proposal currently being backed up. Set once
+ * per proposal in `backupOne`; every html→docx conversion resolves chips
+ * against it, so a backup shows the SAME numbers the app shows rather than the
+ * (possibly stale) labels baked into stored markup.
+ */
+let CURRENT_REF_SNAPSHOT: RefSnapshotServer | null = null;
+
+/** One 7-way fetch per proposal, mirroring the client's fetchReferenceData. */
+async function loadRefSnapshot(supabase: any, proposalId: string): Promise<RefSnapshotServer> {
+  const snap = emptySnapshot();
+  try {
+    const [wpRes, taskRes, delRes, msRes, partRes, figRes, capRes] = await Promise.all([
+      supabase.from("wp_drafts").select("id, number, short_name").eq("proposal_id", proposalId),
+      supabase.from("wp_draft_tasks").select("id, number, wp_draft_id"),
+      supabase.from("wp_draft_deliverables").select("id, number, wp_draft_id"),
+      supabase.from("proposal_milestones").select("id, number").eq("proposal_id", proposalId),
+      supabase.from("participants").select("id, organisation_short_name").eq("proposal_id", proposalId),
+      supabase.from("figures").select("id, figure_number").eq("proposal_id", proposalId),
+      supabase.from("table_captions").select("table_key").eq("proposal_id", proposalId),
+    ]);
+
+    for (const wp of wpRes.data ?? []) snap.wpById.set(wp.id, wp);
+    for (const t of taskRes.data ?? []) {
+      const wp = snap.wpById.get(t.wp_draft_id);
+      if (wp) snap.taskById.set(t.id, { id: t.id, number: t.number, wp_number: wp.number });
+    }
+    for (const d of delRes.data ?? []) {
+      const wp = snap.wpById.get(d.wp_draft_id);
+      if (wp) snap.deliverableById.set(d.id, { id: d.id, number: `D${wp.number}.${d.number}` });
+    }
+    for (const m of msRes.data ?? []) snap.milestoneById.set(m.id, m);
+    for (const p of partRes.data ?? []) snap.participantById.set(p.id, p);
+    for (const f of figRes.data ?? []) snap.figureById.set(f.id, f);
+    for (const c of capRes.data ?? []) snap.tableCaptionKeys.add(c.table_key);
+  } catch (e) {
+    console.error("Reference snapshot fetch failed; backing up stored labels", e);
+  }
+  return snap;
+}
+
+function escapeText(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/**
+ * Rewrites the visible text of every cross-reference chip to its resolved
+ * label. Unresolvable ids (deleted items, chips copied from another proposal)
+ * are left untouched so the stored label survives.
+ */
+function resolveChipsInHtml(html: string): string {
+  const snap = CURRENT_REF_SNAPSHOT;
+  if (!snap || !html.includes("data-")) return html;
+  try {
+    const root = parseHtml(html, { lowerCaseTagName: true });
+    let changed = false;
+    for (const el of root.querySelectorAll("*")) {
+      // deno-lint-ignore no-explicit-any
+      const attrs = ((el as any).rawAttributes ?? {}) as Record<string, string>;
+      if (!isRefChip(attrs)) continue;
+      const label = resolveChipLabel(attrs, snap);
+      if (label == null) continue;
+      if ((el.textContent ?? "").trim() === label) continue;
+      // deno-lint-ignore no-explicit-any
+      (el as any).set_content(escapeText(label));
+      changed = true;
+    }
+    return changed ? root.toString() : html;
+  } catch (e) {
+    console.error("Chip resolution failed; using stored labels", e);
+    return html;
+  }
 }
 
 // Tags whose text content must NEVER be emitted as visible text.
@@ -2188,6 +2273,8 @@ Deno.serve(async (req) => {
   async function backupOne(proposal: any, cfg: any) {
     const acr = safeAcronym(proposal.acronym);
     try {
+      // One snapshot per proposal — every chip in every file resolves from it.
+      CURRENT_REF_SNAPSHOT = await loadRefSnapshot(supabase, proposal.id);
       const files: { name: string; bytes: Uint8Array; mime: string }[] = [];
       const { data: participants } = await supabase
         .from("participants").select("id, participant_number, organisation_short_name")
