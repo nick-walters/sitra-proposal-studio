@@ -12,7 +12,6 @@ import { InsertCaseReferenceDialog } from '@/components/InsertCaseReferenceDialo
 import { InsertParticipantReferenceDialog } from '@/components/InsertParticipantReferenceDialog';
 import { InsertTDMSReferenceDropdowns } from '@/components/InsertTDMSReferenceDropdowns';
 import { WPBubble, B31Pill } from '@/components/B31Pill';
-import { buildCaseLabel, getCaseTypePrefix } from '@/lib/caseTypeLabels';
 import type { AcronymSegment } from '@/extensions/AcronymReference';
 import type { Editor } from '@tiptap/react';
 
@@ -224,14 +223,6 @@ export function ParticipantCrossRefDropdown({
         onOpenChange={closeDialog(setCaseOpen)}
         proposalId={proposalId}
         onSelect={(c) => {
-          const label = buildCaseLabel({
-            prefix: getCaseTypePrefix(c.case_type),
-            number: c.number,
-            shortName: c.short_name,
-            includeNumber: c.include_number !== false,
-            includeAbbreviation: c.include_abbreviation !== false,
-            withShortName: false,
-          });
           if (!hasEditor) return;
           editor!.chain().focus().insertCaseReference({
             caseNumber: c.number,
