@@ -682,6 +682,7 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
           </DialogContent>
         </Dialog>
         {/* Top Toolbar Row - Guidelines + Formatting (shared component) */}
+        <div data-wp-draft-toolbar="1">
         <DraftFormattingToolbar
           onOpenGuidelines={() => setGuidelinesDialogOpen(true)}
           save={{ saving, lastSaved, saveError, onSaveNow: () => {} }}
