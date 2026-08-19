@@ -42,6 +42,10 @@ export const ALLOWED_DATA_ATTRS = new Set<string>([
   'data-wp-short-name',
   'data-wp-color',
   'data-wp-id',
+  // Label form chosen at insertion ("WP1" vs "WP1: Needs"). Without this the
+  // load-time sanitiser strips the flag and the chip silently collapses to
+  // number-only on reload.
+  'data-wp-show-short-name',
   'data-task-number',
   'data-task-id',
   'data-deliverable-number',
