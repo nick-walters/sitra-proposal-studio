@@ -142,7 +142,15 @@ function parseGuidelineContent(content: string): React.ReactNode {
 
 
 
-export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordinator = false, projectDuration = 36 }: WPDraftEditorProps) {
+export function WPDraftEditor(props: WPDraftEditorProps) {
+  return (
+    <MethodologyEditorFocusProvider>
+      <WPDraftEditorInner {...props} />
+    </MethodologyEditorFocusProvider>
+  );
+}
+
+function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordinator = false, projectDuration = 36 }: WPDraftEditorProps) {
   const {
     wpDraft,
     loading,
