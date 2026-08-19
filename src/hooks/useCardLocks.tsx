@@ -125,13 +125,16 @@ export function CardLockProvider({
 
   const refreshLocks = useCallback(async () => {
     if (!proposalId) return;
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('card_target_locks')
       .select('target_id, user_id, user_name, avatar_url, expires_at')
       .eq('proposal_id', proposalId);
+    // A failed read must never be mistaken for "no locks" — keep what we have.
+    if (error) return;
     const next: Record<string, LockHolder> = {};
+    const cutoff = Date.now() - EXPIRY_SKEW_MS;
     for (const row of data ?? []) {
-      if (new Date(row.expires_at).getTime() < Date.now()) continue;
+      if (new Date(row.expires_at).getTime() < cutoff) continue;
       next[row.target_id] = mapRow(row);
     }
     setLocks(next);
@@ -153,24 +156,21 @@ export function CardLockProvider({
         () => void refreshLocks(),
       )
       .subscribe();
-    // Sweep locally so an expired lock stops showing even without an event.
-    const sweep = window.setInterval(() => {
-      setLocks((prev) => {
-        const now = Date.now();
-        const next: Record<string, LockHolder> = {};
-        let changed = false;
-        for (const [k, v] of Object.entries(prev)) {
-          if (new Date(v.expiresAt).getTime() < now) changed = true;
-          else next[k] = v;
-        }
-        return changed ? next : prev;
-      });
-    }, 5000);
+    // Poll as the authority. Realtime events can be missed (dropped socket,
+    // throttled tab), and a viewer must never expire a lock on its own clock:
+    // the displayed state is always what the server last reported.
+    const poll = window.setInterval(() => void refreshLocks(), LOCK_POLL_MS);
+    const onWake = () => void refreshLocks();
+    document.addEventListener('visibilitychange', onWake);
+    window.addEventListener('focus', onWake);
     return () => {
-      window.clearInterval(sweep);
+      window.clearInterval(poll);
+      document.removeEventListener('visibilitychange', onWake);
+      window.removeEventListener('focus', onWake);
       supabase.removeChannel(channel);
     };
   }, [enabled, proposalId, refreshLocks]);
+
 
   /* ---------------- streaming channel ---------------- */
 
