@@ -183,6 +183,7 @@ export function WPTableSection({
                     currentWpDraftId={currentWpDraftId}
                     proposalId={proposalId}
                     canManageCustomColors={canManageCustomColors}
+                    shouldStayMounted={shouldStayMounted}
                   />
                 ))}
               </div>
