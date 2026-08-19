@@ -11,7 +11,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DebouncedInput } from '@/components/ui/debounced-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { WPSimpleEditor } from '@/components/WPSimpleEditor';
+import { LazyRichField } from '@/components/participant/LazyRichField';
+import { CASE_DRAFT_FIELD_EXTENSIONS } from '@/components/cases/caseDraftFieldExtensions';
+import {
+  MethodologyEditorFocusProvider,
+  useMethodologyEditorFocus,
+} from '@/components/MethodologyEditorFocusContext';
 import { SitraTipsBox } from '@/components/SitraTipsBox';
 import { BookOpen, Lock, Image as ImageLucide, Table2 } from 'lucide-react';
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
