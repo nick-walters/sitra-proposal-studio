@@ -751,6 +751,7 @@ export function ProposalMilestonesRisksManager({ proposalId, canEdit, projectDur
                         onUpdate={(patch) => updateRisk.mutate({ id: r.id, patch })}
                         onSetWps={(ids) => setRiskWps.mutate({ id: r.id, wpIds: ids })}
                         onDelete={() => deleteRisk.mutate(r.id)}
+                        proposalId={proposalId}
                       />
                     ))}
                   </tbody>
