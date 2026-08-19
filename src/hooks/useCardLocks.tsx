@@ -42,14 +42,24 @@ export interface LockHolder {
 }
 
 /** Lock lifetime on the server is 150s; refreshed by the heartbeat below.
- *  Background tabs throttle `setInterval` to roughly once per minute, so the
- *  server window is deliberately far longer than the heartbeat period. */
-const HEARTBEAT_MS = 15_000;
+ *  Background/minimised windows throttle `setInterval` to roughly once per
+ *  minute, so the server window is deliberately far longer. */
+const HEARTBEAT_MS = 10_000;
+
+/** How often a viewer re-reads the lock table from the server. Viewers must
+ *  never decide on their own that a lock has gone: realtime events can be
+ *  missed, so the displayed state is re-derived from server rows. */
+const LOCK_POLL_MS = 8_000;
+
+/** Tolerance for clock skew between this browser and the database when
+ *  judging `expires_at`. Well under the 150s server window. */
+const EXPIRY_SKEW_MS = 20_000;
 
 /** Idle timeout measured from the last keystroke. */
 const IDLE_TIMEOUT_MS = 5 * 60_000;
 /** Warning appears this long before the timeout. */
 const WARNING_LEAD_MS = 60_000;
+
 
 interface CardLockContextValue {
   enabled: boolean;
