@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { generateHTML, generateJSON, type Editor } from '@tiptap/core';
+import { generateHTML, generateJSON, type Editor, type Extensions } from '@tiptap/core';
 import DOMPurify from 'dompurify';
 import { CROSS_REF_RICH_TEXT_CONFIG } from '@/lib/sanitizePresets';
 import { cn } from '@/lib/utils';
@@ -27,20 +27,26 @@ export interface LazyRichFieldProps {
    * (toolbar dropdown / cross-reference dialog open).
    */
   shouldStayMounted?: () => boolean;
+  /**
+   * Schema used for the STATIC (unfocused) render. Defaults to the minimal
+   * A2 participant set; case drafts pass a richer one.
+   */
+  staticExtensions?: Extensions;
 }
 
 /** Render stored HTML through the TipTap schema, then sanitise. */
-function renderStatic(html: string): string {
+function renderStatic(html: string, extensions: Extensions): string {
   if (!html || !html.trim()) return '';
   try {
-    const json = generateJSON(html, LAZY_RICH_FIELD_EXTENSIONS);
-    const out = generateHTML(json, LAZY_RICH_FIELD_EXTENSIONS);
+    const json = generateJSON(html, extensions);
+    const out = generateHTML(json, extensions);
     return DOMPurify.sanitize(out, CROSS_REF_RICH_TEXT_CONFIG);
   } catch {
     // Never blank a field because of a parse failure.
     return DOMPurify.sanitize(html, CROSS_REF_RICH_TEXT_CONFIG);
   }
 }
+
 
 /**
  * Lazy-mounting rich field.
