@@ -190,6 +190,8 @@ export function WPDeliverablesTable({
   readOnly = false,
   projectDuration = 36,
   allWpDrafts = [],
+  proposalId,
+  shouldStayMounted,
 }: WPDeliverablesTableProps) {
   const qc = useQueryClient();
   const resolvedWpColor = wpColor || DEFAULT_WP_COLORS[(wpNumber - 1) % DEFAULT_WP_COLORS.length];
