@@ -353,25 +353,45 @@ export function CardLockProvider({
     return () => window.clearInterval(id);
   }, [enabled, doRelease]);
 
-  // Tab close / navigation away.
+  // Tab / window close and in-app teardown.
+  //
+  // On unload the browser cancels ordinary fetches, so the supabase-js call
+  // used here previously never reached the server and every clean close looked
+  // like a crash (lock held until the 300s expiry). The unload paths now use a
+  // `keepalive` request, which the network stack completes after the document
+  // is gone. `visibilitychange` is deliberately NOT a release trigger: it
+  // cannot be told apart from an ordinary minimise or app switch, which must
+  // keep the lock.
   useEffect(() => {
     if (!enabled) return;
-    const handler = () => {
+    const unloadRelease = () => {
       const target = myTargetRef.current;
       if (!target) return;
-      void supabase.rpc('release_card_lock', {
-        p_target_type: 'text_box' as LockTargetType,
-        p_target_id: target,
-      });
+      myTargetRef.current = null;
+      unloadRpc(
+        'release_card_lock',
+        { p_target_type: 'text_box', p_target_id: target },
+        accessTokenRef.current,
+      );
     };
-    window.addEventListener('pagehide', handler);
-    window.addEventListener('beforeunload', handler);
+    window.addEventListener('pagehide', unloadRelease);
+    window.addEventListener('beforeunload', unloadRelease);
     return () => {
-      window.removeEventListener('pagehide', handler);
-      window.removeEventListener('beforeunload', handler);
-      handler();
+      window.removeEventListener('pagehide', unloadRelease);
+      window.removeEventListener('beforeunload', unloadRelease);
+      // In-app teardown (navigating away from the board): the page survives, so
+      // the ordinary RPC can complete normally.
+      const target = myTargetRef.current;
+      if (target) {
+        myTargetRef.current = null;
+        void supabase.rpc('release_card_lock', {
+          p_target_type: 'text_box' as LockTargetType,
+          p_target_id: target,
+        });
+      }
     };
   }, [enabled]);
+
 
   const registerSaver = useCallback((targetId: string, saver: () => Promise<void>) => {
     saversRef.current.set(targetId, saver);
