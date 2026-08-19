@@ -822,11 +822,13 @@ function SortableRiskRow({
         )}
       </td>
       <td className="py-1.5 px-1">
-        <AutoTextarea
+        <LazyRichField
           value={risk.title || ''}
           disabled={!canEdit}
-          placeholder="Risk description"
-          onChange={(e) => onUpdate({ title: e.target.value })}
+          minHeight="30px"
+          proposalId={proposalId}
+          staticExtensions={WP_TITLE_FIELD_EXTENSIONS}
+          onChange={(html) => onUpdate({ title: html })}
         />
       </td>
       <td className="py-1.5 px-1 text-center">
