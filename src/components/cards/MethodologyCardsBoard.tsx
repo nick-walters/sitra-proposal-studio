@@ -334,6 +334,30 @@ function FieldRow({
     snapshot: () => contentRef.current,
   });
 
+  // Header mirroring — same rule as the content box below. Keep the last
+  // streamed value so that when the holder moves on, the header settles on
+  // their final text instead of snapping back to the pre-stream draft (the
+  // saved value only arrives later, on the next query refetch).
+  const mirroredHeading = useRef<string | null>(null);
+  if (headerLock.lockedByOther && headerLock.streamed !== null) {
+    mirroredHeading.current = headerLock.streamed;
+  }
+  const wasHeaderLocked = useRef(false);
+  useEffect(() => {
+    if (headerLock.lockedByOther) {
+      wasHeaderLocked.current = true;
+      return;
+    }
+    if (!wasHeaderLocked.current) return;
+    wasHeaderLocked.current = false;
+    if (mirroredHeading.current !== null) {
+      setHeadingDraft(mirroredHeading.current);
+      lastCommittedHeading.current = mirroredHeading.current.trim();
+    }
+  }, [headerLock.lockedByOther]);
+  const headingView = headerLock.streamed ?? mirroredHeading.current ?? headingDraft;
+
+
 
   const style = {
     transform: CSS.Transform.toString(transform),
