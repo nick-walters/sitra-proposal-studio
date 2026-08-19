@@ -11,6 +11,7 @@ import {
 } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { createWorkerInterval } from '@/lib/workerInterval';
 import {
   acquireStream,
   broadcastContent,
@@ -54,7 +55,7 @@ const HEARTBEAT_MS = 15_000;
 const LOCK_POLL_MS = 8_000;
 
 /** Tolerance for clock skew between this browser and the database when
- *  judging `expires_at`. Well under the 150s server window. */
+ *  judging `expires_at`. Well under the 300s server window. */
 const EXPIRY_SKEW_MS = 20_000;
 
 /** Idle timeout measured from the last keystroke. */
