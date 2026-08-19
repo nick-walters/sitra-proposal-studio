@@ -31,6 +31,8 @@ export function MethodologyRichEditor({
   canEdit,
   isCoordinator,
   minHeight = '2.5rem',
+  activeRingClass = 'border-primary ring-1 ring-primary/40',
+
 }: MethodologyRichEditorProps) {
   // Stable, unique per mounted instance — several editors live on one page.
   const instanceKey = useId();
