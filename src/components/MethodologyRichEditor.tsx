@@ -77,7 +77,7 @@ export function MethodologyRichEditor({
     <div
       className={`overflow-visible rounded-md border bg-background px-4 py-2 transition-colors [&_.ProseMirror]:!min-h-0 [&_.ProseMirror]:overflow-visible [&_.document-content]:!min-h-0 ${
         canEdit ? 'cursor-text' : 'cursor-default select-text'
-      } ${isActive && canEdit ? 'border-primary ring-1 ring-primary/40' : 'border-border'}`}
+      } ${isActive && canEdit ? activeRingClass : 'border-border'}`}
       style={{ minHeight }}
       onMouseDown={(e) => {
         if (!canEdit) return;
