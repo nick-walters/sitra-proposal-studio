@@ -156,6 +156,17 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
   /** Kept for API compatibility with the toolbar — TipTap keeps its own selection. */
   const saveSelection = useCallback(() => {}, []);
 
+  // Any open insert dialog / picker must keep the focused editor mounted so
+  // the insertion has somewhere to land. Read through a ref: the LazyRichField
+  // focus-out listener is attached once and would otherwise see stale state.
+  const dialogOpenRef = useRef(false);
+  dialogOpenRef.current =
+    isCrossRefOpen || isWPRefOpen || isParticipantRefOpen || isTaskRefOpen ||
+    isDeliverableRefOpen || isMilestoneRefOpen || isCaseRefOpen || isCitationOpen ||
+    isFigureDialogOpen || tablePopoverOpen;
+  const shouldStayMounted = useCallback(() => dialogOpenRef.current, []);
+
+
   /** Insert a badge/element by handing its markup to TipTap's parser. */
   const insertNodeAtCursor = useCallback((node: Node) => {
     const editor = getEditor();
