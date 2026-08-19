@@ -223,12 +223,19 @@ function lostTextPayload(typed: string, holderName: string | null): LostTextPayl
 
 
 
-/** Green when held by me, red when held by someone else. */
+/**
+ * Green when held by me, red when held by someone else.
+ * The `focus-visible:` overrides matter: shadcn inputs paint the ordinary blue
+ * focus ring on focus, which would otherwise win over the green lock border
+ * exactly when the holder is typing.
+ */
 function lockBorderClass(isMine: boolean, lockedByOther: boolean) {
   if (lockedByOther) return 'border-destructive ring-1 ring-destructive/40';
-  if (isMine) return 'border-emerald-600 ring-1 ring-emerald-600/40';
+  if (isMine)
+    return 'border-emerald-600 ring-1 ring-emerald-600/40 focus-visible:border-emerald-600 focus-visible:ring-emerald-600/60 focus-visible:ring-offset-0';
   return '';
 }
+
 
 /* ------------------------------------------------------------------ */
 /* Field row                                                           */
