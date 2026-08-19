@@ -107,6 +107,8 @@ export function applyDeliverablePentagon(el: HTMLElement, label: string, colour:
   text.textContent = label;
 
   el.append(border, fill, text);
+  markBadgeTree(el, 'deliverable');
+
 }
 
 /** Rewrites `el` into the black milestone chevron used by Table 3.1.d. */
