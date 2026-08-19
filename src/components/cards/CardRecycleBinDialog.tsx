@@ -39,8 +39,8 @@ function BinEntry({
   const hasContent = html.replace(/<[^>]*>/g, '').trim().length > 0;
 
   return (
-    <div className="rounded-md border border-border p-2">
-      <div className="flex items-start gap-2">
+    <div className="w-full min-w-0 max-w-full overflow-hidden rounded-md border border-border p-2">
+      <div className="flex min-w-0 items-start gap-2">
         <div className="min-w-0 flex-1 space-y-1">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             <Badge variant="secondary" className="text-[11px] font-bold">
@@ -68,11 +68,14 @@ function BinEntry({
       </div>
 
       {hasContent && (
-        <div className="mt-2">
-          <div className="relative">
+        <div className="mt-2 min-w-0 max-w-full">
+          <div className="relative min-w-0 max-w-full overflow-hidden">
+            {/* Deleted modules can contain wide, unbreakable content (cross-reference
+                chips, tables). Left unconstrained it widens the whole bin row inside
+                the Radix scroll viewport, pushing the Restore button out of view. */}
             <div
-              className={`prose prose-sm max-w-none text-sm text-muted-foreground ${
-                expanded ? '' : 'max-h-[7.5rem] overflow-hidden'
+              className={`prose prose-sm w-full max-w-full break-words text-sm text-muted-foreground [&_*]:max-w-full [&_table]:block [&_table]:overflow-x-auto ${
+                expanded ? 'overflow-x-auto' : 'max-h-[7.5rem] overflow-hidden'
               }`}
               dangerouslySetInnerHTML={{ __html: html }}
             />
@@ -137,7 +140,7 @@ export function CardRecycleBinDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg overflow-hidden">
         <DialogHeader>
           <DialogTitle>{isModules ? 'Recycle bin — this block' : 'Recycle bin'}</DialogTitle>
           <DialogDescription>
@@ -147,13 +150,13 @@ export function CardRecycleBinDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[60vh] pr-3">
+        <ScrollArea className="max-h-[60vh] w-full min-w-0 pr-3">
           {isLoading ? (
             <p className="text-sm text-muted-foreground">Loading…</p>
           ) : entries.length === 0 ? (
             <p className="text-sm italic text-muted-foreground">The bin is empty.</p>
           ) : (
-            <div className="space-y-2">
+            <div className="w-full min-w-0 space-y-2">
               {entries.map((e) => (
                 <BinEntry
                   key={e.id}
