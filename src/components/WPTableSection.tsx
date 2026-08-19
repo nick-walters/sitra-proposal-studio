@@ -247,6 +247,7 @@ function SortableTaskCard({
   currentWpDraftId,
   proposalId,
   canManageCustomColors = false,
+  shouldStayMounted,
 }: SortableTaskCardProps) {
   const {
     attributes,
