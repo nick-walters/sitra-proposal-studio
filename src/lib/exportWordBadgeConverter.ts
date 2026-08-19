@@ -89,26 +89,27 @@ export function convertBadgesForWord(container: HTMLElement): void {
       const isAcronym = span.hasAttribute('data-acronym-reference');
       const isFigTable = span.hasAttribute('data-fig-table-ref');
 
-      if (isWP || isTask || isDeliverable) {
-        span.setAttribute(
+      const colour = isWP || isTask || isDeliverable ? wpColor : '#000';
+      void isParticipant;
+      void isCase;
+      void isAcronym;
+      void isFigTable;
+      span.setAttribute(
+        'style',
+        `font-weight: bold; color: ${colour}; font-family: 'Times New Roman', Times, serif; font-size: 11pt;`
+      );
+      span.className = '';
+      // Inner pill parts carry their own colours (often white text on a coloured
+      // pill, or `var(--wp-color)`), which would render invisibly in Word.
+      span.querySelectorAll<HTMLElement>('[style], [class]').forEach((child) => {
+        child.className = '';
+        child.setAttribute(
           'style',
-          `font-weight: bold; color: ${wpColor}; font-family: 'Times New Roman', Times, serif; font-size: 11pt;`
+          `font-weight: bold; color: ${colour}; font-family: 'Times New Roman', Times, serif; font-size: 11pt;`
         );
-        span.className = '';
-      } else if (isParticipant || isCase || isAcronym || isFigTable) {
-        span.setAttribute(
-          'style',
-          `font-weight: bold; color: #000; font-family: 'Times New Roman', Times, serif; font-size: 11pt;`
-        );
-        span.className = '';
-      } else {
-        span.setAttribute(
-          'style',
-          `font-weight: bold; color: #000; font-family: 'Times New Roman', Times, serif; font-size: 11pt;`
-        );
-        span.className = '';
-      }
+      });
     });
+
 
   // 2. B3.1 deliverable badges (clip-path chevrons)
   container.querySelectorAll('[style*="clip-path"]').forEach((el) => {
