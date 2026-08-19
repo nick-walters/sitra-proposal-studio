@@ -140,68 +140,36 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
   const { data: caseTypes = [] } = useProposalCaseTypes(proposalId);
 
 
-  // Save/restore selection across multiple WPSimpleEditor subsections
-  const savedRangeRef = useRef<Range | null>(null);
-  const savedEditorRef = useRef<HTMLElement | null>(null);
-  const saveSelection = useCallback(() => {
-    const sel = window.getSelection();
-    if (sel && sel.rangeCount > 0) {
-      const node = sel.anchorNode;
-      if (node) {
-        const el = node.nodeType === Node.ELEMENT_NODE ? (node as HTMLElement) : node.parentElement;
-        const editable = el?.closest('[contenteditable="true"]') as HTMLElement | null;
-        if (editable) {
-          savedRangeRef.current = sel.getRangeAt(0).cloneRange();
-          savedEditorRef.current = editable;
-        }
-      }
-    }
-  }, []);
-  const restoreSelection = useCallback((): { editorEl: HTMLElement | null } => {
-    const range = savedRangeRef.current;
-    const editorEl = savedEditorRef.current;
-    const clear = () => { savedRangeRef.current = null; savedEditorRef.current = null; };
-    if (range && editorEl && document.body.contains(editorEl)) {
-      if (document.body.contains(range.startContainer)) {
-        editorEl.focus({ preventScroll: true });
-        const sel = window.getSelection();
-        if (sel) { sel.removeAllRanges(); sel.addRange(range); }
-        clear();
-        return { editorEl };
-      }
-      editorEl.focus({ preventScroll: true });
-      const sel = window.getSelection();
-      if (sel) {
-        sel.removeAllRanges();
-        const fallback = document.createRange();
-        fallback.selectNodeContents(editorEl);
-        fallback.collapse(false);
-        sel.addRange(fallback);
-        clear();
-        return { editorEl };
-      }
-    }
-    clear();
-    return { editorEl: null };
-  }, []);
-  const notifyEditorInput = useCallback((editorEl: HTMLElement | null) => {
-    if (!editorEl || !document.body.contains(editorEl)) return;
-    editorEl.dispatchEvent(new Event('input', { bubbles: true }));
+  // The toolbar acts on whichever LazyRichField subsection last mounted an
+  // editor (MethodologyEditorFocusContext). Everything below routes through
+  // that instance; the legacy contentEditable/execCommand paths are gone.
+  const { activeEditor } = useMethodologyEditorFocus();
+  const activeEditorRef = useRef(activeEditor);
+  activeEditorRef.current = activeEditor;
+
+  const getEditor = useCallback(() => {
+    const editor = activeEditorRef.current;
+    if (!editor || editor.isDestroyed) return null;
+    return editor;
   }, []);
 
+  /** Kept for API compatibility with the toolbar — TipTap keeps its own selection. */
+  const saveSelection = useCallback(() => {}, []);
+
+  /** Insert a badge/element by handing its markup to TipTap's parser. */
   const insertNodeAtCursor = useCallback((node: Node) => {
-    const { editorEl } = restoreSelection();
-    const selection = window.getSelection();
-    if (selection && selection.rangeCount > 0) {
-      const range = selection.getRangeAt(0);
-      range.insertNode(node);
-      range.setStartAfter(node);
-      range.collapse(true);
-      selection.removeAllRanges();
-      selection.addRange(range);
-      notifyEditorInput(editorEl);
+    const editor = getEditor();
+    if (!editor) {
+      toast.error('Click into a text box first, then insert the reference.');
+      return;
     }
-  }, [notifyEditorInput, restoreSelection]);
+    const html =
+      node.nodeType === Node.ELEMENT_NODE
+        ? (node as HTMLElement).outerHTML
+        : (node.textContent || '');
+    editor.chain().focus().insertContent(html).run();
+  }, [getEditor]);
+
 
   const insertCrossRefAtCursor = useCallback((payload: { refText: string; figureId?: string; tableKey?: string; refKind: 'figure' | 'table' }) => {
     const span = document.createElement('span');
