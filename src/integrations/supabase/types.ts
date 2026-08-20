@@ -6651,6 +6651,7 @@ export type Database = {
         }
         Returns: Json
       }
+      caller_is_sitra_staff: { Args: never; Returns: boolean }
       can_edit_proposal: {
         Args: { _proposal_id: string; _user_id: string }
         Returns: boolean
