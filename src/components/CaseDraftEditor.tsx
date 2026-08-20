@@ -433,14 +433,37 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
   // Project-wide subsection templates
   const { templates: subsectionTemplates } = useCaseSubsectionTemplates(proposalId);
 
-  // Update mutation (writes go only to this case row; per-case heading/guideline propagation removed)
+  // Offers back text refused by the version guard.
+  const { reportConflict, dialog: conflictDialog } = useVersionConflict();
+
+  // Baseline bodies for the subsections this session loaded. Per-key checking
+  // means two people editing DIFFERENT subsections of the same case both
+  // succeed; only the same subsection conflicts. Whole-column checking would
+  // make them collide needlessly, since the narrative subsections are
+  // independent pieces of text.
+  const subsectionBaseline = useRef<Record<string, string>>({});
+  useEffect(() => {
+    const stored = ((caseDraft as any)?.subsection_content as Record<string, any> | null) || {};
+    const next: Record<string, string> = {};
+    for (const [k, v] of Object.entries(stored)) {
+      next[k] = typeof v === 'string' ? v : String(v?.body ?? '');
+    }
+    // Only seed keys we have not already saved in this session.
+    for (const [k, v] of Object.entries(next)) {
+      if (!(k in subsectionBaseline.current)) subsectionBaseline.current[k] = v;
+    }
+  }, [caseDraft]);
+  useEffect(() => { subsectionBaseline.current = {}; }, [caseId]);
+
+  // Update mutation for the scalar columns — guarded by the row version.
   const updateMutation = useMutation({
     mutationFn: async (updates: Record<string, any>) => {
-      const { error } = await supabase
-        .from('case_drafts')
-        .update(updates as any)
-        .eq('id', caseId);
-      if (error) throw error;
+      const res = await saveVersionedRow('case_drafts', caseId, updates, (caseDraft as any)?.version ?? null);
+      if (res.conflict) {
+        reportConflict(Object.values(updates).find(v => typeof v === 'string' && v.trim() !== '') ?? null);
+        throw new Error('conflict');
+      }
+      if (!res.ok) throw new Error(res.error || 'save failed');
     },
     onSuccess: () => {
       setLastSaved(new Date());
@@ -449,38 +472,45 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
       queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
       queryClient.invalidateQueries({ queryKey: ['case-drafts-management', proposalId] });
     },
-    onError: () => {
-      setSaveError('Failed to save changes');
+    onError: (err: Error) => {
+      setSaveError(err.message === 'conflict'
+        ? 'This case was changed elsewhere — your change was not saved.'
+        : 'Failed to save changes');
+      queryClient.invalidateQueries({ queryKey: ['case-draft-detail'] });
     },
   });
 
-  const updateField = useCallback((field: string, value: any) => {
-    // Save-time guard: if the value looks like HTML, run it through the
-    // shared Word-cleaner so any MSO junk that slipped past paste-time
-    // (or arrived via a programmatic insert) is stripped before write.
-    const safe =
-      typeof value === 'string' && value.indexOf('<') !== -1
-        ? stripWordHtml(value)
-        : value;
-    updateMutation.mutate({ [field]: safe });
-  }, [updateMutation]);
-
-  // Write a single subsection's content into the subsection_content jsonb
+  // Write a single subsection's content into the subsection_content jsonb.
+  // Guarded PER KEY against the body this session loaded.
   const updateSubsectionContent = useCallback(
-    (key: string, value: string, heading?: string) => {
+    async (key: string, value: string, heading?: string) => {
       const current = ((caseDraft as any)?.subsection_content as Record<string, any> | null) || {};
       const safe = typeof value === 'string' ? stripWordHtml(value) : value;
-      // Forward-write the object form { heading, body }. The reader tolerates
-      // both the legacy bare-string shape and this object shape.
       const existing = current[key];
       const existingHeading =
         existing && typeof existing === 'object' ? existing.heading : undefined;
       const nextHeading = heading || existingHeading || '';
-      updateMutation.mutate({
-        subsection_content: { ...current, [key]: { heading: nextHeading, body: safe } },
-      });
+      const expected = subsectionBaseline.current[key] ?? null;
+
+      const res = await saveCaseDraftSubsection(caseId, key, safe, nextHeading, expected);
+      if (res.conflict) {
+        reportConflict(safe);
+        setSaveError('This subsection was changed elsewhere — your text was not saved.');
+        subsectionBaseline.current[key] = res.value ?? '';
+        queryClient.invalidateQueries({ queryKey: ['case-draft-detail'] });
+        return;
+      }
+      if (!res.ok) {
+        setSaveError('Failed to save changes');
+        return;
+      }
+      subsectionBaseline.current[key] = safe;
+      setLastSaved(new Date());
+      setSaveError(null);
+      queryClient.invalidateQueries({ queryKey: ['case-draft-detail'] });
+      queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
     },
-    [caseDraft, updateMutation],
+    [caseDraft, caseId, proposalId, queryClient, reportConflict],
   );
 
   /**
