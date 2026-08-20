@@ -5,8 +5,11 @@ import { stripWordHtml } from '@/lib/stripWordHtml';
 import {
   saveVersionedRow,
   reorderVersionedRows,
+  deleteAndResequence,
+  moveChildToWpRpc,
   type ReorderItem,
 } from '@/lib/versionedSave';
+
 
 /** Options shared by both WP hooks. */
 export interface WPDraftHookOptions {
