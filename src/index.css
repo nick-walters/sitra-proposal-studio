@@ -1363,22 +1363,27 @@ body.table-col-resizing * {
   object-fit: contain !important;
 }
 
-.print-export-container [data-figure-type] .overflow-hidden,
-.print-export-container [data-figure-type] .overflow-auto,
-.print-export-container [data-figure-type] [style*="overflow:hidden"],
-.print-export-container [data-figure-type] [style*="overflow: hidden"] {
+.print-export-container [data-figure-type] .overflow-hidden:not([data-gantt-title-cell]):not([data-gantt-task-title]),
+.print-export-container [data-figure-type] .overflow-auto:not([data-gantt-title-cell]):not([data-gantt-task-title]),
+.print-export-container [data-figure-type] [style*="overflow:hidden"]:not([data-gantt-title-cell]):not([data-gantt-task-title]),
+.print-export-container [data-figure-type] [style*="overflow: hidden"]:not([data-gantt-title-cell]):not([data-gantt-task-title]) {
   overflow: visible !important;
 }
 
 /* Gantt task titles must keep the on-screen clipping (the title cell is
    deliberately overflow:hidden so long titles are ellipsised instead of
-   running under the timeline), so they are exempt from the rule above. */
-.print-export-container [data-gantt-title-cell],
-.print-export-container [data-gantt-task-title] {
+   running under the timeline), so they are exempt from the rule above.
+   Selectors are kept at least as specific as the overflow:visible rule
+   above — otherwise that rule wins on specificity despite coming first. */
+.print-export-container [data-figure-type] [data-gantt-title-cell],
+.print-export-container [data-figure-type] [data-gantt-task-title],
+.print-export-container [data-gantt-title-cell][style],
+.print-export-container [data-gantt-task-title][style] {
   overflow: hidden !important;
   text-overflow: ellipsis !important;
   white-space: nowrap !important;
 }
+
 
 
 .print-export-container [data-figure-type] svg {
@@ -1652,8 +1657,14 @@ body.table-col-resizing * {
 
 /* Table 3.1.f (staff effort) — the generic B3.1 rule above collapses borders,
    which also kills the 5pt horizontal column gap the matrix uses on screen.
-   Restore the separated model and the gap. */
-.print-export-container .b31-effort-matrix {
+   Restore the separated model and the gap. The selectors must out-specify
+   `.print-export-container .b31-tables-container table` (0,2,1) and
+   `.print-export-container .ProseMirror table` (0,2,1) — a bare
+   `.print-export-container .b31-effort-matrix` (0,2,0) loses to both even
+   with !important. */
+.print-export-container table.b31-effort-matrix,
+.print-export-container .b31-tables-container table.b31-effort-matrix,
+.print-export-container .ProseMirror table.b31-effort-matrix {
   width: 100% !important;
   table-layout: fixed !important;
   border-collapse: separate !important;
