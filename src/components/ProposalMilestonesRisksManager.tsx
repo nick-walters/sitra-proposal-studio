@@ -374,32 +374,8 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
     });
   }, [milestones]);
 
-  // ── Numbering repair is an explicit user gesture, never a mount-time write ──
-  // The old version of this ran on load and silently renumbered, which is how a
-  // stale tab could overwrite a deliberate renumber made elsewhere.
-  const msNumberingNeedsRepair = useMemo(
-    () => orderedMs.some((m, i) => m.number !== i + 1),
-    [orderedMs],
-  );
-
-  const repairMsNumbering = useCallback(async () => {
-    if (!orderedMs.length) return;
-    const res = await reorderVersionedRows('proposal_milestones', orderedMs.map((m, i) => ({
-      id: m.id,
-      expected_version: m.version ?? null,
-      number: i + 1,
-      order_index: m.order_index,
-    })));
-    if (!res.ok) {
-      toast.error(res.conflict
-        ? 'Milestones changed elsewhere — nothing was renumbered. Reloading.'
-        : (res.error || 'Failed to repair milestone numbering'));
-    } else {
-      toast.success('Milestone numbering repaired');
-    }
-    qc.invalidateQueries({ queryKey: MS_KEY(proposalId) });
-    notifyRefs();
-  }, [orderedMs, proposalId, qc]);
+  // ── Milestone numbering is maintained by the database resequencing trigger ──
+  // (due month, then order_index). Nothing on the client writes `number`.
 
   // ── Persist same-month manual order_index (called by reorder dialog) ──
   const persistMsGroupOrder = useCallback(async (newSorted: Milestone[]) => {
@@ -779,20 +755,6 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
           </div>
           {canEdit && (
             <div className="flex items-center justify-end gap-2 pt-3">
-              {msNumberingNeedsRepair && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => repairMsNumbering()}
-                    >
-                      Repair numbering
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Milestone numbers are not sequential. Renumber them 1–N now.</TooltipContent>
-                </Tooltip>
-              )}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button

@@ -706,28 +706,9 @@ export function useWPDraftEditor(wpId: string | null, options?: WPDraftHookOptio
     [moveChildToWP],
   );
 
-  /**
-   * True when this WP's tasks or deliverables are not numbered 1..n in order.
-   * Surfaced to the user so repair happens on an explicit gesture only.
-   */
-  const numberingNeedsRepair = (() => {
-    const off = <T extends { number: number; order_index: number }>(items: T[]) =>
-      items.some((item, i) => item.number !== i + 1 || item.order_index !== i);
-    const tasks = [...(wpDraft?.tasks || [])].sort((a, b) => a.order_index - b.order_index);
-    const dels = [...(wpDraft?.deliverables || [])].sort((a, b) => a.order_index - b.order_index);
-    return off(tasks) || off(dels);
-  })();
+  // Numbering repair no longer exists on the client: the database resequencing
+  // triggers keep tasks and deliverables numbered on every write path.
 
-  /** Explicit, user-triggered renumbering. Guarded and all-or-nothing. */
-  const repairNumbering = useCallback(async () => {
-    if (!wpDraft) return false;
-    const tasks = [...(wpDraft.tasks || [])].sort((a, b) => a.order_index - b.order_index);
-    const dels = [...(wpDraft.deliverables || [])].sort((a, b) => a.order_index - b.order_index);
-    const a = tasks.length ? await applyOrder('wp_draft_tasks', tasks, 'Tasks') : true;
-    const b = dels.length ? await applyOrder('wp_draft_deliverables', dels, 'Deliverables') : true;
-    if (a && b) toast.success('Numbering repaired');
-    return a && b;
-  }, [wpDraft, applyOrder]);
 
   return {
     wpDraft,
@@ -737,8 +718,6 @@ export function useWPDraftEditor(wpId: string | null, options?: WPDraftHookOptio
     saveError,
     refetch: fetchWPDraft,
     updateField,
-    numberingNeedsRepair,
-    repairNumbering,
     // Tasks
     addTask,
     updateTask,
