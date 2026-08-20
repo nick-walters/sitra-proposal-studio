@@ -482,6 +482,14 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
     },
   });
 
+  // Update a single scalar column through the version-guarded mutation.
+  const updateField = useCallback(
+    (field: string, value: any) => {
+      updateMutation.mutate({ [field]: value });
+    },
+    [updateMutation],
+  );
+
   // Write a single subsection's content into the subsection_content jsonb.
   // Guarded PER KEY against the body this session loaded.
   const updateSubsectionContent = useCallback(

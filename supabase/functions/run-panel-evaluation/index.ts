@@ -44,10 +44,38 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Resolve per-MTok USD pricing for a given model id, using configMap values.
 // Sonnet has intro vs standard pricing — pick by sonnet_pricing_standard_effective_date.
+// Pricing now travels WITH the model: each configured option in
+// evaluation_model_options carries its own input/output per-MTok USD price.
+// The legacy substring heuristic below is only a fallback for models that
+// predate the options table (e.g. the Haiku assembly model).
+export type ModelPriceMap = Record<string, { inPrice: number; outPrice: number }>;
+
+async function loadModelPrices(serviceClient: any): Promise<ModelPriceMap> {
+  const { data, error } = await serviceClient
+    .from("evaluation_model_options")
+    .select("model_id, price_input_per_mtok, price_output_per_mtok");
+  if (error) {
+    console.warn("Failed to load evaluation_model_options pricing:", error.message);
+    return {};
+  }
+  const map: ModelPriceMap = {};
+  for (const row of data || []) {
+    const inPrice = Number(row.price_input_per_mtok);
+    const outPrice = Number(row.price_output_per_mtok);
+    if (row.model_id && Number.isFinite(inPrice) && Number.isFinite(outPrice)) {
+      map[String(row.model_id)] = { inPrice, outPrice };
+    }
+  }
+  return map;
+}
+
 function resolveModelPricing(
   model: string,
   configMap: Record<string, string>,
+  priceMap: ModelPriceMap = {},
 ): { inPrice: number; outPrice: number } {
+  const exact = priceMap[String(model || "")];
+  if (exact) return exact;
   const m = String(model || "").toLowerCase();
   if (m.includes("sonnet")) {
     const effectiveDateStr = configMap.sonnet_pricing_standard_effective_date || "2026-09-01";
@@ -1007,7 +1035,12 @@ async function runSynthesisPhase(serviceClient: any, evaluationId: string) {
   const modelOverride = typeof analysisData.model_override === "string" ? analysisData.model_override : null;
   const evaluationModel = modelOverride || synthesisContext.evaluation_model || configMap.evaluation_model || "claude-sonnet-5";
   const synthesisModel = modelOverride || configMap.synthesis_model || evaluationModel;
-  const { inPrice: opusInPrice, outPrice: opusOutPrice } = resolveModelPricing(evaluationModel, configMap);
+  const modelPrices = await loadModelPrices(serviceClient);
+  const { inPrice: opusInPrice, outPrice: opusOutPrice } = resolveModelPricing(
+    evaluationModel,
+    configMap,
+    modelPrices,
+  );
   const cacheReadMul = parseFloat(configMap.cache_read_multiplier || "0.10");
   const cacheWriteMul = parseFloat(configMap.cache_write_multiplier || "1.25");
 
@@ -1174,7 +1207,7 @@ Produce the full ESR markdown using the four-section structure defined in your s
   const haikuModel = typeof analysisData.haiku_model === "string" && analysisData.haiku_model
     ? analysisData.haiku_model
     : "claude-haiku-4-5";
-  const { inPrice: haikuIn, outPrice: haikuOut } = resolveModelPricing(haikuModel, configMap);
+  const { inPrice: haikuIn, outPrice: haikuOut } = resolveModelPricing(haikuModel, configMap, modelPrices);
   const haikuInput = Number(haikuUsage.input_tokens || 0);
   const haikuOutput = Number(haikuUsage.output_tokens || 0);
   const haikuCacheRead = Number(haikuUsage.cache_read_input_tokens || 0);
@@ -1316,6 +1349,25 @@ serve(async (req) => {
 
     if (action === "start") {
       const { proposalId, selectedEvaluators, instrumentCode, proposalStage, budgetType, eligibilityFlags, renderedProposal, modelOverride, haikuUsage, haikuModel } = body || {};
+      // Validate the per-run model override against the configured options FIRST,
+      // so an unknown model id is rejected before any expensive work happens.
+      const normalizedOverride =
+        typeof modelOverride === "string" && modelOverride.trim() ? modelOverride.trim() : null;
+      if (normalizedOverride) {
+        const { data: optionRow } = await serviceClient
+          .from("evaluation_model_options")
+          .select("model_id")
+          .eq("model_id", normalizedOverride)
+          .eq("is_active", true)
+          .maybeSingle();
+        if (!optionRow) {
+          return new Response(
+            JSON.stringify({ error: `Unknown or inactive evaluation model: ${normalizedOverride}` }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+      }
+
       if (
         !proposalId ||
         !Array.isArray(selectedEvaluators) ||
@@ -1336,9 +1388,6 @@ serve(async (req) => {
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
-
-      const normalizedOverride =
-        typeof modelOverride === "string" && modelOverride.trim() ? modelOverride.trim() : null;
 
       await ensureProposalAdmin(supabase, userId, proposalId);
 
