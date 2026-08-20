@@ -198,7 +198,16 @@ export function PanelEvaluator({ proposalId }: Props) {
   const { options: modelOptions, refetch: refetchModelOptions } = useEvaluationModelOptions();
   const { isOwner, isGlobalAdmin } = useUserRole();
   const [modelChoice, setModelChoice] = useState<string>("");
+  // A model picked for a single run from the "check for newer models" dialog.
+  // It is deliberately NOT persisted — it carries its own prices for costing.
+  const [oneOffModel, setOneOffModel] = useState<{
+    modelId: string;
+    label: string;
+    priceInputPerMTok: number;
+    priceOutputPerMTok: number;
+  } | null>(null);
   const [modelCheckOpen, setModelCheckOpen] = useState(false);
+
   useEffect(() => {
     if (!modelChoice && modelOptions.length) setModelChoice(modelOptions[0].model_id);
   }, [modelOptions, modelChoice]);
@@ -758,8 +767,17 @@ export function PanelEvaluator({ proposalId }: Props) {
         tokenFallback(opt.price_input_per_mtok, opt.price_output_per_mtok),
       );
     }
+    // A one-off model has no stored option, so it is costed from the prices
+    // entered when it was picked.
+    if (oneOffModel && byModel[oneOffModel.modelId] === undefined) {
+      byModel[oneOffModel.modelId] = learned(
+        oneOffModel.modelId,
+        tokenFallback(oneOffModel.priceInputPerMTok, oneOffModel.priceOutputPerMTok),
+      );
+    }
     return byModel;
-  }, [costHistory, thisPayloadTokens, selectedCount, modelOptions]);
+  }, [costHistory, thisPayloadTokens, selectedCount, modelOptions, oneOffModel]);
+
 
   async function startEvaluation() {
 
@@ -924,6 +942,16 @@ export function PanelEvaluator({ proposalId }: Props) {
             eligibilityFlags,
             renderedProposal,
             modelOverride: modelChoice,
+            // Only sent when the model is not a configured option, so the
+            // server can cost the run exactly instead of guessing.
+            modelOverridePrices:
+              oneOffModel && oneOffModel.modelId === modelChoice
+                ? {
+                    input_per_mtok: oneOffModel.priceInputPerMTok,
+                    output_per_mtok: oneOffModel.priceOutputPerMTok,
+                  }
+                : null,
+
             haikuUsage,
             haikuModel,
           },
@@ -1143,8 +1171,16 @@ export function PanelEvaluator({ proposalId }: Props) {
             onOpenChange={setModelCheckOpen}
             options={modelOptions}
             canApply={isOwner || isGlobalAdmin}
+            canUseForRun={isCoordinator}
             onApplied={() => { void refetchModelOptions(); }}
+            onUseForRun={(choice) => {
+              // This run only — no stored configuration is touched.
+              setOneOffModel(choice);
+              setModelChoice(choice.modelId);
+              toast.info(`${choice.label} will be used for the next run only.`);
+            }}
           />
+
 
           {/* Per-run model toggle switch. Both choices — ids, labels and prices —
               come from the runtime configuration (evaluation_model_options).
@@ -1226,6 +1262,31 @@ export function PanelEvaluator({ proposalId }: Props) {
                     <RefreshCw className="h-3.5 w-3.5" /> Check for newer models
                   </Button>
                 </div>
+
+                {/* A model picked for this run only sits outside the two-way
+                    toggle, so it is shown explicitly and can be dismissed. */}
+                {oneOffModel && modelChoice === oneOffModel.modelId && (
+                  <div className="flex items-center justify-center gap-2 max-w-3xl text-xs">
+                    <span className="text-muted-foreground">
+                      This run only: <span className="font-semibold text-foreground">{oneOffModel.label}</span>
+                      {" "}~{formatCurrency(modelCostEstimate[oneOffModel.modelId] ?? 0)}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2 text-xs"
+                      onClick={() => {
+                        setOneOffModel(null);
+                        setModelChoice(left.model_id);
+                      }}
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                )}
+
+
 
 
                 {/* Row 2: descriptions flank a small Start button centred under the toggle. */}

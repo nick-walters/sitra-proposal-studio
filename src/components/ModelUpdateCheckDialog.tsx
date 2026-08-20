@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, RefreshCw, AlertCircle, Sparkles } from "lucide-react";
+import { Loader2, RefreshCw, AlertCircle, Sparkles, Play } from "lucide-react";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/formatDate";
 import type { EvaluationModelOption } from "@/hooks/useEvaluationModelOptions";
@@ -37,27 +37,54 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   options: EvaluationModelOption[];
-  /** Platform owner (is_global_admin) — only they may apply a model. */
+  /** Platform owner (is_global_admin) — only they may change stored configuration. */
   canApply: boolean;
+  /** Coordinator-or-above — whoever may run an evaluation may pick a model for one run. */
+  canUseForRun?: boolean;
   onApplied: () => void;
+  /**
+   * Select a model for the next run only. Never touches stored configuration —
+   * the prices come with it because an unconfigured model has none on record.
+   */
+  onUseForRun?: (choice: {
+    modelId: string;
+    label: string;
+    priceInputPerMTok: number;
+    priceOutputPerMTok: number;
+  }) => void;
 }
 
 /**
- * Lists the models Anthropic currently offers and lets a platform owner adopt a
- * newer one in place of a configured option. The Anthropic call runs inside the
- * `list-anthropic-models` edge function so the API key never reaches the browser.
+ * Lists the models Anthropic currently offers. A coordinator may take one for a
+ * single run; only a platform owner may replace a stored default with it. The
+ * Anthropic call runs inside the `list-anthropic-models` edge function so the
+ * API key never reaches the browser.
  */
-export function ModelUpdateCheckDialog({ open, onOpenChange, options, canApply, onApplied }: Props) {
+export function ModelUpdateCheckDialog({
+  open,
+  onOpenChange,
+  options,
+  canApply,
+  canUseForRun = false,
+  onApplied,
+  onUseForRun,
+}: Props) {
   const [loading, setLoading] = useState(false);
   const [models, setModels] = useState<AnthropicModel[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Apply flow state
+  // Apply flow state ("replace a default" — owner only)
   const [applyTarget, setApplyTarget] = useState<AnthropicModel | null>(null);
   const [replaceOptionId, setReplaceOptionId] = useState<string>("");
   const [priceIn, setPriceIn] = useState("");
   const [priceOut, setPriceOut] = useState("");
   const [applying, setApplying] = useState(false);
+
+  // One-off run flow state — writes nothing to evaluation_model_options.
+  const [runTarget, setRunTarget] = useState<AnthropicModel | null>(null);
+  const [runPriceIn, setRunPriceIn] = useState("");
+  const [runPriceOut, setRunPriceOut] = useState("");
+
 
   const check = async () => {
     setLoading(true);
@@ -87,6 +114,34 @@ export function ModelUpdateCheckDialog({ open, onOpenChange, options, canApply, 
     setPriceIn("");
     setPriceOut("");
   };
+
+  const openUseForRun = (model: AnthropicModel) => {
+    const configured = options.find((o) => o.model_id === model.id);
+    setRunTarget(model);
+    // A configured model already has prices on record; an unconfigured one has
+    // none, so the operator is asked for them rather than a guess being made.
+    setRunPriceIn(configured ? String(configured.price_input_per_mtok) : "");
+    setRunPriceOut(configured ? String(configured.price_output_per_mtok) : "");
+  };
+
+  const confirmUseForRun = () => {
+    if (!runTarget || !onUseForRun) return;
+    const inNum = Number(runPriceIn);
+    const outNum = Number(runPriceOut);
+    if (!Number.isFinite(inNum) || inNum <= 0 || !Number.isFinite(outNum) || outNum <= 0) {
+      toast.error("Enter both input and output prices in USD per million tokens.");
+      return;
+    }
+    onUseForRun({
+      modelId: runTarget.id,
+      label: runTarget.display_name || runTarget.id,
+      priceInputPerMTok: inNum,
+      priceOutputPerMTok: outNum,
+    });
+    setRunTarget(null);
+    onOpenChange(false);
+  };
+
 
   const replaced = options.find((o) => o.id === replaceOptionId) || null;
 
@@ -172,11 +227,24 @@ export function ModelUpdateCheckDialog({ open, onOpenChange, options, canApply, 
                         Released: {m.created_at ? formatDate(m.created_at) : "Not provided"}
                       </div>
                     </div>
-                    {canApply && !m.configured && (
-                      <Button size="sm" variant="outline" className="gap-2" onClick={() => openApply(m)}>
-                        <Sparkles className="h-4 w-4" /> Use this model
-                      </Button>
-                    )}
+                    <div className="flex shrink-0 flex-col items-end gap-1.5">
+                      {canUseForRun && onUseForRun && (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="gap-2"
+                          onClick={() => openUseForRun(m)}
+                        >
+                          <Play className="h-4 w-4" /> Use for this run
+                        </Button>
+                      )}
+                      {canApply && !m.configured && (
+                        <Button size="sm" variant="outline" className="gap-2" onClick={() => openApply(m)}>
+                          <Sparkles className="h-4 w-4" /> Replace one of the default models with this one
+                        </Button>
+                      )}
+                    </div>
+
                   </div>
                 ))}
               </div>
@@ -184,19 +252,74 @@ export function ModelUpdateCheckDialog({ open, onOpenChange, options, canApply, 
 
             {!canApply && models && (
               <p className="text-xs text-muted-foreground">
-                Only the platform owner can change the configured models.
+                Only the platform owner can replace a configured default model. You can still
+                use any model for a single run.
               </p>
             )}
           </div>
         </DialogContent>
       </Dialog>
 
+      {/* One-off run. Nothing here writes to evaluation_model_options — the
+          prices are carried with the run so its cost is exact rather than
+          guessed from the model's name. */}
+      <Dialog open={!!runTarget} onOpenChange={(o) => !o && setRunTarget(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Use {runTarget?.display_name || runTarget?.id} for this run?</DialogTitle>
+            <DialogDescription>
+              This run only. The configured default models are left unchanged.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="run-price-in">Input price (USD / M tokens)</Label>
+                <Input
+                  id="run-price-in"
+                  inputMode="decimal"
+                  value={runPriceIn}
+                  onChange={(e) => setRunPriceIn(e.target.value)}
+                  placeholder="e.g. 3.00"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="run-price-out">Output price (USD / M tokens)</Label>
+                <Input
+                  id="run-price-out"
+                  inputMode="decimal"
+                  value={runPriceOut}
+                  onChange={(e) => setRunPriceOut(e.target.value)}
+                  placeholder="e.g. 15.00"
+                />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Anthropic's models endpoint does not publish prices, so the cost of this run
+              cannot be estimated without them. Enter them from Anthropic's pricing page.
+            </p>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRunTarget(null)}>
+              Cancel
+            </Button>
+            <Button onClick={confirmUseForRun}>Use for this run</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
       {/* Confirmation + pricing capture. Anthropic's models endpoint does not
           return prices, so they are asked for explicitly rather than guessed. */}
       <Dialog open={!!applyTarget} onOpenChange={(o) => !o && setApplyTarget(null)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Use {applyTarget?.display_name || applyTarget?.id}?</DialogTitle>
+            <DialogTitle>
+              Replace a default model with {applyTarget?.display_name || applyTarget?.id}?
+            </DialogTitle>
+
             <DialogDescription>
               This changes the model offered for every proposal's mock evaluation, immediately
               and without a deploy.

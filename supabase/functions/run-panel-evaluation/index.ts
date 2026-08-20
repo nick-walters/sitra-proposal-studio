@@ -1036,6 +1036,18 @@ async function runSynthesisPhase(serviceClient: any, evaluationId: string) {
   const evaluationModel = modelOverride || synthesisContext.evaluation_model || configMap.evaluation_model || "claude-sonnet-5";
   const synthesisModel = modelOverride || configMap.synthesis_model || evaluationModel;
   const modelPrices = await loadModelPrices(serviceClient);
+  // A one-off run may use a model that is not (yet) a configured option. Its
+  // prices were captured from the operator at launch time and stored on the
+  // run, so costing stays exact instead of falling back to a name heuristic.
+  const overridePrices = analysisData.model_override_prices;
+  if (modelOverride && overridePrices && typeof overridePrices === "object") {
+    const inPrice = Number((overridePrices as any).input_per_mtok);
+    const outPrice = Number((overridePrices as any).output_per_mtok);
+    if (Number.isFinite(inPrice) && Number.isFinite(outPrice) && inPrice > 0 && outPrice > 0) {
+      modelPrices[modelOverride] = { inPrice, outPrice };
+    }
+  }
+
   const { inPrice: opusInPrice, outPrice: opusOutPrice } = resolveModelPricing(
     evaluationModel,
     configMap,
@@ -1348,11 +1360,14 @@ serve(async (req) => {
     const action = body?.action || "start";
 
     if (action === "start") {
-      const { proposalId, selectedEvaluators, instrumentCode, proposalStage, budgetType, eligibilityFlags, renderedProposal, modelOverride, haikuUsage, haikuModel } = body || {};
-      // Validate the per-run model override against the configured options FIRST,
-      // so an unknown model id is rejected before any expensive work happens.
+      const { proposalId, selectedEvaluators, instrumentCode, proposalStage, budgetType, eligibilityFlags, renderedProposal, modelOverride, modelOverridePrices, haikuUsage, haikuModel } = body || {};
+      // Validate the per-run model override FIRST, so a bad model id is rejected
+      // before any expensive work happens. A model that is not a configured
+      // option may still be used for a single run, but only if the caller
+      // supplies its prices — otherwise the run would be costed on a guess.
       const normalizedOverride =
         typeof modelOverride === "string" && modelOverride.trim() ? modelOverride.trim() : null;
+      let overrideRunPrices: { input_per_mtok: number; output_per_mtok: number } | null = null;
       if (normalizedOverride) {
         const { data: optionRow } = await serviceClient
           .from("evaluation_model_options")
@@ -1361,12 +1376,22 @@ serve(async (req) => {
           .eq("is_active", true)
           .maybeSingle();
         if (!optionRow) {
-          return new Response(
-            JSON.stringify({ error: `Unknown or inactive evaluation model: ${normalizedOverride}` }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-          );
+          const inPrice = Number(modelOverridePrices?.input_per_mtok);
+          const outPrice = Number(modelOverridePrices?.output_per_mtok);
+          const pricesOk =
+            Number.isFinite(inPrice) && inPrice > 0 && Number.isFinite(outPrice) && outPrice > 0;
+          if (!pricesOk) {
+            return new Response(
+              JSON.stringify({
+                error: `Unknown or inactive evaluation model: ${normalizedOverride}. Supply input and output prices to use it for a single run.`,
+              }),
+              { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+            );
+          }
+          overrideRunPrices = { input_per_mtok: inPrice, output_per_mtok: outPrice };
         }
       }
+
 
       if (
         !proposalId ||
@@ -1413,6 +1438,8 @@ serve(async (req) => {
             instrument_code: instrumentCode,
             rendered_proposal: renderedProposal,
             model_override: normalizedOverride,
+            model_override_prices: overrideRunPrices,
+
             haiku_usage: haikuUsage && typeof haikuUsage === "object" ? haikuUsage : null,
             haiku_model: typeof haikuModel === "string" ? haikuModel : null,
             progress_message: "Queued for evaluator run",
