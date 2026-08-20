@@ -33,6 +33,7 @@ import { toast } from 'sonner';
 import { SaveIndicator } from '@/components/SaveIndicator';
 import { Separator } from '@/components/ui/separator';
 import { LazyRichField } from '@/components/participant/LazyRichField';
+import { DebouncedRichField } from '@/components/participant/DebouncedRichField';
 import {
   WP_DRAFT_FIELD_EXTENSIONS,
   WP_TITLE_FIELD_EXTENSIONS,
@@ -630,7 +631,7 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
                         <MilestoneBadge number={m.number} />
                       </td>
                       <td className="py-1.5 px-1">
-                        <LazyRichField
+                        <DebouncedRichField
                           value={m.title || ''}
                           disabled={!canEdit}
                           minHeight="30px"
@@ -683,7 +684,7 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
                         />
                       </td>
                       <td className="py-1.5 px-1">
-                        <LazyRichField
+                        <DebouncedRichField
                           value={m.means_of_verification || ''}
                           disabled={!canEdit}
                           minHeight="30px"
@@ -841,7 +842,7 @@ function SortableRiskRow({
         )}
       </td>
       <td className="py-1.5 px-1">
-        <LazyRichField
+        <DebouncedRichField
           value={risk.title || ''}
           disabled={!canEdit}
           minHeight="30px"
@@ -873,7 +874,7 @@ function SortableRiskRow({
         />
       </td>
       <td className="py-1.5 px-1">
-        <LazyRichField
+        <DebouncedRichField
           value={risk.mitigation || ''}
           disabled={!canEdit}
           minHeight="30px"

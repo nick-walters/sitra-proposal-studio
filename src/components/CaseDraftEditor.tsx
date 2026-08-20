@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { DebouncedInput } from '@/components/ui/debounced-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { LazyRichField } from '@/components/participant/LazyRichField';
+import { DebouncedRichField } from '@/components/participant/DebouncedRichField';
 import { CASE_DRAFT_FIELD_EXTENSIONS } from '@/components/cases/caseDraftFieldExtensions';
 import {
   MethodologyEditorFocusProvider,
@@ -797,7 +798,7 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
                   <p className="text-xs text-muted-foreground italic px-1">{guideline}</p>
                 )}
 
-                <LazyRichField
+                <DebouncedRichField
                   value={content}
                   onChange={(v) => updateSubsectionContent(sub.key, v, sub.heading)}
                   disabled={readOnly}

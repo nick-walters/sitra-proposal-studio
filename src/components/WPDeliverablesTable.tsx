@@ -22,6 +22,7 @@ import type { WPDraftDeliverable, WPDraftTask } from '@/hooks/useWPDrafts';
 import type { ParticipantSummary } from '@/types/proposal';
 import { ParticipantBubble, WPBubble, B31Pill } from '@/components/B31Pill';
 import { LazyRichField } from '@/components/participant/LazyRichField';
+import { useDebouncedSave } from '@/hooks/useDebouncedSave';
 import { WP_TITLE_FIELD_EXTENSIONS } from '@/components/wp/wpDraftFieldExtensions';
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
 import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
@@ -151,6 +152,7 @@ function DeliverableTitleCell({
 }) {
   const [local, setLocal] = useState(value || '');
   const dirtyRef = useRef(false);
+  const { push: pushCommit, flush: flushCommit } = useDebouncedSave<string>(onCommit);
 
   useEffect(() => {
     if (!dirtyRef.current) setLocal(value || '');
@@ -167,7 +169,10 @@ function DeliverableTitleCell({
       onChange={(html) => {
         dirtyRef.current = true;
         setLocal(html);
-        onCommit(html);
+        pushCommit(html);
+      }}
+      onBlur={() => {
+        flushCommit();
         dirtyRef.current = false;
       }}
     />
