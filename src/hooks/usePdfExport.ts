@@ -80,10 +80,12 @@ function buildPrintDocument(
       }
     }
 
+    /* First page: the banner sits flush to the top edge (no top margin, no
+       running header), but the footer — and therefore the page number —
+       is kept, so every page carries "… | Page X of Y". */
     @page :first {
-      margin: 0;
+      margin: 0 0 2cm 0;
       @top-center { content: none; }
-      @bottom-center { content: none; }
     }
 
     html, body {
