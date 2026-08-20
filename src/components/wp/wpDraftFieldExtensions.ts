@@ -103,4 +103,17 @@ export const WP_TITLE_FIELD_EXTENSIONS: Extensions = [
   TextStyle,
   Color,
   ...REFERENCE_NODES,
+  // Reference nodes and TextStyle above exist only so stored chips and
+  // colours keep rendering. Declare explicitly that this field may not
+  // INSERT references or recolour text, so the shared toolbar hides those
+  // controls while the caret is here.
+  FieldCapabilities.configure({
+    crossReferences: false,
+    colour: false,
+    alignment: false,
+    paragraphSpacing: false,
+    figures: false,
+    citations: false,
+  }),
 ];
+
