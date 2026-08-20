@@ -605,6 +605,10 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
                   />
                 </>
               )}
+            </div>
+          )}
+
+
 
 
           <div className="overflow-x-auto">
