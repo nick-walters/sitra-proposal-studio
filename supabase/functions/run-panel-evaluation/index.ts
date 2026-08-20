@@ -1036,6 +1036,18 @@ async function runSynthesisPhase(serviceClient: any, evaluationId: string) {
   const evaluationModel = modelOverride || synthesisContext.evaluation_model || configMap.evaluation_model || "claude-sonnet-5";
   const synthesisModel = modelOverride || configMap.synthesis_model || evaluationModel;
   const modelPrices = await loadModelPrices(serviceClient);
+  // A one-off run may use a model that is not (yet) a configured option. Its
+  // prices were captured from the operator at launch time and stored on the
+  // run, so costing stays exact instead of falling back to a name heuristic.
+  const overridePrices = analysisData.model_override_prices;
+  if (modelOverride && overridePrices && typeof overridePrices === "object") {
+    const inPrice = Number((overridePrices as any).input_per_mtok);
+    const outPrice = Number((overridePrices as any).output_per_mtok);
+    if (Number.isFinite(inPrice) && Number.isFinite(outPrice) && inPrice > 0 && outPrice > 0) {
+      modelPrices[modelOverride] = { inPrice, outPrice };
+    }
+  }
+
   const { inPrice: opusInPrice, outPrice: opusOutPrice } = resolveModelPricing(
     evaluationModel,
     configMap,
