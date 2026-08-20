@@ -6693,6 +6693,10 @@ export type Database = {
         }
         Returns: string
       }
+      delete_and_resequence: {
+        Args: { p_expected_version?: number; p_id: string; p_table: string }
+        Returns: Json
+      }
       get_my_private_profile: {
         Args: never
         Returns: {
@@ -6743,10 +6747,21 @@ export type Database = {
         Returns: boolean
       }
       migrate_b12_to_cards: { Args: { p_proposal_id: string }; Returns: Json }
+      move_child_to_wp: {
+        Args: {
+          p_expected_version?: number
+          p_id: string
+          p_table: string
+          p_target_wp_draft_id: string
+        }
+        Returns: Json
+      }
       normalise_section_card_order: {
         Args: { p_section_id: string }
         Returns: undefined
       }
+      numbered_order_expr: { Args: { p_table: string }; Returns: string }
+      numbered_parent_column: { Args: { p_table: string }; Returns: string }
       preview_proposal_restore: {
         Args: { p_proposal_id: string; p_snapshot_id: string }
         Returns: Json
@@ -6771,6 +6786,10 @@ export type Database = {
       resequence_card_fields: {
         Args: { p_card_id: string }
         Returns: undefined
+      }
+      resequence_numbered: {
+        Args: { p_parent_id: string; p_table: string }
+        Returns: number
       }
       resequence_section_cards: {
         Args: { p_section_id: string }
