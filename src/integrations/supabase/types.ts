@@ -14,30 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      _zz_role_park: {
-        Row: {
-          created_at: string | null
-          id: string
-          proposal_id: string | null
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          id: string
-          proposal_id?: string | null
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          proposal_id?: string | null
-          role?: Database["public"]["Enums"]["app_role"]
-          user_id?: string
-        }
-        Relationships: []
-      }
       ai_platform_config: {
         Row: {
           display_name: string | null
