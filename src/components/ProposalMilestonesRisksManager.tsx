@@ -45,7 +45,9 @@ import {
   useMethodologyEditorFocus,
 } from '@/components/MethodologyEditorFocusContext';
 import { TextFormattingGroup } from '@/components/toolbar';
-import { saveVersionedRow, reorderVersionedRows } from '@/lib/versionedSave';
+import { saveVersionedRow, reorderVersionedRows, deleteAndResequence } from '@/lib/versionedSave';
+import { saveMilestoneAndResequence } from '@/lib/versionedSave';
+
 import { useVersionConflict } from '@/hooks/useVersionConflict';
 
 
