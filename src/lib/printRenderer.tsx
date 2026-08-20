@@ -268,16 +268,6 @@ async function buildParticipantListHtml(
     </table>`;
 }
 
-// ── Build Part A (A1 general info + A3 budget summary) HTML ──────────────────
-
-interface PartA1Row {
-  abstract: string | null;
-  fixed_keywords: string[] | null;
-  free_keywords: string | null;
-  previous_submission: string | null;
-  previous_submission_reference: string | null;
-}
-
 /**
  * Part A (A1 abstract/keywords and A3 budget summary) is intentionally NOT
  * rendered into the Part B export. The only Part A material that belongs in
@@ -285,6 +275,7 @@ interface PartA1Row {
  * list table and the AI usage statement (both built in
  * `buildPrintContainer`). The former A1/A3 builders were removed.
  */
+
 
 function stripTags(html: string): string {
   return String(html || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ');
