@@ -88,20 +88,31 @@ export interface RefSnapshot {
  * syncCrossReferences.ts.
  */
 export async function fetchReferenceData(proposalId: string): Promise<RefSnapshot> {
-  const [wpRes, taskRes, delRes, msRes, caseRes, caseTypeRes, participantRes, figureRes, tableCaptionRes, proposalRes] = await Promise.all([
-    supabase
-      .from('wp_drafts')
-      .select('id, number, color, short_name')
-      .eq('proposal_id', proposalId)
-      .order('number'),
-    supabase
-      .from('wp_draft_tasks')
-      .select('id, number, wp_draft_id')
-      .order('number'),
-    supabase
-      .from('wp_draft_deliverables')
-      .select('id, number, wp_draft_id')
-      .order('number'),
+  // Work packages first: tasks and deliverables carry no proposal_id, so they
+  // must be filtered by this proposal's wp ids. Fetching them unfiltered
+  // relied on RLS alone and was exposed to PostgREST's 1000-row default cap.
+  const wpRes = await supabase
+    .from('wp_drafts')
+    .select('id, number, color, short_name')
+    .eq('proposal_id', proposalId)
+    .order('number');
+  const wpIds = (wpRes.data || []).map(w => w.id);
+
+  const [taskRes, delRes, msRes, caseRes, caseTypeRes, participantRes, figureRes, tableCaptionRes, proposalRes] = await Promise.all([
+    wpIds.length
+      ? supabase
+          .from('wp_draft_tasks')
+          .select('id, number, wp_draft_id')
+          .in('wp_draft_id', wpIds)
+          .order('number')
+      : Promise.resolve({ data: [] as { id: string; number: number; wp_draft_id: string }[] } as any),
+    wpIds.length
+      ? supabase
+          .from('wp_draft_deliverables')
+          .select('id, number, wp_draft_id')
+          .in('wp_draft_id', wpIds)
+          .order('number')
+      : Promise.resolve({ data: [] as { id: string; number: number; wp_draft_id: string }[] } as any),
     supabase
       .from('proposal_milestones')
       .select('id, number, proposal_id')
