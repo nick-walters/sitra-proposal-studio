@@ -133,10 +133,21 @@ export function LazyRichField({
     onBlur?.();
   }, [onChange, onBlur]);
 
+  // What this field's own schema allows. The mounted instance is created by
+  // the shared editor hook (full schema), so the capabilities of the field's
+  // definition are registered against the instance for the toolbar to read.
+  const capabilities = useMemo(
+    () => capabilitiesOfExtensions(staticExtensions),
+    [staticExtensions],
+  );
+
   const handleEditorReady = useCallback(
     (editor: Editor) => {
       editorRef.current = editor;
+      registerFieldCapabilities(editor, capabilities);
+      editor.on('destroy', () => unregisterFieldCapabilities(editor));
       const dom = editor.view.dom as HTMLElement;
+
 
       const coords = clickCoordsRef.current;
       clickCoordsRef.current = null;
