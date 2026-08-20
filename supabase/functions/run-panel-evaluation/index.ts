@@ -1438,6 +1438,8 @@ serve(async (req) => {
             instrument_code: instrumentCode,
             rendered_proposal: renderedProposal,
             model_override: normalizedOverride,
+            model_override_prices: overrideRunPrices,
+
             haiku_usage: haikuUsage && typeof haikuUsage === "object" ? haikuUsage : null,
             haiku_model: typeof haikuModel === "string" ? haikuModel : null,
             progress_message: "Queued for evaluator run",
