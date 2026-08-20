@@ -101,7 +101,12 @@ export function CardFieldHistoryDialog({
                   ) : (
                     <div
                       className="prose prose-sm mt-2 max-w-none text-sm text-muted-foreground"
-                      dangerouslySetInnerHTML={{ __html: v.contentHtml ?? '' }}
+                      dangerouslySetInnerHTML={{
+                        // Stored HTML is untrusted: sanitise with the shared
+                        // cross-reference preset so chips, formatting and
+                        // tables survive while scripts do not.
+                        __html: DOMPurify.sanitize(v.contentHtml ?? '', CROSS_REF_RICH_TEXT_CONFIG),
+                      }}
                     />
                   )}
                 </div>
