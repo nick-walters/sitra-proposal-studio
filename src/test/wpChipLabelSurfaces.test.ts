@@ -30,7 +30,7 @@ describe('legacy WP chip label on the render path', () => {
 
 describe('legacy WP chip label on the editor/static-field path', () => {
   it('shows what the TipTap node renders', async () => {
-    const { generateHTML, generateJSON } = await import('@tiptap/html');
+    const { generateHTML, generateJSON } = await import('@tiptap/core');
     const { LAZY_RICH_FIELD_EXTENSIONS } = await import('@/components/participant/lazyRichFieldExtensions');
     const json = generateJSON(LEGACY_CHIP, LAZY_RICH_FIELD_EXTENSIONS as any);
     const html = generateHTML(json, LAZY_RICH_FIELD_EXTENSIONS as any);
