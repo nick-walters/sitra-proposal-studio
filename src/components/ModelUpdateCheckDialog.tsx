@@ -316,7 +316,10 @@ export function ModelUpdateCheckDialog({
       <Dialog open={!!applyTarget} onOpenChange={(o) => !o && setApplyTarget(null)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Use {applyTarget?.display_name || applyTarget?.id}?</DialogTitle>
+            <DialogTitle>
+              Replace a default model with {applyTarget?.display_name || applyTarget?.id}?
+            </DialogTitle>
+
             <DialogDescription>
               This changes the model offered for every proposal's mock evaluation, immediately
               and without a deploy.
