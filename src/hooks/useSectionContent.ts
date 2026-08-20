@@ -21,6 +21,10 @@ const AUTOSAVE_DEBOUNCE = 5000;
  * Check if the content change is significant enough to warrant a version snapshot.
  * Strips HTML and compares word/character differences.
  */
+function stripToText(html: string): string {
+  return html.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
 function hasSignificantChange(oldContent: string, newContent: string): boolean {
   const stripHtml = (html: string) =>
     html.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
@@ -204,6 +208,10 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
   const saveQueuedRef = useRef(false); // NEW: queue flag for follow-up save
   const contentRef = useRef<string>(''); // always-current content mirror
   const lastSavedContentRef = useRef<string>(''); // content actually written to DB
+  // Guards against the editor's own load-time HTML normalisation being treated
+  // as a user edit (which caused a write on every section visit).
+  const loadedAtRef = useRef<number>(0);
+
 
   // Keep contentRef in sync
   useEffect(() => {
@@ -482,8 +490,10 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
         lastVersionContentRef.current = '';
       }
       setLoadedSectionId(sectionId);
+      loadedAtRef.current = Date.now();
       setLoading(false);
     };
+
 
     fetchContent();
   }, [proposalId, sectionId]);
@@ -527,6 +537,17 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
   // ── Debounced save on content change ───────────────────────────────
   // FIX: Always read from pendingContentRef.current instead of captured closure value
   const handleContentChange = useCallback((newContent: string) => {
+    // Ignore the editor's own load-time normalisation (attribute/whitespace
+    // rewrites emitted right after mount with identical text). Without this,
+    // merely opening a section marked it dirty and wrote on navigation.
+    if (
+      Date.now() - loadedAtRef.current < 3000 &&
+      pendingContentRef.current === null &&
+      stripToText(newContent) === stripToText(contentRef.current)
+    ) {
+      setContentState(newContent);
+      return;
+    }
     setContentState(newContent);
     pendingContentRef.current = newContent;
     setIsDirty(true);
