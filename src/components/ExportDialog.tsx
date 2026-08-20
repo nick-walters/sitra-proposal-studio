@@ -128,6 +128,47 @@ export function ExportDialog({ open, onOpenChange, onExport, proposalId }: Expor
             </RadioGroup>
           </div>
 
+          {/* Subsection selection */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium">Sections to include</Label>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2 text-xs"
+                onClick={() =>
+                  setSelected(allSelected ? [] : PART_B_SUBSECTIONS.map((s) => s.number))
+                }
+              >
+                {allSelected ? 'Clear all' : 'Select all'}
+              </Button>
+            </div>
+            <div className="space-y-2">
+              {PART_B_SUBSECTIONS.map((s) => (
+                <div key={s.number} className="flex items-center gap-2">
+                  <Checkbox
+                    id={`section-${s.number}`}
+                    checked={selected.includes(s.number)}
+                    onCheckedChange={(checked) => toggle(s.number, checked === true)}
+                  />
+                  <Label
+                    htmlFor={`section-${s.number}`}
+                    className="text-sm font-normal cursor-pointer"
+                  >
+                    {s.number}. {s.title}
+                  </Label>
+                </div>
+              ))}
+            </div>
+            {!allSelected && selected.length > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Partial export. Section numbering, cross-references and figure and table
+                numbers stay exactly as they are in the full proposal — nothing is
+                renumbered.
+              </p>
+            )}
+          </div>
+
           {format === 'pdf' && !isOptimalBrowser && (
             <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">
               <strong>For best results, export from Microsoft Edge or Google Chrome.</strong>
@@ -155,11 +196,12 @@ export function ExportDialog({ open, onOpenChange, onExport, proposalId }: Expor
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleExport} className="gap-2">
+          <Button onClick={handleExport} className="gap-2" disabled={selected.length === 0}>
             <Download className="h-4 w-4" />
             Export {format.toUpperCase()}
           </Button>
         </DialogFooter>
+
       </DialogContent>
     </Dialog>
   );
