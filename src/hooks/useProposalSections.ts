@@ -458,12 +458,12 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
       number: '',
       title: 'Proposal management',
       subsections: [
-        { id: 'messaging', number: '', title: 'Message board' },
-        { id: 'task-allocator', number: '', title: 'Assignments' },
+        { id: 'task-allocator', number: '', title: 'Assignments & message board' },
         { id: 'progress-tracker', number: '', title: 'Progress' },
         { id: 'availability', number: '', title: 'Availability' },
-        { id: 'backups', number: '', title: 'Backups' },
-        { id: 'snapshots', number: '', title: 'Snapshots & restore' },
+        { id: 'snapshots', number: '', title: 'Snapshots & backups' },
+        { id: 'mock-evaluation', number: '', title: 'Mock evaluation' },
+
       ],
     };
 
