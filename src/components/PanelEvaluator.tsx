@@ -198,7 +198,16 @@ export function PanelEvaluator({ proposalId }: Props) {
   const { options: modelOptions, refetch: refetchModelOptions } = useEvaluationModelOptions();
   const { isOwner, isGlobalAdmin } = useUserRole();
   const [modelChoice, setModelChoice] = useState<string>("");
+  // A model picked for a single run from the "check for newer models" dialog.
+  // It is deliberately NOT persisted — it carries its own prices for costing.
+  const [oneOffModel, setOneOffModel] = useState<{
+    modelId: string;
+    label: string;
+    priceInputPerMTok: number;
+    priceOutputPerMTok: number;
+  } | null>(null);
   const [modelCheckOpen, setModelCheckOpen] = useState(false);
+
   useEffect(() => {
     if (!modelChoice && modelOptions.length) setModelChoice(modelOptions[0].model_id);
   }, [modelOptions, modelChoice]);
