@@ -9,4 +9,6 @@ export {
   formatTableLabel,
   formatTaskLabel,
   formatWPLabel,
+  formatWPChipLabel,
+  wpShowShortName,
 } from '../../supabase/functions/_shared/referenceLabels';

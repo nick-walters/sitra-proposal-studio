@@ -1,5 +1,5 @@
 import { Node, mergeAttributes } from '@tiptap/core';
-import { formatWPLabel } from '@/lib/referenceLabels';
+import { formatWPChipLabel } from '@/lib/referenceLabels';
 
 
 export interface WPReferenceOptions {
@@ -147,8 +147,10 @@ export const WPReferenceNode = Node.create<WPReferenceOptions>({
   renderHTML({ node, HTMLAttributes }) {
     const color = node.attrs.wpColor || '#2563EB';
     const wpNumber = node.attrs.wpNumber;
-    const wpShortName = node.attrs.showShortName ? node.attrs.wpShortName : null;
-    const label = formatWPLabel({ number: wpNumber, short_name: wpShortName });
+    const label = formatWPChipLabel(
+      { number: wpNumber, short_name: node.attrs.wpShortName },
+      node.attrs.showShortName ? 'true' : 'false',
+    );
 
 
 

@@ -14,6 +14,7 @@ import {
   formatTableLabel,
   formatTaskLabel,
   formatWPLabel,
+  formatWPChipLabel,
 } from '@/lib/referenceLabels';
 
 function fixture(): RefSnapshotServer {
@@ -34,7 +35,14 @@ describe('backup/client reference label parity', () => {
   it('uses the canonical client labels for every chip type and preserves dead ids', () => {
     const snap = fixture();
     const checks: Array<[Record<string, string>, string]> = [
-      [{ 'data-wp-id': 'wp' }, formatWPLabel(snap.wpById.get('wp')!)],
+      // A WP chip without the flag is bare; with it, labelled. Both forms must
+      // agree with the client formatter.
+      [{ 'data-wp-id': 'wp' }, formatWPChipLabel(snap.wpById.get('wp')!, null)],
+      [
+        { 'data-wp-id': 'wp', 'data-wp-show-short-name': 'true' },
+        formatWPChipLabel(snap.wpById.get('wp')!, 'true'),
+      ],
+      [{ 'data-wp-id': 'wp', 'data-wp-show-short-name': 'false' }, formatWPLabel({ number: 2 })],
       [{ 'data-task-id': 'task' }, formatTaskLabel(snap.taskById.get('task')!)],
       [{ 'data-deliverable-id': 'deliverable' }, formatDeliverableLabel(snap.deliverableById.get('deliverable')!)],
       [{ 'data-milestone-id': 'milestone' }, formatMilestoneLabel(snap.milestoneById.get('milestone')!)],

@@ -20,6 +20,31 @@ export function formatWPLabel(wp: { number: number | string | null | undefined; 
   return wp.short_name ? `WP${wp.number}: ${wp.short_name}` : `WP${wp.number}`;
 }
 
+/**
+ * The single rule for the WP chip label form.
+ *
+ * A WP chip stores `data-wp-show-short-name` to record the form chosen at
+ * insertion: "true" → "WP4: Piloting", anything else (including a legacy chip
+ * that predates the attribute) → the BARE form "WP4". Every render path —
+ * TipTap node, mirrors, PDF/DOCX (`renderRefBadges`) and the backup edge
+ * function (`resolveChipLabel`) — must go through here so the surfaces cannot
+ * drift apart again.
+ */
+export function wpShowShortName(attrValue: string | null | undefined): boolean {
+  return attrValue === "true";
+}
+
+export function formatWPChipLabel(
+  wp: { number: number | string | null | undefined; short_name?: string | null },
+  showShortNameAttr: string | null | undefined,
+): string {
+  return formatWPLabel({
+    number: wp.number,
+    short_name: wpShowShortName(showShortNameAttr) ? wp.short_name ?? null : null,
+  });
+}
+
+
 export function formatTaskLabel(t: {
   wp_number: number | string | null | undefined;
   number: number | string | null | undefined;

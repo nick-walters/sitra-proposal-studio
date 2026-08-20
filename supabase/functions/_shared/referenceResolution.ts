@@ -26,6 +26,7 @@ import {
   formatTableLabel,
   formatTaskLabel,
   formatWPLabel,
+  formatWPChipLabel,
 } from "./referenceLabels.ts";
 
 export {
@@ -38,6 +39,7 @@ export {
   formatTableLabel,
   formatTaskLabel,
   formatWPLabel,
+  formatWPChipLabel,
 };
 
 /* ─────────────────────────────── snapshot ──────────────────────────────── */
@@ -117,7 +119,9 @@ export function resolveChipLabel(
   const wpId = idOf(attrs, "wp");
   if (wpId) {
     const wp = snap.wpById.get(wpId);
-    return wp ? formatWPLabel(wp) : null;
+    // The short-name form is opt-in per chip; legacy chips carry no attribute
+    // and stay bare, matching the editor.
+    return wp ? formatWPChipLabel(wp, attrs["data-wp-show-short-name"]) : null;
   }
 
   const caseId = idOf(attrs, "case");

@@ -24,6 +24,7 @@
 import type { RefSnapshot } from './referenceData';
 import {
   formatWPLabel,
+  formatWPChipLabel,
   formatTaskLabel,
   formatDeliverableLabel,
   formatMilestoneLabel,
@@ -288,9 +289,13 @@ function renderWp(el: HTMLElement, data?: RefSnapshot) {
   const colour = wp?.color || el.getAttribute('data-wp-color') || retainedColour(el, '#000000');
   const number = el.getAttribute('data-wp-number');
   const shortName = el.getAttribute('data-wp-short-name');
+  // The short-name form is opt-in per chip (`data-wp-show-short-name`);
+  // absent → bare "WP4", exactly as the TipTap node renders it.
+  const showShortNameAttr = el.getAttribute('data-wp-show-short-name');
   const label = wp
-    ? formatWPLabel(wp)
-    : readBadgeLabel(el) || (number ? formatWPLabel({ number, short_name: shortName }) : '');
+    ? formatWPChipLabel(wp, showShortNameAttr)
+    : readBadgeLabel(el) ||
+      (number ? formatWPChipLabel({ number, short_name: shortName }, showShortNameAttr) : '');
   if (!label) return markMissing(el);
   pill(el, { label, background: colour, text: '#ffffff', border: colour });
 }
