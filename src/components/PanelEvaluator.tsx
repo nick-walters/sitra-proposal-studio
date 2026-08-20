@@ -1263,6 +1263,31 @@ export function PanelEvaluator({ proposalId }: Props) {
                   </Button>
                 </div>
 
+                {/* A model picked for this run only sits outside the two-way
+                    toggle, so it is shown explicitly and can be dismissed. */}
+                {oneOffModel && modelChoice === oneOffModel.modelId && (
+                  <div className="flex items-center justify-center gap-2 max-w-3xl text-xs">
+                    <span className="text-muted-foreground">
+                      This run only: <span className="font-semibold text-foreground">{oneOffModel.label}</span>
+                      {" "}~{formatCurrency(modelCostEstimate[oneOffModel.modelId] ?? 0)}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2 text-xs"
+                      onClick={() => {
+                        setOneOffModel(null);
+                        setModelChoice(left.model_id);
+                      }}
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                )}
+
+
+
 
                 {/* Row 2: descriptions flank a small Start button centred under the toggle. */}
                 <div className="flex items-center gap-5 max-w-3xl">
