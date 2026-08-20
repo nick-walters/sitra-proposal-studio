@@ -666,11 +666,10 @@ export function useWPDraftEditor(wpId: string | null, options?: WPDraftHookOptio
   }, []);
 
   /**
-   * Moves one child row to another WP. The target number is derived from the
-   * highest existing NUMBER (not the highest order_index), which is what used
-   * to produce duplicates such as two deliverables numbered 2. The moved row is
-   * written through the guard; the source list is then renumbered
-   * all-or-nothing.
+   * Moves one child row to another WP. Move, source renumber and target append
+   * all happen inside one server transaction, so the half-applied move that
+   * produced duplicates such as two deliverables numbered 2 can no longer
+   * happen.
    */
   const moveChildToWP = useCallback(async (
     table: 'wp_draft_tasks' | 'wp_draft_deliverables',
@@ -682,42 +681,20 @@ export function useWPDraftEditor(wpId: string | null, options?: WPDraftHookOptio
     const siblings = table === 'wp_draft_tasks' ? (wpDraft.tasks || []) : (wpDraft.deliverables || []);
     const moved = siblings.find(r => r.id === rowId);
 
-    try {
-      const { data: targetRows, error: fetchErr } = await supabase
-        .from(table)
-        .select('number, order_index')
-        .eq('wp_draft_id', targetWpDraftId);
-      if (fetchErr) throw fetchErr;
-
-      const nextNumber = (targetRows || []).reduce((m, r: any) => Math.max(m, r.number), 0) + 1;
-      const nextOrderIndex = (targetRows || []).length;
-
-      const res = await saveVersionedRow(
-        table,
-        rowId,
-        { wp_draft_id: targetWpDraftId, number: nextNumber, order_index: nextOrderIndex },
-        moved?.version ?? null,
-      );
-      if (res.conflict) {
-        toast.error(`This ${label} changed elsewhere — the move was not applied.`);
-        await fetchWPDraft();
-        return false;
-      }
-      if (!res.ok) throw new Error(res.error || 'move failed');
-
-      const remaining = siblings
-        .filter(r => r.id !== rowId)
-        .sort((a, b) => a.order_index - b.order_index);
-      await applyOrder(table, remaining, label === 'task' ? 'Tasks' : 'Deliverables');
-
-      toast.success(`${label === 'task' ? 'Task' : 'Deliverable'} moved successfully`);
-      return true;
-    } catch (err) {
-      console.error(`Error moving ${label}:`, err);
-      toast.error(`Failed to move ${label}`);
+    const res = await moveChildToWpRpc(table, rowId, targetWpDraftId, moved?.version ?? null);
+    if (!res.ok) {
+      toast.error(res.conflict
+        ? `This ${label} changed elsewhere — the move was not applied.`
+        : (res.error || `Failed to move ${label}`));
+      await fetchWPDraft();
       return false;
     }
-  }, [wpDraft, applyOrder, fetchWPDraft]);
+
+    await fetchWPDraft();
+    toast.success(`${label === 'task' ? 'Task' : 'Deliverable'} moved successfully`);
+    return true;
+  }, [wpDraft, fetchWPDraft]);
+
 
   const moveTaskToWP = useCallback(
     (taskId: string, targetWpDraftId: string) =>
