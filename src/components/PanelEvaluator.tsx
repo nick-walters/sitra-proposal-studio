@@ -12,11 +12,14 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Sparkles, Plus, AlertTriangle, CheckCircle2, XCircle, Info, Download, Trash2 } from "lucide-react";
+import { Loader2, Sparkles, Plus, AlertTriangle, CheckCircle2, XCircle, Info, Download, Trash2, RefreshCw } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useProposalRole } from "@/hooks/useProposalRole";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useEvaluationModelOptions } from "@/hooks/useEvaluationModelOptions";
+import { ModelUpdateCheckDialog } from "@/components/ModelUpdateCheckDialog";
 import { useProposalData } from "@/hooks/useProposalData";
 import { useProposalSections } from "@/hooks/useProposalSections";
 import { useQueryClient } from "@tanstack/react-query";
@@ -188,9 +191,17 @@ export function PanelEvaluator({ proposalId }: Props) {
   const [instrumentCode, setInstrumentCode] = useState<string>("");
   const [proposalStage, setProposalStage] = useState<"full" | "stage1">("full");
   const [budgetType, setBudgetType] = useState<"traditional" | "lump_sum">("traditional");
-  // Per-run model choice. Defaults to Sonnet 5 every time the pane opens.
-  // Selecting Opus 5 is a per-run override only; the stored default (Sonnet 5) is unchanged.
-  const [modelChoice, setModelChoice] = useState<"claude-sonnet-5" | "claude-opus-5">("claude-sonnet-5");
+  // Per-run model choice. The available models, their labels and their per-MTok
+  // prices come from `evaluation_model_options` at runtime — nothing is hardcoded.
+  // Defaults to the first configured option every time the pane opens; picking the
+  // other one is a per-run override only, the stored default is unchanged.
+  const { options: modelOptions, refetch: refetchModelOptions } = useEvaluationModelOptions();
+  const { isOwner, isGlobalAdmin } = useUserRole();
+  const [modelChoice, setModelChoice] = useState<string>("");
+  const [modelCheckOpen, setModelCheckOpen] = useState(false);
+  useEffect(() => {
+    if (!modelChoice && modelOptions.length) setModelChoice(modelOptions[0].model_id);
+  }, [modelOptions, modelChoice]);
 
 
   const [history, setHistory] = useState<AnalysisRow[]>([]);
@@ -281,9 +292,10 @@ export function PanelEvaluator({ proposalId }: Props) {
   // Friendly, color-coded model badge. Green = Sonnet 5, Red = Opus 5.
   const renderModelBadge = (modelUsed: string | null | undefined) => {
     const raw = String(modelUsed || "").toLowerCase();
+    const configured = modelOptions.find((o) => o.model_id === modelUsed);
     const isOpus = raw.includes("opus");
     const isSonnet = raw.includes("sonnet");
-    const label = isOpus ? "Opus 5" : isSonnet ? "Sonnet 5" : (modelUsed || "—");
+    const label = configured?.label || (isOpus ? "Opus 5" : isSonnet ? "Sonnet 5" : (modelUsed || "—"));
     const cls = isOpus
       ? "border-red-600 text-red-700 font-semibold"
       : isSonnet
@@ -706,17 +718,11 @@ export function PanelEvaluator({ proposalId }: Props) {
   // it through the corrected per-model formula (uncached×in + cacheRead×in×0.10 +
   // cacheWrite×in×1.25 + output×out). Sonnet intro $2/$10 auto-switches to $3/$15 from 2026-09-01.
   const modelCostEstimate = useMemo(() => {
-    const sonnetStandardActive = Date.now() >= new Date("2026-09-01T00:00:00Z").getTime();
-    const PRICES: Record<"sonnet" | "opus", { in: number; out: number }> = {
-      sonnet: { in: sonnetStandardActive ? 3 : 2, out: sonnetStandardActive ? 15 : 10 },
-      opus: { in: 5, out: 25 },
-    };
     const USD_EUR = 0.88;
     const K = Math.max(3, Math.min(10, (selectedCount || 4) + 1));
 
-    // Token-based fallback in EUR.
-    const tokenFallback = (m: "sonnet" | "opus") => {
-      const p = PRICES[m];
+    // Token-based fallback in EUR, priced from the model's own stored prices.
+    const tokenFallback = (inPrice: number, outPrice: number) => {
       const payload =
         thisPayloadTokens ??
         Math.round(
@@ -728,7 +734,7 @@ export function PanelEvaluator({ proposalId }: Props) {
       const uncached = 600 * K; // per-call instruction overhead
       const output = 3000 * K; // ~3k tokens per evaluator/synthesis call
       const usd =
-        (uncached * p.in + cacheRead * p.in * 0.1 + cacheWrite * p.in * 1.25 + output * p.out) /
+        (uncached * inPrice + cacheRead * inPrice * 0.1 + cacheWrite * inPrice * 1.25 + output * outPrice) /
         1_000_000;
       return usd * USD_EUR;
     };
@@ -745,12 +751,15 @@ export function PanelEvaluator({ proposalId }: Props) {
       return avgCost * scale;
     };
 
-    return {
-      sonnet: learned("claude-sonnet-5", tokenFallback("sonnet")),
-      opus: learned("claude-opus-5", tokenFallback("opus")),
-      sonnetStandardActive,
-    };
-  }, [costHistory, thisPayloadTokens, selectedCount]);
+    const byModel: Record<string, number> = {};
+    for (const opt of modelOptions) {
+      byModel[opt.model_id] = learned(
+        opt.model_id,
+        tokenFallback(opt.price_input_per_mtok, opt.price_output_per_mtok),
+      );
+    }
+    return byModel;
+  }, [costHistory, thisPayloadTokens, selectedCount, modelOptions]);
 
   async function startEvaluation() {
 
@@ -1120,7 +1129,7 @@ export function PanelEvaluator({ proposalId }: Props) {
             After an eligibility check by an agentic AI European Commission evaluator using
             Haiku 4.5, it assembles a panel of agentic AI "evaluators" with different expert
             roles and personas, which evaluate the proposal in its current state from different
-            perspectives, using either Sonnet 5 or Opus 5. Finally, another agent assembles
+            perspectives, using either {modelOptions.map((o) => o.label).join(" or ") || "the configured model"}. Finally, another agent assembles
             scores and detailed feedback into an Evaluation Summary Report (ESR). Only proposal
             coordinators can run an evaluation, but all users can view the ESRs associated with
             a proposal.
@@ -1129,71 +1138,95 @@ export function PanelEvaluator({ proposalId }: Props) {
         {isCoordinator && (
           <CardContent className="pt-0 space-y-4">
 
-          {/* Per-run model toggle switch. Defaults to Sonnet 5 each time the pane opens.
-              Choosing Opus 5 overrides for THIS RUN ONLY — the stored default stays Sonnet 5. */}
-          {(stage === "idle" || stage === "panelReview") && (() => {
-            const isOpus = modelChoice === "claude-opus-5";
+          <ModelUpdateCheckDialog
+            open={modelCheckOpen}
+            onOpenChange={setModelCheckOpen}
+            options={modelOptions}
+            canApply={isOwner || isGlobalAdmin}
+            onApplied={() => { void refetchModelOptions(); }}
+          />
+
+          {/* Per-run model toggle switch. Both choices — ids, labels and prices —
+              come from the runtime configuration (evaluation_model_options).
+              The choice overrides for THIS RUN ONLY; the stored default is unchanged. */}
+          {(stage === "idle" || stage === "panelReview") && modelOptions.length > 0 && (() => {
+            const left = modelOptions[0];
+            const right = modelOptions[1] ?? null;
+            const rightSelected = !!right && modelChoice === right.model_id;
+            const leftSelected = !rightSelected;
             const disabled = stage !== "idle" && stage !== "panelReview";
             const GREEN = "#16a34a"; // tailwind green-600
             const RED = "#dc2626"; // tailwind red-600
-            const sonnetSelected = !isOpus;
-            const opusSelected = isOpus;
-            const activeColor = opusSelected ? RED : GREEN;
+            const activeColor = rightSelected ? RED : GREEN;
             return (
               <div className="space-y-2 -mt-1">
                 {/* Row 1: model name (right) · toggle switch · model name (left) */}
                 <div className="flex items-start gap-5 max-w-3xl">
                   <button
                     type="button"
-                    onClick={() => setModelChoice("claude-sonnet-5")}
+                    onClick={() => setModelChoice(left.model_id)}
                     disabled={disabled}
                     className="flex-1 text-right disabled:opacity-60"
                   >
                     <div
                       className={`text-sm font-semibold transition-colors ${
-                        sonnetSelected ? "" : "text-muted-foreground"
+                        leftSelected ? "" : "text-muted-foreground"
                       }`}
-                      style={sonnetSelected ? { color: GREEN } : undefined}
+                      style={leftSelected ? { color: GREEN } : undefined}
                     >
-                      Sonnet 5 <span className="font-normal text-xs text-muted-foreground">~{formatCurrency(modelCostEstimate.sonnet)}</span>
+                      {left.label} <span className="font-normal text-xs text-muted-foreground">~{formatCurrency(modelCostEstimate[left.model_id] ?? 0)}</span>
                     </div>
                   </button>
 
-                  {/* Toggle switch — knob turns RED when Opus is active, GREEN when Sonnet is active. */}
+                  {/* Toggle switch — knob turns RED for the second option, GREEN for the first. */}
                   <button
                     type="button"
                     role="switch"
-                    aria-checked={opusSelected}
+                    aria-checked={rightSelected}
                     aria-label="Toggle evaluation model"
-                    onClick={() => setModelChoice(isOpus ? "claude-sonnet-5" : "claude-opus-5")}
-                    disabled={disabled}
+                    onClick={() => right && setModelChoice(rightSelected ? left.model_id : right.model_id)}
+                    disabled={disabled || !right}
                     className="relative shrink-0 mt-1 h-7 w-14 rounded-full border border-gray-300 bg-white transition-colors disabled:opacity-60"
                   >
                     <span
                       className="absolute left-0 top-1/2 h-5 w-5 rounded-full shadow transition-transform"
                       style={{
                         backgroundColor: activeColor,
-                        transform: `translateY(-50%) translateX(${opusSelected ? 32 : 4}px)`,
+                        transform: `translateY(-50%) translateX(${rightSelected ? 32 : 4}px)`,
                       }}
                     />
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => setModelChoice("claude-opus-5")}
-                    disabled={disabled}
+                    onClick={() => right && setModelChoice(right.model_id)}
+                    disabled={disabled || !right}
                     className="flex-1 text-left disabled:opacity-60"
                   >
                     <div
                       className={`text-sm font-semibold transition-colors ${
-                        opusSelected ? "" : "text-muted-foreground"
+                        rightSelected ? "" : "text-muted-foreground"
                       }`}
-                      style={opusSelected ? { color: RED } : undefined}
+                      style={rightSelected ? { color: RED } : undefined}
                     >
-                      Opus 5 <span className="font-normal text-xs text-muted-foreground">~{formatCurrency(modelCostEstimate.opus)}</span>
+                      {right?.label ?? "—"} <span className="font-normal text-xs text-muted-foreground">~{formatCurrency(right ? (modelCostEstimate[right.model_id] ?? 0) : 0)}</span>
                     </div>
                   </button>
                 </div>
+
+                {/* Coordinator-or-above: look up whether Anthropic has released anything newer. */}
+                <div className="flex justify-center max-w-3xl">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="gap-2 h-7 text-xs text-muted-foreground"
+                    onClick={() => setModelCheckOpen(true)}
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" /> Check for newer models
+                  </Button>
+                </div>
+
 
                 {/* Row 2: descriptions flank a small Start button centred under the toggle. */}
                 <div className="flex items-center gap-5 max-w-3xl">

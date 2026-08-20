@@ -1878,6 +1878,48 @@ export type Database = {
           },
         ]
       }
+      evaluation_model_options: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          label: string
+          model_id: string
+          notes: string | null
+          price_input_per_mtok: number
+          price_output_per_mtok: number
+          sort_order: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label: string
+          model_id: string
+          notes?: string | null
+          price_input_per_mtok: number
+          price_output_per_mtok: number
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          model_id?: string
+          notes?: string | null
+          price_input_per_mtok?: number
+          price_output_per_mtok?: number
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       evaluator_personas: {
         Row: {
           active: boolean | null
