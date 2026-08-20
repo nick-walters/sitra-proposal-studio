@@ -639,6 +639,61 @@ export type Database = {
           },
         ]
       }
+      card_figure: {
+        Row: {
+          caption: string | null
+          card_id: string
+          created_at: string
+          figure_id: string | null
+          float: string
+          max_width_cm: number | null
+          proposal_id: string
+          updated_at: string
+        }
+        Insert: {
+          caption?: string | null
+          card_id: string
+          created_at?: string
+          figure_id?: string | null
+          float?: string
+          max_width_cm?: number | null
+          proposal_id: string
+          updated_at?: string
+        }
+        Update: {
+          caption?: string | null
+          card_id?: string
+          created_at?: string
+          figure_id?: string | null
+          float?: string
+          max_width_cm?: number | null
+          proposal_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_figure_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: true
+            referencedRelation: "proposal_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "card_figure_figure_id_fkey"
+            columns: ["figure_id"]
+            isOneToOne: false
+            referencedRelation: "figures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "card_figure_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       card_guideline_documents: {
         Row: {
           created_at: string
@@ -799,6 +854,226 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      card_table: {
+        Row: {
+          caption: string | null
+          caption_suffix: string | null
+          card_id: string
+          created_at: string
+          parts: number
+          proposal_id: string
+          updated_at: string
+          variant: string
+        }
+        Insert: {
+          caption?: string | null
+          caption_suffix?: string | null
+          card_id: string
+          created_at?: string
+          parts?: number
+          proposal_id: string
+          updated_at?: string
+          variant?: string
+        }
+        Update: {
+          caption?: string | null
+          caption_suffix?: string | null
+          card_id?: string
+          created_at?: string
+          parts?: number
+          proposal_id?: string
+          updated_at?: string
+          variant?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_table_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: true
+            referencedRelation: "proposal_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "card_table_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      card_table_cells: {
+        Row: {
+          align_h: string | null
+          align_v: string | null
+          colspan: number
+          column_id: string
+          content_html: string | null
+          content_version: number
+          created_at: string
+          id: string
+          proposal_id: string
+          row_id: string
+          rowspan: number
+          updated_at: string
+        }
+        Insert: {
+          align_h?: string | null
+          align_v?: string | null
+          colspan?: number
+          column_id: string
+          content_html?: string | null
+          content_version?: number
+          created_at?: string
+          id?: string
+          proposal_id: string
+          row_id: string
+          rowspan?: number
+          updated_at?: string
+        }
+        Update: {
+          align_h?: string | null
+          align_v?: string | null
+          colspan?: number
+          column_id?: string
+          content_html?: string | null
+          content_version?: number
+          created_at?: string
+          id?: string
+          proposal_id?: string
+          row_id?: string
+          rowspan?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_table_cells_column_id_fkey"
+            columns: ["column_id"]
+            isOneToOne: false
+            referencedRelation: "card_table_columns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "card_table_cells_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "card_table_cells_row_id_fkey"
+            columns: ["row_id"]
+            isOneToOne: false
+            referencedRelation: "card_table_rows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      card_table_columns: {
+        Row: {
+          align_h: string | null
+          align_v: string | null
+          card_id: string
+          created_at: string
+          id: string
+          label_html: string | null
+          order_index: number
+          part: number
+          proposal_id: string
+          updated_at: string
+          width_px: number | null
+        }
+        Insert: {
+          align_h?: string | null
+          align_v?: string | null
+          card_id: string
+          created_at?: string
+          id?: string
+          label_html?: string | null
+          order_index: number
+          part?: number
+          proposal_id: string
+          updated_at?: string
+          width_px?: number | null
+        }
+        Update: {
+          align_h?: string | null
+          align_v?: string | null
+          card_id?: string
+          created_at?: string
+          id?: string
+          label_html?: string | null
+          order_index?: number
+          part?: number
+          proposal_id?: string
+          updated_at?: string
+          width_px?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_table_columns_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "card_table"
+            referencedColumns: ["card_id"]
+          },
+          {
+            foreignKeyName: "card_table_columns_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      card_table_rows: {
+        Row: {
+          card_id: string
+          created_at: string
+          id: string
+          order_index: number
+          part: number
+          proposal_id: string
+          row_type: string
+          updated_at: string
+        }
+        Insert: {
+          card_id: string
+          created_at?: string
+          id?: string
+          order_index: number
+          part?: number
+          proposal_id: string
+          row_type: string
+          updated_at?: string
+        }
+        Update: {
+          card_id?: string
+          created_at?: string
+          id?: string
+          order_index?: number
+          part?: number
+          proposal_id?: string
+          row_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_table_rows_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "card_table"
+            referencedColumns: ["card_id"]
+          },
+          {
+            foreignKeyName: "card_table_rows_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       card_target_locks: {
         Row: {

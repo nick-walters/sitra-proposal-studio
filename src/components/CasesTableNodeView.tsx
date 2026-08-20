@@ -15,6 +15,9 @@ import { renderRefBadges } from '@/lib/renderRefBadges';
 import { RefDataProvider, useRefSnapshot } from '@/lib/refDataContext';
 import { stripWordHtml } from '@/lib/stripWordHtml';
 import { ParticipantBubble } from './B31Pill';
+// DECLARED EXCEPTION: the cases table keeps its own layout, but takes the font
+// and size tokens from the shared spec so it stays consistent.
+import { TABLE_FONT_FAMILY, TABLE_FONT_SIZE } from '@/lib/tableStyleSpec';
 
 // B1.2 cases tables are always in section 1.2.
 const SECTION_NUMBER_BASE = '1.2';
@@ -122,7 +125,7 @@ function CaseChip({ label, color }: { label: string; color: string }) {
       }}
     >
 
-      <span style={{ color: color || '#000000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1 }}>
+      <span style={{ color: color || '#000000', fontFamily: TABLE_FONT_FAMILY, fontSize: TABLE_FONT_SIZE, fontWeight: 700, lineHeight: 1 }}>
         {label}
       </span>
     </span>
@@ -395,8 +398,8 @@ export function CasesTableLiveView({ proposalId, caseTypeId, letterIndex }: Case
         style={{
           textAlign: 'left',
           margin: '0 0 4px 0',
-          fontFamily: "'Times New Roman', Times, serif",
-          fontSize: '11pt',
+          fontFamily: TABLE_FONT_FAMILY,
+          fontSize: TABLE_FONT_SIZE,
         }}
       >
         <strong><em>Table {SECTION_NUMBER_BASE}.{letter}.</em></strong>{' '}
@@ -410,8 +413,8 @@ export function CasesTableLiveView({ proposalId, caseTypeId, letterIndex }: Case
       data-cases-table-nodeview=""
       style={{
         margin: '0',
-        fontFamily: "'Times New Roman', Times, serif",
-        fontSize: '11pt',
+        fontFamily: TABLE_FONT_FAMILY,
+        fontSize: TABLE_FONT_SIZE,
         color: '#000',
         width: '100%',
         userSelect: 'text',
