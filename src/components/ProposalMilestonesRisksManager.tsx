@@ -45,7 +45,9 @@ import {
   useMethodologyEditorFocus,
 } from '@/components/MethodologyEditorFocusContext';
 import { TextFormattingGroup } from '@/components/toolbar';
-import { saveVersionedRow, reorderVersionedRows } from '@/lib/versionedSave';
+import { saveVersionedRow, reorderVersionedRows, deleteAndResequence } from '@/lib/versionedSave';
+import { saveMilestoneAndResequence } from '@/lib/versionedSave';
+
 import { useVersionConflict } from '@/hooks/useVersionConflict';
 
 
@@ -449,7 +451,9 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
   const addMilestone = useMutation({
     mutationFn: async () => {
       const nextOrder = (milestones.reduce((m, x) => Math.max(m, x.order_index), -1)) + 1;
-      const nextNum = milestones.length + 1;
+      // max(number) + 1, matching risks. `length + 1` duplicated an existing
+      // number whenever the list already had a gap.
+      const nextNum = (milestones.reduce((m, x) => Math.max(m, x.number), 0)) + 1;
       const { error } = await supabase
         .from('proposal_milestones')
         .insert({ proposal_id: proposalId, number: nextNum, order_index: nextOrder, title: '' });
@@ -464,7 +468,11 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<Milestone> }) => {
       const { wp_ids, task_ids, ...rest } = patch as any;
       const known = milestones.find(m => m.id === id);
-      const res = await saveVersionedRow('proposal_milestones', id, rest, known?.version ?? null);
+      // A due-month change reorders the board, so the renumber has to happen in
+      // the same transaction as the write rather than as a follow-up call.
+      const res = 'due_month' in rest
+        ? await saveMilestoneAndResequence(id, rest, known?.version ?? null)
+        : await saveVersionedRow('proposal_milestones', id, rest, known?.version ?? null);
       if (res.conflict) {
         reportConflict(Object.values(rest).find(v => typeof v === 'string' && v.trim() !== '') ?? null);
         throw new Error('This milestone was changed elsewhere — your change was not saved.');
@@ -478,12 +486,19 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
 
   const deleteMilestone = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('proposal_milestones').delete().eq('id', id);
-      if (error) throw error;
+      const known = milestones.find(m => m.id === id);
+      const res = await deleteAndResequence('proposal_milestones', id, known?.version ?? null);
+      if (!res.ok) {
+        throw new Error(res.conflict
+          ? 'This milestone changed elsewhere — it was not deleted.'
+          : (res.error || 'Failed to delete milestone'));
+      }
     },
+    onError: (e: any) => { toast.error(e.message); qc.invalidateQueries({ queryKey: MS_KEY(proposalId) }); },
     onSuccess: () => { qc.invalidateQueries({ queryKey: MS_KEY(proposalId) }); notifyRefs(); },
     ...saveHooks,
   });
+
 
   const setMsWps = useMutation({
     mutationFn: async ({ id, wpIds, primaryWpId }: { id: string; wpIds: string[]; primaryWpId: string | null }) => {
@@ -533,12 +548,19 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
 
   const deleteRisk = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('proposal_risks').delete().eq('id', id);
-      if (error) throw error;
+      const known = risks.find(r => r.id === id);
+      const res = await deleteAndResequence('proposal_risks', id, known?.version ?? null);
+      if (!res.ok) {
+        throw new Error(res.conflict
+          ? 'This risk changed elsewhere — it was not deleted.'
+          : (res.error || 'Failed to delete risk'));
+      }
     },
+    onError: (e: any) => { toast.error(e.message); qc.invalidateQueries({ queryKey: RISK_KEY(proposalId) }); },
     onSuccess: () => qc.invalidateQueries({ queryKey: RISK_KEY(proposalId) }),
     ...saveHooks,
   });
+
 
   const setRiskWps = useMutation({
     mutationFn: async ({ id, wpIds }: { id: string; wpIds: string[] }) => {

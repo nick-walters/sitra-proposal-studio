@@ -116,3 +116,70 @@ export function isBlankValue(value: unknown): boolean {
   if (typeof value !== 'string') return false;
   return value.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim() === '';
 }
+
+export interface DeleteResequenceResult {
+  ok: boolean;
+  conflict: boolean;
+  /** Rows left under the parent after the delete. */
+  remaining?: number;
+  error?: string;
+}
+
+/**
+ * Deletes one row of a numbered list and renumbers its surviving siblings in
+ * the SAME transaction. The old delete-then-reorder pair could leave a gap
+ * behind whenever the second call never landed.
+ */
+export async function deleteAndResequence(
+  table: 'wp_drafts' | 'wp_draft_tasks' | 'wp_draft_deliverables' | 'proposal_milestones' | 'proposal_risks',
+  id: string,
+  expectedVersion: number | null = null,
+): Promise<DeleteResequenceResult> {
+  const { data, error } = await (supabase as any).rpc('delete_and_resequence', {
+    p_table: table,
+    p_id: id,
+    p_expected_version: expectedVersion,
+  });
+  if (error) return { ok: false, conflict: false, error: error.message };
+  return (data ?? { ok: false, conflict: false, error: 'no response' }) as DeleteResequenceResult;
+}
+
+/**
+ * Moves a task or deliverable to another work package: the move, the source
+ * renumber and the target append all happen in one transaction.
+ */
+export async function moveChildToWpRpc(
+  table: 'wp_draft_tasks' | 'wp_draft_deliverables',
+  id: string,
+  targetWpDraftId: string,
+  expectedVersion: number | null = null,
+): Promise<{ ok: boolean; conflict: boolean; moved?: boolean; error?: string }> {
+  const { data, error } = await (supabase as any).rpc('move_child_to_wp', {
+    p_table: table,
+    p_id: id,
+    p_target_wp_draft_id: targetWpDraftId,
+    p_expected_version: expectedVersion,
+  });
+  if (error) return { ok: false, conflict: false, error: error.message };
+  return (data ?? { ok: false, conflict: false, error: 'no response' }) as any;
+}
+
+/**
+ * Guarded milestone save that ALSO resequences the whole milestone list in the
+ * same transaction. Used when `due_month` changes, because the board orders
+ * milestones by due month — the stored numbers must move with it, and doing it
+ * as two calls is exactly how the numbering drifted before.
+ */
+export async function saveMilestoneAndResequence<T = any>(
+  id: string,
+  patch: Record<string, any>,
+  expectedVersion: number | null,
+): Promise<VersionedSaveResult<T>> {
+  const { data, error } = await (supabase as any).rpc('save_milestone_and_resequence', {
+    p_id: id,
+    p_patch: patch,
+    p_expected_version: expectedVersion,
+  });
+  if (error) return { ok: false, conflict: false, error: error.message };
+  return (data ?? { ok: false, conflict: false, error: 'no response' }) as VersionedSaveResult<T>;
+}

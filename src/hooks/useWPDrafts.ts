@@ -5,8 +5,11 @@ import { stripWordHtml } from '@/lib/stripWordHtml';
 import {
   saveVersionedRow,
   reorderVersionedRows,
+  deleteAndResequence,
+  moveChildToWpRpc,
   type ReorderItem,
 } from '@/lib/versionedSave';
+
 
 /** Options shared by both WP hooks. */
 export interface WPDraftHookOptions {
@@ -200,22 +203,20 @@ export function useWPDrafts(proposalId: string | null, options?: WPDraftHookOpti
   }, [proposalId, wpDrafts, fetchWPDrafts]);
 
   const deleteWPDraft = useCallback(async (wpId: string) => {
-    try {
-      const { error } = await supabase
-        .from('wp_drafts')
-        .delete()
-        .eq('id', wpId);
-
-      if (error) throw error;
-
-      setWPDrafts(prev => prev.filter(wp => wp.id !== wpId));
-      return true;
-    } catch (err) {
-      console.error('Error deleting WP draft:', err);
-      toast.error('Failed to delete work package');
+    // Delete and renumber the surviving work packages atomically.
+    const known = wpDrafts.find(wp => wp.id === wpId);
+    const res = await deleteAndResequence('wp_drafts', wpId, known?.version ?? null);
+    if (!res.ok) {
+      toast.error(res.conflict
+        ? 'This work package changed elsewhere — it was not deleted. Reloading.'
+        : (res.error || 'Failed to delete work package'));
+      await fetchWPDrafts();
       return false;
     }
-  }, []);
+    await fetchWPDrafts();
+    return true;
+  }, [wpDrafts, fetchWPDrafts]);
+
 
   const reorderWPDrafts = useCallback(async (newOrder: string[]) => {
     const versionById = new Map(wpDrafts.map(wp => [wp.id, wp.version]));
@@ -453,20 +454,21 @@ export function useWPDraftEditor(wpId: string | null, options?: WPDraftHookOptio
   }, [wpDraft?.tasks, fetchWPDraft, onConflict]);
 
   const deleteTask = useCallback(async (taskId: string) => {
-    const remaining = (wpDraft?.tasks || [])
-      .filter(t => t.id !== taskId)
-      .sort((a, b) => a.order_index - b.order_index);
-
-    const { error } = await supabase.from('wp_draft_tasks').delete().eq('id', taskId);
-    if (error) {
-      console.error('Error deleting task:', error);
-      toast.error('Failed to delete task');
+    // Delete + renumber survivors in one transaction: a half-applied delete is
+    // what used to leave gaps such as a T2.3 with no T2.2.
+    const known = (wpDraft?.tasks || []).find(t => t.id === taskId);
+    const res = await deleteAndResequence('wp_draft_tasks', taskId, known?.version ?? null);
+    if (!res.ok) {
+      toast.error(res.conflict
+        ? 'This task changed elsewhere — it was not deleted. Reloading.'
+        : (res.error || 'Failed to delete task'));
+      await fetchWPDraft();
       return false;
     }
-    // Renumbering survivors is a guarded, all-or-nothing operation.
-    await applyOrder('wp_draft_tasks', remaining, 'Tasks');
+    await fetchWPDraft();
     return true;
-  }, [wpDraft?.tasks, applyOrder]);
+  }, [wpDraft?.tasks, fetchWPDraft]);
+
 
   const reorderTasks = useCallback(async (newOrder: string[]) => {
     if (!wpDraft) return false;
@@ -562,19 +564,19 @@ export function useWPDraftEditor(wpId: string | null, options?: WPDraftHookOptio
   }, [wpDraft?.deliverables, fetchWPDraft, onConflict]);
 
   const deleteDeliverable = useCallback(async (deliverableId: string) => {
-    const remaining = (wpDraft?.deliverables || [])
-      .filter(d => d.id !== deliverableId)
-      .sort((a, b) => a.order_index - b.order_index);
-
-    const { error } = await supabase.from('wp_draft_deliverables').delete().eq('id', deliverableId);
-    if (error) {
-      console.error('Error deleting deliverable:', error);
-      toast.error('Failed to delete deliverable');
+    const known = (wpDraft?.deliverables || []).find(d => d.id === deliverableId);
+    const res = await deleteAndResequence('wp_draft_deliverables', deliverableId, known?.version ?? null);
+    if (!res.ok) {
+      toast.error(res.conflict
+        ? 'This deliverable changed elsewhere — it was not deleted. Reloading.'
+        : (res.error || 'Failed to delete deliverable'));
+      await fetchWPDraft();
       return false;
     }
-    await applyOrder('wp_draft_deliverables', remaining, 'Deliverables');
+    await fetchWPDraft();
     return true;
-  }, [wpDraft?.deliverables, applyOrder]);
+  }, [wpDraft?.deliverables, fetchWPDraft]);
+
 
 
   const reorderDeliverables = useCallback(async (newOrder: string[]) => {
@@ -662,11 +664,10 @@ export function useWPDraftEditor(wpId: string | null, options?: WPDraftHookOptio
   }, []);
 
   /**
-   * Moves one child row to another WP. The target number is derived from the
-   * highest existing NUMBER (not the highest order_index), which is what used
-   * to produce duplicates such as two deliverables numbered 2. The moved row is
-   * written through the guard; the source list is then renumbered
-   * all-or-nothing.
+   * Moves one child row to another WP. Move, source renumber and target append
+   * all happen inside one server transaction, so the half-applied move that
+   * produced duplicates such as two deliverables numbered 2 can no longer
+   * happen.
    */
   const moveChildToWP = useCallback(async (
     table: 'wp_draft_tasks' | 'wp_draft_deliverables',
@@ -678,42 +679,20 @@ export function useWPDraftEditor(wpId: string | null, options?: WPDraftHookOptio
     const siblings = table === 'wp_draft_tasks' ? (wpDraft.tasks || []) : (wpDraft.deliverables || []);
     const moved = siblings.find(r => r.id === rowId);
 
-    try {
-      const { data: targetRows, error: fetchErr } = await supabase
-        .from(table)
-        .select('number, order_index')
-        .eq('wp_draft_id', targetWpDraftId);
-      if (fetchErr) throw fetchErr;
-
-      const nextNumber = (targetRows || []).reduce((m, r: any) => Math.max(m, r.number), 0) + 1;
-      const nextOrderIndex = (targetRows || []).length;
-
-      const res = await saveVersionedRow(
-        table,
-        rowId,
-        { wp_draft_id: targetWpDraftId, number: nextNumber, order_index: nextOrderIndex },
-        moved?.version ?? null,
-      );
-      if (res.conflict) {
-        toast.error(`This ${label} changed elsewhere — the move was not applied.`);
-        await fetchWPDraft();
-        return false;
-      }
-      if (!res.ok) throw new Error(res.error || 'move failed');
-
-      const remaining = siblings
-        .filter(r => r.id !== rowId)
-        .sort((a, b) => a.order_index - b.order_index);
-      await applyOrder(table, remaining, label === 'task' ? 'Tasks' : 'Deliverables');
-
-      toast.success(`${label === 'task' ? 'Task' : 'Deliverable'} moved successfully`);
-      return true;
-    } catch (err) {
-      console.error(`Error moving ${label}:`, err);
-      toast.error(`Failed to move ${label}`);
+    const res = await moveChildToWpRpc(table, rowId, targetWpDraftId, moved?.version ?? null);
+    if (!res.ok) {
+      toast.error(res.conflict
+        ? `This ${label} changed elsewhere — the move was not applied.`
+        : (res.error || `Failed to move ${label}`));
+      await fetchWPDraft();
       return false;
     }
-  }, [wpDraft, applyOrder, fetchWPDraft]);
+
+    await fetchWPDraft();
+    toast.success(`${label === 'task' ? 'Task' : 'Deliverable'} moved successfully`);
+    return true;
+  }, [wpDraft, fetchWPDraft]);
+
 
   const moveTaskToWP = useCallback(
     (taskId: string, targetWpDraftId: string) =>
