@@ -1370,6 +1370,17 @@ body.table-col-resizing * {
   overflow: visible !important;
 }
 
+/* Gantt task titles must keep the on-screen clipping (the title cell is
+   deliberately overflow:hidden so long titles are ellipsised instead of
+   running under the timeline), so they are exempt from the rule above. */
+.print-export-container [data-gantt-title-cell],
+.print-export-container [data-gantt-task-title] {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+
 .print-export-container [data-figure-type] svg {
   max-width: 100% !important;
   height: auto !important;
