@@ -7,6 +7,7 @@ import { MethodologyRichEditor } from '@/components/MethodologyRichEditor';
 import { LAZY_RICH_FIELD_EXTENSIONS } from './lazyRichFieldExtensions';
 import { useReferenceData, type RefSnapshot } from '@/lib/referenceData';
 import { resolveReferenceJson } from '@/lib/resolveReferenceJson';
+import { capabilitiesOfExtensions, registerFieldCapabilities, unregisterFieldCapabilities } from '@/lib/fieldCapabilities';
 
 export interface LazyRichFieldProps {
   /** Stored HTML for this field. */
@@ -193,7 +194,7 @@ export function LazyRichField({
       dom.addEventListener('focusout', handleFocusOut);
       editor.on('destroy', () => dom.removeEventListener('focusout', handleFocusOut));
     },
-    [shouldStayMounted, unmountEditor],
+    [capabilities, shouldStayMounted, unmountEditor],
   );
 
   const activate = useCallback(
