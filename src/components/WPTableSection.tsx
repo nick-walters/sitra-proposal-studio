@@ -265,16 +265,12 @@ function SortableTaskCard({
     opacity: isDragging ? 0.5 : 1,
   };
 
-  const [descriptionTimeout, setDescriptionTimeout] = useState<NodeJS.Timeout | null>(null);
-
+  // Persistence is debounced by DebouncedRichField (800 ms, matching the
+  // cards board), which also flushes on blur, unmount and navigation away.
   const handleDescriptionChange = (value: string) => {
-    if (descriptionTimeout) clearTimeout(descriptionTimeout);
-    
-    const timeout = setTimeout(() => {
-      onUpdate(task.id, { description: value });
-    }, 800);
-    setDescriptionTimeout(timeout);
+    onUpdate(task.id, { description: value });
   };
+
 
 
   const selectedParticipantIds = (task.participants?.map(p => p.participant_id) || []).filter(id => id !== task.lead_participant_id);
