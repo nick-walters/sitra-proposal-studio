@@ -1150,8 +1150,17 @@ export async function prepareExportContainer(
   container.style.overflow = 'visible';
   document.body.appendChild(container);
 
+  // Drop the legacy baked text copy of the B1.1 overview canvas that sits
+  // immediately before the canvas slot (export-only; nothing is written back).
+  try {
+    await stripBakedOverviewCanvasText(container, options.proposal.id);
+  } catch (e) {
+    console.error('Overview canvas text scrub failed', e);
+  }
+
   // Mount B3.1 tables, B3.2 expertise matrix, and B1.2 cases-table placeholders
   await mountDynamicComponents(container, options.proposal.id, options.proposal.acronym, appQueryClient);
+
 
   // Resolve every cross-reference chip in the finished container against ONE
   // live snapshot. This is the single resolution pass for both exports (Word
