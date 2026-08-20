@@ -17,8 +17,9 @@ import { CASE_DRAFT_FIELD_EXTENSIONS } from '@/components/cases/caseDraftFieldEx
 import {
   MethodologyEditorFocusProvider,
   useMethodologyEditorFocus,
-import { getEditorCapabilities } from '@/lib/fieldCapabilities';
 } from '@/components/MethodologyEditorFocusContext';
+import { getEditorCapabilities } from '@/lib/fieldCapabilities';
+
 import { SitraTipsBox } from '@/components/SitraTipsBox';
 import { BookOpen, Lock, Image as ImageLucide, Table2 } from 'lucide-react';
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
