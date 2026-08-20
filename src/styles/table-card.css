@@ -1,0 +1,123 @@
+/**
+ * Canonical Horizon Europe table styling.
+ *
+ * Values come from `src/lib/tableStyleSpec.ts` via the `--card-table-*` custom
+ * properties written on to :root by `installTableStyleVars()` (called once from
+ * main.tsx). The literals here are only fallbacks for the pre-hydration frame.
+ * Do not add table styling anywhere else — edit the spec module instead.
+ *
+ * Consumers: `.card-table` (Phase 3b table blocks), `.he-table` (legacy static
+ * tables), `.ProseMirror table` (editor content tables) and
+ * `.print-export-container .print-table` (participant list in the PDF export).
+ */
+
+.card-table,
+.he-table,
+.ProseMirror table,
+.print-export-container .print-table {
+  width: 100%;
+  border-collapse: collapse !important;
+  font-family: var(--card-table-font, 'Times New Roman', Times, 'Nimbus Roman No9 L', serif) !important;
+  font-size: var(--card-table-size, 11pt) !important;
+  line-height: var(--card-table-line-height, 1);
+  /* No !important on width/max-width: an explicit inline width set by column
+     resizing must still win, so a table can be narrower than the text column. */
+  max-width: var(--card-table-max-width, 18cm);
+  table-layout: fixed;
+  margin: 0 0 6pt 0;
+}
+
+/* The legacy static tables and the print participant list size to content. */
+.he-table,
+.print-export-container .print-table {
+  table-layout: auto;
+}
+
+.he-table {
+  margin: 1rem 0;
+}
+
+.card-table th,
+.card-table td,
+.he-table th,
+.he-table td,
+.he-table-header,
+.he-table-cell,
+.ProseMirror table th,
+.ProseMirror table td,
+.print-export-container .print-th,
+.print-export-container .print-td {
+  border: none !important;
+  border-bottom: var(--card-table-body-border, 1px solid #e5e7eb) !important;
+  padding: var(--card-table-pad-y, 1px) var(--card-table-pad-x, 4px) !important;
+  font-family: var(--card-table-font, 'Times New Roman', Times, 'Nimbus Roman No9 L', serif) !important;
+  font-size: var(--card-table-size, 11pt) !important;
+  line-height: var(--card-table-line-height, 1) !important;
+  text-align: left;
+  vertical-align: middle;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.ProseMirror table th,
+.ProseMirror table td {
+  position: relative;
+  min-width: 30px;
+}
+
+/* Header row: bold, heavy rule beneath, transparent background. */
+.card-table th,
+.he-table th,
+.he-table-header,
+.ProseMirror table th,
+.print-export-container .print-th {
+  background-color: transparent !important;
+  color: #000 !important;
+  font-weight: bold !important;
+  border-bottom: var(--card-table-header-border, 1.5px solid #000000) !important;
+  white-space: normal;
+}
+
+.he-table th,
+.he-table-header {
+  white-space: nowrap;
+}
+
+.card-table td,
+.he-table td,
+.he-table-cell,
+.ProseMirror table td,
+.print-export-container .print-td {
+  background-color: #fff !important;
+  color: #000 !important;
+  white-space: normal;
+}
+
+/* No rule under the final row. */
+.card-table tr:last-child > td,
+.card-table tr:last-child > th,
+.he-table tbody tr:last-child > td,
+.ProseMirror table tr:last-child > td,
+.print-export-container .print-table tbody tr:last-child > .print-td {
+  border-bottom: none !important;
+}
+
+/* Paragraphs inside cells carry no spacing of their own. */
+.card-table th p,
+.card-table td p,
+.ProseMirror table th p,
+.ProseMirror table td p {
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: var(--card-table-line-height, 1);
+  font-family: var(--card-table-font, 'Times New Roman', Times, 'Nimbus Roman No9 L', serif) !important;
+  text-align: left !important;
+}
+
+/* Header rows must NOT repeat across page breaks. */
+.card-table thead,
+.he-table thead,
+.ProseMirror table thead,
+.print-export-container .print-table thead {
+  display: table-row-group;
+}

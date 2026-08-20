@@ -17,6 +17,7 @@ import { getCaseTypePrefix } from '@/lib/caseTypeLabels';
 import { extractFilePathFromUrl } from '@/lib/proposalStorage';
 import { SITRA_LOGO_BASE64 } from '@/lib/sitraLogo';
 import { applyColumnWidthsToTable } from '@/lib/autoFitColumns';
+import { cellAlignCss } from '@/lib/tableStyleSpec';
 import { stripBakedOverviewCanvasText } from '@/lib/exportOverviewCanvasScrub';
 import { resolveAiStatementHtml } from '@/lib/aiStatement';
 
@@ -252,18 +253,18 @@ async function buildParticipantListHtml(
       : '—';
 
     rows += `<tr>
-      <td class="print-td" style="vertical-align:middle;">${shortBubble}</td>
-      <td class="print-td" style="vertical-align:middle;">
+      <td class="print-td" style="${cellAlignCss()}">${shortBubble}</td>
+      <td class="print-td" style="${cellAlignCss()}">
         ${escHtml(legalName)}${englishName ? `<br/><span style="font-style:italic;color:#666;">${escHtml(englishName)}</span>` : ''}
       </td>
       ${logoHtml}
-      <td class="print-td" style="vertical-align:middle;">${roleHtml}</td>
-      <td class="print-td" style="vertical-align:middle;">${escHtml(p.country || '—')}</td>
+      <td class="print-td" style="${cellAlignCss()}">${roleHtml}</td>
+      <td class="print-td" style="${cellAlignCss()}">${escHtml(p.country || '—')}</td>
     </tr>`;
   }
 
   return `
-    <table class="print-table" style="width:100%;border-collapse:collapse;">
+    <table class="print-table">
       <thead>
         <tr>
           <th class="print-th" style="width:15%;">Short name</th>
