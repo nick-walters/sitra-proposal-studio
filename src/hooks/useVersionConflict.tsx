@@ -1,26 +1,20 @@
-import { useCallback, useState } from 'react';
-import { LostTextDialog, type LostTextPayload } from '@/components/cards/LostTextDialog';
-import { isBlankValue } from '@/lib/versionedSave';
+import { useCallback } from 'react';
+import { reportLostText } from '@/lib/lostTextBus';
 
 /**
- * Shared conflict surface for the version-guarded tables. On rejection the
- * caller reloads authoritative data and hands the text the user typed to this
- * hook, which offers it for copying exactly as the cards board does. Blank
- * values skip the dialog.
+ * Shared conflict surface for the version-guarded tables.
+ *
+ * Reporting is delegated to the app-level bus (`GlobalLostTextDialog`), so a
+ * rejection still surfaces when the component that issued the save has
+ * already unmounted. `dialog` is kept for call-site compatibility and renders
+ * nothing — the single global dialog owns the UI.
  */
 export function useVersionConflict() {
-  const [payload, setPayload] = useState<LostTextPayload | null>(null);
-
   const reportConflict = useCallback((lostValue: unknown) => {
-    // Nothing worth recovering — the caller still reloads and warns by toast.
-    if (isBlankValue(lostValue)) return;
-    setPayload({ text: String(lostValue), reason: 'conflict' });
+    reportLostText(lostValue);
   }, []);
 
+  const clear = useCallback(() => {}, []);
 
-  const clear = useCallback(() => setPayload(null), []);
-
-  const dialog = <LostTextDialog payload={payload} onClose={clear} />;
-
-  return { reportConflict, dialog, conflictPayload: payload, clearConflict: clear };
+  return { reportConflict, dialog: null, conflictPayload: null, clearConflict: clear };
 }

@@ -1,4 +1,16 @@
 import { supabase } from '@/integrations/supabase/client';
+import { reportLostText, firstTextValue } from '@/lib/lostTextBus';
+
+/**
+ * Every rejected write surfaces the text the user typed, whatever triggered
+ * it. Reporting happens HERE rather than in the callers because a save can
+ * outlive the component that issued it (text flushed while navigating away),
+ * and a caller-owned dialog cannot render once unmounted.
+ */
+function surfaceRejection(patch: Record<string, any> | string | null | undefined) {
+  const text = typeof patch === 'string' ? patch : firstTextValue(patch);
+  reportLostText(text);
+}
 
 /**
  * Save-time conflict rejection for the WP draft, milestone, risk and case
@@ -54,8 +66,13 @@ export async function saveVersionedRow<T = any>(
     p_patch: patch,
     p_expected_version: expectedVersion,
   });
-  if (error) return { ok: false, conflict: false, error: error.message };
-  return (data ?? { ok: false, conflict: false, error: 'no response' }) as VersionedSaveResult<T>;
+  if (error) {
+    surfaceRejection(patch);
+    return { ok: false, conflict: false, error: error.message };
+  }
+  const res = (data ?? { ok: false, conflict: false, error: 'no response' }) as VersionedSaveResult<T>;
+  if (!res.ok) surfaceRejection(patch);
+  return res;
 }
 
 /**
@@ -106,8 +123,13 @@ export async function saveCaseDraftSubsection(
     p_heading: heading,
     p_expected_body: expectedBody,
   });
-  if (error) return { ok: false, conflict: false, error: error.message };
-  return (data ?? { ok: false, conflict: false, error: 'no response' }) as SubsectionSaveResult;
+  if (error) {
+    surfaceRejection(body);
+    return { ok: false, conflict: false, error: error.message };
+  }
+  const res = (data ?? { ok: false, conflict: false, error: 'no response' }) as SubsectionSaveResult;
+  if (!res.ok) surfaceRejection(body);
+  return res;
 }
 
 /** True when the value carries no user text worth offering back for copying. */
@@ -180,6 +202,11 @@ export async function saveMilestoneAndResequence<T = any>(
     p_patch: patch,
     p_expected_version: expectedVersion,
   });
-  if (error) return { ok: false, conflict: false, error: error.message };
-  return (data ?? { ok: false, conflict: false, error: 'no response' }) as VersionedSaveResult<T>;
+  if (error) {
+    surfaceRejection(patch);
+    return { ok: false, conflict: false, error: error.message };
+  }
+  const res = (data ?? { ok: false, conflict: false, error: 'no response' }) as VersionedSaveResult<T>;
+  if (!res.ok) surfaceRejection(patch);
+  return res;
 }

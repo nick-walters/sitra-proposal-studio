@@ -13,7 +13,12 @@ export function useDebouncedSave<T>(save: (value: T) => void, delay = 800) {
   saveRef.current = save;
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingRef = useRef<{ value: T } | null>(null);
+  // The pending value carries the save function that was current WHEN THE TEXT
+  // WAS TYPED. Without this, text typed into one row and flushed after the
+  // component re-pointed at another row (switching work package mid-sentence)
+  // was written against the NEW row's id and version — the guard rejected it
+  // and the typed text was lost.
+  const pendingRef = useRef<{ value: T; save: (value: T) => void } | null>(null);
 
   const flush = useCallback(() => {
     if (timerRef.current) {
@@ -22,18 +27,18 @@ export function useDebouncedSave<T>(save: (value: T) => void, delay = 800) {
     }
     const pending = pendingRef.current;
     pendingRef.current = null;
-    if (pending) saveRef.current(pending.value);
+    if (pending) pending.save(pending.value);
   }, []);
 
   const push = useCallback(
     (value: T) => {
-      pendingRef.current = { value };
+      pendingRef.current = { value, save: saveRef.current };
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = setTimeout(() => {
         timerRef.current = null;
         const pending = pendingRef.current;
         pendingRef.current = null;
-        if (pending) saveRef.current(pending.value);
+        if (pending) pending.save(pending.value);
       }, delay);
     },
     [delay],
