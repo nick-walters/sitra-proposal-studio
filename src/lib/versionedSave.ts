@@ -163,3 +163,23 @@ export async function moveChildToWpRpc(
   if (error) return { ok: false, conflict: false, error: error.message };
   return (data ?? { ok: false, conflict: false, error: 'no response' }) as any;
 }
+
+/**
+ * Guarded milestone save that ALSO resequences the whole milestone list in the
+ * same transaction. Used when `due_month` changes, because the board orders
+ * milestones by due month — the stored numbers must move with it, and doing it
+ * as two calls is exactly how the numbering drifted before.
+ */
+export async function saveMilestoneAndResequence<T = any>(
+  id: string,
+  patch: Record<string, any>,
+  expectedVersion: number | null,
+): Promise<VersionedSaveResult<T>> {
+  const { data, error } = await (supabase as any).rpc('save_milestone_and_resequence', {
+    p_id: id,
+    p_patch: patch,
+    p_expected_version: expectedVersion,
+  });
+  if (error) return { ok: false, conflict: false, error: error.message };
+  return (data ?? { ok: false, conflict: false, error: 'no response' }) as VersionedSaveResult<T>;
+}
