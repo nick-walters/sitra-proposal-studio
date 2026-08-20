@@ -10,7 +10,7 @@
  * than inferring from the formatters.
  */
 import { describe, expect, it } from 'vitest';
-import { generateHTML } from '@tiptap/html';
+import { generateHTML, generateJSON } from '@tiptap/core';
 import Document from '@tiptap/extension-document';
 import Paragraph from '@tiptap/extension-paragraph';
 import Text from '@tiptap/extension-text';
@@ -57,14 +57,11 @@ function serverSnapshot() {
 
 /** Editor surface: parse the stored chip and re-render it through the node. */
 function editorLabel(html: string): string {
-  const extensions = [Document, Paragraph, Text, WPReferenceNode];
   // Round-trip through the schema exactly as the editor does on load.
-  const { DOMParser: PMDOMParser } = require('@tiptap/pm/model');
-  const doc = new DOMParser().parseFromString(html, 'text/html');
-  const { getSchema } = require('@tiptap/core');
-  const schema = getSchema(extensions);
-  const node = PMDOMParser.fromSchema(schema).parse(doc.body);
-  return generateHTML(node.toJSON(), extensions).replace(/<[^>]+>/g, '').trim();
+  const extensions = [Document, Paragraph, Text, WPReferenceNode];
+  return generateHTML(generateJSON(html, extensions), extensions)
+    .replace(/<[^>]+>/g, '')
+    .trim();
 }
 
 /** Mirror surface (B3.1 tables and B3.2 paragraph slots both call this). */
