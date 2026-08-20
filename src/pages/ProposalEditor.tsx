@@ -388,7 +388,7 @@ export function ProposalEditor() {
     }
   };
 
-  const handleExport = async (format: ExportFormat) => {
+  const handleExport = async (format: ExportFormat, selectedSections?: string[]) => {
     if (!proposal) return;
     
     // Fetch section contents
@@ -407,6 +407,7 @@ export function ProposalEditor() {
       })),
       sections: allSections,
       participants: participants,
+      selectedSections,
     };
 
     if (format === 'docx') {
@@ -415,6 +416,7 @@ export function ProposalEditor() {
       exportProposalToPdf(exportData);
     }
   };
+
 
 
   // Render the appropriate content based on section.
