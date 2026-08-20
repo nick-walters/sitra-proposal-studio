@@ -1650,10 +1650,16 @@ body.table-col-resizing * {
   print-color-adjust: exact !important;
 }
 
+/* Table 3.1.f (staff effort) — the generic B3.1 rule above collapses borders,
+   which also kills the 5pt horizontal column gap the matrix uses on screen.
+   Restore the separated model and the gap. */
 .print-export-container .b31-effort-matrix {
   width: 100% !important;
   table-layout: fixed !important;
+  border-collapse: separate !important;
+  border-spacing: 5pt 0 !important;
 }
+
 
 .print-export-container .b31-effort-matrix th:first-child,
 .print-export-container .b31-effort-matrix td:first-child {
