@@ -471,7 +471,7 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
       // A due-month change reorders the board, so the renumber has to happen in
       // the same transaction as the write rather than as a follow-up call.
       const res = 'due_month' in rest
-        ? await saveMilestoneAndResequence('proposal_milestones' && id, rest, known?.version ?? null)
+        ? await saveMilestoneAndResequence(id, rest, known?.version ?? null)
         : await saveVersionedRow('proposal_milestones', id, rest, known?.version ?? null);
       if (res.conflict) {
         reportConflict(Object.values(rest).find(v => typeof v === 'string' && v.trim() !== '') ?? null);
