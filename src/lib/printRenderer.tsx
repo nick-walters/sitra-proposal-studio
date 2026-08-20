@@ -17,6 +17,7 @@ import { getCaseTypePrefix } from '@/lib/caseTypeLabels';
 import { extractFilePathFromUrl } from '@/lib/proposalStorage';
 import { SITRA_LOGO_BASE64 } from '@/lib/sitraLogo';
 import { applyColumnWidthsToTable } from '@/lib/autoFitColumns';
+import { stripBakedOverviewCanvasText } from '@/lib/exportOverviewCanvasScrub';
 import { resolveAiStatementHtml } from '@/lib/aiStatement';
 
 
