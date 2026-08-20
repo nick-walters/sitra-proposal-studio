@@ -18,6 +18,8 @@ import {
   MethodologyEditorFocusProvider,
   useMethodologyEditorFocus,
 } from '@/components/MethodologyEditorFocusContext';
+import { getEditorCapabilities } from '@/lib/fieldCapabilities';
+
 import { SitraTipsBox } from '@/components/SitraTipsBox';
 import { BookOpen, Lock, Image as ImageLucide, Table2 } from 'lucide-react';
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
@@ -586,6 +588,7 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
         {/* Top Toolbar Row - Guidelines + Formatting (shared component) */}
         <DraftFormattingToolbar
           onOpenGuidelines={() => setGuidelinesOpen(true)}
+          capabilities={getEditorCapabilities(activeEditor)}
           save={{
             saving: updateMutation.isPending,
             lastSaved,

@@ -7,6 +7,7 @@ import { MethodologyRichEditor } from '@/components/MethodologyRichEditor';
 import { LAZY_RICH_FIELD_EXTENSIONS } from './lazyRichFieldExtensions';
 import { useReferenceData, type RefSnapshot } from '@/lib/referenceData';
 import { resolveReferenceJson } from '@/lib/resolveReferenceJson';
+import { capabilitiesOfExtensions, registerFieldCapabilities, unregisterFieldCapabilities } from '@/lib/fieldCapabilities';
 
 export interface LazyRichFieldProps {
   /** Stored HTML for this field. */
@@ -133,10 +134,21 @@ export function LazyRichField({
     onBlur?.();
   }, [onChange, onBlur]);
 
+  // What this field's own schema allows. The mounted instance is created by
+  // the shared editor hook (full schema), so the capabilities of the field's
+  // definition are registered against the instance for the toolbar to read.
+  const capabilities = useMemo(
+    () => capabilitiesOfExtensions(staticExtensions),
+    [staticExtensions],
+  );
+
   const handleEditorReady = useCallback(
     (editor: Editor) => {
       editorRef.current = editor;
+      registerFieldCapabilities(editor, capabilities);
+      editor.on('destroy', () => unregisterFieldCapabilities(editor));
       const dom = editor.view.dom as HTMLElement;
+
 
       const coords = clickCoordsRef.current;
       clickCoordsRef.current = null;
@@ -182,7 +194,7 @@ export function LazyRichField({
       dom.addEventListener('focusout', handleFocusOut);
       editor.on('destroy', () => dom.removeEventListener('focusout', handleFocusOut));
     },
-    [shouldStayMounted, unmountEditor],
+    [capabilities, shouldStayMounted, unmountEditor],
   );
 
   const activate = useCallback(

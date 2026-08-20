@@ -38,6 +38,7 @@ import {
   WP_DRAFT_FIELD_EXTENSIONS,
   WP_TITLE_FIELD_EXTENSIONS,
 } from '@/components/wp/wpDraftFieldExtensions';
+import { getEditorCapabilities } from '@/lib/fieldCapabilities';
 import { ParticipantCrossRefDropdown } from '@/components/participant/ParticipantCrossRefDropdown';
 import {
   MethodologyEditorFocusProvider,
@@ -595,14 +596,21 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
                 onItalic={() => runOnActiveEditor((c) => c.toggleItalic().run())}
                 onUnderline={() => runOnActiveEditor((c) => c.toggleUnderline().run())}
               />
-              <Separator orientation="vertical" className="h-5 mx-1.5" />
-              <ParticipantCrossRefDropdown
-                proposalId={proposalId}
-                acronymSegments={acronymSegments}
-                editor={activeEditor}
-              />
+              {getEditorCapabilities(activeEditor).crossReferences && (
+                <>
+                  <Separator orientation="vertical" className="h-5 mx-1.5" />
+                  <ParticipantCrossRefDropdown
+                    proposalId={proposalId}
+                    acronymSegments={acronymSegments}
+                    editor={activeEditor}
+                  />
+                </>
+              )}
             </div>
           )}
+
+
+
 
           <div className="overflow-x-auto">
             <table className="platform-table text-sm">

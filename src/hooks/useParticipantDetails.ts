@@ -164,14 +164,22 @@ export function useParticipantDetails(participantId: string | undefined, proposa
     }
   }, [participantId, proposalId]);
 
+  // Pending (typed but not yet written) description values, so a pending edit
+  // is flushed rather than dropped when the component unmounts.
+  const pendingDescriptionsRef = useRef<Partial<Record<ParticipantDescriptionField, string>>>({});
+  const commitDescriptionRef = useRef(commitDescriptionField);
+  commitDescriptionRef.current = commitDescriptionField;
+
   const updateDescriptionField = useCallback((field: ParticipantDescriptionField, value: string) => {
     setDescriptions(prev => ({ ...prev, [field]: value }));
     const timers = descriptionsDebounceRef.current;
+    pendingDescriptionsRef.current[field] = value;
     if (timers[field]) clearTimeout(timers[field]!);
     timers[field] = setTimeout(() => {
       timers[field] = null;
+      delete pendingDescriptionsRef.current[field];
       commitDescriptionField(field, value);
-    }, 500);
+    }, 800);
   }, [commitDescriptionField]);
 
   useEffect(() => {
@@ -180,8 +188,16 @@ export function useParticipantDetails(participantId: string | undefined, proposa
       Object.keys(timers).forEach(k => {
         if (timers[k]) clearTimeout(timers[k]!);
       });
+      const pending = pendingDescriptionsRef.current;
+      Object.entries(pending).forEach(([field, value]) => {
+        if (value !== undefined) {
+          void commitDescriptionRef.current(field as ParticipantDescriptionField, value);
+        }
+      });
+      pendingDescriptionsRef.current = {};
     };
   }, []);
+
 
 
   // ============================================

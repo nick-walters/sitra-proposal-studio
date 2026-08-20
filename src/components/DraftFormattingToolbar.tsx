@@ -8,6 +8,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { SaveIndicator } from '@/components/SaveIndicator';
+import { FULL_FIELD_CAPABILITIES, type FieldCapabilityFlags } from '@/lib/fieldCapabilities';
 import { ParagraphSpacingExecPopover } from '@/components/ParagraphSpacingExecPopover';
 import {
   BookOpen, List, ListOrdered,
@@ -96,7 +97,14 @@ export interface DraftFormattingToolbarProps {
 
   /** Font-colour picker (shared per-proposal library). Optional. */
   fontColor?: DraftToolbarFontColorProps;
+
+  /**
+   * Capabilities of the FOCUSED field. Controls the field cannot use are
+   * hidden (not disabled). Omit for the full control set.
+   */
+  capabilities?: Partial<FieldCapabilityFlags>;
 }
+
 
 function buildDefaultTableHtml(rows: number, cols: number): string {
   let html = '<table style="width:100%; border-collapse:collapse; margin:8px 0;">';
@@ -135,10 +143,14 @@ export function DraftFormattingToolbar({
   crossRefMenuItems,
   trailing,
   fontColor,
+  capabilities,
 }: DraftFormattingToolbarProps) {
   if (hideToolbar) return null;
 
+  const caps: FieldCapabilityFlags = { ...FULL_FIELD_CAPABILITIES, ...(capabilities ?? {}) };
+
   const exec = (cmd: string, value?: string) => onCommand(cmd, value);
+
 
   // Internal table-popover state used only when `table` prop is not supplied.
   const [internalTableOpen, setInternalTableOpen] = useState(false);
@@ -211,7 +223,7 @@ export function DraftFormattingToolbar({
           )}
 
           {/* Subheading dropdown */}
-          {showSubheading && (
+          {showSubheading && caps.headings && (
             <SubheadingDropdown
               onNumbered={() => onSubheadingNumbered?.()}
               onUnnumbered={() => onSubheadingUnnumbered?.()}
@@ -229,7 +241,7 @@ export function DraftFormattingToolbar({
             disabled={disabled}
           />
 
-          {fontColor && (
+          {fontColor && caps.colour && (
             <FontColorToolbarButton
               proposalId={fontColor.proposalId ?? null}
               canManageCustom={fontColor.canManageCustom}
@@ -240,52 +252,64 @@ export function DraftFormattingToolbar({
           )}
 
 
-          <Separator orientation="vertical" className="h-5 mx-1.5" />
+          {caps.lists && (
+            <>
+              <Separator orientation="vertical" className="h-5 mx-1.5" />
 
-          {/* Lists */}
-          <ToolbarButton
-            icon={<List className="h-4 w-4" />}
-            label="Bullet list"
-            onClick={() => exec('insertUnorderedList')}
-            disabled={disabled}
-          />
-          <ToolbarButton
-            icon={<ListOrdered className="h-4 w-4" />}
-            label="Numbered list"
-            onClick={() => exec('insertOrderedList')}
-            disabled={disabled}
-          />
+              {/* Lists */}
+              <ToolbarButton
+                icon={<List className="h-4 w-4" />}
+                label="Bullet list"
+                onClick={() => exec('insertUnorderedList')}
+                disabled={disabled}
+              />
+              <ToolbarButton
+                icon={<ListOrdered className="h-4 w-4" />}
+                label="Numbered list"
+                onClick={() => exec('insertOrderedList')}
+                disabled={disabled}
+              />
+            </>
+          )}
 
-          <Separator orientation="vertical" className="h-5 mx-1.5" />
+          {caps.alignment && (
+            <>
+              <Separator orientation="vertical" className="h-5 mx-1.5" />
 
-          {/* Alignment */}
-          <AlignmentGroup
-            disabled={disabled}
-            onAlign={(a: Alignment) => {
-              const cmd = a === 'left' ? 'justifyLeft'
-                : a === 'center' ? 'justifyCenter'
-                : a === 'right' ? 'justifyRight'
-                : 'justifyFull';
-              exec(cmd);
-            }}
-          />
+              {/* Alignment */}
+              <AlignmentGroup
+                disabled={disabled}
+                onAlign={(a: Alignment) => {
+                  const cmd = a === 'left' ? 'justifyLeft'
+                    : a === 'center' ? 'justifyCenter'
+                    : a === 'right' ? 'justifyRight'
+                    : 'justifyFull';
+                  exec(cmd);
+                }}
+              />
+            </>
+          )}
 
-          {paragraphSpacingContainer && (
+          {paragraphSpacingContainer && caps.paragraphSpacing && (
             <ParagraphSpacingExecPopover getContainer={paragraphSpacingContainer} />
           )}
 
-          <Separator orientation="vertical" className="h-5 mx-1.5" />
+          {(caps.tables || (onOpenFigureDialog && caps.figures) || (onOpenCitationDialog && caps.citations) || (crossRefMenuItems && caps.crossReferences)) && (
+            <Separator orientation="vertical" className="h-5 mx-1.5" />
+          )}
 
           {/* Table picker */}
-          <TableGridPicker
-            disabled={disabled}
-            open={effectiveTable.open}
-            onOpenChange={effectiveTable.onOpenChange}
-            onInsert={effectiveTable.onInsert}
-          />
+          {caps.tables && (
+            <TableGridPicker
+              disabled={disabled}
+              open={effectiveTable.open}
+              onOpenChange={effectiveTable.onOpenChange}
+              onInsert={effectiveTable.onInsert}
+            />
+          )}
 
           {/* Figure */}
-          {onOpenFigureDialog && (
+          {onOpenFigureDialog && caps.figures && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1" disabled={disabled} onClick={onOpenFigureDialog} onMouseDown={onSaveSelection}>
@@ -298,7 +322,7 @@ export function DraftFormattingToolbar({
           )}
 
           {/* Citations */}
-          {onOpenCitationDialog && (
+          {onOpenCitationDialog && caps.citations && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1" disabled={disabled} onClick={onOpenCitationDialog} onMouseDown={onSaveSelection}>
@@ -311,7 +335,7 @@ export function DraftFormattingToolbar({
           )}
 
           {/* Cross-ref dropdown */}
-          {crossRefMenuItems && (
+          {crossRefMenuItems && caps.crossReferences && (
             <DropdownMenu>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -329,6 +353,7 @@ export function DraftFormattingToolbar({
               </DropdownMenuContent>
             </DropdownMenu>
           )}
+
 
           {trailing}
         </div>
