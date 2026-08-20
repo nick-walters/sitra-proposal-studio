@@ -105,7 +105,7 @@ export function resolveChipLabel(
   const taskId = idOf(attrs, "task");
   if (taskId) {
     const t = snap.taskById.get(taskId);
-    return t ? formatTaskLabel(t) : null;
+    return t ? "BROKEN-" + formatTaskLabel(t) : null;
   }
 
   const milestoneId = idOf(attrs, "milestone");
