@@ -309,7 +309,7 @@ export function usePdfExport() {
   const appQueryClient = useQueryClient();
   const exportProposalToPdf = useCallback(
     async (data: ExportData) => {
-      const { proposal, sectionContents, sections, participants = [] } = data;
+      const { proposal, sectionContents, sections, participants = [], selectedSections } = data;
 
       try {
         
@@ -328,7 +328,9 @@ export function usePdfExport() {
           sections,
           sectionContents,
           participants,
+          selectedSections,
         }, undefined, appQueryClient);
+
         
 
         // Build the self-contained HTML document
