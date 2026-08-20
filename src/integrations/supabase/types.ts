@@ -989,6 +989,7 @@ export type Database = {
           subsection_content: Json
           title: string | null
           updated_at: string
+          version: number
         }
         Insert: {
           b12_populated?: boolean
@@ -1026,6 +1027,7 @@ export type Database = {
           subsection_content?: Json
           title?: string | null
           updated_at?: string
+          version?: number
         }
         Update: {
           b12_populated?: boolean
@@ -1063,6 +1065,7 @@ export type Database = {
           subsection_content?: Json
           title?: string | null
           updated_at?: string
+          version?: number
         }
         Relationships: [
           {
@@ -4167,6 +4170,7 @@ export type Database = {
           proposal_id: string
           title: string | null
           updated_at: string
+          version: number
         }
         Insert: {
           created_at?: string
@@ -4178,6 +4182,7 @@ export type Database = {
           proposal_id: string
           title?: string | null
           updated_at?: string
+          version?: number
         }
         Update: {
           created_at?: string
@@ -4189,6 +4194,7 @@ export type Database = {
           proposal_id?: string
           title?: string | null
           updated_at?: string
+          version?: number
         }
         Relationships: [
           {
@@ -4289,6 +4295,7 @@ export type Database = {
           severity: string | null
           title: string | null
           updated_at: string
+          version: number
         }
         Insert: {
           created_at?: string
@@ -4301,6 +4308,7 @@ export type Database = {
           severity?: string | null
           title?: string | null
           updated_at?: string
+          version?: number
         }
         Update: {
           created_at?: string
@@ -4313,6 +4321,7 @@ export type Database = {
           severity?: string | null
           title?: string | null
           updated_at?: string
+          version?: number
         }
         Relationships: [
           {
@@ -6135,6 +6144,7 @@ export type Database = {
           title: string | null
           type: string | null
           updated_at: string
+          version: number
           wp_draft_id: string
         }
         Insert: {
@@ -6150,6 +6160,7 @@ export type Database = {
           title?: string | null
           type?: string | null
           updated_at?: string
+          version?: number
           wp_draft_id: string
         }
         Update: {
@@ -6165,6 +6176,7 @@ export type Database = {
           title?: string | null
           type?: string | null
           updated_at?: string
+          version?: number
           wp_draft_id?: string
         }
         Relationships: [
@@ -6324,6 +6336,7 @@ export type Database = {
           start_month: number | null
           title: string | null
           updated_at: string
+          version: number
           wp_draft_id: string
         }
         Insert: {
@@ -6338,6 +6351,7 @@ export type Database = {
           start_month?: number | null
           title?: string | null
           updated_at?: string
+          version?: number
           wp_draft_id: string
         }
         Update: {
@@ -6352,6 +6366,7 @@ export type Database = {
           start_month?: number | null
           title?: string | null
           updated_at?: string
+          version?: number
           wp_draft_id?: string
         }
         Relationships: [
@@ -6433,6 +6448,7 @@ export type Database = {
           theme_id: string | null
           title: string | null
           updated_at: string
+          version: number
         }
         Insert: {
           b31_description_before_tasks?: string | null
@@ -6456,6 +6472,7 @@ export type Database = {
           theme_id?: string | null
           title?: string | null
           updated_at?: string
+          version?: number
         }
         Update: {
           b31_description_before_tasks?: string | null
@@ -6479,6 +6496,7 @@ export type Database = {
           theme_id?: string | null
           title?: string | null
           updated_at?: string
+          version?: number
         }
         Relationships: [
           {
@@ -6704,6 +6722,10 @@ export type Database = {
         Args: { p_card_ids: string[]; p_section_id: string }
         Returns: number
       }
+      reorder_versioned_rows: {
+        Args: { p_items: Json; p_table: string }
+        Returns: Json
+      }
       resequence_card_fields: {
         Args: { p_card_id: string }
         Returns: undefined
@@ -6744,6 +6766,49 @@ export type Database = {
         Args: { p_card_id: string; p_expected_version: number; p_title: string }
         Returns: Json
       }
+      save_case_draft: {
+        Args: { p_expected_version: number; p_id: string; p_patch: Json }
+        Returns: Json
+      }
+      save_case_draft_subsection: {
+        Args: {
+          p_body: string
+          p_expected_body: string
+          p_heading: string
+          p_id: string
+          p_key: string
+        }
+        Returns: Json
+      }
+      save_proposal_milestone: {
+        Args: { p_expected_version: number; p_id: string; p_patch: Json }
+        Returns: Json
+      }
+      save_proposal_risk: {
+        Args: { p_expected_version: number; p_id: string; p_patch: Json }
+        Returns: Json
+      }
+      save_versioned_row: {
+        Args: {
+          p_expected_version: number
+          p_id: string
+          p_patch: Json
+          p_table: string
+        }
+        Returns: Json
+      }
+      save_wp_draft: {
+        Args: { p_expected_version: number; p_id: string; p_patch: Json }
+        Returns: Json
+      }
+      save_wp_draft_deliverable: {
+        Args: { p_expected_version: number; p_id: string; p_patch: Json }
+        Returns: Json
+      }
+      save_wp_draft_task: {
+        Args: { p_expected_version: number; p_id: string; p_patch: Json }
+        Returns: Json
+      }
       seed_proposal_cards: { Args: { p_proposal_id: string }; Returns: number }
       soft_delete_card: { Args: { p_card_id: string }; Returns: undefined }
       soft_delete_card_field: {
@@ -6766,6 +6831,11 @@ export type Database = {
         Args: { p_proposal_id: string }
         Returns: number
       }
+      versioned_row_proposal: {
+        Args: { p_id: string; p_table: string }
+        Returns: string
+      }
+      versioned_table_allowed: { Args: { p_table: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "editor" | "viewer" | "owner" | "coordinator"

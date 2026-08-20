@@ -43,6 +43,9 @@ import {
 } from '@/lib/computeWPColors';
 import { toast } from 'sonner';
 import type { ParticipantSummary } from '@/types/proposal';
+import { saveVersionedRow, reorderVersionedRows, type ReorderItem } from '@/lib/versionedSave';
+import { useVersionConflict } from '@/hooks/useVersionConflict';
+
 
 interface WPDraft {
   id: string;
@@ -56,7 +59,9 @@ interface WPDraft {
   is_locked: boolean;
   locked_by: string | null;
   is_hidden?: boolean;
+  version?: number;
 }
+
 
 interface WPColourResolutionContext {
   useThemes: boolean;
@@ -302,6 +307,8 @@ interface WPManagementCardProps {
 export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = true, onDraftVisibilityChange, onSaveEvent }: WPManagementCardProps) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  // Surfaces the user's text when a save is refused for being out of date.
+  const { reportConflict, dialog: conflictDialog } = useVersionConflict();
 
   const [colourSequenceOpen, setColourSequenceOpen] = useState(false);
 
@@ -433,7 +440,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
     queryFn: async () => {
       const { data, error } = await supabase
         .from('wp_drafts')
-        .select('id, number, short_name, title, lead_participant_id, color, order_index, theme_id, is_locked, locked_by, is_hidden')
+        .select('id, number, short_name, title, lead_participant_id, color, order_index, theme_id, is_locked, locked_by, is_hidden, version')
         .eq('proposal_id', proposalId)
         .order('order_index');
       if (error) throw error;
@@ -455,14 +462,18 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
     },
   });
 
-  // Update WP mutation — triggers colour reconciliation when theme_id changes
+  // Update WP mutation — version-guarded; triggers colour reconciliation when
+  // theme_id changes.
   const updateWPMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<WPDraft> }) => {
-      const { error } = await supabase
-        .from('wp_drafts')
-        .update(updates)
-        .eq('id', id);
-      if (error) throw error;
+      const known = wpDrafts.find(wp => wp.id === id);
+      const res = await saveVersionedRow('wp_drafts', id, updates as any, known?.version ?? null);
+      if (res.conflict) {
+        const lost = Object.values(updates).find(v => typeof v === 'string' && v.trim() !== '');
+        reportConflict(lost ?? null);
+        throw new Error('conflict');
+      }
+      if (!res.ok) throw new Error(res.error || 'Failed to save work package');
       // If theme assignment changed, write down the correct colour immediately.
       if (Object.prototype.hasOwnProperty.call(updates, 'theme_id')) {
         await reconcileWPColorsForProposal(proposalId);
@@ -472,6 +483,14 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
       queryClient.invalidateQueries({ queryKey: ['wp-drafts-management', proposalId] });
       queryClient.invalidateQueries({ queryKey: ['wp-drafts', proposalId] });
       onSaveEvent?.();
+    },
+    onError: (err: Error) => {
+      queryClient.invalidateQueries({ queryKey: ['wp-drafts-management', proposalId] });
+      if (err.message === 'conflict') {
+        toast.error('This work package was changed elsewhere — your change was not saved.');
+      } else {
+        toast.error('Failed to save work package');
+      }
     },
   });
 
@@ -484,28 +503,24 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
       const total = reorderedWPs.length;
       const updates = reorderedWPs.map((wp, index) => ({
         id: wp.id,
+        expected_version: wp.version ?? null,
         order_index: index,
         number: index + 1,
         color: resolveFinalColorFromContext(index, total, wp.theme_id, colourContext),
       }));
 
-      // First pass: set order_index + temp negative number to avoid unique-constraint clashes.
-      // IMPORTANT: write the FINAL colour here too. Realtime can refetch after
-      // any individual row update, so there must be no DB window where a WP has
-      // its new position but its old/default colour.
-      for (const update of updates) {
-        const { error } = await supabase
-          .from('wp_drafts')
-          .update({ order_index: update.order_index, number: -(update.number + 1000), color: update.color })
-          .eq('id', update.id);
-        if (error) throw error;
-      }
+      // All-or-nothing renumber: if any row has moved on since this tab loaded,
+      // nothing is written and the user is told to reload. A partial reorder
+      // would leave broken numbering, which is worse.
+      const res = await reorderVersionedRows('wp_drafts', updates as ReorderItem[]);
+      if (!res.ok) throw new Error(res.conflict ? 'conflict' : (res.error || 'reorder failed'));
 
-      // Second pass: set final number AND final (override/theme-aware) colour
+      // Colours follow the new positions. Written unguarded on purpose: the
+      // reorder above has just bumped every version and this is derived data.
       for (const update of updates) {
         const { error } = await supabase
           .from('wp_drafts')
-          .update({ number: update.number, color: update.color })
+          .update({ color: update.color })
           .eq('id', update.id);
         if (error) throw error;
       }
@@ -514,6 +529,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
       // colours already match.
       await reconcileWPColorsForProposal(proposalId);
     },
+
     onMutate: async (reorderedWPs) => {
       await Promise.all([
         queryClient.cancelQueries({ queryKey: ['wp-drafts-management', proposalId] }),
@@ -585,13 +601,20 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
         const newTotal = total + 1;
         const color = resolveFinalColor(insertPosition, newTotal, null);
 
-        // First pass: shift last two WPs to temporary negative numbers
+        // Shift the last two WPs down one position. Guarded and atomic, with
+        // each row's loaded version, so a stale tab cannot re-impose old
+        // numbering half-way through.
         const lastTwo = wpDrafts.slice(-2);
-        for (let i = 0; i < lastTwo.length; i++) {
-          await supabase
-            .from('wp_drafts')
-            .update({ number: -(1000 + i), order_index: insertPosition + 1 + i })
-            .eq('id', lastTwo[i].id);
+        const shift = await reorderVersionedRows('wp_drafts', lastTwo.map((wp, i) => ({
+          id: wp.id,
+          expected_version: wp.version ?? null,
+          number: newWPNumber + 1 + i,
+          order_index: insertPosition + 1 + i,
+        })));
+        if (!shift.ok) {
+          throw new Error(shift.conflict
+            ? 'Work packages changed elsewhere — reload before adding another.'
+            : (shift.error || 'Failed to renumber work packages'));
         }
 
         // Insert new WP at the position before last two
@@ -602,15 +625,10 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
           order_index: insertPosition,
         });
         if (error) throw error;
-
-        // Second pass: set final numbers for last two WPs (they keep their colors)
-        for (let i = 0; i < lastTwo.length; i++) {
-          await supabase
-            .from('wp_drafts')
-            .update({ number: newWPNumber + 1 + i, order_index: insertPosition + 1 + i })
-            .eq('id', lastTwo[i].id);
-        }
       }
+
+
+
 
       // Authoritative reassignment — safety net.
       await reconcileWPColorsForProposal(proposalId);
@@ -622,7 +640,12 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
       onSaveEvent?.();
       toast.success('Work package added');
     },
+    onError: (err: Error) => {
+      queryClient.invalidateQueries({ queryKey: ['wp-drafts-management', proposalId] });
+      toast.error(err.message || 'Failed to add work package');
+    },
   });
+
 
   // Delete WP mutation — renumbers remaining WPs but preserves their existing colors
   const deleteWPMutation = useMutation({
@@ -633,30 +656,26 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
         .eq('id', wpId);
       if (error) throw error;
 
-      // Fetch remaining WPs and renumber them (keep existing colors)
+      // Renumber the survivors in one guarded, atomic operation. Versions are
+      // read fresh here (the deletion has just happened and no user text is at
+      // stake), so this repair cannot itself be rejected.
       const { data: remaining, error: fetchErr } = await supabase
         .from('wp_drafts')
-        .select('id, order_index')
+        .select('id, order_index, version')
         .eq('proposal_id', proposalId)
         .order('order_index');
       if (fetchErr) throw fetchErr;
 
       if (remaining && remaining.length > 0) {
-        // First pass: set temporary negative numbers to avoid unique constraint
-        for (let i = 0; i < remaining.length; i++) {
-          await supabase
-            .from('wp_drafts')
-            .update({ order_index: i, number: -(i + 1000) })
-            .eq('id', remaining[i].id);
-        }
-        // Second pass: set final numbers (colors are preserved)
-        for (let i = 0; i < remaining.length; i++) {
-          await supabase
-            .from('wp_drafts')
-            .update({ number: i + 1 })
-            .eq('id', remaining[i].id);
-        }
+        const res = await reorderVersionedRows('wp_drafts', remaining.map((wp: any, i) => ({
+          id: wp.id,
+          expected_version: wp.version ?? null,
+          number: i + 1,
+          order_index: i,
+        })));
+        if (!res.ok) throw new Error(res.error || 'Failed to renumber work packages');
       }
+
 
       // Reassign colours positionally after renumber
       await reconcileWPColorsForProposal(proposalId);
@@ -855,6 +874,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
           </div>
         )}
       </CardContent>
+      {conflictDialog}
     </Card>
   );
 }

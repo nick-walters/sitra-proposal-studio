@@ -45,6 +45,8 @@ import {
   useMethodologyEditorFocus,
 } from '@/components/MethodologyEditorFocusContext';
 import { TextFormattingGroup } from '@/components/toolbar';
+import { saveVersionedRow, reorderVersionedRows } from '@/lib/versionedSave';
+import { useVersionConflict } from '@/hooks/useVersionConflict';
 
 
 // ── Save tracker context: lets AutoTextarea report pending/flush to the page header ──
@@ -84,6 +86,7 @@ interface Milestone {
   order_index: number;
   wp_ids: string[];
   primary_wp_id: string | null;
+  version?: number;
 }
 interface Risk {
   id: string;
@@ -94,6 +97,7 @@ interface Risk {
   mitigation: string | null;
   order_index: number;
   wp_ids: string[];
+  version?: number;
 }
 
 const MS_KEY = (pid: string) => ['proposal-milestones-mgr', pid];
@@ -245,6 +249,9 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
     },
   }), []);
 
+  // Offers back text refused by the version guard, as the cards board does.
+  const { reportConflict, dialog: conflictDialog } = useVersionConflict();
+
   // Apply to every mutation to track saving/lastSaved/saveError.
   const saveHooks = useMemo(() => ({
     onMutate: () => { setActiveSaves(s => s + 1); },
@@ -299,7 +306,7 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
     queryFn: async () => {
       const { data: rows } = await supabase
         .from('proposal_milestones')
-        .select('id, number, title, due_month, means_of_verification, order_index')
+        .select('id, number, title, due_month, means_of_verification, order_index, version')
         .eq('proposal_id', proposalId)
         .order('order_index')
         .order('number');
@@ -328,7 +335,7 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
     queryFn: async () => {
       const { data: rows } = await supabase
         .from('proposal_risks')
-        .select('id, number, title, likelihood, severity, mitigation, order_index, created_at')
+        .select('id, number, title, likelihood, severity, mitigation, order_index, created_at, version')
         .eq('proposal_id', proposalId)
         .order('order_index')
         .order('created_at');
@@ -365,45 +372,55 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
     });
   }, [milestones]);
 
-  // ── Persist sequential numbers 1..N matching auto-order (does NOT touch order_index) ──
-  const renumberInFlight = useRef(false);
-  useEffect(() => {
-    if (!orderedMs.length || renumberInFlight.current) return;
-    const mismatches = orderedMs
-      .map((m, i) => ({ id: m.id, want: i + 1, have: m.number }))
-      .filter(x => x.want !== x.have);
-    if (mismatches.length === 0) return;
-    renumberInFlight.current = true;
-    (async () => {
-      try {
-        // Two-phase to avoid unique-collision on number
-        for (const { id } of mismatches) {
-          await supabase.from('proposal_milestones').update({ number: -1 - Math.floor(Math.random() * 1e6) }).eq('id', id);
-        }
-        for (const { id, want } of mismatches) {
-          await supabase.from('proposal_milestones').update({ number: want }).eq('id', id);
-        }
-        qc.invalidateQueries({ queryKey: MS_KEY(proposalId) });
-        notifyRefs();
-      } finally {
-        renumberInFlight.current = false;
-      }
-    })();
+  // ── Numbering repair is an explicit user gesture, never a mount-time write ──
+  // The old version of this ran on load and silently renumbered, which is how a
+  // stale tab could overwrite a deliberate renumber made elsewhere.
+  const msNumberingNeedsRepair = useMemo(
+    () => orderedMs.some((m, i) => m.number !== i + 1),
+    [orderedMs],
+  );
+
+  const repairMsNumbering = useCallback(async () => {
+    if (!orderedMs.length) return;
+    const res = await reorderVersionedRows('proposal_milestones', orderedMs.map((m, i) => ({
+      id: m.id,
+      expected_version: m.version ?? null,
+      number: i + 1,
+      order_index: m.order_index,
+    })));
+    if (!res.ok) {
+      toast.error(res.conflict
+        ? 'Milestones changed elsewhere — nothing was renumbered. Reloading.'
+        : (res.error || 'Failed to repair milestone numbering'));
+    } else {
+      toast.success('Milestone numbering repaired');
+    }
+    qc.invalidateQueries({ queryKey: MS_KEY(proposalId) });
+    notifyRefs();
   }, [orderedMs, proposalId, qc]);
 
   // ── Persist same-month manual order_index (called by reorder dialog) ──
   const persistMsGroupOrder = useCallback(async (newSorted: Milestone[]) => {
+    // All-or-nothing: the whole reorder is refused if any row moved on, since a
+    // half-applied order leaves the list in a state nobody asked for.
     const groups = new Map<string, Milestone[]>();
     for (const m of newSorted) {
       const key = String(m.due_month ?? '∅');
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key)!.push(m);
     }
+    const items = [] as { id: string; expected_version: number | null; number: number; order_index: number }[];
     for (const group of groups.values()) {
-      for (let i = 0; i < group.length; i++) {
-        if (group[i].order_index !== i) {
-          await supabase.from('proposal_milestones').update({ order_index: i }).eq('id', group[i].id);
-        }
+      group.forEach((m, i) => {
+        items.push({ id: m.id, expected_version: m.version ?? null, number: m.number, order_index: i });
+      });
+    }
+    if (items.length) {
+      const res = await reorderVersionedRows('proposal_milestones', items);
+      if (!res.ok) {
+        toast.error(res.conflict
+          ? 'Milestones changed elsewhere — the reorder was not applied.'
+          : (res.error || 'Failed to reorder milestones'));
       }
     }
     qc.invalidateQueries({ queryKey: MS_KEY(proposalId) });
@@ -446,9 +463,15 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
   const updateMilestone = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<Milestone> }) => {
       const { wp_ids, task_ids, ...rest } = patch as any;
-      const { error } = await supabase.from('proposal_milestones').update(rest).eq('id', id);
-      if (error) throw error;
+      const known = milestones.find(m => m.id === id);
+      const res = await saveVersionedRow('proposal_milestones', id, rest, known?.version ?? null);
+      if (res.conflict) {
+        reportConflict(Object.values(rest).find(v => typeof v === 'string' && v.trim() !== '') ?? null);
+        throw new Error('This milestone was changed elsewhere — your change was not saved.');
+      }
+      if (!res.ok) throw new Error(res.error || 'Failed to save milestone');
     },
+    onError: (e: any) => { toast.error(e.message); qc.invalidateQueries({ queryKey: MS_KEY(proposalId) }); },
     onSuccess: () => { qc.invalidateQueries({ queryKey: MS_KEY(proposalId) }); notifyRefs(); },
     ...saveHooks,
   });
@@ -495,9 +518,15 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
   const updateRisk = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<Risk> }) => {
       const { wp_ids, ...rest } = patch as any;
-      const { error } = await supabase.from('proposal_risks').update(rest).eq('id', id);
-      if (error) throw error;
+      const known = risks.find(r => r.id === id);
+      const res = await saveVersionedRow('proposal_risks', id, rest, known?.version ?? null);
+      if (res.conflict) {
+        reportConflict(Object.values(rest).find(v => typeof v === 'string' && v.trim() !== '') ?? null);
+        throw new Error('This risk was changed elsewhere — your change was not saved.');
+      }
+      if (!res.ok) throw new Error(res.error || 'Failed to save risk');
     },
+    onError: (e: any) => { toast.error(e.message); qc.invalidateQueries({ queryKey: RISK_KEY(proposalId) }); },
     onSuccess: () => qc.invalidateQueries({ queryKey: RISK_KEY(proposalId) }),
     ...saveHooks,
   });
@@ -532,10 +561,19 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
   );
 
   const persistRiskOrder = useCallback(async (ordered: Risk[]) => {
-    // Write sequential order_index 0..N-1 (only for rows whose order_index changed).
-    for (let i = 0; i < ordered.length; i++) {
-      if (ordered[i].order_index !== i) {
-        await supabase.from('proposal_risks').update({ order_index: i }).eq('id', ordered[i].id);
+    // Sequential order_index 0..N-1, applied all-or-nothing against the
+    // versions this session loaded.
+    if (ordered.length) {
+      const res = await reorderVersionedRows('proposal_risks', ordered.map((r, i) => ({
+        id: r.id,
+        expected_version: r.version ?? null,
+        number: r.number,
+        order_index: i,
+      })));
+      if (!res.ok) {
+        toast.error(res.conflict
+          ? 'Risks changed elsewhere — the reorder was not applied.'
+          : (res.error || 'Failed to reorder risks'));
       }
     }
     qc.invalidateQueries({ queryKey: RISK_KEY(proposalId) });
@@ -719,6 +757,20 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
           </div>
           {canEdit && (
             <div className="flex items-center justify-end gap-2 pt-3">
+              {msNumberingNeedsRepair && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => repairMsNumbering()}
+                    >
+                      Repair numbering
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Milestone numbers are not sequential. Renumber them 1–N now.</TooltipContent>
+                </Tooltip>
+              )}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -805,6 +857,7 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
         wpsById={wpsById}
         onPersist={persistMsGroupOrder}
       />
+      {conflictDialog}
     </div>
     </TooltipProvider>
     </SaveTrackerContext.Provider>
