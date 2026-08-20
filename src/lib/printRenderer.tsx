@@ -376,14 +376,9 @@ export async function buildPrintContainer(
   partListDiv.innerHTML = partListHtml;
   container.appendChild(partListDiv);
 
-  // ── Part A (A1 general info + A3 budget summary) ──
-  const partAHtml = await buildPartAHtml(proposal.id, sectionContents, participants, proposal.type ?? null);
-  if (partAHtml) {
-    const partADiv = document.createElement('div');
-    partADiv.setAttribute('data-part-a-mirror', 'true');
-    partADiv.innerHTML = partAHtml;
-    container.appendChild(partADiv);
-  }
+  // ── Part A is deliberately omitted from the Part B export ──
+  // (only the mirrored participant list above and the AI statement below)
+
 
   // ── AI usage statement (A1 mirror, directly above "1. Excellence") ──
   try {
