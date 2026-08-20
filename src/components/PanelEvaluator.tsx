@@ -189,8 +189,8 @@ export function PanelEvaluator({ proposalId }: Props) {
   const [proposalStage, setProposalStage] = useState<"full" | "stage1">("full");
   const [budgetType, setBudgetType] = useState<"traditional" | "lump_sum">("traditional");
   // Per-run model choice. Defaults to Sonnet 5 every time the pane opens.
-  // Selecting Opus 4.8 is a per-run override only; the stored default (Sonnet 5) is unchanged.
-  const [modelChoice, setModelChoice] = useState<"claude-sonnet-5" | "claude-opus-4-8">("claude-sonnet-5");
+  // Selecting Opus 5 is a per-run override only; the stored default (Sonnet 5) is unchanged.
+  const [modelChoice, setModelChoice] = useState<"claude-sonnet-5" | "claude-opus-5">("claude-sonnet-5");
 
 
   const [history, setHistory] = useState<AnalysisRow[]>([]);
@@ -278,12 +278,12 @@ export function PanelEvaluator({ proposalId }: Props) {
     return `${m}m ${s}s`;
   };
 
-  // Friendly, color-coded model badge. Green = Sonnet 5, Red = Opus 4.8.
+  // Friendly, color-coded model badge. Green = Sonnet 5, Red = Opus 5.
   const renderModelBadge = (modelUsed: string | null | undefined) => {
     const raw = String(modelUsed || "").toLowerCase();
     const isOpus = raw.includes("opus");
     const isSonnet = raw.includes("sonnet");
-    const label = isOpus ? "Opus 4.8" : isSonnet ? "Sonnet 5" : (modelUsed || "—");
+    const label = isOpus ? "Opus 5" : isSonnet ? "Sonnet 5" : (modelUsed || "—");
     const cls = isOpus
       ? "border-red-600 text-red-700 font-semibold"
       : isSonnet
@@ -747,7 +747,7 @@ export function PanelEvaluator({ proposalId }: Props) {
 
     return {
       sonnet: learned("claude-sonnet-5", tokenFallback("sonnet")),
-      opus: learned("claude-opus-4-8", tokenFallback("opus")),
+      opus: learned("claude-opus-5", tokenFallback("opus")),
       sonnetStandardActive,
     };
   }, [costHistory, thisPayloadTokens, selectedCount]);
@@ -1120,7 +1120,7 @@ export function PanelEvaluator({ proposalId }: Props) {
             After an eligibility check by an agentic AI European Commission evaluator using
             Haiku 4.5, it assembles a panel of agentic AI "evaluators" with different expert
             roles and personas, which evaluate the proposal in its current state from different
-            perspectives, using either Sonnet 5 or Opus 4.8. Finally, another agent assembles
+            perspectives, using either Sonnet 5 or Opus 5. Finally, another agent assembles
             scores and detailed feedback into an Evaluation Summary Report (ESR). Only proposal
             coordinators can run an evaluation, but all users can view the ESRs associated with
             a proposal.
@@ -1130,9 +1130,9 @@ export function PanelEvaluator({ proposalId }: Props) {
           <CardContent className="pt-0 space-y-4">
 
           {/* Per-run model toggle switch. Defaults to Sonnet 5 each time the pane opens.
-              Choosing Opus 4.8 overrides for THIS RUN ONLY — the stored default stays Sonnet 5. */}
+              Choosing Opus 5 overrides for THIS RUN ONLY — the stored default stays Sonnet 5. */}
           {(stage === "idle" || stage === "panelReview") && (() => {
-            const isOpus = modelChoice === "claude-opus-4-8";
+            const isOpus = modelChoice === "claude-opus-5";
             const disabled = stage !== "idle" && stage !== "panelReview";
             const GREEN = "#16a34a"; // tailwind green-600
             const RED = "#dc2626"; // tailwind red-600
@@ -1165,7 +1165,7 @@ export function PanelEvaluator({ proposalId }: Props) {
                     role="switch"
                     aria-checked={opusSelected}
                     aria-label="Toggle evaluation model"
-                    onClick={() => setModelChoice(isOpus ? "claude-sonnet-5" : "claude-opus-4-8")}
+                    onClick={() => setModelChoice(isOpus ? "claude-sonnet-5" : "claude-opus-5")}
                     disabled={disabled}
                     className="relative shrink-0 mt-1 h-7 w-14 rounded-full border border-gray-300 bg-white transition-colors disabled:opacity-60"
                   >
@@ -1180,7 +1180,7 @@ export function PanelEvaluator({ proposalId }: Props) {
 
                   <button
                     type="button"
-                    onClick={() => setModelChoice("claude-opus-4-8")}
+                    onClick={() => setModelChoice("claude-opus-5")}
                     disabled={disabled}
                     className="flex-1 text-left disabled:opacity-60"
                   >
@@ -1190,7 +1190,7 @@ export function PanelEvaluator({ proposalId }: Props) {
                       }`}
                       style={opusSelected ? { color: RED } : undefined}
                     >
-                      Opus 4.8 <span className="font-normal text-xs text-muted-foreground">~{formatCurrency(modelCostEstimate.opus)}</span>
+                      Opus 5 <span className="font-normal text-xs text-muted-foreground">~{formatCurrency(modelCostEstimate.opus)}</span>
                     </div>
                   </button>
                 </div>
@@ -1386,7 +1386,7 @@ export function PanelEvaluator({ proposalId }: Props) {
                   </span>
                   <span className="inline-flex items-center gap-1">
                     <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: "#dc2626" }} />
-                    Opus 4.8
+                    Opus 5
                   </span>
                 </div>
               </div>
