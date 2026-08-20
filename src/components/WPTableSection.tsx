@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ParticipantMultiSelect } from '@/components/ParticipantMultiSelect';
 import { LazyRichField } from '@/components/participant/LazyRichField';
+import { DebouncedRichField } from '@/components/participant/DebouncedRichField';
 import { WP_DRAFT_FIELD_EXTENSIONS } from '@/components/wp/wpDraftFieldExtensions';
 import type { WPDraftTask } from '@/hooks/useWPDrafts';
 import type { ParticipantSummary } from '@/types/proposal';
@@ -126,7 +127,7 @@ export function WPTableSection({
         {/* Objectives section */}
         <div className="space-y-2">
           <label className="text-draft font-medium">Objective</label>
-          <LazyRichField
+          <DebouncedRichField
             value={objectives || ''}
             onChange={onObjectivesChange}
             disabled={readOnly}
@@ -141,7 +142,7 @@ export function WPTableSection({
         {/* Optional field before tasks */}
         <div className="space-y-2">
           <label className="text-draft font-medium">Optional field before tasks</label>
-          <LazyRichField
+          <DebouncedRichField
             value={descriptionBeforeTasks || ''}
             onChange={onDescriptionBeforeTasksChange}
             disabled={readOnly}
@@ -271,7 +272,7 @@ function SortableTaskCard({
     
     const timeout = setTimeout(() => {
       onUpdate(task.id, { description: value });
-    }, 500);
+    }, 800);
     setDescriptionTimeout(timeout);
   };
 
