@@ -494,47 +494,57 @@ export function ProposalEditor() {
 
     // ── Static dispatch: exact ID → component ────────────────────────────────
     const staticDispatch: Record<string, Renderer> = {
-      'messaging': () => (
-        <div className="flex-1 overflow-y-auto">
-          <ProposalMessagingBoard proposalId={id || ''} isCoordinator={isCoordinator} />
-        </div>
-      ),
-      'backups': () => {
-        if (!isCoordinator) {
-          return (
-            <div className="flex-1 flex items-center justify-center text-muted-foreground">
-              Backups are only visible to coordinators &amp; admins.
-            </div>
-          );
-        }
-        return (
-          <div className="flex-1 overflow-y-auto">
-            <ProposalBackupsPanel proposalId={id || ''} />
-          </div>
-        );
-      },
       'snapshots': () => {
         if (!isCoordinator) {
           return (
             <div className="flex-1 flex items-center justify-center text-muted-foreground">
-              Snapshots &amp; restore are only available to coordinators &amp; admins.
+              Snapshots &amp; backups are only available to coordinators &amp; admins.
             </div>
           );
         }
         return (
-          <div className="flex-1 overflow-y-auto">
-            <ProposalSnapshotsPanel proposalId={id || ''} />
+          <div className="flex-1 overflow-y-auto p-6 bg-muted/30">
+            <div className="max-w-7xl mx-auto space-y-6">
+              <h1 className="text-xl font-bold text-foreground">Snapshots &amp; backups</h1>
+              <Tabs defaultValue="snapshots">
+                <TabsList>
+                  <TabsTrigger value="snapshots">Snapshots &amp; restore</TabsTrigger>
+                  <TabsTrigger value="backups">Backups</TabsTrigger>
+                </TabsList>
+                <TabsContent value="snapshots">
+                  <ProposalSnapshotsPanel proposalId={id || ''} />
+                </TabsContent>
+                <TabsContent value="backups">
+                  <ProposalBackupsPanel proposalId={id || ''} />
+                </TabsContent>
+              </Tabs>
+            </div>
           </div>
         );
       },
+      'mock-evaluation': () => (
+        <div className="flex-1 overflow-y-auto p-6 bg-muted/30">
+          <div className="max-w-7xl mx-auto space-y-6">
+            <h1 className="text-xl font-bold text-foreground">Mock evaluation</h1>
+            {isCoordinator ? (
+              <PanelEvaluator proposalId={id || ''} />
+            ) : (
+              <div className="text-muted-foreground">
+                Mock evaluation is only available to coordinators &amp; admins.
+              </div>
+            )}
+          </div>
+        </div>
+      ),
       'task-allocator': () => (
         <div className="flex-1 overflow-y-auto p-6 bg-muted/30">
           <div className="max-w-7xl mx-auto space-y-6">
-            <h1 className="text-xl font-bold text-foreground">Assignments & Workload</h1>
-            <Tabs defaultValue="tasks">
+            <h1 className="text-xl font-bold text-foreground">Assignments &amp; message board</h1>
+            <Tabs defaultValue={managementTab} key={managementTab}>
               <TabsList>
                 <TabsTrigger value="tasks">Assignments</TabsTrigger>
                 <TabsTrigger value="workload">Workload</TabsTrigger>
+                <TabsTrigger value="messaging">Message board</TabsTrigger>
               </TabsList>
               <TabsContent value="tasks">
                 <ProposalTaskAllocator proposalId={id || ''} isCoordinator={isCoordinator} />
@@ -542,10 +552,14 @@ export function ProposalEditor() {
               <TabsContent value="workload">
                 <WorkloadDashboard proposalId={id || ''} />
               </TabsContent>
+              <TabsContent value="messaging">
+                <ProposalMessagingBoard proposalId={id || ''} isCoordinator={isCoordinator} />
+              </TabsContent>
             </Tabs>
           </div>
         </div>
       ),
+
       'part-b': () => (
         <div className="flex-1 overflow-y-auto p-6 bg-muted/30">
           <div className="max-w-7xl mx-auto space-y-6">
