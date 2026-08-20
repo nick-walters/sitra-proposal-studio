@@ -24,7 +24,15 @@
   // input reaches the parser, so not exploitable. No patched version exists
   // (every published image-size release is in the affected range; npm's only
   // "fix" is a breaking downgrade to pptxgenjs 1.1.5, itself vulnerable).
-  // Re-checked 11th August 2026: pptxgenjs 4.0.1 is the latest release and
+  // Re-checked 20th August 2026: still no patched image-size (latest published
+  // release is 2.0.2, inside the affected range "<= 2.0.2"), and pptxgenjs
+  // 4.0.1 remains the latest release. pptxgenjs is used only by the Gantt and
+  // PERT "Export as PowerPoint" buttons (src/lib/figureExport.ts), which feed
+  // it app-generated geometry and colours — no image buffer of any kind, let
+  // alone an untrusted one, reaches the image-size parsers, and the parsers
+  // run in the browser tab rather than on a shared server.
+  // EXPIRES 20th November 2026 — remove these entries then and re-assess.
+  // Earlier check, 11th August 2026: pptxgenjs 4.0.1 is the latest release and
   // still resolves image-size 1.2.1; advisory range is still "<= 2.0.2" with
   // no first_patched_version, i.e. every published release remains affected.
   // RE-EVALUATE IF: pptxgenjs is ever fed user-uploaded/untrusted images, or a
