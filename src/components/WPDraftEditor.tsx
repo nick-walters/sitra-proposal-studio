@@ -663,8 +663,31 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
   return (
     <ScrollArea className="h-full">
       <div className="space-y-3 p-4">
+        {/* Numbering repair — explicit user gesture, never a mount-time write */}
+        {canEdit && numberingNeedsRepair && (
+          <div className="flex items-center gap-2 p-3 rounded-md bg-muted border text-sm">
+            <span>
+              Task or deliverable numbering in this work package is not sequential.
+            </span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="ml-auto shrink-0 h-7 text-xs"
+                  onClick={() => repairNumbering()}
+                >
+                  Repair numbering
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Renumber tasks and deliverables 1–N in their current display order.</TooltipContent>
+            </Tooltip>
+          </div>
+        )}
+
         {/* Lock warning banner */}
         {isLocked && !canEdit && (
+
           <div className="flex items-center gap-2 p-3 rounded-md bg-destructive/10 border border-destructive/30 text-sm">
             <Lock className="w-4 h-4 text-destructive shrink-0" />
             <span>This work package has been locked by <strong>{lockerName}</strong>. Editing is disabled.</span>
