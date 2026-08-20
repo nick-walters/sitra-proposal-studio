@@ -199,11 +199,24 @@ export function ModelUpdateCheckDialog({
                         Released: {m.created_at ? formatDate(m.created_at) : "Not provided"}
                       </div>
                     </div>
-                    {canApply && !m.configured && (
-                      <Button size="sm" variant="outline" className="gap-2" onClick={() => openApply(m)}>
-                        <Sparkles className="h-4 w-4" /> Use this model
-                      </Button>
-                    )}
+                    <div className="flex shrink-0 flex-col items-end gap-1.5">
+                      {canUseForRun && onUseForRun && (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="gap-2"
+                          onClick={() => openUseForRun(m)}
+                        >
+                          <Play className="h-4 w-4" /> Use for this run
+                        </Button>
+                      )}
+                      {canApply && !m.configured && (
+                        <Button size="sm" variant="outline" className="gap-2" onClick={() => openApply(m)}>
+                          <Sparkles className="h-4 w-4" /> Replace one of the default models with this one
+                        </Button>
+                      )}
+                    </div>
+
                   </div>
                 ))}
               </div>
