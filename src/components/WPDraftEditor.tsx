@@ -9,8 +9,9 @@ import { WPTableSection } from '@/components/WPTableSection';
 import {
   MethodologyEditorFocusProvider,
   useMethodologyEditorFocus,
-import { getEditorCapabilities } from '@/lib/fieldCapabilities';
 } from '@/components/MethodologyEditorFocusContext';
+import { getEditorCapabilities } from '@/lib/fieldCapabilities';
+
 
 import { WPDeliverablesTable } from '@/components/WPDeliverablesTable';
 import { CitationDialog } from '@/components/CitationDialog';
