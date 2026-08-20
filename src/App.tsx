@@ -25,8 +25,6 @@ const AIConfigAdmin = lazy(() => import("./components/admin/AIConfigAdmin").then
 const BackupsAdmin = lazy(() => import("./pages/admin/BackupsAdmin"));
 const OrganisationRegistryAdmin = lazy(() => import("./pages/admin/OrganisationRegistryAdmin").then(m => ({ default: m.OrganisationRegistryAdmin })));
 const Feedback = lazy(() => import("./pages/Feedback").then(m => ({ default: m.Feedback })));
-// THROWAWAY SPIKE — reachable only by typing /typst-spike. No nav link.
-const TypstSpike = lazy(() => import("./pages/TypstSpike"));
 
 const RouteFallback = () => (
   <div className="flex h-dvh items-center justify-center" role="status" aria-label="Loading">
@@ -118,7 +116,6 @@ const AppRoutes = () => {
         <Route path="/admin/organisations" element={<ProtectedRoute><OrganisationRegistryAdmin /></ProtectedRoute>} />
         <Route path="/feedback" element={<ProtectedRoute><Feedback /></ProtectedRoute>} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-        <Route path="/typst-spike" element={<TypstSpike />} />
         <Route path="*" element={<NotFound />} />
 
       </Routes>
