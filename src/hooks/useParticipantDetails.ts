@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { reportLostText } from '@/lib/lostTextBus';
 import { toast } from 'sonner';
 import { ParticipantResearcher, ParticipantOrganisationRole, ParticipantAchievement, ParticipantPreviousProject, ParticipantInfrastructure, ParticipantDependency, transformResearcherFromRow, transformResearcherToRow, transformAchievementFromRow, transformPreviousProjectFromRow, transformInfrastructureFromRow, transformDependencyFromRow, transformOrganisationRoleFromRow } from '@/types/participantDetails';
 
@@ -153,7 +154,12 @@ export function useParticipantDetails(participantId: string | undefined, proposa
           { proposal_id: proposalId, participant_id: participantId, [field]: value } as never,
           { onConflict: 'proposal_id,participant_id' },
         );
-      if (error) throw error;
+      if (error) {
+        // A rejected write must always offer the typed text back, even when
+        // the page that issued it has already unmounted.
+        reportLostText(value);
+        throw error;
+      }
       setDescriptionsLastSaved(new Date());
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to save';
@@ -170,14 +176,21 @@ export function useParticipantDetails(participantId: string | undefined, proposa
   const commitDescriptionRef = useRef(commitDescriptionField);
   commitDescriptionRef.current = commitDescriptionField;
 
+  // The pending value carries the commit function bound to the participant the
+  // text was typed into, so switching participant mid-sentence still writes to
+  // the row the user was editing.
+  const pendingCommitsRef = useRef<Partial<Record<ParticipantDescriptionField, typeof commitDescriptionField>>>({});
+
   const updateDescriptionField = useCallback((field: ParticipantDescriptionField, value: string) => {
     setDescriptions(prev => ({ ...prev, [field]: value }));
     const timers = descriptionsDebounceRef.current;
     pendingDescriptionsRef.current[field] = value;
+    pendingCommitsRef.current[field] = commitDescriptionField;
     if (timers[field]) clearTimeout(timers[field]!);
     timers[field] = setTimeout(() => {
       timers[field] = null;
       delete pendingDescriptionsRef.current[field];
+      delete pendingCommitsRef.current[field];
       commitDescriptionField(field, value);
     }, 800);
   }, [commitDescriptionField]);
@@ -191,10 +204,14 @@ export function useParticipantDetails(participantId: string | undefined, proposa
       const pending = pendingDescriptionsRef.current;
       Object.entries(pending).forEach(([field, value]) => {
         if (value !== undefined) {
-          void commitDescriptionRef.current(field as ParticipantDescriptionField, value);
+          const commit =
+            pendingCommitsRef.current[field as ParticipantDescriptionField] ??
+            commitDescriptionRef.current;
+          void commit(field as ParticipantDescriptionField, value);
         }
       });
       pendingDescriptionsRef.current = {};
+      pendingCommitsRef.current = {};
     };
   }, []);
 

@@ -37,15 +37,22 @@ export function subscribeLostText(listener: Listener): () => void {
 export function reportLostText(
   value: unknown,
   reason: LostTextPayload['reason'] = 'conflict',
+  holderName?: string | null,
 ): void {
-  if (isBlank(value)) return;
-  const text = String(value);
+  if (reason !== 'blocked' && isBlank(value)) return;
+  const text = reason === 'blocked' ? '' : String(value);
   const now = Date.now();
-  if (text === lastText && now - lastAt < 5000) return;
+  if (reason !== 'blocked' && text === lastText && now - lastAt < 5000) return;
   lastText = text;
   lastAt = now;
-  listeners.forEach((l) => l({ text, reason }));
+  listeners.forEach((l) => l({ text, reason, holderName }));
 }
+
+/** Same surface, for callers that already hold a full payload. */
+export function reportLostTextPayload(payload: LostTextPayload): void {
+  reportLostText(payload.text, payload.reason, payload.holderName);
+}
+
 
 /** Pulls the first non-blank string out of a patch, for reporting. */
 export function firstTextValue(patch: Record<string, any> | null | undefined): string | null {
