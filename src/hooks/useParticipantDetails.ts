@@ -171,7 +171,7 @@ export function useParticipantDetails(participantId: string | undefined, proposa
     timers[field] = setTimeout(() => {
       timers[field] = null;
       commitDescriptionField(field, value);
-    }, 500);
+    }, 800);
   }, [commitDescriptionField]);
 
   useEffect(() => {

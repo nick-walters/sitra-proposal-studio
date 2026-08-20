@@ -311,7 +311,7 @@ function SortableTaskCard({
         <DebouncedInput
           value={task.title || ''}
           onDebouncedChange={(val) => { onUpdate(task.id, { title: val }); }}
-          debounceMs={500}
+          debounceMs={800}
           placeholder="Task title..."
           className="h-6 text-draft flex-1 font-bold bg-transparent border-0 outline-none px-1 text-foreground placeholder:text-muted-foreground/60 shadow-none focus-visible:ring-0"
           style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt' }}
@@ -418,7 +418,7 @@ function SortableTaskCard({
 
       {/* Row 3: Description editor */}
       <div className="mt-2 ml-5">
-        <LazyRichField
+        <DebouncedRichField
           value={task.description || ''}
           onChange={handleDescriptionChange}
           disabled={readOnly}
