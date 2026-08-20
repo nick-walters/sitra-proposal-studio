@@ -1,5 +1,5 @@
 import { Section, Participant } from "@/types/proposal";
-import { ChevronRight, ChevronDown, FileText, User, Clock, AlertTriangle, BarChart3, Building2, Info, Euro, Lightbulb, Target, Settings, ShieldCheck, HelpCircle, MessageSquare, ListTodo, Briefcase, Lock, Unlock, CalendarDays, PencilRuler } from "lucide-react";
+import { ChevronRight, ChevronDown, FileText, User, Clock, AlertTriangle, BarChart3, Building2, Info, Euro, Lightbulb, Target, Settings, ShieldCheck, HelpCircle, ListTodo, Briefcase, Brain, Lock, Unlock, CalendarDays, PencilRuler } from "lucide-react";
 import { useState, useMemo, useRef, useLayoutEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -318,8 +318,8 @@ function SectionItem({
           <Target className="w-4 h-4 text-muted-foreground shrink-0" />
         ) : section.id === 'proposal-management' ? (
           <Briefcase className="w-4 h-4 text-muted-foreground shrink-0" />
-        ) : section.id === 'messaging' ? (
-          <MessageSquare className="w-4 h-4 text-muted-foreground shrink-0" />
+        ) : section.id === 'mock-evaluation' ? (
+          <Brain className="w-4 h-4 text-muted-foreground shrink-0" />
         ) : section.id === 'task-allocator' ? (
           <ListTodo className="w-4 h-4 text-muted-foreground shrink-0" />
         ) : section.id === 'progress-tracker' ? (
