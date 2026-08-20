@@ -360,6 +360,8 @@ export function CaseManagementCard({
   onSaveEvent,
 }: CaseManagementCardProps) {
   const queryClient = useQueryClient();
+  // Offers back text refused by the version guard.
+  const { reportConflict, dialog: conflictDialog } = useVersionConflict();
   const { user } = useAuth();
   const [subsectionsDialogOpen, setSubsectionsDialogOpen] = useState(false);
 
