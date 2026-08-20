@@ -19,6 +19,7 @@ import { ParticipantReferenceNode } from '@/extensions/ParticipantReferenceNode'
 import { InlineReferenceNode } from '@/extensions/InlineReferenceNode';
 import { AcronymReference } from '@/extensions/AcronymReference';
 import { FigureTableReferenceMark } from '@/extensions/FigureTableReferenceMark';
+import { FieldCapabilities } from '@/lib/fieldCapabilities';
 import { CitationMark, CitationNode } from '@/components/CitationMark';
 
 /**
