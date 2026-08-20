@@ -2,6 +2,26 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { stripWordHtml } from '@/lib/stripWordHtml';
+import {
+  saveVersionedRow,
+  reorderVersionedRows,
+  type ReorderItem,
+} from '@/lib/versionedSave';
+
+/** Options shared by both WP hooks. */
+export interface WPDraftHookOptions {
+  /**
+   * Called when a save is rejected because the row moved on. Receives the text
+   * the user was trying to write so it can be offered back for copying.
+   */
+  onConflict?: (lostValue: unknown) => void;
+}
+
+/** Picks the first string in a patch, for the "here is what you typed" dialog. */
+function firstTextValue(updates: Record<string, any>): unknown {
+  const entry = Object.values(updates || {}).find(v => typeof v === 'string' && v.trim() !== '');
+  return entry ?? null;
+}
 
 // Legacy name retained for call-site stability — delegates to the shared
 // DOM-based cleaner. Preserves custom cross-ref nodes and keeps basic
@@ -10,6 +30,7 @@ function stripWordXml(html: string): string {
   if (!html || typeof html !== 'string') return html;
   return stripWordHtml(html);
 }
+
 
 export interface WPDraftTask {
   id: string;
@@ -21,6 +42,7 @@ export interface WPDraftTask {
   start_month: number | null;
   end_month: number | null;
   order_index: number;
+  version: number;
   participants?: { participant_id: string }[];
   effort?: { participant_id: string; person_months: number }[];
 }
@@ -36,6 +58,7 @@ export interface WPDraftDeliverable {
   due_month: number | null;
   description: string | null;
   order_index: number;
+  version: number;
 }
 
 export interface WPDraft {
@@ -52,11 +75,13 @@ export interface WPDraft {
   order_index: number;
   created_at: string;
   updated_at: string;
+  version: number;
   tasks?: WPDraftTask[];
   deliverables?: WPDraftDeliverable[];
 }
 
-export function useWPDrafts(proposalId: string | null) {
+export function useWPDrafts(proposalId: string | null, options?: WPDraftHookOptions) {
+  const onConflict = options?.onConflict;
   const [wpDrafts, setWPDrafts] = useState<WPDraft[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -108,25 +133,25 @@ export function useWPDrafts(proposalId: string | null) {
   }, [fetchWPDrafts]);
 
   const updateWPDraft = useCallback(async (wpId: string, updates: Partial<WPDraft>) => {
-    try {
-      const { error } = await supabase
-        .from('wp_drafts')
-        .update(updates as any)
-        .eq('id', wpId);
-
-      if (error) throw error;
-
-      setWPDrafts(prev => prev.map(wp =>
-        wp.id === wpId ? { ...wp, ...updates } : wp
-      ));
-
-      return true;
-    } catch (err) {
-      console.error('Error updating WP draft:', err);
+    const known = wpDrafts.find(wp => wp.id === wpId);
+    const res = await saveVersionedRow('wp_drafts', wpId, updates as any, known?.version ?? null);
+    if (res.conflict) {
+      toast.error('This work package was changed elsewhere — reloading the latest version.');
+      onConflict?.(firstTextValue(updates));
+      await fetchWPDrafts();
+      return false;
+    }
+    if (!res.ok) {
+      console.error('Error updating WP draft:', res.error);
       toast.error('Failed to update work package');
       return false;
     }
-  }, []);
+    setWPDrafts(prev => prev.map(wp =>
+      wp.id === wpId ? { ...wp, ...updates, version: res.version ?? wp.version } : wp
+    ));
+    return true;
+  }, [wpDrafts, fetchWPDrafts, onConflict]);
+
 
   const addWPDraft = useCallback(async () => {
     if (!proposalId) return null;
@@ -193,37 +218,30 @@ export function useWPDrafts(proposalId: string | null) {
   }, []);
 
   const reorderWPDrafts = useCallback(async (newOrder: string[]) => {
-    try {
-      const updates = newOrder.map((id, index) => ({
-        id,
-        order_index: index,
-        number: index + 1,
-      }));
+    const versionById = new Map(wpDrafts.map(wp => [wp.id, wp.version]));
+    const items: ReorderItem[] = newOrder.map((id, index) => ({
+      id,
+      expected_version: versionById.get(id) ?? null,
+      order_index: index,
+      number: index + 1,
+    }));
 
-      setWPDrafts(prev => {
-        const wpMap = new Map(prev.map(wp => [wp.id, wp]));
-        return newOrder.map((id, index) => ({
-          ...wpMap.get(id)!,
-          order_index: index,
-          number: index + 1,
-        }));
-      });
-
-      for (const update of updates) {
-        await supabase
-          .from('wp_drafts')
-          .update({ order_index: update.order_index, number: update.number })
-          .eq('id', update.id);
+    const res = await reorderVersionedRows('wp_drafts', items);
+    if (!res.ok) {
+      if (res.conflict) {
+        toast.error('Work packages changed elsewhere — the reorder was not applied. Reloading.');
+      } else {
+        console.error('Error reordering WP drafts:', res.error);
+        toast.error('Failed to reorder work packages');
       }
-
-      return true;
-    } catch (err) {
-      console.error('Error reordering WP drafts:', err);
-      toast.error('Failed to reorder work packages');
       await fetchWPDrafts();
       return false;
     }
-  }, [fetchWPDrafts]);
+
+    await fetchWPDrafts();
+    return true;
+  }, [wpDrafts, fetchWPDrafts]);
+
 
   return {
     wpDrafts,
@@ -238,7 +256,8 @@ export function useWPDrafts(proposalId: string | null) {
 }
 
 // Hook for a single WP draft with full editing capabilities
-export function useWPDraftEditor(wpId: string | null) {
+export function useWPDraftEditor(wpId: string | null, options?: WPDraftHookOptions) {
+  const onConflict = options?.onConflict;
   const [wpDraft, setWPDraft] = useState<WPDraft | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -274,17 +293,9 @@ export function useWPDraftEditor(wpId: string | null) {
       const sortedTasks = (data.tasks || []).sort((a: WPDraftTask, b: WPDraftTask) => a.order_index - b.order_index);
       const sortedDeliverables = (data.deliverables || []).sort((a: WPDraftDeliverable, b: WPDraftDeliverable) => a.order_index - b.order_index);
 
-      const fixItems = <T extends { id: string; number: number; order_index: number }>(
-        items: T[],
-        updateFn: (id: string, number: number, order_index: number) => void,
-      ): T[] => {
-        const needsFix = items.some((item, i) => item.number !== i + 1 || item.order_index !== i);
-        if (!needsFix) return items;
-        const fixed = items.map((item, i) => ({ ...item, number: i + 1, order_index: i }));
-        fixed.forEach((item) => updateFn(item.id, item.number, item.order_index));
-        return fixed;
-      };
-
+      // NOTE: numbering is NOT repaired on load. Load-time repair writes are
+      // what allowed a stale tab to silently revert a deliberate renumber.
+      // Use `repairNumbering()` (explicit user gesture) instead.
       const htmlFields = ['objectives', 'description_before_tasks'] as const;
       const cleanedData = { ...data };
       for (const f of htmlFields) {
@@ -299,12 +310,8 @@ export function useWPDraftEditor(wpId: string | null) {
 
       const sortedData = {
         ...cleanedData,
-        tasks: fixItems(cleanedTasks, (id, num, idx) => {
-          supabase.from('wp_draft_tasks').update({ number: num, order_index: idx }).eq('id', id).then();
-        }),
-        deliverables: fixItems(sortedDeliverables, (id, num, idx) => {
-          supabase.from('wp_draft_deliverables').update({ number: num, order_index: idx }).eq('id', id).then();
-        }),
+        tasks: cleanedTasks,
+        deliverables: sortedDeliverables,
       };
 
       setWPDraft(sortedData);
@@ -329,14 +336,22 @@ export function useWPDraftEditor(wpId: string | null) {
     setSaving(true);
     setSaveError(null);
     try {
-      const { error } = await supabase
-        .from('wp_drafts')
-        .update({ [field]: cleanValue } as any)
-        .eq('id', wpId);
+      const res = await saveVersionedRow(
+        'wp_drafts',
+        wpId,
+        { [field]: cleanValue },
+        wpDraft?.version ?? null,
+      );
+      if (res.conflict) {
+        setSaveError('Changed elsewhere — not saved');
+        toast.error('This work package was changed elsewhere — your change was not saved.');
+        onConflict?.(cleanValue);
+        await fetchWPDraft();
+        return false;
+      }
+      if (!res.ok) throw new Error(res.error || 'save failed');
 
-      if (error) throw error;
-
-      setWPDraft(prev => prev ? { ...prev, [field]: value } : null);
+      setWPDraft(prev => prev ? { ...prev, [field]: value, version: res.version ?? prev.version } : null);
       setLastSaved(new Date());
       return true;
     } catch (err) {
@@ -347,23 +362,57 @@ export function useWPDraftEditor(wpId: string | null) {
     } finally {
       setSaving(false);
     }
-  }, [wpId]);
+  }, [wpId, wpDraft?.version, fetchWPDraft, onConflict]);
+
+  /**
+   * Shared all-or-nothing renumber for the child lists. Every row carries the
+   * version this session loaded, so a stale tab cannot re-impose old numbering.
+   */
+  const applyOrder = useCallback(async (
+    table: 'wp_draft_tasks' | 'wp_draft_deliverables',
+    rows: { id: string; version: number }[],
+    label: string,
+  ) => {
+    const items: ReorderItem[] = rows.map((r, index) => ({
+      id: r.id,
+      expected_version: r.version ?? null,
+      number: index + 1,
+      order_index: index,
+    }));
+    const res = await reorderVersionedRows(table, items);
+    if (!res.ok) {
+      if (res.conflict) {
+        toast.error(`${label} changed elsewhere — the reorder was not applied. Reloading.`);
+      } else {
+        console.error(`Error reordering ${table}:`, res.error);
+        toast.error(`Failed to reorder ${label.toLowerCase()}`);
+      }
+      await fetchWPDraft();
+      return false;
+    }
+    await fetchWPDraft();
+    return true;
+  }, [fetchWPDraft]);
 
   // Task operations
   const addTask = useCallback(async () => {
     if (!wpDraft) return null;
 
     try {
-      const nextNumber = wpDraft.tasks && wpDraft.tasks.length > 0
-        ? Math.max(...wpDraft.tasks.map(t => t.number)) + 1
-        : 1;
+      // Number and index are derived from the same list length so a pre-existing
+      // gap cannot make them diverge.
+      const existing = (wpDraft.tasks || []).length;
+      const nextNumber = Math.max(
+        existing + 1,
+        ...(wpDraft.tasks || []).map(t => t.number + 1),
+      );
 
       const { data, error } = await supabase
         .from('wp_draft_tasks')
         .insert({
           wp_draft_id: wpDraft.id,
           number: nextNumber,
-          order_index: wpDraft.tasks?.length || 0,
+          order_index: existing,
         })
         .select()
         .single();
@@ -384,153 +433,94 @@ export function useWPDraftEditor(wpId: string | null) {
   }, [wpDraft]);
 
   const updateTask = useCallback(async (taskId: string, updates: Partial<WPDraftTask>) => {
-    try {
-      const { error } = await supabase
-        .from('wp_draft_tasks')
-        .update(updates as any)
-        .eq('id', taskId);
-
-      if (error) throw error;
-
-      setWPDraft(prev => prev ? {
-        ...prev,
-        tasks: prev.tasks?.map(t => t.id === taskId ? { ...t, ...updates } : t),
-      } : null);
-
-      return true;
-    } catch (err) {
-      console.error('Error updating task:', err);
+    const known = wpDraft?.tasks?.find(t => t.id === taskId);
+    const res = await saveVersionedRow('wp_draft_tasks', taskId, updates as any, known?.version ?? null);
+    if (res.conflict) {
+      toast.error('This task was changed elsewhere — your change was not saved.');
+      onConflict?.(firstTextValue(updates as any));
+      await fetchWPDraft();
       return false;
     }
-  }, []);
+    if (!res.ok) {
+      console.error('Error updating task:', res.error);
+      return false;
+    }
+    setWPDraft(prev => prev ? {
+      ...prev,
+      tasks: prev.tasks?.map(t => t.id === taskId ? { ...t, ...updates, version: res.version ?? t.version } : t),
+    } : null);
+    return true;
+  }, [wpDraft?.tasks, fetchWPDraft, onConflict]);
 
   const deleteTask = useCallback(async (taskId: string) => {
-    try {
-      const { error } = await supabase
-        .from('wp_draft_tasks')
-        .delete()
-        .eq('id', taskId);
+    const remaining = (wpDraft?.tasks || [])
+      .filter(t => t.id !== taskId)
+      .sort((a, b) => a.order_index - b.order_index);
 
-      if (error) throw error;
-
-      setWPDraft(prev => {
-        if (!prev?.tasks) return prev;
-        const remaining = prev.tasks
-          .filter(t => t.id !== taskId)
-          .sort((a, b) => a.number - b.number)
-          .map((t, i) => ({ ...t, number: i + 1, order_index: i }));
-
-        remaining.forEach((t, i) => {
-          supabase
-            .from('wp_draft_tasks')
-            .update({ number: i + 1, order_index: i })
-            .eq('id', t.id)
-            .then();
-        });
-
-        return { ...prev, tasks: remaining };
-      });
-
-      return true;
-    } catch (err) {
-      console.error('Error deleting task:', err);
+    const { error } = await supabase.from('wp_draft_tasks').delete().eq('id', taskId);
+    if (error) {
+      console.error('Error deleting task:', error);
       toast.error('Failed to delete task');
       return false;
     }
-  }, []);
+    // Renumbering survivors is a guarded, all-or-nothing operation.
+    await applyOrder('wp_draft_tasks', remaining, 'Tasks');
+    return true;
+  }, [wpDraft?.tasks, applyOrder]);
 
   const reorderTasks = useCallback(async (newOrder: string[]) => {
     if (!wpDraft) return false;
 
-    const previousOrder = wpDraft.tasks ? wpDraft.tasks.map(t => t.id) : [];
+    const byId = new Map((wpDraft.tasks || []).map(t => [t.id, t]));
+    const previous = (wpDraft.tasks || []).map(t => ({ id: t.id, version: t.version }));
+    const ok = await applyOrder(
+      'wp_draft_tasks',
+      newOrder.map(id => ({ id, version: byId.get(id)?.version ?? null as any })),
+      'Tasks',
+    );
+    if (!ok) return false;
 
-    try {
-      const updates = newOrder.map((id, index) => ({
-        id,
-        order_index: index,
-        number: index + 1,
-      }));
-
-      setWPDraft(prev => {
-        if (!prev || !prev.tasks) return prev;
-        const taskMap = new Map(prev.tasks.map(t => [t.id, t]));
-        return {
-          ...prev,
-          tasks: newOrder.map((id, index) => ({
-            ...taskMap.get(id)!,
-            order_index: index,
-            number: index + 1,
-          })),
-        };
-      });
-
-      for (const update of updates) {
-        await supabase
-          .from('wp_draft_tasks')
-          .update({ order_index: update.order_index, number: update.number })
-          .eq('id', update.id);
-      }
-
-      toast.success('Tasks reordered', {
-        duration: 8000,
-        action: {
-          label: 'Undo',
-          onClick: async () => {
-            try {
-              const updates = previousOrder.map((id, index) => ({
-                id,
-                order_index: index,
-                number: index + 1,
-              }));
-              setWPDraft(prev => {
-                if (!prev || !prev.tasks) return prev;
-                const taskMap = new Map(prev.tasks.map(t => [t.id, t]));
-                return {
-                  ...prev,
-                  tasks: previousOrder.map((id, index) => ({
-                    ...taskMap.get(id)!,
-                    order_index: index,
-                    number: index + 1,
-                  })),
-                };
-              });
-              for (const update of updates) {
-                await supabase
-                  .from('wp_draft_tasks')
-                  .update({ order_index: update.order_index, number: update.number })
-                  .eq('id', update.id);
-              }
-              toast.success('Reorder undone');
-            } catch (err) {
-              toast.error('Failed to undo');
-            }
-          },
+    toast.success('Tasks reordered', {
+      duration: 8000,
+      action: {
+        label: 'Undo',
+        onClick: async () => {
+          // Re-read versions: our own reorder has just bumped them.
+          const { data } = await supabase
+            .from('wp_draft_tasks')
+            .select('id, version')
+            .eq('wp_draft_id', wpDraft.id);
+          const freshVersions = new Map((data || []).map((r: any) => [r.id, r.version]));
+          const undone = await applyOrder(
+            'wp_draft_tasks',
+            previous.map(p => ({ id: p.id, version: freshVersions.get(p.id) ?? null as any })),
+            'Tasks',
+          );
+          if (undone) toast.success('Reorder undone');
         },
-      });
+      },
+    });
+    return true;
+  }, [wpDraft, applyOrder]);
 
-      return true;
-    } catch (err) {
-      console.error('Error reordering tasks:', err);
-      toast.error('Failed to reorder tasks');
-      return false;
-    }
-  }, [wpDraft]);
 
   // Deliverable operations
   const addDeliverable = useCallback(async () => {
     if (!wpDraft) return null;
 
     try {
-      const nextNumber = wpDraft.deliverables && wpDraft.deliverables.length > 0
-        ? Math.max(...wpDraft.deliverables.map(d => d.number)) + 1
-        : 1;
+      const existing = (wpDraft.deliverables || []).length;
+      const nextNumber = Math.max(
+        existing + 1,
+        ...(wpDraft.deliverables || []).map(d => d.number + 1),
+      );
 
       const { data, error } = await supabase
         .from('wp_draft_deliverables')
         .insert({
           wp_draft_id: wpDraft.id,
           number: nextNumber,
-          order_index: wpDraft.deliverables?.length || 0,
+          order_index: existing,
         })
         .select()
         .single();
@@ -551,98 +541,52 @@ export function useWPDraftEditor(wpId: string | null) {
   }, [wpDraft]);
 
   const updateDeliverable = useCallback(async (deliverableId: string, updates: Partial<WPDraftDeliverable>) => {
-    try {
-      const { error } = await supabase
-        .from('wp_draft_deliverables')
-        .update(updates as any)
-        .eq('id', deliverableId);
-
-      if (error) throw error;
-
-      setWPDraft(prev => prev ? {
-        ...prev,
-        deliverables: prev.deliverables?.map(d => d.id === deliverableId ? { ...d, ...updates } : d),
-      } : null);
-
-      return true;
-    } catch (err) {
-      console.error('Error updating deliverable:', err);
+    const known = wpDraft?.deliverables?.find(d => d.id === deliverableId);
+    const res = await saveVersionedRow('wp_draft_deliverables', deliverableId, updates as any, known?.version ?? null);
+    if (res.conflict) {
+      toast.error('This deliverable was changed elsewhere — your change was not saved.');
+      onConflict?.(firstTextValue(updates as any));
+      await fetchWPDraft();
       return false;
     }
-  }, []);
+    if (!res.ok) {
+      console.error('Error updating deliverable:', res.error);
+      return false;
+    }
+    setWPDraft(prev => prev ? {
+      ...prev,
+      deliverables: prev.deliverables?.map(d =>
+        d.id === deliverableId ? { ...d, ...updates, version: res.version ?? d.version } : d),
+    } : null);
+    return true;
+  }, [wpDraft?.deliverables, fetchWPDraft, onConflict]);
 
   const deleteDeliverable = useCallback(async (deliverableId: string) => {
-    try {
-      const { error } = await supabase
-        .from('wp_draft_deliverables')
-        .delete()
-        .eq('id', deliverableId);
+    const remaining = (wpDraft?.deliverables || [])
+      .filter(d => d.id !== deliverableId)
+      .sort((a, b) => a.order_index - b.order_index);
 
-      if (error) throw error;
-
-      setWPDraft(prev => {
-        if (!prev) return null;
-        const remaining = (prev.deliverables || [])
-          .filter(d => d.id !== deliverableId)
-          .sort((a, b) => a.order_index - b.order_index)
-          .map((d, i) => ({ ...d, number: i + 1, order_index: i }));
-
-        remaining.forEach((d) => {
-          supabase
-            .from('wp_draft_deliverables')
-            .update({ number: d.number, order_index: d.order_index })
-            .eq('id', d.id)
-            .then();
-        });
-
-        return { ...prev, deliverables: remaining };
-      });
-
-      return true;
-    } catch (err) {
-      console.error('Error deleting deliverable:', err);
+    const { error } = await supabase.from('wp_draft_deliverables').delete().eq('id', deliverableId);
+    if (error) {
+      console.error('Error deleting deliverable:', error);
       toast.error('Failed to delete deliverable');
       return false;
     }
-  }, []);
+    await applyOrder('wp_draft_deliverables', remaining, 'Deliverables');
+    return true;
+  }, [wpDraft?.deliverables, applyOrder]);
+
 
   const reorderDeliverables = useCallback(async (newOrder: string[]) => {
     if (!wpDraft) return false;
+    const byId = new Map((wpDraft.deliverables || []).map(d => [d.id, d]));
+    return applyOrder(
+      'wp_draft_deliverables',
+      newOrder.map(id => ({ id, version: byId.get(id)?.version ?? null as any })),
+      'Deliverables',
+    );
+  }, [wpDraft, applyOrder]);
 
-    try {
-      const updates = newOrder.map((id, index) => ({
-        id,
-        order_index: index,
-        number: index + 1,
-      }));
-
-      setWPDraft(prev => {
-        if (!prev || !prev.deliverables) return prev;
-        const deliverableMap = new Map(prev.deliverables.map(d => [d.id, d]));
-        return {
-          ...prev,
-          deliverables: newOrder.map((id, index) => ({
-            ...deliverableMap.get(id)!,
-            order_index: index,
-            number: index + 1,
-          })),
-        };
-      });
-
-      for (const update of updates) {
-        await supabase
-          .from('wp_draft_deliverables')
-          .update({ order_index: update.order_index, number: update.number })
-          .eq('id', update.id);
-      }
-
-      return true;
-    } catch (err) {
-      console.error('Error reordering deliverables:', err);
-      toast.error('Failed to reorder deliverables');
-      return false;
-    }
-  }, [wpDraft]);
 
   // WP-level effort operations
   const updateWPEffort = useCallback(async (participantId: string, personMonths: number) => {
@@ -717,108 +661,94 @@ export function useWPDraftEditor(wpId: string | null) {
     }
   }, []);
 
-  // Move task to another WP
-  const moveTaskToWP = useCallback(async (taskId: string, targetWpDraftId: string) => {
+  /**
+   * Moves one child row to another WP. The target number is derived from the
+   * highest existing NUMBER (not the highest order_index), which is what used
+   * to produce duplicates such as two deliverables numbered 2. The moved row is
+   * written through the guard; the source list is then renumbered
+   * all-or-nothing.
+   */
+  const moveChildToWP = useCallback(async (
+    table: 'wp_draft_tasks' | 'wp_draft_deliverables',
+    rowId: string,
+    targetWpDraftId: string,
+    label: string,
+  ) => {
     if (!wpDraft) return false;
+    const siblings = table === 'wp_draft_tasks' ? (wpDraft.tasks || []) : (wpDraft.deliverables || []);
+    const moved = siblings.find(r => r.id === rowId);
 
     try {
-      const { data: targetTasks, error: fetchErr } = await supabase
-        .from('wp_draft_tasks')
+      const { data: targetRows, error: fetchErr } = await supabase
+        .from(table)
         .select('number, order_index')
-        .eq('wp_draft_id', targetWpDraftId)
-        .order('order_index', { ascending: false })
-        .limit(1);
-
+        .eq('wp_draft_id', targetWpDraftId);
       if (fetchErr) throw fetchErr;
 
-      const nextNumber = targetTasks && targetTasks.length > 0 ? targetTasks[0].number + 1 : 1;
-      const nextOrderIndex = targetTasks && targetTasks.length > 0 ? targetTasks[0].order_index + 1 : 0;
+      const nextNumber = (targetRows || []).reduce((m, r: any) => Math.max(m, r.number), 0) + 1;
+      const nextOrderIndex = (targetRows || []).length;
 
-      const { error } = await supabase
-        .from('wp_draft_tasks')
-        .update({ wp_draft_id: targetWpDraftId, number: nextNumber, order_index: nextOrderIndex })
-        .eq('id', taskId);
-
-      if (error) throw error;
-
-      const remaining = (wpDraft.tasks || [])
-        .filter(t => t.id !== taskId)
-        .sort((a, b) => a.order_index - b.order_index);
-
-      for (let i = 0; i < remaining.length; i++) {
-        await supabase
-          .from('wp_draft_tasks')
-          .update({ number: i + 1, order_index: i })
-          .eq('id', remaining[i].id);
+      const res = await saveVersionedRow(
+        table,
+        rowId,
+        { wp_draft_id: targetWpDraftId, number: nextNumber, order_index: nextOrderIndex },
+        moved?.version ?? null,
+      );
+      if (res.conflict) {
+        toast.error(`This ${label} changed elsewhere — the move was not applied.`);
+        await fetchWPDraft();
+        return false;
       }
+      if (!res.ok) throw new Error(res.error || 'move failed');
 
-      setWPDraft(prev => {
-        if (!prev?.tasks) return prev;
-        const updated = prev.tasks
-          .filter(t => t.id !== taskId)
-          .map((t, i) => ({ ...t, number: i + 1, order_index: i }));
-        return { ...prev, tasks: updated };
-      });
+      const remaining = siblings
+        .filter(r => r.id !== rowId)
+        .sort((a, b) => a.order_index - b.order_index);
+      await applyOrder(table, remaining, label === 'task' ? 'Tasks' : 'Deliverables');
 
-      toast.success('Task moved successfully');
+      toast.success(`${label === 'task' ? 'Task' : 'Deliverable'} moved successfully`);
       return true;
     } catch (err) {
-      console.error('Error moving task:', err);
-      toast.error('Failed to move task');
+      console.error(`Error moving ${label}:`, err);
+      toast.error(`Failed to move ${label}`);
       return false;
     }
-  }, [wpDraft]);
+  }, [wpDraft, applyOrder, fetchWPDraft]);
 
-  const moveDeliverableToWP = useCallback(async (deliverableId: string, targetWpDraftId: string) => {
+  const moveTaskToWP = useCallback(
+    (taskId: string, targetWpDraftId: string) =>
+      moveChildToWP('wp_draft_tasks', taskId, targetWpDraftId, 'task'),
+    [moveChildToWP],
+  );
+
+  const moveDeliverableToWP = useCallback(
+    (deliverableId: string, targetWpDraftId: string) =>
+      moveChildToWP('wp_draft_deliverables', deliverableId, targetWpDraftId, 'deliverable'),
+    [moveChildToWP],
+  );
+
+  /**
+   * True when this WP's tasks or deliverables are not numbered 1..n in order.
+   * Surfaced to the user so repair happens on an explicit gesture only.
+   */
+  const numberingNeedsRepair = (() => {
+    const off = <T extends { number: number; order_index: number }>(items: T[]) =>
+      items.some((item, i) => item.number !== i + 1 || item.order_index !== i);
+    const tasks = [...(wpDraft?.tasks || [])].sort((a, b) => a.order_index - b.order_index);
+    const dels = [...(wpDraft?.deliverables || [])].sort((a, b) => a.order_index - b.order_index);
+    return off(tasks) || off(dels);
+  })();
+
+  /** Explicit, user-triggered renumbering. Guarded and all-or-nothing. */
+  const repairNumbering = useCallback(async () => {
     if (!wpDraft) return false;
-
-    try {
-      const { data: targetDeliverables, error: fetchErr } = await supabase
-        .from('wp_draft_deliverables')
-        .select('number, order_index')
-        .eq('wp_draft_id', targetWpDraftId)
-        .order('order_index', { ascending: false })
-        .limit(1);
-
-      if (fetchErr) throw fetchErr;
-
-      const nextNumber = targetDeliverables && targetDeliverables.length > 0 ? targetDeliverables[0].number + 1 : 1;
-      const nextOrderIndex = targetDeliverables && targetDeliverables.length > 0 ? targetDeliverables[0].order_index + 1 : 0;
-
-      const { error } = await supabase
-        .from('wp_draft_deliverables')
-        .update({ wp_draft_id: targetWpDraftId, number: nextNumber, order_index: nextOrderIndex })
-        .eq('id', deliverableId);
-
-      if (error) throw error;
-
-      const remaining = (wpDraft.deliverables || [])
-        .filter(d => d.id !== deliverableId)
-        .sort((a, b) => a.order_index - b.order_index);
-
-      for (let i = 0; i < remaining.length; i++) {
-        await supabase
-          .from('wp_draft_deliverables')
-          .update({ number: i + 1, order_index: i })
-          .eq('id', remaining[i].id);
-      }
-
-      setWPDraft(prev => {
-        if (!prev?.deliverables) return prev;
-        const updated = prev.deliverables
-          .filter(d => d.id !== deliverableId)
-          .map((d, i) => ({ ...d, number: i + 1, order_index: i }));
-        return { ...prev, deliverables: updated };
-      });
-
-      toast.success('Deliverable moved successfully');
-      return true;
-    } catch (err) {
-      console.error('Error moving deliverable:', err);
-      toast.error('Failed to move deliverable');
-      return false;
-    }
-  }, [wpDraft]);
+    const tasks = [...(wpDraft.tasks || [])].sort((a, b) => a.order_index - b.order_index);
+    const dels = [...(wpDraft.deliverables || [])].sort((a, b) => a.order_index - b.order_index);
+    const a = tasks.length ? await applyOrder('wp_draft_tasks', tasks, 'Tasks') : true;
+    const b = dels.length ? await applyOrder('wp_draft_deliverables', dels, 'Deliverables') : true;
+    if (a && b) toast.success('Numbering repaired');
+    return a && b;
+  }, [wpDraft, applyOrder]);
 
   return {
     wpDraft,
@@ -828,6 +758,8 @@ export function useWPDraftEditor(wpId: string | null) {
     saveError,
     refetch: fetchWPDraft,
     updateField,
+    numberingNeedsRepair,
+    repairNumbering,
     // Tasks
     addTask,
     updateTask,
@@ -843,4 +775,5 @@ export function useWPDraftEditor(wpId: string | null) {
     reorderDeliverables,
     moveDeliverableToWP,
   };
+
 }

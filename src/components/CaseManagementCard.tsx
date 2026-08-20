@@ -62,11 +62,14 @@ interface CaseDraft {
   order_index: number;
   is_locked: boolean;
   locked_by: string | null;
+  version?: number;
 }
 
 
 import { CASE_TYPE_DEFS, getCaseTypeLabel, getCaseTypePrefix as getCasePrefix, caseWord } from '@/lib/caseTypeLabels';
 import { useProposalCaseTypesQuery, type ProposalCaseType as CaseTypeRow } from '@/hooks/useProposalCaseTypesQuery';
+import { saveVersionedRow, reorderVersionedRows } from '@/lib/versionedSave';
+import { useVersionConflict } from '@/hooks/useVersionConflict';
 
 const CASE_TYPES = CASE_TYPE_DEFS.map((d) => ({
   value: d.code,
@@ -357,6 +360,8 @@ export function CaseManagementCard({
   onSaveEvent,
 }: CaseManagementCardProps) {
   const queryClient = useQueryClient();
+  // Offers back text refused by the version guard.
+  const { reportConflict, dialog: conflictDialog } = useVersionConflict();
   const { user } = useAuth();
   const [subsectionsDialogOpen, setSubsectionsDialogOpen] = useState(false);
 
@@ -374,7 +379,7 @@ export function CaseManagementCard({
     queryFn: async () => {
       const { data, error } = await supabase
         .from('case_drafts')
-        .select('id, number, case_type, custom_type_name, case_type_id, short_name, title, lead_participant_id, color, order_index, is_locked, locked_by')
+        .select('id, number, case_type, custom_type_name, case_type_id, short_name, title, lead_participant_id, color, order_index, is_locked, locked_by, version')
         .eq('proposal_id', proposalId)
         .order('order_index');
       if (error) throw error;
@@ -420,8 +425,13 @@ export function CaseManagementCard({
   // Update a case row (debounced from inputs).
   const updateCaseMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<CaseDraft> }) => {
-      const { error } = await supabase.from('case_drafts').update(updates).eq('id', id);
-      if (error) throw error;
+      const known = caseDrafts.find(c => c.id === id);
+      const res = await saveVersionedRow('case_drafts', id, updates as any, known?.version ?? null);
+      if (res.conflict) {
+        reportConflict(Object.values(updates).find(v => typeof v === 'string' && v.trim() !== '') ?? null);
+        throw new Error('conflict');
+      }
+      if (!res.ok) throw new Error(res.error || 'save failed');
     },
     onMutate: async ({ id, updates }) => {
       await queryClient.cancelQueries({ queryKey: ['case-drafts-management', proposalId] });
@@ -433,7 +443,9 @@ export function CaseManagementCard({
     },
     onError: (_e, _v, context) => {
       if (context?.previous) queryClient.setQueryData(['case-drafts-management', proposalId], context.previous);
-      toast.error(`Failed to update ${caseWord(caseTypeRows, { capitalize: false })}`);
+      toast.error((_e as Error)?.message === 'conflict'
+        ? `This ${caseWord(caseTypeRows, { capitalize: false })} was changed elsewhere — your change was not saved.`
+        : `Failed to update ${caseWord(caseTypeRows, { capitalize: false })}`);
     },
     onSettled: () => { invalidateCaseQueries(); onSaveEvent?.(); },
 
@@ -442,22 +454,15 @@ export function CaseManagementCard({
   // Per-type reorder: renumber 1..n within a case_type_id (two-phase to dodge unique constraint).
   const reorderTypeMutation = useMutation({
     mutationFn: async ({ typeId, ordered }: { typeId: string; ordered: CaseDraft[] }) => {
-      // Phase 1: temp negative numbers
-      for (let i = 0; i < ordered.length; i++) {
-        const { error } = await supabase
-          .from('case_drafts')
-          .update({ order_index: i, number: -(i + 1000) })
-          .eq('id', ordered[i].id);
-        if (error) throw error;
-      }
-      // Phase 2: final numbers
-      for (let i = 0; i < ordered.length; i++) {
-        const { error } = await supabase
-          .from('case_drafts')
-          .update({ number: i + 1 })
-          .eq('id', ordered[i].id);
-        if (error) throw error;
-      }
+      // All-or-nothing: refused outright if any row moved on since load, so a
+      // stale tab cannot re-impose an old order.
+      const res = await reorderVersionedRows('case_drafts', ordered.map((c, i) => ({
+        id: c.id,
+        expected_version: c.version ?? null,
+        number: i + 1,
+        order_index: i,
+      })));
+      if (!res.ok) throw new Error(res.conflict ? 'conflict' : (res.error || 'reorder failed'));
       return typeId;
     },
     onSettled: () => {
@@ -465,7 +470,9 @@ export function CaseManagementCard({
       window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
       onSaveEvent?.();
     },
-    onError: () => toast.error(`Failed to reorder ${caseWord(caseTypeRows, { plural: true, capitalize: false })}`),
+    onError: (e: Error) => toast.error(e?.message === 'conflict'
+      ? `${caseWord(caseTypeRows, { plural: true, capitalize: true })} changed elsewhere — the reorder was not applied.`
+      : `Failed to reorder ${caseWord(caseTypeRows, { plural: true, capitalize: false })}`),
   });
 
   // Add a case to a specific type card.
@@ -520,12 +527,15 @@ export function CaseManagementCard({
         const remaining = caseDrafts
           .filter(c => c.case_type_id === target.case_type_id && c.id !== caseId)
           .sort((a, b) => a.order_index - b.order_index);
-        // Two-phase renumber to keep (case_type_id, number) unique
-        for (let i = 0; i < remaining.length; i++) {
-          await supabase.from('case_drafts').update({ number: -(i + 1000) }).eq('id', remaining[i].id);
-        }
-        for (let i = 0; i < remaining.length; i++) {
-          await supabase.from('case_drafts').update({ number: i + 1 }).eq('id', remaining[i].id);
+        // Renumber the survivors atomically through the guard.
+        if (remaining.length) {
+          const res = await reorderVersionedRows('case_drafts', remaining.map((c, i) => ({
+            id: c.id,
+            expected_version: c.version ?? null,
+            number: i + 1,
+            order_index: c.order_index,
+          })));
+          if (!res.ok) throw new Error(res.error || 'renumber failed');
         }
       }
     },
@@ -1046,6 +1056,7 @@ export function CaseManagementCard({
           canEdit={isCoordinator}
         />
       </CardContent>
+      {conflictDialog}
     </Card>
   );
 }
