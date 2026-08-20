@@ -296,7 +296,7 @@ function stripTags(html: string): string {
 export async function buildPrintContainer(
   options: PrintRenderOptions,
 ): Promise<HTMLDivElement> {
-  const { proposal, sections, sectionContents, participants } = options;
+  const { proposal, sections, sectionContents, participants, selectedSections } = options;
 
   const container = document.createElement('div');
   container.className = 'print-export-container';
@@ -311,7 +311,26 @@ export async function buildPrintContainer(
   container.style.background = '#fff';
 
   const sectionMap = new Map(sectionContents.map(sc => [sc.sectionId, sc.content]));
-  const partBSections = flattenSections(sections);
+  let partBSections = flattenSections(sections);
+
+  // ── Optional subsection selection (partial export) ──
+  // Keeps the selected subsections and only those H1 containers that still
+  // have at least one selected child, so numbering never changes: every
+  // heading keeps its own stored number (e.g. exporting only 2.2 still
+  // prints "2. Impact" → "2.2. …").
+  const selection = (selectedSections || []).map((s) => s.replace(/^B/, '').trim()).filter(Boolean);
+  if (selection.length > 0) {
+    const selected = new Set(selection);
+    partBSections = partBSections.filter((section) => {
+      const num = section.number.replace(/^B/, '');
+      if (isContentSection(section)) return selected.has(num);
+      if (isH1Container(section)) {
+        return Array.from(selected).some((s) => s.split('.')[0] === num);
+      }
+      return false;
+    });
+  }
+
 
   // ── Proposal banner (replaces document title) ──
   const escapeHtml = (s: string) =>
