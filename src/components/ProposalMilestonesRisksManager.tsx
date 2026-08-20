@@ -548,12 +548,19 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
 
   const deleteRisk = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('proposal_risks').delete().eq('id', id);
-      if (error) throw error;
+      const known = risks.find(r => r.id === id);
+      const res = await deleteAndResequence('proposal_risks', id, known?.version ?? null);
+      if (!res.ok) {
+        throw new Error(res.conflict
+          ? 'This risk changed elsewhere — it was not deleted.'
+          : (res.error || 'Failed to delete risk'));
+      }
     },
+    onError: (e: any) => { toast.error(e.message); qc.invalidateQueries({ queryKey: RISK_KEY(proposalId) }); },
     onSuccess: () => qc.invalidateQueries({ queryKey: RISK_KEY(proposalId) }),
     ...saveHooks,
   });
+
 
   const setRiskWps = useMutation({
     mutationFn: async ({ id, wpIds }: { id: string; wpIds: string[] }) => {
