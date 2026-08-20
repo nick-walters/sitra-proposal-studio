@@ -566,19 +566,19 @@ export function useWPDraftEditor(wpId: string | null, options?: WPDraftHookOptio
   }, [wpDraft?.deliverables, fetchWPDraft, onConflict]);
 
   const deleteDeliverable = useCallback(async (deliverableId: string) => {
-    const remaining = (wpDraft?.deliverables || [])
-      .filter(d => d.id !== deliverableId)
-      .sort((a, b) => a.order_index - b.order_index);
-
-    const { error } = await supabase.from('wp_draft_deliverables').delete().eq('id', deliverableId);
-    if (error) {
-      console.error('Error deleting deliverable:', error);
-      toast.error('Failed to delete deliverable');
+    const known = (wpDraft?.deliverables || []).find(d => d.id === deliverableId);
+    const res = await deleteAndResequence('wp_draft_deliverables', deliverableId, known?.version ?? null);
+    if (!res.ok) {
+      toast.error(res.conflict
+        ? 'This deliverable changed elsewhere — it was not deleted. Reloading.'
+        : (res.error || 'Failed to delete deliverable'));
+      await fetchWPDraft();
       return false;
     }
-    await applyOrder('wp_draft_deliverables', remaining, 'Deliverables');
+    await fetchWPDraft();
     return true;
-  }, [wpDraft?.deliverables, applyOrder]);
+  }, [wpDraft?.deliverables, fetchWPDraft]);
+
 
 
   const reorderDeliverables = useCallback(async (newOrder: string[]) => {
