@@ -176,8 +176,6 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
     deleteDeliverable: rawDeleteDeliverable,
     reorderDeliverables,
     moveDeliverableToWP,
-    numberingNeedsRepair,
-    repairNumbering,
     refetch: refetchDraft,
   } = useWPDraftEditor(wpId);
 
