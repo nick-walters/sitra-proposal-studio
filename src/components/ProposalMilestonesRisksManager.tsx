@@ -376,11 +376,6 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
 
   // ── Milestone numbering is maintained by the database resequencing trigger ──
   // (due month, then order_index). Nothing on the client writes `number`.
-  const __removed_repair = null;
-  const __removed_repair_body = () => {
-    qc.invalidateQueries({ queryKey: MS_KEY(proposalId) });
-    notifyRefs();
-  }, [orderedMs, proposalId, qc]);
 
   // ── Persist same-month manual order_index (called by reorder dialog) ──
   const persistMsGroupOrder = useCallback(async (newSorted: Milestone[]) => {
