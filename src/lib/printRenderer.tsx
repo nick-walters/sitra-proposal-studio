@@ -75,7 +75,10 @@ export interface PrintRenderOptions {
   sectionContents: SectionContent[];
 
   participants: Participant[];
+  /** Part B subsection numbers to include (e.g. ['1.1','2.2']). Empty/undefined = all. */
+  selectedSections?: string[];
 }
+
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
