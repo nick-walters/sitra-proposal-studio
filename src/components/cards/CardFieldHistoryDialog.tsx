@@ -1,11 +1,14 @@
 import { useEffect } from 'react';
+import DOMPurify from 'dompurify';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { formatDateTime } from '@/lib/formatDate';
 import { supabase } from '@/integrations/supabase/client';
 import { useCardFieldVersions } from '@/hooks/useCardFieldVersions';
+import { CROSS_REF_RICH_TEXT_CONFIG } from '@/lib/sanitizePresets';
 import type { CardTextBox } from '@/types/cards';
+
 
 interface CardFieldHistoryDialogProps {
   proposalId: string;
