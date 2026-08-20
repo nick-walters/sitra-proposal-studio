@@ -595,14 +595,17 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
                 onItalic={() => runOnActiveEditor((c) => c.toggleItalic().run())}
                 onUnderline={() => runOnActiveEditor((c) => c.toggleUnderline().run())}
               />
-              <Separator orientation="vertical" className="h-5 mx-1.5" />
-              <ParticipantCrossRefDropdown
-                proposalId={proposalId}
-                acronymSegments={acronymSegments}
-                editor={activeEditor}
-              />
-            </div>
-          )}
+              {getEditorCapabilities(activeEditor).crossReferences && (
+                <>
+                  <Separator orientation="vertical" className="h-5 mx-1.5" />
+                  <ParticipantCrossRefDropdown
+                    proposalId={proposalId}
+                    acronymSegments={acronymSegments}
+                    editor={activeEditor}
+                  />
+                </>
+              )}
+
 
           <div className="overflow-x-auto">
             <table className="platform-table text-sm">
