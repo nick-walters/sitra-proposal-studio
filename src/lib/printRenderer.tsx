@@ -1207,10 +1207,16 @@ export async function prepareExportContainer(
   // width is reset so React mount measurements don't overwrite them.
   await applyPersistedColumnWidths(container, options.proposal.id);
 
+  // Keep the Gantt chart whole: if it would straddle a page boundary, push it
+  // to the top of the next page. Measured while the container is still 680px
+  // wide (≈18cm, the printed text width), so heights match the print layout.
+  applyGanttPageFit(container);
+
 
   // Freeze interactive elements (inputs, selects, buttons) into static text
   // Must happen AFTER React mount but BEFORE detaching from DOM
   freezeInteractiveElements(container);
+
 
   // Reset to 100% width so it fills the print page properly
   container.style.width = '100%';
