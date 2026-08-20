@@ -1360,11 +1360,14 @@ serve(async (req) => {
     const action = body?.action || "start";
 
     if (action === "start") {
-      const { proposalId, selectedEvaluators, instrumentCode, proposalStage, budgetType, eligibilityFlags, renderedProposal, modelOverride, haikuUsage, haikuModel } = body || {};
-      // Validate the per-run model override against the configured options FIRST,
-      // so an unknown model id is rejected before any expensive work happens.
+      const { proposalId, selectedEvaluators, instrumentCode, proposalStage, budgetType, eligibilityFlags, renderedProposal, modelOverride, modelOverridePrices, haikuUsage, haikuModel } = body || {};
+      // Validate the per-run model override FIRST, so a bad model id is rejected
+      // before any expensive work happens. A model that is not a configured
+      // option may still be used for a single run, but only if the caller
+      // supplies its prices — otherwise the run would be costed on a guess.
       const normalizedOverride =
         typeof modelOverride === "string" && modelOverride.trim() ? modelOverride.trim() : null;
+      let overrideRunPrices: { input_per_mtok: number; output_per_mtok: number } | null = null;
       if (normalizedOverride) {
         const { data: optionRow } = await serviceClient
           .from("evaluation_model_options")
@@ -1373,12 +1376,22 @@ serve(async (req) => {
           .eq("is_active", true)
           .maybeSingle();
         if (!optionRow) {
-          return new Response(
-            JSON.stringify({ error: `Unknown or inactive evaluation model: ${normalizedOverride}` }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-          );
+          const inPrice = Number(modelOverridePrices?.input_per_mtok);
+          const outPrice = Number(modelOverridePrices?.output_per_mtok);
+          const pricesOk =
+            Number.isFinite(inPrice) && inPrice > 0 && Number.isFinite(outPrice) && outPrice > 0;
+          if (!pricesOk) {
+            return new Response(
+              JSON.stringify({
+                error: `Unknown or inactive evaluation model: ${normalizedOverride}. Supply input and output prices to use it for a single run.`,
+              }),
+              { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+            );
+          }
+          overrideRunPrices = { input_per_mtok: inPrice, output_per_mtok: outPrice };
         }
       }
+
 
       if (
         !proposalId ||
