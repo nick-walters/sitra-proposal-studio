@@ -1,4 +1,6 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { saveVersionedRow, saveCaseDraftSubsection } from '@/lib/versionedSave';
+import { useVersionConflict } from '@/hooks/useVersionConflict';
 import { markBadgeElement, markBadgeTree } from '@/lib/refBadgeMarkup';
 
 import { DraftFormattingToolbar } from '@/components/DraftFormattingToolbar';
