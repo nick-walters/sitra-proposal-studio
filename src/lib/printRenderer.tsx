@@ -54,6 +54,11 @@ export interface ExportData {
   sectionContents: SectionContent[];
   sections: import('@/types/proposal').Section[];
   participants?: import('@/types/proposal').Participant[];
+  /**
+   * Optional whitelist of Part B subsection numbers to export
+   * (e.g. ['1.1','3.1']). Undefined / empty = export everything.
+   */
+  selectedSections?: string[];
 }
 
 export interface PrintRenderOptions {
@@ -68,6 +73,7 @@ export interface PrintRenderOptions {
   };
   sections: Section[];
   sectionContents: SectionContent[];
+
   participants: Participant[];
 }
 
