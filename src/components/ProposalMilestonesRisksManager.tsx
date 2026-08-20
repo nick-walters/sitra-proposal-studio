@@ -374,29 +374,10 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
     });
   }, [milestones]);
 
-  // ── Numbering repair is an explicit user gesture, never a mount-time write ──
-  // The old version of this ran on load and silently renumbered, which is how a
-  // stale tab could overwrite a deliberate renumber made elsewhere.
-  const msNumberingNeedsRepair = useMemo(
-    () => orderedMs.some((m, i) => m.number !== i + 1),
-    [orderedMs],
-  );
-
-  const repairMsNumbering = useCallback(async () => {
-    if (!orderedMs.length) return;
-    const res = await reorderVersionedRows('proposal_milestones', orderedMs.map((m, i) => ({
-      id: m.id,
-      expected_version: m.version ?? null,
-      number: i + 1,
-      order_index: m.order_index,
-    })));
-    if (!res.ok) {
-      toast.error(res.conflict
-        ? 'Milestones changed elsewhere — nothing was renumbered. Reloading.'
-        : (res.error || 'Failed to repair milestone numbering'));
-    } else {
-      toast.success('Milestone numbering repaired');
-    }
+  // ── Milestone numbering is maintained by the database resequencing trigger ──
+  // (due month, then order_index). Nothing on the client writes `number`.
+  const __removed_repair = null;
+  const __removed_repair_body = () => {
     qc.invalidateQueries({ queryKey: MS_KEY(proposalId) });
     notifyRefs();
   }, [orderedMs, proposalId, qc]);
