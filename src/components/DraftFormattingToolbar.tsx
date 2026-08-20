@@ -96,7 +96,14 @@ export interface DraftFormattingToolbarProps {
 
   /** Font-colour picker (shared per-proposal library). Optional. */
   fontColor?: DraftToolbarFontColorProps;
+
+  /**
+   * Capabilities of the FOCUSED field. Controls the field cannot use are
+   * hidden (not disabled). Omit for the full control set.
+   */
+  capabilities?: Partial<FieldCapabilityFlags>;
 }
+
 
 function buildDefaultTableHtml(rows: number, cols: number): string {
   let html = '<table style="width:100%; border-collapse:collapse; margin:8px 0;">';
