@@ -157,22 +157,28 @@ function cleanHtml(html: string | null | undefined): string {
  * (possibly stale) labels baked into stored markup.
  */
 let CURRENT_REF_SNAPSHOT: RefSnapshotServer | null = null;
+let CURRENT_REF_STATS = { passes: 0, found: 0, resolved: 0, unresolved: 0 };
 
 /** One 7-way fetch per proposal, mirroring the client's fetchReferenceData. */
 async function loadRefSnapshot(supabase: any, proposalId: string): Promise<RefSnapshotServer> {
   const snap = emptySnapshot();
   try {
-    const [wpRes, taskRes, delRes, msRes, partRes, figRes, capRes] = await Promise.all([
-      supabase.from("wp_drafts").select("id, number, short_name").eq("proposal_id", proposalId),
-      supabase.from("wp_draft_tasks").select("id, number, wp_draft_id"),
-      supabase.from("wp_draft_deliverables").select("id, number, wp_draft_id"),
+    const wpRes = await supabase.from("wp_drafts").select("id, number, short_name").eq("proposal_id", proposalId);
+    for (const wp of wpRes.data ?? []) snap.wpById.set(wp.id, wp);
+    const wpIds = [...snap.wpById.keys()];
+    const noRows = Promise.resolve({ data: [], error: null });
+    const [taskRes, delRes, msRes, caseRes, caseTypeRes, partRes, figRes, capRes, proposalRes] = await Promise.all([
+      wpIds.length ? supabase.from("wp_draft_tasks").select("id, number, wp_draft_id").in("wp_draft_id", wpIds) : noRows,
+      wpIds.length ? supabase.from("wp_draft_deliverables").select("id, number, wp_draft_id").in("wp_draft_id", wpIds) : noRows,
       supabase.from("proposal_milestones").select("id, number").eq("proposal_id", proposalId),
+      supabase.from("case_drafts").select("id, number, case_type, case_type_id, short_name").eq("proposal_id", proposalId),
+      supabase.from("proposal_case_types").select("id, custom_type_name, include_number, include_abbreviation").eq("proposal_id", proposalId),
       supabase.from("participants").select("id, organisation_short_name").eq("proposal_id", proposalId),
       supabase.from("figures").select("id, figure_number").eq("proposal_id", proposalId),
       supabase.from("table_captions").select("table_key").eq("proposal_id", proposalId),
+      supabase.from("proposals").select("acronym, acronym_segments").eq("id", proposalId).maybeSingle(),
     ]);
 
-    for (const wp of wpRes.data ?? []) snap.wpById.set(wp.id, wp);
     for (const t of taskRes.data ?? []) {
       const wp = snap.wpById.get(t.wp_draft_id);
       if (wp) snap.taskById.set(t.id, { id: t.id, number: t.number, wp_number: wp.number });
@@ -182,9 +188,23 @@ async function loadRefSnapshot(supabase: any, proposalId: string): Promise<RefSn
       if (wp) snap.deliverableById.set(d.id, { id: d.id, number: `D${wp.number}.${d.number}` });
     }
     for (const m of msRes.data ?? []) snap.milestoneById.set(m.id, m);
+    const caseTypes = new Map((caseTypeRes.data ?? []).map((type: any) => [type.id, type]));
+    for (const c of caseRes.data ?? []) {
+      const type = c.case_type_id ? caseTypes.get(c.case_type_id) as any : null;
+      snap.caseById.set(c.id, {
+        ...c,
+        custom_type_name: type?.custom_type_name ?? null,
+        include_number: type?.include_number !== false,
+        include_abbreviation: type?.include_abbreviation !== false,
+      });
+    }
     for (const p of partRes.data ?? []) snap.participantById.set(p.id, p);
     for (const f of figRes.data ?? []) snap.figureById.set(f.id, f);
     for (const c of capRes.data ?? []) snap.tableCaptionKeys.add(c.table_key);
+    const proposal = proposalRes.data;
+    snap.acronymSegments = proposal?.acronym_segments?.length
+      ? proposal.acronym_segments
+      : (proposal?.acronym ? [{ text: proposal.acronym, color: "#000000" }] : []);
   } catch (e) {
     console.error("Reference snapshot fetch failed; backing up stored labels", e);
   }
@@ -202,6 +222,7 @@ function escapeText(s: string): string {
  */
 function resolveChipsInHtml(html: string): string {
   const snap = CURRENT_REF_SNAPSHOT;
+  CURRENT_REF_STATS.passes += 1;
   if (!snap || !html.includes("data-")) return html;
   try {
     const root = parseHtml(html, { lowerCaseTagName: true });
@@ -210,8 +231,13 @@ function resolveChipsInHtml(html: string): string {
       // deno-lint-ignore no-explicit-any
       const attrs = ((el as any).rawAttributes ?? {}) as Record<string, string>;
       if (!isRefChip(attrs)) continue;
+      CURRENT_REF_STATS.found += 1;
       const label = resolveChipLabel(attrs, snap);
-      if (label == null) continue;
+      if (label == null) {
+        CURRENT_REF_STATS.unresolved += 1;
+        continue;
+      }
+      CURRENT_REF_STATS.resolved += 1;
       if ((el.textContent ?? "").trim() === label) continue;
       // deno-lint-ignore no-explicit-any
       (el as any).set_content(escapeText(label));
@@ -2275,6 +2301,7 @@ Deno.serve(async (req) => {
     try {
       // One snapshot per proposal — every chip in every file resolves from it.
       CURRENT_REF_SNAPSHOT = await loadRefSnapshot(supabase, proposal.id);
+      CURRENT_REF_STATS = { passes: 0, found: 0, resolved: 0, unresolved: 0 };
       const files: { name: string; bytes: Uint8Array; mime: string }[] = [];
       const { data: participants } = await supabase
         .from("participants").select("id, participant_number, organisation_short_name")
@@ -2389,6 +2416,12 @@ Deno.serve(async (req) => {
         size_bytes: totalBytes,
         error: sp.error ?? null,
       });
+      const refSummary = { proposal_id: proposal.id, ...CURRENT_REF_STATS };
+      if (CURRENT_REF_STATS.found === 0) {
+        console.warn("Reference resolution completed with zero chips found", refSummary);
+      } else {
+        console.log("Reference resolution completed", refSummary);
+      }
       return { acronym: acr, files: bucketPaths.length, bytes: totalBytes };
     } catch (e) {
       console.error(`Backup failed for ${acr}:`, e);

@@ -16,40 +16,29 @@
  * that does not resolve returns null so the caller keeps the stored label.
  */
 
-/* ───────────────────────────── label formatters ─────────────────────────── */
+import {
+  formatAcronymLabel,
+  formatCaseLabel,
+  formatDeliverableLabel,
+  formatFigureLabel,
+  formatMilestoneLabel,
+  formatParticipantLabel,
+  formatTableLabel,
+  formatTaskLabel,
+  formatWPLabel,
+} from "./referenceLabels.ts";
 
-export function formatWPLabel(wp: { number: number | string | null | undefined; short_name?: string | null }): string {
-  const n = wp.number;
-  return wp.short_name ? `WP${n}: ${wp.short_name}` : `WP${n}`;
-}
-
-export function formatTaskLabel(t: {
-  wp_number: number | string | null | undefined;
-  number: number | string | null | undefined;
-}): string {
-  return `T${t.wp_number ?? ""}.${t.number ?? ""}`;
-}
-
-export function formatDeliverableLabel(d: { number: string | null | undefined }): string {
-  return `${d.number ?? ""}`;
-}
-
-export function formatMilestoneLabel(m: { number: number | string | null | undefined }): string {
-  return `MS${m.number ?? ""}`;
-}
-
-export function formatParticipantLabel(p: { organisation_short_name?: string | null }): string {
-  return p.organisation_short_name || "Partner";
-}
-
-export function formatFigureLabel(f: { figure_number: string | number | null | undefined }): string {
-  return `Figure ${f.figure_number ?? ""}`;
-}
-
-export function formatTableLabel(entry: { table_key: string }): string {
-  const m = entry.table_key.match(/^table-(.+)$/i);
-  return `Table ${m ? m[1] : entry.table_key}`;
-}
+export {
+  formatAcronymLabel,
+  formatCaseLabel,
+  formatDeliverableLabel,
+  formatFigureLabel,
+  formatMilestoneLabel,
+  formatParticipantLabel,
+  formatTableLabel,
+  formatTaskLabel,
+  formatWPLabel,
+};
 
 /* ─────────────────────────────── snapshot ──────────────────────────────── */
 
@@ -59,9 +48,19 @@ export interface RefSnapshotServer {
   /** `number` is the pre-composed "D{wp}.{n}", matching the client snapshot. */
   deliverableById: Map<string, { id: string; number: string }>;
   milestoneById: Map<string, { id: string; number: number }>;
+  caseById: Map<string, {
+    id: string;
+    number: number;
+    case_type: string;
+    short_name: string | null;
+    custom_type_name: string | null;
+    include_number: boolean;
+    include_abbreviation: boolean;
+  }>;
   participantById: Map<string, { id: string; organisation_short_name: string | null }>;
   figureById: Map<string, { id: string; figure_number: string }>;
   tableCaptionKeys: Set<string>;
+  acronymSegments: { text: string; color: string }[];
 }
 
 export function emptySnapshot(): RefSnapshotServer {
@@ -70,9 +69,11 @@ export function emptySnapshot(): RefSnapshotServer {
     taskById: new Map(),
     deliverableById: new Map(),
     milestoneById: new Map(),
+    caseById: new Map(),
     participantById: new Map(),
     figureById: new Map(),
     tableCaptionKeys: new Set(),
+    acronymSegments: [],
   };
 }
 
@@ -119,6 +120,15 @@ export function resolveChipLabel(
     return wp ? formatWPLabel(wp) : null;
   }
 
+  const caseId = idOf(attrs, "case");
+  if (caseId) {
+    const c = snap.caseById.get(caseId);
+    return c ? formatCaseLabel(c, {
+      includeNumber: c.include_number,
+      includeAbbreviation: c.include_abbreviation,
+    }) : null;
+  }
+
   const participantId = idOf(attrs, "participant");
   if (participantId) {
     const p = snap.participantById.get(participantId);
@@ -135,6 +145,10 @@ export function resolveChipLabel(
     if (tableKey && snap.tableCaptionKeys.has(tableKey)) {
       return formatTableLabel({ table_key: tableKey });
     }
+  }
+
+  if (attrs["data-acronym-reference"] !== undefined && snap.acronymSegments.length > 0) {
+    return formatAcronymLabel(snap.acronymSegments);
   }
 
   return null;
