@@ -245,26 +245,11 @@ export function WPDeliverablesTable({
     return m;
   }, [tasksByDeliverable, wpTasks]);
 
+  // Client-side sort is for instant feedback only. The authoritative numbering
+  // is produced by the database resequencing triggers, so nothing here writes
+  // `number` — a stale tab can no longer overwrite a deliberate renumber.
   const sorted = useMemo(() => sortDeliverables(deliverables, taskRank), [deliverables, taskRank]);
 
-  // ── Persist D-numbers 1..N to match current sorted order ──
-  const lastSyncRef = useRef<string>('');
-  useEffect(() => {
-    if (readOnly) return;
-    if (sorted.length === 0) return;
-    const desired = sorted.map((d, i) => ({ id: d.id, n: i + 1, current: d.number }));
-    const mismatch = desired.filter(x => x.n !== x.current);
-    if (mismatch.length === 0) return;
-    const signature = mismatch.map(x => `${x.id}:${x.n}`).join('|');
-    if (lastSyncRef.current === signature) return;
-    lastSyncRef.current = signature;
-    // Fire-and-forget per-row updates; local state will reflect via the parent hook.
-    (async () => {
-      for (const m of mismatch) {
-        await onDeliverableUpdate(m.id, { number: m.n });
-      }
-    })();
-  }, [sorted, readOnly, onDeliverableUpdate]);
 
 
   const saveDeliverableTasks = async (deliverableId: string, taskIds: string[]) => {
