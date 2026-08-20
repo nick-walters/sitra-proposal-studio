@@ -913,6 +913,7 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
         currentSectionId=""
         onInsertFigure={insertFigureAtCursor}
       />
+      {conflictDialog}
     </ScrollArea>
   );
 }
