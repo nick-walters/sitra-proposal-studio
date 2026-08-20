@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, RefreshCw, AlertCircle, Sparkles } from "lucide-react";
+import { Loader2, RefreshCw, AlertCircle, Sparkles, Play } from "lucide-react";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/formatDate";
 import type { EvaluationModelOption } from "@/hooks/useEvaluationModelOptions";
