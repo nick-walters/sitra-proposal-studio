@@ -142,10 +142,14 @@ export function DraftFormattingToolbar({
   crossRefMenuItems,
   trailing,
   fontColor,
+  capabilities,
 }: DraftFormattingToolbarProps) {
   if (hideToolbar) return null;
 
+  const caps: FieldCapabilityFlags = { ...FULL_FIELD_CAPABILITIES, ...(capabilities ?? {}) };
+
   const exec = (cmd: string, value?: string) => onCommand(cmd, value);
+
 
   // Internal table-popover state used only when `table` prop is not supplied.
   const [internalTableOpen, setInternalTableOpen] = useState(false);
