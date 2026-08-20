@@ -457,6 +457,12 @@ function normaliseBadgeSpacing(root: ParentNode) {
 // which carry only the identity attribute.
 const NOT_OTHER = ':not([data-task-id]):not([data-deliverable-id]):not([data-milestone-id])';
 
+// Live-rendered structural nodes (e.g. the B1.2 cases table rows) carry the
+// same identity attributes as inline chips but are containers, not badges.
+// Rewriting them replaces the whole block with a pill, so they are excluded.
+const NOT_STRUCTURAL = ':not([data-case-block]):not([data-cases-table-node]):not([data-cases-table-nodeview])';
+
+
 /**
  * Resolves and re-styles every cross-reference chip inside `root`, in place.
  * Pass the snapshot once per render pass — never fetch per chip.
