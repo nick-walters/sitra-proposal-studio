@@ -767,8 +767,17 @@ export function PanelEvaluator({ proposalId }: Props) {
         tokenFallback(opt.price_input_per_mtok, opt.price_output_per_mtok),
       );
     }
+    // A one-off model has no stored option, so it is costed from the prices
+    // entered when it was picked.
+    if (oneOffModel && byModel[oneOffModel.modelId] === undefined) {
+      byModel[oneOffModel.modelId] = learned(
+        oneOffModel.modelId,
+        tokenFallback(oneOffModel.priceInputPerMTok, oneOffModel.priceOutputPerMTok),
+      );
+    }
     return byModel;
-  }, [costHistory, thisPayloadTokens, selectedCount, modelOptions]);
+  }, [costHistory, thisPayloadTokens, selectedCount, modelOptions, oneOffModel]);
+
 
   async function startEvaluation() {
 
