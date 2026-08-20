@@ -27,23 +27,42 @@ function detectBrowser(): 'chromium' | 'firefox' | 'safari' | 'unknown' {
 
 export type ExportFormat = 'pdf' | 'docx';
 
+const PART_B_SUBSECTIONS: Array<{ number: string; title: string }> = [
+  { number: '1.1', title: 'Objectives & ambition' },
+  { number: '1.2', title: 'Methodology' },
+  { number: '2.1', title: 'Project’s pathways towards impact' },
+  { number: '2.2', title: 'Measures to maximise impact' },
+  { number: '3.1', title: 'Work plan & resources' },
+  { number: '3.2', title: 'Capacity of participants & consortium as a whole' },
+];
+
 interface ExportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onExport: (format: ExportFormat) => void;
+  onExport: (format: ExportFormat, selectedSections?: string[]) => void;
   proposalId?: string;
 }
 
 export function ExportDialog({ open, onOpenChange, onExport, proposalId }: ExportDialogProps) {
   const [format, setFormat] = useState<ExportFormat>('pdf');
+  const [selected, setSelected] = useState<string[]>(PART_B_SUBSECTIONS.map((s) => s.number));
   const { estimatedPages, totalWords } = usePageEstimate(proposalId || '');
   const browser = detectBrowser();
   const isOptimalBrowser = browser === 'chromium';
 
+  const allSelected = selected.length === PART_B_SUBSECTIONS.length;
+
+  const toggle = (number: string, checked: boolean) => {
+    setSelected((prev) =>
+      checked ? [...prev, number] : prev.filter((n) => n !== number),
+    );
+  };
+
   const handleExport = () => {
-    onExport(format);
+    onExport(format, allSelected ? undefined : selected);
     onOpenChange(false);
   };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
