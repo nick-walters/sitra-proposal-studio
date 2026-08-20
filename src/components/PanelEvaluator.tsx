@@ -933,6 +933,16 @@ export function PanelEvaluator({ proposalId }: Props) {
             eligibilityFlags,
             renderedProposal,
             modelOverride: modelChoice,
+            // Only sent when the model is not a configured option, so the
+            // server can cost the run exactly instead of guessing.
+            modelOverridePrices:
+              oneOffModel && oneOffModel.modelId === modelChoice
+                ? {
+                    input_per_mtok: oneOffModel.priceInputPerMTok,
+                    output_per_mtok: oneOffModel.priceOutputPerMTok,
+                  }
+                : null,
+
             haikuUsage,
             haikuModel,
           },
