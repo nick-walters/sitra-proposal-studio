@@ -1123,7 +1123,62 @@ async function applyPersistedColumnWidths(
   }
 }
 
+// ── Gantt page fit ───────────────────────────────────────────────────────────
+
+/**
+ * A4 portrait printable height: 297mm − 2cm top − 2cm bottom = 257mm,
+ * converted at 96dpi (1mm ≈ 3.7795px).
+ */
+const PRINT_PAGE_CONTENT_PX = Math.round(257 * 3.7795);
+
+/**
+ * Measure every Gantt figure and, when it would be split by a page boundary,
+ * insert a hard page break before it (and before its caption when the caption
+ * sits immediately above). Charts taller than a full page are left alone —
+ * they must split, and forcing a break would only add a blank page.
+ *
+ * Measurement is an approximation: heights are taken from the 680px-wide
+ * offscreen container (≈ the 18cm printed text width) and the running offset
+ * is taken modulo the printable page height. The banner-only first page and
+ * widow/orphan adjustments the print engine makes can shift the real boundary
+ * slightly, so the break is applied with a small safety margin.
+ */
+function applyGanttPageFit(container: HTMLElement): void {
+  const SAFETY_PX = 24;
+  const containerTop = container.getBoundingClientRect().top;
+  const charts = Array.from(
+    container.querySelectorAll<HTMLElement>('[data-figure-type="gantt"]'),
+  );
+
+  for (const chart of charts) {
+    const wrapper =
+      (chart.closest('.resizable-image-wrapper, figure, .figure-container') as HTMLElement | null) ||
+      chart;
+    const rect = wrapper.getBoundingClientRect();
+    const height = rect.height;
+    if (height <= 0 || height > PRINT_PAGE_CONTENT_PX) continue;
+
+    const top = rect.top - containerTop;
+    const offsetOnPage = top % PRINT_PAGE_CONTENT_PX;
+    const remaining = PRINT_PAGE_CONTENT_PX - offsetOnPage;
+    if (remaining >= height + SAFETY_PX) continue;
+
+    // Break before the caption when it directly precedes the chart, so the
+    // caption travels with the figure.
+    const prev = wrapper.previousElementSibling as HTMLElement | null;
+    const target =
+      prev && (prev.classList.contains('figure-caption') || prev.tagName.toLowerCase() === 'figcaption')
+        ? prev
+        : wrapper;
+    target.style.breakBefore = 'page';
+    target.style.pageBreakBefore = 'always';
+    wrapper.style.breakInside = 'avoid';
+    wrapper.style.pageBreakInside = 'avoid';
+  }
+}
+
 // ── Shared export container preparation ──────────────────────────────────────
+
 
 /**
  * Build the print container, attach it to the DOM for layout,
