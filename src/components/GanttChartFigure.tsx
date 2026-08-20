@@ -894,10 +894,12 @@ export function GanttChartFigure({
                       </div>
                       <div
                         className="shrink-0 flex items-center"
+                        data-gantt-title-cell="true"
                         style={{ width: titleWidth, height: ROW_HEIGHT, padding: '0 2px', borderRight: `1px solid ${wpColor}`, overflow: 'hidden' }}
                       >
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', maxWidth: taskTitleMaxWidth.get(task.id) ?? '100%' }}>{task.name}</span>
+                        <span data-gantt-task-title="true" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', maxWidth: taskTitleMaxWidth.get(task.id) ?? '100%' }}>{task.name}</span>
                       </div>
+
                       <div className="relative flex" style={{ marginRight: MARGIN_GAP }}>
                         {months.map(m => (
                           <div
