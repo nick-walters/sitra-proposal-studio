@@ -115,6 +115,34 @@ export function ModelUpdateCheckDialog({
     setPriceOut("");
   };
 
+  const openUseForRun = (model: AnthropicModel) => {
+    const configured = options.find((o) => o.model_id === model.id);
+    setRunTarget(model);
+    // A configured model already has prices on record; an unconfigured one has
+    // none, so the operator is asked for them rather than a guess being made.
+    setRunPriceIn(configured ? String(configured.price_input_per_mtok) : "");
+    setRunPriceOut(configured ? String(configured.price_output_per_mtok) : "");
+  };
+
+  const confirmUseForRun = () => {
+    if (!runTarget || !onUseForRun) return;
+    const inNum = Number(runPriceIn);
+    const outNum = Number(runPriceOut);
+    if (!Number.isFinite(inNum) || inNum <= 0 || !Number.isFinite(outNum) || outNum <= 0) {
+      toast.error("Enter both input and output prices in USD per million tokens.");
+      return;
+    }
+    onUseForRun({
+      modelId: runTarget.id,
+      label: runTarget.display_name || runTarget.id,
+      priceInputPerMTok: inNum,
+      priceOutputPerMTok: outNum,
+    });
+    setRunTarget(null);
+    onOpenChange(false);
+  };
+
+
   const replaced = options.find((o) => o.id === replaceOptionId) || null;
 
   const confirmApply = async () => {
