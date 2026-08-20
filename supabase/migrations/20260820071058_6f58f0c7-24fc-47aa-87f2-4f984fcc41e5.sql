@@ -1,0 +1,14 @@
+UPDATE public.proposal_milestones SET means_of_verification = overlay(means_of_verification PLACING 'T4.4' FROM 2358 FOR 502) WHERE id = '01f90ea2-6faf-481f-9e11-d905f0792efd';
+UPDATE public.proposal_milestones SET means_of_verification = overlay(means_of_verification PLACING 'D1.3' FROM 894 FOR 4) WHERE id = '01f90ea2-6faf-481f-9e11-d905f0792efd';
+UPDATE public.proposal_milestones SET means_of_verification = overlay(means_of_verification PLACING 'D1.3' FROM 120 FOR 4) WHERE id = '01f90ea2-6faf-481f-9e11-d905f0792efd';
+UPDATE public.section_content SET content = overlay(content PLACING 'D5.3' FROM 27891 FOR 4) WHERE id = 'a406ea31-0066-4695-bbdf-91ef345f4b7e';
+UPDATE public.section_content SET content = overlay(content PLACING 'D5.2' FROM 27236 FOR 4) WHERE id = 'a406ea31-0066-4695-bbdf-91ef345f4b7e';
+UPDATE public.section_content SET content = overlay(content PLACING 'D2.1' FROM 20093 FOR 4) WHERE id = 'a406ea31-0066-4695-bbdf-91ef345f4b7e';
+UPDATE public.section_content SET content = overlay(content PLACING 'D2.2' FROM 17096 FOR 4) WHERE id = 'a406ea31-0066-4695-bbdf-91ef345f4b7e';
+UPDATE public.section_content SET content = overlay(content PLACING 'D1.2' FROM 15239 FOR 4) WHERE id = 'a406ea31-0066-4695-bbdf-91ef345f4b7e';
+UPDATE public.section_content SET content = overlay(content PLACING 'D1.3' FROM 14556 FOR 4) WHERE id = 'a406ea31-0066-4695-bbdf-91ef345f4b7e';
+UPDATE public.wp_draft_tasks SET description = overlay(description PLACING 'D5.3' FROM 5338 FOR 4) WHERE id = '4b763bc9-6586-45de-adf6-5d044a23d665';
+UPDATE public.wp_draft_tasks SET description = overlay(description PLACING 'D5.3' FROM 4729 FOR 4) WHERE id = '6a69198a-fa17-4775-9bc4-6b6950985d63';
+UPDATE public.wp_draft_tasks SET description = overlay(description PLACING 'D5.2' FROM 9264 FOR 4) WHERE id = 'd7f29273-fe7c-4196-b23a-8a0d4d2f3d24';
+UPDATE public.wp_draft_tasks SET description = overlay(description PLACING 'D5.6' FROM 4878 FOR 4) WHERE id = 'ec1fefda-07d7-49e8-ae55-238e00314d4c';
+UPDATE public.wp_draft_tasks SET description = overlay(description PLACING 'D5.5' FROM 4008 FOR 4) WHERE id = 'ec1fefda-07d7-49e8-ae55-238e00314d4c';
