@@ -1143,8 +1143,16 @@ export function PanelEvaluator({ proposalId }: Props) {
             onOpenChange={setModelCheckOpen}
             options={modelOptions}
             canApply={isOwner || isGlobalAdmin}
+            canUseForRun={isCoordinator}
             onApplied={() => { void refetchModelOptions(); }}
+            onUseForRun={(choice) => {
+              // This run only — no stored configuration is touched.
+              setOneOffModel(choice);
+              setModelChoice(choice.modelId);
+              toast.info(`${choice.label} will be used for the next run only.`);
+            }}
           />
+
 
           {/* Per-run model toggle switch. Both choices — ids, labels and prices —
               come from the runtime configuration (evaluation_model_options).
