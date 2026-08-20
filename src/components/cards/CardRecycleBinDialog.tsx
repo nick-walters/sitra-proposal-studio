@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ChevronDown, RotateCcw } from 'lucide-react';
 import DOMPurify from 'dompurify';
+import { CROSS_REF_RICH_TEXT_CONFIG } from '@/lib/sanitizePresets';
 import { formatDateTime } from '@/lib/formatDate';
 import { useSectionRecycleBin } from '@/hooks/useSectionRecycleBin';
 import type { CardDeletionEntry } from '@/types/cards';
@@ -35,7 +36,7 @@ function BinEntry({
   isRestoring: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const html = DOMPurify.sanitize(entry.contentHtml ?? '');
+  const html = DOMPurify.sanitize(entry.contentHtml ?? '', CROSS_REF_RICH_TEXT_CONFIG);
   const hasContent = html.replace(/<[^>]*>/g, '').trim().length > 0;
 
   return (
