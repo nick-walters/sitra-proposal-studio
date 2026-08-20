@@ -258,6 +258,10 @@ export function GeneralInfoForm({
   });
 
   const [keywordInput, setKeywordInput] = useState('');
+  // Snapshot of the last value known to be in the database. The autosave
+  // effect below only writes when the form differs from it, so simply opening
+  // A1 never re-upserts the loaded abstract.
+  const savedSnapshotRef = useRef<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -351,7 +355,7 @@ export function GeneralInfoForm({
             ? (data.declarations as Record<string, boolean>)
             : {};
 
-          setFormData({
+          const loaded: FormData = {
             abstract: htmlToPlainText(data.abstract || ''),
             fixedKeywords,
             freeKeywords: data.free_keywords || '',
@@ -370,8 +374,16 @@ export function GeneralInfoForm({
             },
             aiStatementEnabled: (data as { ai_statement_enabled?: boolean | null }).ai_statement_enabled !== false,
             aiStatementText: resolveAiStatementHtml((data as { ai_statement_text?: string | null }).ai_statement_text),
+          };
+          savedSnapshotRef.current = JSON.stringify(loaded);
+          setFormData(loaded);
+        } else {
+          // No row yet — remember the pristine defaults so the mere act of
+          // opening the page does not create one.
+          setFormData(prev => {
+            savedSnapshotRef.current = JSON.stringify(prev);
+            return prev;
           });
-
         }
       } catch (error) {
         // NEVER dump raw content into the abstract field (that caused the
@@ -409,6 +421,7 @@ export function GeneralInfoForm({
         });
 
       if (error) throw error;
+      savedSnapshotRef.current = JSON.stringify(data);
       setLastSaved(new Date());
     } catch (error) {
       console.error('Error saving general info:', error);
@@ -419,10 +432,13 @@ export function GeneralInfoForm({
 
   useEffect(() => {
     if (loading) return;
-    
+    // Touched-field guard: nothing to write until the user actually changes
+    // something (prevents the mount-time upsert of the loaded abstract).
+    if (savedSnapshotRef.current === JSON.stringify(formData)) return;
+
     const timeout = setTimeout(() => {
       saveContent(formData);
-    }, 1000);
+    }, 800);
 
     return () => clearTimeout(timeout);
   }, [formData, loading, saveContent]);
