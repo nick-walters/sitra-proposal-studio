@@ -9,6 +9,7 @@ import { WPTableSection } from '@/components/WPTableSection';
 import {
   MethodologyEditorFocusProvider,
   useMethodologyEditorFocus,
+import { getEditorCapabilities } from '@/lib/fieldCapabilities';
 } from '@/components/MethodologyEditorFocusContext';
 
 import { WPDeliverablesTable } from '@/components/WPDeliverablesTable';
@@ -694,6 +695,7 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
         <div data-wp-draft-toolbar="1">
         <DraftFormattingToolbar
           onOpenGuidelines={() => setGuidelinesDialogOpen(true)}
+          capabilities={getEditorCapabilities(activeEditor)}
           save={{ saving, lastSaved, saveError, onSaveNow: () => {} }}
           isReadOnly={readOnly}
           undo={{
