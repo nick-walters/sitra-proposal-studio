@@ -8,6 +8,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { SaveIndicator } from '@/components/SaveIndicator';
+import { FULL_FIELD_CAPABILITIES, type FieldCapabilityFlags } from '@/lib/fieldCapabilities';
 import { ParagraphSpacingExecPopover } from '@/components/ParagraphSpacingExecPopover';
 import {
   BookOpen, List, ListOrdered,
