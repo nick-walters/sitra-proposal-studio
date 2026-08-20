@@ -203,22 +203,20 @@ export function useWPDrafts(proposalId: string | null, options?: WPDraftHookOpti
   }, [proposalId, wpDrafts, fetchWPDrafts]);
 
   const deleteWPDraft = useCallback(async (wpId: string) => {
-    try {
-      const { error } = await supabase
-        .from('wp_drafts')
-        .delete()
-        .eq('id', wpId);
-
-      if (error) throw error;
-
-      setWPDrafts(prev => prev.filter(wp => wp.id !== wpId));
-      return true;
-    } catch (err) {
-      console.error('Error deleting WP draft:', err);
-      toast.error('Failed to delete work package');
+    // Delete and renumber the surviving work packages atomically.
+    const known = wpDrafts.find(wp => wp.id === wpId);
+    const res = await deleteAndResequence('wp_drafts', wpId, known?.version ?? null);
+    if (!res.ok) {
+      toast.error(res.conflict
+        ? 'This work package changed elsewhere — it was not deleted. Reloading.'
+        : (res.error || 'Failed to delete work package'));
+      await fetchWPDrafts();
       return false;
     }
-  }, []);
+    await fetchWPDrafts();
+    return true;
+  }, [wpDrafts, fetchWPDrafts]);
+
 
   const reorderWPDrafts = useCallback(async (newOrder: string[]) => {
     const versionById = new Map(wpDrafts.map(wp => [wp.id, wp.version]));
