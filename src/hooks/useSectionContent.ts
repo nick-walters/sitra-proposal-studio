@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { reportLostText } from '@/lib/lostTextBus';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 import { renumberAllCaptionsWithMapping, normalizeCaptionStyling } from '@/lib/captionRenumbering';
@@ -183,6 +184,9 @@ async function savePreviousSectionInBackground(
   } catch (error) {
     console.error(`[AutoSave] Background section-switch save failed for section=${sectionId}:`, error);
     localStorage.setItem(recoveryKey(proposalId, sectionId), content);
+    // The component that owned this text has already unmounted (navigation
+    // away mid-sentence), so the rejection surfaces through the app-level bus.
+    reportLostText(content);
   }
 }
 
