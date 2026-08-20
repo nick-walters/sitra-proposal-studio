@@ -55,7 +55,17 @@ import {
 } from '@/hooks/useCardLocks';
 import { LockHolderBadge } from '@/components/cards/LockHolderBadge';
 import { LockTimeoutWarning } from '@/components/cards/LockTimeoutWarning';
-import { LostTextDialog, type LostTextPayload } from '@/components/cards/LostTextDialog';
+import { type LostTextPayload } from '@/components/cards/LostTextDialog';
+import { reportLostTextPayload } from '@/lib/lostTextBus';
+
+/**
+ * Rejections are surfaced through the app-level bus rather than board-local
+ * state: a save can be rejected AFTER the board unmounts (text flushed while
+ * navigating away), and a board-owned dialog cannot render once unmounted.
+ */
+const setLostText = (payload: LostTextPayload | null) => {
+  if (payload) reportLostTextPayload(payload);
+};
 import { useSectionCards, sectionCardsKey } from '@/hooks/useSectionCards';
 import { useSectionRecycleBin } from '@/hooks/useSectionRecycleBin';
 import { useCardFieldsForCards } from '@/hooks/useCardFields';
@@ -988,7 +998,6 @@ function BoardInner({
     null,
   );
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [lostText, setLostText] = useState<LostTextPayload | null>(null);
   const [reloadNonce, setReloadNonce] = useState(0);
   const { warning, locks, myUserId } = useCardLocks();
 
@@ -1383,8 +1392,6 @@ function BoardInner({
         <KeyboardShortcutsDialog isOpen={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
 
         {warning && <LockTimeoutWarning secondsLeft={warning.secondsLeft} />}
-
-        <LostTextDialog payload={lostText} onClose={() => setLostText(null)} />
 
         {historyOpen && focusedBox && (
           <CardFieldHistoryDialog
