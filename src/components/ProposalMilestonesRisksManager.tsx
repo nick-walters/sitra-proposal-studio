@@ -755,20 +755,6 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
           </div>
           {canEdit && (
             <div className="flex items-center justify-end gap-2 pt-3">
-              {msNumberingNeedsRepair && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => repairMsNumbering()}
-                    >
-                      Repair numbering
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Milestone numbers are not sequential. Renumber them 1–N now.</TooltipContent>
-                </Tooltip>
-              )}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
