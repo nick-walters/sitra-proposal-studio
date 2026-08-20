@@ -475,7 +475,9 @@ export function resolveRefBadgesInDom(root: ParentNode, data?: RefSnapshot): voi
     .querySelectorAll<HTMLElement>(`[data-wp-reference], [data-wp-id]${NOT_OTHER}:not([data-ref-type])`)
     .forEach((el) => renderWp(el, data));
   root
-    .querySelectorAll<HTMLElement>('[data-case-reference], [data-case-id]')
+    .querySelectorAll<HTMLElement>(
+      `[data-case-reference]${NOT_STRUCTURAL}, [data-case-id]${NOT_STRUCTURAL}`,
+    )
     .forEach((el) => renderCase(el, data));
   root
     .querySelectorAll<HTMLElement>(
