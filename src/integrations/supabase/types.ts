@@ -6783,6 +6783,7 @@ export type Database = {
         Args: { p_items: Json; p_table: string }
         Returns: Json
       }
+      reseq_guard_on: { Args: { p_table: string }; Returns: boolean }
       resequence_card_fields: {
         Args: { p_card_id: string }
         Returns: undefined
@@ -6880,6 +6881,7 @@ export type Database = {
         Args: { p_field_id: string }
         Returns: undefined
       }
+      tg_reseq_tasks_for: { Args: { p_wp: string }; Returns: undefined }
       thin_card_field_versions: {
         Args: { p_proposal_id: string }
         Returns: number
