@@ -1,11 +1,14 @@
 import { useEffect } from 'react';
+import DOMPurify from 'dompurify';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { formatDateTime } from '@/lib/formatDate';
 import { supabase } from '@/integrations/supabase/client';
 import { useCardFieldVersions } from '@/hooks/useCardFieldVersions';
+import { CROSS_REF_RICH_TEXT_CONFIG } from '@/lib/sanitizePresets';
 import type { CardTextBox } from '@/types/cards';
+
 
 interface CardFieldHistoryDialogProps {
   proposalId: string;
@@ -98,7 +101,12 @@ export function CardFieldHistoryDialog({
                   ) : (
                     <div
                       className="prose prose-sm mt-2 max-w-none text-sm text-muted-foreground"
-                      dangerouslySetInnerHTML={{ __html: v.contentHtml ?? '' }}
+                      dangerouslySetInnerHTML={{
+                        // Stored HTML is untrusted: sanitise with the shared
+                        // cross-reference preset so chips, formatting and
+                        // tables survive while scripts do not.
+                        __html: DOMPurify.sanitize(v.contentHtml ?? '', CROSS_REF_RICH_TEXT_CONFIG),
+                      }}
                     />
                   )}
                 </div>
