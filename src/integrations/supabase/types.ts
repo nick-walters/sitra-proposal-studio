@@ -6841,6 +6841,10 @@ export type Database = {
         }
         Returns: Json
       }
+      save_milestone_and_resequence: {
+        Args: { p_expected_version?: number; p_id: string; p_patch: Json }
+        Returns: Json
+      }
       save_proposal_milestone: {
         Args: { p_expected_version: number; p_id: string; p_patch: Json }
         Returns: Json
