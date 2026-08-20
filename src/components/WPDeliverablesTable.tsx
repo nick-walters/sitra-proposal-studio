@@ -277,7 +277,9 @@ export function WPDeliverablesTable({
     }
   };
 
-  // ── Same-month manual ordering: write order_index per group, then renumber via parent reorder ──
+  // ── Same-month manual ordering: write order_index per group only ──
+  // The database trigger derives `number` from (due month, lowest linked task,
+  // order_index), so the client never writes numbers itself.
   const persistGroupOrder = useCallback(async (newSorted: WPDraftDeliverable[]) => {
     // Assign order_index within each due_month group as 0..k-1
     const groups = new Map<string, WPDraftDeliverable[]>();
@@ -295,11 +297,7 @@ export function WPDeliverablesTable({
     for (const u of updates) {
       await onDeliverableUpdate(u.id, { order_index: u.order_index });
     }
-    // Renumber via parent reorder (sets number = position+1 in flat order)
-    if (onDeliverableReorder) {
-      await onDeliverableReorder(newSorted.map(d => d.id));
-    }
-  }, [onDeliverableUpdate, onDeliverableReorder]);
+  }, [onDeliverableUpdate]);
 
   const otherWpDrafts = allWpDrafts.filter(wp => wp.id !== wpDraftId);
 
