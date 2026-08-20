@@ -718,8 +718,6 @@ export function useWPDraftEditor(wpId: string | null, options?: WPDraftHookOptio
     saveError,
     refetch: fetchWPDraft,
     updateField,
-    numberingNeedsRepair,
-    repairNumbering,
     // Tasks
     addTask,
     updateTask,
