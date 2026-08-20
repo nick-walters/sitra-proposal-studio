@@ -17,6 +17,3 @@ verify_jwt = false
 
 [functions.import-topic-info]
 verify_jwt = false
-
-[functions.model-probe]
-verify_jwt = false
