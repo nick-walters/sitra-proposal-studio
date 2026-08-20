@@ -453,20 +453,21 @@ export function useWPDraftEditor(wpId: string | null, options?: WPDraftHookOptio
   }, [wpDraft?.tasks, fetchWPDraft, onConflict]);
 
   const deleteTask = useCallback(async (taskId: string) => {
-    const remaining = (wpDraft?.tasks || [])
-      .filter(t => t.id !== taskId)
-      .sort((a, b) => a.order_index - b.order_index);
-
-    const { error } = await supabase.from('wp_draft_tasks').delete().eq('id', taskId);
-    if (error) {
-      console.error('Error deleting task:', error);
-      toast.error('Failed to delete task');
+    // Delete + renumber survivors in one transaction: a half-applied delete is
+    // what used to leave gaps such as a T2.3 with no T2.2.
+    const known = (wpDraft?.tasks || []).find(t => t.id === taskId);
+    const res = await deleteAndResequence('wp_draft_tasks', taskId, known?.version ?? null);
+    if (!res.ok) {
+      toast.error(res.conflict
+        ? 'This task changed elsewhere — it was not deleted. Reloading.'
+        : (res.error || 'Failed to delete task'));
+      await fetchWPDraft();
       return false;
     }
-    // Renumbering survivors is a guarded, all-or-nothing operation.
-    await applyOrder('wp_draft_tasks', remaining, 'Tasks');
+    await fetchWPDraft();
     return true;
-  }, [wpDraft?.tasks, applyOrder]);
+  }, [wpDraft?.tasks, fetchWPDraft]);
+
 
   const reorderTasks = useCallback(async (newOrder: string[]) => {
     if (!wpDraft) return false;
