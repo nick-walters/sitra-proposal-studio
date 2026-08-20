@@ -87,6 +87,8 @@ export function ProposalEditor() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  // Default tab for the combined "Assignments & message board" page.
+  const [managementTab, setManagementTab] = useState<'tasks' | 'workload' | 'messaging'>('tasks');
   const { user } = useAuth();
   const { isOwner: isGlobalOwner } = useUserRole();
   const [activeSection, setActiveSection] = useState<Section | WPSection | CaseSection | null>(null);
@@ -265,7 +267,18 @@ export function ProposalEditor() {
     const urlPanel = searchParams.get('panel') as 'comments' | 'changes' | null;
     if (!urlSection) return;
     
-    const found = findSectionById(allSections, urlSection);
+    // Legacy deep links: 'messaging' and 'backups' are now tabs on merged pages.
+    let targetId = urlSection;
+    if (urlSection === 'messaging') {
+      targetId = 'task-allocator';
+      setManagementTab('messaging');
+    } else if (urlSection === 'task-allocator') {
+      setManagementTab('tasks');
+    } else if (urlSection === 'backups') {
+      targetId = 'snapshots';
+    }
+
+    const found = findSectionById(allSections, targetId);
     if (found) {
       setActiveSection(found);
     }
@@ -580,7 +593,6 @@ export function ProposalEditor() {
                 Export part B
               </Button>
             </div>
-            {isCoordinator && <PanelEvaluator proposalId={id || ''} />}
           </div>
         </div>
       ),
