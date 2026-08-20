@@ -37,27 +37,54 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   options: EvaluationModelOption[];
-  /** Platform owner (is_global_admin) — only they may apply a model. */
+  /** Platform owner (is_global_admin) — only they may change stored configuration. */
   canApply: boolean;
+  /** Coordinator-or-above — whoever may run an evaluation may pick a model for one run. */
+  canUseForRun?: boolean;
   onApplied: () => void;
+  /**
+   * Select a model for the next run only. Never touches stored configuration —
+   * the prices come with it because an unconfigured model has none on record.
+   */
+  onUseForRun?: (choice: {
+    modelId: string;
+    label: string;
+    priceInputPerMTok: number;
+    priceOutputPerMTok: number;
+  }) => void;
 }
 
 /**
- * Lists the models Anthropic currently offers and lets a platform owner adopt a
- * newer one in place of a configured option. The Anthropic call runs inside the
- * `list-anthropic-models` edge function so the API key never reaches the browser.
+ * Lists the models Anthropic currently offers. A coordinator may take one for a
+ * single run; only a platform owner may replace a stored default with it. The
+ * Anthropic call runs inside the `list-anthropic-models` edge function so the
+ * API key never reaches the browser.
  */
-export function ModelUpdateCheckDialog({ open, onOpenChange, options, canApply, onApplied }: Props) {
+export function ModelUpdateCheckDialog({
+  open,
+  onOpenChange,
+  options,
+  canApply,
+  canUseForRun = false,
+  onApplied,
+  onUseForRun,
+}: Props) {
   const [loading, setLoading] = useState(false);
   const [models, setModels] = useState<AnthropicModel[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Apply flow state
+  // Apply flow state ("replace a default" — owner only)
   const [applyTarget, setApplyTarget] = useState<AnthropicModel | null>(null);
   const [replaceOptionId, setReplaceOptionId] = useState<string>("");
   const [priceIn, setPriceIn] = useState("");
   const [priceOut, setPriceOut] = useState("");
   const [applying, setApplying] = useState(false);
+
+  // One-off run flow state — writes nothing to evaluation_model_options.
+  const [runTarget, setRunTarget] = useState<AnthropicModel | null>(null);
+  const [runPriceIn, setRunPriceIn] = useState("");
+  const [runPriceOut, setRunPriceOut] = useState("");
+
 
   const check = async () => {
     setLoading(true);
