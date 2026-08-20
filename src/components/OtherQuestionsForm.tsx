@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -43,6 +43,9 @@ export function OtherQuestionsForm({ proposalId, isTwoStageSecondStage, canEdit 
     clinicalTrials: [],
   });
   const [loading, setLoading] = useState(true);
+  // Last value known to be in the database — the autosave effect skips the
+  // write while the form still matches it, so opening A5 never upserts.
+  const savedSnapshotRef = useRef<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
@@ -64,12 +67,14 @@ export function OtherQuestionsForm({ proposalId, isTwoStageSecondStage, canEdit 
         if (data?.content) {
           try {
             const parsed = JSON.parse(data.content);
-            setFormData({
+            const loaded: FormData = {
               hasSubstantialDifferences: parsed.hasSubstantialDifferences || '',
               substantialDifferencesText: parsed.substantialDifferencesText || '',
               involvesClinicalTrials: parsed.involvesClinicalTrials || '',
               clinicalTrials: parsed.clinicalTrials || [],
-            });
+            };
+            savedSnapshotRef.current = JSON.stringify(loaded);
+            setFormData(loaded);
           } catch {
             // Invalid JSON, use defaults
           }
@@ -77,6 +82,10 @@ export function OtherQuestionsForm({ proposalId, isTwoStageSecondStage, canEdit 
       } catch (error) {
         console.error('Error loading A5 content:', error);
       }
+      setFormData(prev => {
+        if (savedSnapshotRef.current === null) savedSnapshotRef.current = JSON.stringify(prev);
+        return prev;
+      });
       setLoading(false);
     };
 
@@ -103,6 +112,7 @@ export function OtherQuestionsForm({ proposalId, isTwoStageSecondStage, canEdit 
         });
 
       if (error) throw error;
+      savedSnapshotRef.current = JSON.stringify(data);
       setLastSaved(new Date());
     } catch (error) {
       console.error('Error saving A5 content:', error);
@@ -113,10 +123,12 @@ export function OtherQuestionsForm({ proposalId, isTwoStageSecondStage, canEdit 
 
   useEffect(() => {
     if (loading) return;
-    
+    // Touched-field guard — no write until the user changes something.
+    if (savedSnapshotRef.current === JSON.stringify(formData)) return;
+
     const timeout = setTimeout(() => {
       saveContent(formData);
-    }, 1000);
+    }, 800);
 
     return () => clearTimeout(timeout);
   }, [formData, loading, saveContent]);
