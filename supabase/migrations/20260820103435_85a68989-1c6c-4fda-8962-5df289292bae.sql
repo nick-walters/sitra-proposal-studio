@@ -1,0 +1,1 @@
+delete from public.proposals where id = '30c12c4f-7e37-40c9-acc0-31fdb2a2f488';
