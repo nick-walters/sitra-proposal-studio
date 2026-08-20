@@ -38,6 +38,7 @@ import {
   WP_DRAFT_FIELD_EXTENSIONS,
   WP_TITLE_FIELD_EXTENSIONS,
 } from '@/components/wp/wpDraftFieldExtensions';
+import { getEditorCapabilities } from '@/lib/fieldCapabilities';
 import { ParticipantCrossRefDropdown } from '@/components/participant/ParticipantCrossRefDropdown';
 import {
   MethodologyEditorFocusProvider,
