@@ -252,12 +252,64 @@ export function ModelUpdateCheckDialog({
 
             {!canApply && models && (
               <p className="text-xs text-muted-foreground">
-                Only the platform owner can change the configured models.
+                Only the platform owner can replace a configured default model. You can still
+                use any model for a single run.
               </p>
             )}
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* One-off run. Nothing here writes to evaluation_model_options — the
+          prices are carried with the run so its cost is exact rather than
+          guessed from the model's name. */}
+      <Dialog open={!!runTarget} onOpenChange={(o) => !o && setRunTarget(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Use {runTarget?.display_name || runTarget?.id} for this run?</DialogTitle>
+            <DialogDescription>
+              This run only. The configured default models are left unchanged.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="run-price-in">Input price (USD / M tokens)</Label>
+                <Input
+                  id="run-price-in"
+                  inputMode="decimal"
+                  value={runPriceIn}
+                  onChange={(e) => setRunPriceIn(e.target.value)}
+                  placeholder="e.g. 3.00"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="run-price-out">Output price (USD / M tokens)</Label>
+                <Input
+                  id="run-price-out"
+                  inputMode="decimal"
+                  value={runPriceOut}
+                  onChange={(e) => setRunPriceOut(e.target.value)}
+                  placeholder="e.g. 15.00"
+                />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Anthropic's models endpoint does not publish prices, so the cost of this run
+              cannot be estimated without them. Enter them from Anthropic's pricing page.
+            </p>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRunTarget(null)}>
+              Cancel
+            </Button>
+            <Button onClick={confirmUseForRun}>Use for this run</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
 
       {/* Confirmation + pricing capture. Anthropic's models endpoint does not
           return prices, so they are asked for explicitly rather than guessed. */}
