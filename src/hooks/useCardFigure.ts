@@ -11,6 +11,18 @@ import type {
 
 export const cardFigureKey = (cardId: string) => ['card-figure', cardId];
 
+/**
+ * The three states a figure can be in.
+ *  - 'placed'  — held by a live block: numbered, listed under its section.
+ *  - 'held_by_deleted_block' — held by a SOFT-DELETED block. The unique index
+ *    on card_figure.figure_id still holds the figure, so it cannot be placed
+ *    elsewhere; the manager hides it entirely. Restoring the block brings the
+ *    figure back with it; purging the block frees the figure, which then
+ *    becomes 'unplaced'.
+ *  - 'unplaced' — no card_figure row points at it: shown at the top, no number.
+ */
+export type FigurePlacementState = 'placed' | 'held_by_deleted_block' | 'unplaced';
+
 export interface ProposalFigureOption {
   id: string;
   /** Derived from the placing block; null when the figure is unplaced. */
@@ -25,7 +37,9 @@ export interface ProposalFigureOption {
   placedSectionId: string | null;
   /** "B1.2" — the section of the placing block. */
   placedSectionLabel: string | null;
+  state: FigurePlacementState;
 }
+
 
 /** Figure block placement row. `card_figure` alone decides where it renders. */
 export function useCardFigure(cardId: string) {
