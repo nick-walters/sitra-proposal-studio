@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import DOMPurify from 'dompurify';
 import { FootnoteCitation } from '@/components/FootnoteCitation';
 import { useSectionCitedReferences } from '@/hooks/useSectionCitedReferences';
-import type { ProposalReference } from '@/hooks/useProposalReferences';
+import { citationHtml } from '@/lib/sectionCitations';
 
 /**
  * The per-section reference list.
@@ -16,26 +16,6 @@ import type { ProposalReference } from '@/hooks/useProposalReferences';
  * This is NOT the PDF/DOCX footnote apparatus (Phase 5); it is the on-screen
  * per-section list.
  */
-
-function citationHtml(reference: ProposalReference): string {
-  const raw =
-    reference.formatted_citation ??
-    [
-      (reference.authors || []).join(', '),
-      reference.year ? `(${reference.year})` : '',
-      reference.title,
-      reference.journal,
-      reference.doi ? `https://doi.org/${reference.doi}` : '',
-    ]
-      .filter(Boolean)
-      .join('. ');
-
-  // Markdown emphasis is stored in `formatted_citation`; bold first so the
-  // volume number does not leave stray asterisks behind.
-  return raw
-    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*([^*]+)\*/g, '<em>$1</em>');
-}
 
 /** Scrolls to the first citation of this reference inside the section. */
 function jumpToFirstCitation(refKey: number) {
