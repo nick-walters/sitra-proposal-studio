@@ -39,7 +39,7 @@ interface CitationDialogProps {
   isLoadingReferences: boolean;
   nextCitationNumber: number;
   onUpdateReference?: (refId: string, updates: Partial<Omit<ProposalReference, 'id' | 'proposal_id' | 'created_at'>>) => Promise<boolean>;
-  /** Proposal-wide citation display order, by internal citation_number. */
+  /** Proposal-wide citation display order, by internal ref_key. */
   citationDisplayOrder?: Map<number, number>;
 }
 
@@ -124,7 +124,7 @@ export function CitationDialog({
 
     if (existingRef) {
       toast.warning("This reference has already been cited. Using existing citation number.");
-      onInsertCitation(foundReference, formattedCitation, existingRef.citation_number);
+      onInsertCitation(foundReference, formattedCitation, existingRef.ref_key);
     } else {
       onInsertCitation(foundReference, formattedCitation, nextCitationNumber);
     }
@@ -190,7 +190,7 @@ export function CitationDialog({
 
     if (existingRef) {
       toast.warning("This reference has already been cited. Using existing citation number.");
-      onInsertCitation(reference, formatted, existingRef.citation_number);
+      onInsertCitation(reference, formatted, existingRef.ref_key);
     } else {
       onInsertCitation(reference, formatted, nextCitationNumber);
     }
@@ -209,7 +209,7 @@ export function CitationDialog({
       doi: ref.doi,
     };
     
-    onInsertCitation(reference, ref.formatted_citation || '', ref.citation_number);
+    onInsertCitation(reference, ref.formatted_citation || '', ref.ref_key);
     resetAndClose();
   };
 
