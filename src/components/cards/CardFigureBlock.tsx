@@ -3,6 +3,7 @@ import { Image as ImageIcon, Pencil, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -15,21 +16,42 @@ import { StorageImage } from '@/components/StorageImage';
 import { FigureManager } from '@/components/FigureManager';
 import { useCardFigure, useProposalFigures } from '@/hooks/useCardFigure';
 import { tableCaptionClass, TABLE_CAPTION_LABEL_CLASS } from '@/lib/tableStyleSpec';
+import type { FigurePlacement } from '@/types/cardTable';
 import { cn } from '@/lib/utils';
 
 interface CardFigureBlockProps {
   cardId: string;
   proposalId: string;
   canEdit: boolean;
+  /** Placement, width and break controls are coordinator-or-above only. */
+  isCoordinator: boolean;
+  /**
+   * The section declares that every figure and table is full width (B3.1).
+   * Comes from the template, never from a hardcoded section id.
+   */
+  fullWidthOnly?: boolean;
   /** "Figure 1.2.a." — assigned by the board from document order. */
   captionLabel: string;
 }
+
+const PLACEMENT_LABELS: Record<FigurePlacement, string> = {
+  full_width: 'Full width',
+  beside_next: 'Beside the next block',
+  top_of_page: 'Top of the page',
+};
 
 /**
  * Figure block. `card_figure` is authoritative for placement — the asset's own
  * `figures.section_id` is deliberately never read here.
  */
-export function CardFigureBlock({ cardId, proposalId, canEdit, captionLabel }: CardFigureBlockProps) {
+export function CardFigureBlock({
+  cardId,
+  proposalId,
+  canEdit,
+  isCoordinator,
+  fullWidthOnly = false,
+  captionLabel,
+}: CardFigureBlockProps) {
   const { figureBlock, isLoading, save } = useCardFigure(cardId);
   const { data: figures = [] } = useProposalFigures(proposalId);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -51,17 +73,19 @@ export function CardFigureBlock({ cardId, proposalId, canEdit, captionLabel }: C
   const imageUrl: string | null = figure?.content?.imageUrl ?? null;
   const missingAsset = !figureBlock.figureId || (figures.length > 0 && !figure);
 
+  const placement: FigurePlacement = fullWidthOnly ? 'full_width' : figureBlock.placement;
+  const widthPct = fullWidthOnly ? 100 : figureBlock.widthPct;
+  const showPlacementControls = canEdit && isCoordinator;
+
   return (
     <div className="space-y-3">
       <div
         className={cn(
           'flex',
-          figureBlock.float === 'left' && 'justify-start',
-          figureBlock.float === 'right' && 'justify-end',
-          figureBlock.float === 'none' && 'justify-center',
+          placement === 'beside_next' ? 'justify-start' : 'justify-center',
         )}
       >
-        <div style={{ maxWidth: figureBlock.maxWidthCm ? `${figureBlock.maxWidthCm}cm` : '18cm' }} className="w-full">
+        <div style={{ width: `${widthPct}%` }} className="max-w-full">
           {missingAsset ? (
             <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border bg-muted/30 p-8 text-center">
               <ImageIcon className="h-8 w-8 text-muted-foreground" />
@@ -115,38 +139,85 @@ export function CardFigureBlock({ cardId, proposalId, canEdit, captionLabel }: C
 
       {canEdit && (
         <div className="flex flex-wrap items-end gap-3 rounded-md bg-muted/40 p-2">
-          <div className="space-y-1">
-            <Label className="text-xs">Float</Label>
-            <Select
-              value={figureBlock.float}
-              onValueChange={(value) => save.mutate({ float: value as 'none' | 'left' | 'right' })}
-            >
-              <SelectTrigger className="h-8 w-32 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">None</SelectItem>
-                <SelectItem value="left">Left</SelectItem>
-                <SelectItem value="right">Right</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Max width (cm)</Label>
-            <Input
-              type="number"
-              step="0.5"
-              min="1"
-              max="18"
-              defaultValue={figureBlock.maxWidthCm ?? ''}
-              className="h-8 w-24 text-xs"
-              onBlur={(e) => {
-                const raw = e.target.value.trim();
-                const next = raw === '' ? null : Number(raw);
-                if (next !== figureBlock.maxWidthCm) save.mutate({ max_width_cm: next });
-              }}
-            />
-          </div>
+          {showPlacementControls && !fullWidthOnly && (
+            <>
+              <div className="space-y-1">
+                <Label className="text-xs">Placement</Label>
+                <Select
+                  value={figureBlock.placement}
+                  onValueChange={(value) => save.mutate({ placement: value as FigurePlacement })}
+                >
+                  <SelectTrigger className="h-8 w-52 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(PLACEMENT_LABELS) as FigurePlacement[]).map((p) => (
+                      <SelectItem key={p} value={p}>
+                        {PLACEMENT_LABELS[p]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs">Width (% of the text column)</Label>
+                <Input
+                  type="number"
+                  step="5"
+                  min="10"
+                  max="100"
+                  defaultValue={figureBlock.widthPct}
+                  className="h-8 w-28 text-xs"
+                  onBlur={(e) => {
+                    const raw = Number(e.target.value);
+                    const next = Math.min(Math.max(Number.isFinite(raw) ? raw : 100, 10), 100);
+                    if (next !== figureBlock.widthPct) save.mutate({ width_pct: next });
+                  }}
+                />
+              </div>
+
+              {figureBlock.placement === 'beside_next' && (
+                <p className="self-center text-xs text-muted-foreground">
+                  The next block takes the remaining {100 - figureBlock.widthPct}%.
+                </p>
+              )}
+            </>
+          )}
+
+          {showPlacementControls && fullWidthOnly && (
+            <p className="self-center text-xs text-muted-foreground">
+              This section renders every figure and table at full width, so placement and width
+              cannot be changed here.
+            </p>
+          )}
+
+          {showPlacementControls && (
+            <div className="flex flex-wrap items-center gap-4">
+              <label className="flex items-center gap-2 text-xs">
+                <Checkbox
+                  checked={figureBlock.keepWhole}
+                  onCheckedChange={(v) => save.mutate({ keep_whole: v === true })}
+                />
+                Keep whole
+              </label>
+              <label className="flex items-center gap-2 text-xs">
+                <Checkbox
+                  checked={figureBlock.breakBefore}
+                  onCheckedChange={(v) => save.mutate({ break_before: v === true })}
+                />
+                Start on a new page
+              </label>
+              <label className="flex items-center gap-2 text-xs">
+                <Checkbox
+                  checked={figureBlock.keepWithNext}
+                  onCheckedChange={(v) => save.mutate({ keep_with_next: v === true })}
+                />
+                Keep with next
+              </label>
+            </div>
+          )}
+
           <Button size="sm" variant="outline" onClick={() => setPickerOpen(true)}>
             <Pencil className="mr-1 h-3.5 w-3.5" />
             Change figure

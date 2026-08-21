@@ -121,3 +121,25 @@
 .print-export-container .print-table thead {
   display: table-row-group;
 }
+
+/* ── Source-fed blocks on the cards board ────────────────────────────────── */
+/* Real content, read-only: text stays selectable, but nothing takes a caret
+   or responds to a click. */
+.source-fed-readonly {
+  user-select: text;
+}
+.source-fed-readonly button,
+.source-fed-readonly input,
+.source-fed-readonly select,
+.source-fed-readonly textarea,
+.source-fed-readonly a,
+.source-fed-readonly [role='button'],
+.source-fed-readonly [contenteditable],
+.source-fed-readonly .ProseMirror {
+  pointer-events: none !important;
+  user-select: text;
+}
+.source-fed-readonly [contenteditable],
+.source-fed-readonly .ProseMirror {
+  caret-color: transparent !important;
+}

@@ -40,6 +40,11 @@ export function useCardFigure(cardId: string) {
       caption?: string;
       float?: 'none' | 'left' | 'right';
       max_width_cm?: number | null;
+      width_pct?: number;
+      placement?: 'full_width' | 'beside_next' | 'top_of_page';
+      break_before?: boolean;
+      keep_with_next?: boolean;
+      keep_whole?: boolean;
     }) => {
       const { error } = await supabase.rpc('save_card_figure', {
         p_card_id: cardId,

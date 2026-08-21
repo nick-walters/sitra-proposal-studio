@@ -20,11 +20,6 @@ export interface FieldCapabilityFlags {
   paragraphSpacing: boolean;
   figures: boolean;
   citations: boolean;
-  /**
-   * Caret sits in a table-block cell, so the per-cell alignment controls
-   * apply. Declared by the cell editor — it can never be read off the schema.
-   */
-  tableCellAlign: boolean;
 }
 
 export const FULL_FIELD_CAPABILITIES: FieldCapabilityFlags = {
@@ -37,7 +32,6 @@ export const FULL_FIELD_CAPABILITIES: FieldCapabilityFlags = {
   paragraphSpacing: true,
   figures: true,
   citations: true,
-  tableCellAlign: false,
 };
 
 /**
@@ -85,7 +79,6 @@ function schemaCapabilities(extensions: Extensions): FieldCapabilityFlags {
     paragraphSpacing: lists || tables || headings,
     figures: tables || headings,
     citations: hasMark('citation') || hasNode('citation'),
-    tableCellAlign: false,
   };
 }
 
