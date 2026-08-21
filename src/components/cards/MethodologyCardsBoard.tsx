@@ -37,6 +37,10 @@ import {
 import { EditorChrome, EditorFeatureBar } from '@/components/EditorChrome';
 import { FormattingToolbar } from '@/components/RichTextEditor';
 import { PartBCrossRefControls } from '@/components/PartBCrossRefControls';
+import { CitationDialog } from '@/components/CitationDialog';
+import { useProposalReferences } from '@/hooks/useProposalReferences';
+import { useReferenceData } from '@/lib/referenceData';
+import { scheduleCitationInstanceReconcile } from '@/lib/reconcileCitationInstances';
 import { MethodologyRichEditor } from '@/components/MethodologyRichEditor';
 import {
   MethodologyEditorFocusProvider,
@@ -103,6 +107,51 @@ function CardsToolbar({
   acronymSegments: acronymSegmentsProp,
 }: Omit<BoardProps, 'sectionId'>) {
   const { activeEditor } = useMethodologyEditorFocus();
+  const [citationOpen, setCitationOpen] = useState(false);
+  const {
+    references: proposalReferences,
+    isLoading: referencesLoading,
+    addReference,
+    updateReference,
+    findExistingReference,
+    getNextCitationNumber,
+  } = useProposalReferences(proposalId);
+  const { data: refData } = useReferenceData(proposalId);
+
+  // Same insertion path as the legacy section editor: the reference is minted
+  // server-side if new, and the stable internal id — never a display number —
+  // is what goes onto the node. The display number is resolved at render time
+  // by the numbering module, like every other surface.
+  const handleInsertCitation = useCallback(
+    async (
+      reference: Parameters<React.ComponentProps<typeof CitationDialog>['onInsertCitation']>[0],
+      formattedCitation: string,
+      citationNumber: number,
+    ) => {
+      const editor = activeEditor;
+      if (!editor || editor.isDestroyed) return;
+      const existing = findExistingReference(reference);
+      let refKey = existing?.ref_key ?? citationNumber;
+      if (!existing) {
+        const saved = await addReference(reference, formattedCitation, citationNumber);
+        if (!saved) {
+          toast.error('Failed to save reference. Citation was not inserted.');
+          return;
+        }
+        refKey = saved.ref_key;
+      }
+      const citationType = editor.schema.nodes.citation;
+      if (!citationType) return;
+      const node = citationType.create({ citationNumber: refKey });
+      const tr = editor.state.tr
+        .replaceSelectionWith(node, false)
+        .setMeta('trackChangesInternal', true)
+        .scrollIntoView();
+      editor.view.focus();
+      editor.view.dispatch(tr);
+    },
+    [activeEditor, addReference, findExistingReference],
+  );
 
   const acronymSegments =
     acronymSegmentsProp && acronymSegmentsProp.length > 0
@@ -127,6 +176,7 @@ function CardsToolbar({
         canManageCustomColors={isCoordinator}
         isPartB
         isReadOnly={!canEdit}
+        onOpenCitationDialog={canEdit ? () => setCitationOpen(true) : undefined}
         crossRefDropdown={
           <>
             <PartBCrossRefControls
@@ -138,6 +188,16 @@ function CardsToolbar({
             />
           </>
         }
+      />
+      <CitationDialog
+        isOpen={citationOpen}
+        onClose={() => setCitationOpen(false)}
+        onInsertCitation={handleInsertCitation}
+        proposalReferences={proposalReferences}
+        isLoadingReferences={referencesLoading}
+        nextCitationNumber={getNextCitationNumber()}
+        onUpdateReference={updateReference}
+        citationDisplayOrder={refData?.citationNumbers}
       />
     </div>
   );
@@ -1195,8 +1255,10 @@ function BoardInner({
   const persistField = useCallback(
     async (fieldId: string, cardId: string, html: string, isAutoSave = true) => {
       await saveTextBox(fieldId, cardId, 'content', html, isAutoSave);
+      // Keep the derived citation index in step with the saved HTML.
+      scheduleCitationInstanceReconcile({ proposalId, fieldId, cardId, html });
     },
-    [saveTextBox],
+    [saveTextBox, proposalId],
   );
 
   const handleContentChange = (field: CardField, html: string) => {
