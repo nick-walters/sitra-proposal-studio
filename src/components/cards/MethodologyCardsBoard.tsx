@@ -1279,18 +1279,15 @@ function BoardInner({
     void jumpToElementId(domId);
   }, []);
 
-  // Caption labels are assigned per section in document order: tables and
-  // figures each carry their own a, b, c sequence.
+  // Figure blocks are labelled per section in document order (a, b, c…).
   const captionLabels = useMemo(() => {
     const ordered = [...headCards, ...freeCards, ...tailCards];
     const labels: Record<string, string> = {};
-    let tableIndex = 0;
     let figureIndex = 0;
     for (const card of ordered) {
-      if (card.kind === 'table') {
-        labels[card.id] = `Table ${SECTION_CAPTION_NUMBER}.${String.fromCharCode(97 + tableIndex)}.`;
-        tableIndex += 1;
-      } else if (card.kind === 'figure') {
+      // Tables are captioned inside the text block that contains them, by the
+      // editor's own caption sequence — only figures get a block-level label.
+      if (card.kind === 'figure') {
         labels[card.id] = `Figure ${SECTION_CAPTION_NUMBER}.${String.fromCharCode(97 + figureIndex)}.`;
         figureIndex += 1;
       }
