@@ -1,18 +1,25 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { computeFigureNumbers } from '@/lib/figureNumbering';
 import { mapCardFigure, type CardFigureBlockData } from '@/types/cardTable';
 
 export const cardFigureKey = (cardId: string) => ['card-figure', cardId];
 
 export interface ProposalFigureOption {
   id: string;
-  figureNumber: string;
+  /** Derived from the placing block; null when the figure is unplaced. */
+  figureNumber: string | null;
   title: string;
   figureType: string;
   caption: string | null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   content: any;
+  /** Block currently holding this figure, or null when unplaced. */
+  placedCardId: string | null;
+  placedSectionId: string | null;
+  /** "B1.2" — the section of the placing block. */
+  placedSectionLabel: string | null;
 }
 
 /** Figure block placement row. `card_figure` alone decides where it renders. */
