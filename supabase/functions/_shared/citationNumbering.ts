@@ -127,9 +127,6 @@ export function computeCitationNumbers(
       b.deleted_at == null &&
       b.is_visible !== false,
   );
-  for (const b of eligibleBlocks) {
-    blockRank.set(b.id, 0); // placeholder, replaced below
-  }
   const sortedBlocks = [...eligibleBlocks].sort((a, b) => {
     const sa = sectionOrder.get(a.section_id!)!;
     const sb = sectionOrder.get(b.section_id!)!;
