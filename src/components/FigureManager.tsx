@@ -332,12 +332,8 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
         const compressedBlob = await compressImage(sourceBlob, { format, quality: 0.92 });
 
         // Generate file path with correct extension
-        const section = SECTION_OPTIONS.find(s => s.id === newFigureSection);
-        const sectionNumber = section?.number.replace('B', '') || '1.1';
-        const existingInSection = figures.filter(f => f.sectionId === newFigureSection);
-        const letter = String.fromCharCode(97 + existingInSection.length);
         const extension = getFormatExtension(format);
-        const filename = `figure-${sectionNumber}-${letter}-${newFigureTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.${extension}`;
+        const filename = `figure-${newFigureTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.${extension}`;
         
         const filePath = generateProposalFilePath(proposalId, 'figures', filename, {
           prefix: newFigureType === 'ai' ? 'ai-generated' : 'uploaded',
@@ -399,19 +395,25 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
     }
   };
 
-  // Group figures by section (using sorted figures)
-  const figuresBySection = sortedFigures.reduce((acc, figure) => {
-    if (!acc[figure.sectionId]) {
-      acc[figure.sectionId] = [];
-    }
-    acc[figure.sectionId].push(figure);
-    return acc;
-  }, {} as Record<string, Figure[]>);
+  // Unplaced first, then grouped by the section of the block placing them.
+  // These groupings are read-only labels: order comes from the cards board.
+  const unplacedFigures = figures.filter((f) => !f.placedCardId);
+  const placedFigures = figures.filter((f) => f.placedCardId);
+  const placedGroups = Array.from(
+    placedFigures.reduce((acc, figure) => {
+      const key = figure.placedSectionLabel || 'Placed';
+      const bucket = acc.get(key) ?? [];
+      bucket.push(figure);
+      acc.set(key, bucket);
+      return acc;
+    }, new Map<string, Figure[]>()),
+  ).sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }));
 
   // Helper to format caption like Part B templates: "Figure X.X.x. Caption or Title"
-  const formatFigureCaption = (figure: Figure) => {
-    return `Figure ${figure.figureNumber}. ${figure.caption || figure.title}`;
-  };
+  const formatFigureCaption = (figure: Figure) =>
+    figure.figureNumber
+      ? `Figure ${figure.figureNumber}. ${figure.caption || figure.title}`
+      : `${figure.caption || figure.title} (unplaced — unnumbered)`;
 
   if (selectedFigure) {
     return (
@@ -601,21 +603,6 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Section</Label>
-                    <Select value={newFigureSection} onValueChange={setNewFigureSection}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {SECTION_OPTIONS.map((section) => (
-                          <SelectItem key={section.id} value={section.id}>
-                            {section.number} - {section.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
                     <Label>Figure type</Label>
                      <div className="grid gap-2">
                       {FIGURE_TYPES.map((type) => {
@@ -691,7 +678,7 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
         {/* Gallery View */}
         {viewMode === 'gallery' && (
           <div className="space-y-4">
-            {sortedFigures.length === 0 ? (
+            {figures.length === 0 ? (
               <Card>
                 <CardContent className="py-12 text-center">
                   <Image className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
@@ -700,8 +687,7 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
               </Card>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {sortedFigures.map((figure) => {
-                  const section = SECTION_OPTIONS.find(s => s.id === figure.sectionId);
+                {figures.map((figure) => {
                   const hasImage = figure.content?.imageUrl;
                   
                   return (
@@ -733,13 +719,12 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
                           variant="secondary" 
                           className="absolute top-2 left-2 text-xs"
                         >
-                          {section?.number || 'B'}
+                          {figure.placedSectionLabel || 'Unplaced'}
                         </Badge>
                       </div>
                       <CardContent className="p-3">
                         {/* Caption matching Part B format: "Figure X.X.x. Caption or Title" */}
                         <p className="text-sm italic truncate" title={formatFigureCaption(figure)}>
-                          <span className="font-semibold">Figure {figure.figureNumber}.</span>{' '}
                           {figure.caption || figure.title}
                         </p>
                       </CardContent>
@@ -751,54 +736,54 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
           </div>
         )}
 
-        {/* List View - Figures by Section */}
-        {viewMode === 'list' && SECTION_OPTIONS.map((section) => {
-          const sectionFigures = figuresBySection[section.id] || [];
-          const figureIds = sectionFigures.map(f => f.id);
-          
-          return (
-            <Card key={section.id}>
+        {/* List view — unplaced first, then read-only placement groups */}
+        {viewMode === 'list' && (
+          <div className="space-y-4">
+            <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Badge variant="outline">{section.number}</Badge>
-                  {section.label}
-                </CardTitle>
+                <CardTitle className="text-base">Unplaced</CardTitle>
                 <CardDescription>
-                  {sectionFigures.length} figure{sectionFigures.length !== 1 ? 's' : ''}
-                  {canEdit && sectionFigures.length > 1 && (
-                    <span className="text-xs ml-2">(drag to reorder)</span>
-                  )}
+                  Saved but not in a block, so they carry no number. Add a figure block on the
+                  cards board to place one.
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {sectionFigures.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-4 text-center">
-                    No figures for this section yet
+                {unplacedFigures.length === 0 ? (
+                  <p className="py-4 text-center text-sm text-muted-foreground">
+                    Every figure is placed in a block.
                   </p>
                 ) : (
-                  <DndContext
-                    sensors={sensors}
-                    collisionDetection={closestCenter}
-                    onDragEnd={handleDragEnd(section.id)}
-                  >
-                    <SortableContext items={figureIds} strategy={verticalListSortingStrategy}>
-                      <div className="space-y-2">
-                        {sectionFigures.map((figure) => (
-                          <SortableFigureItem
-                            key={figure.id}
-                            figure={figure}
-                            onSelect={setSelectedFigure}
-                            canEdit={canEdit}
-                          />
-                        ))}
-                      </div>
-                    </SortableContext>
-                  </DndContext>
+                  <div className="space-y-2">
+                    {unplacedFigures.map((figure) => (
+                      <FigureRow key={figure.id} figure={figure} onSelect={setSelectedFigure} />
+                    ))}
+                  </div>
                 )}
               </CardContent>
             </Card>
-          );
-        })}
+
+            {placedGroups.map(([label, sectionFigures]) => (
+              <Card key={label}>
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Badge variant="outline">{label}</Badge>
+                  </CardTitle>
+                  <CardDescription>
+                    {sectionFigures.length} figure{sectionFigures.length !== 1 ? 's' : ''} — order and
+                    numbering follow the blocks on the cards board.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {sectionFigures.map((figure) => (
+                      <FigureRow key={figure.id} figure={figure} onSelect={setSelectedFigure} />
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Common Figures Library Dialog */}
