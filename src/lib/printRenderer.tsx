@@ -552,7 +552,7 @@ export async function buildPrintContainer(
       // are offered and the scan uses whichever matches.
       appendSectionReferences(container, citationSources, citationNumbers, {
         sectionId: section.id,
-        legacyKey: legacySectionKey(section.id) || legacySectionKey(`B${num}`),
+        legacyKey: legacySectionKey(`B${num}`),
       });
     }
   }
