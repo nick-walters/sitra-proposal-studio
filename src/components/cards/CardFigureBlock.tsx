@@ -266,8 +266,10 @@ export function CardFigureBlock({
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium">Figure {f.figureNumber}</p>
-                  <p className="truncate text-xs text-muted-foreground">{f.title}</p>
+                  <p className="truncate text-sm font-medium">{f.title}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {f.caption || 'Numbered from its position once placed'}
+                  </p>
                 </div>
               </button>
             ))}
