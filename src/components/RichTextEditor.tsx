@@ -23,6 +23,7 @@ import { ResizableImage, isBoundingBoxAttrs } from './ResizableImage';
 import { ImageCropDialog } from './ImageCropDialog';
 import { resolveStorageUrl } from '@/hooks/useStorageUrl';
 import { createCitationTooltipPlugin, CitationMark, CitationNode } from './CitationMark';
+import { getEditorCapabilities } from '@/lib/fieldCapabilities';
 import { BlockReordering } from '@/extensions/BlockReordering';
 import { WordTableResizing } from '@/extensions/WordTableResizing';
 import { FigureFloat } from '@/extensions/FigureFloat';
@@ -1135,8 +1136,9 @@ export function FormattingToolbar({
           </Tooltip>
         )}
 
-        {/* Citations */}
-        {onOpenCitationDialog && (
+        {/* Citations — hidden where the focused field's own schema forbids
+            them (title-only fields declare `citations: false`). */}
+        {onOpenCitationDialog && getEditorCapabilities(editor).citations && (
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
