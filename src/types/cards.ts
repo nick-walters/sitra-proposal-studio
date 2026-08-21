@@ -87,6 +87,10 @@ export interface CardDeletionEntry {
   contentHtml?: string | null;
   /** Number of fields held by a deleted card. */
   fieldCount?: number | null;
+  /** Figure blocks identify themselves in the bin by caption and thumbnail. */
+  figureCaption?: string | null;
+  figureImagePath?: string | null;
+  figureTitle?: string | null;
 
 }
 

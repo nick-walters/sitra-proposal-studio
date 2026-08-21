@@ -3,8 +3,25 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { computeFigureNumbers } from '@/lib/figureNumbering';
 import { mapCardFigure, type CardFigureBlockData } from '@/types/cardTable';
+import type {
+  FigurePageBreakMode,
+  FigurePositionMode,
+  FigureWidthMode,
+} from '@/lib/figureLayout';
 
 export const cardFigureKey = (cardId: string) => ['card-figure', cardId];
+
+/**
+ * The three states a figure can be in.
+ *  - 'placed'  — held by a live block: numbered, listed under its section.
+ *  - 'held_by_deleted_block' — held by a SOFT-DELETED block. The unique index
+ *    on card_figure.figure_id still holds the figure, so it cannot be placed
+ *    elsewhere; the manager hides it entirely. Restoring the block brings the
+ *    figure back with it; purging the block frees the figure, which then
+ *    becomes 'unplaced'.
+ *  - 'unplaced' — no card_figure row points at it: shown at the top, no number.
+ */
+export type FigurePlacementState = 'placed' | 'held_by_deleted_block' | 'unplaced';
 
 export interface ProposalFigureOption {
   id: string;
@@ -20,7 +37,9 @@ export interface ProposalFigureOption {
   placedSectionId: string | null;
   /** "B1.2" — the section of the placing block. */
   placedSectionLabel: string | null;
+  state: FigurePlacementState;
 }
+
 
 /** Figure block placement row. `card_figure` alone decides where it renders. */
 export function useCardFigure(cardId: string) {
@@ -47,11 +66,12 @@ export function useCardFigure(cardId: string) {
       caption?: string;
       float?: 'none' | 'left' | 'right';
       max_width_cm?: number | null;
-      width_pct?: number;
-      placement?: 'full_width' | 'beside_next' | 'top_of_page';
-      break_before?: boolean;
-      keep_with_next?: boolean;
-      keep_whole?: boolean;
+      width_mode?: FigureWidthMode;
+      custom_width_pct?: number;
+      group_with_above?: boolean;
+      group_with_below?: boolean;
+      position_mode?: FigurePositionMode;
+      page_break_mode?: FigurePageBreakMode;
     }) => {
       const { error } = await supabase.rpc('save_card_figure', {
         p_card_id: cardId,
@@ -83,15 +103,17 @@ export function useProposalFigures(proposalId: string) {
           .eq('proposal_id', proposalId)
           .order('created_at'),
         supabase.from('card_figure').select('card_id, figure_id').eq('proposal_id', proposalId),
+        // Deleted blocks are fetched too: a figure held by a soft-deleted block
+        // is a distinct state from an unplaced one.
         supabase
           .from('proposal_cards')
-          .select('id, section_id, order_index')
-          .eq('proposal_id', proposalId)
-          .is('deleted_at', null),
+          .select('id, section_id, order_index, deleted_at')
+          .eq('proposal_id', proposalId),
       ]);
       if (figRes.error) throw figRes.error;
 
-      const cards = cardRes.data ?? [];
+      const allCards = cardRes.data ?? [];
+      const cards = allCards.filter((c) => !c.deleted_at);
       const sectionIds = Array.from(new Set(cards.map((c) => c.section_id).filter(Boolean))) as string[];
       const sectionRes = sectionIds.length
         ? await supabase
@@ -101,14 +123,18 @@ export function useProposalFigures(proposalId: string) {
         : { data: [] as { id: string; section_number: string | null; order_index: number | null }[] };
       const sections = sectionRes.data ?? [];
 
+      // Numbering sees LIVE blocks only, so a soft-deleted block numbers nothing.
       const numbers = computeFigureNumbers(
         (placementRes.data ?? []) as { card_id: string; figure_id: string | null }[],
         cards as { id: string; section_id: string | null; order_index: number | null }[],
         sections as { id: string; section_number: string | null; order_index: number | null }[],
       );
-      const cardById = new Map(cards.map((c) => [c.id, c]));
+      const cardById = new Map(allCards.map((c) => [c.id, c]));
       const sectionById = new Map(sections.map((s) => [s.id, s]));
-      const placementByFigure = new Map<string, { cardId: string; sectionId: string | null; sectionLabel: string | null }>();
+      const placementByFigure = new Map<
+        string,
+        { cardId: string; sectionId: string | null; sectionLabel: string | null; deleted: boolean }
+      >();
       for (const p of placementRes.data ?? []) {
         if (!p.figure_id) continue;
         const card = cardById.get(p.card_id);
@@ -116,11 +142,17 @@ export function useProposalFigures(proposalId: string) {
           cardId: p.card_id,
           sectionId: card?.section_id ?? null,
           sectionLabel: card?.section_id ? sectionById.get(card.section_id)?.section_number ?? null : null,
+          deleted: !!card?.deleted_at,
         });
       }
 
       return (figRes.data ?? []).map((f) => {
         const placement = placementByFigure.get(f.id) ?? null;
+        const state: FigurePlacementState = !placement
+          ? 'unplaced'
+          : placement.deleted
+            ? 'held_by_deleted_block'
+            : 'placed';
         return {
           id: f.id,
           figureNumber: numbers.get(f.id) ?? null,
@@ -131,8 +163,10 @@ export function useProposalFigures(proposalId: string) {
           placedCardId: placement?.cardId ?? null,
           placedSectionId: placement?.sectionId ?? null,
           placedSectionLabel: placement?.sectionLabel ?? null,
+          state,
         };
       });
+
     },
   });
 }

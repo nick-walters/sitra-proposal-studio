@@ -1,9 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
-import { Image as ImageIcon, Pencil, Plus } from 'lucide-react';
+import { Image as ImageIcon, Pencil, Plus, Unlink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   Dialog,
   DialogContent,
@@ -16,14 +27,22 @@ import { StorageImage } from '@/components/StorageImage';
 import { FigureManager } from '@/components/FigureManager';
 import { useCardFigure, useProposalFigures } from '@/hooks/useCardFigure';
 import { tableCaptionClass, TABLE_CAPTION_LABEL_CLASS } from '@/lib/tableStyleSpec';
-import type { FigurePlacement } from '@/types/cardTable';
+import {
+  FIGURE_PAGE_BREAK_LABELS,
+  FIGURE_POSITION_LABELS,
+  FIGURE_WIDTH_LABELS,
+  resolveFigureWidthPct,
+  type FigurePageBreakMode,
+  type FigurePositionMode,
+  type FigureWidthMode,
+} from '@/lib/figureLayout';
 import { cn } from '@/lib/utils';
 
 interface CardFigureBlockProps {
   cardId: string;
   proposalId: string;
   canEdit: boolean;
-  /** Placement, width and break controls are coordinator-or-above only. */
+  /** Layout controls are coordinator-or-above only. */
   isCoordinator: boolean;
   /**
    * The section declares that every figure and table is full width (B3.1).
@@ -34,15 +53,12 @@ interface CardFigureBlockProps {
   captionLabel: string;
 }
 
-const PLACEMENT_LABELS: Record<FigurePlacement, string> = {
-  full_width: 'Full width',
-  beside_next: 'Beside the next block',
-  top_of_page: 'Top of the page',
-};
-
 /**
  * Figure block. `card_figure` is authoritative for placement — the asset's own
  * `figures.section_id` is deliberately never read here.
+ *
+ * A figure never splits across pages and is never separated from its caption:
+ * that is unconditional, see FIGURE_NEVER_SPLITS in src/lib/figureLayout.ts.
  */
 export function CardFigureBlock({
   cardId,
@@ -56,6 +72,7 @@ export function CardFigureBlock({
   const { data: figures = [] } = useProposalFigures(proposalId);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [managerOpen, setManagerOpen] = useState(false);
+  const [removeOpen, setRemoveOpen] = useState(false);
   const [captionDraft, setCaptionDraft] = useState('');
   const captionTouched = useRef(false);
 
@@ -79,16 +96,19 @@ export function CardFigureBlock({
     (f) => !f.placedCardId || f.placedCardId === cardId || f.id === figureBlock.figureId,
   );
 
-  const placement: FigurePlacement = fullWidthOnly ? 'full_width' : figureBlock.placement;
-  const widthPct = fullWidthOnly ? 100 : figureBlock.widthPct;
-  const showPlacementControls = canEdit && isCoordinator;
+  const widthMode: FigureWidthMode = fullWidthOnly ? 'full' : figureBlock.widthMode;
+  const widthPct = fullWidthOnly ? 100 : resolveFigureWidthPct(widthMode, figureBlock.customWidthPct);
+  const isFullWidth = widthMode === 'full';
+  const showLayoutControls = canEdit && isCoordinator;
 
   return (
     <div className="space-y-3">
       <div
         className={cn(
           'flex',
-          placement === 'beside_next' ? 'justify-start' : 'justify-center',
+          figureBlock.positionMode === 'left_wrap' && !isFullWidth ? 'justify-start' : '',
+          figureBlock.positionMode === 'right_wrap' && !isFullWidth ? 'justify-end' : '',
+          figureBlock.positionMode === 'below' || isFullWidth ? 'justify-center' : '',
         )}
       >
         <div style={{ width: `${widthPct}%` }} className="max-w-full">
@@ -120,13 +140,16 @@ export function CardFigureBlock({
             </div>
           )}
 
-          <p className={tableCaptionClass('mt-2')}>
-            <span className={TABLE_CAPTION_LABEL_CLASS}>{captionLabel}</span>{' '}
+          {/* The caption sits BESIDE the label and fills the remaining width. */}
+          <div className={tableCaptionClass('mt-2 flex items-baseline gap-2')}>
+            <span className={cn(TABLE_CAPTION_LABEL_CLASS, 'shrink-0 whitespace-nowrap')}>
+              {captionLabel}
+            </span>
             {canEdit ? (
               <Input
                 value={captionDraft}
                 placeholder="Caption"
-                className="mt-1 h-7 text-sm italic"
+                className="h-7 flex-1 border-transparent bg-transparent px-1 font-[inherit] text-[inherit] italic shadow-none focus-visible:border-input focus-visible:bg-background"
                 onFocus={() => {
                   captionTouched.current = true;
                 }}
@@ -137,103 +160,172 @@ export function CardFigureBlock({
                 }}
               />
             ) : (
-              <span>{figureBlock.caption}</span>
+              <span className="flex-1 italic">{figureBlock.caption}</span>
             )}
-          </p>
+          </div>
         </div>
       </div>
 
       {canEdit && (
-        <div className="flex flex-wrap items-end gap-3 rounded-md bg-muted/40 p-2">
-          {showPlacementControls && !fullWidthOnly && (
-            <>
+        <div className="space-y-4 rounded-md bg-muted/40 p-3">
+          {showLayoutControls && !fullWidthOnly && (
+            <div className="grid gap-4 md:grid-cols-2">
+              {/* a. WIDTH */}
               <div className="space-y-1">
-                <Label className="text-xs">Placement</Label>
-                <Select
-                  value={figureBlock.placement}
-                  onValueChange={(value) => save.mutate({ placement: value as FigurePlacement })}
-                >
-                  <SelectTrigger className="h-8 w-52 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(Object.keys(PLACEMENT_LABELS) as FigurePlacement[]).map((p) => (
-                      <SelectItem key={p} value={p}>
-                        {PLACEMENT_LABELS[p]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label className="text-xs font-semibold">Width</Label>
+                <div className="flex items-center gap-2">
+                  <Select
+                    value={figureBlock.widthMode}
+                    onValueChange={(value) => save.mutate({ width_mode: value as FigureWidthMode })}
+                  >
+                    <SelectTrigger className="h-8 w-56 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(Object.keys(FIGURE_WIDTH_LABELS) as FigureWidthMode[]).map((m) => (
+                        <SelectItem key={m} value={m}>
+                          {FIGURE_WIDTH_LABELS[m]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {figureBlock.widthMode === 'custom' && (
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="number"
+                        step="5"
+                        min="1"
+                        max="100"
+                        defaultValue={figureBlock.customWidthPct}
+                        className="h-8 w-20 text-xs"
+                        onBlur={(e) => {
+                          const raw = Number(e.target.value);
+                          const next = Math.min(Math.max(Number.isFinite(raw) ? raw : 100, 1), 100);
+                          if (next !== figureBlock.customWidthPct) save.mutate({ custom_width_pct: next });
+                        }}
+                      />
+                      <span className="text-xs text-muted-foreground">% of the page width</span>
+                    </div>
+                  )}
+                </div>
               </div>
 
+              {/* b. GROUP WITH */}
               <div className="space-y-1">
-                <Label className="text-xs">Width (% of the text column)</Label>
-                <Input
-                  type="number"
-                  step="5"
-                  min="10"
-                  max="100"
-                  defaultValue={figureBlock.widthPct}
-                  className="h-8 w-28 text-xs"
-                  onBlur={(e) => {
-                    const raw = Number(e.target.value);
-                    const next = Math.min(Math.max(Number.isFinite(raw) ? raw : 100, 10), 100);
-                    if (next !== figureBlock.widthPct) save.mutate({ width_pct: next });
-                  }}
-                />
-              </div>
-
-              {figureBlock.placement === 'beside_next' && (
-                <p className="self-center text-xs text-muted-foreground">
-                  The next block takes the remaining {100 - figureBlock.widthPct}%.
+                <Label className="text-xs font-semibold">Group with</Label>
+                <div className="flex flex-wrap items-center gap-4">
+                  <label className="flex items-center gap-2 text-xs">
+                    <Checkbox
+                      checked={figureBlock.groupWithAbove}
+                      onCheckedChange={(v) => save.mutate({ group_with_above: v === true })}
+                    />
+                    The block above
+                  </label>
+                  <label className="flex items-center gap-2 text-xs">
+                    <Checkbox
+                      checked={figureBlock.groupWithBelow}
+                      onCheckedChange={(v) => save.mutate({ group_with_below: v === true })}
+                    />
+                    The block below
+                  </label>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  No page break may fall between this figure and the block ticked.
                 </p>
+              </div>
+
+              {/* c. POSITION — hidden at full page width, nothing can wrap beside it. */}
+              {!isFullWidth && (
+                <div className="space-y-1">
+                  <Label className="text-xs font-semibold">Position compared to the block above</Label>
+                  <RadioGroup
+                    value={figureBlock.positionMode}
+                    onValueChange={(value) => save.mutate({ position_mode: value as FigurePositionMode })}
+                    className="gap-1"
+                  >
+                    {(Object.keys(FIGURE_POSITION_LABELS) as FigurePositionMode[]).map((p) => (
+                      <label key={p} className="flex items-center gap-2 text-xs">
+                        <RadioGroupItem value={p} id={`${cardId}-pos-${p}`} />
+                        {FIGURE_POSITION_LABELS[p]}
+                      </label>
+                    ))}
+                  </RadioGroup>
+                </div>
               )}
-            </>
-          )}
 
-          {showPlacementControls && fullWidthOnly && (
-            <p className="self-center text-xs text-muted-foreground">
-              This section renders every figure and table at full width, so placement and width
-              cannot be changed here.
-            </p>
-          )}
-
-          {showPlacementControls && (
-            <div className="flex flex-wrap items-center gap-4">
-              <label className="flex items-center gap-2 text-xs">
-                <Checkbox
-                  checked={figureBlock.keepWhole}
-                  onCheckedChange={(v) => save.mutate({ keep_whole: v === true })}
-                />
-                Keep whole
-              </label>
-              <label className="flex items-center gap-2 text-xs">
-                <Checkbox
-                  checked={figureBlock.breakBefore}
-                  onCheckedChange={(v) => save.mutate({ break_before: v === true })}
-                />
-                Start on a new page
-              </label>
-              <label className="flex items-center gap-2 text-xs">
-                <Checkbox
-                  checked={figureBlock.keepWithNext}
-                  onCheckedChange={(v) => save.mutate({ keep_with_next: v === true })}
-                />
-                Keep with next
-              </label>
+              {/* d. PAGE BREAKS */}
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Page breaks</Label>
+                <RadioGroup
+                  value={figureBlock.pageBreakMode}
+                  onValueChange={(value) => save.mutate({ page_break_mode: value as FigurePageBreakMode })}
+                  className="gap-1"
+                >
+                  {(Object.keys(FIGURE_PAGE_BREAK_LABELS) as FigurePageBreakMode[]).map((p) => (
+                    <label key={p} className="flex items-center gap-2 text-xs">
+                      <RadioGroupItem value={p} id={`${cardId}-brk-${p}`} />
+                      {FIGURE_PAGE_BREAK_LABELS[p]}
+                    </label>
+                  ))}
+                </RadioGroup>
+                <p className="text-[11px] text-muted-foreground">
+                  A figure never splits across pages and is never separated from its caption.
+                </p>
+              </div>
             </div>
           )}
 
-          <Button size="sm" variant="outline" onClick={() => setPickerOpen(true)}>
-            <Pencil className="mr-1 h-3.5 w-3.5" />
-            Change figure
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => setManagerOpen(true)}>
-            <Plus className="mr-1 h-3.5 w-3.5" />
-            Create a figure
-          </Button>
+          {showLayoutControls && fullWidthOnly && (
+            <p className="text-xs text-muted-foreground">
+              This section renders every figure and table at full page width, so the layout controls
+              are fixed here.
+            </p>
+          )}
+
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant="outline" onClick={() => setPickerOpen(true)}>
+              <Pencil className="mr-1 h-3.5 w-3.5" />
+              Change figure
+            </Button>
+            {missingAsset ? (
+              <Button size="sm" variant="outline" onClick={() => setManagerOpen(true)}>
+                <Plus className="mr-1 h-3.5 w-3.5" />
+                Create a figure
+              </Button>
+            ) : (
+              <Button size="sm" variant="outline" onClick={() => setRemoveOpen(true)}>
+                <Unlink className="mr-1 h-3.5 w-3.5" />
+                Remove the figure from this block
+              </Button>
+            )}
+          </div>
         </div>
       )}
+
+      {/* Clear the figure — the asset itself survives and becomes unplaced. */}
+      <AlertDialog open={removeOpen} onOpenChange={setRemoveOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove the figure from this block?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The block stays where it is and returns to its empty state. The figure is not deleted:
+              it becomes unplaced, reappears in the figures manager and can be placed in another
+              block.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                save.mutate({ figure_id: null });
+                setRemoveOpen(false);
+              }}
+            >
+              Remove the figure
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Pick an existing asset. */}
       <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
@@ -241,7 +333,7 @@ export function CardFigureBlock({
           <DialogHeader>
             <DialogTitle>Choose a figure</DialogTitle>
             <DialogDescription>
-              The block keeps its own placement; picking a figure only changes which asset it shows.
+              The block keeps its own layout; picking a figure only changes which asset it shows.
             </DialogDescription>
           </DialogHeader>
           <div className="max-h-[320px] space-y-2 overflow-y-auto">

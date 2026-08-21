@@ -48,6 +48,7 @@ interface Figure {
   placedCardId: string | null;
   placedSectionId: string | null;
   placedSectionLabel: string | null;
+  state: 'placed' | 'held_by_deleted_block' | 'unplaced';
 }
 
 interface SectionOption {
@@ -396,10 +397,19 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
     }
   };
 
-  // Unplaced first, then grouped by the section of the block placing them.
-  // These groupings are read-only labels: order comes from the cards board.
-  const unplacedFigures = figures.filter((f) => !f.placedCardId);
-  const placedFigures = figures.filter((f) => f.placedCardId);
+  // Three states, distinguished by `state` from useProposalFigures:
+  //  - 'placed'                — listed under its section group, with its number
+  //  - 'held_by_deleted_block' — hidden entirely; the unique index still holds
+  //                              the figure, so it cannot be placed elsewhere
+  //  - 'unplaced'              — listed at the top, no number
+  const visibleFigures = figures.filter((f) => f.state !== 'held_by_deleted_block');
+  const unplacedFigures = visibleFigures.filter((f) => f.state === 'unplaced');
+  const placedFigures = visibleFigures.filter((f) => f.state === 'placed');
+  // Within a section group, list in NUMBER order — the same order as the blocks
+  // on the cards board. (It previously followed the figures query order, which
+  // is `figures.created_at`.)
+  const byNumber = (a: Figure, b: Figure) =>
+    (a.figureNumber ?? '').localeCompare(b.figureNumber ?? '', undefined, { numeric: true });
   const placedGroups = Array.from(
     placedFigures.reduce((acc, figure) => {
       const key = figure.placedSectionLabel || 'Placed';
@@ -408,7 +418,9 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
       acc.set(key, bucket);
       return acc;
     }, new Map<string, Figure[]>()),
-  ).sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }));
+  )
+    .map(([label, list]) => [label, [...list].sort(byNumber)] as [string, Figure[]])
+    .sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }));
 
   // Helper to format caption like Part B templates: "Figure X.X.x. Caption or Title"
   const formatFigureCaption = (figure: Figure) =>
@@ -688,7 +700,7 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
               </Card>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {figures.map((figure) => {
+                {visibleFigures.map((figure) => {
                   const hasImage = figure.content?.imageUrl;
                   
                   return (
@@ -756,7 +768,7 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
                 ) : (
                   <div className="space-y-2">
                     {unplacedFigures.map((figure) => (
-                      <FigureRow key={figure.id} figure={figure} onSelect={setSelectedFigure} />
+                      <FigureRow key={figure.id} figure={figure} onSelect={(f) => setSelectedFigure(f as Figure)} />
                     ))}
                   </div>
                 )}
@@ -777,7 +789,7 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
                 <CardContent>
                   <div className="space-y-2">
                     {sectionFigures.map((figure) => (
-                      <FigureRow key={figure.id} figure={figure} onSelect={setSelectedFigure} />
+                      <FigureRow key={figure.id} figure={figure} onSelect={(f) => setSelectedFigure(f as Figure)} />
                     ))}
                   </div>
                 </CardContent>
