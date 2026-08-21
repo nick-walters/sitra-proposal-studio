@@ -34,6 +34,7 @@ import { toast } from 'sonner';
 import { generateProposalFilePath, uploadProposalFile } from '@/lib/proposalStorage';
 import { compressImage, getRecommendedFormat, getFormatExtension } from '@/lib/imageCompression';
 import { useProposalFigures, type ProposalFigureOption } from '@/hooks/useCardFigure';
+import { FigureRow } from './FigureRow';
 import { CommonFiguresDialog } from './CommonFiguresDialog';
 
 interface Figure {

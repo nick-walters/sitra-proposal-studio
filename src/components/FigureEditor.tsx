@@ -48,13 +48,12 @@ import { Switch } from '@/components/ui/switch';
 
 interface Figure {
   id: string;
-  figureNumber: string;
-  sectionId: string;
+  /** Derived from the placing block; null when the figure is unplaced. */
+  figureNumber: string | null;
   title: string;
   figureType: string;
   content: any;
   caption: string | null;
-  orderIndex: number;
 }
 
 interface FigureEditorProps {
@@ -119,7 +118,7 @@ export function FigureEditor({
     try {
       const compressed = await compressImage(file, { format: 'png', quality: 0.92 });
       const ext = getFormatExtension('png');
-      const filename = `figure-${figure.figureNumber}-replaced.${ext}`;
+      const filename = `figure-${figure.figureNumber ?? 'unplaced'}-replaced.${ext}`;
       const filePath = generateProposalFilePath(proposalId, 'figures', filename, {
         prefix: figure.figureType === 'ai' ? 'ai-generated' : 'uploaded',
         addTimestamp: true,
@@ -169,7 +168,7 @@ export function FigureEditor({
         const sourceBlob = await response.blob();
         const compressedBlob = await compressImage(sourceBlob, { format: 'png', quality: 0.92 });
         
-        const filename = `figure-${figure.figureNumber}-regenerated.png`;
+        const filename = `figure-${figure.figureNumber ?? 'unplaced'}-regenerated.png`;
         const filePath = generateProposalFilePath(proposalId, 'figures', filename, {
           prefix: 'ai-generated',
           addTimestamp: true,
@@ -283,7 +282,7 @@ export function FigureEditor({
               </DialogTrigger>
               <DialogContent className="max-w-4xl max-h-[90vh]">
                 <DialogHeader>
-                  <DialogTitle>Figure {figure.figureNumber}</DialogTitle>
+                  <DialogTitle>{figure.figureNumber ? `Figure ${figure.figureNumber}` : figure.title}</DialogTitle>
                 </DialogHeader>
                 <img
                   src={resolvedImageUrl || ''}
@@ -317,7 +316,7 @@ export function FigureEditor({
             </div>
           )}
           <p className="text-sm text-muted-foreground text-left">
-            <em><strong>Figure {figure.figureNumber}.</strong> {mirroredCaption}</em>
+            <em>{figure.figureNumber && <strong>Figure {figure.figureNumber}.</strong>} {mirroredCaption}</em>
           </p>
         </div>
       );
@@ -329,7 +328,7 @@ export function FigureEditor({
         return (
           <GanttChartFigure
             figureId={figure.id}
-            figureNumber={figure.figureNumber}
+            figureNumber={figure.figureNumber ?? ''}
             proposalId={proposalId}
             content={figure.content}
             onContentChange={(content) => onUpdate({ content })}
@@ -340,7 +339,7 @@ export function FigureEditor({
         return (
           <PERTChartFigure
             figureId={figure.id}
-            figureNumber={figure.figureNumber}
+            figureNumber={figure.figureNumber ?? ''}
             proposalId={proposalId}
             content={figure.content}
             onContentChange={(content) => onUpdate({ content })}
@@ -352,7 +351,7 @@ export function FigureEditor({
           <ImpactCanvasBuilder
             proposalId={proposalId}
             canEdit={canEdit}
-            figureNumber={figure.figureNumber}
+            figureNumber={figure.figureNumber ?? ''}
             graphicRef={impactGraphicRef}
             canvasSize={resolveTableCanvasSize(figure.figureType, figure.content)}
           />
@@ -362,7 +361,7 @@ export function FigureEditor({
           <ImpactCanvasBuilder
             proposalId={proposalId}
             canEdit={canEdit}
-            figureNumber={figure.figureNumber}
+            figureNumber={figure.figureNumber ?? ''}
             graphicRef={impactGraphicRef}
             figureId={figure.id}
             variant="overview"
@@ -385,7 +384,7 @@ export function FigureEditor({
             <CanvasFigureRasteriser
               proposalId={proposalId}
               figureId={figure.id}
-              figureNumber={figure.figureNumber}
+              figureNumber={figure.figureNumber ?? ''}
               widthCm={widthCm}
               heightCm={heightCm}
               content={figure.content}
