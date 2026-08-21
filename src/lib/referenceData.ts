@@ -212,7 +212,16 @@ export async function fetchReferenceData(proposalId: string): Promise<RefSnapsho
   });
 
   const participants: ParticipantData[] = participantRes.data || [];
-  const figures: FigureData[] = figureRes.data || [];
+  // Only PLACED figures carry a number, so unplaced ones are omitted entirely
+  // and their chips degrade to the stored label.
+  const figures: FigureData[] = (figureRes.data || [])
+    .filter((f: any) => figureNumbers.has(f.id))
+    .map((f: any) => ({
+      id: f.id,
+      figure_number: figureNumbers.get(f.id)!,
+      figure_type: f.figure_type,
+      title: f.title,
+    }));
 
   const tableCaptionMap = new Map<string, string>();
   for (const tc of tableCaptionRes.data || []) {
