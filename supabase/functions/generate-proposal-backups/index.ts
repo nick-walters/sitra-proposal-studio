@@ -225,12 +225,22 @@ async function loadRefSnapshot(supabase: any, proposalId: string): Promise<RefSn
     // Citation numbers are derived the same way the app derives them, from
     // first-citation order across visible, non-binned content — including the
     // legacy `section_content` bodies, which is where most citations still live.
-    const [allCardRes, fieldRes, legacyRes, allSectionRes] = await Promise.all([
+    const [allCardRes, fieldRes, legacyRes] = await Promise.all([
       supabase.from("proposal_cards").select("id, section_id, order_index, anchor, is_visible, deleted_at").eq("proposal_id", proposalId),
       supabase.from("card_fields").select("id, card_id, order_index, content_html, deleted_at").eq("proposal_id", proposalId),
       supabase.from("section_content").select("section_id, content").eq("proposal_id", proposalId),
-      supabase.from("proposal_template_sections").select("id, section_number, order_index, proposal_template_id").eq("proposal_id", proposalId),
     ]);
+    // Sections are template-owned, so they are reached through the template of
+    // the sections this proposal's cards sit in — legacy bodies need the whole
+    // template's ordering, not just the sections that happen to hold cards.
+    const citeSectionIds = [...new Set(((allCardRes.data ?? []) as any[]).map((c) => c.section_id).filter(Boolean))];
+    const seedSectionRes = citeSectionIds.length
+      ? await supabase.from("proposal_template_sections").select("id, section_number, order_index, proposal_template_id").in("id", citeSectionIds)
+      : { data: [] };
+    const templateId = ((seedSectionRes.data ?? [])[0] as any)?.proposal_template_id ?? null;
+    const allSectionRes = templateId
+      ? await supabase.from("proposal_template_sections").select("id, section_number, order_index").eq("proposal_template_id", templateId)
+      : seedSectionRes;
     snap.citationNumbers = buildCitationNumberMap({
       sections: (allSectionRes.data ?? []) as any[],
       cards: (allCardRes.data ?? []) as any[],
