@@ -239,12 +239,13 @@ export function CardFigureBlock({
             </DialogDescription>
           </DialogHeader>
           <div className="max-h-[320px] space-y-2 overflow-y-auto">
-            {figures.length === 0 && (
+            {selectableFigures.length === 0 && (
               <p className="py-6 text-center text-sm text-muted-foreground">
-                This proposal has no figures yet. Create one first.
+                No figures are available. A figure can only be used once, so every existing figure is
+                already placed in a block — create a new one.
               </p>
             )}
-            {figures.map((f) => (
+            {selectableFigures.map((f) => (
               <button
                 key={f.id}
                 type="button"
