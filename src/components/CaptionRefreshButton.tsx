@@ -12,7 +12,7 @@ interface Props {
 
 /**
  * Shows a small refresh icon in the right margin when the cursor is inside
- * a table-caption or figure-caption paragraph. Clicking it renumbers the caption.
+ * a document-table-caption or figure-caption paragraph. Clicking it renumbers the caption.
  */
 export function CaptionRefreshButton({ editor, containerRef, sectionNumber, tableOffset = 0 }: Props) {
   const [visible, setVisible] = useState(false);
@@ -45,7 +45,7 @@ export function CaptionRefreshButton({ editor, containerRef, sectionNumber, tabl
     }
 
     const cls = (paragraphNode.attrs?.class || '') as string;
-    const isCaption = cls.includes('table-caption') || cls.includes('figure-caption');
+    const isCaption = cls.includes('document-table-caption') || cls.includes('figure-caption');
     if (!isCaption) {
       setVisible(false);
       return;

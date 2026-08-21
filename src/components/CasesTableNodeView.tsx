@@ -392,8 +392,8 @@ export function CasesTableLiveView({ proposalId, caseTypeId, letterIndex }: Case
     const letter = letterFor(letterIndex);
     captionEl = (
       <p
-        className="table-caption"
-        data-cases-table-caption=""
+        className="document-table-caption"
+        data-cases-document-table-caption=""
         contentEditable={false}
         style={{
           textAlign: 'left',
@@ -540,8 +540,8 @@ export function CasesTableNodeView(props: NodeViewProps) {
 
   const caseTypeId: string | null = (props.node?.attrs?.caseTypeId as string | null) || null;
 
-  // Letter for the caption — count ALL table-caption slots before this node
-  // in document order (other casesTable atoms AND ordinary <p class="table-caption">
+  // Letter for the caption — count ALL document-table-caption slots before this node
+  // in document order (other casesTable atoms AND ordinary <p class="document-table-caption">
   // paragraphs that match "Table X.X.x."). This keeps the case-table caption
   // in the same global sequence the renumberCaptionsInEditor walker uses for
   // manually-inserted tables, so 1.2.a, 1.2.b, 1.2.c… are assigned
@@ -561,7 +561,7 @@ export function CasesTableNodeView(props: NodeViewProps) {
         }
         if (n.type?.name === 'paragraph') {
           const cls = (n.attrs?.class || '') as string;
-          if (cls.includes('table-caption') && tableCaptionPattern.test(n.textContent)) {
+          if (cls.includes('document-table-caption') && tableCaptionPattern.test(n.textContent)) {
             count++;
           }
         }

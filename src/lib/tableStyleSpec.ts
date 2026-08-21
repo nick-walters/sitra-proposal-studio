@@ -98,7 +98,7 @@ export function installTableStyleVars(target?: HTMLElement): void {
 export const TABLE_CLASS = 'card-table';
 export const TABLE_HEADER_CELL_CLASS = 'card-table__th';
 export const TABLE_BODY_CELL_CLASS = 'card-table__td';
-export const TABLE_CAPTION_CLASS = 'table-caption';
+export const TABLE_CAPTION_CLASS = 'document-table-caption';
 export const TABLE_CAPTION_LABEL_CLASS = 'caption-label';
 
 /** Class list for a table element, optionally variant-scoped. */

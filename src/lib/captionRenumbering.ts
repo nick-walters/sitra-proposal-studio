@@ -202,7 +202,7 @@ export function getNextTableLetterFromContent(content: string, sectionNumber: st
  * - Ensures the label portion (e.g. "Figure 1.1.a. " or "Table 1.1.a. ") is bold+italic
  * - Ensures there is a space after the trailing period of the label
  * - Ensures the rest of the caption text is italic (not bold)
- * Works on both figure-caption and table-caption paragraphs.
+ * Works on both figure-caption and document-table-caption paragraphs.
  */
 export function normalizeCaptionStyling(content: string): string {
   if (!content) return content;
@@ -215,7 +215,7 @@ export function normalizeCaptionStyling(content: string): string {
   const labelPattern = /((?:Figure|Table)\s+\d+\.\d+\.[a-z]\.)\s*/;
 
   // Process each caption paragraph
-  const captionParagraphPattern = /(<p[^>]*class="[^"]*(?:figure-caption|table-caption)[^"]*"[^>]*>)([\s\S]*?)(<\/p>)/gi;
+  const captionParagraphPattern = /(<p[^>]*class="[^"]*(?:figure-caption|document-table-caption)[^"]*"[^>]*>)([\s\S]*?)(<\/p>)/gi;
 
   return content.replace(captionParagraphPattern, (fullMatch, openTag: string, innerHtml: string, closeTag: string) => {
     // Strip all formatting tags to get plain text
