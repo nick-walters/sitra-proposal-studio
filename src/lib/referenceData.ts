@@ -14,6 +14,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { computeFigureNumbers } from '@/lib/figureNumbering';
 import { buildCitationNumberMap } from '@/lib/citationSources';
+import { publishCitationDisplayMap } from '@/lib/citationDisplay';
 
 export interface WPData {
   id: string;
@@ -324,6 +325,13 @@ export function useReferenceData(proposalId: string | undefined) {
     window.addEventListener('cross-ref-data-changed', handler);
     return () => window.removeEventListener('cross-ref-data-changed', handler);
   }, [proposalId, queryClient]);
+
+  // Editors render citations through a node view, which cannot read React
+  // context. Publishing the derived map here is what lets every citation in
+  // every editor show the same number the mirrors and exports show.
+  useEffect(() => {
+    if (query.data) publishCitationDisplayMap(query.data.citationNumbers);
+  }, [query.data]);
 
   return query;
 }
