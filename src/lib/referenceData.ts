@@ -9,7 +9,7 @@
  * are unchanged.
  */
 
-import { useEffect } from 'react';
+import { useEffect, useId } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { computeFigureNumbers } from '@/lib/figureNumbering';
@@ -310,6 +310,7 @@ export async function fetchReferenceData(proposalId: string): Promise<RefSnapsho
  */
 export function useReferenceData(proposalId: string | undefined) {
   const queryClient = useQueryClient();
+  const subscriptionId = useId();
   const query = useQuery({
     queryKey: ['reference-data', proposalId],
     queryFn: () => fetchReferenceData(proposalId!),
@@ -333,7 +334,7 @@ export function useReferenceData(proposalId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ['section-citation-sources', proposalId] });
     };
     const channel = supabase
-      .channel(`reference-data-cards-${proposalId}`)
+      .channel(`reference-data-cards-${proposalId}-${subscriptionId}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'proposal_cards', filter: `proposal_id=eq.${proposalId}` },
