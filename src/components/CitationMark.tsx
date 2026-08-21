@@ -3,6 +3,7 @@ import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import DOMPurify from 'dompurify';
 import { INLINE_EMPHASIS_CONFIG } from '@/lib/sanitizePresets';
+import { citationDisplayNumber, subscribeCitationDisplay } from '@/lib/citationDisplay';
 
 export interface CitationMarkOptions {
   getReference: (citationNumber: number) => { citation: string } | undefined;
@@ -72,6 +73,12 @@ function createCitationAdjacencyPlugin() {
 
 export const CitationNode = Node.create({
   name: 'citation',
+  // Above CitationMark's 1100 so stored `<sup data-citation>` — including the
+  // hand-built markup in the legacy section editor and the WP/case drafts —
+  // parses into this atomic node, which is the only citation representation
+  // whose displayed number can be resolved at render time. Text carrying the
+  // legacy mark is ordinary document text and cannot be renumbered.
+  priority: 1150,
   group: 'inline',
   inline: true,
   atom: true,
@@ -127,6 +134,12 @@ export const CitationNode = Node.create({
     return ['sup', mergeAttributes(HTMLAttributes), String(n)];
   },
 
+  // The node view renders the DERIVED display number while keeping the stable
+  // internal id on `data-citation`. It subscribes to the numbering map, so a
+  // citation added or removed anywhere in the proposal renumbers this one
+  // immediately. This replaced a MutationObserver that patched the editor DOM
+  // from outside — the number now comes from the numbering module, and stored
+  // markup still carries the internal id.
   addNodeView() {
     return ({ node }) => {
       const dom = document.createElement('sup');
@@ -136,10 +149,11 @@ export const CitationNode = Node.create({
         const value = n != null ? String(n) : '';
         dom.setAttribute('data-citation', value);
         dom.setAttribute('contenteditable', 'false');
-        dom.textContent = value;
+        dom.textContent = n != null ? String(citationDisplayNumber(n)) : '';
       };
 
       render();
+      const unsubscribe = subscribeCitationDisplay(render);
 
       return {
         dom,
@@ -148,6 +162,9 @@ export const CitationNode = Node.create({
           node = updatedNode;
           render();
           return true;
+        },
+        destroy() {
+          unsubscribe();
         },
         ignoreMutation() {
           return true;
