@@ -2251,11 +2251,14 @@ export type Database = {
           caption: string | null
           content: Json | null
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
           figure_number: string
           figure_type: string
           id: string
           order_index: number
           proposal_id: string
+          purge_after: string | null
           section_id: string
           title: string
           updated_at: string
@@ -2264,11 +2267,14 @@ export type Database = {
           caption?: string | null
           content?: Json | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           figure_number?: string
           figure_type?: string
           id?: string
           order_index?: number
           proposal_id: string
+          purge_after?: string | null
           section_id?: string
           title: string
           updated_at?: string
@@ -2277,11 +2283,14 @@ export type Database = {
           caption?: string | null
           content?: Json | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           figure_number?: string
           figure_type?: string
           id?: string
           order_index?: number
           proposal_id?: string
+          purge_after?: string | null
           section_id?: string
           title?: string
           updated_at?: string
@@ -6884,6 +6893,7 @@ export type Database = {
       restore_card: { Args: { p_card_id: string }; Returns: undefined }
       restore_card_field: { Args: { p_field_id: string }; Returns: Json }
       restore_excluded_tables: { Args: never; Returns: string[] }
+      restore_figure: { Args: { p_figure_id: string }; Returns: undefined }
       restore_in_scope_tables: { Args: never; Returns: string[] }
       restore_proposal_snapshot: {
         Args: { p_proposal_id: string; p_snapshot_id: string }
@@ -6970,6 +6980,7 @@ export type Database = {
         Args: { p_field_id: string }
         Returns: undefined
       }
+      soft_delete_figure: { Args: { p_figure_id: string }; Returns: undefined }
       tg_reseq_tasks_for: { Args: { p_wp: string }; Returns: undefined }
       thin_card_field_versions: {
         Args: { p_proposal_id: string }
