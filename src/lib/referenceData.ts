@@ -13,6 +13,7 @@ import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { computeFigureNumbers } from '@/lib/figureNumbering';
+import { buildCitationNumberMap } from '@/lib/citationSources';
 
 export interface WPData {
   id: string;
@@ -80,6 +81,8 @@ export interface RefSnapshot {
   figureById: Map<string, FigureData>;
   tableCaptionMap: Map<string, string>;
   acronymSegments: AcronymSegmentData[];
+  /** Internal `ref_key` -> reader-facing citation number. Derived, never stored. */
+  citationNumbers: Map<number, number>;
 }
 
 
@@ -294,6 +297,7 @@ export async function fetchReferenceData(proposalId: string): Promise<RefSnapsho
     figureById: new Map(figures.map(f => [f.id, f])),
     tableCaptionMap,
     acronymSegments,
+    citationNumbers,
   };
 }
 
