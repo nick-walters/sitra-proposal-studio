@@ -62,43 +62,44 @@ export function useProposalReferences(proposalId: string) {
     }
   }, [proposalId]);
 
-  // Add a new reference
+  // Add a new reference.
+  // `ref_key` is minted SERVER-SIDE by the `add_proposal_reference` security-definer
+  // RPC, which takes a per-proposal advisory lock before computing max+1. The
+  // `citationNumber` argument is accepted for call-site compatibility but ignored:
+  // client-side max+1 raced across browsers and could collide on (proposal_id, ref_key).
   const addReference = useCallback(async (
     reference: Reference,
     formattedCitation: string,
-    citationNumber: number
+    _citationNumber?: number
   ): Promise<ProposalReference | null> => {
     if (!proposalId) return null;
 
     try {
-      const { data, error: insertError } = await supabase
-        .from('proposal_references')
-        .insert({
-          proposal_id: proposalId,
-          ref_key: citationNumber,
-          doi: reference.doi,
-          authors: reference.authors,
-          year: reference.year,
-          title: reference.title,
-          journal: reference.journal,
-          volume: reference.volume,
-          pages: reference.pages,
-          formatted_citation: formattedCitation,
-          verified: true,
-        })
-        .select()
-        .single();
+      const { data, error: insertError } = await supabase.rpc('add_proposal_reference', {
+        p_proposal_id: proposalId,
+        p_title: reference.title,
+        p_formatted_citation: formattedCitation,
+        p_doi: reference.doi ?? null,
+        p_authors: reference.authors ?? null,
+        p_year: reference.year ?? null,
+        p_journal: reference.journal ?? null,
+        p_volume: reference.volume ?? null,
+        p_pages: reference.pages ?? null,
+        p_verified: true,
+      });
 
       if (insertError) throw insertError;
-      
+
+      const saved = data as unknown as ProposalReference;
       // Update local state
-      setReferences(prev => [...prev, data]);
-      return data;
+      setReferences(prev => (prev.some(r => r.id === saved.id) ? prev : [...prev, saved]));
+      return saved;
     } catch (err) {
       console.error('Error adding reference:', err);
       return null;
     }
   }, [proposalId]);
+
 
   // Update an existing reference
   const updateReference = useCallback(async (
