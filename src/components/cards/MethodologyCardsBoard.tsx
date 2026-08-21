@@ -461,20 +461,23 @@ function FieldRow({
       ref={setNodeRef}
       id={`card-module-${field.id}`}
       style={style}
-      className="space-y-2 rounded-md border border-border p-3 transition-shadow"
+      className="relative space-y-2 rounded-md border border-border p-3 transition-shadow"
     >
+      {/* Grip sits in the left margin, outside the module box, so the header
+          input aligns flush with the content beneath it. */}
+      {canEdit && (
+        <button
+          type="button"
+          className="absolute left-[-22px] top-[1rem] cursor-grab touch-none text-[#2563EB]"
+          aria-label="Reorder module"
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className="h-4 w-4" />
+        </button>
+      )}
       <div className="flex items-center gap-2">
-        {canEdit && (
-          <button
-            type="button"
-            className="cursor-grab touch-none text-[#2563EB]"
-            aria-label="Reorder module"
-            {...attributes}
-            {...listeners}
-          >
-            <GripVertical className="h-4 w-4" />
-          </button>
-        )}
+
 
         {isPlaceholder ? (
           <p className="flex-1 text-sm italic text-muted-foreground">
@@ -819,22 +822,23 @@ function CardBlock({
   };
 
   return (
-    <div ref={sortable.setNodeRef} id={`card-block-${card.id}`} style={style} className="transition-shadow">
+    <div ref={sortable.setNodeRef} id={`card-block-${card.id}`} style={style} className="relative transition-shadow">
+      {/* Grip sits in the left margin, outside the block box, so the block
+          title aligns flush with the content beneath it. */}
+      {draggable && canEdit && (
+        <button
+          type="button"
+          className="absolute left-[-28px] top-[1.25rem] cursor-grab touch-none text-[#2563EB]"
+          aria-label="Reorder block"
+          {...sortable.attributes}
+          {...sortable.listeners}
+        >
+          <GripVertical className="h-4 w-4" />
+        </button>
+      )}
       <Card>
         <CardHeader className="flex flex-row items-center gap-2 space-y-0 py-3">
-          {draggable && canEdit ? (
-            <button
-              type="button"
-              className="cursor-grab touch-none text-[#2563EB]"
-              aria-label="Reorder block"
-              {...sortable.attributes}
-              {...sortable.listeners}
-            >
-              <GripVertical className="h-4 w-4" />
-            </button>
-          ) : (
-            <span className="inline-block h-4 w-4" aria-hidden="true" />
-          )}
+
 
           {/* Figure blocks carry no title: the caption under the figure is the
               only label, so a block title would duplicate it. */}
@@ -1455,7 +1459,8 @@ function BoardInner({
           setHistoryOpen(false);
         }}
       />
-      <div className="mx-auto w-full max-w-4xl space-y-4 p-6">
+      {/* pl-12 reserves the left margin the out-of-box block grips occupy. */}
+      <div className="mx-auto w-full max-w-4xl space-y-4 p-6 pl-12">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
             <h1 className="text-xl font-bold text-foreground">Methodologies (cards)</h1>
