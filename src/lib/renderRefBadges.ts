@@ -469,6 +469,23 @@ const NOT_STRUCTURAL = ':not([data-case-block]):not([data-cases-table-node]):not
 
 
 /**
+ * Rewrites a citation superscript to its derived display number.
+ *
+ * `data-citation` carries the stable internal `ref_key`; the text baked into
+ * the stored markup is whatever number happened to be current when it was
+ * saved, so it is only a fallback. A ref_key with no entry in the map is
+ * cited exclusively from hidden or binned blocks, or the snapshot has not
+ * loaded — either way the stored text stands rather than blanking out.
+ */
+function renderCitation(el: HTMLElement, data?: RefSnapshot): void {
+  const refKey = parseInt(el.getAttribute('data-citation') || '', 10);
+  if (!Number.isFinite(refKey)) return;
+  const display = data?.citationNumbers?.get(refKey);
+  const next = String(display ?? refKey);
+  if (el.textContent !== next) el.textContent = next;
+}
+
+/**
  * Resolves and re-styles every cross-reference chip inside `root`, in place.
  * Pass the snapshot once per render pass — never fetch per chip.
  */
@@ -499,6 +516,9 @@ export function resolveRefBadgesInDom(root: ParentNode, data?: RefSnapshot): voi
       '[data-milestone-reference], [data-milestone-id], [data-inline-reference][data-ref-type="milestone"]',
     )
     .forEach((el) => renderMilestone(el, data));
+  root
+    .querySelectorAll<HTMLElement>('sup[data-citation], span[data-citation]')
+    .forEach((el) => renderCitation(el, data));
   root
     .querySelectorAll<HTMLElement>('[data-acronym-reference]')
     .forEach((el) => renderAcronym(el, data));
