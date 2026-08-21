@@ -750,7 +750,7 @@ export function GeneralInfoForm({
           <CardHeader className="pb-3">
             <CardTitle className="text-lg">Abstract</CardTitle>
             <InlineGuideline className="mt-2">
-              Max 2000 characters (with spaces). It will be used as the short description of your proposal in the evaluation process and in communications if your proposal is funded.
+              Max 2,000 characters (with spaces). It will be used as the short description of your proposal in the evaluation process and in communications if your proposal is funded.
             </InlineGuideline>
           </CardHeader>
           <CardContent className="space-y-3">
