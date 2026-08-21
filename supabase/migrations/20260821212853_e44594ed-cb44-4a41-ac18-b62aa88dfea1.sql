@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.reconcile_citation_instances(uuid, uuid, uuid, integer[]) FROM anon;
