@@ -1205,6 +1205,68 @@ export type Database = {
           },
         ]
       }
+      citation_instances: {
+        Row: {
+          card_id: string | null
+          created_at: string
+          field_id: string | null
+          id: string
+          position: number
+          proposal_id: string
+          reference_id: string
+          updated_at: string
+        }
+        Insert: {
+          card_id?: string | null
+          created_at?: string
+          field_id?: string | null
+          id?: string
+          position?: number
+          proposal_id: string
+          reference_id: string
+          updated_at?: string
+        }
+        Update: {
+          card_id?: string | null
+          created_at?: string
+          field_id?: string | null
+          id?: string
+          position?: number
+          proposal_id?: string
+          reference_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "citation_instances_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "proposal_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "citation_instances_field_id_fkey"
+            columns: ["field_id"]
+            isOneToOne: false
+            referencedRelation: "card_fields"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "citation_instances_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "citation_instances_reference_id_fkey"
+            columns: ["reference_id"]
+            isOneToOne: false
+            referencedRelation: "proposal_references"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comments: {
         Row: {
           content: string
@@ -4368,6 +4430,65 @@ export type Database = {
           },
         ]
       }
+      proposal_references: {
+        Row: {
+          authors: string[] | null
+          created_at: string
+          doi: string | null
+          formatted_citation: string | null
+          id: string
+          journal: string | null
+          pages: string | null
+          proposal_id: string
+          ref_key: number
+          title: string
+          updated_at: string
+          verified: boolean | null
+          volume: string | null
+          year: number | null
+        }
+        Insert: {
+          authors?: string[] | null
+          created_at?: string
+          doi?: string | null
+          formatted_citation?: string | null
+          id?: string
+          journal?: string | null
+          pages?: string | null
+          proposal_id: string
+          ref_key: number
+          title: string
+          updated_at?: string
+          verified?: boolean | null
+          volume?: string | null
+          year?: number | null
+        }
+        Update: {
+          authors?: string[] | null
+          created_at?: string
+          doi?: string | null
+          formatted_citation?: string | null
+          id?: string
+          journal?: string | null
+          pages?: string | null
+          proposal_id?: string
+          ref_key?: number
+          title?: string
+          updated_at?: string
+          verified?: boolean | null
+          volume?: string | null
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "references_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proposal_risk_wps: {
         Row: {
           created_at: string
@@ -5090,65 +5211,6 @@ export type Database = {
           },
         ]
       }
-      references: {
-        Row: {
-          authors: string[] | null
-          citation_number: number
-          created_at: string
-          doi: string | null
-          formatted_citation: string | null
-          id: string
-          journal: string | null
-          pages: string | null
-          proposal_id: string
-          title: string
-          updated_at: string
-          verified: boolean | null
-          volume: string | null
-          year: number | null
-        }
-        Insert: {
-          authors?: string[] | null
-          citation_number: number
-          created_at?: string
-          doi?: string | null
-          formatted_citation?: string | null
-          id?: string
-          journal?: string | null
-          pages?: string | null
-          proposal_id: string
-          title: string
-          updated_at?: string
-          verified?: boolean | null
-          volume?: string | null
-          year?: number | null
-        }
-        Update: {
-          authors?: string[] | null
-          citation_number?: number
-          created_at?: string
-          doi?: string | null
-          formatted_citation?: string | null
-          id?: string
-          journal?: string | null
-          pages?: string | null
-          proposal_id?: string
-          title?: string
-          updated_at?: string
-          verified?: boolean | null
-          volume?: string | null
-          year?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "references_proposal_id_fkey"
-            columns: ["proposal_id"]
-            isOneToOne: false
-            referencedRelation: "proposals"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       section_comments: {
         Row: {
           anchor_payload: Json | null
@@ -5300,7 +5362,7 @@ export type Database = {
             foreignKeyName: "section_footnotes_reference_id_fkey"
             columns: ["reference_id"]
             isOneToOne: false
-            referencedRelation: "references"
+            referencedRelation: "proposal_references"
             referencedColumns: ["id"]
           },
           {
