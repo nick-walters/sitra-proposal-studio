@@ -10,6 +10,8 @@ import { fetchReferenceData } from '@/lib/referenceData';
 import { publishCitationDisplayMap } from '@/lib/citationDisplay';
 import { swapImpactCanvasForWord } from '@/lib/exportImpactCanvasToWord';
 import { SITRA_LOGO_BASE64 } from '@/lib/sitraLogo';
+import { buildDocxFromHtml } from '@/lib/wordPackage';
+
 
 function buildBannerHtml(acronym: string, title: string): string {
   const esc = (s: string) =>
@@ -199,7 +201,7 @@ export function useDocxExport() {
   const appQueryClient = useQueryClient();
   const exportProposalToDocx = useCallback(
     async (data: ExportData, options?: { includeWatermark?: boolean }) => {
-      const { proposal, sectionContents, sections, participants = [] } = data;
+      const { proposal, sectionContents, sections, participants = [], selectedSections } = data;
 
       try {
         toast.info('Generating Word document – rendering content…');
@@ -217,7 +219,9 @@ export function useDocxExport() {
           sections,
           sectionContents,
           participants,
+          selectedSections,
         }, undefined, appQueryClient);
+
 
         // Convert images to base64 data URIs for embedding
         toast.info('Generating Word document – embedding images…');
@@ -268,14 +272,12 @@ export function useDocxExport() {
         const bodyHtml = container.innerHTML;
         cleanup();
 
-        // Wrap in Word-compatible HTML
+        // Wrap in Word-compatible HTML, then package it as a real OOXML file.
         const docTitle = `${proposal.acronym}: ${proposal.title}`;
         const wordHtml = wrapInWordHtml(bodyHtml, docTitle);
 
-        // Create blob and save
-        const blob = new Blob(['\ufeff' + wordHtml], {
-          type: 'application/msword',
-        });
+        toast.info('Generating Word document – packaging…');
+        const blob = await buildDocxFromHtml(wordHtml);
         const now = new Date();
         const pad = (n: number) => String(n).padStart(2, '0');
         const timestamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
@@ -285,8 +287,10 @@ export function useDocxExport() {
         toast.success('Word document exported successfully!');
       } catch (error) {
         console.error('DOCX export error:', error);
-        toast.error('Failed to export Word document. Please try again.');
+        const detail = error instanceof Error ? error.message : String(error);
+        toast.error(`Failed to export Word document: ${detail}`);
       }
+
     },
     [appQueryClient],
   );
