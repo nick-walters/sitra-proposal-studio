@@ -174,7 +174,7 @@ async function loadRefSnapshot(supabase: any, proposalId: string): Promise<RefSn
       supabase.from("case_drafts").select("id, number, case_type, case_type_id, short_name").eq("proposal_id", proposalId),
       supabase.from("proposal_case_types").select("id, custom_type_name, include_number, include_abbreviation").eq("proposal_id", proposalId),
       supabase.from("participants").select("id, organisation_short_name").eq("proposal_id", proposalId),
-      supabase.from("figures").select("id, figure_number").eq("proposal_id", proposalId),
+      supabase.from("figures").select("id").eq("proposal_id", proposalId),
       supabase.from("table_captions").select("table_key").eq("proposal_id", proposalId),
       supabase.from("proposals").select("acronym, acronym_segments").eq("id", proposalId).maybeSingle(),
     ]);
