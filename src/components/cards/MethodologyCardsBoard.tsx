@@ -461,21 +461,20 @@ function FieldRow({
       ref={setNodeRef}
       id={`card-module-${field.id}`}
       style={style}
-      className="relative space-y-2 rounded-md border border-border p-3 transition-shadow"
+      className="space-y-2 rounded-md border border-border p-3 transition-shadow"
     >
-      {/* Grip sits at the module box's top-left corner, in the reserved gutter. */}
-      {canEdit && (
-        <button
-          type="button"
-          className="absolute left-[-22px] top-[-1px] cursor-grab touch-none text-[#2563EB]"
-          aria-label="Reorder module"
-          {...attributes}
-          {...listeners}
-        >
-          <GripVertical className="h-4 w-4" />
-        </button>
-      )}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5">
+        {canEdit && (
+          <button
+            type="button"
+            className="shrink-0 cursor-grab touch-none rounded p-0.5 active:cursor-grabbing hover:bg-muted"
+            aria-label="Reorder module"
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className="h-4 w-4 text-blue-500" />
+          </button>
+        )}
 
 
         {isPlaceholder ? (
@@ -485,7 +484,7 @@ function FieldRow({
         ) : (
           <>
             {field.headingEnabled ? (
-              <div className="ml-[17px] flex min-w-0 flex-1 items-center gap-2">
+              <div className="flex min-w-0 flex-1 items-center gap-2">
                 {headerLock.lockedByOther ? (
                   // Read-only surface: a plain element, so no caret can be
                   // placed, while the text stays selectable for copying.
@@ -582,7 +581,7 @@ function FieldRow({
       </div>
 
       {!isPlaceholder && (
-        <div className={collapsed ? 'hidden' : 'flex items-start gap-2'}>
+        <div className={collapsed ? 'hidden' : `flex items-start gap-2 ${canEdit ? 'ml-6' : ''}`}>
           <div
             className={`min-w-0 flex-1 rounded-md ${
               contentLock.lockedByOther
@@ -821,23 +820,20 @@ function CardBlock({
   };
 
   return (
-    <div ref={sortable.setNodeRef} id={`card-block-${card.id}`} style={style} className="relative transition-shadow">
-      {/* Grip sits at the block box's top-left corner, in the reserved gutter. */}
-      {draggable && canEdit && (
-        <button
-          type="button"
-          className="absolute left-[-28px] top-0 cursor-grab touch-none text-[#2563EB]"
-          aria-label="Reorder block"
-          {...sortable.attributes}
-          {...sortable.listeners}
-        >
-          <GripVertical className="h-4 w-4" />
-        </button>
-      )}
+    <div ref={sortable.setNodeRef} id={`card-block-${card.id}`} style={style} className="transition-shadow">
       <Card>
-        <CardHeader className="flex flex-row items-center gap-2 space-y-0 py-3">
-
-
+        <CardHeader className="flex flex-row items-center gap-1.5 space-y-0 py-3">
+          {draggable && canEdit && (
+            <button
+              type="button"
+              className="shrink-0 cursor-grab touch-none rounded p-0.5 active:cursor-grabbing hover:bg-muted"
+              aria-label="Reorder block"
+              {...sortable.attributes}
+              {...sortable.listeners}
+            >
+              <GripVertical className="h-4 w-4 text-blue-500" />
+            </button>
+          )}
           {/* Figure blocks carry no title: the caption under the figure is the
               only label, so a block title would duplicate it. */}
           <div className="min-w-0 flex-1">
@@ -1462,8 +1458,7 @@ function BoardInner({
           setHistoryOpen(false);
         }}
       />
-      {/* pl-12 reserves the left margin the out-of-box block grips occupy. */}
-      <div className="mx-auto w-full max-w-4xl space-y-4 p-6 pl-12">
+      <div className="mx-auto w-full max-w-4xl space-y-4 p-6">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
             <h1 className="text-xl font-bold text-foreground">Methodologies (cards)</h1>
