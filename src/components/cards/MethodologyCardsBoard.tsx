@@ -68,6 +68,7 @@ const setLostText = (payload: LostTextPayload | null) => {
 };
 import { useSectionCards, sectionCardsKey } from '@/hooks/useSectionCards';
 import { SourceFedBlock } from '@/components/cards/SourceFedBlock';
+import LinkedActivitiesTable from '@/components/LinkedActivitiesTable';
 import { CardFigureBlock } from '@/components/cards/CardFigureBlock';
 import { AddBlockDialog, type NewBlockChoice } from '@/components/cards/AddBlockDialog';
 import { useSectionRecycleBin } from '@/hooks/useSectionRecycleBin';
@@ -739,6 +740,9 @@ function CardBlock({
   };
 
   const isPlaceholderCard = card.kind === 'references' || card.isSourceFed;
+  // Authored, but backed by its own relational table rather than card fields:
+  // the block renders the same editor as the old methodologies page.
+  const isLinkedActivitiesCard = card.sourceKey === 'b12.linked_activities' && !card.isSourceFed;
 
   const handleFieldDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -881,7 +885,13 @@ function CardBlock({
         </CardHeader>
 
         <CardContent className="space-y-3">
-          {isPlaceholderCard ? (
+          {isLinkedActivitiesCard ? (
+            <LinkedActivitiesTable
+              proposalId={proposalId}
+              canEdit={canEdit}
+              isCoordinator={isCoordinator}
+            />
+          ) : isPlaceholderCard ? (
             <SourceFedBlock
               proposalId={proposalId}
               sourceKey={card.sourceKey}
