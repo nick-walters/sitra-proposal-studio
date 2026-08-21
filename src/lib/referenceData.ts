@@ -12,6 +12,7 @@
 import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { computeFigureNumbers } from '@/lib/figureNumbering';
 
 export interface WPData {
   id: string;
