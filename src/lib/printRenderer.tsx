@@ -20,6 +20,13 @@ import { applyColumnWidthsToTable } from '@/lib/autoFitColumns';
 import { cellAlignCss } from '@/lib/tableStyleSpec';
 import { stripBakedOverviewCanvasText } from '@/lib/exportOverviewCanvasScrub';
 import { resolveAiStatementHtml } from '@/lib/aiStatement';
+import {
+  citationHtml,
+  fetchSectionCitationSources,
+  sectionCitedReferences,
+  type SectionCitationSources,
+} from '@/lib/sectionCitations';
+import { legacySectionKey } from '@/lib/citationSources';
 
 
 /** Escape user-provided strings before interpolating into raw HTML templates. */
@@ -295,6 +302,44 @@ function stripTags(html: string): string {
 // ── Build the full print container HTML ──────────────────────────────────────
 
 
+/**
+ * The per-section references list, appended after the section body in the
+ * exported document. Same scan and same ordering as the on-screen block: the
+ * logic lives in `sectionCitations.ts`, so PDF, DOCX and editor cannot drift.
+ * These are NOT per-page footnotes (Phase 5, Typst) — this is the section list.
+ */
+function appendSectionReferences(
+  container: HTMLElement,
+  sources: SectionCitationSources | null,
+  citationNumbers: Map<number, number> | undefined,
+  target: { sectionId?: string | null; legacyKey?: string | null },
+): void {
+  if (!sources) return;
+  const entries = sectionCitedReferences(sources, target, citationNumbers);
+  if (entries.length === 0) return; // nothing cited: no heading, no block
+
+  const wrap = document.createElement('div');
+  wrap.className = 'print-section-references';
+  wrap.style.marginTop = '6pt';
+  wrap.style.fontSize = '8pt';
+  wrap.style.lineHeight = '1.2';
+
+  for (const entry of entries) {
+    const line = document.createElement('p');
+    line.style.margin = '0';
+    line.style.paddingTop = '0.3em';
+    line.innerHTML = DOMPurify.sanitize(
+      `<sup>${entry.displayNumber ?? '\u2014'}</sup> ${citationHtml(entry.reference)}` +
+        (entry.displayNumber === null
+          ? ' <em>(not currently cited in visible content)</em>'
+          : ''),
+      PRINT_SANITIZE_CONFIG,
+    );
+    wrap.appendChild(line);
+  }
+  container.appendChild(wrap);
+}
+
 export async function buildPrintContainer(
   options: PrintRenderOptions,
 ): Promise<HTMLDivElement> {
@@ -313,6 +358,21 @@ export async function buildPrintContainer(
   container.style.background = '#fff';
 
   const sectionMap = new Map(sectionContents.map(sc => [sc.sectionId, sc.content]));
+
+  // Citation sources for the per-section references lists. A failure here must
+  // never take the export down: the document simply prints without the lists.
+  let citationSources: SectionCitationSources | null = null;
+  let citationNumbers: Map<number, number> | undefined;
+  try {
+    const [sources, refData] = await Promise.all([
+      fetchSectionCitationSources(proposal.id),
+      fetchReferenceData(proposal.id),
+    ]);
+    citationSources = sources;
+    citationNumbers = refData.citationNumbers;
+  } catch {
+    citationSources = null;
+  }
   let partBSections = flattenSections(sections);
 
   // ── Optional subsection selection (partial export) ──
@@ -487,7 +547,13 @@ export async function buildPrintContainer(
       // B3.2 — the expertise matrix now renders inside the interdisciplinarity
       // mirror slot (see B32MirrorSlotLiveView), so there is no separate mount.
 
-
+      // The section's references list closes the section. `section.id` is the
+      // legacy text key for legacy bodies and a uuid for card sections, so both
+      // are offered and the scan uses whichever matches.
+      appendSectionReferences(container, citationSources, citationNumbers, {
+        sectionId: section.id,
+        legacyKey: legacySectionKey(section.id) || legacySectionKey(`B${num}`),
+      });
     }
   }
 
