@@ -48,6 +48,7 @@ interface Figure {
   placedCardId: string | null;
   placedSectionId: string | null;
   placedSectionLabel: string | null;
+  state: 'placed' | 'held_by_deleted_block' | 'unplaced';
 }
 
 interface SectionOption {
