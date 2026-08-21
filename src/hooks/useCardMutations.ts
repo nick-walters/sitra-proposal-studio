@@ -55,6 +55,49 @@ export function useCardMutations(proposalId: string, sectionId: string) {
   });
 
 
+  /** Table block: RPC creates the card, the card_table row, columns and rows. */
+  const createTableCard = useMutation({
+    mutationFn: async ({
+      columns,
+      rows,
+      parts = 1,
+    }: {
+      columns: number;
+      rows: number;
+      parts?: number;
+    }): Promise<string> => {
+      const { data, error } = await supabase.rpc('create_table_card', {
+        p_section_id: sectionId,
+        p_cols: columns,
+        p_rows: rows,
+        p_parts: parts,
+      });
+      if (error) throw error;
+      return data as string;
+    },
+    onSuccess: () => {
+      invalidateCards();
+      toast.success('Table block added');
+    },
+    onError: (e: Error) => toast.error(e.message || 'Could not create the table block'),
+  });
+
+  /** Figure block: created empty; the block itself offers the figure options. */
+  const createFigureCard = useMutation({
+    mutationFn: async (): Promise<string> => {
+      const { data, error } = await supabase.rpc('create_figure_card', {
+        p_section_id: sectionId,
+      });
+      if (error) throw error;
+      return data as string;
+    },
+    onSuccess: () => {
+      invalidateCards();
+      toast.success('Figure block added');
+    },
+    onError: (e: Error) => toast.error(e.message || 'Could not create the figure block'),
+  });
+
   const updateCard = useMutation({
     mutationFn: async ({
       cardId,
@@ -201,6 +244,8 @@ export function useCardMutations(proposalId: string, sectionId: string) {
 
   return {
     createCard,
+    createTableCard,
+    createFigureCard,
     updateCard,
     reorderCards,
     createField,

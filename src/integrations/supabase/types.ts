@@ -6926,12 +6926,21 @@ export type Database = {
         }
         Returns: Json
       }
+      add_card_table_column: {
+        Args: { p_card_id: string; p_part?: number }
+        Returns: string
+      }
+      add_card_table_row: {
+        Args: { p_card_id: string; p_part?: number; p_row_type?: string }
+        Returns: string
+      }
       caller_is_sitra_staff: { Args: never; Returns: boolean }
       can_edit_proposal: {
         Args: { _proposal_id: string; _user_id: string }
         Returns: boolean
       }
       capture_scope_predicates: { Args: never; Returns: Json }
+      card_block_guard: { Args: { p_card_id: string }; Returns: string }
       card_html_is_blank: { Args: { p_html: string }; Returns: boolean }
       create_card_field: {
         Args: {
@@ -6940,6 +6949,10 @@ export type Database = {
           p_field_role?: string
           p_heading?: string
         }
+        Returns: string
+      }
+      create_figure_card: {
+        Args: { p_figure_id?: string; p_section_id: string }
         Returns: string
       }
       create_manual_text_card: {
@@ -6969,10 +6982,21 @@ export type Database = {
         }
         Returns: string
       }
+      create_table_card: {
+        Args: {
+          p_cols?: number
+          p_parts?: number
+          p_rows?: number
+          p_section_id: string
+        }
+        Returns: string
+      }
       delete_and_resequence: {
         Args: { p_expected_version?: number; p_id: string; p_table: string }
         Returns: Json
       }
+      delete_card_table_column: { Args: { p_column_id: string }; Returns: Json }
+      delete_card_table_row: { Args: { p_row_id: string }; Returns: Json }
       get_my_private_profile: {
         Args: never
         Returns: {
@@ -7089,6 +7113,22 @@ export type Database = {
           p_value: string
         }
         Returns: number
+      }
+      save_card_figure: {
+        Args: { p_card_id: string; p_patch: Json }
+        Returns: Json
+      }
+      save_card_table_cell: {
+        Args: { p_cell_id: string; p_patch: Json }
+        Returns: Json
+      }
+      save_card_table_column: {
+        Args: { p_column_id: string; p_patch: Json }
+        Returns: Json
+      }
+      save_card_table_meta: {
+        Args: { p_card_id: string; p_patch: Json }
+        Returns: Json
       }
       save_card_text: {
         Args: {
