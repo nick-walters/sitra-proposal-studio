@@ -822,22 +822,23 @@ function CardBlock({
   };
 
   return (
-    <div ref={sortable.setNodeRef} id={`card-block-${card.id}`} style={style} className="transition-shadow">
+    <div ref={sortable.setNodeRef} id={`card-block-${card.id}`} style={style} className="relative transition-shadow">
+      {/* Grip sits in the left margin, outside the block box, so the block
+          title aligns flush with the content beneath it. */}
+      {draggable && canEdit && (
+        <button
+          type="button"
+          className="absolute left-[-28px] top-[1.25rem] cursor-grab touch-none text-[#2563EB]"
+          aria-label="Reorder block"
+          {...sortable.attributes}
+          {...sortable.listeners}
+        >
+          <GripVertical className="h-4 w-4" />
+        </button>
+      )}
       <Card>
         <CardHeader className="flex flex-row items-center gap-2 space-y-0 py-3">
-          {draggable && canEdit ? (
-            <button
-              type="button"
-              className="cursor-grab touch-none text-[#2563EB]"
-              aria-label="Reorder block"
-              {...sortable.attributes}
-              {...sortable.listeners}
-            >
-              <GripVertical className="h-4 w-4" />
-            </button>
-          ) : (
-            <span className="inline-block h-4 w-4" aria-hidden="true" />
-          )}
+
 
           {/* Figure blocks carry no title: the caption under the figure is the
               only label, so a block title would duplicate it. */}
