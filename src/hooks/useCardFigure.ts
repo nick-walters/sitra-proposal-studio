@@ -172,3 +172,82 @@ export function useProposalFigures(proposalId: string) {
     },
   });
 }
+
+export interface DeletedFigureOption {
+  id: string;
+  title: string;
+  figureType: string;
+  caption: string | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  content: any;
+  deletedAt: string | null;
+  purgeAfter: string | null;
+}
+
+export const deletedFiguresKey = (proposalId: string) => ['figures-bin', proposalId];
+
+/** The figures recycle bin: soft-deleted figures, newest first. */
+export function useDeletedFigures(proposalId: string) {
+  return useQuery({
+    queryKey: deletedFiguresKey(proposalId),
+    enabled: !!proposalId,
+    queryFn: async (): Promise<DeletedFigureOption[]> => {
+      const { data, error } = await supabase
+        .from('figures')
+        .select('id, title, figure_type, caption, content, deleted_at, purge_after')
+        .eq('proposal_id', proposalId)
+        .not('deleted_at', 'is', null)
+        .order('deleted_at', { ascending: false });
+      if (error) throw error;
+      return (data ?? []).map((f) => ({
+        id: f.id,
+        title: f.title,
+        figureType: f.figure_type,
+        caption: f.caption,
+        content: f.content,
+        deletedAt: f.deleted_at,
+        purgeAfter: f.purge_after,
+      }));
+    },
+  });
+}
+
+/**
+ * Soft delete and restore. Both go through SECURITY DEFINER RPCs: the server
+ * refuses to bin a figure still held by a block (live or soft-deleted) and
+ * names the section, so no block is ever silently emptied. There is no hard
+ * DELETE grant — the existing purge job clears expired rows.
+ */
+export function useFigureBinActions(proposalId: string) {
+  const queryClient = useQueryClient();
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ['figures', proposalId] });
+    queryClient.invalidateQueries({ queryKey: deletedFiguresKey(proposalId) });
+  };
+
+  const softDelete = useMutation({
+    mutationFn: async (figureId: string) => {
+      const { error } = await supabase.rpc('soft_delete_figure', { p_figure_id: figureId });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidate();
+      toast.success('Figure moved to the recycle bin');
+    },
+    onError: (e: Error) => toast.error(e.message || 'Could not delete the figure'),
+  });
+
+  const restore = useMutation({
+    mutationFn: async (figureId: string) => {
+      const { error } = await supabase.rpc('restore_figure', { p_figure_id: figureId });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidate();
+      toast.success('Figure restored to Unplaced');
+    },
+    onError: (e: Error) => toast.error(e.message || 'Could not restore the figure'),
+  });
+
+  return { softDelete, restore };
+}
