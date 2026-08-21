@@ -484,7 +484,7 @@ function FieldRow({
         ) : (
           <>
             {field.headingEnabled ? (
-              <div className="flex min-w-0 flex-1 items-center gap-2">
+              <div className="ml-[15px] flex min-w-0 flex-1 items-center gap-2">
                 {headerLock.lockedByOther ? (
                   // Read-only surface: a plain element, so no caret can be
                   // placed, while the text stays selectable for copying.
