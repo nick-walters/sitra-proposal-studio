@@ -67,6 +67,10 @@ const setLostText = (payload: LostTextPayload | null) => {
   if (payload) reportLostTextPayload(payload);
 };
 import { useSectionCards, sectionCardsKey } from '@/hooks/useSectionCards';
+import { CellAlignControls } from '@/components/cards/CellAlignControls';
+import { CardTableBlock } from '@/components/cards/CardTableBlock';
+import { CardFigureBlock } from '@/components/cards/CardFigureBlock';
+import { AddBlockDialog, type NewBlockChoice } from '@/components/cards/AddBlockDialog';
 import { useSectionRecycleBin } from '@/hooks/useSectionRecycleBin';
 import { useCardFieldsForCards } from '@/hooks/useCardFields';
 import { useCardMutations } from '@/hooks/useCardMutations';
@@ -122,13 +126,16 @@ function CardsToolbar({
         isPartB
         isReadOnly={!canEdit}
         crossRefDropdown={
-          <PartBCrossRefControls
-            editor={activeEditor}
-            proposalId={proposalId}
-            disabled={!canEdit}
-            showKeyboardButton={false}
-            acronymSegments={acronymSegments}
-          />
+          <>
+            <PartBCrossRefControls
+              editor={activeEditor}
+              proposalId={proposalId}
+              disabled={!canEdit}
+              showKeyboardButton={false}
+              acronymSegments={acronymSegments}
+            />
+            <CellAlignControls editor={activeEditor} disabled={!canEdit} />
+          </>
         }
       />
     </div>
@@ -604,6 +611,8 @@ interface CardBlockProps {
   onLostText: (payload: LostTextPayload) => void;
   onFlushContent: (field: CardField, html: string) => Promise<void>;
   reloadNonce: number;
+  /** "Table 1.2.a." / "Figure 1.2.a." for table and figure blocks. */
+  captionLabel?: string;
 }
 
 function CardBlock({
@@ -630,6 +639,7 @@ function CardBlock({
   onLostText,
   onFlushContent,
   reloadNonce,
+  captionLabel,
 }: CardBlockProps) {
   const sortable = useSortable({ id: card.id, disabled: !draggable });
   const [editingTitle, setEditingTitle] = useState(false);
@@ -868,7 +878,21 @@ function CardBlock({
         </CardHeader>
 
         <CardContent className="space-y-3">
-          {isPlaceholderCard ? (
+          {card.kind === 'table' ? (
+            <CardTableBlock
+              cardId={card.id}
+              proposalId={proposalId}
+              canEdit={canEdit}
+              captionLabel={captionLabel ?? 'Table.'}
+            />
+          ) : card.kind === 'figure' ? (
+            <CardFigureBlock
+              cardId={card.id}
+              proposalId={proposalId}
+              canEdit={canEdit}
+              captionLabel={captionLabel ?? 'Figure.'}
+            />
+          ) : isPlaceholderCard ? (
             <p className="text-sm italic text-muted-foreground">Renders in a later phase.</p>
           ) : (
             <>
@@ -927,6 +951,9 @@ function CardBlock({
 /* Board                                                               */
 /* ------------------------------------------------------------------ */
 
+/** The cards board is the B1.2 methodologies section. */
+const SECTION_CAPTION_NUMBER = '1.2';
+
 function BoardInner({
   proposalId,
   sectionId,
@@ -979,6 +1006,8 @@ function BoardInner({
 
   const {
     createCard,
+    createTableCard,
+    createFigureCard,
 
     updateCard,
     reorderCards,
@@ -992,6 +1021,7 @@ function BoardInner({
   const [localOrder, setLocalOrder] = useState<string[] | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [binOpen, setBinOpen] = useState(false);
+  const [addBlockOpen, setAddBlockOpen] = useState(false);
   const [moduleBinCardId, setModuleBinCardId] = useState<string | null>(null);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [focusedBox, setFocusedBox] = useState<{ fieldId: string; textBox: CardTextBox } | null>(
@@ -1220,8 +1250,45 @@ function BoardInner({
     void jumpToElementId(domId);
   }, []);
 
+  // Caption labels are assigned per section in document order: tables and
+  // figures each carry their own a, b, c sequence.
+  const captionLabels = useMemo(() => {
+    const ordered = [...headCards, ...freeCards, ...tailCards];
+    const labels: Record<string, string> = {};
+    let tableIndex = 0;
+    let figureIndex = 0;
+    for (const card of ordered) {
+      if (card.kind === 'table') {
+        labels[card.id] = `Table ${SECTION_CAPTION_NUMBER}.${String.fromCharCode(97 + tableIndex)}.`;
+        tableIndex += 1;
+      } else if (card.kind === 'figure') {
+        labels[card.id] = `Figure ${SECTION_CAPTION_NUMBER}.${String.fromCharCode(97 + figureIndex)}.`;
+        figureIndex += 1;
+      }
+    }
+    return labels;
+  }, [headCards, freeCards, tailCards]);
+
+  const handleCreateBlock = (choice: NewBlockChoice) => {
+    const onSuccess = (newCardId: string) => {
+      setAddBlockOpen(false);
+      jumpToRestored('card', newCardId);
+    };
+    if (choice.kind === 'table') {
+      createTableCard.mutate(
+        { columns: choice.columns ?? 3, rows: choice.rows ?? 3, parts: choice.parts ?? 1 },
+        { onSuccess },
+      );
+    } else if (choice.kind === 'figure') {
+      createFigureCard.mutate(undefined, { onSuccess });
+    } else {
+      createCard.mutate(undefined, { onSuccess });
+    }
+  };
+
   const cardProps = (card: ProposalCard, draggable: boolean) => ({
     card,
+    captionLabel: captionLabels[card.id],
     fields: fieldsByCard[card.id] ?? [],
     proposalId,
     canEdit,
@@ -1309,12 +1376,8 @@ function BoardInner({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() =>
-                  createCard.mutate(undefined, {
-                    onSuccess: (newCardId) => jumpToRestored('card', newCardId),
-                  })
-                }
-                disabled={createCard.isPending}
+                onClick={() => setAddBlockOpen(true)}
+                disabled={createCard.isPending || createTableCard.isPending || createFigureCard.isPending}
               >
                 <Plus className="mr-1 h-3.5 w-3.5" />
                 Add block
@@ -1388,6 +1451,13 @@ function BoardInner({
             ))}
           </div>
         </EditorChrome>
+
+        <AddBlockDialog
+          open={addBlockOpen}
+          onOpenChange={setAddBlockOpen}
+          onCreate={handleCreateBlock}
+          isPending={createCard.isPending || createTableCard.isPending || createFigureCard.isPending}
+        />
 
         <KeyboardShortcutsDialog isOpen={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
 
