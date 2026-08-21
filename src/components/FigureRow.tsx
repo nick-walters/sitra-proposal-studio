@@ -1,4 +1,4 @@
-import { ArrowRight, BarChart3, Network, Sparkles, Image, LayoutTemplate, Plus } from 'lucide-react';
+import { ArrowRight, BarChart3, Network, Sparkles, Image, LayoutTemplate, Plus, Trash2 } from 'lucide-react';
 import { StorageImage } from '@/components/StorageImage';
 import { Button } from '@/components/ui/button';
 
@@ -18,6 +18,8 @@ interface FigureRowProps<T extends FigureRowFigure> {
   onSelect: (figure: T) => void;
   /** Shown only when a figure block invoked the manager and this figure is unplaced. */
   onAddToBlock?: (figure: T) => void;
+  /** Shown only for genuinely unplaced figures: soft delete into the figures bin. */
+  onDelete?: (figure: T) => void;
 }
 
 /**
@@ -25,7 +27,7 @@ interface FigureRowProps<T extends FigureRowFigure> {
  * numbering: both are derived from the block placing the figure, so this row
  * has no drag handle and no number field.
  */
-export function FigureRow<T extends FigureRowFigure>({ figure, onSelect, onAddToBlock }: FigureRowProps<T>) {
+export function FigureRow<T extends FigureRowFigure>({ figure, onSelect, onAddToBlock, onDelete }: FigureRowProps<T>) {
   const hasImage = figure.content?.imageUrl;
 
   return (
@@ -82,6 +84,20 @@ export function FigureRow<T extends FigureRowFigure>({ figure, onSelect, onAddTo
         >
           <Plus className="mr-1 h-3.5 w-3.5" />
           Add to block
+        </Button>
+      )}
+      {onDelete && (
+        <Button
+          size="icon"
+          variant="ghost"
+          aria-label="Delete figure"
+          className="h-8 w-8 shrink-0 text-destructive hover:text-destructive"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(figure);
+          }}
+        >
+          <Trash2 className="h-4 w-4" />
         </Button>
       )}
       <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
