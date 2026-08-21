@@ -1,5 +1,6 @@
-import { ArrowRight, BarChart3, Network, Sparkles, Image, LayoutTemplate } from 'lucide-react';
+import { ArrowRight, BarChart3, Network, Sparkles, Image, LayoutTemplate, Plus } from 'lucide-react';
 import { StorageImage } from '@/components/StorageImage';
+import { Button } from '@/components/ui/button';
 
 interface FigureRowFigure {
   id: string;
@@ -15,6 +16,8 @@ interface FigureRowFigure {
 interface FigureRowProps<T extends FigureRowFigure> {
   figure: T;
   onSelect: (figure: T) => void;
+  /** Shown only when a figure block invoked the manager and this figure is unplaced. */
+  onAddToBlock?: (figure: T) => void;
 }
 
 /**
@@ -22,13 +25,21 @@ interface FigureRowProps<T extends FigureRowFigure> {
  * numbering: both are derived from the block placing the figure, so this row
  * has no drag handle and no number field.
  */
-export function FigureRow<T extends FigureRowFigure>({ figure, onSelect }: FigureRowProps<T>) {
+export function FigureRow<T extends FigureRowFigure>({ figure, onSelect, onAddToBlock }: FigureRowProps<T>) {
   const hasImage = figure.content?.imageUrl;
 
   return (
-    <button
-      className="flex w-full items-center gap-3 rounded-lg border bg-background p-3 text-left transition-colors hover:bg-muted"
+    <div
+      role="button"
+      tabIndex={0}
+      className="flex w-full cursor-pointer items-center gap-3 rounded-lg border bg-background p-3 text-left transition-colors hover:bg-muted"
       onClick={() => onSelect(figure)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect(figure);
+        }
+      }}
     >
       <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded bg-muted">
         {hasImage ? (
@@ -60,7 +71,20 @@ export function FigureRow<T extends FigureRowFigure>({ figure, onSelect }: Figur
               : `${figure.figureType} chart`}
         </p>
       </div>
+      {onAddToBlock && (
+        <Button
+          size="sm"
+          className="shrink-0"
+          onClick={(e) => {
+            e.stopPropagation();
+            onAddToBlock(figure);
+          }}
+        >
+          <Plus className="mr-1 h-3.5 w-3.5" />
+          Add to block
+        </Button>
+      )}
       <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-    </button>
+    </div>
   );
 }

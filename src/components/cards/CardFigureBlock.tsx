@@ -70,7 +70,6 @@ export function CardFigureBlock({
 }: CardFigureBlockProps) {
   const { figureBlock, isLoading, save } = useCardFigure(cardId);
   const { data: figures = [] } = useProposalFigures(proposalId);
-  const [pickerOpen, setPickerOpen] = useState(false);
   const [managerOpen, setManagerOpen] = useState(false);
   const [removeOpen, setRemoveOpen] = useState(false);
   const [captionDraft, setCaptionDraft] = useState('');
@@ -89,12 +88,6 @@ export function CardFigureBlock({
   const figure = figureBlock.figureId ? figures.find((f) => f.id === figureBlock.figureId) : null;
   const imageUrl: string | null = figure?.content?.imageUrl ?? null;
   const missingAsset = !figureBlock.figureId || (figures.length > 0 && !figure);
-
-  // A figure is used exactly once (unique index on card_figure.figure_id), so
-  // the picker only offers unplaced figures plus this block's own choice.
-  const selectableFigures = figures.filter(
-    (f) => !f.placedCardId || f.placedCardId === cardId || f.id === figureBlock.figureId,
-  );
 
   const widthMode: FigureWidthMode = fullWidthOnly ? 'full' : figureBlock.widthMode;
   const widthPct = fullWidthOnly ? 100 : resolveFigureWidthPct(widthMode, figureBlock.customWidthPct);
@@ -121,15 +114,10 @@ export function CardFigureBlock({
                   : 'No figure chosen for this block yet.'}
               </p>
               {canEdit && (
-                <div className="flex gap-2">
-                  <Button size="sm" variant="outline" onClick={() => setPickerOpen(true)}>
-                    Choose a figure
-                  </Button>
-                  <Button size="sm" onClick={() => setManagerOpen(true)}>
-                    <Plus className="mr-1 h-3.5 w-3.5" />
-                    Create a figure
-                  </Button>
-                </div>
+                <Button size="sm" onClick={() => setManagerOpen(true)}>
+                  <Plus className="mr-1 h-3.5 w-3.5" />
+                  Insert a figure
+                </Button>
               )}
             </div>
           ) : imageUrl ? (
@@ -139,31 +127,32 @@ export function CardFigureBlock({
               {figure?.title} has no rendered image yet. Open it on the figures page to render it.
             </div>
           )}
-
-          {/* The caption sits BESIDE the label and fills the remaining width. */}
-          <div className={tableCaptionClass('mt-2 flex items-baseline gap-2')}>
-            <span className={cn(TABLE_CAPTION_LABEL_CLASS, 'shrink-0 whitespace-nowrap')}>
-              {captionLabel}
-            </span>
-            {canEdit ? (
-              <Input
-                value={captionDraft}
-                placeholder="Caption"
-                className="h-7 flex-1 border-transparent bg-transparent px-1 font-[inherit] text-[inherit] italic shadow-none focus-visible:border-input focus-visible:bg-background"
-                onFocus={() => {
-                  captionTouched.current = true;
-                }}
-                onChange={(e) => setCaptionDraft(e.target.value)}
-                onBlur={() => {
-                  captionTouched.current = false;
-                  if ((figureBlock.caption ?? '') !== captionDraft) save.mutate({ caption: captionDraft });
-                }}
-              />
-            ) : (
-              <span className="flex-1 italic">{figureBlock.caption}</span>
-            )}
-          </div>
         </div>
+      </div>
+
+      {/* Caption: under the figure, spanning the FULL block width, label and
+          input on one line in the same italic serif face. */}
+      <div className={tableCaptionClass('flex w-full items-baseline gap-2')}>
+        <span className={cn(TABLE_CAPTION_LABEL_CLASS, 'shrink-0 whitespace-nowrap')}>
+          {captionLabel}
+        </span>
+        {canEdit ? (
+          <Input
+            value={captionDraft}
+            placeholder="Caption"
+            className="h-7 w-full flex-1 border-transparent bg-transparent px-1 font-[inherit] text-[inherit] italic leading-[inherit] shadow-none focus-visible:border-input focus-visible:bg-background"
+            onFocus={() => {
+              captionTouched.current = true;
+            }}
+            onChange={(e) => setCaptionDraft(e.target.value)}
+            onBlur={() => {
+              captionTouched.current = false;
+              if ((figureBlock.caption ?? '') !== captionDraft) save.mutate({ caption: captionDraft });
+            }}
+          />
+        ) : (
+          <span className="flex-1 italic">{figureBlock.caption}</span>
+        )}
       </div>
 
       {canEdit && (
@@ -282,23 +271,19 @@ export function CardFigureBlock({
             </p>
           )}
 
-          <div className="flex flex-wrap gap-2">
-            <Button size="sm" variant="outline" onClick={() => setPickerOpen(true)}>
-              <Pencil className="mr-1 h-3.5 w-3.5" />
-              Change figure
-            </Button>
-            {missingAsset ? (
+          {/* No figure: the empty state's "Insert a figure" is the only entry point. */}
+          {!missingAsset && (
+            <div className="flex flex-wrap gap-2">
               <Button size="sm" variant="outline" onClick={() => setManagerOpen(true)}>
-                <Plus className="mr-1 h-3.5 w-3.5" />
-                Create a figure
+                <Pencil className="mr-1 h-3.5 w-3.5" />
+                Change figure
               </Button>
-            ) : (
               <Button size="sm" variant="outline" onClick={() => setRemoveOpen(true)}>
                 <Unlink className="mr-1 h-3.5 w-3.5" />
                 Remove the figure from this block
               </Button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -327,65 +312,24 @@ export function CardFigureBlock({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Pick an existing asset. */}
-      <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Choose a figure</DialogTitle>
-            <DialogDescription>
-              The block keeps its own layout; picking a figure only changes which asset it shows.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="max-h-[320px] space-y-2 overflow-y-auto">
-            {selectableFigures.length === 0 && (
-              <p className="py-6 text-center text-sm text-muted-foreground">
-                No figures are available. A figure can only be used once, so every existing figure is
-                already placed in a block — create a new one.
-              </p>
-            )}
-            {selectableFigures.map((f) => (
-              <button
-                key={f.id}
-                type="button"
-                className={cn(
-                  'flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-colors',
-                  f.id === figureBlock.figureId ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted',
-                )}
-                onClick={() => {
-                  save.mutate({ figure_id: f.id });
-                  setPickerOpen(false);
-                }}
-              >
-                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center overflow-hidden rounded bg-muted">
-                  {f.content?.imageUrl ? (
-                    <StorageImage storedPath={f.content.imageUrl} alt="" className="h-full w-full object-cover" />
-                  ) : (
-                    <ImageIcon className="h-5 w-5 text-muted-foreground" />
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{f.title}</p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {f.caption || 'Numbered from its position once placed'}
-                  </p>
-                </div>
-              </button>
-            ))}
-          </div>
-        </DialogContent>
-      </Dialog>
-
       {/* The figures page itself, so every creation option is preserved. */}
       <Dialog open={managerOpen} onOpenChange={setManagerOpen}>
         <DialogContent className="max-h-[85vh] max-w-4xl overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Create a figure</DialogTitle>
+            <DialogTitle>Insert a figure</DialogTitle>
             <DialogDescription>
-              Upload an image, generate one with AI, draw on a canvas, or build a Gantt or PERT chart. Close this
-              dialog and choose the figure to attach it to this block.
+              Upload an image, generate one with AI, draw on a canvas, or build a Gantt or PERT chart, then use
+              “Add to block” beside any unplaced figure to put it in this block.
             </DialogDescription>
           </DialogHeader>
-          <FigureManager proposalId={proposalId} canEdit={canEdit} />
+          <FigureManager
+            proposalId={proposalId}
+            canEdit={canEdit}
+            onAddToBlock={(figureId) => {
+              save.mutate({ figure_id: figureId });
+              setManagerOpen(false);
+            }}
+          />
         </DialogContent>
       </Dialog>
     </div>

@@ -61,6 +61,13 @@ interface FigureManagerProps {
   proposalId: string;
   canEdit: boolean;
   availableSections?: SectionOption[];
+  /**
+   * Set when a figure block opened the manager. The block passes its own
+   * callback, so the manager never needs to know the card id: it simply shows
+   * an "Add to block" action beside every UNPLACED figure and hands the chosen
+   * figure back to the caller, which writes card_figure.figure_id and closes.
+   */
+  onAddToBlock?: (figureId: string) => void;
 }
 
 const FIGURE_TYPES = [
@@ -91,7 +98,7 @@ const DEFAULT_SECTION_OPTIONS: SectionOption[] = [
   { id: '3.2', number: 'B3.2', label: 'Capacity of participants' },
 ];
 
-export function FigureManager({ proposalId, canEdit, availableSections }: FigureManagerProps) {
+export function FigureManager({ proposalId, canEdit, availableSections, onAddToBlock }: FigureManagerProps) {
   // Use provided sections or fallback to defaults
   const SECTION_OPTIONS = availableSections && availableSections.length > 0 
     ? availableSections 
@@ -768,7 +775,12 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
                 ) : (
                   <div className="space-y-2">
                     {unplacedFigures.map((figure) => (
-                      <FigureRow key={figure.id} figure={figure} onSelect={(f) => setSelectedFigure(f as Figure)} />
+                      <FigureRow
+                        key={figure.id}
+                        figure={figure}
+                        onSelect={(f) => setSelectedFigure(f as Figure)}
+                        onAddToBlock={canEdit && onAddToBlock ? (f) => onAddToBlock(f.id) : undefined}
+                      />
                     ))}
                   </div>
                 )}
