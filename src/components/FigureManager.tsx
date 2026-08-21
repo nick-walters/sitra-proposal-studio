@@ -33,33 +33,20 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { generateProposalFilePath, uploadProposalFile } from '@/lib/proposalStorage';
 import { compressImage, getRecommendedFormat, getFormatExtension } from '@/lib/imageCompression';
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import { SortableFigureItem } from './SortableFigureList';
+import { useProposalFigures, type ProposalFigureOption } from '@/hooks/useCardFigure';
 import { CommonFiguresDialog } from './CommonFiguresDialog';
 
 interface Figure {
   id: string;
-  figureNumber: string;
-  sectionId: string;
+  /** Derived from the placing block. Null when the figure is unplaced. */
+  figureNumber: string | null;
   title: string;
   figureType: string;
   content: any;
   caption: string | null;
-  orderIndex: number;
+  placedCardId: string | null;
+  placedSectionId: string | null;
+  placedSectionLabel: string | null;
 }
 
 interface SectionOption {
@@ -136,53 +123,13 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
   const [isUploading, setIsUploading] = useState(false);
   const queryClient = useQueryClient();
 
-  // Fetch figures for this proposal
-  const { data: figures = [] } = useQuery({
-    queryKey: ['figures', proposalId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('figures')
-        .select('*')
-        .eq('proposal_id', proposalId)
-        .order('section_id')
-        .order('order_index');
-      if (error) throw error;
-      return data.map((f) => ({
-        id: f.id,
-        figureNumber: f.figure_number,
-        sectionId: f.section_id,
-        title: f.title,
-        figureType: f.figure_type,
-        content: f.content,
-        caption: f.caption,
-        orderIndex: f.order_index,
-      })) as Figure[];
-    },
-  });
-
-  // Sort figures numerically by figure number (e.g., 1.1.a, 1.1.b, 1.2.a)
-  const sortedFigures = [...figures].sort((a, b) => {
-    // Parse figure numbers like "1.1.a", "1.2.b"
-    const parseNumber = (num: string) => {
-      const parts = num.split('.');
-      const major = parseInt(parts[0] || '0', 10);
-      const minor = parseInt(parts[1] || '0', 10);
-      const letter = parts[2] || 'a';
-      const letterValue = letter.charCodeAt(0) - 'a'.charCodeAt(0);
-      return major * 10000 + minor * 100 + letterValue;
-    };
-    return parseNumber(a.figureNumber) - parseNumber(b.figureNumber);
-  });
+  // Figures for this proposal. Order and numbering are DERIVED from the block
+  // that places each figure — this page owns neither.
+  const { data: figures = [] } = useProposalFigures(proposalId);
 
   // Create figure mutation
   const createFigure = useMutation({
     mutationFn: async (data: { title: string; figureType: string; sectionId: string; imageUrl?: string; aiPrompt?: string; content?: any }) => {
-      const section = SECTION_OPTIONS.find(s => s.id === data.sectionId);
-      const sectionNumber = section?.number.replace('B', '') || '1.1';
-      const existingInSection = figures.filter(f => f.sectionId === data.sectionId);
-      const letter = String.fromCharCode(97 + existingInSection.length); // a, b, c...
-      const figureNumber = `${sectionNumber}.${letter}`;
-
       let content: any = data.content ?? null;
       if (!content && data.imageUrl) {
         content = { imageUrl: data.imageUrl };
@@ -195,13 +142,10 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
         .from('figures')
         .insert({
           proposal_id: proposalId,
-          figure_number: figureNumber,
-          section_id: data.sectionId,
           title: data.title,
           caption: data.title,
           figure_type: data.figureType,
           content,
-          order_index: figures.length,
         })
         .select()
         .single();
@@ -268,39 +212,6 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
     },
   });
 
-  // Reorder figures mutation with automatic renumbering
-  const reorderFigures = useMutation({
-    mutationFn: async ({ sectionId, reorderedFigures }: { sectionId: string; reorderedFigures: Figure[] }) => {
-      const section = SECTION_OPTIONS.find(s => s.id === sectionId);
-      const sectionNumber = section?.number.replace('B', '') || '1.1';
-      
-      // Update each figure with new order and figure number
-      const updates = reorderedFigures.map((figure, index) => {
-        const newLetter = String.fromCharCode(97 + index); // a, b, c...
-        const newFigureNumber = `${sectionNumber}.${newLetter}`;
-        
-        return supabase
-          .from('figures')
-          .update({
-            order_index: index,
-            figure_number: newFigureNumber,
-          })
-          .eq('id', figure.id);
-      });
-
-      const results = await Promise.all(updates);
-      const errors = results.filter(r => r.error);
-      if (errors.length > 0) throw errors[0].error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['figures', proposalId] });
-      toast.success('Figures reordered');
-    },
-    onError: () => {
-      toast.error('Failed to reorder figures');
-    },
-  });
-
   // Add figure from common library
   const handleAddFromLibrary = useCallback(async (
     commonFigure: { id: string; title: string; description: string | null; figure_type: string; content: any },
@@ -308,23 +219,14 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
   ) => {
     setIsAddingFromLibrary(true);
     try {
-      const section = SECTION_OPTIONS.find(s => s.id === sectionId);
-      const sectionNumber = section?.number.replace('B', '') || '1.1';
-      const existingInSection = figures.filter(f => f.sectionId === sectionId);
-      const letter = String.fromCharCode(97 + existingInSection.length);
-      const figureNumber = `${sectionNumber}.${letter}`;
-
       const { error } = await supabase
         .from('figures')
         .insert({
           proposal_id: proposalId,
-          figure_number: figureNumber,
-          section_id: sectionId,
           title: commonFigure.title,
           figure_type: commonFigure.figure_type,
           content: commonFigure.content,
           caption: commonFigure.description,
-          order_index: figures.length,
         });
 
       if (error) throw error;
@@ -339,27 +241,6 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
       setIsAddingFromLibrary(false);
     }
   }, [figures, proposalId, queryClient]);
-
-  // DnD sensors
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  );
-
-  // Handle drag end for a specific section
-  const handleDragEnd = useCallback((sectionId: string) => (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-
-    const sectionFigures = figures.filter(f => f.sectionId === sectionId);
-    const oldIndex = sectionFigures.findIndex(f => f.id === active.id);
-    const newIndex = sectionFigures.findIndex(f => f.id === over.id);
-
-    if (oldIndex !== -1 && newIndex !== -1) {
-      const reordered = arrayMove(sectionFigures, oldIndex, newIndex);
-      reorderFigures.mutate({ sectionId, reorderedFigures: reordered });
-    }
-  }, [figures, reorderFigures]);
 
   const resetCreateDialog = () => {
     setIsCreateDialogOpen(false);
