@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useReferenceData } from '@/lib/refDataContext';
+import { useReferenceData } from '@/lib/referenceData';
 import { extractCitationRefKeys } from '@/lib/citationNumbering';
 import { legacySectionKey } from '@/lib/citationSources';
 import type { ProposalReference } from '@/hooks/useProposalReferences';
@@ -34,7 +34,7 @@ interface SectionCitationScan {
 }
 
 export function useSectionCitedReferences(proposalId: string, sectionId: string) {
-  const { data: refData } = useReferenceData();
+  const { data: refData } = useReferenceData(proposalId);
 
   const scan = useQuery({
     queryKey: ['section-cited-refs', proposalId, sectionId],
