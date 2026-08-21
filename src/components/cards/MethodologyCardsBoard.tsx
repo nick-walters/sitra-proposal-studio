@@ -770,8 +770,10 @@ function CardBlock({
             <span className="inline-block h-4 w-4" aria-hidden="true" />
           )}
 
+          {/* Figure blocks carry no title: the caption under the figure is the
+              only label, so a block title would duplicate it. */}
           <div className="min-w-0 flex-1">
-            {isCoordinator && editingTitle && !titleLock.lockedByOther ? (
+            {card.kind === 'figure' ? null : isCoordinator && editingTitle && !titleLock.lockedByOther ? (
               <Input
                 autoFocus
                 value={titleDraft}
