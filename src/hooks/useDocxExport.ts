@@ -10,6 +10,8 @@ import { fetchReferenceData } from '@/lib/referenceData';
 import { publishCitationDisplayMap } from '@/lib/citationDisplay';
 import { swapImpactCanvasForWord } from '@/lib/exportImpactCanvasToWord';
 import { SITRA_LOGO_BASE64 } from '@/lib/sitraLogo';
+import { buildDocxFromHtml } from '@/lib/wordPackage';
+
 
 function buildBannerHtml(acronym: string, title: string): string {
   const esc = (s: string) =>
