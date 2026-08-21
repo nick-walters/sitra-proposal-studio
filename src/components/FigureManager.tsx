@@ -33,33 +33,21 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { generateProposalFilePath, uploadProposalFile } from '@/lib/proposalStorage';
 import { compressImage, getRecommendedFormat, getFormatExtension } from '@/lib/imageCompression';
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import { SortableFigureItem } from './SortableFigureList';
+import { useProposalFigures, type ProposalFigureOption } from '@/hooks/useCardFigure';
+import { FigureRow } from './FigureRow';
 import { CommonFiguresDialog } from './CommonFiguresDialog';
 
 interface Figure {
   id: string;
-  figureNumber: string;
-  sectionId: string;
+  /** Derived from the placing block. Null when the figure is unplaced. */
+  figureNumber: string | null;
   title: string;
   figureType: string;
   content: any;
   caption: string | null;
-  orderIndex: number;
+  placedCardId: string | null;
+  placedSectionId: string | null;
+  placedSectionLabel: string | null;
 }
 
 interface SectionOption {
@@ -136,53 +124,13 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
   const [isUploading, setIsUploading] = useState(false);
   const queryClient = useQueryClient();
 
-  // Fetch figures for this proposal
-  const { data: figures = [] } = useQuery({
-    queryKey: ['figures', proposalId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('figures')
-        .select('*')
-        .eq('proposal_id', proposalId)
-        .order('section_id')
-        .order('order_index');
-      if (error) throw error;
-      return data.map((f) => ({
-        id: f.id,
-        figureNumber: f.figure_number,
-        sectionId: f.section_id,
-        title: f.title,
-        figureType: f.figure_type,
-        content: f.content,
-        caption: f.caption,
-        orderIndex: f.order_index,
-      })) as Figure[];
-    },
-  });
-
-  // Sort figures numerically by figure number (e.g., 1.1.a, 1.1.b, 1.2.a)
-  const sortedFigures = [...figures].sort((a, b) => {
-    // Parse figure numbers like "1.1.a", "1.2.b"
-    const parseNumber = (num: string) => {
-      const parts = num.split('.');
-      const major = parseInt(parts[0] || '0', 10);
-      const minor = parseInt(parts[1] || '0', 10);
-      const letter = parts[2] || 'a';
-      const letterValue = letter.charCodeAt(0) - 'a'.charCodeAt(0);
-      return major * 10000 + minor * 100 + letterValue;
-    };
-    return parseNumber(a.figureNumber) - parseNumber(b.figureNumber);
-  });
+  // Figures for this proposal. Order and numbering are DERIVED from the block
+  // that places each figure — this page owns neither.
+  const { data: figures = [] } = useProposalFigures(proposalId);
 
   // Create figure mutation
   const createFigure = useMutation({
     mutationFn: async (data: { title: string; figureType: string; sectionId: string; imageUrl?: string; aiPrompt?: string; content?: any }) => {
-      const section = SECTION_OPTIONS.find(s => s.id === data.sectionId);
-      const sectionNumber = section?.number.replace('B', '') || '1.1';
-      const existingInSection = figures.filter(f => f.sectionId === data.sectionId);
-      const letter = String.fromCharCode(97 + existingInSection.length); // a, b, c...
-      const figureNumber = `${sectionNumber}.${letter}`;
-
       let content: any = data.content ?? null;
       if (!content && data.imageUrl) {
         content = { imageUrl: data.imageUrl };
@@ -195,13 +143,10 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
         .from('figures')
         .insert({
           proposal_id: proposalId,
-          figure_number: figureNumber,
-          section_id: data.sectionId,
           title: data.title,
           caption: data.title,
           figure_type: data.figureType,
           content,
-          order_index: figures.length,
         })
         .select()
         .single();
@@ -268,39 +213,6 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
     },
   });
 
-  // Reorder figures mutation with automatic renumbering
-  const reorderFigures = useMutation({
-    mutationFn: async ({ sectionId, reorderedFigures }: { sectionId: string; reorderedFigures: Figure[] }) => {
-      const section = SECTION_OPTIONS.find(s => s.id === sectionId);
-      const sectionNumber = section?.number.replace('B', '') || '1.1';
-      
-      // Update each figure with new order and figure number
-      const updates = reorderedFigures.map((figure, index) => {
-        const newLetter = String.fromCharCode(97 + index); // a, b, c...
-        const newFigureNumber = `${sectionNumber}.${newLetter}`;
-        
-        return supabase
-          .from('figures')
-          .update({
-            order_index: index,
-            figure_number: newFigureNumber,
-          })
-          .eq('id', figure.id);
-      });
-
-      const results = await Promise.all(updates);
-      const errors = results.filter(r => r.error);
-      if (errors.length > 0) throw errors[0].error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['figures', proposalId] });
-      toast.success('Figures reordered');
-    },
-    onError: () => {
-      toast.error('Failed to reorder figures');
-    },
-  });
-
   // Add figure from common library
   const handleAddFromLibrary = useCallback(async (
     commonFigure: { id: string; title: string; description: string | null; figure_type: string; content: any },
@@ -308,23 +220,14 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
   ) => {
     setIsAddingFromLibrary(true);
     try {
-      const section = SECTION_OPTIONS.find(s => s.id === sectionId);
-      const sectionNumber = section?.number.replace('B', '') || '1.1';
-      const existingInSection = figures.filter(f => f.sectionId === sectionId);
-      const letter = String.fromCharCode(97 + existingInSection.length);
-      const figureNumber = `${sectionNumber}.${letter}`;
-
       const { error } = await supabase
         .from('figures')
         .insert({
           proposal_id: proposalId,
-          figure_number: figureNumber,
-          section_id: sectionId,
           title: commonFigure.title,
           figure_type: commonFigure.figure_type,
           content: commonFigure.content,
           caption: commonFigure.description,
-          order_index: figures.length,
         });
 
       if (error) throw error;
@@ -339,27 +242,6 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
       setIsAddingFromLibrary(false);
     }
   }, [figures, proposalId, queryClient]);
-
-  // DnD sensors
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  );
-
-  // Handle drag end for a specific section
-  const handleDragEnd = useCallback((sectionId: string) => (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-
-    const sectionFigures = figures.filter(f => f.sectionId === sectionId);
-    const oldIndex = sectionFigures.findIndex(f => f.id === active.id);
-    const newIndex = sectionFigures.findIndex(f => f.id === over.id);
-
-    if (oldIndex !== -1 && newIndex !== -1) {
-      const reordered = arrayMove(sectionFigures, oldIndex, newIndex);
-      reorderFigures.mutate({ sectionId, reorderedFigures: reordered });
-    }
-  }, [figures, reorderFigures]);
 
   const resetCreateDialog = () => {
     setIsCreateDialogOpen(false);
@@ -451,12 +333,8 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
         const compressedBlob = await compressImage(sourceBlob, { format, quality: 0.92 });
 
         // Generate file path with correct extension
-        const section = SECTION_OPTIONS.find(s => s.id === newFigureSection);
-        const sectionNumber = section?.number.replace('B', '') || '1.1';
-        const existingInSection = figures.filter(f => f.sectionId === newFigureSection);
-        const letter = String.fromCharCode(97 + existingInSection.length);
         const extension = getFormatExtension(format);
-        const filename = `figure-${sectionNumber}-${letter}-${newFigureTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.${extension}`;
+        const filename = `figure-${newFigureTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.${extension}`;
         
         const filePath = generateProposalFilePath(proposalId, 'figures', filename, {
           prefix: newFigureType === 'ai' ? 'ai-generated' : 'uploaded',
@@ -518,19 +396,25 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
     }
   };
 
-  // Group figures by section (using sorted figures)
-  const figuresBySection = sortedFigures.reduce((acc, figure) => {
-    if (!acc[figure.sectionId]) {
-      acc[figure.sectionId] = [];
-    }
-    acc[figure.sectionId].push(figure);
-    return acc;
-  }, {} as Record<string, Figure[]>);
+  // Unplaced first, then grouped by the section of the block placing them.
+  // These groupings are read-only labels: order comes from the cards board.
+  const unplacedFigures = figures.filter((f) => !f.placedCardId);
+  const placedFigures = figures.filter((f) => f.placedCardId);
+  const placedGroups = Array.from(
+    placedFigures.reduce((acc, figure) => {
+      const key = figure.placedSectionLabel || 'Placed';
+      const bucket = acc.get(key) ?? [];
+      bucket.push(figure);
+      acc.set(key, bucket);
+      return acc;
+    }, new Map<string, Figure[]>()),
+  ).sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }));
 
   // Helper to format caption like Part B templates: "Figure X.X.x. Caption or Title"
-  const formatFigureCaption = (figure: Figure) => {
-    return `Figure ${figure.figureNumber}. ${figure.caption || figure.title}`;
-  };
+  const formatFigureCaption = (figure: Figure) =>
+    figure.figureNumber
+      ? `Figure ${figure.figureNumber}. ${figure.caption || figure.title}`
+      : `${figure.caption || figure.title} (unplaced — unnumbered)`;
 
   if (selectedFigure) {
     return (
@@ -720,21 +604,6 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Section</Label>
-                    <Select value={newFigureSection} onValueChange={setNewFigureSection}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {SECTION_OPTIONS.map((section) => (
-                          <SelectItem key={section.id} value={section.id}>
-                            {section.number} - {section.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
                     <Label>Figure type</Label>
                      <div className="grid gap-2">
                       {FIGURE_TYPES.map((type) => {
@@ -810,7 +679,7 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
         {/* Gallery View */}
         {viewMode === 'gallery' && (
           <div className="space-y-4">
-            {sortedFigures.length === 0 ? (
+            {figures.length === 0 ? (
               <Card>
                 <CardContent className="py-12 text-center">
                   <Image className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
@@ -819,8 +688,7 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
               </Card>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {sortedFigures.map((figure) => {
-                  const section = SECTION_OPTIONS.find(s => s.id === figure.sectionId);
+                {figures.map((figure) => {
                   const hasImage = figure.content?.imageUrl;
                   
                   return (
@@ -852,13 +720,12 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
                           variant="secondary" 
                           className="absolute top-2 left-2 text-xs"
                         >
-                          {section?.number || 'B'}
+                          {figure.placedSectionLabel || 'Unplaced'}
                         </Badge>
                       </div>
                       <CardContent className="p-3">
                         {/* Caption matching Part B format: "Figure X.X.x. Caption or Title" */}
                         <p className="text-sm italic truncate" title={formatFigureCaption(figure)}>
-                          <span className="font-semibold">Figure {figure.figureNumber}.</span>{' '}
                           {figure.caption || figure.title}
                         </p>
                       </CardContent>
@@ -870,54 +737,54 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
           </div>
         )}
 
-        {/* List View - Figures by Section */}
-        {viewMode === 'list' && SECTION_OPTIONS.map((section) => {
-          const sectionFigures = figuresBySection[section.id] || [];
-          const figureIds = sectionFigures.map(f => f.id);
-          
-          return (
-            <Card key={section.id}>
+        {/* List view — unplaced first, then read-only placement groups */}
+        {viewMode === 'list' && (
+          <div className="space-y-4">
+            <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Badge variant="outline">{section.number}</Badge>
-                  {section.label}
-                </CardTitle>
+                <CardTitle className="text-base">Unplaced</CardTitle>
                 <CardDescription>
-                  {sectionFigures.length} figure{sectionFigures.length !== 1 ? 's' : ''}
-                  {canEdit && sectionFigures.length > 1 && (
-                    <span className="text-xs ml-2">(drag to reorder)</span>
-                  )}
+                  Saved but not in a block, so they carry no number. Add a figure block on the
+                  cards board to place one.
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {sectionFigures.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-4 text-center">
-                    No figures for this section yet
+                {unplacedFigures.length === 0 ? (
+                  <p className="py-4 text-center text-sm text-muted-foreground">
+                    Every figure is placed in a block.
                   </p>
                 ) : (
-                  <DndContext
-                    sensors={sensors}
-                    collisionDetection={closestCenter}
-                    onDragEnd={handleDragEnd(section.id)}
-                  >
-                    <SortableContext items={figureIds} strategy={verticalListSortingStrategy}>
-                      <div className="space-y-2">
-                        {sectionFigures.map((figure) => (
-                          <SortableFigureItem
-                            key={figure.id}
-                            figure={figure}
-                            onSelect={setSelectedFigure}
-                            canEdit={canEdit}
-                          />
-                        ))}
-                      </div>
-                    </SortableContext>
-                  </DndContext>
+                  <div className="space-y-2">
+                    {unplacedFigures.map((figure) => (
+                      <FigureRow key={figure.id} figure={figure} onSelect={setSelectedFigure} />
+                    ))}
+                  </div>
                 )}
               </CardContent>
             </Card>
-          );
-        })}
+
+            {placedGroups.map(([label, sectionFigures]) => (
+              <Card key={label}>
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Badge variant="outline">{label}</Badge>
+                  </CardTitle>
+                  <CardDescription>
+                    {sectionFigures.length} figure{sectionFigures.length !== 1 ? 's' : ''} — order and
+                    numbering follow the blocks on the cards board.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {sectionFigures.map((figure) => (
+                      <FigureRow key={figure.id} figure={figure} onSelect={setSelectedFigure} />
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Common Figures Library Dialog */}

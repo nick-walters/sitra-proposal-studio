@@ -1,0 +1,66 @@
+import { ArrowRight, BarChart3, Network, Sparkles, Image, LayoutTemplate } from 'lucide-react';
+import { StorageImage } from '@/components/StorageImage';
+
+interface FigureRowFigure {
+  id: string;
+  /** Derived from the placing block; null when unplaced. */
+  figureNumber: string | null;
+  title: string;
+  figureType: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  content: any;
+  caption: string | null;
+}
+
+interface FigureRowProps<T extends FigureRowFigure> {
+  figure: T;
+  onSelect: (figure: T) => void;
+}
+
+/**
+ * A single row in the figures manager. Read-only with respect to order and
+ * numbering: both are derived from the block placing the figure, so this row
+ * has no drag handle and no number field.
+ */
+export function FigureRow<T extends FigureRowFigure>({ figure, onSelect }: FigureRowProps<T>) {
+  const hasImage = figure.content?.imageUrl;
+
+  return (
+    <button
+      className="flex w-full items-center gap-3 rounded-lg border bg-background p-3 text-left transition-colors hover:bg-muted"
+      onClick={() => onSelect(figure)}
+    >
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded bg-muted">
+        {hasImage ? (
+          <StorageImage storedPath={figure.content.imageUrl} alt="" className="h-full w-full object-cover" />
+        ) : figure.figureType === 'gantt' ? (
+          <BarChart3 className="h-5 w-5 text-muted-foreground" />
+        ) : figure.figureType === 'pert' ? (
+          <Network className="h-5 w-5 text-muted-foreground" />
+        ) : figure.figureType === 'impact-canvas' || figure.figureType === 'overview-canvas' ? (
+          <LayoutTemplate className="h-5 w-5 text-muted-foreground" />
+        ) : figure.figureType === 'ai' ? (
+          <Sparkles className="h-5 w-5 text-muted-foreground" />
+        ) : (
+          <Image className="h-5 w-5 text-muted-foreground" />
+        )}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm italic">
+          {figure.figureNumber && (
+            <span className="font-semibold not-italic">Figure {figure.figureNumber}.</span>
+          )}{' '}
+          {figure.caption || figure.title}
+        </p>
+        <p className="text-xs capitalize text-muted-foreground">
+          {figure.figureType === 'ai'
+            ? 'AI generated'
+            : figure.figureType === 'image'
+              ? 'Uploaded image'
+              : `${figure.figureType} chart`}
+        </p>
+      </div>
+      <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+    </button>
+  );
+}

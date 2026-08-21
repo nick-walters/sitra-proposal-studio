@@ -12,6 +12,7 @@
 import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { computeFigureNumbers } from '@/lib/figureNumbering';
 
 export interface WPData {
   id: string;
@@ -134,7 +135,7 @@ export async function fetchReferenceData(proposalId: string): Promise<RefSnapsho
       .order('participant_number'),
     supabase
       .from('figures')
-      .select('id, figure_number, figure_type, title')
+      .select('id, figure_type, title')
       .eq('proposal_id', proposalId),
     supabase
       .from('table_captions')
@@ -146,6 +147,32 @@ export async function fetchReferenceData(proposalId: string): Promise<RefSnapsho
       .eq('id', proposalId)
       .maybeSingle(),
   ]);
+
+  // Figure numbers are DERIVED from the block that places the figure — the
+  // stored `figures.figure_number` column is never read. See
+  // supabase/functions/_shared/figureNumbering.ts.
+  const [placementRes, cardRes] = await Promise.all([
+    supabase.from('card_figure').select('card_id, figure_id').eq('proposal_id', proposalId),
+    supabase
+      .from('proposal_cards')
+      .select('id, section_id, order_index')
+      .eq('proposal_id', proposalId)
+      .is('deleted_at', null),
+  ]);
+  const sectionIds = Array.from(
+    new Set((cardRes.data || []).map((c: any) => c.section_id).filter(Boolean)),
+  ) as string[];
+  const sectionRes = sectionIds.length
+    ? await supabase
+        .from('proposal_template_sections')
+        .select('id, section_number, order_index')
+        .in('id', sectionIds)
+    : { data: [] as any[] };
+  const figureNumbers = computeFigureNumbers(
+    (placementRes.data || []) as any[],
+    (cardRes.data || []) as any[],
+    (sectionRes.data || []) as any[],
+  );
 
 
   const wps: WPData[] = wpRes.data || [];
@@ -186,7 +213,16 @@ export async function fetchReferenceData(proposalId: string): Promise<RefSnapsho
   });
 
   const participants: ParticipantData[] = participantRes.data || [];
-  const figures: FigureData[] = figureRes.data || [];
+  // Only PLACED figures carry a number, so unplaced ones are omitted entirely
+  // and their chips degrade to the stored label.
+  const figures: FigureData[] = (figureRes.data || [])
+    .filter((f: any) => figureNumbers.has(f.id))
+    .map((f: any) => ({
+      id: f.id,
+      figure_number: figureNumbers.get(f.id)!,
+      figure_type: f.figure_type,
+      title: f.title,
+    }));
 
   const tableCaptionMap = new Map<string, string>();
   for (const tc of tableCaptionRes.data || []) {

@@ -73,6 +73,12 @@ export function CardFigureBlock({
   const imageUrl: string | null = figure?.content?.imageUrl ?? null;
   const missingAsset = !figureBlock.figureId || (figures.length > 0 && !figure);
 
+  // A figure is used exactly once (unique index on card_figure.figure_id), so
+  // the picker only offers unplaced figures plus this block's own choice.
+  const selectableFigures = figures.filter(
+    (f) => !f.placedCardId || f.placedCardId === cardId || f.id === figureBlock.figureId,
+  );
+
   const placement: FigurePlacement = fullWidthOnly ? 'full_width' : figureBlock.placement;
   const widthPct = fullWidthOnly ? 100 : figureBlock.widthPct;
   const showPlacementControls = canEdit && isCoordinator;
@@ -239,12 +245,13 @@ export function CardFigureBlock({
             </DialogDescription>
           </DialogHeader>
           <div className="max-h-[320px] space-y-2 overflow-y-auto">
-            {figures.length === 0 && (
+            {selectableFigures.length === 0 && (
               <p className="py-6 text-center text-sm text-muted-foreground">
-                This proposal has no figures yet. Create one first.
+                No figures are available. A figure can only be used once, so every existing figure is
+                already placed in a block — create a new one.
               </p>
             )}
-            {figures.map((f) => (
+            {selectableFigures.map((f) => (
               <button
                 key={f.id}
                 type="button"
@@ -265,8 +272,10 @@ export function CardFigureBlock({
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium">Figure {f.figureNumber}</p>
-                  <p className="truncate text-xs text-muted-foreground">{f.title}</p>
+                  <p className="truncate text-sm font-medium">{f.title}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {f.caption || 'Numbered from its position once placed'}
+                  </p>
                 </div>
               </button>
             ))}

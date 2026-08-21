@@ -43,6 +43,7 @@ import {
   resolveChipLabel,
   type RefSnapshotServer,
 } from "../_shared/referenceResolution.ts";
+import { computeFigureNumbers } from "../_shared/figureNumbering.ts";
 
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -174,7 +175,7 @@ async function loadRefSnapshot(supabase: any, proposalId: string): Promise<RefSn
       supabase.from("case_drafts").select("id, number, case_type, case_type_id, short_name").eq("proposal_id", proposalId),
       supabase.from("proposal_case_types").select("id, custom_type_name, include_number, include_abbreviation").eq("proposal_id", proposalId),
       supabase.from("participants").select("id, organisation_short_name").eq("proposal_id", proposalId),
-      supabase.from("figures").select("id, figure_number").eq("proposal_id", proposalId),
+      supabase.from("figures").select("id").eq("proposal_id", proposalId),
       supabase.from("table_captions").select("table_key").eq("proposal_id", proposalId),
       supabase.from("proposals").select("acronym, acronym_segments").eq("id", proposalId).maybeSingle(),
     ]);
@@ -199,7 +200,25 @@ async function loadRefSnapshot(supabase: any, proposalId: string): Promise<RefSn
       });
     }
     for (const p of partRes.data ?? []) snap.participantById.set(p.id, p);
-    for (const f of figRes.data ?? []) snap.figureById.set(f.id, f);
+    // Figure numbers are DERIVED from the placing block, exactly as the client
+    // does. Unplaced figures get no entry, so their chips keep stored labels.
+    const [placementRes, cardRes] = await Promise.all([
+      supabase.from("card_figure").select("card_id, figure_id").eq("proposal_id", proposalId),
+      supabase.from("proposal_cards").select("id, section_id, order_index").eq("proposal_id", proposalId).is("deleted_at", null),
+    ]);
+    const sectionIds = [...new Set((cardRes.data ?? []).map((c: any) => c.section_id).filter(Boolean))];
+    const sectionRes = sectionIds.length
+      ? await supabase.from("proposal_template_sections").select("id, section_number, order_index").in("id", sectionIds)
+      : { data: [] };
+    const figureNumbers = computeFigureNumbers(
+      (placementRes.data ?? []) as any[],
+      (cardRes.data ?? []) as any[],
+      (sectionRes.data ?? []) as any[],
+    );
+    for (const f of figRes.data ?? []) {
+      const derived = figureNumbers.get(f.id);
+      if (derived) snap.figureById.set(f.id, { id: f.id, figure_number: derived });
+    }
     for (const c of capRes.data ?? []) snap.tableCaptionKeys.add(c.table_key);
     const proposal = proposalRes.data;
     snap.acronymSegments = proposal?.acronym_segments?.length
