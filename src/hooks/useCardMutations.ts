@@ -68,7 +68,7 @@ export function useCardMutations(proposalId: string, sectionId: string) {
     }): Promise<string> => {
       const { data, error } = await supabase.rpc('create_table_card', {
         p_section_id: sectionId,
-        p_columns: columns,
+        p_cols: columns,
         p_rows: rows,
         p_parts: parts,
       });
