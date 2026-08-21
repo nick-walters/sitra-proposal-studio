@@ -62,15 +62,20 @@ export function FootnoteCitation({ html }: Props) {
     [html]
   );
 
+  // `overflow-x: hidden` with `overflow-y: visible` is not a legal pair: CSS
+  // computes the visible axis to `auto`, so the box clips VERTICALLY too. With
+  // `line-height: 0.9` the raised superscript sat above the line box and its
+  // top was cut off. Room is made explicitly instead: a normal line height
+  // plus top padding inside the clipped box.
   return (
     <p
       ref={containerRef}
-      className="text-[8pt] text-muted-foreground"
+      className="footnote-citation text-[8pt] text-muted-foreground"
       style={{
         whiteSpace: 'nowrap',
-        overflowX: 'hidden',
-        overflowY: 'visible',
-        lineHeight: 0.9,
+        overflow: 'hidden',
+        lineHeight: 1.25,
+        paddingTop: '0.3em',
         margin: 0,
       }}
       dangerouslySetInnerHTML={{ __html: sanitized }}

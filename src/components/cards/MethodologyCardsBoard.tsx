@@ -67,6 +67,8 @@ const setLostText = (payload: LostTextPayload | null) => {
   if (payload) reportLostTextPayload(payload);
 };
 import { useSectionCards, sectionCardsKey } from '@/hooks/useSectionCards';
+import { ReferencesBlock } from './ReferencesBlock';
+import { useSectionCitedReferences } from '@/hooks/useSectionCitedReferences';
 import { SourceFedBlock } from '@/components/cards/SourceFedBlock';
 import LinkedActivitiesTable from '@/components/LinkedActivitiesTable';
 import { CardFigureBlock } from '@/components/cards/CardFigureBlock';
@@ -885,7 +887,9 @@ function CardBlock({
         </CardHeader>
 
         <CardContent className="space-y-3">
-          {isLinkedActivitiesCard ? (
+          {card.kind === 'references' ? (
+            <ReferencesBlock proposalId={proposalId} sectionId={card.sectionId} />
+          ) : isLinkedActivitiesCard ? (
             <LinkedActivitiesTable
               proposalId={proposalId}
               canEdit={canEdit}
@@ -1252,7 +1256,11 @@ function BoardInner({
     reorderCards.mutate(next, { onError: () => setLocalOrder(null) });
   };
 
-  const visibleCard = (c: ProposalCard) => c.isVisible || isCoordinator;
+  // A references block appears only when the section cites something. It stays
+  // undeletable and unhideable; it simply renders nothing when empty.
+  const { hasAny: sectionCitesAnything } = useSectionCitedReferences(proposalId, sectionId);
+  const visibleCard = (c: ProposalCard) =>
+    (c.kind !== 'references' || sectionCitesAnything) && (c.isVisible || isCoordinator);
 
   /** Deleted modules per live block, for the per-block bin icon. */
   const deletedModulesByCard = useMemo(() => {
