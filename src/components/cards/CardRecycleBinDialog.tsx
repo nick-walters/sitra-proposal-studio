@@ -3,11 +3,12 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ChevronDown, RotateCcw } from 'lucide-react';
+import { ChevronDown, Image as ImageIcon, RotateCcw } from 'lucide-react';
 import DOMPurify from 'dompurify';
 import { CROSS_REF_RICH_TEXT_CONFIG } from '@/lib/sanitizePresets';
 import { formatDateTime } from '@/lib/formatDate';
 import { useSectionRecycleBin } from '@/hooks/useSectionRecycleBin';
+import { StorageImage } from '@/components/StorageImage';
 import type { CardDeletionEntry } from '@/types/cards';
 
 interface CardRecycleBinDialogProps {
@@ -38,6 +39,9 @@ function BinEntry({
   const [expanded, setExpanded] = useState(false);
   const html = DOMPurify.sanitize(entry.contentHtml ?? '', CROSS_REF_RICH_TEXT_CONFIG);
   const hasContent = html.replace(/<[^>]*>/g, '').trim().length > 0;
+  // A deleted figure block has no text at all: show its thumbnail and caption
+  // so it is as identifiable as a text block's heading and preview.
+  const isFigureBlock = !!(entry.figureImagePath || entry.figureCaption || entry.figureTitle);
 
   return (
     <div className="w-full min-w-0 max-w-full overflow-hidden rounded-md border border-border p-2">
@@ -52,8 +56,15 @@ function BinEntry({
                 {entry.fieldCount} {entry.fieldCount === 1 ? 'module' : 'modules'}
               </span>
             )}
-            {entry.label && (
-              <span className="min-w-0 max-w-full truncate text-sm font-bold">{entry.label}</span>
+            {isFigureBlock && (
+              <Badge variant="outline" className="text-[11px] font-bold">
+                Figure
+              </Badge>
+            )}
+            {(entry.label || entry.figureTitle) && (
+              <span className="min-w-0 max-w-full truncate text-sm font-bold">
+                {entry.label || entry.figureTitle}
+              </span>
             )}
           </div>
           <p className="text-[11px] text-muted-foreground">
@@ -67,6 +78,27 @@ function BinEntry({
         </Button>
 
       </div>
+
+      {isFigureBlock && (
+        <div className="mt-2 flex items-start gap-2">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded border bg-muted">
+            {entry.figureImagePath ? (
+              <StorageImage
+                storedPath={entry.figureImagePath}
+                alt=""
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <ImageIcon className="h-5 w-5 text-muted-foreground" />
+            )}
+          </div>
+          {entry.figureCaption && (
+            <p className="min-w-0 flex-1 text-sm italic text-muted-foreground">
+              {entry.figureCaption}
+            </p>
+          )}
+        </div>
+      )}
 
       {hasContent && (
         <div className="mt-2 min-w-0 max-w-full">
