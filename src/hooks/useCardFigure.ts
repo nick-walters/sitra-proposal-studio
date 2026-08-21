@@ -101,6 +101,8 @@ export function useProposalFigures(proposalId: string) {
           .from('figures')
           .select('id, title, figure_type, caption, content, created_at')
           .eq('proposal_id', proposalId)
+          // Soft-deleted figures live in the manager's recycle bin, not here.
+          .is('deleted_at', null)
           .order('created_at'),
         supabase.from('card_figure').select('card_id, figure_id').eq('proposal_id', proposalId),
         // Deleted blocks are fetched too: a figure held by a soft-deleted block
