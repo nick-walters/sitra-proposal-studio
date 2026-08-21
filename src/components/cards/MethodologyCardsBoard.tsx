@@ -461,20 +461,23 @@ function FieldRow({
       ref={setNodeRef}
       id={`card-module-${field.id}`}
       style={style}
-      className="space-y-2 rounded-md border border-border p-3 transition-shadow"
+      className="relative space-y-2 rounded-md border border-border p-3 transition-shadow"
     >
+      {/* Grip sits in the left margin, outside the module box, so the header
+          input aligns flush with the content beneath it. */}
+      {canEdit && (
+        <button
+          type="button"
+          className="absolute left-[-22px] top-[1rem] cursor-grab touch-none text-[#2563EB]"
+          aria-label="Reorder module"
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className="h-4 w-4" />
+        </button>
+      )}
       <div className="flex items-center gap-2">
-        {canEdit && (
-          <button
-            type="button"
-            className="cursor-grab touch-none text-[#2563EB]"
-            aria-label="Reorder module"
-            {...attributes}
-            {...listeners}
-          >
-            <GripVertical className="h-4 w-4" />
-          </button>
-        )}
+
 
         {isPlaceholder ? (
           <p className="flex-1 text-sm italic text-muted-foreground">
