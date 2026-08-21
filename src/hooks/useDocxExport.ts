@@ -6,6 +6,8 @@ import { Proposal, Section, Participant } from '@/types/proposal';
 import { prepareExportContainer, ExportData } from '@/lib/printRenderer';
 import { scrubDomForExport } from '@/lib/exportDomScrubber';
 import { convertBadgesForWord } from '@/lib/exportWordBadgeConverter';
+import { fetchReferenceData } from '@/lib/referenceData';
+import { publishCitationDisplayMap } from '@/lib/citationDisplay';
 import { swapImpactCanvasForWord } from '@/lib/exportImpactCanvasToWord';
 import { SITRA_LOGO_BASE64 } from '@/lib/sitraLogo';
 
@@ -239,6 +241,14 @@ export function useDocxExport() {
         // Clean up editor-only UI, then swap the Impact Canvas graphic
         // for a Word-friendly table BEFORE badges are converted (so cell
         // badges get converted in the container-wide pass).
+        // Make sure citation display numbers are current for this proposal
+        // before the container is flattened for Word: the converter resolves
+        // `data-citation` through the published map.
+        try {
+          publishCitationDisplayMap((await fetchReferenceData(proposal.id)).citationNumbers);
+        } catch (e) {
+          console.warn('Citation numbering unavailable for Word export', e);
+        }
         scrubDomForExport(container);
         await swapImpactCanvasForWord(container, proposal.id);
         convertBadgesForWord(container);
