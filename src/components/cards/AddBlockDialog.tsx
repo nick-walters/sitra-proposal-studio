@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FileText, Image as ImageIcon, Table as TableIcon } from 'lucide-react';
+import { FileText, Image as ImageIcon } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -9,18 +9,16 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 
-export type NewBlockKind = 'text' | 'table' | 'figure';
+/**
+ * Table blocks were dropped: a table inside a text block already offers merge
+ * and split cells, formulas, auto-resize and captions.
+ */
+export type NewBlockKind = 'text' | 'figure';
 
 export interface NewBlockChoice {
   kind: NewBlockKind;
-  columns?: number;
-  rows?: number;
-  parts?: number;
 }
 
 interface AddBlockDialogProps {
@@ -38,12 +36,6 @@ const OPTIONS: { kind: NewBlockKind; label: string; description: string; icon: t
     icon: FileText,
   },
   {
-    kind: 'table',
-    label: 'Table block',
-    description: 'A table with rich-text cells, resizable columns and a caption.',
-    icon: TableIcon,
-  },
-  {
     kind: 'figure',
     label: 'Figure block',
     description: 'An image, canvas, Gantt or PERT figure with a caption.',
@@ -54,11 +46,6 @@ const OPTIONS: { kind: NewBlockKind; label: string; description: string; icon: t
 /** Asks which kind of block to add before creating anything. */
 export function AddBlockDialog({ open, onOpenChange, onCreate, isPending }: AddBlockDialogProps) {
   const [kind, setKind] = useState<NewBlockKind>('text');
-  const [columns, setColumns] = useState(3);
-  const [rows, setRows] = useState(3);
-  const [twoParts, setTwoParts] = useState(false);
-
-  const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -93,50 +80,6 @@ export function AddBlockDialog({ open, onOpenChange, onCreate, isPending }: AddB
           })}
         </div>
 
-        {kind === 'table' && (
-          <div className="space-y-3 rounded-md bg-muted/40 p-3">
-            <div className="flex gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs" htmlFor="new-table-columns">
-                  Columns
-                </Label>
-                <Input
-                  id="new-table-columns"
-                  type="number"
-                  min={1}
-                  max={12}
-                  value={columns}
-                  className="h-8 w-24"
-                  onChange={(e) => setColumns(clamp(Number(e.target.value) || 1, 1, 12))}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs" htmlFor="new-table-rows">
-                  Body rows
-                </Label>
-                <Input
-                  id="new-table-rows"
-                  type="number"
-                  min={1}
-                  max={40}
-                  value={rows}
-                  className="h-8 w-24"
-                  onChange={(e) => setRows(clamp(Number(e.target.value) || 1, 1, 40))}
-                />
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="new-table-parts"
-                checked={twoParts}
-                onCheckedChange={(v) => setTwoParts(v === true)}
-              />
-              <Label htmlFor="new-table-parts" className="text-xs font-normal">
-                Two stacked tables under one caption
-              </Label>
-            </div>
-          </div>
-        )}
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
@@ -144,13 +87,7 @@ export function AddBlockDialog({ open, onOpenChange, onCreate, isPending }: AddB
           </Button>
           <Button
             disabled={isPending}
-            onClick={() =>
-              onCreate(
-                kind === 'table'
-                  ? { kind, columns, rows, parts: twoParts ? 2 : 1 }
-                  : { kind },
-              )
-            }
+            onClick={() => onCreate({ kind })}
           >
             Add block
           </Button>

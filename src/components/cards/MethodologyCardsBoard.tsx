@@ -67,8 +67,7 @@ const setLostText = (payload: LostTextPayload | null) => {
   if (payload) reportLostTextPayload(payload);
 };
 import { useSectionCards, sectionCardsKey } from '@/hooks/useSectionCards';
-import { CellAlignControls } from '@/components/cards/CellAlignControls';
-import { CardTableBlock } from '@/components/cards/CardTableBlock';
+import { SourceFedBlock } from '@/components/cards/SourceFedBlock';
 import { CardFigureBlock } from '@/components/cards/CardFigureBlock';
 import { AddBlockDialog, type NewBlockChoice } from '@/components/cards/AddBlockDialog';
 import { useSectionRecycleBin } from '@/hooks/useSectionRecycleBin';
@@ -134,7 +133,6 @@ function CardsToolbar({
               showKeyboardButton={false}
               acronymSegments={acronymSegments}
             />
-            <CellAlignControls editor={activeEditor} disabled={!canEdit} />
           </>
         }
       />
@@ -613,6 +611,8 @@ interface CardBlockProps {
   reloadNonce: number;
   /** "Table 1.2.a." / "Figure 1.2.a." for table and figure blocks. */
   captionLabel?: string;
+  /** Section declares that figures and tables are always full width (B3.1). */
+  figuresFullWidth: boolean;
 }
 
 function CardBlock({
@@ -640,6 +640,7 @@ function CardBlock({
   onFlushContent,
   reloadNonce,
   captionLabel,
+  figuresFullWidth,
 }: CardBlockProps) {
   const sortable = useSortable({ id: card.id, disabled: !draggable });
   const [editingTitle, setEditingTitle] = useState(false);
@@ -878,22 +879,21 @@ function CardBlock({
         </CardHeader>
 
         <CardContent className="space-y-3">
-          {card.kind === 'table' ? (
-            <CardTableBlock
-              cardId={card.id}
+          {isPlaceholderCard ? (
+            <SourceFedBlock
               proposalId={proposalId}
-              canEdit={canEdit}
-              captionLabel={captionLabel ?? 'Table.'}
+              sourceKey={card.sourceKey}
+              kind={card.kind}
             />
           ) : card.kind === 'figure' ? (
             <CardFigureBlock
               cardId={card.id}
               proposalId={proposalId}
               canEdit={canEdit}
+              isCoordinator={isCoordinator}
+              fullWidthOnly={figuresFullWidth}
               captionLabel={captionLabel ?? 'Figure.'}
             />
-          ) : isPlaceholderCard ? (
-            <p className="text-sm italic text-muted-foreground">Renders in a later phase.</p>
           ) : (
             <>
               <DndContext
@@ -971,6 +971,24 @@ function BoardInner({
   const { fieldsByCard } = useCardFieldsForCards(cardIds);
   const { entries: binEntries } = useSectionRecycleBin(proposalId, sectionId);
 
+  /**
+   * Section-level rule, read off the template rather than a hardcoded section
+   * id: B3.1 declares that every figure and table is full width, so pairing
+   * and width adjustment are not offered there.
+   */
+  const { data: figuresFullWidth = false } = useQuery({
+    queryKey: ['section-figures-full-width', sectionId],
+    enabled: !!sectionId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('proposal_template_sections')
+        .select('figures_full_width')
+        .eq('id', sectionId)
+        .maybeSingle();
+      return data?.figures_full_width ?? false;
+    },
+  });
+
   // Structural changes (add / delete / restore / reorder of blocks and
   // modules) made by other sessions. Content already streams; this covers the
   // shape of the board so nobody has to refresh.
@@ -1006,7 +1024,6 @@ function BoardInner({
 
   const {
     createCard,
-    createTableCard,
     createFigureCard,
 
     updateCard,
@@ -1274,12 +1291,7 @@ function BoardInner({
       setAddBlockOpen(false);
       jumpToRestored('card', newCardId);
     };
-    if (choice.kind === 'table') {
-      createTableCard.mutate(
-        { columns: choice.columns ?? 3, rows: choice.rows ?? 3, parts: choice.parts ?? 1 },
-        { onSuccess },
-      );
-    } else if (choice.kind === 'figure') {
+    if (choice.kind === 'figure') {
       createFigureCard.mutate(undefined, { onSuccess });
     } else {
       createCard.mutate(undefined, { onSuccess });
@@ -1289,6 +1301,7 @@ function BoardInner({
   const cardProps = (card: ProposalCard, draggable: boolean) => ({
     card,
     captionLabel: captionLabels[card.id],
+    figuresFullWidth,
     fields: fieldsByCard[card.id] ?? [],
     proposalId,
     canEdit,
@@ -1377,7 +1390,7 @@ function BoardInner({
                 variant="outline"
                 size="sm"
                 onClick={() => setAddBlockOpen(true)}
-                disabled={createCard.isPending || createTableCard.isPending || createFigureCard.isPending}
+                disabled={createCard.isPending || createFigureCard.isPending}
               >
                 <Plus className="mr-1 h-3.5 w-3.5" />
                 Add block
@@ -1456,7 +1469,7 @@ function BoardInner({
           open={addBlockOpen}
           onOpenChange={setAddBlockOpen}
           onCreate={handleCreateBlock}
-          isPending={createCard.isPending || createTableCard.isPending || createFigureCard.isPending}
+          isPending={createCard.isPending || createFigureCard.isPending}
         />
 
         <KeyboardShortcutsDialog isOpen={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />

@@ -1,45 +1,11 @@
-// Types for the Phase 3b table and figure blocks.
+// Types for the figure block.
+//
+// Table blocks were removed: a table inside a text block already offers merge
+// and split cells, formulas, auto-resize and captions, and works in the
+// editor, mirrors and exports.
 
-import type { CellAlignH, CellAlignV } from '@/lib/tableStyleSpec';
-
-export interface CardTable {
-  cardId: string;
-  proposalId: string;
-  caption: string | null;
-  captionSuffix: string | null;
-  variant: 'standard' | 'cases' | 'wp_description';
-  /** 1 = one table; 2 = two stacked tables under a single caption. */
-  parts: number;
-}
-
-export interface CardTableColumn {
-  id: string;
-  cardId: string;
-  part: number;
-  orderIndex: number;
-  labelHtml: string | null;
-  widthPx: number | null;
-  alignH: CellAlignH | null;
-  alignV: CellAlignV | null;
-}
-
-export interface CardTableRow {
-  id: string;
-  cardId: string;
-  part: number;
-  orderIndex: number;
-  rowType: 'header' | 'body';
-}
-
-export interface CardTableCell {
-  id: string;
-  rowId: string;
-  columnId: string;
-  contentHtml: string | null;
-  alignH: CellAlignH | null;
-  alignV: CellAlignV | null;
-  contentVersion: number;
-}
+/** How a figure block occupies the text column. */
+export type FigurePlacement = 'full_width' | 'beside_next' | 'top_of_page';
 
 export interface CardFigureBlockData {
   cardId: string;
@@ -48,47 +14,16 @@ export interface CardFigureBlockData {
   float: 'none' | 'left' | 'right';
   maxWidthCm: number | null;
   caption: string | null;
+  /** Width as a percentage of the text column. */
+  widthPct: number;
+  placement: FigurePlacement;
+  /** Break controls, applied by the Typst renderer in a later phase. */
+  breakBefore: boolean;
+  keepWithNext: boolean;
+  keepWhole: boolean;
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-export const mapCardTable = (row: any): CardTable => ({
-  cardId: row.card_id,
-  proposalId: row.proposal_id,
-  caption: row.caption ?? null,
-  captionSuffix: row.caption_suffix ?? null,
-  variant: row.variant,
-  parts: row.parts ?? 1,
-});
-
-export const mapCardTableColumn = (row: any): CardTableColumn => ({
-  id: row.id,
-  cardId: row.card_id,
-  part: row.part,
-  orderIndex: row.order_index,
-  labelHtml: row.label_html ?? null,
-  widthPx: row.width_px ?? null,
-  alignH: (row.align_h ?? null) as CellAlignH | null,
-  alignV: (row.align_v ?? null) as CellAlignV | null,
-});
-
-export const mapCardTableRow = (row: any): CardTableRow => ({
-  id: row.id,
-  cardId: row.card_id,
-  part: row.part,
-  orderIndex: row.order_index,
-  rowType: row.row_type,
-});
-
-export const mapCardTableCell = (row: any): CardTableCell => ({
-  id: row.id,
-  rowId: row.row_id,
-  columnId: row.column_id,
-  contentHtml: row.content_html ?? null,
-  alignH: (row.align_h ?? null) as CellAlignH | null,
-  alignV: (row.align_v ?? null) as CellAlignV | null,
-  contentVersion: row.content_version ?? 1,
-});
-
 export const mapCardFigure = (row: any): CardFigureBlockData => ({
   cardId: row.card_id,
   proposalId: row.proposal_id,
@@ -96,5 +31,10 @@ export const mapCardFigure = (row: any): CardFigureBlockData => ({
   float: (row.float ?? 'none') as 'none' | 'left' | 'right',
   maxWidthCm: row.max_width_cm != null ? Number(row.max_width_cm) : null,
   caption: row.caption ?? null,
+  widthPct: row.width_pct != null ? Number(row.width_pct) : 100,
+  placement: (row.placement ?? 'full_width') as FigurePlacement,
+  breakBefore: row.break_before ?? false,
+  keepWithNext: row.keep_with_next ?? false,
+  keepWhole: row.keep_whole ?? true,
 });
 /* eslint-enable @typescript-eslint/no-explicit-any */

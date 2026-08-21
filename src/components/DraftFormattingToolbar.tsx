@@ -1,4 +1,4 @@
-import { ReactNode, useState } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -106,6 +106,36 @@ export interface DraftFormattingToolbarProps {
 }
 
 
+/**
+ * True while the caret sits inside a table cell.
+ *
+ * Nested tables are never offered. The RichTextEditor toolbar derives this
+ * from `editor.isActive('table')`; this toolbar drives contentEditable fields
+ * (and cell-level editors that cannot see their own container), so it reads
+ * the live DOM selection instead.
+ */
+function useSelectionInTable(): boolean {
+  const [inTable, setInTable] = useState(false);
+
+  useEffect(() => {
+    const check = () => {
+      const sel = document.getSelection();
+      const node = sel?.anchorNode ?? null;
+      const el = node
+        ? node.nodeType === Node.ELEMENT_NODE
+          ? (node as Element)
+          : node.parentElement
+        : null;
+      setInTable(!!el?.closest('td, th'));
+    };
+    check();
+    document.addEventListener('selectionchange', check);
+    return () => document.removeEventListener('selectionchange', check);
+  }, []);
+
+  return inTable;
+}
+
 function buildDefaultTableHtml(rows: number, cols: number): string {
   let html = '<table style="width:100%; border-collapse:collapse; margin:8px 0;">';
   for (let r = 0; r < rows; r++) {
@@ -154,6 +184,7 @@ export function DraftFormattingToolbar({
 
   // Internal table-popover state used only when `table` prop is not supplied.
   const [internalTableOpen, setInternalTableOpen] = useState(false);
+  const selectionInTable = useSelectionInTable();
   const [internalHoveredCell, setInternalHoveredCell] = useState<{ row: number; col: number } | null>(null);
   const effectiveTable: DraftFormattingToolbarTableProps = table ?? {
     open: internalTableOpen,
@@ -294,12 +325,12 @@ export function DraftFormattingToolbar({
             <ParagraphSpacingExecPopover getContainer={paragraphSpacingContainer} />
           )}
 
-          {(caps.tables || (onOpenFigureDialog && caps.figures) || (onOpenCitationDialog && caps.citations) || (crossRefMenuItems && caps.crossReferences)) && (
+          {((caps.tables && !selectionInTable) || (onOpenFigureDialog && caps.figures) || (onOpenCitationDialog && caps.citations) || (crossRefMenuItems && caps.crossReferences)) && (
             <Separator orientation="vertical" className="h-5 mx-1.5" />
           )}
 
-          {/* Table picker */}
-          {caps.tables && (
+          {/* Table picker — hidden inside a cell: no nested tables. */}
+          {caps.tables && !selectionInTable && (
             <TableGridPicker
               disabled={disabled}
               open={effectiveTable.open}
