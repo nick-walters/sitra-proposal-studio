@@ -641,49 +641,52 @@ export type Database = {
       }
       card_figure: {
         Row: {
-          break_before: boolean
           caption: string | null
           card_id: string
           created_at: string
+          custom_width_pct: number
           figure_id: string | null
           float: string
-          keep_whole: boolean
-          keep_with_next: boolean
+          group_with_above: boolean
+          group_with_below: boolean
           max_width_cm: number | null
-          placement: string
+          page_break_mode: string
+          position_mode: string
           proposal_id: string
           updated_at: string
-          width_pct: number
+          width_mode: string
         }
         Insert: {
-          break_before?: boolean
           caption?: string | null
           card_id: string
           created_at?: string
+          custom_width_pct?: number
           figure_id?: string | null
           float?: string
-          keep_whole?: boolean
-          keep_with_next?: boolean
+          group_with_above?: boolean
+          group_with_below?: boolean
           max_width_cm?: number | null
-          placement?: string
+          page_break_mode?: string
+          position_mode?: string
           proposal_id: string
           updated_at?: string
-          width_pct?: number
+          width_mode?: string
         }
         Update: {
-          break_before?: boolean
           caption?: string | null
           card_id?: string
           created_at?: string
+          custom_width_pct?: number
           figure_id?: string | null
           float?: string
-          keep_whole?: boolean
-          keep_with_next?: boolean
+          group_with_above?: boolean
+          group_with_below?: boolean
           max_width_cm?: number | null
-          placement?: string
+          page_break_mode?: string
+          position_mode?: string
           proposal_id?: string
           updated_at?: string
-          width_pct?: number
+          width_mode?: string
         }
         Relationships: [
           {
