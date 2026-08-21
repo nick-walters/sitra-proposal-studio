@@ -3,6 +3,8 @@
  * Word can't render CSS clip-path, complex inline-flex, or SVG.
  */
 
+import { citationDisplayNumber } from '@/lib/citationDisplay';
+
 /** True for white / near-white / unset colours, which are illegible on Word's white page. */
 function isWhiteish(colour: string): boolean {
   const c = colour.trim().toLowerCase();
@@ -221,6 +223,16 @@ export function convertBadgesForWord(container: HTMLElement): void {
       'style',
       `font-weight: bold; color: ${textColor}; font-family: 'Times New Roman', Times, serif; font-size: 11pt;`
     );
+  });
+
+  // 6b. Citations — resolve the display number BEFORE converting to a Word
+  // superscript. The stored text is only the internal `ref_key`; the number a
+  // reader sees is derived from citation order, exactly as it is on screen.
+  container.querySelectorAll<HTMLElement>('sup[data-citation], span[data-citation]').forEach((el) => {
+    const refKey = parseInt(el.getAttribute('data-citation') || '', 10);
+    if (!Number.isFinite(refKey)) return;
+    const next = String(citationDisplayNumber(refKey));
+    if (el.textContent !== next) el.textContent = next;
   });
 
   // 7. Citations — convert superscript citation numbers to proper Word superscript
