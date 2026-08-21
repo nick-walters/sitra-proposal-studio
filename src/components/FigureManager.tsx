@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FigureEditor } from '@/components/FigureEditor';
-import { Plus, Image, BarChart3, Network, Upload, Sparkles, Loader2, LayoutGrid, List, Library, LayoutTemplate, Frame } from 'lucide-react';
+import { Plus, Image, BarChart3, Network, Upload, Sparkles, Loader2, LayoutGrid, List, Library, LayoutTemplate, Frame, Recycle } from 'lucide-react';
 import {
   DEFAULT_FIGURE_SIZE_PRESET_ID,
   getFigureSizePreset,
@@ -33,7 +33,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { generateProposalFilePath, uploadProposalFile } from '@/lib/proposalStorage';
 import { compressImage, getRecommendedFormat, getFormatExtension } from '@/lib/imageCompression';
-import { useProposalFigures, type ProposalFigureOption } from '@/hooks/useCardFigure';
+import {
+  useProposalFigures,
+  useDeletedFigures,
+  useFigureBinActions,
+  type ProposalFigureOption,
+} from '@/hooks/useCardFigure';
+import { FigureBinDialog } from './FigureBinDialog';
 import { FigureRow } from './FigureRow';
 import { CommonFiguresDialog } from './CommonFiguresDialog';
 
@@ -110,6 +116,7 @@ export function FigureManager({ proposalId, canEdit, availableSections, onAddToB
   const [newFigureSection, setNewFigureSection] = useState('workplan');
   const [viewMode, setViewMode] = useState<'list' | 'gallery'>('list');
   const [isLibraryDialogOpen, setIsLibraryDialogOpen] = useState(false);
+  const [isBinOpen, setIsBinOpen] = useState(false);
   const [isAddingFromLibrary, setIsAddingFromLibrary] = useState(false);
   
   // For image upload
@@ -202,24 +209,17 @@ export function FigureManager({ proposalId, canEdit, availableSections, onAddToB
     },
   });
 
-  // Delete figure mutation
-  const deleteFigure = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('figures')
-        .delete()
-        .eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['figures', proposalId] });
-      setSelectedFigure(null);
-      toast.success('Figure deleted');
-    },
-    onError: () => {
-      toast.error('Failed to delete figure');
-    },
-  });
+  // Deletion is SOFT and server-guarded: a figure held by a block (live or
+  // soft-deleted) cannot be binned, and the RPC names the section instead.
+  const deletedFiguresQuery = useDeletedFigures(proposalId);
+  const { softDelete, restore } = useFigureBinActions(proposalId);
+  const deletedFigures = deletedFiguresQuery.data ?? [];
+  const deleteFigure = {
+    mutate: (id: string) =>
+      softDelete.mutate(id, {
+        onSuccess: () => setSelectedFigure(null),
+      }),
+  };
 
   // Add figure from common library
   const handleAddFromLibrary = useCallback(async (
@@ -588,6 +588,14 @@ export function FigureManager({ proposalId, canEdit, availableSections, onAddToB
                 <LayoutGrid className="w-4 h-4" />
               </Button>
             </div>
+            <Button
+              variant="outline"
+              className="gap-2 text-emerald-600 hover:text-emerald-600"
+              onClick={() => setIsBinOpen(true)}
+            >
+              <Recycle className="w-4 h-4" />
+              Bin{deletedFigures.length > 0 ? ` (${deletedFigures.length})` : ''}
+            </Button>
             {canEdit && (
               <>
                 <Button 
@@ -780,6 +788,7 @@ export function FigureManager({ proposalId, canEdit, availableSections, onAddToB
                         figure={figure}
                         onSelect={(f) => setSelectedFigure(f as Figure)}
                         onAddToBlock={canEdit && onAddToBlock ? (f) => onAddToBlock(f.id) : undefined}
+                        onDelete={canEdit ? (f) => softDelete.mutate(f.id) : undefined}
                       />
                     ))}
                   </div>
@@ -801,7 +810,12 @@ export function FigureManager({ proposalId, canEdit, availableSections, onAddToB
                 <CardContent>
                   <div className="space-y-2">
                     {sectionFigures.map((figure) => (
-                      <FigureRow key={figure.id} figure={figure} onSelect={(f) => setSelectedFigure(f as Figure)} />
+                      <FigureRow
+                        key={figure.id}
+                        figure={figure}
+                        onSelect={(f) => setSelectedFigure(f as Figure)}
+                        onDelete={canEdit ? (f) => softDelete.mutate(f.id) : undefined}
+                      />
                     ))}
                   </div>
                 </CardContent>
@@ -810,6 +824,15 @@ export function FigureManager({ proposalId, canEdit, availableSections, onAddToB
           </div>
         )}
       </div>
+
+      <FigureBinDialog
+        open={isBinOpen}
+        onOpenChange={setIsBinOpen}
+        figures={deletedFigures}
+        onRestore={(id) => restore.mutate(id)}
+        isRestoring={restore.isPending}
+        canEdit={canEdit}
+      />
 
       {/* Common Figures Library Dialog */}
       <CommonFiguresDialog
