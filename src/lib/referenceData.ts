@@ -326,6 +326,31 @@ export function useReferenceData(proposalId: string | undefined) {
     return () => window.removeEventListener('cross-ref-data-changed', handler);
   }, [proposalId, queryClient]);
 
+  useEffect(() => {
+    if (!proposalId) return;
+    const invalidate = () => {
+      queryClient.invalidateQueries({ queryKey: ['reference-data', proposalId] });
+      queryClient.invalidateQueries({ queryKey: ['section-citation-sources', proposalId] });
+    };
+    const channel = supabase
+      .channel(`reference-data-cards-${proposalId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'proposal_cards', filter: `proposal_id=eq.${proposalId}` },
+        invalidate,
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'card_fields', filter: `proposal_id=eq.${proposalId}` },
+        invalidate,
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [proposalId, queryClient]);
+
   // Editors render citations through a node view, which cannot read React
   // context. Publishing the derived map here is what lets every citation in
   // every editor show the same number the mirrors and exports show.
