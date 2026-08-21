@@ -352,7 +352,7 @@ export function DocumentEditor({
   // and the global citation display map. Sorted by global display order.
   const footnotes = useMemo(() => {
     const refsByNumber = new Map<number, typeof proposalReferences[number]>();
-    proposalReferences.forEach(r => refsByNumber.set(r.citation_number, r));
+    proposalReferences.forEach(r => refsByNumber.set(r.ref_key, r));
     return sectionCitedNumbers
       .map(internal => {
         const ref = refsByNumber.get(internal);
@@ -367,12 +367,12 @@ export function DocumentEditor({
   // Helper to get reference by INTERNAL citation number (data-citation attr)
   // for tooltip display.
   const getReference = useCallback((internalNumber: number) => {
-    const ref = proposalReferences.find(r => r.citation_number === internalNumber);
+    const ref = proposalReferences.find(r => r.ref_key === internalNumber);
     return ref ? { citation: ref.formatted_citation || ref.title } : undefined;
   }, [proposalReferences]);
 
   // DOM patcher: rewrite the visible text of every citation <sup> so it reflects
-  // the proposal-wide display order. The internal id (citation_number) is kept
+  // the proposal-wide display order. The internal id (ref_key) is kept
   // on the element via the data-citation attribute (preserved by CitationMark).
   // A MutationObserver re-applies the patch whenever the editor renders or
   // re-renders citation nodes (e.g. after hard refresh or any transaction).
@@ -864,7 +864,7 @@ export function DocumentEditor({
     if (!editor) return;
 
     const existingRef = findExistingReference(reference);
-    let stableCitationNumber = existingRef?.citation_number ?? citationNumber;
+    let stableCitationNumber = existingRef?.ref_key ?? citationNumber;
 
     if (!existingRef) {
       const savedRef = await addReference(reference, formattedCitation, citationNumber);
@@ -872,7 +872,7 @@ export function DocumentEditor({
         toast.error('Failed to save reference. Citation was not inserted.');
         return;
       }
-      stableCitationNumber = savedRef.citation_number;
+      stableCitationNumber = savedRef.ref_key;
     }
 
     // Insert as an atom node so track-changes text processing cannot unwrap it

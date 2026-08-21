@@ -4,7 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 export interface ProposalReference {
   id: string;
   proposal_id: string;
-  citation_number: number;
+  /** Stable internal id for the reference. NOT the number a reader sees:
+   * display numbers are derived from citation order by `citationNumber.ts`. */
+  ref_key: number;
   doi: string | null;
   authors: string[] | null;
   year: number | null;
@@ -44,10 +46,10 @@ export function useProposalReferences(proposalId: string) {
     try {
       setIsLoading(true);
       const { data, error: fetchError } = await supabase
-        .from('references')
+        .from('proposal_references')
         .select('*')
         .eq('proposal_id', proposalId)
-        .order('citation_number', { ascending: true });
+        .order('ref_key', { ascending: true });
 
       if (fetchError) throw fetchError;
       setReferences(data || []);
@@ -70,10 +72,10 @@ export function useProposalReferences(proposalId: string) {
 
     try {
       const { data, error: insertError } = await supabase
-        .from('references')
+        .from('proposal_references')
         .insert({
           proposal_id: proposalId,
-          citation_number: citationNumber,
+          ref_key: citationNumber,
           doi: reference.doi,
           authors: reference.authors,
           year: reference.year,
@@ -105,7 +107,7 @@ export function useProposalReferences(proposalId: string) {
   ): Promise<boolean> => {
     try {
       const { error: updateError } = await supabase
-        .from('references')
+        .from('proposal_references')
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq('id', refId);
 
@@ -131,7 +133,7 @@ export function useProposalReferences(proposalId: string) {
   // Get next citation number
   const getNextCitationNumber = useCallback((): number => {
     if (references.length === 0) return 1;
-    const maxNumber = Math.max(...references.map(r => r.citation_number));
+    const maxNumber = Math.max(...references.map(r => r.ref_key));
     return maxNumber + 1;
   }, [references]);
 
@@ -145,13 +147,13 @@ export function useProposalReferences(proposalId: string) {
     if (!proposalId) return;
 
     const channel = supabase
-      .channel(`references-${proposalId}`)
+      .channel(`proposal_references-${proposalId}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'references',
+          table: 'proposal_references',
           filter: `proposal_id=eq.${proposalId}`,
         },
         () => {

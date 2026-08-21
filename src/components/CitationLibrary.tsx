@@ -14,7 +14,7 @@ interface CitationLibraryProps {
   isLoading: boolean;
   onSelectReference: (reference: ProposalReference) => void;
   onUpdateReference?: (refId: string, updates: Partial<Omit<ProposalReference, 'id' | 'proposal_id' | 'created_at'>>) => Promise<boolean>;
-  /** Map from internal citation_number to the global display order. Uncited
+  /** Map from internal ref_key to the global display order. Uncited
    * references (not in the map) are sorted last and hidden from the list. */
   displayOrder?: Map<number, number>;
 }

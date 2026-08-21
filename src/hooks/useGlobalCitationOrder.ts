@@ -28,7 +28,7 @@ export function extractCitedNumbersInOrder(html: string): number[] {
 
 /**
  * Computes a proposal-wide citation display order based on order of first
- * appearance across all Part B sections. The DB `citation_number` acts as a
+ * appearance across all Part B sections. The DB `ref_key` acts as a
  * stable internal id; the returned displayMap converts it to the sequential
  * number shown in the rendered document.
  */
