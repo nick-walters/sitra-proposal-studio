@@ -1,0 +1,22 @@
+-- Table blocks were removed: tables now live inside text blocks as TipTap
+-- tables. Convert the leftovers, seed their tables, and retire the
+-- 'table' card kind entirely.
+
+ALTER TABLE public.proposal_cards DISABLE TRIGGER USER;
+
+UPDATE public.card_templates SET kind = 'text', default_fields = '[{"field_role":"narrative","content_html":"<p class=\"document-table-caption\" style=\"text-align: left;\"><span><strong><em><span data-caption-label=\"\" contenteditable=\"false\" style=\"user-select: none; font-weight: bold; font-style: italic;\"></span></em></strong></span><em>TRL progression</em></p><table class=\"he-table\" style=\"min-width: 100px;\"><colgroup><col style=\"min-width: 25px;\"><col style=\"min-width: 25px;\"><col style=\"min-width: 25px;\"><col style=\"min-width: 25px;\"></colgroup><tbody><tr><th class=\"he-table-header\" colspan=\"1\" rowspan=\"1\"><p>Component or result</p></th><th class=\"he-table-header\" colspan=\"1\" rowspan=\"1\"><p>TRL at start</p></th><th class=\"he-table-header\" colspan=\"1\" rowspan=\"1\"><p>TRL at end</p></th><th class=\"he-table-header\" colspan=\"1\" rowspan=\"1\"><p>Evidence</p></th></tr><tr><td class=\"he-table-cell\" colspan=\"1\" rowspan=\"1\"><p></p></td><td class=\"he-table-cell\" colspan=\"1\" rowspan=\"1\"><p></p></td><td class=\"he-table-cell\" colspan=\"1\" rowspan=\"1\"><p></p></td><td class=\"he-table-cell\" colspan=\"1\" rowspan=\"1\"><p></p></td></tr></tbody></table>"}]'::jsonb, default_table = NULL, updated_at = now() WHERE key = 'b11.trl_table';
+UPDATE public.card_templates SET kind = 'text', is_source_fed = false, source_key = NULL, is_deletable = true, is_hideable = true, default_fields = '[{"field_role":"narrative","content_html":"<p class=\"document-table-caption\" style=\"text-align: left;\"><span><strong><em><span data-caption-label=\"\" contenteditable=\"false\" style=\"user-select: none; font-weight: bold; font-style: italic;\"></span></em></strong></span><em>Key elements of the impact section</em></p><table class=\"he-table\" style=\"min-width: 75px;\"><colgroup><col style=\"min-width: 25px;\"><col style=\"min-width: 25px;\"><col style=\"min-width: 25px;\"></colgroup><tbody><tr><th class=\"he-table-header\" colspan=\"1\" rowspan=\"1\"><p>Target groups</p></th><th class=\"he-table-header\" colspan=\"1\" rowspan=\"1\"><p>Specific needs</p></th><th class=\"he-table-header\" colspan=\"1\" rowspan=\"1\"><p>Expected results</p></th></tr><tr><td class=\"he-table-cell\" colspan=\"1\" rowspan=\"1\"><p></p></td><td class=\"he-table-cell\" colspan=\"1\" rowspan=\"1\"><p></p></td><td class=\"he-table-cell\" colspan=\"1\" rowspan=\"1\"><p></p></td></tr></tbody></table><p></p><table class=\"he-table\" style=\"min-width: 75px;\"><colgroup><col style=\"min-width: 25px;\"><col style=\"min-width: 25px;\"><col style=\"min-width: 25px;\"></colgroup><tbody><tr><th class=\"he-table-header\" colspan=\"1\" rowspan=\"1\"><p>DEC measures</p></th><th class=\"he-table-header\" colspan=\"1\" rowspan=\"1\"><p>Expected outcomes</p></th><th class=\"he-table-header\" colspan=\"1\" rowspan=\"1\"><p>Expected impacts</p></th></tr><tr><td class=\"he-table-cell\" colspan=\"1\" rowspan=\"1\"><p></p></td><td class=\"he-table-cell\" colspan=\"1\" rowspan=\"1\"><p></p></td><td class=\"he-table-cell\" colspan=\"1\" rowspan=\"1\"><p></p></td></tr></tbody></table>"}]'::jsonb, default_table = NULL, updated_at = now() WHERE key = 'b21.impact_summary';
+UPDATE public.card_templates SET kind = 'text' WHERE kind = 'table';
+UPDATE public.proposal_cards SET kind = 'text' WHERE kind = 'table';
+
+ALTER TABLE public.proposal_cards ENABLE TRIGGER USER;
+
+ALTER TABLE public.card_templates DROP CONSTRAINT card_templates_kind_check;
+ALTER TABLE public.card_templates ADD CONSTRAINT card_templates_kind_check
+  CHECK (kind = ANY (ARRAY['text'::text, 'figure'::text, 'outcome_list'::text, 'references'::text]));
+
+ALTER TABLE public.proposal_cards DROP CONSTRAINT proposal_cards_kind_check;
+ALTER TABLE public.proposal_cards ADD CONSTRAINT proposal_cards_kind_check
+  CHECK (kind = ANY (ARRAY['text'::text, 'figure'::text, 'outcome_list'::text, 'references'::text]));
+
+ALTER TABLE public.card_templates DROP COLUMN default_table;

@@ -11,6 +11,11 @@ import Typography from '@tiptap/extension-typography';
 import { TextStyle } from '@tiptap/extension-text-style';
 import Color from '@tiptap/extension-color';
 import { Table } from '@tiptap/extension-table';
+import {
+  EDITOR_TABLE_CLASS,
+  EDITOR_TABLE_HEADER_CELL_CLASS,
+  EDITOR_TABLE_BODY_CELL_CLASS,
+} from '@/lib/tableStyleSpec';
 import { TableRow } from '@tiptap/extension-table-row';
 import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
@@ -1306,19 +1311,19 @@ StarterKit.configure({
       Table.configure({
         resizable: false,
         HTMLAttributes: {
-          class: 'he-table',
+          class: EDITOR_TABLE_CLASS,
         },
       }),
       WordTableResizing,
       TableRow,
       TableHeader.configure({
         HTMLAttributes: {
-          class: 'he-table-header',
+          class: EDITOR_TABLE_HEADER_CELL_CLASS,
         },
       }),
       TableCell.configure({
         HTMLAttributes: {
-          class: 'he-table-cell',
+          class: EDITOR_TABLE_BODY_CELL_CLASS,
         },
       }),
       HeadingExitOnEnter,
@@ -1547,18 +1552,18 @@ StarterKit.configure({
       Table.configure({
         resizable: true,
         HTMLAttributes: {
-          class: 'he-table',
+          class: EDITOR_TABLE_CLASS,
         },
       }),
       TableRow,
       TableHeader.configure({
         HTMLAttributes: {
-          class: 'he-table-header',
+          class: EDITOR_TABLE_HEADER_CELL_CLASS,
         },
       }),
       TableCell.configure({
         HTMLAttributes: {
-          class: 'he-table-cell',
+          class: EDITOR_TABLE_BODY_CELL_CLASS,
         },
       }),
       // Block reordering via keyboard shortcuts (Ctrl+Shift+↑/↓)

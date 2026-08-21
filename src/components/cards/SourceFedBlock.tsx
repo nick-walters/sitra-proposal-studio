@@ -192,11 +192,6 @@ export function SourceFedBlock({ proposalId, sourceKey, kind }: SourceFedBlockPr
     if (sourceKey === 'b12.linked_activities') {
       return <B12LinkedActivitiesSlotContent proposalId={proposalId} />;
     }
-    if (sourceKey === 'b21.impact_summary') {
-      // The impact canvas has no read-only mirror component — it exists only
-      // as the interactive builder on B2.1, so nothing can be reused here.
-      return <Note>The impact summary is edited and shown on the B2.1 impact canvas.</Note>;
-    }
     if (sourceKey && B32_SLOTS[sourceKey]) {
       return <B32MirrorSlotLiveView proposalId={proposalId} slotKey={B32_SLOTS[sourceKey]} />;
     }

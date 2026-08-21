@@ -932,7 +932,6 @@ export type Database = {
           condition_uses_fstp: boolean | null
           created_at: string
           default_fields: Json | null
-          default_table: Json | null
           default_title: string | null
           default_visible: boolean
           document: string
@@ -960,7 +959,6 @@ export type Database = {
           condition_uses_fstp?: boolean | null
           created_at?: string
           default_fields?: Json | null
-          default_table?: Json | null
           default_title?: string | null
           default_visible?: boolean
           document?: string
@@ -988,7 +986,6 @@ export type Database = {
           condition_uses_fstp?: boolean | null
           created_at?: string
           default_fields?: Json | null
-          default_table?: Json | null
           default_title?: string | null
           default_visible?: boolean
           document?: string

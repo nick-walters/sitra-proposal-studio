@@ -1,6 +1,8 @@
 // Shared types for the generic Part B card model (Phase 1 data layer).
 
-export type CardKind = 'text' | 'figure' | 'table' | 'outcome_list' | 'references';
+// 'table' was removed with the table blocks: tables now live inside text
+// blocks as TipTap tables.
+export type CardKind = 'text' | 'figure' | 'outcome_list' | 'references';
 export type CardAnchor = 'head' | 'free' | 'tail';
 export type CardDocument = 'part_b' | 'fstp_annex';
 export type CardOrigin = 'auto' | 'manual';

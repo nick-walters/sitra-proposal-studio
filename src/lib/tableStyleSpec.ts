@@ -206,3 +206,71 @@ ${s}.${TABLE_CAPTION_CLASS} .${TABLE_CAPTION_LABEL_CLASS} {
 }
 `.trim();
 }
+
+/* ------------------------------------------------- editor (TipTap) markup */
+
+/**
+ * Classes TipTap writes on to tables it creates. They are declared here rather
+ * than inline in `RichTextEditor` so that HTML generated for seeding is
+ * guaranteed identical to HTML produced when a user inserts a table by hand —
+ * the two used to be able to drift.
+ */
+export const EDITOR_TABLE_CLASS = 'he-table';
+export const EDITOR_TABLE_HEADER_CELL_CLASS = 'he-table-header';
+export const EDITOR_TABLE_BODY_CELL_CLASS = 'he-table-cell';
+
+/** TipTap's own per-column minimum, emitted in the colgroup it round-trips. */
+const EDITOR_COL_MIN_WIDTH_PX = 25;
+
+const escapeHtml = (s: string): string =>
+  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+/**
+ * A table in exactly the shape TipTap serialises: `he-table` wrapper, colgroup
+ * of per-column minimums, header row of `<th>` and `rows` empty body rows.
+ * Cell text lives in a paragraph, as ProseMirror requires.
+ */
+export function editorTableHtml(columns: string[], rows = 1): string {
+  const cols = columns
+    .map(() => `<col style="min-width: ${EDITOR_COL_MIN_WIDTH_PX}px;">`)
+    .join('');
+  const head = columns
+    .map(
+      (c) =>
+        `<th class="${EDITOR_TABLE_HEADER_CELL_CLASS}" colspan="1" rowspan="1">` +
+        `<p>${escapeHtml(c)}</p></th>`,
+    )
+    .join('');
+  const bodyRow =
+    '<tr>' +
+    columns
+      .map(
+        () =>
+          `<td class="${EDITOR_TABLE_BODY_CELL_CLASS}" colspan="1" rowspan="1"><p></p></td>`,
+      )
+      .join('') +
+    '</tr>';
+  const minWidth = columns.length * EDITOR_COL_MIN_WIDTH_PX;
+  return (
+    `<table class="${EDITOR_TABLE_CLASS}" style="min-width: ${minWidth}px;">` +
+    `<colgroup>${cols}</colgroup><tbody><tr>${head}</tr>` +
+    bodyRow.repeat(Math.max(0, rows)) +
+    '</tbody></table>'
+  );
+}
+
+/**
+ * A caption paragraph above a table. The bold-italic label span is left empty
+ * and non-editable: `renumberCaptionsInEditor` fills in "Table N.N.x." from the
+ * caption's position, so a seeded caption must not hard-code a number.
+ */
+export function editorTableCaptionHtml(text: string): string {
+  return (
+    `<p class="${TABLE_CAPTION_CLASS}" style="text-align: left;">` +
+    '<span><strong><em>' +
+    `<span data-caption-label="" contenteditable="false" ` +
+    'style="user-select: none; font-weight: bold; font-style: italic;"></span>' +
+    '</em></strong></span>' +
+    `<em>${escapeHtml(text)}</em></p>`
+  );
+}
