@@ -563,7 +563,7 @@ export function GeneralInfoForm({
                     <h2 className="text-sm font-semibold text-foreground" style={{ fontFamily: 'Arial, sans-serif' }}>{proposal?.title}</h2>
                   )}
                   <InlineGuideline className="mt-1">
-                    Max 200 characters (with spaces). Must be understandable for non-specialists.
+                    Max 200 characters (including spaces). Must be understandable for non-specialists.
                   </InlineGuideline>
                 </div>
 
