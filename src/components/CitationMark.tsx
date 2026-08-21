@@ -84,7 +84,6 @@ export const CitationNode = Node.create({
   atom: true,
   selectable: false,
   isolating: true,
-  priority: 1200,
 
   addAttributes() {
     return {

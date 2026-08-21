@@ -46,6 +46,7 @@ function clientSnapshot(): RefSnapshot {
     figureById: new Map(),
     tableCaptionMap: new Map(),
     acronymSegments: [],
+    citationNumbers: new Map(),
   } as RefSnapshot;
 }
 
