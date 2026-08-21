@@ -63,6 +63,8 @@ export interface RefSnapshotServer {
   figureById: Map<string, { id: string; figure_number: string }>;
   tableCaptionKeys: Set<string>;
   acronymSegments: { text: string; color: string }[];
+  /** Internal `ref_key` -> derived display number, from `citationNumbering.ts`. */
+  citationNumbers: Map<number, number>;
 }
 
 export function emptySnapshot(): RefSnapshotServer {
@@ -76,6 +78,7 @@ export function emptySnapshot(): RefSnapshotServer {
     figureById: new Map(),
     tableCaptionKeys: new Set(),
     acronymSegments: [],
+    citationNumbers: new Map(),
   };
 }
 
@@ -163,4 +166,23 @@ export function isRefChip(attrs: Record<string, string>): boolean {
   return Object.keys(attrs).some((k) =>
     /^data-(wp|task|deliverable|milestone|participant|case|acronym)-(id|reference)$/.test(k)
   ) || attrs["data-fig-table-ref"] !== undefined;
+}
+
+/* ────────────────────────────── citations ──────────────────────────────── */
+
+/**
+ * Resolves a `data-citation` internal id to the number a reader sees.
+ * Returns null when the ref_key is unknown or cited only from hidden or
+ * binned content, so the caller keeps whatever text was stored.
+ */
+export function resolveCitationNumber(
+  attrs: Record<string, string>,
+  snap: RefSnapshotServer,
+): string | null {
+  const raw = (attrs["data-citation"] || "").trim();
+  if (!raw) return null;
+  const refKey = Number.parseInt(raw, 10);
+  if (!Number.isFinite(refKey)) return null;
+  const display = snap.citationNumbers.get(refKey);
+  return display == null ? null : String(display);
 }

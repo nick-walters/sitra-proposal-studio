@@ -41,8 +41,10 @@ import {
   emptySnapshot,
   isRefChip,
   resolveChipLabel,
+  resolveCitationNumber,
   type RefSnapshotServer,
 } from "../_shared/referenceResolution.ts";
+import { buildCitationNumberMap } from "../_shared/citationSources.ts";
 import { computeFigureNumbers } from "../_shared/figureNumbering.ts";
 
 
@@ -220,6 +222,31 @@ async function loadRefSnapshot(supabase: any, proposalId: string): Promise<RefSn
       if (derived) snap.figureById.set(f.id, { id: f.id, figure_number: derived });
     }
     for (const c of capRes.data ?? []) snap.tableCaptionKeys.add(c.table_key);
+    // Citation numbers are derived the same way the app derives them, from
+    // first-citation order across visible, non-binned content — including the
+    // legacy `section_content` bodies, which is where most citations still live.
+    const [allCardRes, fieldRes, legacyRes] = await Promise.all([
+      supabase.from("proposal_cards").select("id, section_id, order_index, anchor, is_visible, deleted_at").eq("proposal_id", proposalId),
+      supabase.from("card_fields").select("id, card_id, order_index, content_html, deleted_at").eq("proposal_id", proposalId),
+      supabase.from("section_content").select("section_id, content").eq("proposal_id", proposalId),
+    ]);
+    // Sections are template-owned, so they are reached through the template of
+    // the sections this proposal's cards sit in — legacy bodies need the whole
+    // template's ordering, not just the sections that happen to hold cards.
+    const citeSectionIds = [...new Set(((allCardRes.data ?? []) as any[]).map((c) => c.section_id).filter(Boolean))];
+    const seedSectionRes = citeSectionIds.length
+      ? await supabase.from("proposal_template_sections").select("id, section_number, order_index, proposal_template_id").in("id", citeSectionIds)
+      : { data: [] };
+    const templateId = ((seedSectionRes.data ?? [])[0] as any)?.proposal_template_id ?? null;
+    const allSectionRes = templateId
+      ? await supabase.from("proposal_template_sections").select("id, section_number, order_index").eq("proposal_template_id", templateId)
+      : seedSectionRes;
+    snap.citationNumbers = buildCitationNumberMap({
+      sections: (allSectionRes.data ?? []) as any[],
+      cards: (allCardRes.data ?? []) as any[],
+      fields: (fieldRes.data ?? []) as any[],
+      legacySections: (legacyRes.data ?? []) as any[],
+    });
     const proposal = proposalRes.data;
     snap.acronymSegments = proposal?.acronym_segments?.length
       ? proposal.acronym_segments
@@ -249,6 +276,15 @@ function resolveChipsInHtml(html: string): string {
     for (const el of root.querySelectorAll("*")) {
       // deno-lint-ignore no-explicit-any
       const attrs = ((el as any).rawAttributes ?? {}) as Record<string, string>;
+      const citation = resolveCitationNumber(attrs, snap);
+      if (citation != null) {
+        if ((el.textContent ?? "").trim() !== citation) {
+          // deno-lint-ignore no-explicit-any
+          (el as any).set_content(escapeText(citation));
+          changed = true;
+        }
+        continue;
+      }
       if (!isRefChip(attrs)) continue;
       CURRENT_REF_STATS.found += 1;
       const label = resolveChipLabel(attrs, snap);

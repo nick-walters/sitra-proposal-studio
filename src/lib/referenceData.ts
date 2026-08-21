@@ -13,6 +13,8 @@ import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { computeFigureNumbers } from '@/lib/figureNumbering';
+import { buildCitationNumberMap } from '@/lib/citationSources';
+import { publishCitationDisplayMap } from '@/lib/citationDisplay';
 
 export interface WPData {
   id: string;
@@ -80,6 +82,8 @@ export interface RefSnapshot {
   figureById: Map<string, FigureData>;
   tableCaptionMap: Map<string, string>;
   acronymSegments: AcronymSegmentData[];
+  /** Internal `ref_key` -> reader-facing citation number. Derived, never stored. */
+  citationNumbers: Map<number, number>;
 }
 
 
@@ -174,6 +178,54 @@ export async function fetchReferenceData(proposalId: string): Promise<RefSnapsho
     (sectionRes.data || []) as any[],
   );
 
+  // Citation display numbers are DERIVED the same way: the internal `ref_key`
+  // in `data-citation` is resolved to a reader-facing number at render time,
+  // in first-citation order across the whole proposal. Legacy `section_content`
+  // documents are included because that is where older citations still live.
+  const [citeCardRes, citeFieldRes, legacyRes] = await Promise.all([
+    supabase
+      .from('proposal_cards')
+      .select('id, section_id, order_index, anchor, is_visible, deleted_at')
+      .eq('proposal_id', proposalId),
+    supabase
+      .from('card_fields')
+      .select('id, card_id, order_index, content_html, deleted_at')
+      .eq('proposal_id', proposalId),
+    supabase
+      .from('section_content')
+      .select('section_id, content')
+      .eq('proposal_id', proposalId),
+  ]);
+  // Every section of the proposal's template, not just those holding cards:
+  // a legacy section body needs its section to be orderable too.
+  const citeSectionIds = Array.from(
+    new Set([
+      ...sectionIds,
+      ...((citeCardRes.data || []).map((c: any) => c.section_id).filter(Boolean) as string[]),
+    ]),
+  );
+  const citeSectionRes = citeSectionIds.length
+    ? await supabase
+        .from('proposal_template_sections')
+        .select('id, section_number, order_index, proposal_template_id')
+        .in('id', citeSectionIds)
+    : { data: [] as any[] };
+  const templateId = (citeSectionRes.data || [])[0]?.proposal_template_id ?? null;
+  const allSectionRes = templateId
+    ? await supabase
+        .from('proposal_template_sections')
+        .select('id, section_number, order_index')
+        .eq('proposal_template_id', templateId)
+    : { data: (citeSectionRes.data || []) as any[] };
+  const citationNumbers = buildCitationNumberMap({
+    sections: (allSectionRes.data || []) as any[],
+    cards: (citeCardRes.data || []) as any[],
+    fields: (citeFieldRes.data || []) as any[],
+    legacySections: (legacyRes.data || []) as any[],
+  });
+
+
+
 
   const wps: WPData[] = wpRes.data || [];
   const wpMap = new Map(wps.map(wp => [wp.id, wp]));
@@ -246,6 +298,7 @@ export async function fetchReferenceData(proposalId: string): Promise<RefSnapsho
     figureById: new Map(figures.map(f => [f.id, f])),
     tableCaptionMap,
     acronymSegments,
+    citationNumbers,
   };
 }
 
@@ -272,6 +325,13 @@ export function useReferenceData(proposalId: string | undefined) {
     window.addEventListener('cross-ref-data-changed', handler);
     return () => window.removeEventListener('cross-ref-data-changed', handler);
   }, [proposalId, queryClient]);
+
+  // Editors render citations through a node view, which cannot read React
+  // context. Publishing the derived map here is what lets every citation in
+  // every editor show the same number the mirrors and exports show.
+  useEffect(() => {
+    if (query.data) publishCitationDisplayMap(query.data.citationNumbers);
+  }, [query.data]);
 
   return query;
 }

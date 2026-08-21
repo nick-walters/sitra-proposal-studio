@@ -6798,6 +6798,42 @@ export type Database = {
         }
         Returns: Json
       }
+      add_proposal_reference: {
+        Args: {
+          p_authors?: string[]
+          p_doi?: string
+          p_formatted_citation?: string
+          p_journal?: string
+          p_pages?: string
+          p_proposal_id: string
+          p_title: string
+          p_verified?: boolean
+          p_volume?: string
+          p_year?: number
+        }
+        Returns: {
+          authors: string[] | null
+          created_at: string
+          doi: string | null
+          formatted_citation: string | null
+          id: string
+          journal: string | null
+          pages: string | null
+          proposal_id: string
+          ref_key: number
+          title: string
+          updated_at: string
+          verified: boolean | null
+          volume: string | null
+          year: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "proposal_references"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       caller_is_sitra_staff: { Args: never; Returns: boolean }
       can_edit_proposal: {
         Args: { _proposal_id: string; _user_id: string }

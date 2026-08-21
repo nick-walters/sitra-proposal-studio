@@ -53,6 +53,7 @@ import { renumberCaptionsInEditor } from "@/lib/renumberCaptionsInEditor";
 import { renumberH3Headings } from "@/lib/renumberH3Headings";
 import { useProposalReferences } from "@/hooks/useProposalReferences";
 import { useGlobalCitationOrder } from "@/hooks/useGlobalCitationOrder";
+import { useReferenceData } from "@/lib/referenceData";
 import { FootnoteCitation } from "@/components/FootnoteCitation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -321,11 +322,18 @@ export function DocumentEditor({
 
   const { content, setContent, loading, saving, lastSaved, lastCitationMapping, isPlaceholder, isDirty, saveError, clearPlaceholder, saveNow } = sectionContentHook;
 
-  // Global citation ordering across all Part B sections
-  const { displayMap: citationDisplayMap, sectionCitedNumbers } = useGlobalCitationOrder(
+  // Which references THIS section cites (used for its footnote list). The
+  // display numbers themselves come from the numbering module, which is the
+  // single authority across editors, mirrors and exports.
+  const { sectionCitedNumbers } = useGlobalCitationOrder(
     proposalId,
     section?.id,
     content,
+  );
+  const { data: refSnapshot } = useReferenceData(proposalId);
+  const citationDisplayMap = useMemo(
+    () => refSnapshot?.citationNumbers ?? new Map<number, number>(),
+    [refSnapshot],
   );
 
   // Use isDirty from the hook directly instead of tracking separately
@@ -371,53 +379,9 @@ export function DocumentEditor({
     return ref ? { citation: ref.formatted_citation || ref.title } : undefined;
   }, [proposalReferences]);
 
-  // DOM patcher: rewrite the visible text of every citation <sup> so it reflects
-  // the proposal-wide display order. The internal id (ref_key) is kept
-  // on the element via the data-citation attribute (preserved by CitationMark).
-  // A MutationObserver re-applies the patch whenever the editor renders or
-  // re-renders citation nodes (e.g. after hard refresh or any transaction).
-  const patchCitationDisplayRef = useRef<() => void>(() => {});
-  // Keep latest map in a ref so the observer always uses fresh data.
-  const citationDisplayMapRef = useRef(citationDisplayMap);
-  citationDisplayMapRef.current = citationDisplayMap;
-  useEffect(() => {
-    const root = editorContainerRef.current;
-    const apply = () => {
-      if (!root) return;
-      const map = citationDisplayMapRef.current;
-      const sups = root.querySelectorAll('sup[data-citation]');
-      sups.forEach((sup) => {
-        const el = sup as HTMLElement;
-        const internal = parseInt(el.getAttribute('data-citation') || '', 10);
-        if (!Number.isFinite(internal)) return;
-        const display = map.get(internal);
-        const next = display != null ? String(display) : String(internal);
-        if (el.textContent !== next) el.textContent = next;
-      });
-    };
-    patchCitationDisplayRef.current = apply;
-    apply();
-    const t1 = requestAnimationFrame(apply);
-    const t2 = setTimeout(apply, 50);
-    const t3 = setTimeout(apply, 250);
-    if (!root) {
-      return () => {
-        cancelAnimationFrame(t1);
-        clearTimeout(t2);
-        clearTimeout(t3);
-      };
-    }
-    // Observe DOM mutations so nodeView re-renders (which reset textContent
-    // back to the internal id) are immediately re-patched.
-    const observer = new MutationObserver(() => apply());
-    observer.observe(root, { childList: true, subtree: true, characterData: true });
-    return () => {
-      cancelAnimationFrame(t1);
-      clearTimeout(t2);
-      clearTimeout(t3);
-      observer.disconnect();
-    };
-  }, [citationDisplayMap, content]);
+  // Citation numbers used to be patched into the DOM here by a
+  // MutationObserver. They are now rendered by the citation node view from the
+  // numbering module, so the editor needs no patching at all.
 
 
 
@@ -507,20 +471,6 @@ export function DocumentEditor({
 
   // Note: trackChangesEnabled sync is handled by useRichTextEditor's own effect
 
-  // Re-run the citation display patcher after every editor transaction so
-  // ProseMirror re-renders do not revert our text rewrites.
-  useEffect(() => {
-    if (!editor) return;
-    const run = () => patchCitationDisplayRef.current();
-    editor.on('update', run);
-    editor.on('selectionUpdate', run);
-    editor.on('transaction', run);
-    return () => {
-      editor.off('update', run);
-      editor.off('selectionUpdate', run);
-      editor.off('transaction', run);
-    };
-  }, [editor]);
 
   // Backfill missing track-change attributes after editor loads
   // Fixes: authorName for ALL users, authorId & timestamp for current user
