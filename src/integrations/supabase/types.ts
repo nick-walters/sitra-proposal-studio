@@ -6920,6 +6920,15 @@ export type Database = {
         Returns: Json
       }
       purge_deleted_cards: { Args: never; Returns: number }
+      reconcile_citation_instances: {
+        Args: {
+          p_card_id: string
+          p_field_id: string
+          p_proposal_id: string
+          p_ref_keys: number[]
+        }
+        Returns: number
+      }
       release_card_lock: {
         Args: { p_target_id: string; p_target_type: string }
         Returns: undefined
