@@ -34,6 +34,10 @@ export function useSectionRecycleBin(proposalId: string, sectionId?: string) {
       const labels = new Map<string, string | null>();
       const previews = new Map<string, string>();
       const fieldCounts = new Map<string, number>();
+      const figureBlocks = new Map<
+        string,
+        { caption: string | null; imagePath: string | null; title: string | null }
+      >();
 
       if (cardIds.length) {
         const { data: cards } = await supabase
@@ -53,6 +57,29 @@ export function useSectionRecycleBin(proposalId: string, sectionId?: string) {
             f.card_id,
             `${previews.get(f.card_id) ?? ''}${f.content_html ?? ''}`,
           );
+        }
+      }
+
+      // Figure blocks carry no text, so the bin needs the caption and a
+      // thumbnail to identify them, mirroring the heading + preview of a text
+      // block.
+      if (cardIds.length) {
+        const { data: figBlocks } = await supabase
+          .from('card_figure')
+          .select('card_id, figure_id, caption')
+          .in('card_id', cardIds);
+        const figureIds = (figBlocks || []).map((b) => b.figure_id).filter(Boolean) as string[];
+        const { data: figs } = figureIds.length
+          ? await supabase.from('figures').select('id, title, content').in('id', figureIds)
+          : { data: [] as { id: string; title: string; content: any }[] };
+        const figById = new Map((figs || []).map((f) => [f.id, f]));
+        for (const b of figBlocks || []) {
+          const fig = b.figure_id ? figById.get(b.figure_id) : null;
+          figureBlocks.set(b.card_id, {
+            caption: b.caption || null,
+            imagePath: (fig?.content as any)?.imageUrl ?? null,
+            title: fig?.title ?? null,
+          });
         }
       }
 
@@ -82,6 +109,9 @@ export function useSectionRecycleBin(proposalId: string, sectionId?: string) {
         label: labels.get(r.target_id) ?? null,
         contentHtml: previews.get(r.target_id) ?? null,
         fieldCount: r.target_type === 'card' ? (fieldCounts.get(r.target_id) ?? 0) : null,
+        figureCaption: figureBlocks.get(r.target_id)?.caption ?? null,
+        figureImagePath: figureBlocks.get(r.target_id)?.imagePath ?? null,
+        figureTitle: figureBlocks.get(r.target_id)?.title ?? null,
       }));
 
     },
