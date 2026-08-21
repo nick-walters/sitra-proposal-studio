@@ -132,7 +132,9 @@ export function CardFigureBlock({
 
       {/* Caption: under the figure, spanning the FULL block width, label and
           input on one line in the same italic serif face. */}
-      <div className={tableCaptionClass('flex w-full items-baseline gap-2')}>
+      {/* `table-caption` collides with the Tailwind display utility of the same
+          name, so the flex display is forced here. */}
+      <div className={tableCaptionClass('!flex w-full items-baseline gap-2')}>
         <span className={cn(TABLE_CAPTION_LABEL_CLASS, 'shrink-0 whitespace-nowrap')}>
           {captionLabel}
         </span>
