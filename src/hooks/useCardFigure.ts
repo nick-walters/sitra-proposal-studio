@@ -3,6 +3,11 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { computeFigureNumbers } from '@/lib/figureNumbering';
 import { mapCardFigure, type CardFigureBlockData } from '@/types/cardTable';
+import type {
+  FigurePageBreakMode,
+  FigurePositionMode,
+  FigureWidthMode,
+} from '@/lib/figureLayout';
 
 export const cardFigureKey = (cardId: string) => ['card-figure', cardId];
 
@@ -47,11 +52,12 @@ export function useCardFigure(cardId: string) {
       caption?: string;
       float?: 'none' | 'left' | 'right';
       max_width_cm?: number | null;
-      width_pct?: number;
-      placement?: 'full_width' | 'beside_next' | 'top_of_page';
-      break_before?: boolean;
-      keep_with_next?: boolean;
-      keep_whole?: boolean;
+      width_mode?: FigureWidthMode;
+      custom_width_pct?: number;
+      group_with_above?: boolean;
+      group_with_below?: boolean;
+      position_mode?: FigurePositionMode;
+      page_break_mode?: FigurePageBreakMode;
     }) => {
       const { error } = await supabase.rpc('save_card_figure', {
         p_card_id: cardId,
