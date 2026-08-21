@@ -40,6 +40,7 @@ export function useCardMutations(proposalId: string, sectionId: string) {
   const invalidateCitations = () => {
     queryClient.invalidateQueries({ queryKey: ['reference-data', proposalId] });
     queryClient.invalidateQueries({ queryKey: ['section-citation-sources', proposalId] });
+    window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
   };
 
   const createCard = useMutation({
@@ -200,6 +201,7 @@ export function useCardMutations(proposalId: string, sectionId: string) {
       invalidateCards();
       invalidateFields(cardId);
       invalidateBin();
+      invalidateCitations();
       toast.success('Block moved to the recycle bin');
     },
     onError: (e: Error) => toast.error(e.message || 'Could not delete the block'),
@@ -213,6 +215,7 @@ export function useCardMutations(proposalId: string, sectionId: string) {
     onSuccess: (_d, vars) => {
       invalidateFields(vars.cardId);
       invalidateBin();
+      invalidateCitations();
       toast.success('Module moved to the recycle bin');
     },
     onError: (e: Error) => toast.error(e.message || 'Could not delete the module'),
