@@ -53,6 +53,7 @@ import { renumberCaptionsInEditor } from "@/lib/renumberCaptionsInEditor";
 import { renumberH3Headings } from "@/lib/renumberH3Headings";
 import { useProposalReferences } from "@/hooks/useProposalReferences";
 import { useGlobalCitationOrder } from "@/hooks/useGlobalCitationOrder";
+import { useReferenceData } from "@/lib/referenceData";
 import { FootnoteCitation } from "@/components/FootnoteCitation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
