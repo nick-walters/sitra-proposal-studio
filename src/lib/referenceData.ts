@@ -333,7 +333,7 @@ export function useReferenceData(proposalId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ['section-citation-sources', proposalId] });
     };
     const channel = supabase
-      .channel(`reference-data-cards-${proposalId}`)
+      .channel(`reference-data-cards-${proposalId}-${crypto.randomUUID()}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'proposal_cards', filter: `proposal_id=eq.${proposalId}` },
