@@ -15,11 +15,29 @@ html, body {
 
 /* Figure and Table Caption Styles */
 .figure-caption,
-.table-caption {
+.document-table-caption {
   font-style: italic !important;
   font-family: "Times New Roman", Times, serif !important;
   font-size: 11pt !important;
   line-height: 1.0 !important;
+}
+
+.figure-caption-row {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: baseline;
+  font-style: italic;
+  font-family: "Times New Roman", Times, serif;
+  font-size: 11pt;
+  line-height: 1;
+  margin-top: 3pt;
+  margin-bottom: 6pt;
+}
+
+.figure-caption-row .caption-label {
+  font-weight: bold;
+  font-style: italic;
 }
 
 .figure-caption {
@@ -30,7 +48,7 @@ html, body {
   text-align: left !important;
 }
 
-.table-caption {
+.document-table-caption {
   margin-top: 3pt !important;
   margin-bottom: 1pt !important;
   padding-top: 0 !important;
@@ -40,7 +58,7 @@ html, body {
 }
 
 .figure-caption .caption-label,
-.table-caption .caption-label {
+.document-table-caption .caption-label {
   font-weight: bold !important;
   font-style: italic !important;
 }
@@ -577,9 +595,9 @@ html, body {
 
 
 /* Caption styles in ProseMirror */
-.ProseMirror .table-caption,
+.ProseMirror .document-table-caption,
 .ProseMirror .figure-caption,
-.ProseMirror p.table-caption,
+.ProseMirror p.document-table-caption,
 .ProseMirror p.figure-caption {
   font-style: italic !important;
   font-family: "Times New Roman", Times, serif !important;
@@ -587,8 +605,8 @@ html, body {
   line-height: 1.0 !important;
 }
 
-.ProseMirror .table-caption,
-.ProseMirror p.table-caption {
+.ProseMirror .document-table-caption,
+.ProseMirror p.document-table-caption {
   display: block !important;
   width: 100% !important;
   clear: both;
@@ -613,8 +631,8 @@ html, body {
 }
 
 /* Ensure table caption followed by table has no gap */
-.ProseMirror .table-caption + table,
-.ProseMirror p.table-caption + table {
+.ProseMirror .document-table-caption + table,
+.ProseMirror p.document-table-caption + table {
   margin-top: 0 !important;
 }
 
@@ -881,7 +899,7 @@ table.b31-effort-matrix.first-col-flush {
 }
 
 /* Override spacing for caption paragraphs */
-.ProseMirror p.table-caption {
+.ProseMirror p.document-table-caption {
   margin-top: 3pt !important;
   margin-bottom: 1pt !important;
   text-align: left !important;
@@ -1312,7 +1330,7 @@ body.table-col-resizing * {
 
 /* Captions */
 .print-export-container .figure-caption,
-.print-export-container .table-caption {
+.print-export-container .document-table-caption {
   font-style: italic !important;
   font-family: 'Times New Roman', Times, serif !important;
   font-size: 11pt !important;
@@ -1325,7 +1343,7 @@ body.table-col-resizing * {
   margin-bottom: 6pt !important;
 }
 
-.print-export-container .table-caption {
+.print-export-container .document-table-caption {
   text-align: left !important;
   margin-top: 3pt !important;
   margin-bottom: 1pt !important;

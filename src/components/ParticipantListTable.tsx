@@ -59,7 +59,7 @@ export function ParticipantListTable({
       <div className="ProseMirror">
         {/* Table caption above the table */}
         {caption && (
-          <p className="table-caption">
+          <p className="document-table-caption">
             <em><strong>{caption}</strong></em>
           </p>
         )}

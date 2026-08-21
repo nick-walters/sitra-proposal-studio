@@ -105,7 +105,7 @@ interface RichTextEditorProps {
 }
 
 
-const PART_B_ALIGNMENT_EXEMPT_PARAGRAPH_CLASSES = new Set(['figure-caption', 'table-caption']);
+const PART_B_ALIGNMENT_EXEMPT_PARAGRAPH_CLASSES = new Set(['figure-caption', 'document-table-caption']);
 
 
 const ParagraphClass = Extension.create({
@@ -748,7 +748,7 @@ export function FormattingToolbar({
       .focus()
       .insertContent({
         type: 'paragraph',
-        attrs: { class: 'table-caption', textAlign: 'left' },
+        attrs: { class: 'document-table-caption', textAlign: 'left' },
         content: [
           {
             type: 'text',
@@ -775,7 +775,7 @@ export function FormattingToolbar({
           pos >= searchFrom &&
           node.type.name === 'paragraph' &&
           typeof node.attrs?.class === 'string' &&
-          node.attrs.class.split(/\s+/).includes('table-caption') &&
+          node.attrs.class.split(/\s+/).includes('document-table-caption') &&
           node.textContent.startsWith(`${tableLabel}.`)
         ) {
           captionPos = pos;
@@ -1796,7 +1796,7 @@ StarterKit.configure({
                 const isCaptionPara = (node: any) => {
                   if (!node || node.type?.name !== 'paragraph') return false;
                   const cls = (node.attrs?.class || '') as string;
-                  return /\b(figure-caption|table-caption)\b/.test(cls);
+                  return /\b(figure-caption|document-table-caption)\b/.test(cls);
                 };
 
                 let touchesCaption = false;

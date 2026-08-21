@@ -122,7 +122,7 @@ export function EditableCaption({
 
   // Infer caption kind from the label prefix.
   const isFigure = /^\s*figure\b/i.test(label);
-  const kindClass = isFigure ? 'figure-caption' : 'table-caption';
+  const kindClass = isFigure ? 'figure-caption' : 'document-table-caption';
   const commentKey = figureId ? `figure-${figureId}` : `caption-${tableKey}`;
 
   return (

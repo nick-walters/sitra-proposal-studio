@@ -26,7 +26,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { StorageImage } from '@/components/StorageImage';
 import { FigureManager } from '@/components/FigureManager';
 import { useCardFigure, useProposalFigures } from '@/hooks/useCardFigure';
-import { tableCaptionClass, TABLE_CAPTION_LABEL_CLASS } from '@/lib/tableStyleSpec';
+import { TABLE_CAPTION_LABEL_CLASS } from '@/lib/tableStyleSpec';
 import {
   FIGURE_PAGE_BREAK_LABELS,
   FIGURE_POSITION_LABELS,
@@ -130,11 +130,8 @@ export function CardFigureBlock({
         </div>
       </div>
 
-      {/* Caption: under the figure, spanning the FULL block width, label and
-          input on one line in the same italic serif face. */}
-      {/* `table-caption` collides with the Tailwind display utility of the same
-          name, so the flex display is forced here. */}
-      <div className={tableCaptionClass('!flex w-full items-baseline gap-2')}>
+      {/* Caption sits between the figure and controls and spans the full block width. */}
+      <div className="figure-caption-row w-full items-baseline gap-2">
         <span className={cn(TABLE_CAPTION_LABEL_CLASS, 'shrink-0 whitespace-nowrap')}>
           {captionLabel}
         </span>
@@ -142,7 +139,7 @@ export function CardFigureBlock({
           <Input
             value={captionDraft}
             placeholder="Caption"
-            className="h-7 w-full flex-1 border-transparent bg-transparent px-1 font-[inherit] text-[inherit] italic leading-[inherit] shadow-none focus-visible:border-input focus-visible:bg-background"
+            className="h-7 min-w-0 w-auto flex-1 border-transparent bg-transparent px-1 font-[inherit] text-[inherit] italic leading-[inherit] shadow-none focus-visible:border-input focus-visible:bg-background"
             onFocus={() => {
               captionTouched.current = true;
             }}

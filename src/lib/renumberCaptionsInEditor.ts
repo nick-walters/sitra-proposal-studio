@@ -35,7 +35,7 @@ export function renumberCaptionsInEditor(editor: Editor, sectionNumber: string, 
   doc.forEach((node, offset) => {
     // casesTable atoms render their caption inside a NodeView (React) — they
     // are NOT paragraphs, so they don't show up in the text scan. We still
-    // need to count them as table-caption slots so manual tables interleaved
+    // need to count them as document-table-caption slots so manual tables interleaved
     // around them get the right sequential letter.
     if (node.type.name === 'casesTable') {
       captions.push({
@@ -216,7 +216,7 @@ export function updateCaptionForTableAtCursor(editor: Editor, sectionNumber: str
   doc.forEach((node, offset) => {
     if (offset >= tablePos) return; // only count captions before this table
     // casesTable atoms render their caption in a NodeView (not a paragraph),
-    // but they still occupy a slot in the global table-caption sequence.
+    // but they still occupy a slot in the global document-table-caption sequence.
     if (node.type.name === 'casesTable') {
       tableLetterIdx++;
       return;
@@ -224,7 +224,7 @@ export function updateCaptionForTableAtCursor(editor: Editor, sectionNumber: str
     if (node.type.name === 'paragraph') {
       const cls = (node.attrs?.class || '') as string;
       const text = node.textContent;
-      if (cls.includes('table-caption') && captionPattern.test(text)) {
+      if (cls.includes('document-table-caption') && captionPattern.test(text)) {
         tableLetterIdx++;
       }
     }
@@ -244,9 +244,9 @@ export function updateCaptionForTableAtCursor(editor: Editor, sectionNumber: str
     if (prevNode.type.name === 'paragraph') {
       const cls = (prevNode.attrs?.class || '') as string;
       const text = prevNode.textContent.trim();
-      // Accept it as a caption if it has the table-caption class, or if it looks like a table caption
+      // Accept it as a caption if it has the document-table-caption class, or if it looks like a table caption
       if (
-        cls.includes('table-caption') ||
+        cls.includes('document-table-caption') ||
         /^table\s+/i.test(text)
       ) {
         // Calculate the absolute position of this paragraph
@@ -284,7 +284,7 @@ export function updateCaptionForTableAtCursor(editor: Editor, sectionNumber: str
     }
 
     const newCaptionNode = schema.nodes.paragraph.create(
-      { class: 'table-caption', textAlign: 'left' },
+      { class: 'document-table-caption', textAlign: 'left' },
       contentNodes,
     );
 
@@ -303,7 +303,7 @@ export function updateCaptionForTableAtCursor(editor: Editor, sectionNumber: str
     const labelTextNode = schema.text(newLabel, labelMarks);
     const captionTextNode = schema.text('Caption', [italicMark].filter(Boolean));
     const newCaptionNode = schema.nodes.paragraph.create(
-      { class: 'table-caption', textAlign: 'left' },
+      { class: 'document-table-caption', textAlign: 'left' },
       [labelTextNode, captionTextNode],
     );
 

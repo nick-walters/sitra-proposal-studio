@@ -43,7 +43,7 @@ export function findBlockRange(
       
       if (beforeNode && beforeNode.type.name === 'paragraph') {
         const textContent = beforeNode.textContent.toLowerCase();
-        if (textContent.startsWith('table ') || beforeNode.attrs?.class?.includes('table-caption')) {
+        if (textContent.startsWith('table ') || beforeNode.attrs?.class?.includes('document-table-caption')) {
           startPos = pos - beforeNode.nodeSize;
         }
       }
@@ -73,7 +73,7 @@ export function findBlockRange(
     }
     
     // Table caption - look for table after it
-    if (textContent.startsWith('table ') || hasClass.includes('table-caption')) {
+    if (textContent.startsWith('table ') || hasClass.includes('document-table-caption')) {
       const afterPos = pos + node.nodeSize;
       if (afterPos < doc.content.size) {
         const $afterPos = doc.resolve(afterPos);
