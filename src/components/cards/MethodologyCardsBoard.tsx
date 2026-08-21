@@ -1459,7 +1459,8 @@ function BoardInner({
           setHistoryOpen(false);
         }}
       />
-      <div className="mx-auto w-full max-w-4xl space-y-4 p-6">
+      {/* pl-12 reserves the left margin the out-of-box block grips occupy. */}
+      <div className="mx-auto w-full max-w-4xl space-y-4 p-6 pl-12">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
             <h1 className="text-xl font-bold text-foreground">Methodologies (cards)</h1>
