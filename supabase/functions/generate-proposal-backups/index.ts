@@ -43,6 +43,7 @@ import {
   resolveChipLabel,
   type RefSnapshotServer,
 } from "../_shared/referenceResolution.ts";
+import { computeFigureNumbers } from "../_shared/figureNumbering.ts";
 
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
