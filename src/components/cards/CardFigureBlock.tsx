@@ -73,6 +73,12 @@ export function CardFigureBlock({
   const imageUrl: string | null = figure?.content?.imageUrl ?? null;
   const missingAsset = !figureBlock.figureId || (figures.length > 0 && !figure);
 
+  // A figure is used exactly once (unique index on card_figure.figure_id), so
+  // the picker only offers unplaced figures plus this block's own choice.
+  const selectableFigures = figures.filter(
+    (f) => !f.placedCardId || f.placedCardId === cardId || f.id === figureBlock.figureId,
+  );
+
   const placement: FigurePlacement = fullWidthOnly ? 'full_width' : figureBlock.placement;
   const widthPct = fullWidthOnly ? 100 : figureBlock.widthPct;
   const showPlacementControls = canEdit && isCoordinator;
