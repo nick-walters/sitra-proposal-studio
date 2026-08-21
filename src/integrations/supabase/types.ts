@@ -2261,12 +2261,12 @@ export type Database = {
           caption?: string | null
           content?: Json | null
           created_at?: string
-          figure_number: string
+          figure_number?: string
           figure_type?: string
           id?: string
           order_index?: number
           proposal_id: string
-          section_id: string
+          section_id?: string
           title: string
           updated_at?: string
         }
