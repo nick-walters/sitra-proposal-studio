@@ -463,12 +463,11 @@ function FieldRow({
       style={style}
       className="relative space-y-2 rounded-md border border-border p-3 transition-shadow"
     >
-      {/* Grip sits in the left margin, outside the module box, so the header
-          input aligns flush with the content beneath it. */}
+      {/* Grip sits at the module box's top-left corner, in the reserved gutter. */}
       {canEdit && (
         <button
           type="button"
-          className="absolute left-[-22px] top-[1rem] cursor-grab touch-none text-[#2563EB]"
+          className="absolute left-[-22px] top-0 cursor-grab touch-none text-[#2563EB]"
           aria-label="Reorder module"
           {...attributes}
           {...listeners}
@@ -823,12 +822,11 @@ function CardBlock({
 
   return (
     <div ref={sortable.setNodeRef} id={`card-block-${card.id}`} style={style} className="relative transition-shadow">
-      {/* Grip sits in the left margin, outside the block box, so the block
-          title aligns flush with the content beneath it. */}
+      {/* Grip sits at the block box's top-left corner, in the reserved gutter. */}
       {draggable && canEdit && (
         <button
           type="button"
-          className="absolute left-[-28px] top-[1.25rem] cursor-grab touch-none text-[#2563EB]"
+          className="absolute left-[-28px] top-0 cursor-grab touch-none text-[#2563EB]"
           aria-label="Reorder block"
           {...sortable.attributes}
           {...sortable.listeners}
@@ -1078,6 +1076,11 @@ function BoardInner({
       queryClient.invalidateQueries({ queryKey: sectionCardsKey(proposalId, sectionId) });
       queryClient.invalidateQueries({ queryKey: ['card-fields-batch'] });
       queryClient.invalidateQueries({ queryKey: ['card-recycle-bin', proposalId] });
+      // Citation numbers and per-section reference lists depend on card
+      // visibility/order/deletion and field order/content as well as the card
+      // list itself. Keep those derived views on the same realtime signal.
+      queryClient.invalidateQueries({ queryKey: ['reference-data', proposalId] });
+      queryClient.invalidateQueries({ queryKey: ['section-citation-sources', proposalId] });
     };
     const channel = supabase
       .channel(`card-structure:${proposalId}:${sectionId}`)

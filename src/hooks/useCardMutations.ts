@@ -37,6 +37,10 @@ export function useCardMutations(proposalId: string, sectionId: string) {
   };
   const invalidateBin = () =>
     queryClient.invalidateQueries({ queryKey: ['card-recycle-bin', proposalId] });
+  const invalidateCitations = () => {
+    queryClient.invalidateQueries({ queryKey: ['reference-data', proposalId] });
+    queryClient.invalidateQueries({ queryKey: ['section-citation-sources', proposalId] });
+  };
 
   const createCard = useMutation({
     mutationFn: async (_input?: CreateCardInput): Promise<string> => {
@@ -95,7 +99,10 @@ export function useCardMutations(proposalId: string, sectionId: string) {
       const { error } = await supabase.from('proposal_cards').update(patch).eq('id', cardId);
       if (error) throw error;
     },
-    onSuccess: invalidateCards,
+    onSuccess: () => {
+      invalidateCards();
+      invalidateCitations();
+    },
     onError: (e: Error) => toast.error(e.message || 'Could not update the block'),
   });
 
@@ -108,7 +115,10 @@ export function useCardMutations(proposalId: string, sectionId: string) {
       });
       if (error) throw error;
     },
-    onSuccess: invalidateCards,
+    onSuccess: () => {
+      invalidateCards();
+      invalidateCitations();
+    },
     onError: (e: Error) => toast.error(e.message || 'Could not reorder the blocks'),
   });
 
