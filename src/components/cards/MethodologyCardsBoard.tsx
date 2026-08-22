@@ -1494,6 +1494,14 @@ function BoardInner({
                 Restore a block ({deletedBlockCount})
               </Button>
             )}
+            {isAdminOrOwner && (
+              <Button variant="outline" size="sm" onClick={() => setTypstOpen(true)}>
+                <FileType2 className="mr-1 h-3.5 w-3.5" />
+                Typst preview (beta)
+              </Button>
+            )}
+
+
 
           </div>
         </div>
