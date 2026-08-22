@@ -1119,6 +1119,9 @@ function BoardInner({
   const [localOrder, setLocalOrder] = useState<string[] | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [binOpen, setBinOpen] = useState(false);
+  // Temporary Phase 5 control: platform owners only.
+  const { isAdminOrOwner } = useUserRole();
+  const [typstOpen, setTypstOpen] = useState(false);
   const [addBlockOpen, setAddBlockOpen] = useState(false);
   const [moduleBinCardId, setModuleBinCardId] = useState<string | null>(null);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
