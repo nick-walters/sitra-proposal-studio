@@ -15,7 +15,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Eye, EyeOff, GripVertical, Plus, Recycle, Trash2 } from 'lucide-react';
+import { Eye, EyeOff, FileType2, GripVertical, Plus, Recycle, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -83,6 +83,8 @@ import { useCardMutations } from '@/hooks/useCardMutations';
 import { getCaseTypeLabel } from '@/lib/caseTypeLabels';
 import { jumpToElementId } from '@/lib/jumpToElement';
 import { isHtmlBlank } from '@/lib/htmlBlank';
+import { useUserRole } from '@/hooks/useUserRole';
+import { TypstPreviewDialog } from '@/components/cards/TypstPreviewDialog';
 
 import type { CardField, CardTextBox, ProposalCard } from '@/types/cards';
 
@@ -1117,6 +1119,9 @@ function BoardInner({
   const [localOrder, setLocalOrder] = useState<string[] | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [binOpen, setBinOpen] = useState(false);
+  // Temporary Phase 5 control: platform owners only.
+  const { isAdminOrOwner } = useUserRole();
+  const [typstOpen, setTypstOpen] = useState(false);
   const [addBlockOpen, setAddBlockOpen] = useState(false);
   const [moduleBinCardId, setModuleBinCardId] = useState<string | null>(null);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
@@ -1489,6 +1494,14 @@ function BoardInner({
                 Restore a block ({deletedBlockCount})
               </Button>
             )}
+            {isAdminOrOwner && (
+              <Button variant="outline" size="sm" onClick={() => setTypstOpen(true)}>
+                <FileType2 className="mr-1 h-3.5 w-3.5" />
+                Typst preview (beta)
+              </Button>
+            )}
+
+
 
           </div>
         </div>
@@ -1579,6 +1592,15 @@ function BoardInner({
             sectionId={sectionId}
             onClose={() => setBinOpen(false)}
             onRestored={jumpToRestored}
+          />
+        )}
+
+        {typstOpen && (
+          <TypstPreviewDialog
+            open
+            onOpenChange={setTypstOpen}
+            proposalId={proposalId}
+            sectionId={sectionId}
           />
         )}
 

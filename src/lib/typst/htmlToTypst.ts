@@ -1,0 +1,357 @@
+/**
+ * `content_html` → Typst.
+ *
+ * The stored HTML is walked with the browser's own DOM parser and emitted as
+ * Typst CODE (function calls composed with `+`), never as Typst markup. All
+ * literal text goes through `t("…")`, so no character in the document can be
+ * read as Typst syntax — the only escaping needed is for `"` and `\`.
+ *
+ * Anything this step does not handle is recorded in `unsupported` and, when it
+ * is block-level, rendered as a visible `not-converted` placeholder rather
+ * than silently dropped.
+ */
+
+import type { RefSnapshot } from '@/lib/referenceData';
+import { chipKind, chipToTypst, reduceChip, toHex } from './typstChips';
+
+export interface ConvertContext {
+  data?: RefSnapshot;
+  /** Names of things encountered but not converted, for the report. */
+  unsupported: Set<string>;
+}
+
+export function typstString(s: string): string {
+  return `"${s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+}
+
+const lit = (s: string) => `t(${typstString(s)})`;
+
+function join(parts: string[]): string {
+  const kept = parts.filter((p) => p && p.trim());
+  if (kept.length === 0) return lit('');
+  return kept.join(' + ');
+}
+
+/* ─────────────────────────────── inline ────────────────────────────────── */
+
+const MARK_WRAPPERS: Record<string, (inner: string) => string> = {
+  strong: (x) => `strong(${x})`,
+  b: (x) => `strong(${x})`,
+  em: (x) => `emph(${x})`,
+  i: (x) => `emph(${x})`,
+  u: (x) => `underline(${x})`,
+  s: (x) => `strike(${x})`,
+  strike: (x) => `strike(${x})`,
+  del: (x) => `strike(${x})`,
+  sub: (x) => `sub(${x})`,
+  sup: (x) => `super(${x})`,
+  code: (x) => `raw(${x})`,
+};
+
+function inlineColour(el: Element): string | null {
+  const colour = (el as HTMLElement).style?.color?.trim();
+  if (!colour || colour === 'inherit') return null;
+  const hex = toHex(colour, '');
+  return hex || null;
+}
+
+function convertInlineChildren(node: Node, ctx: ConvertContext): string {
+  return join(Array.from(node.childNodes).map((child) => convertInline(child, ctx)));
+}
+
+function convertInline(node: Node, ctx: ConvertContext): string {
+  if (node.nodeType === Node.TEXT_NODE) {
+    const text = (node.textContent || '').replace(/\u00a0/g, ' ').replace(/\s+/g, ' ');
+    if (!text) return '';
+    return lit(text);
+  }
+  if (node.nodeType !== Node.ELEMENT_NODE) return '';
+  const el = node as Element;
+  const tag = el.tagName.toLowerCase();
+
+  // Chips first: their inner spans are decoration and must never be walked.
+  const kind = chipKind(el);
+  if (kind) {
+    const chip = reduceChip(el, kind, ctx.data);
+    return chip ? chipToTypst(chip) : '';
+  }
+
+  if (tag === 'br') return `linebreak()`;
+  if (tag === 'img') {
+    ctx.unsupported.add('inline image');
+    return `not-converted(${typstString('[image — not rendered in this step]')})`;
+  }
+  if (el.hasAttribute('data-citation')) {
+    ctx.unsupported.add('citation');
+    return '';
+  }
+  if (tag === 'a') {
+    const href = el.getAttribute('href') || '';
+    const inner = convertInlineChildren(el, ctx);
+    return href ? `link(${typstString(href)}, ${inner})` : inner;
+  }
+
+  let out = convertInlineChildren(el, ctx);
+  const wrapper = MARK_WRAPPERS[tag];
+  if (wrapper) out = wrapper(out);
+
+  const colour = inlineColour(el);
+  if (colour) out = `text(fill: rgb(${typstString(colour)}), ${out})`;
+
+  const weight = (el as HTMLElement).style?.fontWeight;
+  if (weight && (weight === 'bold' || Number(weight) >= 600)) out = `strong(${out})`;
+  const fontStyle = (el as HTMLElement).style?.fontStyle;
+  if (fontStyle === 'italic') out = `emph(${out})`;
+
+  return out;
+}
+
+/* ─────────────────────────────── blocks ─────────────────────────────────── */
+
+const ALIGNMENTS: Record<string, string> = {
+  left: 'left',
+  center: 'center',
+  centre: 'center',
+  right: 'right',
+  justify: 'left',
+};
+
+function blockSpacing(el: Element): { above: string | null; below: string | null } {
+  const before = el.getAttribute('data-spacing-before');
+  const after = el.getAttribute('data-spacing-after');
+  const num = (v: string | null) => (v != null && v !== '' && Number.isFinite(Number(v)) ? `${Number(v)}pt` : null);
+  return { above: num(before), below: num(after) };
+}
+
+function wrapBlock(el: Element, body: string): string {
+  const { above, below } = blockSpacing(el);
+  const args = [above ? `above: ${above}` : '', below ? `below: ${below}` : ''].filter(Boolean);
+  const withSpacing = args.length ? `block(${args.join(', ')}, ${body})` : body;
+
+  const raw = ((el as HTMLElement).style?.textAlign || '').toLowerCase();
+  const align = ALIGNMENTS[raw];
+  if (align && align !== 'left') return `align(${align}, ${withSpacing})`;
+  return withSpacing;
+}
+
+function convertParagraph(el: Element, ctx: ConvertContext): string {
+  const inner = convertInlineChildren(el, ctx);
+  const justify = ((el as HTMLElement).style?.textAlign || '').toLowerCase() === 'justify';
+  return wrapBlock(el, `par(justify: ${justify ? 'true' : 'false'}, ${inner})`);
+}
+
+/** Table/figure captions are SIBLING paragraphs, not children of the table. */
+function convertCaption(el: Element, ctx: ConvertContext): string {
+  const labelEl = el.querySelector('[data-caption-label]');
+  const label = (labelEl?.textContent || '').trim();
+  const clone = el.cloneNode(true) as Element;
+  clone.querySelectorAll('[data-caption-label]').forEach((n) => n.remove());
+  const rest = convertInlineChildren(clone, ctx);
+  const labelPart = label ? `strong(emph(${lit(label)}))` : '';
+  const body = join([labelPart, `emph(${rest})`]);
+  return `block(above: 4pt, below: 8pt, align(left, par(justify: false, ${body})))`;
+}
+
+const HEADING_SIZES: Record<number, string> = { 1: '14pt', 2: '13pt', 3: '12pt', 4: '11pt' };
+
+function convertHeading(el: Element, level: number, ctx: ConvertContext): string {
+  // The number comes from the `data-heading-number` span, never from parsing
+  // the heading text.
+  const numberEl = el.querySelector('[data-heading-number]');
+  const number = (numberEl?.textContent || '').trim();
+  const clone = el.cloneNode(true) as Element;
+  clone.querySelectorAll('[data-heading-number]').forEach((n) => n.remove());
+  const title = convertInlineChildren(clone, ctx).replace(/^t\(" /, 't("');
+  const prefix = number ? `${lit(number.endsWith(' ') ? number : `${number} `)} + ` : '';
+  const size = HEADING_SIZES[level] || '11pt';
+  return wrapBlock(
+    el,
+    `block(above: 12pt, below: 6pt, text(size: ${size}, weight: "bold", ${prefix}${title}))`,
+  );
+}
+
+const LIST_NUMBERING: Record<string, string> = {
+  decimal: '"1."',
+  'lower-alpha': '"a."',
+  'lower-latin': '"a."',
+  'upper-alpha': '"A."',
+  'upper-latin': '"A."',
+  'lower-roman': '"i."',
+  'upper-roman': '"I."',
+};
+
+function convertList(el: Element, ctx: ConvertContext): string {
+  const ordered = el.tagName.toLowerCase() === 'ol';
+  const items: string[] = [];
+  Array.from(el.children).forEach((li) => {
+    if (li.tagName.toLowerCase() !== 'li') return;
+    const inlineParts: string[] = [];
+    const nested: string[] = [];
+    Array.from(li.childNodes).forEach((child) => {
+      const childTag =
+        child.nodeType === Node.ELEMENT_NODE ? (child as Element).tagName.toLowerCase() : '';
+      if (childTag === 'ul' || childTag === 'ol') {
+        nested.push(convertList(child as Element, ctx));
+      } else if (childTag === 'p') {
+        inlineParts.push(convertInlineChildren(child as Element, ctx));
+      } else {
+        inlineParts.push(convertInline(child, ctx));
+      }
+    });
+    items.push(join([join(inlineParts), ...nested]));
+  });
+  if (!items.length) return '';
+  if (ordered) {
+    const style =
+      el.getAttribute('data-list-style') || (el as HTMLElement).style?.listStyleType || 'decimal';
+    const numbering = LIST_NUMBERING[style] || '"1."';
+    const startAttr = el.getAttribute('start');
+    const start = startAttr && Number.isFinite(Number(startAttr)) ? `, start: ${Number(startAttr)}` : '';
+    return wrapBlock(el, `enum(numbering: ${numbering}${start}, ${items.join(', ')})`);
+  }
+  return wrapBlock(el, `list(${items.join(', ')})`);
+}
+
+function cellAlign(cell: Element): string | null {
+  const raw = ((cell as HTMLElement).style?.textAlign || '').toLowerCase();
+  const align = ALIGNMENTS[raw];
+  return align && align !== 'left' ? align : null;
+}
+
+function convertCell(cell: Element, ctx: ConvertContext, header: boolean): string {
+  const blocks = Array.from(cell.children).filter((c) =>
+    ['p', 'ul', 'ol', 'blockquote', 'h1', 'h2', 'h3', 'h4'].includes(c.tagName.toLowerCase()),
+  );
+  const body = blocks.length
+    ? join(blocks.map((b) => convertBlock(b, ctx)))
+    : `par(justify: false, ${convertInlineChildren(cell, ctx)})`;
+  const inner = header ? `strong(${body})` : body;
+  const args: string[] = [];
+  const colspan = Number(cell.getAttribute('colspan') || '1');
+  const rowspan = Number(cell.getAttribute('rowspan') || '1');
+  if (colspan > 1) args.push(`colspan: ${colspan}`);
+  if (rowspan > 1) args.push(`rowspan: ${rowspan}`);
+  const align = cellAlign(cell);
+  if (align) args.push(`align: ${align}`);
+  return `table.cell(${args.length ? `${args.join(', ')}, ` : ''}${inner})`;
+}
+
+/** Column widths from `<colgroup>` first, then per-cell `colwidth`. */
+function columnWidths(table: Element, colCount: number): number[] | null {
+  const cols = Array.from(table.querySelectorAll('colgroup > col'));
+  const fromColgroup = cols
+    .map((c) => Number(c.getAttribute('width') || (c as HTMLElement).style?.width?.replace('px', '') || 0))
+    .filter((n) => Number.isFinite(n));
+  if (fromColgroup.length === colCount && fromColgroup.every((n) => n > 0)) return fromColgroup;
+
+  const widths: number[] = [];
+  const firstRow = table.querySelector('tr');
+  if (firstRow) {
+    Array.from(firstRow.children).forEach((cell) => {
+      const raw = cell.getAttribute('colwidth');
+      const parts = (raw || '').split(',').map((n) => Number(n)).filter((n) => Number.isFinite(n) && n > 0);
+      const span = Number(cell.getAttribute('colspan') || '1');
+      if (parts.length === span) widths.push(...parts);
+      else for (let i = 0; i < span; i += 1) widths.push(0);
+    });
+  }
+  if (widths.length === colCount && widths.every((n) => n > 0)) return widths;
+  return null;
+}
+
+function convertTable(el: Element, ctx: ConvertContext): string {
+  const rows = Array.from(el.querySelectorAll('tr'));
+  if (!rows.length) return '';
+  const colCount = Array.from(rows[0].children).reduce(
+    (sum, c) => sum + Number(c.getAttribute('colspan') || '1'),
+    0,
+  );
+  const widths = columnWidths(el, colCount);
+  // Fractions rather than absolute widths: the table is placed in an 18cm
+  // block, so proportional columns are exactly the capped geometry.
+  const columns = widths
+    ? `(${widths.map((w) => `${(w / Math.min(...widths)).toFixed(3)}fr`).join(', ')})`
+    : `(${Array.from({ length: colCount }, () => '1fr').join(', ')})`;
+
+  const headerRows: string[] = [];
+  const bodyCells: string[] = [];
+  rows.forEach((row, index) => {
+    const cells = Array.from(row.children).filter((c) =>
+      ['td', 'th'].includes(c.tagName.toLowerCase()),
+    );
+    const isHeader = index === 0 && cells.length > 0 && cells.every((c) => c.tagName.toLowerCase() === 'th');
+    const converted = cells.map((c) => convertCell(c, ctx, c.tagName.toLowerCase() === 'th'));
+    if (isHeader) headerRows.push(`table.header(${converted.join(', ')})`);
+    else bodyCells.push(...converted);
+  });
+
+  const parts = [`columns: ${columns}`, ...headerRows, ...bodyCells];
+  return `block(width: 18cm, above: 8pt, below: 8pt, table(${parts.join(', ')}))`;
+}
+
+function convertBlock(el: Element, ctx: ConvertContext): string {
+  const tag = el.tagName.toLowerCase();
+
+  if (el.classList.contains('table-caption') || el.hasAttribute('data-caption-label')) {
+    return convertCaption(el, ctx);
+  }
+
+  switch (tag) {
+    case 'p':
+      return convertParagraph(el, ctx);
+    case 'h1':
+    case 'h2':
+    case 'h3':
+    case 'h4':
+      return convertHeading(el, Number(tag[1]), ctx);
+    case 'ul':
+    case 'ol':
+      return convertList(el, ctx);
+    case 'table':
+      return convertTable(el, ctx);
+    case 'blockquote':
+      return wrapBlock(
+        el,
+        `block(inset: (left: 12pt), stroke: (left: 2pt + rgb("#cccccc")), ${join(
+          Array.from(el.children).map((c) => convertBlock(c, ctx)),
+        )})`,
+      );
+    case 'div':
+    case 'section':
+    case 'article':
+      return join(Array.from(el.children).map((c) => convertBlock(c, ctx)));
+    case 'figure':
+    case 'img':
+      ctx.unsupported.add('figure/image');
+      return `not-converted(${typstString('[figure — not rendered in this step]')})`;
+    case 'hr':
+      return `line(length: 100%, stroke: 0.5pt)`;
+    default: {
+      ctx.unsupported.add(`<${tag}>`);
+      return `par(justify: false, ${convertInlineChildren(el, ctx)})`;
+    }
+  }
+}
+
+/**
+ * Converts one stored `content_html` value to a Typst expression list, one
+ * top-level block per entry.
+ */
+export function htmlToTypstBlocks(html: string | null | undefined, ctx: ConvertContext): string[] {
+  const raw = (html ?? '').toString().trim();
+  if (!raw) return [];
+  const tpl = document.createElement('template');
+  tpl.innerHTML = raw;
+  const out: string[] = [];
+  Array.from(tpl.content.childNodes).forEach((node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = (node.textContent || '').trim();
+      if (text) out.push(`par(justify: false, ${lit(text)})`);
+      return;
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) return;
+    const converted = convertBlock(node as Element, ctx);
+    if (converted) out.push(converted);
+  });
+  return out;
+}
