@@ -47,7 +47,9 @@ export function TypstPreviewDialog({
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [pageCount, setPageCount] = useState<number | null>(null);
   const urlRef = useRef<string | null>(null);
+  const previewRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     return () => {
