@@ -38,7 +38,8 @@ export async function renderPdfToContainer(
   const pdfjs = await getPdfjs();
   // getDocument transfers (detaches) the buffer to the worker — pass a copy so
   // the caller's bytes stay usable for the download link.
-  const doc = await pdfjs.getDocument({ data: pdf.slice() }).promise;
+  const loadingTask = pdfjs.getDocument({ data: pdf.slice() });
+  const doc = await loadingTask.promise;
   container.replaceChildren();
   const targetWidth = container.clientWidth || 800;
   const dpr = window.devicePixelRatio || 1;
