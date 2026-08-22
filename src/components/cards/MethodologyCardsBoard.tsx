@@ -1595,6 +1595,15 @@ function BoardInner({
           />
         )}
 
+        {typstOpen && (
+          <TypstPreviewDialog
+            open
+            onOpenChange={setTypstOpen}
+            proposalId={proposalId}
+            sectionId={sectionId}
+          />
+        )}
+
         {moduleBinCardId && (
           <CardRecycleBinDialog
             isOpen
