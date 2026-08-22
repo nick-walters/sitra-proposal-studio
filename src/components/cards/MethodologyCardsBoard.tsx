@@ -15,7 +15,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Eye, EyeOff, GripVertical, Plus, Recycle, Trash2 } from 'lucide-react';
+import { Eye, EyeOff, FileType2, GripVertical, Plus, Recycle, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
