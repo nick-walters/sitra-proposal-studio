@@ -83,6 +83,8 @@ import { useCardMutations } from '@/hooks/useCardMutations';
 import { getCaseTypeLabel } from '@/lib/caseTypeLabels';
 import { jumpToElementId } from '@/lib/jumpToElement';
 import { isHtmlBlank } from '@/lib/htmlBlank';
+import { useUserRole } from '@/hooks/useUserRole';
+import { TypstPreviewDialog } from '@/components/cards/TypstPreviewDialog';
 
 import type { CardField, CardTextBox, ProposalCard } from '@/types/cards';
 
