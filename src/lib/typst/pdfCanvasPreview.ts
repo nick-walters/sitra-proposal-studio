@@ -57,12 +57,10 @@ export async function renderPdfToContainer(
     canvas.style.marginBottom = '8px';
     canvas.style.border = '1px solid hsl(var(--border))';
     canvas.style.borderRadius = '4px';
-    const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('Canvas 2D context unavailable');
-    await page.render({ canvasContext: ctx, viewport }).promise;
+    await page.render({ canvas, viewport }).promise;
     container.appendChild(canvas);
   }
   const count = doc.numPages;
-  void doc.destroy();
+  void loadingTask.destroy();
   return count;
 }
