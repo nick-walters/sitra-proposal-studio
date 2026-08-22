@@ -71,6 +71,15 @@ export function TypstPreviewDialog({
       if (urlRef.current) URL.revokeObjectURL(urlRef.current);
       urlRef.current = URL.createObjectURL(blob);
       setPdfUrl(urlRef.current);
+      // Render with PDF.js rather than an iframe: the built-in PDF viewer is a
+      // plugin whose blob-URL-in-iframe support varies by browser (absent
+      // entirely in headless Chromium and Safari), which showed a blank frame
+      // for a perfectly valid document.
+      const { renderPdfToContainer } = await import('@/lib/typst/pdfCanvasPreview');
+      const pages = previewRef.current
+        ? await renderPdfToContainer(pdf, previewRef.current)
+        : null;
+      setPageCount(pages);
       setStats({
         compileMs,
         totalMs: Math.round(performance.now() - started),
@@ -122,14 +131,20 @@ export function TypstPreviewDialog({
 
         {status === 'done' && pdfUrl && (
           <div className="space-y-3">
-            <iframe title="Typst PDF preview" src={pdfUrl} className="h-[65vh] w-full rounded border" />
-            <p className="text-xs text-muted-foreground">
-              {stats?.blockCount} blocks &middot; {stats?.sourceChars.toLocaleString()} characters of
-              Typst &middot; compile {stats?.compileMs} ms &middot; total {stats?.totalMs} ms
-              {stats?.unsupported.length
-                ? ` · not converted: ${stats.unsupported.join(', ')}`
-                : ' · everything in this section converted'}
-            </p>
+            <div ref={previewRef} className="max-h-[65vh] overflow-y-auto" />
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs text-muted-foreground">
+                {stats?.blockCount} blocks &middot; {stats?.sourceChars.toLocaleString()} characters of
+                Typst &middot; compile {stats?.compileMs} ms &middot; total {stats?.totalMs} ms
+                {pageCount != null ? ` · ${pageCount} page${pageCount === 1 ? '' : 's'}` : ''}
+                {stats?.unsupported.length
+                  ? ` · not converted: ${stats.unsupported.join(', ')}`
+                  : ' · everything in this section converted'}
+              </p>
+              <Button size="sm" variant="outline" asChild>
+                <a href={pdfUrl} download="typst-preview.pdf">Download PDF</a>
+              </Button>
+            </div>
           </div>
         )}
       </DialogContent>
