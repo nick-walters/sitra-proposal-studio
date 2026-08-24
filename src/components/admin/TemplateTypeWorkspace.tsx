@@ -53,9 +53,21 @@ function versionLabel(v: { major: number; minor: number; name?: string | null; s
 
 /* ------------------------------------------------------------------ */
 
-export function PartBTemplatesTab({ templateTypes }: { templateTypes: TemplateType[] }) {
+/**
+ * Everything that belongs to ONE template type: its versions and lock, its
+ * Part A guideline editing (passed in as a slot so it keeps its existing
+ * implementation), and its Part B subsections with the block editor.
+ *
+ * The type is chosen by the parent, so the whole page has a single selector.
+ */
+export function TemplateTypeWorkspace({
+  typeId,
+  partASlot,
+}: {
+  typeId: string;
+  partASlot?: React.ReactNode;
+}) {
   const qc = useQueryClient();
-  const [typeId, setTypeId] = useState<string>(templateTypes[0]?.id ?? '');
   const [versionId, setVersionId] = useState<string>('');
   const [historyOpen, setHistoryOpen] = useState(false);
   const [publishOpen, setPublishOpen] = useState(false);
@@ -82,7 +94,9 @@ export function PartBTemplatesTab({ templateTypes }: { templateTypes: TemplateTy
 
   const { data: blocks = [] } = useVersionBlocks(activeVersionId || null);
 
-  /* Subsection titles come from the template's own section list. */
+  /* Subsections come from the TYPE's own section list, not from the blocks
+     that happen to exist — otherwise a type with no blocks yet (Stage 1) has
+     nowhere to add its first block. */
   const { data: sections = [] } = useQuery({
     queryKey: ['admin-partb-sections', typeId],
     enabled: !!typeId,
@@ -107,10 +121,21 @@ export function PartBTemplatesTab({ templateTypes }: { templateTypes: TemplateTy
     return map;
   }, [blocks]);
 
-  const subsectionOrder = useMemo(
-    () => Array.from(grouped.keys()).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })),
-    [grouped],
+  /* Leaf Part B subsections (B1.1, B3.2 …) — parents like B1 hold no blocks. */
+  const subsections = useMemo(
+    () =>
+      (sections as any[])
+        .filter((s) => /^B\d+\.\d+$/.test(s.section_number ?? ''))
+        .sort((a, b) =>
+          String(a.section_number).localeCompare(String(b.section_number), undefined, { numeric: true }),
+        ),
+    [sections],
   );
+  const subsectionOrder = useMemo(
+    () => subsections.map((s) => s.section_number as string),
+    [subsections],
+  );
+
 
   const openDraft = async (takeover = false) => {
     if (!typeId) return;
