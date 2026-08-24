@@ -716,13 +716,11 @@ function GuidelinesDialogAdmin({
         </DialogHeader>
         <ScrollArea className="max-h-[65vh] pr-3">
           <div className="space-y-6">
-            {(['official', 'sitra_tip'] as const).map((type) => (
+            {(['commission'] as const).map((type) => (
               <div key={type} className="space-y-2">
                 <div className="flex items-center gap-2">
-                  {type === 'official'
-                    ? <BookOpen className="h-4 w-4 text-blue-600" />
-                    : <Lightbulb className="h-4 w-4 text-gray-800" />}
-                  <h4 className={cn('text-sm font-bold', type === 'official' ? 'text-blue-600' : 'text-gray-900')}>
+                  <BookOpen className="h-4 w-4 text-blue-600" />
+                  <h4 className="text-sm font-bold text-blue-600">
                     {CATEGORY_LABEL[type]}
                   </h4>
                   {editable && (
@@ -745,6 +743,7 @@ function GuidelinesDialogAdmin({
                 )}
               </div>
             ))}
+
           </div>
         </ScrollArea>
       </DialogContent>
