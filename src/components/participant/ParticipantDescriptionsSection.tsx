@@ -63,12 +63,8 @@ export function ParticipantDescriptionsSection({
   participant,
   descriptions,
   onUpdateField,
-  saving,
-  lastSaved,
-  saveError,
   canEdit,
   proposalId,
-  acronymSegments,
 }: ParticipantDescriptionsSectionProps) {
   const [, setAnyFieldFocused] = useState(false);
   const blurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
