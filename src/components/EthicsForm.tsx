@@ -576,11 +576,12 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
 
 
         {/* ETHICS ISSUES TABLE SUBSECTION */}
-        <Card>
-          <CardHeader className="pb-3">
-            <h2 className="font-semibold text-base">Ethics issues table</h2>
-          </CardHeader>
-          <CardContent className="px-6 pt-0 pb-2">
+        <PartACard
+          collapseKey="ethics.ethics-issues-table"
+          title="Ethics issues table"
+          titleClassName="text-base"
+          contentClassName="px-6 pt-0 pb-2"
+        >
             {/* Sections 1-9 */}
             {ETHICS_SECTIONS.map((section, index) => {
               const sectionHasIssues = section.questions.some(q => ethicsData[q.id] === true);
@@ -616,8 +617,7 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
                 </div>
               );
             })}
-          </CardContent>
-        </Card>
+        </PartACard>
 
         {/* Ethics Confirmation Checkbox */}
         <div className="flex items-start space-x-3 py-4 px-4 bg-muted/50 rounded-lg border">
@@ -693,19 +693,18 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
         </PartACard>
 
         {/* SECURITY ISSUES TABLE */}
-        <Card className={cn(SECURITY_SECTIONS.some(s => s.questions.some(q => ethicsData[q.id] === true)) && 'border-warning/50')}>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-sm flex items-center gap-2">
-                <Shield className="w-4 h-4" />
-                Security issues table
-              </h3>
-              {SECURITY_SECTIONS.some(s => s.questions.some(q => ethicsData[q.id] === true)) && (
-                <AlertTriangle className="w-4 h-4 text-warning" />
-              )}
-            </div>
-          </CardHeader>
-          <CardContent className="px-6 pt-0 pb-2">
+        <PartACard
+          collapseKey="ethics.security-issues-table"
+          title="Security issues table"
+          icon={<Shield className="w-4 h-4" />}
+          className={cn(SECURITY_SECTIONS.some(s => s.questions.some(q => ethicsData[q.id] === true)) && 'border-warning/50')}
+          headerRight={
+            SECURITY_SECTIONS.some(s => s.questions.some(q => ethicsData[q.id] === true)) ? (
+              <AlertTriangle className="w-4 h-4 text-warning" />
+            ) : null
+          }
+          contentClassName="px-6 pt-0 pb-2"
+        >
             {/* Security Sections */}
             {SECURITY_SECTIONS.map((section, index) => {
               const sectionHasIssues = section.questions.some(q => ethicsData[q.id] === true);
@@ -752,8 +751,7 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
                 </div>
               );
             })}
-          </CardContent>
-        </Card>
+        </PartACard>
 
         {/* SECURITY SELF-ASSESSMENT */}
         <PartACard

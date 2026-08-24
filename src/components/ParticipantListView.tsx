@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { PartACard } from '@/components/PartACard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
@@ -629,16 +630,12 @@ export function ParticipantListView({
 
           {/* OCD Controls - coordinator+ only */}
           {isAdmin && (
-            <Card>
-              <CardHeader className="pb-2 pt-4">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2 text-sm">
-                    <FileText className="w-4 h-4" />
-                    Ownership Control Declarations
-                  </CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent className="pb-4">
+            <PartACard
+              collapseKey="a2.ownership-control-declarations"
+              title="Ownership Control Declarations"
+              icon={<FileText className="w-4 h-4" />}
+              contentClassName="pb-4"
+            >
                 <div className="flex flex-wrap items-center gap-3">
                   <div className="flex items-center gap-2">
                     <Checkbox
@@ -704,8 +701,7 @@ export function ParticipantListView({
                     </>
                   )}
                 </div>
-              </CardContent>
-            </Card>
+            </PartACard>
           )}
 
           <Tabs value={activeTab} onValueChange={setActiveTab}>
