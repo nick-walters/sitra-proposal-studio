@@ -233,10 +233,13 @@ export function ProposalMilestonesRisksManager(props: Props) {
   // The toolbar drives whichever LazyRichField was last focused.
   return (
     <MethodologyEditorFocusProvider>
-      <ProposalMilestonesRisksManagerInner {...props} />
+      <PageSearchProvider>
+        <ProposalMilestonesRisksManagerInner {...props} />
+      </PageSearchProvider>
     </MethodologyEditorFocusProvider>
   );
 }
+
 
 function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDuration = 36 }: Props) {
   const { activeEditor } = useMethodologyEditorFocus();
