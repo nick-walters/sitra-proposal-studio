@@ -4,6 +4,14 @@ import { useVersionConflict } from '@/hooks/useVersionConflict';
 import { markBadgeElement, markBadgeTree } from '@/lib/refBadgeMarkup';
 
 import { EditorToolbars, CrossRefMenu } from '@/components/editor/EditorToolbars';
+import { jumpToElementId } from '@/lib/jumpToElement';
+import {
+  PageSearchProvider,
+  usePageSearch,
+  usePageSearchSource,
+} from '@/lib/findReplace/PageSearchProvider';
+import type { FieldSaveOutcome, SearchableField } from '@/lib/findReplace/types';
+import { PageFindReplacePanel } from '@/components/findReplace/PageFindReplacePanel';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -85,7 +93,9 @@ interface CaseDraftEditorProps {
 export function CaseDraftEditor(props: CaseDraftEditorProps) {
   return (
     <MethodologyEditorFocusProvider>
+      <PageSearchProvider>
       <CaseDraftEditorInner {...props} />
+      </PageSearchProvider>
     </MethodologyEditorFocusProvider>
   );
 }
@@ -561,6 +571,52 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
   };
 
 
+  /**
+   * Find and replace over every subsection of this pilot draft, mounted or
+   * not. Writes reuse `save_case_draft_subsection`, so the per-key baseline
+   * check that guards ordinary typing also guards a replacement.
+   */
+  const searchFieldsForPage = useCallback((): SearchableField[] => {
+    if (!caseDraft) return [];
+    const contentMap = ((caseDraft as any).subsection_content as Record<string, any> | null) || {};
+    const editable = canEdit;
+    return subsectionTemplates
+      .map((sub): SearchableField | null => {
+        const raw = contentMap[sub.key];
+        const body =
+          typeof raw === 'string' ? raw : raw && typeof raw === 'object' ? String(raw.body ?? '') : '';
+        if (!body) return null;
+        return {
+          id: `case_drafts:${caseId}:${sub.key}`,
+          label: sub.heading,
+          groupId: caseId,
+          groupLabel: 'Pilot draft',
+          format: 'html',
+          value: body,
+          readOnly: !editable,
+          reveal: () => jumpToElementId(`case-subsection-${sub.key}`),
+          save: !editable
+            ? undefined
+            : async (next): Promise<FieldSaveOutcome> => {
+                const expected = subsectionBaseline.current[sub.key] ?? null;
+                const res = await saveCaseDraftSubsection(caseId, sub.key, next, sub.heading, expected);
+                if (res.conflict) {
+                  subsectionBaseline.current[sub.key] = res.value ?? '';
+                  return { ok: false, conflict: true };
+                }
+                if (!res.ok) return { ok: false, conflict: false, error: res.error };
+                subsectionBaseline.current[sub.key] = next;
+                queryClient.invalidateQueries({ queryKey: ['case-draft-detail'] });
+                return { ok: true };
+              },
+        };
+      })
+      .filter((f): f is SearchableField => f !== null);
+  }, [caseDraft, caseId, canEdit, subsectionTemplates, queryClient]);
+
+  usePageSearchSource('case-draft', 'Pilot draft', searchFieldsForPage);
+  const pageSearch = usePageSearch();
+
   if (isLoading) {
     return (
       <div className="space-y-6 p-6">
@@ -627,10 +683,12 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
             </div>
           </DialogContent>
         </Dialog>
+        <PageFindReplacePanel />
         {/* Top Toolbar Row - Guidelines + Formatting (shared component) */}
         <EditorToolbars
           proposalId={proposalId}
           save={{ saving: updateMutation.isPending, lastSaved, onSaveNow: () => {} }}
+          topBar={{ onFindReplace: pageSearch ? () => pageSearch.setOpen(true) : undefined }}
           fieldBar={{ onOpenGuidelines: () => setGuidelinesOpen(true) }}
           formatting={{
             proposalId,
@@ -809,7 +867,7 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
           const guideline = sub.guideline || '';
 
           return (
-            <Card key={sub.id}>
+            <Card key={sub.id} id={`case-subsection-${sub.key}`}>
               <CardHeader className="py-2 px-3">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <BookOpen className="h-4 w-4" />
