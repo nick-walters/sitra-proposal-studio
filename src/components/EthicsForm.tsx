@@ -580,6 +580,18 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
       }
       saveIndicator={canEdit ? <SaveIndicator saving={false} lastSaved={lastSaved} onSaveNow={() => {}} /> : undefined}
     >
+        {/* Same three-tier floating toolbar as every other editing surface. */}
+        <EditorToolbars
+          proposalId={ethicsData.proposalId || undefined}
+          save={{ saving: false, lastSaved, onSaveNow: () => {} }}
+          formatting={{
+            proposalId: ethicsData.proposalId || null,
+            isPartB: false,
+            isReadOnly: !canEdit,
+          }}
+        />
+
+
 
 
         {/* ETHICS ISSUES TABLE SUBSECTION */}
