@@ -13,6 +13,18 @@ import { mapCard, mapField, type CardField, type ProposalCard } from '@/types/ca
 import { htmlToTypstBlocks, typstString, type ConvertContext } from './htmlToTypst';
 import { TYPST_PREAMBLE } from './typstPreamble';
 
+import { htmlToPlainText } from '@/lib/htmlToPlainText';
+
+/**
+ * Block titles and module headers are stored as single-line HTML since they
+ * became rich-text fields. Typst renders them as bold text, so the markup is
+ * flattened here (inline bold/italic inside a title is not carried through).
+ */
+function titleText(value: string | null | undefined): string {
+  return htmlToPlainText(value ?? '').trim();
+}
+
+
 const BAND_ORDER: Record<string, number> = { head: 0, free: 1, tail: 2 };
 
 export interface SectionBlockTree {
@@ -88,14 +100,14 @@ export function buildSectionTypstDocument(
       // Honest placeholder naming the block, per the step scope.
       out.push(
         placeholder(
-          `[source-fed block “${card.title || card.sourceKey || card.templateKey || 'untitled'}” — generated content, not rendered in this step]`,
+          `[source-fed block “${titleText(card.title) || card.sourceKey || card.templateKey || 'untitled'}” — generated content, not rendered in this step]`,
         ),
       );
       continue;
     }
     if (card.kind === 'figure') {
       ctx.unsupported.add('figure block');
-      out.push(placeholder(`[figure block “${card.title || 'untitled'}” — not rendered in this step]`));
+      out.push(placeholder(`[figure block “${titleText(card.title) || 'untitled'}” — not rendered in this step]`));
       continue;
     }
     if (card.kind === 'references') {
@@ -106,14 +118,14 @@ export function buildSectionTypstDocument(
 
     if (card.title) {
       out.push(
-        `block(above: 14pt, below: 6pt, text(size: 12pt, weight: "bold", t(${typstString(card.title)})))`,
+        `block(above: 14pt, below: 6pt, text(size: 12pt, weight: "bold", t(${typstString(titleText(card.title))})))`,
       );
     }
 
     for (const field of tree.fieldsByCard[card.id] || []) {
       if (field.headingEnabled && field.heading) {
         out.push(
-          `block(above: 10pt, below: 4pt, text(size: 11pt, weight: "bold", t(${typstString(field.heading)})))`,
+          `block(above: 10pt, below: 4pt, text(size: 11pt, weight: "bold", t(${typstString(titleText(field.heading))})))`,
         );
       }
       out.push(...htmlToTypstBlocks(field.contentHtml, ctx));
