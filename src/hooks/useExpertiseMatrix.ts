@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { logError } from '@/lib/logger';
 import type { Participant } from '@/types/proposal';
 
 export interface ExpertiseRow {
@@ -128,7 +129,7 @@ export function useExpertiseMatrix(proposalId: string, participants: Participant
         // creates the column on participant insert anyway.
         const { error } = await supabase.from('expertise_matrix_columns').insert(toInsert);
         if (!error) changed = true;
-        else logger.error('Expertise matrix column reconcile failed', error);
+        else logError('Expertise matrix column reconcile', error);
       }
       if (orphanIds.length) {
         const { error } = await supabase.from('expertise_matrix_columns').delete().in('id', orphanIds);
