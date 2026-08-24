@@ -115,7 +115,11 @@ export function PageFindReplacePanel() {
         outcome.errors.push(`${field.label} is read-only`);
         return;
       }
-      const res = await field.save(nextValue);
+      const res = (await field.save(nextValue)) as {
+        ok: boolean;
+        conflict?: boolean;
+        error?: string;
+      };
       if (res.ok) {
         outcome.fieldsWritten += 1;
         outcome.matchesWritten += matchCount;
@@ -124,6 +128,7 @@ export function PageFindReplacePanel() {
       } else {
         outcome.errors.push(`${field.label}: ${res.error ?? 'could not save'}`);
       }
+
     },
     [],
   );
