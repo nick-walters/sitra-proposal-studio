@@ -2099,4 +2099,3 @@ function DocumentEditorInner({
     </div>
   );
 }
-const __sanity: number = "x";
