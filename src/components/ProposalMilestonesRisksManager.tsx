@@ -776,13 +776,13 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
 
                   {/* ── Line 2: means of verification, aligned with the name above ── */}
                   <div className="col-start-2">
-                    <div className="text-xs font-medium text-muted-foreground pb-0.5">Means of verification</div>
                     <DebouncedRichField
                       value={m.means_of_verification || ''}
                       disabled={!canEdit}
                       minHeight="30px"
                       proposalId={proposalId}
                       staticExtensions={WP_DRAFT_FIELD_EXTENSIONS}
+                      placeholder="Means of verification"
                       onChange={(html) => updateMilestone.mutate({ id: m.id, patch: { means_of_verification: html } })}
                     />
                   </div>
