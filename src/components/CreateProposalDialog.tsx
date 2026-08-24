@@ -38,6 +38,8 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { FileText, Lightbulb, Users, Layers, Calculator, Rocket, ExternalLink, CalendarIcon, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useTemplateVersions, formatVersionLabel } from "@/hooks/useProposalTemplateVersion";
+
 
 interface CreateProposalDialogProps {
   open: boolean;
