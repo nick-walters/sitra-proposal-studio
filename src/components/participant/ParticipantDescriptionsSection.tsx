@@ -6,7 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import { LazyRichField } from '@/components/participant/LazyRichField';
 import { ParticipantCrossRefDropdown } from '@/components/participant/ParticipantCrossRefDropdown';
 
-import { SaveIndicator } from '@/components/SaveIndicator';
+import { EditorToolbars } from '@/components/editor/EditorToolbars';
 import { ParticipantBubble } from '@/components/B31Pill';
 import {
   ToolbarButton,
@@ -186,52 +186,23 @@ function ParticipantDescriptionsSectionInner({
       </CardHeader>
       <CardContent className="space-y-4">
         {canEdit && (
-          <StickyToolbarWrapper>
-            <div
-              className="p-1.5 border rounded-md bg-card flex items-center gap-0.5 flex-wrap shadow-sm"
-              onMouseDown={(e) => {
-                if (e.target === e.currentTarget) e.preventDefault();
-              }}
-            >
-              <ToolbarButton
-                icon={<Undo2 className="h-3.5 w-3.5" />}
-                label="Undo"
-                onClick={() => run((c) => c.undo().run())}
-              />
-              <ToolbarButton
-                icon={<Redo2 className="h-3.5 w-3.5" />}
-                label="Redo"
-                onClick={() => run((c) => c.redo().run())}
-              />
-              <Separator orientation="vertical" className="h-5 mx-1.5" />
-              <TextFormattingGroup
-                onBold={() => run((c) => c.toggleBold().run())}
-                onItalic={() => run((c) => c.toggleItalic().run())}
-                onUnderline={() => run((c) => c.toggleUnderline().run())}
-              />
-
-              {proposalId && (
-                <>
-                  <Separator orientation="vertical" className="h-5 mx-1.5" />
-                  <ParticipantCrossRefDropdown
-                    proposalId={proposalId}
-                    acronymSegments={acronymSegments}
-                    onOpenChange={setCrossRefOpen}
-                    editor={activeEditor}
-                  />
-                </>
-              )}
-
-
-              <div className="ml-auto">
-                <SaveIndicator
-                  saving={saving}
-                  lastSaved={lastSaved}
-                  saveError={saveError ?? null}
-                />
-              </div>
-            </div>
-          </StickyToolbarWrapper>
+          <EditorToolbars
+            proposalId={proposalId}
+            save={{ saving, lastSaved, onSaveNow: () => {} }}
+            formatting={{
+              proposalId,
+              crossRefDropdown: proposalId
+                ? (editor) => (
+                    <ParticipantCrossRefDropdown
+                      proposalId={proposalId}
+                      acronymSegments={acronymSegments}
+                      onOpenChange={setCrossRefOpen}
+                      editor={editor}
+                    />
+                  )
+                : undefined,
+            }}
+          />
         )}
 
         {visibleFields.map((field) => {
