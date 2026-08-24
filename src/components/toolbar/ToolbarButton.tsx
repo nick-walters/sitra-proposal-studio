@@ -39,6 +39,7 @@ export function ToolbarButton({
           size="icon"
           className={cn(size === "sm" ? "h-7 w-7" : "h-8 w-8", className)}
           disabled={disabled}
+          aria-label={label}
           onMouseDown={(e) => {
             e.preventDefault();
             if (!disabled) onClick();
