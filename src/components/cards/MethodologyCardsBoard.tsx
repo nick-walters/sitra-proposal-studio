@@ -379,12 +379,19 @@ function FieldRow({
     id: field.id,
   });
   const [headingDraft, setHeadingDraft] = useState(field.heading ?? '');
+  // The rich field emits its final value and blurs within the same tick, so
+  // the blur handler reads the draft from a ref rather than from state.
+  const headingDraftRef = useRef(field.heading ?? '');
+  const setHeadingDraftBoth = (v: string) => {
+    headingDraftRef.current = v;
+    setHeadingDraft(v);
+  };
   const headingFocused = useRef(false);
   // The editor is uncontrolled after mount — feed it the loaded value once.
   const initialHtml = useRef(field.contentHtml ?? '');
 
   useEffect(() => {
-    if (!headingFocused.current) setHeadingDraft(field.heading ?? '');
+    if (!headingFocused.current) setHeadingDraftBoth(field.heading ?? '');
   }, [field.heading]);
 
   const contentRef = useRef(field.contentHtml ?? '');
@@ -408,19 +415,19 @@ function FieldRow({
   }, [field.heading]);
 
   const headerLock = useLockedBox(headerTarget, {
-    getTyped: () => headingDraft,
+    getTyped: () => headingDraftRef.current,
     onLoseRace: (typed, holderName) => {
-      setHeadingDraft(field.heading ?? '');
+      setHeadingDraftBoth(field.heading ?? '');
       onLostText(lostTextPayload(typed, holderName));
     },
     save: async () => {
-      const next = headingDraft.trim();
+      const next = headingDraftRef.current.trim();
       if (lastCommittedHeading.current !== next) {
         lastCommittedHeading.current = next;
         onHeadingChange(field, next || null);
       }
     },
-    snapshot: () => headingDraft,
+    snapshot: () => headingDraftRef.current,
   });
 
   const contentLock = useLockedBox(contentTarget, {
@@ -450,7 +457,7 @@ function FieldRow({
     if (!wasHeaderLocked.current) return;
     wasHeaderLocked.current = false;
     if (mirroredHeading.current !== null) {
-      setHeadingDraft(mirroredHeading.current);
+      setHeadingDraftBoth(mirroredHeading.current);
       lastCommittedHeading.current = mirroredHeading.current.trim();
     }
   }, [headerLock.lockedByOther]);
@@ -539,12 +546,12 @@ function FieldRow({
                     }}
                     onChange={(html) => {
                       headerLock.onType();
-                      setHeadingDraft(html);
+                      setHeadingDraftBoth(html);
                       headerLock.push(html);
                     }}
                     onBlur={() => {
                       headingFocused.current = false;
-                      const next = headingDraft.trim();
+                      const next = headingDraftRef.current.trim();
                       if (lastCommittedHeading.current !== next) {
                         lastCommittedHeading.current = next;
                         onHeadingChange(field, next || null);
@@ -775,7 +782,14 @@ function CardBlock({
 }: CardBlockProps) {
   const sortable = useSortable({ id: card.id, disabled: !draggable });
   const [editingTitle, setEditingTitle] = useState(false);
-  const [titleDraft, setTitleDraft] = useState(card.title ?? '');
+  const [titleDraft, setTitleDraftState] = useState(card.title ?? '');
+  // Same reason as the module header: the rich field emits and blurs in one
+  // tick, so commits read the draft from a ref.
+  const titleDraftRef = useRef(card.title ?? '');
+  const setTitleDraft = (v: string) => {
+    titleDraftRef.current = v;
+    setTitleDraftState(v);
+  };
   const [localFieldOrder, setLocalFieldOrder] = useState<string[] | null>(null);
 
   // Linked-activities block: the controller lives here so its Add/Restore
@@ -799,7 +813,7 @@ function CardBlock({
 
   const titleTarget = cardTitleTargetId(card.id);
   const titleLock = useLockedBox(titleTarget, {
-    getTyped: () => titleDraft,
+    getTyped: () => titleDraftRef.current,
     onLoseRace: (typed, holderName) => {
       setTitleDraft(card.title ?? '');
       setEditingTitle(false);
@@ -807,13 +821,13 @@ function CardBlock({
     },
 
     save: async () => {
-      const next = titleDraft.trim();
+      const next = titleDraftRef.current.trim();
       if (next !== lastCommittedTitle.current) {
         lastCommittedTitle.current = next;
         onRename(card, next || null);
       }
     },
-    snapshot: () => titleDraft,
+    snapshot: () => titleDraftRef.current,
   });
 
   // Title mirroring — as for module headers and content boxes: keep the last
@@ -873,7 +887,7 @@ function CardBlock({
 
   const commitTitle = () => {
     setEditingTitle(false);
-    const next = titleDraft.trim();
+    const next = titleDraftRef.current.trim();
     if (next !== lastCommittedTitle.current) {
       lastCommittedTitle.current = next;
       onRename(card, next || null);
