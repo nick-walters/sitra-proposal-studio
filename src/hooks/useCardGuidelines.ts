@@ -5,10 +5,12 @@ import type { GuidelineType } from '@/components/GuidelinesDialog';
 /**
  * Commission guidelines for one block on the cards board.
  *
- * Two sources are merged, in the order the dialog shows them:
- *   - guidelines attached to the block's TEMPLATE (`card_guideline_templates`)
- *   - guidelines attached to the whole DOCUMENT (`card_guideline_documents`),
- *     which is where the formatting requirements and definitions live.
+ * ONE source: guidelines attached to the block's TEMPLATE
+ * (`card_guideline_templates`). Document-level entries — the general
+ * definitions and the formatting requirements — live in
+ * `card_guideline_documents` and are read separately by
+ * `useDocumentGuidelines`, so a block dialog only ever shows that block's
+ * own guidance.
  *
  * Read-only: the seed owns this content.
  */
@@ -76,18 +78,36 @@ export function useCardGuidelines(templateKey: string | null, document = 'part_b
         }
       }
 
-      const { data: docLinks } = await supabase
+      // Document-level entries (general definitions, formatting requirements)
+      // are deliberately NOT merged here: a block's dialog shows that block's
+      // guidance only. They remain available through the document-level
+      // guidelines surfaces via `useDocumentGuidelines`.
+
+      return out;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+/**
+ * Document-level guidance (formatting requirements, general definitions),
+ * shown on document-wide surfaces rather than inside a block's dialog.
+ */
+export function useDocumentGuidelines(document = 'part_b') {
+  return useQuery({
+    queryKey: ['document-guidelines', document],
+    queryFn: async (): Promise<CardGuideline[]> => {
+      const { data } = await supabase
         .from('card_guideline_documents')
         .select('order_index, card_guidelines(*)')
         .eq('document', document)
         .order('order_index');
-      for (const link of docLinks ?? []) {
+      const out: CardGuideline[] = [];
+      for (const link of data ?? []) {
         const row = (link as any).card_guidelines as GuidelineRow | null;
-        if (!row?.is_active || seen.has(row.id)) continue;
-        seen.add(row.id);
-        out.push(toGuideline(row, 1000 + ((link as any).order_index ?? row.order_index)));
+        if (!row?.is_active) continue;
+        out.push(toGuideline(row, (link as any).order_index ?? row.order_index));
       }
-
       return out;
     },
     staleTime: 5 * 60 * 1000,

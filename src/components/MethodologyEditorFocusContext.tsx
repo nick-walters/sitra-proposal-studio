@@ -56,12 +56,19 @@ export function MethodologyEditorFocusProvider({ children }: { children: ReactNo
       clearTimer.current = window.setTimeout(() => {
         clearTimer.current = null;
         const el = document.activeElement as HTMLElement | null;
-        // Focus moved into the toolbars, a dialog raised from them, or another
-        // editor: the toolbars stay, still pointed at their target.
+        // Focus moved into the toolbars, a dialog/menu/popover raised from
+        // them (Radix renders those in a PORTAL, outside the chrome subtree),
+        // or another editor: the toolbars stay, still pointed at their target.
         if (
           el &&
           (el.closest('[data-editor-chrome]') ||
             el.closest('[role="dialog"]') ||
+            el.closest('[role="menu"]') ||
+            el.closest('[role="listbox"]') ||
+            el.closest('[data-radix-popper-content-wrapper]') ||
+            el.closest('[data-radix-portal]') ||
+            el.closest('[data-radix-menu-content]') ||
+            el.closest('[data-radix-popover-content]') ||
             el.closest('.ProseMirror'))
         ) {
           return;

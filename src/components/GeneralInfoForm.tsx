@@ -36,9 +36,8 @@ import { DEFAULT_AI_STATEMENT, resolveAiStatementHtml } from "@/lib/aiStatement"
 import { LazyRichField } from "@/components/participant/LazyRichField";
 import { LAZY_RICH_FIELD_EXTENSIONS } from "@/components/participant/lazyRichFieldExtensions";
 import { A1_STATEMENT_FIELD_EXTENSIONS } from "@/components/participant/a1StatementFieldExtensions";
-import { useMethodologyEditorFocus } from "@/components/MethodologyEditorFocusContext";
+import { ParticipantCrossRefDropdown } from "@/components/participant/ParticipantCrossRefDropdown";
 
-import { TextFormattingGroup } from "@/components/toolbar";
 
 
 
@@ -524,6 +523,16 @@ export function GeneralInfoForm({
         />
       }
       save={{ saving, lastSaved, onSaveNow: () => saveContent(formData) }}
+      formatting={{
+        proposalId,
+        crossRefDropdown: (editor) => (
+          <ParticipantCrossRefDropdown
+            proposalId={proposalId}
+            acronymSegments={(editedProposal as any)?.acronymSegments || []}
+            editor={editor}
+          />
+        ),
+      }}
     >
 
 
@@ -1018,22 +1027,11 @@ function AiStatementField({
   value: string;
   onChange: (html: string) => void;
 }) {
-  const { activeEditor } = useMethodologyEditorFocus();
+  // No bespoke toolbar: the page's shared three-tier toolbar acts on this
+  // field, limited by A1_AI_STATEMENT_CAPABILITIES to undo, redo, bold,
+  // italic, underline and cross-reference.
   return (
     <div className="space-y-1.5">
-      {canEdit && (
-        <div
-          data-ai-statement-toolbar="1"
-          className="p-1.5 border rounded-md bg-card flex items-center gap-0.5 shadow-sm w-fit"
-          onMouseDown={(e) => e.preventDefault()}
-        >
-          <TextFormattingGroup
-            onBold={() => activeEditor?.chain().focus().toggleBold().run()}
-            onItalic={() => activeEditor?.chain().focus().toggleItalic().run()}
-            onUnderline={() => activeEditor?.chain().focus().toggleUnderline().run()}
-          />
-        </div>
-      )}
       <LazyRichField
         value={value}
         onChange={onChange}
@@ -1041,9 +1039,6 @@ function AiStatementField({
         minHeight="90px"
         proposalId={proposalId}
         staticExtensions={A1_STATEMENT_FIELD_EXTENSIONS}
-        shouldStayMounted={() =>
-          !!(document.activeElement as HTMLElement | null)?.closest('[data-ai-statement-toolbar]')
-        }
       />
     </div>
   );

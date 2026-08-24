@@ -35,6 +35,7 @@ import { DepartmentsSection } from './participant/DepartmentsSection';
 import { GEPSection } from './participant/GEPSection';
 import { OCDSection } from './participant/OCDSection';
 import { ParticipantDescriptionsSection } from './participant/ParticipantDescriptionsSection';
+import { ParticipantCrossRefDropdown } from './participant/ParticipantCrossRefDropdown';
 import { useOCD } from '@/hooks/useOCD';
 
 
@@ -226,6 +227,18 @@ export function ParticipantDetailForm({
         ) : undefined
       }
       save={{ saving, lastSaved }}
+      formatting={{
+        proposalId,
+        crossRefDropdown: proposalId
+          ? (editor) => (
+              <ParticipantCrossRefDropdown
+                proposalId={proposalId}
+                acronymSegments={acronymSegments}
+                editor={editor}
+              />
+            )
+          : undefined,
+      }}
     >
 
 
