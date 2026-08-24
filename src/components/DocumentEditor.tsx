@@ -19,7 +19,7 @@ import { FormattingToolbar, useRichTextEditor } from "./RichTextEditor";
 import { isBoundingBoxAttrs } from "./ResizableImage";
 import { EditorToolbars } from "@/components/editor/EditorToolbars";
 import { FeatureButton } from "@/components/EditorChrome";
-import { Columns2, Scissors, Target } from "lucide-react";
+import { Columns2, Target } from "lucide-react";
 import {
   MethodologyEditorFocusProvider,
   useRegisterEditorFocus,
