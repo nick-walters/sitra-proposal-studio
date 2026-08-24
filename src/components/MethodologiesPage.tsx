@@ -21,9 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { GuidelinesDialog } from '@/components/GuidelinesDialog';
-import { KeyboardShortcutsDialog } from '@/components/KeyboardShortcutsDialog';
 import { MethodologyRichEditor } from '@/components/MethodologyRichEditor';
-import { FormattingToolbar } from '@/components/RichTextEditor';
 import { PartBCrossRefControls } from '@/components/PartBCrossRefControls';
 import { EditorToolbars } from "@/components/editor/EditorToolbars";
 import { supabase } from '@/integrations/supabase/client';
@@ -215,58 +213,6 @@ function SortableMethodologyCard({
 }
 
 /** Single page-wide formatting bar, bound to the last-focused editor. */
-function MethodologiesToolbar({
-  proposalId,
-  canEdit,
-  isCoordinator,
-  proposalAcronym,
-  acronymSegments: acronymSegmentsProp,
-}: MethodologiesPageProps) {
-  const { activeEditor } = useMethodologyEditorFocus();
-
-  // Fallback: if no acronym colours saved but a plain acronym exists, use a single all-black segment.
-  const acronymSegments = (acronymSegmentsProp && acronymSegmentsProp.length > 0)
-    ? acronymSegmentsProp
-    : (proposalAcronym ? [{ text: proposalAcronym, color: '#000000' }] : []);
-
-  if (!activeEditor) {
-    return null;
-  }
-
-  return (
-    <div>
-      <div
-        // Keep the active editor's DOM focus (and therefore its selection)
-        // when any toolbar chrome is clicked, including Radix Select /
-        // DropdownMenu triggers, which otherwise move focus on open.
-        onMouseDown={(e) => {
-          const target = e.target as HTMLElement | null;
-          if (target?.closest('input, textarea, [contenteditable="true"]')) return;
-          e.preventDefault();
-        }}
-      >
-        <FormattingToolbar
-          editor={activeEditor}
-          proposalId={proposalId}
-          canManageCustomColors={isCoordinator}
-          isPartB
-          isReadOnly={!canEdit}
-          crossRefDropdown={
-            <PartBCrossRefControls
-              editor={activeEditor}
-              proposalId={proposalId}
-              disabled={!canEdit}
-              showKeyboardButton={false}
-              acronymSegments={acronymSegments}
-            />
-          }
-        />
-      </div>
-    </div>
-  );
-}
-
-
 /**
  * Clears the active field when the user clicks empty space. Clicks inside an
  * editor surface, the chrome bars or any dialog keep the current target so
@@ -310,7 +256,6 @@ export default function MethodologiesPage({
   const [focusedId, setFocusedId] = useState<string | null>(null);
   const [isDirty, setIsDirty] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const guidelinesSubsection = subsections.find((s) => s.id === guidelinesId) ?? null;
   const focusedSubsection = subsections.find((s) => s.id === focusedId) ?? null;
 
