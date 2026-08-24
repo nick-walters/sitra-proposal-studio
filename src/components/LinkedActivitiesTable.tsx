@@ -443,6 +443,7 @@ export default function LinkedActivitiesTable({
           </ScrollArea>
         </DialogContent>
       </Dialog>
+      )}
     </div>
   );
 }
