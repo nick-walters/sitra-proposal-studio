@@ -433,10 +433,10 @@ function DeliverableRow({
   const selectedTasks = wpTasks.filter(t => selectedTaskIds.includes(t.id));
 
   return (
-    <tr className="border-b align-top">
-      {/* D-badge pennant */}
-      <td className="py-1.5 px-1 whitespace-nowrap">
-        <span style={{ display: 'inline-block', position: 'relative', width: 52, height: 21 }}>
+    <div className="border-b py-1.5 space-y-1">
+      {/* ── Line 1: number chip + full-width title ── */}
+      <div className="flex items-start gap-2 px-1">
+        <span style={{ display: 'inline-block', position: 'relative', width: 52, height: 21, flex: '0 0 52px', marginTop: 3 }}>
           <svg width={52} height={20} viewBox="0 0 52 20" style={{ position: 'absolute', top: 1, left: 0, overflow: 'visible' }}>
             <path d="M 0,0 L 42,0 L 52,10 L 42,20 L 0,20 Z" fill="#ffffff" stroke={wpColor} strokeWidth={1.5} strokeLinejoin="round" />
           </svg>
@@ -444,144 +444,144 @@ function DeliverableRow({
             {number}
           </span>
         </span>
-      </td>
+        <div className="flex-1 min-w-0">
+          <DeliverableTitleCell
+            value={deliverable.title || ''}
+            disabled={readOnly}
+            onCommit={(v) => onUpdate(deliverable.id, { title: v })}
+            proposalId={proposalId}
+            shouldStayMounted={shouldStayMounted}
+          />
+        </div>
+      </div>
 
-      {/* Title */}
-      <td className="py-1.5 px-1">
-        <DeliverableTitleCell
-          value={deliverable.title || ''}
-          disabled={readOnly}
-          onCommit={(v) => onUpdate(deliverable.id, { title: v })}
-          proposalId={proposalId}
-          shouldStayMounted={shouldStayMounted}
-        />
-      </td>
-
-
-      {/* Partner */}
-      <td className="py-1.5 px-1">
-        <Select
-          value={deliverable.responsible_participant_id || ''}
-          onValueChange={(v) => onUpdate(deliverable.id, { responsible_participant_id: v === '__clear__' ? null : v || null })}
-          disabled={readOnly}
-        >
-          <SelectTrigger
-            hideArrow
-            className={cn('h-auto border-0 shadow-none p-0 w-auto gap-0', deliverable.responsible_participant_id ? 'font-bold' : 'font-normal')}
-            style={deliverable.responsible_participant_id ? {
-              backgroundColor: '#000', color: '#fff', height: '17px',
-              fontFamily: 'Times New Roman, serif', fontSize: '11pt', lineHeight: '17px',
-              borderRadius: '9999px', paddingLeft: '6px', paddingRight: '6px',
-            } : undefined}
+      {/* ── Line 2: metadata fields in fixed columns ── */}
+      <div className={cn(DELIVERABLE_META_GRID, 'px-1')}>
+        {/* Partner */}
+        <div>
+          <Select
+            value={deliverable.responsible_participant_id || ''}
+            onValueChange={(v) => onUpdate(deliverable.id, { responsible_participant_id: v === '__clear__' ? null : v || null })}
+            disabled={readOnly}
           >
-            <SelectValue placeholder="—" className="font-normal" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__clear__"><span className="text-muted-foreground italic">Clear selection</span></SelectItem>
-            {participants.map(p => (
-              <SelectItem key={p.id} value={p.id}>
-                <ParticipantBubble>{p.organisation_short_name || p.organisation_name}</ParticipantBubble>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </td>
-
-      {/* Type */}
-      <td className="py-1.5 px-1">
-        <Select
-          value={deliverable.type || ''}
-          onValueChange={(v) => onUpdate(deliverable.id, { type: v === '__clear__' ? null : v })}
-          disabled={readOnly}
-        >
-          <SelectTrigger hideArrow className="h-7 w-full text-sm px-1.5">
-            <span>{deliverable.type || <span className="text-muted-foreground">—</span>}</span>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__clear__"><span className="text-muted-foreground italic">Clear</span></SelectItem>
-            {DELIVERABLE_TYPES.map(t => (
-              <SelectItem key={t.value} value={t.value} textValue={t.value}>
-                <div className="flex flex-col">
-                  <span>{t.value} – {t.label}</span>
-                  <span className="text-xs text-muted-foreground">{t.description}</span>
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </td>
-
-      {/* Dissemination */}
-      <td className="py-1.5 px-1">
-        <Select
-          value={deliverable.dissemination_level || ''}
-          onValueChange={(v) => onUpdate(deliverable.id, { dissemination_level: v === '__clear__' ? null : v })}
-          disabled={readOnly}
-        >
-          <SelectTrigger hideArrow className="h-7 w-full text-sm px-1.5">
-            <span>{deliverable.dissemination_level || <span className="text-muted-foreground">—</span>}</span>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__clear__"><span className="text-muted-foreground italic">Clear</span></SelectItem>
-            {DISSEMINATION_LEVELS.map(l => (
-              <SelectItem key={l.value} value={l.value} textValue={l.value}>
-                <div className="flex flex-col">
-                  <span>{l.value} – {l.label}</span>
-                  <span className="text-xs text-muted-foreground">{l.description}</span>
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </td>
-
-      {/* Due month */}
-      <td className="py-1.5 px-1">
-        <SingleMonthPicker
-          value={deliverable.due_month}
-          projectDuration={projectDuration}
-          readOnly={readOnly}
-          label=""
-          onChange={(m) => onUpdate(deliverable.id, { due_month: m })}
-        />
-      </td>
-
-      {/* Related task */}
-      <td className="py-1.5 px-1">
-        <DeliverableTaskDialog
-          wpNumber={wpNumber}
-          wpColor={wpColor}
-          wpTasks={wpTasks}
-          selectedTaskIds={selectedTaskIds}
-          disabled={readOnly}
-          onSave={(ids) => onSaveTasks(deliverable.id, ids)}
-          renderTrigger={(open) => (
-            <button
-              type="button"
-              onClick={open}
-              disabled={readOnly}
-              className="w-full min-h-7 px-1.5 py-1 border border-input rounded-md bg-background text-left hover:bg-accent disabled:opacity-60 disabled:cursor-not-allowed"
+            <SelectTrigger
+              hideArrow
+              className={cn('h-auto border-0 shadow-none p-0 w-auto gap-0', deliverable.responsible_participant_id ? 'font-bold' : 'font-normal')}
+              style={deliverable.responsible_participant_id ? {
+                backgroundColor: '#000', color: '#fff', height: '17px',
+                fontFamily: 'Times New Roman, serif', fontSize: '11pt', lineHeight: '17px',
+                borderRadius: '9999px', paddingLeft: '6px', paddingRight: '6px',
+              } : undefined}
             >
-              {selectedTasks.length === 0 ? (
-                <span className="text-muted-foreground italic">Select task…</span>
-              ) : (
-                <span className="flex flex-wrap gap-0.5">
-                  {selectedTasks.slice(0, 1).map(t => (
-                    <B31Pill key={t.id} variant="outline" color={wpColor}>
-                      T{wpNumber}.{t.number}
-                    </B31Pill>
-                  ))}
-                </span>
-              )}
-            </button>
-          )}
-        />
-      </td>
+              <SelectValue placeholder="—" className="font-normal" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__clear__"><span className="text-muted-foreground italic">Clear selection</span></SelectItem>
+              {participants.map(p => (
+                <SelectItem key={p.id} value={p.id}>
+                  <ParticipantBubble>{p.organisation_short_name || p.organisation_name}</ParticipantBubble>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
+        {/* Type */}
+        <div>
+          <Select
+            value={deliverable.type || ''}
+            onValueChange={(v) => onUpdate(deliverable.id, { type: v === '__clear__' ? null : v })}
+            disabled={readOnly}
+          >
+            <SelectTrigger hideArrow className="h-7 w-full text-sm px-1.5">
+              <span>{deliverable.type || <span className="text-muted-foreground">—</span>}</span>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__clear__"><span className="text-muted-foreground italic">Clear</span></SelectItem>
+              {DELIVERABLE_TYPES.map(t => (
+                <SelectItem key={t.value} value={t.value} textValue={t.value}>
+                  <div className="flex flex-col">
+                    <span>{t.value} – {t.label}</span>
+                    <span className="text-xs text-muted-foreground">{t.description}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-      {/* Move (above) + Delete (below) — stacked */}
-      <td className="py-1.5 px-0">
-        <div className="flex flex-col items-center gap-0.5">
+        {/* Dissemination */}
+        <div>
+          <Select
+            value={deliverable.dissemination_level || ''}
+            onValueChange={(v) => onUpdate(deliverable.id, { dissemination_level: v === '__clear__' ? null : v })}
+            disabled={readOnly}
+          >
+            <SelectTrigger hideArrow className="h-7 w-full text-sm px-1.5">
+              <span>{deliverable.dissemination_level || <span className="text-muted-foreground">—</span>}</span>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__clear__"><span className="text-muted-foreground italic">Clear</span></SelectItem>
+              {DISSEMINATION_LEVELS.map(l => (
+                <SelectItem key={l.value} value={l.value} textValue={l.value}>
+                  <div className="flex flex-col">
+                    <span>{l.value} – {l.label}</span>
+                    <span className="text-xs text-muted-foreground">{l.description}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Due month */}
+        <div>
+          <SingleMonthPicker
+            value={deliverable.due_month}
+            projectDuration={projectDuration}
+            readOnly={readOnly}
+            label=""
+            onChange={(m) => onUpdate(deliverable.id, { due_month: m })}
+          />
+        </div>
+
+        {/* Related task */}
+        <div>
+          <DeliverableTaskDialog
+            wpNumber={wpNumber}
+            wpColor={wpColor}
+            wpTasks={wpTasks}
+            selectedTaskIds={selectedTaskIds}
+            disabled={readOnly}
+            onSave={(ids) => onSaveTasks(deliverable.id, ids)}
+            renderTrigger={(open) => (
+              <button
+                type="button"
+                onClick={open}
+                disabled={readOnly}
+                className="w-full min-h-7 px-1.5 py-1 border border-input rounded-md bg-background text-left hover:bg-accent disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {selectedTasks.length === 0 ? (
+                  <span className="text-muted-foreground italic">Select task…</span>
+                ) : (
+                  <span className="flex flex-wrap gap-0.5">
+                    {selectedTasks.slice(0, 1).map(t => (
+                      <B31Pill key={t.id} variant="outline" color={wpColor}>
+                        T{wpNumber}.{t.number}
+                      </B31Pill>
+                    ))}
+                  </span>
+                )}
+              </button>
+            )}
+          />
+        </div>
+
+        {/* Spacer column keeps the two control columns hard right */}
+        <div />
+
+        {/* Move — fixed column, empty when unavailable so rows stay aligned */}
+        <div className="flex justify-center">
           {!readOnly && onMove && otherWpDrafts.length > 0 && (
             <DropdownMenu>
               <Tooltip>
@@ -604,6 +604,10 @@ function DeliverableRow({
               </DropdownMenuContent>
             </DropdownMenu>
           )}
+        </div>
+
+        {/* Delete — fixed column */}
+        <div className="flex justify-center">
           {!readOnly && (
             <DeleteConfirmDialog
               itemLabel="this deliverable"
@@ -613,9 +617,10 @@ function DeliverableRow({
             />
           )}
         </div>
-      </td>
-    </tr>
+      </div>
+    </div>
   );
+
 }
 
 // ── Task-assignment dialog: single-select (radio) within THIS WP ──
