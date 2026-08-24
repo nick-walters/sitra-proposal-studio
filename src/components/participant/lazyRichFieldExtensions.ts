@@ -28,10 +28,7 @@ import { FieldCapabilities, A2_DESCRIPTION_CAPABILITIES } from '@/lib/fieldCapab
 export const LAZY_RICH_FIELD_EXTENSIONS: Extensions = [
   StarterKit.configure({
     heading: false,
-    bulletList: false,
     orderedList: false,
-    listItem: false,
-    listKeymap: false,
     blockquote: false,
     codeBlock: false,
     code: false,
@@ -44,8 +41,8 @@ export const LAZY_RICH_FIELD_EXTENSIONS: Extensions = [
     undoRedo: { depth: 100, newGroupDelay: 1200 },
   }),
   Underline,
+  TextAlign.configure({ types: ['paragraph'] }),
   // Legacy stored content carries inline <span style="color:..."> wrappers.
-  // Read-only fidelity only — no colour control is exposed on these fields.
   TextStyle,
   Color,
   WPReferenceNode,
@@ -54,4 +51,6 @@ export const LAZY_RICH_FIELD_EXTENSIONS: Extensions = [
   InlineReferenceNode,
   AcronymReference,
   FigureTableReferenceMark,
+  // Baseline + bullets, alignment, cross-reference.
+  FieldCapabilities.configure(A2_DESCRIPTION_CAPABILITIES),
 ];
