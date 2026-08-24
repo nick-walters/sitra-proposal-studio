@@ -983,7 +983,10 @@ function CardBlock({
             )}
           </div>
 
-          <div className="ml-auto flex items-center gap-1">
+          {/* Controls stay at full opacity when the block is hidden — only the
+              block's content dims, so the toggle that restores it is never
+              itself greyed out. */}
+          <div className="ml-auto flex items-center gap-1 opacity-100">
 
             {/* The title is cleared by editing it inline; no icon that could be
                 mistaken for the delete control. */}
@@ -997,106 +1000,123 @@ function CardBlock({
                 ) : (
                   <EyeOff className="h-4 w-4 text-destructive" strokeWidth={2.5} />
                 )}
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={!card.isVisible}
-                  aria-label={card.isVisible ? 'Block visible — click to hide' : 'Block hidden — click to show'}
-                  title={card.isVisible ? 'Visible' : 'Hidden'}
-                  onClick={() => onToggleVisible(card)}
-                  className="relative h-5 w-9 shrink-0 rounded-full border border-input bg-background transition-colors"
+                <Tip
+                  label={card.isVisible ? 'Hide block in Part B' : 'Show block in Part B'}
                 >
-                  <span
-                    className="absolute left-0 top-1/2 flex h-3.5 w-3.5 items-center justify-center rounded-full shadow transition-transform"
-                    style={{
-                      backgroundColor: card.isVisible ? '#16a34a' : '#dc2626',
-                      transform: `translateY(-50%) translateX(${card.isVisible ? 3 : 19}px)`,
-                    }}
-                  />
-                </button>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={!card.isVisible}
+                    onClick={() => onToggleVisible(card)}
+                    className="relative h-5 w-9 shrink-0 rounded-full border border-input bg-background transition-colors"
+                  >
+                    <span
+                      className="absolute left-0 top-1/2 flex h-3.5 w-3.5 items-center justify-center rounded-full shadow transition-transform"
+                      style={{
+                        backgroundColor: card.isVisible ? '#16a34a' : '#dc2626',
+                        transform: `translateY(-50%) translateX(${card.isVisible ? 3 : 19}px)`,
+                      }}
+                    />
+                  </button>
+                </Tip>
               </div>
             )}
 
             {isLinkedActivitiesCard && canEdit && (
               <>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() =>
-                    linkedActivities
-                      .addActivity()
-                      .catch(() => toast.error('Could not add the activity'))
-                  }
-                >
-                  <Plus className="mr-1 h-3.5 w-3.5" />
-                  Add
-                </Button>
-                {linkedActivities.deletedActivities.length > 0 && (
+                <Tip label="Add activity">
                   <Button
                     variant="ghost"
                     size="sm"
-                    aria-label={`Restore activity (${linkedActivities.deletedActivities.length} deleted)`}
-                    onClick={() => setActivityBinOpen(true)}
+                    onClick={() =>
+                      linkedActivities
+                        .addActivity()
+                        .catch(() => toast.error('Could not add the activity'))
+                    }
                   >
-                    <Recycle className="mr-1 h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
-                    Restore
+                    <Plus className="mr-1 h-3.5 w-3.5" />
+                    Add
                   </Button>
+                </Tip>
+                {linkedActivities.deletedActivities.length > 0 && (
+                  <Tip
+                    label={`Restore deleted activity (${linkedActivities.deletedActivities.length} in the recycle bin)`}
+                  >
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setActivityBinOpen(true)}
+                    >
+                      <Recycle className="mr-1 h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
+                      Restore
+                    </Button>
+                  </Tip>
                 )}
               </>
             )}
 
             {canAddModule && (
-              <Button
-                variant="ghost"
-                size="sm"
-                aria-label="Add module"
-                onClick={() => onAddField(card)}
-              >
-                <Plus className="mr-1 h-3.5 w-3.5" />
-                Add
-              </Button>
+              <Tip label="Add module to this block">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onAddField(card)}
+                >
+                  <Plus className="mr-1 h-3.5 w-3.5" />
+                  Add
+                </Button>
+              </Tip>
             )}
 
             {canEdit && binCount > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                aria-label={`Restore module (${binCount} deleted)`}
-                onClick={() => onOpenBin(card)}
-              >
-                <Recycle className="mr-1 h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
-                Restore
-              </Button>
+              <Tip label={`Restore deleted module (${binCount} in the recycle bin)`}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onOpenBin(card)}
+                >
+                  <Recycle className="mr-1 h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
+                  Restore
+                </Button>
+              </Tip>
             )}
 
-            {canEdit && card.isDeletable && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label="Delete block"
-                    className="text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>
-                      Delete “{card.title || 'this block'}”?
-                    </AlertDialogTitle>
-                    <AlertDialogDescription>
-                      The block and its modules move to the recycle bin and can be restored.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => onDeleteCard(card)}>Delete</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
+            {canEdit &&
+              (card.isDeletable ? (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Tip label="Delete block">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </Tip>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>
+                        Delete “{card.title || 'this block'}”?
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        The block and its modules move to the recycle bin and can be restored.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => onDeleteCard(card)}>Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              ) : (
+                // Undeletable blocks (linked activities, references) reserve the
+                // delete button's footprint so every block's controls line up in
+                // the same columns.
+                <span aria-hidden="true" className="h-10 w-10 shrink-0" />
+              ))}
+
           </div>
         </CardHeader>
 
