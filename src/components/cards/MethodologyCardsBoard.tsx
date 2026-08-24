@@ -577,15 +577,22 @@ function FieldRow({
                       : 'Include a header for this module in Part B'
                   }
                 >
-                  <Switch
-                    id={`include-header-${field.id}`}
-                    checked={field.headingEnabled}
-                    onCheckedChange={(v) => onToggleHeading(field, v)}
-                    // Explicit tones: the shared default read almost white
-                    // against the card surface once the header row was
-                    // restyled.
-                    className="scale-75 border border-border data-[state=checked]:!bg-primary data-[state=unchecked]:!bg-muted-foreground/50"
-                  />
+                  {/* TooltipTrigger also owns a `data-state` attribute. Keep it
+                      on this wrapper so it cannot replace Radix Switch's
+                      checked/unchecked state on the actual control. */}
+                  <span className="inline-flex">
+                    <Switch
+                      id={`include-header-${field.id}`}
+                      checked={field.headingEnabled}
+                      onCheckedChange={(v) => onToggleHeading(field, v)}
+                      aria-label={
+                        field.headingEnabled
+                          ? 'Remove this module’s header from Part B'
+                          : 'Include a header for this module in Part B'
+                      }
+                      className="scale-75 border border-border data-[state=checked]:!bg-primary data-[state=unchecked]:!bg-muted-foreground/50"
+                    />
+                  </span>
                 </Tip>
                 <Label
                   htmlFor={`include-header-${field.id}`}

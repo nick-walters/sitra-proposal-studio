@@ -411,6 +411,7 @@ export function CasesTableLiveView({ proposalId, caseTypeId, letterIndex }: Case
   return (
     <div
       data-cases-table-nodeview=""
+      className="document-content"
       style={{
         margin: '0',
         fontFamily: TABLE_FONT_FAMILY,
