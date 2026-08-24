@@ -885,53 +885,84 @@ function SortableRiskRow({
     opacity: isDragging ? 0.5 : 1,
   };
   return (
-    <tr ref={setNodeRef} style={style} className="group border-b align-top">
-      <td className="py-1.5 px-0 text-center" style={{ width: '26px' }}>
-        {canEdit && (
-          <button
-            type="button"
-            className="cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center justify-center"
-            {...attributes}
-            {...listeners}
-            aria-label="Drag to reorder"
+    <div ref={setNodeRef} style={style} className="group border-b py-1.5 space-y-1">
+      {/* ── Line 1: grip + risk number + full-width description ── */}
+      <div className="flex items-start gap-2 px-1">
+        <span className="flex-none w-[26px] flex items-center justify-center pt-1">
+          {canEdit && (
+            <button
+              type="button"
+              className="cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center justify-center"
+              {...attributes}
+              {...listeners}
+              aria-label="Drag to reorder"
+            >
+              <GripVertical className="h-4 w-4 text-[#2563EB]" />
+            </button>
+          )}
+        </span>
+        <span
+          className="flex-none whitespace-nowrap pt-0.5"
+          style={{
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            background: '#000', color: '#fff', fontFamily: "'Times New Roman', Times, serif",
+            fontSize: '11pt', fontWeight: 700, lineHeight: '18px', height: '18px', padding: '0 6px',
+            borderRadius: '9999px', marginTop: 4,
+          }}
+        >
+          R{risk.number}
+        </span>
+        <div className="flex-1 min-w-0">
+          <DebouncedRichField
+            value={risk.title || ''}
+            disabled={!canEdit}
+            minHeight="30px"
+            proposalId={proposalId}
+            staticExtensions={WP_TITLE_FIELD_EXTENSIONS}
+            onChange={(html) => onUpdate({ title: html })}
+          />
+        </div>
+      </div>
+
+      {/* ── Line 2: likelihood / severity / WP(s) in fixed columns ── */}
+      <div className={cn(RISK_META_GRID, 'px-1')}>
+        <div className="flex justify-center">
+          <RiskLevelSelect
+            value={(risk.likelihood as 'L' | 'M' | 'H' | null) || null}
+            disabled={!canEdit}
+            onChange={(v) => onUpdate({ likelihood: v })}
+          />
+        </div>
+        <div className="flex justify-center">
+          <RiskLevelSelect
+            value={(risk.severity as 'L' | 'M' | 'H' | null) || null}
+            disabled={!canEdit}
+            onChange={(v) => onUpdate({ severity: v })}
+          />
+        </div>
+        <div>
+          <WPMultiSelect
+            allWps={wps}
+            selectedIds={risk.wp_ids}
+            disabled={!canEdit}
+            onChange={onSetWps}
+          />
+        </div>
+        <div />
+        <div className="flex justify-center">
+          <Button
+            size="icon" variant="ghost" className="h-7 w-7 text-red-600 hover:text-red-700"
+            disabled={!canEdit}
+            onClick={onDelete}
           >
-            <GripVertical className="h-4 w-4 text-[#2563EB]" />
-          </button>
-        )}
-      </td>
-      <td className="py-1.5 px-1">
-        <DebouncedRichField
-          value={risk.title || ''}
-          disabled={!canEdit}
-          minHeight="30px"
-          proposalId={proposalId}
-          staticExtensions={WP_TITLE_FIELD_EXTENSIONS}
-          onChange={(html) => onUpdate({ title: html })}
-        />
-      </td>
-      <td className="py-1.5 px-1 text-center">
-        <RiskLevelSelect
-          value={(risk.likelihood as 'L' | 'M' | 'H' | null) || null}
-          disabled={!canEdit}
-          onChange={(v) => onUpdate({ likelihood: v })}
-        />
-      </td>
-      <td className="py-1.5 px-1 text-center">
-        <RiskLevelSelect
-          value={(risk.severity as 'L' | 'M' | 'H' | null) || null}
-          disabled={!canEdit}
-          onChange={(v) => onUpdate({ severity: v })}
-        />
-      </td>
-      <td className="py-1.5 px-1">
-        <WPMultiSelect
-          allWps={wps}
-          selectedIds={risk.wp_ids}
-          disabled={!canEdit}
-          onChange={onSetWps}
-        />
-      </td>
-      <td className="py-1.5 px-1">
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* ── Line 3: mitigation & adaptation measures, full width ── */}
+      <div className="px-1">
+        <div className="text-xs font-medium text-muted-foreground pb-0.5">Mitigation &amp; adaptation measures</div>
         <DebouncedRichField
           value={risk.mitigation || ''}
           disabled={!canEdit}
@@ -940,17 +971,9 @@ function SortableRiskRow({
           staticExtensions={WP_DRAFT_FIELD_EXTENSIONS}
           onChange={(html) => onUpdate({ mitigation: html })}
         />
-      </td>
-      <td className="py-1.5 px-0 text-center">
-        <Button
-          size="icon" variant="ghost" className="h-7 w-7 text-red-600 hover:text-red-700"
-          disabled={!canEdit}
-          onClick={onDelete}
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
-      </td>
-    </tr>
+      </div>
+    </div>
+
   );
 }
 
