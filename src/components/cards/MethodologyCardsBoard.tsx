@@ -1901,7 +1901,10 @@ function BoardInner({
             ),
           }}
         >
-          <div className="space-y-3 pt-2">
+          {/* The chrome is a sibling in the page column, so the gap above the
+              first block is the column's own space-y-4 plus the chrome's
+              padding. Pull it back to the 12px used between blocks. */}
+          <div className="space-y-3 -mt-2">
             {headCards.filter(visibleCard).map((c) => (
               <CardBlock key={c.id} {...cardProps(c, false)} />
             ))}

@@ -77,7 +77,6 @@ import { TableFormulaDialog } from "./TableFormulaDialog";
 import { VersionComparisonDialog } from "./VersionComparisonDialog";
 import { KeyboardShortcutsDialog } from "./KeyboardShortcutsDialog";
 import { WritingAssistantDialog } from "./WritingAssistantDialog";
-import { SnippetsDialog } from "./SnippetsDialog";
 import { SplitViewPanel } from "./SplitViewPanel";
 // SectionReviewDialog moved to Part B Evaluate tab
 import { B31DeliverablesTable, B31MilestonesTable, B31RisksTable } from "./B31TablesEditor";
@@ -168,7 +167,6 @@ function DocumentEditorInner({
   }, [user?.id]);
 
 
-  const canUseSnippets = roleTier === 'coordinator';
   const [isCitationOpen, setIsCitationOpen] = useState(false);
   const [isFigureDialogOpen, setIsFigureDialogOpen] = useState(false);
   const [isImpactPathwayOpen, setIsImpactPathwayOpen] = useState(false);
@@ -234,7 +232,6 @@ function DocumentEditorInner({
   const [isComparisonOpen, setIsComparisonOpen] = useState(false);
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
   const [isWritingAssistantOpen, setIsWritingAssistantOpen] = useState(false);
-  const [isSnippetsOpen, setIsSnippetsOpen] = useState(false);
   // Review state removed - moved to Part B Evaluate tab
   const [isSplitViewOpen, setIsSplitViewOpen] = useState(false);
   const [deleteBlockConfirm, setDeleteBlockConfirm] = useState<{ isOpen: boolean; onConfirm: () => void } | null>(null);
@@ -1266,15 +1263,6 @@ function DocumentEditorInner({
                 tooltip="Compare versions"
                 onClick={() => setIsComparisonOpen(true)}
               />
-              {canUseSnippets && (
-                <FeatureButton
-                  icon={<Scissors className="h-3.5 w-3.5" />}
-                  primary="Snippets"
-                  tooltip="Snippet library"
-                  disabled={isEffectivelyReadOnly}
-                  onClick={() => setIsSnippetsOpen(true)}
-                />
-              )}
               {isImpactSection && (
                 <FeatureButton
                   icon={<Target className="h-3.5 w-3.5" />}
@@ -2056,17 +2044,6 @@ function DocumentEditorInner({
               setTrackedChanges([...postStorage.changes]);
             }
           }
-        }}
-      />
-      <SnippetsDialog
-        isOpen={isSnippetsOpen}
-        onClose={() => setIsSnippetsOpen(false)}
-        sectionId={section?.id || section?.number || ''}
-        onInsert={(snippetContent) => {
-          if (editor) {
-            editor.chain().focus().insertContent(snippetContent).run();
-          }
-          setIsSnippetsOpen(false);
         }}
       />
 
