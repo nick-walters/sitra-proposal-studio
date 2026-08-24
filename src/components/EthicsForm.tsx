@@ -17,6 +17,11 @@ import { PartAGuidelinesDialog } from './PartAGuidelinesDialog';
 import { PartAPageLayout } from './PartAPageLayout';
 
 import { SaveIndicator } from './SaveIndicator';
+import { LazyRichField } from '@/components/participant/LazyRichField';
+import { LAZY_RICH_FIELD_EXTENSIONS } from '@/components/participant/lazyRichFieldExtensions';
+import { EditorToolbars } from '@/components/editor/EditorToolbars';
+import { MethodologyEditorFocusProvider } from '@/components/MethodologyEditorFocusContext';
+import { htmlToPlainText } from '@/lib/htmlToPlainText';
 import ethicsQuestionsRaw from '@/data/ethicsQuestions.json';
 
 // Extended ethics assessment interface for full proposals
@@ -524,6 +529,7 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
   };
 
   return (
+    <MethodologyEditorFocusProvider>
     <PartAPageLayout
       title="Part A4: Ethics self-assessment"
       proposalId={ethicsData.proposalId || null}
@@ -663,12 +669,14 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
               <li>methodology (e.g. clinical trials, involvement of children, protection of personal data, etc.)</li>
               <li>the potential impact of the activities (e.g. environmental damage, stigmatisation of particular social groups, political or financial adverse consequences, misuse, etc.)</li>
             </ul>
-            <DebouncedTextarea
+            <LazyRichField
               value={ethicsData.ethicsSelfAssessmentObjectives || ''}
-              onDebouncedChange={(value) => handleUpdate({ ethicsSelfAssessmentObjectives: value })}
+              onChange={(value) => handleUpdate({ ethicsSelfAssessmentObjectives: value })}
               placeholder="Explain the identified ethics issues in relation to objectives, methodology, and potential impact..."
-              className="min-h-[80px] text-sm mt-1"
+              minHeight="80px"
               disabled={!canEdit}
+              proposalId={ethicsData.proposalId || undefined}
+              staticExtensions={LAZY_RICH_FIELD_EXTENSIONS}
             />
           </div>
 
@@ -683,12 +691,14 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
               legal and ethical requirements of the country or countries where the tasks are to be carried out. It is reminded 
               that for activities performed in a non-EU country, they should also be allowed in at least one EU Member State.
             </CardDescription>
-            <DebouncedTextarea
+            <LazyRichField
               value={ethicsData.ethicsSelfAssessmentCompliance || ''}
-              onDebouncedChange={(value) => handleUpdate({ ethicsSelfAssessmentCompliance: value })}
+              onChange={(value) => handleUpdate({ ethicsSelfAssessmentCompliance: value })}
               placeholder="Describe how you will ensure compliance with ethical principles and relevant legislations..."
-              className="min-h-[80px] text-sm mt-1"
+              minHeight="80px"
               disabled={!canEdit}
+              proposalId={ethicsData.proposalId || undefined}
+              staticExtensions={LAZY_RICH_FIELD_EXTENSIONS}
             />
           </div>
         </PartACard>
@@ -760,19 +770,20 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
           title="SECURITY SELF-ASSESSMENT"
           contentClassName="px-6 pt-0 pb-4"
         >
-          <DebouncedTextarea
+          <LazyRichField
             value={ethicsData.securitySelfAssessment || ''}
-            onDebouncedChange={(value) => handleUpdate({ securitySelfAssessment: value })}
+            onChange={(value) => handleUpdate({ securitySelfAssessment: value })}
             placeholder="Describe the measures you intend to take to address the security issues..."
-            className="min-h-[80px] text-sm"
-            maxLength={5000}
+            minHeight="80px"
             disabled={!canEdit}
+            proposalId={ethicsData.proposalId || undefined}
+            staticExtensions={LAZY_RICH_FIELD_EXTENSIONS}
           />
           <p className="text-xs text-muted-foreground mt-1 text-right">
-            {formatNumber((ethicsData.securitySelfAssessment || '').length)}/{formatNumber(5000)} characters
+            {formatNumber(htmlToPlainText(ethicsData.securitySelfAssessment || '').length)}/{formatNumber(5000)} characters
           </p>
         </PartACard>
     </PartAPageLayout>
-
+    </MethodologyEditorFocusProvider>
   );
 }
