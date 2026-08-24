@@ -533,13 +533,11 @@ export function TopicInformationPage({
 
 
         {/* General Topic Information Card */}
-        <Card>
-          <CardHeader className="pb-2 pt-4">
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2 text-sm">
-                <Target className="w-4 h-4" />
-                General topic information
-              </CardTitle>
+        <PartACard
+          collapseKey="topic.general-topic-information"
+          title="General topic information"
+          icon={<Target className="w-4 h-4" />}
+          headerRight={
               <div className="flex items-center gap-2 flex-wrap justify-end">
                 {userCanEdit && (
                   <Button
@@ -1010,20 +1008,14 @@ export function TopicInformationPage({
         </PartACard>
 
         {/* Destination Description Card */}
-        <Card>
-          <CardHeader className="pb-2 pt-4">
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2 text-sm">
-                <FileText className="w-4 h-4" />
-                Destination description
-              </CardTitle>
-              {renderEditButton('destination')}
-            </div>
-          </CardHeader>
-          <CardContent>
-            {renderRichTextField('destination', null, 'topicDestinationDescription', 'No destination description available', true)}
-          </CardContent>
-        </Card>
+        <PartACard
+          collapseKey="topic.destination-description"
+          title="Destination description"
+          icon={<FileText className="w-4 h-4" />}
+          headerRight={renderEditButton('destination')}
+        >
+          {renderRichTextField('destination', null, 'topicDestinationDescription', 'No destination description available', true)}
+        </PartACard>
 
         {/* Evaluation Notes Card — coordinators only */}
         {isCoordinator && (
