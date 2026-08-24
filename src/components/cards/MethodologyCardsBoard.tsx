@@ -953,45 +953,44 @@ function CardBlock({
               only label, so a block title would duplicate it. */}
           <div className="min-w-0 flex-1">
             {card.kind === 'figure' ? null : isCoordinator && editingTitle && !titleLock.lockedByOther ? (
-              <Input
+              // Single-line rich text: baseline formatting only (see
+              // TITLE_FIELD_CAPABILITIES). Legacy plain-string titles are
+              // upgraded to HTML on read by `ensureRichHtml`.
+              <LazyRichField
                 autoFocus
-                value={titleDraft}
-                onKeyDownCapture={() => titleLock.onType()}
-                onChange={(e) => {
-                  setTitleDraft(e.target.value);
-                  titleLock.push(e.target.value);
+                singleLine
+                proposalId={proposalId}
+                value={ensureRichHtml(titleDraft)}
+                minHeight="32px"
+                className={`[&_.ProseMirror]:font-bold [&_p]:m-0 ${lockBorderClass(titleLock.isMine, false)}`}
+                staticExtensions={WP_TITLE_FIELD_EXTENSIONS}
+                onChange={(html) => {
+                  titleLock.onType();
+                  setTitleDraft(html);
+                  titleLock.push(html);
                 }}
                 onBlur={() => {
                   commitTitle();
                   titleLock.onBlur();
                 }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    commitTitle();
-                  } else if (e.key === 'Escape') {
-                    e.preventDefault();
-                    setTitleDraft(card.title ?? '');
-                    setEditingTitle(false);
-                  }
-                }}
-                className={`h-8 ${lockBorderClass(titleLock.isMine, false)}`}
               />
             ) : (
               <div className="flex min-w-0 items-center gap-2">
                 <h3
-                  className={`truncate font-bold underline ${isCoordinator && !titleLock.lockedByOther ? 'cursor-text' : ''} ${
+                  className={`truncate font-bold underline [&_p]:m-0 [&_p]:inline ${isCoordinator && !titleLock.lockedByOther ? 'cursor-text' : ''} ${
                     displayedTitle ? '' : 'italic text-muted-foreground no-underline'
                   } ${titleLock.lockedByOther ? 'rounded border border-destructive px-1' : ''}`}
                   onClick={() => isCoordinator && !titleLock.lockedByOther && setEditingTitle(true)}
-                >
-                  {displayedTitle ?? 'No title'}
-                </h3>
+                  {...(displayedTitle
+                    ? { dangerouslySetInnerHTML: { __html: displayRichHtml(displayedTitle) } }
+                    : { children: 'No title' })}
+                />
                 {titleLock.lockedByOther && titleLock.holder && (
                   <LockHolderBadge holder={titleLock.holder} />
                 )}
               </div>
             )}
+
             {userCollapsed && (
               <p className="truncate text-xs text-muted-foreground">{collapsedSummary}</p>
             )}
