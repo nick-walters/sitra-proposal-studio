@@ -584,7 +584,7 @@ function FieldRow({
                     // Explicit tones: the shared default read almost white
                     // against the card surface once the header row was
                     // restyled.
-                    className="scale-75 border border-border data-[state=checked]:bg-primary data-[state=unchecked]:bg-muted-foreground/40"
+                    className="scale-75 border border-border data-[state=checked]:!bg-primary data-[state=unchecked]:!bg-muted-foreground/50"
                   />
                 </Tip>
                 <Label
