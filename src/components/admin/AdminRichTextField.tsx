@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import { useRichTextEditor } from '@/components/RichTextEditor';
 import { OrderedListDropdown } from '@/components/OrderedListDropdown';
 import { ToolbarButton, TextFormattingGroup } from '@/components/toolbar';
-import { safeHref } from '@/lib/safeUrl';
+import { isSafeHttpUrl } from '@/lib/safeUrl';
 
 export interface AdminRichTextFieldProps {
   value: string;
@@ -47,8 +47,9 @@ export function AdminRichTextField({
       editor.chain().focus().extendMarkRange('link').unsetLink().run();
       return;
     }
-    const href = safeHref(input.trim());
-    if (!href) return;
+    const raw = input.trim();
+    const href = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+    if (!isSafeHttpUrl(href)) return;
     editor.chain().focus().extendMarkRange('link').setLink({ href }).run();
   }, [editor]);
 
