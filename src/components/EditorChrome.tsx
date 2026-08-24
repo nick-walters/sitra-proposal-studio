@@ -14,6 +14,7 @@ import {
   Recycle,
   ChevronDown,
   ChevronUp,
+  ClipboardCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Switch } from '@/components/ui/switch';
