@@ -13,7 +13,7 @@ import { mapCard, mapField, type CardField, type ProposalCard } from '@/types/ca
 import { htmlToTypstBlocks, typstString, type ConvertContext } from './htmlToTypst';
 import { TYPST_PREAMBLE } from './typstPreamble';
 
-import { extractHexTextColors } from '@/lib/extractHexTextColors';
+import { extractHexTextColorsFromHtml } from '@/lib/extractHexTextColorsFromHtml';
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
 
 /**
@@ -31,7 +31,7 @@ function titleText(value: string | null | undefined): string {
  * italic). Take the first colour used in the field, if any.
  */
 function titleColour(value: string | null | undefined): string | null {
-  const colours = extractHexTextColors(value ?? '');
+  const colours = extractHexTextColorsFromHtml(value ?? '');
   const first = [...colours][0];
   return first ? first.toLowerCase() : null;
 }
