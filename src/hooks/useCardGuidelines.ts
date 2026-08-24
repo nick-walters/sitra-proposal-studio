@@ -32,11 +32,13 @@ type GuidelineRow = {
 
 function toGuideline(row: GuidelineRow, order: number): CardGuideline {
   const type: GuidelineType =
-    row.guideline_type === 'evaluation'
-      ? 'evaluation'
-      : row.guideline_type === 'sitra_tip'
-        ? 'sitra_tip'
-        : 'official';
+    row.guideline_type === 'criteria'
+      ? 'criteria'
+      : row.guideline_type === 'evaluation'
+        ? 'evaluation'
+        : row.guideline_type === 'sitra_tip'
+          ? 'sitra_tip'
+          : 'official';
   return {
     id: row.id,
     type,
