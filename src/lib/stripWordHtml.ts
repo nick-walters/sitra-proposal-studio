@@ -60,6 +60,47 @@ function looksLikeWordHtml(html: string): boolean {
   return /xmlns|MsoNormal|mso-|<o:|<w:|<m:|<v:|<x:|class="?Mso|\[if[^\]]*mso/i.test(html);
 }
 
+/** Block-level tags. Our editor never sets colour on these. */
+const BLOCK_TAGS = new Set([
+  'P', 'DIV', 'LI', 'UL', 'OL', 'TD', 'TH', 'TR', 'TABLE',
+  'H1', 'H2', 'H3', 'H4', 'BLOCKQUOTE',
+]);
+
+/** Foreign paint declarations that only ever arrive with pasted markup. */
+const FOREIGN_PAINT = /^(color|background|background-color|border-color)$/i;
+
+/**
+ * Remove inline colour painted onto BLOCK elements by a foreign source
+ * (Confluence, Google Docs, Word). The deliberate font-colour feature in this
+ * app is a TipTap TextStyle mark, which always emits a <span style="color:…">,
+ * so span-level colour is left untouched. Preserved custom nodes (chips,
+ * badges, WP-coloured spans) short-circuit via isPreservedElement.
+ */
+export function stripForeignBlockColour(html: string): string {
+  if (!html || typeof document === 'undefined') return html;
+  if (!/(?:^|[;"'\s])(?:color|background|border-color)\s*:/i.test(html)) return html;
+
+  const doc = new DOMParser().parseFromString(`<div id="__fc">${html}</div>`, 'text/html');
+  const root = doc.getElementById('__fc');
+  if (!root) return html;
+
+  for (const el of Array.from(root.getElementsByTagName('*')) as Element[]) {
+    if (!BLOCK_TAGS.has(el.tagName.toUpperCase())) continue;
+    if (isPreservedElement(el)) continue;
+    const style = el.getAttribute('style');
+    if (!style) continue;
+    const kept = style
+      .split(';')
+      .map((d) => d.trim())
+      .filter(Boolean)
+      .filter((d) => !FOREIGN_PAINT.test((d.split(':')[0] || '').trim()));
+    if (kept.length === 0) el.removeAttribute('style');
+    else el.setAttribute('style', kept.join('; '));
+  }
+
+  return root.innerHTML;
+}
+
 /**
  * Public entry point. Returns sanitised HTML (always passed through
  * sanitizeEditorHtml as a final canonicalisation step).
@@ -68,10 +109,12 @@ export function stripWordHtml(html: string): string {
   if (!html || typeof html !== 'string') return '';
 
   // Fast path: if there's no Word-junk signature, just run the canonical
-  // sanitiser. This keeps behaviour identical for non-Word paste sources.
+  // sanitiser. Foreign block-level colour is still normalised, since pasted
+  // Confluence/Docs markup carries no MSO signature at all.
   if (!looksLikeWordHtml(html)) {
-    return sanitizeEditorHtml(html);
+    return sanitizeEditorHtml(stripForeignBlockColour(html));
   }
+
 
   if (typeof document === 'undefined') {
     // SSR / edge fallback — sanitiser already strips classes/styles that
