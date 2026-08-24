@@ -454,7 +454,9 @@ export default function LinkedActivitiesTable({
                   className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-2"
                 >
                   <span className="min-w-0 flex-1 truncate text-sm">
-                    {a.acronym || <span className="italic text-muted-foreground">No acronym</span>}
+                    {htmlToPlainText(a.acronym ?? '') || (
+                      <span className="italic text-muted-foreground">No acronym</span>
+                    )}
                   </span>
                   <Button
                     variant="outline"
