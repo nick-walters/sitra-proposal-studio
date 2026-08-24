@@ -348,17 +348,20 @@ export function WPDeliverablesTable({
         <CardContent className="px-3 pb-3 pt-0">
           <div className="space-y-1">
             {/* Column labels for the second line — same fixed grid as every row,
-                so the meta fields line up across all deliverables. */}
+                indented to align with the deliverable title above. */}
             {sorted.length > 0 && (
-              <div className={cn(DELIVERABLE_META_GRID, 'px-1 pb-1 text-xs font-medium text-muted-foreground border-b')}>
-                <div>Partner</div>
-                <div>Type</div>
-                <div>Dissemination level</div>
-                <div>Due month</div>
-                <div>Assign to task</div>
+              <div className="grid grid-cols-[52px_1fr] gap-x-2 px-1 pb-1 border-b">
                 <div />
-                <div />
-                <div />
+                <div className={cn(DELIVERABLE_META_GRID, 'text-xs font-medium text-muted-foreground')}>
+                  <div>Partner</div>
+                  <div>Type</div>
+                  <div>Dissemination level</div>
+                  <div>Due month</div>
+                  <div>Assign to task</div>
+                  <div />
+                  <div />
+                  <div />
+                </div>
               </div>
             )}
             {sorted.length === 0 && (
