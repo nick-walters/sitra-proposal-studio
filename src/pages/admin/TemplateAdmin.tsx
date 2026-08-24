@@ -1339,6 +1339,10 @@ function SectionAccordionItem({
             </div>
           )}
 
+          {/* Criteria — their own category, attached to the section as a whole
+              and surfaced by the page-wide "Criteria" button. */}
+          <SectionCriteriaEditor sectionId={section.id} />
+
           {/* Guidelines - sorted by type priority then order_index */}
           <div className="space-y-2">
             <h4 className="text-sm font-medium">Guidelines ({section.guidelines?.length || 0})</h4>
