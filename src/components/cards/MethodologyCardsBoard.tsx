@@ -1720,46 +1720,34 @@ function BoardInner({
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            {/* Single page-level toggle, styled like the block visibility
-                toggle and carrying the SAME chevron as the per-block collapse
-                controls: up = collapsed, down = expanded. */}
+            {/* Single page-level icon button carrying the SAME chevron as the
+                per-block collapse controls: up = collapse all, down = expand
+                all. No toggle track. */}
             {(() => {
               const allCollapsed =
                 visibleCardIds.length > 0 && visibleCardIds.every((id) => collapsedIds.has(id));
               return (
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs text-muted-foreground">
-                    {allCollapsed ? 'All collapsed' : 'Expanded'}
-                  </span>
-                  <Tip label={allCollapsed ? 'Expand all blocks' : 'Collapse all blocks'}>
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={allCollapsed}
-                      disabled={setAllCollapsed.isPending || visibleCardIds.length === 0}
-                      onClick={() =>
-                        setAllCollapsed.mutate({
-                          ids: visibleCardIds,
-                          collapsed: !allCollapsed,
-                        })
-                      }
-                      className="relative h-5 w-9 shrink-0 rounded-full border border-input bg-background transition-colors disabled:opacity-50"
-                    >
-                      <span
-                        className="absolute left-0 top-1/2 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-foreground text-background shadow transition-transform"
-                        style={{
-                          transform: `translateY(-50%) translateX(${allCollapsed ? 19 : 3}px)`,
-                        }}
-                      >
-                        {allCollapsed ? (
-                          <ChevronUp className="h-2.5 w-2.5" strokeWidth={3} />
-                        ) : (
-                          <ChevronDown className="h-2.5 w-2.5" strokeWidth={3} />
-                        )}
-                      </span>
-                    </button>
-                  </Tip>
-                </div>
+                <Tip label={allCollapsed ? 'Expand all blocks' : 'Collapse all blocks'}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-pressed={allCollapsed}
+                    disabled={setAllCollapsed.isPending || visibleCardIds.length === 0}
+                    onClick={() =>
+                      setAllCollapsed.mutate({
+                        ids: visibleCardIds,
+                        collapsed: !allCollapsed,
+                      })
+                    }
+                  >
+                    {allCollapsed ? (
+                      <ChevronDown className="h-4 w-4" strokeWidth={2.5} />
+                    ) : (
+                      <ChevronUp className="h-4 w-4" strokeWidth={2.5} />
+                    )}
+                  </Button>
+                </Tip>
               );
             })()}
             {canEdit && (
