@@ -749,7 +749,7 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
 
         {/* Header with white bg + black outline (case bubble style) */}
         <div
-          className="rounded-lg p-4 -mx-2 bg-white border-[1.5px] border-black"
+          className="rounded-lg p-4 bg-white border-[1.5px] border-black"
         >
           {/* Row 1: Short name + Leader */}
           <div className="flex items-center gap-4 flex-wrap mb-2">

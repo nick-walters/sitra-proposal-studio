@@ -1721,3 +1721,72 @@ body.table-col-resizing * {
   margin-left: 0 !important;
 }
 
+
+/* ------------------------------------------------------------------ *
+ * Shared document typography parity
+ *
+ * Mounted editors carry `.ProseMirror .document-content`, while static
+ * renders (LazyRichField, mirrors, read-only views) carry `.document-content`
+ * alone. Every metric rule above was keyed to `.ProseMirror` only, so static
+ * renders fell back to the Tailwind `text-sm` cascade (14px / 20px line
+ * height) for headings and list items while editors used 11pt / 1.0. These
+ * rules give both surfaces the same metrics from one source.
+ * ------------------------------------------------------------------ */
+.document-content:not(.ProseMirror) h1,
+.document-content:not(.ProseMirror) h2,
+.document-content:not(.ProseMirror) h3,
+.document-content:not(.ProseMirror) h4,
+.document-content:not(.ProseMirror) h5,
+.document-content:not(.ProseMirror) h6 {
+  text-align: left !important;
+  font-family: 'Times New Roman', Times, serif !important;
+  font-size: 11pt !important;
+  line-height: 1 !important;
+  margin-top: 3pt !important;
+  margin-bottom: 3pt !important;
+  padding-top: 0 !important;
+}
+
+.document-content:not(.ProseMirror) h1 {
+  margin-top: 6pt !important;
+}
+
+.document-content:not(.ProseMirror) h3,
+.document-content:not(.ProseMirror) h4,
+.document-content:not(.ProseMirror) h5,
+.document-content:not(.ProseMirror) h6 {
+  font-weight: 700 !important;
+  text-decoration: underline !important;
+}
+
+.document-content:not(.ProseMirror) ul,
+.document-content:not(.ProseMirror) ol {
+  margin-left: 0 !important;
+  margin-top: 3pt !important;
+  margin-bottom: 3pt !important;
+}
+
+.document-content:not(.ProseMirror) ul {
+  list-style-type: disc !important;
+  list-style-position: outside;
+  padding-left: calc(1.5em - 4pt) !important;
+}
+
+.document-content:not(.ProseMirror) ol {
+  list-style-type: decimal;
+  list-style-position: outside;
+  padding-left: calc(1.5em - 4pt) !important;
+}
+
+.document-content:not(.ProseMirror) li {
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 11pt;
+  line-height: 1;
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+  text-align: justify;
+}
+
+.document-content:not(.ProseMirror) ul > li::marker {
+  font-size: 0.85em;
+}

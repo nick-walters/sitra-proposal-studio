@@ -38,7 +38,7 @@ export function MethodologyRichEditor({
 }: MethodologyRichEditorProps) {
   // Stable, unique per mounted instance — several editors live on one page.
   const instanceKey = useId();
-  const { activeEditor, registerFocus, unregister } = useMethodologyEditorFocus();
+  const { activeEditor, registerFocus, notifyBlur, unregister } = useMethodologyEditorFocus();
 
   const editor = useRichTextEditor({
     content: value,
@@ -82,16 +82,21 @@ export function MethodologyRichEditor({
     if (!editor) return;
     const dom = editor.view.dom as HTMLElement;
     const handler = () => registerFocus(editor);
+    const blurHandler = () => notifyBlur(editor);
     dom.addEventListener('focus', handler);
+    dom.addEventListener('blur', blurHandler);
     editor.on('focus', handler);
+    editor.on('blur', blurHandler);
     if (editor.isFocused || document.activeElement === dom || dom.contains(document.activeElement)) {
       registerFocus(editor);
     }
     return () => {
       dom.removeEventListener('focus', handler);
+      dom.removeEventListener('blur', blurHandler);
       editor.off('focus', handler);
+      editor.off('blur', blurHandler);
     };
-  }, [editor, registerFocus]);
+  }, [editor, registerFocus, notifyBlur]);
 
   useEffect(() => {
     if (!editor) return;
