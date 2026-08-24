@@ -30,11 +30,23 @@ export const Tip = forwardRef<HTMLElement, TipProps>(function Tip(
 
   if (!isValidElement(children)) return <>{children}</>;
 
+  // A plain function component cannot receive a ref (React logs a warning and
+  // the ref is dropped), so it is only forwarded to hosts, class components and
+  // forwardRef/memo objects — everything Radix `asChild` actually needs.
+  const childType = (children as ReactElement).type;
+  const acceptsRef = typeof childType !== 'function' || !!(childType as { prototype?: { isReactComponent?: unknown } }).prototype?.isReactComponent;
+
   const trigger = cloneElement(
     children as ReactElement<{ 'aria-label'?: string; title?: string }>,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    { ...(rest as object), ref, 'aria-label': label, title: undefined } as any,
+    {
+      ...(rest as object),
+      ...(acceptsRef ? { ref } : {}),
+      'aria-label': label,
+      title: undefined,
+    } as any,
   );
+
 
   return (
     <Tooltip>
