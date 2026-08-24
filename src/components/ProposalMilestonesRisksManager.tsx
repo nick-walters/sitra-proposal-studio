@@ -45,7 +45,7 @@ import {
   MethodologyEditorFocusProvider,
   useMethodologyEditorFocus,
 } from '@/components/MethodologyEditorFocusContext';
-import { TextFormattingGroup } from '@/components/toolbar';
+import { DraftFormattingToolbar } from '@/components/DraftFormattingToolbar';
 import { saveVersionedRow, reorderVersionedRows, deleteAndResequence } from '@/lib/versionedSave';
 import { saveMilestoneAndResequence } from '@/lib/versionedSave';
 
@@ -240,6 +240,29 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
   const runOnActiveEditor = (fn: (chain: ReturnType<NonNullable<typeof activeEditor>['chain']>) => void) => {
     if (!activeEditor || activeEditor.isDestroyed) return;
     fn(activeEditor.chain().focus());
+  };
+
+  /**
+   * Maps the shared toolbar's execCommand-style vocabulary onto the focused
+   * TipTap editor, so this page uses the same toolbar as every other surface.
+   */
+  const execCommand = (command: string, value?: string) => {
+    runOnActiveEditor((chain) => {
+      const c = chain as any;
+      switch (command) {
+        case 'bold': c.toggleBold().run(); break;
+        case 'italic': c.toggleItalic().run(); break;
+        case 'underline': c.toggleUnderline().run(); break;
+        case 'insertUnorderedList': c.toggleBulletList?.().run(); break;
+        case 'insertOrderedList': c.toggleOrderedList?.().run(); break;
+        case 'justifyLeft': c.setTextAlign?.('left')?.run(); break;
+        case 'justifyCenter': c.setTextAlign?.('center')?.run(); break;
+        case 'justifyRight': c.setTextAlign?.('right')?.run(); break;
+        case 'justifyFull': c.setTextAlign?.('justify')?.run(); break;
+        case 'insertHTML': c.insertContent(value ?? '').run(); break;
+        default: break;
+      }
+    });
   };
   const qc = useQueryClient();
 
