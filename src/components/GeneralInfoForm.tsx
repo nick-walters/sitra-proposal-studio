@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PartACard } from '@/components/PartACard';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -527,473 +528,473 @@ export function GeneralInfoForm({
 
 
         {/* Project Identity Card */}
-        <Card>
-          <CardHeader className="pb-3 pt-4">
-            <CardTitle className="flex items-center gap-2 text-sm">
-              <FileText className="w-4 h-4" />
-              Project identity
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-6 items-stretch">
-              <div className="flex-1 min-w-0 flex flex-col">
-                <div>
-                  <label className="text-xs text-muted-foreground mb-0.5 block">Title</label>
-                  {isEditing && editedProposal ? (
-                    <>
-                      <Textarea
-                        value={editedProposal.title}
-                        onChange={(e) => {
-                          if (e.target.value.length <= 200) {
-                            setEditedProposal({ ...editedProposal, title: e.target.value });
-                          }
-                        }}
-                        className="text-sm font-semibold resize-none"
-                        placeholder="Full proposal title"
-                        rows={3}
-                        maxLength={200}
-                      />
-                      <div className="flex justify-end mt-0.5">
-                        <span className={cn("text-xs text-muted-foreground", editedProposal.title.length > 180 && "text-warning")}>
-                          {editedProposal.title.length} / 200 characters
-                        </span>
-                      </div>
-                    </>
-                  ) : (
-                    <h2 className="text-sm font-semibold text-foreground" style={{ fontFamily: 'Arial, sans-serif' }}>{proposal?.title}</h2>
-                  )}
-                  <InlineGuideline className="mt-1">
-                    Max 200 characters (including spaces). Must be understandable for non-specialists.
-                  </InlineGuideline>
-                </div>
-
-                <div className="mt-auto pt-3">
-                  <label className="text-xs text-muted-foreground mb-0.5 block">Acronym</label>
-                  {isEditing && editedProposal ? (
-                    <>
-                      <AcronymColorEditor
-                        acronym={editedProposal.acronym}
-                        segments={(editedProposal as any).acronymSegments || []}
-                        onAcronymChange={(newAcronym) => {
-                          setEditedProposal({ ...editedProposal, acronym: newAcronym });
-                          onUpdateProposal({ acronym: newAcronym });
-                          window.dispatchEvent(new CustomEvent('cross-ref-data-changed', { detail: { source: 'GeneralInfoForm.acronym' } }));
-                        }}
-                        onChange={(segments) => {
-                          setEditedProposal({ ...editedProposal, acronymSegments: segments } as any);
-                          onUpdateProposal({ acronymSegments: segments });
-                          window.dispatchEvent(new CustomEvent('cross-ref-data-changed', { detail: { source: 'GeneralInfoForm.acronymSegments' } }));
-                        }}
-
-                        placeholder="Type acronym…"
-                        showHelperText={false}
-                      />
-                    </>
-                  ) : (
-                    <p className="text-sm font-black" style={{ fontFamily: '"Arial Black", Arial, sans-serif' }}>{proposal?.acronym}</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex-shrink-0 flex flex-col self-stretch">
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Project logo</label>
-                  <div className="flex gap-2 items-start">
-                    {isEditing && editedProposal ? (
-                      <LogoUpload
-                        currentUrl={editedProposal.logoUrl || null}
-                        proposalId={proposalId}
-                        proposalAcronym={editedProposal.acronym}
-                        proposalTitle={editedProposal.title}
-                        topicContext={[
-                          (proposal as any)?.topicExpectedOutcome,
-                          (proposal as any)?.topicScope,
-                          (proposal as any)?.topicDestinationDescription,
-                        ].filter(Boolean).join(' ') || undefined}
-                        acronymSegments={(editedProposal as any).acronymSegments}
-                        onUpload={handleLogoChange}
-                      />
-                    ) : (
-                      <AcronymLogo logoUrl={proposal?.logoUrl} acronym={proposal?.acronym || 'P'} />
-                    )}
-                  </div>
-                </div>
-                <div className="mt-auto">
-                  <label className="text-xs text-muted-foreground mb-0.5 block whitespace-nowrap">Duration (months)</label>
-                  {isEditing && editedProposal ? (
-                    <Input
-                      type="number"
-                      min={1}
-                      max={120}
-                      value={editedProposal.duration ?? ''}
-                      onChange={(e) => {
-                        const val = e.target.value === '' ? undefined : Math.max(1, parseInt(e.target.value, 10) || 1);
-                        setEditedProposal({ ...editedProposal, duration: val } as any);
-                      }}
-                      className="h-8 text-sm w-24"
-                      placeholder="e.g. 36"
-                    />
-                  ) : (
-                    <p className="text-sm font-medium">
-                      {proposal?.duration ? `${proposal.duration}` : 'Not set'}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Proposal Status Card */}
-        <Card>
-          <CardHeader className="pb-2 pt-4">
-            <CardTitle className="flex items-center gap-2 text-sm">
-              <FileText className="w-4 h-4" />
-              Proposal status
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {/* Status change */}
-              {canChangeStatus && onStatusChange && (
-                <div>
-                  <label className="text-xs text-muted-foreground mb-0.5 block">Status</label>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="w-full justify-start text-left font-normal h-8 text-sm gap-1.5"
-                        disabled={updatingStatus}
-                      >
-                        {updatingStatus && <Loader2 className="w-3 h-3 animate-spin" />}
-                        {proposal?.status === 'draft' && <><FileText className="w-3.5 h-3.5" /> Draft</>}
-                        {proposal?.status === 'submitted' && <><Send className="w-3.5 h-3.5" /> Under evaluation</>}
-                        {proposal?.status === 'funded' && <><Trophy className="w-3.5 h-3.5" /> Funded</>}
-                        {proposal?.status === 'not_funded' && <><ThumbsDown className="w-3.5 h-3.5" /> Not Funded</>}
-                        <ChevronDown className="w-3 h-3 ml-auto" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start">
-                      {proposal?.status !== 'draft' && (
-                        <DropdownMenuItem onClick={() => onStatusChange('draft')}>
-                          <FileText className="w-4 h-4 mr-2" /> Draft
-                        </DropdownMenuItem>
-                      )}
-                      {proposal?.status !== 'submitted' && (
-                        <DropdownMenuItem onClick={() => onStatusChange('submitted')}>
-                          <Send className="w-4 h-4 mr-2" /> Under evaluation
-                        </DropdownMenuItem>
-                      )}
-                      {proposal?.status !== 'funded' && (
-                        <DropdownMenuItem onClick={() => onStatusChange('funded')}>
-                          <Trophy className="w-4 h-4 mr-2" /> Funded
-                        </DropdownMenuItem>
-                      )}
-                      {proposal?.status !== 'not_funded' && (
-                        <DropdownMenuItem onClick={() => onStatusChange('not_funded')}>
-                          <ThumbsDown className="w-4 h-4 mr-2" /> Not Funded
-                        </DropdownMenuItem>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              )}
-
+        <PartACard
+          collapseKey="a1.project-identity"
+          title="Project identity"
+          icon={<FileText className="w-4 h-4" />}
+        >
+          <div className="flex gap-6 items-stretch">
+            <div className="flex-1 min-w-0 flex flex-col">
               <div>
-                <label className="text-xs text-muted-foreground mb-0.5 block">Decision date</label>
+                <label className="text-xs text-muted-foreground mb-0.5 block">Title</label>
                 {isEditing && editedProposal ? (
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className={cn("w-full justify-start text-left font-normal h-8 text-sm", !editedProposal.decisionDate && "text-muted-foreground")}>
-                        <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                        {editedProposal.decisionDate ? format(editedProposal.decisionDate, 'PPP') : 'Select date'}
-                        {editedProposal.decisionDateIsEstimated && editedProposal.decisionDate && (
-                          <span className="ml-auto inline-flex items-center px-1.5 py-0 text-[9px] font-medium bg-blue-50 text-blue-600 border border-blue-300 rounded">Est.</span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0 z-50 bg-popover" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={editedProposal.decisionDate}
-                        onSelect={(date) => setEditedProposal({ ...editedProposal, decisionDate: date, decisionDateIsEstimated: false })}
-                        className="pointer-events-auto"
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <>
+                    <Textarea
+                      value={editedProposal.title}
+                      onChange={(e) => {
+                        if (e.target.value.length <= 200) {
+                          setEditedProposal({ ...editedProposal, title: e.target.value });
+                        }
+                      }}
+                      className="text-sm font-semibold resize-none"
+                      placeholder="Full proposal title"
+                      rows={3}
+                      maxLength={200}
+                    />
+                    <div className="flex justify-end mt-0.5">
+                      <span className={cn("text-xs text-muted-foreground", editedProposal.title.length > 180 && "text-warning")}>
+                        {editedProposal.title.length} / 200 characters
+                      </span>
+                    </div>
+                  </>
                 ) : (
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-sm font-medium">
-                      {proposal?.decisionDate ? format(proposal.decisionDate, 'dd MMM yyyy') : 'Not set'}
-                    </p>
-                    {proposal?.decisionDate && proposal?.decisionDateIsEstimated && proposal?.status !== 'funded' && proposal?.status !== 'not_funded' && (
-                      <span className="inline-flex items-center px-1.5 py-0 text-[9px] font-medium bg-blue-50 text-blue-600 border border-blue-300 rounded">Est.</span>
-                    )}
-                  </div>
+                  <h2 className="text-sm font-semibold text-foreground" style={{ fontFamily: 'Arial, sans-serif' }}>{proposal?.title}</h2>
+                )}
+                <InlineGuideline className="mt-1">
+                  Max 200 characters (including spaces). Must be understandable for non-specialists.
+                </InlineGuideline>
+              </div>
+
+              <div className="mt-auto pt-3">
+                <label className="text-xs text-muted-foreground mb-0.5 block">Acronym</label>
+                {isEditing && editedProposal ? (
+                  <>
+                    <AcronymColorEditor
+                      acronym={editedProposal.acronym}
+                      segments={(editedProposal as any).acronymSegments || []}
+                      onAcronymChange={(newAcronym) => {
+                        setEditedProposal({ ...editedProposal, acronym: newAcronym });
+                        onUpdateProposal({ acronym: newAcronym });
+                        window.dispatchEvent(new CustomEvent('cross-ref-data-changed', { detail: { source: 'GeneralInfoForm.acronym' } }));
+                      }}
+                      onChange={(segments) => {
+                        setEditedProposal({ ...editedProposal, acronymSegments: segments } as any);
+                        onUpdateProposal({ acronymSegments: segments });
+                        window.dispatchEvent(new CustomEvent('cross-ref-data-changed', { detail: { source: 'GeneralInfoForm.acronymSegments' } }));
+                      }}
+
+                      placeholder="Type acronym…"
+                      showHelperText={false}
+                    />
+                  </>
+                ) : (
+                  <p className="text-sm font-black" style={{ fontFamily: '"Arial Black", Arial, sans-serif' }}>{proposal?.acronym}</p>
                 )}
               </div>
+            </div>
 
-              {proposal?.status !== 'draft' && (
-                <div>
-                  <label className="text-xs text-muted-foreground mb-0.5 block">Submission date</label>
+            <div className="flex-shrink-0 flex flex-col self-stretch">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Project logo</label>
+                <div className="flex gap-2 items-start">
+                  {isEditing && editedProposal ? (
+                    <LogoUpload
+                      currentUrl={editedProposal.logoUrl || null}
+                      proposalId={proposalId}
+                      proposalAcronym={editedProposal.acronym}
+                      proposalTitle={editedProposal.title}
+                      topicContext={[
+                        (proposal as any)?.topicExpectedOutcome,
+                        (proposal as any)?.topicScope,
+                        (proposal as any)?.topicDestinationDescription,
+                      ].filter(Boolean).join(' ') || undefined}
+                      acronymSegments={(editedProposal as any).acronymSegments}
+                      onUpload={handleLogoChange}
+                    />
+                  ) : (
+                    <AcronymLogo logoUrl={proposal?.logoUrl} acronym={proposal?.acronym || 'P'} />
+                  )}
+                </div>
+              </div>
+              <div className="mt-auto">
+                <label className="text-xs text-muted-foreground mb-0.5 block whitespace-nowrap">Duration (months)</label>
+                {isEditing && editedProposal ? (
+                  <Input
+                    type="number"
+                    min={1}
+                    max={120}
+                    value={editedProposal.duration ?? ''}
+                    onChange={(e) => {
+                      const val = e.target.value === '' ? undefined : Math.max(1, parseInt(e.target.value, 10) || 1);
+                      setEditedProposal({ ...editedProposal, duration: val } as any);
+                    }}
+                    className="h-8 text-sm w-24"
+                    placeholder="e.g. 36"
+                  />
+                ) : (
                   <p className="text-sm font-medium">
-                    {proposal?.submittedAt ? format(proposal.submittedAt, 'dd MMM yyyy') : 'Not recorded'}
+                    {proposal?.duration ? `${proposal.duration}` : 'Not set'}
                   </p>
+                )}
+              </div>
+            </div>
+          </div>
+        </PartACard>
+
+        {/* Proposal Status Card */}
+        <PartACard
+          collapseKey="a1.proposal-status"
+          title="Proposal status"
+          icon={<FileText className="w-4 h-4" />}
+        >
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {/* Status change */}
+            {canChangeStatus && onStatusChange && (
+              <div>
+                <label className="text-xs text-muted-foreground mb-0.5 block">Status</label>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal h-8 text-sm gap-1.5"
+                      disabled={updatingStatus}
+                    >
+                      {updatingStatus && <Loader2 className="w-3 h-3 animate-spin" />}
+                      {proposal?.status === 'draft' && <><FileText className="w-3.5 h-3.5" /> Draft</>}
+                      {proposal?.status === 'submitted' && <><Send className="w-3.5 h-3.5" /> Under evaluation</>}
+                      {proposal?.status === 'funded' && <><Trophy className="w-3.5 h-3.5" /> Funded</>}
+                      {proposal?.status === 'not_funded' && <><ThumbsDown className="w-3.5 h-3.5" /> Not Funded</>}
+                      <ChevronDown className="w-3 h-3 ml-auto" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    {proposal?.status !== 'draft' && (
+                      <DropdownMenuItem onClick={() => onStatusChange('draft')}>
+                        <FileText className="w-4 h-4 mr-2" /> Draft
+                      </DropdownMenuItem>
+                    )}
+                    {proposal?.status !== 'submitted' && (
+                      <DropdownMenuItem onClick={() => onStatusChange('submitted')}>
+                        <Send className="w-4 h-4 mr-2" /> Under evaluation
+                      </DropdownMenuItem>
+                    )}
+                    {proposal?.status !== 'funded' && (
+                      <DropdownMenuItem onClick={() => onStatusChange('funded')}>
+                        <Trophy className="w-4 h-4 mr-2" /> Funded
+                      </DropdownMenuItem>
+                    )}
+                    {proposal?.status !== 'not_funded' && (
+                      <DropdownMenuItem onClick={() => onStatusChange('not_funded')}>
+                        <ThumbsDown className="w-4 h-4 mr-2" /> Not Funded
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )}
+
+            <div>
+              <label className="text-xs text-muted-foreground mb-0.5 block">Decision date</label>
+              {isEditing && editedProposal ? (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal h-8 text-sm", !editedProposal.decisionDate && "text-muted-foreground")}>
+                      <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                      {editedProposal.decisionDate ? format(editedProposal.decisionDate, 'PPP') : 'Select date'}
+                      {editedProposal.decisionDateIsEstimated && editedProposal.decisionDate && (
+                        <span className="ml-auto inline-flex items-center px-1.5 py-0 text-[9px] font-medium bg-blue-50 text-blue-600 border border-blue-300 rounded">Est.</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 z-50 bg-popover" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={editedProposal.decisionDate}
+                      onSelect={(date) => setEditedProposal({ ...editedProposal, decisionDate: date, decisionDateIsEstimated: false })}
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              ) : (
+                <div className="flex items-center gap-1.5">
+                  <p className="text-sm font-medium">
+                    {proposal?.decisionDate ? format(proposal.decisionDate, 'dd MMM yyyy') : 'Not set'}
+                  </p>
+                  {proposal?.decisionDate && proposal?.decisionDateIsEstimated && proposal?.status !== 'funded' && proposal?.status !== 'not_funded' && (
+                    <span className="inline-flex items-center px-1.5 py-0 text-[9px] font-medium bg-blue-50 text-blue-600 border border-blue-300 rounded">Est.</span>
+                  )}
                 </div>
               )}
             </div>
-          </CardContent>
-        </Card>
+
+            {proposal?.status !== 'draft' && (
+              <div>
+                <label className="text-xs text-muted-foreground mb-0.5 block">Submission date</label>
+                <p className="text-sm font-medium">
+                  {proposal?.submittedAt ? format(proposal.submittedAt, 'dd MMM yyyy') : 'Not recorded'}
+                </p>
+              </div>
+            )}
+          </div>
+        </PartACard>
 
         {/* Abstract */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Abstract</CardTitle>
-            <InlineGuideline className="mt-2">
-              Max 2,000 characters (including spaces). It will be used as the short description of your proposal in the evaluation process and in communications if your proposal is funded.
-            </InlineGuideline>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Textarea
-              value={formData.abstract}
-              onChange={(e) => handleAbstractChange(e.target.value)}
-              onPaste={(e) => {
-                // Enforce plain-text paste — strip any HTML/rich content
-                // (e.g. Word, editor badges) before it lands in the field.
-                const cd = e.clipboardData;
-                if (!cd) return;
-                const html = cd.getData('text/html');
-                const text = cd.getData('text/plain');
-                if (!html && !text) return;
-                e.preventDefault();
-                const plain = html ? htmlToPlainText(html) : text;
-                document.execCommand('insertText', false, plain);
-              }}
-              placeholder="Enter your proposal abstract..."
-              className="min-h-[200px] resize-none"
-              maxLength={2000}
-              disabled={!canEdit}
-            />
-            <div className="flex justify-between text-sm text-muted-foreground">
-              <span>{abstractWordCount} words</span>
-              <span className={abstractCharCount > 1800 ? 'text-warning' : ''}>
-                {abstractCharCount} / 2000 characters
-              </span>
-            </div>
-          </CardContent>
-        </Card>
+        <PartACard
+          collapseKey="a1.abstract"
+          title="Abstract"
+          titleClassName="text-lg"
+          description={
+              <InlineGuideline className="mt-2">
+                Max 2,000 characters (including spaces). It will be used as the short description of your proposal in the evaluation process and in communications if your proposal is funded.
+              </InlineGuideline>
+          }
+          contentClassName="space-y-3"
+        >
+          <Textarea
+            value={formData.abstract}
+            onChange={(e) => handleAbstractChange(e.target.value)}
+            onPaste={(e) => {
+              // Enforce plain-text paste — strip any HTML/rich content
+              // (e.g. Word, editor badges) before it lands in the field.
+              const cd = e.clipboardData;
+              if (!cd) return;
+              const html = cd.getData('text/html');
+              const text = cd.getData('text/plain');
+              if (!html && !text) return;
+              e.preventDefault();
+              const plain = html ? htmlToPlainText(html) : text;
+              document.execCommand('insertText', false, plain);
+            }}
+            placeholder="Enter your proposal abstract..."
+            className="min-h-[200px] resize-none"
+            maxLength={2000}
+            disabled={!canEdit}
+          />
+          <div className="flex justify-between text-sm text-muted-foreground">
+            <span>{abstractWordCount} words</span>
+            <span className={abstractCharCount > 1800 ? 'text-warning' : ''}>
+              {abstractCharCount} / 2000 characters
+            </span>
+          </div>
+        </PartACard>
 
         {/* Fixed Keywords */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Fixed keywords</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {canEdit && formData.fixedKeywords.length < 5 && (
-              <div className="flex gap-2">
-                <Input
-                  value={keywordInput}
-                  onChange={(e) => setKeywordInput(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Enter a keyword..."
-                  className="flex-1"
-                />
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={handleAddKeyword}
-                  disabled={!keywordInput.trim()}
-                >
-                  Add
-                </Button>
-              </div>
-            )}
-            
-            <div className="flex flex-wrap gap-2">
-              {formData.fixedKeywords.map((keyword, index) => (
-                <Badge key={index} variant="secondary" className="px-3 py-1.5 text-sm">
-                  {keyword}
-                  {canEdit && (
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveKeyword(keyword)}
-                      className="ml-2 hover:text-destructive"
-                    >
-                      ×
-                    </button>
-                  )}
-                </Badge>
-              ))}
-              {formData.fixedKeywords.length === 0 && (
-                <p className="text-sm text-muted-foreground italic">No fixed keywords added yet</p>
-              )}
+        <PartACard
+          collapseKey="a1.fixed-keywords"
+          title="Fixed keywords"
+          titleClassName="text-lg"
+          contentClassName="space-y-4"
+        >
+          {canEdit && formData.fixedKeywords.length < 5 && (
+            <div className="flex gap-2">
+              <Input
+                value={keywordInput}
+                onChange={(e) => setKeywordInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Enter a keyword..."
+                className="flex-1"
+              />
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={handleAddKeyword}
+                disabled={!keywordInput.trim()}
+              >
+                Add
+              </Button>
             </div>
-          </CardContent>
-        </Card>
+          )}
+
+          <div className="flex flex-wrap gap-2">
+            {formData.fixedKeywords.map((keyword, index) => (
+              <Badge key={index} variant="secondary" className="px-3 py-1.5 text-sm">
+                {keyword}
+                {canEdit && (
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveKeyword(keyword)}
+                    className="ml-2 hover:text-destructive"
+                  >
+                    ×
+                  </button>
+                )}
+              </Badge>
+            ))}
+            {formData.fixedKeywords.length === 0 && (
+              <p className="text-sm text-muted-foreground italic">No fixed keywords added yet</p>
+            )}
+          </div>
+        </PartACard>
 
         {/* Free Keywords */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Free keywords</CardTitle>
-            <InlineGuideline className="mt-2">
-              Enter any words you think give extra detail of the scope of your proposal (max 200 characters with spaces).
-            </InlineGuideline>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Textarea
-              value={formData.freeKeywords}
-              onChange={(e) => setFormData(prev => ({ ...prev, freeKeywords: e.target.value }))}
-              placeholder="Enter free keywords..."
-              className="min-h-[80px] resize-none"
-              maxLength={200}
-              disabled={!canEdit}
-            />
-            <div className="flex justify-end text-sm text-muted-foreground">
-              <span className={freeKeywordsCharCount > 180 ? 'text-warning' : ''}>
-                {freeKeywordsCharCount} / 200 characters
-              </span>
-            </div>
-          </CardContent>
-        </Card>
+        <PartACard
+          collapseKey="a1.free-keywords"
+          title="Free keywords"
+          titleClassName="text-lg"
+          description={
+              <InlineGuideline className="mt-2">
+                Enter any words you think give extra detail of the scope of your proposal (max 200 characters with spaces).
+              </InlineGuideline>
+          }
+          contentClassName="space-y-3"
+        >
+          <Textarea
+            value={formData.freeKeywords}
+            onChange={(e) => setFormData(prev => ({ ...prev, freeKeywords: e.target.value }))}
+            placeholder="Enter free keywords..."
+            className="min-h-[80px] resize-none"
+            maxLength={200}
+            disabled={!canEdit}
+          />
+          <div className="flex justify-end text-sm text-muted-foreground">
+            <span className={freeKeywordsCharCount > 180 ? 'text-warning' : ''}>
+              {freeKeywordsCharCount} / 200 characters
+            </span>
+          </div>
+        </PartACard>
 
         {/* Previous Submission */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Previous submission</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-3">
-              <Label>
-                Has this proposal (or a very similar one) been submitted in the past 2 years in response to a call for proposals under any EU programme, including the current call?
-              </Label>
-              <RadioGroup
-                value={formData.previousSubmission}
-                onValueChange={(value: 'yes' | 'no') => setFormData(prev => ({ 
-                  ...prev, 
-                  previousSubmission: value,
-                  previousSubmissionReference: value === 'no' ? '' : prev.previousSubmissionReference,
-                }))}
-                disabled={!canEdit}
-                className="flex gap-6"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="yes" id="prev-yes" />
-                  <Label htmlFor="prev-yes" className="font-normal cursor-pointer">Yes</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="no" id="prev-no" />
-                  <Label htmlFor="prev-no" className="font-normal cursor-pointer">No</Label>
-                </div>
-              </RadioGroup>
-            </div>
-
-            {formData.previousSubmission === 'yes' && (
-              <div className="space-y-2 pt-2">
-                <Label htmlFor="prev-reference">Please give the proposal reference or contract number:</Label>
-                <Input
-                  id="prev-reference"
-                  value={formData.previousSubmissionReference}
-                  onChange={(e) => setFormData(prev => ({ ...prev, previousSubmissionReference: e.target.value }))}
-                  placeholder="Enter proposal reference or contract number..."
-                  disabled={!canEdit}
-                />
+        <PartACard
+          collapseKey="a1.previous-submission"
+          title="Previous submission"
+          titleClassName="text-lg"
+          contentClassName="space-y-4"
+        >
+          <div className="space-y-3">
+            <Label>
+              Has this proposal (or a very similar one) been submitted in the past 2 years in response to a call for proposals under any EU programme, including the current call?
+            </Label>
+            <RadioGroup
+              value={formData.previousSubmission}
+              onValueChange={(value: 'yes' | 'no') => setFormData(prev => ({ 
+                ...prev, 
+                previousSubmission: value,
+                previousSubmissionReference: value === 'no' ? '' : prev.previousSubmissionReference,
+              }))}
+              disabled={!canEdit}
+              className="flex gap-6"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="yes" id="prev-yes" />
+                <Label htmlFor="prev-yes" className="font-normal cursor-pointer">Yes</Label>
               </div>
-            )}
-          </CardContent>
-        </Card>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="no" id="prev-no" />
+                <Label htmlFor="prev-no" className="font-normal cursor-pointer">No</Label>
+              </div>
+            </RadioGroup>
+          </div>
+
+          {formData.previousSubmission === 'yes' && (
+            <div className="space-y-2 pt-2">
+              <Label htmlFor="prev-reference">Please give the proposal reference or contract number:</Label>
+              <Input
+                id="prev-reference"
+                value={formData.previousSubmissionReference}
+                onChange={(e) => setFormData(prev => ({ ...prev, previousSubmissionReference: e.target.value }))}
+                placeholder="Enter proposal reference or contract number..."
+                disabled={!canEdit}
+              />
+            </div>
+          )}
+        </PartACard>
 
         {/* Declarations */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Declarations</CardTitle>
-            <InlineGuideline className="mt-2">
-              By ticking the boxes below, applicants confirm the declarations on behalf of their organisation. If the proposal is retained for EU funding, they will all be required to sign a declaration of honour. False statements or incorrect information may lead to administrative sanctions under the EU Financial Regulation.
-            </InlineGuideline>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {DECLARATIONS.map((declaration) => (
-              <div key={declaration.id} className="flex items-start space-x-3">
-                <Checkbox
-                  id={declaration.id}
-                  checked={formData.declarations[declaration.id as keyof typeof formData.declarations]}
-                  onCheckedChange={(checked) => handleDeclarationChange(declaration.id, checked as boolean)}
-                  disabled={!canEdit}
-                  className="mt-0.5"
-                />
-                <div className="font-normal text-sm leading-relaxed">
-                  <Label htmlFor={declaration.id} className="font-normal cursor-pointer">
-                    <span className="font-medium">{declaration.number}.</span>{' '}
-                    {renderTextWithLinks(declaration.text, declaration.links)}
-                  </Label>
-                  {declaration.bullets && declaration.bullets.length > 0 && (
-                    <ul className="list-disc ml-5 mt-1 space-y-0.5">
-                      {declaration.bullets.map((bullet, idx) => (
-                        <li key={idx}>
-                          {typeof bullet === 'string' ? (
-                            bullet
-                          ) : (
-                            <>
-                              {bullet.text}
-                              <a
-                                href={bullet.link.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-primary hover:underline"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                {bullet.link.text}
-                              </a>
-                            </>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  {declaration.suffix && (
-                    <p className="mt-1">{declaration.suffix}</p>
-                  )}
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        {/* AI usage statement */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">AI usage statement</CardTitle>
-            <InlineGuideline className="mt-2">
-              When ticked, this statement is mirrored into the proposal document, directly above the “1. Excellence” heading.
-            </InlineGuideline>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-start space-x-3">
+        <PartACard
+          collapseKey="a1.declarations"
+          title="Declarations"
+          titleClassName="text-lg"
+          description={
+              <InlineGuideline className="mt-2">
+                By ticking the boxes below, applicants confirm the declarations on behalf of their organisation. If the proposal is retained for EU funding, they will all be required to sign a declaration of honour. False statements or incorrect information may lead to administrative sanctions under the EU Financial Regulation.
+              </InlineGuideline>
+          }
+          contentClassName="space-y-4"
+        >
+          {DECLARATIONS.map((declaration) => (
+            <div key={declaration.id} className="flex items-start space-x-3">
               <Checkbox
-                id="ai-statement-enabled"
-                checked={formData.aiStatementEnabled}
-                onCheckedChange={(checked) =>
-                  setFormData(prev => ({ ...prev, aiStatementEnabled: checked as boolean }))
-                }
+                id={declaration.id}
+                checked={formData.declarations[declaration.id as keyof typeof formData.declarations]}
+                onCheckedChange={(checked) => handleDeclarationChange(declaration.id, checked as boolean)}
                 disabled={!canEdit}
                 className="mt-0.5"
               />
-              <Label htmlFor="ai-statement-enabled" className="font-normal text-sm leading-relaxed cursor-pointer">
-                Include an AI usage statement in the proposal
-              </Label>
+              <div className="font-normal text-sm leading-relaxed">
+                <Label htmlFor={declaration.id} className="font-normal cursor-pointer">
+                  <span className="font-medium">{declaration.number}.</span>{' '}
+                  {renderTextWithLinks(declaration.text, declaration.links)}
+                </Label>
+                {declaration.bullets && declaration.bullets.length > 0 && (
+                  <ul className="list-disc ml-5 mt-1 space-y-0.5">
+                    {declaration.bullets.map((bullet, idx) => (
+                      <li key={idx}>
+                        {typeof bullet === 'string' ? (
+                          bullet
+                        ) : (
+                          <>
+                            {bullet.text}
+                            <a
+                              href={bullet.link.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {bullet.link.text}
+                            </a>
+                          </>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {declaration.suffix && (
+                  <p className="mt-1">{declaration.suffix}</p>
+                )}
+              </div>
             </div>
-            {formData.aiStatementEnabled && (
-              <MethodologyEditorFocusProvider>
-                <AiStatementField
-                  proposalId={proposalId}
-                  canEdit={canEdit}
-                  value={formData.aiStatementText}
-                  onChange={(html) => setFormData(prev => ({ ...prev, aiStatementText: html }))}
-                />
-              </MethodologyEditorFocusProvider>
-            )}
+          ))}
+        </PartACard>
 
-          </CardContent>
-        </Card>
+        {/* AI usage statement */}
+        <PartACard
+          collapseKey="a1.ai-usage-statement"
+          title="AI usage statement"
+          titleClassName="text-lg"
+          description={
+              <InlineGuideline className="mt-2">
+                When ticked, this statement is mirrored into the proposal document, directly above the “1. Excellence” heading.
+              </InlineGuideline>
+          }
+          contentClassName="space-y-3"
+        >
+          <div className="flex items-start space-x-3">
+            <Checkbox
+              id="ai-statement-enabled"
+              checked={formData.aiStatementEnabled}
+              onCheckedChange={(checked) =>
+                setFormData(prev => ({ ...prev, aiStatementEnabled: checked as boolean }))
+              }
+              disabled={!canEdit}
+              className="mt-0.5"
+            />
+            <Label htmlFor="ai-statement-enabled" className="font-normal text-sm leading-relaxed cursor-pointer">
+              Include an AI usage statement in the proposal
+            </Label>
+          </div>
+          {formData.aiStatementEnabled && (
+            <MethodologyEditorFocusProvider>
+              <AiStatementField
+                proposalId={proposalId}
+                canEdit={canEdit}
+                value={formData.aiStatementText}
+                onChange={(html) => setFormData(prev => ({ ...prev, aiStatementText: html }))}
+              />
+            </MethodologyEditorFocusProvider>
+          )}
+
+        </PartACard>
 
 
 
@@ -1076,60 +1077,58 @@ function DeleteProposalSection({ proposalId, proposalTitle }: { proposalId: stri
   };
 
   return (
-    <Card className="border-destructive/50">
-      <CardHeader>
-        <CardTitle className="text-destructive flex items-center gap-2">
-          <Trash2 className="h-5 w-5" />
-          Delete Proposal
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="text-sm text-muted-foreground mb-4">
-          Permanently delete this proposal and all associated data. This action cannot be undone.
-        </p>
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="destructive" disabled={isDeleting}>
-              {isDeleting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Deleting...
-                </>
-              ) : (
-                <>
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Delete Proposal
-                </>
-              )}
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This will permanently delete <strong>"{proposalTitle}"</strong> and all its data, including:
-                <ul className="list-disc ml-5 mt-2 space-y-1">
-                  <li>All sections and content</li>
-                  <li>All participants and their data</li>
-                  <li>All work packages and drafts</li>
-                  <li>All budget items and figures</li>
-                  <li>All comments and version history</li>
-                </ul>
-                <p className="mt-3 font-medium text-destructive">This action cannot be undone.</p>
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleDeleteProposal}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                Yes, delete proposal
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </CardContent>
-    </Card>
+    <PartACard
+      collapseKey="a1.delete-proposal"
+      title="Delete Proposal"
+      icon={<Trash2 className="h-5 w-5" />}
+      titleClassName="text-destructive"
+      className="border-destructive/50"
+    >
+      <p className="text-sm text-muted-foreground mb-4">
+        Permanently delete this proposal and all associated data. This action cannot be undone.
+      </p>
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button variant="destructive" disabled={isDeleting}>
+            {isDeleting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Deleting...
+              </>
+            ) : (
+              <>
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete Proposal
+              </>
+            )}
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete <strong>"{proposalTitle}"</strong> and all its data, including:
+              <ul className="list-disc ml-5 mt-2 space-y-1">
+                <li>All sections and content</li>
+                <li>All participants and their data</li>
+                <li>All work packages and drafts</li>
+                <li>All budget items and figures</li>
+                <li>All comments and version history</li>
+              </ul>
+              <p className="mt-3 font-medium text-destructive">This action cannot be undone.</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteProposal}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Yes, delete proposal
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </PartACard>
   );
 }
