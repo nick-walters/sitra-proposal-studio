@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { EditorContent, type Editor } from '@tiptap/react';
 import { useRichTextEditor } from './RichTextEditor';
 import { useMethodologyEditorFocus } from './MethodologyEditorFocusContext';
@@ -18,6 +18,12 @@ interface MethodologyRichEditorProps {
   activeRingClass?: string;
   /** Called once with the live TipTap instance when it is created. */
   onEditorReady?: (editor: Editor) => void;
+  /**
+   * Grey italic hint shown INSIDE the field while it is empty. It is a true
+   * placeholder — never part of the document — so it survives typing and
+   * reappears when the content is fully removed.
+   */
+  placeholder?: string;
 }
 
 
