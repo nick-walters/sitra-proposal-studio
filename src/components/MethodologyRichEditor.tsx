@@ -112,9 +112,24 @@ export function MethodologyRichEditor({
 
   const isActive = Boolean(editor) && activeEditor === editor;
 
+  // Placeholder visibility tracks the live document, not the incoming prop, so
+  // it disappears on the first keystroke and returns when the field is cleared.
+  const [isEmpty, setIsEmpty] = useState(true);
+  useEffect(() => {
+    if (!editor || !placeholder) return;
+    const sync = () => setIsEmpty(editor.isEmpty);
+    sync();
+    editor.on('update', sync);
+    editor.on('transaction', sync);
+    return () => {
+      editor.off('update', sync);
+      editor.off('transaction', sync);
+    };
+  }, [editor, placeholder]);
+
   return (
     <div
-      className={`overflow-visible rounded-md border bg-background px-2.5 py-1.5 transition-colors [&_.ProseMirror]:!min-h-0 [&_.ProseMirror]:overflow-visible [&_.document-content]:!min-h-0 ${
+      className={`relative overflow-visible rounded-md border bg-background px-2.5 py-1.5 transition-colors [&_.ProseMirror]:!min-h-0 [&_.ProseMirror]:overflow-visible [&_.document-content]:!min-h-0 ${
         canEdit ? 'cursor-text' : 'cursor-default select-text'
       } ${isActive && canEdit ? activeRingClass : 'border-border'}`}
       style={{ minHeight }}
