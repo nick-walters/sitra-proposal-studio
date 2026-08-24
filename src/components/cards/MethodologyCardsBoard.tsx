@@ -1880,6 +1880,8 @@ function BoardInner({
               onRestoreBlock:
                 canEdit && deletedBlockCount > 0 ? () => setBinOpen(true) : undefined,
               restoreBlockCount: deletedBlockCount,
+              onFindReplace: pageSearch ? () => pageSearch.setOpen(true) : undefined,
+
           }}
           fieldBar={{ onOpenVersionHistory: () => setHistoryOpen(true) }}
           formatting={{
