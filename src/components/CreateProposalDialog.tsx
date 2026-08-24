@@ -97,6 +97,8 @@ export function CreateProposalDialog({
   const [topicUrl, setTopicUrl] = useState<string>('');
   const [deadline, setDeadline] = useState<Date | undefined>(undefined);
   const [templateTypeId, setTemplateTypeId] = useState<string>('');
+  const [templateVersionId, setTemplateVersionId] = useState<string>('');
+
   const [usesFstp, setUsesFstp] = useState<boolean>(false);
   const [isTwoStageSecondStage, setIsTwoStageSecondStage] = useState<boolean>(false);
 
