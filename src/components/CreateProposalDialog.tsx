@@ -190,6 +190,8 @@ export function CreateProposalDialog({
     setTopicUrl('');
     setDeadline(undefined);
     setTemplateTypeId('');
+    setTemplateVersionId('');
+
     setUsesFstp(false);
     setIsTwoStageSecondStage(false);
     onOpenChange(false);
