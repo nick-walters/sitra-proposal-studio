@@ -1710,9 +1710,9 @@ function BoardInner({
     reloadNonce,
   });
 
-  if (isLoading) {
-    return <p className="p-6 text-sm text-muted-foreground">Loading blocks…</p>;
-  }
+  /* NOTE: no early return may appear above the remaining hooks — see the
+     loading/empty guards below, which now sit after every hook call. */
+
 
   /**
    * Page-wide find and replace reads the STORED value of every text box on
