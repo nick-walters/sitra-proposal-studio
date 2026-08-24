@@ -124,8 +124,9 @@ export function WPTableSection({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2 px-3 pb-3 pt-0">
-        {/* Objectives section */}
-        <div className="space-y-2">
+        {/* Objectives section. `data-guideline-key` lets the shared
+            Guidelines control show this field's guidance only. */}
+        <div className="space-y-2" data-guideline-key="wp.objectives">
           <label className="text-draft font-medium">Objective</label>
           <DebouncedRichField
             value={objectives || ''}
@@ -140,7 +141,7 @@ export function WPTableSection({
         </div>
 
         {/* Optional field before tasks */}
-        <div className="space-y-2">
+        <div className="space-y-2" data-guideline-key="wp.methodology">
           <label className="text-draft font-medium">Optional field before tasks</label>
           <DebouncedRichField
             value={descriptionBeforeTasks || ''}
@@ -438,7 +439,7 @@ function SortableTaskCard({
       </div>
 
       {/* Row 3: Description editor */}
-      <div className="mt-2 ml-5">
+      <div className="mt-2 ml-5" data-guideline-key="wp.tasks">
         <DebouncedRichField
           value={task.description || ''}
           onChange={handleDescriptionChange}

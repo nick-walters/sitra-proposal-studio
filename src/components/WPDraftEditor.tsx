@@ -1121,6 +1121,7 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
         />
 
         {/* Deliverables */}
+        <div data-guideline-key="wp.deliverables">
         <WPDeliverablesTable
           wpDraftId={wpDraft.id}
           wpNumber={wpDraft.number}
