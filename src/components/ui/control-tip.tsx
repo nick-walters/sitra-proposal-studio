@@ -1,4 +1,4 @@
-import { cloneElement, isValidElement, type ReactElement, type ReactNode } from 'react';
+import { cloneElement, forwardRef, isValidElement, type ReactElement, type ReactNode } from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 /**
@@ -9,28 +9,27 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
  * wording and the two can never drift apart. `title` is deliberately removed
  * from the child: the browser's native tooltip would otherwise appear
  * alongside ours.
+ *
+ * Radix triggers used with `asChild` (`AlertDialogTrigger`, `DropdownMenuTrigger`
+ * …) hand their behaviour — onClick, aria-* and a ref — to whatever element they
+ * wrap. When that element is a `Tip`, those props must be forwarded onto the
+ * child control, otherwise the control renders but does nothing.
  */
-export function Tip({
-  label,
-  side = 'top',
-  children,
-  ...rest
-}: {
-  label: string;
-  side?: 'top' | 'right' | 'bottom' | 'left';
-  children: ReactNode;
-} & Record<string, unknown>) {
+export const Tip = forwardRef<
+  HTMLElement,
+  {
+    label: string;
+    side?: 'top' | 'right' | 'bottom' | 'left';
+    children: ReactNode;
+  } & Record<string, unknown>
+>(function Tip({ label, side = 'top', children, ...rest }, ref) {
   if (!isValidElement(children)) return <>{children}</>;
 
-  // Radix triggers (`AlertDialogTrigger asChild`, `DropdownMenuTrigger asChild`
-  // …) hand their behaviour — onClick, aria-* and a ref — to this component as
-  // props. Without forwarding them onto the child the control renders but does
-  // nothing, which is what broke the linked-activity delete button.
   const trigger = cloneElement(
     children as ReactElement<{ 'aria-label'?: string; title?: string }>,
-    { ...(rest as object), 'aria-label': label, title: undefined },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    { ...(rest as object), ref, 'aria-label': label, title: undefined } as any,
   );
-
 
   return (
     <Tooltip>
@@ -38,4 +37,4 @@ export function Tip({
       <TooltipContent side={side}>{label}</TooltipContent>
     </Tooltip>
   );
-}
+});
