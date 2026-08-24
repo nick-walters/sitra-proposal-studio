@@ -428,4 +428,11 @@ export function DraftFormattingToolbar({
       )}
     </div>
   );
+
+  if (!showGuidelinesRow) return content;
+
+  return (
+    <div className="sticky top-0 z-40 -mx-1 bg-background px-1 py-1">{content}</div>
+  );
 }
+
