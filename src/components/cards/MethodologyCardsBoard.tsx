@@ -538,7 +538,7 @@ function FieldRow({
                     placeholder="Header"
                     disabled={!canEdit}
                     minHeight="28px"
-                    className={`flex-1 text-sm [&_.ProseMirror]:font-bold [&_.ProseMirror]:italic [&_p]:m-0 ${lockBorderClass(headerLock.isMine, false)}`}
+                    className={`flex-1 text-sm [&_.ProseMirror]:font-bold [&_.ProseMirror]:italic [&_[role=textbox]]:font-bold [&_[role=textbox]]:italic [&_p]:m-0 ${lockBorderClass(headerLock.isMine, false)}`}
                     staticExtensions={HEADING_TITLE_FIELD_EXTENSIONS}
                     onFocus={() => {
                       headingFocused.current = true;
