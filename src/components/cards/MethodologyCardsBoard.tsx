@@ -1687,6 +1687,144 @@ function BoardInner({
     return <p className="p-6 text-sm text-muted-foreground">Loading blocks…</p>;
   }
 
+  /**
+   * Page-wide find and replace reads the STORED value of every text box on
+   * the board — block titles, module headers and module content — so blocks
+   * the user collapsed, and editors that never mounted, are searched too.
+   * One React Query read per surface (cards + fields) covers the whole page.
+   */
+  const searchFieldsForPage = useCallback((): SearchableField[] => {
+    const out: SearchableField[] = [];
+    const ordered = [...headCards, ...orderedFree, ...tailCards];
+
+    const revealCard = (cardId: string) => async () => {
+      // A block the user collapsed is expanded to show the match and LEFT
+      // open: silently re-collapsing would hide an edit they just made.
+      if (collapsedIds.has(cardId)) {
+        await setCollapsed.mutateAsync({ cardId, collapsed: false });
+      }
+      await jumpToElementId(`card-block-${cardId}`);
+    };
+
+    const saveText = (
+      fieldId: string,
+      textBox: CardTextBox,
+      cardId: string,
+    ) => async (next: string): Promise<FieldSaveOutcome> => {
+      const key = `${fieldId}:${textBox}`;
+      const { data, error } = await supabase.rpc('save_card_text', {
+        p_field_id: fieldId,
+        p_text_box: textBox,
+        p_value: next,
+        p_expected_version: versionsRef.current[key] ?? null,
+        p_is_auto_save: false,
+      });
+      if (error) return { ok: false, conflict: false, error: error.message };
+      const res = (data ?? {}) as { ok?: boolean; version?: number };
+      if (res.version) versionsRef.current[key] = res.version;
+      if (!res.ok) return { ok: false, conflict: true };
+      queryClient.invalidateQueries({ queryKey: ['card-fields-batch'] });
+      if (textBox === 'content') {
+        scheduleCitationInstanceReconcile({ proposalId, fieldId, cardId, html: next });
+      }
+      return { ok: true };
+    };
+
+    for (const card of ordered) {
+      const cardLabel = card.title?.trim() || 'Untitled block';
+      const hidden = !card.isVisible;
+      const readOnly = !canEdit || card.isSourceFed;
+
+      if (card.title) {
+        out.push({
+          id: `card:${card.id}:title`,
+          label: `${cardLabel} › block title`,
+          groupId: card.id,
+          groupLabel: cardLabel,
+          hidden,
+          format: 'text',
+          value: card.title,
+          readOnly,
+          reveal: revealCard(card.id),
+          save: readOnly
+            ? undefined
+            : async (next) => {
+                const key = `card:${card.id}:title`;
+                const { data, error } = await supabase.rpc('save_card_title', {
+                  p_card_id: card.id,
+                  p_title: next,
+                  p_expected_version: versionsRef.current[key] ?? null,
+                });
+                if (error) return { ok: false, conflict: false, error: error.message };
+                const res = (data ?? {}) as { ok?: boolean; version?: number };
+                if (res.version) versionsRef.current[key] = res.version;
+                if (!res.ok) return { ok: false, conflict: true };
+                queryClient.invalidateQueries({ queryKey: sectionCardsKey(proposalId, sectionId) });
+                return { ok: true };
+              },
+        });
+      }
+
+      for (const field of fieldsByCard[card.id] ?? []) {
+        const revealField = async () => {
+          if (collapsedIds.has(card.id)) {
+            await setCollapsed.mutateAsync({ cardId: card.id, collapsed: false });
+          }
+          // Scrolling to the module mounts its lazily-rendered editor.
+          await jumpToElementId(`card-module-${field.id}`);
+        };
+        if (field.heading) {
+          out.push({
+            id: `field:${field.id}:header`,
+            label: `${cardLabel} › module header`,
+            groupId: card.id,
+            groupLabel: cardLabel,
+            hidden,
+            format: 'text',
+            value: field.heading,
+            readOnly,
+            reveal: revealField,
+            save: readOnly ? undefined : saveText(field.id, 'header', card.id),
+          });
+        }
+        if (field.contentHtml) {
+          out.push({
+            id: `field:${field.id}:content`,
+            label: `${cardLabel} › ${field.heading?.trim() || 'module content'}`,
+            groupId: card.id,
+            groupLabel: cardLabel,
+            hidden,
+            format: 'html',
+            value: field.contentHtml,
+            // Case placeholders are fed from the pilot drafts, so their text
+            // is searchable but must be edited at its source.
+            readOnly: readOnly || field.fieldRole === 'case_placeholder',
+            reveal: revealField,
+            save:
+              readOnly || field.fieldRole === 'case_placeholder'
+                ? undefined
+                : saveText(field.id, 'content', card.id),
+          });
+        }
+      }
+    }
+    return out;
+  }, [
+    headCards,
+    orderedFree,
+    tailCards,
+    fieldsByCard,
+    collapsedIds,
+    setCollapsed,
+    canEdit,
+    proposalId,
+    sectionId,
+    queryClient,
+  ]);
+
+  usePageSearchSource('cards-board', 'Methodologies', searchFieldsForPage);
+  const pageSearch = usePageSearch();
+
   if (cards.length === 0) {
     return (
       <p className="p-6 text-sm italic text-muted-foreground">
@@ -1696,6 +1834,7 @@ function BoardInner({
   }
 
   return (
+
     <>
       <OutsideClickClear
         onClear={() => {
