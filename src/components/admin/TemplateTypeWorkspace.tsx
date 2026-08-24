@@ -663,7 +663,10 @@ function GuidelinesDialogAdmin({
     onChanged();
   };
 
-  const add = async (type: 'official' | 'sitra_tip') => {
+  /* Guidance entries carry guideline_type 'commission'; 'criteria' entries
+     live on the subsection, not on a block. */
+  const add = async (type: 'commission') => {
+
     const { data: g, error } = await supabase
       .from('card_guidelines')
       .insert({
