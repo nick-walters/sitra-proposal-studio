@@ -20,6 +20,8 @@ interface DeleteConfirmDialogProps {
   iconSize?: string;
   buttonSize?: 'icon' | 'sm' | 'default';
   disabled?: boolean;
+  /** Hover label and aria-label. Defaults to "Delete {itemLabel}". */
+  tooltip?: string;
 }
 
 export function DeleteConfirmDialog({
@@ -29,21 +31,27 @@ export function DeleteConfirmDialog({
   iconSize = 'h-3.5 w-3.5',
   buttonSize = 'icon',
   disabled = false,
+  tooltip,
 }: DeleteConfirmDialogProps) {
   const [open, setOpen] = useState(false);
 
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
-        <Button
-          variant="ghost"
-          size={buttonSize}
-          className={buttonClassName}
-          disabled={disabled}
-        >
-          <Trash2 className={iconSize} />
-        </Button>
+        {/* The icon-only trigger carried no accessible name at all before —
+            the tooltip text doubles as its aria-label. */}
+        <Tip label={tooltip ?? `Delete ${itemLabel}`}>
+          <Button
+            variant="ghost"
+            size={buttonSize}
+            className={buttonClassName}
+            disabled={disabled}
+          >
+            <Trash2 className={iconSize} />
+          </Button>
+        </Tip>
       </AlertDialogTrigger>
+
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Delete {itemLabel}?</AlertDialogTitle>
