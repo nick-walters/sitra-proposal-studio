@@ -208,17 +208,17 @@ export function DraftFormattingToolbar({
   topBar,
   fieldBar,
 }: DraftFormattingToolbarProps) {
-  if (hideToolbar) return null;
+  // Internal table-popover state used only when `table` prop is not supplied.
+  // These hooks must run on EVERY render, so the `hideToolbar` guard sits
+  // below them rather than at the top of the component.
+  const [internalTableOpen, setInternalTableOpen] = useState(false);
+  const selectionInTable = useSelectionInTable();
+  const [internalHoveredCell, setInternalHoveredCell] = useState<{ row: number; col: number } | null>(null);
 
   const caps: FieldCapabilityFlags = { ...FULL_FIELD_CAPABILITIES, ...(capabilities ?? {}) };
 
   const exec = (cmd: string, value?: string) => onCommand(cmd, value);
 
-
-  // Internal table-popover state used only when `table` prop is not supplied.
-  const [internalTableOpen, setInternalTableOpen] = useState(false);
-  const selectionInTable = useSelectionInTable();
-  const [internalHoveredCell, setInternalHoveredCell] = useState<{ row: number; col: number } | null>(null);
   const effectiveTable: DraftFormattingToolbarTableProps = table ?? {
     open: internalTableOpen,
     onOpenChange: setInternalTableOpen,
