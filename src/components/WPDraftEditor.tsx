@@ -41,7 +41,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Lightbulb, Table2, Image as ImageLucide, Crown, ChevronsUpDown, Check, Lock } from 'lucide-react';
+import { Lightbulb, Table2, Image as ImageLucide, Crown, ChevronsUpDown, Check, Lock, BookOpen } from 'lucide-react';
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
