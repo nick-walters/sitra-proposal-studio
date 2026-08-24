@@ -99,14 +99,16 @@ export function TemplateTypeWorkspace({
 
   const { data: blocks = [] } = useVersionBlocks(activeVersionId || null);
 
-  /* Subsection titles come from the template's own section list. */
+  /* Subsection titles come from the template's own section list, so a type
+     with no blocks seeded yet (e.g. a new instrument) still lists its
+     subsections and can have blocks added to them. */
   const { data: sections = [] } = useQuery({
     queryKey: ['admin-partb-sections', typeId],
     enabled: !!typeId,
     queryFn: async () => {
       const { data } = await supabase
         .from('template_sections')
-        .select('id, section_number, title, order_index')
+        .select('id, part, section_number, title, order_index')
         .eq('template_type_id', typeId)
         .eq('is_active', true)
         .order('order_index');
@@ -124,10 +126,18 @@ export function TemplateTypeWorkspace({
     return map;
   }, [blocks]);
 
-  const subsectionOrder = useMemo(
-    () => Array.from(grouped.keys()).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })),
-    [grouped],
-  );
+  /* Leaf Part B subsections (B1.1, B2.2, …) in document order, plus any
+     block group that has no matching section row. */
+  const subsectionOrder = useMemo(() => {
+    const fromSections = (sections as any[])
+      .filter((s) => s.part === 'B' && /^B\d+\.\d+/.test(s.section_number ?? ''))
+      .map((s) => s.section_number as string);
+    const extras = Array.from(grouped.keys())
+      .filter((k) => !fromSections.includes(k))
+      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    return [...fromSections, ...extras];
+  }, [sections, grouped]);
+
 
   const openDraft = async (takeover = false) => {
     if (!typeId) return;
