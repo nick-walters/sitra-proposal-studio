@@ -265,10 +265,12 @@ export function TemplateTypeWorkspace({
 
       {subsectionOrder.map((sectionNumber) => {
         const rows = grouped.get(sectionNumber) ?? [];
-        const sourceId = rows[0]?.section_number
-          ? (blocks.find((b) => b.section_number === sectionNumber) as any)?.section_source_id ?? null
-          : null;
-        const meta = sections.find((s: any) => s.section_number === sectionNumber);
+        const meta = sections.find((s: any) => s.section_number === sectionNumber) as any;
+        const sourceId =
+          (blocks.find((b) => b.section_number === sectionNumber) as any)?.section_source_id
+          ?? meta?.id
+          ?? null;
+
         const isOpen = !collapsed[sectionNumber];
         return (
           <SubsectionPanel
