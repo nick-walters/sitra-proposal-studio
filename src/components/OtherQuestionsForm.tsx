@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { PartACard } from '@/components/PartACard';
 import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -177,153 +178,151 @@ export function OtherQuestionsForm({ proposalId, isTwoStageSecondStage, canEdit 
 
         {/* Two-stage submission question - only for second stage proposals */}
         {isTwoStageSecondStage && (
-          <Card>
-            <CardHeader className="pb-3">
-              <h3 className="font-semibold text-base flex items-center gap-2">
-                <Info className="w-5 h-5" />
-                Two-stage submission
-              </h3>
-              <CardDescription>
-                For proposals submitted as the second stage in a two-stage call
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-3">
-                <Label className="text-sm font-medium">
-                  Are there substantial differences compared to the stage one proposal?
-                </Label>
-                <RadioGroup
-                  value={formData.hasSubstantialDifferences}
-                  onValueChange={(v) => updateFormData({ hasSubstantialDifferences: v as 'yes' | 'no' | '' })}
-                  disabled={!canEdit}
-                  className="flex gap-6"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="yes" id="differences-yes" />
-                    <Label htmlFor="differences-yes" className="font-normal cursor-pointer">Yes</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="no" id="differences-no" />
-                    <Label htmlFor="differences-no" className="font-normal cursor-pointer">No</Label>
-                  </div>
-                </RadioGroup>
-              </div>
-
-              {formData.hasSubstantialDifferences === 'yes' && (
-                <div className="space-y-2 pt-4 border-t">
-                  <Label className="text-sm font-medium">
-                    Please list the substantial differences, and indicate the reasons
-                  </Label>
-                  <Textarea
-                    value={formData.substantialDifferencesText}
-                    onChange={(e) => updateFormData({ substantialDifferencesText: e.target.value })}
-                    placeholder="List the substantial differences and indicate the reasons"
-                    className="min-h-[120px]"
-                    disabled={!canEdit}
-                  />
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Clinical trials */}
-        <Card>
-          <CardHeader className="pb-3">
-            <h3 className="font-semibold text-base flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5" />
-              Clinical studies / trials / investigations
-            </h3>
-          </CardHeader>
-          <CardContent className="space-y-4">
+          <PartACard
+            collapseKey="a5.two-stage-submission"
+            title="Two-stage submission"
+            icon={<Info className="w-5 h-5" />}
+            titleClassName="font-semibold text-base"
+            description={
+                <CardDescription>
+                  For proposals submitted as the second stage in a two-stage call
+                </CardDescription>
+            }
+            contentClassName="space-y-4"
+          >
             <div className="space-y-3">
               <Label className="text-sm font-medium">
-                Are clinical studies / trials / investigations included in the work plan of this project?
+                Are there substantial differences compared to the stage one proposal?
               </Label>
               <RadioGroup
-                value={formData.involvesClinicalTrials}
-                onValueChange={(v) => updateFormData({ involvesClinicalTrials: v as 'yes' | 'no' | '' })}
+                value={formData.hasSubstantialDifferences}
+                onValueChange={(v) => updateFormData({ hasSubstantialDifferences: v as 'yes' | 'no' | '' })}
                 disabled={!canEdit}
                 className="flex gap-6"
               >
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="yes" id="clinical-yes" />
-                  <Label htmlFor="clinical-yes" className="font-normal cursor-pointer">Yes</Label>
+                  <RadioGroupItem value="yes" id="differences-yes" />
+                  <Label htmlFor="differences-yes" className="font-normal cursor-pointer">Yes</Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="no" id="clinical-no" />
-                  <Label htmlFor="clinical-no" className="font-normal cursor-pointer">No</Label>
+                  <RadioGroupItem value="no" id="differences-no" />
+                  <Label htmlFor="differences-no" className="font-normal cursor-pointer">No</Label>
                 </div>
               </RadioGroup>
             </div>
 
-            {formData.involvesClinicalTrials === 'yes' && (
-              <div className="space-y-4 pt-4 border-t">
-                <Label className="text-sm text-muted-foreground">
-                  Please give a short title, an acronym or a unique identifier to each clinical study / trial / investigation, to be used as a reference / identifier in the other parts of the proposal
+            {formData.hasSubstantialDifferences === 'yes' && (
+              <div className="space-y-2 pt-4 border-t">
+                <Label className="text-sm font-medium">
+                  Please list the substantial differences, and indicate the reasons
                 </Label>
-
-                {/* List of clinical trials */}
-                <div className="space-y-3">
-                  {formData.clinicalTrials.map((trial, index) => (
-                    <div key={trial.id} className="flex items-start gap-3 p-3 border rounded-lg bg-muted/30">
-                      <span className="text-sm font-medium text-muted-foreground mt-2">
-                        {index + 1}.
-                      </span>
-                      <div className="flex-1 grid gap-3 sm:grid-cols-2">
-                        <div className="space-y-1">
-                          <Label className="text-xs text-muted-foreground">Short title</Label>
-                          <Input
-                            value={trial.title}
-                            onChange={(e) => updateClinicalTrial(trial.id, 'title', e.target.value)}
-                            placeholder="Enter short title"
-                            className="h-8 text-sm"
-                            disabled={!canEdit}
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs text-muted-foreground">Acronym / Identifier</Label>
-                          <Input
-                            value={trial.acronym}
-                            onChange={(e) => updateClinicalTrial(trial.id, 'acronym', e.target.value)}
-                            placeholder="Enter acronym or identifier"
-                            className="h-8 text-sm"
-                            disabled={!canEdit}
-                          />
-                        </div>
-                      </div>
-                      {canEdit && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => removeClinicalTrial(trial.id)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-
-                {/* Add trial button */}
-                {canEdit && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={addClinicalTrial}
-                    className="gap-2"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Add clinical study / trial / investigation
-                  </Button>
-                )}
+                <Textarea
+                  value={formData.substantialDifferencesText}
+                  onChange={(e) => updateFormData({ substantialDifferencesText: e.target.value })}
+                  placeholder="List the substantial differences and indicate the reasons"
+                  className="min-h-[120px]"
+                  disabled={!canEdit}
+                />
               </div>
             )}
-          </CardContent>
-        </Card>
+          </PartACard>
+        )}
+
+        {/* Clinical trials */}
+        <PartACard
+          collapseKey="a5.clinical-studies-trials-investigations"
+          title="Clinical studies / trials / investigations"
+          icon={<AlertTriangle className="w-5 h-5" />}
+          titleClassName="font-semibold text-base"
+          contentClassName="space-y-4"
+        >
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">
+              Are clinical studies / trials / investigations included in the work plan of this project?
+            </Label>
+            <RadioGroup
+              value={formData.involvesClinicalTrials}
+              onValueChange={(v) => updateFormData({ involvesClinicalTrials: v as 'yes' | 'no' | '' })}
+              disabled={!canEdit}
+              className="flex gap-6"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="yes" id="clinical-yes" />
+                <Label htmlFor="clinical-yes" className="font-normal cursor-pointer">Yes</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="no" id="clinical-no" />
+                <Label htmlFor="clinical-no" className="font-normal cursor-pointer">No</Label>
+              </div>
+            </RadioGroup>
+          </div>
+
+          {formData.involvesClinicalTrials === 'yes' && (
+            <div className="space-y-4 pt-4 border-t">
+              <Label className="text-sm text-muted-foreground">
+                Please give a short title, an acronym or a unique identifier to each clinical study / trial / investigation, to be used as a reference / identifier in the other parts of the proposal
+              </Label>
+
+              {/* List of clinical trials */}
+              <div className="space-y-3">
+                {formData.clinicalTrials.map((trial, index) => (
+                  <div key={trial.id} className="flex items-start gap-3 p-3 border rounded-lg bg-muted/30">
+                    <span className="text-sm font-medium text-muted-foreground mt-2">
+                      {index + 1}.
+                    </span>
+                    <div className="flex-1 grid gap-3 sm:grid-cols-2">
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Short title</Label>
+                        <Input
+                          value={trial.title}
+                          onChange={(e) => updateClinicalTrial(trial.id, 'title', e.target.value)}
+                          placeholder="Enter short title"
+                          className="h-8 text-sm"
+                          disabled={!canEdit}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Acronym / Identifier</Label>
+                        <Input
+                          value={trial.acronym}
+                          onChange={(e) => updateClinicalTrial(trial.id, 'acronym', e.target.value)}
+                          placeholder="Enter acronym or identifier"
+                          className="h-8 text-sm"
+                          disabled={!canEdit}
+                        />
+                      </div>
+                    </div>
+                    {canEdit && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={() => removeClinicalTrial(trial.id)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Add trial button */}
+              {canEdit && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addClinicalTrial}
+                  className="gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add clinical study / trial / investigation
+                </Button>
+              )}
+            </div>
+          )}
+        </PartACard>
     </PartAPageLayout>
   );
 
