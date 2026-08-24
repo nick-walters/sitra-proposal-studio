@@ -41,6 +41,9 @@ export interface DraftToolbarSaveProps {
   lastSaved: Date | null;
   saveError?: string | null;
   onSaveNow?: () => void;
+  /** Drives the grey/green state on the unified save button. */
+  isDirty?: boolean;
+  savedMode?: 'auto' | 'manual';
 }
 
 export interface DraftFormattingToolbarTableProps {
