@@ -54,25 +54,20 @@ function versionLabel(v: { major: number; minor: number; name?: string | null; s
 /* ------------------------------------------------------------------ */
 
 /**
- * The workspace for one template TYPE: version selection, draft lock, publish
- * and history sit at the top and cover the whole type. Part A guideline
- * editing is passed in through `partASlot` so both parts live in one place, in
- * document order.
+ * Everything that belongs to ONE template type: its versions and lock, its
+ * Part A guideline editing (passed in as a slot so it keeps its existing
+ * implementation), and its Part B subsections with the block editor.
+ *
+ * The type is chosen by the parent, so the whole page has a single selector.
  */
 export function TemplateTypeWorkspace({
-  templateTypes,
-  typeId: typeIdProp,
+  typeId,
   partASlot,
 }: {
-  templateTypes: TemplateType[];
-  typeId?: string;
+  typeId: string;
   partASlot?: React.ReactNode;
 }) {
   const qc = useQueryClient();
-  const [typeIdState, setTypeIdState] = useState<string>(templateTypes[0]?.id ?? '');
-  const typeId = typeIdProp ?? typeIdState;
-  const setTypeId = setTypeIdState;
-
   const [versionId, setVersionId] = useState<string>('');
   const [historyOpen, setHistoryOpen] = useState(false);
   const [publishOpen, setPublishOpen] = useState(false);
@@ -99,16 +94,16 @@ export function TemplateTypeWorkspace({
 
   const { data: blocks = [] } = useVersionBlocks(activeVersionId || null);
 
-  /* Subsection titles come from the template's own section list, so a type
-     with no blocks seeded yet (e.g. a new instrument) still lists its
-     subsections and can have blocks added to them. */
+  /* Subsections come from the TYPE's own section list, not from the blocks
+     that happen to exist — otherwise a type with no blocks yet (Stage 1) has
+     nowhere to add its first block. */
   const { data: sections = [] } = useQuery({
     queryKey: ['admin-partb-sections', typeId],
     enabled: !!typeId,
     queryFn: async () => {
       const { data } = await supabase
         .from('template_sections')
-        .select('id, part, section_number, title, order_index')
+        .select('id, section_number, title, order_index')
         .eq('template_type_id', typeId)
         .eq('is_active', true)
         .order('order_index');
@@ -126,17 +121,20 @@ export function TemplateTypeWorkspace({
     return map;
   }, [blocks]);
 
-  /* Leaf Part B subsections (B1.1, B2.2, …) in document order, plus any
-     block group that has no matching section row. */
-  const subsectionOrder = useMemo(() => {
-    const fromSections = (sections as any[])
-      .filter((s) => s.part === 'B' && /^B\d+\.\d+/.test(s.section_number ?? ''))
-      .map((s) => s.section_number as string);
-    const extras = Array.from(grouped.keys())
-      .filter((k) => !fromSections.includes(k))
-      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-    return [...fromSections, ...extras];
-  }, [sections, grouped]);
+  /* Leaf Part B subsections (B1.1, B3.2 …) — parents like B1 hold no blocks. */
+  const subsections = useMemo(
+    () =>
+      (sections as any[])
+        .filter((s) => /^B\d+\.\d+$/.test(s.section_number ?? ''))
+        .sort((a, b) =>
+          String(a.section_number).localeCompare(String(b.section_number), undefined, { numeric: true }),
+        ),
+    [sections],
+  );
+  const subsectionOrder = useMemo(
+    () => subsections.map((s) => s.section_number as string),
+    [subsections],
+  );
 
 
   const openDraft = async (takeover = false) => {
@@ -171,21 +169,8 @@ export function TemplateTypeWorkspace({
       {/* Toolbar */}
       <Card>
         <CardContent className="flex flex-wrap items-end gap-3 pt-6">
-          {!typeIdProp && (
-            <div className="grid gap-1.5">
-              <Label className="text-xs">Template type</Label>
-              <Select value={typeId} onValueChange={(v) => { setTypeId(v); setVersionId(''); }}>
-                <SelectTrigger className="w-[260px]"><SelectValue placeholder="Select type" /></SelectTrigger>
-                <SelectContent>
-                  {templateTypes.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>{t.code} — {t.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
           <div className="grid gap-1.5">
+
             <Label className="text-xs">Version</Label>
             <Select value={activeVersionId} onValueChange={setVersionId}>
               <SelectTrigger className="w-[280px]"><SelectValue placeholder="Select version" /></SelectTrigger>
@@ -239,13 +224,13 @@ export function TemplateTypeWorkspace({
         </div>
       )}
 
-
-      {/* Part A comes first, in document order. */}
       {partASlot}
 
       <div className="flex items-center gap-2 pt-2">
-        <Badge variant="outline">Part B</Badge>
-        <h3 className="text-lg font-semibold">Technical annex</h3>
+        <h3 className="text-lg font-semibold flex items-center gap-2">
+          <Badge variant="outline">Part B</Badge>
+          Technical description
+        </h3>
         {subsectionOrder.length > 0 && (
           <Button
             variant="ghost"
@@ -262,22 +247,17 @@ export function TemplateTypeWorkspace({
         )}
       </div>
 
-
-      {subsectionOrder.map((sectionNumber) => {
+      {subsections.map((section: any) => {
+        const sectionNumber = section.section_number as string;
         const rows = grouped.get(sectionNumber) ?? [];
-        const meta = sections.find((s: any) => s.section_number === sectionNumber) as any;
-        const sourceId =
-          (blocks.find((b) => b.section_number === sectionNumber) as any)?.section_source_id
-          ?? meta?.id
-          ?? null;
-
         const isOpen = !collapsed[sectionNumber];
         return (
           <SubsectionPanel
-            key={sectionNumber}
+            key={section.id}
             sectionNumber={sectionNumber}
-            title={(meta as any)?.title ?? ''}
-            sectionSourceId={sourceId}
+            title={section.title ?? ''}
+            sectionSourceId={section.id}
+            templateTypeId={typeId}
             versionId={activeVersionId}
             editable={editable}
             blocks={rows}
@@ -288,10 +268,9 @@ export function TemplateTypeWorkspace({
         );
       })}
 
-      {subsectionOrder.length === 0 && (
-        <p className="rounded-md border border-dashed py-10 text-center text-sm text-muted-foreground">
-          No Part B blocks have been seeded for this template type yet. Open a draft and add
-          blocks to a subsection to get started.
+      {subsections.length === 0 && (
+        <p className="py-12 text-center text-sm text-muted-foreground">
+          This template type has no Part B subsections yet.
         </p>
       )}
 
@@ -368,12 +347,14 @@ export function TemplateTypeWorkspace({
 /* ------------------------------------------------------------------ */
 
 function SubsectionPanel({
-  sectionNumber, title, sectionSourceId, versionId, editable, blocks, open, onToggle, onChanged,
+  sectionNumber, title, sectionSourceId, templateTypeId, versionId, editable, blocks, open, onToggle, onChanged,
 }: {
   sectionNumber: string;
   title: string;
   sectionSourceId: string | null;
+  templateTypeId: string;
   versionId: string;
+
   editable: boolean;
   blocks: CardTemplateRow[];
   open: boolean;
@@ -477,7 +458,7 @@ function SubsectionPanel({
         versionId={versionId}
         sectionNumber={sectionNumber}
         sectionSourceId={sectionSourceId}
-        templateTypeId={blocks[0]?.template_type_id ?? null}
+        templateTypeId={templateTypeId}
         nextOrder={blocks.length}
         onChanged={onChanged}
       />

@@ -21,7 +21,9 @@ import { GuidelineEditorDialog } from "@/components/admin/GuidelineEditorDialog"
 import { SectionCriteriaEditor } from "@/components/admin/SectionCriteriaEditor";
 import { TemplateModifiersAdmin } from "@/components/admin/TemplateModifiersAdmin";
 import { WorkProgrammeExtensionsAdmin } from "@/components/admin/WorkProgrammeExtensionsAdmin";
-import { TemplateTypeWorkspace } from "@/components/admin/PartBTemplatesTab";
+import { TemplateTypeWorkspace } from "@/components/admin/TemplateTypeWorkspace";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import type { FundingProgramme, TemplateType, TemplateSection, SectionGuideline } from "@/types/templates";
 
 export function TemplateAdmin() {
@@ -928,46 +930,116 @@ function SectionsPanel({
     }
   };
 
+  /* Default to the type that actually carries Part B content rather than
+     whichever code sorts first alphabetically. */
+  const { data: blockCounts } = useQuery({
+    queryKey: ['admin-type-block-counts'],
+    queryFn: async () => {
+      const { data } = await supabase.from('card_templates').select('template_type_id');
+      const counts: Record<string, number> = {};
+      for (const r of data ?? []) {
+        const k = (r as any).template_type_id as string;
+        counts[k] = (counts[k] ?? 0) + 1;
+      }
+      return counts;
+    },
+    staleTime: 5 * 60_000,
+  });
+
+  useEffect(() => {
+    if (selectedTemplateTypeId || templateTypes.length === 0) return;
+    const best = [...templateTypes].sort(
+      (a, b) => (blockCounts?.[b.id] ?? 0) - (blockCounts?.[a.id] ?? 0),
+    )[0];
+    if (best) onSelectTemplateType(best.id);
+  }, [selectedTemplateTypeId, templateTypes, blockCounts, onSelectTemplateType]);
+
   if (!selectedTemplateTypeId) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>Sections & Guidelines</CardTitle>
-          <CardDescription>Select a template type to manage its sections</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {templateTypes.map((type) => (
-              <Button
-                key={type.id}
-                variant="outline"
-                className="h-auto py-4 flex flex-col items-start"
-                onClick={() => onSelectTemplateType(type.id)}
-              >
-                <Badge variant="secondary" className="mb-2">{type.code}</Badge>
-                <span className="text-sm">{type.name}</span>
-              </Button>
-            ))}
-          </div>
+        <CardContent className="py-12 text-center text-sm text-muted-foreground">
+          Loading template types…
         </CardContent>
       </Card>
     );
   }
 
+
+  const partABlock = loading ? (
+    <div className="space-y-4">
+      <Skeleton className="h-16 w-full" />
+      <Skeleton className="h-16 w-full" />
+    </div>
+  ) : partASections.length === 0 ? (
+    <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+      <Badge variant="outline" className="mr-2">Part A</Badge>
+      No Part A sections yet.
+    </div>
+  ) : (
+    <div>
+      <div className="flex items-center gap-2 mb-3">
+        <h3 className="text-lg font-semibold flex items-center gap-2">
+          <Badge variant="outline">Part A</Badge>
+          Administrative forms
+        </h3>
+        <div className="ml-auto flex gap-2">
+          <Button variant="ghost" size="sm" onClick={() => setExpandedPartA(getAllSectionIds(partASections))}>
+            Expand all
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => setExpandedPartA([])}>
+            Collapse all
+          </Button>
+        </div>
+      </div>
+      <Accordion type="multiple" value={expandedPartA} onValueChange={setExpandedPartA} className="space-y-2">
+        {partASections.map((section) => (
+          <SectionAccordionItem
+            key={section.id}
+            section={section}
+            allSections={sections}
+            expandedSections={expandedPartA}
+            onExpandChange={setExpandedPartA}
+            onEdit={() => handleOpenSectionDialog(section)}
+            onDelete={() => handleDeleteSection(section.id)}
+            onEditSection={handleOpenSectionDialog}
+            onDeleteSection={handleDeleteSection}
+            onCreateGuideline={createGuideline}
+            onUpdateGuideline={updateGuideline}
+            onDeleteGuideline={deleteGuideline}
+            onCreateFormField={createFormField}
+            onUpdateFormField={updateFormField}
+            onDeleteFormField={deleteFormField}
+          />
+        ))}
+      </Accordion>
+    </div>
+  );
+
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <Button variant="ghost" size="sm" onClick={() => onSelectTemplateType(null)}>
-              ← Back
-            </Button>
+      <CardHeader className="flex flex-row items-end justify-between">
+        <div className="space-y-1.5">
+          <CardTitle>Sections & Guidelines</CardTitle>
+          <CardDescription>
+            Everything below belongs to the selected template type.
+          </CardDescription>
+          <div className="pt-2">
+            <Select
+              value={selectedTemplateTypeId}
+              onValueChange={(v) => onSelectTemplateType(v)}
+            >
+              <SelectTrigger className="w-[320px]">
+                <SelectValue placeholder="Select template type" />
+              </SelectTrigger>
+              <SelectContent>
+                {templateTypes.map((type) => (
+                  <SelectItem key={type.id} value={type.id}>
+                    {type.code} — {type.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-          <CardTitle className="flex items-center gap-2">
-            <Badge>{selectedType?.code}</Badge>
-            {selectedType?.name}
-          </CardTitle>
-          <CardDescription>Manage sections, guidelines, and form fields</CardDescription>
         </div>
         <Button onClick={() => handleOpenSectionDialog()} className="gap-2">
           <Plus className="w-4 h-4" />
@@ -975,73 +1047,13 @@ function SectionsPanel({
         </Button>
       </CardHeader>
       <CardContent>
-        {loading ? (
-          <div className="space-y-4">
-            <Skeleton className="h-16 w-full" />
-            <Skeleton className="h-16 w-full" />
-            <Skeleton className="h-16 w-full" />
-          </div>
-        ) : sections.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p>No sections yet. Create one to get started.</p>
-          </div>
-        ) : (
-          /* Version, draft lock, History and Publish cover the whole template
-             type; Part A and Part B are listed below them in document order. */
-          <TemplateTypeWorkspace
-            templateTypes={templateTypes}
-            typeId={selectedTemplateTypeId}
-            partASlot={
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline">Part A</Badge>
-                  <h3 className="text-lg font-semibold">Administrative forms</h3>
-                  <div className="ml-auto flex gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        const all = getAllSectionIds(partASections);
-                        setExpandedPartA(expandedPartA.length ? [] : all);
-                      }}
-                    >
-                      {expandedPartA.length ? 'Collapse all' : 'Expand all'}
-                    </Button>
-                  </div>
-                </div>
-                <Accordion type="multiple" value={expandedPartA} onValueChange={setExpandedPartA} className="space-y-2">
-                  {partASections.map((section) => (
-                    <SectionAccordionItem
-                      key={section.id}
-                      section={section}
-                      allSections={sections}
-                      expandedSections={expandedPartA}
-                      onExpandChange={setExpandedPartA}
-                      onEdit={() => handleOpenSectionDialog(section)}
-                      onDelete={() => handleDeleteSection(section.id)}
-                      onEditSection={handleOpenSectionDialog}
-                      onDeleteSection={handleDeleteSection}
-                      onCreateGuideline={createGuideline}
-                      onUpdateGuideline={updateGuideline}
-                      onDeleteGuideline={deleteGuideline}
-                      onCreateFormField={createFormField}
-                      onUpdateFormField={updateFormField}
-                      onDeleteFormField={deleteFormField}
-                    />
-                  ))}
-                  {partASections.length === 0 && (
-                    <p className="rounded-md border border-dashed py-6 text-center text-sm text-muted-foreground">
-                      No Part A sections for this template type.
-                    </p>
-                  )}
-                </Accordion>
-              </div>
-            }
-          />
-        )}
-
+        <TemplateTypeWorkspace
+          key={selectedTemplateTypeId}
+          typeId={selectedTemplateTypeId}
+          partASlot={partABlock}
+        />
       </CardContent>
+
 
       {/* Section Dialog - keyed to force re-render for different sections */}
       <Dialog key={editingSection?.id || 'new-section'} open={sectionDialogOpen} onOpenChange={setSectionDialogOpen}>
