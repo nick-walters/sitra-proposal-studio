@@ -1563,6 +1563,11 @@ function BoardInner({
     [headCards, orderedFree, tailCards, sectionCitesAnything, isCoordinator],
   );
 
+  const allBlocksCollapsed =
+    visibleCardIds.length > 0 && visibleCardIds.every((id) => collapsedIds.has(id));
+
+
+
   /** Deleted modules per live block, for the per-block bin icon. */
   const deletedModulesByCard = useMemo(() => {
     const map: Record<string, number> = {};
