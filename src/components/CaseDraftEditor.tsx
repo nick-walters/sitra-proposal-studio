@@ -244,6 +244,7 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
     span.textContent = `T${task.wp_number}.${task.number}`;
     span.setAttribute('data-task-reference', '');
     span.setAttribute('data-task-id', task.id);
+    span.setAttribute('data-wp-color', color);
     markBadgeElement(span, 'task');
     Object.assign(span.style, { display: 'inline-flex', alignItems: 'center', height: '17px', padding: '0 4px', borderRadius: '9999px', border: `1.5px solid ${color}`, color, fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: '700', lineHeight: '1', whiteSpace: 'nowrap', verticalAlign: 'baseline', userSelect: 'none' });
     insertNodeAtCursor(span);
@@ -260,6 +261,7 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
     wrapper.setAttribute('data-deliverable-reference', '');
     wrapper.setAttribute('data-deliverable-id', del.id);
     wrapper.setAttribute('data-deliverable-label', String(del.number));
+    wrapper.setAttribute('data-wp-color', color);
     Object.assign(wrapper.style, { display: 'inline-block', verticalAlign: 'baseline', position: 'relative', width: `${totalWidth}px`, height: '17px', userSelect: 'none' });
     wrapper.innerHTML = `<svg width="${totalWidth}" height="17" viewBox="0 0 ${totalWidth} 17" style="position:absolute;top:0;left:0;overflow:visible;"><path d="M 0,0 L ${textWidth},0 L ${totalWidth},8.5 L ${textWidth},17 L 0,17 Z" fill="#ffffff" stroke="${color}" stroke-width="1.5" stroke-linejoin="round"/></svg><span style="position:absolute;top:0;left:0;width:${textWidth}px;height:17px;display:flex;align-items:center;justify-content:center;font-family:'Times New Roman',Times,serif;font-size:11pt;font-weight:700;line-height:1;color:${color};white-space:nowrap;">${label}</span>`;
     markBadgeTree(wrapper, 'deliverable');
