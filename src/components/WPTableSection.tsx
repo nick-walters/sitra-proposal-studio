@@ -186,6 +186,7 @@ export function WPTableSection({
                     canManageCustomColors={canManageCustomColors}
                     shouldStayMounted={shouldStayMounted}
                   />
+                  </div>
                 ))}
               </div>
             </SortableContext>
