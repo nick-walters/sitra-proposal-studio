@@ -518,25 +518,29 @@ function FieldRow({
                   // Read-only surface: a plain element, so no caret can be
                   // placed, while the text stays selectable for copying.
                   <div
-                    className="h-7 flex-1 select-text truncate rounded-md border border-destructive bg-background px-2.5 py-0.5 text-sm font-bold ring-1 ring-destructive/40"
+                    className="h-7 flex-1 select-text truncate rounded-md border border-destructive bg-background px-2.5 py-0.5 text-sm font-bold ring-1 ring-destructive/40 [&_p]:m-0 [&_p]:inline"
                     aria-readonly="true"
-                  >
-                    {headingView}
-                  </div>
+                    dangerouslySetInnerHTML={{ __html: displayRichHtml(headingView) }}
+                  />
                 ) : (
-                  <Input
-                    value={headingDraft}
+                  // Single-line rich text, baseline formatting only.
+                  <LazyRichField
+                    singleLine
+                    proposalId={proposalId}
+                    value={ensureRichHtml(headingDraft)}
                     placeholder="Header"
                     disabled={!canEdit}
+                    minHeight="28px"
+                    className={`flex-1 text-sm [&_.ProseMirror]:font-bold [&_p]:m-0 ${lockBorderClass(headerLock.isMine, false)}`}
+                    staticExtensions={WP_TITLE_FIELD_EXTENSIONS}
                     onFocus={() => {
                       headingFocused.current = true;
                       onFocusField(field.id, 'header');
                     }}
-                    onMouseDown={() => onFocusField(field.id, 'header')}
-                    onKeyDown={() => headerLock.onType()}
-                    onChange={(e) => {
-                      setHeadingDraft(e.target.value);
-                      headerLock.push(e.target.value);
+                    onChange={(html) => {
+                      headerLock.onType();
+                      setHeadingDraft(html);
+                      headerLock.push(html);
                     }}
                     onBlur={() => {
                       headingFocused.current = false;
@@ -547,9 +551,9 @@ function FieldRow({
                       }
                       headerLock.onBlur();
                     }}
-                    className={`h-7 flex-1 px-2.5 font-bold ${lockBorderClass(headerLock.isMine, false)}`}
                   />
                 )}
+
                 {headerLock.lockedByOther && headerLock.holder && (
                   <LockHolderBadge holder={headerLock.holder} />
                 )}
