@@ -216,23 +216,26 @@ export function EditorTopBar({
         />
       )}
 
-      {collapseAll && (
-        <FeatureButton
-          icon={
-            collapseAll.allCollapsed ? (
-              <ChevronDown className="h-3.5 w-3.5" strokeWidth={2.5} />
-            ) : (
-              <ChevronUp className="h-3.5 w-3.5" strokeWidth={2.5} />
-            )
-          }
-          primary={collapseAll.allCollapsed ? 'Expand' : 'Collapse'}
-          secondary="all blocks"
-          secondarySmall
-          disabled={collapseAll.disabled}
-          tooltip={collapseAll.allCollapsed ? 'Expand all blocks' : 'Collapse all blocks'}
-          onClick={collapseAll.onToggle}
-        />
-      )}
+      {/* Collapse all, Comments, Find and replace and Shortcuts are page-wide
+          controls EVERY surface carries; they show disabled where a surface
+          has not wired them. Preview / Add block / Restore block are Part B
+          only and appear solely when their handler is supplied. */}
+      <FeatureButton
+        icon={
+          collapseAll?.allCollapsed ? (
+            <ChevronDown className="h-3.5 w-3.5" strokeWidth={2.5} />
+          ) : (
+            <ChevronUp className="h-3.5 w-3.5" strokeWidth={2.5} />
+          )
+        }
+        primary={collapseAll?.allCollapsed ? 'Expand' : 'Collapse'}
+        secondary="all blocks"
+        secondarySmall
+        disabled={!collapseAll || collapseAll.disabled}
+        tooltip={collapseAll?.allCollapsed ? 'Expand all blocks' : 'Collapse all blocks'}
+        onClick={collapseAll?.onToggle}
+      />
+
 
       {onAddBlock && (
         <FeatureButton
@@ -257,39 +260,36 @@ export function EditorTopBar({
         />
       )}
 
-      {onOpenComments && (
-        <FeatureButton
-          icon={<MessageSquare className="h-3.5 w-3.5" />}
-          primary="Comments"
-          secondary={typeof commentCount === 'number' ? `panel · ${commentCount}` : 'panel'}
-          secondarySmall
-          tooltip="Open the comments panel"
-          onClick={onOpenComments}
-        />
-      )}
+      <FeatureButton
+        icon={<MessageSquare className="h-3.5 w-3.5" />}
+        primary="Comments"
+        secondary={typeof commentCount === 'number' ? `panel · ${commentCount}` : 'panel'}
+        secondarySmall
+        tooltip="Open the comments panel"
+        disabled={!onOpenComments}
+        onClick={onOpenComments}
+      />
 
-      {onFindReplace && (
-        <FeatureButton
-          icon={<Search className="h-3.5 w-3.5" />}
-          primary="Find &"
-          secondary="replace"
-          tooltip="Find and replace text"
-          onClick={onFindReplace}
-        />
-      )}
+      <FeatureButton
+        icon={<Search className="h-3.5 w-3.5" />}
+        primary="Find &"
+        secondary="replace"
+        tooltip="Find and replace text"
+        disabled={!onFindReplace}
+        onClick={onFindReplace}
+      />
 
       {trailing}
 
-      {onOpenShortcuts && (
-        <FeatureButton
-          icon={<Keyboard className="h-3.5 w-3.5" />}
-          primary="Keyboard"
-          tooltip="Show keyboard shortcuts"
-          secondary="shortcuts"
-          secondarySmall
-          onClick={onOpenShortcuts}
-        />
-      )}
+      <FeatureButton
+        icon={<Keyboard className="h-3.5 w-3.5" />}
+        primary="Keyboard"
+        tooltip="Show keyboard shortcuts"
+        secondary="shortcuts"
+        secondarySmall
+        disabled={!onOpenShortcuts}
+        onClick={onOpenShortcuts}
+      />
     </div>
   );
 }
@@ -325,65 +325,63 @@ export function EditorFieldBar({
 }: EditorFieldBarProps) {
   if (!hasFocusedField) return null;
 
+  // The features tier is UNIFORM on every surface and for every field type:
+  // all five controls always appear. A surface that has not wired one yet
+  // shows it disabled rather than omitting it.
   return (
     <div className="flex items-center gap-1.5 px-2 py-1">
-      {onOpenGuidelines && (
-        <FeatureButton
-          icon={<Info className="h-3.5 w-3.5" />}
-          primary="Guidelines"
-          tooltip="Commission guidelines for the focused field"
-          secondary="for this field"
-          secondarySmall
-          tone="destructive"
-          onClick={onOpenGuidelines}
-        />
-      )}
+      <FeatureButton
+        icon={<Info className="h-3.5 w-3.5" />}
+        primary="Guidelines"
+        tooltip="Commission guidelines for the focused field"
+        secondary="for this field"
+        secondarySmall
+        tone="destructive"
+        disabled={!onOpenGuidelines}
+        onClick={onOpenGuidelines}
+      />
 
-      {onOpenVersionHistory && (
-        <FeatureButton
-          icon={<History className="h-3.5 w-3.5" />}
-          primary="Version"
-          tooltip="Version history for the focused text box"
-          secondary="history"
-          onClick={onOpenVersionHistory}
-        />
-      )}
+      <FeatureButton
+        icon={<History className="h-3.5 w-3.5" />}
+        primary="Version"
+        tooltip="Version history for the focused text box"
+        secondary="history"
+        disabled={!onOpenVersionHistory}
+        onClick={onOpenVersionHistory}
+      />
 
-      {trackChanges && (
-        <FeatureButton
-          asDiv={!trackChanges.onToggle}
-          leading={
-            <Switch checked={trackChanges.enabled} className="pointer-events-none scale-75" />
-          }
-          primary="Track my"
-          tooltip="Track my changes while editing"
-          secondary="changes"
-          onClick={trackChanges.onToggle}
-        />
-      )}
+      <FeatureButton
+        asDiv={!trackChanges?.onToggle}
+        leading={
+          <Switch checked={!!trackChanges?.enabled} className="pointer-events-none scale-75" />
+        }
+        primary="Track my"
+        tooltip="Track my changes while editing"
+        secondary="changes"
+        disabled={!trackChanges?.onToggle}
+        onClick={trackChanges?.onToggle}
+      />
 
-      {onReviewChanges && (
-        <FeatureButton
-          icon={<GitCompare className="h-3.5 w-3.5" />}
-          primary="Review"
-          tooltip="Review tracked changes"
-          secondary={
-            typeof pendingChangeCount === 'number' ? `changes · ${pendingChangeCount}` : 'changes'
-          }
-          secondarySmall
-          onClick={onReviewChanges}
-        />
-      )}
+      <FeatureButton
+        icon={<GitCompare className="h-3.5 w-3.5" />}
+        primary="Review"
+        tooltip="Review tracked changes"
+        secondary={
+          typeof pendingChangeCount === 'number' ? `changes · ${pendingChangeCount}` : 'changes'
+        }
+        secondarySmall
+        disabled={!onReviewChanges}
+        onClick={onReviewChanges}
+      />
 
-      {onOpenAiTools && (
-        <FeatureButton
-          icon={<Sparkles className="h-3.5 w-3.5" />}
-          primary="AI"
-          secondary="tools"
-          tooltip="AI writing tools"
-          onClick={onOpenAiTools}
-        />
-      )}
+      <FeatureButton
+        icon={<Sparkles className="h-3.5 w-3.5" />}
+        primary="AI"
+        secondary="tools"
+        tooltip="AI writing tools"
+        disabled={!onOpenAiTools}
+        onClick={onOpenAiTools}
+      />
 
       {trailing}
     </div>

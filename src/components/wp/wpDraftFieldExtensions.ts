@@ -19,7 +19,12 @@ import { ParticipantReferenceNode } from '@/extensions/ParticipantReferenceNode'
 import { InlineReferenceNode } from '@/extensions/InlineReferenceNode';
 import { AcronymReference } from '@/extensions/AcronymReference';
 import { FigureTableReferenceMark } from '@/extensions/FigureTableReferenceMark';
-import { FieldCapabilities } from '@/lib/fieldCapabilities';
+import {
+  FieldCapabilities,
+  TITLE_FIELD_CAPABILITIES,
+  WP_OBJECTIVES_CAPABILITIES,
+  A2_DESCRIPTION_CAPABILITIES,
+} from '@/lib/fieldCapabilities';
 import { CitationMark, CitationNode } from '@/components/CitationMark';
 
 /**
@@ -106,15 +111,60 @@ export const WP_TITLE_FIELD_EXTENSIONS: Extensions = [
   ...REFERENCE_NODES,
   // Reference nodes and TextStyle above exist only so stored chips and
   // colours keep rendering. Declare explicitly that this field may not
-  // INSERT references or recolour text, so the shared toolbar hides those
-  // controls while the caret is here.
-  FieldCapabilities.configure({
-    crossReferences: false,
-    colour: false,
-    alignment: false,
-    paragraphSpacing: false,
-    figures: false,
-    citations: false,
-  }),
+  // INSERT references, so the shared toolbar hides that control while the
+  // caret is here. Font colour IS baseline and stays available.
+  FieldCapabilities.configure(TITLE_FIELD_CAPABILITIES),
 ];
+
+/**
+ * WP objectives: baseline + bullets, numbered, alignment, line height and
+ * cross-reference. No subheading, table, figure or citations.
+ */
+export const WP_OBJECTIVES_FIELD_EXTENSIONS: Extensions = [
+  StarterKit.configure({
+    heading: false,
+    orderedList: false,
+    underline: false,
+    codeBlock: false,
+    code: false,
+    dropcursor: false,
+    gapcursor: false,
+    undoRedo: { depth: 100, newGroupDelay: 1200 },
+  }),
+  OrderedListStyled,
+  Underline,
+  Superscript,
+  Subscript,
+  TextAlign.configure({ types: ['heading', 'paragraph'] }),
+  TextStyle,
+  Color,
+  ParagraphSpacing,
+  ...REFERENCE_NODES,
+  FieldCapabilities.configure(WP_OBJECTIVES_CAPABILITIES),
+];
+
+/**
+ * Means of verification (milestones) and mitigation measures (risks):
+ * baseline + bullets, alignment and cross-reference.
+ */
+export const WP_SHORT_NARRATIVE_FIELD_EXTENSIONS: Extensions = [
+  StarterKit.configure({
+    heading: false,
+    orderedList: false,
+    underline: false,
+    codeBlock: false,
+    code: false,
+    dropcursor: false,
+    gapcursor: false,
+    undoRedo: { depth: 100, newGroupDelay: 1200 },
+  }),
+  OrderedListStyled,
+  Underline,
+  TextAlign.configure({ types: ['paragraph'] }),
+  TextStyle,
+  Color,
+  ...REFERENCE_NODES,
+  FieldCapabilities.configure(A2_DESCRIPTION_CAPABILITIES),
+];
+
 

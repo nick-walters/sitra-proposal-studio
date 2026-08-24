@@ -50,9 +50,16 @@ describe('LazyRichField static rendering', () => {
     expect(out).toContain('world');
   });
 
-  it('does not enable lists or tables', () => {
-    const out = render('<ul><li>one</li></ul>');
-    expect(out).not.toContain('<ul>');
-    expect(out).toContain('one');
+  it('enables bullet lists but not numbered lists or tables', () => {
+    const bullets = render('<ul><li>one</li></ul>');
+    expect(bullets).toContain('<ul>');
+    expect(bullets).toContain('one');
+
+    const numbered = render('<ol><li>two</li></ol>');
+    expect(numbered).not.toContain('<ol>');
+    expect(numbered).toContain('two');
+
+    const table = render('<table><tbody><tr><td>cell</td></tr></tbody></table>');
+    expect(table).not.toContain('<table');
   });
 });

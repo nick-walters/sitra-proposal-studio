@@ -926,21 +926,25 @@ export function FormattingToolbar({
         {/* Text colour */}
         {showColor && caps.colour && <TextColorPicker editor={editor} proposalId={proposalId} canManageCustom={canManageCustomColors} />}
 
-        {caps.lists && (
+        {(caps.bulletList || caps.orderedList) && (
           <>
             <Separator orientation="vertical" className="h-5 mx-1.5" />
 
             {/* Bullet Numbered */}
-            <ToolbarButton
-              icon={<List className="w-4 h-4" />}
-              label="Bullet list"
-              onClick={() => editor.chain().focus().toggleBulletList().run()}
-              isActive={editor.isActive('bulletList')}
-            />
-            <OrderedListDropdown
-              editor={editor}
-              active={editor.isActive('orderedList')}
-            />
+            {caps.bulletList && (
+              <ToolbarButton
+                icon={<List className="w-4 h-4" />}
+                label="Bullet list"
+                onClick={() => editor.chain().focus().toggleBulletList().run()}
+                isActive={editor.isActive('bulletList')}
+              />
+            )}
+            {caps.orderedList && (
+              <OrderedListDropdown
+                editor={editor}
+                active={editor.isActive('orderedList')}
+              />
+            )}
           </>
         )}
 

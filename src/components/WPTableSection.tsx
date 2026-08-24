@@ -17,7 +17,7 @@ import {
 import { ParticipantMultiSelect } from '@/components/ParticipantMultiSelect';
 import { LazyRichField } from '@/components/participant/LazyRichField';
 import { DebouncedRichField } from '@/components/participant/DebouncedRichField';
-import { WP_DRAFT_FIELD_EXTENSIONS } from '@/components/wp/wpDraftFieldExtensions';
+import { WP_OBJECTIVES_FIELD_EXTENSIONS, WP_DRAFT_FIELD_EXTENSIONS } from '@/components/wp/wpDraftFieldExtensions';
 import type { WPDraftTask } from '@/hooks/useWPDrafts';
 import type { ParticipantSummary } from '@/types/proposal';
 import {
@@ -133,7 +133,7 @@ export function WPTableSection({
             disabled={readOnly}
             minHeight="80px"
             proposalId={proposalId ?? ''}
-            staticExtensions={WP_DRAFT_FIELD_EXTENSIONS}
+            staticExtensions={WP_OBJECTIVES_FIELD_EXTENSIONS}
             shouldStayMounted={shouldStayMounted}
           />
           <p className="text-draft text-muted-foreground">Describe the main objective of this work package. Use the bullet list button if you need multiple objectives.</p>
