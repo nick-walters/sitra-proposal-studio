@@ -187,6 +187,7 @@ export function DraftFormattingToolbar({
   trailing,
   fontColor,
   capabilities,
+  hasFocusedField = true,
 }: DraftFormattingToolbarProps) {
   if (hideToolbar) return null;
 
@@ -223,7 +224,7 @@ export function DraftFormattingToolbar({
       {/* Row 1: Guidelines + Save */}
       {showGuidelinesRow && (
         <div className="flex items-center gap-2">
-          {onOpenGuidelines && (
+          {onOpenGuidelines && hasFocusedField && (
             <Button
               variant="outline"
               size="sm"
@@ -246,7 +247,7 @@ export function DraftFormattingToolbar({
       )}
 
       {/* Row 2: Formatting toolbar */}
-      {!isReadOnly && (
+      {!isReadOnly && hasFocusedField && (
         <div className={row2Class}>
           {undo && (
             <>
