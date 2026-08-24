@@ -980,22 +980,7 @@ function CardBlock({
           </div>
 
           <div className="ml-auto flex items-center gap-1">
-            {/* Per-user collapse — a view preference, so offered to viewers as
-                well as editors. It never touches document state. */}
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label={userCollapsed ? 'Expand block' : 'Collapse block'}
-              title={userCollapsed ? 'Expand block' : 'Collapse block'}
-              onClick={onToggleCollapse}
-              className="h-7 w-7"
-            >
-              {userCollapsed ? (
-                <ChevronDown className="h-4 w-4" />
-              ) : (
-                <ChevronUp className="h-4 w-4" />
-              )}
-            </Button>
+
             {/* The title is cleared by editing it inline; no icon that could be
                 mistaken for the delete control. */}
 
