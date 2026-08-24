@@ -51,7 +51,7 @@ interface TemplateSectionData {
   placeholder_content: string | null; // Pre-filled guidance text for writers
   guidelines?: {
     id: string;
-    guideline_type: 'official' | 'sitra_tip' | 'evaluation';
+    guideline_type: 'official' | 'sitra_tip' | 'criteria';
     title: string;
     content: string;
     order_index: number;

@@ -987,6 +987,30 @@ function SectionsPanel({
           </div>
         ) : (
           <div className="space-y-6">
+            {/* Collapse / expand all */}
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setExpandedPartA(getAllSectionIds(partASections));
+                  setExpandedPartB(getAllSectionIds(partBSections));
+                }}
+              >
+                Expand all
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setExpandedPartA([]);
+                  setExpandedPartB([]);
+                }}
+              >
+                Collapse all
+              </Button>
+            </div>
+
             {/* Part A */}
             <div>
               <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
@@ -1244,12 +1268,12 @@ function SectionAccordionItem({
   // Get icon and colors for guideline type
   const getGuidelineStyle = (type: string) => {
     switch (type) {
-      case 'evaluation':
+      case 'criteria':
         return { 
           icon: ClipboardCheck, 
-          bgColor: 'bg-amber-50', 
-          borderColor: 'border-amber-500',
-          label: 'Evaluation Criterion'
+          bgColor: 'bg-destructive/5', 
+          borderColor: 'border-destructive',
+          label: 'Evaluation criteria'
         };
       case 'official':
         return { 
@@ -1346,11 +1370,14 @@ function SectionAccordionItem({
 
           {/* Guidelines - sorted by type priority then order_index */}
           <div className="space-y-2">
-            <h4 className="text-sm font-medium">Guidelines ({section.guidelines?.length || 0})</h4>
-            {/* Sort guidelines: evaluation first, then official, then sitra_tip */}
+            <h4 className="text-sm font-medium flex items-center gap-2">
+              <Info className="w-4 h-4 text-blue-500" />
+              Commission guidance &amp; tips ({section.guidelines?.length || 0})
+            </h4>
+            {/* Sort guidelines: criteria first, then official, then sitra_tip */}
             {[...(section.guidelines || [])]
               .sort((a, b) => {
-                const typePriority: Record<string, number> = { 'evaluation': 0, 'official': 1, 'sitra_tip': 2 };
+                const typePriority: Record<string, number> = { 'criteria': 0, 'official': 1, 'sitra_tip': 2 };
                 const aPriority = typePriority[a.guideline_type] ?? 99;
                 const bPriority = typePriority[b.guideline_type] ?? 99;
                 if (aPriority !== bPriority) return aPriority - bPriority;
@@ -1368,9 +1395,9 @@ function SectionAccordionItem({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <IconComponent className="w-4 h-4 flex-shrink-0" />
-                        <Badge variant="secondary" className="text-xs">
+                        <span className="text-xs uppercase tracking-wide text-muted-foreground">
                           {style.label}
-                        </Badge>
+                        </span>
                       </div>
                       <p className="font-medium">{g.title}</p>
                       <p className="text-muted-foreground line-clamp-3 whitespace-pre-wrap">{g.content}</p>
