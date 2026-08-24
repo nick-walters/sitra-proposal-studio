@@ -55,7 +55,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { EditorChrome, EditorFeatureBar } from '@/components/EditorChrome';
+import { EditorChrome, EditorTopBar, EditorFieldBar } from "@/components/EditorChrome";
 import { FormattingToolbar } from '@/components/RichTextEditor';
 import { PartBCrossRefControls } from '@/components/PartBCrossRefControls';
 import { CitationDialog } from '@/components/CitationDialog';
