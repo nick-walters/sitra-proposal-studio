@@ -62,7 +62,7 @@ interface LinkedActivitiesTableProps {
   controller?: ReturnType<typeof useLinkedActivities>;
 }
 
-const GRID = 'grid items-center gap-2 grid-cols-[1.25rem_minmax(10.5rem,1.95fr)_minmax(11rem,1.3fr)_minmax(6.3rem,0.63fr)_minmax(11rem,1.4fr)_1.5rem]';
+const GRID = 'grid items-center gap-2 grid-cols-[1.25rem_minmax(10.5rem,1.95fr)_minmax(11rem,1.3fr)_minmax(5.7rem,0.57fr)_minmax(12.5rem,1.4fr)]';
 
 const NONE = '__none__';
 
@@ -183,8 +183,8 @@ function SortableActivityRow({
           </span>
         )}
 
-        {/* Responsible participant */}
-        <div className="min-w-0">
+        {/* Responsible participant + delete control */}
+        <div className="min-w-0 flex items-center gap-1">
           {selected ? (
             <ParticipantBubble
               onClick={() => {
@@ -213,16 +213,13 @@ function SortableActivityRow({
           ) : (
             <span className="text-xs text-muted-foreground">—</span>
           )}
+          {canEdit && (
+            <DeleteConfirmDialog
+              itemLabel="this linked activity"
+              onConfirm={() => onDelete(activity.id)}
+            />
+          )}
         </div>
-
-        {canEdit ? (
-          <DeleteConfirmDialog
-            itemLabel="this linked activity"
-            onConfirm={() => onDelete(activity.id)}
-          />
-        ) : (
-          <span />
-        )}
       </div>
 
       <Dialog open={assignOpen} onOpenChange={setAssignOpen}>
@@ -353,7 +350,6 @@ export default function LinkedActivitiesTable({
           <span>Funding instrument</span>
           <span>Duration</span>
           <span>Participant responsible for establishing the link</span>
-          <span />
         </div>
       )}
 

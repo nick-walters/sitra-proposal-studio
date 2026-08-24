@@ -196,7 +196,7 @@ function ReadOnlyRichBody({ html, headingPrefixHtml }: { html: string | null | u
     if (headingPrefixHtml) {
       return (
         <div
-          className="font-['Times_New_Roman',Times,serif] text-[11pt] text-justify [&_p]:mt-[3pt] [&_p]:mb-[3pt] [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-[calc(1.5em-4pt)] [&_ol]:pl-[calc(1.5em-4pt)] [&_li::marker]:text-[0.85em] [&_li]:my-[1pt]"
+          className="font-['Times_New_Roman',Times,serif] text-[11pt] text-justify text-black [&_p]:mt-[3pt] [&_p]:mb-[3pt] [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-[calc(1.5em-4pt)] [&_ol]:pl-[calc(1.5em-4pt)] [&_li::marker]:text-[0.85em] [&_li]:my-[1pt]"
           dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(`<p>${headingPrefixHtml}</p>`, CROSS_REF_RICH_TEXT_CONFIG) }}
         />
       );
@@ -237,10 +237,10 @@ function ReadOnlyRichBody({ html, headingPrefixHtml }: { html: string | null | u
   }
 
   return (
-    <div
-      className="font-['Times_New_Roman',Times,serif] text-[11pt] text-justify [&_p]:mt-[3pt] [&_p]:mb-[3pt] [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-[calc(1.5em-4pt)] [&_ol]:pl-[calc(1.5em-4pt)] [&_li::marker]:text-[0.85em] [&_li]:my-[1pt]"
-      dangerouslySetInnerHTML={{ __html: renderRefBadges(DOMPurify.sanitize(finalHtml, CROSS_REF_RICH_TEXT_CONFIG), refData) }}
-    />
+      <div
+        className="font-['Times_New_Roman',Times,serif] text-[11pt] text-justify text-black [&_p]:mt-[3pt] [&_p]:mb-[3pt] [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-[calc(1.5em-4pt)] [&_ol]:pl-[calc(1.5em-4pt)] [&_li::marker]:text-[0.85em] [&_li]:my-[1pt]"
+        dangerouslySetInnerHTML={{ __html: renderRefBadges(DOMPurify.sanitize(finalHtml, CROSS_REF_RICH_TEXT_CONFIG), refData) }}
+      />
   );
 }
 
@@ -427,7 +427,7 @@ export function CasesTableLiveView({ proposalId, caseTypeId, letterIndex }: Case
             padding: '8px 10px',
             border: '1px dashed #9ca3af',
             borderRadius: 4,
-            color: '#6b7280',
+            color: '#000',
             fontFamily: 'system-ui, sans-serif',
             fontSize: 12,
           }}
@@ -472,12 +472,12 @@ export function CasesTableLiveView({ proposalId, caseTypeId, letterIndex }: Case
                   style={{ fontStyle: 'normal' }}
                 />
               ) : (
-                <span className="text-muted-foreground text-[9pt] italic">No {caseWord(data?.types ?? [], { capitalize: false })} lead</span>
+                <span className="text-[9pt] italic text-black">No {caseWord(data?.types ?? [], { capitalize: false })} lead</span>
               )}
             </div>
 
             <div style={{ marginBottom: 4, fontWeight: 700 }}>
-              {(c.title || '').trim() ? c.title : <span className="text-muted-foreground italic font-normal">Untitled {caseWord(data?.types ?? [], { capitalize: false })}</span>}
+              {(c.title || '').trim() ? c.title : <span className="italic font-normal text-black">Untitled {caseWord(data?.types ?? [], { capitalize: false })}</span>}
             </div>
 
             <div style={{ height: 2, backgroundColor: '#000000', width: '100%', margin: '6px 0' }} />
