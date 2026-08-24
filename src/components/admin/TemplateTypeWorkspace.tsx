@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { AdminRichTextField } from '@/components/admin/AdminRichTextField';
+
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -630,13 +632,13 @@ function GuidelineEditor({
         onChange={(e) => setTitle(e.target.value)}
         className="h-8"
       />
-      <Textarea
+      <AdminRichTextField
         value={content}
+        onChange={setContent}
         disabled={!editable}
-        onChange={(e) => setContent(e.target.value)}
-        rows={8}
-        className="font-mono text-xs"
+        minHeight="9rem"
       />
+
       {editable && (
         <div className="flex items-center gap-2">
           <Button size="sm" disabled={!dirty} onClick={() => onSave({ title, content })}>Save</Button>
