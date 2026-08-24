@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Switch } from '@/components/ui/switch';
+import { Tip } from '@/components/ui/control-tip';
 import { ScrollableToolbarRow } from '@/components/ScrollableToolbarRow';
 import { formatTime } from '@/lib/formatDate';
 
@@ -32,6 +33,8 @@ interface FeatureButtonProps {
   disabled?: boolean;
   asDiv?: boolean;
   onClick?: () => void;
+  /** Hover tooltip; also becomes the control's aria-label. */
+  tooltip?: string;
 }
 
 export const FeatureButton = forwardRef<HTMLButtonElement | HTMLDivElement, FeatureButtonProps>(
@@ -46,6 +49,7 @@ export const FeatureButton = forwardRef<HTMLButtonElement | HTMLDivElement, Feat
       disabled,
       asDiv,
       onClick,
+      tooltip,
     },
     ref,
   ) {
@@ -84,13 +88,15 @@ export const FeatureButton = forwardRef<HTMLButtonElement | HTMLDivElement, Feat
       </>
     );
 
-    return asDiv ? (
+    const element = asDiv ? (
       <div {...commonProps}>{content}</div>
     ) : (
       <button type="button" disabled={disabled} {...commonProps}>
         {content}
       </button>
     );
+
+    return tooltip ? <Tip label={tooltip}>{element}</Tip> : element;
   },
 );
 
@@ -154,6 +160,7 @@ export function EditorFeatureBar({
           )
         }
         primary={savePrimary}
+        tooltip="Save all changes now"
         secondary="Click to save now"
         secondarySmall
         tone={saveTone}
@@ -164,6 +171,7 @@ export function EditorFeatureBar({
         <FeatureButton
           icon={<Keyboard className="h-3.5 w-3.5" />}
           primary="Keyboard"
+          tooltip="Show keyboard shortcuts"
           secondary="shortcuts"
           secondarySmall
           onClick={onOpenShortcuts}
@@ -175,6 +183,7 @@ export function EditorFeatureBar({
           <FeatureButton
             icon={<Info className="h-3.5 w-3.5" />}
             primary="Guidelines"
+            tooltip="Commission guidelines for the focused field"
             secondary="for this field"
             secondarySmall
             tone="destructive"
@@ -184,22 +193,25 @@ export function EditorFeatureBar({
           <FeatureButton
             icon={<History className="h-3.5 w-3.5" />}
             primary="Version"
+            tooltip="Version history for the focused text box"
             secondary="history"
             onClick={onOpenVersionHistory}
           />
 
-          <FeatureButton icon={<Search className="h-3.5 w-3.5" />} primary="Find &" secondary="replace" />
+          <FeatureButton icon={<Search className="h-3.5 w-3.5" />} primary="Find &" secondary="replace" tooltip="Find and replace text" />
 
           <FeatureButton
             asDiv
             leading={<Switch checked={trackChangesOn} className="pointer-events-none scale-75" />}
             primary="Track my"
+            tooltip="Track my changes while editing"
             secondary="changes"
           />
 
           <FeatureButton
             icon={<GitCompare className="h-3.5 w-3.5" />}
             primary="Review"
+            tooltip="Review tracked changes"
             secondary={
               typeof pendingChangeCount === 'number' ? `changes · ${pendingChangeCount}` : 'changes'
             }
@@ -209,17 +221,19 @@ export function EditorFeatureBar({
           <FeatureButton
             icon={<MessageSquare className="h-3.5 w-3.5" />}
             primary="Comment"
+            tooltip="Open the comment panel"
             secondary={typeof commentCount === 'number' ? `panel · ${commentCount}` : 'panel'}
             secondarySmall
           />
 
-          <FeatureButton icon={<Sparkles className="h-3.5 w-3.5" />} primary="AI" secondary="tools" />
+          <FeatureButton icon={<Sparkles className="h-3.5 w-3.5" />} primary="AI" secondary="tools" tooltip="AI writing tools" />
         </>
       )}
 
       <FeatureButton
         icon={<FileText className="h-3.5 w-3.5" />}
         primary="Preview"
+        tooltip={`Preview ${previewLabel}`}
         secondary={previewLabel}
         secondarySmall
         onClick={onPreview}
