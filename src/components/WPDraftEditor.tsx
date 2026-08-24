@@ -317,6 +317,16 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
   const visibleSitraTips = guidelineScope
     ? SITRA_TIPS.filter((t) => guidelineScope.sitra.includes(t.id))
     : SITRA_TIPS;
+
+  /* The B3.1 block guidance that belongs on this field, taken from the
+     proposal's own template version. */
+  const { data: wpTemplateVersionId } = useProposalTemplateVersion(proposalId);
+  const { data: blockGuidelines = [] } = useCardGuidelines(
+    BLOCK_GUIDELINE_KEYS[focusedGuidelineKey ?? ''] ?? null,
+    'part_b',
+    wpTemplateVersionId,
+  );
+
   
   // Dialog states for editor features
   const [isCitationOpen, setIsCitationOpen] = useState(false);
