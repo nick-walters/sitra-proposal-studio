@@ -212,7 +212,6 @@ function SortableMethodologyCard({
   );
 }
 
-/** Single page-wide formatting bar, bound to the last-focused editor. */
 /**
  * Clears the active field when the user clicks empty space. Clicks inside an
  * editor surface, the chrome bars or any dialog keep the current target so
