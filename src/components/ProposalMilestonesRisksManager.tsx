@@ -725,6 +725,9 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
           <EditorToolbars
             proposalId={proposalId}
             save={{ saving: activeSaves > 0, lastSaved, onSaveNow: saveNow }}
+            topBar={{
+              onFindReplace: pageSearch ? () => pageSearch.setOpen(true) : undefined,
+            }}
             formatting={{
               proposalId,
               crossRefDropdown: (
@@ -950,6 +953,7 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
                     onDelete={() => deleteRisk.mutate(r.id)}
                     proposalId={proposalId}
                   />
+                  </div>
                 ))}
               </SortableContext>
             </DndContext>
@@ -975,6 +979,7 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
       />
       {conflictDialog}
     </div>
+      <PageFindReplacePanel />
     </TooltipProvider>
     </SaveTrackerContext.Provider>
   );
