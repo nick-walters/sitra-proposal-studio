@@ -436,6 +436,32 @@ export type Database = {
           },
         ]
       }
+      card_collapse_states: {
+        Row: {
+          card_id: string
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          card_id: string
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          card_id?: string
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_collapse_states_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "proposal_cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       card_deletions: {
         Row: {
           deleted_at: string
