@@ -14,17 +14,23 @@ export function Tip({
   label,
   side = 'top',
   children,
+  ...rest
 }: {
   label: string;
   side?: 'top' | 'right' | 'bottom' | 'left';
   children: ReactNode;
-}) {
+} & Record<string, unknown>) {
   if (!isValidElement(children)) return <>{children}</>;
 
+  // Radix triggers (`AlertDialogTrigger asChild`, `DropdownMenuTrigger asChild`
+  // …) hand their behaviour — onClick, aria-* and a ref — to this component as
+  // props. Without forwarding them onto the child the control renders but does
+  // nothing, which is what broke the linked-activity delete button.
   const trigger = cloneElement(
     children as ReactElement<{ 'aria-label'?: string; title?: string }>,
-    { 'aria-label': label, title: undefined },
+    { ...(rest as object), 'aria-label': label, title: undefined },
   );
+
 
   return (
     <Tooltip>
