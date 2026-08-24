@@ -356,7 +356,11 @@ export default function LinkedActivitiesTable({
           {canEdit ? ' — add the first related project below.' : '.'}
         </p>
       ) : (
-        <div className={`${GRID} px-3 text-xs font-medium text-muted-foreground`}>
+        <div
+          /* Rows sit inside a 1px border plus p-3, so their content starts
+             13px from the block edge — the labels must match exactly. */
+          className={`${GRID} px-[13px] text-xs font-medium text-muted-foreground`}
+        >
           <span />
           <span>Project acronym</span>
           <span>Funding instrument</span>
