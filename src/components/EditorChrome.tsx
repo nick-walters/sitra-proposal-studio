@@ -260,39 +260,36 @@ export function EditorTopBar({
         />
       )}
 
-      {onOpenComments && (
-        <FeatureButton
-          icon={<MessageSquare className="h-3.5 w-3.5" />}
-          primary="Comments"
-          secondary={typeof commentCount === 'number' ? `panel · ${commentCount}` : 'panel'}
-          secondarySmall
-          tooltip="Open the comments panel"
-          onClick={onOpenComments}
-        />
-      )}
+      <FeatureButton
+        icon={<MessageSquare className="h-3.5 w-3.5" />}
+        primary="Comments"
+        secondary={typeof commentCount === 'number' ? `panel · ${commentCount}` : 'panel'}
+        secondarySmall
+        tooltip="Open the comments panel"
+        disabled={!onOpenComments}
+        onClick={onOpenComments}
+      />
 
-      {onFindReplace && (
-        <FeatureButton
-          icon={<Search className="h-3.5 w-3.5" />}
-          primary="Find &"
-          secondary="replace"
-          tooltip="Find and replace text"
-          onClick={onFindReplace}
-        />
-      )}
+      <FeatureButton
+        icon={<Search className="h-3.5 w-3.5" />}
+        primary="Find &"
+        secondary="replace"
+        tooltip="Find and replace text"
+        disabled={!onFindReplace}
+        onClick={onFindReplace}
+      />
 
       {trailing}
 
-      {onOpenShortcuts && (
-        <FeatureButton
-          icon={<Keyboard className="h-3.5 w-3.5" />}
-          primary="Keyboard"
-          tooltip="Show keyboard shortcuts"
-          secondary="shortcuts"
-          secondarySmall
-          onClick={onOpenShortcuts}
-        />
-      )}
+      <FeatureButton
+        icon={<Keyboard className="h-3.5 w-3.5" />}
+        primary="Keyboard"
+        tooltip="Show keyboard shortcuts"
+        secondary="shortcuts"
+        secondarySmall
+        disabled={!onOpenShortcuts}
+        onClick={onOpenShortcuts}
+      />
     </div>
   );
 }
