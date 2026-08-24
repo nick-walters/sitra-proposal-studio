@@ -161,17 +161,20 @@ export function TemplateTypeWorkspace({
       {/* Toolbar */}
       <Card>
         <CardContent className="flex flex-wrap items-end gap-3 pt-6">
-          <div className="grid gap-1.5">
-            <Label className="text-xs">Template type</Label>
-            <Select value={typeId} onValueChange={(v) => { setTypeId(v); setVersionId(''); }}>
-              <SelectTrigger className="w-[260px]"><SelectValue placeholder="Select type" /></SelectTrigger>
-              <SelectContent>
-                {templateTypes.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>{t.code} — {t.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {!typeIdProp && (
+            <div className="grid gap-1.5">
+              <Label className="text-xs">Template type</Label>
+              <Select value={typeId} onValueChange={(v) => { setTypeId(v); setVersionId(''); }}>
+                <SelectTrigger className="w-[260px]"><SelectValue placeholder="Select type" /></SelectTrigger>
+                <SelectContent>
+                  {templateTypes.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>{t.code} — {t.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           <div className="grid gap-1.5">
             <Label className="text-xs">Version</Label>
             <Select value={activeVersionId} onValueChange={setVersionId}>
