@@ -826,7 +826,7 @@ function B31RisksTableInner({ proposalId }: Props) {
             .sort((a: any, b: any) => a.number - b.number);
           return (
             <tr key={r.id}>
-              <MCell index={0} last={last} cellClass="cell-pl-0"><ReadOnlyHtmlCell html={r.title} className="[&_p]:!text-left [&_li]:!text-left" /></MCell>
+              <MCell index={0} last={last} cellClass="cell-pl-0"><ReadOnlyHtmlCell html={r.title} /></MCell>
               <MCell index={1} last={last} cellClass="cell-px-0" className="text-left">
                 {r.likelihood ? <RiskBadge level={r.likelihood as 'L' | 'M' | 'H'} /> : <span className="text-muted-foreground">—</span>}
               </MCell>
