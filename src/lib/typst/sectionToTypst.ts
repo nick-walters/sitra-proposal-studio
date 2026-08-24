@@ -10,7 +10,12 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { RefSnapshot } from '@/lib/referenceData';
 import { mapCard, mapField, type CardField, type ProposalCard } from '@/types/cards';
-import { htmlToTypstBlocks, typstString, type ConvertContext } from './htmlToTypst';
+import {
+  htmlToTypstBlocks,
+  htmlToTypstInline,
+  typstString,
+  type ConvertContext,
+} from './htmlToTypst';
 import { TYPST_PREAMBLE } from './typstPreamble';
 
 import { extractHexTextColorsFromHtml } from '@/lib/extractHexTextColors';
