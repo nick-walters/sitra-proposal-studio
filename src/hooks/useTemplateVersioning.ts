@@ -11,6 +11,8 @@ export interface TemplateVersionRow {
   notes: string | null;
   published_at: string | null;
   created_at: string;
+  locked_by: string | null;
+  locked_at: string | null;
 }
 
 export interface CardTemplateRow {
@@ -118,6 +120,23 @@ export function useSectionCriteriaAdmin(versionId: string | null, sectionSourceI
   });
 }
 
+/** Name of the owner currently holding a draft's editing lock. */
+export function useLockHolderName(userId: string | null | undefined) {
+  return useQuery({
+    queryKey: ['admin-lock-holder', userId],
+    enabled: !!userId,
+    staleTime: 5 * 60_000,
+    queryFn: async (): Promise<string> => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('full_name, email')
+        .eq('id', userId!)
+        .maybeSingle();
+      return (data?.full_name || data?.email || 'another owner') as string;
+    },
+  });
+}
+
 /** Opens (or reuses) the draft version every edit is written into. */
 export function useEnsureDraft() {
   const qc = useQueryClient();
@@ -135,17 +154,38 @@ export function useEnsureDraft() {
   });
 }
 
+/** Claims — or, with `takeover`, seizes — the editing lock on a type's draft.
+ *  The draft itself is never discarded: a takeover only changes the holder. */
+export function useClaimDraft() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { templateTypeId: string; takeover?: boolean }) => {
+      const { data, error } = await supabase.rpc('claim_template_draft', {
+        p_template_type_id: args.templateTypeId,
+        p_takeover: args.takeover ?? false,
+      });
+      if (error) throw error;
+      return data as unknown as { ok: boolean; version_id: string; locked_by?: string | null };
+    },
+    onSuccess: (_r, args) => {
+      qc.invalidateQueries({ queryKey: ['admin-template-versions', args.templateTypeId] });
+    },
+  });
+}
+
 export function usePublishVersion() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (args: { versionId: string; major: boolean; name?: string; notes?: string }) => {
-      const { error } = await supabase.rpc('publish_template_version', {
+      const { data, error } = await supabase.rpc('publish_template_version', {
         p_version_id: args.versionId,
         p_major: args.major,
         p_name: args.name ?? null,
         p_notes: args.notes ?? null,
       });
       if (error) throw error;
+      const res = data as unknown as { ok: boolean; error?: string };
+      if (res && res.ok === false) throw new Error(res.error ?? 'Could not publish this draft');
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-template-versions'] });
