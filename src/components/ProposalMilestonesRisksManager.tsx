@@ -928,13 +928,15 @@ function SortableRiskRow({
     opacity: isDragging ? 0.5 : 1,
   };
   return (
-    <div ref={setNodeRef} style={style} className="group grid grid-cols-[26px_1fr] gap-x-2 border-b py-1.5 space-y-1 px-1">
-      {/* ── Line 1: grip + description + likelihood + severity + WP(s) + delete ── */}
-      <span className="flex-none w-[26px] flex items-center justify-center pt-1">
+    <div ref={setNodeRef} style={style} className="group grid grid-cols-[18px_1fr] gap-x-1 border-b py-1.5 space-y-1 px-1">
+      {/* ── Line 1: grip + description + likelihood + severity + WP(s) + delete ──
+          The grip is permanently visible (no hover reveal) and sits close to
+          the description field. */}
+      <span className="flex-none w-[18px] flex items-center justify-start pt-1">
         {canEdit && (
           <button
             type="button"
-            className="cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center justify-center"
+            className="cursor-grab active:cursor-grabbing inline-flex items-center justify-center"
             {...attributes}
             {...listeners}
             aria-label="Drag to reorder"
