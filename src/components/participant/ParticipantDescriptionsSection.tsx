@@ -4,20 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { LazyRichField } from '@/components/participant/LazyRichField';
-import { ParticipantCrossRefDropdown } from '@/components/participant/ParticipantCrossRefDropdown';
-
-import { EditorToolbars } from '@/components/editor/EditorToolbars';
 import { ParticipantBubble } from '@/components/B31Pill';
-import {
-  ToolbarButton,
-  TextFormattingGroup,
-} from '@/components/toolbar';
-import { Undo2, Redo2 } from 'lucide-react';
-import { StickyToolbarWrapper } from '@/components/StickyToolbarWrapper';
-import {
-  MethodologyEditorFocusProvider,
-  useMethodologyEditorFocus,
-} from '@/components/MethodologyEditorFocusContext';
 import { Participant } from '@/types/proposal';
 import { ALL_COUNTRIES } from '@/lib/countries';
 import type {
@@ -68,15 +55,11 @@ interface ParticipantDescriptionsSectionProps {
   canManageCustomColors?: boolean;
 }
 
-export function ParticipantDescriptionsSection(props: ParticipantDescriptionsSectionProps) {
-  return (
-    <MethodologyEditorFocusProvider>
-      <ParticipantDescriptionsSectionInner {...props} />
-    </MethodologyEditorFocusProvider>
-  );
-}
-
-function ParticipantDescriptionsSectionInner({
+/**
+ * The page (PartAPageLayout) owns the ONE three-tier toolbar and the focus
+ * provider; this card only renders fields.
+ */
+export function ParticipantDescriptionsSection({
   participant,
   descriptions,
   onUpdateField,
@@ -88,7 +71,6 @@ function ParticipantDescriptionsSectionInner({
   acronymSegments,
 }: ParticipantDescriptionsSectionProps) {
   const [, setAnyFieldFocused] = useState(false);
-  const [crossRefOpen, setCrossRefOpen] = useState(false);
   const blurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 
@@ -154,24 +136,6 @@ function ParticipantDescriptionsSectionInner({
     }, 150);
   }, []);
 
-  // The shared toolbar acts on whichever LazyRichField last mounted/focused
-  // an editor (MethodologyEditorFocusContext).
-  const { activeEditor } = useMethodologyEditorFocus();
-  const activeEditorRef = useRef(activeEditor);
-  activeEditorRef.current = activeEditor;
-
-  const run = useCallback((fn: (chain: ReturnType<NonNullable<typeof activeEditor>['chain']>) => void) => {
-    const editor = activeEditorRef.current;
-    if (!editor || editor.isDestroyed) return;
-    fn(editor.chain().focus());
-  }, []);
-
-  // Toolbar interactions and cross-ref dialogs must not unmount the editor.
-  const shouldStayMounted = useCallback(
-    () => crossRefOpen,
-    [crossRefOpen],
-  );
-
   if (visibleFields.length === 0) return null;
 
   const shortName = participant.organisationShortName || '';
@@ -185,26 +149,6 @@ function ParticipantDescriptionsSectionInner({
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
-        {canEdit && (
-          <EditorToolbars
-            proposalId={proposalId}
-            save={{ saving, lastSaved, onSaveNow: () => {} }}
-            formatting={{
-              proposalId,
-              crossRefDropdown: proposalId
-                ? (editor) => (
-                    <ParticipantCrossRefDropdown
-                      proposalId={proposalId}
-                      acronymSegments={acronymSegments}
-                      onOpenChange={setCrossRefOpen}
-                      editor={editor}
-                    />
-                  )
-                : undefined,
-            }}
-          />
-        )}
-
         {visibleFields.map((field) => {
           const label = field.labelTemplate.replace('[name]', shortName);
           const prefixNode = (
@@ -225,7 +169,6 @@ function ParticipantDescriptionsSectionInner({
                 proposalId={proposalId ?? ''}
                 onFocus={handleFocus}
                 onBlur={handleBlur}
-                shouldStayMounted={shouldStayMounted}
               />
             </div>
           );
