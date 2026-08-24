@@ -229,11 +229,18 @@ export function TemplateTypeWorkspace({
         </div>
       )}
 
-      {subsectionOrder.length > 0 && (
-        <div className="flex justify-end">
+
+      {/* Part A comes first, in document order. */}
+      {partASlot}
+
+      <div className="flex items-center gap-2 pt-2">
+        <Badge variant="outline">Part B</Badge>
+        <h3 className="text-lg font-semibold">Technical annex</h3>
+        {subsectionOrder.length > 0 && (
           <Button
             variant="ghost"
             size="sm"
+            className="ml-auto"
             onClick={() => {
               const next: Record<string, boolean> = {};
               for (const s of subsectionOrder) next[s] = !allCollapsed;
@@ -242,8 +249,9 @@ export function TemplateTypeWorkspace({
           >
             {allCollapsed ? 'Expand all' : 'Collapse all'}
           </Button>
-        </div>
-      )}
+        )}
+      </div>
+
 
       {subsectionOrder.map((sectionNumber) => {
         const rows = grouped.get(sectionNumber) ?? [];
