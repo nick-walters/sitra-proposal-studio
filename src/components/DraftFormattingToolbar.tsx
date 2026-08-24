@@ -205,6 +205,8 @@ export function DraftFormattingToolbar({
   fontColor,
   capabilities,
   hasFocusedField = true,
+  topBar,
+  fieldBar,
 }: DraftFormattingToolbarProps) {
   if (hideToolbar) return null;
 
@@ -228,40 +230,39 @@ export function DraftFormattingToolbar({
     },
   };
 
+  // Solid background on every tier: page content scrolling beneath the
+  // floating toolbar must never show through.
   const containerClass = showGuidelinesRow
-    ? 'p-2 border rounded-md bg-card sticky top-0 z-10 space-y-1.5'
-    : 'p-1.5 border-b bg-muted/30';
+    ? 'border rounded-md bg-card sticky top-0 z-10 divide-y divide-border overflow-hidden'
+    : 'p-1.5 border-b bg-card';
 
   const row2Class = showGuidelinesRow
-    ? 'flex items-center gap-0.5 flex-wrap'
+    ? 'flex items-center gap-0.5 flex-wrap px-2 py-1.5 bg-card'
     : 'flex items-center gap-0 flex-wrap';
 
   return (
     <div className={containerClass}>
-      {/* Row 1: Guidelines + Save */}
+      {/* TOP TIER — page-wide controls, always visible */}
       {showGuidelinesRow && (
-        <div className="flex items-center gap-2">
-          {onOpenGuidelines && hasFocusedField && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onOpenGuidelines}
-              className="h-7 px-2 text-xs gap-1 text-destructive border-destructive/50 hover:bg-destructive/10 hover:text-destructive"
-            >
-              <BookOpen className="h-3.5 w-3.5" />
-              Guidelines
-            </Button>
-          )}
-          {save && (
-            <SaveIndicator
-              saving={save.saving}
-              lastSaved={save.lastSaved}
-              saveError={save.saveError ?? null}
-              onSaveNow={save.onSaveNow}
-            />
-          )}
-        </div>
+        <EditorTopBar
+          saving={save?.saving ?? false}
+          lastSaved={save?.lastSaved ?? null}
+          savedMode={save?.savedMode ?? 'auto'}
+          isDirty={save?.isDirty ?? false}
+          onSaveNow={save?.onSaveNow}
+          {...(topBar ?? {})}
+        />
       )}
+
+      {/* MIDDLE TIER — field-specific features, only with a focused field */}
+      {showGuidelinesRow && (
+        <EditorFieldBar
+          hasFocusedField={hasFocusedField}
+          onOpenGuidelines={onOpenGuidelines}
+          {...(fieldBar ?? {})}
+        />
+      )}
+
 
       {/* Row 2: Formatting toolbar */}
       {!isReadOnly && hasFocusedField && (
