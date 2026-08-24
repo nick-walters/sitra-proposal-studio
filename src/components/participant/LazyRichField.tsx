@@ -140,16 +140,24 @@ export function LazyRichField({
     if (unmountTimerRef.current) clearTimeout(unmountTimerRef.current);
   }, []);
 
+  // Title fields flatten whatever the editor produces, so a paste can never
+  // leave a second paragraph behind in a one-line field.
+  const emitChange = useCallback(
+    (html: string) => onChange(singleLine ? collapseToSingleLineHtml(html) : html),
+    [onChange, singleLine],
+  );
+
   const unmountEditor = useCallback(() => {
     const editor = editorRef.current;
     if (editor && !editor.isDestroyed) {
       const html = editor.getHTML();
-      if (html !== valueRef.current) onChange(html);
+      if (html !== valueRef.current) emitChange(html);
     }
     editorRef.current = null;
     setMounted(false);
     onBlur?.();
-  }, [onChange, onBlur]);
+  }, [emitChange, onBlur]);
+
 
   // What this field's own schema allows. The mounted instance is created by
   // the shared editor hook (full schema), so the capabilities of the field's
