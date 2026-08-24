@@ -121,15 +121,16 @@ export function buildSectionTypstDocument(
     }
 
     if (card.title) {
+      // Colour is carried per RUN, so colouring one word colours one word.
       out.push(
-        `block(above: 14pt, below: 6pt, text(size: 12pt, weight: "bold", ${titleFill(card.title)}underline(t(${typstString(titleText(card.title))}))))`,
+        `block(above: 14pt, below: 6pt, text(size: 12pt, weight: "bold", underline(${htmlToTypstInline(card.title, ctx)})))`,
       );
     }
 
     for (const field of tree.fieldsByCard[card.id] || []) {
       if (field.headingEnabled && field.heading) {
         out.push(
-          `block(above: 10pt, below: 4pt, text(size: 11pt, weight: "bold", style: "italic", ${titleFill(field.heading)}t(${typstString(titleText(field.heading))})))`,
+          `block(above: 10pt, below: 4pt, text(size: 11pt, weight: "bold", style: "italic", ${htmlToTypstInline(field.heading, ctx)}))`,
         );
       }
       out.push(...htmlToTypstBlocks(field.contentHtml, ctx));
