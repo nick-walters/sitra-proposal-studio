@@ -202,7 +202,7 @@ function SortableActivityRow({
         )}
 
         {/* Responsible participant + delete control */}
-        <div className="min-w-0 flex items-center gap-1">
+        <div data-scalar-field="" className="min-w-0 flex items-center gap-1">
           {selected ? (
             <ParticipantBubble
               onClick={() => {
