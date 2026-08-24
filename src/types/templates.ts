@@ -61,7 +61,7 @@ export interface TemplateSection {
   form_fields?: TemplateFormField[];
 }
 
-export type GuidelineType = 'official' | 'sitra_tip' | 'evaluation';
+export type GuidelineType = 'official' | 'sitra_tip' | 'criteria';
 
 export interface SectionGuideline {
   id: string;
@@ -293,7 +293,7 @@ export interface ProposalSectionGuideline {
   id: string;
   proposal_section_id: string;
   source_guideline_id?: string;
-  guideline_type: 'official' | 'sitra_tip' | 'evaluation';
+  guideline_type: 'official' | 'sitra_tip' | 'criteria';
   title: string;
   content: string;
   order_index: number;

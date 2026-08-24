@@ -4,13 +4,13 @@ import { cn } from "@/lib/utils";
 /**
  * GuidelineBox - Displays a SINGLE guideline with styled box formatting
  * 
- * Use for: Displaying individual guidelines (official, sitra_tip, or evaluation)
+ * Use for: Displaying individual guidelines (official, sitra_tip, or criteria)
  * with consistent styling including icon, title, and content.
  * 
  * For displaying multiple Sitra tips in a collapsible container, use SitraTipsBox instead.
  */
 
-export type GuidelineType = 'official' | 'sitra_tip' | 'evaluation';
+export type GuidelineType = 'official' | 'sitra_tip' | 'criteria';
 
 interface GuidelineBoxProps {
   type: GuidelineType;
@@ -39,14 +39,14 @@ const guidelineConfig = {
     iconColor: "text-gray-800",
     textColor: "text-gray-700",
   },
-  evaluation: {
+  criteria: {
     icon: ClipboardCheck,
     label: "Evaluation criteria",
-    borderColor: "border-amber-500",
-    titleColor: "text-amber-700",
-    bgColor: "bg-amber-50/50",
-    iconColor: "text-amber-600",
-    textColor: "text-amber-700",
+    borderColor: "border-destructive",
+    titleColor: "text-destructive",
+    bgColor: "bg-destructive/5",
+    iconColor: "text-destructive",
+    textColor: "text-destructive",
   },
 };
 
@@ -117,5 +117,5 @@ export function SitraTip({ title, children, className, compact }: Omit<Guideline
 }
 
 export function EvaluationCriteria({ title, children, className, compact }: Omit<GuidelineBoxProps, 'type'>) {
-  return <GuidelineBox type="evaluation" title={title} className={className} compact={compact}>{children}</GuidelineBox>;
+  return <GuidelineBox type="criteria" title={title} className={className} compact={compact}>{children}</GuidelineBox>;
 }

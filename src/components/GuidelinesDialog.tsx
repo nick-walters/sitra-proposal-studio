@@ -128,14 +128,6 @@ function ConsolidatedGuidelineBox({
       bgColor: "bg-destructive/5",
       iconColor: "text-destructive",
     },
-    evaluation: {
-      icon: ClipboardCheck,
-      label: "Evaluation criterion",
-      borderColor: "border-amber-500",
-      titleColor: "text-amber-700",
-      bgColor: "bg-amber-50/50",
-      iconColor: "text-amber-600",
-    },
     official: {
       icon: Info,
       label: "Official guidelines from the European Commission",
@@ -202,11 +194,10 @@ export function GuidelinesDialog({
   dialogTitle,
   guidelines,
 }: GuidelinesDialogProps) {
-  // Group guidelines by type and maintain order: criteria, evaluation, official, sitra_tip
+  // Group guidelines by type and maintain order: criteria, official, sitra_tip
   const groupedGuidelines = useMemo(() => {
     const groups: Record<GuidelineType, Guideline[]> = {
       criteria: [],
-      evaluation: [],
       official: [],
       sitra_tip: [],
     };
@@ -231,7 +222,7 @@ export function GuidelinesDialog({
   }, [guidelines]);
 
   // Order of display
-  const typeOrder: GuidelineType[] = ['criteria', 'evaluation', 'official', 'sitra_tip'];
+  const typeOrder: GuidelineType[] = ['criteria', 'official', 'sitra_tip'];
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

@@ -48,7 +48,7 @@ interface GuidelineEditorDialogProps {
 }
 
 const GUIDELINE_TYPES = [
-  { value: 'evaluation', label: 'Evaluation Criterion', icon: ClipboardCheck, color: 'bg-amber-100 text-amber-700' },
+  { value: 'criteria', label: 'Evaluation criteria', icon: ClipboardCheck, color: 'bg-destructive/10 text-destructive' },
   { value: 'official', label: 'Official Guidelines', icon: Info, color: 'bg-blue-100 text-blue-700' },
   { value: 'sitra_tip', label: "Sitra's Tips", icon: Lightbulb, color: 'bg-gray-100 text-gray-700' },
 ];
@@ -94,7 +94,7 @@ export function GuidelineEditorDialog({
   const [formData, setFormData] = useState({
     title: '',
     content: '',
-    guideline_type: 'official' as 'official' | 'sitra_tip' | 'evaluation',
+    guideline_type: 'official' as 'official' | 'sitra_tip' | 'criteria',
     order_index: existingGuidelinesCount,
   });
 
@@ -106,7 +106,7 @@ export function GuidelineEditorDialog({
       setFormData({
         title: guideline.title,
         content: guideline.content,
-        guideline_type: guideline.guideline_type as 'official' | 'sitra_tip' | 'evaluation',
+        guideline_type: guideline.guideline_type as 'official' | 'sitra_tip' | 'criteria',
         order_index: guideline.order_index,
       });
     } else {
@@ -278,7 +278,7 @@ export function GuidelineEditorDialog({
             <Label>Guideline Type *</Label>
             <Select
               value={formData.guideline_type}
-              onValueChange={(value: 'official' | 'sitra_tip' | 'evaluation') => 
+              onValueChange={(value: 'official' | 'sitra_tip' | 'criteria') => 
                 setFormData({ ...formData, guideline_type: value })
               }
             >

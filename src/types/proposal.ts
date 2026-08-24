@@ -158,7 +158,7 @@ export interface ProposalMember {
 
 export interface SectionGuideline {
   id: string;
-  type: 'official' | 'sitra_tip' | 'evaluation';
+  type: 'official' | 'sitra_tip' | 'criteria';
   title: string;
   content: string;
   orderIndex: number;

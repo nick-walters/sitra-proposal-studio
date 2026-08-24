@@ -540,7 +540,7 @@ export function ParticipantListView({
   // Extract guidelines from section
   const officialGuidelines = useMemo(() => {
     return (section?.guidelinesArray || [])
-      .filter(g => g.type === 'official' || g.type === 'evaluation')
+      .filter(g => g.type === 'official' || g.type === 'criteria')
       .sort((a, b) => a.orderIndex - b.orderIndex)
       .map(g => ({
         id: g.id,
