@@ -148,6 +148,78 @@ function buildSectionHierarchy(sections: TemplateSectionData[]): Section[] {
   return rootSections;
 }
 
+/**
+ * Part A sections for a proposal.
+ *
+ * The section STRUCTURE comes from the shared template, but the GUIDANCE comes
+ * from the proposal's own copy in `proposal_section_guidelines`, taken when the
+ * proposal was created. Reading `section_guidelines` live would let later
+ * template editing rewrite the guidance under an existing proposal.
+ */
+async function fetchTemplateSections(
+  templateTypeId: string,
+  proposalId?: string | null,
+): Promise<TemplateSectionData[] | null> {
+  const { data, error } = await supabase
+    .from('template_sections')
+    .select(`
+      *,
+      guidelines:section_guidelines(*),
+      form_fields:template_form_fields(*)
+    `)
+    .eq('template_type_id', templateTypeId)
+    .eq('is_active', true)
+    .order('order_index');
+
+  if (error) {
+    console.error('Error fetching template sections:', error);
+    return null;
+  }
+  const sections = (data ?? []) as unknown as TemplateSectionData[];
+  if (!proposalId || sections.length === 0) return sections;
+
+  // Overlay the proposal's own guideline copies, keyed by the template section
+  // they were copied from.
+  const { data: propSections } = await supabase
+    .from('proposal_template_sections')
+    .select('id, source_section_id, proposal_templates!inner(proposal_id)')
+    .eq('proposal_templates.proposal_id', proposalId);
+  if (!propSections || propSections.length === 0) return sections;
+
+  const sourceBySectionId = new Map<string, string>();
+  for (const ps of propSections as any[]) {
+    if (ps.source_section_id) sourceBySectionId.set(ps.id, ps.source_section_id);
+  }
+
+  const { data: copies } = await supabase
+    .from('proposal_section_guidelines')
+    .select('id, proposal_section_id, guideline_type, title, content, order_index, is_active')
+    .in('proposal_section_id', Array.from(sourceBySectionId.keys()));
+  if (!copies) return sections;
+
+  const bySource = new Map<string, TemplateSectionData['guidelines']>();
+  for (const g of copies as any[]) {
+    if (g.is_active === false) continue;
+    const sourceId = sourceBySectionId.get(g.proposal_section_id);
+    if (!sourceId) continue;
+    const list = bySource.get(sourceId) ?? [];
+    list.push({
+      id: g.id,
+      guideline_type: g.guideline_type,
+      title: g.title,
+      content: g.content,
+      order_index: g.order_index ?? 0,
+    } as any);
+    bySource.set(sourceId, list);
+  }
+
+  // A section with no copies keeps an empty list rather than falling back to
+  // the live template rows — falling back is the leak.
+  return sections.map((s) => ({ ...s, guidelines: bySource.get(s.id) ?? [] }));
+}
+
+
+
 export function useProposalSections(templateTypeId: string | null, proposalId?: string | null, proposalLoaded?: boolean, isCoordinator?: boolean) {
   // TEMPORARY (beta): the card-model Methodologies page is platform-owner only.
   // `isAdminOrOwner` mirrors the server-side `is_global_admin()` helper — a
