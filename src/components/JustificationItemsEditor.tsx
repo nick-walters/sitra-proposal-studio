@@ -3,12 +3,15 @@ import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } 
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Trash2, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import { LazyRichField } from '@/components/participant/LazyRichField';
+import { A3_JUSTIFICATION_FIELD_EXTENSIONS } from '@/components/wp/wpDraftFieldExtensions';
+import { ensureRichHtml } from '@/lib/richTextUpgrade';
 import { FormattedNumberInput } from '@/components/FormattedNumberInput';
 import { formatCurrency } from '@/lib/formatNumber';
 import type { JustificationCategory, JustificationItem } from '@/hooks/useBudgetRows';
 
 interface Props {
+  proposalId: string;
   budgetRowId: string;
   category: JustificationCategory;
   items: JustificationItem[];
@@ -20,8 +23,9 @@ interface Props {
   onReorder: (rowId: string, category: JustificationCategory, orderedIds: string[]) => void;
 }
 
-function SortableRow({ item, editable, onUpdate, onDelete }: {
+function SortableRow({ item, proposalId, editable, onUpdate, onDelete }: {
   item: JustificationItem;
+  proposalId: string;
   editable: boolean;
   onUpdate: Props['onUpdate'];
   onDelete: Props['onDelete'];
@@ -52,13 +56,17 @@ function SortableRow({ item, editable, onUpdate, onDelete }: {
           <span className="absolute right-2 text-xs text-muted-foreground pointer-events-none">€</span>
         </div>
       </div>
-      <Textarea
-        value={item.justification}
-        onChange={(e) => onUpdate(item.id, 'justification', e.target.value)}
+      {/* Rich text: legacy plain strings are upgraded to HTML on read and
+          only rewritten when the row is edited. */}
+      <LazyRichField
+        proposalId={proposalId}
+        value={ensureRichHtml(item.justification)}
+        onChange={(html) => onUpdate(item.id, 'justification', html)}
         disabled={!editable}
-        rows={2}
-        className="text-sm min-h-[40px] flex-1"
+        minHeight="40px"
+        className="text-sm flex-1"
         placeholder="Describe what this cost covers..."
+        staticExtensions={A3_JUSTIFICATION_FIELD_EXTENSIONS}
       />
       <Button
         type="button"
